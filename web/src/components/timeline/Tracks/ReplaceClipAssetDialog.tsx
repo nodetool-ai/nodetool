@@ -102,7 +102,7 @@ export const ReplaceClipAssetDialog: React.FC<ReplaceClipAssetDialogProps> =
       <Dialog
         open
         onClose={onClose}
-        title="Replace Clip"
+        title="Replace clip"
         maxWidth="sm"
         fullWidth
       >

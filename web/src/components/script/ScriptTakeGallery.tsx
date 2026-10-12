@@ -13,7 +13,8 @@ import {
   Divider,
   ToolbarIconButton,
   EmptyState,
-  SPACING
+  SPACING,
+  selectableRowStyles
 } from "../ui_primitives";
 import {
   useScriptStore,
@@ -85,7 +86,16 @@ const TakeRow = ({
   }, [take.assetId]);
 
   return (
-    <FlexRow align="center" gap={SPACING.sm} fullWidth>
+    <FlexRow
+      align="center"
+      gap={SPACING.sm}
+      fullWidth
+      aria-current={isCurrent ? "true" : undefined}
+      sx={(theme) => ({
+        ...selectableRowStyles(theme, { selected: isCurrent }),
+        px: SPACING.xs
+      })}
+    >
       <ToolbarIconButton
         tooltip={isCurrent ? "Current take" : "Use this take"}
         onClick={useTake}

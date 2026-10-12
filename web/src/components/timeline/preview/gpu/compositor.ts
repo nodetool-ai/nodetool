@@ -15,41 +15,23 @@ import type {
 import {
   isCanvasSource,
   isSourceReady,
+  isVideoFrameSource,
   shouldPresentFrame,
   sourceDimensions
 } from "./source";
+import { ExternalVideoCopier, canCopyVideoOnGpu } from "./externalVideoCopy";
 import { MaskRasterizer } from "../maskRender";
 import {
   logPreviewFailure,
   type PreviewFailureHandler
 } from "../previewFailure";
+import type { TimelinePreviewDiagnostic } from "./previewDiagnostics";
 import { previewVideoFrameGeneration, previewVideoFrameMediaTime, previewVideoFrameReady } from "./videoFrameVersion";
 
 interface SourceTexture extends GpuSourceTexture {
   source: CompositeSource;
   lastUploadKey: string;
   sourceUrl: string;
-}
-
-/**
- * Optional diagnostics consumed by the timeline performance fixture. Keeping
- * the sink on window avoids routing measurements through React state.
- */
-export interface TimelinePreviewDiagnostic {
-  kind: "source-upload" | "compositor-submit";
-  at: number;
-  sourceId?: string;
-  width?: number;
-  height?: number;
-  mediaTime?: number;
-  layerCount?: number;
-  drawnLayers?: number;
-}
-
-declare global {
-  interface Window {
-    __nodetoolTimelinePerf?: (event: TimelinePreviewDiagnostic) => void;
-  }
 }
 
 /**
@@ -67,6 +49,11 @@ function uploadKey(source: CompositeSource): string {
   }
   if (source instanceof HTMLImageElement) {
     return `i:${source.src}:${source.naturalWidth}x${source.naturalHeight}`;
+  }
+  // One upload per decoded frame. The texture entry is per layer, so the
+  // timestamp alone tells two frames of one source apart.
+  if (isVideoFrameSource(source)) {
+    return `f:${source.timestamp}:${source.displayWidth}x${source.displayHeight}`;
   }
   if (isCanvasSource(source)) {
     canvasUploads += 1;
@@ -87,12 +74,15 @@ function videoSourceUrl(video: HTMLVideoElement): string {
  * precomposite pass — is {@link GpuFrameCompositor} from
  * `@nodetool-ai/timeline/render`, the same object the server render drives. The
  * two hosts differ only where they must: pixels arrive here as `<video>`,
- * `<img>` and `ImageBitmap` and are uploaded with
+ * `VideoFrame`, `<img>` and `ImageBitmap`, video through an external texture
+ * ({@link ExternalVideoCopier}) and the rest with
  * `copyExternalImageToTexture`, and the finished frame is blitted to a swap
  * chain instead of read back to a buffer.
  */
 /** The format `GpuFrameCompositor` composites in and blits from. */
 const PRESENT_FORMAT: GPUTextureFormat = "rgba8unorm";
+
+export type { TimelinePreviewDiagnostic };
 
 export class WebGPUCompositor implements TimelineCompositor {
   private disposed = false;
@@ -128,6 +118,8 @@ export class WebGPUCompositor implements TimelineCompositor {
   private alpha = false;
   /** Shape masks rasterized to coverage bitmaps for the GPU mask pass. */
   private readonly masks = new MaskRasterizer();
+  /** Copies video frames on the GPU; null where external textures are missing. */
+  private videoCopier: ExternalVideoCopier | null = null;
 
   async init(canvas: HTMLCanvasElement): Promise<CompositorInitResult> {
     if (typeof navigator === "undefined" || !navigator.gpu) {
@@ -141,6 +133,9 @@ export class WebGPUCompositor implements TimelineCompositor {
     }
     const device = await adapter.requestDevice();
     this.device = device;
+    this.videoCopier = ExternalVideoCopier.supported(device)
+      ? new ExternalVideoCopier(device)
+      : null;
     const onError = (event: GPUUncapturedErrorEvent): void => {
       if (!this.disposed)
         this.onFailure({
@@ -300,11 +295,13 @@ export class WebGPUCompositor implements TimelineCompositor {
 
     if (entry.lastUploadKey !== key && isSourceReady(source)) {
       try {
-        this.device.queue.copyExternalImageToTexture(
-          { source, flipY: false },
-          { texture: entry.texture, premultipliedAlpha: false },
-          { width, height }
-        );
+        if (!this.copyVideoOnGpu(source, entry.texture)) {
+          this.device.queue.copyExternalImageToTexture(
+            { source, flipY: false },
+            { texture: entry.texture, premultipliedAlpha: false },
+            { width, height }
+          );
+        }
         entry.lastUploadKey = key;
         if (source instanceof HTMLVideoElement) entry.sourceUrl = videoSourceUrl(source);
         const sink =
@@ -321,6 +318,8 @@ export class WebGPUCompositor implements TimelineCompositor {
           };
           if (source instanceof HTMLVideoElement) {
             event.mediaTime = previewVideoFrameMediaTime(source) ?? source.currentTime;
+          } else if (isVideoFrameSource(source)) {
+            event.mediaTime = source.timestamp / 1_000_000;
           }
           sink(event);
         }
@@ -332,6 +331,24 @@ export class WebGPUCompositor implements TimelineCompositor {
     }
     if (entry.lastUploadKey === "") return null;
     return entry;
+  }
+
+  /**
+   * Copy a video source through an external texture. False when the source is
+   * not a video, the device cannot import it, or the import fails, and the
+   * caller then takes `copyExternalImageToTexture`.
+   */
+  private copyVideoOnGpu(source: CompositeSource, texture: GPUTexture): boolean {
+    const copier = this.videoCopier;
+    if (!copier) return false;
+    if (!(source instanceof HTMLVideoElement) && !isVideoFrameSource(source)) return false;
+    if (!canCopyVideoOnGpu(source)) return false;
+    try {
+      copier.copy(source, texture);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -442,6 +459,7 @@ export class WebGPUCompositor implements TimelineCompositor {
     }
     this.sourceTextures.clear();
     this.masks.dispose();
+    this.videoCopier = null;
     this.core?.dispose();
     this.core = null;
     this.context = null;

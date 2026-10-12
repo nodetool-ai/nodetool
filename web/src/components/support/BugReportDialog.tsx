@@ -18,8 +18,10 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  SectionHeader,
   Text,
-  TextField,
+  TextInput,
+  UploadButton,
   BORDER_RADIUS,
   SPACING
 } from "../ui_primitives";
@@ -187,8 +189,7 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
   }, []);
 
   const handleAttach = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const picked = Array.from(event.target.files ?? []);
+    (picked: File[]) => {
       const tooBig = picked.filter((file) => file.size > MAX_ATTACHMENT_BYTES);
       if (tooBig.length > 0) {
         addNotification({
@@ -201,7 +202,6 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         ...prev,
         ...picked.filter((file) => file.size <= MAX_ATTACHMENT_BYTES)
       ]);
-      event.target.value = "";
     },
     [addNotification]
   );
@@ -330,16 +330,9 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         maxWidth="sm"
         fullWidth
       >
-        <FlexColumn gap={SPACING.lg} sx={{ pb: 2 }}>
-          <AlertBanner severity="success">
-            Thanks. Your report was sent.
-          </AlertBanner>
-          <FlexRow justify="flex-end" gap={SPACING.sm}>
-            <EditorButton variant="contained" onClick={onClose}>
-              Close
-            </EditorButton>
-          </FlexRow>
-        </FlexColumn>
+        <AlertBanner severity="success">
+          Thanks. Your report was sent.
+        </AlertBanner>
       </Dialog>
     );
   }
@@ -353,8 +346,11 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         title="Report saved"
         maxWidth="sm"
         fullWidth
+        onConfirm={handleOpenIssue}
+        confirmText="Open GitHub issue"
+        cancelText="Later"
       >
-        <FlexColumn gap={SPACING.lg} sx={{ pb: 2 }}>
+        <FlexColumn gap={SPACING.lg}>
           <AlertBanner severity="success">
             Saved <strong>{saved.zipName}</strong> to your downloads.
           </AlertBanner>
@@ -362,14 +358,6 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
             Now open the GitHub issue. It is pre-filled with your description.
             Drag the saved zip into it before you submit.
           </Text>
-          <FlexRow justify="flex-end" gap={SPACING.sm}>
-            <EditorButton variant="outlined" onClick={onClose}>
-              Later
-            </EditorButton>
-            <EditorButton variant="contained" onClick={handleOpenIssue}>
-              Open GitHub issue
-            </EditorButton>
-          </FlexRow>
         </FlexColumn>
       </Dialog>
     );
@@ -380,11 +368,15 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
       className="bug-report-dialog"
       open
       onClose={onClose}
-      title="Report a Bug"
+      title="Report a bug"
       maxWidth="md"
       fullWidth
+      onConfirm={() => void handleSaveBundle()}
+      confirmText={SUBMIT_TO_BACKEND ? "Send report" : "Save report bundle"}
+      confirmDisabled={description.trim() === ""}
+      isLoading={busy}
     >
-      <FlexColumn gap={SPACING.lg} sx={{ pb: 2 }}>
+      <FlexColumn gap={SPACING.lg}>
         <AlertBanner severity="info">
           {SUBMIT_TO_BACKEND
             ? "Your report and the data checked below are sent to this NodeTool server. Review what it contains before you send it."
@@ -393,7 +385,7 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
 
         <Caption>Reported from: {sourceLabel(context.source)}</Caption>
 
-        <TextField
+        <TextInput
           label="What went wrong?"
           value={description}
           onChange={(event) => setDescription(event.target.value)}
@@ -403,7 +395,7 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
           autoFocus
           placeholder="Describe the problem in a sentence or two."
         />
-        <TextField
+        <TextInput
           label="Steps to reproduce"
           value={steps}
           onChange={(event) => setSteps(event.target.value)}
@@ -412,7 +404,7 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
           fullWidth
           placeholder={"1. Open …\n2. Add a … node\n3. Run the workflow"}
         />
-        <TextField
+        <TextInput
           label="What did you expect?"
           value={expected}
           onChange={(event) => setExpected(event.target.value)}
@@ -422,11 +414,11 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         />
 
         <FlexColumn gap={SPACING.sm}>
-          <Text weight={600}>Attached data</Text>
-          <Caption>
-            API keys and inlined media are removed before the file is written.
-            Open any file to read it first.
-          </Caption>
+          <SectionHeader
+            size="small"
+            title="Attached data"
+            subtitle="API keys and inlined media are removed before the file is written. Open any file to read it first."
+          />
 
           {allSections.length === 0 ? (
             <Caption>Nothing was captured to attach to this report.</Caption>
@@ -439,7 +431,7 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
                   border: "1px solid",
                   borderColor: "divider",
                   borderRadius: BORDER_RADIUS.md,
-                  p: 2
+                  p: SPACING.md
                 }}
               >
                 <FlexRow align="center" justify="space-between" gap={SPACING.sm}>
@@ -474,14 +466,14 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
                   <Text
                     component="pre"
                     size="small"
+                    family="secondary"
                     sx={{
                       m: 0,
-                      p: 1,
+                      p: SPACING.xs,
                       maxHeight: 220,
                       overflow: "auto",
                       whiteSpace: "pre-wrap",
                       wordBreak: "break-word",
-                      fontFamily: "var(--fontFamily2)",
                       bgcolor: "background.default",
                       borderRadius: BORDER_RADIUS.sm
                     }}
@@ -495,20 +487,19 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         </FlexColumn>
 
         <FlexColumn gap={SPACING.sm}>
-          <Text weight={600}>Screenshots and other files</Text>
-          <Caption>
-            A screenshot of the broken screen is the most useful thing you can
-            add.
-          </Caption>
-          <label>
-            <input
-              type="file"
-              multiple
-              onChange={handleAttach}
-              style={{ display: "block" }}
-              aria-label="Attach files to the bug report"
-            />
-          </label>
+          <SectionHeader
+            size="small"
+            title="Screenshots and other files"
+            subtitle="A screenshot of the broken screen is the most useful thing you can add."
+          />
+          <UploadButton
+            label="Add files"
+            tooltip="Attach files to the bug report"
+            iconVariant="file"
+            nodrag={false}
+            onFileSelect={handleAttach}
+            sx={{ alignSelf: "flex-start" }}
+          />
           {attachments.map((file) => (
             <FlexRow key={file.name} align="center" gap={SPACING.sm}>
               <Caption>
@@ -523,25 +514,6 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
             </FlexRow>
           ))}
         </FlexColumn>
-
-        <FlexRow justify="flex-end" gap={SPACING.sm}>
-          <EditorButton variant="outlined" onClick={onClose} disabled={busy}>
-            Cancel
-          </EditorButton>
-          <EditorButton
-            variant="contained"
-            onClick={() => void handleSaveBundle()}
-            disabled={busy || description.trim() === ""}
-          >
-            {SUBMIT_TO_BACKEND
-              ? busy
-                ? "Sending…"
-                : "Send report"
-              : busy
-                ? "Saving…"
-                : "Save report bundle"}
-          </EditorButton>
-        </FlexRow>
       </FlexColumn>
     </Dialog>
   );

@@ -10,6 +10,7 @@ import type {
 import type { UsageInfo } from "./cost-calculator.js";
 
 import { isRecord, isString } from "@nodetool-ai/protocol";
+import { sniffAudioMime } from "./audio-mime.js";
 
 export { isRecord };
 
@@ -28,9 +29,65 @@ export function dataUri(mimeType: string, data: Uint8Array | string): string {
   return `data:${mimeType};base64,${base64}`;
 }
 
+/**
+ * Media kinds a Responses endpoint reads beyond text and images. OpenAI's own
+ * Responses API has no video or audio input part, so both are off by default
+ * and those parts are dropped; an endpoint that serves them (Meta's
+ * `input_video` and `input_audio`) turns them on.
+ */
+export interface ResponsesInputOptions {
+  video?: boolean;
+  audio?: boolean;
+}
+
+function base64Of(data: Uint8Array | string): string {
+  return isString(data) ? data : Buffer.from(data).toString("base64");
+}
+
+/** `wav` or `mp3`, the two `input_audio` formats, from a MIME type. */
+function responsesAudioFormat(
+  mimeType: string | undefined,
+  data: Uint8Array | string
+): "wav" | "mp3" {
+  const mime =
+    mimeType && mimeType !== "application/octet-stream"
+      ? mimeType
+      : sniffAudioMime(isString(data) ? Buffer.from(data, "base64") : data);
+  return /wave?$/i.test(mime) ? "wav" : "mp3";
+}
+
+async function responseAudioContent(
+  audio: { uri?: string; data?: Uint8Array | string; mimeType?: string },
+  resolveUri: (uri: string) => Promise<string>
+): Promise<Record<string, unknown> | null> {
+  if (audio.data && audio.data.length > 0) {
+    return {
+      type: "input_audio",
+      input_audio: {
+        data: base64Of(audio.data),
+        format: responsesAudioFormat(audio.mimeType, audio.data)
+      }
+    };
+  }
+  if (!audio.uri) return null;
+  const resolved = await resolveUri(audio.uri);
+  const inline = /^data:([^;,]+)?(?:;[^,]*)?;base64,(.*)$/s.exec(resolved);
+  if (inline) {
+    return {
+      type: "input_audio",
+      input_audio: {
+        data: inline[2],
+        format: responsesAudioFormat(audio.mimeType ?? inline[1], inline[2])
+      }
+    };
+  }
+  return { type: "input_audio", audio_url: resolved };
+}
+
 export async function responseInputContent(
   content: MessageContent,
-  resolveUri: (uri: string) => Promise<string>
+  resolveUri: (uri: string) => Promise<string>,
+  options: ResponsesInputOptions = {}
 ): Promise<Record<string, unknown> | null> {
   if (content.type === "text") {
     return { type: "input_text", text: content.text };
@@ -50,12 +107,30 @@ export async function responseInputContent(
     }
   }
 
+  if (content.type === "video" && options.video) {
+    const video = content.video;
+    if (video.data && video.data.length > 0) {
+      return {
+        type: "input_video",
+        video_url: dataUri(video.mimeType ?? "video/mp4", video.data)
+      };
+    }
+    if (video.uri) {
+      return { type: "input_video", video_url: await resolveUri(video.uri) };
+    }
+  }
+
+  if (content.type === "audio" && options.audio) {
+    return responseAudioContent(content.audio, resolveUri);
+  }
+
   return null;
 }
 
 export async function messagesToResponsesInput(
   messages: Message[],
-  resolveUri: (uri: string) => Promise<string>
+  resolveUri: (uri: string) => Promise<string>,
+  options: ResponsesInputOptions = {}
 ): Promise<Array<Record<string, unknown>>> {
   const input: Array<Record<string, unknown>> = [];
   // Images generated on a prior assistant turn, awaiting re-presentation. The
@@ -135,7 +210,7 @@ export async function messagesToResponsesInput(
       content.push({ type: "input_text", text: message.content });
     } else if (Array.isArray(message.content)) {
       for (const part of message.content) {
-        const converted = await responseInputContent(part, resolveUri);
+        const converted = await responseInputContent(part, resolveUri, options);
         if (converted) content.push(converted);
       }
     }

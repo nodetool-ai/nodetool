@@ -21,10 +21,25 @@ const projects = {
 };
 
 const documentsQuery = jest.fn();
-jest.mock("../../../trpc/client", () => ({
+const createProject = jest.fn();
+jest.mock("../../../trpc/client", () => {
+  const invalidate = { invalidate: jest.fn() };
+  return {
   trpc: {
+    useUtils: () => ({
+      projects: {
+        list: invalidate,
+        archived: invalidate,
+        summaries: invalidate,
+        unassigned: invalidate,
+        get: invalidate
+      }
+    }),
     projects: {
-      list: { useQuery: () => ({ ...projects }) }
+      list: { useQuery: () => ({ ...projects }) },
+      create: {
+        useMutation: () => ({ mutateAsync: createProject, isPending: false })
+      }
     }
   },
   trpcClient: {
@@ -33,7 +48,8 @@ jest.mock("../../../trpc/client", () => ({
       restoreTabs: { query: async () => [] }
     }
   }
-}));
+  };
+});
 
 import ProjectSelector from "../ProjectSelector";
 
@@ -127,15 +143,43 @@ describe("ProjectSelector", () => {
     expect(screen.queryByText("Beacon")).not.toBeInTheDocument();
   });
 
-  it("starts a project from the selector menu", async () => {
+  it("names and creates a project from the selector menu, then opens its home", async () => {
     const user = userEvent.setup();
+    createProject.mockResolvedValue({ id: "c", name: "Comet" });
     renderSelector();
     await user.click(
       screen.getByRole("button", { name: "Select project" })
     );
     await user.click(screen.getByRole("menuitem", { name: "New project" }));
-    expect(useWorkspaceTabsStore.getState().activeTabId).toBe("project-new:new");
-    expect(useWorkspaceTabsStore.getState().activeProjectId).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Create project" })
+    ).toBeDisabled();
+
+    await user.type(screen.getByLabelText("Project name"), "  Comet {Enter}");
+
+    expect(createProject).toHaveBeenCalledWith({ name: "Comet" });
+    await waitFor(() => {
+      expect(useWorkspaceTabsStore.getState().activeProjectId).toBe("c");
+      expect(useWorkspaceTabsStore.getState().activeTabId).toBe("project-new:new");
+    });
+  });
+
+  it("keeps the dialog open with the error when creating fails", async () => {
+    const user = userEvent.setup();
+    createProject.mockRejectedValue(new Error("offline"));
+    renderSelector();
+    await user.click(
+      screen.getByRole("button", { name: "Select project" })
+    );
+    await user.click(screen.getByRole("menuitem", { name: "New project" }));
+    await user.type(screen.getByLabelText("Project name"), "Comet");
+    await user.click(screen.getByRole("button", { name: "Create project" }));
+
+    expect(
+      await screen.findByText("Could not create the project: offline")
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Project name")).toHaveValue("Comet");
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBeNull();
   });
 
   it("puts the compact new-project action above the project list", async () => {

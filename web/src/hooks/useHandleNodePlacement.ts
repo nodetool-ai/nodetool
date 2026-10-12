@@ -12,6 +12,18 @@ import {
   type PlacementRect
 } from "../utils/nodePlacement";
 
+// Inactive workspace tabs stay mounted (and `inert`) with real screen rects,
+// and two tabs can show the same workflow, so only the visible canvas counts.
+const visibleCanvasElements = (selector: string): Element[] =>
+  Array.from(document.querySelectorAll(selector)).filter(
+    (element) => !element.closest("[inert]")
+  );
+
+const visibleCanvasNode = (nodeId: string): Element | null =>
+  visibleCanvasElements(
+    `.react-flow__node[data-id="${CSS.escape(nodeId)}"]`
+  )[0] ?? null;
+
 /**
  * Placement for a node created from a handle menu.
  *
@@ -58,9 +70,7 @@ export const useHandleNodePlacement = () => {
       handleId: string | null,
       kind: "source" | "target"
     ): XYPosition | null => {
-      const node = document.querySelector(
-        `.react-flow__node[data-id="${CSS.escape(nodeId)}"]`
-      );
+      const node = visibleCanvasNode(nodeId);
       if (!node) {
         return null;
       }
@@ -97,9 +107,7 @@ export const useHandleNodePlacement = () => {
     (nodeId: string, anchor: XYPosition, targetHandle: string | null) => {
       let frames = 0;
       const attempt = () => {
-        const element = document.querySelector(
-          `.react-flow__node[data-id="${CSS.escape(nodeId)}"]`
-        );
+        const element = visibleCanvasNode(nodeId);
         // ReactFlow mounts a node before it measures it; an unmeasured node
         // reports height 0, which would align against nothing.
         if (
@@ -118,9 +126,7 @@ export const useHandleNodePlacement = () => {
           ? inputAnchor.y - rect.y
           : ESTIMATED_INPUT_HANDLE_OFFSET_Y;
 
-        const obstacles = Array.from(
-          document.querySelectorAll(".react-flow__node")
-        )
+        const obstacles = visibleCanvasElements(".react-flow__node")
           .filter((other) => other !== element)
           .map(flowRect)
           // A group or comment the node sits inside is a backdrop, not an

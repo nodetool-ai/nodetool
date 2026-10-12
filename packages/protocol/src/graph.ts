@@ -270,15 +270,29 @@ export interface HydratedNodeDescriptor extends NodeDescriptor {
 // Graph
 // ---------------------------------------------------------------------------
 
+/**
+ * A lineage link between two nodes. It carries no value and implies no
+ * execution order, so it lives beside `edges` and the kernel never reads it.
+ */
+export interface GraphLink {
+  id: string;
+  source: string;
+  target: string;
+  label?: string | null;
+  kind?: string | null;
+}
+
 export interface GraphData {
   nodes: NodeDescriptor[];
   edges: Edge[];
+  links?: GraphLink[];
 }
 
 /** GraphData whose nodes carry resolved behavior flags. See {@link HydratedNodeDescriptor}. */
 export interface HydratedGraphData {
   nodes: HydratedNodeDescriptor[];
   edges: Edge[];
+  links?: GraphLink[];
 }
 
 // ---------------------------------------------------------------------------

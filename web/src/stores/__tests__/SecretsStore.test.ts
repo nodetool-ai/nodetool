@@ -21,6 +21,12 @@ jest.mock("../../queryClient", () => ({
   queryClient: { invalidateQueries: (...args: unknown[]) => invalidateQueries(...args) }
 }));
 
+const mockFetchSettings = jest.fn().mockResolvedValue([]);
+jest.mock("../RemoteSettingStore", () => ({
+  __esModule: true,
+  default: { getState: () => ({ fetchSettings: mockFetchSettings }) }
+}));
+
 import { trpcClient } from "../../trpc/client";
 // Cast so we can read the Jest mock APIs on the nested procedures without
 // sprinkling `as any` in every test.
@@ -97,6 +103,26 @@ describe("SecretsStore", () => {
   });
 
   describe("updateSecret", () => {
+    // QA round 7: a node kept "Required setting OPENAI_API_KEY is not
+    // configured!" after the key was saved, because that warning reads the
+    // settings list, which loaded once at start.
+    it("refreshes the settings list that node warnings read", async () => {
+      upsertMutate.mockResolvedValueOnce({
+        key: "OPENAI_API_KEY",
+        is_configured: true,
+        is_unreadable: false
+      });
+      listQuery.mockResolvedValueOnce({ secrets: [], next_key: null });
+
+      await act(async () => {
+        await useSecretsStore
+          .getState()
+          .updateSecret("OPENAI_API_KEY", "sk-test");
+      });
+
+      expect(mockFetchSettings).toHaveBeenCalled();
+    });
+
     it("should update a secret successfully", async () => {
       upsertMutate.mockResolvedValueOnce({
         key: "OPENAI_API_KEY",

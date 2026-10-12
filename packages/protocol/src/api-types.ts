@@ -6,7 +6,12 @@
  * Used by both the backend HTTP handlers and the frontend stores.
  */
 
-import type { Edge, InputMode, OutputCorrelation } from "./graph.js";
+import type {
+  Edge,
+  GraphLink,
+  InputMode,
+  OutputCorrelation
+} from "./graph.js";
 import type { NodeEffect } from "./platform.js";
 
 // ---------------------------------------------------------------------------
@@ -443,6 +448,8 @@ export interface AssetUpdateRequest {
 export interface WorkflowGraph {
   nodes: Node[];
   edges: Edge[];
+  /** Lineage links: no value, no execution order. See `GraphLink`. */
+  links?: GraphLink[];
 }
 
 export interface Workflow {
@@ -986,6 +993,7 @@ export interface Node {
 export interface Graph {
   nodes: Node[];
   edges: Edge[];
+  links?: GraphLink[];
 }
 
 // ---------------------------------------------------------------------------
@@ -1139,6 +1147,12 @@ export const PROVIDER_IDS = {
   // Dreamina (CapCut) driven through the NodeTool Chrome extension in the
   // user's own logged-in Chrome tab (no API key, local installs only).
   DREAMINA: "dreamina",
+  // ChatGPT driven through the NodeTool Chrome extension in the user's own
+  // logged-in chatgpt.com tab (no API key, local installs only).
+  CHATGPT: "chatgpt",
+  // Gemini driven through the NodeTool Chrome extension in the user's own
+  // logged-in gemini.google.com tab (no API key, local installs only).
+  GEMINI_WEB: "gemini_web",
   GEMINI: "gemini",
   GROQ: "groq",
   MISTRAL: "mistral",

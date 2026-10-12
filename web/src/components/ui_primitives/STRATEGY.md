@@ -172,6 +172,10 @@ A properties panel (an inspector beside a canvas or timeline) builds from one se
 
 See [Properties panels](../../../../docs/DESIGN.md#11-properties-panels).
 
+A list row or grid tile takes its hover, selected and focus states from
+`selectableRowStyles` / `selectableTileStyles` and `focusRing`, and a grid lays
+out with `AutoGrid`. See [Lists and grids](../../../../docs/DESIGN.md#12-lists-and-grids).
+
 Need a container/surface?
 ├── Content card → Card
 ├── Panel with header/footer → Panel

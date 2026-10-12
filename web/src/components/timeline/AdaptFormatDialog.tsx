@@ -10,12 +10,13 @@ import {
 
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import {
+  AlertBanner,
   Caption,
   Checkbox,
   Dialog,
   FlexColumn,
   FlexRow,
-  Label,
+  FormField,
   Radio,
   RadioSet,
   SelectField,
@@ -135,43 +136,52 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
     isCreating ||
     (strategy === "track" && trackId === "");
 
+  const strategyHelp =
+    [
+      readyTracks.length === 0
+        ? "Track a subject first to use “Follow selected object.”"
+        : undefined,
+      smartUnavailable
+        ? "Smart reframe needs a current subject track or authored framing for every visual clip. Use Center until those signals exist."
+        : undefined
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined;
+
   return (
     <Dialog
       open={open}
       onClose={onClose}
       title="Adapt format"
       onConfirm={() => void handleCreate()}
-      onCancel={onClose}
       confirmText={
         formats.size > 1 ? "Create adaptations" : "Create adaptation"
       }
-      cancelText="Cancel"
       confirmDisabled={cannotCreate}
       isLoading={isCreating}
     >
-      <FlexColumn gap={SPACING.lg} sx={{ py: SPACING.md }}>
-        <FlexColumn gap={SPACING.xs}>
-          <Label>Original</Label>
+      <FlexColumn gap={SPACING.lg}>
+        <FormField label="Original">
           <Text size="small">
             {sequence ? `${sequence.width} × ${sequence.height}` : "—"}
           </Text>
-        </FlexColumn>
+        </FormField>
 
-        <FlexColumn gap={SPACING.xs}>
-          <Label>Target formats</Label>
-          {FORMAT_OPTIONS.map((format) => (
-            <Checkbox
-              key={format.value}
-              size="small"
-              checked={formats.has(format.value)}
-              onChange={() => toggleFormat(format.value)}
-              label={`${format.label} — ${format.dimensions}`}
-            />
-          ))}
-        </FlexColumn>
+        <FormField label="Target formats">
+          <FlexColumn gap={SPACING.xs}>
+            {FORMAT_OPTIONS.map((format) => (
+              <Checkbox
+                key={format.value}
+                size="small"
+                checked={formats.has(format.value)}
+                onChange={() => toggleFormat(format.value)}
+                label={`${format.label} — ${format.dimensions}`}
+              />
+            ))}
+          </FlexColumn>
+        </FormField>
 
-        <FlexColumn gap={SPACING.xs}>
-          <Label>Strategy</Label>
+        <FormField label="Strategy" helperText={strategyHelp}>
           <RadioSet value={strategy} onChange={handleStrategyChange}>
             <Radio value="center" label="Center" size="small" />
             <Radio
@@ -187,46 +197,35 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
               disabled={readyTracks.length === 0}
             />
           </RadioSet>
-          {strategy === "track" && (
-            <SelectField
-              label="Reframe subject"
-              value={trackId}
-              onChange={setTrackId}
-              options={trackOptions}
-              size="small"
-            />
-          )}
-          {readyTracks.length === 0 && (
-            <Caption color="muted">
-              Track a subject first to use “Follow selected object.”
-            </Caption>
-          )}
-          {smartUnavailable && (
-            <Caption color="muted">
-              Smart reframe needs a current subject track or authored framing
-              for every visual clip. Use Center until those signals exist.
-            </Caption>
-          )}
-        </FlexColumn>
+        </FormField>
+        {strategy === "track" && (
+          <SelectField
+            label="Reframe subject"
+            value={trackId}
+            onChange={setTrackId}
+            options={trackOptions}
+            size="small"
+          />
+        )}
 
-        <FlexColumn gap={SPACING.xs}>
-          <FlexRow justify="space-between" align="center">
-            <Label>Safe margin</Label>
+        <FormField label="Safe margin">
+          <FlexRow gap={SPACING.lg} align="center">
+            <Slider
+              value={safeMarginPercent}
+              min={0}
+              max={30}
+              step={1}
+              onChange={(_event, value) =>
+                setSafeMarginPercent(Array.isArray(value) ? value[0] : value)
+              }
+              aria-label="Safe margin"
+              sx={{ flex: 1 }}
+            />
             <Text size="small">{safeMarginPercent}%</Text>
           </FlexRow>
-          <Slider
-            value={safeMarginPercent}
-            min={0}
-            max={30}
-            step={1}
-            onChange={(_event, value) =>
-              setSafeMarginPercent(Array.isArray(value) ? value[0] : value)
-            }
-            aria-label="Safe margin"
-          />
-        </FlexColumn>
+        </FormField>
 
-        {error && <Caption color="error">{error}</Caption>}
+        {error && <AlertBanner severity="error">{error}</AlertBanner>}
         <Caption color="muted">
           New sequences share the source media. The original edit is not resized
           or changed.

@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { TextInput } from "../TextInput";
+import { FieldDensityContext } from "../fieldDensity";
 import { FormField } from "../FormField";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -113,6 +114,23 @@ describe("TextInput", () => {
     renderWithTheme(<TextInput label="Source" multiline monospace />);
     expect(getComputedStyle(screen.getByLabelText("Source")).fontFamily).toBe(
       "var(--fontFamily2)"
+    );
+  });
+
+  it("takes the control text size on a compact surface", () => {
+    renderWithTheme(
+      <>
+        <TextInput label="Normal" />
+        <FieldDensityContext.Provider value="compact">
+          <TextInput label="Dense" />
+        </FieldDensityContext.Provider>
+      </>
+    );
+    expect(getComputedStyle(screen.getByLabelText("Dense")).fontSize).toBe(
+      "var(--fontSizeSmall)"
+    );
+    expect(getComputedStyle(screen.getByLabelText("Normal")).fontSize).not.toBe(
+      "var(--fontSizeSmall)"
     );
   });
 });

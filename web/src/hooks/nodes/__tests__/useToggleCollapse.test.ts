@@ -12,6 +12,9 @@ jest.mock("../../../stores/collapseNodeLayout", () => ({
 }));
 
 import { useToggleCollapse } from "../useToggleCollapse";
+import { createNodeStore } from "../../../stores/NodeStore";
+import type { NodeData } from "../../../stores/NodeData";
+import type { Node } from "@xyflow/react";
 import { getCollapseTogglePatches } from "../../../stores/collapseNodeLayout";
 
 const mockUpdateNodeData = jest.fn();
@@ -28,12 +31,15 @@ const makeNode = (id: string, collapsed = false) => ({
 const renderToggleCollapse = () =>
   renderHook(() => useToggleCollapse(), {
     wrapper: nodeStoreWrapper(
-      makeNodeStore({
-        getSelectedNodes: mockGetSelectedNodes,
-        findNode: mockFindNode,
-        updateNodeData: mockUpdateNodeData,
-        updateNode: mockUpdateNode
-      })
+      makeNodeStore(
+        {
+          getSelectedNodes: mockGetSelectedNodes,
+          findNode: mockFindNode,
+          updateNodeData: mockUpdateNodeData,
+          updateNode: mockUpdateNode
+        },
+        { beginGroup: jest.fn(), endGroup: jest.fn() }
+      )
     )
   });
 
@@ -97,5 +103,27 @@ describe("useToggleCollapse", () => {
     result.current(["missing"]);
 
     expect(mockUpdateNodeData).not.toHaveBeenCalled();
+  });
+
+  it("collapses several nodes as one undo step", () => {
+    const node = (id: string): Node<NodeData> => ({
+      id,
+      position: { x: 0, y: 0 },
+      data: {
+        properties: {},
+        dynamic_properties: {},
+        selectable: true,
+        workflow_id: ""
+      }
+    });
+    const store = createNodeStore(undefined, { nodes: [node("a"), node("b")] });
+    const { result } = renderHook(() => useToggleCollapse(), {
+      wrapper: nodeStoreWrapper(store)
+    });
+
+    result.current(["a", "b"]);
+
+    expect(store.getState().nodes.every((n) => n.data.collapsed)).toBe(true);
+    expect(store.temporal.getState().pastStates).toHaveLength(1);
   });
 });

@@ -118,6 +118,7 @@ function makeFakeNodeStore(nodes: unknown[], edges: unknown[]) {
       workflowIsDirty: true,
       nodes,
       edges,
+      links: [],
       getWorkflow: () =>
         ({ ...baseWorkflow, updated_at: "2026-08-11T00:00:00Z" }) as Workflow,
       setWorkflowDirty: jest.fn(),
@@ -409,6 +410,7 @@ describe("refreshWorkflow — the merge base follows the editor's own saves", ()
         workflowIsDirty: true,
         nodes,
         edges: [],
+        links: [],
         getWorkflow: () =>
           ({ ...noEdgeWorkflow, updated_at: "2026-08-11T00:00:00Z" }) as Workflow,
         setWorkflowDirty: jest.fn(),

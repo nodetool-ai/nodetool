@@ -388,6 +388,24 @@ describe("graphMapping helpers", () => {
       const sanitizedTarget = sanitizedNodes.find((n) => n.id === "b");
       expect(sanitizedTarget?.data.exposedInputs).toEqual(["input"]);
     });
+
+    it("keeps a saved labeled placement for a connected property", () => {
+      const target = makeNode("b", "test");
+      target.data.exposedInputsLabeled = ["input"];
+      const nodes = [makeNode("a", "test"), target];
+      const edges = [makeEdge("e1", "a", "b", "output", "input")];
+
+      const { nodes: sanitizedNodes, edges: sanitizedEdges } = sanitizeGraph(
+        nodes,
+        edges,
+        { test: baseMetadata }
+      );
+
+      const sanitizedTarget = sanitizedNodes.find((n) => n.id === "b");
+      expect(sanitizedTarget?.data.exposedInputs).toBeUndefined();
+      expect(sanitizedTarget?.data.exposedInputsLabeled).toEqual(["input"]);
+      expect(sanitizedEdges).toHaveLength(1);
+    });
   });
 
   describe("control edges", () => {

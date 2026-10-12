@@ -15,8 +15,12 @@ import {
   Tooltip,
   Box,
   BORDER_RADIUS,
+  EmptyState,
   SPACING,
+  TYPOGRAPHY,
   getSpacingPx,
+  selectableRowStyles,
+  selectedRowStyles,
   List,
   ListItemButton,
   ListItemText
@@ -665,13 +669,20 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
       sx={{ fontSize: (theme: Theme) => theme.vars.fontSizeSmall, px: iconOnly ? 0.5 : 0 }}
     >
       {isLoading && (
-        <div className="model-menu__providers-loading is-loading" style={{ padding: 8 }}>
+        <div
+          className="model-menu__providers-loading is-loading"
+          style={{ padding: getSpacingPx(SPACING.md) }}
+        >
           <LoadingSpinner size="small" />
         </div>
       )}
       {isError && (
-        <div className="model-menu__providers-error is-error" style={{ padding: 8 }}>
-          Error loading providers
+        <div className="model-menu__providers-error is-error">
+          <EmptyState
+            variant="error"
+            size="small"
+            title="Error loading providers"
+          />
         </div>
       )}
       <ListItemButton
@@ -685,7 +696,10 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
           px: iconOnly ? 0 : 2,
           minHeight: iconOnly ? 52 : "auto",
           minWidth: itemMinWidth,
-          borderRadius: iconOnly ? 1 : 0
+          ...selectableRowStyles(theme, {
+            selected: selected === null && !forceUnselect
+          }),
+          "&.Mui-selected": selectedRowStyles(theme)
         }}
       >
         {iconOnly ? (
@@ -789,7 +803,6 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
                                   : b.label === "Server"
                                     ? theme.vars.palette.warning.main
                                     : theme.vars.palette.c_provider_hf,
-                          letterSpacing: 0.2,
                           border: `1px solid currentColor`
                         }}
                       >
@@ -821,7 +834,8 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
                   px: iconOnly ? 0 : 2,
                   minHeight: iconOnly ? 68 : "auto",
                   minWidth: itemMinWidth,
-                  borderRadius: iconOnly ? 1 : 0
+                  ...selectableRowStyles(theme, { selected: selected === p }),
+                  "&.Mui-selected": selectedRowStyles(theme)
                 }}
               >
                 {iconOnly ? (
@@ -839,21 +853,14 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
                           width: 36,
                           height: 36,
                           borderRadius: BORDER_RADIUS.circle,
-                          bgcolor:
-                            selected === p
-                              ? "primary.main"
-                              : isProviderEnabled(p)
-                                ? "action.selected"
-                                : "transparent",
-                          border: `1px solid ${selected === p ? "transparent" : theme.vars.palette.divider}`,
-                          fontWeight: 600,
-                          fontSize: "var(--fontSizeSmall)",
-                          color:
-                            selected === p
-                              ? "primary.contrastText"
-                              : isProviderEnabled(p)
-                                ? "text.primary"
-                                : "text.disabled",
+                          bgcolor: isProviderEnabled(p)
+                            ? "action.selected"
+                            : "transparent",
+                          border: `1px solid ${theme.vars.palette.divider}`,
+                          ...TYPOGRAPHY.sans.label,
+                          color: isProviderEnabled(p)
+                            ? "text.primary"
+                            : "text.disabled",
                           overflow: "hidden",
                           flexShrink: 0
                         }}
@@ -867,9 +874,7 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
                               width: 24,
                               height: 24,
                               objectFit: "contain",
-                              filter: selected === p
-                                ? "brightness(0) invert(1)"
-                                : isDarkMode && !isHFLogo
+                              filter: isDarkMode && !isHFLogo
                                   ? "invert(1) brightness(1.1) contrast(0.9)"
                                   : "none"
                             }}
@@ -908,7 +913,7 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
                             height: 28,
                             flexShrink: 0,
                             borderRadius: BORDER_RADIUS.sm,
-                            bgcolor: isDarkMode && !isHFLogo ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                            bgcolor: theme.vars.palette.c_overlay,
                             opacity: available ? 1 : 0.5,
                           }}>
                             {iconUrl ? (
@@ -927,8 +932,7 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
                               <Box
                                 component="span"
                                 sx={{
-                                  fontWeight: 600,
-                                  fontSize: theme.vars.fontSizeSmall,
+                                  ...TYPOGRAPHY.sans.label,
                                   color: theme.vars.palette.text.primary,
                                   lineHeight: 1
                                 }}

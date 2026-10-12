@@ -40,6 +40,7 @@ describe("customEquality", () => {
   ): PartializedNodeStore => ({
     nodes: [],
     edges: [],
+    links: [],
     workflow: {
       id: "workflow-1",
       name: "Test",
@@ -507,6 +508,39 @@ describe("customEquality", () => {
       const current = createMockStore({ edges: edges2 });
 
       expect(customEquality(previous, current)).toBe(false);
+    });
+  });
+
+  describe("node dimensions", () => {
+    test("returns false when a resize changes top-level width or height", () => {
+      const previous = createMockStore({
+        nodes: [createMockNode("node-1", { width: 280, height: 200 })]
+      });
+      const wider = createMockStore({
+        nodes: [createMockNode("node-1", { width: 400, height: 200 })]
+      });
+      const taller = createMockStore({
+        nodes: [createMockNode("node-1", { width: 280, height: 320 })]
+      });
+
+      expect(customEquality(previous, wider)).toBe(false);
+      expect(customEquality(previous, taller)).toBe(false);
+    });
+
+    test("ignores measured dimensions", () => {
+      const previous = createMockStore({
+        nodes: [createMockNode("node-1", { width: 280 })]
+      });
+      const current = createMockStore({
+        nodes: [
+          createMockNode("node-1", {
+            width: 280,
+            measured: { width: 280, height: 173 }
+          })
+        ]
+      });
+
+      expect(customEquality(previous, current)).toBe(true);
     });
   });
 });

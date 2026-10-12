@@ -18,7 +18,6 @@ import { forwardRef, useCallback, memo } from "react";
 import { Button, ButtonProps } from "@mui/material";
 import { LoadingSpinner } from "./LoadingSpinner";
 import DialogActions from "@mui/material/DialogActions";
-import { useTheme } from "@mui/material/styles";
 import { MOTION } from "./tokens";
 
 export interface DialogActionButtonsProps {
@@ -96,8 +95,6 @@ export const DialogActionButtons = memo(
       },
       ref
     ) => {
-      const theme = useTheme();
-
       const handleConfirm = useCallback(() => {
         if (!isLoading && !confirmDisabled) {
           onConfirm();
@@ -114,22 +111,13 @@ export const DialogActionButtons = memo(
         <DialogActions
           ref={ref}
           className={`dialog-actions ${className ?? ""}`}
-          sx={{
-            padding: "8px 16px",
-            gap: 1
-          }}
         >
           <Button
             className="button-cancel"
             onClick={handleCancel}
             disabled={isLoading || cancelDisabled}
-            sx={{
-              color: theme.vars.palette.grey[100],
-              transition: MOTION.all,
-              "&:hover": {
-                backgroundColor: theme.vars.palette.grey[800]
-              }
-            }}
+            color="inherit"
+            sx={{ transition: MOTION.all }}
             {...cancelButtonProps}
           >
             {cancelText}
@@ -139,21 +127,16 @@ export const DialogActionButtons = memo(
             onClick={handleConfirm}
             disabled={isLoading || confirmDisabled}
             color={destructive ? "error" : "primary"}
-            variant={destructive ? "contained" : "text"}
+            variant="contained"
             autoFocus
-            sx={{
-              color: destructive ? undefined : "var(--palette-primary-main)",
-              fontWeight: 600,
-              transition: MOTION.all,
-              "&:hover": {
-                backgroundColor: destructive
-                  ? theme.vars.palette.error.dark
-                  : theme.vars.palette.grey[900]
-              }
-            }}
+            sx={{ transition: MOTION.all }}
             {...confirmButtonProps}
           >
-            {isLoading ? <LoadingSpinner inline size={20} color="inherit" /> : confirmText}
+            {isLoading ? (
+              <LoadingSpinner inline size={20} color="inherit" />
+            ) : (
+              confirmText
+            )}
           </Button>
         </DialogActions>
       );

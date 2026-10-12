@@ -78,21 +78,50 @@ const findNodePropertyChanges = (
 
   const toRecord = (v: unknown): Record<string, unknown> =>
     isRecord(v) ? v : {};
-  const oldData = toRecord(oldNode.data);
-  const newData = toRecord(newNode.data);
-
-  const allKeys = new Set([...Object.keys(oldData), ...Object.keys(newData)]);
-
-  for (const key of allKeys) {
-    const oldValue = oldData[key];
-    const newValue = newData[key];
-
-    if (!isEqual(oldValue, newValue)) {
-      changes.push({ key, oldValue, newValue });
+  const pushKeyChanges = (
+    oldRecord: Record<string, unknown>,
+    newRecord: Record<string, unknown>
+  ): void => {
+    const allKeys = new Set([
+      ...Object.keys(oldRecord),
+      ...Object.keys(newRecord)
+    ]);
+    for (const key of allKeys) {
+      const oldValue = oldRecord[key];
+      const newValue = newRecord[key];
+      if (!isEqual(oldValue, newValue)) {
+        changes.push({ key, oldValue, newValue });
+      }
     }
-  }
+  };
 
-  if (!isEqual(oldNode.ui_properties, newNode.ui_properties)) {
+  pushKeyChanges(toRecord(oldNode.data), toRecord(newNode.data));
+  // Dynamic input values (Format Text, Agent, Code) live outside `data`.
+  pushKeyChanges(
+    toRecord(oldNode.dynamic_properties),
+    toRecord(newNode.dynamic_properties)
+  );
+  pushKeyChanges(
+    {
+      parent_id: oldNode.parent_id ?? undefined,
+      dynamic_inputs: toRecord(oldNode.dynamic_inputs),
+      dynamic_outputs: toRecord(oldNode.dynamic_outputs)
+    },
+    {
+      parent_id: newNode.parent_id ?? undefined,
+      dynamic_inputs: toRecord(newNode.dynamic_inputs),
+      dynamic_outputs: toRecord(newNode.dynamic_outputs)
+    }
+  );
+
+  // Selection and stacking order are saved with the node but are not edits.
+  const layout = (node: Node): Record<string, unknown> => {
+    const { selected: _selected, zIndex: _zIndex, ...rest } = toRecord(
+      node.ui_properties
+    );
+    return rest;
+  };
+  if (!isEqual(layout(oldNode), layout(newNode))) {
     changes.push({
       key: "ui_properties",
       oldValue: oldNode.ui_properties,

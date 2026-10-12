@@ -53,6 +53,7 @@ import {
   type TrackDropPosition
 } from "./trackReorder";
 import {
+  ConfirmDialog,
   ContextMenu,
   MenuItemPrimitive,
   SelectField,
@@ -74,7 +75,6 @@ import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import { DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX } from "./trackHeight";
 import { trackTypeMeta, trackTypeAccent } from "./trackVisuals";
-import ConfirmDialog from "../../dialogs/ConfirmDialog";
 export const TRACK_HEADER_WIDTH_PX = DEFAULT_TRACK_HEADER_WIDTH_PX;
 /**
  * Phone header width. 192px is half a 390px viewport — the lanes get less room
@@ -1033,10 +1033,11 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               });
             }
           }}
-          title="Remove track"
-          content={`Remove track "${track.name}" and all its clips?`}
+          title="Remove track?"
+          content={`Track "${track.name}" and all its clips are removed.`}
           confirmText="Remove"
           cancelText="Cancel"
+          destructive
         />
       </>
     );

@@ -1,14 +1,18 @@
 name: User Journeys
 
-# Pull requests, nightly and on demand (browser journeys), plus every push to
-# main for the reliability-ring1 job below.
+# Browser journeys run nightly, on demand, and on labeled pull requests. The
+# reliability-ring1 job below also runs on every push to main.
 #
 # The journey suite drives whole flows through a real browser (build a graph and
 # run it, send a chat message, run a mini app, browse the library), so it is
 # slower and has more moving parts than the page-load smoke suite.
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    # Only the `browser-suites` label starts a pull-request run. Triggering
+    # on opened/synchronize as well started a run on every PR push whose
+    # jobs all skipped. To test later commits, re-add the label or dispatch
+    # this workflow on the PR branch.
+    types: [labeled]
     branches: [main]
     paths:
       - "web/src/**"
@@ -44,14 +48,14 @@ concurrency:
 jobs:
   journeys:
     name: Drive the app the way a user does
-    # Advisory on pull requests and opt-in there: a PR runs this suite only
-    # with the `browser-suites` label, which saves its runner time on the
-    # many PRs that do not need it. Pushes to main, nightly and manual runs
-    # always run it.
+    # Advisory, so it runs nightly, on dispatch, and on a PR when the
+    # `browser-suites` label is added, but not on pushes to main.
+    # fly-deploy.yml reads this workflow's conclusion per commit, so running it
+    # on push made a failing journey block the deploy that only Ring 1 gates.
     if: >-
-      ${{ github.event_name != 'pull_request'
-      || (contains(github.event.pull_request.labels.*.name, 'browser-suites')
-      && (github.event.action != 'labeled' || github.event.label.name == 'browser-suites')) }}
+      ${{ github.event_name == 'schedule'
+      || github.event_name == 'workflow_dispatch'
+      || (github.event_name == 'pull_request' && github.event.label.name == 'browser-suites') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 

@@ -6,12 +6,13 @@ import mockTheme from "../../../__mocks__/themeMock";
 
 const mockUploadAsset = jest.fn();
 
-jest.mock("../../../serverState/useAssetUpload", () => ({
-  useAssetUpload: () => ({
-    uploadAsset: mockUploadAsset,
-    isUploading: false
-  })
-}));
+jest.mock("../../../serverState/useAssetUpload", () => {
+  const state = { uploadAsset: mockUploadAsset, isUploading: false };
+  return {
+    useAssetUpload: (selector?: (s: typeof state) => unknown) =>
+      selector ? selector(state) : state
+  };
+});
 
 jest.mock("../../../serverState/useAsset", () => ({
   useAsset: () => ({ asset: undefined, uri: undefined })

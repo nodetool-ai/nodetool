@@ -14,7 +14,7 @@ import {
   AutoGrid,
   EditorButton,
   EmptyState,
-  FlexRow,
+  FlexColumn,
   LoadingSpinner,
   ScrollArea,
   SPACING,
@@ -122,9 +122,9 @@ const EntityListPanelInternal: React.FC<EntityListPanelProps> = ({
 
   if (isLoading) {
     return (
-      <FlexRow align="center" justify="center" sx={{ p: 3 }}>
-        <LoadingSpinner />
-      </FlexRow>
+      <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1 }}>
+        <LoadingSpinner size="large" text="Loading entities" />
+      </FlexColumn>
     );
   }
 

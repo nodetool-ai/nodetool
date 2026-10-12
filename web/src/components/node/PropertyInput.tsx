@@ -33,7 +33,10 @@ import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import { NodeData } from "../../stores/NodeData";
 import { useInputNodeAutoRun } from "../../hooks/nodes/useInputNodeAutoRun";
 import { useAppendsStaticInput } from "../../hooks/nodes/useAppendsStaticInput";
-import { deriveCodeIOUpdates } from "../../utils/codeOutputInference";
+import {
+  connectedSourceHandles,
+  deriveCodeIOUpdates
+} from "../../utils/codeOutputInference";
 import { InspectorHeaderResetProvider } from "../../contexts/InspectorPropertyHeaderContext";
 import { getComponentForProperty } from "./PropertyInput.resolver";
 import type { PropertyProps } from "./PropertyInput.types";
@@ -292,7 +295,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
           deriveCodeIOUpdates(
             value,
             node?.data?.dynamic_properties || {},
-            node?.data?.dynamic_outputs || {}
+            node?.data?.dynamic_outputs || {},
+            connectedSourceHandles(nodeStore.getState().edges, id)
           )
         );
       }
@@ -304,6 +308,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       findNode,
       id,
       isDynamicProperty,
+      nodeStore,
       nodeType,
       onPropertyChange,
       onValueChange,

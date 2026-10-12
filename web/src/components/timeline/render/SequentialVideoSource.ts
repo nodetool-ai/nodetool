@@ -1,18 +1,10 @@
+import type { Input, VideoSample, VideoSampleSink } from "mediabunny";
 import {
-  ALL_FORMATS,
-  Input,
-  UrlSource,
-  VideoSampleSink,
-  type VideoSample
-} from "mediabunny";
-
-const MAX_SEQUENTIAL_GAP_SEC = 1;
-/**
- * Slack when matching a requested time to a container timestamp. Frame times
- * are computed in floating point and can land an ulp below the timestamp of
- * the frame they mean, which would repeat the previous frame and then skip.
- */
-const TIMESTAMP_EPSILON_SEC = 0.000001;
+  frameStartsBy,
+  needsDecodeRestart,
+  openDecodableVideoTrack,
+  TIMESTAMP_EPSILON_SEC
+} from "./clipDecoder";
 
 function abortError(): DOMException {
   return new DOMException("Video decode aborted", "AbortError");
@@ -35,43 +27,10 @@ export class SequentialVideoSource {
 
   static async open(url: string, signal?: AbortSignal): Promise<SequentialVideoSource | null> {
     if (signal?.aborted) throw abortError();
-    if (typeof VideoDecoder === "undefined" || typeof createImageBitmap === "undefined") {
-      return null;
-    }
-    const input = new Input({
-      source: new UrlSource(url, { maxCacheSize: 16 * 1024 * 1024, parallelism: 1 }),
-      formats: ALL_FORMATS
-    });
-    const onAbort = () => input.dispose();
-    signal?.addEventListener("abort", onAbort, { once: true });
-    try {
-      const track = await input.getPrimaryVideoTrack();
-      const config = await track?.getDecoderConfig();
-      if (!track || !config || !(await VideoDecoder.isConfigSupported(config)).supported) {
-        input.dispose();
-        return null;
-      }
-      const [rotation, aspect, transparent, hdr] = await Promise.all([
-        track.getRotation(),
-        track.getPixelAspectRatio(),
-        track.canBeTransparent(),
-        track.hasHighDynamicRange()
-      ]);
-      // A bitmap made from a VideoFrame does not apply container transforms.
-      // Keep the established element path for alpha and HDR conversion.
-      if (rotation !== 0 || aspect.num !== aspect.den || transparent || hdr) {
-        input.dispose();
-        return null;
-      }
-      if (signal?.aborted) throw abortError();
-      return new SequentialVideoSource(input, new VideoSampleSink(track));
-    } catch (error) {
-      input.dispose();
-      if (signal?.aborted) throw abortError();
-      throw error;
-    } finally {
-      signal?.removeEventListener("abort", onAbort);
-    }
+    if (typeof createImageBitmap === "undefined") return null;
+    const result = await openDecodableVideoTrack(url, signal);
+    if (!result.ok) return null;
+    return new SequentialVideoSource(result.opened.input, result.opened.createSink(false));
   }
 
   async frameAt(timeSec: number, signal?: AbortSignal): Promise<ImageBitmap> {
@@ -79,7 +38,7 @@ export class SequentialVideoSource {
     if (timeSec === this.timestamp && this.bitmap) return this.bitmap;
     // The optimized iterator decodes each packet once for monotonically
     // increasing timestamps. Reverse or retimed jumps use the seek fallback.
-    if (timeSec < this.timestamp || timeSec - this.timestamp > MAX_SEQUENTIAL_GAP_SEC) {
+    if (needsDecodeRestart(this.timestamp, timeSec)) {
       throw new Error("Video timestamp left the sequential window");
     }
     const onAbort = () => this.dispose();
@@ -95,7 +54,7 @@ export class SequentialVideoSource {
           const next = await this.iterator.next();
           this.nextSample = next.done ? null : next.value;
         }
-        while (this.nextSample && this.nextSample.timestamp <= timeSec + TIMESTAMP_EPSILON_SEC) {
+        while (this.nextSample && frameStartsBy(this.nextSample.timestamp, timeSec)) {
           sample?.close();
           sample = this.nextSample;
           const next = await this.iterator.next();

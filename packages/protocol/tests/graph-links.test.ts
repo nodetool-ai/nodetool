@@ -1,0 +1,87 @@
+import { describe, expect, it } from "vitest";
+import {
+  addGraphLink,
+  mergeGraphLinks,
+  pruneGraphLinks,
+  removeGraphLink,
+  workflowDocumentRevision
+} from "../src/index.js";
+
+const ids = new Set(["a", "b", "c"]);
+let n = 0;
+const newId = () => `link-${++n}`;
+
+describe("graph links", () => {
+  it("adds, dedupes, and rejects bad endpoints", () => {
+    const first = addGraphLink(ids, [], { source: "a", target: "b" }, newId);
+    expect(first.ok && first.value.links).toHaveLength(1);
+    if (!first.ok) throw new Error("unreachable");
+
+    const again = addGraphLink(
+      ids,
+      first.value.links,
+      { source: "a", target: "b" },
+      newId
+    );
+    expect(again.ok && again.value.link.id).toBe(first.value.link.id);
+    expect(again.ok && again.value.links).toHaveLength(1);
+
+    expect(addGraphLink(ids, [], { source: "a", target: "a" }, newId).ok).toBe(false);
+    expect(addGraphLink(ids, [], { source: "a", target: "z" }, newId).ok).toBe(false);
+  });
+
+  it("removes by id and prunes dangling links", () => {
+    const links = [
+      { id: "1", source: "a", target: "b" },
+      { id: "2", source: "b", target: "c" }
+    ];
+    const removed = removeGraphLink(links, "1");
+    expect(removed.ok && removed.value.map((l) => l.id)).toEqual(["2"]);
+    expect(removeGraphLink(links, "x").ok).toBe(false);
+    expect(
+      pruneGraphLinks(new Set(["a", "b"]), links).map((l) => l.id)
+    ).toEqual(["1"]);
+  });
+
+  it("removes a link by the 12-character id an agent sees", () => {
+    const full = "b8d651a210c4" + "0".repeat(20);
+    const other = "c" + "1".repeat(31);
+    const links = [
+      { id: full, source: "a", target: "b" },
+      { id: other, source: "b", target: "c" }
+    ];
+    const removed = removeGraphLink(links, full.slice(0, 12));
+    expect(removed.ok && removed.value.map((l) => l.id)).toEqual([other]);
+  });
+
+  it("refuses a short id that matches two links", () => {
+    const links = [
+      { id: "abcdefabcdef" + "0".repeat(20), source: "a", target: "b" },
+      { id: "abcdefabcdef" + "1".repeat(20), source: "b", target: "c" }
+    ];
+    const removed = removeGraphLink(links, "abcdefabcdef");
+    expect(removed.ok).toBe(false);
+    expect(!removed.ok && removed.error).toMatch(/matches 2 links/);
+  });
+
+  it("changes the document revision only when links exist", () => {
+    const without = workflowDocumentRevision("wf", [], []);
+    expect(workflowDocumentRevision("wf", [], [], [])).toBe(without);
+    expect(
+      workflowDocumentRevision("wf", [], [], [{ id: "1", source: "a", target: "b" }])
+    ).not.toBe(without);
+  });
+});
+
+describe("mergeGraphLinks", () => {
+  const link = (id: string) => ({ id, source: "a", target: "b" });
+
+  it("keeps local edits and applies remote adds and deletes", () => {
+    const base = [link("kept"), link("remote-deleted"), link("local-deleted")];
+    const local = [link("kept"), link("remote-deleted"), link("local-added")];
+    const remote = [link("kept"), link("local-deleted"), link("remote-added")];
+    expect(
+      mergeGraphLinks(base, local, remote).map((l) => l.id)
+    ).toEqual(["kept", "local-added", "remote-added"]);
+  });
+});

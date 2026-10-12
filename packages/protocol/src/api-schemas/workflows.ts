@@ -105,9 +105,20 @@ export const graphEdge = z
   })
   .passthrough();
 
+/** Lineage link: no value, no execution order. Kept beside `edges`. */
+export const graphLink = z.object({
+  id: z.string().min(1),
+  source: z.string(),
+  target: z.string(),
+  label: z.string().nullable().optional(),
+  kind: z.string().nullable().optional()
+});
+export type GraphLink = z.infer<typeof graphLink>;
+
 export const graph = z.object({
   nodes: z.array(graphNode),
-  edges: z.array(graphEdge)
+  edges: z.array(graphEdge),
+  links: z.array(graphLink).optional()
 });
 export type Graph = z.infer<typeof graph>;
 
@@ -292,7 +303,8 @@ export const workflowBody = z.object({
   graph: z
     .object({
       nodes: z.array(graphNode),
-      edges: z.array(graphEdge)
+      edges: z.array(graphEdge),
+      links: z.array(graphLink).optional()
     })
     .nullable()
     .optional(),
@@ -358,7 +370,8 @@ export const autosaveInput = z.object({
   id: z.string().min(1),
   graph: z.object({
     nodes: z.array(graphNode),
-    edges: z.array(graphEdge)
+    edges: z.array(graphEdge),
+    links: z.array(graphLink).optional()
   }),
   name: z.string().optional(),
   description: z.string().optional(),

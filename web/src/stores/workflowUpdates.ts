@@ -46,7 +46,6 @@ import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 import { NodeStore } from "./NodeStore";
 // From the constants module, not the node barrel: that barrel re-exports the
 // node components, and this store is loaded at app boot.
-import { DYNAMIC_KIE_NODE_TYPE } from "../constants/nodeTypes";
 import { normalizeOutputUpdateValue } from "./outputUpdateValue";
 import { publishRealtimeAudioChunk } from "../lib/audio/realtimeAudioChunkBus";
 import { getRunSignature, clearRunSignatures } from "./runSignatures";
@@ -323,45 +322,46 @@ const settleLostRun = (workflowId: string, jobId: string): boolean => {
 };
 
 
+/**
+ * Merge the property values a running node echoes back into the editor's copy.
+ *
+ * The echo carries the values the run was submitted with, so any value the
+ * editor already holds wins: the user may have edited it during the run. A
+ * dynamic input's value is merged into the echo as a plain property, so a key
+ * the editor lacks is added only when the node type declares it statically
+ * (`declaredStatic`); otherwise a dynamic input deleted or renamed during the
+ * run would come back as a stray static property.
+ */
 export const mergeNodeUpdateProperties = ({
   updateProperties,
   existingStatic,
   existingDynamic,
-  isDynamicSchemaNode
+  declaredStatic
 }: {
   updateProperties: Record<string, unknown>;
   existingStatic: Record<string, unknown>;
   existingDynamic: Record<string, unknown>;
-  isDynamicSchemaNode: boolean;
+  declaredStatic?: ReadonlySet<string>;
 }) => {
-  const nextDynamic = { ...existingDynamic };
   const nextStatic = { ...existingStatic };
 
   for (const key in updateProperties) {
-    if (!Object.prototype.hasOwnProperty.call(updateProperties, key)) {
+    if (
+      !Object.prototype.hasOwnProperty.call(updateProperties, key) ||
+      Object.prototype.hasOwnProperty.call(existingDynamic, key) ||
+      Object.prototype.hasOwnProperty.call(existingStatic, key)
+    ) {
       continue;
     }
-    const value = updateProperties[key];
-    if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {
-      // Dynamic schema node inputs are user-editable between runs;
-      // backend echoes execution-time values that can be stale.
-      if (isDynamicSchemaNode) {
-        continue;
-      }
-      nextDynamic[key] = value;
+    if (declaredStatic && !declaredStatic.has(key)) {
       continue;
     }
-
-    // Preserve existing static values so user edits made while a run is in
-    // progress are not overwritten by stale execution-time echoes.
-    if (!Object.prototype.hasOwnProperty.call(existingStatic, key)) {
-      nextStatic[key] = value;
-    }
+    nextStatic[key] = updateProperties[key];
   }
 
   return {
     staticProperties: nextStatic,
-    dynamicProperties: nextDynamic
+    dynamicProperties: { ...existingDynamic }
   };
 };
 
@@ -1055,9 +1055,11 @@ const reportNodeError = (
     alert: true,
     content: errorDisplay
   });
-  // Only the runner's own job drives its state: a sibling run's node error
-  // must not hide Stop for the run still going.
-  if (!jobId || jobId === runnerStore.getState().job_id) {
+  // A node error does not end the run: other branches keep running until the
+  // terminal job_update, which sets the runner's state. Setting "error" here
+  // hid Stop and dropped those branches' edge updates. Only a frame with no
+  // job id, which cannot be followed to a job_update, fails the runner now.
+  if (!jobId) {
     runnerStore.setState({ state: "error" });
   }
 
@@ -1199,6 +1201,17 @@ const recordNodeProgress = (
  * (e.g. FalAI prompt) must be stored under `dynamic_properties`; writing them
  * into `properties` can desync editor state.
  */
+const declaredPropertyNames = (
+  nodeType: string | undefined
+): ReadonlySet<string> | undefined => {
+  const metadata = nodeType
+    ? useMetadataStore.getState().getMetadata(nodeType)
+    : undefined;
+  return metadata
+    ? new Set(metadata.properties.map((property) => property.name))
+    : undefined;
+};
+
 const applyNodeUpdateProperties = (
   workflowId: string,
   update: NodeUpdate,
@@ -1214,10 +1227,7 @@ const applyNodeUpdateProperties = (
     updateProperties: update.properties,
     existingStatic: node?.data?.properties || {},
     existingDynamic: node?.data?.dynamic_properties || {},
-    isDynamicSchemaNode:
-      update.node_type === "fal.DynamicFal" ||
-      update.node_type === DYNAMIC_KIE_NODE_TYPE ||
-      update.node_type === "kie.DynamicKie"
+    declaredStatic: declaredPropertyNames(node?.type ?? update.node_type)
   });
 
   // This runs while undo tracking is active, so writing here would push an undo

@@ -439,7 +439,11 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const containerStyle = useMemo<React.CSSProperties>(
     () => ({
-      backgroundColor: hexToRgba(color, 0.5),
+      // hexToRgba cannot read a CSS variable (the theme default) and would
+      // emit invalid CSS, leaving the comment with no background.
+      backgroundColor: color.trim().startsWith("var(")
+        ? `color-mix(in srgb, ${color} 50%, transparent)`
+        : hexToRgba(color, 0.5),
       color: textColor,
       paddingRight: getSpacingPx(SPACING.xxxl)
     }),

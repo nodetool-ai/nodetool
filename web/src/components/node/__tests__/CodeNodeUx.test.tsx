@@ -140,4 +140,44 @@ describe("NodeHeader code node title editing", () => {
     expect(mockUpdateNodeData).not.toHaveBeenCalled();
     expect(screen.getByText("C")).toBeInTheDocument();
   });
+
+  it("writes nothing when the title is committed unchanged", async () => {
+    const user = userEvent.setup();
+    render(
+      <NodeHeader
+        id="node-3"
+        title="Code"
+        metadataTitle="Code"
+        data={makeNodeData()}
+        isTitleEditable
+      />
+    );
+
+    await user.dblClick(screen.getByText("Code"));
+    await user.type(screen.getByDisplayValue("Code"), "{enter}");
+
+    expect(mockUpdateNodeData).not.toHaveBeenCalled();
+  });
+
+  it("clears a custom title set back to the default", async () => {
+    const user = userEvent.setup();
+    render(
+      <NodeHeader
+        id="node-4"
+        title="My Script"
+        metadataTitle="Code"
+        data={makeNodeData({ title: "My Script" })}
+        isTitleEditable
+      />
+    );
+
+    await user.dblClick(screen.getByText("My Script"));
+    const input = screen.getByDisplayValue("My Script");
+    await user.clear(input);
+    await user.type(input, "Code{enter}");
+
+    expect(mockUpdateNodeData).toHaveBeenCalledWith("node-4", {
+      title: undefined
+    });
+  });
 });

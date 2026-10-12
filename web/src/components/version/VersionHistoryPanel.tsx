@@ -20,6 +20,7 @@ import {
   Chip,
   Dialog,
   EditorButton,
+  EmptyState,
   FlexColumn,
   ListGroup,
   LoadingSpinner,
@@ -288,10 +289,12 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         }}
       >
         <PanelHeader title="Versions" onClose={onClose} />
-        <FlexColumn padding={3} gap={0.5}>
-          <Text color="error">Failed to load versions</Text>
-          <Text size="smaller" color="secondary">{String(error)}</Text>
-        </FlexColumn>
+        <EmptyState
+          variant="error"
+          size="small"
+          title="Failed to load versions"
+          description={String(error)}
+        />
       </FlexColumn>
     );
   }
@@ -388,12 +391,11 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           }}
         >
           {versions.length === 0 ? (
-            <div style={{ padding: getSpacingPx(SPACING.xl), textAlign: "center" }}>
-              <Text color="secondary">No versions saved yet</Text>
-              <Caption size="smaller" color="muted">
-                Save your workflow to create a version
-              </Caption>
-            </div>
+            <EmptyState
+              size="small"
+              title="No versions saved yet"
+              description="Save your workflow to create a version"
+            />
           ) : (
             <ListGroup compact flush sx={{ py: 0 }}>
               {versions.map((version) => (
@@ -552,7 +554,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         onClose={handleCloseDeleteDialog}
         title="Delete this version?"
         onConfirm={handleConfirmDelete}
-        onCancel={handleCloseDeleteDialog}
         confirmText="Delete"
         destructive
       >

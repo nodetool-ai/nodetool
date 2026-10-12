@@ -102,7 +102,10 @@ import {
   useExampleStoryboards
 } from "../../hooks/storyboard/useStoryboards";
 import { useLanguageProviderReadiness } from "../../hooks/useHasConfiguredProvider";
-import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
+import {
+  openProviderOnboarding,
+  useProviderOnboardingStore
+} from "../../stores/ProviderOnboardingStore";
 import useOnboardingStore, {
   isOnboardingFinished
 } from "../../stores/OnboardingStore";
@@ -224,6 +227,9 @@ interface SubmenuAnchor {
  * filed into the open project, which stays where it is.
  */
 type SetupTarget = GuidedFlowTarget;
+
+/** The notice asking for a model; dismissed once the model is picked. */
+const PICK_MODEL_NOTICE_KEY = "new-project-pick-model";
 
 const SETUP_TARGET_STORAGE_KEY = "nodetool-guided-setup-target";
 const SETUP_TARGET_KINDS: ReadonlySet<string> = new Set([
@@ -476,9 +482,20 @@ const NewProjectSurface = ({
   // the handlers read this rather than the render's copy of the state.
   const setupTargetRef = useRef<SetupTarget | null>(setupTarget);
   // Whether this guided tab is the one on screen. The New Project tab itself
-  // (no `flowRef`) only finishes from a click, so it always is.
+  // (no `flowRef`) only finishes from a click, so it always is. The workflow
+  // build opens the flow's own document to reach its canvas, and a creator
+  // looking at that document is looking at the flow too.
   const guidedTabActive = useWorkspaceTabsStore(
-    (state) => !flowRef || state.activeTabId === tabId("guided-flow", flowRef)
+    (state) =>
+      !flowRef ||
+      state.activeTabId === tabId("guided-flow", flowRef) ||
+      (setupTarget !== null &&
+        setupTarget.kind in SETUP_TAB_TYPE &&
+        state.activeTabId ===
+          tabId(
+            SETUP_TAB_TYPE[setupTarget.kind as keyof typeof SETUP_TAB_TYPE],
+            setupTarget.id
+          ))
   );
   const guidedTabActiveRef = useRef(guidedTabActive);
   guidedTabActiveRef.current = guidedTabActive;
@@ -533,6 +550,9 @@ const NewProjectSurface = ({
   );
   const addNotification = useNotificationStore(
     (state) => state.addNotification
+  );
+  const removeNotificationsByKey = useNotificationStore(
+    (state) => state.removeNotificationsByKey
   );
   const providerReadiness = useLanguageProviderReadiness();
   const hasConfiguredProvider = providerReadiness.ready;
@@ -702,13 +722,26 @@ const NewProjectSurface = ({
   const handleRefImages = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(event.target.files ?? []);
-      if (files.length > 0) {
-        uploadFiles(files);
+      // The picker's image filter is a default a person can switch off, and a
+      // text file taken as a reference showed as a broken picture.
+      const images = files.filter((file) => file.type.startsWith("image/"));
+      const skipped = files.filter((file) => !file.type.startsWith("image/"));
+      if (skipped.length > 0) {
+        addNotification({
+          type: "warning",
+          alert: true,
+          content: `Reference images take pictures only. ${skipped
+            .map((file) => file.name)
+            .join(", ")} ${skipped.length === 1 ? "was" : "were"} not added.`
+        });
+      }
+      if (images.length > 0) {
+        uploadFiles(images);
       }
       // Clear the input so picking the same file twice still registers.
       event.target.value = "";
     },
-    [uploadFiles]
+    [addNotification, uploadFiles]
   );
 
   const handleStart = useCallback(async () => {
@@ -744,7 +777,8 @@ const NewProjectSurface = ({
       addNotification({
         type: "info",
         alert: true,
-        content: "Pick a language model and the chat starts."
+        content: "Pick a language model and the chat starts.",
+        dedupeKey: PICK_MODEL_NOTICE_KEY
       });
       return;
     }
@@ -1754,7 +1788,9 @@ const NewProjectSurface = ({
   );
 
   // A start that was parked on provider onboarding resumes on its own once a
-  // provider is connected, so the user finishes the thing they asked for.
+  // provider is connected, so the user finishes the thing they asked for. The
+  // dialog has done its job then: left open, it covered the model menu the
+  // resumed start opens and then the chat that start opened.
   const resumeProject = useRef(handleStart);
   resumeProject.current = handleStart;
   useEffect(() => {
@@ -1762,6 +1798,7 @@ const NewProjectSurface = ({
       return;
     }
     setPendingStart(false);
+    useProviderOnboardingStore.getState().dismiss();
     void resumeProject.current();
   }, [pendingStart, hasConfiguredProvider]);
 
@@ -1770,8 +1807,9 @@ const NewProjectSurface = ({
       return;
     }
     setPendingModelStart(false);
+    removeNotificationsByKey(PICK_MODEL_NOTICE_KEY);
     void resumeProject.current();
-  }, [pendingModelStart, selectedModel]);
+  }, [pendingModelStart, selectedModel, removeNotificationsByKey]);
 
   // The handler rides the field wrapper, where MUI puts unknown props, and the
   // keydown reaches it by bubbling from the textarea. Both pickers only read

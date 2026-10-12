@@ -1,11 +1,12 @@
 import React, { useCallback, useState, memo } from "react";
 import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton, Box, SPACING, getSpacingPx } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import { useNodes } from "../../../contexts/NodeContext";
+import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { TypeMetadata } from "../../../stores/ApiTypes";
 import { resolveFalSchemaClient } from "../../../utils/falDynamicSchema";
 import { normalizeDynamicSlots } from "../../../utils/dynamicSlots";
+import { replaceDynamicSlots } from "../../../utils/replaceDynamicSlots";
 import { NodeData } from "../../../stores/NodeData";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { isNumber } from "../../../utils/typePredicates";
@@ -25,7 +26,7 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
   nodeId,
   data
 }) => {
-  const updateNodeData = useNodes((state) => state.updateNodeData);
+  const nodeStore = useNodeStoreRef();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,7 +104,7 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
       const dynamic_properties = force
         ? resolved.dynamic_properties
         : { ...resolved.dynamic_properties, ...(existingDynamicPropsRef.current ?? {}) };
-      updateNodeData(nodeId, {
+      replaceDynamicSlots(nodeStore, nodeId, {
         dynamic_properties,
         dynamic_inputs:
           Object.keys(dynamic_inputs).length > 0
@@ -119,21 +120,35 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
     } finally {
       setLoading(false);
     }
-  }, [nodeId, modelInfo, updateNodeData]);
+  }, [nodeId, modelInfo, nodeStore]);
 
+  const previousModelInfoRef = React.useRef(modelInfo);
   React.useEffect(() => {
+    if (!modelInfo) {
+      previousModelInfoRef.current = modelInfo;
+      setAutoLoadAttempted(false);
+      return;
+    }
+    if (loading) {
+      return;
+    }
+    const modelInfoChanged = previousModelInfoRef.current !== modelInfo;
+    previousModelInfoRef.current = modelInfo;
+    if (modelInfoChanged) {
+      // The stored endpoint_id still belongs to the old model, so the
+      // resolved check below would skip the load.
+      setError(null);
+      setAutoLoadAttempted(true);
+      void handleLoad(true); // new model → reset to fresh defaults
+      return;
+    }
     // Need both endpoint_id AND dynamic_inputs — inputs are transient (not persisted) and must be re-fetched
     const isResolved = !!data.endpoint_id && Object.keys(data.dynamic_inputs ?? {}).length > 0;
-    if (modelInfo && !isResolved && !loading && !error && !autoLoadAttempted) {
+    if (!isResolved && !error && !autoLoadAttempted) {
       setAutoLoadAttempted(true);
-      handleLoad(false); // auto-load: preserve existing values
+      void handleLoad(false); // auto-load: preserve existing values
     }
-  }, [modelInfo, data.endpoint_id, loading, error, autoLoadAttempted, handleLoad]);
-
-  // Reset attempt if modelInfo changes (new model → will force-reload on next trigger)
-  React.useEffect(() => {
-    setAutoLoadAttempted(false);
-  }, [modelInfo]);
+  }, [modelInfo, data.endpoint_id, data.dynamic_inputs, loading, error, autoLoadAttempted, handleLoad]);
 
   return (
     <Box sx={{ display: "inline-flex", alignItems: "center" }}>

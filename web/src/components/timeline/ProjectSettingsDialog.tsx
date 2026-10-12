@@ -21,9 +21,9 @@ import {
   Dialog,
   FlexColumn,
   FlexRow,
+  FormSection,
   SelectField,
   SPACING,
-  Text,
   TextInput
 } from "../ui_primitives";
 import type { SelectOption } from "../ui_primitives";
@@ -230,19 +230,15 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
       onClose={() => onClose()}
       title="Project settings"
       onConfirm={() => void handleApply()}
-      onCancel={onClose}
       confirmText="Apply"
-      cancelText="Cancel"
       isLoading={isSaving}
       confirmDisabled={!allValid || !dirty || isSaving}
-      minWidth="min(440px, 100vw - 32px)"
+      maxWidth="xs"
+      fullWidth
     >
-      <FlexColumn gap={SPACING.xl} sx={{ py: SPACING.xs }}>
+      <FlexColumn gap={SPACING.xl}>
         {/* ── Canvas size ─────────────────────────────────────────── */}
-        <FlexColumn gap={SPACING.sm}>
-          <Text size="small" weight={600} sx={{ mb: SPACING.sm }}>
-            Canvas size
-          </Text>
+        <FormSection label="Canvas size">
           {/* Label hidden — the section header names it; an outlined variant
               keeps it consistent with the Width/Height fields below. */}
           <SelectField
@@ -254,7 +250,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
             options={RESOLUTION_OPTIONS}
             size="small"
           />
-          <FlexRow gap={SPACING.sm} align="flex-start" sx={{ mt: SPACING.md }}>
+          <FlexRow gap={SPACING.lg} align="flex-start">
             <TextInput
               label="Width"
               type="number"
@@ -284,15 +280,12 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
               sx={{ flex: 1 }}
             />
           </FlexRow>
-        </FlexColumn>
+        </FormSection>
 
         {/* ── Frame rate ──────────────────────────────────────────── */}
-        <FlexColumn gap={SPACING.sm}>
-          <Text size="small" weight={600} sx={{ mb: SPACING.sm }}>
-            Frame rate
-          </Text>
-          <FlexRow gap={SPACING.sm} align="flex-start">
-            <FlexColumn sx={{ flex: 1 }}>
+        <FormSection label="Frame rate">
+          <FlexRow gap={SPACING.lg} align="flex-start">
+            <FlexColumn sx={{ flex: 2 }}>
               <SelectField
                 label="Frame rate preset"
                 hideLabel
@@ -304,7 +297,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
               />
             </FlexColumn>
             <TextInput
-              label="fps"
+              label="FPS"
               type="number"
               size="small"
               value={fpsText}
@@ -315,17 +308,14 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
                   : undefined
               }
               inputProps={{ min: MIN_FPS, max: MAX_FPS, step: 1 }}
-              sx={{ width: 120 }}
+              sx={{ flex: 1 }}
             />
           </FlexRow>
-        </FlexColumn>
+        </FormSection>
 
         {/* ── Tempo ───────────────────────────────────────────────── */}
-        <FlexColumn gap={SPACING.sm}>
-          <Text size="small" weight={600} sx={{ mb: SPACING.sm }}>
-            Tempo
-          </Text>
-          <FlexRow gap={SPACING.sm} align="flex-start">
+        <FormSection label="Tempo">
+          <FlexRow gap={SPACING.lg} align="flex-start">
             <TextInput
               label="BPM"
               type="number"
@@ -377,18 +367,19 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
               offsetText !== "" && !offsetValid ? "0 or more" : undefined
             }
             inputProps={{ min: 0, step: 1 }}
-            sx={{ mt: SPACING.md, width: 160 }}
+            fullWidth={false}
+            sx={{ alignSelf: "flex-start" }}
           />
           {midiClipCount > 0 && (
-            <Caption sx={{ color: "text.secondary" }}>
+            <Caption color="secondary">
               Your {midiClipCount === 1 ? "part" : "parts"} keep the same notes
               and play at the new speed — the {midiClipCount === 1 ? "clip" : "clips"}{" "}
               stretch around beat one. Picture and audio clips stay where they are.
             </Caption>
           )}
-        </FlexColumn>
+        </FormSection>
 
-        <Caption sx={{ color: "text.secondary" }}>
+        <Caption color="secondary">
           Applies to the preview and the exported video. Existing clips keep
           their own source resolution and are scaled to fit the canvas.
         </Caption>

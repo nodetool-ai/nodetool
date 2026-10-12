@@ -338,10 +338,10 @@ describe("recastStoryboard lineage", () => {
   });
 
   it("does not carry the source board's timeline", () => {
-    const withTimeline = {
+    const withTimeline: StoryboardDocument & { timeline_id: string } = {
       ...board(),
       timeline_id: "tl-1"
-    } as StoryboardDocument;
+    };
     const result = recastStoryboard({
       document: withTimeline,
       sourceId: "board-1",

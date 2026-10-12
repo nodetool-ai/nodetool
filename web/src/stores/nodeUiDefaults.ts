@@ -21,6 +21,10 @@ export type NodeUIProperties = {
   selected_generations?: string[];
   /** Plan step this node was placed from (Workflow creation flow, PRD § 11.5). */
   setup_step_id?: string;
+  /** Per-node input placement overrides set in the Inspector (`NodeData.exposedInputs*`). */
+  exposed_inputs?: string[];
+  exposed_inputs_labeled?: string[];
+  exposed_inputs_hidden?: string[];
 };
 
 export const DEFAULT_NODE_WIDTH = 280;

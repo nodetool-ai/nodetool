@@ -31,7 +31,7 @@ describe("AddDynamicOutputDialog", () => {
         <AddDynamicOutputDialog open={false} onClose={jest.fn()} onAdd={jest.fn()} />
       </ThemeProvider>
     );
-    expect(screen.queryByText("Add Output")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("adds an output with the default type and closes", async () => {
@@ -39,7 +39,7 @@ describe("AddDynamicOutputDialog", () => {
     const { onAdd, onClose } = renderDialog();
 
     await user.type(screen.getByLabelText("Name"), "score");
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add output" }));
 
     expect(onAdd).toHaveBeenCalledWith("score", {
       type: "str",
@@ -56,7 +56,7 @@ describe("AddDynamicOutputDialog", () => {
     await user.type(screen.getByLabelText("Name"), "count");
     await user.click(screen.getByRole("combobox"));
     await user.click(screen.getByRole("option", { name: "int" }));
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add output" }));
 
     expect(onAdd).toHaveBeenCalledWith("count", {
       type: "int",
@@ -70,7 +70,7 @@ describe("AddDynamicOutputDialog", () => {
     const { onAdd } = renderDialog();
 
     await user.type(screen.getByLabelText("Name"), "1bad");
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add output" }));
 
     expect(onAdd).not.toHaveBeenCalled();
     expect(

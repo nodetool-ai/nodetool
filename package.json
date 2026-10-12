@@ -63,6 +63,7 @@
     "packages/audio-nodes",
     "packages/video-nodes",
     "packages/blender-nodes",
+    "packages/manimgx-nodes",
     "packages/game-nodes",
     "packages/integration-nodes",
     "packages/code-nodes",

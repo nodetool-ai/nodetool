@@ -24,6 +24,7 @@ import {
   FlexRow,
   SelectField,
   SPACING,
+  Text,
   TextInput
 } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
@@ -159,6 +160,8 @@ export default function AppInstanceManager({
   };
   const named =
     action === "new" || action === "rename" || action === "duplicate";
+  // While the dialog is open its own banner shows the action error.
+  const outerError = (action === null ? error : null) ?? list.error?.message;
   return (
     <FlexColumn gap={SPACING.sm} padding={SPACING.lg}>
       <FlexRow gap={SPACING.sm} align="center" sx={{ flexWrap: "wrap" }}>
@@ -242,7 +245,7 @@ export default function AppInstanceManager({
           </EditorButton>
         ) : null}
       </FlexRow>
-      {error || list.error ? (
+      {outerError ? (
         <AlertBanner
           severity="error"
           action={
@@ -250,12 +253,12 @@ export default function AppInstanceManager({
               context={{
                 source: "operation-failure",
                 summary: "Instance management failed",
-                errorText: error ?? list.error?.message
+                errorText: outerError
               }}
             />
           }
         >
-          {error ?? list.error?.message}
+          {outerError}
         </AlertBanner>
       ) : null}
       <Dialog
@@ -269,7 +272,7 @@ export default function AppInstanceManager({
           action === "advance"
             ? "Advance instance version"
             : action === "delete"
-              ? "Delete instance"
+              ? "Delete instance?"
               : action === "duplicate"
                 ? "Duplicate instance"
                 : action === "rename"
@@ -277,7 +280,17 @@ export default function AppInstanceManager({
                   : "New instance"
         }
         onConfirm={() => void confirm()}
-        confirmText={action === "delete" ? "Delete" : "Save"}
+        confirmText={
+          action === "delete"
+            ? "Delete"
+            : action === "new"
+              ? "Create"
+              : action === "duplicate"
+                ? "Duplicate"
+                : action === "advance"
+                  ? "Advance"
+                  : "Save"
+        }
         isLoading={busy}
         confirmDisabled={named && !name.trim()}
         destructive={action === "delete"}
@@ -290,11 +303,11 @@ export default function AppInstanceManager({
             autoFocus
           />
         ) : (
-          <Caption>
+          <Text>
             {action === "delete"
               ? "This removes the instance, its history and associations. Generated media remains in your library. Running work is not cancelled."
               : "Future runs will use the selected published version. Historical runs keep their original version. Incompatible state prevents advancement."}
-          </Caption>
+          </Text>
         )}
         {error ? <AlertBanner severity="error">{error}</AlertBanner> : null}
       </Dialog>

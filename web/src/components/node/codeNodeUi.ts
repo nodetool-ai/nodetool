@@ -27,18 +27,30 @@ export function isCustomCodeNode(
   return isCodeNode(nodeType) && data.codeNodeMode === "custom";
 }
 
+/** Namespace of the nodes whose `code` is a ManimGX scene in Python. */
+const PYTHON_CODE_NAMESPACE = "nodetool.manimgx.";
+
 /**
  * Monaco language id for a code node's `code` property, derived from its
- * node_type. The Code node runs JavaScript in a sandbox; any other node with an
- * inline `code` property falls back to plain text.
+ * node_type. The Code node runs JavaScript in a sandbox, the ManimGX nodes
+ * run a Python scene, and any other node with an inline `code` property falls
+ * back to plain text.
  */
 export function getCodeNodeLanguage(nodeType: string): string {
-  return nodeType === CODE_NODE_TYPE ? "javascript" : "text";
+  if (nodeType === CODE_NODE_TYPE) {
+    return "javascript";
+  }
+  return nodeType.startsWith(PYTHON_CODE_NAMESPACE) ? "python" : "text";
 }
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  javascript: "JavaScript",
+  python: "Python"
+};
 
 /** Human label for a Monaco language id, shown in the code body toolbar. */
 export function codeLanguageLabel(language: string): string {
-  return language === "javascript" ? "JavaScript" : "Code";
+  return LANGUAGE_LABELS[language] ?? "Code";
 }
 
 /**

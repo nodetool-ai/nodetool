@@ -190,7 +190,7 @@ describe("TrackHeader context menu", () => {
     await userEvent.click(screen.getByText("Remove track"));
 
     expect(
-      screen.getByText('Remove track "Video 2" and all its clips?')
+      screen.getByText('Track "Video 2" and all its clips are removed.')
     ).toBeInTheDocument();
     expect(trackIds()).toHaveLength(3);
   });

@@ -4,6 +4,17 @@ import { isBoolean, isObjectLike } from "../utils/typePredicates";
 
 type FavoriteKey = string; // `${provider}:${id}`
 
+/**
+ * A pinned default model. `supported_tasks` is recorded when the pin knows the
+ * model's tasks; pins saved without it skip the task check on node creation.
+ */
+export type DefaultModel = {
+  provider: string;
+  id: string;
+  name: string;
+  supported_tasks?: string[];
+};
+
 type RecentEntry = {
   provider: string;
   id: string;
@@ -17,7 +28,7 @@ type PersistedModelPreferences = {
   recents: RecentEntry[];
   onlyAvailable: boolean;
   enabledProviders: Record<string, boolean>;
-  defaults: Record<string, { provider: string; id: string; name: string }>;
+  defaults: Record<string, DefaultModel>;
 };
 
 type ModelPreferencesState = {
@@ -33,11 +44,8 @@ type ModelPreferencesState = {
   setOnlyAvailable: (only: boolean) => void;
   isProviderEnabled: (provider: string) => boolean;
   setProviderEnabled: (provider: string, enabled: boolean) => void;
-  defaults: Record<string, { provider: string; id: string; name: string }>;
-  setDefault: (
-    modelType: string,
-    model: { provider: string; id: string; name: string }
-  ) => void;
+  defaults: Record<string, DefaultModel>;
+  setDefault: (modelType: string, model: DefaultModel) => void;
   clearDefault: (modelType: string) => void;
 };
 

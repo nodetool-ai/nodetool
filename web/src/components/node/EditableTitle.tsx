@@ -219,13 +219,15 @@ const EditableTitle = memo(function EditableTitle({
       e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
 
       if (e.key === "Enter" && !e.shiftKey) {
-        updateNodeData(nodeId, { title: e.currentTarget.value });
+        if (e.currentTarget.value !== title) {
+          updateNodeData(nodeId, { title: e.currentTarget.value });
+        }
         setIsEditing(false);
       } else if (e.key === "Escape") {
         setIsEditing(false);
       }
     },
-    [nodeId, updateNodeData]
+    [nodeId, title, updateNodeData]
   );
 
   const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => {
@@ -240,10 +242,12 @@ const EditableTitle = memo(function EditableTitle({
 
   const handleBlur = useCallback(
     (e: React.FocusEvent<HTMLTextAreaElement>) => {
-      updateNodeData(nodeId, { title: e.currentTarget.value });
+      if (e.currentTarget.value !== title) {
+        updateNodeData(nodeId, { title: e.currentTarget.value });
+      }
       setIsEditing(false);
     },
-    [nodeId, updateNodeData]
+    [nodeId, title, updateNodeData]
   );
 
   return (

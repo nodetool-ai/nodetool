@@ -228,6 +228,7 @@ describe("storyboards capability module", () => {
       "render_storyboard_clips",
       "revise_storyboard_clip",
       "assemble_storyboard_timeline",
+      "derive_shot_from_clip",
       "edit_storyboard",
       "direct_storyboard",
       "extract_script_from_storyboard",

@@ -152,11 +152,47 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const autoFocusEnabled = useAutoFocusEnabled();
   const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
+  // The typed value the debounce has not delivered yet, or null.
+  const pendingSearchRef = useRef<string | null>(null);
+  // Enter pressed while a search was pending: flushed, then delivered after
+  // the host re-renders with the new results.
+  const [enterRequest, setEnterRequest] = useState(0);
+  const onPressEnterRef = useRef(onPressEnter);
+  onPressEnterRef.current = onPressEnter;
 
   // Debounced search - store handles search ID management internally
-  const debouncedSetSearchTerm = useDebouncedCallback((value: string) => {
+  const debounced = useDebouncedCallback((value: string) => {
+    pendingSearchRef.current = null;
     onSearchChange(value);
   }, debounceTime);
+  const debouncedSetSearchTerm = useMemo(() => {
+    const fn = (value: string) => {
+      pendingSearchRef.current = value;
+      debounced(value);
+    };
+    fn.cancel = () => {
+      pendingSearchRef.current = null;
+      debounced.cancel();
+    };
+    return fn;
+  }, [debounced]);
+
+  const pressEnter = useCallback(() => {
+    const pending = pendingSearchRef.current;
+    if (pending === null) {
+      onPressEnter?.();
+      return;
+    }
+    debouncedSetSearchTerm.cancel();
+    onSearchChange(pending);
+    setEnterRequest((n) => n + 1);
+  }, [debouncedSetSearchTerm, onSearchChange, onPressEnter]);
+
+  React.useEffect(() => {
+    if (enterRequest > 0) {
+      onPressEnterRef.current?.();
+    }
+  }, [enterRequest]);
 
   const resetSearch = useCallback(() => {
     debouncedSetSearchTerm.cancel();
@@ -215,7 +251,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
       }
       if (event.key === "Enter") {
         event.preventDefault();
-        onPressEnter?.();
+        pressEnter();
         return;
       }
       // Space on an empty, focused search toggles the host closed (e.g. the node
@@ -235,7 +271,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
       onPressEscape,
       onPressArrowDown,
       onPressArrowUp,
-      onPressEnter,
+      pressEnter,
       onPressSpaceWhenEmpty
     ]
   );
@@ -278,7 +314,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
       bind("escape", () => onPressEscape?.()),
       bind("arrowdown", () => onPressArrowDown?.()),
       bind("arrowup", () => onPressArrowUp?.()),
-      bind("enter", () => onPressEnter?.()),
+      bind("enter", pressEnter),
       bind("backspace+control", clearSearch),
       bind("backspace+meta", clearSearch),
       bind("control+delete", clearSearch),
@@ -290,7 +326,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     onPressEscape,
     onPressArrowDown,
     onPressArrowUp,
-    onPressEnter,
+    pressEnter,
     clearSearch
   ]);
 

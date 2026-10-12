@@ -3,7 +3,6 @@ import { memo, useState, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import DeleteIcon from "@mui/icons-material/Delete";
-import LockIcon from "@mui/icons-material/Lock";
 import LoginIcon from "@mui/icons-material/Login";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -534,6 +533,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
   const [editingSecret, setEditingSecret] = useState<SecretResponse | null>(null);
   const [formValue, setFormValue] = useState("");
   const [formValues, setFormValues] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [secretToDelete, setSecretToDelete] = useState<SecretResponse | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -649,6 +649,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     const meta = getParentProviderMeta(secret.key);
     setEditingSecret(secret);
     setFormValue("");
+    setFormError(null);
     if (meta?.fields) {
       setFormValues({});
     }
@@ -659,6 +660,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     const meta = getParentProviderMeta(secret.key);
     setEditingSecret(secret);
     setFormValue("");
+    setFormError(null);
     if (meta?.fields) {
       setFormValues({});
     }
@@ -680,22 +682,14 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         // Multi-field provider: update all fields
         const combinedValues = meta.combinedCredential?.parse(formValue);
         if (meta.combinedCredential && !combinedValues) {
-          addNotification({
-            type: "error",
-            content: meta.combinedCredential.errorMessage,
-            dismissable: true
-          });
+          setFormError(meta.combinedCredential.errorMessage);
           return;
         }
         if (
           !combinedValues &&
           !meta.fields.every((f) => formValues[f.key])
         ) {
-          addNotification({
-            type: "error",
-            content: "All fields are required",
-            dismissable: true
-          });
+          setFormError("All fields are required");
           return;
         }
         for (const field of meta.fields) {
@@ -707,11 +701,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
       } else {
         // Single-field provider
         if (!formValue) {
-          addNotification({
-            type: "error",
-            content: "Secret value is required",
-            dismissable: true
-          });
+          setFormError("Secret value is required");
           return;
         }
         await updateSecret(editingSecret.key, formValue);
@@ -772,6 +762,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     setEditingSecret(null);
     setFormValue("");
     setFormValues({});
+    setFormError(null);
   }, []);
 
   const handleCloseDelete = useCallback(() => {
@@ -948,91 +939,81 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
               open={dialogOpen}
               onClose={handleCloseDialog}
               fullWidth
-              title={
-                <FlexRow align="center" gap={1}>
-                  <LockIcon
-                    sx={{
-                      color: "var(--palette-primary-main)",
-                      fontSize: "1.2em"
-                    }}
-                  />
-                  <Text size="big">
-                    {editingSecret?.is_configured ? "Update" : "Connect"}{" "}
-                    {meta?.name || editingSecret.key}
-                  </Text>
-                </FlexRow>
-              }
+              title={`${editingSecret?.is_configured ? "Update" : "Connect"} ${
+                meta?.name || editingSecret.key
+              }`}
               onConfirm={handleSave}
-              onCancel={handleCloseDialog}
               confirmText={editingSecret?.is_configured ? "Update" : "Connect"}
-              cancelText="Cancel"
               confirmDisabled={!allFieldsFilled}
             >
-              <FlexColumn
-                sx={{ marginTop: theme.spacing(4), gap: theme.spacing(3) }}
-              >
+              <FlexColumn gap={SPACING.lg}>
                 {meta?.combinedCredential ? (
-                  <>
-                    <TextInput
-                      label={meta.combinedCredential.label}
-                      type="password"
-                      value={formValue}
-                      onChange={(e) => setFormValue(e.target.value)}
-                      fullWidth
-                      placeholder={meta.combinedCredential.placeholder}
-                      autoFocus
-                      variant="outlined"
-                      size="small"
-                    />
-                    <Caption>
-                      Paste the complete value copied from Higgsfield. The key
-                      ID and secret will be encrypted and stored separately.
-                    </Caption>
-                  </>
+                  <TextInput
+                    label={meta.combinedCredential.label}
+                    type="password"
+                    value={formValue}
+                    onChange={(e) => {
+                      setFormValue(e.target.value);
+                      setFormError(null);
+                    }}
+                    fullWidth
+                    placeholder={meta.combinedCredential.placeholder}
+                    autoFocus
+                    variant="outlined"
+                    size="small"
+                    helperText="Paste the complete value copied from Higgsfield. The key ID and secret will be encrypted and stored separately."
+                    errorMessage={formError ?? undefined}
+                  />
                 ) : isMultiField ? (
                   <>
-                    {meta?.fields?.map((field) => (
+                    {meta?.fields?.map((field, index, fields) => (
                       <TextInput
                         key={field.key}
                         label={field.label}
                         type={field.secret ? "password" : "text"}
                         value={formValues[field.key] || ""}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setFormValues((prev) => ({
                             ...prev,
                             [field.key]: e.target.value
-                          }))
-                        }
+                          }));
+                          setFormError(null);
+                        }}
                         fullWidth
                         placeholder={`Enter ${field.label.toLowerCase()}`}
                         autoFocus={field.key === meta.fields?.[0]?.key}
                         variant="outlined"
                         size="small"
+                        helperText={
+                          index === fields.length - 1
+                            ? "All fields will be encrypted and stored securely. Never share them publicly."
+                            : undefined
+                        }
+                        errorMessage={
+                          formError && !formValues[field.key]
+                            ? formError
+                            : undefined
+                        }
                       />
                     ))}
-                    <Caption sx={{}}>
-                      All fields will be encrypted and stored securely. Never
-                      share them publicly.
-                    </Caption>
                   </>
                 ) : (
-                  <>
-                    <TextInput
-                      label="API Key"
-                      type="password"
-                      value={formValue}
-                      onChange={(e) => setFormValue(e.target.value)}
-                      fullWidth
-                      placeholder="Paste your API key here"
-                      autoFocus
-                      variant="outlined"
-                      size="small"
-                    />
-                    <Caption sx={{}}>
-                      Your key will be encrypted and stored securely. Never
-                      share it publicly.
-                    </Caption>
-                  </>
+                  <TextInput
+                    label="API key"
+                    type="password"
+                    value={formValue}
+                    onChange={(e) => {
+                      setFormValue(e.target.value);
+                      setFormError(null);
+                    }}
+                    fullWidth
+                    placeholder="Paste your API key here"
+                    autoFocus
+                    variant="outlined"
+                    size="small"
+                    helperText="Your key will be encrypted and stored securely. Never share it publicly."
+                    errorMessage={formError ?? undefined}
+                  />
                 )}
               </FlexColumn>
             </Dialog>
@@ -1044,10 +1025,11 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         open={deleteDialogOpen}
         onClose={handleCloseDelete}
         onConfirm={confirmDelete}
-        title="Delete API Key"
-        content={`Are you sure you want to delete the ${secretToDelete ? getParentProviderMeta(secretToDelete.key)?.name || secretToDelete.key : ""} API key?`}
+        title="Delete API key?"
+        content={`The ${secretToDelete ? getParentProviderMeta(secretToDelete.key)?.name || secretToDelete.key : ""} API key will be removed and its models will stop working until you add a key again.`}
         confirmText="Delete"
         cancelText="Cancel"
+        destructive
       />
     </FlexColumn>
   );

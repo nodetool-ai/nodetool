@@ -17,6 +17,7 @@ import {
   type Generation
 } from "./nodeGenerations";
 import { isString } from "./typePredicates";
+import { REROUTE_NODE_TYPE } from "../constants/nodeTypes";
 
 type GetMetadata = (_nodeType: string) => NodeMetadata | undefined;
 type GetGenerations = (_workflowId: string, _nodeId: string) => Generation[];
@@ -119,6 +120,9 @@ export const createRunResolver = ({
     findNode(id)?.data?.selected_generations ?? [];
   const cacheTtl = (id: string): number | "forever" | undefined => {
     const type = findNode(id)?.type;
+    // A Reroute only forwards its input, so its output is valid for as long
+    // as the input signature matches.
+    if (type === REROUTE_NODE_TYPE) return "forever";
     return type ? getMetadata(type)?.cache_ttl : undefined;
   };
   const upstreamIds = (id: string): string[] => {

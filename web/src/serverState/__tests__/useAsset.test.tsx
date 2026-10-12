@@ -2,6 +2,7 @@ import { renderHook } from '@testing-library/react';
 import { useAsset } from '../useAsset';
 import { useQuery } from '@tanstack/react-query';
 import { mockAsset } from '../../__mocks__/fixtures';
+import { BASE_URL } from '../../stores/BASE_URL';
 
 const mockGetAsset = jest.fn();
 jest.mock('../../stores/AssetStore', () => ({
@@ -82,6 +83,46 @@ describe('useAsset', () => {
     expect(mockFileUriToHttpUrl).toHaveBeenCalledWith('file:///Users/me/song.mp3');
     expect(result.current.uri).toBe(
       'http://localhost:7777/api/files/local?path=%2FUsers%2Fme%2Fsong.mp3'
+    );
+  });
+
+  it('prefers the asset URL over a server-derived /api/storage path', () => {
+    const { result } = renderHook(() =>
+      useAsset({
+        image: {
+          asset_id: '4a816f674eda4358b8140c50917ae78e',
+          uri: '/api/storage/4a816f674eda4358b8140c50917ae78e.bin'
+        } as any
+      })
+    );
+    expect(result.current.uri).toBe(mockAsset.get_url);
+  });
+
+  it('returns no uri for a derived path while the asset lookup is pending', () => {
+    (useQuery as jest.Mock).mockReturnValue({ data: undefined, isPending: true });
+    const { result } = renderHook(() =>
+      useAsset({
+        image: {
+          asset_id: '4a816f674eda4358b8140c50917ae78e',
+          uri: '/api/storage/4a816f674eda4358b8140c50917ae78e.bin'
+        } as any
+      })
+    );
+    expect(result.current.uri).toBeUndefined();
+  });
+
+  it('falls back to the stored path on the API origin once a lookup finds no asset', () => {
+    (useQuery as jest.Mock).mockReturnValue({ data: undefined, isPending: false });
+    const { result } = renderHook(() =>
+      useAsset({
+        image: {
+          asset_id: '4a816f674eda4358b8140c50917ae78e',
+          uri: '/api/storage/4a816f674eda4358b8140c50917ae78e.bin'
+        } as any
+      })
+    );
+    expect(result.current.uri).toBe(
+      `${BASE_URL}/api/storage/4a816f674eda4358b8140c50917ae78e.bin`
     );
   });
 });

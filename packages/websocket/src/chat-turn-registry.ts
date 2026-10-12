@@ -29,6 +29,8 @@
 
 import { createLogger } from "@nodetool-ai/config";
 
+import { onDrain } from "./drain.js";
+
 const log = createLogger("nodetool.websocket.chat-turn-registry");
 
 function envInt(name: string, fallback: number): number {
@@ -96,6 +98,7 @@ export class ChatTurnSession {
    */
   private deliveryChain: Promise<void> = Promise.resolve();
   private detachTimer: NodeJS.Timeout | null = null;
+  private drainUnsubscribe: (() => void) | null = null;
   private retentionTimer: NodeJS.Timeout | null = null;
 
   constructor(
@@ -186,13 +189,16 @@ export class ChatTurnSession {
   /**
    * The attached connection went away. A running turn keeps executing and
    * buffering under its existing execution budget. Operators may configure
-   * an additional detach timeout.
+   * an additional detach timeout. A drain aborts it with `"shutdown"`.
    */
   detach(target?: ChatTurnDeliveryTarget): void {
     if (target && this.target !== target) return;
     this.target = null;
     if (this.status !== "running") return;
     this.clearDetachTimer();
+    // A draining process refuses the reconnect that could answer this turn's
+    // approval or stop it, so only an abort ends it and lets the drain finish.
+    this.drainUnsubscribe = onDrain(() => this.abort("shutdown"));
     const graceMs = DETACH_GRACE_MS();
     if (graceMs === 0) return;
     this.detachTimer = setTimeout(() => {
@@ -241,6 +247,8 @@ export class ChatTurnSession {
       clearTimeout(this.detachTimer);
       this.detachTimer = null;
     }
+    this.drainUnsubscribe?.();
+    this.drainUnsubscribe = null;
   }
 
   private enqueueDelivery(fn: () => Promise<void>): void {

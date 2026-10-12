@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { useQueryClient } from "@tanstack/react-query";
 import type { GetRunResult, GetRunTraceResult, RunLog, RunLogsOptions, RunReaderFlags, RunTraceOptions, TraceRecord } from "@nodetool-ai/protocol";
@@ -15,7 +15,11 @@ import { AskRunAgentButton } from "../runs/AskRunAgentButton";
 import type { Workflow } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
 
-interface TracePanelProps { view?: RunInspectionView }
+interface TracePanelProps {
+  view?: RunInspectionView;
+  /** Lists only this workflow's runs. Null lists every run. */
+  workflowId?: string | null;
+}
 type TraceNode = GetRunTraceResult["nodes"][number];
 type SpanStatusCode = TraceNode["record"]["status"]["code"];
 interface SpanStatusProps { code: SpanStatusCode; message?: string | null }
@@ -432,23 +436,33 @@ function SpanPicker({ label, emptyLabel, nodes, value, onChange }: SpanPickerPro
   />;
 }
 
-export default function TracePanel({ view = "trace" }: TracePanelProps): React.ReactElement {
+export default function TracePanel({ view = "trace", workflowId = null }: TracePanelProps): React.ReactElement {
   const selectedRunId = useTraceStore((state) => state.selectedRunId);
+  const selectedRunWorkflowId = useTraceStore((state) => state.selectedRunWorkflowId);
   const focusedSpanId = useTraceStore((state) => state.focusedSpanId);
+  const pendingNodeId = useTraceStore((state) => state.pendingNodeId);
   const selectRun = useTraceStore((state) => state.selectRun);
   const focusSpan = useTraceStore((state) => state.focusSpan);
-  const recent = useRuns();
+  const recent = useRuns(workflowId ? { workflow_id: workflowId } : {});
   const runs = [...new Map(recent.data?.pages.flatMap((page) => page.runs).map((run) => [run.id, run]) ?? []).values()];
-  const runId = selectedRunId ?? runs[0]?.id ?? null;
+  // A run picked in another workflow tab does not follow the user here.
+  const selected = selectedRunWorkflowId === null || selectedRunWorkflowId === workflowId ? selectedRunId : null;
+  const runId = selected ?? runs[0]?.id ?? null;
   const summary = useRun(runId);
   const canonicalId = summary.data?.run.id ?? runId;
   useRunLiveUpdates(canonicalId);
+  // "View logs" on a node names the node, not its span: focus the span once the trace has it.
+  const nodeTrace = useRunTrace(pendingNodeId ? canonicalId : null, { depth: 64, limit: 500 });
+  const nodeSpanId = pendingNodeId ? nodeTrace.data?.nodes.find(({ record }) => record.attributes["node.id"] === pendingNodeId)?.record.span_id : undefined;
+  useEffect(() => {
+    if (nodeSpanId) { focusSpan(nodeSpanId); }
+  }, [nodeSpanId, focusSpan]);
   // A run picked from an older page or a link may be missing from the recent list.
   const pickerRuns = summary.data && !runs.some((run) => run.id === summary.data.run.id) ? [summary.data.run, ...runs] : runs;
   return <FlexColumn gap={SPACING.md} sx={{ flex: 1, minHeight: 0, px: SPACING.xl, py: SPACING.md }}>
     <FlexRow gap={SPACING.lg} sx={{ alignItems: "flex-end", flexWrap: "wrap" }}>
       <Box sx={{ flex: "1 1 auto", minWidth: (theme) => theme.spacing(SPACING.xxxl * 6), maxWidth: (theme) => theme.spacing(SPACING.xxxl * 12) }}>
-        <RunPicker runs={pickerRuns} value={canonicalId} onChange={selectRun} />
+        <RunPicker runs={pickerRuns} value={canonicalId} onChange={(id) => selectRun(id, workflowId)} />
       </Box>
       {recent.hasNextPage && <ControlSlot><EditorButton size="small" onClick={() => void recent.fetchNextPage()}>Older runs</EditorButton></ControlSlot>}
       {summary.data && <ControlSlot>

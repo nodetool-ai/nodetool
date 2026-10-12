@@ -1,7 +1,7 @@
 /**
  * FormSection Component
  *
- * A titled group of form fields: an optional uppercase group label above a
+ * A titled group of form fields: an optional eyebrow group label above a
  * vertical stack with on-grid gaps. Replaces hand-rolled `.group-label` +
  * flex-column CSS (see StoryboardBoard's header fields).
  */
@@ -11,7 +11,7 @@ import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { SPACING, resolveSpacing, type SpacingValue } from "./spacing";
-import { FONT_SIZE_SANS, FONT_WEIGHT } from "./tokens";
+import { EYEBROW } from "./tokens";
 
 export interface FormSectionProps {
   /** Optional uppercase group label above the body */
@@ -49,11 +49,8 @@ export const FormSection = forwardRef<HTMLDivElement, FormSectionProps>(
           // reference, so a plain div avoids a dangling label association.
           <Box
             sx={{
-              textTransform: "uppercase",
-              fontSize: FONT_SIZE_SANS.caption,
-              fontWeight: FONT_WEIGHT.medium,
-              letterSpacing: "0.08em",
-              color: theme.vars.palette.text.disabled,
+              ...EYEBROW,
+              color: theme.vars.palette.text.secondary,
               marginBottom: theme.spacing(SPACING.md)
             }}
           >

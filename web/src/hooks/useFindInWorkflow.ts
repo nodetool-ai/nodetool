@@ -53,6 +53,7 @@ export const useFindInWorkflow = (): UseFindInWorkflowResult => {
   const { setCenter } = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingTermRef = useRef<string | null>(null);
 
   const getNodeDisplayName = useCallback(
     (node: Node<NodeData>): string => {
@@ -180,7 +181,10 @@ export const useFindInWorkflow = (): UseFindInWorkflowResult => {
         clearTimeout(searchTimeoutRef.current);
       }
 
+      pendingTermRef.current = term;
       searchTimeoutRef.current = setTimeout(() => {
+        searchTimeoutRef.current = null;
+        pendingTermRef.current = null;
         performSearch(term);
       }, 150);
     },
@@ -195,13 +199,13 @@ export const useFindInWorkflow = (): UseFindInWorkflowResult => {
     };
   }, []);
 
-  const activateResult = useCallback(
-    (index: number) => {
-      if (index < 0 || index >= results.length) {
+  const activateIn = useCallback(
+    (list: typeof results, index: number) => {
+      if (index < 0 || index >= list.length) {
         return;
       }
 
-      const result = results[index];
+      const result = list[index];
       if (!result) {
         return;
       }
@@ -242,12 +246,29 @@ export const useFindInWorkflow = (): UseFindInWorkflowResult => {
         usePropertyHighlightStore.getState().highlight(node.id, propertyName);
       }
     },
-    [nodes, results, setCenter, setSelectedIndex, setSelectedNodes]
+    [nodes, setCenter, setSelectedIndex, setSelectedNodes]
   );
 
+  const activateResult = useCallback(
+    (index: number) => activateIn(results, index),
+    [activateIn, results]
+  );
+
+  // Enter can arrive before the debounced search runs. Search now, so it acts
+  // on the term in the field rather than on the last results shown.
   const goToSelected = useCallback(() => {
+    const pending = pendingTermRef.current;
+    if (searchTimeoutRef.current && pending !== null) {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
+      pendingTermRef.current = null;
+      const fresh = pending.trim() ? searchNodes(pending, nodes) : [];
+      setResults(fresh);
+      activateIn(fresh, 0);
+      return;
+    }
     activateResult(selectedIndex);
-  }, [activateResult, selectedIndex]);
+  }, [activateIn, activateResult, nodes, searchNodes, selectedIndex, setResults]);
 
   const navigateToIndex = useCallback(
     (index: number) => {

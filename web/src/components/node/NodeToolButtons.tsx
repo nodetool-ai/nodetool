@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useState } from "react";
-import { useReactFlow, Node } from "@xyflow/react";
+import { useReactFlow } from "@xyflow/react";
 import { shallow } from "zustand/shallow";
 import { useTheme } from "@mui/material/styles";
 
@@ -35,7 +35,6 @@ import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useRunFromHere } from "../../hooks/nodes/useRunFromHere";
 import { openPageTab } from "../workspace/openPageTab";
-import { NodeData } from "../../stores/NodeData";
 
 interface NodeToolbarProps {
   nodeId: string | null;
@@ -61,12 +60,16 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     shallow
   );
 
-  const node = nodeId !== null ? getNode(nodeId) : null;
-  const nodeData = node?.data as NodeData | undefined;
+  // Read the node from the store: `getNode` subscribes to nothing, so the
+  // toolbar would show bypass, comment and group state from one edit earlier.
+  const node = useNodes((state) =>
+    nodeId !== null ? state.findNode(nodeId) ?? null : null
+  );
+  const nodeData = node?.data;
   const duplicateNodes = useDuplicateNodes();
   const removeFromGroup = useRemoveFromGroup();
   const { handlers, conditions } = useNodeContextMenu();
-  const { runFromHere, isWorkflowRunning } = useRunFromHere(node as Node<NodeData> | null);
+  const { runFromHere, isWorkflowRunning } = useRunFromHere(node);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const dropdownOpen = Boolean(anchorEl);
@@ -101,7 +104,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
   const handleRemoveFromGroup = useCallback(() => {
     if (node) {
-      removeFromGroup([node as Node<NodeData>]);
+      removeFromGroup([node]);
     }
   }, [node, removeFromGroup]);
 

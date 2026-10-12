@@ -10,14 +10,18 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  AutoGrid,
   Box,
   Caption,
+  EmptyState,
   FlexColumn,
   Label,
+  LoadingSpinner,
+  TruncatedText,
   BORDER_RADIUS,
-  MOTION,
   SPACING,
-  TYPOGRAPHY
+  TYPOGRAPHY,
+  selectableTileStyles
 } from "../../ui_primitives";
 import { trpc } from "../../../trpc/client";
 import { useBoundResource, type ResourceItem } from "./useBoundResource";
@@ -103,32 +107,20 @@ const GalleryTile: React.FC<TileProps> = ({
     onClick={onSelect}
     onFocus={onFocus}
     gap={SPACING.xs}
-    sx={{
+    sx={(theme) => ({
       height: size,
       p: SPACING.xs,
       cursor: "pointer",
-      borderRadius: BORDER_RADIUS.md,
-      border: "1px solid",
-      borderColor: selected ? "primary.main" : "divider",
-      outlineOffset: 2,
-      backgroundColor: selected ? "action.selected" : "transparent",
-      transition: `${MOTION.border}, ${MOTION.background}`,
-      "&:hover": { borderColor: "primary.light" }
-    }}
+      ...selectableTileStyles(theme, { selected })
+    })}
   >
     {isAsset ? <AssetThumbnail id={item.ref.id} enabled /> : null}
-    <Box
-      sx={{
-        ...TYPOGRAPHY.sans.caption,
-        color: "text.secondary",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
-      }}
+    <TruncatedText
+      sx={{ ...TYPOGRAPHY.sans.label, color: "text.primary" }}
       title={item.name}
     >
       {item.name}
-    </Box>
+    </TruncatedText>
   </FlexColumn>
 );
 
@@ -220,43 +212,45 @@ export const ResourceGalleryWidget: React.FC<ResourceGalleryProps> = ({
     <FlexColumn gap={SPACING.xs} fullWidth>
       <Label>{title}</Label>
       {items.length === 0 ? (
-        <Caption color="secondary">
-          {isLoading
-            ? "Loading…"
-            : `No ${binding.kind} resources in this collection yet.`}
-        </Caption>
+        isLoading ? (
+          <LoadingSpinner size="small" text="Loading" />
+        ) : (
+          <EmptyState
+            variant="empty"
+            size="small"
+            title="Empty collection"
+            description={`No ${binding.kind} resources in this collection yet.`}
+          />
+        )
       ) : (
         <Box
           role="listbox"
           aria-label={title}
           aria-disabled={disabled || undefined}
           onKeyDown={onKeyDown}
-          sx={{
-            display: "grid",
-            gap: SPACING.sm,
-            width: "100%",
-            gridTemplateColumns: `repeat(auto-fill, minmax(${tileSize ?? TILE_SIZE}px, 1fr))`
-          }}
+          sx={{ width: "100%" }}
         >
-          {items.map((item, index) => (
-            <GalleryTile
-              key={item.ref.id}
-              item={item}
-              isAsset={binding.kind === "asset"}
-              size={tileSize ?? TILE_SIZE}
-              selected={selected?.id === item.ref.id}
-              focusable={index === focusIndex}
-              onSelect={() => {
-                if (disabled) return;
-                setFocusIndex(index);
-                select(item.ref);
-              }}
-              onFocus={() => setFocusIndex(index)}
-              registerRef={(el) => {
-                tileRefs.current[index] = el;
-              }}
-            />
-          ))}
+          <AutoGrid minItemWidth={tileSize ?? TILE_SIZE} gap={SPACING.sm}>
+            {items.map((item, index) => (
+              <GalleryTile
+                key={item.ref.id}
+                item={item}
+                isAsset={binding.kind === "asset"}
+                size={tileSize ?? TILE_SIZE}
+                selected={selected?.id === item.ref.id}
+                focusable={index === focusIndex}
+                onSelect={() => {
+                  if (disabled) return;
+                  setFocusIndex(index);
+                  select(item.ref);
+                }}
+                onFocus={() => setFocusIndex(index)}
+                registerRef={(el) => {
+                  tileRefs.current[index] = el;
+                }}
+              />
+            ))}
+          </AutoGrid>
         </Box>
       )}
     </FlexColumn>

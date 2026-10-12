@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import {
-  Box, Caption, Dialog, EditorButton, FlexColumn, FlexRow, Text,
+  Box, Button, Caption, Dialog, EditorButton, FlexColumn, FlexRow, Text,
   BORDER_RADIUS, SPACING
 } from "../ui_primitives";
 import { useSecrets } from "../../hooks/useSecrets";
@@ -50,10 +50,10 @@ const ProviderOnboardingDialog: React.FC = () => {
       fullWidth
       title="Connect an AI provider"
       actions={
-        <FlexRow justify="space-between" gap={SPACING.md} wrap sx={{ width: "100%", px: SPACING.md }}>
-          <EditorButton variant="text" onClick={handleOpenSettings}>See all providers in Settings</EditorButton>
-          <EditorButton variant="outlined" onClick={dismiss}>Done</EditorButton>
-        </FlexRow>
+        <>
+          <Button variant="text" color="inherit" onClick={handleOpenSettings} sx={{ mr: "auto" }}>See all providers in Settings</Button>
+          <Button variant="contained" onClick={dismiss}>Done</Button>
+        </>
       }
     >
       <FlexColumn gap={SPACING.xxl}>

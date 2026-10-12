@@ -38,6 +38,7 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { useModelManagerStore } from "../../stores/ModelManagerStore";
 import { useSystemStatsStore } from "../../stores/systemStatsHandler";
 import { useProviderOnboardingStore } from "../../stores/ProviderOnboardingStore";
+import { DIALOG_PREVIEWS } from "./DialogPreviews";
 
 const CostsDashboard = React.lazy(() => import("../costs/CostsDashboard"));
 const ModelListIndex = React.lazy(
@@ -177,7 +178,12 @@ const PREVIEWS: PreviewEntry[] = [
     description:
       "Blocked-provider onboarding: OAuth sign-in, API keys, and cost guidance",
     viewport: { width: 900, height: 1200 }
-  }
+  },
+  ...Object.entries(DIALOG_PREVIEWS).map(([id, { label }]) => ({
+    id,
+    label: `${label} dialog`,
+    description: "Dialog opened with sample data"
+  }))
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -424,6 +430,7 @@ const PreviewConfirmDialog: React.FC = () => (
         content="This action cannot be undone. The workflow and its run history will be removed from the workspace."
         confirmText="Delete"
         cancelText="Cancel"
+        destructive
       />
     </Suspense>
   </Box>
@@ -772,7 +779,10 @@ const COMPONENT_MAP: Record<string, React.FC> = {
   "workflow-form": PreviewWorkflowForm,
   "workflow-delete": PreviewWorkflowDelete,
   "provider-onboarding": PreviewProviderOnboarding,
-  "form-controls": PreviewFormControls
+  "form-controls": PreviewFormControls,
+  ...Object.fromEntries(
+    Object.entries(DIALOG_PREVIEWS).map(([id, { component }]) => [id, component])
+  )
 };
 
 const ComponentPreview: React.FC = () => {
@@ -812,7 +822,7 @@ const ComponentPreview: React.FC = () => {
       sx={{
         width: "100%",
         minHeight: "100vh",
-        bgcolor: theme.palette.background.default
+        bgcolor: theme.vars.palette.background.default
       }}
     >
       <PreviewComponent />

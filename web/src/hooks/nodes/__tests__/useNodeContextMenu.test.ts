@@ -96,6 +96,7 @@ describe("useNodeContextMenu", () => {
   const mockUpdateNode = jest.fn();
   const mockSelectNodesByType = jest.fn();
   const mockDeleteNode = jest.fn();
+  const mockDeleteNodes = jest.fn();
   const mockToggleBypass = jest.fn();
   const mockGetSelectedNodes = jest.fn<Array<{ id: string; data: Record<string, unknown> }>, []>(() => []);
   const mockSetSelectedNodes = jest.fn();
@@ -128,6 +129,7 @@ describe("useNodeContextMenu", () => {
     updateNode: typeof mockUpdateNode;
     selectNodesByType: typeof mockSelectNodesByType;
     deleteNode: typeof mockDeleteNode;
+    deleteNodes: typeof mockDeleteNodes;
     getSelectedNodes: typeof mockGetSelectedNodes;
     toggleBypass: typeof mockToggleBypass;
     nodes: typeof mockNodes;
@@ -164,6 +166,7 @@ describe("useNodeContextMenu", () => {
       updateNode: mockUpdateNode,
       selectNodesByType: mockSelectNodesByType,
       deleteNode: mockDeleteNode,
+      deleteNodes: mockDeleteNodes,
       getSelectedNodes: mockGetSelectedNodes,
       toggleBypass: mockToggleBypass,
       nodes: mockNodes,
@@ -275,6 +278,7 @@ describe("useNodeContextMenu", () => {
           updateNode: mockUpdateNode,
           selectNodesByType: mockSelectNodesByType,
           deleteNode: mockDeleteNode,
+          deleteNodes: mockDeleteNodes,
           getSelectedNodes: mockGetSelectedNodes,
           toggleBypass: mockToggleBypass,
           setSelectedNodes: mockSetSelectedNodes,
@@ -331,8 +335,23 @@ describe("useNodeContextMenu", () => {
         result.current.handlers.handleDeleteNode();
       });
 
-      expect(mockDeleteNode).toHaveBeenCalledWith("node-1");
+      expect(mockDeleteNodes).toHaveBeenCalledWith(["node-1"]);
       expect(mockCloseContextMenu).toHaveBeenCalled();
+    });
+
+    it("deletes only the clicked node when it is outside the selection", () => {
+      mockGetSelectedNodes.mockReturnValue([
+        { id: "node-2", data: {} },
+        { id: "node-3", data: {} }
+      ]);
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleDeleteNode();
+      });
+
+      expect(mockDeleteNodes).toHaveBeenCalledWith(["node-1"]);
     });
 
     it("deletes all selected nodes", () => {
@@ -348,8 +367,7 @@ describe("useNodeContextMenu", () => {
         result.current.handlers.handleDeleteNode();
       });
 
-      expect(mockDeleteNode).toHaveBeenCalledWith("node-1");
-      expect(mockDeleteNode).toHaveBeenCalledWith("node-2");
+      expect(mockDeleteNodes).toHaveBeenCalledWith(["node-1", "node-2"]);
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });
   });
@@ -439,6 +457,7 @@ describe("useNodeContextMenu", () => {
           updateNode: mockUpdateNode,
           selectNodesByType: mockSelectNodesByType,
           deleteNode: mockDeleteNode,
+          deleteNodes: mockDeleteNodes,
           getSelectedNodes: mockGetSelectedNodes,
           toggleBypass: mockToggleBypass,
           nodes: [inputNode, ...mockNodes.slice(1)],
@@ -578,6 +597,7 @@ describe("useNodeContextMenu", () => {
           updateNode: mockUpdateNode,
           selectNodesByType: mockSelectNodesByType,
           deleteNode: mockDeleteNode,
+          deleteNodes: mockDeleteNodes,
           getSelectedNodes: mockGetSelectedNodes,
           toggleBypass: mockToggleBypass,
           nodes: [groupedNode, ...mockNodes.slice(1)],
@@ -614,6 +634,7 @@ describe("useNodeContextMenu", () => {
           updateNode: mockUpdateNode,
           selectNodesByType: mockSelectNodesByType,
           deleteNode: mockDeleteNode,
+          deleteNodes: mockDeleteNodes,
           getSelectedNodes: mockGetSelectedNodes,
           toggleBypass: mockToggleBypass,
           nodes: [bypassedNode, ...mockNodes.slice(1)],
@@ -650,6 +671,7 @@ describe("useNodeContextMenu", () => {
           updateNode: mockUpdateNode,
           selectNodesByType: mockSelectNodesByType,
           deleteNode: mockDeleteNode,
+          deleteNodes: mockDeleteNodes,
           getSelectedNodes: mockGetSelectedNodes,
           toggleBypass: mockToggleBypass,
           nodes: [nonConvertibleNode, ...mockNodes.slice(1)],
@@ -679,6 +701,7 @@ describe("useNodeContextMenu", () => {
           updateNode: mockUpdateNode,
           selectNodesByType: mockSelectNodesByType,
           deleteNode: mockDeleteNode,
+          deleteNodes: mockDeleteNodes,
           getSelectedNodes: mockGetSelectedNodes,
           toggleBypass: mockToggleBypass,
           nodes: [nonConvertibleNode, ...mockNodes.slice(1)],

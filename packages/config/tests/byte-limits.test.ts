@@ -36,6 +36,11 @@ describe("getByteLimitEnv", () => {
     expect(getByteLimitEnv(KEY, FALLBACK)).toBe(2048);
   });
 
+  it("accepts the smallest positive limit", () => {
+    process.env[KEY] = "1";
+    expect(getByteLimitEnv(KEY, FALLBACK)).toBe(1);
+  });
+
   it("floors a fractional value", () => {
     process.env[KEY] = "2048.9";
     expect(getByteLimitEnv(KEY, FALLBACK)).toBe(2048);

@@ -24,8 +24,7 @@ module.exports = {
     // Shared mini-app runtime core, compiled from source (mirrors metro.config.js).
     '^@nodetool-ai/app-runtime$':
       '<rootDir>/../packages/app-runtime/src/index.ts',
-    // Jest runs in CJS mode, so compile the current protocol source instead of
-    // parsing the package's ESM dist directly. Production still uses the dist.
+    // Protocol is compiled from source, as in metro.config.js and tsconfig.json.
     '^@nodetool-ai/protocol$':
       '<rootDir>/../packages/protocol/src/index.ts',
     // Keep dependency-free helpers on narrow source entry points so they do

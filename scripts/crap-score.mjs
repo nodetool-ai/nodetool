@@ -428,7 +428,7 @@ export function functionsInSource(source, path) {
 // ---------------------------------------------------------------------------
 // Coverage
 
-/** `SF` path → `{ lines: Map<line, hit 0|1>, branches: Map<line, [covered, total]> }`. */
+/** `SF` path → `{ lines: Map<line, hit 0|1>, branches: Map<line, Map<"block,branch", hit 0|1>> }`. */
 export function parseLcov(text) {
   const files = new Map();
   let current = null;
@@ -444,13 +444,28 @@ export function parseLcov(text) {
       const hit = Number(hits) > 0 ? 1 : 0;
       current.lines.set(Number(lineNo), Math.max(hit, current.lines.get(Number(lineNo)) ?? 0));
     } else if (current && line.startsWith("BRDA:")) {
-      const [lineNo, , , taken] = line.slice(5).split(",");
-      const [covered, total] = current.branches.get(Number(lineNo)) ?? [0, 0];
+      const [lineNo, block, branch, taken] = line.slice(5).split(",");
       const hit = taken !== "-" && Number(taken) > 0 ? 1 : 0;
-      current.branches.set(Number(lineNo), [covered + hit, total + 1]);
+      const onLine = current.branches.get(Number(lineNo)) ?? new Map();
+      onLine.set(`${block},${branch}`, Math.max(hit, onLine.get(`${block},${branch}`) ?? 0));
+      current.branches.set(Number(lineNo), onLine);
     }
   }
   return files;
+}
+
+/** Add `from`'s hits to `into`: a line or branch counts as hit when any report hit it. */
+function mergeRecord(into, from) {
+  for (const [line, hit] of from.lines) {
+    into.lines.set(line, Math.max(hit, into.lines.get(line) ?? 0));
+  }
+  for (const [line, branches] of from.branches) {
+    const onLine = into.branches.get(line) ?? new Map();
+    for (const [key, hit] of branches) {
+      onLine.set(key, Math.max(hit, onLine.get(key) ?? 0));
+    }
+    into.branches.set(line, onLine);
+  }
 }
 
 /**
@@ -460,10 +475,12 @@ export function parseLcov(text) {
 export function percentForSpan(record, start, end) {
   let covered = 0;
   let total = 0;
-  for (const [line, [hit, count]] of record.branches) {
+  for (const [line, branches] of record.branches) {
     if (line >= start && line <= end) {
-      covered += hit;
-      total += count;
+      for (const hit of branches.values()) {
+        covered += hit;
+        total += 1;
+      }
     }
   }
   if (total > 0) {
@@ -495,7 +512,12 @@ export function loadLcov(reports, root) {
       const absolute = isAbsolute(file)
         ? file
         : (bases.map((base) => resolve(base, file)).find((candidate) => existsSync(candidate)) ?? resolve(bases[0], file));
-      merged.set(absolute, record);
+      const existing = merged.get(absolute);
+      if (existing) {
+        mergeRecord(existing, record);
+      } else {
+        merged.set(absolute, record);
+      }
     }
   }
   return merged;
@@ -608,7 +630,7 @@ export function coverageCommand(workspace, files) {
     return [
       "npx",
       ["vitest", "related", "--run", "--passWithNoTests", "--coverage.enabled", "--coverage.provider=v8",
-        "--coverage.reporter=lcov", "--coverage.reportsDirectory=coverage", ...files]
+        "--coverage.reporter=lcov", "--coverage.reportsDirectory=coverage", "--coverage.reportOnFailure", ...files]
     ];
   }
   if (/jest/.test(test)) {

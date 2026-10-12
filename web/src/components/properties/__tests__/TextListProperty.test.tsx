@@ -12,6 +12,18 @@ jest.mock("../../../serverState/useAssetUpload", () => ({
   })
 }));
 
+const mockAssetNames: Record<string, string> = {
+  "87c6124bc9684facabb8cb3575dcb8ad": "meeting-notes.txt"
+};
+jest.mock("../../../serverState/useAsset", () => ({
+  useAsset: ({ document }: { document?: { asset_id?: string } }) => {
+    const id = document?.asset_id;
+    return {
+      asset: id && mockAssetNames[id] ? { name: mockAssetNames[id] } : undefined
+    };
+  }
+}));
+
 const defaultProps = {
   property: {
     name: "text_files",
@@ -126,5 +138,23 @@ describe("TextListProperty", () => {
     );
     
     expect(screen.getByText("document.txt")).toBeInTheDocument();
+  });
+
+  it("names an asset:// item after its asset", () => {
+    const textsValue = [
+      {
+        uri: "asset://87c6124bc9684facabb8cb3575dcb8ad",
+        type: "text",
+        asset_id: "87c6124bc9684facabb8cb3575dcb8ad"
+      }
+    ];
+
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <TextListProperty {...defaultProps} value={textsValue} />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByText("meeting-notes.txt")).toBeInTheDocument();
   });
 });

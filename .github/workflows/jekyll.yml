@@ -3,6 +3,11 @@ name: Deploy Jekyll site to Pages
 on:
   push:
     branches: ["main"]
+    # The site is built from docs/ alone (`cd docs && jekyll build`), so a
+    # push that changes nothing there has nothing to redeploy.
+    paths:
+      - "docs/**"
+      - ".github/workflows/jekyll.yml"
   workflow_dispatch:
 
 permissions:

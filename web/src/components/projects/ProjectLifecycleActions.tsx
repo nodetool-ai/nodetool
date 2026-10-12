@@ -1,12 +1,12 @@
 import { useCallback, useState, type MouseEvent } from "react";
 
 import {
-  Caption,
   Dialog,
   EditorButton,
   FlexColumn,
   FlexRow,
-  SPACING
+  SPACING,
+  Text
 } from "../ui_primitives";
 import {
   useArchiveProject,
@@ -101,16 +101,17 @@ const ProjectLifecycleActions = ({ project }: ProjectLifecycleActionsProps) => {
         title={`Delete ${project.name}?`}
         onConfirm={confirmDelete}
         confirmText="Delete project"
-        cancelText="Cancel"
         destructive
         isLoading={remove.isPending}
       >
         <FlexColumn gap={SPACING.md}>
-          <Caption>
+          <Text size="small">
             Delete {project.name} and all of its documents, conversations,
             generated outputs, assets, jobs, and project files.
-          </Caption>
-          <Caption color="error">This cannot be undone.</Caption>
+          </Text>
+          <Text size="small" color="error">
+            This cannot be undone.
+          </Text>
         </FlexColumn>
       </Dialog>
     </>

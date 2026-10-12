@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ load: vi.fn() }));
 vi.mock("@nodetool-ai/config", async (original) => ({
@@ -10,6 +10,13 @@ const originalPlatform = process.platform;
 function setPlatform(platform: string): void {
   Object.defineProperty(process, "platform", { value: platform });
 }
+
+// The first import transforms binding.js and the real @nodetool-ai/config,
+// which can outlast a test's 5s timeout on a loaded CI runner. Later
+// imports after resetModules reuse the transformed code.
+beforeAll(async () => {
+  await import("../src/binding.js");
+}, 60_000);
 
 beforeEach(() => {
   vi.resetModules();

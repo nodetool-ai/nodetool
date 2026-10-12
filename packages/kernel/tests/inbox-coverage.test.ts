@@ -457,3 +457,58 @@ describe("fallbackUuidV4", () => {
     expect(e2[1].event_id).not.toBe(e1[1].event_id);
   });
 });
+
+describe("fallbackUuidV4 with an even random draw", () => {
+  it("truncates instead of setting the low bit", () => {
+    // r = (0 * 16) | 0 = 0: x-slots -> 0, the y-slot -> (0 & 0x3) | 0x8 = 8.
+    expect(fallbackUuidV4(() => 0)).toBe("00000000-0000-4000-8000-000000000000");
+  });
+});
+
+describe("NodeInbox quiescence and drain state", () => {
+  it("reports a consumer as parked only while it waits for input", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("h", 1);
+    expect(inbox.isParked()).toBe(false);
+    const iterator = inbox.iterInput("h");
+    const next = iterator.next();
+    await Promise.resolve();
+    expect(inbox.isParked()).toBe(true);
+    await inbox.put("h", 1);
+    expect((await next).value).toBe(1);
+    expect(inbox.isParked()).toBe(false);
+  });
+
+  it("hands out the quiescent flag once", () => {
+    const inbox = new NodeInbox();
+    expect(inbox.takeQuiescent()).toBe(false);
+    inbox.notifyQuiescent();
+    expect(inbox.takeQuiescent()).toBe(true);
+    expect(inbox.takeQuiescent()).toBe(false);
+  });
+
+  it("is not drained while one upstream source is still open", () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("h", 1);
+    expect(inbox.isFullyDrained()).toBe(false);
+    inbox.markSourceDone("h");
+    expect(inbox.isFullyDrained()).toBe(true);
+  });
+
+  it("lets a producer parked on a full buffer through once backpressure is released", async () => {
+    const inbox = new NodeInbox(1);
+    inbox.addUpstream("h", 1);
+    await inbox.put("h", "first");
+    let delivered = false;
+    const blocked = inbox.put("h", "second").then(() => {
+      delivered = true;
+    });
+    await Promise.resolve();
+    expect(delivered).toBe(false);
+    inbox.releaseBackpressure();
+    await blocked;
+    expect(delivered).toBe(true);
+    // Later puts no longer wait either.
+    await inbox.put("h", "third");
+  });
+});

@@ -27,6 +27,7 @@ import {
   useProjects
 } from "../../hooks/useProjects";
 import { useAuth } from "../../stores/useAuth";
+import NewProjectDialog from "./NewProjectDialog";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
 
 const selectorStyles = (theme: Theme, inline: boolean) =>
@@ -172,11 +173,12 @@ const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
     [close, inline, openNewProjectTab, openProject]
   );
 
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
   const openNewProject = useCallback(() => {
     close();
-    setActiveProjectId(null);
-    openNewProjectTab();
-  }, [close, openNewProjectTab, setActiveProjectId]);
+    setNewProjectOpen(true);
+  }, [close]);
+  const closeNewProject = useCallback(() => setNewProjectOpen(false), []);
 
   const needle = search.trim().toLowerCase();
   const visibleProjects = (projects ?? []).filter(
@@ -281,6 +283,7 @@ const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
           </Caption>
         )}
       </ContextMenu>
+      <NewProjectDialog open={newProjectOpen} onClose={closeNewProject} />
     </div>
   );
 };

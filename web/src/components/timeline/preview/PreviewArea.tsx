@@ -36,6 +36,9 @@ import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import FilterBAndWOutlinedIcon from "@mui/icons-material/FilterBAndWOutlined";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import VolumeDownIcon from "@mui/icons-material/VolumeDown";
+import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 
 import {
   Text,
@@ -201,11 +204,20 @@ const controlBarStyles = (theme: Theme) =>
       flexShrink: 0
     },
     ".timeline-preview__quality": {
-      width: theme.spacing(SPACING.xxxl + SPACING.xl),
+      // Fits the longest option, "Auto (Half)", next to the arrow.
+      width: theme.spacing(SPACING.xxxl * 3 + SPACING.xl),
       flexShrink: 0
     },
+    ".timeline-preview__volume": {
+      width: theme.spacing(SPACING.xxxl),
+      flexShrink: 0,
+      paddingLeft: theme.spacing(SPACING.xs),
+      paddingRight: theme.spacing(SPACING.xs),
+      display: "flex",
+      alignItems: "center"
+    },
     "@container timelinePreviewControls (max-width: 560px)": {
-      ".timeline-preview__secondary-control, .timeline-preview__fps": {
+      ".timeline-preview__secondary-control, .timeline-preview__fps, .timeline-preview__volume": {
         display: "none"
       }
     },
@@ -448,6 +460,28 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       new PlaybackClock(() => playbackApi.getState())
     );
     const graphRef = useRef<AudioGraph>(new AudioGraph());
+    const [volume, setVolume] = useState(1);
+    const [isMuted, setIsMuted] = useState(false);
+    const isSilent = isMuted || volume === 0;
+    useEffect(() => {
+      graphRef.current.setMasterVolume(isMuted ? 0 : volume);
+    }, [volume, isMuted]);
+    const handleVolumeChange = useCallback(
+      (_event: Event, value: number | number[]) => {
+        const next = Array.isArray(value) ? value[0] : value;
+        setVolume(next);
+        setIsMuted(false);
+      },
+      []
+    );
+    const toggleMute = useCallback(() => {
+      if (isMuted || volume > 0) {
+        setIsMuted(!isMuted);
+      } else {
+        // Unmuting at zero volume would stay silent.
+        setVolume(1);
+      }
+    }, [isMuted, volume]);
     /** Bumped by every play/pause/stop/seek gesture. Async continuations in
      *  handlePlay compare against their captured value and bail when a later
      *  gesture has superseded them, so stale audio is never scheduled. */
@@ -1383,6 +1417,35 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             ]}
             className="timeline-preview__quality"
           />
+
+          <ToolbarIconButton
+            icon={
+              isSilent ? (
+                <VolumeOffIcon />
+              ) : volume < 0.5 ? (
+                <VolumeDownIcon />
+              ) : (
+                <VolumeUpIcon />
+              )
+            }
+            tooltip={isSilent ? "Unmute" : "Mute"}
+            onClick={toggleMute}
+            aria-label={isSilent ? "Unmute" : "Mute"}
+            aria-pressed={isSilent}
+            size="small"
+          />
+          <div className="timeline-preview__volume">
+            <Slider
+              aria-label="Volume"
+              min={0}
+              max={1}
+              step={0.01}
+              value={isMuted ? 0 : volume}
+              onChange={handleVolumeChange}
+              getAriaValueText={(v) => `${Math.round(v * 100)}%`}
+              density="compact"
+            />
+          </div>
 
           <ToolbarIconButton
             icon={<FilterBAndWOutlinedIcon />}

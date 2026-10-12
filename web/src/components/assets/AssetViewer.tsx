@@ -25,19 +25,18 @@ import {
   reducedMotion,
   BORDER_RADIUS,
   SPACING,
-  Z_INDEX, getSpacingPx,
+  Z_INDEX,
+  getSpacingPx,
   SHADOW
 } from "../ui_primitives";
 //icons
-import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import CompareIcon from "@mui/icons-material/Compare";
 import EditIcon from "@mui/icons-material/Edit";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import AssetItem from "./AssetItem";
+import AssetFilmstrip from "./AssetFilmstrip";
 import AssetInfoPanel from "../context_menus/AssetInfoPanel";
 import { ImageComparer } from "../widgets";
 //
@@ -47,7 +46,6 @@ import { Asset } from "../../stores/ApiTypes";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 //utils
 import useAssets from "../../serverState/useAssets";
-import { useCombo } from "../../stores/KeyPressedStore";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
@@ -56,10 +54,17 @@ import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
 import { useEditVideoAsset } from "../../hooks/useEditVideoAsset";
 import { useOpenAssetWorkflow } from "../../hooks/useOpenAssetWorkflow";
 import { useNavigate } from "react-router-dom";
-import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
-import { assetTabType } from "../workspace/assetTabType";
 import { isElectron } from "../../utils/browser";
-import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
+import {
+  copyTooltip,
+  editActionFor,
+  filmstripWindow,
+  viewerMedia
+} from "./assetViewerModel";
+import {
+  copyAssetToClipboard,
+  isClipboardSupported
+} from "../../utils/clipboardUtils";
 import {
   ToolbarIconButton,
   CloseButton,
@@ -232,11 +237,21 @@ const styles = (theme: Theme) =>
     // Cascade from the center outward: nearest-to-center frame leads. These
     // per-item stagger delays are functional offsets, not a motion-design tier,
     // so they stay as explicit ms values (see DESIGN.md §5).
-    ".prev-next-items.left .item:nth-last-child(1)": { animationDelay: `${20}ms` },
-    ".prev-next-items.left .item:nth-last-child(2)": { animationDelay: `${60}ms` },
-    ".prev-next-items.left .item:nth-last-child(3)": { animationDelay: `${100}ms` },
-    ".prev-next-items.left .item:nth-last-child(4)": { animationDelay: `${140}ms` },
-    ".prev-next-items.left .item:nth-last-child(5)": { animationDelay: `${180}ms` },
+    ".prev-next-items.left .item:nth-last-child(1)": {
+      animationDelay: `${20}ms`
+    },
+    ".prev-next-items.left .item:nth-last-child(2)": {
+      animationDelay: `${60}ms`
+    },
+    ".prev-next-items.left .item:nth-last-child(3)": {
+      animationDelay: `${100}ms`
+    },
+    ".prev-next-items.left .item:nth-last-child(4)": {
+      animationDelay: `${140}ms`
+    },
+    ".prev-next-items.left .item:nth-last-child(5)": {
+      animationDelay: `${180}ms`
+    },
     ".prev-next-items.right .item:nth-child(1)": { animationDelay: `${20}ms` },
     ".prev-next-items.right .item:nth-child(2)": { animationDelay: `${60}ms` },
     ".prev-next-items.right .item:nth-child(3)": { animationDelay: `${100}ms` },
@@ -247,9 +262,10 @@ const styles = (theme: Theme) =>
         animation: "none",
         transition: "none"
       },
-      ".prev-next-items .item:hover, .prev-next-items .item:active, .prev-next-button:active": {
-        transform: "none"
-      }
+      ".prev-next-items .item:hover, .prev-next-items .item:active, .prev-next-button:active":
+        {
+          transform: "none"
+        }
     }),
     ".prev-next-items .item .asset-item": {
       cursor: "pointer"
@@ -339,6 +355,9 @@ type AssetViewerProps = {
   onClose: () => void;
 };
 
+/** Thumbnails shown on each side of the current asset. */
+const FILMSTRIP_NEIGHBOURS = 5;
+
 const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const theme = useTheme();
   const {
@@ -355,7 +374,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentAsset, setCurrentAsset] = useState<Asset | undefined>(asset);
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
-  const prevNextAmount = 5;
 
   // Info panel (asset metadata, incl. the prompt that produced the asset)
   const [showInfo, setShowInfo] = useState(false);
@@ -390,36 +408,20 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
   const { handleDownload } = useAssetDownload({ currentAsset, url });
 
-  const isImage = useMemo(() => {
-    const ct = currentAsset?.content_type || contentType || "";
-    const name = (currentAsset?.name || "").toLowerCase();
-    const src = (currentAsset?.get_url || url || "").toLowerCase().split("?")[0];
-    return ct.startsWith("image/") || name.endsWith(".svg") || src.endsWith(".svg");
-  }, [currentAsset?.content_type, currentAsset?.name, currentAsset?.get_url, contentType, url]);
-
-  // Check if current asset is an editable 3D model (.glb/.gltf)
-  const isModel3D = useMemo(
-    () => (currentAsset ? isEditableModel3DAsset(currentAsset) : false),
-    [currentAsset]
+  const media = useMemo(
+    () => viewerMedia(currentAsset, url, contentType),
+    [currentAsset, url, contentType]
   );
-
-  // Check if current asset is audio (editable in the sample editor)
-  const isAudio = useMemo(() => {
-    const ct = currentAsset?.content_type || contentType;
-    return ct?.startsWith("audio/") || false;
-  }, [currentAsset?.content_type, contentType]);
-
-  // Check if current asset is a video (editable via its source timeline)
-  const isVideo = useMemo(() => {
-    const ct = currentAsset?.content_type || contentType;
-    return ct?.startsWith("video/") || false;
-  }, [currentAsset?.content_type, contentType]);
+  const editAction = useMemo(
+    () => editActionFor(currentAsset, media),
+    [currentAsset, media]
+  );
 
   const imageAssets = useMemo(
     () => assetsToUse.filter((a) => a.content_type?.startsWith("image/")),
     [assetsToUse]
   );
-  const canCompare = isImage && imageAssets.length >= 2;
+  const canCompare = media.isImage && imageAssets.length >= 2;
 
   const viewerActionButtonSx = useMemo<SxProps<Theme>>(
     () => ({
@@ -472,55 +474,32 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     setCompareAssetB(null);
   }, []);
 
-  // An SVG is an image to `isImage` (and to the compare view), but the image
-  // tab hosts the raster sketch editor — editing a vector there and saving
-  // would replace the markup with pixels. It has its own tab.
-  const isSvg = useMemo(
-    () => (currentAsset ? assetTabType(currentAsset) === "svg" : false),
-    [currentAsset]
-  );
-
-  const handleOpenImageEditor = useCallback(() => {
-    if (currentAsset && isImage) {
+  const handleEdit = useCallback(() => {
+    if (!currentAsset || !editAction) {
+      return;
+    }
+    if (editAction.kind === "video") {
+      void editVideoAsset(currentAsset);
+    } else {
       openTab({
-        type: isSvg ? "svg" : "image",
+        type: editAction.tabType,
         ref: currentAsset.id,
         mode: "edit",
-        title: currentAsset.name || (isSvg ? "SVG" : "Image"),
+        title: editAction.title,
         projectId: currentAsset.project_id ?? projectId
       });
       navigate("/workspace");
-      handleClose();
     }
-  }, [currentAsset, isImage, isSvg, openTab, navigate, handleClose, projectId]);
-
-  const handleOpenModel3DEditor = useCallback(() => {
-    if (currentAsset && isModel3D) {
-      openTab({
-        type: "model3d",
-        ref: currentAsset.id,
-        mode: "edit",
-        title: currentAsset.name || "3D model",
-        projectId: currentAsset.project_id ?? projectId
-      });
-      navigate("/workspace");
-      handleClose();
-    }
-  }, [currentAsset, isModel3D, openTab, navigate, handleClose, projectId]);
-
-  const handleOpenAudioEditor = useCallback(() => {
-    if (currentAsset && isAudio) {
-      openTab({
-        type: "audio",
-        ref: currentAsset.id,
-        mode: "edit",
-        title: currentAsset.name || "Audio",
-        projectId: currentAsset.project_id ?? projectId
-      });
-      navigate("/workspace");
-      handleClose();
-    }
-  }, [currentAsset, isAudio, openTab, navigate, handleClose, projectId]);
+    handleClose();
+  }, [
+    currentAsset,
+    editAction,
+    editVideoAsset,
+    openTab,
+    navigate,
+    handleClose,
+    projectId
+  ]);
 
   const { openWorkflow } = useOpenAssetWorkflow();
   const handleOpenWorkflow = useCallback(() => {
@@ -529,14 +508,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       handleClose();
     }
   }, [currentAsset, openWorkflow, handleClose]);
-
-  const handleOpenVideoEditor = useCallback(() => {
-    if (currentAsset && isVideo) {
-      void editVideoAsset(currentAsset);
-      handleClose();
-    }
-  }, [currentAsset, isVideo, editVideoAsset, handleClose]);
-
 
   // Copy to clipboard state and handler
   const [copied, setCopied] = useState(false);
@@ -561,7 +532,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
-  }, [currentAsset?.get_url, currentAsset?.content_type, currentAsset?.name, url, contentType]);
+  }, [
+    currentAsset?.get_url,
+    currentAsset?.content_type,
+    currentAsset?.name,
+    url,
+    contentType
+  ]);
 
   const handleChangeAsset = useCallback(
     (index: number) => {
@@ -594,46 +571,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     }
   }, [asset, assetsToUse]);
 
-  const { changeAsset } = useAssetNavigation({
+  useAssetNavigation({
     open,
     assets: assetsToUse,
     currentIndex,
-    prevNextAmount,
+    prevNextAmount: FILMSTRIP_NEIGHBOURS,
     onChangeIndex: handleChangeAsset
   });
-  useCombo(
-    ["left"],
-    useCallback(() => {
-      if (open) {
-        changeAsset("left", false);
-      }
-    }, [changeAsset, open])
-  );
-  useCombo(
-    ["right"],
-    useCallback(() => {
-      if (open) {
-        changeAsset("right", false);
-      }
-    }, [changeAsset, open])
-  );
-  useCombo(
-    ["ctrl", "left"],
-    useCallback(() => {
-      if (open) {
-        changeAsset("left", true);
-      }
-    }, [changeAsset, open])
-  );
-  useCombo(
-    ["ctrl", "right"],
-    useCallback(() => {
-      if (open) {
-        changeAsset("right", true);
-      }
-    }, [changeAsset, open])
-  );
-
   const caption = currentAsset ? captions?.[currentAsset.id] : undefined;
   const inLibrary = !(currentAsset && detachedIds?.has(currentAsset.id));
 
@@ -658,151 +602,42 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   );
 
   const handlePrevAsset = useCallback(() => {
-    if (currentIndex === null) { return; }
+    if (currentIndex === null) {
+      return;
+    }
     handleChangeAsset(Math.max(0, currentIndex - 1));
   }, [currentIndex, handleChangeAsset]);
 
   const handleNextAsset = useCallback(() => {
-    if (currentIndex === null) { return; }
+    if (currentIndex === null) {
+      return;
+    }
     handleChangeAsset(Math.min(assetsToUse.length - 1, currentIndex + 1));
   }, [currentIndex, assetsToUse.length, handleChangeAsset]);
 
-  const navigation = useMemo(() => {
-    if (currentIndex === null) {
-      return null;
-    }
-    // Hide navigation when showing comparison
-    if (compareAssetB) {
-      return null;
-    }
-    const prevAssets =
-      assetsToUse?.slice(
-        Math.max(0, currentIndex - prevNextAmount),
-        currentIndex
-      ) || [];
-    const nextAssets =
-      assetsToUse?.slice(currentIndex + 1, currentIndex + prevNextAmount + 1) ||
-      [];
-
-    // Filter to images only when in compare mode
-    const filterForCompare = (assets: Asset[]) =>
-      compareMode
-        ? assets.filter((a) => a.content_type?.startsWith("image/"))
-        : assets;
-
-    const displayPrevAssets = filterForCompare(prevAssets);
-    const displayNextAssets = filterForCompare(nextAssets);
-
-    return (
-      <>
-        {!compareMode && (
-          <>
-            <ToolbarIconButton
-              icon={<KeyboardArrowLeftIcon />}
-              tooltip="Previous asset"
-              onClick={handlePrevAsset}
-              disabled={prevAssets?.length === 0}
-              className="prev-next-button left"
-              nodrag={false}
-            />
-            <ToolbarIconButton
-              icon={<KeyboardArrowRightIcon />}
-              tooltip="Next asset"
-              onClick={handleNextAsset}
-              disabled={nextAssets?.length === 0}
-              className="prev-next-button right"
-              nodrag={false}
-            />
-          </>
-        )}
-        <FlexRow className="asset-navigation" align="flex-end" justify="center" gap={SPACING.xs}>
-          <FlexRow className="prev-next-items left" align="center" justify="flex-end" gap={SPACING.micro}>
-            {displayPrevAssets?.map((asset, idx) => {
-              const assetIndex = Math.max(
-                0,
-                currentIndex - prevAssets.length + idx
-              );
-              const isCompareSelected = compareAssetA?.id === asset.id;
-              return (
-                <EditorButton
-                  className={`item ${isCompareSelected ? "compare-selected" : ""
-                    }`}
-                  key={asset.id || idx}
-                  onMouseDown={() => handleThumbnailClick(asset, assetIndex)}
-                  density="compact"
-                >
-                  <AssetItem
-                    asset={asset}
-                    draggable={false}
-                    isParent={false}
-                    showDeleteButton={false}
-                    enableContextMenu={false}
-                    showName={false}
-                    showDuration={true}
-                    showFiletype={true}
-                  />
-                </EditorButton>
-              );
-            })}
-          </FlexRow>
-          <FlexRow
-            key={currentAsset?.id}
-            className={`prev-next-items current ${compareAssetA?.id === currentAsset?.id ? "compare-selected" : ""
-              }`}
-            align="center"
-            justify="center"
-          >
-            <AssetItem
-              asset={currentAsset as Asset}
-              draggable={false}
-              isParent={false}
-              showDeleteButton={false}
-              enableContextMenu={false}
-              showName={false}
-              showDuration={true}
-              showFiletype={true}
-            />
-          </FlexRow>
-          <FlexRow className="prev-next-items right" align="center" justify="flex-start" gap={SPACING.micro}>
-            {displayNextAssets?.map((asset, idx) => {
-              const assetIndex = currentIndex + 1 + idx;
-              const isCompareSelected = compareAssetA?.id === asset.id;
-              return (
-                <EditorButton
-                  className={`item ${isCompareSelected ? "compare-selected" : ""
-                    }`}
-                  key={asset.id || idx}
-                  onMouseDown={() => handleThumbnailClick(asset, assetIndex)}
-                  density="compact"
-                >
-                  <AssetItem
-                    asset={asset}
-                    draggable={false}
-                    isParent={false}
-                    showDeleteButton={false}
-                    enableContextMenu={false}
-                    showName={false}
-                    showDuration={true}
-                    showFiletype={true}
-                  />
-                </EditorButton>
-              );
-            })}
-          </FlexRow>
-        </FlexRow>
-      </>
-    );
-  }, [
-    currentIndex,
-    assetsToUse,
-    currentAsset,
-    handleThumbnailClick,
-    handlePrevAsset,
-    handleNextAsset,
-    compareMode,
-    compareAssetA,
-    compareAssetB
-  ]);
+  const strip = useMemo(
+    () =>
+      currentIndex === null || compareAssetB
+        ? null
+        : filmstripWindow(
+            assetsToUse,
+            currentIndex,
+            FILMSTRIP_NEIGHBOURS,
+            compareMode
+          ),
+    [assetsToUse, currentIndex, compareAssetB, compareMode]
+  );
+  const navigation = strip ? (
+    <AssetFilmstrip
+      current={currentAsset}
+      strip={strip}
+      compareMode={compareMode}
+      compareSelectedId={compareAssetA?.id}
+      onPrev={handlePrevAsset}
+      onNext={handleNextAsset}
+      onThumbnail={handleThumbnailClick}
+    />
+  ) : null;
 
   if (!open) {
     return null;
@@ -817,23 +652,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         open={open}
         onClose={handleClose}
         aria-label="Asset viewer"
+        variant="fullscreen"
         slotProps={{
-          // Override the primitive's default glass/rounded/bordered paper so the
-          // viewer is a true edge-to-edge fullscreen surface with no top gap.
+          // Media sits on a dark surface rather than the paper color.
           paper: {
-            style: {
-              borderRadius: 0,
-              border: "none",
-              margin: 0,
-              width: "100vw",
-              maxWidth: "100vw",
-              height: "100vh",
-              maxHeight: "100vh",
-              overflow: "hidden",
-              position: "relative",
-              background: theme.vars.palette.grey[900],
-              backdropFilter: "none"
-            }
+            style: { background: theme.vars.palette.grey[900] }
           },
           backdrop: {
             style: {
@@ -886,10 +709,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
         {showInfo && currentAsset && !compareMode && (
           <div className="info-panel-overlay">
-            <AssetInfoPanel
-              asset={currentAsset}
-              onOpenWorkflow={handleClose}
-            />
+            <AssetInfoPanel asset={currentAsset} onOpenWorkflow={handleClose} />
           </div>
         )}
 
@@ -910,45 +730,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             nodrag={false}
             sx={viewerActionButtonSx}
           />
-          {isImage && !compareMode && inLibrary && (
+          {editAction && !compareMode && inLibrary && (
             <ToolbarIconButton
               icon={<EditIcon />}
-              tooltip={isSvg ? "Edit SVG" : "Edit Image"}
-              onClick={handleOpenImageEditor}
-              className="button edit"
-              nodrag={false}
-              sx={viewerActionButtonSx}
-            />
-          )}
-          {isModel3D && !compareMode && inLibrary && (
-            <ToolbarIconButton
-              icon={<EditIcon />}
-              tooltip="Edit in 3D Editor"
-              onClick={handleOpenModel3DEditor}
-              className="button edit"
-              nodrag={false}
-              sx={viewerActionButtonSx}
-            />
-          )}
-          {isAudio && !compareMode && inLibrary && (
-            <ToolbarIconButton
-              icon={<EditIcon />}
-              tooltip="Edit Audio"
-              onClick={handleOpenAudioEditor}
-              className="button edit"
-              nodrag={false}
-              sx={viewerActionButtonSx}
-            />
-          )}
-          {isVideo && !compareMode && inLibrary && (
-            <ToolbarIconButton
-              icon={<EditIcon />}
-              tooltip={
-                currentAsset?.timeline_id
-                  ? "Edit Timeline"
-                  : "Create Timeline from Video"
-              }
-              onClick={handleOpenVideoEditor}
+              tooltip={editAction.tooltip}
+              onClick={handleEdit}
               className="button edit"
               nodrag={false}
               sx={viewerActionButtonSx}
@@ -964,26 +750,18 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               sx={viewerActionButtonSx}
             />
           )}
-          {isElectron && currentAsset?.content_type && isClipboardSupported(currentAsset.content_type) && (
-            <ToolbarIconButton
-              icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
-              tooltip={
-                copied
-                  ? "Copied!"
-                  : currentAsset.content_type.startsWith("image/")
-                    ? "Copy Image"
-                    : currentAsset.content_type.startsWith("video/")
-                      ? "Copy Video Info"
-                      : currentAsset.content_type.startsWith("audio/")
-                        ? "Copy Audio Info"
-                        : "Copy Content"
-              }
-              onClick={handleCopyToClipboard}
-              className="button copy"
-              nodrag={false}
-              sx={viewerActionButtonSx}
-            />
-          )}
+          {isElectron &&
+            currentAsset?.content_type &&
+            isClipboardSupported(currentAsset.content_type) && (
+              <ToolbarIconButton
+                icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
+                tooltip={copyTooltip(currentAsset.content_type, copied)}
+                onClick={handleCopyToClipboard}
+                className="button copy"
+                nodrag={false}
+                sx={viewerActionButtonSx}
+              />
+            )}
           {canCompare && !compareMode && !compareAssetB && (
             <ToolbarIconButton
               icon={<CompareIcon />}

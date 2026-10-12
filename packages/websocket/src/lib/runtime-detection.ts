@@ -34,7 +34,8 @@ export const KNOWN_RUNTIMES = [
   "pandoc",
   "pdftotext",
   "pdftoppm",
-  "yt-dlp"
+  "yt-dlp",
+  "manimgx"
 ] as const;
 
 /** Ids that are safe to probe: a bare command name, nothing path-like. */

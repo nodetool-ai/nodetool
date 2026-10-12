@@ -94,7 +94,9 @@ const secretsRouter = router({
     const [configuredSecrets] = await Secret.listForUser(ctx.userId, 1000);
     const configuredMap = new Map(configuredSecrets.map((s) => [s.key, s]));
 
-    // Registry secrets: mark configured if in map, else unconfigured placeholder.
+    // Registry secrets: mark configured if in map, else placeholder. A key
+    // set only in the process environment counts as configured because
+    // getSecret falls back to process.env.
     const registrySecrets = settingCatalog().filter((d) => d.isSecret);
     const normalizedResults: SecretResponse[] = await Promise.all(
       registrySecrets.map(async (def) => {
@@ -106,7 +108,7 @@ const secretsRouter = router({
           key: def.envVar,
           user_id: ctx.userId,
           description: def.description ?? "",
-          is_configured: false,
+          is_configured: process.env[def.envVar] !== undefined,
           is_unreadable: false
         };
       })

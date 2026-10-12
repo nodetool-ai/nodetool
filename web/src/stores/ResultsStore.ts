@@ -22,6 +22,11 @@ import type { Generation } from "../utils/nodeGenerations";
  * audio at the synth nodes' 512-frame / 24 kHz chunks). */
 const MAX_AUDIO_STREAM_CHUNKS = 1024;
 
+// Arrays built by appending streamed results. A result that is itself an array
+// (a list output) is a single value, so appending to it wraps it rather than
+// flattening it into the buffer.
+const streamBuffers = new WeakSet<unknown[]>();
+
 interface AudioStreamChunk {
   type: "chunk";
   content_type: "audio";
@@ -506,7 +511,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
           resultsVersion: nextVersion
         };
       } else {
-        if (Array.isArray(currentResult)) {
+        if (Array.isArray(currentResult) && streamBuffers.has(currentResult)) {
           let appended = [...currentResult, result];
           // Realtime audio streams are infinite; without a cap the buffer
           // (and the per-chunk array copy above) grows unboundedly and the
@@ -519,6 +524,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
           ) {
             appended = appended.slice(appended.length - MAX_AUDIO_STREAM_CHUNKS);
           }
+          streamBuffers.add(appended);
           return {
             outputResults: {
               ...state.outputResults,
@@ -527,10 +533,12 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
             resultsVersion: nextVersion
           };
         } else {
+          const buffer = [currentResult, result];
+          streamBuffers.add(buffer);
           return {
             outputResults: {
               ...state.outputResults,
-              [key]: [currentResult, result]
+              [key]: buffer
             },
             resultsVersion: nextVersion
           };
@@ -560,7 +568,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       let appended =
         current === undefined
           ? [...results]
-          : Array.isArray(current)
+          : Array.isArray(current) && streamBuffers.has(current)
             ? [...current, ...results]
             : [current, ...results];
       if (
@@ -569,6 +577,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       ) {
         appended = appended.slice(appended.length - MAX_AUDIO_STREAM_CHUNKS);
       }
+      streamBuffers.add(appended);
       return {
         outputResults: { ...state.outputResults, [key]: appended },
         resultsVersion: state.resultsVersion + 1

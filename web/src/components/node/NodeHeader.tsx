@@ -220,11 +220,15 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
 
   const commitTitleEdit = useCallback(() => {
     const trimmedTitle = draftTitle.trim();
-    updateNodeData(id, {
-      title: trimmedTitle || undefined
-    });
+    // A draft equal to the default stores nothing, so the title keeps
+    // following the node's metadata.
+    const nextTitle =
+      trimmedTitle && trimmedTitle !== metadataTitle ? trimmedTitle : undefined;
+    if (nextTitle !== (data.title?.trim() || undefined)) {
+      updateNodeData(id, { title: nextTitle });
+    }
     setIsEditingTitle(false);
-  }, [draftTitle, id, updateNodeData]);
+  }, [data.title, draftTitle, id, metadataTitle, updateNodeData]);
 
   const handleTitleDoubleClick = useCallback(
     (event: React.MouseEvent<HTMLSpanElement>) => {

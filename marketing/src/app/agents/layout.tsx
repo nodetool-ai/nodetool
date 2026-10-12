@@ -1,9 +1,9 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
-const TITLE = "NodeTool Agents | Your agent builds the workflow. You keep it.";
+const TITLE = "Open-Source Creative Harness for AI Agents | NodeTool";
 const DESCRIPTION =
-  "Hand a brief to the built-in agent or your own coding agent. It builds a NodeTool workflow, runs it on your keys, and fixes the step that fails. Open the saved graph, change a node, and run it again.";
+  "NodeTool is the open-source creative harness for AI agents. Your agent gets generation tools and seven editors, runs on your keys, and leaves editable work.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -13,6 +13,10 @@ export const metadata: Metadata = {
     canonical: "/agents",
   },
   keywords: [
+    "open-source creative harness",
+    "creative harness",
+    "AI agent harness",
+    "agent harness for creative work",
     "agent-first app",
     "AI agent workflow builder",
     "visual AI agent builder",
@@ -62,9 +66,9 @@ export default function AgentsLayout({
         data={{
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
-          name: "NodeTool Agents",
+          name: "NodeTool",
           description:
-            "NodeTool agents operate editable workflows, apps, and projects through the same tools available in its editors. Runs expose tool calls, results, errors, and interventions for inspection.",
+            "NodeTool is an open-source creative harness for AI agents. Its built-in agent and external coding agents operate editable workflows, apps, and projects through the same tools available in its editors. Runs expose tool calls, results, errors, and interventions for inspection.",
           applicationCategory: "MultimediaApplication",
           operatingSystem: "macOS, Windows, Linux",
           url: "https://nodetool.ai/agents",
@@ -78,7 +82,7 @@ export default function AgentsLayout({
           "@type": "BreadcrumbList",
           itemListElement: [
             { "@type": "ListItem", position: 1, name: "Home", item: "https://nodetool.ai" },
-            { "@type": "ListItem", position: 2, name: "Agents", item: "https://nodetool.ai/agents" },
+            { "@type": "ListItem", position: 2, name: "Creative harness", item: "https://nodetool.ai/agents" },
           ],
         }}
       />

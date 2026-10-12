@@ -228,8 +228,14 @@ describe("settings router", () => {
         ""
       ]);
 
+      const previous = process.env.ANTHROPIC_API_KEY;
+      delete process.env.ANTHROPIC_API_KEY;
       const caller = createCaller(makeCtx());
-      const result = await caller.settings.secrets.list();
+      const result = await caller.settings.secrets.list().finally(() => {
+        if (previous !== undefined) {
+          process.env.ANTHROPIC_API_KEY = previous;
+        }
+      });
       expect(result.secrets.length).toBeGreaterThan(0);
       const secrets = result.secrets as SecretResponse[];
 
@@ -245,6 +251,30 @@ describe("settings router", () => {
       expect(unconfigured).toBeDefined();
 
       expect(result.next_key).toBeNull();
+    });
+
+    it("marks a registry secret set only in the environment as configured", async () => {
+      (Secret.listForUser as ReturnType<typeof vi.fn>).mockResolvedValue([
+        [],
+        ""
+      ]);
+      const previous = process.env.ANTHROPIC_API_KEY;
+      process.env.ANTHROPIC_API_KEY = "env-key";
+      try {
+        const caller = createCaller(makeCtx());
+        const result = await caller.settings.secrets.list();
+        const anthropic = (result.secrets as SecretResponse[]).find(
+          (s) => s.key === "ANTHROPIC_API_KEY"
+        );
+        expect(anthropic?.is_configured).toBe(true);
+        expect(anthropic?.id).toBeUndefined();
+      } finally {
+        if (previous === undefined) {
+          delete process.env.ANTHROPIC_API_KEY;
+        } else {
+          process.env.ANTHROPIC_API_KEY = previous;
+        }
+      }
     });
 
     it("includes DB-only secrets not in the registry", async () => {

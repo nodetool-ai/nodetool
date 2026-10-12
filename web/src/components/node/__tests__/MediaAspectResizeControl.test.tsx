@@ -6,7 +6,8 @@ import { measureNodeMedia } from "../measureNodeMedia";
 const mockUpdateNode = jest.fn();
 jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: <T,>(selector: (state: { updateNode: jest.Mock }) => T) =>
-    selector({ updateNode: mockUpdateNode })
+    selector({ updateNode: mockUpdateNode }),
+  useOptionalTemporalNodes: <T,>(_selector: unknown, fallback: T) => fallback
 }));
 
 jest.mock("@xyflow/react", () => ({

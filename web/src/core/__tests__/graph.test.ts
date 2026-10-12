@@ -310,5 +310,20 @@ describe("graph utilities", () => {
       expect(group?.width).toBe(350);
       expect(group?.height).toBe(140);
     });
+
+    it("returns a resized copy and leaves the caller's group untouched", async () => {
+      const groupNode = createNode("group-1");
+      const nodes = [groupNode, createNode("A", "group-1"), createNode("B", "group-1")];
+
+      const result = await autoLayout([createEdge("A", "B")], nodes);
+
+      expect(result.find((n) => n.id === "group-1")).not.toBe(groupNode);
+      expect(groupNode.width).toBeUndefined();
+      expect(groupNode.measured).toEqual({ width: 200, height: 80 });
+      // The root pass lays the group out at its new size.
+      expect(
+        graphFor("root")?.children?.find((c) => c.id === "group-1")?.width
+      ).toBe(350);
+    });
   });
 });

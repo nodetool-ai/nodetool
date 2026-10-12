@@ -778,8 +778,65 @@ uppercase, `text.secondary`. A properties panel uses `InspectorSection`, which
 draws the same title (see [Properties panels](#11-properties-panels)). Omit `title` only when a tab strip above already
 names the panel, as in the agent panels.
 
-Dialogs are not panels. A dialog title uses `TYPOGRAPHY.sans.title`
-(18px / 600), which the `Dialog` primitive applies.
+### Dialogs
+
+Dialogs are not panels. Every modal dialog uses the `Dialog` primitive. It
+owns the shell, so a dialog only supplies a title, a body and its actions.
+
+```tsx
+import { Dialog, Text } from "../ui_primitives";
+
+<Dialog
+  open={open}
+  onClose={close}
+  title="Delete model?"
+  maxWidth="xs"
+  fullWidth
+  onConfirm={remove}
+  confirmText="Delete"
+  destructive
+  isLoading={removing}
+>
+  <Text size="small">Nodes that use this model stop working.</Text>
+</Dialog>
+```
+
+| Part | Rule |
+|---|---|
+| Shell | Paper background, 1px `divider` border, `theme.rounded.dialog` radius, glass backdrop. Do not restyle it through `slotProps`, `PaperProps` or `css`. Caller slot props merge onto the shell |
+| Width | `maxWidth="xs"`, `"sm"`, `"md"` or `"lg"` with `fullWidth`. No pixel `minWidth` |
+| Title | A sentence-case string in `title`, `TYPOGRAPHY.sans.title` (18px / 600). The close button appears when `onClose` is set. Header extras go in `titleActions` |
+| Body | Children render inside the padded content area. Never pass `DialogTitle`, `DialogContent` or `DialogActions` as children |
+| Footer | `onConfirm` with a verb in `confirmText`, plus `destructive`, `isLoading`, `confirmDisabled`. Other footers go in `actions` as a fragment of `Button`s: secondary `variant="text" color="inherit"`, the primary last with `variant="contained"` |
+| Destructive | Delete, remove, revoke and discard pass `destructive`. Their title is a question and the body states the consequence |
+| Feedback | Errors and warnings inside a dialog use `AlertBanner` |
+| Confirm only | `ConfirmDialog` for a title, a sentence and two buttons. Never `window.confirm` or `window.prompt` |
+| Fullscreen | Media viewers and reading views pass `variant="fullscreen"` |
+
+Full-screen editors with their own resize and history (the text, dataframe,
+sketch and compositor editors) are workspaces, not dialogs, and keep their own
+shells.
+
+### Panel composition
+
+Tokens fix the parts. These rules fix how a panel puts them together. The
+`Patterns/Panels` stories in Storybook (`web/src/stories/Panels.stories.tsx`)
+render each rule at a docked width of 360px. Check a new panel against them.
+
+| Rule | How |
+|---|---|
+| One field density per panel | A dense panel provides `FieldDensityContext` `"compact"` once at its root. Every `TextInput` and `SelectField` below it then shares one look: 13px control text, `CONTROL.height.sm`, the inspector field surface. Do not mix compact and normal fields in one panel. |
+| Words in sans, numbers in mono | Selects and text fields show words in sans. Only numeric and timecode values (`InspectorValueInput`) use mono. |
+| The subject outranks the sections | The name of the selected item is the strongest text in the panel. Section and group headers are muted: `text.secondary`, uppercase. |
+| Frequent before rare | Properties of the selection come first. Generative and destructive actions come after them, and a long generative section starts collapsed. |
+| An action shows its state | A disabled action says why below the button ("Write an instruction"). The cost of a paid action sits on the same line, with two decimals. |
+| Text areas start short | A multiline input starts at one row (`minRows={1}`) and grows with its content. |
+| Description stays with its label | A setting row puts the label and its description in one column beside the control (`LabeledSwitch`). |
+| Three text sizes | A dense panel uses `title` (18px) for the subject, `label` (13px) for labels, values and buttons, and `caption` (11px) for metadata, hints and group headers. `SearchInput` follows the field density too. |
+| One control height | Fields, selects, one-row text areas and actions are all `CONTROL.height.sm` (28px). Use `size="small"` buttons in a compact panel. |
+| One left edge | Labels, values, section titles and actions start on the content edge. A `CollapsibleSection` in a dense panel uses `iconPosition="end"`. |
+| Field rhythm | A label sits 4px above its field. Fields in a form are 12px apart (`gap={3}`), so each label reads with its own field. |
+| Tabs fit the panel | Small `TabGroup` tabs must all fit at 360px. Shorten the labels or drop the icons before the strip has to scroll. |
 
 ---
 
@@ -820,7 +877,86 @@ Do not restyle a `CollapsibleSection` header into a filled bar, a bright
 
 ---
 
-## 12. Migration Checklist
+## 12. Lists and grids
+
+A list shows rows: sidebar documents, workflows, assets, models, versions,
+threads. A grid shows tiles: assets, templates, examples, projects, setup
+choices, generated takes. Each shares one set of interaction states, from
+[`selectionStyles.ts`](../web/src/components/ui_primitives/selectionStyles.ts),
+so hover, selection and keyboard focus look the same everywhere.
+
+```tsx
+import { AutoGrid, selectableRowStyles, selectableTileStyles } from "../ui_primitives";
+
+<Box sx={(theme) => selectableRowStyles(theme, { selected })} />
+<AutoGrid minItemWidth={160}>
+  {items.map((item) => (
+    <Box key={item.id} component="button"
+      sx={(theme) => selectableTileStyles(theme, { selected: item.id === id })} />
+  ))}
+</AutoGrid>
+```
+
+| Part | Rule |
+|---|---|
+| Row states | `selectableRowStyles`: `action.hover` on hover, `action.selected` when picked, `BORDER_RADIUS.md` |
+| Tile states | `selectableTileStyles`: 1px `divider` frame, `BORDER_RADIUS.md`. Picked: `primary.main` frame plus a 1px ring. Hover: `action.hover` |
+| Focus | `focusRing`: 2px `primary.main`. Rows draw it inside (offset -2), because a scrolling list clips it. Tiles draw it outside (offset 2) |
+| Row title | `TYPOGRAPHY.sans.label` (13px / 500). A row's secondary line is `Caption` |
+| Tile title | `TYPOGRAPHY.sans.label`. Metadata under it is `Caption` |
+| Group headers | `EYEBROW` in `text.secondary`, left-aligned with the rows: date groups, providers, asset types, namespaces. `SectionHeader size="small"` renders it |
+| Grid | `AutoGrid`. It caps the minimum column at the container width, so one tile fits a narrow panel |
+| Long lists | `VirtualList` |
+| Media | `ResponsiveImage` with `preferThumbnail`, and `loading="lazy"` in a long list |
+| Empty, error, loading | `EmptyState` (with `variant="error"`) and `LoadingSpinner` |
+| Hover actions | `HoverActionGroup`, which also shows on keyboard focus |
+
+Do not use a raw `rgba(255, 255, 255, a)` hover, a primary-tinted selected row,
+a shadow or lift as the only hover cue, or a second selected treatment. The
+one exception is `SelectableListItem`, whose left bar marks a second,
+dashed state such as a comparison target in version history.
+
+---
+
+## 13. Forms
+
+A form collects input: the settings pages, workflow settings, collection and
+profile forms, and the fields inside dialogs and setup steps. Every field is
+built from `TextInput`, `SelectField` or `FormField`, so a label, a hint and an
+error look the same in every form.
+
+```tsx
+import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from "../ui_primitives";
+
+<FormSection label="Execution">
+  <SelectField label="Run mode" value={mode} onChange={setMode} options={MODES}
+    description="How the workflow starts" />
+  <TextInput label="Tool name" value={toolName} onChange={onToolName}
+    helperText="Letters, numbers and underscores" errorMessage={toolNameError} />
+  <FormField label="Workspace" helperText="Folder the agent can read">
+    <WorkspacePicker value={workspace} onChange={setWorkspace} />
+  </FormField>
+  <LabeledSwitch label="Autosave" description="Save after every change"
+    checked={autosave} onChange={setAutosave} />
+</FormSection>
+```
+
+| Part | Rule |
+|---|---|
+| Label | The `label` prop of `TextInput` or `SelectField`: `TYPOGRAPHY.sans.label` in `text.secondary`, 4px above the control. Any other control (a picker, slider, chip set) goes inside `FormField label`. Never a `Text`, `Caption` or `Label` placed beside the field. A field without a visible label still passes `label` with `hideLabel` |
+| One label | A labeled `FormField` already names its child. Do not also pass `label` to the `SelectField` or `TextInput` inside it, and do not wrap a `hideLabel` select in a `FormField` when the select can carry the label |
+| Hint | `helperText` on `TextInput` and `FormField`, `description` on `SelectField` and `LabeledSwitch`. Not a sibling `Caption` |
+| Error | A field error goes in `errorMessage` (`TextInput`) or `error` (`FormField`). An error about the whole form is an `AlertBanner` |
+| Rhythm | Fields are 12px apart: `FormSection`, or a column with `gap={SPACING.lg}` |
+| Groups | `FormSection label`: the `EYEBROW` style in `text.secondary`. `Label` names a field, never a group. No tinted or bordered box around a group of fields |
+| Booleans | `LabeledSwitch` with the explanation in `description`, not a bare `Switch` or `Checkbox` beside text |
+| Field chrome | Fields keep their primitive look. Do not override `.MuiOutlinedInput-*`, `.MuiInputBase-*`, `.MuiSelect-*` or `.MuiInputLabel-*` from a form's `css` or `sx`. A form may set a field's width only |
+| Variant | Outlined fields everywhere. A dense panel sets `FieldDensityContext` once (see [Panel composition](#panel-composition)) |
+| Text | Labels and options are sentence case ("Tool name", "Ask every time"). Acronyms keep their case ("API key", "ID") |
+
+---
+
+## 14. Migration Checklist
 
 When editing any UI file, scan for these violations and fix them in the same PR.
 
@@ -863,7 +999,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 13. Adding New Tokens
+## 15. Adding New Tokens
 
 1. **Spacing**: Only add a new `SPACING.*` step if the existing nine steps genuinely cannot express the design intent. Justify in the PR. Update `spacing.ts`.
 2. **Typography**: Do not add a ninth type style. Any new text hierarchy must collapse onto one of the eight existing combinations.
@@ -875,7 +1011,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 14. Design Decisions and Tradeoffs
+## 16. Design Decisions and Tradeoffs
 
 Documented rationale for choices that differ from common defaults.
 

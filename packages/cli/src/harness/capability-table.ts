@@ -66,6 +66,26 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "add_workflow_link",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "4d0ce00d0c90",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-links.test.ts",
+    ],
+  },
+  {
+    name: "remove_workflow_link",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "490c7dd1e6a6",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-links.test.ts",
+    ],
+  },
+  {
     name: "delete_workflow",
     module: "workflows",
     impl: "packages/agents/src/capabilities/workflows.ts",
@@ -3076,6 +3096,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
         cases: ["storyboard-render-and-assemble"],
       },
+    ],
+  },
+  {
+    name: "derive_shot_from_clip",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "62268429cf19",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-derive-shot.test.ts",
     ],
   },
   {

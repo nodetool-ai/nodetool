@@ -86,6 +86,21 @@ describe("lodashAlternatives", () => {
       expect(fn).toHaveBeenCalledTimes(1);
       expect(fn).toHaveBeenCalledWith("second");
     });
+
+    it("flush() runs the pending call once with the latest arguments", () => {
+      const fn = jest.fn();
+      const debounced = debounce(fn, 100);
+
+      debounced("a");
+      debounced("b");
+      debounced.flush();
+      expect(fn).toHaveBeenCalledTimes(1);
+      expect(fn).toHaveBeenCalledWith("b");
+
+      jest.advanceTimersByTime(200);
+      debounced.flush();
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("throttle", () => {

@@ -252,6 +252,14 @@ const ThemeNodetool = createTheme({
           "&:hover": {
             boxShadow: "none"
           }
+        }),
+        // MUI's small size is 0.8125rem at a 1.75 line height: text between
+        // the 13px and 15px tokens in a 31px box. Small buttons sit beside
+        // small controls, so they take the same text size and height.
+        sizeSmall: ({ theme }) => ({
+          fontSize: theme.fontSizeSmall, // 13px — label
+          lineHeight: 1.35,
+          minHeight: CONTROL.height.sm
         })
       }
     },
@@ -301,7 +309,10 @@ const ThemeNodetool = createTheme({
           fontFamily: theme.fontFamily1,
           fontSize: theme.fontSizeBig, // 18px — title
           fontWeight: 600,
-          letterSpacing: "-0.01em"
+          letterSpacing: "-0.01em",
+          // DialogTitle renders the h6 variant, which is an uppercase eyebrow;
+          // dialog titles are sentence case.
+          textTransform: "none"
         })
       }
     },

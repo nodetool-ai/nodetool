@@ -3,8 +3,6 @@ import { css } from "@emotion/react";
 
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
-  CloseButton,
-  Text,
   Tooltip,
   Box,
   MOTION,
@@ -43,15 +41,6 @@ const helpStyles = (theme: Theme) =>
       overflow: "hidden"
     },
 
-    ".top": {
-      display: "flex",
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: getSpacingPx(SPACING.md),
-      padding: `0 ${getSpacingPx(SPACING.xl)}`,
-      borderBottom: `1px solid ${theme.vars.palette.grey[600]}`
-    },
     ".content": {
       height: "calc(100% - 40px)",
       padding: `0 ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxxl)} ${getSpacingPx(SPACING.xl)}`
@@ -88,38 +77,6 @@ const helpStyles = (theme: Theme) =>
         paddingLeft: "0",
         marginRight: getSpacingPx(SPACING.md),
         minWidth: "unset"
-      }
-    },
-    ".docs-button": {
-      display: "flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.lg), // was 10px
-      color: theme.vars.palette.secondary.contrastText,
-      backgroundColor: theme.vars.palette.secondary.main,
-      textDecoration: "none",
-      fontSize: "var(--fontSizeNormal)",
-      fontWeight: 500,
-      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`, // was 8px 14px
-      borderRadius: BORDER_RADIUS.lg,
-      transition: MOTION.all,
-      flexShrink: 0,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.secondary.light,
-        borderColor: theme.vars.palette.primary.main,
-        textDecoration: "none"
-      },
-      ".docs-button-text": {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        textTransform: "uppercase",
-        fontSize: "var(--fontSizeSmall)",
-        fontFamily: theme.vars.fontFamily2,
-        lineHeight: 1.0,
-        fontWeight: 600
-      },
-      "& svg": {
-        fontSize: "var(--fontSizeBig)"
       }
     },
     ".tabpanel": {
@@ -176,6 +133,40 @@ const helpStyles = (theme: Theme) =>
     }
   });
 
+const docsButtonStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    alignItems: "center",
+    gap: getSpacingPx(SPACING.lg), // was 10px
+    color: theme.vars.palette.secondary.contrastText,
+    backgroundColor: theme.vars.palette.secondary.main,
+    textDecoration: "none",
+    fontSize: "var(--fontSizeNormal)",
+    fontWeight: 500,
+    padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`, // was 8px 14px
+    borderRadius: BORDER_RADIUS.lg,
+    transition: MOTION.all,
+    flexShrink: 0,
+    "&:hover": {
+      backgroundColor: theme.vars.palette.secondary.light,
+      borderColor: theme.vars.palette.primary.main,
+      textDecoration: "none"
+    },
+    ".docs-button-text": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      textTransform: "uppercase",
+      fontSize: "var(--fontSizeSmall)",
+      fontFamily: theme.vars.fontFamily2,
+      lineHeight: 1.0,
+      fontWeight: 600
+    },
+    "& svg": {
+      fontSize: "var(--fontSizeBig)"
+    }
+  });
+
 const TabPanel = React.memo(function TabPanel(props: TabPanelProps) {
   const { children, value, index } = props;
   return (
@@ -222,60 +213,61 @@ const Help = ({
       onClose={handleClose}
       fullWidth
       maxWidth="lg"
-      aria-label="Help"
+      title="Help"
+      titleActions={
+        <Tooltip
+          title="Open NodeTool docs"
+          placement="bottom"
+          delay={TOOLTIP_ENTER_DELAY}
+        >
+          <a
+            href="https://docs.nodetool.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="docs-button"
+            css={docsButtonStyles(theme)}
+          >
+            <div className="docs-button-text">
+              <span>Nodetool</span>
+              <span>Docs</span>
+            </div>
+            <OpenInNewIcon />
+          </a>
+        </Tooltip>
+      }
     >
-        <div css={helpStyles(theme)}>
-          <div className="help">
-            <div className="top">
-              <Text size="big" >Help</Text>
-              <CloseButton onClick={handleClose} />
-            </div>
-            <div className="tabs-row">
-              <Tabs
-                className="help-tabs"
-                value={helpIndex}
-                onChange={handleChange}
-                aria-label="help tabs"
-              >
-                <Tab label="Shortcuts" id="help-tab-0" />
-                <Tab label="Keyboard" id="help-tab-1" />
-                <Tab label="DataTypes" id="help-tab-2" />
-              </Tabs>
-              <Tooltip title="Open Nodetool Documentation Website" placement="bottom"
-                delay={TOOLTIP_ENTER_DELAY}
-              >
-                <a
-                  href="https://docs.nodetool.ai"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="docs-button"
-                >
-                  <div className="docs-button-text">
-                    <span>Nodetool</span>
-                    <span>Docs</span>
-                  </div>
-                  <OpenInNewIcon />
-                </a>
-              </Tooltip>
-            </div>
-            <div className="content">
-              <TabPanel value={helpIndex} index={0}>
-                <ControlsShortcutsTab />
-              </TabPanel>
-              <TabPanel value={helpIndex} index={1}>
-                <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
-              </TabPanel>
-              <TabPanel value={helpIndex} index={2}>
-                <DataTypesList
-                  title="Nodetool Data Types"
-                  dataTypes={nodetoolTypes}
-                  expanded={expandedNodetool}
-                  onChange={handleAccordionChange("nodetool")}
-                />
-              </TabPanel>
-            </div>
+      <div css={helpStyles(theme)}>
+        <div className="help">
+          <div className="tabs-row">
+            <Tabs
+              className="help-tabs"
+              value={helpIndex}
+              onChange={handleChange}
+              aria-label="help tabs"
+            >
+              <Tab label="Shortcuts" id="help-tab-0" />
+              <Tab label="Keyboard" id="help-tab-1" />
+              <Tab label="Data types" id="help-tab-2" />
+            </Tabs>
+          </div>
+          <div className="content">
+            <TabPanel value={helpIndex} index={0}>
+              <ControlsShortcutsTab />
+            </TabPanel>
+            <TabPanel value={helpIndex} index={1}>
+              <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
+            </TabPanel>
+            <TabPanel value={helpIndex} index={2}>
+              <DataTypesList
+                title="Nodetool Data Types"
+                dataTypes={nodetoolTypes}
+                expanded={expandedNodetool}
+                onChange={handleAccordionChange("nodetool")}
+              />
+            </TabPanel>
           </div>
         </div>
+      </div>
     </Dialog>
   );
 };

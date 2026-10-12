@@ -4,16 +4,15 @@ import React from "react";
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertBanner,
   FormField,
-  Text,
   FlexRow,
   FlexColumn,
   LoadingSpinner,
   TextInput,
   EditorButton,
-  Box,
   MOTION,
-  BORDER_RADIUS
+  SPACING
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -42,41 +41,6 @@ const styles = (theme: Theme) =>
       position: "relative",
       animation: `${slideIn} ${MOTION.normal}`,
       boxSizing: "border-box"
-    },
-    ".text-input": {
-      "& .MuiOutlinedInput-root": {
-        borderRadius: BORDER_RADIUS.lg,
-        backgroundColor: theme.vars.palette.background.default,
-        "& fieldset": {
-          borderColor: theme.vars.palette.divider
-        },
-        "&:hover fieldset": {
-          borderColor: theme.vars.palette.text.secondary
-        },
-        "&.Mui-focused fieldset": {
-          borderColor: theme.vars.palette.primary.main,
-          borderWidth: 1
-        }
-      }
-      // Height/padding/font are owned by the TextInput primitive (size="small"
-      // gives the compact height) — no internal padding override here.
-    },
-    ".model-select": {
-      "& button": {
-        borderRadius: `${BORDER_RADIUS.lg} !important`,
-        backgroundColor: `${theme.vars.palette.background.default} !important`,
-        border: `1px solid ${theme.vars.palette.divider} !important`,
-        "&:hover": {
-          borderColor: `${theme.vars.palette.text.secondary} !important`
-        }
-      }
-    },
-    ".error-box": {
-      marginTop: theme.spacing(2),
-      padding: theme.spacing(1.5),
-      borderRadius: BORDER_RADIUS.lg,
-      background: `color-mix(in srgb, ${theme.vars.palette.error.main} 10%, transparent)`,
-      border: `1px solid color-mix(in srgb, ${theme.vars.palette.error.main} 25%, transparent)`
     }
   });
 
@@ -142,37 +106,28 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
       css={styles(theme)}
       className="collection-form"
     >
-      <FlexRow gap={2} align="center" wrap>
-        <FormField
-          label="Collection Name"
-          required
-          compact
+      <FlexRow gap={SPACING.lg} align="center" wrap>
+        <TextInput
+          label="Collection name"
           sx={{ flex: 1, minWidth: 180 }}
-        >
-          <TextInput
-            className="text-input"
-            value={formData.name}
-            onChange={(e) =>
-              setFormData(
-                (prev: { name: string; embedding_model: string }) => ({
-                  ...prev,
-                  name: e.target.value
-                })
-              )
-            }
-            placeholder="my-collection"
-            required
-            fullWidth
-            size="small"
-            disabled={createMutation.isPending}
-            autoFocus
-          />
-        </FormField>
+          value={formData.name}
+          onChange={(e) =>
+            setFormData((prev: { name: string; embedding_model: string }) => ({
+              ...prev,
+              name: e.target.value
+            }))
+          }
+          placeholder="my-collection"
+          required
+          fullWidth
+          size="small"
+          disabled={createMutation.isPending}
+          autoFocus
+        />
 
         <FormField
-          label="Embedding Model"
+          label="Embedding model"
           compact
-          className="model-select"
           sx={{ flex: 1, minWidth: 200 }}
         >
           <EmbeddingModelSelect
@@ -201,13 +156,11 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
       </FlexRow>
 
       {createMutation.isError && (
-        <Box className="error-box" sx={{ mt: 2 }}>
-          <Text size="small" color="error">
-            {createMutation.error instanceof Error
-              ? createMutation.error.message
-              : "Failed to create collection"}
-          </Text>
-        </Box>
+        <AlertBanner severity="error" sx={{ mt: SPACING.lg }}>
+          {createMutation.error instanceof Error
+            ? createMutation.error.message
+            : "Failed to create collection"}
+        </AlertBanner>
       )}
     </FlexColumn>
   );

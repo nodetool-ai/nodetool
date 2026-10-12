@@ -8,11 +8,9 @@ import {
   TextInput,
   Text,
   EditorButton,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  type SelectChangeEvent, getSpacingPx, SPACING
+  SelectField,
+  getSpacingPx,
+  SPACING
 } from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore, {
@@ -279,14 +277,26 @@ const SettingItem = memo(function SettingItem({
   onChange
 }: SettingItemProps) {
   const handleChange = useCallback(
-    (
-      e:
-        | SelectChangeEvent<string>
-        | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-    ) => {
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       onChange(setting.env_var, e.target.value);
     },
     [setting.env_var, onChange]
+  );
+
+  const handleSelectChange = useCallback(
+    (next: string) => {
+      onChange(setting.env_var, next);
+    },
+    [setting.env_var, onChange]
+  );
+
+  const selectOptions = useMemo(
+    () =>
+      (setting.enum ?? []).map((option: string) => ({
+        value: option,
+        label: option
+      })),
+    [setting.enum]
   );
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -296,43 +306,28 @@ const SettingItem = memo(function SettingItem({
   return (
     <div className="settings-item large">
       {setting.enum && setting.enum.length > 0 ? (
-        <FormControl variant="standard" fullWidth>
-          <InputLabel
-            id={`${setting.env_var.toLowerCase()}-label`}
-          >
-            {formatSettingLabel(setting.env_var)}
-          </InputLabel>
-          <Select
-            labelId={`${setting.env_var.toLowerCase()}-label`}
+        <div onKeyDown={handleKeyDown}>
+          <SelectField
             id={`${setting.env_var.toLowerCase()}-select`}
+            label={formatSettingLabel(setting.env_var)}
             value={value || ""}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-          >
-            {setting.enum.map((option: string) => (
-              <MenuItem key={option} value={option}>
-                {option}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+            onChange={handleSelectChange}
+            options={selectOptions}
+            description={setting.description || undefined}
+          />
+        </div>
       ) : (
         <TextInput
           type={setting.is_secret ? "password" : "text"}
           autoComplete="off"
           id={`${setting.env_var.toLowerCase()}-input`}
           label={formatSettingLabel(setting.env_var)}
+          helperText={setting.description || undefined}
           value={value || ""}
           onChange={handleChange}
-          variant="standard"
           size="small"
           onKeyDown={handleKeyDown}
         />
-      )}
-      {setting.description && (
-        <Text className="description">
-          {setting.description}
-        </Text>
       )}
       {SETTING_LINKS[setting.env_var] && (
         <div style={{ marginTop: getSpacingPx(SPACING.md) }}>

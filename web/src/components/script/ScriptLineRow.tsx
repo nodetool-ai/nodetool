@@ -7,7 +7,9 @@ import type {
   MouseEvent
 } from "react";
 import { useTheme } from "@mui/material/styles";
-import GraphicEqIcon from "@mui/icons-material/GraphicEq";
+import MicNoneIcon from "@mui/icons-material/MicNone";
+import CheckIcon from "@mui/icons-material/Check";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import HistoryIcon from "@mui/icons-material/History";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -30,7 +32,13 @@ import {
   EditorMenu,
   MenuItemPrimitive,
   TruncatedText,
+  StatusPill,
+  EditorButton,
+  CONTROL,
+  SHADOW,
+  Z_INDEX,
   SPACING,
+  SPACING_PX,
   BORDER_RADIUS,
   TYPOGRAPHY,
   MOTION,
@@ -56,6 +64,8 @@ import ScriptTakeGallery from "./ScriptTakeGallery";
 import { takeWorkflowMedia } from "./scriptWorkflowMedia";
 import { SendToWorkflowButton } from "../workflows/SendToWorkflowMenu";
 import ScriptShotChip from "./ScriptShotChip";
+import ScriptSpeakerAvatar from "./ScriptSpeakerAvatar";
+import ScriptTakeWaveform from "./ScriptTakeWaveform";
 import type { ScriptLineShotLink } from "../../hooks/script/useScriptShotLinks";
 
 /**
@@ -101,18 +111,33 @@ interface ScriptLineRowProps {
   onDrop?: (e: DragEvent<HTMLElement>) => void;
 }
 
-/** Width of the screenplay speaker gutter. */
-const GUTTER = 104;
+/** Width of the screenplay speaker gutter: avatar plus the speaker's name. */
+const GUTTER = 148;
 
 /** Width of the hover-revealed drag handle rail left of the gutter. */
 const DRAG_RAIL = 20;
 
+/** Width of the take column: status, voice button and waveform. */
+const TAKE_COLUMN = 264;
+
+/** Column gap of the row grid, in px. */
+const COLUMN_GAP = SPACING_PX.xl;
+
 /**
- * Left offset (px) of the line's text column: drag rail + gutter and the two
- * SPACING.xl flex gaps around them. Add-line buttons and insert affordances
- * align to this so they sit under the dialogue, not the speaker names.
+ * Below this row width the take column drops under the dialogue, so the text
+ * keeps a readable measure beside two docks.
  */
-export const TEXT_INSET = DRAG_RAIL + SPACING.xl * 4 + GUTTER + SPACING.xl * 4;
+const STACK_BELOW = 800;
+
+/** Below this row width the speaker sits above the dialogue as well. */
+const NARROW_BELOW = 560;
+
+/**
+ * Left offset (px) of the line's text column: drag rail + gutter and the
+ * column gaps around them. Add-line buttons and insert affordances align to
+ * this so they sit under the dialogue, not the speaker names.
+ */
+export const TEXT_INSET = DRAG_RAIL + COLUMN_GAP + GUTTER + COLUMN_GAP;
 
 const PAUSE_AFTER_MS = [
   { ms: 0, label: "No pause after" },
@@ -136,7 +161,9 @@ const voiceFromStudio = (value: TTSModelValue): VoiceBinding => ({
  * chrome only materializes on hover/focus.
  */
 const quietField = {
-  "& .MuiOutlinedInput-root": {
+  // Doubled class: TextInput's own field background sits on the same
+  // selector one level down, so a single class would lose to it.
+  "& .MuiOutlinedInput-root.MuiInputBase-root": {
     backgroundColor: "transparent",
     transition: MOTION.background,
     "& .MuiOutlinedInput-notchedOutline": {
@@ -238,59 +265,64 @@ const SpeakerPicker = ({
         }
       >
         <Box
-          component="span"
+          component="button"
+          type="button"
+          disabled={!canOpen}
+          aria-haspopup="menu"
+          aria-expanded={!!anchor}
+          aria-label={
+            speaker ? `${speaker.name}, change speaker` : "Assign speaker"
+          }
+          onClick={
+            canOpen
+              ? (e: MouseEvent<HTMLElement>) => setAnchor(e.currentTarget)
+              : undefined
+          }
           sx={{
             flexShrink: 0,
             display: "inline-flex",
+            alignItems: "center",
+            gap: SPACING.md,
             width: mobile ? "auto" : GUTTER,
-            marginTop: mobile ? SPACING.none : SPACING.sm
+            minWidth: 0,
+            padding: SPACING.none,
+            border: "none",
+            background: "none",
+            textAlign: "left",
+            cursor: canOpen ? "pointer" : "default",
+            ...TYPOGRAPHY.sans.label,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: speaker ? speaker.color ?? "text.primary" : "text.disabled",
+            transition: MOTION.fast,
+            "&:hover:not(:disabled)": { filter: "brightness(1.2)" },
+            "&:focus-visible": {
+              outline: "2px solid",
+              outlineColor: "primary.main",
+              outlineOffset: "2px",
+              borderRadius: BORDER_RADIUS.sm
+            }
           }}
         >
-          <Box
-            component="button"
-            type="button"
-            disabled={!canOpen}
-            aria-haspopup="menu"
-            aria-expanded={!!anchor}
-            aria-label={
-              speaker ? `${speaker.name}, change speaker` : "Assign speaker"
-            }
-            onClick={
-              canOpen
-                ? (e: MouseEvent<HTMLElement>) => setAnchor(e.currentTarget)
-                : undefined
-            }
+          <ScriptSpeakerAvatar
+            speaker={speaker}
+            size={mobile ? CONTROL.height.xs : CONTROL.height.md}
+          />
+          <TruncatedText
+            component="span"
             sx={{
-              width: "100%",
+              display: "block",
+              flex: 1,
               minWidth: 0,
-              padding: SPACING.none,
-              border: "none",
-              background: "none",
-              textAlign: mobile ? "left" : "right",
-              cursor: canOpen ? "pointer" : "default",
-              ...TYPOGRAPHY.sans.label,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              color: speaker ? speaker.color ?? "text.primary" : "text.disabled",
-              transition: MOTION.fast,
-              "&:hover:not(:disabled)": { color: "primary.main" }
+              margin: SPACING.none,
+              font: "inherit",
+              letterSpacing: "inherit",
+              textTransform: "inherit",
+              color: "inherit"
             }}
           >
-            <TruncatedText
-              component="span"
-              sx={{
-                display: "block",
-                width: "100%",
-                margin: SPACING.none,
-                font: "inherit",
-                letterSpacing: "inherit",
-                textTransform: "inherit",
-                color: "inherit"
-              }}
-            >
-              {label}
-            </TruncatedText>
-          </Box>
+            {label}
+          </TruncatedText>
         </Box>
       </Tooltip>
       <EditorMenu
@@ -484,9 +516,15 @@ const ScriptLineRow = ({
     shotLink || orphaned ? (
       <FlexRow
         align="center"
-        justify={mobile ? "flex-start" : "flex-end"}
         gap={SPACING.xs}
-        sx={{ flexShrink: 0, width: mobile ? "auto" : GUTTER }}
+        sx={{
+          flexShrink: 0,
+          width: mobile ? "auto" : GUTTER,
+          // Under the name, past the avatar.
+          paddingLeft: mobile
+            ? SPACING.none
+            : `${CONTROL.height.md + SPACING_PX.md}px`
+        }}
       >
         {shotLink && (
           <ScriptShotChip shot={shotLink.shot} onOpen={shotLink.open} />
@@ -503,8 +541,8 @@ const ScriptLineRow = ({
 
   const gutter = shotGutter ? (
     <FlexColumn
-      gap={SPACING.micro}
-      align={mobile ? "flex-start" : "flex-end"}
+      gap={SPACING.xs}
+      align="flex-start"
       sx={{ flexShrink: 0, width: mobile ? "auto" : GUTTER }}
     >
       {speakerButton}
@@ -514,8 +552,31 @@ const ScriptLineRow = ({
     speakerButton
   );
 
+  const directionField = showDirection && (
+    <TextInput
+      autoFocus={!hasDirection}
+      value={line.direction ?? ""}
+      onChange={onDirectionChange}
+      placeholder="Direction (e.g. whispering, tired)…"
+      hideLabel
+      label="Direction"
+      compact
+      fullWidth
+      disabled={readOnly}
+      sx={{
+        ...quietField,
+        "& .MuiOutlinedInput-input": {
+          ...TYPOGRAPHY.sans.label,
+          fontStyle: "italic",
+          color: "text.secondary"
+        }
+      }}
+    />
+  );
+
   const textColumn = (
     <FlexColumn gap={SPACING.none} style={{ flex: 1, minWidth: 0 }}>
+      {directionField}
       <TextInput
         value={line.text}
         onChange={onTextChange}
@@ -530,29 +591,17 @@ const ScriptLineRow = ({
         inputProps={{ "data-script-line": line.id }}
         sx={{
           ...quietField,
-          "& .MuiOutlinedInput-input": { ...TYPOGRAPHY.sans.body }
+          "& .MuiOutlinedInput-input": {
+            ...TYPOGRAPHY.sans.body,
+            color: "text.primary",
+            letterSpacing: "-0.005em"
+          },
+          // A read-only script still reads as a script, not as greyed fields.
+          "& .MuiOutlinedInput-input.Mui-disabled": {
+            WebkitTextFillColor: "inherit"
+          }
         }}
       />
-      {showDirection && (
-        <TextInput
-          autoFocus={!hasDirection}
-          value={line.direction ?? ""}
-          onChange={onDirectionChange}
-          placeholder="Direction (e.g. whispering, tired)…"
-          hideLabel
-          label="Direction"
-          compact
-          fullWidth
-          disabled={readOnly}
-          sx={{
-            ...quietField,
-            "& .MuiOutlinedInput-input": {
-              fontStyle: "italic",
-              color: "text.secondary"
-            }
-          }}
-        />
-      )}
       {pauseLabel && (
         <Caption color="secondary" sx={{ paddingLeft: SPACING.sm }}>
           {pauseLabel} pause
@@ -566,24 +615,85 @@ const ScriptLineRow = ({
     </FlexColumn>
   );
 
+  const takeNumber = currentTake
+    ? line.takes.findIndex((t) => t.id === currentTake.id) + 1
+    : 0;
+
   const statusIndicator =
     status === "stale" ? (
-      <Text size="smaller" color="warning">
-        Stale
-      </Text>
-    ) : (
-      <Tooltip title={status === "voiced" ? "Voiced" : "Not voiced yet"}>
-        <Box
-          sx={{
-            width: 6,
-            height: 6,
-            borderRadius: BORDER_RADIUS.circle,
-            backgroundColor:
-              status === "voiced" ? "success.main" : "action.disabled"
-          }}
-        />
+      <Tooltip title="The text or voice changed since this take">
+        <StatusPill tone="warning" sx={pillSx}>
+          <RefreshIcon sx={{ fontSize: "inherit" }} />
+          Stale
+        </StatusPill>
       </Tooltip>
+    ) : status === "voiced" ? (
+      <StatusPill tone="done" sx={pillSx}>
+        <CheckIcon sx={{ fontSize: "inherit" }} />
+        Take {takeNumber}
+      </StatusPill>
+    ) : (
+      <StatusPill tone="neutral" sx={pillSx}>
+        Draft
+      </StatusPill>
     );
+
+  const duration = currentTake ? (
+    <Box
+      component="span"
+      sx={{
+        ...TYPOGRAPHY.mono.caption,
+        color: "text.secondary",
+        whiteSpace: "nowrap"
+      }}
+    >
+      {(currentTake.durationMs / 1000).toFixed(1)} s
+    </Box>
+  ) : null;
+
+  const voiceButton = voicing ? (
+    <FlexRow align="center" sx={{ paddingX: SPACING.md }}>
+      <LoadingSpinner size={20} />
+    </FlexRow>
+  ) : (
+    !readOnly && (
+      <Tooltip
+        title={
+          voice
+            ? status === "stale"
+              ? "Re-voice line"
+              : "Voice line"
+            : "Assign a voice to this speaker first"
+        }
+      >
+        <span>
+          <EditorButton
+            size="small"
+            variant="outlined"
+            aria-label="Voice line"
+            disabled={!voice}
+            onClick={() => void onVoice()}
+            startIcon={<MicNoneIcon fontSize="small" />}
+            sx={{
+              borderRadius: BORDER_RADIUS.pill,
+              whiteSpace: "nowrap",
+              ...(status === "stale"
+                ? {
+                    color: "warning.main",
+                    borderColor:
+                      "rgba(var(--palette-warning-mainChannel) / 0.5)",
+                    backgroundColor:
+                      "rgba(var(--palette-warning-mainChannel) / 0.12)"
+                  }
+                : { color: "text.secondary", borderColor: "divider" })
+            }}
+          >
+            Voice
+          </EditorButton>
+        </span>
+      </Tooltip>
+    )
+  );
 
   const moreMenu = !readOnly && (
     <>
@@ -633,37 +743,14 @@ const ScriptLineRow = ({
     </>
   );
 
+  // Secondary actions stay out of the reading flow until the row is hovered
+  // or focused; the voice button and the take status are always on screen.
   const actions = (
     <FlexRow
-      className={mobile ? undefined : "script-line-actions"}
       gap={SPACING.none}
       align="center"
       wrap={mobile}
-      sx={mobile || voicing ? { opacity: "1 !important" } : undefined}
     >
-      {voicing ? (
-        <LoadingSpinner size={20} />
-      ) : (
-        <Tooltip
-          title={
-            voice
-              ? status === "stale"
-                ? "Re-voice line"
-                : "Voice line"
-              : "Assign a voice to this speaker first"
-          }
-        >
-          <span>
-            <ToolbarIconButton
-              tooltip=""
-              ariaLabel="Voice line"
-              disabled={readOnly || !voice}
-              onClick={() => void onVoice()}
-              icon={<GraphicEqIcon fontSize="small" />}
-            />
-          </span>
-        </Tooltip>
-      )}
       {!readOnly && (
         <ToolbarIconButton
           tooltip={showDirection ? "Remove direction" : "Add direction"}
@@ -695,6 +782,29 @@ const ScriptLineRow = ({
     </FlexRow>
   );
 
+  const speakerColor = speaker?.color ?? "var(--palette-text-secondary)";
+
+  const takeColumn = (
+    <FlexColumn
+      className="script-line-take"
+      gap={SPACING.sm}
+      sx={{ minWidth: 0 }}
+    >
+      <FlexRow align="center" gap={SPACING.md} fullWidth>
+        {statusIndicator}
+        {duration}
+        <Box sx={{ flex: 1 }} />
+        {voiceButton}
+      </FlexRow>
+      <ScriptTakeWaveform
+        take={currentTake}
+        color={speakerColor}
+        stale={status === "stale"}
+        onPlay={hasCurrentTake ? () => void playCurrent() : undefined}
+      />
+    </FlexColumn>
+  );
+
   const gallery = (
     <Popover
       open={!!galleryAnchor}
@@ -712,58 +822,95 @@ const ScriptLineRow = ({
     </Popover>
   );
 
+  // The active line (playing, or jumped to) is marked by a bar in the
+  // speaker's colour down its left edge, over a faint lift.
+  const activeSx = highlighted
+    ? {
+        backgroundColor: "action.selected",
+        boxShadow: `inset 3px 0 0 ${speakerColor}`
+      }
+    : undefined;
+
   if (mobile) {
     // Stacked layout: speaker tag + always-visible actions on top, dialogue
-    // below. No hover reveal, no drag rail — none of which work on touch.
+    // and take below. No hover reveal, no drag rail — none of which work on
+    // touch.
     return (
       <FlexColumn
-        gap={SPACING.xs}
+        gap={SPACING.sm}
         fullWidth
         data-line-id={line.id}
         sx={{
           position: "relative",
-          padding: SPACING.sm,
-          borderRadius: BORDER_RADIUS.sm,
-          backgroundColor: highlighted ? "action.selected" : "transparent",
-          transition: MOTION.background
+          paddingX: SPACING.md,
+          paddingY: SPACING.lg,
+          transition: MOTION.background,
+          ...activeSx
         }}
       >
         <FlexRow align="center" gap={SPACING.sm} fullWidth>
           {gutter}
           <Box sx={{ flex: 1 }} />
-          {statusIndicator}
           {actions}
         </FlexRow>
         {textColumn}
+        <FlexColumn gap={SPACING.sm} fullWidth>
+          <FlexRow align="center" gap={SPACING.md} fullWidth>
+            {statusIndicator}
+            {duration}
+            <Box sx={{ flex: 1 }} />
+            {voiceButton}
+          </FlexRow>
+          <ScriptTakeWaveform
+            take={currentTake}
+            color={speakerColor}
+            stale={status === "stale"}
+            onPlay={hasCurrentTake ? () => void playCurrent() : undefined}
+          />
+        </FlexColumn>
         {gallery}
       </FlexColumn>
     );
   }
 
   return (
-    <FlexRow
-      align="flex-start"
-      gap={SPACING.xl}
-      fullWidth
+    <Box
       data-line-id={line.id}
       onDragOver={onDragOver}
       onDrop={onDrop}
       sx={{
         position: "relative",
-        padding: SPACING.sm,
-        paddingLeft: SPACING.none,
-        borderRadius: BORDER_RADIUS.sm,
-        backgroundColor: highlighted ? "action.selected" : "transparent",
+        display: "grid",
+        gridTemplateColumns: `${DRAG_RAIL}px ${GUTTER}px minmax(0, 1fr) ${TAKE_COLUMN}px`,
+        alignItems: "center",
+        columnGap: `${COLUMN_GAP}px`,
+        rowGap: SPACING.md,
+        paddingY: SPACING.xl,
+        paddingRight: SPACING.xl,
         opacity: isDragging ? 0.4 : 1,
-        transition: MOTION.background,
+        transition: `${MOTION.background}, ${MOTION.shadow}`,
+        [`@container script-lines (max-width: ${STACK_BELOW}px)`]: {
+          gridTemplateColumns: `${DRAG_RAIL}px ${GUTTER}px minmax(0, 1fr)`,
+          alignItems: "start",
+          "& .script-line-take": { gridColumn: "3 / 4" },
+          "& .script-line-toolbar": { right: `${SPACING_PX.xl}px` }
+        },
+        [`@container script-lines (max-width: ${NARROW_BELOW}px)`]: {
+          gridTemplateColumns: `${DRAG_RAIL}px minmax(0, 1fr)`,
+          "& > :not(:first-of-type)": { gridColumn: "2 / 3" },
+          "& .script-line-take": { gridColumn: "2 / 3" }
+        },
+        ...activeSx,
         "&:hover": {
           backgroundColor: highlighted ? "action.selected" : "action.hover"
         },
-        "& .script-line-actions": {
+        // Hidden until the row is hovered or focused; a pointer can only
+        // reach it through the hovered row, so it never catches a stray click.
+        "& .script-line-toolbar": {
           opacity: 0,
           transition: MOTION.opacity
         },
-        "&:hover .script-line-actions, &:focus-within .script-line-actions": {
+        "&:hover .script-line-toolbar, &:focus-within .script-line-toolbar": {
           opacity: 1
         },
         "& .script-line-drag": {
@@ -775,19 +922,14 @@ const ScriptLineRow = ({
     >
       {draggable ? (
         <Tooltip title="Drag to reorder">
-          <Box
+          <FlexRow
             className="script-line-drag"
             draggable
             onDragStart={handleDragStart}
             onDragEnd={onDragEnd}
             aria-label="Drag to reorder line"
+            justify="center"
             sx={{
-              flexShrink: 0,
-              width: DRAG_RAIL,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "flex-start",
-              marginTop: SPACING.sm,
               color: "text.disabled",
               cursor: "grab",
               "&:active": { cursor: "grabbing" },
@@ -795,30 +937,47 @@ const ScriptLineRow = ({
             }}
           >
             <DragIndicatorIcon fontSize="small" />
-          </Box>
+          </FlexRow>
         </Tooltip>
       ) : (
-        <Box sx={{ flexShrink: 0, width: DRAG_RAIL }} />
+        <Box />
       )}
 
       {gutter}
 
       {textColumn}
 
-      <FlexRow
-        align="center"
-        justify="flex-end"
-        gap={SPACING.xs}
-        sx={{ flexShrink: 0, marginTop: SPACING.xs }}
+      {takeColumn}
+
+      {/* Secondary actions float over the dialogue's top-right corner. */}
+      <Box
+        className="script-line-toolbar"
+        sx={{
+          position: "absolute",
+          top: SPACING.xs,
+          right: `${TAKE_COLUMN + COLUMN_GAP + SPACING_PX.xl}px`,
+          zIndex: Z_INDEX.raised,
+          paddingX: SPACING.micro,
+          borderRadius: BORDER_RADIUS.md,
+          border: "1px solid",
+          borderColor: "divider",
+          backgroundColor: "background.paper",
+          boxShadow: (theme) => SHADOW(theme).sm
+        }}
       >
-        {statusIndicator}
         {actions}
-      </FlexRow>
+      </Box>
 
       {gallery}
-    </FlexRow>
+    </Box>
   );
 };
+
+/** Take status pills read in the row's sans label type, icon first. */
+const pillSx = {
+  ...TYPOGRAPHY.sans.label,
+  gap: SPACING.xs
+} as const;
 
 /** Only the edited line's `line` changes identity (see `mapLine` in
  *  ScriptStore), so the rest of the document skips the row body entirely. */

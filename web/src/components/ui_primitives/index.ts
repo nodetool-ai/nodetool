@@ -280,6 +280,13 @@ export {
 
 // Shared styles for the sidebar document list panels
 export { listPanelStyles } from "./listPanelStyles";
+export {
+  focusRing,
+  selectableRowStyles,
+  selectedRowStyles,
+  selectableTileStyles,
+  selectedTileStyles
+} from "./selectionStyles";
 export { ListPanelItem } from "./ListPanelItem";
 export type { ListPanelItemProps } from "./ListPanelItem";
 export { DocumentListPanel } from "./DocumentListPanel";
@@ -404,7 +411,9 @@ export type { AutocompleteProps, AutocompleteOption } from "./Autocomplete";
 export { LabeledSwitch } from "./LabeledSwitch";
 export type { LabeledSwitchProps } from "./LabeledSwitch";
 
-export { SelectField, SelectFieldDensityContext } from "./SelectField";
+export { SelectField } from "./SelectField";
+export { FieldDensityContext, useFieldDensity } from "./fieldDensity";
+export type { FieldDensity } from "./fieldDensity";
 export type { SelectFieldProps, SelectOption } from "./SelectField";
 
 // Accessibility

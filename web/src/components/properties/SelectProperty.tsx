@@ -24,15 +24,18 @@ const SelectProperty: React.FC<PropertyProps<string>> = ({
     [property.name, propertyIndex]
   );
 
-  const findNode = useNodes((state) => state.findNode);
-  const node = findNode(nodeId);
+  // Subscribe to the options themselves: this component is memoized on its
+  // props, and option edits change none of them.
+  const nodeOptions = useNodes(
+    (state) => state.findNode(nodeId)?.data?.properties?.options,
+    isEqual
+  );
   const options = useMemo(() => {
-    const nodeOptions = node?.data?.properties?.options;
     if (Array.isArray(nodeOptions)) {
       return nodeOptions.filter((opt): opt is string => typeof opt === "string");
     }
     return [];
-  }, [node?.data?.properties?.options]);
+  }, [nodeOptions]);
 
   const selectOptions = useMemo(() => {
     return options.map((opt) => ({

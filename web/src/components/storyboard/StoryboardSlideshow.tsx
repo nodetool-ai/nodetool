@@ -30,7 +30,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useMediaQuery } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, type Theme } from "@mui/material/styles";
 
 import {
   Box,
@@ -126,9 +126,9 @@ const SWIPE_MIN_PX = 40;
 
 // On a phone the arrows float over the stage's edges rather than taking two
 // columns from a picture that is already narrow.
-const arrowSx = (side: "left" | "right") =>
+const arrowSx = (side: "left" | "right") => (theme: Theme) =>
   ({
-    "@media (max-width: 600px)": {
+    [theme.breakpoints.down("sm")]: {
       position: "absolute",
       top: 0,
       bottom: 0,

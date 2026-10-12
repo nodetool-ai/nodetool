@@ -376,7 +376,17 @@ export default function useConnectionHandlers() {
           let counter = 1;
           // New slots default to "", 0, false or null, so test for the key,
           // not the value.
-          while (Object.hasOwn(dynamicProps, propertyName)) {
+          // Static property names are taken too: a slot named like one
+          // would replace its value when the node runs.
+          const staticNames = new Set(
+            nodeMetadata.properties.map((property) => property.name)
+          );
+          const declared = node.data?.dynamic_inputs ?? {};
+          while (
+            Object.hasOwn(dynamicProps, propertyName) ||
+            Object.hasOwn(declared, propertyName) ||
+            staticNames.has(propertyName)
+          ) {
             propertyName = `${sourceNodeName}_${counter}`;
             counter++;
           }

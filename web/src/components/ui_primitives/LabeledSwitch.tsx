@@ -8,6 +8,7 @@
 import React, { memo, useCallback } from "react";
 import { Switch, Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { SPACING } from "./spacing";
 
 export interface LabeledSwitchProps {
   /** Label text */
@@ -64,19 +65,24 @@ const LabeledSwitchInternal: React.FC<LabeledSwitchProps> = ({
     [onChange]
   );
 
+  // Label and description share one column beside the switch, so the
+  // description stays with its own label instead of floating under a row
+  // the switch makes taller.
   return (
-    <Box>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: theme.spacing(SPACING.md),
+      }}
+    >
+      <Box sx={{ minWidth: 0 }}>
         <Typography
           component="label"
           htmlFor={id}
           sx={{
+            display: "block",
             fontSize: size === "small" ? theme.fontSizeSmall : theme.fontSizeNormal,
             // `theme.vars`, not `theme.palette`: this app runs the CSS-vars
             // theme, where the plain palette resolves to the light values and
@@ -90,27 +96,28 @@ const LabeledSwitchInternal: React.FC<LabeledSwitchProps> = ({
         >
           {label}
         </Typography>
-        <Switch
-          id={id}
-          checked={checked}
-          onChange={handleChange}
-          disabled={disabled}
-          size={size}
-          inputProps={{ "aria-label": label }}
-        />
+        {description && (
+          <Typography
+            variant="body2"
+            sx={{
+              color: theme.vars.palette.text.secondary,
+              fontSize: theme.fontSizeSmall,
+              marginTop: theme.spacing(SPACING.micro),
+            }}
+          >
+            {description}
+          </Typography>
+        )}
       </Box>
-      {description && (
-        <Typography
-          variant="body2"
-          sx={{
-            color: theme.vars.palette.text.secondary,
-            fontSize: theme.fontSizeSmall,
-            marginTop: 0,
-          }}
-        >
-          {description}
-        </Typography>
-      )}
+      <Switch
+        id={id}
+        checked={checked}
+        onChange={handleChange}
+        disabled={disabled}
+        size={size}
+        inputProps={{ "aria-label": label }}
+        sx={{ flexShrink: 0 }}
+      />
     </Box>
   );
 };

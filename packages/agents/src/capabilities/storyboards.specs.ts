@@ -463,6 +463,50 @@ export const assembleStoryboardTimelineSpec: CapabilitySpec = {
     `Assembling storyboard ${String(params["storyboard_id"])} into a timeline`
 };
 
+export const DERIVE_SHOT_FROM_CLIP_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    timeline_id: { type: "string", description: "Timeline sequence id." },
+    clip_id: {
+      type: "string",
+      description:
+        "The shot clip to derive from (id or name): a video clip with " +
+        "footage that follows a storyboard shot."
+    },
+    frame_count: {
+      type: "number",
+      description:
+        "How many reference frames to take, spread over the clip (1-8, " +
+        "default 3)."
+    },
+    action: {
+      type: "string",
+      description:
+        "What the derived shot shows. Defaults to the source shot's action."
+    }
+  },
+  required: ["timeline_id", "clip_id"]
+};
+
+export const deriveShotFromClipSpec: CapabilitySpec = {
+  name: "derive_shot_from_clip",
+  description:
+    "Derive a new storyboard shot from a shot clip in a timeline. Takes " +
+    "frame_count frames of the clip's footage, saves them as image assets " +
+    "and binds them as the new shot's style references, so the shot renders " +
+    "through reference-to-video and keeps the look, cast and setting of the " +
+    "clip. The shot goes on the source shot's board right after it, with the " +
+    "source shot's camera, motion, entities, location and clip model. In the " +
+    "timeline a new video track goes directly above the source clip, and a " +
+    "draft clip following the new shot sits on it over the same span. " +
+    "Render the shot with render_storyboard_clips; the clip then plays the " +
+    "take. Generates no media itself.",
+  inputSchema: DERIVE_SHOT_FROM_CLIP_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Deriving a shot from clip ${String(params["clip_id"])}`
+};
+
 export const editStoryboardSpec: CapabilitySpec = {
   name: "edit_storyboard",
   description:
@@ -612,6 +656,7 @@ export const storyboardsSpecs: readonly CapabilitySpec[] = [
   renderStoryboardClipsSpec,
   reviseStoryboardClipSpec,
   assembleStoryboardTimelineSpec,
+  deriveShotFromClipSpec,
   editStoryboardSpec,
   directStoryboardSpec,
   extractScriptFromStoryboardSpec,

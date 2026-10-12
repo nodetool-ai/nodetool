@@ -57,6 +57,7 @@ const restoreProject = jest.fn();
 const deleteProject = jest.fn();
 const openProject = jest.fn();
 const openNewProject = jest.fn();
+const createProject = jest.fn();
 
 const archiveMutation = { mutate: archiveProject, isPending: false };
 const restoreMutation = { mutate: restoreProject, isPending: false };
@@ -71,7 +72,8 @@ jest.mock("../../../hooks/useProjects", () => ({
   useRestoreProject: () => restoreMutation,
   useDeleteProject: () => deleteMutation,
   useOpenProject: () => openProject,
-  useOpenNewProjectTab: () => openNewProject
+  useOpenNewProjectTab: () => openNewProject,
+  useCreateProject: () => ({ mutateAsync: createProject, isPending: false })
 }));
 
 const openTab = jest.fn();
@@ -156,12 +158,24 @@ describe("ProjectListSurface", () => {
     expect(screen.queryByText("Aurora Launch Spot")).not.toBeInTheDocument();
   });
 
-  it("starts a project on the new-project surface", async () => {
+  it("creates a named project and opens its home", async () => {
+    createProject.mockResolvedValue({ id: "p-new", name: "Comet" });
+    openProject.mockResolvedValue(true);
     renderSurface();
     await userEvent.click(screen.getByRole("button", { name: "+ New project" }));
-    expect(openNewProject).toHaveBeenCalled();
+    expect(createProject).not.toHaveBeenCalled();
 
+    await userEvent.type(screen.getByLabelText("Project name"), "Comet");
+    await userEvent.click(screen.getByRole("button", { name: "Create project" }));
+
+    expect(createProject).toHaveBeenCalledWith({ name: "Comet" });
+    await waitFor(() => expect(openNewProject).toHaveBeenCalled());
+    expect(openProject).toHaveBeenCalledWith({ id: "p-new", name: "Comet" });
+  });
+
+  it("asks for a name from the start-a-project card too", async () => {
+    renderSurface();
     await userEvent.click(screen.getByRole("button", { name: /Start a project/ }));
-    expect(openNewProject).toHaveBeenCalledTimes(2);
+    expect(screen.getByLabelText("Project name")).toBeInTheDocument();
   });
 });

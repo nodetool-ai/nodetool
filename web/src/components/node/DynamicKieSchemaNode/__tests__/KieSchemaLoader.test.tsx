@@ -26,9 +26,15 @@ jest.mock("../../../ui_primitives", () => ({
 }));
 
 const { render } = nodeStoreRenderers(
-  makeNodeStore({
-        updateNodeData: mockUpdateNodeData
-      })
+  makeNodeStore(
+    {
+      updateNodeData: mockUpdateNodeData,
+      findNode: () => undefined,
+      edges: [],
+      deleteEdges: jest.fn()
+    },
+    { beginGroup: jest.fn(), endGroup: jest.fn() }
+  )
 );
 jest.mock("../../../../stores/BASE_URL", () => ({
   BASE_URL: ""

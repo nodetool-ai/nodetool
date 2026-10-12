@@ -20,6 +20,7 @@ import {
   InputAdornment
 } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
+import { removeDataframeColumn } from "../../utils/csvDataframe";
 import Markdown from "react-markdown";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -481,6 +482,13 @@ const DataframeEditorModal = ({
     [localValue, handleDataframeChange]
   );
 
+  const onDeleteColumn = useCallback(
+    (index: number) => {
+      handleDataframeChange(removeDataframeColumn(localValue, index));
+    },
+    [localValue, handleDataframeChange]
+  );
+
   const addColumn = useCallback(() => {
     const columns = localValue.columns || [];
     const existingNames = new Set(columns.map((col) => col.name));
@@ -593,6 +601,7 @@ const DataframeEditorModal = ({
                   <ColumnsManager
                     columns={localValue.columns || []}
                     onChange={onChangeColumns}
+                    onDeleteColumn={onDeleteColumn}
                                       />
                 </div>
               )}

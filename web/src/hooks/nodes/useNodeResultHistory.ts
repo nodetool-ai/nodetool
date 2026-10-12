@@ -37,13 +37,24 @@ export { assetToOutputValue };
 
 const EMPTY_ASSETS: Asset[] = [];
 
-const fetchNodeAssets = async (nodeId: string): Promise<Asset[]> => {
-  const data = await trpcClient.assets.list.query({ node_id: nodeId });
+// Node ids are copied when a workflow is duplicated, so the query is scoped to
+// the workflow too. Otherwise a node shows the copy's outputs.
+const fetchNodeAssets = async (
+  workflowId: string | null,
+  nodeId: string
+): Promise<Asset[]> => {
+  const data = await trpcClient.assets.list.query(
+    workflowId
+      ? { node_id: nodeId, workflow_id: workflowId }
+      : { node_id: nodeId }
+  );
   return normalizeAssetList((data.assets as Asset[]) ?? []);
 };
 
-export const nodeAssetsQueryKey = (nodeId: string | null) =>
-  ["assets", { node_id: nodeId }] as const;
+export const nodeAssetsQueryKey = (
+  workflowId: string | null,
+  nodeId: string | null
+) => ["assets", { workflow_id: workflowId, node_id: nodeId }] as const;
 
 /**
  * Reduce a list of last-job assets to a single preview value (single asset)
@@ -76,9 +87,11 @@ export const useNodeResultHistory = (
 ): UseNodeResultHistoryResult => {
   const enabled = Boolean(nodeId);
   const query = useQuery({
-    queryKey: nodeAssetsQueryKey(nodeId),
+    queryKey: nodeAssetsQueryKey(workflowId, nodeId),
     queryFn: () =>
-      nodeId ? fetchNodeAssets(nodeId) : Promise.resolve(EMPTY_ASSETS),
+      nodeId
+        ? fetchNodeAssets(workflowId, nodeId)
+        : Promise.resolve(EMPTY_ASSETS),
     enabled,
     staleTime: 60_000
   });

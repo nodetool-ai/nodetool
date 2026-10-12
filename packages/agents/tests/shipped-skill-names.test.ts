@@ -166,7 +166,11 @@ const NOT_A_BACKEND_CALL = new Set([
   "run_job_request",
   // Named to say it does not exist: settings refuse a secret and there is no
   // `set_secret`. A test that demanded it exist would demand the bug back.
-  "set_secret"
+  "set_secret",
+  // ManimGX Scene methods in the manimgx skill's Python examples. A scene
+  // calls them, not a model, and they belong to Manim's API.
+  "add_sound",
+  "set_camera_orientation"
 ]);
 
 /** Every shipped skill, so a new one is covered without being listed. */

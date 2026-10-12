@@ -27,6 +27,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  FormField,
   GAP,
   SelectField,
   Text
@@ -439,18 +440,10 @@ export const LookStep: React.FC<LookStepProps> = ({
           disabled={readOnly}
         />
       </Box>
-      <FlexColumn gap={GAP.normal}>
-        <Text size="small" component="h3">
-          Art style
-        </Text>
-        {/* What the board will actually draw in, always — a style the creator
-            made themselves and a style bible the Director wrote are both real
-            looks, and neither of them used to say anything here (F19). */}
-        {appliedStyle ? (
-          <Caption component="p" color="secondary">
-            {appliedStyle}
-          </Caption>
-        ) : null}
+      {/* What the board will actually draw in, always — a style the creator
+          made themselves and a style bible the Director wrote are both real
+          looks, and neither of them used to say anything here (F19). */}
+      <FormField label="Art style" helperText={appliedStyle ?? undefined}>
         <PresetTileGrid
           label="Art style"
           presets={tiles.map((tile) => ({
@@ -463,7 +456,7 @@ export const LookStep: React.FC<LookStepProps> = ({
           addOwnLabel="Add your own style"
           addOwnDisabled={readOnly || customStyle.saving}
         />
-      </FlexColumn>
+      </FormField>
       <AddStyleDialog
         open={addingStyle}
         saving={customStyle.saving}

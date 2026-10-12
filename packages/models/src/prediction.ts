@@ -707,6 +707,48 @@ export class Prediction extends DBModel {
       .limit(limit);
   }
 
+  /**
+   * Priced spend and unpriced calls for a few of a project's documents,
+   * summed by the database. A card shows one document's share, so reading the
+   * whole ledger to total a handful of ids is the cost this avoids.
+   */
+  static async spendByDocuments(
+    userId: string,
+    projectId: string,
+    documentIds: readonly string[]
+  ): Promise<Map<string, { usd: number; unpriced: number }>> {
+    const totals = new Map<string, { usd: number; unpriced: number }>();
+    if (documentIds.length === 0) return totals;
+    const db = getPortableDb();
+    const rows = await db
+      .select({
+        document_id: predictions.document_id,
+        usd: sql<number | string | null>`SUM(${predictions.cost})`,
+        unpriced: sql<
+          number | string
+        >`SUM(CASE WHEN ${predictions.cost} IS NULL THEN 1 ELSE 0 END)`
+      })
+      .from(predictions)
+      .where(
+        and(
+          eq(predictions.user_id, userId),
+          eq(predictions.project_id, projectId),
+          ne(predictions.status, "running"),
+          inArray(predictions.document_id, [...documentIds])
+        )
+      )
+      .groupBy(predictions.document_id);
+    for (const row of rows) {
+      if (!row.document_id) continue;
+      // PostgreSQL returns an integer SUM as a bigint string.
+      totals.set(row.document_id, {
+        usd: Number(row.usd ?? 0),
+        unpriced: Number(row.unpriced)
+      });
+    }
+    return totals;
+  }
+
   static async paginate(
     userId: string,
     opts: {

@@ -10,6 +10,7 @@
  */
 
 import { getVectorSourceImage, setVectorSource } from "./vectorSource";
+import { fitImageRect } from "./canvasUtils";
 
 import type {
   SketchRuntime,
@@ -20,6 +21,7 @@ import type {
 import type {
   LayerContentBounds,
   LayerEffect,
+  LayerImageObjectFit,
   Selection,
   SketchDocument
 } from "../types";
@@ -63,6 +65,8 @@ import {
   flattenToDataUrl as flattenToDataUrlFn,
   getMaskDataUrl as getMaskDataUrlFn,
   flattenVisible as flattenVisibleFn,
+  flattenToCanvas as flattenToCanvasFn,
+  renderLayerToCanvas as renderLayerToCanvasFn,
   readbackComposite as readbackCompositeFn,
   clearLayerBySelectionMask as clearLayerBySelectionMaskFn,
   fillLayerBySelectionMask as fillLayerBySelectionMaskFn,
@@ -305,13 +309,25 @@ export class Canvas2DRuntime implements SketchRuntime {
     return flattenVisibleFn(doc, this.boundRenderDocComposite);
   }
 
+  flattenToCanvas(doc: SketchDocument): HTMLCanvasElement | null {
+    return flattenToCanvasFn(doc, this.boundRenderDocComposite);
+  }
+
+  renderLayerToCanvas(
+    doc: SketchDocument,
+    layerId: string
+  ): HTMLCanvasElement | null {
+    return renderLayerToCanvasFn(doc, layerId, this.boundDrawLayerToContext);
+  }
+
   // ─── Layer operations ────────────────────────────────────────────────
 
   setLayerData(
     layerId: string,
     data: string | null,
     bounds: LayerContentBounds,
-    onComplete?: () => void
+    onComplete?: () => void,
+    imageFit?: LayerImageObjectFit
   ): void {
     const gen = this.supersedePendingLoad(layerId);
     // Short-circuit: if the data we're being asked to hydrate from is the
@@ -379,7 +395,20 @@ export class Canvas2DRuntime implements SketchRuntime {
       setVectorSource(canvas, source instanceof HTMLImageElement && decoded.image?.startsWith("data:image/svg+xml") ? source : null);
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        ctx.drawImage(source, 0, 0);
+        const sourceWidth =
+          source instanceof HTMLImageElement ? source.naturalWidth : source.width;
+        const sourceHeight =
+          source instanceof HTMLImageElement
+            ? source.naturalHeight
+            : source.height;
+        const rect = fitImageRect(
+          sourceWidth,
+          sourceHeight,
+          desiredWidth,
+          desiredHeight,
+          imageFit
+        );
+        ctx.drawImage(source, rect.x, rect.y, rect.width, rect.height);
       }
       if (isImageBitmap) {
         source.close();

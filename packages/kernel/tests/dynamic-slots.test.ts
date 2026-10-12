@@ -84,6 +84,11 @@ describe("dynamicSlotTypeString", () => {
     expect(dynamicSlotTypeString({ type: "str" as never })).toBe("str");
   });
 
+  it("reads a one-character type string and rejects an empty one", () => {
+    expect(dynamicSlotTypeString({ type: "T" as never })).toBe("T");
+    expect(dynamicSlotTypeString({ type: "" as never })).toBeUndefined();
+  });
+
   it("returns undefined for a declaration with no usable type", () => {
     expect(dynamicSlotTypeString(undefined)).toBeUndefined();
     expect(dynamicSlotTypeString({ type: {} })).toBeUndefined();
@@ -96,6 +101,10 @@ describe("dynamicSlotTypeString", () => {
         broken: { type: {} }
       })
     ).toEqual({ pic: "image" });
+  });
+
+  it("resolves no slot type without a node", () => {
+    expect(getDynamicSlotTypeString(undefined, "pic")).toBeUndefined();
   });
 
   it("resolves a slot type by handle, undefined for undeclared", () => {
@@ -128,6 +137,17 @@ describe("applyDynamicSlotTypes", () => {
     });
     const inputs = { slot: 42 };
     expect(applyDynamicSlotTypes(node, inputs)).toBe(inputs);
+  });
+
+  it("wraps a scalar for a list slot in a copy, leaving the caller's bag intact", () => {
+    const node = makeNode({
+      dynamic_inputs: { items: { type: { type: "list", type_args: [{ type: "int" }] } } }
+    });
+    const inputs = { items: 3, other: "x" };
+    const result = applyDynamicSlotTypes(node, inputs);
+    expect(result).toEqual({ items: [3], other: "x" });
+    expect(result).not.toBe(inputs);
+    expect(inputs).toEqual({ items: 3, other: "x" });
   });
 
   it("skips a slot whose value is null", () => {

@@ -26,6 +26,7 @@ import { useSelectedTags } from "../../stores/WorkflowListViewStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { EmptyState, FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
 import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
+import { nextCopyName } from "../../utils/nextCopyName";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 
 const styles = (theme: Theme) =>
@@ -35,7 +36,7 @@ const styles = (theme: Theme) =>
       height: "100%"
     },
     ".toolbar-header": {
-      padding: theme.spacing(0.75, 0, 1)
+      padding: theme.spacing(1, 0)
     },
     ".workflow-items": {
       flex: 1,
@@ -208,40 +209,30 @@ const WorkflowList = ({ projectId }: WorkflowListProps) => {
     [navigate, openTab, projectId]
   );
 
-  // Memoize workflow name lookup map to avoid recalculating on every duplicateWorkflow call
-  const workflowNamesMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    workflows.forEach((w) => {
-      const baseName = w.name.replace(/ \(\d+\)$/, "");
-      if (!map.has(baseName)) {
-        map.set(baseName, []);
-      }
-      map.get(baseName)!.push(w.name);
-    });
-    return map;
-  }, [workflows]);
+  const workflowNames = useMemo(
+    () => workflows.map((workflow) => workflow.name),
+    [workflows]
+  );
 
   const duplicateWorkflow = useCallback(
     async (event: React.MouseEvent, workflow: Workflow) => {
       event.stopPropagation();
-      const workflowRequest = await copyWorkflow(workflow);
-      const baseName = workflow.name.replace(/ \(\d+\)$/, "");
-      const existingNames = workflowNamesMap.get(baseName) || [];
-      let highestNumber = 0;
-      const regex = new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\((\\d+)\\)$`);
-      existingNames.forEach((name) => {
-        const match = name.match(regex);
-        if (match && match[1]) {
-          const number = parseInt(match[1], 10);
-          if (number > highestNumber) {
-            highestNumber = number;
-          }
-        }
-      });
-      const newName = `${baseName} (${highestNumber + 1})`;
-      workflowRequest.name = newName.substring(0, 50);
-      workflowRequest.project_id = projectId;
-      const newWorkflow = await createWorkflow(workflowRequest);
+      let newWorkflow: Workflow;
+      try {
+        const workflowRequest = await copyWorkflow(workflow);
+        workflowRequest.name = nextCopyName(workflow.name, workflowNames);
+        workflowRequest.project_id = projectId;
+        newWorkflow = await createWorkflow(workflowRequest);
+      } catch (error) {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Could not duplicate workflow: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        });
+        return;
+      }
       openTab({
         type: "workflow",
         ref: newWorkflow.id,
@@ -252,9 +243,10 @@ const WorkflowList = ({ projectId }: WorkflowListProps) => {
       navigate("/workspace");
     },
     [
+      addNotification,
       copyWorkflow,
       createWorkflow,
-      workflowNamesMap,
+      workflowNames,
       navigate,
       openTab,
       projectId

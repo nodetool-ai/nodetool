@@ -18,7 +18,7 @@ import {
   FavoriteButton,
   Dialog,
   ToolbarIconButton,
-  MOTION
+  HoverActionGroup
 } from "../../ui_primitives";
 
 const rowStyles = (theme: Theme) =>
@@ -28,13 +28,6 @@ const rowStyles = (theme: Theme) =>
     cursor: "default",
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover
-    },
-    "&:hover .row-actions": {
-      opacity: 1
-    },
-    ".row-actions": {
-      opacity: 0,
-      transition: MOTION.opacity
     }
   });
 
@@ -136,7 +129,7 @@ export const LayerVersionRow: React.FC<LayerVersionRowProps> = memo(
             </FlexRow>
           </FlexColumn>
 
-          <FlexRow gap={0.5} align="center" className="row-actions">
+          <HoverActionGroup className="row-actions">
             <FavoriteButton
               isFavorite={version.favorite ?? false}
               onToggle={handleFavoriteToggle}
@@ -162,7 +155,7 @@ export const LayerVersionRow: React.FC<LayerVersionRowProps> = memo(
               disabled={isDeleting}
               aria-label="Delete version"
             />
-          </FlexRow>
+          </HoverActionGroup>
         </FlexRow>
 
         <Dialog
@@ -171,11 +164,12 @@ export const LayerVersionRow: React.FC<LayerVersionRowProps> = memo(
           title="Delete version?"
           onConfirm={handleDeleteConfirm}
           confirmText="Delete"
-          cancelText="Cancel"
           destructive
         >
-          This version will be permanently removed. The underlying job and asset
-          are not deleted.
+          <Text size="small">
+            This version will be permanently removed. The underlying job and
+            asset are not deleted.
+          </Text>
         </Dialog>
       </>
     );

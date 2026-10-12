@@ -298,6 +298,12 @@ export class OpenAICompatProvider extends OpenAIProvider {
   override async *generateMessages(
     args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
+    // A subclass whose endpoint also serves the Responses API routes its
+    // models there; the inherited path handles them.
+    if (this.usesResponsesApi(args.model)) {
+      yield* super.generateMessages(args);
+      return;
+    }
     const { model } = args;
     const request = await this.buildChatRequest(args, true);
 
@@ -406,6 +412,9 @@ export class OpenAICompatProvider extends OpenAIProvider {
   override async generateMessage(
     args: Parameters<BaseProvider["generateMessage"]>[0]
   ): Promise<Message> {
+    if (this.usesResponsesApi(args.model)) {
+      return super.generateMessage(args);
+    }
     const { model } = args;
     const request = await this.buildChatRequest(args, false);
 

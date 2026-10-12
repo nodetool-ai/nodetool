@@ -358,6 +358,21 @@ describe("projects router", () => {
       unpricedCount: 0
     });
 
+    // The start page's paged read returns the same card, without the rollup.
+    const page = await caller().projects.documentPage({
+      id: project.id,
+      offset: 0,
+      limit: 4
+    });
+    expect(page).toEqual({
+      documents: detail.documents,
+      total: 1,
+      partial: false
+    });
+    await expect(
+      caller("user-2").projects.documentPage({ id: project.id })
+    ).rejects.toThrow("Project not found");
+
     const refs = await caller().projects.documents({ id: project.id });
     expect(refs).toEqual([
       {

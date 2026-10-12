@@ -230,8 +230,10 @@ const ANY_TYPE: TypeMetadata = { type: "any", type_args: [], optional: false };
  * Derive the `dynamic_outputs` / `dynamic_properties` node-data updates from the
  * `code` property of a Code node.
  *
- * Outputs follow the last `return {…}`: inferred keys replace the map. When
- * the body does not parse or has no object return, existing outputs stay.
+ * Outputs follow the last `return {…}`: inferred keys replace the map, keeping
+ * the type of a key that already existed and any output that still has an
+ * edge. When the body does not parse or has no object return, existing
+ * outputs stay.
  *
  * Inputs are a union: every existing slot is kept (the Add-input button and
  * dropped connections write them before the body names them), and every
@@ -244,15 +246,25 @@ const ANY_TYPE: TypeMetadata = { type: "any", type_args: [], optional: false };
 export function deriveCodeIOUpdates(
   code: string,
   existingDynProps: Record<string, unknown> = {},
-  existingDynOutputs: CodeIOUpdates["dynamic_outputs"] = {}
+  existingDynOutputs: CodeIOUpdates["dynamic_outputs"] = {},
+  connectedOutputs: ReadonlySet<string> = new Set()
 ): CodeIOUpdates {
   const outputKeys = inferOutputKeysFromCode(code);
   const inputKeys = inferInputKeysFromCode(code);
 
   const dynamic_outputs: CodeIOUpdates["dynamic_outputs"] = {};
   if (outputKeys) {
+    // A key that survives keeps its declared type; only a new key is `any`.
     for (const key of outputKeys) {
-      dynamic_outputs[key] = { ...ANY_TYPE };
+      dynamic_outputs[key] = existingDynOutputs[key] ?? { ...ANY_TYPE };
+    }
+    // An output with an edge stays until the edge is removed, so a body
+    // that doesn't name it yet does not hide the edge.
+    for (const key of connectedOutputs) {
+      const existing = existingDynOutputs[key];
+      if (existing && !(key in dynamic_outputs)) {
+        dynamic_outputs[key] = existing;
+      }
     }
   } else {
     Object.assign(dynamic_outputs, existingDynOutputs);
@@ -338,4 +350,18 @@ function tryParse(code: string): acorn.Node | null {
       return null;
     }
   }
+}
+
+/** Output handles of `nodeId` that have at least one edge. */
+export function connectedSourceHandles(
+  edges: readonly { source: string; sourceHandle?: string | null }[],
+  nodeId: string
+): Set<string> {
+  const handles = new Set<string>();
+  for (const edge of edges) {
+    if (edge.source === nodeId && edge.sourceHandle) {
+      handles.add(edge.sourceHandle);
+    }
+  }
+  return handles;
 }

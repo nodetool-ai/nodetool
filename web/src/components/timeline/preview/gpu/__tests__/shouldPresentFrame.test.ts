@@ -1,4 +1,4 @@
-import { shouldPresentFrame } from "../source";
+import { shouldCompositeScene, shouldPresentFrame } from "../source";
 
 describe("shouldPresentFrame", () => {
   it("presents an empty scene (clears to black — a real gap)", () => {
@@ -16,5 +16,19 @@ describe("shouldPresentFrame", () => {
     expect(shouldPresentFrame(1, 1)).toBe(true);
     expect(shouldPresentFrame(3, 1)).toBe(true);
     expect(shouldPresentFrame(2, 2)).toBe(true);
+  });
+});
+
+describe("shouldCompositeScene", () => {
+  it("holds the last frame when the only layer is a decoded clip without a frame", () => {
+    // A cut onto a clip whose decoder is still opening: its layer is left
+    // out, so the scene looks empty, and an empty scene presents black.
+    expect(shouldCompositeScene(0, 1)).toBe(false);
+  });
+
+  it("composites a real gap and any scene with drawable layers", () => {
+    expect(shouldCompositeScene(0, 0)).toBe(true);
+    expect(shouldCompositeScene(1, 1)).toBe(true);
+    expect(shouldCompositeScene(2, 0)).toBe(true);
   });
 });

@@ -9,13 +9,11 @@ import {
   nodeErrorToDisplayString,
   hasNodeError,
 } from "../../stores/ErrorStore";
-import useLogsStore, {
-  nodeLogKey,
-  type LogFilter
-} from "../../stores/LogStore";
+import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { useNodeError } from "../../hooks/nodes/useNodeExecState";
+import { useRunInspection } from "../../hooks/useRunInspection";
 import isEqual from "../../utils/isEqual";
 import { CopyButton, ExternalLink, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { extractKieTaskId, KIE_LOGS_URL } from "../../utils/kieTaskId";
@@ -120,7 +118,7 @@ const NodeErrorsImpl: React.FC<{
   const focusedJobId = useWorkflowRunsStore(
     (state) => state.focusedJob[workflow_id]
   );
-  const setLogFilter = useLogsStore((state) => state.setFilter);
+  const { openRunInspection } = useRunInspection();
   const setBottomPanelView = useBottomPanelStore(
     (state) => state.setActiveView
   );
@@ -172,23 +170,26 @@ const NodeErrorsImpl: React.FC<{
     [errorDisplay]
   );
 
+  // The runs reader resolves a job id to its run. Without a job the panel
+  // opens on this workflow's latest run.
   const handleViewLogs = useCallback(() => {
-    const filter: LogFilter = {
-      workflowId: workflow_id,
-      nodeId: id
-    };
     if (focusedJobId) {
-      filter.jobId = focusedJobId;
+      openRunInspection({
+        runId: focusedJobId,
+        view: "logs",
+        workflowId: workflow_id,
+        nodeId: id
+      });
+      return;
     }
-    setLogFilter(filter);
     setBottomPanelView("logs");
     setBottomPanelVisibility(true);
   }, [
     focusedJobId,
     id,
+    openRunInspection,
     setBottomPanelView,
     setBottomPanelVisibility,
-    setLogFilter,
     workflow_id
   ]);
 

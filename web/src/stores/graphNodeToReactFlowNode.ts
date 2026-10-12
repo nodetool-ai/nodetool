@@ -25,6 +25,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** A saved placement list, or `undefined` when absent, empty or malformed. */
+function readNameList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const names = value.filter((n): n is string => typeof n === "string");
+  return names.length > 0 ? names : undefined;
+}
+
 /**
  * A graph node on its way into the editor. Every field matches `Node`, except
  * that `dynamic_inputs` may still hold the flat resolver form older workflows
@@ -142,6 +151,20 @@ export function graphNodeToReactFlowNode(
   }
   if (expandedHeightPxForData != null) {
     data.expandedHeightPx = expandedHeightPxForData;
+  }
+  const exposedInputs = readNameList(ui_properties?.exposed_inputs);
+  if (exposedInputs) {
+    data.exposedInputs = exposedInputs;
+  }
+  const exposedInputsLabeled = readNameList(
+    ui_properties?.exposed_inputs_labeled
+  );
+  if (exposedInputsLabeled) {
+    data.exposedInputsLabeled = exposedInputsLabeled;
+  }
+  const exposedInputsHidden = readNameList(ui_properties?.exposed_inputs_hidden);
+  if (exposedInputsHidden) {
+    data.exposedInputsHidden = exposedInputsHidden;
   }
 
   return {

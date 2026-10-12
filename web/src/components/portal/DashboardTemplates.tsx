@@ -20,16 +20,22 @@ import {
   getCategoryForWorkflow
 } from "../../utils/templateCategories";
 import {
+  AutoGrid,
   EmptyState,
   LoadingSpinner,
   MOTION,
   BORDER_RADIUS,
+  CONTROL,
   SPACING,
-  getSpacingPx
+  TYPOGRAPHY,
+  focusRing,
+  getSpacingPx,
+  reducedMotion,
+  selectableTileStyles
 } from "../ui_primitives";
 import {
   useSectionWrap,
-  SectionHeader,
+  DashboardSectionHeader,
   DashboardSearchBox,
   SectionLink
 } from "./dashboardChrome";
@@ -57,16 +63,18 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.xs),
-      height: 26,
+      height: CONTROL.height.xs,
       padding: `0 ${getSpacingPx(SPACING.sm)}`,
       background: theme.vars.palette.c_node_bg,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.pill,
       color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.sans.caption,
       cursor: "pointer",
-      transition: `background ${MOTION.fast}, color ${MOTION.fast}, border-color ${MOTION.fast}`,
+      transition: `${MOTION.background}, color ${MOTION.fast}, ${MOTION.border}`,
+      ...reducedMotion({ transition: MOTION.none }),
       "&:hover": { color: theme.vars.palette.text.primary },
+      "&:focus-visible": focusRing(theme, 2),
       // Neutral "All" active state; category pills override colours inline.
       "&.on": {
         background: theme.vars.palette.c_node_bg_group,
@@ -81,12 +89,10 @@ const styles = (theme: Theme) =>
       flexShrink: 0
     },
     ".tpl-list": {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))",
-      gap: getSpacingPx(SPACING.md),
       paddingBottom: getSpacingPx(SPACING.sm)
     },
     ".tpl-row": {
+      ...selectableTileStyles(theme),
       display: "flex",
       flexDirection: "column",
       alignItems: "stretch",
@@ -94,15 +100,9 @@ const styles = (theme: Theme) =>
       textAlign: "left",
       padding: 0,
       background: theme.vars.palette.c_node_bg,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.lg,
+      color: "inherit",
       cursor: "pointer",
       overflow: "hidden",
-      transition: `border-color ${MOTION.fast}, background ${MOTION.fast}`,
-      "&:hover": {
-        borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
-        background: theme.vars.palette.action.hover
-      },
       "&.loading": { cursor: "wait", pointerEvents: "none" }
     },
     ".tpl-icon": {
@@ -122,14 +122,14 @@ const styles = (theme: Theme) =>
     },
     ".tpl-title": {
       display: "block",
-      fontSize: "var(--fontSizeNormal)",
+      ...TYPOGRAPHY.sans.label,
       color: theme.vars.palette.text.primary,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
     ".tpl-desc": {
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.sans.caption,
       color: theme.vars.palette.text.secondary,
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -151,9 +151,7 @@ const styles = (theme: Theme) =>
       display: "grid",
       gap: getSpacingPx(SPACING.micro),
       paddingTop: getSpacingPx(SPACING.xs),
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
-      lineHeight: 1.4,
+      ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.text.disabled,
       "& .entry-compat": {
         display: "grid",
@@ -166,16 +164,14 @@ const styles = (theme: Theme) =>
       alignSelf: "flex-start",
       alignItems: "center",
       gap: getSpacingPx(SPACING.xs),
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.text.disabled
     },
     ".tpl-loading, .tpl-empty": {
       display: "flex",
       justifyContent: "center",
       padding: `${getSpacingPx(SPACING.xxl)} 0`,
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeNormal)"
+      color: theme.vars.palette.text.secondary
     }
   });
 
@@ -376,7 +372,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
       css={fullPage ? [styles(theme), fullPageStyles] : styles(theme)}
     >
       <div css={sectionWrap}>
-        <SectionHeader title="Start from a template" count={countLabel}>
+        <DashboardSectionHeader title="Start from a template" count={countLabel}>
           <DashboardSearchBox
             ref={searchRef}
             value={query}
@@ -390,7 +386,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
               Browse all
             </SectionLink>
           )}
-        </SectionHeader>
+        </DashboardSectionHeader>
 
         <div className="cats" role="group" aria-label="Filter by category">
           <button
@@ -467,7 +463,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
             )}
           </div>
         ) : (
-          <div className="tpl-list">
+          <AutoGrid minItemWidth={220} className="tpl-list">
             {visible.map((workflow: Workflow) => (
               <TemplateRow
                 key={workflow.id}
@@ -477,7 +473,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
                 onClick={handleExampleClick}
               />
             ))}
-          </div>
+          </AutoGrid>
         )}
       </div>
     </section>

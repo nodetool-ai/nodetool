@@ -4,6 +4,7 @@ import {
   Dialog,
   FlexColumn,
   FlexRow,
+  SectionHeader,
   ShortcutHint,
   Text,
   SPACING
@@ -23,15 +24,13 @@ const ShortcutsDialog = ({ open, onClose }: ShortcutsDialogProps) => (
     open={open}
     onClose={onClose}
     title="3D editor shortcuts"
-    showCloseButton
-    minWidth={560}
+    maxWidth="sm"
+    fullWidth
   >
     <FlexRow gap={SPACING.xl} wrap align="flex-start">
       {GROUPS.map((group) => (
         <FlexColumn key={group} gap={SPACING.xs} sx={{ flex: "1 1 220px", minWidth: 0 }}>
-          <Text size="smaller" weight={600} color="secondary" sx={{ textTransform: "uppercase", letterSpacing: "0.06em", mb: SPACING.xs }}>
-            {group}
-          </Text>
+          <SectionHeader title={group} size="small" />
           {EDITOR_SHORTCUTS.filter((s) => s.group === group).map((s) => (
             <FlexRow key={s.action} justify="space-between" align="center" gap={SPACING.md}>
               <Text size="small">{s.label}</Text>

@@ -216,6 +216,55 @@ describe("T-K-14: Graph.fromDict", () => {
     expect(graph.findNode("n1")?.properties).toEqual({ allowed: "ok" });
   });
 
+  it("registers declared dynamic slots in a non-empty propertyTypes map", () => {
+    const graph = Graph.fromDict(
+      {
+        nodes: [
+          {
+            id: "n1",
+            type: "test.Node",
+            propertyTypes: { allowed: "string" },
+            dynamic_inputs: { slot: { type: { type: "int" } } },
+            data: { allowed: "ok", slot: 3 }
+          }
+        ],
+        edges: []
+      },
+      { allowUndefinedProperties: false, skipErrors: false }
+    );
+    const node = graph.findNode("n1");
+    expect(node?.properties).toEqual({ allowed: "ok", slot: 3 });
+    expect(node?.propertyTypes).toEqual({ slot: "int", allowed: "string" });
+  });
+
+  it("does not synthesize propertyTypes for dynamic slots", () => {
+    // A missing or empty type map leaves the undefined-property guard off.
+    const graph = Graph.fromDict(
+      {
+        nodes: [
+          {
+            id: "none",
+            type: "test.Node",
+            dynamic_inputs: { slot: { type: { type: "int" } } },
+            data: { other: 1 }
+          },
+          {
+            id: "empty",
+            type: "test.Node",
+            propertyTypes: {},
+            dynamic_inputs: { slot: { type: { type: "int" } } },
+            data: { other: 1 }
+          }
+        ],
+        edges: []
+      },
+      { allowUndefinedProperties: false, skipErrors: false }
+    );
+    expect(graph.findNode("none")?.propertyTypes).toBeUndefined();
+    expect(graph.findNode("empty")?.propertyTypes).toEqual({});
+    expect(graph.findNode("empty")?.properties).toEqual({ other: 1 });
+  });
+
   it("throws on undefined properties when allowUndefinedProperties is false", () => {
     expect(() =>
       Graph.fromDict(

@@ -186,12 +186,12 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
             <ListItemText primary="No 3D models available" />
           </EditorMenuItem>
         )}
-        {Object.entries(modelsByProvider).map(([provider, providerModels], index) => (
-          <React.Fragment key={provider}>
+        {Object.entries(modelsByProvider).map(([groupProvider, providerModels], index) => (
+          <React.Fragment key={groupProvider}>
             {index > 0 && <Divider />}
             <EditorMenuItem disabled sx={{ opacity: 1 }}>
               <Caption color="secondary" >
-                {provider}
+                {groupProvider}
               </Caption>
             </EditorMenuItem>
             {providerModels.map((model) => (

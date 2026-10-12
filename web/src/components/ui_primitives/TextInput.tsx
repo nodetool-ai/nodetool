@@ -13,9 +13,11 @@ import {
   TextFieldProps as MuiTextFieldProps,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { CONTROL, TYPOGRAPHY } from "./tokens";
+import { BORDER_RADIUS, CONTROL, TYPOGRAPHY } from "./tokens";
 import { Label } from "./Label";
 import { useFormFieldContext } from "./formFieldContext";
+import { useFieldDensity } from "./fieldDensity";
+import { SPACING } from "./spacing";
 import { isString } from "../../utils/typePredicates";
 
 export interface TextInputProps
@@ -89,7 +91,10 @@ export const TextInput = memo(
       // id set it on FormField (htmlFor) instead.
       const fieldId = formField ? formField.controlId : id ?? reactId;
 
-      const isSmall = compact || size === "small";
+      // A compact surface (FieldDensityContext) gives every field the
+      // inspector look, the same one SelectField takes there.
+      const dense = useFieldDensity() === "compact";
+      const isSmall = dense || compact || size === "small";
       const controlHeight = isSmall ? CONTROL.height.sm : CONTROL.height.lg;
 
       const hasError = error || !!errorMessage;
@@ -139,7 +144,7 @@ export const TextInput = memo(
           <MuiTextField
             id={fieldId}
             variant={variant}
-            size={compact ? "small" : size}
+            size={isSmall ? "small" : size}
             fullWidth={fullWidth}
             required={required}
             disabled={disabled}
@@ -151,20 +156,30 @@ export const TextInput = memo(
                 : inputProps
             }
             sx={{
-              // One readable form-control size shared with SelectField: the value
-              // renders at the body token (15px). `compact` only tightens height
-              // (via MUI size="small"), never shrinks the text — shrinking the
-              // font is what made inputs read as "too small".
+              // One form-control size shared with SelectField: the value renders
+              // at the body token (15px), or at the control token (13px label)
+              // on a compact surface. The `compact` prop only tightens height
+              // (via MUI size="small"), never shrinks the text.
               "& .MuiInputBase-input": monospace
                 ? { ...TYPOGRAPHY.mono.code, overflowWrap: "anywhere" }
-                : { fontSize: theme.fontSizeNormal || "15px" },
+                : dense
+                  ? TYPOGRAPHY.sans.label
+                  : { fontSize: theme.fontSizeNormal || "15px" },
               // Fields read as fields: the outlined root (single-line and
               // multiline) gets the same constant field background the editor
               // controls use. Filled/standard variants keep MUI's own surface
               // treatment. Hover/focus stay border-emphasis only.
               "& .MuiOutlinedInput-root": {
-                backgroundColor: theme.vars.palette.Paper.overlay,
+                backgroundColor: dense
+                  ? theme.vars.palette.background.default
+                  : theme.vars.palette.Paper.overlay,
               },
+              ...(dense && {
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: theme.vars.palette.c_overlay,
+                  borderRadius: BORDER_RADIUS.sm,
+                },
+              }),
               // Deterministic control height from the CONTROL token. MUI's
               // outlined padding (16.5px / 8.5px vertical) is calibrated for
               // ~56px / 40px fields; shrink it so the 1.4375em content box plus
@@ -177,10 +192,27 @@ export const TextInput = memo(
                 {
                   paddingTop: isSmall ? "3px" : "7px",
                   paddingBottom: isSmall ? "3px" : "7px",
+                  // Dense text starts at the same inset as a SelectField value.
+                  ...(dense && {
+                    paddingLeft: theme.spacing(SPACING.md),
+                    paddingRight: theme.spacing(SPACING.md),
+                  }),
                 },
-              "& .MuiInputBase-multiline": {
-                minHeight: 0,
+              // Helper and error text match FormField's hint line: caption
+              // size, flush with the field edge, 4px below it.
+              "& .MuiFormHelperText-root": {
+                fontSize: theme.fontSizeSmaller,
+                lineHeight: 1.4,
+                margin: 0,
+                marginTop: theme.spacing(1),
               },
+              // A dense one-row text area is exactly one control high.
+              "& .MuiInputBase-multiline": dense
+                ? {
+                    minHeight: `${CONTROL.height.sm}px`,
+                    padding: theme.spacing(SPACING.xs, SPACING.md),
+                  }
+                : { minHeight: 0 },
             }}
             {...props}
           />

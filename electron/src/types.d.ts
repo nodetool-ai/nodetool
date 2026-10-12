@@ -918,6 +918,7 @@ export type RuntimePackageId =
   | "pandoc"
   | "pdftotext"
   | "yt-dlp"
+  | "manimgx"
   | "transformers-js"
   | "tensorflow-js"
   | "node-llama-cpp"

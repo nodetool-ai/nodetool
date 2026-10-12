@@ -1400,6 +1400,24 @@ describe("Input Node Name Generation", () => {
     expect(node2.data.properties.name).toBe("string_input_2");
   });
 
+  test("createNode takes the lowest name no other input uses", () => {
+    const add = () => {
+      const node = store.getState().createNode(
+        inputNodeMetadata as any,
+        { x: 0, y: 0 }
+      );
+      store.getState().addNode(node);
+      return node;
+    };
+    const first = add();
+    const second = add();
+    store.getState().deleteNode(first.id);
+
+    expect(add().data.properties.name).toBe("string_input_1");
+    expect(second.data.properties.name).toBe("string_input_2");
+    expect(add().data.properties.name).toBe("string_input_3");
+  });
+
   test("createNode generates different names for different input types", () => {
     const stringNode = store.getState().createNode(
       inputNodeMetadata as any,

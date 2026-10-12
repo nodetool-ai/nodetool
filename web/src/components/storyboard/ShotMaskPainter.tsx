@@ -231,19 +231,9 @@ const ShotMaskPainterInner: React.FC<ShotMaskPainterProps> = ({
       onClose={onCancel}
       title="Paint the area to change"
       maxWidth="lg"
-      actions={
-        <FlexRow align="center" gap={SPACING.sm}>
-          <EditorButton onClick={onCancel}>Cancel</EditorButton>
-          <EditorButton
-            variant="contained"
-            color="primary"
-            onClick={handleDone}
-            disabled={!ready}
-          >
-            Use this area
-          </EditorButton>
-        </FlexRow>
-      }
+      onConfirm={handleDone}
+      confirmText="Use this area"
+      confirmDisabled={!ready}
     >
       <FlexColumn gap={SPACING.md} align="center">
         <FlexRow align="center" gap={SPACING.md} wrap sx={{ alignSelf: "stretch" }}>

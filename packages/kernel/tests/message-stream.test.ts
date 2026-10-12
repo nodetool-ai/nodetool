@@ -64,6 +64,28 @@ describe("MessageStream", () => {
     expect((await iterator.next()).done).toBe(true);
   });
 
+  it("drains a single message that arrives while the consumer holds a yield", async () => {
+    const input = source();
+    const stream = new MessageStream(input, 0);
+    const iterator = stream[Symbol.asyncIterator]();
+    input.emit(0);
+    expect((await iterator.next()).value).toHaveProperty("job_id", "0");
+    input.emit(1);
+    stream.close();
+    expect((await iterator.next()).value).toHaveProperty("job_id", "1");
+    expect((await iterator.next()).done).toBe(true);
+  });
+
+  it("honors a limit of one message", async () => {
+    const input = source();
+    const stream = new MessageStream(input, 1);
+    input.emit(0);
+    input.emit(1);
+    const iterator = stream[Symbol.asyncIterator]();
+    expect((await iterator.next()).value).toHaveProperty("job_id", "0");
+    await expect(iterator.next()).rejects.toThrow("limit 1");
+  });
+
   it("drains accepted messages then reports overflow", async () => {
     const input = source();
     const stream = new MessageStream(input, 2);

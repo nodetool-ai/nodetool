@@ -25,7 +25,12 @@ import { customEquality } from "./customEquality";
 import isEqual from "../utils/isEqual";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
-import { migrateGraphNodeTypes } from "@nodetool-ai/protocol";
+import {
+  addGraphLink,
+  migrateGraphNodeTypes,
+  pruneGraphLinks,
+  type GraphLink
+} from "@nodetool-ai/protocol";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
@@ -50,13 +55,13 @@ import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
-import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
+import { COMMENT_NODE_TYPE, PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { BESPOKE_DEFAULT_HEIGHTS } from "../components/node_types/editing/bespokeNodeSizes";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
 import { edgesFrom, edgesTargeting } from "../hooks/nodes/edgeIndex";
-import { isFunction } from "../utils/typePredicates";
+import { isFunction, isString } from "../utils/typePredicates";
 import { rebaseDocumentSnapshots } from "./documentMerge";
 import { workflowMergeAdapter, type WorkflowMergeDoc } from "./workflowMerge";
 
@@ -90,7 +95,9 @@ const MEASUREMENT_RESET_KEYS = new Set(["height", "width", "measured"]);
 
 /**
  * Generates a default name for input nodes based on their type.
- * For example, "nodetool.input.StringInput" becomes "string_input_1"
+ * For example, "nodetool.input.StringInput" becomes "string_input_1".
+ * Takes the lowest suffix no other node's name uses: the name is the
+ * parameter key, so two inputs sharing it collapse into one port.
  */
 const generateInputNodeName = (
   nodeType: string,
@@ -98,26 +105,22 @@ const generateInputNodeName = (
 ): string => {
   // Extract the input type from the node type (e.g., "StringInput" from "nodetool.input.StringInput")
   const match = nodeType.match(/nodetool\.input\.(\w+)Input$/);
-  if (!match) {
-    // Handle special cases like Folder
-    const folderMatch = nodeType.match(/nodetool\.input\.(\w+)$/);
-    if (folderMatch) {
-      const baseName = folderMatch[1].toLowerCase();
-      const existingCount = existingNodes.filter(
-        (n) => n.type === nodeType
-      ).length;
-      return `${baseName}_${existingCount + 1}`;
-    }
-    return "input_1";
+  // Handle special cases like Folder
+  const folderMatch = match ? null : nodeType.match(/nodetool\.input\.(\w+)$/);
+  const baseName = match
+    ? `${match[1].toLowerCase()}_input`
+    : folderMatch
+      ? folderMatch[1].toLowerCase()
+      : "input";
+
+  const usedNames = new Set(
+    existingNodes.map((n) => n.data.properties?.name).filter(isString)
+  );
+  let suffix = 1;
+  while (usedNames.has(`${baseName}_${suffix}`)) {
+    suffix += 1;
   }
-
-  const inputType = match[1].toLowerCase();
-  const baseName = `${inputType}_input`;
-
-  // Count existing input nodes of the same type
-  const existingCount = existingNodes.filter((n) => n.type === nodeType).length;
-
-  return `${baseName}_${existingCount + 1}`;
+  return `${baseName}_${suffix}`;
 };
 
 /** UUID v4, falling back to a manual implementation when crypto.randomUUID is absent. */
@@ -153,6 +156,17 @@ export interface NodeStoreState {
   hoveredNodes: string[];
   setHoveredNodes: (ids: string[]) => void;
   edges: Edge[];
+  /**
+   * Lineage links: drawn between nodes, saved with the graph, never read by
+   * the runner. Kept out of `edges` so no data-flow code sees them.
+   */
+  links: GraphLink[];
+  /** Ids of links selected on the canvas. Not saved and not in undo history. */
+  selectedLinkIds: string[];
+  /** Link two nodes. Returns the new or existing link, or null when refused. */
+  addLink: (source: string, target: string) => GraphLink | null;
+  setLinks: (links: GraphLink[]) => void;
+  setLinkSelection: (ids: string[]) => void;
   edgeUpdateSuccessful: boolean;
   generateNodeId: () => string;
   generateNodeIds: (count: number) => string[];
@@ -231,7 +245,9 @@ export interface NodeStoreState {
   applyExternalGraph: (
     nodes: Node<NodeData>[],
     edges: Edge[],
-    token?: { etag?: string; updatedAt?: string }
+    token?: { etag?: string; updatedAt?: string },
+    /** Links after the merge; omitted keeps the current links. */
+    links?: GraphLink[]
   ) => void;
   validateConnection: (
     connection: Connection,
@@ -280,7 +296,7 @@ const withTokens = <T extends WorkflowAttributes>(
 
 export type PartializedNodeStore = Pick<
   NodeStoreState,
-  "workflow" | "nodes" | "edges"
+  "workflow" | "nodes" | "edges" | "links"
 >;
 
 export type NodeStore = UseBoundStore<
@@ -375,6 +391,10 @@ export const createNodeStore = (
           unsanitizedEdges,
           metadata
         );
+        const initialLinks = pruneGraphLinks(
+          new Set(sanitizedNodes.map((node) => node.id)),
+          migratedGraph?.links ?? []
+        );
 
         // Record missing node types by name in one call. The surfaces that
         // build ReactFlow's `nodeTypes` prop map them to `PlaceholderNode`;
@@ -459,6 +479,44 @@ export const createNodeStore = (
           workflowIsDirty: false,
           nodes: sanitizedNodes,
           edges: sanitizedEdges,
+          links: initialLinks,
+          selectedLinkIds: [],
+          addLink: (source: string, target: string): GraphLink | null => {
+            const result = addGraphLink(
+              new Set(get().nodes.map((node) => node.id)),
+              get().links,
+              { source, target },
+              () => generateUUID().replace(/-/g, "")
+            );
+            if (!result.ok) {
+              console.warn(`Cannot link ${source} to ${target}: ${result.error}`);
+              return null;
+            }
+            if (result.value.links.length !== get().links.length) {
+              set({ links: result.value.links });
+              get().setWorkflowDirty(true);
+            }
+            return result.value.link;
+          },
+          setLinks: (links: GraphLink[]): void => {
+            set({
+              links: pruneGraphLinks(
+                new Set(get().nodes.map((node) => node.id)),
+                links
+              )
+            });
+            get().setWorkflowDirty(true);
+          },
+          setLinkSelection: (ids: string[]): void => {
+            const current = get().selectedLinkIds;
+            if (
+              ids.length === current.length &&
+              ids.every((id, index) => id === current[index])
+            ) {
+              return;
+            }
+            set({ selectedLinkIds: ids });
+          },
           edgeUpdateSuccessful: false,
           hoveredNodes: [],
           shouldFitToScreen: state?.shouldFitToScreen ?? true,
@@ -938,9 +996,14 @@ export const createNodeStore = (
             id: string,
             nodeUpdate: Partial<Node<NodeData>>
           ): void => {
-            // Check if this is only a selection change
-            const isOnlySelectionChange =
-              Object.keys(nodeUpdate).length === 1 && "selected" in nodeUpdate;
+            // Check if this is only a selection change. `selectable` is
+            // toggled by groups while Ctrl/Cmd is held, which is not an edit.
+            const isOnlySelectionChange = Object.keys(nodeUpdate).every(
+              (key) => key === "selected" || key === "selectable"
+            );
+            const isOnlySelectableChange =
+              Object.keys(nodeUpdate).length === 1 &&
+              "selectable" in nodeUpdate;
 
             // Check if this is only a measurement reset (e.g. BaseNode forcing
             // a re-measure via `{ height: undefined, measured: undefined }`
@@ -952,7 +1015,7 @@ export const createNodeStore = (
                 (nodeUpdate as Record<string, unknown>)[key] === undefined
             );
 
-            set((state) => {
+            const applyUpdate = (): void => set((state) => {
               const nodeIndex = state.nodes.findIndex((n) => n.id === id);
               if (nodeIndex === -1) {
                 return state;
@@ -994,6 +1057,12 @@ export const createNodeStore = (
               }
               return { ...state, nodes: newNodes };
             });
+            // A measurement reset clears `height`, which undo compares.
+            if (isOnlyMeasurementReset || isOnlySelectableChange) {
+              withoutHistory(applyUpdate);
+            } else {
+              applyUpdate();
+            }
 
             // Only mark as dirty if this is not just a selection change or a
             // measurement reset
@@ -1140,25 +1209,40 @@ export const createNodeStore = (
             useErrorStore.getState().clearErrors(workflowId, idSetForClear);
             useResultsStore.getState().clearResults(workflowId, idSetForClear);
 
+            const remainingIds = new Set(nodes.map((node) => node.id));
             set({
               nodes,
               edges: get().edges.filter(
                 (edge) =>
                   !foundIdSet.has(edge.source) && !foundIdSet.has(edge.target)
-              )
+              ),
+              links: pruneGraphLinks(remainingIds, get().links)
             });
             get().setWorkflowDirty(true);
           },
+          // A link id is accepted too: the canvas, the edge context menu and
+          // Delete-selected treat a link like any other connection.
           deleteEdge: (id: string): void => {
-            set({ edges: get().edges.filter((e) => e.id !== id) });
-            get().setWorkflowDirty(true);
+            get().deleteEdges([id]);
           },
           deleteEdges: (ids: string[]): void => {
             if (ids.length === 0) {
               return;
             }
             const idSet = new Set(ids);
-            set({ edges: get().edges.filter((edge) => !idSet.has(edge.id)) });
+            const { edges, links, selectedLinkIds } = get();
+            const nextLinks = links.filter((link) => !idSet.has(link.id));
+            // One `set`, so a delete is one undo step.
+            const next: Partial<NodeStoreState> = {
+              edges: edges.filter((edge) => !idSet.has(edge.id))
+            };
+            if (nextLinks.length !== links.length) {
+              next.links = nextLinks;
+              next.selectedLinkIds = selectedLinkIds.filter(
+                (id) => !idSet.has(id)
+              );
+            }
+            set(next);
             get().setWorkflowDirty(true);
           },
           addEdge: (edge: Edge): void => {
@@ -1251,15 +1335,19 @@ export const createNodeStore = (
               };
             });
             const settings = workflow.settings || {};
+            const links = pruneGraphLinks(
+              new Set(nodes.map((node) => node.id)),
+              get().links
+            );
 
-            return {
-              ...workflow,
-              settings,
-              graph: {
-                edges: edges.map(reactFlowEdgeToGraphEdge),
-                nodes: nodes.map(reactFlowNodeToGraphNode)
-              }
+            const graph: Workflow["graph"] = {
+              edges: edges.map(reactFlowEdgeToGraphEdge),
+              nodes: nodes.map(reactFlowNodeToGraphNode)
             };
+            if (links.length > 0) {
+              graph.links = links;
+            }
+            return { ...workflow, settings, graph };
           },
           setWorkflowDirty: (dirty: boolean): void => {
             if (get().workflowIsDirty === dirty) {
@@ -1288,7 +1376,7 @@ export const createNodeStore = (
               set({ workflow });
             });
           },
-          applyExternalGraph: (nodes, edges, token) => {
+          applyExternalGraph: (nodes, edges, token, links) => {
             const temporalApi = getTemporalApi();
             const current = get();
             const before: WorkflowMergeDoc = {
@@ -1336,6 +1424,7 @@ export const createNodeStore = (
                     ...snapshot,
                     nodes: typedGraph.nodes,
                     edges,
+                    links: pruneGraphLinks(nodeIds, snapshot.links ?? []),
                     workflow: withTokens(snapshot.workflow, token ?? {})
                   };
                 });
@@ -1346,7 +1435,14 @@ export const createNodeStore = (
               });
             }
             withoutHistory(() => {
-              set({ nodes, edges });
+              set({
+                nodes,
+                edges,
+                links: pruneGraphLinks(
+                  new Set(nodes.map((node) => node.id)),
+                  links ?? current.links
+                )
+              });
               if (!token?.etag && !token?.updatedAt) return;
               set((state) => {
                 const workflow = { ...state.workflow };
@@ -1400,9 +1496,18 @@ export const createNodeStore = (
               return { minX, minY, maxX, maxY };
             };
 
-            const originalBounds = getBounds(selectedNodes);
+            // Children keep group-relative positions from ELK, so the offset
+            // is measured and applied on top-level nodes only.
+            const isTopLevel = (node: Node<NodeData>): boolean =>
+              !node.parentId;
+            const originalBounds = getBounds(selectedNodes.filter(isTopLevel));
             const layoutedNodes = await autoLayout(edges, selectedNodes);
-            const layoutBounds = getBounds(layoutedNodes);
+            const layoutBounds = getBounds(layoutedNodes.filter(isTopLevel));
+            const resizedGroupIds = new Set(
+              selectedNodes.flatMap((node) =>
+                node.parentId ? [node.parentId] : []
+              )
+            );
 
             const dx = originalBounds.minX - layoutBounds.minX;
             const dy = originalBounds.minY - layoutBounds.minY;
@@ -1417,16 +1522,25 @@ export const createNodeStore = (
             // removed, or changed nodes) are preserved.
             const updatedNodes = get().nodes.map((node) => {
               const layoutedNode = layoutedNodeMap.get(node.id);
-              if (layoutedNode) {
-                return {
-                  ...node,
-                  position: {
-                    x: layoutedNode.position.x + dx,
-                    y: layoutedNode.position.y + dy
-                  }
-                };
+              if (!layoutedNode) {
+                return node;
               }
-              return node;
+              const offset = isTopLevel(node) ? { x: dx, y: dy } : { x: 0, y: 0 };
+              const laidOut = {
+                ...node,
+                position: {
+                  x: layoutedNode.position.x + offset.x,
+                  y: layoutedNode.position.y + offset.y
+                }
+              };
+              return resizedGroupIds.has(node.id)
+                ? {
+                    ...laidOut,
+                    width: layoutedNode.width,
+                    height: layoutedNode.height,
+                    measured: layoutedNode.measured
+                  }
+                : laidOut;
             });
 
             get().setNodes(updatedNodes);
@@ -1729,7 +1843,13 @@ export const createNodeStore = (
             get().setWorkflowDirty(true);
           },
           toggleBypassSelected: (): void => {
-            const selectedNodes = get().getSelectedNodes();
+            // The kernel bypasses only runnable nodes, so a flagged group or
+            // comment would look disabled while its contents still run.
+            const isBypassable = (n: Node<NodeData>): boolean =>
+              n.type !== GROUP_NODE_TYPE && n.type !== COMMENT_NODE_TYPE;
+            const selectedNodes = get()
+              .getSelectedNodes()
+              .filter(isBypassable);
             if (selectedNodes.length === 0) {
               return;
             }
@@ -1742,7 +1862,7 @@ export const createNodeStore = (
 
             set((state) => ({
               nodes: state.nodes.map((n) =>
-                n.selected
+                n.selected && isBypassable(n)
                   ? {
                       ...n,
                       className: reactFlowNodeChromeClassName({
@@ -1775,8 +1895,8 @@ export const createNodeStore = (
         // saved like any other edit.
         onRestore: (state) => state.setWorkflowDirty(true),
         partialize: (state): PartializedNodeStore => {
-          const { workflow, nodes, edges } = state;
-          return { workflow, nodes, edges };
+          const { workflow, nodes, edges, links } = state;
+          return { workflow, nodes, edges, links };
         }
       }
     )

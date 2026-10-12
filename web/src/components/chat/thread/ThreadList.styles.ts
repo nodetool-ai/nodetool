@@ -1,29 +1,32 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import {
-  scrollbarStyles,
+  EYEBROW,
+  FONT_SIZE_SANS,
   MOTION,
-  BORDER_RADIUS,
-  FONT_SIZE_SANS
+  SPACING,
+  TYPOGRAPHY,
+  Z_INDEX,
+  getSpacingPx,
+  reducedMotion,
+  focusRing,
+  selectableRowStyles,
+  selectedRowStyles
 } from "../../ui_primitives";
-import { SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 
 export const createStyles = (theme: Theme) =>
   css({
     width: "100%",
-    maxHeight: "70vh",
     display: "flex",
     flexDirection: "column",
     backgroundColor: "transparent",
 
+    // The caller wraps the list in a ScrollArea, which owns the scrolling.
     ".thread-list": {
-      minHeight: "100px",
       flex: 1,
-      overflow: "auto",
       padding: `${theme.spacing(1)} ${theme.spacing(1)} ${theme.spacing(1.5)}`,
       margin: 0,
-      listStyle: "none",
-      ...scrollbarStyles(theme),
+      listStyle: "none"
     },
 
     ".thread-date-group": {
@@ -33,32 +36,27 @@ export const createStyles = (theme: Theme) =>
       gap: theme.spacing(1),
       padding: `${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.md)}`,
       marginTop: theme.spacing(SPACING.lg),
-      fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.grey[400],
-      textTransform: "uppercase",
-      letterSpacing: "0.08em",
-      fontWeight: 500,
+      ...EYEBROW,
+      color: theme.vars.palette.text.secondary,
       "&:first-of-type": {
         marginTop: 0
       },
       ".group-date": {
-        color: theme.vars.palette.grey[600],
-        letterSpacing: "0.04em"
+        color: theme.vars.palette.text.disabled
       }
     },
 
     ".thread-item": {
       position: "relative",
       margin: theme.spacing(0.5, 0),
-      fontSize: theme.fontSizeSmall,
       width: "100%",
-      transition: `${MOTION.background}, opacity ${MOTION.normal}, transform ${MOTION.normal}, max-height ${MOTION.normal}`,
-      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
-      backgroundColor: "transparent",
+      ...selectableRowStyles(theme),
+      transition: `${MOTION.background}, opacity ${MOTION.normal}, transform ${MOTION.normal}, max-height ${MOTION.normal}`,
+      ...reducedMotion({ transition: MOTION.none }),
 
       "&:hover": {
-        backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.04)`,
+        backgroundColor: theme.vars.palette.action.hover,
         ".delete-button": { opacity: 1 },
         ".thread-time": { opacity: 0 }
       },
@@ -68,9 +66,7 @@ export const createStyles = (theme: Theme) =>
         ".delete-button": { opacity: 1 }
       },
 
-      "&.selected": {
-        backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`
-      },
+      "&.selected": selectedRowStyles(theme),
 
       "&.deleting": {
         opacity: 0,
@@ -101,32 +97,21 @@ export const createStyles = (theme: Theme) =>
       textAlign: "left",
       cursor: "pointer",
 
-      "&:focus-visible": {
-        outline: `2px solid ${theme.vars.palette.primary.main}`,
-        outlineOffset: -2
-      }
+      borderRadius: "inherit",
+
+      "&:focus-visible": focusRing(theme)
     },
 
     ".thread-title": {
       flex: 1,
       minWidth: 0,
-      fontSize: theme.fontSizeSmall,
-      fontWeight: 400,
-      lineHeight: 1.35,
-      color: theme.vars.palette.grey[100],
-      margin: 0,
-      display: "-webkit-box",
-      WebkitLineClamp: 1,
-      WebkitBoxOrient: "vertical",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
+      ...TYPOGRAPHY.sans.label,
+      color: theme.vars.palette.text.primary,
+      margin: 0
     },
 
     ".thread-time": {
       flexShrink: 0,
-      fontSize: theme.fontSizeSmaller,
-      lineHeight: 1.2,
-      color: theme.vars.palette.grey[500],
       whiteSpace: "nowrap",
       fontVariantNumeric: "tabular-nums",
       transition: `opacity ${MOTION.fast}`

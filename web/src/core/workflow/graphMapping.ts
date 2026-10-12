@@ -134,7 +134,11 @@ const ensureHandlesForEdges = (
         const isMetadataHandle =
           inlineFields.includes(edge.targetHandle) ||
           inputFields.includes(edge.targetHandle);
-        if (isMetadataProperty && !isMetadataHandle) {
+        // A saved labeled row already renders the handle.
+        const isLabeled = (targetNode.data.exposedInputsLabeled ?? []).includes(
+          edge.targetHandle
+        );
+        if (isMetadataProperty && !isMetadataHandle && !isLabeled) {
           const patch = getPatch(targetNode.id);
           const currentExposed =
             patch.exposedInputs ?? targetNode.data.exposedInputs ?? [];
