@@ -332,6 +332,9 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
       queryClient.invalidateQueries({
         queryKey: ["textAsset", resource.id]
       });
+      queryClient.invalidateQueries({
+        queryKey: ["spreadsheetAsset", resource.id]
+      });
     }
 
     if (resource_type === "workflow") {
