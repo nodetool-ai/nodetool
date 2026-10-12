@@ -194,6 +194,41 @@ describe("timeline zip routes", () => {
     );
   });
 
+  it("exports a media zip with each clip's file and a clip list", async () => {
+    const asset = await seedAsset();
+    const seq = await seedTimeline(USER_ID, asset.id);
+
+    const res = await server.inject({
+      url: `/api/timelines/${seq.id}/export-media`
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-disposition"]).toBe(
+      'attachment; filename="My_Cut-media.zip"'
+    );
+    expect(res.headers["x-nodetool-export-missing"]).toBe("0");
+    const entries = unzipSync(new Uint8Array(res.rawPayload));
+    const mediaFile = `media/shot-${asset.id.slice(0, 8)}.mp4`;
+    expect(Object.keys(entries).sort()).toEqual(["clips.csv", mediaFile]);
+    expect(entries[mediaFile]).toEqual(VIDEO);
+    expect(strFromU8(entries["clips.csv"])).toBe(
+      `clip,track,media_type,start_s,end_s,in_s,file\nShot 1,V1,video,0.000,2.000,0.000,${mediaFile}\n`
+    );
+  });
+
+  it("counts a clip's unreadable media in the media export", async () => {
+    const seq = await seedTimeline(USER_ID, "gone");
+
+    const res = await server.inject({
+      url: `/api/timelines/${seq.id}/export-media`
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["x-nodetool-export-missing"]).toBe("1");
+    const entries = unzipSync(new Uint8Array(res.rawPayload));
+    expect(Object.keys(entries)).toEqual(["clips.csv"]);
+  });
+
   it("answers 404 for a Premiere export of someone else's timeline", async () => {
     const asset = await seedAsset("user-2");
     const seq = await seedTimeline("user-2", asset.id);

@@ -15,6 +15,7 @@ import CodeIcon from "@mui/icons-material/Code";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import FolderZipOutlinedIcon from "@mui/icons-material/FolderZipOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import MovieCreationOutlinedIcon from "@mui/icons-material/MovieCreationOutlined";
 import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -32,6 +33,9 @@ interface TopBarProps {
   /** Downloads a Premiere Pro XML with its media. */
   onExportPremiere?: () => void;
   isExportingPremiere?: boolean;
+  /** Downloads every media file the clips use. */
+  onExportMedia?: () => void;
+  isExportingMedia?: boolean;
   onSave?: () => void;
   isSaving?: boolean;
   onSaveToAssets?: (anchorEl: HTMLElement) => void;
@@ -78,6 +82,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
     isExportingBundle = false,
     onExportPremiere,
     isExportingPremiere = false,
+    onExportMedia,
+    isExportingMedia = false,
     onSave,
     isSaving = false,
     onSaveToAssets,
@@ -110,7 +116,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
       !!onAdaptFormat ||
       !!onSaveToAssets ||
       !!onExportBundle ||
-      !!onExportPremiere;
+      !!onExportPremiere ||
+      !!onExportMedia;
 
     return (
       <FlexRow align="center" gap={SPACING.micro}>
@@ -238,6 +245,16 @@ export const TopBar: React.FC<TopBarProps> = memo(
                   }
                   disabled={isExportingPremiere}
                   onClick={runFromMenu(onExportPremiere)}
+                />
+              )}
+              {onExportMedia && (
+                <MenuItemPrimitive
+                  icon={<PermMediaOutlinedIcon fontSize="small" />}
+                  label={
+                    isExportingMedia ? "Exporting media…" : "Export media (.zip)"
+                  }
+                  disabled={isExportingMedia}
+                  onClick={runFromMenu(onExportMedia)}
                 />
               )}
             </EditorMenu>

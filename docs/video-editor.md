@@ -56,7 +56,7 @@ Each timeline (whether a standalone page or a workspace tab) runs in its own iso
 
 | Region        | What it does                                                                         |
 | ------------- | ------------------------------------------------------------------------------------ |
-| **Tab-row actions** | Save, **Export video**, and an overflow menu with **Project settings**, **Adapt format**, **Save as Asset**, **Export project (.zip)**, and **Export for Premiere Pro**. A code button appears when the timeline has embedded authoring code |
+| **Tab-row actions** | Save, **Export video**, and an overflow menu with **Project settings**, **Adapt format**, **Save as Asset**, **Export project (.zip)**, **Export for Premiere Pro**, and **Export media (.zip)**. A code button appears when the timeline has embedded authoring code |
 | **Preview**   | The composited video with transport controls, timecode, a preview quality select (Auto, Full, Half, Quarter), and FPS readout |
 | **Tracks**    | The multi-track timeline — a canvas-rendered ruler, the playhead, and the clips      |
 | **Side panel** | Tabs for **Inspector**, **Instruments**, **Source**, **Assistant**, and **History**, plus **Script** and **Code** when the timeline has them |
@@ -194,6 +194,7 @@ Preview and export sample the same animation resolver, so transforms and opacity
 - A progress dialog reports the phase (preparing, audio, video, finalizing) and the export can be cancelled.
 - **Save as Asset** renders the timeline and stores the result in an asset folder you pick. **Export project (.zip)** bundles the timeline project.
 - **Export for Premiere Pro** downloads a zip with a Final Cut Pro 7 XML sequence, the media its clips use, and `export-report.txt`. In Premiere Pro, choose **File > Import** and pick the XML. Video, image, and audio clips keep their tracks, positions, in and out points, constant speed, opacity, volume, and enabled state. A video's own sound lands on a linked audio track. Text, shapes, captions, effects, animations, transitions, and fades are not carried, and the report lists every clip affected. If Premiere asks to link media, locate one file in the `media` folder and it relinks the rest.
+- **Export media (.zip)** downloads the original file of every video, image, and audio clip under `media/`, untrimmed, with `clips.csv` listing each clip's track, timeline start and end, source in-point, and file.
 - The `render_timeline` agent tool and the `nodetool.timeline.RenderTimeline` node render the same sequence server-side.
 
 Change the sequence width, height, frame rate, and tempo in **Project settings**.

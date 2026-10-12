@@ -69,7 +69,7 @@ function safeName(name: string): string {
 }
 
 /** `media/<readable name>-<id prefix>.<ext>`: unique per asset, readable in a bin. */
-function mediaFileName(
+export function mediaFileName(
   assetId: string,
   name: string,
   contentType: string

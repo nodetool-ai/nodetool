@@ -81,6 +81,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Storyboards | `/api/storyboards/{id}/export-zip` | `GET`           | Session auth                     | streaming                   | One board as a zip of Markdown plus its stills and clips; `404` when the caller does not own it |
 | Timelines | `/api/timelines/{id}/export-zip`   | `GET`             | Session auth                     | streaming                   | One sequence and the bytes of every asset its clips name, as a zip; `404` when the caller does not own it |
 | Timelines | `/api/timelines/{id}/export-premiere` | `GET`          | Session auth                     | streaming                   | One sequence as a Premiere Pro XML (xmeml) plus its media and an export report, as a zip; `404` when the caller does not own it |
+| Timelines | `/api/timelines/{id}/export-media` | `GET`             | Session auth                     | streaming                   | Every clip's media file plus `clips.csv`, as a zip; `404` when the caller does not own it |
 | Timelines | `/api/timelines/import-zip`       | `POST`            | Session auth                     | no                          | Multipart upload of such a zip; stores the assets and creates a new timeline pointing at them |
 | Providers | `/api/fal/credits`                | `GET`             | Session auth                     | no                          | The server's fal.ai account balance; `204` when no `FAL_API_KEY` is configured |
 | Providers | `/api/fal/pricing`                | `GET`             | Session auth                     | no                          | Unit price per fal.ai endpoint, one or more `?endpoint_id=`; cached an hour |
@@ -942,6 +943,12 @@ clip that needs baking or was left out. The XML points at its media with
 relative `media/<file>` paths. The response carries
 `x-nodetool-export-warnings` with the number of report entries, and is named
 `<timeline name>-premiere.zip` by the same rule as above.
+
+`GET /api/timelines/{id}/export-media` packs only the media: the original file
+of every video, image, and audio clip under `media/`, named as in the Premiere
+export, and `clips.csv` with one row per clip (`clip`, `track`, `media_type`,
+`start_s`, `end_s`, `in_s`, `file`). `x-nodetool-export-missing` counts the
+files that could not be read or packed. The zip is `<timeline name>-media.zip`.
 
 `POST /api/timelines/import-zip` reads the zip back as a multipart form. `file`
 is required; `project_id` defaults to `"default"` (no project) and `name`

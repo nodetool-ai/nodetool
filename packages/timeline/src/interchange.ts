@@ -105,7 +105,8 @@ function sequencedClips(sequence: InterchangeSequence): {
     );
 }
 
-function activeAssetId(clip: TimelineClip): string | undefined {
+/** The asset a clip shows: `currentAssetId`, else its active take. */
+export function clipActiveAssetId(clip: TimelineClip): string | undefined {
   if (clip.currentAssetId !== undefined) return clip.currentAssetId;
   const takeId = activeTakeIdOf({ ...clip, currentAssetId: undefined });
   const take = clip.versions.find((version) => version.id === takeId);
@@ -151,7 +152,7 @@ export function interchangeAssetIds(
   const ids = new Set<string>();
   for (const clip of sequence.clips) {
     if (!trackIds.has(clip.trackId) || !exportsMediaType(clip, target)) continue;
-    const assetId = activeAssetId(clip);
+    const assetId = clipActiveAssetId(clip);
     if (assetId) ids.add(assetId);
   }
   return [...ids];
@@ -420,7 +421,7 @@ export function exportInterchange(
     for (const issue of unsupported(clip, track, options.target)) {
       warnings.push({ clipId: clip.id, message: `${clip.name}: ${issue}.` });
     }
-    const assetId = activeAssetId(clip);
+    const assetId = clipActiveAssetId(clip);
     const asset = assetId ? options.resolveAsset(assetId) : undefined;
     if (!asset) {
       warnings.push({ clipId: clip.id, message: `${clip.name}: active media is missing.` });

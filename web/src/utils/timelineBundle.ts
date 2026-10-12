@@ -2,6 +2,7 @@
  * Client helpers for the timeline archive endpoints:
  *   GET  /api/timelines/:id/export-zip → the document + every referenced asset
  *   GET  /api/timelines/:id/export-premiere → a Premiere Pro XML + its media
+ *   GET  /api/timelines/:id/export-media → every clip's media + a clip list
  *   POST /api/timelines/import-zip     → a new timeline from such an archive
  */
 import { restFetch } from "../lib/rest-fetch";
@@ -73,6 +74,31 @@ export async function exportTimelinePremiere(
   );
   await saveResponseAsFile(res, `${sanitizeName(fallbackName)}-premiere.zip`);
   return Number.isFinite(warnings) ? warnings : null;
+}
+
+/**
+ * Download every media file the timeline's clips show, plus `clips.csv`.
+ * Resolves to how many files could not be packed, or null when the server
+ * did not say.
+ */
+export async function exportTimelineMedia(
+  timelineId: string,
+  fallbackName: string
+): Promise<number | null> {
+  const res = await restFetch(
+    `/api/timelines/${encodeURIComponent(timelineId)}/export-media`,
+    { method: "GET" }
+  );
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(detail || `Export failed (${res.status})`);
+  }
+  const missing = Number.parseInt(
+    res.headers.get("x-nodetool-export-missing") ?? "",
+    10
+  );
+  await saveResponseAsFile(res, `${sanitizeName(fallbackName)}-media.zip`);
+  return Number.isFinite(missing) ? missing : null;
 }
 
 /** Upload a timeline zip; the server stores its assets and creates a timeline. */

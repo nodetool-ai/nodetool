@@ -2,13 +2,15 @@
  * Timeline zip download and upload —
  *   `GET  /api/timelines/:id/export-zip`
  *   `GET  /api/timelines/:id/export-premiere`
+ *   `GET  /api/timelines/:id/export-media`
  *   `POST /api/timelines/import-zip`
  *
  * The web app reads and writes sequences over `/trpc/timeline.*`; these are the
  * non-tRPC doors, because the responses are binary archives and the upload is
  * multipart. The bundle pair goes through `lib/timeline-bundle.ts`, so a bundle
  * written here imports anywhere. The Premiere export goes through
- * `lib/timeline-premiere.ts`.
+ * `lib/timeline-premiere.ts`, the media export through
+ * `lib/timeline-media-export.ts`.
  */
 
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -31,6 +33,7 @@ import {
   writeTimelineBundle,
   type BundledTimeline
 } from "../lib/timeline-bundle.js";
+import { planMediaExport, writeMediaExport } from "../lib/timeline-media-export.js";
 import {
   planPremiereExport,
   writePremiereExport,
@@ -137,6 +140,25 @@ function toBundledTimeline(seq: TimelineSequence): BundledTimeline {
     bundled.scriptEnabled = wire.scriptEnabled;
   }
   return bundled;
+}
+
+/** The sequence as the interchange writers read it. */
+function toInterchangeSequence(seq: TimelineSequence): InterchangeSequence {
+  const wire = seq.toTimelineSequence();
+  return {
+    name: wire.name,
+    width: wire.width,
+    height: wire.height,
+    fps: wire.fps,
+    tracks: wire.tracks,
+    clips: wire.clips,
+    markers: wire.markers
+  } as InterchangeSequence;
+}
+
+/** `name` with everything outside `A-Za-z0-9._-` replaced, for a download. */
+function downloadName(name: string): string {
+  return (name || "timeline").replace(/[^A-Za-z0-9._-]+/g, "_") || "timeline";
 }
 
 /** The uploaded zip plus the form fields that came with it. */
@@ -298,16 +320,7 @@ const timelinesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       if (!seq || seq.user_id !== userId) {
         return jsonError(404, "Timeline not found");
       }
-      const wire = seq.toTimelineSequence();
-      const sequence = {
-        name: wire.name,
-        width: wire.width,
-        height: wire.height,
-        fps: wire.fps,
-        tracks: wire.tracks,
-        clips: wire.clips,
-        markers: wire.markers
-      } as InterchangeSequence;
+      const sequence = toInterchangeSequence(seq);
       // Probing happens before the first byte goes out, so the headers can
       // carry the warning count and a failure is still a plain error.
       const plan = await planPremiereExport({
@@ -318,16 +331,39 @@ const timelinesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       const body = streamZip((writer) =>
         writePremiereExport(sequence.name, plan, writer)
       );
-      const safe =
-        (seq.name || "timeline").replace(/[^A-Za-z0-9._-]+/g, "_") ||
-        "timeline";
       return streamedResponse(body, {
         status: 200,
         headers: {
           "content-type": "application/zip",
-          "content-disposition": `attachment; filename="${safe}-premiere.zip"`,
+          "content-disposition": `attachment; filename="${downloadName(seq.name)}-premiere.zip"`,
           "cache-control": "no-store",
           "x-nodetool-export-warnings": String(plan.report.warnings.length)
+        }
+      });
+    });
+    return reply;
+  });
+
+  app.get("/api/timelines/:id/export-media", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await bridge(req, reply, async (request) => {
+      const userId = userIdOf(request);
+      const seq = await TimelineSequence.findById(id);
+      if (!seq || seq.user_id !== userId) {
+        return jsonError(404, "Timeline not found");
+      }
+      const plan = await planMediaExport({
+        sequence: toInterchangeSequence(seq),
+        fetchAsset: (assetId) => fetchOwnedAsset(userId, assetId)
+      });
+      const body = streamZip((writer) => writeMediaExport(plan, writer));
+      return streamedResponse(body, {
+        status: 200,
+        headers: {
+          "content-type": "application/zip",
+          "content-disposition": `attachment; filename="${downloadName(seq.name)}-media.zip"`,
+          "cache-control": "no-store",
+          "x-nodetool-export-missing": String(plan.missing.length)
         }
       });
     });
