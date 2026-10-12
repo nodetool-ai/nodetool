@@ -205,6 +205,18 @@ export interface SketchRuntime {
   /** Flatten all visible layers (including mask) and return a data URL. */
   flattenVisible(doc: SketchDocument): string;
 
+  /** Flatten all visible non-mask layers into a new document-size canvas. */
+  flattenToCanvas(doc: SketchDocument): HTMLCanvasElement | null;
+
+  /**
+   * Render one layer into a new document-size canvas with its transform and
+   * effects, ignoring its opacity, blend mode and visibility.
+   */
+  renderLayerToCanvas(
+    doc: SketchDocument,
+    layerId: string
+  ): HTMLCanvasElement | null;
+
   // ─── Layer operations ────────────────────────────────────────────────
   /**
    * Load a data URL (or clear) into a layer canvas. Calls `onComplete` after

@@ -30,6 +30,8 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
+import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
+import TerminalIcon from "@mui/icons-material/Terminal";
 import { useLocation } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 
@@ -50,6 +52,7 @@ import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
 import { useCanvasSideInsets } from "../../hooks/useCanvasSideInsets";
 import { useWorkflowApp } from "../../hooks/useWorkflowApp";
+import { useWorkflowScriptExport } from "../../hooks/useWorkflowScriptExport";
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -432,6 +435,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     hasApp,
     isPending: isAppPending
   } = useWorkflowApp();
+  const { convertToJsScript, downloadNodeScript, isExporting } =
+    useWorkflowScriptExport();
   const appActionLabel = hasApp ? "Open app" : "Make app";
   const appActionTooltip = hasApp
     ? "Open the app that runs this workflow"
@@ -1032,6 +1037,18 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           label="Download JSON"
           icon={<DownloadIcon fontSize="small" />}
           onClick={runWithClose(handleDownload)}
+        />
+        <MenuItemPrimitive
+          label="Convert to JS script"
+          icon={<DataObjectOutlinedIcon fontSize="small" />}
+          disabled={isExporting}
+          onClick={runWithClose(() => void convertToJsScript())}
+        />
+        <MenuItemPrimitive
+          label="Download Node.js script"
+          icon={<TerminalIcon fontSize="small" />}
+          disabled={isExporting}
+          onClick={runWithClose(() => void downloadNodeScript())}
         />
         {isMobile && (
           <MenuItemPrimitive

@@ -563,6 +563,38 @@ export const terminalOutputsOutput = z.object({
 });
 export type TerminalOutputsOutput = z.infer<typeof terminalOutputsOutput>;
 
+// ── exportScript ─────────────────────────────────────────────────────────────
+// Convert a workflow into a JavaScript script that calls each node in order.
+// `graph` is the editor's current graph; without it the saved graph is used.
+
+export const exportScriptTarget = z.enum(["sandbox", "node"]);
+export type ExportScriptTarget = z.infer<typeof exportScriptTarget>;
+
+export const exportScriptInput = z.object({
+  id: z.string().min(1),
+  target: exportScriptTarget,
+  graph: graph.optional()
+});
+export type ExportScriptInput = z.infer<typeof exportScriptInput>;
+
+export const exportScriptPort = z.object({
+  name: z.string(),
+  type: z.string()
+});
+
+export const exportScriptOutput = z.object({
+  code: z.string(),
+  /** Suggested file name: `<workflow>.js` for sandbox, `.mjs` for Node.js. */
+  filename: z.string(),
+  inputs: z.array(exportScriptPort),
+  outputs: z.array(exportScriptPort),
+  /** Nodes the script refuses to run. Non-empty means the script throws. */
+  unsupported: z.array(
+    z.object({ node_id: z.string(), node_type: z.string(), message: z.string() })
+  )
+});
+export type ExportScriptOutput = z.infer<typeof exportScriptOutput>;
+
 // ── sharing ──────────────────────────────────────────────────────────────────
 // Private sharing: the owner mints role-scoped share links; any authenticated
 // user who redeems one becomes a collaborator ("viewer" opens and runs,

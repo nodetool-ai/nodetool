@@ -318,16 +318,16 @@ const MAX_BUNDLE_UNCOMPRESSED_BYTES = 512 * 1024 * 1024; // 512 MB
 /** Max number of entries in a bundle. */
 const MAX_BUNDLE_ENTRIES = 10_000;
 
-export function unpackTimelineBundle(
-  zipBytes: Uint8Array
-): UnpackedTimelineBundle {
-  // Bound decompression: `unzipSync` otherwise inflates every entry into memory
-  // with no size limit, so a small highly-compressible upload can expand to tens
-  // of GB and OOM the server. The filter runs per entry with the
-  // header-declared uncompressed size, before that entry is inflated.
+/**
+ * Inflate an uploaded zip with bounds: `unzipSync` otherwise inflates every
+ * entry into memory with no size limit, so a small highly-compressible upload
+ * can expand to tens of GB and OOM the server. The filter runs per entry with
+ * the header-declared uncompressed size, before that entry is inflated.
+ */
+export function unzipBounded(zipBytes: Uint8Array): Record<string, Uint8Array> {
   let totalUncompressed = 0;
   let entryCount = 0;
-  const entries = unzipSync(zipBytes, {
+  return unzipSync(zipBytes, {
     filter: (file) => {
       entryCount += 1;
       if (entryCount > MAX_BUNDLE_ENTRIES) {
@@ -344,6 +344,24 @@ export function unpackTimelineBundle(
       return true;
     }
   });
+}
+
+/** The entry names of a zip, read from its directory without inflating. */
+export function zipEntryNames(zipBytes: Uint8Array): string[] {
+  const names: string[] = [];
+  unzipSync(zipBytes, {
+    filter: (file) => {
+      names.push(file.name);
+      return false;
+    }
+  });
+  return names;
+}
+
+export function unpackTimelineBundle(
+  zipBytes: Uint8Array
+): UnpackedTimelineBundle {
+  const entries = unzipBounded(zipBytes);
 
   const manifestEntry = entries["manifest.json"];
   if (!manifestEntry) {
