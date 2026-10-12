@@ -445,7 +445,12 @@ export const useVideoSetupFlow = ({
           brief.trim().length > 0 && !contextError && !importingMedia,
         blockedReason: importingMedia
           ? "Uploading your media"
-          : (contextError ?? "Describe the video, or bring your own media"),
+          : (contextError ??
+            // Placed media alone does not advance: the brief says what to
+            // make of it, as the upload notice asks.
+            (placedClips > 0
+              ? "Say what to make of your media"
+              : "Describe the video, or bring your own media")),
         // Change flow discards this draft, so it waits for the upload too.
         holdNavigation: importingMedia,
         render: (context) =>
@@ -626,6 +631,7 @@ export const useVideoSetupFlow = ({
       look,
       musicOn,
       onStartFromScript,
+      placedClips,
       planIsCurrent,
       plannedBrief,
       planning,

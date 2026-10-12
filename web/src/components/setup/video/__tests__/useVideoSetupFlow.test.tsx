@@ -195,6 +195,27 @@ describe("useVideoSetupFlow (criterion 2)", () => {
     expect(result.current.steps[0].canAdvance).toBe(true);
   });
 
+  it("asks for a brief, not media, once media is placed", () => {
+    seed("idea", { brief: "" });
+    useTimelineStore.setState({
+      clips: [
+        makeClip({
+          id: "c0",
+          name: "beach.jpg",
+          startMs: 0,
+          durationMs: 3000,
+          mediaType: "image",
+          sourceType: "imported"
+        })
+      ]
+    });
+    const { result } = renderHook(() => useVideoSetupFlow());
+    expect(result.current.steps[0].canAdvance).toBe(false);
+    expect(result.current.steps[0].blockedReason).toBe(
+      "Say what to make of your media"
+    );
+  });
+
   it("holds Plan the beats until a format is chosen", () => {
     seed("format", { format: undefined });
     const { result, rerender } = renderHook(() => useVideoSetupFlow());
