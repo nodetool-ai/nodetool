@@ -79,11 +79,13 @@ function ItemRow({ selected, onClick, ariaLabel, leading, label, meta }: {
   return <FlexRow {...(onClick ? BUTTON_ELEMENT : {})} onClick={onClick}
     aria-label={ariaLabel} aria-pressed={onClick && selected !== undefined ? selected : undefined}
     gap={SPACING.sm} align="center" fullWidth
-    sx={(theme) => ({
-      ...(onClick ? selectableRowStyles(theme, { selected }) : {}),
-      minWidth: 0, minHeight: CONTROL.height.sm, px: SPACING.sm, py: SPACING.micro, border: 0, bgcolor: onClick ? undefined : "transparent",
-      color: "text.primary", textAlign: "left", font: "inherit", cursor: onClick ? "pointer" : "default"
-    })}>
+    sx={(theme) => {
+      const row = {
+        minWidth: 0, minHeight: CONTROL.height.sm, px: SPACING.sm, py: SPACING.micro, border: 0, bgcolor: onClick ? undefined : "transparent",
+        color: "text.primary", textAlign: "left", font: "inherit", cursor: onClick ? "pointer" : "default"
+      };
+      return onClick ? { ...selectableRowStyles(theme, { selected }), ...row } : row;
+    }}>
     {leading}
     <Box sx={{ ...TYPOGRAPHY.sans.label, flex: 1, minWidth: 0 }}><TruncatedText variant="inherit">{label}</TruncatedText></Box>
     {meta && <FlexRow gap={SPACING.sm} align="center" sx={{ flexShrink: 0, color: "text.secondary", ...TYPOGRAPHY.sans.caption }}>
