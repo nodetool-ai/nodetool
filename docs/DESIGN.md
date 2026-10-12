@@ -994,7 +994,7 @@ import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from ".
 
 ## 14. Controls
 
-Buttons, tooltips, notifications and the other small controls every surface shares.
+Buttons, tooltips, notifications, chips and the other small controls every surface shares.
 
 ### Tooltips
 
@@ -1052,6 +1052,30 @@ reportError(err instanceof Error ? err.message : "Failed to generate");
 | Timeout | Leave `timeout` out. The store sizes it from the message length (3s to 12s). `0` keeps a notification until it is dismissed, and job completions use `NOTIFICATION_TIMEOUT_JOB_COMPLETED` |
 | Repeats | Pass a `dedupeKey` (with `replaceExisting` for a value that changes, such as progress) instead of stacking the same message |
 | Inline errors | An error about a form or a dialog stays inline as an `AlertBanner` in that surface, not in the stack |
+
+### Chips and pills
+
+A chip is a short tag, count or filter. Draw it with the `Chip` primitive. The
+theme's `MuiChip` override sets its height, radius, text and tone tints, so a
+call site picks props and adds only layout through `sx`, such as a margin or
+`flexShrink`.
+
+```tsx
+import { Chip } from "../ui_primitives";
+
+<Chip label="Installed" compact color="success" />
+<Chip label="Images" compact active={format === "image"} onClick={pickImages} />
+<Chip label={shot.slug} compact accent={BOARD_COLOR} onClick={openShot} />
+```
+
+| Part | Rule |
+|---|---|
+| Shape | Outlined pill, 28px tall, 24px with `compact`. Never set `height`, `borderRadius`, `fontSize` or label padding on a chip |
+| Tone | `color` picks a palette tone: text in the main colour, border at 50%, fill at 12%, as `StatusPill` draws it. A neutral chip is `text.secondary` on a `divider` border. A surface's own colour (a storyboard link, an entity kind, a type) goes in `accent`, never in `sx` |
+| Selected | A filter or toggle chip passes `active`. Selected takes its tone (primary when none is given) and unselected stays neutral. A clickable chip gets `aria-pressed` from it, so do not pass one |
+| Text | Sentence case, a few words. Values such as a type name or a hex colour may use `TYPOGRAPHY.mono.caption` |
+| Not a chip | A count or a value with no border is `Text`. A render state on a thumbnail is `StatusPill`. A command is a button, even when it is pill-shaped |
+| Hand-built | Do not build a pill from a `Box`, `span` or `button` with `BORDER_RADIUS.pill`. Use `Chip` with `icon` for a leading dot, spinner or icon |
 
 ---
 

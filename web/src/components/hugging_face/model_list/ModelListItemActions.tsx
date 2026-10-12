@@ -1,17 +1,13 @@
 import React, { memo, useCallback } from "react";
 import Check from "@mui/icons-material/Check";
 import {
-  BORDER_RADIUS,
   Chip,
   CopyButton,
   DeleteButton,
   EditorButton,
   FlexRow,
   LoadingSpinner,
-  Tooltip,
-  Box,
-  SPACING,
-  getSpacingPx
+  Tooltip
 } from "../../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 
@@ -83,22 +79,10 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
   return (
     <FlexRow align="center" gap={1} onClick={(e) => e.stopPropagation()}>
       {isCheckingCache && !downloaded && (
-        <Box
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: getSpacingPx(SPACING.md),
-            padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
-            borderRadius: BORDER_RADIUS.pill,
-            border: "1px solid",
-            borderColor: "divider",
-            color: "text.secondary",
-            fontSize: "var(--fontSizeSmall)"
-          }}
-        >
-          <LoadingSpinner inline size={12} thickness={5} color="inherit" />
-          Checking cache…
-        </Box>
+        <Chip
+          icon={<LoadingSpinner inline size={12} thickness={5} color="inherit" />}
+          label="Checking cache…"
+        />
       )}
       {onDownload && canDownload && !downloaded && !isCheckingCache && (
         <EditorButton

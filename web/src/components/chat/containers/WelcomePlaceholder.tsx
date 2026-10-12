@@ -10,7 +10,6 @@ import {
   Box,
   EditorButton,
   BORDER_RADIUS,
-  MOTION,
   SPACING,
   SPACING_PX,
   getSpacingPx
@@ -247,21 +246,6 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
                   label={suggestion}
                   variant="outlined"
                   onClick={() => handleClick(suggestion)}
-                  sx={{
-                    borderColor: theme.vars.palette.divider,
-                    color: theme.vars.palette.text.secondary,
-                    cursor: "pointer",
-                    transition: MOTION.all,
-                    // Mouse only. iOS Safari reads a tap on an element whose
-                    // :hover style changes as the hover and drops the click.
-                    "@media (hover: hover)": {
-                      "&:hover": {
-                        borderColor: theme.vars.palette.primary.main,
-                        color: theme.vars.palette.primary.main,
-                        backgroundColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.06)`
-                      }
-                    }
-                  }}
                 />
               ))}
             </div>

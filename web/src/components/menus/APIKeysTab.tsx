@@ -229,10 +229,6 @@ export const ProviderCard = memo(function ProviderCard({
                 compact
                 variant="outlined"
                 color="primary"
-                sx={{
-                  height: 18,
-                  borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.4)`
-                }}
               />
             )}
           </FlexRow>

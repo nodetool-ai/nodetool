@@ -9,7 +9,7 @@ import { useShowGraphPreview } from "../../stores/WorkflowListViewStore";
 import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/FavoriteWorkflowsStore";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
-import { FavoriteButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box, BORDER_RADIUS, FONT_WEIGHT, InlineEditableText, SPACING, getSpacingPx } from "../ui_primitives";
+import { FavoriteButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box, FONT_WEIGHT, InlineEditableText, SPACING, getSpacingPx, Chip } from "../ui_primitives";
 import { WorkflowTriggerIndicator } from "./WorkflowTriggerIndicator";
 
 // Single-click on the row opens the workflow. Double-clicking the name renames
@@ -186,21 +186,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         {hasTags && (
           <FlexRow gap={SPACING.micro} sx={{ flexWrap: "wrap", mt: SPACING.xs }}>
             {workflow.tags?.map((tag) => (
-              <Text
-                key={tag}
-                size="smaller"
-                weight={400}
-                family="secondary"
-                sx={{
-                  color: "grey.900",
-                  backgroundColor: "grey.200",
-                  borderRadius: BORDER_RADIUS.pill,
-                  padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
-                  margin: `${getSpacingPx(SPACING.lg)} 0`
-                }}
-              >
-                {tag}
-              </Text>
+              <Chip key={tag} compact label={tag} />
             ))}
           </FlexRow>
         )}

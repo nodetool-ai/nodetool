@@ -102,7 +102,6 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
             label={FIT_LABELS[fit]}
             compact
             color={FIT_COLOR[fit]}
-            variant={fit === "unknown" ? "outlined" : "filled"}
           />
           {downloaded ? (
             <FlexRow gap={SPACING.micro} align="center">

@@ -114,21 +114,6 @@ const styles = (theme: Theme) =>
       alignItems: "center"
     },
 
-    ".tools .active-tag-chip": {
-      height: "20px",
-      fontSize: "var(--fontSizeSmaller)",
-      backgroundColor: theme.vars.palette.action.selected,
-      color: theme.vars.palette.text.primary,
-      border: "none",
-      "& .MuiChip-deleteIcon": {
-        color: theme.vars.palette.text.secondary,
-        fontSize: "var(--fontSizeSmall)",
-        "&:hover": {
-          color: theme.vars.palette.text.primary
-        }
-      }
-    },
-
     ".tools .clear-tags-button": {
       height: "20px",
       fontSize: "var(--fontSizeSmaller)",
@@ -337,7 +322,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
               <Chip
                 key={tag}
                 label={tag}
-                size="small"
+                compact
                 className="active-tag-chip"
                 onDelete={tagHandlers[tag]}
               />

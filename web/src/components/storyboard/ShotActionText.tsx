@@ -13,7 +13,7 @@
 import React from "react";
 import type { Entity } from "@nodetool-ai/protocol";
 
-import { Chip, Text, BORDER_RADIUS, SPACING } from "../ui_primitives";
+import { Chip, Text, SPACING } from "../ui_primitives";
 
 /** A run of the action line: plain prose, or one entity's name. */
 export interface ActionSegment {
@@ -74,8 +74,7 @@ interface ShotActionTextProps {
 /** Chips sit on the text baseline so a clamped line still reads as prose. */
 const chipSx = {
   verticalAlign: "baseline",
-  mx: SPACING.micro,
-  borderRadius: BORDER_RADIUS.sm
+  mx: SPACING.micro
 } as const;
 
 export const ShotActionText: React.FC<ShotActionTextProps> = ({
