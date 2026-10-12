@@ -123,6 +123,7 @@ document and nothing else in the directory reaches the product.
 | Develop behavior test-first | [tdd](.claude/skills/tdd/SKILL.md) |
 | Write or repair web and workflow Playwright tests | [e2e-testing](.claude/skills/yts806379-everything-claude-code-e2e-testing/SKILL.md) |
 | Run blind first-time-user QA through the browser (typed only) | [agentic-qa](.claude/skills/agentic-qa/SKILL.md) |
+| Run a UX research study with blind agent participants and track its insights (typed only) | [ux-research](.claude/skills/ux-research/SKILL.md) |
 | Map source structure before reading selected code | [ast-grep-outline](.claude/skills/ast-grep-outline/SKILL.md) |
 | Design module interfaces and test boundaries | [codebase-design](.claude/skills/codebase-design/SKILL.md) |
 | Turn an agreed discussion into a spec or dependent tickets | [to-spec](.claude/skills/to-spec/SKILL.md), [to-tickets](.claude/skills/to-tickets/SKILL.md) |
