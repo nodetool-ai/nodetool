@@ -345,6 +345,25 @@ first layer's pairs: a layer paired with `collisionLayers[0]` does not touch
 unlayered colliders either. Name the first layer for the world, or give such
 colliders a layer. 2D colliders keep raw bits only.
 
+## 3D physics materials
+
+`physicsMaterials` names up to 64 surfaces that colliders share. Each material
+has `friction` (0 to 4, default 0.5), `restitution` (0 to 1, default 0),
+`frictionCombine` and `restitutionCombine`. A combine rule is `average`
+(default), `min`, `multiply` or `max`. When two touching colliders use
+different rules, the later rule in that list wins. Use `max` restitution for a
+bouncy ball and `min` friction for ice. Declare materials with `set_game
+{physics_materials: {name: material}}`, and remove them all with
+`physics_materials: null`. Point a collider at one with `update_entity set
+collider3d {physicsMaterial: name}` and clear it with `physicsMaterial: null`.
+A collider with a material takes all four values from it, so leave its inline
+`friction` at 0.5 and `restitution` at 0 and set no inline combine rule.
+Validation rejects an unknown material name and conflicting inline values. A
+collider without a material keeps its inline values and may set
+`frictionCombine` and `restitutionCombine` itself. Existing documents name no
+material and simulate as before. 2D colliders have no friction or
+restitution.
+
 ## Audio mix and spatial audio
 
 Set the document mix with `set_audio {mixer}` in 2D and 3D. `set_audio

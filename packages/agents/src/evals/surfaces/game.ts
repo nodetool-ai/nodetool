@@ -1,7 +1,7 @@
 import * as acorn from "acorn";
 import { z } from "zod";
 import { gameDocument, gameDocument3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
-import { applyGameOps, applyGameOps3D, collisionLayerBits3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
+import { applyGameOps, applyGameOps3D, collisionLayerBits3D, resolvePhysicsMaterials3D, validateGame3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
 import type { HeadlessSurfaceBridge, ToolLoopEvalCase } from "../tool-loop-eval.js";
 
 const SCRIPT_PARAMS_EVAL_SOURCE = "(input) => ({ state: input.params, commands: [] })";
@@ -420,6 +420,25 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         const source = (id: string) => behaviors(id).find(behavior => behavior.kind === "script")?.source ?? "";
         return behaviors("player").some(behavior => behavior.kind === "movement") && behaviors("gem").some(behavior => behavior.kind === "collectible")
           && emitsTargetedBonus(source("player")) && readsEventPoints(source("gem"));
+      } }]
+  }
+}, {
+  id: "physics-materials",
+  description: "Author named 3D physics materials with combine rules and point colliders at them instead of inline friction and restitution.",
+  objective: "Create a physics material ice with friction 0.02 whose friction combines by min, and a material rubber with restitution 0.85 whose restitution combines by max. Put the floor on ice and the crate on rubber.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("physics-materials-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_game {physics_materials: {name: {friction, restitution, frictionCombine, restitutionCombine}}} declares the 3D physics materials, where a combine rule is average, min, multiply or max. update_entity sets collider3d.physicsMaterial to a declared name.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "physicsMaterials", detail: "The floor does not resolve to slippery ice, the crate does not resolve to bouncy rubber, or the document fails validation.",
+      test: document => {
+        if (document.schemaVersion !== 3 || !validateGame3D(document).valid) { return false; }
+        const resolved = resolvePhysicsMaterials3D(document);
+        const collider = (id: string) => resolved.scenes[0].entities.find(entity => entity.id === id)?.collider3d;
+        const floor = collider("floor");
+        const crate = collider("crate");
+        return floor?.physicsMaterial === "ice" && floor.friction === 0.02 && floor.frictionCombine === "min" &&
+          crate?.physicsMaterial === "rubber" && crate.restitution === 0.85 && crate.restitutionCombine === "max";
       } }]
   }
 }];

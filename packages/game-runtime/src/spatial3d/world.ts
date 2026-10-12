@@ -118,6 +118,11 @@ export class SpatialWorld3D {
       }
     }
     if (!description) throw new Error("Prepared convex collider is degenerate");
+    // An unset rule keeps Rapier's default, average, so colliders without one build exactly as before.
+    const rules = this.rapier.CoefficientCombineRule;
+    const rule = { average: rules.Average, min: rules.Min, multiply: rules.Multiply, max: rules.Max } as const;
+    if (definition.frictionCombine) description.setFrictionCombineRule(rule[definition.frictionCombine]);
+    if (definition.restitutionCombine) description.setRestitutionCombineRule(rule[definition.restitutionCombine]);
     return description.setTranslation(definition.offset.x, definition.offset.y, definition.offset.z)
       .setRotation(quaternionObject(definition.rotation)).setSensor(definition.sensor).setCollisionGroups(collisionGroups(definition))
       .setActiveCollisionTypes(this.rapier.ActiveCollisionTypes.DEFAULT | this.rapier.ActiveCollisionTypes.KINEMATIC_FIXED | this.rapier.ActiveCollisionTypes.KINEMATIC_KINEMATIC)
