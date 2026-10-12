@@ -1212,7 +1212,6 @@ const ScriptDocumentPane = ({
               {(["wav", "mp3"] as const).map((format) => (
                 <MenuItemPrimitive
                   key={format}
-                  compact
                   icon={<AudioFileIcon fontSize="small" />}
                   label={`Export ${format.toUpperCase()}`}
                   disabled={!hasVoicedLine || exportingAudio !== null}

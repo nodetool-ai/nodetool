@@ -57,6 +57,8 @@ import {
   getSpacingPx,
   IconButton,
   ContextMenu,
+  ListItemIcon,
+  ListItemText,
   MenuItemPrimitive,
   Slider
 } from "../ui_primitives";
