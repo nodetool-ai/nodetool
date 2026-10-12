@@ -110,17 +110,26 @@ const assertSkinsComplete = (root: THREE.Object3D): void => {
   });
 };
 
+export interface GltfExportOptions {
+  /** `.glb` when true, `.gltf` JSON with embedded buffers when false. */
+  binary?: boolean;
+  /**
+   * Leave hidden objects out. Saves keep them (flagged hidden); downloads
+   * for other tools drop them, since those tools would show them.
+   */
+  onlyVisible?: boolean;
+}
+
 /**
- * Serialize the editor root's content to a binary glTF (.glb) Blob.
- * Used to persist edits made in the 3D model editor back to an asset.
- *
- * The root's children become the glTF scene's top-level nodes, so the root
- * group itself is not written as an extra wrapper node. `animations` are the
- * clips loaded with the model; without them a save would strip them.
+ * Serialize the editor root's content to glTF. The root's children become
+ * the glTF scene's top-level nodes, so the root group itself is not written
+ * as an extra wrapper node. `animations` are the clips loaded with the
+ * model; without them a save would strip them.
  */
-export const exportSceneToGlb = (
+export const exportSceneToGltf = (
   root: THREE.Object3D,
-  animations: THREE.AnimationClip[] = []
+  animations: THREE.AnimationClip[] = [],
+  { binary = true, onlyVisible = false }: GltfExportOptions = {}
 ): Promise<Blob> => {
   try {
     assertSkinsComplete(root);
@@ -146,7 +155,17 @@ export const exportSceneToGlb = (
         }
       },
       (error) => reject(error),
-      { binary: true, animations, onlyVisible: false }
+      { binary, animations, onlyVisible }
     );
   }).finally(restore);
 };
+
+/**
+ * Serialize the editor root's content to a binary glTF (.glb) Blob, keeping
+ * hidden objects. Used to persist edits made in the 3D model editor back to
+ * an asset.
+ */
+export const exportSceneToGlb = (
+  root: THREE.Object3D,
+  animations: THREE.AnimationClip[] = []
+): Promise<Blob> => exportSceneToGltf(root, animations);
