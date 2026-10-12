@@ -644,6 +644,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           fadeOutMs: clip.fadeOutMs ?? 0,
           fadeInShape: clip.fadeInShape ?? "linear",
           fadeOutShape: clip.fadeOutShape ?? "linear",
+          audioEffects: clip.audioEffects ?? null,
           auditionTakeId: (() => {
             const audition = useTimelineUIStore.getState().audition;
             return audition?.clipId === clip.id ? audition.takeId : null;

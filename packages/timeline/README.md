@@ -22,6 +22,7 @@ npm install @nodetool-ai/timeline
 | `BlendMode` | type | Re-exported from `@nodetool-ai/gpu` |
 | `makeSequence` / `makeTrack` / `makeClip` / `makeMarker` | function | Factories for default sequence, track, clip, and marker |
 | `makeClipVersion` / `makeTrackEffect` | function | Factories for a clip version and a track effect |
+| `makeClipAudioEffect` / `clipAudioTailSec` | function | Factory for a clip's real-time audio effect, and how long a clip's effects ring after its sound stops |
 | `createTimeOrderedUuid` | function | Time-ordered UUID for stable ids |
 | `splitClip` | function | Split a clip at a time into two clips |
 | `trimClip` | function | Trim a clip's in/out points |

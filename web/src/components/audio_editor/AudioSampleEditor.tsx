@@ -50,6 +50,13 @@ interface AudioSampleEditorProps {
   asset: Asset;
   onClose: () => void;
   active?: boolean;
+  /**
+   * Replaces the default save, which overwrites the asset's bytes. Resolves
+   * true when the sample was stored, so the editor can mark it clean.
+   */
+  onSaveSample?: (sample: AudioSample) => Promise<boolean>;
+  /** Region (seconds) selected once the audio has loaded. */
+  initialSelection?: Selection;
 }
 
 const MIN_ZOOM = 1;
@@ -116,7 +123,9 @@ const PlaybackClock = memo(function PlaybackClock({
 const AudioSampleEditor = ({
   asset,
   onClose,
-  active = true
+  active = true,
+  onSaveSample,
+  initialSelection
 }: AudioSampleEditorProps) => {
   const history = useEditHistory<AudioSample>();
   const resetHistory = history.reset;
@@ -154,7 +163,23 @@ const AudioSampleEditor = ({
   const getUrlRef = useRef(asset.get_url);
   getUrlRef.current = asset.get_url;
 
-  const { save, saving } = useSaveAudioToAsset(asset);
+  const { save: saveToAsset, saving: savingToAsset } =
+    useSaveAudioToAsset(asset);
+  const [savingCustom, setSavingCustom] = useState(false);
+  const saving = savingToAsset || savingCustom;
+  const save = useCallback(
+    async (next: AudioSample): Promise<boolean> => {
+      if (!onSaveSample) return saveToAsset(next);
+      setSavingCustom(true);
+      try {
+        return await onSaveSample(next);
+      } finally {
+        setSavingCustom(false);
+      }
+    },
+    [onSaveSample, saveToAsset]
+  );
+  const initialSelectionRef = useRef(initialSelection);
 
   const getCtx = useCallback((): AudioContext => {
     if (!audioCtxRef.current) {
@@ -309,6 +334,14 @@ const AudioSampleEditor = ({
         const initial = audioBufferToSample(decoded);
         resetHistory(initial);
         setSavedSample(initial);
+        const region = initialSelectionRef.current;
+        const duration = sampleDuration(initial);
+        if (region && region.end > region.start && region.start < duration) {
+          setSelection({
+            start: Math.max(0, region.start),
+            end: Math.min(duration, region.end)
+          });
+        }
         setLoading(false);
       } catch (e) {
         if (cancelled) return;
