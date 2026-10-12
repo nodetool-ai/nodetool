@@ -2,8 +2,8 @@
   "schemaVersion": 3,
   "source": "https://genspend.io/api/v1/export",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-10-08T10:49:05.317Z",
-  "catalogGeneratedAt": "2026-10-08T10:49:03.971Z",
+  "updatedAt": "2026-10-12T11:09:03.198Z",
+  "catalogGeneratedAt": "2026-10-12T11:09:02.249Z",
   "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
   "catalogModels": 165,
   "catalogOfferings": 563,
@@ -357,7 +357,7 @@
       "source_url": "https://www.atlascloud.ai/models/black-forest-labs/flux-schnell"
     },
     "atlascloud:bytedance/seedance-2.0-fast/image-to-video": {
-      "unit_price": 0.027,
+      "unit_price": 0.072,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-fast",
@@ -367,19 +367,19 @@
       "tier": "fast",
       "variants": [
         {
-          "price_usd": 0.027,
+          "price_usd": 0.072,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": true
         },
         {
-          "price_usd": 0.027,
+          "price_usd": 0.072,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
         },
         {
-          "price_usd": 0.027,
+          "price_usd": 0.072,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
@@ -391,7 +391,7 @@
       }
     },
     "atlascloud:bytedance/seedance-2.0-fast/reference-to-video": {
-      "unit_price": 0.027,
+      "unit_price": 0.072,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-fast",
@@ -401,19 +401,19 @@
       "tier": "fast",
       "variants": [
         {
-          "price_usd": 0.027,
+          "price_usd": 0.072,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": true
         },
         {
-          "price_usd": 0.027,
+          "price_usd": 0.072,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
         },
         {
-          "price_usd": 0.027,
+          "price_usd": 0.072,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
@@ -425,7 +425,7 @@
       }
     },
     "atlascloud:bytedance/seedance-2.0-fast/text-to-video": {
-      "unit_price": 0.027,
+      "unit_price": 0.072,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-fast",
@@ -435,19 +435,19 @@
       "tier": "fast",
       "variants": [
         {
-          "price_usd": 0.027,
+          "price_usd": 0.072,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": true
         },
         {
-          "price_usd": 0.027,
+          "price_usd": 0.072,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
         },
         {
-          "price_usd": 0.027,
+          "price_usd": 0.072,
           "unit_class": "per-video-second",
           "tier": "fast",
           "is_base": false
@@ -459,7 +459,7 @@
       }
     },
     "atlascloud:bytedance/seedance-2.0-mini/image-to-video": {
-      "unit_price": 0.039,
+      "unit_price": 0.045,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-mini",
@@ -472,7 +472,7 @@
       }
     },
     "atlascloud:bytedance/seedance-2.0-mini/reference-to-video": {
-      "unit_price": 0.039,
+      "unit_price": 0.045,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-mini",
@@ -485,7 +485,7 @@
       }
     },
     "atlascloud:bytedance/seedance-2.0-mini/text-to-video": {
-      "unit_price": 0.039,
+      "unit_price": 0.045,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "seedance-2-mini",
