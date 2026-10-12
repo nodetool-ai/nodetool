@@ -13,6 +13,7 @@ import type {
   GameSnapshot3D,
   GameStepResult3D,
   GameTransform3D,
+  GameUiOverride,
   GameVector3
 } from "@nodetool-ai/protocol";
 import type { GameplayQueues } from "../gameplay/lifecycle.js";
@@ -48,6 +49,7 @@ export interface GameSystemContext3D {
   previousEvents: GameEvent3D[];
   queries: GameQueryResult3D[];
   hud: Map<string, GameHudLabel>;
+  ui: Map<string, GameUiOverride>;
   instances: GameSnapshot3D["prefabInstances"];
   music: GameSnapshot3D["music"];
   activeContacts: Map<string, Contact3D>;

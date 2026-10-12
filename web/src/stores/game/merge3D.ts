@@ -19,7 +19,7 @@ export const gameMergeAdapter3D: DocumentMergeAdapter<GameDocument3D> = {
       }) }),
       unitId: (value) => sceneUnit.parse(value).id,
       unitLabel: (value) => `scene ${sceneUnit.parse(value).name}`,
-      unitFields: ["name", "activeCameraId", "environment", "gravity", "music"].map((field) => ({ field }))
+      unitFields: ["name", "activeCameraId", "environment", "gravity", "music", "ui"].map((field) => ({ field }))
     },
     {
       kind: "entity",
@@ -48,7 +48,7 @@ export const gameMergeAdapter3D: DocumentMergeAdapter<GameDocument3D> = {
       unitLabel: (value) => `prefab ${prefabUnit.parse(value).id}`
     }
   ],
-  scalars: [...authoringMergeScalars<GameDocument3D>(), ...(["entrySceneId", "inputActions", "inputAxes", "inputBindings", "collisionLayers", "collisionMatrix", "presentation", "audio", "performance"] as const).map((name) => ({
+  scalars: [...authoringMergeScalars<GameDocument3D>(), ...(["entrySceneId", "inputActions", "inputAxes", "inputBindings", "collisionLayers", "collisionMatrix", "presentation", "audio", "performance", "ui"] as const).map((name) => ({
     name,
     read: (doc: GameDocument3D) => doc[name],
     write: (doc: GameDocument3D, value: unknown) => gameDocument3D.parse({ ...doc, [name]: value })

@@ -23,6 +23,7 @@ import { gameAuthoring } from "../game-authoring.js";
 import { gameEmitParticlesCommand } from "../game-particles.js";
 import { gameAudioSettings } from "../game2d/components/audio.js";
 import { gameInputBindings } from "../game-input.js";
+import { gameUiFrame, gameUiOverrides, gameUiScriptCommand, gameUiTree } from "../game-ui.js";
 import { GAME_2D_ENGINE_BY_SCHEMA, gameDocument, gameEntity, gameEvent, gameHudLabel, gameScene, gameSnapshot } from "../game.js";
 
 const diagnosticPath = z.array(z.union([z.string(), z.number(), z.symbol().transform((value) => value.toString())]));
@@ -50,7 +51,8 @@ const sceneFields = {
   gravity: gameVector3.default({ x: 0, y: -9.81, z: 0 }),
   environment: gameEnvironment3D.default({ background: "#202838", ambient: { color: "#ffffff", intensity: 0.5 }, shadows: { enabled: true, mapSize: 1024, extent: 30 } }),
   music: gameScene.shape.music,
-  entities: z.array(gameEntity3D).max(4096)
+  entities: z.array(gameEntity3D).max(4096),
+  ui: gameUiTree.optional()
 };
 
 export const gameScene3D = z.strictObject({
@@ -78,7 +80,8 @@ export const gameDocument3D = z.strictObject({
   prefabs: z.record(id, gamePrefab3D).default({}), scenes: z.array(gameScene3D).min(1).max(64),
   animationGraphs: gameAnimationGraphs3D.optional(),
   audio: gameAudioSettings.optional(),
-  performance: gamePerformance3D.optional()
+  performance: gamePerformance3D.optional(),
+  ui: gameUiTree.optional()
 });
 
 export type GameDocument3D = z.infer<typeof gameDocument3D>;
@@ -145,7 +148,8 @@ export const gameRenderFrame3D = z.strictObject({
     particles: gameEntity.shape.particles,
     cullDistance: positive.optional().describe("Camera distance beyond which the renderer hides this entity, resolved from renderCulling.") })),
   lights: z.array(z.strictObject({ entityId: id, transform: gameTransform3D, light: gameLight3D })),
-  environment: gameEnvironment3D, hud: z.array(gameHudLabel), fonts: z.record(id, gameAssetBinding3D.options[3]).optional()
+  environment: gameEnvironment3D, hud: z.array(gameHudLabel), ui: gameUiFrame.optional(),
+  fonts: z.record(id, gameAssetBinding3D.options[3]).optional()
 });
 
 export type GameRenderFrame3D = z.infer<typeof gameRenderFrame3D>;
@@ -201,6 +205,7 @@ export const gameScriptCommand3D = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("setKinematicPose"), position: gameVector3, rotation: gameQuaternion3D.optional() }),
   z.strictObject({ kind: z.literal("setVisual"), rotation: gameQuaternion3D.optional(), scale: gameTransform3D.shape.scale.optional(), opacity: finite.min(0).max(1).optional() }),
   ...gameNonSpatialScriptCommand.options,
+  gameUiScriptCommand,
   z.strictObject({ kind: z.literal("spawn"), prefabId: id, position: gameVector3.optional(), rotation: gameQuaternion3D.optional(), velocity: gameVector3.optional() }),
   z.strictObject({ kind: z.literal("rayQuery"), queryId: id.max(64), origin: gameVector3, direction: gameVector3, maxDistance: positive.max(10000), mask: layerBits.default(0xffff) }),
   z.strictObject({ kind: z.literal("shapeQuery"), queryId: id.max(64), shape: gameQueryShape3D,
@@ -223,7 +228,7 @@ export const gameSnapshot3D = z.strictObject({
   pendingEvents: z.array(gameEvent3D).max(512), pendingCommands: z.array(z.strictObject({ entityId: id, command: gameScriptCommand3D })).max(1024).default([]),
   queryResults: z.array(gameQueryResult3D).max(64).default([]), activeContacts: z.array(z.strictObject({ entityId: id, otherId: id, sensor: z.boolean() })),
   entities: z.array(gameEntityState3D).max(8192), camera: gameCameraState3D,
-  hud: z.array(gameHudLabel), music: gameSnapshot.shape.music,
+  hud: z.array(gameHudLabel), ui: gameUiOverrides.optional(), music: gameSnapshot.shape.music,
   prefabInstances: z.array(z.strictObject({ id, prefabId: id, rootId: id, mapping: z.record(id, id) })).max(1024).default([]),
   physics: z.strictObject({ encoding: z.literal("base64"), bytes: z.string(), bodies: z.record(id, finite.nonnegative()), colliders: z.record(id, finite.nonnegative()) })
 });
