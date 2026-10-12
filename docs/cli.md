@@ -1143,6 +1143,7 @@ nodetool game simulate game.json --ticks 120 --inputs inputs.json --assertions a
 nodetool game capture game.json --ticks 120 --inputs inputs.json --out frame.png
 nodetool game capture game.json --ticks 120 --out frame.png --backend webgpu
 nodetool game build game.json --out game-build --assets-dir game-assets
+nodetool game build game.json --out game-desktop --assets-dir game-assets --target tauri --name "Cave Run" --compile
 nodetool game smoke game-build --json
 ```
 
@@ -1151,7 +1152,7 @@ nodetool game smoke game-build --json
 - `game validate <game_file>` — `--json`.
 - `game simulate <game_file>` — `--ticks <count>` (required), `--seed <integer>` (default `1`), `--inputs <file>`, `--assets-dir <directory>` (prepared 3D collider files named `<full-asset-id>.json`), `--expect-score <score>`, `--expect-win`, `--assertions <file>`, `--verify-replay`, `--json`.
 - `game capture <game_file>` — `--ticks <count>` and `--out <file>` (both required), `--seed <integer>`, `--inputs <file>`, `--scale <factor>` (default `1`), `--backend <canvas2d|webgpu|webgl2>`, `--assets-dir <directory>`, `--json`. A schema version 3 (3D) document defaults to `webgl2`. A 2D document accepts `canvas2d` (default) or `webgpu`.
-- `game build <game_file>` — `--out <directory>` (required), `--assets-dir <directory>`, `--json`.
+- `game build <game_file>` — `--out <directory>` (required), `--assets-dir <directory>`, `--target <web|tauri>` (default `web`), `--json`. `--target tauri` writes a [Tauri](https://tauri.app) desktop app project: the web player in `dist/` and a native shell in `src-tauri/`. It accepts `--name <name>`, `--identifier <reverse-dns>`, `--app-version <MAJOR.MINOR.PATCH>`, `--icon <png|jpeg|webp>`, and `--compile`, which runs `cargo build --release` and reports the executable path. Run `npm install && npm run build` in the project for installers.
 - `game smoke <directory>` — `--json`. Serves an exported build in headless Chromium with outside network access blocked, renders 300 scripted frames, and checks tick progress. Console errors, page errors, failed requests, and stalled ticks return a nonzero exit status. Install Chromium with `npx playwright install chromium`.
 
 Schema version 2 adds sprite `visualAnimation` tracks and scene `backgrounds`.

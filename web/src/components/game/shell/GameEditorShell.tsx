@@ -3,7 +3,8 @@ import { useStore, type StoreApi } from "zustand";
 
 import type { GamePanelLayoutState } from "../../../stores/game/GamePanelLayoutStore";
 import { useGameShortcutStore } from "../../../stores/game/GameShortcutStore";
-import { EditorUiProvider, FlexColumn } from "../../ui_primitives";
+import { Caption, EditorButton, EditorUiProvider, FlexColumn, FlexRow, SPACING } from "../../ui_primitives";
+import ReportBugButton from "../../support/ReportBugButton";
 import GameToolbar from "./GameToolbar";
 import GameStatusBar from "./GameStatusBar";
 import GameCommandPalette from "./GameCommandPalette";
@@ -18,6 +19,7 @@ import { isMac } from "../../../utils/platform";
 import { createGameCommandRegistry, GameCommandContext } from "./useGameCommands";
 import { gamePanelRegistry, type GameDimension, type GamePanelRegistry } from "./panelRegistry";
 import { GAME_EDITOR_ROOT_SX } from "./gameEditorStyles";
+import { useGameExport } from "./useGameExport";
 
 export interface GamePanelView {
   readonly id: string;
@@ -39,10 +41,12 @@ interface GameEditorShellProps {
   readonly commands?: GameCommandHandlers;
   /** Whether this editor's tab is the one on screen; its commands join the app's command menu while it is. */
   readonly active?: boolean;
+  /** The saved game, for exporting its published revision. */
+  readonly exportGame?: { readonly id: string; readonly name: string };
 }
 
 export default function GameEditorShell({ dimension, toolbar, status, panels, layoutStore, registry = gamePanelRegistry,
-  notices, mobile, dialogs, commands, active = true }: GameEditorShellProps): ReactNode {
+  notices, mobile, dialogs, commands, active = true, exportGame }: GameEditorShellProps): ReactNode {
   const root = useRef<HTMLDivElement | null>(null);
   const registrations = useSyncExternalStore(registry.subscribe, registry.getSnapshot, registry.getSnapshot);
   const layout = useStore(layoutStore, (state) => state.layout);
@@ -55,10 +59,14 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
   const bindings = useMemo(() => resolveGameBindings(overrides), [overrides]);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const exporter = useGameExport(exportGame);
+  const exportEnabled = exportGame !== undefined && exporter.exporting === null;
   const builtIn: GameCommandHandlers = {
     "editor.commandPalette": { run: () => setPaletteOpen(true) },
     "editor.keyboardShortcuts": { run: () => setShortcutsOpen(true) },
     "editor.publish": { run: toolbar.onPublish, enabled: !toolbar.saving && toolbar.saveStatus !== "saving" },
+    "editor.exportWeb": { run: () => exporter.run("web"), enabled: exportEnabled },
+    "editor.exportDesktop": { run: () => exporter.run("tauri"), enabled: exportEnabled },
     "edit.undo": toolbar.onUndo ? { run: toolbar.onUndo, enabled: toolbar.canUndo !== false } : undefined,
     "edit.redo": toolbar.onRedo ? { run: toolbar.onRedo, enabled: toolbar.canRedo !== false } : undefined,
     "play.toggle": { run: toolbar.onPlay, enabled: !toolbar.loading },
@@ -92,8 +100,17 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
       if (!(event.target instanceof Node) || !root.current?.contains(event.target)) { return; }
       dispatchGameShortcut(event, { dimension, playing: toolbar.playSession, bindings, handler: commandRegistry.handler });
     }}>
-    <GameToolbar {...toolbar} onCommandPalette={() => setPaletteOpen(true)} />
+    <GameToolbar {...toolbar} onCommandPalette={() => setPaletteOpen(true)}
+      onExport={exportGame ? exporter.run : undefined} exporting={exporter.exporting !== null} />
     <GameLayoutMenu store={layoutStore} panels={registrations.filter((entry) => views.some((view) => view.id === entry.id))} />
+    {exporter.exporting && <Caption role="status" sx={{ px: SPACING.md, py: SPACING.xs }}>
+      {exporter.exporting === "tauri" ? "Building the desktop app project from the published revision" : "Building the web player from the published revision"}
+    </Caption>}
+    {exporter.error && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
+      <Caption color="error" role="alert">Export failed: {exporter.error}</Caption>
+      <ReportBugButton context={{ source: "panel-crash", summary: "Game export failed", errorText: exporter.error }} />
+      <EditorButton onClick={exporter.dismiss}>Dismiss</EditorButton>
+    </FlexRow>}
     {notices}
     <GameDockCanvas presentation={presentation} store={layoutStore} />
     <GameStatusBar {...status} />

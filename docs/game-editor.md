@@ -248,7 +248,7 @@ The agent follows the `native-game` skill and edits the draft through tools:
 | `generate_game_asset` | Generate or import an image, speech, music, sound effect, font, or 3D model, and bind it to a slot |
 | `install_native_game_asset` | Install a staged candidate asset |
 | `publish_native_game` | Publish, only when you ask |
-| `build_native_game` | Write a standalone web build |
+| `build_native_game` | Write a standalone web build or a Tauri desktop app project |
 | `list_example_games`, `get_example_game`, `install_example_game` | Study or copy a shipped game |
 
 For a new game or an art overhaul the agent also loads `game-direction`. It fixes a player promise, a style string, a layer plan, feel parameters, and a pacing sheet first, then keeps asset prompts consistent with that spec.
@@ -295,7 +295,7 @@ Publishing does not make the game public. The game belongs to your account and i
 
 **Play in new tab** opens `/game/<game ID>`. That route is protected and loads the game through your own account, so only the owner can open it. It loads the **saved draft**, not the last published revision, and shows the game name, **Play**, **Stop**, a score, and a status. The button is disabled until the draft is saved. A 3D game loads the 3D player in the same route.
 
-To give someone a game that runs without NodeTool, publish and then [build a standalone web player](#build-a-standalone-web-build).
+To give someone a game that runs without NodeTool, publish and then [build a standalone web player](#build-a-standalone-web-build) or a [desktop app](#build-a-desktop-app).
 
 ---
 
@@ -303,8 +303,9 @@ To give someone a game that runs without NodeTool, publish and then [build a sta
 
 A standalone build is a folder of static files for one revision. It plays without a NodeTool server.
 
-The editor has no export button. Use one of these:
+Use one of these:
 
+- **The editor.** Choose **Export build** in the toolbar, then **Web player**. The download is a zip of the last published revision, not the draft.
 - **The agent.** Ask it to build the game. It calls `build_native_game` for an owned revision and writes the folder under the project workspace, then returns the path.
 - **The CLI.** `nodetool game build game.json --out game-build` builds from a game file. See [`nodetool game`](cli.md#nodetool-game) for flags, and for `validate`, `simulate`, and `capture`, which check a game without the editor.
 
@@ -314,6 +315,22 @@ The folder holds `index.html`, `game.json`, a player script, and an `assets/` fo
 - Installed media must still exist, match its recorded digest, and use a supported format, or the build fails.
 - On a touch screen the 2D player adds a floating stick for `left`, `right`, `up`, and `down`, and one button per other input action.
 - The first 3D release targets desktop web and Electron.
+
+---
+
+## Build a desktop app
+
+A desktop build wraps the standalone web player in a [Tauri](https://tauri.app) project. It compiles to a native app for Windows, macOS, and Linux that plays the published revision offline.
+
+- **The editor.** Choose **Export build**, then **Desktop app**. The zip holds a `desktop/` folder.
+- **The agent.** Ask it for a desktop build. It calls `build_native_game` with `target: "tauri"`.
+- **The CLI.** `nodetool game build game.json --out game-desktop --target tauri --name "Cave Run"`. Add `--compile` to build the executable right away.
+
+The project holds `dist/` (the web player), `src-tauri/` (the native shell, icons, and `tauri.conf.json`), `package.json`, and a README. The app takes the game's name, and its identifier defaults to `ai.nodetool.game.<name>`.
+
+To make installers, install Rust and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your platform, then run `npm install && npm run build` in the project. Installers land in `src-tauri/target/release/bundle/`. Each platform builds its own installers, so build the Windows app on Windows and the macOS app on a Mac. `cargo build --release` in `src-tauri/` makes the executable alone.
+
+WebGPU effects depend on the system web view. Where it has no WebGPU, as in WebKitGTK on Linux, the 2D player skips them and says so in its status line.
 
 ---
 
