@@ -83,12 +83,17 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
 
   // Local hue state — prevents hue jump when dragging in desaturated areas
   const [localHue, setLocalHue] = useState<number>(hsv.h);
+  // What the hex field shows while it is being typed. Every partial value
+  // ("#", "#f", ...) is invalid, so a field bound only to `color` threw each
+  // keystroke away and a typed hex never arrived.
+  const [hexDraft, setHexDraft] = useState<string | null>(null);
   const prevOpenRef = useRef(false);
 
   // Sync hue when picker opens (don't do it on every color change)
   useEffect(() => {
     if (open && !prevOpenRef.current) {
       setLocalHue(rgbToHsv(r, g, b).h);
+      setHexDraft(null);
     }
     prevOpenRef.current = open;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,6 +119,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
     const s = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const v = Math.max(0, Math.min(1, 1 - (clientY - rect.top) / rect.height));
     const { r: nr, g: ng, b: nb } = hsvToRgb(localHue, s, v);
+    setHexDraft(null);
     onColorChange(rgbaToCss({ r: nr, g: ng, b: nb, a }));
   }, [localHue, a, onColorChange]);
 
@@ -138,6 +144,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
   const handleHueChange = (_: Event, val: number | number[]) => {
     const h = val as number;
     setLocalHue(h);
+    setHexDraft(null);
     const { r: nr, g: ng, b: nb } = hsvToRgb(h, hsv.s, hsv.v);
     onColorChange(rgbaToCss({ r: nr, g: ng, b: nb, a }));
   };
@@ -351,8 +358,12 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
       {mode === "hex" && (
         <TextField
           size="small"
-          value={fgHex6}
-          onChange={(e) => handleHex(e.target.value)}
+          value={hexDraft ?? fgHex6}
+          onChange={(e) => {
+            setHexDraft(e.target.value);
+            handleHex(e.target.value);
+          }}
+          onBlur={() => setHexDraft(null)}
           inputProps={{ maxLength: 7, "aria-label": "Hex color" }}
           sx={{
             "& .MuiInputBase-root": { fontSize: FONT_SIZE_SANS.label, height: "22px" },
