@@ -429,6 +429,20 @@ it("uses the selected entity ID in a viewport command label when its stored name
   } finally { player.name = originalName; }
 });
 
+it("labels a viewport edit of several entities and Align to ground by count", async () => {
+  const store = getGameDraftStore(mockDocument.id);
+  store.getState().load(mockDocument, mockToken);
+  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  const viewport = mockViewportProps;
+  if (!viewport?.onOps) { throw new Error("Viewport callbacks missing"); }
+  const [first, second] = mockDocument.scenes[0].entities;
+  const moves = (offset: number) => [first, second].map((entity) => ({ op: "update_entity" as const, scene_id: mockDocument.entrySceneId,
+    entity_id: entity.id, set: { transform3d: { position: { ...entity.transform3d.position, y: entity.transform3d.position.y + offset } } } }));
+  act(() => viewport.onOps?.(moves(1), undefined, "Move"));
+  act(() => viewport.onOps?.(moves(2), undefined, "Ground"));
+  expect(store.getState().commandHistory.past.map((command) => command.label)).toEqual(["Move 2 entities", "Align 2 entities to ground"]);
+});
+
 it("retries only the submitted movement after undo during a rejected save and then saves its inverse", async () => {
   const originalDocument = mockServer.document;
   const originalGame = { ...mockServer.game };

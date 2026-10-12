@@ -516,6 +516,7 @@ Targets: 60 fps at 1280×720 on a mid-range desktop GPU for `bench-3d-1000` with
 
 **E5. Gizmos, snapping and multi-select (G45, G46).**
 - Do: local or world toggle, pivot mode, snap increments per mode, surface snap and align to ground (raycast), multi-select with one gizmo in 3D, orbit around selection, scene orientation gizmo with axis views and orthographic toggle.
+- Implemented in `viewport3d/GameViewport3D.tsx` with the math in `stores/game/gameGizmo3D.ts` and the preferences in `stores/game/GameViewportSettings3DStore.ts`. The gizmo drives one pivot object. A drag reads the pivot's change in its own frame and replays it on each selected root, so a child of a selected parent is not moved twice, and the drag commits every root in one op batch, which is one undo step. Surface snap and Align to ground raycast against the rendered entity objects outside the selection and fall back to the ground plane at height zero. The settings are per-user browser preferences under `nodetool.game-viewport3d.v1:<scope>`, not document state, so they need no schema change or agent capability. Vertex snapping (G46) is not covered.
 
 **E6. Debug view modes (G48).**
 - Depends on: R7, P7.
