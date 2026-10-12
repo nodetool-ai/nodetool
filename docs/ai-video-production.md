@@ -13,6 +13,8 @@ takes enter the cut.
 Generated takes are previews until you set one as current, choose **Use take**, or approve a draft. You
 can compare options without changing the current edit.
 
+![A storyboard with rendered stills and clips for each shot](assets/screenshots/storyboard-shots.png)
+
 ## Before you start
 
 Connect the models needed for your route:
