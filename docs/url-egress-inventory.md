@@ -114,6 +114,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | durable FAL output recovery | `packages/websocket/src/generation-recovery.ts` | provider response |
 | MCP OAuth Client ID Metadata Document fetch | `packages/websocket/src/oauth/cimd.ts` | model/client (an MCP client's self-hosted `client_id` URL) |
 | external MCP server (HTTP transport) | `packages/websocket/src/external-mcp.ts` | operator (a user's own MCP server URL; guarded under the cloud profile, loopback allowed on a local install) |
+| custom OpenAI-compatible provider | `packages/runtime/src/providers/custom-openai-provider.ts`, checked on save in `packages/websocket/src/custom-providers.ts` | operator (a user's own base URL; guarded under the cloud profile, loopback allowed on a local install) |
 
 The provider row is eleven files, each downloading a URL a provider's response
 named — plus one reading a URL the caller's own message named
@@ -223,6 +224,9 @@ at 24 hours.
   the app on `localhost` is the reason to take one there.
 - `packages/cli/src/nodetool-main.ts` — runs on the operator's machine against their
   own API URL, loopback by default.
+- `packages/websocket/src/mcp-server.ts` — the `nodetool mcp serve` forwarder
+  reaches the local server's `/mcp` mount and refuses any host other than
+  `127.0.0.1` or `localhost`.
 - `packages/deploy/src/admin-client.ts` — the server being deployed.
 
 **Browser-side.** The socket belongs to the viewer's browser, not the server:

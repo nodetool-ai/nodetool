@@ -28,6 +28,8 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { settingCatalog } from "@nodetool-ai/config";
+import { isCloudSettingGroup } from "@nodetool-ai/protocol";
+import { isCloudProfile } from "../../lib/cloud-profile.js";
 import type { SettingWithValue } from "../../settings-registry.js";
 import {
   listOutput,
@@ -270,23 +272,31 @@ export const settingsRouter = router({
     const secretsMap = new Map(userSecrets.map((s) => [s.key, s]));
 
     const result: SettingWithValue[] = [];
+    // The cloud hides the groups that configure the host, and does not fall
+    // back to the server's environment: those values are the operator's, not
+    // the tenant's.
+    const cloud = isCloudProfile();
+    const catalog = cloud
+      ? settingCatalog().filter((def) => isCloudSettingGroup(def.group))
+      : settingCatalog();
 
     // Non-secret settings: read from DB then env.
-    for (const def of settingCatalog()) {
+    for (const def of catalog) {
       if (def.isSecret) continue;
+      const envValue = cloud ? undefined : process.env[def.envVar];
       result.push({
         package_name: def.packageName,
         env_var: def.envVar,
         group: def.group,
         description: def.description,
         enum: def.enum ?? null,
-        value: settingsMap.get(def.envVar) ?? process.env[def.envVar] ?? null,
+        value: settingsMap.get(def.envVar) ?? envValue ?? null,
         is_secret: false
       });
     }
 
     // Secrets: "****" if configured (DB or env), null otherwise.
-    for (const def of settingCatalog()) {
+    for (const def of catalog) {
       if (!def.isSecret) continue;
       const hasSecret = secretsMap.has(def.envVar);
       const hasEnvVar = Boolean(process.env[def.envVar]);
@@ -308,6 +318,23 @@ export const settingsRouter = router({
     .input(updateInput)
     .output(updateOutput)
     .mutation(async ({ ctx, input }) => {
+      if (isCloudProfile()) {
+        const keys = [
+          ...Object.keys(input.settings ?? {}),
+          ...Object.keys(input.secrets ?? {})
+        ];
+        const hidden = keys.filter((key) => {
+          const def = settingCatalog().find((d) => d.envVar === key);
+          return def !== undefined && !isCloudSettingGroup(def.group);
+        });
+        if (hidden.length > 0) {
+          throwApiError(
+            ApiErrorCode.FORBIDDEN,
+            `These settings configure the server host and cannot be changed on this deployment: ${hidden.join(", ")}`
+          );
+        }
+      }
+
       // Non-secret settings → Setting.upsert
       if (input.settings) {
         for (const [key, value] of Object.entries(input.settings)) {
