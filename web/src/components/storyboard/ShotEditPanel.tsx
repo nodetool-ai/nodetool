@@ -722,7 +722,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
       <Box sx={headerSx}>
         <EditorButton
           onClick={handleClose}
-          startIcon={<ArrowBackIcon fontSize="small" />}
+          startIcon={<ArrowBackIcon />}
           sx={{ justifySelf: "start" }}
         >
           Back to storyboard

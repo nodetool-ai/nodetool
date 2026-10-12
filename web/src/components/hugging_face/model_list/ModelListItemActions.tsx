@@ -89,7 +89,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           className="model-download-button"
           onClick={onDownload}
           variant="outlined"
-          startIcon={<DownloadIcon sx={{ fontSize: "1.25em" }} />}
+          startIcon={<DownloadIcon />}
         >
           Download
         </EditorButton>
@@ -99,7 +99,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           className="model-select-button"
           onClick={handleSelectClick}
           variant="contained"
-          startIcon={<Check sx={{ fontSize: "1.25em" }} />}
+          startIcon={<Check />}
         >
           Use
         </EditorButton>

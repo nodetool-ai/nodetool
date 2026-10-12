@@ -196,7 +196,7 @@ const ProviderRow = memo(function ProviderRow({
           variant="text"
           size="small"
           color="error"
-          startIcon={<DeleteIcon sx={{ fontSize: 14 }} />}
+          startIcon={<DeleteIcon />}
           onClick={handleDelete}
         >
           Remove
@@ -421,7 +421,7 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
           density="compact"
           variant="outlined"
           size="small"
-          startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+          startIcon={<AddIcon />}
           onClick={handleAdd}
         >
           Add endpoint

@@ -150,7 +150,7 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
                 e.stopPropagation();
                 onSelect();
               }}
-              startIcon={<Check sx={{ fontSize: "1.1em" }} />}
+              startIcon={<Check />}
               sx={{ flexShrink: 0 }}
             >
               Use
@@ -167,7 +167,7 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
             <EditorButton
               variant="outlined"
               onClick={handleDownloadClick}
-              startIcon={<DownloadIcon sx={{ fontSize: "1.1em" }} />}
+              startIcon={<DownloadIcon />}
               sx={{ flexShrink: 0 }}
             >
               Download

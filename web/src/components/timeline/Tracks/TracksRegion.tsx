@@ -1554,7 +1554,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             <EditorButton
               variant="contained"
               size="small"
-              startIcon={<AutoAwesomeIcon fontSize="small" />}
+              startIcon={<AutoAwesomeIcon />}
               onClick={onGenerate}
               aria-label="Generate"
               data-testid="timeline-generate"

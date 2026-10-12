@@ -270,7 +270,12 @@ const ThemeNodetool = createTheme({
           fontSize: theme.fontSizeSmall, // 13px — label
           lineHeight: 1.35,
           minHeight: CONTROL.height.sm
-        })
+        }),
+        // One icon size per button size, so call sites never size the icon
+        // they pass as startIcon or endIcon.
+        iconSizeSmall: { "& > *:nth-of-type(1)": { fontSize: 16 } },
+        iconSizeMedium: { "& > *:nth-of-type(1)": { fontSize: 18 } },
+        iconSizeLarge: { "& > *:nth-of-type(1)": { fontSize: 20 } }
       }
     },
     MuiFormLabel: {

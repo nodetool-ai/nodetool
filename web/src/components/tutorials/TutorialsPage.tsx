@@ -66,20 +66,6 @@ const styles = (theme: Theme) =>
       [theme.breakpoints.down("md")]: { display: "none" }
     },
     ".tut-header .spacer": { flex: 1 },
-    ".back": {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: theme.spacing(0.5),
-      fontSize: "var(--fontSizeSmall)",
-      color: theme.vars.palette.text.secondary,
-      background: "none",
-      border: "none",
-      cursor: "pointer",
-      transition: `color ${MOTION.fast}`,
-      "&:hover": { color: theme.vars.palette.text.primary },
-      "& svg": { fontSize: 18 },
-      "@media (pointer: coarse)": { minHeight: 44, paddingLeft: 0 }
-    },
 
     ".tut-body": {
       flex: 1,
@@ -379,10 +365,14 @@ const TutorialsPage: React.FC = () => {
           <span className="sub">Short, beginner-friendly walkthroughs of NodeTool</span>
         </div>
         <span className="spacer" />
-        <button type="button" className="back" onClick={() => navigate("/workspace")}>
-          <ArrowBackRoundedIcon />
+        <EditorButton
+          variant="text"
+          color="inherit"
+          startIcon={<ArrowBackRoundedIcon />}
+          onClick={() => navigate("/workspace")}
+        >
           Workspace
-        </button>
+        </EditorButton>
       </header>
 
       <div className="tut-body" ref={bodyRef}>

@@ -237,7 +237,7 @@ const SpeakerCard = ({
               size="small"
               variant="text"
               color="error"
-              startIcon={<DeleteOutlineIcon fontSize="small" />}
+              startIcon={<DeleteOutlineIcon />}
               onClick={() => removeSpeaker(scriptId, speaker.id)}
             >
               Remove speaker
@@ -301,7 +301,7 @@ const ScriptCastPanel = ({
           <EditorButton
             size="small"
             variant="text"
-            startIcon={<PersonAddIcon fontSize="small" />}
+            startIcon={<PersonAddIcon />}
             onClick={onAdd}
           >
             Add

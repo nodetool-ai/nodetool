@@ -118,7 +118,7 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
               variant={fit === "over" ? "outlined" : "contained"}
               density="compact"
               size="small"
-              startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
+              startIcon={<DownloadIcon />}
               onClick={handleDownload}
             >
               Download

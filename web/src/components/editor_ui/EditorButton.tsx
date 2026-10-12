@@ -15,7 +15,13 @@ import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
 import { editorClassNames, cn } from "./editorUtils";
 
-import { BORDER_RADIUS, CONTROL, Tooltip } from "../ui_primitives";
+import {
+  BORDER_RADIUS,
+  CONTROL,
+  getSpacingPx,
+  SPACING,
+  Tooltip
+} from "../ui_primitives";
 export interface EditorButtonProps extends Omit<ButtonProps, "size"> {
   /**
    * Density variant
@@ -91,15 +97,17 @@ export function EditorButton({
       size={size ?? "small"}
       className={cn(editorClassNames.nodrag, className)}
       {...(href ? { href, target, rel, component: "a" as const } : {})}
-      sx={{
-        fontSize,
-        height,
-        minWidth: "auto",
-        padding: `4px ${paddingX}px`,
-        borderRadius: BORDER_RADIUS.md,
-        textTransform: "none",
-        ...sx
-      }}
+      sx={[
+        {
+          fontSize,
+          height,
+          minWidth: "auto",
+          padding: `${getSpacingPx(SPACING.xs)} ${paddingX}px`,
+          borderRadius: BORDER_RADIUS.md,
+          textTransform: "none"
+        },
+        ...(Array.isArray(sx) ? sx : [sx])
+      ]}
       {...props}
     />
   );
