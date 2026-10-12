@@ -223,7 +223,12 @@ Scripts save and load in 2D and 3D with two commands:
 separate stores, so a progress slot and a settings slot can share a name and
 removing one never touches the other. `snapshot: true` also stores the
 end-of-tick session snapshot with a progress save. A settings save with a
-snapshot fails the tick.
+snapshot fails the tick. The player keeps one snapshot save pending at a time,
+and the editor stores the data without the snapshot.
+
+The player runs saves and loads in order, with at most 8 waiting. A request
+past that limit fails without stopping the game, and a failed load answers
+with null data.
 
 A slot name is 1 to 32 letters, digits, `_` or `-`. `data` must be a JSON
 object of at most 16 KiB serialized, 256 keys counted at every depth and 16

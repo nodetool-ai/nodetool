@@ -34,12 +34,14 @@ export function createIndexedDbGameSaveStorage(gameId: string, factory: IDBFacto
     const transaction = (await database()).transaction(STORE, mode);
     const result = settle(action(transaction.objectStore(STORE)));
     if (mode === "readonly") { return result; }
-    await new Promise<void>((resolve, reject) => {
+    const completed = new Promise<void>((resolve, reject) => {
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error ?? new Error("Game save storage write failed"));
       transaction.onabort = () => reject(transaction.error ?? new Error("Game save storage write was aborted"));
     });
-    return result;
+    // Await both, so a failed request and the aborted transaction it causes reject once, with no unhandled rejection.
+    const [value] = await Promise.all([result, completed]);
+    return value;
   };
   return {
     read: (scope, slot) => run("readonly", (store) => store.get(saveKey(gameId, scope, slot))),

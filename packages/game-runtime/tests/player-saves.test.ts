@@ -18,7 +18,7 @@ import {
 } from "@nodetool-ai/protocol";
 
 import { openGameSession } from "../src/open-session.js";
-import { createMemoryGameSaveStorage, GamePlayerSaves, type GameSaveStorage } from "../src/player-saves.js";
+import { createMemoryGameSaveStorage, GamePlayerSaves, MAX_GAME_SAVE_QUEUE, type GameSaveStorage } from "../src/player-saves.js";
 import { createTopDownRoomGame } from "../src/sample.js";
 import { createScriptedGameSession, type GameSession } from "../src/session.js";
 import { blockout } from "./fixtures-game3d.js";
@@ -157,6 +157,83 @@ describe("save data bounds", () => {
   });
 });
 
+describe("save queue", () => {
+  /** Memory storage whose writes wait for `release`, so operations stay queued. */
+  function heldStorage(): { storage: GameSaveStorage; release(): void; entries: ReturnType<typeof createMemoryGameSaveStorage>["entries"] } {
+    const memory = createMemoryGameSaveStorage();
+    let release = (): void => undefined;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    return { storage: { ...memory, write: async (scope, slot, record) => { await held; await memory.write(scope, slot, record); } }, release: () => release(), entries: memory.entries };
+  }
+
+  it("rejects operations past the queue limit and answers a rejected load with null", async () => {
+    const { storage, release } = heldStorage();
+    const errors: string[] = [];
+    const saves = new GamePlayerSaves(storage, { onError: (error) => errors.push(error.message) });
+    const queued = Array.from({ length: MAX_GAME_SAVE_QUEUE }, (_, index) => saves.save("progress", `slot-${index}`, { index }));
+    await expect(saves.save("progress", "late", {})).rejects.toThrow(`Game save queue is full (${MAX_GAME_SAVE_QUEUE} pending)`);
+    await expect(saves.load("progress", "slot-0")).rejects.toThrow(/queue is full/);
+    saves.handle([{ kind: "load", tick: 3, entityId: "e", scope: "progress", slot: "slot-0" }], () => null);
+    release();
+    await Promise.all(queued);
+    await saves.idle();
+    expect(errors).toEqual([`Game save queue is full (${MAX_GAME_SAVE_QUEUE} pending)`]);
+    expect(saves.withLoaded(idle).loaded).toEqual([{ scope: "progress", slot: "slot-0", data: null }]);
+    expect(await saves.slots("progress")).toHaveLength(MAX_GAME_SAVE_QUEUE);
+    expect(MAX_GAME_SAVE_QUEUE).toBe(8);
+  });
+
+  it("keeps at most one snapshot save pending and takes no snapshot for a rejected one", async () => {
+    const { storage, release, entries } = heldStorage();
+    const errors: string[] = [];
+    const saves = new GamePlayerSaves(storage, { onError: (error) => errors.push(error.message) });
+    let taken = 0;
+    const snapshot = (): unknown => ({ taken: ++taken });
+    const save = (slot: string, withSnapshot: boolean) => ({ kind: "save" as const, tick: 1, entityId: "e", scope: "progress" as const, slot, data: {}, snapshot: withSnapshot });
+    saves.handle([save("a", true), save("b", true), save("c", false)], snapshot);
+    release();
+    await saves.idle();
+    expect(taken).toBe(1);
+    expect(errors).toEqual(["A snapshot save is already pending"]);
+    expect(entries().progress).toEqual({ a: { version: 1, data: {}, snapshot: { taken: 1 } }, c: { version: 1, data: {} } });
+    saves.handle([save("b", true)], snapshot);
+    await saves.idle();
+    expect(entries().progress.b).toEqual({ version: 1, data: {}, snapshot: { taken: 2 } });
+  });
+
+  it("checks the slot limit inside the queue, so concurrent saves cannot exceed it", async () => {
+    const storage = createMemoryGameSaveStorage();
+    const saves = new GamePlayerSaves(storage);
+    for (let index = 0; index < MAX_GAME_SAVE_SLOTS - 1; index += 1) { await saves.save("progress", `slot-${index}`, {}); }
+    const results = await Promise.allSettled(["x", "y", "z"].map((slot) => saves.save("progress", slot, {})));
+    expect(results.map((result) => result.status)).toEqual(["fulfilled", "rejected", "rejected"]);
+    saves.handle([{ kind: "save", tick: 2, entityId: "e", scope: "progress", slot: "w", data: {}, snapshot: false }], () => null);
+    await saves.idle();
+    expect(await saves.slots("progress")).toHaveLength(MAX_GAME_SAVE_SLOTS);
+  });
+
+  it("stores no snapshot and takes none when the host turns snapshots off", async () => {
+    const storage = createMemoryGameSaveStorage();
+    const saves = new GamePlayerSaves(storage, { storeSnapshots: false });
+    let taken = 0;
+    saves.handle([{ kind: "save", tick: 2, entityId: "e", scope: "progress", slot: "main", data: { room: 3 }, snapshot: true }], () => ({ taken: ++taken }));
+    await saves.idle();
+    expect(taken).toBe(0);
+    expect(storage.entries().progress).toEqual({ main: { version: 1, data: { room: 3 } } });
+  });
+
+  it("leaves a frame that already carries loaded unchanged and keeps pending loads for the next frame", async () => {
+    const saves = new GamePlayerSaves(createMemoryGameSaveStorage());
+    saves.handle([{ kind: "load", tick: 5, entityId: "e", scope: "settings", slot: "main" }], () => null);
+    await saves.idle();
+    const recorded: GameInputFrame = { ...idle, loaded: [{ scope: "progress", slot: "old", data: { best: 1 } }] };
+    expect(saves.withLoaded(recorded)).toBe(recorded);
+    const empty: GameInputFrame = { ...idle, loaded: [] };
+    expect(saves.withLoaded(empty)).toBe(empty);
+    expect(saves.withLoaded(idle).loaded).toEqual([{ scope: "settings", slot: "main", data: null }]);
+  });
+});
+
 describe("2D save and load commands", () => {
   it("returns requests on the step result without counting them against maxCommands or storing them in the snapshot", async () => {
     const source = `() => ({ state: null, commands: [{ kind: "setVelocity", x: 1, y: 0 }, { kind: "save", slot: "main", data: { secret: "s3" } }, { kind: "load", slot: "other", scope: "settings" }] })`;
@@ -259,6 +336,20 @@ describe("settings saves", () => {
     saves.clear();
     await saves.idle();
     expect(saves.withLoaded(idle)).toBe(idle);
+  });
+});
+
+describe("recorded loads on session input", () => {
+  const tooMany = [1, 2, 3].map((n) => ({ scope: "progress" as const, slot: `s${n}`, data: null }));
+
+  it("rejects more than two loads on one 2D input frame", async () => {
+    const session = await createScriptedGameSession(game2D("() => ({ state: null, commands: [] })"), 1);
+    try { expect(() => session.step({ ...idle, loaded: tooMany })).toThrow(/"origin": "array"[\s\S]*"maximum": 2/); } finally { session.dispose(); }
+  });
+
+  it("rejects more than two loads on one 3D input frame, through the input system's frame parse", async () => {
+    const session = await open3D(game3D("() => ({ state: null, commands: [] })"));
+    try { expect(() => session.step({ ...gameInputFrame3D.parse({ pressed: [] }), loaded: tooMany })).toThrow(/"origin": "array"[\s\S]*"maximum": 2/); } finally { session.dispose(); }
   });
 });
 

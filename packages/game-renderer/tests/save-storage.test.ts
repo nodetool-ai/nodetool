@@ -101,6 +101,41 @@ it("prefixes localStorage keys so other editor data is never listed as a slot", 
   expect(await storage.slots("progress")).toEqual(["main"]);
 });
 
+it("rejects a failed IndexedDB write once, with no unhandled rejection", async () => {
+  const failure = new Error("QuotaExceededError");
+  const database = {
+    transaction: () => {
+      const transaction = {
+        oncomplete: null, onerror: null, onabort: null as null | (() => void), error: failure,
+        objectStore: () => ({
+          put: () => {
+            const handle = { result: undefined, error: failure, onsuccess: null, onerror: null as null | (() => void) };
+            // A failed request fires its error, then the transaction aborts.
+            queueMicrotask(() => { handle.onerror?.(); queueMicrotask(() => transaction.onabort?.()); });
+            return handle;
+          }
+        })
+      };
+      return transaction;
+    }
+  };
+  const factory = {
+    open: () => {
+      const opening = { result: database, error: null, onsuccess: null as null | (() => void), onerror: null, onupgradeneeded: null };
+      queueMicrotask(() => opening.onsuccess?.());
+      return opening;
+    }
+  } as unknown as IDBFactory;
+  const unhandled: unknown[] = [];
+  const listener = (reason: unknown): void => { unhandled.push(reason); };
+  process.on("unhandledRejection", listener);
+  try {
+    await expect(createIndexedDbGameSaveStorage("g", factory).write("progress", "main", { version: 1, data: {} })).rejects.toBe(failure);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(unhandled).toEqual([]);
+  } finally { process.off("unhandledRejection", listener); }
+});
+
 describe("quick save migration", () => {
   const legacyKey = "nodetool-game:g1:r1:save";
 
