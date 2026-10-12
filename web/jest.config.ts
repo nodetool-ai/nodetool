@@ -42,6 +42,8 @@ export default {
     // instantiated through Emscripten's own `instantiateWasm` hook. See its
     // header comment for the full explanation.
     "^yoga-layout$": "<rootDir>/src/__mocks__/yogaLayoutSync.cjs",
+    // ESM-only package entry; the shim loads the real LAME bundle as CommonJS.
+    "^@mediabunny/mp3-encoder$": "<rootDir>/src/__mocks__/mediabunnyMp3Encoder.cjs",
     "^@nodetool-ai/app-runtime$":
       "<rootDir>/../packages/app-runtime/src/index.ts",
     "^@nodetool-ai/game-runtime$":
