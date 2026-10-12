@@ -31,27 +31,31 @@ vi.mock("@nodetool-ai/timeline/render", async (importOriginal) => {
 });
 vi.mock("../src/nodes/timeline/rawFrames.js", async (importOriginal) => {
   const original = await importOriginal<typeof import("../src/nodes/timeline/rawFrames.js")>();
+  // A forward clip streams and a remapped one seeks; the decode under test
+  // is the same either way.
+  const blockingStream = () => ({
+    width: 32,
+    height: 16,
+    frameAtSourceSec: () => {
+      decodeStarted = true;
+      return new Promise<Uint8Array | null>((resolve) => {
+        settleDecode = (pixels) => {
+          decodeSettled = true;
+          resolve(pixels);
+        };
+      });
+    },
+    close: () => {
+      decodeClosed = true;
+      settleDecode?.(null);
+    }
+  });
   return {
     ...original,
     probeVideoSize: async () => ({ width: 32, height: 16 }),
     probeVideoFrameRate: async () => 25,
-    openSourceFrameStream: () => ({
-      width: 32,
-      height: 16,
-      frameAtSourceSec: () => {
-        decodeStarted = true;
-        return new Promise<Uint8Array | null>((resolve) => {
-          settleDecode = (pixels) => {
-            decodeSettled = true;
-            resolve(pixels);
-          };
-        });
-      },
-      close: () => {
-        decodeClosed = true;
-        settleDecode?.(null);
-      }
-    }),
+    openSourceFrameStream: blockingStream,
+    openForwardSourceFrameStream: blockingStream,
     openFrameEncoder: () => ({
       write: async () => {
         writeStarted = true;

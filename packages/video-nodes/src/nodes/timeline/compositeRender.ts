@@ -34,6 +34,7 @@ import {
   motionBlurSampleTimes,
   layerShutterTime,
   resolveFrameMotionBlur,
+  resolveSceneMotionBlur,
   shutterWindowIsStatic,
   resolveAnimatedLayerProps,
   resolveTextStaggerContext,
@@ -252,6 +253,7 @@ export async function renderTimelineComposited(
   const animCache = createAnimationCompileCache();
 
   const videoSources = new Map<string, ClipVideoSource>();
+  const shutterSampling = resolveSceneMotionBlur(sequence.clips, output.motionBlur).samplesPerFrame > 1;
   const images = new Map<string, RawImage | null>();
   const assetPaths = new Map<string, Promise<string | null>>();
   const skippedClips = new Set<string>();
@@ -328,10 +330,11 @@ export async function renderTimelineComposited(
     const endMs = clip.startMs + clip.durationMs;
     const baked = clip.model3dStyle?.bake?.assetId === assetId;
     // A forward clip at a constant rate streams once, resampled to the
-    // output grid. A remap (which can hold or reverse) and a bake (played
-    // from 0 whatever the clip's window) address the source by time.
+    // output grid. A remap (which can hold or reverse), a bake (played from 0
+    // whatever the clip's window) and shutter sampling (instants between
+    // output frames) address the source by time.
     const stream =
-      !baked && !hasTimeRemap(clip)
+      !baked && !hasTimeRemap(clip) && !shutterSampling
         ? openForwardSourceFrameStream({
             filePath: file,
             size: decodeSize,
