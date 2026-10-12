@@ -34,6 +34,8 @@ The chat panel talks to a NodeTool server. The CDP proxy does not: the backend a
 
 The extension is not published to the Chrome Web Store — build and load it unpacked from source.
 
+On a local install, the first launch with no API key stored opens a two-step onboarding. It signs in to ChatGPT and Claude, then walks through these extension steps with a live connection status. ChatGPT image generation and every Gemini request (chat, images, Veo video) run through the extension.
+
 ```bash
 git clone https://github.com/nodetool-ai/nodetool.git
 cd nodetool/chrome-extension

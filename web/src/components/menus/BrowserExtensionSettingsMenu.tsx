@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
@@ -10,14 +9,10 @@ import DownloadIcon from "@mui/icons-material/Download";
 import { Text, FlexRow, FlexColumn, NavButton, Chip, getSpacingPx, SPACING } from "../ui_primitives";
 import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { trpcClient } from "../../trpc/client";
+import { useExtensionStatus } from "../../serverState/useExtensionStatus";
 import { BASE_URL } from "../../stores/BASE_URL";
 
 const CHROME_EXTENSIONS_URL = "chrome://extensions";
-
-async function fetchExtensionStatus() {
-  return trpcClient.extension.status.query();
-}
 
 async function copyText(text: string): Promise<void> {
   if (window.api?.clipboard?.writeText) {
@@ -41,12 +36,7 @@ const BrowserExtensionSettingsMenu = () => {
     (state) => state.addNotification
   );
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["extension-status"],
-    queryFn: fetchExtensionStatus,
-    refetchInterval: 3000,
-    refetchOnWindowFocus: true
-  });
+  const { status: data, isLoading } = useExtensionStatus();
 
   const connected = data?.connected ?? false;
   const distPath = data?.distPath ?? "";
