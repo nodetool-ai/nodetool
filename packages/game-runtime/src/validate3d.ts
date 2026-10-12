@@ -1,6 +1,6 @@
 import { gameAuthoringBaseline } from "./authoring-reconcile.js";
 import {
-  gameDocument3D, gameAudioSourceIssues, gameInputBindingIssues, gameParticleIssues, gameUiIssues, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
+  gameDocument3D, gameAudioSourceIssues, gameInputBindingIssues, gameParticleIssues, gameParticleRenderWarnings, gameUiIssues, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
   type GameDocument3D, type GameEntity3D, type GamePrefab3D
 } from "@nodetool-ai/protocol";
 import { GAME_LOCAL_SHADOW_LIGHT_BUDGET_3D, gameScriptParamValueOf } from "@nodetool-ai/protocol";
@@ -17,6 +17,8 @@ export interface GameValidationResult3D {
   readonly diagnostics: readonly GameDiagnostic[];
   readonly issues: readonly GameDiagnostic[];
   readonly errors: readonly string[];
+  /** Findings that do not stop the document from playing, such as fields this dimension ignores. */
+  readonly warnings: readonly GameDiagnostic[];
 }
 
 /** Structural and semantic validation happens before preparing assets or physics. */
@@ -26,6 +28,7 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
   const add = (code: string, path: (string | number)[], message: string): void => {
     diagnostics.push({ code, path, message });
   };
+  const warnings: GameDiagnostic[] = [];
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
       add("invalid_schema", issue.path.map((part) => typeof part === "symbol" ? part.toString() : part), issue.message);
@@ -161,6 +164,9 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
           for (const issue of gameAudioSourceIssues(entity.audioSource)) { add("invalid_audio_source", [...entityPath, "audioSource", ...issue.path], issue.message); }
         }
         for (const issue of entity.particles ? gameParticleIssues(entity.particles) : []) { add("invalid_particles", [...entityPath, "particles", ...issue.path], issue.message); }
+        for (const warning of entity.particles ? gameParticleRenderWarnings(entity.particles, "3d") : []) {
+          warnings.push({ code: "ignored_particle_field", path: [...entityPath, "particles", ...warning.path], message: warning.message });
+        }
         for (const [index, emitter] of (entity.particles?.emitters ?? []).entries()) {
           if (emitter.sprite) { checkAsset(emitter.sprite.assetId, "image", [...entityPath, "particles", "emitters", index, "sprite", "assetId"]); }
         }
@@ -230,26 +236,27 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
     }
   }
   const valid = parsed.success && diagnostics.length === 0;
-  const result: { valid: boolean; document?: GameDocument3D; diagnostics: GameDiagnostic[]; issues: GameDiagnostic[]; errors: string[] } = {
-    valid, diagnostics, issues: diagnostics, errors: diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+  const result: { valid: boolean; document?: GameDocument3D; diagnostics: GameDiagnostic[]; issues: GameDiagnostic[]; errors: string[]; warnings: GameDiagnostic[] } = {
+    valid, diagnostics, issues: diagnostics, errors: diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`), warnings
   };
   if (valid && parsed.success) { result.document = parsed.data; }
   return result;
 }
 
-export type AnyGameValidationResult = { readonly valid: true; readonly document: AnyGameDocument; readonly diagnostics: readonly GameDiagnostic[] } |
+export type AnyGameValidationResult = { readonly valid: true; readonly document: AnyGameDocument; readonly diagnostics: readonly GameDiagnostic[]; readonly warnings: readonly GameDiagnostic[] } |
   { readonly valid: false; readonly diagnostics: readonly GameDiagnostic[] };
 export function validateAnyGame(value: unknown): AnyGameValidationResult {
   const parsed = parseGameDocument(value);
   if (!parsed.ok) { return { valid: false, diagnostics: parsed.diagnostics }; }
   if (parsed.document.schemaVersion === 3) {
     const result = validateGame3D(parsed.document);
-    return result.valid && result.document ? { valid: true, document: result.document, diagnostics: [] } : { valid: false, diagnostics: result.diagnostics };
+    return result.valid && result.document ? { valid: true, document: result.document, diagnostics: [], warnings: result.warnings } : { valid: false, diagnostics: result.diagnostics };
   }
   if (parsed.document.engineVersion === "4") {
     return { valid: false, diagnostics: [{ code: "engine_unavailable", path: ["engineVersion"], message: GAME_ENGINE_4_UNAVAILABLE }] };
   }
   const result = validateGame(parsed.document);
-  return result.valid && result.document ? { valid: true, document: result.document, diagnostics: [] } :
+  return result.valid && result.document ? { valid: true, document: result.document, diagnostics: [],
+    warnings: (result.warnings ?? []).map((warning) => ({ ...warning, path: [...warning.path], code: "ignored_particle_field" })) } :
     { valid: false, diagnostics: result.issues.map((issue) => ({ ...issue, path: [...issue.path], code: "invalid_document" })) };
 }

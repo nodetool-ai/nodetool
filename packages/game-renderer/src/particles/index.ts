@@ -22,3 +22,16 @@ export {
   type GameParticleField,
   type ParticleCell
 } from "./render2d.js";
+export {
+  GameParticles3D,
+  PARTICLE_INSTANCE_STRIDE_3D,
+  gameParticleFieldFromSamples3D,
+  gameParticleSamples3D,
+  packParticleBatches3D,
+  srgbToLinear,
+  type GameParticleSample3D,
+  type PackedParticles3D,
+  type ParticleBatch3D,
+  type ParticleBatchShape3D,
+  type ParticleViewer3D
+} from "./particles3d.js";

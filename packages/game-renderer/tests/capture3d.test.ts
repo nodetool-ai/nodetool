@@ -5,6 +5,8 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { describe, expect, it } from "vitest";
 import { prepareGameModelBinding3D } from "../src/preparation3d.js";
 import { captureGameFrame3D } from "../src/node3d.js";
+import { gameParticles, type GameRenderFrame3D } from "@nodetool-ai/protocol";
+import type { GameParticleField, ParticleView } from "../src/index.js";
 import { blockoutFrame, triangleGlb, skinnedGlb } from "./fixtures/game3d.js";
 
 describe("real Chromium 3D capture", () => {
@@ -133,3 +135,83 @@ describe("committed 3D font bindings", () => {
     await expect(captureGameFrame3D(frame, { resolveAsset: async () => new Uint8Array([1, 2, 3]) })).rejects.toThrow("font digest changed");
   }, 40_000);
 });
+
+describe("3D particle capture", () => {
+  /** The blockout frame with an emitter entity "fx" whose emitters the particle views below refer to. */
+  function particleFrame(emitters: readonly Record<string, unknown>[]): GameRenderFrame3D {
+    const frame = blockoutFrame();
+    const transform = frame.entities[0]!.transform;
+    frame.entities = [...frame.entities, { entityId: "fx", transform, previousTransform: transform, particles: gameParticles.parse({ emitters }) }];
+    return frame;
+  }
+  function particleField(frame: GameRenderFrame3D, particles: readonly Partial<ParticleView>[]): GameParticleField {
+    const emitters = frame.entities.find((entity) => entity.entityId === "fx")?.particles?.emitters ?? [];
+    return { forEachParticle: (visit) => particles.forEach((value) => {
+      const emitter = emitters.find((entry) => entry.id === value.emitterId);
+      if (!emitter) { throw new Error(`Unknown emitter ${value.emitterId}`); }
+      visit({ entityId: "fx", emitterId: emitter.id, emitter, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, size: 1, rotation: 0, r: 1, g: 1, b: 1, opacity: 1, life: 0.5, ...value });
+    }) };
+  }
+  async function pixels(frame: GameRenderFrame3D, field?: GameParticleField): Promise<{ at: (x: number, y: number) => number[] }> {
+    const capture = await captureGameFrame3D(frame, field ? { particles: field } : {});
+    const canvas = createCanvas(128, 128);
+    const context = canvas.getContext("2d");
+    context.drawImage(await loadImage(Buffer.from(capture.png)), 0, 0);
+    const data = context.getImageData(0, 0, 128, 128).data;
+    return { at: (x, y) => [...data.slice((y * 128 + x) * 4, (y * 128 + x) * 4 + 3)] };
+  }
+
+  it("draws an additive billboard over the scene and fades a soft one near the geometry behind it", async () => {
+    const frame = particleFrame([{ id: "hard", blend: "additive" }, { id: "soft", blend: "additive", softness: 1 }]);
+    const plain = await pixels(frame);
+    // The box's front face is at z = 1. Both billboards sit 0.2 units in front of it.
+    const hard = await pixels(frame, particleField(frame, [{ emitterId: "hard", z: 1.2, g: 0, b: 0 }]));
+    const soft = await pixels(frame, particleField(frame, [{ emitterId: "soft", z: 1.2, g: 0, b: 0 }]));
+    const red = (image: { at: (x: number, y: number) => number[] }): number => image.at(64, 64)[0] ?? 0;
+    expect(red(hard) - red(plain)).toBeGreaterThan(150);
+    expect(red(soft)).toBeGreaterThan(red(plain));
+    expect(red(soft)).toBeLessThan(red(hard) - 60);
+  }, 60_000);
+
+  it("does not fade a soft billboard against a cut-out that draws nothing", async () => {
+    const frame = particleFrame([{ id: "hard", blend: "additive" }, { id: "soft", blend: "additive", softness: 1 }]);
+    const box = frame.entities[0]!;
+    // Opacity below the mask cutoff discards every fragment, so the box is invisible and must write no depth.
+    frame.entities = [{ ...box, primitive: { ...box.primitive!, material: { ...box.primitive!.material, opacity: 0.2, alphaMode: "mask", alphaCutoff: 0.5 } } }, frame.entities[1]!];
+    const plain = await pixels(frame);
+    const empty = blockoutFrame();
+    empty.entities = [];
+    expect(plain.at(64, 64)).toEqual((await pixels(empty)).at(64, 64));
+    const hard = await pixels(frame, particleField(frame, [{ emitterId: "hard", z: 1.2, g: 0, b: 0 }]));
+    const soft = await pixels(frame, particleField(frame, [{ emitterId: "soft", z: 1.2, g: 0, b: 0 }]));
+    expect((hard.at(64, 64)[0] ?? 0) - (plain.at(64, 64)[0] ?? 0)).toBeGreaterThan(150);
+    expect(Math.abs((soft.at(64, 64)[0] ?? 0) - (hard.at(64, 64)[0] ?? 0))).toBeLessThanOrEqual(2);
+  }, 60_000);
+
+  it("stretches a billboard along its screen velocity", async () => {
+    const frame = particleFrame([{ id: "dot", blend: "additive" }, { id: "streak", blend: "additive", render: { kind: "stretched", length: 1, speedScale: 0.1 } }]);
+    // Below the box over the background, moving along +X at 10 units per second: 1.3 units long and 0.3 wide.
+    const particle = { y: -1.5, z: 1.5, vx: 10, size: 0.3, r: 0, b: 0 };
+    const plain = await pixels(frame);
+    const dot = await pixels(frame, particleField(frame, [{ ...particle, emitterId: "dot" }]));
+    const streak = await pixels(frame, particleField(frame, [{ ...particle, emitterId: "streak" }]));
+    const green = (image: { at: (x: number, y: number) => number[] }, x: number): number => image.at(x, 111)[1] ?? 0;
+    expect(green(dot, 64)).toBeGreaterThan(green(plain, 64) + 60);
+    expect(green(streak, 64)).toBeGreaterThan(green(plain, 64) + 60);
+    // Ten pixels to the side, outside the round dot but inside the streak.
+    expect(Math.abs(green(dot, 74) - green(plain, 74))).toBeLessThanOrEqual(2);
+    expect(green(streak, 74)).toBeGreaterThan(green(plain, 74) + 40);
+  }, 60_000);
+
+  it("draws mesh particles as solid shapes", async () => {
+    const frame = particleFrame([{ id: "chips", render: { kind: "mesh", shape: "box" }, unlit: true }]);
+    const plain = await pixels(frame);
+    const chips = await pixels(frame, particleField(frame, [{ emitterId: "chips", x: 2, y: 2, z: 0, size: 0.8, r: 0, b: 0 }]));
+    const [r = 0, g = 0, b = 0] = chips.at(108, 20);
+    expect(plain.at(108, 20)[1]).toBeLessThan(80);
+    expect(g).toBeGreaterThan(120);
+    expect(g).toBeGreaterThan(r + 80);
+    expect(g).toBeGreaterThan(b + 80);
+  }, 60_000);
+});
+

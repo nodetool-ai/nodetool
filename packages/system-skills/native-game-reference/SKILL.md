@@ -377,7 +377,30 @@ draw 2D particles. A capture simulates particles for every tick up to the
 captured one, so a burst at tick 0 is still visible a few ticks later. WebGPU
 draws every live particle. The Canvas2D fallback draws at most 1024 visible
 particles. Each emitter's random stream is seeded from its entity and emitter
-ids, so captures repeat. 3D particles are not drawn yet.
+ids, so captures repeat.
+
+In 3D, `render` sets how each particle draws. The default `{ kind:
+"billboard" }` is a soft round dot facing the camera, `size` units across and
+turned by `rotation`. `{ kind: "stretched", length?, speedScale? }` lies along
+the particle's direction of travel on screen. It is `size` wide and `size ×
+length + speed × speedScale` long, which suits sparks, rain and streaks.
+`length` defaults to 1 and `speedScale` to 0.1 seconds. `{ kind: "mesh",
+shape, align? }` draws a small solid `box`, `sphere`, `tetrahedron` or
+`octahedron`, `size` units across, for debris and confetti. With `align:
+"world"`, the default, it turns by `rotation` about world +Y. With `align:
+"velocity"` its +Y points along its velocity. Mesh particles take scene
+lighting unless `unlit: true`. Billboards always keep their own colour. Both
+take scene fog and post-processing such as bloom, so additive particles glow.
+`softness` (world units) fades a billboard out where it nears the geometry
+behind it, so smoke and glows do not cut a hard line through the floor. The
+renderer then draws the scene's depth once more per frame, so set it only on
+emitters that touch geometry. That depth pass skips transparent materials,
+keeps alpha-tested cut-outs, and does not count toward the draw call and
+triangle budgets. 3D particles ignore `sprite` and `layer`, and
+2D particles ignore `render` and `softness`. Validation warns about `render` or
+`softness` on a 2D emitter and `softness` on a mesh emitter, without failing. The 3D standalone player,
+`nodetool game capture` and `capture_native_game_frame` draw 3D particles. The
+editor's 3D play view does not yet.
 
 ## 3D collision layers
 
@@ -671,9 +694,9 @@ Both are presentation only. They never change simulation, snapshots or replay.
   editor camera shows every entity.
 - Budgets left out use the player defaults: 1000 draw calls, 1,000,000
   triangles, 4096 particles and 24 voices. The standalone player warns in the
-  browser console once each time a budget is exceeded. Only the 2D standalone
-  player counts particles, and it uses the default particle budget because 2D
-  documents have no `performance`.
+  browser console once each time a budget is exceeded. The standalone players
+  and 3D capture count live particles. The 2D player uses the default particle
+  budget because 2D documents have no `performance`.
 
 ## Editor panels the user can open
 
