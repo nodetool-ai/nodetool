@@ -5,6 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../../__mocks__/themeMock";
 import { getGameConsoleStore } from "../../../../../stores/game/GameConsoleStore";
 import { getGameDraftStore } from "../../../../../stores/game/GameDraftStore";
+import { createGameScriptLogChannel } from "../../../gameScriptLogChannel";
 import GameConsolePanel from "../GameConsolePanel";
 import { useGameConsoleFeed } from "../useGameConsoleFeed";
 
@@ -146,6 +147,27 @@ describe("useGameConsoleFeed", () => {
     expect(getGameConsoleStore(gameId).getState().groups).toEqual([
       { id: 1, level: "error", source: "script", message: failure.message, entityId: "player", tick: 5, firstTick: 5, count: 1 }
     ]);
+  });
+
+  it("writes each published script log line with its level, tick and entity, and stops after unmount", () => {
+    const gameId = nextGameId();
+    const scriptLogs = createGameScriptLogChannel();
+    const { unmount } = renderHook(() => useGameConsoleFeed(gameId, { runtimeError: null, scriptError: null, diagnosticError: null, tick: 0, scriptLogs }));
+    act(() => {
+      scriptLogs.publish([
+        { tick: 3, entityId: "player", level: "log", message: "jump" },
+        { tick: 3, entityId: "enemy", level: "warning", message: "low health" }
+      ]);
+      scriptLogs.publish([{ tick: 4, entityId: "player", level: "log", message: "jump" }]);
+    });
+    expect(getGameConsoleStore(gameId).getState().groups).toEqual([
+      { id: 1, level: "log", source: "script", message: "jump", tick: 3, firstTick: 3, entityId: "player", count: 1 },
+      { id: 2, level: "warning", source: "script", message: "low health", tick: 3, firstTick: 3, entityId: "enemy", count: 1 },
+      { id: 3, level: "log", source: "script", message: "jump", tick: 4, firstTick: 4, entityId: "player", count: 1 }
+    ]);
+    unmount();
+    act(() => { scriptLogs.publish([{ tick: 5, entityId: "player", level: "error", message: "late" }]); });
+    expect(getGameConsoleStore(gameId).getState().groups).toHaveLength(3);
   });
 
   it("keeps console lines out of the draft document and its undo history", () => {

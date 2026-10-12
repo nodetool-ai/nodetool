@@ -2,6 +2,7 @@ import type { QuickJSContext, QuickJSHandle, QuickJSRuntime } from "quickjs-emsc
 import { z } from "zod";
 import { gameNonSpatialScriptCommand, gameUiScriptCommand, resolveGameScriptParams, type GameDocument, type GameEntityProps, type GameScriptParam, type GameScriptParamValue, type GameSnapshot } from "@nodetool-ai/protocol";
 
+import { GameScriptLogCollector, type GameScriptLogEntry } from "./script-log.js";
 import { defaultScriptCallClock, startScriptCallTimer, type ScriptCallClock } from "./script-clock.js";
 import { commitScriptHooks, planScriptHooks, scriptHookIssue, SCRIPT_LIFECYCLE_DISPATCH, type GameScriptHookPlan, type GameScriptLifecycle } from "./script-lifecycle.js";
 import { canPersistGameScript } from "./script-persistence.js";
@@ -77,6 +78,8 @@ export interface GameScriptBatch {
   readonly results: readonly GameScriptResult[];
   readonly rngState: number;
   readonly stats: GameScriptStats;
+  /** The tick's `log` command lines, present when a script logged. Never part of simulation state. */
+  readonly logs?: readonly GameScriptLogEntry[];
 }
 
 /** An active entity with a collider or camera, as every script sees it this tick. */
@@ -191,6 +194,7 @@ export interface IsolatedScriptRunner<Call extends IsolatedScriptCall, Input ext
     readonly results: readonly { readonly entityId: string; readonly state: GameSnapshot["scriptState"][string]; readonly commands: readonly Command[] }[];
     readonly rngState: number;
     readonly stats: GameScriptStats;
+    readonly logs?: readonly GameScriptLogEntry[];
   };
   /** Source keys whose script is a lifecycle object rather than a function. */
   readonly hookSources?: ReadonlySet<string>;
@@ -488,6 +492,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         return legacyWorld;
       };
       let nextRngState = rngState;
+      const logs = new GameScriptLogCollector(input.tick);
       let serializedResultsBytes = 0;
       let commandCount = 0;
       const byEntity: Record<string, { durationMs: number; calls: number }> = Object.create(null);
@@ -570,6 +575,13 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             throw new Error(`Output exceeds 64 KiB (${rawOutputBytes} bytes in call ${results.length + 1})`);
           }
           const parsed: unknown = JSON.parse(output);
+          // Log commands leave the output here, so they never reach the command limit, the systems or the snapshot.
+          const guestValue = typeof parsed === "object" && parsed !== null ? (parsed as { value?: unknown }).value : undefined;
+          if (typeof guestValue === "object" && guestValue !== null) {
+            const commands = (guestValue as { commands?: unknown }).commands;
+            const simulated = logs.collect(call.entityId, commands);
+            if (simulated !== commands) { (guestValue as { commands?: unknown }).commands = simulated; }
+          }
           const envelope = envelopeSchema.parse(parsed);
           const value = plan === undefined ? envelope.value
             : { state: commitScriptHooks(envelope.value.state, plan, input.tick) as unknown as z.core.util.JSONType, commands: envelope.value.commands };
@@ -603,7 +615,9 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         byEntity[call.entityId] = { durationMs: previous.durationMs + performance.now() - callStarted, calls: previous.calls + 1 };
       }
       assertBeforeDeadline(batchDeadline, batchBudget);
-      return { results, rngState: nextRngState, stats: { durationMs: performance.now() - started, commands: commandCount, calls: calls.length, byEntity } };
+      const stats = { durationMs: performance.now() - started, commands: commandCount, calls: calls.length, byEntity };
+      const lines = logs.entries();
+      return lines.length === 0 ? { results, rngState: nextRngState, stats } : { results, rngState: nextRngState, stats, logs: lines };
     };
     const warmCalls = !warmedCommandSchemas.has(commandSchema);
     const warmHooks = hookSources.size > 0 && !warmedHookSchemas.has(commandSchema);

@@ -16,6 +16,7 @@ import {
   type GameStepResult3D
 } from "@nodetool-ai/protocol";
 import { initialGameplayState, runGameplayTick } from "./gameplay/lifecycle.js";
+import type { GameScriptLogEntry } from "./script-log.js";
 import type { GameScriptStats } from "./scripts.js";
 import { prepareGameScripts3D, type GameScriptRunner3D } from "./scripts3d.js";
 import { validateGame3D } from "./validate3d.js";
@@ -48,8 +49,11 @@ export interface GameSession3DOptions {
   ) => Promise<PreparedCollider3D & { readonly digest: string }>;
 }
 
+/** A 3D step result with the script stats and the lines from script `log` commands, which never enter snapshots or replay state. */
+export type GameSessionStepResult3D = GameStepResult3D & { readonly scriptStats?: GameScriptStats; readonly scriptLogs?: readonly GameScriptLogEntry[] };
+
 export interface GameSession3D {
-  step(input: GameInputFrame3D): GameStepResult3D & { readonly scriptStats?: GameScriptStats };
+  step(input: GameInputFrame3D): GameSessionStepResult3D;
   takePresentationEvents(): readonly (GameEvent3D | GameParticleEmission)[];
   frame(): GameRenderFrame3D;
   inspect(query?: GameInspectionQuery3D): GameInspection3D;
@@ -458,6 +462,7 @@ export async function createGameSession3D(
       events: [],
       emit: () => {},
       scriptStats: undefined,
+      scriptLogs: undefined,
       spatialStep: undefined,
       contacts: [],
       result: undefined,
@@ -593,9 +598,9 @@ export async function createGameSession3D(
         presentationEvents = [];
         return pending;
       },
-      step(value): GameStepResult3D & { readonly scriptStats?: GameScriptStats } {
+      step(value): GameSessionStepResult3D {
         assertAvailable();
-        return runGameplayTick<GameStepResult3D & { readonly scriptStats?: GameScriptStats }, GameEvent3D>(
+        return runGameplayTick<GameSessionStepResult3D, GameEvent3D>(
           ({ events, emit }) => {
             systemContext.input = value;
             systemContext.queues = { despawns: new Set(), spawns: [] };
@@ -606,6 +611,7 @@ export async function createGameSession3D(
             systemContext.events = events;
             systemContext.emit = emit;
             systemContext.scriptStats = undefined;
+            systemContext.scriptLogs = undefined;
             systemContext.spatialStep = undefined;
             systemContext.result = undefined;
             const timings = options.recordTimings ? pipeline.stepTimed(systemContext) : undefined;

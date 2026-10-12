@@ -16,6 +16,7 @@ import type {
   GameVector3
 } from "@nodetool-ai/protocol";
 import type { GameplayQueues } from "../gameplay/lifecycle.js";
+import type { GameScriptLogEntry } from "../script-log.js";
 import type { GameScriptStats } from "../scripts.js";
 import type { GameScriptCall3D, GameScriptRunner3D } from "../scripts3d.js";
 import type { Contact3D, EntityState3D } from "../spatial3d/state.js";
@@ -78,11 +79,13 @@ export interface GameSystemContext3D {
   events: GameEvent3D[];
   emit: (event: GameEvent3D) => void;
   scriptStats: GameScriptStats | undefined;
+  scriptLogs: readonly GameScriptLogEntry[] | undefined;
   spatialStep: SpatialStep3D | undefined;
   contacts: Contact3D[];
   result:
     | (GameStepResult3D & {
         scriptStats?: GameScriptStats;
+        scriptLogs?: readonly GameScriptLogEntry[];
       })
     | undefined;
   currentScene(): GameScene3D;

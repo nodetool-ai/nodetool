@@ -266,5 +266,6 @@ export function stepScripts3D(context: GameSystemContext3D): void {
     }
     context.rngState = batch.rngState;
     context.scriptStats = batch.stats;
+    context.scriptLogs = batch.logs;
   }
 }

@@ -75,7 +75,8 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const diagnostics = useGameScriptDiagnostics(document, openDiagnosticSession);
   const hostScriptError = host.error?.includes("Game script") ? scriptFailure(host.error, (host.inspection?.tick ?? 0) + 1) : null;
   const scriptError = diagnostics.error ?? hostScriptError;
-  useGameConsoleFeed(refId, { runtimeError: host.error, scriptError: hostScriptError, diagnosticError: diagnostics.error, tick: host.inspection?.tick ?? 0 });
+  useGameConsoleFeed(refId, { runtimeError: host.error, scriptError: hostScriptError, diagnosticError: diagnostics.error, tick: host.inspection?.tick ?? 0,
+    scriptLogs: host.scriptLogs });
   const consoleValidation = useMemo(() => gameValidationConsoleEntries(validateGame3D(document).diagnostics, document), [document]);
   const conflicts = useDocumentConflicts("game", refId);
   const queries = trpc.useUtils();

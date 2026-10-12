@@ -1,9 +1,12 @@
+import { z } from "zod";
+
+import { gameScriptLogCommand } from "./script-log.js";
 import { gameScriptCommand } from "./scripts.js";
 import { gameScriptLifecycleDeclaration, gameScriptSchemaDeclaration, gameScriptWorldDeclaration } from "./script-declarations.js";
 
 /** Monaco declarations for the native game function-expression contract. */
 export const GAME_SCRIPT_TYPES = `
-${gameScriptSchemaDeclaration("GameScriptCommand", gameScriptCommand)}
+${gameScriptSchemaDeclaration("GameScriptCommand", z.union([gameScriptCommand, gameScriptLogCommand]))}
 
 type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue };
 type GameScriptParamValue = number | boolean | string | { x: number; y: number; z?: number } | null;
