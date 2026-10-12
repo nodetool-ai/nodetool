@@ -33,11 +33,24 @@ import { statefulGameSystem } from "./systems/pipeline.js";
 import { create2DSystemPipeline } from "./systems/tick2d.js";
 
 export interface GameSessionOptions {
-  readonly recordTimings?: boolean;
+  /**
+   * Reports system timings and physics counts on step results. A function is read before each step, so a
+   * profiler can turn reporting on and off without a new session. Reporting never changes simulation results.
+   */
+  readonly recordTimings?: boolean | (() => boolean);
+}
+
+/** Physics counts for one tick, reported only with `recordTimings`. They never enter snapshots, events or replay state. */
+export interface GameStepPhysicsStats {
+  /** Active entities with a physics body or collider. */
+  readonly bodies: number;
+  /** Touching collider pairs after the contact stage. */
+  readonly contacts: number;
 }
 
 export interface GameStepResult {
   readonly timings?: GameStepTimings;
+  readonly physics?: GameStepPhysicsStats;
   readonly tick: number;
   readonly events: readonly GameEvent[];
   readonly frame: GameRenderFrame;
@@ -552,11 +565,17 @@ function createGameSessionWithRunner(
         let timings: GameStepTimings | undefined;
         // A tick that fails after its scripts ran still reports what they logged.
         try {
-          timings = options.recordTimings ? pipeline.stepTimed(systemContext) : undefined;
-          if (!options.recordTimings) { pipeline.step(systemContext); }
+          const timed = typeof options.recordTimings === "function" ? options.recordTimings() : options.recordTimings === true;
+          timings = timed ? pipeline.stepTimed(systemContext) : undefined;
+          if (!timed) { pipeline.step(systemContext); }
         } catch (error) { throw withGameScriptLogs(error, systemContext.scriptLogs); }
         const result = readStepResult2D(systemContext);
-        return timings ? { ...result, timings } : result;
+        if (!timings) { return result; }
+        let bodies = 0;
+        for (const state of systemContext.states) {
+          if (state.active && (state.definition.body2d || state.definition.collider2d)) { bodies += 1; }
+        }
+        return { ...result, timings, physics: { bodies, contacts: systemContext.observations.size } };
       },
       () => {
         failed = true;

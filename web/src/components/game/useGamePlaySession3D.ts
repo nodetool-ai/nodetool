@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { gameAssetBinding, gameSnapshot3D, type GameDocument3D, type GameInspection3D, type GameInputFrame3D, type GameRenderFrame3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
 import { createGameSession3D, gameScriptLogsOf, type GamePlayerSaves, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
-import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, GameInput3D, GameUiController, gameUiViewport3D } from "@nodetool-ai/game-renderer";
+import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, gameAudioVoiceCount, GameInput3D, GameUiController, gameUiViewport3D } from "@nodetool-ai/game-renderer";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
 import { createEditorGameSaves } from "./gameEditorSaves";
 import { GameReplayHistory } from "./gameReplayHistory";
 import { createGameScriptLogChannel, type GameScriptLogChannel } from "./gameScriptLogChannel";
+import { createGameProfiler, type GameProfiler } from "./panels/profiler/gameProfiler";
 import type { ScriptFailure } from "./useGamePlaySession";
 import { gameSessionOptions3D, readGameAssetBytes3D } from "./viewport3d/gameSessionAssets3D";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
@@ -38,6 +39,8 @@ export interface GamePlaySession3D {
   readonly replayBeforeError: (displayedFailure?: ScriptFailure) => Promise<void>;
   /** Each step's script log lines, for the console. */
   readonly scriptLogs?: GameScriptLogChannel;
+  /** Per-tick timings and renderer, physics and audio counts, for the profiler panel. */
+  readonly profiler?: GameProfiler;
 }
 
 export function useGamePlaySession3D({ refId, document, active, editorSceneId }: GamePlaySession3DOptions): GamePlaySession3D {
@@ -57,6 +60,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const historyRef = useRef(new GameReplayHistory<GameInputFrame3D, GameSnapshot3D>());
   const audioRef = useRef<GameAudioPlayer | null>(null);
   const [scriptLogs] = useState(createGameScriptLogChannel);
+  const [profiler] = useState(() => createGameProfiler());
   const hudRef = useRef<GameUiController | null>(null);
   const [playing, setPlaying] = useState(false);
   const [playDocument, setPlayDocument] = useState<GameDocument3D | null>(null);
@@ -99,7 +103,8 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
           queue.latest = null;
           const hud = hudRef.current;
           hud?.update(next.frame.ui, gameUiViewport3D(next.frame));
-          await renderer.render(hud ? hud.annotate(next.frame) : next.frame, next.alpha);
+          const stats = await renderer.render(hud ? hud.annotate(next.frame) : next.frame, next.alpha);
+          profiler.recordRender(stats);
         }
       } catch (cause) {
         if (rendererRef.current === renderer) {
@@ -109,7 +114,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       } finally { queue.busy = false; }
     };
     void drain();
-  }, []);
+  }, [profiler]);
 
   const step = useCallback((input: GameInputFrame3D = EMPTY_INPUT_3D): void => {
     const session = sessionRef.current;
@@ -131,6 +136,10 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       committedRef.current = state;
       audioRef.current?.sync(session.snapshot());
       for (const event of result.events) { audioRef.current?.handle(event); }
+      if (profiler.recording()) {
+        profiler.recordStep({ tick: result.tick, timings: result.timings, scriptStats: result.scriptStats, physics: result.physics,
+          voices: audioRef.current ? gameAudioVoiceCount(audioRef.current.mixerState()) : undefined });
+      }
       if (!playingRef.current || result.tick % 6 === 0) {
         setInspection(state);
         setFrame(result.frame);
@@ -146,7 +155,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       setError(cause instanceof Error ? cause.message : String(cause));
       setPlaying(false);
     }
-  }, [display, scriptLogs]);
+  }, [display, scriptLogs, profiler]);
 
   useEffect(() => {
     rendererControllerRef.current = new AbortController();
@@ -199,7 +208,8 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     const initialize = async (): Promise<void> => {
       if (!rendererRef.current) { setBackend("Initializing"); }
       setError(null);
-      const options = gameSessionOptions3D(current, controller.signal, assetBytesRef.current);
+      // Steps report timings and physics counts only while the profiler records. Neither enters snapshots or replay.
+      const options: GameSession3DOptions = { ...gameSessionOptions3D(current, controller.signal, assetBytesRef.current), recordTimings: profiler.recording };
       sessionOptionsRef.current = options;
       session = await createGameSession3D(current, 1, undefined, options);
       controller.signal.throwIfAborted();
@@ -265,7 +275,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       inputRef.current.release();
 
     };
-  }, [sessionDocument, effectiveEditorSceneId, display]);
+  }, [sessionDocument, effectiveEditorSceneId, display, profiler]);
 
 
 
@@ -319,7 +329,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
 
   const beginPlay = (): void => {
     if (playDocument && sessionFailedRef.current) { return; }
-    if (!playDocument) { historyRef.current.clear(); setPlayDocument(structuredClone(document)); }
+    if (!playDocument) { historyRef.current.clear(); profiler.clearLive(); setPlayDocument(structuredClone(document)); }
     inputRef.current.release();
     setPlaying((value) => !value);
     canvasRef.current?.focus();
@@ -378,5 +388,5 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
   };
   return { canvasRef, rendererRef, inputRef, playing, playDocument, frame, inspection, backend, error,
-    beginPlay, stop, step, save, load, replayBeforeError, scriptLogs };
+    beginPlay, stop, step, save, load, replayBeforeError, scriptLogs, profiler };
 }

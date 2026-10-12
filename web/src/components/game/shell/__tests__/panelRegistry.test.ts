@@ -61,3 +61,10 @@ it("registers the console panel in the bottom region for 2D and 3D", () => {
       .toMatchObject({ title: "Console", defaultRegion: "bottom" });
   }
 });
+
+it("registers the profiler panel in the bottom region for 2D and 3D", () => {
+  for (const dimension of ["2d", "3d"] as const) {
+    expect(gamePanelRegistry.panels(dimension).find((entry) => entry.id === "profiler"))
+      .toMatchObject({ title: "Profiler", defaultRegion: "bottom" });
+  }
+});

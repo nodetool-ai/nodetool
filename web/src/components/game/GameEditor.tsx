@@ -34,6 +34,7 @@ import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
 import GameConsolePanel from "./panels/console/GameConsolePanel";
 import { gameValidationConsoleEntries } from "./panels/console/gameConsoleModel";
 import { useGameConsoleFeed } from "./panels/console/useGameConsoleFeed";
+import GameProfilerPanel from "./panels/profiler/GameProfilerPanel";
 import { gamePlaytestPrompt, gameScriptErrorPrompt, gameSelectionPrompt } from "./gameAssistantPrompt";
 import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnostics";
 import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnostics";
@@ -71,7 +72,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     ? editorSceneId : document?.entrySceneId ?? null;
   const { canvasRef, inputRef, playing, playDocument, playState, backend, error, setError,
     scriptError: hostScriptError, frame, onViewportAspect, onCamera, resetCamera, step, beginPlay, stop,
-    save, load, replayBeforeError, runtimeEntities, scriptLogs } = useGamePlaySession({ refId, active, document,
+    save, load, replayBeforeError, runtimeEntities, scriptLogs, profiler } = useGamePlaySession({ refId, active, document,
       editorSceneId: activeSceneId ?? undefined, name: data?.game.name });
   const diagnostics = useGameScriptDiagnostics(document, openGameDiagnosticSession2D);
   const scriptError = diagnostics.error ?? hostScriptError;
@@ -476,6 +477,9 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       { id: "console", visible: !isMobile,
         node: <GameConsolePanel gameId={refId} document={document} liveEntries={consoleValidation}
           onSelectEntity={(_sceneId, entityId) => selectEntity(entityId, false)} onAskAssistant={assistant.draft} /> },
+      { id: "profiler", visible: !isMobile,
+        node: <GameProfilerPanel profiler={profiler} document={document}
+          source={{ gameId: refId, name: data.game.name, dimension: "2d", tickRate: document.tickRate }} /> },
       { id: "inspector", visible: !isMobile,
         node: <>
           {playDocument && !playing && <GameRuntimeInspector tick={playState.tick} entity={runtimeEntity} />}

@@ -20,6 +20,7 @@ import { initialGameplayState, runGameplayTick } from "./gameplay/lifecycle.js";
 import { withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
 import type { GameSaveRequest } from "./script-saves.js";
 import type { GameScriptStats } from "./scripts.js";
+import type { GameStepPhysicsStats } from "./session.js";
 import { prepareGameScripts3D, type GameScriptRunner3D } from "./scripts3d.js";
 import { validateGame3D } from "./validate3d.js";
 import { initialCamera3D, resolveCamera3D } from "./spatial3d/camera.js";
@@ -43,7 +44,11 @@ import { stepAnimation3D } from "./systems/animation3d.js";
 import { stepPresentation3D, readStepResult3D } from "./systems/presentation3d.js";
 
 export interface GameSession3DOptions {
-  readonly recordTimings?: boolean;
+  /**
+   * Reports system timings and physics counts on step results. A function is read before each step, so a
+   * profiler can turn reporting on and off without a new session. Reporting never changes simulation results.
+   */
+  readonly recordTimings?: boolean | (() => boolean);
   readonly signal?: AbortSignal;
   readonly eventSink?: (event: GameEvent3D) => void;
   readonly resolveCollider?: (
@@ -54,6 +59,8 @@ export interface GameSession3DOptions {
 
 /** A 3D step result with the script stats and the lines from script `log` commands, which never enter snapshots or replay state. */
 export type GameSessionStepResult3D = GameStepResult3D & { readonly scriptStats?: GameScriptStats; readonly scriptLogs?: readonly GameScriptLogEntry[];
+  /** Physics counts, reported only with `recordTimings`. */
+  readonly physics?: GameStepPhysicsStats;
   /** Script `save` and `load` requests this tick, for the host to perform after the step. Never simulation state. */
   readonly saveRequests?: readonly GameSaveRequest[] };
 
@@ -636,11 +643,17 @@ export async function createGameSession3D(
             let timings: ReturnType<typeof pipeline.stepTimed> | undefined;
             // A tick that fails after its scripts ran still reports what they logged.
             try {
-              timings = options.recordTimings ? pipeline.stepTimed(systemContext) : undefined;
-              if (!options.recordTimings) { pipeline.step(systemContext); }
+              const timed = typeof options.recordTimings === "function" ? options.recordTimings() : options.recordTimings === true;
+              timings = timed ? pipeline.stepTimed(systemContext) : undefined;
+              if (!timed) { pipeline.step(systemContext); }
             } catch (error) { throw withGameScriptLogs(error, systemContext.scriptLogs); }
             const result = readStepResult3D(systemContext);
-            return timings ? { ...result, timings } : result;
+            if (!timings) { return result; }
+            let bodies = 0;
+            for (const state of systemContext.states) {
+              if (state.active && (state.definition.body3d || state.definition.collider3d)) { bodies += 1; }
+            }
+            return { ...result, timings, physics: { bodies, contacts: systemContext.contacts.length } };
           },
           () => {
             failed = true;
