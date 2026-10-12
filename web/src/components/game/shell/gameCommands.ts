@@ -54,6 +54,7 @@ export const GAME_COMMANDS: readonly GameCommandDefinition[] = [
   command("editor.publish", "Publish game", "Editor", BOTH, "shell", []),
   command("editor.exportWeb", "Export web player", "Editor", BOTH, "shell", []),
   command("editor.exportDesktop", "Export desktop app", "Editor", BOTH, "shell", []),
+  command("editor.buildExecutable", "Build desktop executable", "Editor", BOTH, "shell", []),
   command("edit.undo", "Undo", "Edit", BOTH, "panel", [{ code: "KeyZ", mod: true }]),
   command("edit.redo", "Redo", "Edit", BOTH, "panel", [{ code: "KeyZ", mod: true, shift: true }]),
   command("edit.copy", "Copy selection", "Edit", ONLY_2D, "viewport", [{ code: "KeyC", mod: true }]),

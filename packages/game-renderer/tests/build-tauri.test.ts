@@ -1,11 +1,12 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { createNative3DGame, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildTauriGameProject, compileTauriGameProject, tauriAppMetadata, tauriIconFiles, tauriProjectFiles, TAURI_VERSIONS } from "../src/build-tauri.js";
+import { missingRuntimePackageOf } from "@nodetool-ai/protocol";
+import { buildTauriGameProject, compileTauriGameProject, findCargo, tauriAppMetadata, tauriIconFiles, tauriProjectFiles, TAURI_VERSIONS } from "../src/build-tauri.js";
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -126,11 +127,31 @@ describe("Tauri desktop export", () => {
     expect(await readdir(directory)).toEqual(["desktop"]);
   });
 
-  it("reports a missing cargo instead of a spawn error", async () => {
+  it("reports a missing cargo as the Rust runtime package instead of a spawn error", async () => {
     const directory = await tempDir();
     await writeFile(join(directory, "Cargo.toml"), "");
     const metadata = tauriAppMetadata(createTopDownRoomGame("game-tauri"));
-    await expect(compileTauriGameProject({ tauriDir: directory, metadata }, { cargo: join(directory, "no-such-cargo") }))
-      .rejects.toThrow("cargo was not found");
+    const spawnFailure = compileTauriGameProject({ tauriDir: directory, metadata }, { cargo: join(directory, "no-such-cargo") });
+    await expect(spawnFailure).rejects.toThrow("cargo was not found");
+    expect(missingRuntimePackageOf(await spawnFailure.catch((error: unknown) => error))).toBe("rust");
+    const env = { PATH: join(directory, "empty"), CARGO_HOME: join(directory, "no-cargo-home") };
+    const lookupFailure = await compileTauriGameProject({ tauriDir: directory, metadata }, { env }).catch((error: unknown) => error);
+    expect(missingRuntimePackageOf(lookupFailure)).toBe("rust");
+  });
+
+  it.skipIf(process.platform === "win32")("finds cargo on PATH first, then in rustup's cargo home", async () => {
+    const directory = await tempDir();
+    const onPath = join(directory, "path-bin");
+    const rustup = join(directory, "cargo-home", "bin");
+    await mkdir(onPath, { recursive: true });
+    await mkdir(rustup, { recursive: true });
+    for (const dir of [onPath, rustup]) {
+      await writeFile(join(dir, "cargo"), "#!/bin/sh\n");
+      await chmod(join(dir, "cargo"), 0o755);
+    }
+    const cargoHome = join(directory, "cargo-home");
+    expect(await findCargo({ PATH: onPath, CARGO_HOME: cargoHome })).toBe(join(onPath, "cargo"));
+    expect(await findCargo({ PATH: join(directory, "empty"), CARGO_HOME: cargoHome })).toBe(join(rustup, "cargo"));
+    expect(await findCargo({ PATH: join(directory, "empty"), CARGO_HOME: join(directory, "none") })).toBeNull();
   });
 });

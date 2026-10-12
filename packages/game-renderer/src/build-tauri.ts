@@ -1,8 +1,10 @@
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, readdir, rename, rm, rmdir, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { access, constants, mkdir, mkdtemp, readdir, rename, rm, rmdir, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { createCanvas, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
 import type { AnyGameDocument } from "@nodetool-ai/protocol";
+import { MissingRuntimePackageError } from "@nodetool-ai/protocol/missing-runtime-package";
 import type { StandaloneAsset } from "./build.js";
 
 /** Tauri releases the generated project pins. Bump the three together. */
@@ -386,11 +388,37 @@ export interface CompileTauriGameOptions {
   readonly onOutput?: (chunk: string) => void;
 }
 
+async function executable(path: string): Promise<boolean> {
+  try { await access(path, constants.X_OK); return true; }
+  catch { return false; }
+}
+
+/**
+ * The cargo to run: the first on PATH, else rustup's. An app started from the
+ * macOS Finder or a Windows shortcut has no shell profile, so rustup's
+ * `~/.cargo/bin` is often installed but missing from PATH.
+ */
+export async function findCargo(env: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform): Promise<string | null> {
+  const name = platform === "win32" ? "cargo.exe" : "cargo";
+  const pathKey = Object.keys(env).find((key) => key.toUpperCase() === "PATH");
+  const directories = (pathKey ? env[pathKey] ?? "" : "").split(platform === "win32" ? ";" : delimiter).filter(Boolean);
+  const cargoHome = env["CARGO_HOME"] || join(env["HOME"] || env["USERPROFILE"] || homedir(), ".cargo");
+  for (const directory of [...directories, join(cargoHome, "bin")]) {
+    const candidate = join(directory, name);
+    if (await executable(candidate)) { return candidate; }
+  }
+  return null;
+}
+
+const MISSING_CARGO = "cargo was not found. Install Rust from the Package Manager, or from https://rustup.rs, to compile the desktop app.";
+
 /** Compiles an exported project into a release executable with `cargo build --release`. */
 export async function compileTauriGameProject(project: Pick<TauriGameProject, "tauriDir" | "metadata">, options: CompileTauriGameOptions = {}): Promise<{ binaryPath: string }> {
   const env = options.env ?? process.env;
+  const cargo = options.cargo ?? await findCargo(env);
+  if (!cargo) { throw new MissingRuntimePackageError(MISSING_CARGO, "rust"); }
   await new Promise<void>((resolvePromise, reject) => {
-    const child = spawn(options.cargo ?? "cargo", ["build", "--release"], { cwd: project.tauriDir, env, signal: options.signal,
+    const child = spawn(cargo, ["build", "--release"], { cwd: project.tauriDir, env, signal: options.signal,
       stdio: ["ignore", "pipe", "pipe"] });
     let tail = "";
     const collect = (chunk: Buffer): void => {
@@ -401,9 +429,7 @@ export async function compileTauriGameProject(project: Pick<TauriGameProject, "t
     child.stdout.on("data", collect);
     child.stderr.on("data", collect);
     child.on("error", (error) => {
-      reject("code" in error && error.code === "ENOENT"
-        ? new Error("cargo was not found. Install Rust from https://rustup.rs to compile the desktop app.")
-        : error);
+      reject("code" in error && error.code === "ENOENT" ? new MissingRuntimePackageError(MISSING_CARGO, "rust", { cause: error }) : error);
     });
     child.on("close", (code) => {
       if (code === 0) { resolvePromise(); } else { reject(new Error(`cargo build failed with exit code ${code}\n${tail}`)); }

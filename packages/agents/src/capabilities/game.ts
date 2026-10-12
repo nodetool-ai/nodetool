@@ -8,6 +8,7 @@ import { autoplayNativeGame, MAX_GAME_ROUTE_TICKS, createScriptedGameSession, cr
 import { workspaceFromRow } from "@nodetool-ai/execution/service";
 import { assetKeyCandidates, assetObjectKey } from "@nodetool-ai/storage";
 import type { Workspace as RunWorkspace, StorageAdapter } from "@nodetool-ai/runtime";
+import type { TauriAppMetadata } from "@nodetool-ai/game-renderer/build-tauri";
 import type { CapabilityExport, CapabilityModule, CapabilityRun } from "./types.js";
 import { gameOutline3D, inputFrames3D, playtestGame3D, captureFrames3D, colliderBinding3D, stageModelGameAsset3D } from "./game3d.js";
 import type { PublishNativeGameRequest } from "./GamePublishRequest.js";
@@ -988,7 +989,9 @@ export interface NativeGameBuildRequest {
 export type NativeGameBuildResult =
   | { readonly error: string }
   | { readonly game_id: string; readonly revision: string; readonly target: NativeGameBuildTarget; readonly build_path: string;
-    readonly entry_path: string; readonly cached: boolean; readonly workspace: RunWorkspace };
+    readonly entry_path: string; readonly cached: boolean; readonly workspace: RunWorkspace;
+    /** The desktop app's name, identifier and binary name for a `tauri` build, else null. */
+    readonly app: TauriAppMetadata | null };
 
 const BUILD_CONTENT_TYPES: Readonly<Record<string, string>> = {
   js: "text/javascript", css: "text/css", json: "application/json", html: "text/html", png: "image/png", jpg: "image/jpeg",
@@ -1028,10 +1031,10 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
   let buildPath = `game-builds/${game.id}/${revision}`;
   let entryPath = `${buildPath}/index.html`;
   let tauriApp: { name: string } | undefined;
+  let metadata: TauriAppMetadata | undefined;
   if (target === "tauri") {
     tauriApp = { name: game.name };
     const { tauriAppMetadata } = await import("@nodetool-ai/game-renderer/build-tauri");
-    let metadata: unknown;
     try { metadata = tauriAppMetadata(document, tauriApp); }
     catch (error) { return { error: error instanceof Error ? error.message : String(error) }; }
     // The app name comes from the game row, which can change without a new revision.
@@ -1039,7 +1042,7 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
     buildPath = `game-builds/${game.id}/${revision}-tauri-${settings}`;
     entryPath = `${buildPath}/src-tauri/tauri.conf.json`;
   }
-  const done = { game_id: game.id, revision, target, build_path: buildPath, entry_path: entryPath, workspace };
+  const done = { game_id: game.id, revision, target, build_path: buildPath, entry_path: entryPath, workspace, app: metadata ?? null };
   if (await workspace.exists(entryPath)) {
     return { ...done, cached: true };
   }

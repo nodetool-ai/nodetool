@@ -1,11 +1,13 @@
 /**
- * `GET /api/games/:id/export-zip` — the editor's export download.
+ * `GET /api/games/:id/export-zip` and `POST /api/games/:id/build-executable`
+ * — the editor's export download and its desktop executable build.
  *
  * Real database, real workspace and the real build path. What is pinned here
- * is the HTTP surface: the archive layout for each target, and that another
- * owner's game is not found.
+ * is the HTTP surface: the archive layout for each target, that another
+ * owner's game is not found, and the build stream's events. A shell script
+ * stands in for cargo, so the stream is tested without a Rust toolchain.
  */
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -35,6 +37,7 @@ const makeCtx = (userId: string): Context => ({
 }) as Context;
 
 let workspaceDir: string;
+const savedEnv = { ...process.env };
 
 async function buildServer(userId: string): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
@@ -56,6 +59,7 @@ describe("game export download", () => {
   });
 
   afterEach(async () => {
+    process.env = { ...savedEnv };
     ModelObserver.clear();
     await rm(workspaceDir, { recursive: true, force: true });
   });
@@ -95,6 +99,64 @@ describe("game export download", () => {
     } finally {
       await owner.close();
       await stranger.close();
+    }
+  });
+
+  it("offers the Rust package when cargo is missing", async () => {
+    const created = await createCaller(makeCtx(USER_ID)).games.create({ projectId: PROJECT_ID, name: "Cave Run" });
+    process.env["PATH"] = join(workspaceDir, "no-bin");
+    process.env["CARGO_HOME"] = join(workspaceDir, "no-cargo");
+    const app = await buildServer(USER_ID);
+    try {
+      const response = await app.inject({ method: "POST", url: `/api/games/${created.game.id}/build-executable` });
+      expect(response.statusCode).toBe(503);
+      expect(response.json()).toMatchObject({ runtime_package: "rust" });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("refuses to run a compiler under the cloud profile", async () => {
+    const created = await createCaller(makeCtx(USER_ID)).games.create({ projectId: PROJECT_ID, name: "Cave Run" });
+    process.env["NODETOOL_NODE_PROFILE"] = "cloud";
+    const app = await buildServer(USER_ID);
+    try {
+      const response = await app.inject({ method: "POST", url: `/api/games/${created.game.id}/build-executable` });
+      expect(response.statusCode).toBe(403);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it.skipIf(process.platform === "win32")("streams cargo's output and copies the executable into the build", async () => {
+    const created = await createCaller(makeCtx(USER_ID)).games.create({ projectId: PROJECT_ID, name: "Cave Run" });
+    const bin = join(workspaceDir, "bin");
+    await mkdir(bin);
+    await writeFile(join(bin, "cargo"), [
+      "#!/bin/sh",
+      "echo '   Compiling cave-run v1.0.0'",
+      "echo 'warning: unused variable' >&2",
+      "mkdir -p \"$CARGO_TARGET_DIR/release\"",
+      "printf 'game binary' > \"$CARGO_TARGET_DIR/release/cave-run\"",
+      "echo '    Finished release'"
+    ].join("\n"));
+    await chmod(join(bin, "cargo"), 0o755);
+    process.env["PATH"] = `${bin}:${savedEnv["PATH"] ?? ""}`;
+    const app = await buildServer(USER_ID);
+    try {
+      const response = await app.inject({ method: "POST", url: `/api/games/${created.game.id}/build-executable` });
+      expect(response.statusCode).toBe(200);
+      expect(response.headers["content-type"]).toBe("application/x-ndjson");
+      const events = response.body.trim().split("\n").map((line) => JSON.parse(line) as Record<string, string>);
+      expect(events[0]).toMatchObject({ type: "status", message: "Compiling Cave Run with cargo" });
+      const lines = events.filter((event) => event.type === "log").map((event) => event.line);
+      expect(lines).toEqual(expect.arrayContaining(["   Compiling cave-run v1.0.0", "warning: unused variable", "    Finished release"]));
+      const done = events.at(-1)!;
+      expect(done).toMatchObject({ type: "done" });
+      expect(done.binary_path).toBe(join(done.project_path!, "bin", "cave-run"));
+      expect(await readFile(done.binary_path!, "utf8")).toBe("game binary");
+    } finally {
+      await app.close();
     }
   });
 });

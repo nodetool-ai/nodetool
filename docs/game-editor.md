@@ -322,9 +322,15 @@ The folder holds `index.html`, `game.json`, a player script, and an `assets/` fo
 
 A desktop build wraps the standalone web player in a [Tauri](https://tauri.app) project. It compiles to a native app for Windows, macOS, and Linux that plays the published revision offline.
 
-- **The editor.** Choose **Export build**, then **Desktop app**. The zip holds a `desktop/` folder.
+- **The editor.** Choose **Export build**, then **Desktop app**. The zip holds a `desktop/` folder. To compile it right away, see [Build the executable in the editor](#build-the-executable-in-the-editor).
 - **The agent.** Ask it for a desktop build. It calls `build_native_game` with `target: "tauri"`.
 - **The CLI.** `nodetool game build game.json --out game-desktop --target tauri --name "Cave Run"`. Add `--compile` to build the executable right away.
+
+### Build the executable in the editor
+
+The desktop app and a local server can compile the executable without leaving the editor. Choose **Export build**, then **Desktop executable**. Cargo runs on this computer and its output streams into the **Console** panel, warnings and errors included. When it finishes, the status row shows the executable's path, and the desktop app offers **Show in folder**. The executable lands in `bin/` inside the build's project folder under the project workspace. **Cancel** stops cargo. A hosted server refuses the build, because it would run a compiler on the server.
+
+Cargo comes from the **Rust** package in the Package Manager, or from a [rustup](https://rustup.rs) install. If neither is found, the editor offers to install Rust. The first build compiles Tauri itself and takes several minutes. Later builds share that work and finish much faster. The compiler also needs the platform toolchain: the Visual Studio C++ Build Tools on Windows, the Xcode Command Line Tools on macOS, and the WebKitGTK development packages on Linux.
 
 The project holds `dist/` (the web player), `src-tauri/` (the native shell, icons, and `tauri.conf.json`), `package.json`, and a README. The app takes the game's name, and its identifier defaults to `ai.nodetool.game.<name>`.
 

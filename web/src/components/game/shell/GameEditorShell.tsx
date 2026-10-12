@@ -20,6 +20,11 @@ import { createGameCommandRegistry, GameCommandContext } from "./useGameCommands
 import { gamePanelRegistry, type GameDimension, type GamePanelRegistry } from "./panelRegistry";
 import { GAME_EDITOR_ROOT_SX } from "./gameEditorStyles";
 import { useGameExport } from "./useGameExport";
+import { useGameExecutableBuild } from "./useGameExecutableBuild";
+import { isElectron, isLocalhost } from "../../../lib/env";
+
+/** Compiling runs cargo on the server's machine, which is this computer only in the desktop app or a local server. */
+const CAN_BUILD_EXECUTABLE = isElectron || isLocalhost;
 
 export interface GamePanelView {
   readonly id: string;
@@ -61,12 +66,16 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const exporter = useGameExport(exportGame);
   const exportEnabled = exportGame !== undefined && exporter.exporting === null;
+  const executable = useGameExecutableBuild(exportGame, () => layoutStore.getState().dispatch({ type: "reveal", panelId: "console" }));
+  const canBuildExecutable = CAN_BUILD_EXECUTABLE && exportGame !== undefined;
+  const showBinary = window.api?.showItemInFolder;
   const builtIn: GameCommandHandlers = {
     "editor.commandPalette": { run: () => setPaletteOpen(true) },
     "editor.keyboardShortcuts": { run: () => setShortcutsOpen(true) },
     "editor.publish": { run: toolbar.onPublish, enabled: !toolbar.saving && toolbar.saveStatus !== "saving" },
     "editor.exportWeb": { run: () => exporter.run("web"), enabled: exportEnabled },
     "editor.exportDesktop": { run: () => exporter.run("tauri"), enabled: exportEnabled },
+    "editor.buildExecutable": { run: executable.run, enabled: canBuildExecutable && !executable.building },
     "edit.undo": toolbar.onUndo ? { run: toolbar.onUndo, enabled: toolbar.canUndo !== false } : undefined,
     "edit.redo": toolbar.onRedo ? { run: toolbar.onRedo, enabled: toolbar.canRedo !== false } : undefined,
     "play.toggle": { run: toolbar.onPlay, enabled: !toolbar.loading },
@@ -101,7 +110,8 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
       dispatchGameShortcut(event, { dimension, playing: toolbar.playSession, bindings, handler: commandRegistry.handler });
     }}>
     <GameToolbar {...toolbar} onCommandPalette={() => setPaletteOpen(true)}
-      onExport={exportGame ? exporter.run : undefined} exporting={exporter.exporting !== null} />
+      onExport={exportGame ? exporter.run : undefined} exporting={exporter.exporting !== null}
+      onBuildExecutable={canBuildExecutable && !executable.building ? executable.run : undefined} />
     <GameLayoutMenu store={layoutStore} panels={registrations.filter((entry) => views.some((view) => view.id === entry.id))} />
     {exporter.exporting && <Caption role="status" sx={{ px: SPACING.md, py: SPACING.xs }}>
       {exporter.exporting === "tauri" ? "Building the desktop app project from the published revision" : "Building the web player from the published revision"}
@@ -110,6 +120,20 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
       <Caption color="error" role="alert">Export failed: {exporter.error}</Caption>
       <ReportBugButton context={{ source: "panel-crash", summary: "Game export failed", errorText: exporter.error }} />
       <EditorButton onClick={exporter.dismiss}>Dismiss</EditorButton>
+    </FlexRow>}
+    {executable.building && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs }}>
+      <Caption role="status">Compiling the desktop executable. Cargo's output is in the Console.</Caption>
+      <EditorButton onClick={executable.cancel}>Cancel</EditorButton>
+    </FlexRow>}
+    {executable.binaryPath && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
+      <Caption role="status" sx={{ minWidth: 0, overflowWrap: "anywhere" }}>Built {executable.binaryPath}</Caption>
+      {showBinary && <EditorButton onClick={() => { void showBinary(executable.binaryPath ?? ""); }}>Show in folder</EditorButton>}
+      <EditorButton onClick={executable.dismiss}>Dismiss</EditorButton>
+    </FlexRow>}
+    {executable.error && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
+      <Caption color="error" role="alert">Build failed: {executable.error}</Caption>
+      <ReportBugButton context={{ source: "panel-crash", summary: "Game executable build failed", errorText: executable.error }} />
+      <EditorButton onClick={executable.dismiss}>Dismiss</EditorButton>
     </FlexRow>}
     {notices}
     <GameDockCanvas presentation={presentation} store={layoutStore} />
