@@ -197,7 +197,7 @@ Procedures by router. Nested routers appear as a dotted path.
 | `credits` | `status` | `setPlan`, `topup` |
 | `customProviders` | `list` | `save`, `delete`, `test` |
 | `documents` | `index` | — |
-| `extension` | `status` | — |
+| `extension` | `status` | `installHost` |
 | `externalMcp` | `list` | `save`, `delete`, `probe` |
 | `files` | `list` | `createFolder` |
 | `fonts` | `list` | — |

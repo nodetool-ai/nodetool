@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { trpcClient } from "../trpc/client";
 
@@ -10,6 +10,8 @@ export const extensionQueryKeys = {
 export interface ExtensionStatus {
   /** The extension is running and reached its native host. */
   connected: boolean;
+  /** A browser on the server's machine has the native host registered. */
+  hostInstalled: boolean;
   /** Where the server finds the built extension. Empty on the cloud profile. */
   distPath: string;
   distExists: boolean;
@@ -34,6 +36,31 @@ export const useExtensionStatus = (): UseExtensionStatusResult => {
     staleTime: 0
   });
   return { status: data, isLoading };
+};
+
+interface UseInstallExtensionHostResult {
+  install: () => void;
+  isInstalling: boolean;
+  /** Why the last registration failed, as the server reported it. */
+  error: string | null;
+}
+
+/**
+ * Register the extension's native host with the browsers on this machine, so
+ * Chrome can start the bridge between the extension and NodeTool.
+ */
+export const useInstallExtensionHost = (): UseInstallExtensionHostResult => {
+  const queryClient = useQueryClient();
+  const { mutate, isPending, error } = useMutation({
+    mutationFn: () => trpcClient.extension.installHost.mutate(),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: extensionQueryKeys.status() })
+  });
+  return {
+    install: mutate,
+    isInstalling: isPending,
+    error: error ? error.message : null
+  };
 };
 
 export default useExtensionStatus;

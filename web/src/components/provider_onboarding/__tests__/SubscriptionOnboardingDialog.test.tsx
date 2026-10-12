@@ -8,10 +8,12 @@ import mockTheme from "../../../__mocks__/themeMock";
 import SubscriptionOnboardingDialog, {
   subscriptionProviders
 } from "../SubscriptionOnboardingDialog";
-import { NATIVE_HOST_INSTALL_COMMAND } from "../ChromeExtensionStep";
 import useSubscriptionOnboardingStore from "../../../stores/SubscriptionOnboardingStore";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
-import { useExtensionStatus } from "../../../serverState/useExtensionStatus";
+import {
+  useExtensionStatus,
+  useInstallExtensionHost
+} from "../../../serverState/useExtensionStatus";
 import { useOAuthConnection } from "../../../hooks/useOAuthConnection";
 import useSecretsStore from "../../../stores/SecretsStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
@@ -24,17 +26,32 @@ jest.mock("../../../stores/NotificationStore");
 jest.mock("../../../lib/env", () => ({ isElectron: false, isLocalhost: true }));
 
 const mockUseExtensionStatus = jest.mocked(useExtensionStatus);
+const mockUseInstallExtensionHost = jest.mocked(useInstallExtensionHost);
+const install = jest.fn();
 const mockOpenProviderOnboarding = jest.mocked(openProviderOnboarding);
 
-const extensionStatus = (connected: boolean) => ({
-  status: { connected, distPath: "", distExists: false },
+const extensionStatus = (
+  connected: boolean,
+  overrides: Partial<{ hostInstalled: boolean; distPath: string; distExists: boolean }> = {}
+) => ({
+  status: { connected, hostInstalled: connected, distPath: "", distExists: false, ...overrides },
   isLoading: false
+});
+
+const installState = (
+  overrides: Partial<ReturnType<typeof useInstallExtensionHost>> = {}
+): ReturnType<typeof useInstallExtensionHost> => ({
+  install,
+  isInstalling: false,
+  error: null,
+  ...overrides
 });
 
 beforeEach(() => {
   jest.clearAllMocks();
   useSubscriptionOnboardingStore.setState({ open: true, step: "subscriptions" });
   mockUseExtensionStatus.mockReturnValue(extensionStatus(false));
+  mockUseInstallExtensionHost.mockReturnValue(installState());
   jest.mocked(useOAuthConnection).mockReturnValue({
     label: "",
     isConnected: false,
@@ -110,12 +127,59 @@ describe("SubscriptionOnboardingDialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "Next: Chrome extension" }));
     expect(screen.getByText("Why add it")).toBeInTheDocument();
     expect(screen.getByText("How it works")).toBeInTheDocument();
-    expect(screen.getByText(NATIVE_HOST_INSTALL_COMMAND)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download extension" })).toBeInTheDocument();
     expect(screen.getByText("Extension not connected")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByText("Connect your AI subscriptions")).toBeInTheDocument();
+  });
+
+  it("registers the browser bridge itself when it is missing", () => {
+    act(() => useSubscriptionOnboardingStore.setState({ step: "extension" }));
+    const { rerender } = renderDialog();
+    expect(install).toHaveBeenCalledTimes(1);
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <SubscriptionOnboardingDialog />
+      </ThemeProvider>
+    );
+    expect(install).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves a registered bridge alone and says so", () => {
+    mockUseExtensionStatus.mockReturnValue(extensionStatus(false, { hostInstalled: true }));
+    act(() => useSubscriptionOnboardingStore.setState({ step: "extension" }));
+    renderDialog();
+    expect(install).not.toHaveBeenCalled();
+    expect(screen.getByText(/registered its bridge/)).toBeInTheDocument();
+  });
+
+  it("shows why registration failed and offers a retry", async () => {
+    mockUseInstallExtensionHost.mockReturnValue(
+      installState({ error: "No supported browser profile directory found" })
+    );
+    act(() => useSubscriptionOnboardingStore.setState({ step: "extension" }));
+    renderDialog();
+    expect(screen.getByText("No supported browser profile directory found")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(install).toHaveBeenCalledTimes(2);
+  });
+
+  it("points the desktop app at the extension folder it ships", async () => {
+    const showItemInFolder = jest.fn();
+    window.api = { ...window.api, showItemInFolder } as typeof window.api;
+    try {
+      mockUseExtensionStatus.mockReturnValue(
+        extensionStatus(false, { hostInstalled: true, distPath: "/app/chrome-extension", distExists: true })
+      );
+      act(() => useSubscriptionOnboardingStore.setState({ step: "extension" }));
+      renderDialog();
+      expect(screen.queryByRole("button", { name: "Download extension" })).toBeNull();
+      await userEvent.click(screen.getByRole("button", { name: "Show extension folder" }));
+      expect(showItemInFolder).toHaveBeenCalledWith("/app/chrome-extension");
+    } finally {
+      delete (window as { api?: unknown }).api;
+    }
   });
 
   it("hands off to the API-key dialog", async () => {

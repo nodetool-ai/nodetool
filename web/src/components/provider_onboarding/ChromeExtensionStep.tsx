@@ -1,9 +1,10 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import DownloadIcon from "@mui/icons-material/Download";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 
 import {
   Box,
@@ -14,15 +15,18 @@ import {
   ExternalLink,
   FlexColumn,
   FlexRow,
+  LoadingSpinner,
   Text,
   BORDER_RADIUS,
   SPACING
 } from "../ui_primitives";
-import { useExtensionStatus } from "../../serverState/useExtensionStatus";
+import {
+  useExtensionStatus,
+  useInstallExtensionHost
+} from "../../serverState/useExtensionStatus";
 import { BASE_URL } from "../../stores/BASE_URL";
 
 export const CHROME_EXTENSIONS_URL = "chrome://extensions";
-export const NATIVE_HOST_INSTALL_COMMAND = "nodetool extension install";
 
 /** What the extension makes possible, in the order a new user cares about. */
 export const EXTENSION_BENEFITS: readonly string[] = [
@@ -76,7 +80,23 @@ const ChromeExtensionStep: React.FC = () => {
   const { status, isLoading } = useExtensionStatus();
   const connected = status?.connected ?? false;
   const distPath = status?.distPath ?? "";
+  const hostInstalled = status?.hostInstalled ?? false;
+  // The desktop app ships the built extension, so Load unpacked can take its
+  // folder as is. A browser tab gets the same build as a zip.
   const canReveal = Boolean(status?.distExists && distPath && window.api?.showItemInFolder);
+  const host = useInstallExtensionHost();
+  const { install } = host;
+
+  // Register the bridge as soon as this page shows it missing, so the user
+  // has nothing to run. Once per visit: a failure waits for "Try again".
+  const triedInstall = useRef(false);
+  useEffect(() => {
+    if (!status || status.hostInstalled || triedInstall.current || isWindows()) {
+      return;
+    }
+    triedInstall.current = true;
+    install();
+  }, [status, install]);
 
   const handleDownload = useCallback(() => {
     window.open(`${BASE_URL}/api/extension/download`, "_blank", "noopener,noreferrer");
@@ -159,33 +179,62 @@ const ChromeExtensionStep: React.FC = () => {
             borderRadius: BORDER_RADIUS.lg
           }}
         >
-          <SetupStep index={1} title="Download the extension and unzip it.">
+          <SetupStep index={1} title="Let Chrome start NodeTool's browser bridge.">
+            {isWindows() ? (
+              <Caption color="warning">
+                This is not supported on Windows yet. Media generation through
+                the extension works on macOS and Linux.
+              </Caption>
+            ) : hostInstalled ? (
+              <FlexRow gap={SPACING.xs} align="center">
+                <CheckCircleRoundedIcon sx={{ fontSize: "1.2em", color: theme.vars.palette.success.main }} />
+                <Caption>Done. NodeTool registered its bridge with your browsers.</Caption>
+              </FlexRow>
+            ) : host.isInstalling || !status ? (
+              <FlexRow gap={SPACING.sm} align="center">
+                <LoadingSpinner size="small" inline />
+                <Caption>Registering with your browsers…</Caption>
+              </FlexRow>
+            ) : (
+              <FlexColumn gap={SPACING.sm} align="flex-start">
+                {host.error && <Caption color="error">{host.error}</Caption>}
+                <EditorButton density="compact" variant="outlined" size="small" onClick={() => install()}>
+                  {host.error ? "Try again" : "Register"}
+                </EditorButton>
+              </FlexColumn>
+            )}
+          </SetupStep>
+          <SetupStep
+            index={2}
+            title={canReveal ? "Open the extension folder that comes with NodeTool." : "Download the extension NodeTool provides and unzip it."}
+          >
             <FlexRow gap={SPACING.md} wrap>
-              <EditorButton
-                density="compact"
-                variant="contained"
-                size="small"
-                startIcon={<DownloadIcon sx={{ fontSize: "1.2em" }} />}
-                onClick={handleDownload}
-              >
-                Download extension
-              </EditorButton>
-              {canReveal && (
+              {canReveal ? (
                 <EditorButton
                   density="compact"
-                  variant="text"
+                  variant="contained"
                   size="small"
                   startIcon={<FolderOpenIcon sx={{ fontSize: "1.2em" }} />}
                   onClick={handleReveal}
                 >
-                  Show build folder
+                  Show extension folder
+                </EditorButton>
+              ) : (
+                <EditorButton
+                  density="compact"
+                  variant="contained"
+                  size="small"
+                  startIcon={<DownloadIcon sx={{ fontSize: "1.2em" }} />}
+                  onClick={handleDownload}
+                >
+                  Download extension
                 </EditorButton>
               )}
             </FlexRow>
           </SetupStep>
           <SetupStep
-            index={2}
-            title="Open chrome://extensions, turn on Developer mode, click Load unpacked and choose the unzipped folder."
+            index={3}
+            title="Open chrome://extensions, turn on Developer mode, click Load unpacked and choose that folder."
           >
             <FlexRow gap={SPACING.sm} align="center">
               <Box component="code" sx={{ fontFamily: theme.fontFamily2 }}>
@@ -193,24 +242,11 @@ const ChromeExtensionStep: React.FC = () => {
               </Box>
               <CopyButton value={CHROME_EXTENSIONS_URL} tooltip="Copy address" />
             </FlexRow>
-            <Caption>Chrome does not open this address from a link, so paste it into the address bar.</Caption>
-          </SetupStep>
-          <SetupStep
-            index={3}
-            title="Connect the extension to NodeTool once. Run this in a terminal, then reload the extension."
-          >
-            <FlexRow gap={SPACING.sm} align="center">
-              <Box component="code" sx={{ fontFamily: theme.fontFamily2 }}>
-                {NATIVE_HOST_INSTALL_COMMAND}
-              </Box>
-              <CopyButton value={NATIVE_HOST_INSTALL_COMMAND} tooltip="Copy command" />
-            </FlexRow>
-            {isWindows() && (
-              <Caption color="warning">
-                This step is not supported on Windows yet. Media generation through
-                the extension works on macOS and Linux.
-              </Caption>
-            )}
+            <Caption>
+              Chrome does not open this address from a link, so paste it into
+              the address bar. If NodeTool is already in the list, click its
+              reload button instead.
+            </Caption>
           </SetupStep>
           <SetupStep
             index={4}

@@ -64,6 +64,25 @@ function resolveHostScript(): string {
   return fileURLToPath(new URL("../../dist/extension/native-host-bin.js", import.meta.url));
 }
 
+/**
+ * Whether a browser on this machine has the host registered: a manifest under
+ * one of its profile directories whose wrapper script still exists. A
+ * manifest left by a moved or removed install points at a missing wrapper.
+ */
+export function isNativeHostInstalled(home = os.homedir()): boolean {
+  return nativeHostManifestDirs(home).some((dir) => {
+    try {
+      const manifest = JSON.parse(
+        fs.readFileSync(path.join(dir, `${NATIVE_HOST_NAME}.json`), "utf8")
+      ) as { path?: unknown };
+      return typeof manifest.path === "string" && fs.existsSync(manifest.path);
+    } catch {
+      // No manifest here, or one that is not JSON: not registered.
+      return false;
+    }
+  });
+}
+
 export function installNativeHost(options: InstallNativeHostOptions = {}): InstallNativeHostResult {
   if (process.platform === "win32") {
     throw new Error("Installing the native host on Windows needs a registry entry, which is not supported yet");
