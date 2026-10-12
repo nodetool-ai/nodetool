@@ -108,7 +108,7 @@ const MODES: ModeItem[] = [
   },
   {
     id: "motion_control",
-    label: "Motion Control",
+    label: "Motion control",
     icon: <TuneIcon fontSize="small" />,
     enabled: false
   }

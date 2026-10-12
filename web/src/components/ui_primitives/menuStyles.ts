@@ -33,7 +33,12 @@ export const menuPaperStyles = (theme: Theme): CSSObject => ({
   backgroundImage: "none",
   border: `1px solid ${theme.vars.palette.divider}`,
   borderRadius: BORDER_RADIUS.lg,
-  boxShadow: SHADOW(theme).lg
+  boxShadow: SHADOW(theme).lg,
+  // A right-click menu focuses its surface or list until a row is reached.
+  // The focused row shows the keyboard position, so neither draws a ring.
+  "&:focus, &:focus-visible, & .MuiList-root:focus-visible": {
+    outline: "none"
+  }
 });
 
 /** The list inside the surface: 4px above and below the first and last row. */
