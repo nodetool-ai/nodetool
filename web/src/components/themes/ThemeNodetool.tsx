@@ -389,15 +389,18 @@ const ThemeNodetool = createTheme({
         }),
         label: { paddingLeft: CONTROL.paddingX.normal, paddingRight: CONTROL.paddingX.normal },
         labelSmall: { paddingLeft: CONTROL.paddingX.compact, paddingRight: CONTROL.paddingX.compact },
-        outlined: ({ theme }) => ({
-          borderColor: theme.vars.palette.divider,
-          color: theme.vars.palette.text.secondary
-        }),
+        outlined: ({ theme, ownerState }) =>
+          ownerState.color === "default"
+            ? {
+                borderColor: theme.vars.palette.divider,
+                color: theme.vars.palette.text.secondary
+              }
+            : {},
         clickable: ({ theme }) => ({
           // Mouse only. iOS Safari reads a tap on an element whose :hover
           // style changes as the hover and drops the click.
           "@media (hover: hover)": {
-            "&.MuiChip-outlined:hover": {
+            "&.MuiChip-outlined.MuiChip-colorDefault:hover": {
               borderColor: theme.vars.palette.text.secondary,
               color: theme.vars.palette.text.primary,
               backgroundColor: theme.vars.palette.action.hover
