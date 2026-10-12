@@ -6,6 +6,7 @@ import JsonLd from "../../components/JsonLd";
 import FaqSection from "../../components/FaqSection";
 import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import SearchStarter from "../../components/SearchStarter";
+import SubscriptionSection from "../../components/SubscriptionSection";
 import { breadcrumbSchema } from "../../lib/jsonld";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import { competitors } from "../../data/competitorEntries";
@@ -271,6 +272,8 @@ export default function NodeBasedWorkflowsPage() {
             example that ships with NodeTool.
           </p>
         </div>
+
+        <SubscriptionSection className="mt-24" />
 
         <section
           aria-labelledby="nbw-qualities-title"
