@@ -6,6 +6,8 @@ import mockTheme from "../../../__mocks__/themeMock";
 import { initKeyListeners } from "../../../stores/KeyPressedStore";
 import Model3DEditor from "../Model3DEditor";
 import { getModel3DToolHandler } from "../model3DToolBridge";
+import { exportSceneToGltf } from "../exportGltf";
+import { saveBlobAsFile } from "../../../utils/downloadResponse";
 
 const mockCanvasProps = jest.fn();
 jest.mock("@react-three/fiber", () => ({
@@ -66,8 +68,25 @@ jest.mock("three/examples/jsm/loaders/GLTFLoader.js", () => {
 });
 
 jest.mock("../exportGltf", () => ({
-  exportSceneToGlb: jest.fn(() => Promise.resolve(new Blob(["glb"])))
+  exportSceneToGlb: jest.fn(() => Promise.resolve(new Blob(["glb"]))),
+  exportSceneToGltf: jest.fn(() => Promise.resolve(new Blob(["glb"])))
 }));
+
+// The other loaders and exporters ship as untransformed ESM too.
+jest.mock("three/examples/jsm/loaders/OBJLoader.js", () => ({ OBJLoader: jest.fn() }));
+jest.mock("three/examples/jsm/loaders/MTLLoader.js", () => ({ MTLLoader: jest.fn() }));
+jest.mock("three/examples/jsm/loaders/FBXLoader.js", () => ({ FBXLoader: jest.fn() }));
+jest.mock("three/examples/jsm/loaders/STLLoader.js", () => ({ STLLoader: jest.fn() }));
+jest.mock("three/examples/jsm/loaders/PLYLoader.js", () => ({ PLYLoader: jest.fn() }));
+jest.mock("three/examples/jsm/loaders/ColladaLoader.js", () => ({ ColladaLoader: jest.fn() }));
+jest.mock("three/examples/jsm/loaders/3MFLoader.js", () => ({ ThreeMFLoader: jest.fn() }));
+jest.mock("three/examples/jsm/loaders/USDLoader.js", () => ({ USDLoader: jest.fn() }));
+jest.mock("three/examples/jsm/exporters/OBJExporter.js", () => ({ OBJExporter: jest.fn() }));
+jest.mock("three/examples/jsm/exporters/STLExporter.js", () => ({ STLExporter: jest.fn() }));
+jest.mock("three/examples/jsm/exporters/PLYExporter.js", () => ({ PLYExporter: jest.fn() }));
+jest.mock("three/examples/jsm/exporters/USDZExporter.js", () => ({ USDZExporter: jest.fn() }));
+
+jest.mock("../../../utils/downloadResponse", () => ({ saveBlobAsFile: jest.fn() }));
 
 jest.mock("../Model3DChatPanel", () => ({
   __esModule: true,
@@ -128,6 +147,28 @@ describe("Model3DEditor", () => {
       expect(onSave).not.toHaveBeenCalled();
     }
   );
+
+  it("downloads the scene from the Export menu without saving the asset", async () => {
+    const { onSave, getByRole, findByRole } = renderEditor({ name: "chair.glb" });
+    await waitFor(() => expect(getByRole("button", { name: "Save" })).toBeEnabled());
+
+    // The tooltip text names the button: MUI's Tooltip sets it as aria-label.
+    fireEvent.click(getByRole("button", { name: /Download the scene/ }));
+    expect(await findByRole("menuitem", { name: /Selection as OBJ/ })).toHaveAttribute(
+      "aria-disabled",
+      "true"
+    );
+    await act(async () => {
+      fireEvent.click(getByRole("menuitem", { name: /Scene as GLB/ }));
+    });
+
+    await waitFor(() => expect(saveBlobAsFile).toHaveBeenCalledWith(expect.any(Blob), "chair.glb"));
+    expect(exportSceneToGltf).toHaveBeenCalledWith(expect.any(THREE.Group), [], {
+      binary: true,
+      onlyVisible: true
+    });
+    expect(onSave).not.toHaveBeenCalled();
+  });
 
   it("stops rendering frames while the editor is a background tab", () => {
     const { rerender } = renderEditor({ active: false });

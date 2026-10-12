@@ -258,6 +258,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
     [host.playDocument, document]);
   const notice = host.error || draftError || operationError || restart;
   return <GameEditorShell layoutStore={layoutStore} dimension="3d" active={active}
+    exportGame={{ id: refId, name: name }}
     toolbar={{ name: name,
         playing: host.playing,
         playSession: Boolean(host.playDocument),

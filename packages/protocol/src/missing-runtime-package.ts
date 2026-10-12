@@ -13,6 +13,7 @@ export type RuntimePackageId =
   | "pandoc"
   | "pdftotext"
   | "yt-dlp"
+  | "rust"
   | "manimgx"
   | "transformers-js"
   | "tensorflow-js"
@@ -34,6 +35,7 @@ export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> =
   pandoc: "Pandoc",
   pdftotext: "PDF Tools (Poppler)",
   "yt-dlp": "yt-dlp",
+  rust: "Rust",
   manimgx: "ManimGX",
   "transformers-js": "Transformers.js",
   "tensorflow-js": "TensorFlow.js Models",

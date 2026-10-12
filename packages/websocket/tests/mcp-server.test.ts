@@ -29,9 +29,11 @@ import {
   SDK_NATIVE_TOOL_REPLACEMENTS
 } from "@nodetool-ai/runtime";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPError } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
+  classifyForwardFailure,
   closeAllMcpHttpSessions,
   createMcpServer,
   createMcpStdioTransport,
@@ -766,6 +768,199 @@ describe("stdio HTTP forwarding", () => {
       requests.filter((method) => method === "POST").length
     ).toBeGreaterThanOrEqual(3);
     await transport.close();
+  });
+
+  /**
+   * A forwarder wired to the in-process `/mcp` handler. `fail` lets a test
+   * replace what the next fetches do; `posts` records each POST's JSON-RPC
+   * method and whether it carried the no-timeout dispatcher.
+   */
+  async function startForwarder() {
+    const posts: Array<{ method: string; dispatcher: boolean }> = [];
+    let fail: (() => Promise<Response>) | undefined;
+    vi.stubGlobal("fetch", async (input: URL | Request, init?: RequestInit) => {
+      const request = new Request(input, init);
+      if (request.method === "POST") {
+        const body = (await request.clone().json()) as { method?: string };
+        posts.push({
+          method: body.method ?? "response",
+          dispatcher: Boolean((init as { dispatcher?: unknown })?.dispatcher)
+        });
+      }
+      if (fail && request.method === "POST") return fail();
+      const response = await handleMcpHttpRequest(request, {
+        agentToolsScope: { userId: "1", source: "local-dev-http" }
+      });
+      if (!response) throw new Error("Missing MCP response");
+      return response;
+    });
+    const input = new PassThrough();
+    const output = new PassThrough();
+    const stdio = new StdioServerTransport(input, output);
+    let closed = false;
+    const lines: Array<Record<string, unknown>> = [];
+    output.on("data", (chunk: Buffer) => {
+      for (const line of chunk.toString().trim().split("\n")) {
+        lines.push(JSON.parse(line) as Record<string, unknown>);
+      }
+    });
+    expect(
+      await forwardMcpStdioToLocalServer("http://127.0.0.1:7777/mcp", stdio)
+    ).toBe(true);
+    // Drop the probe handshake; only the forwarded session matters here.
+    posts.length = 0;
+    const onclose = stdio.onclose;
+    stdio.onclose = () => {
+      closed = true;
+      onclose?.();
+    };
+    const write = (message: Record<string, unknown>) =>
+      input.write(JSON.stringify({ jsonrpc: "2.0", ...message }) + "\n");
+    // A reconnect waits between refused attempts, so allow a few seconds.
+    const reply = async (id: number) => {
+      await vi.waitFor(
+        () => expect(lines.some((line) => line.id === id)).toBe(true),
+        { timeout: 5000 }
+      );
+      return lines.find((line) => line.id === id) as Record<string, unknown>;
+    };
+    write({
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-06-18",
+        capabilities: {},
+        clientInfo: { name: "stdio-test", version: "1.0.0" }
+      }
+    });
+    await reply(1);
+    write({ method: "notifications/initialized" });
+    await vi.waitFor(() =>
+      expect(posts.map((post) => post.method)).toContain(
+        "notifications/initialized"
+      )
+    );
+    return {
+      posts,
+      lines,
+      stdio,
+      write,
+      reply,
+      isClosed: () => closed,
+      setFail: (next: (() => Promise<Response>) | undefined) => {
+        fail = next;
+      }
+    };
+  }
+
+  it("sends every forwarded request through the no-timeout dispatcher", async () => {
+    const forwarder = await startForwarder();
+    forwarder.write({ id: 2, method: "tools/list" });
+    await forwarder.reply(2);
+    expect(forwarder.posts.length).toBeGreaterThan(0);
+    expect(forwarder.posts.every((post) => post.dispatcher)).toBe(true);
+    await forwarder.stdio.close();
+  });
+
+  it("opens a new session when the server lost the old one", async () => {
+    const forwarder = await startForwarder();
+    // A server restart or the idle sweep: the session id now answers 404.
+    closeAllMcpHttpSessions();
+
+    forwarder.write({ id: 2, method: "tools/list" });
+    const reply = await forwarder.reply(2);
+
+    expect(reply.error).toBeUndefined();
+    expect(
+      (reply.result as { tools: unknown[] }).tools.length
+    ).toBeGreaterThan(0);
+    expect(forwarder.posts.map((post) => post.method)).toEqual([
+      "initialize",
+      "notifications/initialized",
+      "tools/list",
+      "initialize",
+      "notifications/initialized",
+      "tools/list"
+    ]);
+    // The replayed handshake's response stays inside the forwarder.
+    expect(forwarder.lines.filter((line) => line.id === 1)).toHaveLength(1);
+    expect(forwarder.isClosed()).toBe(false);
+    await forwarder.stdio.close();
+  });
+
+  it("waits for a restarting server that refuses connections", async () => {
+    const forwarder = await startForwarder();
+    closeAllMcpHttpSessions();
+    let refusals = 0;
+    forwarder.setFail(async () => {
+      refusals += 1;
+      if (refusals === 3) forwarder.setFail(undefined);
+      throw new TypeError("fetch failed", {
+        cause: Object.assign(new Error("connect ECONNREFUSED"), {
+          code: "ECONNREFUSED"
+        })
+      });
+    });
+
+    forwarder.write({ id: 2, method: "tools/list" });
+    const reply = await forwarder.reply(2);
+
+    expect(refusals).toBe(3);
+    expect(reply.error).toBeUndefined();
+    expect(forwarder.isClosed()).toBe(false);
+    await forwarder.stdio.close();
+  });
+
+  it("fails a request whose connection dropped mid-call without resending it", async () => {
+    const forwarder = await startForwarder();
+    forwarder.setFail(async () => {
+      forwarder.setFail(undefined);
+      throw new TypeError("fetch failed", {
+        cause: Object.assign(new Error("other side closed"), {
+          code: "UND_ERR_SOCKET"
+        })
+      });
+    });
+
+    forwarder.write({ id: 2, method: "tools/list" });
+    const failed = await forwarder.reply(2);
+
+    expect(failed.error).toMatchObject({
+      message: expect.stringContaining("NodeTool server request failed")
+    });
+    expect(
+      forwarder.posts.filter((post) => post.method === "tools/list")
+    ).toHaveLength(1);
+    expect(forwarder.isClosed()).toBe(false);
+
+    forwarder.write({ id: 3, method: "tools/list" });
+    expect((await forwarder.reply(3)).error).toBeUndefined();
+    await forwarder.stdio.close();
+  });
+});
+
+describe("classifyForwardFailure", () => {
+  it("separates failures the server never ran from the rest", () => {
+    expect(classifyForwardFailure(new StreamableHTTPError(404, "gone"))).toBe(
+      "session-lost"
+    );
+    expect(
+      classifyForwardFailure(
+        new TypeError("fetch failed", {
+          cause: Object.assign(new Error("refused"), { code: "ECONNREFUSED" })
+        })
+      )
+    ).toBe("unreachable");
+    expect(classifyForwardFailure(new StreamableHTTPError(500, "boom"))).toBe(
+      "other"
+    );
+    expect(
+      classifyForwardFailure(
+        new TypeError("fetch failed", {
+          cause: Object.assign(new Error("closed"), { code: "UND_ERR_SOCKET" })
+        })
+      )
+    ).toBe("other");
   });
 });
 

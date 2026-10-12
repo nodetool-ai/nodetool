@@ -268,6 +268,36 @@ describe("edit_image through the adapter", () => {
     expect(result["error"]).toMatch(/missing\.png/);
     expect(context.runProviderPrediction).not.toHaveBeenCalled();
   });
+
+  it("forwards aspect_ratio and resolution to the provider", async () => {
+    // Both fields were dropped without a warning, so a 3:2 edit came back square.
+    const context = withGenerationSeam({
+      userId: "user-1",
+      runProviderPrediction: vi.fn(async () => new Uint8Array([9, 9, 9])),
+      workspace: {
+        localDir: null,
+        write: async () => {},
+        read: async () => new Uint8Array([1, 1, 1]),
+        key: (p: string) => p
+      }
+    }) as unknown as ProcessingContext;
+
+    await asTool(editImage).process(context, {
+      provider: "dreamina",
+      model: "seedream",
+      input_file: "in.png",
+      prompt: "wider",
+      aspect_ratio: "3:2",
+      resolution: "2k"
+    });
+
+    const call = (
+      context.runProviderPrediction as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0][0] as Record<string, unknown>;
+    const params = call["params"] as Record<string, unknown>;
+    expect(params["aspect_ratio"]).toBe("3:2");
+    expect(params["resolution"]).toBe("2k");
+  });
 });
 
 describe("generate_image through the adapter", () => {
@@ -298,6 +328,34 @@ describe("generate_image through the adapter", () => {
     ).mock.calls[0][0] as Record<string, unknown>;
     expect(call["capability"]).toBe("text_to_image");
     expect(call["model"]).toBe("gpt-image-1");
+  });
+
+  it("forwards aspect_ratio and resolution to the provider", async () => {
+    const context = withGenerationSeam({
+      userId: "user-1",
+      runProviderPrediction: vi.fn(async () => new Uint8Array([1, 2, 3])),
+      workspace: {
+        localDir: null,
+        write: async () => {},
+        read: async () => null,
+        key: (p: string) => p
+      }
+    }) as unknown as ProcessingContext;
+
+    await asTool(generateImage).process(context, {
+      provider: "dreamina",
+      model: "seedream",
+      prompt: "a red fox",
+      aspect_ratio: "16:9",
+      resolution: "2k"
+    });
+
+    const call = (
+      context.runProviderPrediction as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0][0] as Record<string, unknown>;
+    const params = call["params"] as Record<string, unknown>;
+    expect(params["aspect_ratio"]).toBe("16:9");
+    expect(params["resolution"]).toBe("2k");
   });
 
   it("errors when the bytes reach no asset and no workspace", async () => {

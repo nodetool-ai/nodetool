@@ -89,6 +89,9 @@
       "path": "../app-runtime"
     },
     {
+      "path": "../app-export"
+    },
+    {
       "path": "../compute"
     },
     {

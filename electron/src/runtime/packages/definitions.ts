@@ -101,6 +101,23 @@ export const RUNTIME_PACKAGES = {
     verifyBinary: "yt-dlp",
   }),
 
+  // Exported games compile with cargo. The platform toolchain cargo links with
+  // (MSVC, Xcode's clang, WebKitGTK headers) is not a conda package.
+  rust: new CondaRuntimePackage({
+    id: "rust",
+    name: "Rust",
+    description:
+      "Rust compiler and cargo. Builds desktop executables of games. Windows also needs the Visual Studio C++ Build Tools, macOS the Xcode Command Line Tools, and Linux the WebKitGTK development packages.",
+    category: "language",
+    versionRange: ">=1.77",
+    condaPackages: ["rust>=1.77"],
+    verifyBinary: "cargo",
+    extraBinaries: { rustc: "rustc" },
+    windowsBinSubdir: "Library\\bin",
+    approxSizeMB: 700,
+    homepage: "https://www.rust-lang.org",
+  }),
+
   // ManimGX needs Python 3.13, newer than the conda environment's Python, so
   // uv installs it as a tool on a Python of its own.
   manimgx: new UvToolRuntimePackage({
