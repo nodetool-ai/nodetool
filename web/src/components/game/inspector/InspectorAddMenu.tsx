@@ -36,7 +36,7 @@ function InspectorAddMenu({ label, options, onSelect, disabled, variant = "butto
   return <>
     {variant === "icon" ? <ToolbarIconButton icon={<AddIcon />} tooltip={inactive ? "" : label} ariaLabel={label} disabled={inactive} aria-haspopup="menu" aria-expanded={Boolean(anchor)}
       sx={ICON_SX} onKeyDown={stopKeyToggle} onClick={(event) => { event.stopPropagation(); setAnchor(event.currentTarget); }} /> : <EditorButton variant="text" disabled={inactive} aria-haspopup="menu" aria-expanded={Boolean(anchor)}
-      startIcon={<AddIcon fontSize="small" />} endIcon={<ArrowDropDownIcon fontSize="small" />}
+      startIcon={<AddIcon />} endIcon={<ArrowDropDownIcon />}
       sx={{ alignSelf: "flex-start", color: "text.secondary", "&:hover": { color: "text.primary" } }}
       onClick={(event) => setAnchor(event.currentTarget)}>{label}</EditorButton>}
     <EditorMenu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)} onClick={stopToggle} onKeyDown={stopKeyToggle}

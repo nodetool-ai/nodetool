@@ -50,5 +50,5 @@ interface AddButtonProps {
 
 /** A compact text button that adds one item to the group above it, aligned to the label column. */
 export function AddButton({ children, onClick, disabled }: AddButtonProps) {
-  return <EditorButton variant="text" startIcon={<AddIcon fontSize="small" />} sx={ADD_BUTTON_SX} disabled={disabled} onClick={onClick}>{children}</EditorButton>;
+  return <EditorButton variant="text" startIcon={<AddIcon />} sx={ADD_BUTTON_SX} disabled={disabled} onClick={onClick}>{children}</EditorButton>;
 }
