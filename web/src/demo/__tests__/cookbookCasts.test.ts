@@ -43,12 +43,23 @@ const ALLOWED_NODE_TYPES = new Set([
   "openai.agents.RealtimeAgent",
   "openai.audio.Transcribe",
   "transformers.ImageToText",
-  "fal.image_to_image.StableDiffusionV3MediumImageToImage",
   "fal.image_to_image.TopazUpscaleImage",
   "fal.text_to_video.KlingVideoV16ProTextToVideo",
   "fal.image_to_video.KlingVideoV16StandardImageToVideo",
   "fal.image_to_video.KlingVideoAiAvatarV2Pro",
-  "fal.image_to_video.Sora2ImageToVideoPro",
+  "nodetool.input.IntegerInput",
+  "nodetool.input.StringListInput",
+  "nodetool.text.Prompt",
+  "nodetool.creative.Director",
+  "nodetool.creative.ScreenplayShots",
+  "nodetool.image.ImageToImage",
+  "nodetool.video.ImageToVideo",
+  "nodetool.control.Collect",
+  "nodetool.control.ForEach",
+  "nodetool.constant.Sketch",
+  "nodetool.sketch.RenderSketch",
+  "nodetool.timeline.AddClips",
+  "nodetool.timeline.RenderTimeline",
 ]);
 
 const focused = (wf: string): string => {
@@ -69,10 +80,10 @@ const uri = (value: unknown): string | undefined =>
   (value as { uri?: string } | undefined)?.uri;
 
 describe("cookbook casts — structure", () => {
-  it("covers all 13 cookbook patterns with unique ids", () => {
-    expect(cookbookCasts).toHaveLength(13);
+  it("covers all 14 cookbook patterns with unique ids", () => {
+    expect(cookbookCasts).toHaveLength(14);
     const ids = cookbookCasts.map((c) => c.id);
-    expect(new Set(ids).size).toBe(13);
+    expect(new Set(ids).size).toBe(14);
     ids.forEach((id) => expect(id.startsWith("cookbook-")).toBe(true));
   });
 
@@ -163,6 +174,44 @@ describe("cookbook casts — replay lands the payoff state", () => {
       engine.seekToTime(cast.durationMs - 100);
       const result = useResultsStore.getState().getOutputResult(wf, focused(wf), "preview");
       expect(uri(result)).toContain("data:audio/wav");
+    } finally {
+      engine.dispose();
+    }
+  });
+
+  // The pattern videos once showed every generator returning its own input
+  // image. Each run of a generator must produce new media.
+  it.each([
+    ["cookbook-shot-fan-out", "still", 3],
+    ["cookbook-shot-fan-out", "clip", 3],
+    ["cookbook-sketch-variants", "restyle", 3],
+    ["cookbook-variant-fan-out", "poster", 4],
+  ] as const)("%s: every %s run produces distinct media", (castId, nodeId, runs) => {
+    const cast = cookbookCasts.find((c) => c.id === castId)!;
+    const engine = new DemoEngine(cast, { resolveAssetUrl });
+    try {
+      const wf = cast.workflow.id;
+      // The card shows the latest run, so read it after each completion.
+      const uris = cast.events
+        .filter(
+          (e) =>
+            e.message.type === "node_update" &&
+            e.message.node_id === nodeId &&
+            e.message.status === "completed"
+        )
+        .map((e) => {
+          engine.seekToTime(e.t + 1);
+          return uri(lastOutputs(wf, nodeId).output);
+        });
+      expect(uris).toHaveLength(runs);
+      expect(new Set(uris).size).toBe(runs);
+      const inputs = cast.workflow.graph.nodes.flatMap((n) =>
+        Object.values((n.data ?? {}) as Record<string, unknown>).map(uri)
+      );
+      for (const u of uris) {
+        expect(u).toBeTruthy();
+        expect(inputs).not.toContain(u);
+      }
     } finally {
       engine.dispose();
     }

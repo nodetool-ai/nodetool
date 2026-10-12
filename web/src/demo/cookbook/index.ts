@@ -14,12 +14,13 @@ import { chatWithDocsCast } from "./chatWithDocsCast";
 import { flashcardsSqliteCast } from "./flashcardsSqliteCast";
 import { summarizeNewslettersCast } from "./summarizeNewslettersCast";
 import { audioToImageCast } from "./audioToImageCast";
-import { styleTransferCast } from "./styleTransferCast";
 import { textToVideoCast } from "./textToVideoCast";
 import { imageToVideoCast } from "./imageToVideoCast";
 import { talkingAvatarCast } from "./talkingAvatarCast";
 import { imageUpscalingCast } from "./imageUpscalingCast";
-import { storyboardToVideoCast } from "./storyboardToVideoCast";
+import { shotFanOutCast } from "./shotFanOutCast";
+import { sketchVariantsCast } from "./sketchVariantsCast";
+import { variantFanOutCast } from "./variantFanOutCast";
 
 /** Every cookbook cast, in cookbook (pattern) order. */
 export const cookbookCasts: DemoCast[] = [
@@ -30,10 +31,11 @@ export const cookbookCasts: DemoCast[] = [
   flashcardsSqliteCast,
   summarizeNewslettersCast,
   audioToImageCast,
-  styleTransferCast,
   textToVideoCast,
   imageToVideoCast,
   talkingAvatarCast,
   imageUpscalingCast,
-  storyboardToVideoCast,
+  shotFanOutCast,
+  sketchVariantsCast,
+  variantFanOutCast,
 ];

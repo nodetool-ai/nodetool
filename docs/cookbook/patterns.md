@@ -59,8 +59,8 @@ The same trip from brief to cut, but with a keyframe in the middle:
 `ScreenplayShots` streams one prompt per shot (`shot_prompt`), each prompt
 becomes a still, and each still is animated.
 
-<video controls preload="metadata" poster="{{ '/assets/cookbook/storyboard-to-video.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/storyboard-to-video.mp4' | relative_url }}" type="video/mp4">
+<video controls preload="metadata" poster="{{ '/assets/cookbook/shot-fan-out.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/shot-fan-out.mp4' | relative_url }}" type="video/mp4">
 </video>
 
 {% mermaid %}
@@ -190,8 +190,8 @@ A sketch document carries layers and a mask. `RenderSketch` flattens it to an
 image and returns the mask alongside when the sketch has a visible mask layer.
 That gives you the composition and the region to change in one node.
 
-<video controls preload="metadata" poster="{{ '/assets/cookbook/style-transfer.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/style-transfer.mp4' | relative_url }}" type="video/mp4">
+<video controls preload="metadata" poster="{{ '/assets/cookbook/sketch-variants.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/sketch-variants.mp4' | relative_url }}" type="video/mp4">
 </video>
 
 {% mermaid %}
@@ -234,8 +234,8 @@ An agent turns a brief into a direction, a list generator writes N distinct
 prompts against it, and each prompt renders. The fan-out is the point: one input,
 a gallery out.
 
-<video controls preload="metadata" poster="{{ '/assets/cookbook/movie-poster.jpg' | relative_url }}">
-  <source src="{{ '/assets/cookbook/movie-poster.mp4' | relative_url }}" type="video/mp4">
+<video controls preload="metadata" poster="{{ '/assets/cookbook/variant-fan-out.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/variant-fan-out.mp4' | relative_url }}" type="video/mp4">
 </video>
 
 {% mermaid %}

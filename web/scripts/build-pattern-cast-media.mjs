@@ -1,0 +1,123 @@
+// Builds the media the creative-pattern demo casts embed.
+//
+//   node scripts/build-pattern-cast-media.mjs
+//
+// Needs ImageMagick 6 (`convert`) and ffmpeg with libvpx on PATH.
+//
+// Every frame comes from the shipped Voltra example timeline
+// (packages/base-nodes/nodetool/assets/nodetool-base/timelines/voltra), so the
+// stills, clips, and variants in each pattern video are distinct from their
+// inputs and from each other:
+//
+// - shot fan-out: three stills, a short push-in clip per still, and the cut
+//   that joins them
+// - sketch control: a pencil sketch traced from the hero shot and three styled
+//   renders that keep its composition
+// - variant fan-out: four poster variants of the same bike
+//
+// Writes src/demo/assets/patternMedia.ts as base64 data URIs, the same
+// "inline so replay needs no asset resolution" pattern as storyboardStills.ts.
+
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const WEB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const SRC = path.resolve(
+  WEB,
+  "../packages/base-nodes/nodetool/assets/nodetool-base/timelines/voltra"
+);
+const OUT = path.join(WEB, "src/demo/assets/patternMedia.ts");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pattern-media-"));
+
+const run = (cmd, args) => execFileSync(cmd, args, { stdio: "inherit" });
+const SMALL = ["-resize", "480x270", "-strip", "-quality", "70"];
+
+/** Resize a Voltra frame, optionally through extra ImageMagick operators. */
+const still = (name, source, ops = []) => {
+  const out = path.join(tmp, `${name}.jpg`);
+  run("convert", [path.join(SRC, `${source}.jpg`), "-resize", "640x360", ...ops, ...SMALL, out]);
+  return out;
+};
+
+/** A 2-second 384×216 VP8 clip that pushes in (and optionally pans) on a still. */
+const clip = (name, source, panPerFrame = 0) => {
+  const out = path.join(tmp, `${name}.webm`);
+  run("ffmpeg", [
+    "-v", "error", "-y", "-loop", "1", "-i", path.join(SRC, `${source}.jpg`),
+    "-vf",
+    `scale=1280:720,zoompan=z='1+0.0025*on':x='iw/2-(iw/zoom/2)+${panPerFrame}*on':y='ih/2-(ih/zoom/2)':d=60:s=384x216:fps=30,format=yuv420p`,
+    "-frames:v", "60", "-c:v", "libvpx", "-b:v", "160k", "-an", out,
+  ]);
+  return out;
+};
+
+const MEDIA = [
+  ["SHOT_STREET_STILL", still("street", "street"), "Shot 1: steam over a wet neon street."],
+  ["SHOT_RIDER_STILL", still("rider", "rider"), "Shot 2: the rider's visor catches the signs."],
+  ["SHOT_RIDE_STILL", still("ride", "ride"), "Shot 3: the bike tears down the avenue."],
+  ["SHOT_STREET_CLIP", clip("street", "street"), "Shot 1 animated."],
+  ["SHOT_RIDER_CLIP", clip("rider", "rider"), "Shot 2 animated."],
+  ["SHOT_RIDE_CLIP", clip("ride", "ride", 1.5), "Shot 3 animated."],
+  [
+    "SKETCH_IMAGE",
+    still("sketch", "hero", [
+      "-colorspace", "gray", "-statistic", "median", "5x5", "-edge", "1",
+      "-negate", "-normalize", "-level", "55%,100%",
+    ]),
+    "A pencil sketch of the bike, traced from the hero shot.",
+  ],
+  [
+    "SKETCH_NOIR_RENDER",
+    still("noir", "hero", ["-colorspace", "gray", "-sigmoidal-contrast", "8x45%"]),
+    "The sketch rendered as film noir.",
+  ],
+  [
+    "SKETCH_RETRO_RENDER",
+    still("retro", "hero", [
+      "-modulate", "110,140,80", "-fill", "#ff8a2a", "-colorize", "22%",
+      "-sigmoidal-contrast", "4x40%",
+    ]),
+    "The sketch rendered in retro neon.",
+  ],
+  ["SKETCH_TEAL_RENDER", still("teal", "hero"), "The sketch rendered as a teal night shot."],
+  ["POSTER_HERO_IMAGE", still("p-hero", "hero"), "Poster variant: the bike under the signs."],
+  ["POSTER_ROOFTOP_IMAGE", still("p-rooftop", "rooftop"), "Poster variant: skyline at dusk."],
+  ["POSTER_SIDE_IMAGE", still("p-side", "side"), "Poster variant: studio profile."],
+  ["POSTER_RIDER_IMAGE", still("p-rider", "rider"), "Poster variant: the rider."],
+];
+
+// The finished cut: the three shot clips joined end to end.
+const list = path.join(tmp, "cut.txt");
+fs.writeFileSync(
+  list,
+  ["street", "rider", "ride"].map((n) => `file '${path.join(tmp, `${n}.webm`)}'`).join("\n")
+);
+const cut = path.join(tmp, "cut.webm");
+run("ffmpeg", ["-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", list, "-c", "copy", cut]);
+MEDIA.push(["SHOT_CUT_CLIP", cut, "The three shots cut together."]);
+
+const dataUri = (file) => {
+  const mime = file.endsWith(".webm") ? "video/webm" : "image/jpeg";
+  return `data:${mime};base64,${fs.readFileSync(file).toString("base64")}`;
+};
+
+const body = MEDIA.map(
+  ([name, file, doc]) => `/** ${doc} */\nexport const ${name} =\n  "${dataUri(file)}";\n`
+).join("\n");
+
+fs.writeFileSync(
+  OUT,
+  `/**\n` +
+    ` * Media for the creative-pattern demo casts (docs/cookbook/patterns.md),\n` +
+    ` * derived from the shipped Voltra example timeline and inlined as base64\n` +
+    ` * data URIs so the casts replay with no backend and no render credits.\n` +
+    ` *\n` +
+    ` * Generated by web/scripts/build-pattern-cast-media.mjs. Do not edit.\n` +
+    ` */\n\n` +
+    body
+);
+fs.rmSync(tmp, { recursive: true, force: true });
+console.log(`wrote ${path.relative(process.cwd(), OUT)}`);

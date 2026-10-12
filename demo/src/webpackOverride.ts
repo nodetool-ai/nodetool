@@ -84,6 +84,9 @@ const EMPTIED = [
   "constants",
   "tty",
   "readline",
+  // Pulled in by @opentelemetry/instrumentation-undici, which the browser
+  // render never starts.
+  "diagnostics_channel",
 ];
 
 /** Server-only specifiers to resolve to an empty module if they appear. */

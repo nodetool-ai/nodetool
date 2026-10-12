@@ -75,26 +75,30 @@ before encoding and watch the encoded transitions at the app player's size.
 
 ## Cookbook recipe videos (no backend)
 
-One short video per recipe in `docs/cookbook/patterns.md` — 15 in all, from the
-simple image-enhancement pipeline to text-to-video and talking avatars. Each is a
-synthetic, backend-free cast that replays the real graph UI building and running
-the recipe, narrated by the same `Tutorial` composition (title card → step
-indicator + captions → call-to-action).
+One short video per cookbook recipe. The pattern videos on
+`docs/cookbook/patterns.md` and the workflow pages that reuse them come from
+here. Each is a synthetic, backend-free cast that replays the real graph UI
+building and running the recipe, narrated by the same `Tutorial` composition
+(title card, step indicator and captions, call-to-action).
 
 ```bash
 cd demo
-npm run render:cookbook                          # all 15 → docs/assets/cookbook/<slug>.mp4 + .jpg
+npm run render:cookbook                          # all → docs/assets/cookbook/<slug>.mp4 + .jpg
 npm run render:cookbook -- --only text-to-video  # one recipe
 npm run still:cookbook                            # JPG thumbnails only (fast)
 ```
 
 The casts live in `web/src/demo/cookbook/` (one file per recipe, built from the
-shared metadata factories in `cookbook/builders.ts`); the per-recipe titles,
+shared metadata factories in `cookbook/builders.ts`). The per-recipe titles,
 camera beats, and captions live in `demo/src/cookbook.ts`. Every node type is a
-real registry type and the media is inline (the kitten image, a tiny WebM clip,
-a short WAV chime — `web/src/demo/assets/`), so they replay with no backend and
-no generation credits. `scripts/render-cookbook.ts` bundles the project once and
-renders all 15, so it's far cheaper than 15 separate `remotion render` calls.
+real registry type and the media is inline (`web/src/demo/assets/`), so they
+replay with no backend and no generation credits. The creative-pattern casts
+take their stills, clips, and variants from the shipped Voltra example
+timeline through `web/scripts/build-pattern-cast-media.mjs`, so each generator
+run shows media that differs from its input. Keep a progress ramp at one step
+per frame or two (for example 30 steps over a second) so the bar moves
+smoothly. `scripts/render-cookbook.ts` bundles the project once and renders
+every recipe, which is far cheaper than a `remotion render` call per recipe.
 
 ## Workflow-gallery videos (no backend)
 
