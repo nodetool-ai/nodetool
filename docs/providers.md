@@ -41,6 +41,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | AKI | ✅ | ✅ | | | | | |
 | Higgsfield | | ✅ | ✅ | | | | |
 | UseAPI | | ✅ | ✅ | | | | |
+| vgenv | | | ✅ | | | | |
 | Replicate | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | FAL | ✅ | ✅ | ✅ | ✅ | | | |
 | Comfy Cloud | | ⁵ | ⁵ | | | | |
@@ -175,6 +176,10 @@ Higgsfield generates image and video from a manifest of models (text-to-image, i
 ## UseAPI
 
 UseAPI generates image and video through your own Google Flow and Dreamina accounts on useapi.net: Nano Banana and Veo models through Google Flow, Seedream, Seedance, and Sora 2 through Dreamina. No chat. Cloud only, keyed by `USEAPI_API_TOKEN`. Set `USEAPI_GOOGLE_FLOW_EMAIL` (Google Flow account email) and `USEAPI_DREAMINA_ACCOUNT` (`region:email`) so reference image uploads use the right account.
+
+## vgenv
+
+vgenv is an independent API for MiniMax H3 video, not affiliated with MiniMax. It runs text-to-video, image-to-video with a first and optional last frame, and reference-to-video with up to nine ordered images. Models are the Fast, Standard, Enhanced, and Quality tiers at 480p or 768p, 4 to 15 seconds. Prompts are sent as written, with vgenv's prompt rewriting turned off. No chat. Cloud only, keyed by `VGENV_API_KEY`. vgenv bills each video from a prepaid balance at creation and releases the hold when a preparing or queued job is cancelled or the platform fails it. NodeTool cancels the job when a run is stopped or times out.
 
 ## Replicate
 

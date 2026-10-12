@@ -401,6 +401,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Generated media URLs are screened; submit, upload and poll use the fixed API host."
   ),
   guardedSafeFetch(
+    "packages/runtime/src/providers/vgenv-provider.ts",
+    "vgenv MiniMax H3 result downloads",
+    "provider-response",
+    "Signed result URLs are screened; create, poll and cancel use the fixed API host."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",
     "Meshy model download",
     "provider-response",

@@ -84,6 +84,7 @@ import { JinaProvider } from "./jina-provider.js";
 import { FakeProvider } from "./fake-provider.js";
 import { HiggsfieldProvider } from "./higgsfield-provider.js";
 import { UseapiProvider } from "./useapi-provider.js";
+import { VgenvProvider } from "./vgenv-provider.js";
 export { BaseProvider, estimatePromptTokens } from "./base-provider.js";
 export {
   FAL_PROVIDER_ID,
@@ -229,6 +230,7 @@ export type {
 export { AnthropicProvider };
 export { HiggsfieldProvider };
 export { UseapiProvider };
+export { VgenvProvider };
 export { ClaudeAgentProvider };
 export { DreaminaProvider, setDreaminaPageRunner, type DreaminaPageRunner } from "./dreamina-provider.js";
 export { ChatGPTProvider, setChatGPTTab } from "./chatgpt-provider.js";
@@ -583,6 +585,9 @@ registerBuiltinProvider(PROVIDER_IDS.USEAPI, UseapiProvider, {
 }, {
   USEAPI_GOOGLE_FLOW_EMAIL: "",
   USEAPI_DREAMINA_ACCOUNT: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.VGENV, VgenvProvider, {
+  VGENV_API_KEY: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.AKI, AkiProvider, { AKI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, {

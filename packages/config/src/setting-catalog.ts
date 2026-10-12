@@ -590,6 +590,7 @@ sec(
 sec("USEAPI_API_TOKEN", "useapi.net", "API token for Google Flow and Dreamina through useapi.net. Get yours at https://useapi.net/");
 s("USEAPI_GOOGLE_FLOW_EMAIL", "useapi.net", "Google Flow account email for reference image uploads");
 s("USEAPI_DREAMINA_ACCOUNT", "useapi.net", "Dreamina account ID (region:email) for reference image uploads");
+sec("VGENV_API_KEY", "vgenv", "vgenv API key for MiniMax H3 video generation. Get yours at https://vgenv.com/api-keys");
 sec("MESHY_API_KEY", "Meshy", "Meshy AI API key for 3D model generation. Get yours at https://app.meshy.ai/settings/api-keys");
 sec("RODIN_API_KEY", "Rodin", "Rodin AI API key for 3D model generation. Get yours at https://hyperhuman.deemos.com/");
 sec(
