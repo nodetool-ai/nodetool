@@ -388,7 +388,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "generate_image",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "036370ef51e7",
+    contract: "f500c24bccdb",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
@@ -409,7 +409,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_image",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "1b88ce3a0385",
+    contract: "0ba76865f4a4",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
