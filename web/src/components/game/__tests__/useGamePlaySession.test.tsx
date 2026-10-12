@@ -2,8 +2,10 @@ import { Profiler } from "react";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createTopDownRoomGame, createScriptedGameSession, type GameSession } from "@nodetool-ai/game-runtime";
+import { createTopDownRoomGame, createScriptedGameSession, withGameScriptLogs, type GameSession } from "@nodetool-ai/game-runtime";
 import { useGamePlaySession } from "../useGamePlaySession";
+import { useGameConsoleFeed } from "../panels/console/useGameConsoleFeed";
+import { getGameConsoleStore } from "../../../stores/game/GameConsoleStore";
 import { gameAuthoring, gameAssetBinding, gameDocument, type GameDocument } from "@nodetool-ai/protocol";
 import { loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { resolveMediaUri } from "../../../utils/resolveMediaUri";
@@ -75,6 +77,34 @@ it("publishes the last successful presentation when a script failure pauses play
     await user.click(screen.getByRole("button", { name: "Step" }));
     expect(screen.getByLabelText("Session error")).toHaveTextContent("pause failure");
     expect(screen.getByTestId("tick").textContent).toBe("0");
+  } finally { view.unmount(); animation.mockRestore(); }
+});
+
+function ConsoleFailureHarness({ gameDocument }: { gameDocument: GameDocument }) {
+  const session = useGamePlaySession({ refId: "log-before-failure", active: true, document: gameDocument });
+  useGameConsoleFeed("log-before-failure", { runtimeError: session.error, scriptError: session.scriptError, diagnosticError: null,
+    tick: session.playState.tick, scriptLogs: session.scriptLogs });
+  return <><canvas ref={session.canvasRef} /><button onClick={session.beginPlay}>Play</button><button onClick={() => session.step()}>Step</button>
+    <output data-testid="backend">{session.backend}</output></>;
+}
+
+it("writes the lines a script logged before failing to the console ahead of the failure", async () => {
+  const animation = jest.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+  const user = userEvent.setup();
+  const candidate = await createScriptedGameSession(document, 1);
+  const failure = withGameScriptLogs(new Error(`Game script ${JSON.stringify([document.entrySceneId, "logger", 0])} for logger at tick 0 failed: bad command`),
+    [{ tick: 0, entityId: "logger", level: "log", message: "about to fail" }]);
+  jest.spyOn(candidate, "step").mockImplementation(() => { throw failure; });
+  const view = render(<ConsoleFailureHarness gameDocument={document} />);
+  try {
+    await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("Canvas 2D"));
+    jest.mocked(createScriptedGameSession).mockResolvedValueOnce(candidate);
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    await waitFor(() => expect(getGameConsoleStore("log-before-failure").getState().groups).toHaveLength(2));
+    const [log, error] = getGameConsoleStore("log-before-failure").getState().groups;
+    expect(log).toMatchObject({ level: "log", source: "script", message: "about to fail", tick: 0, entityId: "logger" });
+    expect(error).toMatchObject({ level: "error", source: "script", message: (failure as Error).message, entityId: "logger" });
   } finally { view.unmount(); animation.mockRestore(); }
 });
 

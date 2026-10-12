@@ -113,6 +113,21 @@ describe("native 3D game CLI commands", () => {
     expect(crate?.transform.position.y).toBeLessThan(-1);
   });
 
+  it("simulates and replays a crate that bounces on a named rubber physics material", async () => {
+    const document = createNative3DGame("a".repeat(32));
+    document.physicsMaterials = { rubber: { friction: 0.5, restitution: 0.9, frictionCombine: "average", restitutionCombine: "max" } };
+    for (const entity of document.scenes[0].entities) {
+      if (entity.id === "crate" && entity.collider3d) {
+        entity.collider3d.physicsMaterial = "rubber";
+        entity.transform3d.position.y = 3;
+      }
+    }
+    await writeFile(gamePath, JSON.stringify(document));
+    expect(await run("validate")).toMatchObject({ valid: true });
+    const report = await run("simulate", "--ticks", "120", "--verify-replay");
+    expect(report).toMatchObject({ ok: true, replay: { verified: true } });
+  });
+
   it("reports failed z/grounded assertions and rejects misspelled 3D event fields", async () => {
     const assertions = join(directory, "assertions.json");
     await writeFile(assertions, JSON.stringify({ ticks: [{ tick: 0, entities: [{ id: "player", z: 99, grounded: true }] }] }));

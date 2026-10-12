@@ -297,3 +297,13 @@ it("round-trips adding, changing and removing spatial audio settings through JSO
   roundTrip(before, spatial);
   roundTrip(spatial, changed);
 });
+
+it("round-trips physics materials and a collider's material reference through JSON operations", () => {
+  const before = createNative3DGame("diff3d-physics-materials");
+  const after = applyGameOps3D(before, [
+    { op: "set_game", physics_materials: { rubber: { restitution: 0.85, restitutionCombine: "max" } } },
+    { op: "update_entity", scene_id: "level", entity_id: "crate", set: { collider3d: { physicsMaterial: "rubber" } } }
+  ]);
+  expect(after.physicsMaterials?.rubber).toMatchObject({ restitution: 0.85, restitutionCombine: "max" });
+  roundTrip(before, after);
+});

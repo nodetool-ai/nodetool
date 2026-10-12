@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { gameAssetBinding, gameSnapshot3D, type GameDocument3D, type GameInspection3D, type GameInputFrame3D, type GameRenderFrame3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
-import { createGameSession3D, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
+import { createGameSession3D, gameScriptLogsOf, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
 import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, GameInput3D, GameUiController, gameUiViewport3D } from "@nodetool-ai/game-renderer";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
 import { GameReplayHistory } from "./gameReplayHistory";
+import { createGameScriptLogChannel, type GameScriptLogChannel } from "./gameScriptLogChannel";
 import type { ScriptFailure } from "./useGamePlaySession";
 import { gameSessionOptions3D, readGameAssetBytes3D } from "./viewport3d/gameSessionAssets3D";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
@@ -34,6 +35,8 @@ export interface GamePlaySession3D {
   readonly save: () => void;
   readonly load: () => Promise<void>;
   readonly replayBeforeError: (displayedFailure?: ScriptFailure) => Promise<void>;
+  /** Each step's script log lines, for the console. */
+  readonly scriptLogs?: GameScriptLogChannel;
 }
 
 export function useGamePlaySession3D({ refId, document, active, editorSceneId }: GamePlaySession3DOptions): GamePlaySession3D {
@@ -51,6 +54,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const inputRef = useRef(new GameInput3D());
   const historyRef = useRef(new GameReplayHistory<GameInputFrame3D, GameSnapshot3D>());
   const audioRef = useRef<GameAudioPlayer | null>(null);
+  const [scriptLogs] = useState(createGameScriptLogChannel);
   const hudRef = useRef<GameUiController | null>(null);
   const [playing, setPlaying] = useState(false);
   const [playDocument, setPlayDocument] = useState<GameDocument3D | null>(null);
@@ -111,6 +115,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     try {
       const previous = historyRef.current.needsCheckpoint() ? session.snapshot() : undefined;
       const result = session.step(input);
+      if (result.scriptLogs) { scriptLogs.publish(result.scriptLogs); }
       lastFrameRef.current = result.frame;
       historyRef.current.record(input, () => {
         if (!previous) { throw new Error("Replay checkpoint is unavailable"); }
@@ -127,12 +132,15 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       if (!playingRef.current) { display(result.frame, 1); }
     } catch (cause) {
       sessionFailedRef.current = true;
+      // Lines logged before the failure reach the console ahead of the error line.
+      const logs = gameScriptLogsOf(cause);
+      if (logs) { scriptLogs.publish(logs); }
       setInspection(committedRef.current);
       setFrame(lastFrameRef.current);
       setError(cause instanceof Error ? cause.message : String(cause));
       setPlaying(false);
     }
-  }, [display]);
+  }, [display, scriptLogs]);
 
   useEffect(() => {
     rendererControllerRef.current = new AbortController();
@@ -361,5 +369,5 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
   };
   return { canvasRef, rendererRef, inputRef, playing, playDocument, frame, inspection, backend, error,
-    beginPlay, stop, step, save, load, replayBeforeError };
+    beginPlay, stop, step, save, load, replayBeforeError, scriptLogs };
 }

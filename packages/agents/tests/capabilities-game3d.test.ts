@@ -108,6 +108,24 @@ describe("native game tools in 3D", () => {
     expect(JSON.stringify(outline)).toContain("\"collisionMatrix\":[[\"debris\",\"world\"]]");
   });
 
+  it("declares physics materials and points colliders at them through edit_native_game", async () => {
+    const { run } = await agent();
+    const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Materials", dimension: "3d" }));
+    const missing = readRecord(await run.invoke("edit_native_game", { game_id: created.document.id,
+      ops: [{ op: "update_entity", entity_id: "crate", set: { collider3d: { physicsMaterial: "rubber" } } }] }));
+    expect(JSON.stringify(missing)).toContain("Physics material rubber is not declared");
+    const edited = replyDocument(await run.invoke("edit_native_game", { game_id: created.document.id, ops: [
+      { op: "set_game", physics_materials: { rubber: { restitution: 0.85, restitutionCombine: "max" } } },
+      { op: "update_entity", entity_id: "crate", set: { collider3d: { physicsMaterial: "rubber" } } }
+    ] }));
+    if (edited.document.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
+    expect(edited.document.physicsMaterials).toEqual({ rubber: { friction: 0.5, restitution: 0.85, frictionCombine: "average", restitutionCombine: "max" } });
+    expect(edited.document.scenes[0].entities.find((entity) => entity.id === "crate")?.collider3d).toMatchObject({ physicsMaterial: "rubber", friction: 0.5, restitution: 0 });
+    const outline = JSON.stringify(readRecord(await run.invoke("get_native_game", { game_id: created.document.id })));
+    expect(outline).toContain("\"physicsMaterials\":{\"rubber\"");
+    expect(outline).toContain("\"physicsMaterial\":\"rubber\"");
+  });
+
   it("stores and removes a document animation graph through edit_native_game", async () => {
     const { run } = await agent();
     const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Locomotion", dimension: "3d" }));

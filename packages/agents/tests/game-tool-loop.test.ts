@@ -285,6 +285,25 @@ it("scores a collision layer matrix authored through the public 3D edit surface"
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
 
+it("scores physics materials authored through the public 3D edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="physics-materials");
+  if (!candidate) { throw new Error("Physics material eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Physics material eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  expect(await edit.execute({ops:[{op:"update_entity",entity_id:"crate",set:{collider3d:{physicsMaterial:"rubber"}}}]})).toHaveProperty("error");
+  const materials = {op:"set_game",physics_materials:{ice:{friction:0.02,frictionCombine:"min"},rubber:{restitution:0.85}}};
+  expect(await edit.execute({ops:[materials,
+    {op:"update_entity",entity_id:"floor",set:{collider3d:{physicsMaterial:"ice"}}},
+    {op:"update_entity",entity_id:"crate",set:{collider3d:{physicsMaterial:"rubber"}}}]})).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  expect(await edit.execute({ops:[{op:"set_game",physics_materials:{...materials.physics_materials,rubber:{restitution:0.85,restitutionCombine:"max"}}}]})).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
 it("scores a 3D HUD tree with a health bar and an action button authored through the public edit surface", async () => {
   const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="hud-widget-tree-3d");
   if (!candidate) { throw new Error("3D HUD eval case must exist"); }

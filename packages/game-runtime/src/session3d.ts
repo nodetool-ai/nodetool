@@ -17,6 +17,7 @@ import {
   type GameUiOverride
 } from "@nodetool-ai/protocol";
 import { initialGameplayState, runGameplayTick } from "./gameplay/lifecycle.js";
+import { withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
 import type { GameScriptStats } from "./scripts.js";
 import { prepareGameScripts3D, type GameScriptRunner3D } from "./scripts3d.js";
 import { validateGame3D } from "./validate3d.js";
@@ -25,6 +26,7 @@ import { digestGame3D } from "./spatial3d/digest.js";
 import { ZERO3 } from "./spatial3d/math.js";
 import { pairKey3D, type Contact3D, type EntityState3D } from "./spatial3d/state.js";
 import { resolveCollisionLayers3D } from "./spatial3d/layers.js";
+import { resolvePhysicsMaterials3D } from "./spatial3d/materials.js";
 import { GAME_PHYSICS_BUILD_3D, prepareRapier3D, SpatialWorld3D, type PreparedCollider3D } from "./spatial3d/world.js";
 
 import { statefulGameSystem } from "./systems/pipeline.js";
@@ -49,8 +51,11 @@ export interface GameSession3DOptions {
   ) => Promise<PreparedCollider3D & { readonly digest: string }>;
 }
 
+/** A 3D step result with the script stats and the lines from script `log` commands, which never enter snapshots or replay state. */
+export type GameSessionStepResult3D = GameStepResult3D & { readonly scriptStats?: GameScriptStats; readonly scriptLogs?: readonly GameScriptLogEntry[] };
+
 export interface GameSession3D {
-  step(input: GameInputFrame3D): GameStepResult3D & { readonly scriptStats?: GameScriptStats };
+  step(input: GameInputFrame3D): GameSessionStepResult3D;
   takePresentationEvents(): readonly (GameEvent3D | GameParticleEmission)[];
   frame(): GameRenderFrame3D;
   inspect(query?: GameInspectionQuery3D): GameInspection3D;
@@ -165,7 +170,7 @@ export async function createGameSession3D(
   const validation = validateGame3D(value);
   if (!validation.valid || !validation.document) throw new Error(`Invalid 3D game: ${validation.errors.join("; ")}`);
   if (!Number.isSafeInteger(seed) || seed < 0) throw new Error("Game seed must be a nonnegative safe integer");
-  const document = resolveCollisionLayers3D(validation.document);
+  const document = resolvePhysicsMaterials3D(resolveCollisionLayers3D(validation.document));
   const contentDigest = await digestGame3D(document);
   const saved = savedSnapshot ? gameSnapshot3D.parse(savedSnapshot) : undefined;
   if (
@@ -465,6 +470,7 @@ export async function createGameSession3D(
       events: [],
       emit: () => {},
       scriptStats: undefined,
+      scriptLogs: undefined,
       spatialStep: undefined,
       contacts: [],
       result: undefined,
@@ -606,9 +612,9 @@ export async function createGameSession3D(
         presentationEvents = [];
         return pending;
       },
-      step(value): GameStepResult3D & { readonly scriptStats?: GameScriptStats } {
+      step(value): GameSessionStepResult3D {
         assertAvailable();
-        return runGameplayTick<GameStepResult3D & { readonly scriptStats?: GameScriptStats }, GameEvent3D>(
+        return runGameplayTick<GameSessionStepResult3D, GameEvent3D>(
           ({ events, emit }) => {
             systemContext.input = value;
             systemContext.queues = { despawns: new Set(), spawns: [] };
@@ -619,10 +625,15 @@ export async function createGameSession3D(
             systemContext.events = events;
             systemContext.emit = emit;
             systemContext.scriptStats = undefined;
+            systemContext.scriptLogs = undefined;
             systemContext.spatialStep = undefined;
             systemContext.result = undefined;
-            const timings = options.recordTimings ? pipeline.stepTimed(systemContext) : undefined;
-            if (!options.recordTimings) { pipeline.step(systemContext); }
+            let timings: ReturnType<typeof pipeline.stepTimed> | undefined;
+            // A tick that fails after its scripts ran still reports what they logged.
+            try {
+              timings = options.recordTimings ? pipeline.stepTimed(systemContext) : undefined;
+              if (!options.recordTimings) { pipeline.step(systemContext); }
+            } catch (error) { throw withGameScriptLogs(error, systemContext.scriptLogs); }
             const result = readStepResult3D(systemContext);
             return timings ? { ...result, timings } : result;
           },

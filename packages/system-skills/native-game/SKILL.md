@@ -167,8 +167,9 @@ Keep controller, body, collider and interactions on a gameplay root. Put the
 replaceable model on a visual child using `parentId`. Physics roots have unit
 scale and one pose owner. `character3d` requires a kinematic body and a capsule.
 Dynamic props use primitives or prepared convex hulls. Triangle meshes require
-static bodies. Collision category and mask use 16 bits in 3D. Each scene names
-one `activeCameraId`. The camera supports perspective or orthographic projection
+static bodies. Collision category and mask use 16 bits in 3D. Shared friction
+and restitution belong in named `physicsMaterials` that colliders reference by
+`physicsMaterial`. Each scene names one `activeCameraId`. The camera supports perspective or orthographic projection
 and fixed or follow behavior.
 
 `generate_game_asset {game_id, slot, kind: "model", input_file, preparation?}`

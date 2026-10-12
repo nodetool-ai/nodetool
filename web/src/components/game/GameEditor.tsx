@@ -71,11 +71,11 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     ? editorSceneId : document?.entrySceneId ?? null;
   const { canvasRef, inputRef, playing, playDocument, playState, backend, error, setError,
     scriptError: hostScriptError, frame, onViewportAspect, onCamera, resetCamera, step, beginPlay, stop,
-    save, load, replayBeforeError, runtimeEntities } = useGamePlaySession({ refId, active, document,
+    save, load, replayBeforeError, runtimeEntities, scriptLogs } = useGamePlaySession({ refId, active, document,
       editorSceneId: activeSceneId ?? undefined, name: data?.game.name });
   const diagnostics = useGameScriptDiagnostics(document, openGameDiagnosticSession2D);
   const scriptError = diagnostics.error ?? hostScriptError;
-  useGameConsoleFeed(refId, { runtimeError: error, scriptError: hostScriptError, diagnosticError: diagnostics.error, tick: playState.tick });
+  useGameConsoleFeed(refId, { runtimeError: error, scriptError: hostScriptError, diagnosticError: diagnostics.error, tick: playState.tick, scriptLogs });
   const layoutStore = useGamePanelLayoutStore();
   const assistant = useGameAssistantDraft(layoutStore);
   const canUndo = useStore(getGameDraftStore(refId), (state) => state.canUndo);

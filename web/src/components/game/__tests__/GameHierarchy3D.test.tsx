@@ -41,7 +41,16 @@ describe("GameHierarchy3D", () => {
     const { onSelect } = renderHierarchy();
     expect(screen.getByRole("button", { name: "Ferry" })).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(screen.getByRole("button", { name: "Island" }));
-    expect(onSelect).toHaveBeenCalledWith("island");
+    expect(onSelect).toHaveBeenCalledWith("island", false);
+  });
+
+  it.each(["Shift", "Control", "Meta"])("toggles a row in the selection on %s-click", async (modifier) => {
+    const { onSelect } = renderHierarchy();
+    const user = userEvent.setup();
+    await user.keyboard(`{${modifier}>}`);
+    await user.click(screen.getByRole("button", { name: "Island" }));
+    await user.keyboard(`{/${modifier}}`);
+    expect(onSelect).toHaveBeenCalledWith("island", true);
   });
 
   it("collapses children and keeps search matches with their ancestors", async () => {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameDocument, GameInputFrame, GameRenderFrame, GameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { gameSnapshot } from "@nodetool-ai/protocol/game.js";
-import { createScriptedGameSession, type GameSession } from "@nodetool-ai/game-runtime";
+import { createScriptedGameSession, gameScriptLogsOf, type GameSession } from "@nodetool-ai/game-runtime";
 import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "@nodetool-ai/game-renderer/audio";
 import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, GameInput, GameParticles2D, GameUiController, gameUiViewport2D, type GameRenderer } from "@nodetool-ai/game-renderer";
@@ -9,6 +9,7 @@ import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickCl
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
 import { GameReplayHistory } from "./gameReplayHistory";
+import { createGameScriptLogChannel } from "./gameScriptLogChannel";
 
 interface PlayState { tick: number; score: number; won: boolean; sceneId: string }
 export interface ScriptFailure { message: string; tick: number; entityId: string | null }
@@ -54,6 +55,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const fontsKeyRef = useRef<string | null>(null);
   const rendererPromiseRef = useRef<Promise<GameRenderer> | null>(null);
   const assetBindingsRef = useRef<GameDocument["assets"] | null>(null);
+  const [scriptLogs] = useState(createGameScriptLogChannel);
   const [playing, setPlaying] = useState(false);
   const [playDocument, setPlayDocument] = useState<GameDocument | null>(null);
   const [renderDocument, setRenderDocument] = useState<GameDocument | null>(null);
@@ -147,6 +149,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     if (playDocument) inputHistoryRef.current.record(input, () => session.snapshot());
     try {
       const result = session.step(input);
+      if (result.scriptLogs) { scriptLogs.publish(result.scriptLogs); }
       particlesRef.current?.tick(result.frame, session.takePresentationEvents());
       result.events.forEach((event) => audioRef.current?.handle(event));
       const state = session.snapshot();
@@ -164,12 +167,15 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       });
     } catch (cause) {
       sessionFailedRef.current = true;
+      // Lines logged before the failure reach the console ahead of the error line.
+      const logs = gameScriptLogsOf(cause);
+      if (logs) { scriptLogs.publish(logs); }
       const message = cause instanceof Error ? cause.message : String(cause);
       setError(message);
       if (message.includes("Game script")) setScriptError(scriptFailure(message, lastTickRef.current + 1));
       setPlaying(false);
     }
-  }, [renderFrame, playDocument]);
+  }, [renderFrame, playDocument, scriptLogs]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -392,5 +398,5 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
 
   return { canvasRef, inputRef, playing, playDocument, playState, backend, error, setError,
     scriptError, setScriptError, frame, showCurrentFrame, onViewportAspect, onCamera, resetCamera,
-    step, beginPlay, stop, save, load, replayBeforeError, runtimeEntities };
+    step, beginPlay, stop, save, load, replayBeforeError, runtimeEntities, scriptLogs };
 }

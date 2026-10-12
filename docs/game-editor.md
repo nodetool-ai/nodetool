@@ -139,7 +139,11 @@ replaces the local draft and clears its undo history.
 
 **Model assets.** The collapsed **Model assets** section binds a 3D model. Enter an owned model asset ID and a slot name, then choose **Prepare and install model**. Each model slot has **Edit model**, which opens the model in a model editor tab. After you save changes to the model, prepare and install it again. The engine does not pick up edits on its own.
 
-**Viewport.** The toolbar above the canvas has a **Transform mode** selector (**Move**, **Rotate**, **Scale**), **Snap**, **Fly camera**, **Overlays**, and **Frame selection**.
+**Viewport.** The toolbar above the canvas has a **Transform mode** selector (**Move**, **Rotate**, **Scale**), **Local space**, **Snap**, **Gizmo settings**, **Align to ground**, **Overlays**, **Fly camera**, and **Frame selection**. The orientation gizmo in the top-right corner shows the world axes. Click an axis end to look along that axis, and use the button below it to switch between perspective and orthographic views.
+
+Click an entity to select it. Shift-click, Ctrl-click or Cmd-click adds it to the selection or removes it, and a click on empty space clears the selection. The scene tree uses the same modifiers. A multi-selection shares one gizmo and outlines every selected entity. A child whose parent is also selected moves with the parent. Each gizmo drag and each **Align to ground** is one undo step for the whole selection.
+
+**Gizmo settings** holds the pivot, the snap increments and two switches. The pivot is **Selection centre** (the mean of the selected origins), **Active entity** (the last one selected) or **Individual origins**, where each entity rotates and scales around its own origin. Snap increments default to 0.25 meters for move, 15 degrees for rotate and 0.25 for scale. **Surface snap** makes move drags rest the selection on the surface under the pointer. **Orbit around selection** moves the orbit centre to the selection whenever it changes. **Align to ground** drops each selected entity onto the surface below it, or onto the ground plane at height zero. These settings are editor preferences kept in this browser, not part of the game.
 
 | Action | Control |
 |---|---|
@@ -148,8 +152,14 @@ replaces the local draft and clears its undo history.
 | Zoom | Scroll |
 | Fly camera | Turn on **Fly camera**, then W, A, S, D to move, R and F to rise and descend, drag to look |
 | Frame the selection | F |
+| Switch local and world space | X |
+| Next pivot mode | . (period) |
+| Select all, clear the selection | Ctrl or Cmd with A, Esc |
+| Align to ground | End |
+| Front, right, top view | Numpad 1, 3, 7. Add Ctrl or Cmd for back, left and bottom |
+| Orthographic view | Numpad 5 |
 
-Snap steps are 0.25 meters for move and scale and 15 degrees for rotate. The 3D editor has **Undo** and **Redo** buttons, and Ctrl or Cmd with Z works inside the dock area.
+The 3D editor has **Undo** and **Redo** buttons, and Ctrl or Cmd with Z works inside the dock area.
 
 **Inspector.** With nothing selected it shows scene settings and any validation errors. With an entity selected it shows **Position (meters)**, **Rotation (degrees)**, **Scale**, and the entity's components, such as primitive, body, collider, camera, light, and character. A **Behaviors** section lists behaviors, with **Add script**, **Edit script**, and **Remove**. **Delete entity** removes the entity.
 

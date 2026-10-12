@@ -10,6 +10,8 @@ export interface GameConsoleState {
   readonly groups: readonly GameConsoleGroup[];
   readonly nextId: number;
   readonly append: (entry: GameConsoleEntry) => void;
+  /** Appends several lines in one store update. */
+  readonly appendAll: (entries: readonly GameConsoleEntry[]) => void;
   readonly clear: () => void;
 }
 
@@ -20,6 +22,11 @@ export function createGameConsoleStore(): GameConsoleStore {
     groups: [],
     nextId: 1,
     append: (entry) => set((state) => ({ groups: appendGameConsoleEntry(state.groups, entry, state.nextId), nextId: state.nextId + 1 })),
+    appendAll: (entries) => set((state) => {
+      let { groups, nextId } = state;
+      for (const entry of entries) { groups = appendGameConsoleEntry(groups, entry, nextId); nextId += 1; }
+      return { groups, nextId };
+    }),
     clear: () => set({ groups: [] })
   }));
 }

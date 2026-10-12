@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { getGameConsoleStore } from "../../../../stores/game/GameConsoleStore";
+import type { GameScriptLogChannel } from "../../gameScriptLogChannel";
 import type { ScriptFailure } from "../../useGamePlaySession";
 import type { GameConsoleEntry, GameConsoleSource } from "./gameConsoleModel";
 
@@ -13,6 +14,8 @@ interface GameConsoleFeedSources {
   readonly diagnosticError: ScriptFailure | null;
   /** The play session's current tick. */
   readonly tick: number;
+  /** The play session's script `log` command lines, published once per step. */
+  readonly scriptLogs?: GameScriptLogChannel;
 }
 
 /** Writes a line once each time its content changes. The tick is read when the line appears, so a running session does not repeat it. */
@@ -30,7 +33,7 @@ function useConsoleLine(gameId: string, source: GameConsoleSource, message: stri
 }
 
 /** Writes the editor's play-session and diagnostic errors to the game's console as they appear. */
-export function useGameConsoleFeed(gameId: string, { runtimeError, scriptError, diagnosticError, tick }: GameConsoleFeedSources): void {
+export function useGameConsoleFeed(gameId: string, { runtimeError, scriptError, diagnosticError, tick, scriptLogs }: GameConsoleFeedSources): void {
   const scriptMessage = scriptError?.message ?? null;
   // Both editors classify a play-session error as a script failure by this marker. Stop and Load clear the
   // script failure but keep the error text, so the marker, not the failure's presence, decides the line.
@@ -38,4 +41,8 @@ export function useGameConsoleFeed(gameId: string, { runtimeError, scriptError, 
   useConsoleLine(gameId, "runtime", runtimeMessage, tick, null);
   useConsoleLine(gameId, "script", scriptMessage, scriptError?.tick, scriptError?.entityId);
   useConsoleLine(gameId, "diagnostic", diagnosticError?.message ?? null, diagnosticError?.tick, diagnosticError?.entityId);
+  useEffect(() => scriptLogs?.subscribe((logs) => {
+    getGameConsoleStore(gameId).getState().appendAll(logs.map(({ level, message, tick: logTick, entityId }) =>
+      entityId === undefined ? { level, source: "script", message, tick: logTick } : { level, source: "script", message, tick: logTick, entityId }));
+  }), [gameId, scriptLogs]);
 }
