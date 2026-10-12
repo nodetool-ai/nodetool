@@ -6,7 +6,7 @@ import {
   gameAssetBinding3D, gameInputFrame3D, gameModelImportSettings3D, gamePreparedCollider3D, gameRenderFrame3D, gameSnapshot3D, gameVector3,
   shortResourceId, type GameAssetBinding3D, type GameDocument3D, type GameInputFrame3D, type GameInspection3D,
 } from "@nodetool-ai/protocol";
-import { createGameSession3D, decodePreparedGameCollider3D, hashGameSnapshot3D } from "@nodetool-ai/game-runtime";
+import { createGameSession3D, createMemoryGameSaveStorage, decodePreparedGameCollider3D, GamePlayerSaves, hashGameSnapshot3D } from "@nodetool-ai/game-runtime";
 import { assetKeyCandidates } from "@nodetool-ai/storage";
 import type { Workspace } from "@nodetool-ai/runtime";
 import type { CapabilityRun } from "./types.js";
@@ -176,6 +176,8 @@ export async function playtestGame3D(run: CapabilityRun, user: string, document:
   let replayMatches: boolean | undefined;
   let wallTimeLimited = false;
   let cancelled = false;
+  // Script saves stay in memory for the playtest. The restored session steps the same frame, so it sees the same loads.
+  const saves = new GamePlayerSaves(createMemoryGameSaveStorage());
   try {
     for (const input of inputs) {
       if (state.tick % 240 === 0) { await new Promise<void>((resolve) => setTimeout(resolve, 0)); }
@@ -183,8 +185,10 @@ export async function playtestGame3D(run: CapabilityRun, user: string, document:
       if (Date.now() - started > 15_000) { wallTimeLimited = true; break; }
       if (restoreTick === state.tick) { restored = await createGameSession3D(document, seed, session.snapshot(), options); }
       try {
-        const result = session.step(input);
-        restored?.step(input);
+        const frame = saves.withLoaded(input);
+        const result = session.step(frame);
+        restored?.step(frame);
+        if (result.saveRequests) { saves.handle(result.saveRequests, () => session.snapshot()); await saves.idle(); }
         state = session.inspect();
         if (assertions.some((assertion) => assertion.at_tick === result.tick)) { inspections.set(result.tick, state); }
         for (const event of result.events) {

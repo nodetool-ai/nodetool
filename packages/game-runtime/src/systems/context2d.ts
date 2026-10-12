@@ -12,6 +12,7 @@ import type {
 } from "@nodetool-ai/protocol";
 import type { GameplayQueues } from "../gameplay/lifecycle.js";
 import type { GameScriptLogEntry } from "../script-log.js";
+import type { GameSaveRequest } from "../script-saves.js";
 import type { GameScriptCall, GameScriptRunner, GameScriptStats } from "../scripts.js";
 import type { GameStepResult } from "../session.js";
 import type { EntityState, ContactPair, WorldTransform, QueuedSpawn } from "./state2d.js";
@@ -34,6 +35,7 @@ export interface GameSystemContext2D {
   emit: (event: GameEvent) => void;
   scriptStats: GameScriptStats | undefined;
   scriptLogs: readonly GameScriptLogEntry[] | undefined;
+  scriptSaves: readonly GameSaveRequest[] | undefined;
   events: GameEvent[];
   observations: Map<string, ContactPair>;
   activeContacts: Map<string, ContactPair>;

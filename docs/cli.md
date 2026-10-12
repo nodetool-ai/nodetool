@@ -1200,7 +1200,7 @@ nodetool game smoke game-build --json
 **Subcommands and options:**
 
 - `game validate <game_file>` — `--json`.
-- `game simulate <game_file>` — `--ticks <count>` (required), `--seed <integer>` (default `1`), `--inputs <file>`, `--assets-dir <directory>` (prepared 3D collider files named `<full-asset-id>.json`), `--expect-score <score>`, `--expect-win`, `--assertions <file>`, `--verify-replay`, `--json`.
+- `game simulate <game_file>` — `--ticks <count>` (required), `--seed <integer>` (default `1`), `--inputs <file>`, `--assets-dir <directory>` (prepared 3D collider files named `<full-asset-id>.json`), `--expect-score <score>`, `--expect-win`, `--assertions <file>`, `--verify-replay`, `--saves <file>`, `--json`.
 - `game capture <game_file>` — `--ticks <count>` and `--out <file>` (both required), `--seed <integer>`, `--inputs <file>`, `--scale <factor>` (default `1`), `--backend <canvas2d|webgpu|webgl2>`, `--assets-dir <directory>`, `--json`. A schema version 3 (3D) document defaults to `webgl2`. A 2D document accepts `canvas2d` (default) or `webgpu`.
 - `game build <game_file>` — `--out <directory>` (required), `--assets-dir <directory>`, `--target <web|tauri>` (default `web`), `--json`. `--target tauri` writes a [Tauri](https://tauri.app) desktop app project: the web player in `dist/` and a native shell in `src-tauri/`. It accepts `--name <name>`, `--identifier <reverse-dns>`, `--app-version <MAJOR.MINOR.PATCH>`, `--icon <png|jpeg|webp>`, and `--compile`, which runs `cargo build --release` and reports the executable path. Run `npm install && npm run build` in the project for installers.
 - `game smoke <directory>` — `--json`. Serves an exported build in headless Chromium with outside network access blocked, renders 300 scripted frames, and checks tick progress. Console errors, page errors, failed requests, and stalled ticks return a nonzero exit status. Install Chromium with `npx playwright install chromium`.
@@ -1254,6 +1254,13 @@ Assertions beyond `--ticks` and duplicate tick entries are errors.
 and compares snapshots and ordered events after each remaining tick. The JSON
 report includes `replay.resumeTick`, `replay.verified`, and the first divergent
 tick and path when it fails. This check excludes script execution timing.
+
+Script `save` and `load` commands use in-memory storage during `simulate`.
+`--saves <file>` seeds it from `{progress?, settings?}`, each mapping a slot name
+to its data object. A load result reaches scripts on the next tick's input frame,
+and the replay session steps the same frame, so `--verify-replay` covers loads.
+When a script saved or loaded, the JSON report lists each slot's data under
+`saves` with any storage errors.
 
 `--assets-dir` supplies media files named `<full-asset-id>.<extension>` for
 capture and export. The build copies media into a content-addressed folder and

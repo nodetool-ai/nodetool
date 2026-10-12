@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { gameAssetBinding, gameSnapshot3D, type GameDocument3D, type GameInspection3D, type GameInputFrame3D, type GameRenderFrame3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
-import { createGameSession3D, gameScriptLogsOf, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
+import { createGameSession3D, gameScriptLogsOf, type GamePlayerSaves, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
 import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, GameInput3D, GameUiController, gameUiViewport3D } from "@nodetool-ai/game-renderer";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
+import { createEditorGameSaves } from "./gameEditorSaves";
 import { GameReplayHistory } from "./gameReplayHistory";
 import { createGameScriptLogChannel, type GameScriptLogChannel } from "./gameScriptLogChannel";
 import type { ScriptFailure } from "./useGamePlaySession";
@@ -48,6 +49,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const rendererRef = useRef<GameRenderer3D | null>(null);
   const sessionRef = useRef<GameSession3D | null>(null);
+  const savesRef = useRef<GamePlayerSaves | null>(null);
   const sessionFailedRef = useRef(false);
   const sessionOptionsRef = useRef<GameSession3DOptions>({});
   const generationRef = useRef(0);
@@ -114,10 +116,14 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     if (!session || sessionFailedRef.current) { return; }
     try {
       const previous = historyRef.current.needsCheckpoint() ? session.snapshot() : undefined;
-      const result = session.step(input);
+      // Finished save loads ride on the frame, so the recorded history replays them without storage.
+      const saves = savesRef.current;
+      const frame = saves ? saves.withLoaded(input) : input;
+      const result = session.step(frame);
+      saves?.handle(result.saveRequests, () => session.snapshot());
       if (result.scriptLogs) { scriptLogs.publish(result.scriptLogs); }
       lastFrameRef.current = result.frame;
-      historyRef.current.record(input, () => {
+      historyRef.current.record(frame, () => {
         if (!previous) { throw new Error("Replay checkpoint is unavailable"); }
         return previous;
       });
@@ -198,6 +204,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       session = await createGameSession3D(current, 1, undefined, options);
       controller.signal.throwIfAborted();
       sessionRef.current = session;
+      savesRef.current = createEditorGameSaves(current.id, setError);
       sessionFailedRef.current = false;
       committedRef.current = session.inspect();
       setInspection(committedRef.current);
@@ -335,6 +342,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       historyRef.current.clear(snapshot);
       sessionRef.current?.dispose();
       sessionRef.current = restored;
+      savesRef.current?.clear();
       sessionFailedRef.current = false;
       committedRef.current = restored.inspect();
       setInspection(committedRef.current);
@@ -357,6 +365,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       catch (cause) { restored.dispose(); throw cause; }
       sessionRef.current?.dispose();
       sessionRef.current = restored;
+      savesRef.current?.clear();
       sessionFailedRef.current = false;
       committedRef.current = restored.inspect();
       setInspection(committedRef.current);
