@@ -220,10 +220,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
         open={menuOpen}
         onClose={handleClose}
         placement={placement}
-        paperSx={{
-          minWidth: 220,
-          fontSize: "var(--fontSizeSmall)",
-        }}
+        paperSx={{ minWidth: 220 }}
       >
         {pricing ? (
           <>
@@ -239,8 +236,8 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
                 KIE pricing
               </Caption>
               <Text
+                size="small"
                 sx={{
-                  fontSize: "var(--fontSizeSmall)",
                   mt: 0.5,
                   whiteSpace: "pre-line",
                   color: theme.vars.palette.text.secondary,
@@ -265,8 +262,8 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
                 kie.ai
               </Caption>
               <Text
+                size="small"
                 sx={{
-                  fontSize: "var(--fontSizeSmall)",
                   mt: 0.5,
                   color: theme.vars.palette.text.secondary,
                 }}
@@ -294,8 +291,8 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
             <FlexRow gap={1} align="center" sx={{ mt: 0.5 }}>
               <LoadingSpinner size={12} />
               <Text
+                size="small"
                 sx={{
-                  fontSize: "var(--fontSizeSmall)",
                   color: theme.vars.palette.text.secondary,
                 }}
               >
@@ -304,8 +301,8 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
             </FlexRow>
           ) : creditsData === "error" || creditsData === null ? (
             <Text
+              size="small"
               sx={{
-                fontSize: "var(--fontSizeSmall)",
                 color: theme.vars.palette.text.disabled,
                 mt: 0.5,
               }}
@@ -315,8 +312,8 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
           ) : creditsData.unavailable ? (
             <FlexColumn gap={0.5} sx={{ mt: 0.5 }}>
               <Text
+                size="small"
                 sx={{
-                  fontSize: "var(--fontSizeSmall)",
                   color: theme.vars.palette.warning.main,
                   lineHeight: 1.4,
                   wordBreak: "break-word",
@@ -336,8 +333,8 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
             </FlexColumn>
           ) : (
             <Text
+              size="small"
               sx={{
-                fontSize: "var(--fontSizeSmall)",
                 fontWeight: 600,
                 color: theme.vars.palette.success.main,
                 mt: 0.5,
@@ -363,8 +360,8 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
                 Last run
               </Caption>
               <Text
+                size="small"
                 sx={{
-                  fontSize: "var(--fontSizeSmall)",
                   fontWeight: 600,
                   color: theme.vars.palette.info.main,
                   mt: 0.5,
@@ -380,8 +377,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
 
         <MenuItemPrimitive
           label="View pricing on kie.ai"
-          icon={<LaunchIcon sx={{ fontSize: 14 }} />}
-          compact
+          icon={<LaunchIcon />}
           onClick={() => {
             window.open(
               pricing ? kiePricingExternalUrl(pricing) : KIE_PRICING_URL,
@@ -394,8 +390,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
 
         <MenuItemPrimitive
           label="Top up credits"
-          icon={<LaunchIcon sx={{ fontSize: 14 }} />}
-          compact
+          icon={<LaunchIcon />}
           onClick={() => {
             window.open(KIE_BILLING_URL, "_blank", "noopener,noreferrer");
             handleClose();

@@ -33,7 +33,7 @@ export const TrackFolderHeader: React.FC<TrackFolderHeaderProps> = ({
   const renameTrackFolder = useTimelineStore((state) => state.renameTrackFolder);
   const removeTrackFolder = useTimelineStore((state) => state.removeTrackFolder);
   const [editing, setEditing] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
   return (
     <>
@@ -78,36 +78,32 @@ export const TrackFolderHeader: React.FC<TrackFolderHeaderProps> = ({
         <Caption aria-label={`${count} tracks`}>({count})</Caption>
         <ToolbarIconButton
           icon={<MoreHorizIcon fontSize="small" />}
-          onClick={(event) => {
-            const rect = event.currentTarget.getBoundingClientRect();
-            setMenuPosition({ x: rect.right, y: rect.bottom });
-          }}
+          onClick={(event) => setMenuAnchor(event.currentTarget)}
           aria-label={`Folder options for ${folder.name}`}
           size="small"
           sx={{ p: SPACING.none }}
         />
       </FlexRow>
       <ContextMenu
-        open={menuPosition !== null}
-        position={menuPosition}
-        onClose={() => setMenuPosition(null)}
-        compact
+        open={menuAnchor !== null}
+        anchorEl={menuAnchor}
+        onClose={() => setMenuAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
         <MenuItemPrimitive
           label="Rename folder"
           onClick={() => {
-            setMenuPosition(null);
+            setMenuAnchor(null);
             setEditing(true);
           }}
-          compact
         />
         <MenuItemPrimitive
           label="Ungroup tracks"
           onClick={() => {
             removeTrackFolder(folder.id);
-            setMenuPosition(null);
+            setMenuAnchor(null);
           }}
-          compact
         />
       </ContextMenu>
     </>

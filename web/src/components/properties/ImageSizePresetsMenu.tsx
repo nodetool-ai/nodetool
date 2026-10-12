@@ -1,12 +1,11 @@
 import React, { useCallback, useMemo, useState } from "react";
 
 import {
-  FlexColumn,
   FlexRow,
   NodeTextField,
   EditorMenu,
-  EditorMenuItem,
   ListSubheader,
+  MenuItemPrimitive,
   InputAdornment,
   Z_INDEX
 } from "../ui_primitives";
@@ -89,17 +88,12 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
       listSx={{ padding: 0 }}
       paperSx={{
         maxHeight: 450,
-        width: '300px',
-        backgroundColor: 'background.paper',
-        '& .MuiListSubheader-root': {
-          lineHeight: '32px',
-          backgroundColor: 'background.paper',
-          backgroundImage: 'none',
-          fontWeight: 600,
-          color: 'primary.light',
-          position: 'sticky',
-          top: '48px',
-          zIndex: Z_INDEX.dropdown,
+        width: "300px",
+        // Keep each group title under the sticky search row.
+        "& .MuiListSubheader-root": {
+          position: "sticky",
+          top: "48px",
+          zIndex: Z_INDEX.dropdown
         }
       }}
     >
@@ -107,9 +101,10 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
         p: 1,
         position: 'sticky',
         top: 0,
-        backgroundColor: 'background.paper',
+        backgroundColor: (theme) => theme.vars.palette.Paper.overlay,
         zIndex: Z_INDEX.sticky,
-        borderBottom: '1px solid var(--palette-c_overlay_strong)',
+        borderBottom: 1,
+        borderColor: 'divider',
         height: '48px',
         boxSizing: 'border-box'
       }}>
@@ -139,41 +134,21 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
       </FlexRow>
 
       {Object.entries(filteredGroupedPresets).length === 0 ? (
-        <EditorMenuItem disabled sx={{ fontSize: 'var(--fontSizeSmall)' }}>No presets found</EditorMenuItem>
+        <MenuItemPrimitive label="No presets found" disabled />
       ) : (
         Object.entries(filteredGroupedPresets).map(([category, items]) => [
           <ListSubheader key={category} className="presets-category-header">{category}</ListSubheader>,
           ...items.map((preset) => (
-            <EditorMenuItem
+            <MenuItemPrimitive
               className="preset-menu-item"
               key={`${preset.width}x${preset.height}-${preset.label}`}
               onClick={presetHandlers[`${preset.width}x${preset.height}-${preset.label}`]}
               selected={currentWidth === preset.width && currentHeight === preset.height}
-              sx={{ py: 1, px: 2 }}
-            >
-              <FlexColumn fullWidth>
-                <span style={{ fontSize: 'var(--fontSizeNormal)', fontWeight: 500 }}>
-                  {preset.width} × {preset.height}
-                </span>
-                <FlexRow gap={0.5} align="center" sx={{
-                  fontSize: 'var(--fontSizeSmall)',
-                  color: 'text.secondary',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>
-                  <span>{preset.aspectRatio}</span>
-                  <span>·</span>
-                  <span>{preset.label}</span>
-                  {preset.description && (
-                    <>
-                      <span>·</span>
-                      <span>{preset.description}</span>
-                    </>
-                  )}
-                </FlexRow>
-              </FlexColumn>
-            </EditorMenuItem>
+              label={`${preset.width} × ${preset.height}`}
+              secondary={[preset.aspectRatio, preset.label, preset.description]
+                .filter(Boolean)
+                .join(" · ")}
+            />
           ))
         ])
       )}

@@ -229,12 +229,10 @@ const WorkspaceTabItem = ({
         open={contextMenuPosition !== null}
         position={contextMenuPosition}
         onClose={closeContextMenu}
-        compact
       >
         {canRename && (
           <MenuItemPrimitive
             label="Rename"
-            compact
             onClick={() => {
               closeContextMenu();
               onBeginRename(tab);
@@ -242,24 +240,21 @@ const WorkspaceTabItem = ({
           />
         )}
         <MenuItemPrimitive
-          label="Close Tab"
-          compact
+          label="Close tab"
           onClick={() => {
             closeContextMenu();
             onClose(tab);
           }}
         />
         <MenuItemPrimitive
-          label="Close Other Tabs"
-          compact
+          label="Close other tabs"
           onClick={() => {
             closeContextMenu();
             onCloseOthers(tab);
           }}
         />
         <MenuItemPrimitive
-          label="Close All Tabs"
-          compact
+          label="Close all tabs"
           onClick={() => {
             closeContextMenu();
             onCloseAll();

@@ -981,10 +981,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         onClose={handleCloseActionsMenu}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         transformOrigin={{ vertical: "bottom", horizontal: "right" }}
-        paperSx={{ minWidth: "220px", maxWidth: "280px" }}
+        paperSx={{ minWidth: 220, maxWidth: 280 }}
       >
         <MenuItemPrimitive
-          label={editorViewMode === "graph" ? "Chain View" : "Graph View"}
+          label={editorViewMode === "graph" ? "Chain view" : "Graph view"}
           icon={
             editorViewMode === "graph" ? (
               <LinearScaleIcon fontSize="small" />
@@ -995,7 +995,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           onClick={runWithClose(handleToggleViewMode)}
         />
         <MenuItemPrimitive
-          label="Instant Update"
+          label="Instant update"
           icon={<BoltIcon fontSize="small" />}
           secondary={instantUpdate ? "On" : "Off"}
           onClick={runWithClose(handleToggleInstantUpdate)}
@@ -1009,7 +1009,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         )}
         {isMobile && editorViewMode === "graph" && (
           <MenuItemPrimitive
-            label="Auto Layout"
+            label="Auto layout"
             icon={<LayoutIcon fontSize="small" />}
             onClick={runWithClose(handleAutoLayout)}
           />
@@ -1028,7 +1028,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           onClick={runWithClose(() => void openWorkflowApp())}
         />
         <MenuItemPrimitive
-          label="Mini Map"
+          label="Mini map"
           icon={<MapIcon fontSize="small" />}
           secondary={isMiniMapVisible ? "Visible" : "Hidden"}
           onClick={runWithClose(handleToggleMiniMap)}

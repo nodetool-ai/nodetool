@@ -2,12 +2,12 @@ import React, { memo } from "react";
 //mui
 
 import {
-  Text,
+  Caption,
   Divider,
   ContextMenu,
+  ListSubheader,
   SPACING,
-  getSpacingPx,
-  MenuItem
+  getSpacingPx
 } from "../ui_primitives";
 import { shallow } from "zustand/shallow";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -71,15 +71,18 @@ const PropertyContextMenuComponent: React.FC = () => {
     description,
     isDynamicProperty,
     payload
-  } = useContextMenuStore((state) => ({
-    menuPosition: state.menuPosition,
-    closeContextMenu: state.closeContextMenu,
-    description: state.description,
-    nodeId: state.nodeId,
-    handleId: state.handleId,
-    isDynamicProperty: state.isDynamicProperty,
-    payload: state.payload
-  }), shallow);
+  } = useContextMenuStore(
+    (state) => ({
+      menuPosition: state.menuPosition,
+      closeContextMenu: state.closeContextMenu,
+      description: state.description,
+      nodeId: state.nodeId,
+      handleId: state.handleId,
+      isDynamicProperty: state.isDynamicProperty,
+      payload: state.payload
+    }),
+    shallow
+  );
   const { findNode, updateNodeData, updateNodeProperties, edges } = useNodes(
     (state) => ({
       findNode: state.findNode,
@@ -145,7 +148,8 @@ const PropertyContextMenuComponent: React.FC = () => {
 
   // Slot-type entries. Only for user-owned dynamic slots — schema-driven
   // nodes rewrite `dynamic_inputs` wholesale, so a pick there wouldn't stick.
-  const slotTypeNode = isDynamicProperty && nodeId ? findNode(nodeId) : undefined;
+  const slotTypeNode =
+    isDynamicProperty && nodeId ? findNode(nodeId) : undefined;
   const slotTypeOptions =
     slotTypeNode && handleId && !isSchemaDrivenDynamicNode(slotTypeNode)
       ? allowedSlotTypes(
@@ -195,7 +199,9 @@ const PropertyContextMenuComponent: React.FC = () => {
         if (node?.data.dynamic_properties) {
           const { [handleId]: _, ...remainingProperties } =
             node.data.dynamic_properties;
-          const remainingSlots = normalizeDynamicSlots(node.data.dynamic_inputs);
+          const remainingSlots = normalizeDynamicSlots(
+            node.data.dynamic_inputs
+          );
           delete remainingSlots[handleId];
           updateNodeData(nid, {
             dynamic_properties: remainingProperties,
@@ -271,7 +277,9 @@ const PropertyContextMenuComponent: React.FC = () => {
             let defaultValue = dynamicInputDefaults?.[handleId]?.default;
 
             if (defaultValue === undefined) {
-              const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
+              const nodeMetadata = node.type
+                ? metadata?.[node.type]
+                : undefined;
               if (nodeMetadata) {
                 const propertyDef = nodeMetadata.properties.find(
                   (prop: Property) => prop.name === handleId
@@ -313,109 +321,90 @@ const PropertyContextMenuComponent: React.FC = () => {
       onContextMenu={(event) => event.preventDefault()}
       position={menuPosition}
     >
-      <MenuItem disabled>
-        <Text>Property</Text>
-      </MenuItem>
+      <ListSubheader>Property</ListSubheader>
 
       {description && description.length > 0 && (
-        <MenuItem
-          disabled
+        <Caption
+          component="div"
+          color="secondary"
           sx={{
-            color: "text.primary",
-            opacity: "1 !important",
             whiteSpace: "normal",
-            maxWidth: "300px"
+            maxWidth: "300px",
+            padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`
           }}
         >
-          <Text
-            size="small"
-            sx={{
-              padding: `${getSpacingPx(SPACING.xs)} 0`
-            }}
-          >
-            {description}
-          </Text>
-        </MenuItem>
+          {description}
+        </Caption>
       )}
 
       <Divider />
       <ContextMenuItem
         onClick={handleCopyValue}
-        label="Copy Value"
-        addButtonClassName="copy-value"
+        label="Copy value"
         IconComponent={<ContentCopyIcon />}
         tooltip="Copy property value to clipboard"
       />
       <ContextMenuItem
         onClick={handleReset}
-        label="Reset To Default Value"
-        addButtonClassName="reset"
+        label="Reset to default value"
         IconComponent={<SettingsBackupRestoreIcon />}
         tooltip={getShortcutTooltip("resetDefault")}
       />
 
       {showExposedToggle && (
-        <>
-          <ContextMenuItem
-            onClick={handleToggleExposedInput}
-            label={
-              isExposedHandle
-                ? "Hide Input Handle (Top)"
-                : "Show As Input Handle (Top)"
-            }
-            addButtonClassName="toggle-exposed-input"
-            IconComponent={<ArrowForwardIcon />}
-            tooltip={
-              isExposedHandle
-                ? isConnected
-                  ? "Hide top input handle (disconnects edge)"
-                  : "Hide top input handle"
-                : "Show as handle on the left/top of the node (no label)"
-            }
-          />
-          <ContextMenuItem
-            onClick={handleToggleExposedInputLabeled}
-            label={
-              isExposedLabeled
-                ? "Hide Labeled Input (Bottom)"
-                : "Show Labeled Input (Bottom)"
-            }
-            addButtonClassName="toggle-exposed-input-labeled"
-            IconComponent={<ArrowForwardIcon />}
-            tooltip={
-              isExposedLabeled
-                ? isConnected
-                  ? "Hide labeled input at bottom (disconnects edge)"
-                  : "Hide labeled input at bottom"
-                : "Show input at bottom with parameter title and editor"
-            }
-          />
-        </>
+        <ContextMenuItem
+          onClick={handleToggleExposedInput}
+          label={
+            isExposedHandle
+              ? "Hide input handle (top)"
+              : "Show as input handle (top)"
+          }
+          IconComponent={<ArrowForwardIcon />}
+          tooltip={
+            isExposedHandle
+              ? isConnected
+                ? "Hide top input handle (disconnects edge)"
+                : "Hide top input handle"
+              : "Show as handle on the left/top of the node (no label)"
+          }
+        />
+      )}
+      {showExposedToggle && (
+        <ContextMenuItem
+          onClick={handleToggleExposedInputLabeled}
+          label={
+            isExposedLabeled
+              ? "Hide labeled input (bottom)"
+              : "Show labeled input (bottom)"
+          }
+          IconComponent={<ArrowForwardIcon />}
+          tooltip={
+            isExposedLabeled
+              ? isConnected
+                ? "Hide labeled input at bottom (disconnects edge)"
+                : "Hide labeled input at bottom"
+              : "Show input at bottom with parameter title and editor"
+          }
+        />
       )}
 
       {isDynamicProperty && <Divider />}
-      {slotTypeOptions !== null && (
-        <MenuItem disabled>
-          <Text size="small">Slot Type</Text>
-        </MenuItem>
-      )}
+      {slotTypeOptions !== null && <ListSubheader>Slot type</ListSubheader>}
       {slotTypeOptions?.map((option) => (
         <ContextMenuItem
           key={slotTypeKey(option)}
           onClick={() => handleSetSlotType(option)}
           label={slotTypeLabel(option)}
-          addButtonClassName={`set-slot-type set-slot-type-${slotTypeKey(
-            option
-          )}`}
           IconComponent={<CategoryIcon />}
           tooltip={`Declare "${propertyName}" as ${slotTypeLabel(option)}`}
         />
       ))}
+      {isDynamicProperty && slotTypeOptions !== null && <Divider />}
       {isDynamicProperty && (
         <ContextMenuItem
           onClick={handleRemoveDynamicProperty}
-          label="Remove Dynamic Property"
-          addButtonClassName="remove-dynamic-property"
+          label="Remove dynamic property"
+          destructive
           IconComponent={<DeleteIcon />}
           tooltip="Remove this property from being dynamic"
         />

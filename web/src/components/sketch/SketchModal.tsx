@@ -56,10 +56,8 @@ import {
   SPACING,
   getSpacingPx,
   IconButton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
+  ContextMenu,
+  MenuItemPrimitive,
   Slider
 } from "../ui_primitives";
 
@@ -188,7 +186,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
     off: "Off",
     horizontal: "Horizontal",
     vertical: "Vertical",
-    dual: "Dual Axis",
+    dual: "Dual axis",
     radial: `Radial (${symmetryRays})`,
     mandala: `Mandala (${symmetryRays})`
   } satisfies Record<SymmetryMode, string>;
@@ -368,27 +366,24 @@ const SketchModal: React.FC<SketchModalProps> = ({
               <FlipIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>
           </Tooltip>
-          <Menu
+          <ContextMenu
             anchorEl={symmetryAnchorEl}
             open={Boolean(symmetryAnchorEl)}
             onClose={() => setSymmetryAnchorEl(null)}
             anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
             transformOrigin={{ vertical: "top", horizontal: "left" }}
-            slotProps={{ paper: { sx: { minWidth: 180 } } }}
           >
             {(["off", "horizontal", "vertical", "dual", "radial", "mandala"] as SymmetryMode[]).map((mode) => (
-              <MenuItem
+              <MenuItemPrimitive
                 key={mode}
+                label={symmetryLabels[mode]}
                 onClick={() => { setSymmetryMode(mode); if (mode !== "radial" && mode !== "mandala") { setSymmetryAnchorEl(null); } }}
                 selected={symmetryMode === mode}
-              >
-                {symmetryMode === mode && <ListItemIcon><CheckIcon fontSize="small" /></ListItemIcon>}
-                <ListItemText inset={symmetryMode !== mode}>{symmetryLabels[mode]}</ListItemText>
-              </MenuItem>
+              />
             ))}
             {(symmetryMode === "radial" || symmetryMode === "mandala") && (
-              <Box sx={{ px: 2, py: 1, minWidth: 160 }}>
-                <Caption sx={{ color: "grey.500" }}>
+              <Box sx={{ px: SPACING.lg, py: SPACING.md }}>
+                <Caption color="secondary">
                   Rays: {symmetryRays}
                 </Caption>
                 <Slider
@@ -403,7 +398,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 />
               </Box>
             )}
-          </Menu>
+          </ContextMenu>
 
           <Divider orientation="vertical" flexItem sx={{ mx: getSpacingPx(SPACING.xs) }} />
 

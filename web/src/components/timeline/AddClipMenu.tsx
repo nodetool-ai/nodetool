@@ -692,7 +692,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
             <>
               <FlexRow align="center" justify="space-between">
                 <Text size="small" weight={600}>
-                  Add Generated Clip
+                  Add generated clip
                 </Text>
                 {isAdding && <LoadingSpinner size="small" />}
               </FlexRow>

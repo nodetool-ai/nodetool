@@ -269,11 +269,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
         }}
       >
         {CANVAS_PRESETS.map((preset) => (
-          <MenuItem
-            key={preset.label}
-            value={preset.label}
-            sx={{ fontSize: FONT_SIZE_SANS.label }}
-          >
+          <MenuItem key={preset.label} value={preset.label}>
             {preset.label} - {preset.width}×{preset.height}
           </MenuItem>
         ))}

@@ -459,11 +459,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           sx: {
             width: 620,
             maxWidth: "calc(100vw - 24px)",
-            borderRadius: BORDER_RADIUS.lg,
-            backgroundImage: "none",
-            backgroundColor: theme.vars.palette.grey[900],
-            backdropFilter: "blur(16px)",
-            boxShadow: theme.shadows[12],
             p: 1.5
           }
         }
@@ -655,21 +650,21 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                   />
                   <SelectionMenuItem
                     icon={<CropIcon sx={{ fontSize: 16 }} />}
-                    label="Crop to Selection"
+                    label="Crop to selection"
                     disabled={!hasActiveSelection}
                     onClick={() => { onCropCanvasToSelection(); onClose(); }}
                   />
                   <Divider sx={{ my: 0.5, borderColor: surfaceSoft }} />
                   <SelectionMenuItem
                     icon={<ContentCopyIcon sx={{ fontSize: 16 }} />}
-                    label="Layer via Copy"
+                    label="Layer via copy"
                     shortcut={displayCombo("layer-via-copy")}
                     disabled={!hasActiveSelection}
                     onClick={() => { onLayerViaCopy(); onClose(); }}
                   />
                   <SelectionMenuItem
                     icon={<ContentCutIcon sx={{ fontSize: 16 }} />}
-                    label="Layer via Cut"
+                    label="Layer via cut"
                     shortcut={displayCombo("layer-via-cut")}
                     disabled={!hasActiveSelection}
                     onClick={() => { onLayerViaCut(); onClose(); }}

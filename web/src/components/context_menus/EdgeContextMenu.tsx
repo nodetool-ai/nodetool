@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, memo } from "react";
 import { shallow } from "zustand/shallow";
-import { ContextMenu } from "../ui_primitives";
+import { ContextMenu, Divider } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import { REROUTE_NODE_TYPE } from "../../constants/nodeTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -133,7 +133,8 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
         <ContextMenuItem
           onClick={handleDeleteEdge}
           IconComponent={<DeleteIcon />}
-          label="Delete Link"
+          label="Delete link"
+          destructive
           tooltip="Remove this lineage link. Data connections are not affected."
         />
       </ContextMenu>
@@ -152,14 +153,16 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
         <ContextMenuItem
           onClick={handleInsertReroute}
           IconComponent={<RouteIcon />}
-          label="Insert Reroute"
+          label="Insert reroute"
           tooltip="Insert a reroute node at this position"
         />
       )}
+      {!isControlEdge && <Divider />}
       <ContextMenuItem
         onClick={handleDeleteEdge}
         IconComponent={<DeleteIcon />}
-        label="Delete Edge"
+        label="Delete edge"
+        destructive
         tooltip={
           <span
             style={{

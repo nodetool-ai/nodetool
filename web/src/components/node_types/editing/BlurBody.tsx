@@ -17,8 +17,8 @@ import { SPACING,
   CheckerDropzone,
   NodeSlider,
   BORDER_RADIUS,
-  MenuItem,
-  Select,
+  NodeSelect,
+  NodeMenuItem,
   type SelectChangeEvent
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
@@ -99,11 +99,7 @@ const styles = (theme: Theme) =>
     },
     ".type-select": {
       gridColumn: "2 / span 2",
-      width: "100%",
-      fontSize: theme.fontSizeSmaller,
-      ".MuiSelect-select": {
-        padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.micro)} 0`
-      }
+      width: "100%"
     },
     ".outputs-row": {
       flex: "0 0 auto"
@@ -161,8 +157,8 @@ const BlurBodyInner: React.FC<BlurBodyProps> = ({
   });
 
   const handleTypeChange = useCallback(
-    (event: SelectChangeEvent<BlurType>) => {
-      setProperty("blur_type", event.target.value);
+    (event: SelectChangeEvent<unknown>) => {
+      setProperty("blur_type", event.target.value as BlurType);
       setPropertyComplete();
     },
     [setProperty, setPropertyComplete]
@@ -190,21 +186,18 @@ const BlurBodyInner: React.FC<BlurBodyProps> = ({
 
       <div className="controls">
         <span className="ctrl-label">Type</span>
-        <Select
-          className="type-select nodrag"
-          size="small"
-          variant="standard"
+        <NodeSelect
+          className="type-select"
           value={blurType}
           onChange={handleTypeChange}
           aria-label="Blur type"
-          disableUnderline
         >
           {BLUR_TYPES.map((t) => (
-            <MenuItem key={t.value} value={t.value} dense>
+            <NodeMenuItem key={t.value} value={t.value}>
               {t.label}
-            </MenuItem>
+            </NodeMenuItem>
           ))}
-        </Select>
+        </NodeSelect>
 
         <span className="ctrl-label">Size</span>
         <NodeSlider

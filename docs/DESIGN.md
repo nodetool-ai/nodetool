@@ -414,7 +414,7 @@ import { BORDER_RADIUS } from "../ui_primitives";
 | `BORDER_RADIUS.xs` | `var(--rounded-xs)` | 2px | Tight insets, dense list items |
 | `BORDER_RADIUS.sm` | `var(--rounded-sm)` | 4px | Input fields, small cards |
 | `BORDER_RADIUS.md` | `var(--rounded-md)` | 6px | Buttons, controls (`controlRadius`) |
-| `BORDER_RADIUS.lg` | `var(--rounded-lg)` | 8px | Panels, menus (`menuRadius`) |
+| `BORDER_RADIUS.lg` | `var(--rounded-lg)` | 8px | Panels, menus (`menuPaperStyles`) |
 | `BORDER_RADIUS.xl` | `var(--rounded-xl)` | 12px | Cards, modals |
 | `BORDER_RADIUS.xxl` | `var(--rounded-xxl)` | 16px | Large surfaces |
 | `BORDER_RADIUS.circle` | `var(--rounded-circle)` | 50% | Avatars, circular icons |
@@ -700,8 +700,6 @@ const { editor } = useTheme();
 | `editor.padXInspector` | `10px` | Inspector horizontal control padding |
 | `editor.padYInspector` | `6px` | Inspector vertical control padding |
 | `editor.controlRadius` | `6px` | Border radius for controls inside the editor (`BORDER_RADIUS.md`) |
-| `editor.menuRadius` | `8px` | Border radius for menus inside the editor (`BORDER_RADIUS.lg`) |
-| `editor.menuShadow` | `0 10px 30px rgba(0,0,0,0.5)` | Node context menu drop-shadow |
 
 The `EditorUiProvider` with `scope="node"` applies `heightNode` density; `scope="inspector"` applies `heightInspector` density. Components that are density-aware read these via the provider context.
 
@@ -816,6 +814,44 @@ import { Dialog, Text } from "../ui_primitives";
 Full-screen editors with their own resize and history (the text, dataframe,
 sketch and compositor editors) are workspaces, not dialogs, and keep their own
 shells.
+
+### Menus
+
+Context menus, dropdown menus, the list under a select and popover menus share
+one surface and one row style. The theme applies them to every MUI `Menu` and
+`MenuItem` from
+[`menuStyles.ts`](../web/src/components/ui_primitives/menuStyles.ts), so a menu
+only supplies its rows.
+
+```tsx
+import { ContextMenu, MenuItemPrimitive } from "../ui_primitives";
+
+<ContextMenu open={open} position={position} onClose={close}>
+  <MenuItemPrimitive label="Rename" icon={<EditIcon />} shortcut="F2" onClick={rename} />
+  <MenuItemPrimitive label="Duplicate" icon={<ContentCopyIcon />} onClick={duplicate} />
+  <MenuItemPrimitive label="Delete" icon={<DeleteIcon />} color="error" dividerBefore onClick={remove} />
+</ContextMenu>
+```
+
+| Part | Rule |
+|---|---|
+| Menu | `ContextMenu` with `position` for a right-click menu or `anchorEl` for a dropdown. `EditorMenu` in node and editor UI. A select uses `SelectField`, `NodeSelect` or `InspectorSelect`, never a custom list |
+| Surface | `menuPaperStyles`: `Paper.overlay` background, 1px `divider` frame, `BORDER_RADIUS.lg`, `SHADOW(theme).lg`, 4px list padding. Do not restyle it through `paperSx`, `slotProps` or `PaperProps`. Those set size and overflow only |
+| Width | At least `MENU_MIN_WIDTH` (180px), which `ContextMenu` sets |
+| Row | `MenuItemPrimitive`: `TYPOGRAPHY.sans.label` (13px / 500), 28px tall, inset 4px from the frame with `BORDER_RADIUS.sm`. One density. There is no compact or dense row |
+| States | Hover and keyboard focus `action.hover`. A picked option `action.selected`, not primary text |
+| Label | Sentence case, a verb or the option name: "Delete node", "Add input node". An ellipsis only when the row opens a dialog that asks for more |
+| Icon | Optional, 16px, `text.secondary`, 8px before the label. If one row in a group has an icon, give the others one too |
+| Secondary line | `secondary`, in caption type and `text.secondary` |
+| Shortcut | `shortcut`, right-aligned in `TYPOGRAPHY.mono.caption` and `text.secondary` |
+| Submenu | `hasSubmenu` draws the chevron at the end of the row |
+| Destructive | `color="error"` for delete and remove, last in the menu after a divider |
+| Groups | `Divider` between groups (4px above and below). A titled group uses `ListSubheader`, which the menu renders as `EYEBROW` in `text.secondary` on the label edge |
+| Disabled | `disabled`. Say why in `tooltip` when it is not obvious |
+| Popover menus | A popover that lists actions or options is a menu: build it with `ContextMenu` and `MenuItemPrimitive`. Keep `Popover` for content that is not a list of choices, such as a color picker or a form |
+
+Do not wrap a row in a `div` (it breaks arrow-key navigation), build a row
+from a button inside a `MenuItem`, or tint the hover with a raw color.
 
 ### Panel composition
 
