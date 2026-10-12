@@ -441,6 +441,28 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
           crate?.physicsMaterial === "rubber" && crate.restitution === 0.85 && crate.restitutionCombine === "max";
       } }]
   }
+}, {
+  id: "hud-widget-tree-3d",
+  description: "Author a 3D HUD with a health bar bound to the player and a button that presses a 3D input action, through set_ui.",
+  objective: "Give the player a health behavior with maximum 5. Then give the 3D game a HUD with a bar with id health anchored to the top-left corner that shows the player's health, and a button with id jumpButton anchored to the bottom centre that presses the jump action.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("hud-3d-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole behaviors array, so keep existing behaviors. A health behavior is {kind: \"health\", maximum}. set_ui {ui: {nodes}} replaces the document HUD tree in 2D and 3D. Nodes are {kind: panel|text|bar|button|stack|grid, id, parent?, anchor?: {x, y} in 0..1, pivot?, offset?: {x, y} pixels, width?, height?}. A bar is {kind: \"bar\", id, width, height, source?: {kind: \"health\", entityId}}. A button is {kind: \"button\", id, action, text?, width, height} and presses its input action.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "hudTree3D", detail: "The 3D HUD lacks a top-left bar showing the player's health, or a bottom-centre button jumpButton that presses jump.",
+      test: document => {
+        if (!("dimension" in document)) { return false; }
+        const nodes = document.ui?.nodes ?? [];
+        const health = nodes.find(node => node.id === "health");
+        const button = nodes.find(node => node.id === "jumpButton");
+        const player = document.scenes[0].entities.find(entity => entity.id === "player");
+        return health?.kind === "bar" && health.source?.kind === "health" && health.source.entityId === "player"
+          && (health.anchor?.x ?? 0) === 0 && (health.anchor?.y ?? 0) === 0
+          && button?.kind === "button" && button.action === "jump" && button.anchor?.x === 0.5 && button.anchor.y === 1
+          && player?.behaviors.some(behavior => behavior.kind === "health" && behavior.maximum === 5) === true
+          && player.behaviors.some(behavior => behavior.kind === "script");
+      } }]
+  }
 }];
 
 /** Headless 3D game editor bridge that exercises the production 3D op reducer. */

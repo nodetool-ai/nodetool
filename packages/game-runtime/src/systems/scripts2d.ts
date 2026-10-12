@@ -217,7 +217,8 @@ export function stepScripts2D(context: GameSystemContext2D): void {
         if (!byId.has(item.entityId)) { delete context.scriptState[call.stateKey]; }
         else { context.scriptState[call.stateKey] = item.state; }
         for (const command of item.commands) {
-          applyGameplayCommand(command as GameplayCommand, item.entityId, context.queues, context.hud, context.emit);
+          if (command.kind === "ui") { applyGameUiCommand(context.ui, command); }
+          else { applyGameplayCommand(command as GameplayCommand, item.entityId, context.queues, context.hud, context.emit); }
         }
         continue;
       }
