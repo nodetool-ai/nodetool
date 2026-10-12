@@ -61,10 +61,8 @@ import type {
   RunningTriggerRegistration
 } from "../useTriggers";
 
-const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
-const mockUseQueryClient = useQueryClient as jest.MockedFunction<
-  typeof useQueryClient
->;
+const mockUseQuery = asMock(useQuery);
+const mockUseQueryClient = asMock(useQueryClient);
 
 interface MutationConfig<TVars> {
   /** The tests await the call and assert on the trpc mock; the resolved
@@ -136,7 +134,7 @@ describe("useWorkflowTriggers", () => {
         webhook_secret: "sec-1"
       }
     ];
-    (trpcClient.triggers.listByWorkflow.query as jest.Mock).mockResolvedValue({
+    asMock(trpcClient.triggers.listByWorkflow.query).mockResolvedValue({
       triggers
     });
 
@@ -183,7 +181,7 @@ describe("useRunningTriggers", () => {
         last_error: null
       }
     ];
-    (trpcClient.jobs.triggersRunning.query as jest.Mock).mockResolvedValue({
+    asMock(trpcClient.jobs.triggersRunning.query).mockResolvedValue({
       triggers
     });
     renderHook(() => useRunningTriggers());
@@ -339,15 +337,14 @@ describe("webhookDeliveryUrl", () => {
     );
   });
 
-  it("uses the configured API base on desktop and hosted builds", () => {
+  it("uses the configured API base on desktop and hosted builds", async () => {
     jest.resetModules();
     jest.doMock("../../stores/BASE_URL", () => ({
       __esModule: true,
       BASE_URL: "https://api.nodetool.ai",
       withApiBase: (url: string) => `https://api.nodetool.ai${url}`
     }));
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require("../useTriggers") as typeof import("../useTriggers");
+    const mod = await import("../useTriggers");
     expect(mod.webhookDeliveryUrl("tok-1")).toBe(
       "https://api.nodetool.ai/api/webhooks/tok-1"
     );

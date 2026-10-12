@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { useJobAssets } from "../useJobAssets";
 import { useQuery } from "@tanstack/react-query";
 import { mockAsset } from "../../__mocks__/fixtures";
+import { asMock } from '../../test-utils/doubles';
 
 jest.mock("@tanstack/react-query", () => ({
   __esModule: true,
@@ -25,7 +26,7 @@ jest.mock("../../utils/normalizeAsset", () => ({
 describe("useJobAssets", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useQuery as jest.Mock).mockReturnValue({ data: [mockAsset] });
+    asMock(useQuery).mockReturnValue({ data: [mockAsset] });
   });
 
   it("passes job_id in the query key", () => {
@@ -66,7 +67,7 @@ describe("useJobAssets", () => {
 
   it("returns query result from useQuery", () => {
     const mockData = [mockAsset];
-    (useQuery as jest.Mock).mockReturnValue({
+    asMock(useQuery).mockReturnValue({
       data: mockData,
       isLoading: false,
       error: null

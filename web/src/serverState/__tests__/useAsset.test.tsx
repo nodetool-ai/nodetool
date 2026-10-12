@@ -3,6 +3,7 @@ import { useAsset } from '../useAsset';
 import { useQuery } from '@tanstack/react-query';
 import { mockAsset } from '../../__mocks__/fixtures';
 import { BASE_URL } from '../../stores/BASE_URL';
+import { asMock } from '../../test-utils/doubles';
 
 const mockGetAsset = jest.fn();
 jest.mock('../../stores/AssetStore', () => ({
@@ -28,13 +29,13 @@ jest.mock('../../utils/localFile', () => ({
 describe('useAsset', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useQuery as jest.Mock).mockReturnValue({ data: mockAsset });
+    asMock(useQuery).mockReturnValue({ data: mockAsset });
     mockFileUriToHttpUrl.mockReturnValue(null);
   });
 
   it('returns asset and uri when audio asset provided', () => {
     const { result } = renderHook(() =>
-      useAsset({ audio: { asset_id: '123', uri: 'my://uri' } as any })
+      useAsset({ audio: { type: 'audio', asset_id: '123', uri: 'my://uri' } })
     );
     expect(useQuery).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: ['asset', '123'], enabled: true })
@@ -44,7 +45,7 @@ describe('useAsset', () => {
   });
 
   it('query is disabled when no asset id', () => {
-    renderHook(() => useAsset({ image: {} as any }));
+    renderHook(() => useAsset({ image: { type: 'image' } }));
     expect(useQuery).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: ['asset', undefined], enabled: false })
     );
@@ -52,7 +53,7 @@ describe('useAsset', () => {
 
   it('loads by the id inside an asset:// uri when asset_id is absent', () => {
     renderHook(() =>
-      useAsset({ video: { uri: 'asset://87c6124bc9684facabb8cb3575dcb8ad' } as any })
+      useAsset({ video: { type: 'video', uri: 'asset://87c6124bc9684facabb8cb3575dcb8ad' } })
     );
     expect(useQuery).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -64,7 +65,7 @@ describe('useAsset', () => {
 
   it('prefers fetched asset URL for asset scheme URIs', () => {
     const { result } = renderHook(() =>
-      useAsset({ model3d: { asset_id: '123', uri: 'asset://123' } as any })
+      useAsset({ model3d: { type: 'model_3d', asset_id: '123', uri: 'asset://123' } })
     );
 
     expect(result.current.asset).toEqual(mockAsset);
@@ -77,7 +78,7 @@ describe('useAsset', () => {
     );
 
     const { result } = renderHook(() =>
-      useAsset({ audio: { asset_id: null, uri: 'file:///Users/me/song.mp3' } as any })
+      useAsset({ audio: { type: 'audio', asset_id: null, uri: 'file:///Users/me/song.mp3' } })
     );
 
     expect(mockFileUriToHttpUrl).toHaveBeenCalledWith('file:///Users/me/song.mp3');
@@ -90,35 +91,38 @@ describe('useAsset', () => {
     const { result } = renderHook(() =>
       useAsset({
         image: {
+          type: 'image',
           asset_id: '4a816f674eda4358b8140c50917ae78e',
           uri: '/api/storage/4a816f674eda4358b8140c50917ae78e.bin'
-        } as any
+        }
       })
     );
     expect(result.current.uri).toBe(mockAsset.get_url);
   });
 
   it('returns no uri for a derived path while the asset lookup is pending', () => {
-    (useQuery as jest.Mock).mockReturnValue({ data: undefined, isPending: true });
+    asMock(useQuery).mockReturnValue({ data: undefined, isPending: true });
     const { result } = renderHook(() =>
       useAsset({
         image: {
+          type: 'image',
           asset_id: '4a816f674eda4358b8140c50917ae78e',
           uri: '/api/storage/4a816f674eda4358b8140c50917ae78e.bin'
-        } as any
+        }
       })
     );
     expect(result.current.uri).toBeUndefined();
   });
 
   it('falls back to the stored path on the API origin once a lookup finds no asset', () => {
-    (useQuery as jest.Mock).mockReturnValue({ data: undefined, isPending: false });
+    asMock(useQuery).mockReturnValue({ data: undefined, isPending: false });
     const { result } = renderHook(() =>
       useAsset({
         image: {
+          type: 'image',
           asset_id: '4a816f674eda4358b8140c50917ae78e',
           uri: '/api/storage/4a816f674eda4358b8140c50917ae78e.bin'
-        } as any
+        }
       })
     );
     expect(result.current.uri).toBe(

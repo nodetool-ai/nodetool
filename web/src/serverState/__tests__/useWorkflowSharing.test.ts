@@ -41,9 +41,10 @@ import {
   useWorkflowSharing,
   useSharedWithMe
 } from "../useWorkflowSharing";
+import { asMock } from "../../test-utils/doubles";
 
-const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
-const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>;
+const mockUseQuery = asMock(useQuery);
+const mockUseMutation = asMock(useMutation);
 
 describe("useWorkflowSharing", () => {
   beforeEach(() => {
@@ -52,11 +53,11 @@ describe("useWorkflowSharing", () => {
       data: undefined,
       isLoading: false,
       error: null
-    } as any);
+    });
     mockUseMutation.mockReturnValue({
       mutateAsync: jest.fn(),
       isPending: false
-    } as any);
+    });
   });
 
   describe("query keys", () => {

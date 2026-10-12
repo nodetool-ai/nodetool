@@ -9,6 +9,7 @@ import {
   useAppInstanceMutations
 } from "../useAppInstances";
 import { deleteAppInstance, loadAppInstance } from "../../components/appbuilder/runtime/appInstanceApi";
+import { stub } from "../../test-utils/doubles";
 
 let account = "owner";
 let visitor: string | null = null;
@@ -44,11 +45,13 @@ const instance = {
   variables: { price: 10 }
 };
 const respond = (body: unknown, status = 200) =>
-  fetchMock.mockResolvedValueOnce({
-    ok: status === 200,
-    status,
-    json: async () => body
-  } as Response);
+  fetchMock.mockResolvedValueOnce(
+    stub<Response>({
+      ok: status === 200,
+      status,
+      json: async () => body
+    })
+  );
 const mount = () => {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } }

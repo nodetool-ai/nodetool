@@ -36,9 +36,9 @@ jest.mock("../../stores/AssetGridStore", () => ({
 
 jest.mock("@tanstack/react-query", () => ({
   __esModule: true,
-  useMutation: jest.fn((config: Record<string, unknown>) => ({
+  useMutation: jest.fn((config: { mutationFn: (...args: unknown[]) => Promise<void> }) => ({
     // The test awaits the call; it never reads the resolved value.
-    mutateAsync: config.mutationFn as (...args: unknown[]) => Promise<void>,
+    mutateAsync: config.mutationFn,
     mutate: mockMutate,
     reset: mockReset,
     isPending: false,
@@ -55,6 +55,8 @@ jest.mock("@tanstack/react-query", () => ({
 }));
 
 import { useAssetUpdate } from "../useAssetUpdate";
+import { useMutation } from "@tanstack/react-query";
+import { asMock } from "../../test-utils/doubles";
 
 describe("useAssetUpdate", () => {
   beforeEach(() => {
@@ -90,8 +92,7 @@ describe("useAssetUpdate", () => {
 
   it("shows success notification via onSuccess", () => {
     const { result } = renderHook(() => useAssetUpdate());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const config = result.current.mutation as any;
+    const config = asMock(useMutation).mock.calls[0][0];
     config.onSuccess(undefined, [{ id: "a1" }], undefined);
     expect(mockAddNotification).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -103,8 +104,7 @@ describe("useAssetUpdate", () => {
 
   it("pluralizes notification for multiple assets", () => {
     const { result } = renderHook(() => useAssetUpdate());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const config = result.current.mutation as any;
+    const config = asMock(useMutation).mock.calls[0][0];
     config.onSuccess(undefined, [{ id: "a1" }, { id: "a2" }], undefined);
     expect(mockAddNotification).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -115,8 +115,7 @@ describe("useAssetUpdate", () => {
 
   it("shows error notification via onError", () => {
     const { result } = renderHook(() => useAssetUpdate());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const config = result.current.mutation as any;
+    const config = asMock(useMutation).mock.calls[0][0];
     config.onError(new Error("fail"), [], {});
     expect(mockAddNotification).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -128,8 +127,7 @@ describe("useAssetUpdate", () => {
 
   it("invalidates queries via onSettled", () => {
     const { result } = renderHook(() => useAssetUpdate());
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const config = result.current.mutation as any;
+    const config = asMock(useMutation).mock.calls[0][0];
     config.onSettled(undefined, null, [], {
       currentFolderId: "folder-1"
     });

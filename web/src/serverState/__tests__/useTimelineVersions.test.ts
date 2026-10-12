@@ -38,12 +38,11 @@ import {
   timelineVersionsQueryKey,
   useTimelineVersions
 } from "../useTimelineVersions";
+import { asMock } from "../../test-utils/doubles";
 
-const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
-const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>;
-const mockUseQueryClient = useQueryClient as jest.MockedFunction<
-  typeof useQueryClient
->;
+const mockUseQuery = asMock(useQuery);
+const mockUseMutation = asMock(useMutation);
+const mockUseQueryClient = asMock(useQueryClient);
 
 const invalidateQueries = jest.fn();
 
@@ -54,12 +53,12 @@ describe("useTimelineVersions", () => {
       data: undefined,
       isLoading: false,
       error: null
-    } as any);
+    });
     mockUseMutation.mockReturnValue({
       mutateAsync: jest.fn(),
       isPending: false
-    } as any);
-    mockUseQueryClient.mockReturnValue({ invalidateQueries } as any);
+    });
+    mockUseQueryClient.mockReturnValue({ invalidateQueries });
   });
 
   describe("timelineVersionsQueryKey", () => {
@@ -110,7 +109,7 @@ describe("useTimelineVersions", () => {
 
   it("fetches the list through trpc with limit and saveType", async () => {
     renderHook(() => useTimelineVersions("t-1", { limit: 5, saveType: "manual" }));
-    const { queryFn } = mockUseQuery.mock.calls[0][0] as any;
+    const { queryFn } = mockUseQuery.mock.calls[0][0];
     await queryFn();
     expect(mockListQuery).toHaveBeenCalledWith({
       id: "t-1",
@@ -128,7 +127,7 @@ describe("useTimelineVersions", () => {
     mockUseMutation.mockReturnValue({
       mutateAsync: jest.fn(),
       isPending: true
-    } as any);
+    });
     const { result } = renderHook(() => useTimelineVersions("t-1"));
     expect(result.current.createVersion).toBeDefined();
     expect(result.current.restoreVersion).toBeDefined();
@@ -141,7 +140,7 @@ describe("useTimelineVersions", () => {
 
   it("trims a blank version name to undefined on create", async () => {
     renderHook(() => useTimelineVersions("t-1"));
-    const createOptions = mockUseMutation.mock.calls[0][0] as any;
+    const createOptions = mockUseMutation.mock.calls[0][0];
     await createOptions.mutationFn("   ");
     expect(mockCreate).toHaveBeenCalledWith({ id: "t-1", name: undefined });
     await createOptions.mutationFn("  before the cut  ");
@@ -153,7 +152,7 @@ describe("useTimelineVersions", () => {
 
   it("invalidates the versions prefix after create", () => {
     renderHook(() => useTimelineVersions("t-1"));
-    const createOptions = mockUseMutation.mock.calls[0][0] as any;
+    const createOptions = mockUseMutation.mock.calls[0][0];
     createOptions.onSuccess();
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["timeline", "t-1", "versions"]
@@ -162,7 +161,7 @@ describe("useTimelineVersions", () => {
 
   it("restore seeds the timeline.get cache and invalidates both", async () => {
     renderHook(() => useTimelineVersions("t-1"));
-    const restoreOptions = mockUseMutation.mock.calls[1][0] as any;
+    const restoreOptions = mockUseMutation.mock.calls[1][0];
     await restoreOptions.mutationFn(3);
     expect(mockRestore).toHaveBeenCalledWith({ id: "t-1", version: 3 });
 
@@ -177,7 +176,7 @@ describe("useTimelineVersions", () => {
 
   it("deletes by version number and invalidates", async () => {
     renderHook(() => useTimelineVersions("t-1"));
-    const deleteOptions = mockUseMutation.mock.calls[2][0] as any;
+    const deleteOptions = mockUseMutation.mock.calls[2][0];
     await deleteOptions.mutationFn(2);
     expect(mockDelete).toHaveBeenCalledWith({ id: "t-1", version: 2 });
     deleteOptions.onSuccess();

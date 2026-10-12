@@ -158,7 +158,7 @@ describe("useAssetUpload", () => {
         files: [
           { id: "1", file: new File([""], "a.txt"), progress: 100, status: "completed" },
           { id: "2", file: new File([""], "b.txt"), progress: 0, status: "uploading" }
-        ] as any
+        ]
       });
 
       act(() => {
@@ -173,7 +173,7 @@ describe("useAssetUpload", () => {
         files: [
           { id: "1", file: new File([""], "a.txt"), progress: 100, status: "completed" },
           { id: "2", file: new File([""], "b.txt"), progress: 0, status: "uploading" }
-        ] as any
+        ]
       });
 
       act(() => {
@@ -187,7 +187,7 @@ describe("useAssetUpload", () => {
       useAssetUpload.setState({
         files: [
           { id: "1", file: new File([""], "a.txt"), progress: 100, status: "completed" }
-        ] as any,
+        ],
         isUploading: true
       });
 
@@ -202,7 +202,7 @@ describe("useAssetUpload", () => {
       useAssetUpload.setState({
         files: [
           { id: "1", file: new File([""], "a.txt"), progress: 0, status: "uploading" }
-        ] as any
+        ]
       });
 
       act(() => {
@@ -220,7 +220,7 @@ describe("useAssetUpload", () => {
       useAssetUpload.setState({
         files: [
           { id: "1", file: new File([""], "a.txt"), progress: 0, status: "uploading" }
-        ] as any
+        ]
       });
 
       act(() => {
@@ -236,7 +236,7 @@ describe("useAssetUpload", () => {
       useAssetUpload.setState({
         files: [
           { id: "1", file: new File([""], "a.txt"), progress: 100, status: "completed" }
-        ] as any
+        ]
       });
 
       act(() => {

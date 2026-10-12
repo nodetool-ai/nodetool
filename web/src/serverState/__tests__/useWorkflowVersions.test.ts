@@ -15,9 +15,10 @@ jest.mock("@tanstack/react-query", () => ({
 
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useWorkflowVersions } from "../useWorkflowVersions";
+import { asMock } from "../../test-utils/doubles";
 
-const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
-const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>;
+const mockUseQuery = asMock(useQuery);
+const mockUseMutation = asMock(useMutation);
 
 describe("useWorkflowVersions", () => {
   beforeEach(() => {
@@ -26,11 +27,11 @@ describe("useWorkflowVersions", () => {
       data: undefined,
       isLoading: false,
       error: null
-    } as any);
+    });
     mockUseMutation.mockReturnValue({
       mutateAsync: jest.fn(),
       isPending: false
-    } as any);
+    });
   });
 
   describe("workflowVersionsQueryKey", () => {
@@ -106,7 +107,7 @@ describe("useWorkflowVersions", () => {
       mockUseMutation.mockReturnValue({
         mutateAsync,
         isPending: false
-      } as any);
+      });
 
       const { result } = renderHook(() => useWorkflowVersions("wf-123"));
       expect(result.current.createVersion).toBeDefined();
@@ -118,7 +119,7 @@ describe("useWorkflowVersions", () => {
       mockUseMutation.mockReturnValue({
         mutateAsync: jest.fn(),
         isPending: true
-      } as any);
+      });
 
       const { result } = renderHook(() => useWorkflowVersions("wf-123"));
       expect(result.current.isCreatingVersion).toBe(true);

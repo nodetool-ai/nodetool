@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { useFolderTree } from "../useFolderTree";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { asMock } from '../../test-utils/doubles';
 
 const mockLoadFolderTree = jest.fn();
 const mockFolderTree = {
@@ -29,7 +30,7 @@ jest.mock("@tanstack/react-query", () => ({
 describe("useFolderTree", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useQuery as jest.Mock).mockReturnValue({ data: mockFolderTree });
+    asMock(useQuery).mockReturnValue({ data: mockFolderTree });
     useWorkspaceTabsStore.setState({
       activeProjectId: null,
       personalProjectId: null
@@ -73,7 +74,7 @@ describe("useFolderTree", () => {
   it("calls loadFolderTree with correct sort order", async () => {
     let capturedQueryFn: (() => Promise<unknown>) | undefined;
     mockLoadFolderTree.mockResolvedValue(mockFolderTree);
-    (useQuery as jest.Mock).mockImplementation((config) => {
+    asMock(useQuery).mockImplementation((config) => {
       capturedQueryFn = config.queryFn;
       return { data: mockFolderTree };
     });

@@ -40,6 +40,8 @@ import {
   type WorkspaceTab,
   type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
+import { useMutation } from "@tanstack/react-query";
+import { asMock } from "../../test-utils/doubles";
 
 const tab = (id: string, type: WorkspaceTabType, ref: string): WorkspaceTab => ({
   id,
@@ -112,7 +114,7 @@ describe("useAssetDeletion", () => {
       ]
     });
     const { result } = renderHook(() => useAssetDeletion());
-    const config = result.current.mutation as any;
+    const config = asMock(useMutation).mock.calls[0][0];
 
     config.onSuccess({ deleted_asset_ids: ["a", "b"] });
 
@@ -125,7 +127,7 @@ describe("useAssetDeletion", () => {
   it("leaves the success toast to the caller", () => {
     useWorkspaceTabsStore.setState({ tabs: [] });
     const { result } = renderHook(() => useAssetDeletion());
-    const config = result.current.mutation as any;
+    const config = asMock(useMutation).mock.calls[0][0];
 
     config.onSuccess({ deleted_asset_ids: ["a"] });
     expect(mockAddNotification).not.toHaveBeenCalled();
@@ -133,7 +135,7 @@ describe("useAssetDeletion", () => {
 
   it("configures onError to show error notification", () => {
     const { result } = renderHook(() => useAssetDeletion());
-    const config = result.current.mutation as any;
+    const config = asMock(useMutation).mock.calls[0][0];
 
     config.onError(new Error("fail"));
     expect(mockAddNotification).toHaveBeenCalledWith(
