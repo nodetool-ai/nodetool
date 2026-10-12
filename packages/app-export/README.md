@@ -21,6 +21,15 @@ The CLI (`nodetool apps export-project`), the server
 | `assets/` | Copies of the `package://` sample files the app references |
 | `.env.example` | The credentials the graphs need, read by the server and never sent to the browser |
 
+The server reads these variables, from the environment or the project's `.env`:
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `PORT` | `5180` | Port the server binds |
+| `HOST` | `127.0.0.1` | Address the server binds. Every run spends the keys in `.env`, so think before exposing it |
+| `NODETOOL_DATA_DIR` | `.nodetool-data` | Where uploads, run outputs and the file-backed model store live, relative to the project root |
+| `MAX_UPLOAD_MB` | `200` | Largest request body `POST /api/run` and `POST /api/upload` accept |
+
 The project depends on the published `@nodetool-ai/*` packages at the
 exporter's own version.
 
