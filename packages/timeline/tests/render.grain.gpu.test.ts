@@ -8,10 +8,11 @@
  *    indistinguishable from one that never ran, so the strength cases compare
  *    against the ungrained render rather than against a golden buffer.
  * 2. **It stays inside its own alpha.** The layer arrives premultiplied, so
- *    `rgb <= a` holds on every pixel and a grain that *added* noise would push
- *    a channel past it — invisible on an opaque layer, a bright fringe on a
- *    translucent one. That is why the module multiplies, and why the case that
- *    would have caught it is the half-transparent one.
+ *    `rgb <= a` holds on every pixel and noise added to the premultiplied value
+ *    would push a channel past it — invisible on an opaque layer, a bright
+ *    fringe on a translucent one. That is why the module adds grain to the
+ *    straight colour and premultiplies again, and why the case that would have
+ *    caught it is the half-transparent one.
  * 3. **It is reproducible.** Same seed, same bytes. A render handed back from a
  *    cache has to be the render that would have been computed.
  *
@@ -126,7 +127,7 @@ describe.runIf(noAdapterReason === null)("grain on the GPU path", () => {
       layerWith(source, [grain({ amount: 0.8, seed: 7 })])
     ]);
 
-    // Amount 0 is a gain of exactly 1 — the identity, not "a little grain".
+    // Amount 0 adds nothing — the identity, not "a little grain".
     expect(channelSpread(off)).toBeLessThan(1);
     expect(channelSpread(light)).toBeGreaterThan(1);
     expect(channelSpread(heavy)).toBeGreaterThan(channelSpread(light));
@@ -143,14 +144,15 @@ describe.runIf(noAdapterReason === null)("grain on the GPU path", () => {
 
   it("keeps every channel inside its own alpha on a translucent layer", async () => {
     // The premultiplication check, and the reason it uses a *dark* half-opaque
-    // source rather than a mid-grey one. The readback un-premultiplies and
-    // saturates at 255, so on a bright layer an overflowing channel comes back
-    // clamped and indistinguishable from a legal one — asserting `<= 255` there
-    // examines nothing. Dark leaves headroom the bug has to show up in: a gain
-    // of at most 2 can only take straight 32 to 64, while noise *added* to the
-    // premultiplied value reaches 1.0 and un-premultiplies to 255.
+    // source at a low amount. The readback un-premultiplies and saturates at
+    // 255, so on a bright layer an overflowing channel comes back clamped and
+    // indistinguishable from a legal one. Dark and light leaves headroom the
+    // bug has to show up in: at amount 0.2 the straight value can move by at
+    // most 0.2 * 0.15 * 4.02 (the noise bound) ~= 0.12, so straight 32 stays
+    // at or under 32 + 31. Noise added to the *premultiplied* value at alpha
+    // 0.5 doubles on the way back and would reach about 93.
     const grained = await renderFrame(
-      [layerWith(uniform(32, 32, 32, 128), [grain({ amount: 1, seed: 11 })])],
+      [layerWith(uniform(32, 32, 32, 128), [grain({ amount: 0.2, seed: 11 })])],
       true
     );
     let peak = 0;
@@ -180,8 +182,10 @@ describe.runIf(noAdapterReason === null)("grain on the GPU path", () => {
     expect(Array.from(other)).not.toEqual(Array.from(first));
   });
 
-  it("coarsens into blocks as `size` grows", async () => {
-    // A cell of 8px means the 8×8 block shares one gain; per-pixel does not.
+  it("grows soft clumps as `size` grows, not square blocks", async () => {
+    // Neighbouring pixels share a clump at size 8, so they differ far less than
+    // independent per-pixel grain does. Inside a clump the value still varies,
+    // because the lattice is interpolated rather than quantised into blocks.
     const source = uniform(128, 128, 128);
     const coarse = await renderFrame([
       layerWith(source, [grain({ amount: 0.6, size: 8, seed: 5 })])
@@ -190,12 +194,23 @@ describe.runIf(noAdapterReason === null)("grain on the GPU path", () => {
       layerWith(source, [grain({ amount: 0.6, size: 1, seed: 5 })])
     ]);
 
-    const sample = (rgba: Uint8Array, x: number, y: number) =>
-      rgba[(y * SIZE + x) * 4]!;
-    // Two pixels inside one coarse cell agree; the same two under fine grain
-    // are independent samples and (for this seed) do not.
-    expect(sample(coarse, 1, 1)).toBe(sample(coarse, 6, 6));
-    expect(sample(fine, 1, 1)).not.toBe(sample(fine, 6, 6));
+    const neighbourDelta = (rgba: Uint8Array) => {
+      let sum = 0;
+      for (let y = 0; y < SIZE; y++) {
+        for (let x = 0; x < SIZE - 1; x++) {
+          const i = (y * SIZE + x) * 4;
+          sum += Math.abs(rgba[i]! - rgba[i + 4]!);
+        }
+      }
+      return sum / (SIZE * (SIZE - 1));
+    };
+    expect(neighbourDelta(coarse)).toBeLessThan(neighbourDelta(fine) * 0.4);
+    let constantRuns = 0;
+    for (let y = 0; y < SIZE; y++) {
+      const row = y * SIZE * 4;
+      if (coarse[row] === coarse[row + 7 * 4]) constantRuns++;
+    }
+    expect(constantRuns).toBeLessThan(SIZE / 2);
   });
 
   it("keeps the channels together at colour 0 and splits them at 1", async () => {
@@ -207,7 +222,7 @@ describe.runIf(noAdapterReason === null)("grain on the GPU path", () => {
       layerWith(source, [grain({ amount: 0.6, colorAmount: 1, seed: 9 })])
     ]);
 
-    // Monochrome grain is one gain for the pixel, so r, g and b move together.
+    // Monochrome grain is one noise value for the pixel, so r, g and b move together.
     for (let i = 0; i < mono.length; i += 4) {
       expect(mono[i + 1]).toBe(mono[i]);
       expect(mono[i + 2]).toBe(mono[i]);
