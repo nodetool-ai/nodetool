@@ -35,7 +35,8 @@ import {
   MOTION,
   Text,
   TextLink,
-  Popover, getSpacingPx, SPACING
+  Popover, getSpacingPx, SPACING,
+  Tooltip
 } from "../ui_primitives";
 import { OPTIONAL_NODE_PACKS } from "../../config/optionalNodePacks";
 import useOptionalNodePacksStore from "../../stores/OptionalNodePacksStore";
@@ -208,20 +209,21 @@ const OptionalPacksSection = () => {
 
   return (
     <div css={styles(theme)} className="optional-packs-section">
-      <button
-        type="button"
-        className="optional-packs-trigger"
-        onClick={handleOpen}
-        title="Reveal advanced and niche node packs"
-        aria-haspopup="dialog"
-        aria-expanded={Boolean(anchorEl)}
-      >
-        <Inventory2OutlinedIcon className="icon" />
-        <span className="label">Optional packs</span>
-        <span className="count">
-          {enabledCount > 0 ? `${enabledCount}/${total}` : `+${total}`}
-        </span>
-      </button>
+      <Tooltip title="Reveal advanced and niche node packs" describeChild>
+        <button
+          type="button"
+          className="optional-packs-trigger"
+          onClick={handleOpen}
+          aria-haspopup="dialog"
+          aria-expanded={Boolean(anchorEl)}
+        >
+          <Inventory2OutlinedIcon className="icon" />
+          <span className="label">Optional packs</span>
+          <span className="count">
+            {enabledCount > 0 ? `${enabledCount}/${total}` : `+${total}`}
+          </span>
+        </button>
+      </Tooltip>
 
       <Popover
         open={Boolean(anchorEl)}

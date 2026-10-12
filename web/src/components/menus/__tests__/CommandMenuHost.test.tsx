@@ -14,7 +14,10 @@ const mockOpenProject = jest.fn();
 const mockCreateWorkflow = jest.fn();
 
 jest.mock("../../../lib/appNavigation", () => ({ navigateTo: jest.fn() }));
-jest.mock("../../../lib/runtimeConfig", () => ({ isAuthRequired: () => false }));
+jest.mock("../../../lib/runtimeConfig", () => ({
+  isAuthRequired: () => false,
+  isCloudProfile: () => false
+}));
 jest.mock("../../../stores/useAuth", () => ({
   __esModule: true,
   default: (selector: (state: { state: string }) => unknown) => selector({ state: "logged_in" })

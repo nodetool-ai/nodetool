@@ -17,7 +17,8 @@ import {
   focusRing,
   getSpacingPx,
   reducedMotion,
-  selectableRowStyles
+  selectableRowStyles,
+  Tooltip
 } from "../ui_primitives";
 import { useSectionWrap, DashboardSectionHeader } from "./dashboardChrome";
 
@@ -231,40 +232,41 @@ const RecipeStepRow = memo(function RecipeStepRow({
 }: RecipeStepRowProps) {
   const loading = copyingStep === `${slug}:${step.example}`;
   return (
-    <button
-      type="button"
-      className={loading ? "rcp-step loading" : "rcp-step"}
-      onClick={() => onOpen(slug, step)}
-      title={`Open ${step.example}`}
-    >
-      <span className="rcp-index">
-        {loading ? (
-          <LoadingSpinner size="small" />
-        ) : (
-          String(index + 1).padStart(2, "0")
-        )}
-      </span>
-      <span className="rcp-text">
-        <span className="rcp-step-title">
-          {step.role} — {step.example}
-        </span>
-        <span className="rcp-step-text">{step.handoff}</span>
-        <span className="rcp-models">
-          {step.models.length > 0 ? (
-            step.models.map((model) => (
-              <span
-                key={`${model.provider}:${model.model}`}
-                className="rcp-model"
-              >
-                {model.model}
-              </span>
-            ))
+    <Tooltip title={`Open ${step.example}`} describeChild>
+      <button
+        type="button"
+        className={loading ? "rcp-step loading" : "rcp-step"}
+        onClick={() => onOpen(slug, step)}
+      >
+        <span className="rcp-index">
+          {loading ? (
+            <LoadingSpinner size="small" />
           ) : (
-            <span className="rcp-model">Runs locally — no key needed</span>
+            String(index + 1).padStart(2, "0")
           )}
         </span>
-      </span>
-    </button>
+        <span className="rcp-text">
+          <span className="rcp-step-title">
+            {step.role} — {step.example}
+          </span>
+          <span className="rcp-step-text">{step.handoff}</span>
+          <span className="rcp-models">
+            {step.models.length > 0 ? (
+              step.models.map((model) => (
+                <span
+                  key={`${model.provider}:${model.model}`}
+                  className="rcp-model"
+                >
+                  {model.model}
+                </span>
+              ))
+            ) : (
+              <span className="rcp-model">Runs locally — no key needed</span>
+            )}
+          </span>
+        </span>
+      </button>
+    </Tooltip>
   );
 });
 

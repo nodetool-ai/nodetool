@@ -35,7 +35,6 @@ import type { editor as MonacoEditorNS } from "monaco-editor";
 import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "../../utils/isEqual";
 
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
@@ -1238,7 +1237,6 @@ const TextEditorModal = ({
                 <div className="title-row">
                   {propertyDescription ? (
                     <Tooltip
-                      delay={TOOLTIP_ENTER_DELAY}
                       title={propertyDescription}
                     >
                       <h4 className="title">{propertyName}</h4>
@@ -1252,7 +1250,7 @@ const TextEditorModal = ({
             </div>
             <div className="actions">
               {!readOnly && (
-                <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Revert to original">
+                <Tooltip title="Revert to original">
                   <button
                     type="button"
                     className="button"
@@ -1263,7 +1261,7 @@ const TextEditorModal = ({
                   </button>
                 </Tooltip>
               )}
-              <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Download">
+              <Tooltip title="Download">
                 <button
                   type="button"
                   className="button"
@@ -1274,15 +1272,14 @@ const TextEditorModal = ({
                 </button>
               </Tooltip>
               <Tooltip
-                delay={TOOLTIP_ENTER_DELAY}
-                title={assistantVisible ? "Hide Assistant" : "Show Assistant"}
+                title={assistantVisible ? "Hide assistant" : "Show assistant"}
               >
                 <button
                   type="button"
                   className={`button ${assistantVisible ? "active" : ""}`}
                   onClick={toggleAssistantVisible}
                   aria-label={
-                    assistantVisible ? "Hide Assistant" : "Show Assistant"
+                    assistantVisible ? "Hide assistant" : "Show assistant"
                   }
                 >
                   {assistantVisible ? (
@@ -1293,7 +1290,6 @@ const TextEditorModal = ({
                 </button>
               </Tooltip>
               <Tooltip
-                delay={TOOLTIP_ENTER_DELAY}
                 title={focusMode ? "Exit focus mode" : "Focus mode (hide panels)"}
               >
                 <button
@@ -1306,7 +1302,6 @@ const TextEditorModal = ({
                 </button>
               </Tooltip>
               <Tooltip
-                delay={TOOLTIP_ENTER_DELAY}
                 title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
               >
                 <button
@@ -1318,12 +1313,12 @@ const TextEditorModal = ({
                   {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
                 </button>
               </Tooltip>
-              <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Close Editor | Esc">
+              <Tooltip title="Close editor" shortcut={["Esc"]}>
                 <button
                   type="button"
                   className="button button-close"
                   onClick={onClose}
-                  aria-label="Close Editor"
+                  aria-label="Close editor"
                 >
                   <CloseIcon />
                 </button>
@@ -1336,7 +1331,6 @@ const TextEditorModal = ({
               <div className="toolbar-side">
                 {!readOnly && (
                   <Tooltip
-                    delay={TOOLTIP_ENTER_DELAY}
                     title={
                       isCodeEditor
                         ? "Switch to Rich Text"
@@ -1418,7 +1412,7 @@ const TextEditorModal = ({
               </div>
               <div className="toolbar-side">
                 <div className="font-controls">
-                  <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Decrease font size">
+                  <Tooltip title="Decrease font size">
                     <button
                       type="button"
                       className="button-ghost"
@@ -1429,7 +1423,7 @@ const TextEditorModal = ({
                     </button>
                   </Tooltip>
                   <span className="font-size-value">{fontSize}</span>
-                  <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Increase font size">
+                  <Tooltip title="Increase font size">
                     <button
                       type="button"
                       className="button-ghost"
@@ -1592,7 +1586,7 @@ const TextEditorModal = ({
                         </div>
                       </div>
                       <div className="assistant-head-actions">
-                        <Tooltip delay={TOOLTIP_ENTER_DELAY} title="New chat">
+                        <Tooltip title="New chat">
                           <button
                             type="button"
                             className="button-ghost"
@@ -1603,14 +1597,13 @@ const TextEditorModal = ({
                           </button>
                         </Tooltip>
                         <Tooltip
-                          delay={TOOLTIP_ENTER_DELAY}
-                          title="Hide Assistant"
+                          title="Hide assistant"
                         >
                           <button
                             type="button"
                             className="button-ghost"
                             onClick={toggleAssistantVisible}
-                            aria-label="Hide Assistant"
+                            aria-label="Hide assistant"
                           >
                             <ChevronRightIcon />
                           </button>

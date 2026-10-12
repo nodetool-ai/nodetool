@@ -1,5 +1,5 @@
 import React, { useCallback, useState, memo } from "react";
-import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton, Box, SPACING, getSpacingPx } from "../../ui_primitives";
+import { Caption, LoadingSpinner, ToolbarIconButton, Box, SPACING, getSpacingPx } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
@@ -8,7 +8,6 @@ import { resolveKieSchemaClient } from "../../../utils/kieDynamicSchema";
 import { normalizeDynamicSlots } from "../../../utils/dynamicSlots";
 import { replaceDynamicSlots } from "../../../utils/replaceDynamicSlots";
 import { NodeData } from "../../../stores/NodeData";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 export { DYNAMIC_KIE_NODE_TYPE } from "../../../constants/nodeTypes";
 
@@ -165,28 +164,26 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
 
     return (
       <Box sx={{ display: "inline-flex", alignItems: "center" }}>
-        <Tooltip title="Reload Schema" arrow delay={TOOLTIP_ENTER_DELAY}>
-          <ToolbarIconButton
-            title="Reload Schema"
-            size="small"
-            disabled={loading}
-            onClick={() => void handleLoad(true)}
-            sx={{
-              padding: getSpacingPx(SPACING.xs),
-              color: "var(--palette-text-secondary)",
-              "&:hover": {
-                color: "var(--palette-text-primary)",
-                backgroundColor: "var(--palette-c_overlay)"
-              }
-            }}
-          >
-            {loading ? (
-              <LoadingSpinner size="small" />
-            ) : (
-              <RefreshIcon sx={{ fontSize: 16 }} />
-            )}
-          </ToolbarIconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          title="Reload schema"
+          size="small"
+          disabled={loading}
+          onClick={() => void handleLoad(true)}
+          sx={{
+            padding: getSpacingPx(SPACING.xs),
+            color: "var(--palette-text-secondary)",
+            "&:hover": {
+              color: "var(--palette-text-primary)",
+              backgroundColor: "var(--palette-c_overlay)"
+            }
+          }}
+        >
+          {loading ? (
+            <LoadingSpinner size="small" />
+          ) : (
+            <RefreshIcon sx={{ fontSize: 16 }} />
+          )}
+        </ToolbarIconButton>
         {error && (
           <Caption
             color="error"

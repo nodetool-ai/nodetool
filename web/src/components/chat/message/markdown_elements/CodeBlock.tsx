@@ -12,7 +12,8 @@ import {
   FONT_SIZE_SANS,
   FONT_WEIGHT,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Tooltip
 } from "../../../ui_primitives";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 import {
@@ -304,23 +305,24 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
           <span className="code-block-language">{match ? match[1] : ""}</span>
           <FlexRow gap={SPACING.md} align="center">
             {onInsert != null && (
-              <button
-                type="button"
-                className="button"
-                onClick={handleInsert}
-                title="Insert into editor"
-                style={{
-                  padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
-                  fontSize: FONT_SIZE_SANS.caption,
-                  borderRadius: BORDER_RADIUS.xs,
-                  border: "1px solid var(--palette-grey-700)",
-                  background: "var(--palette-grey-700)",
-                  color: "var(--palette-grey-50)",
-                  cursor: "pointer"
-                }}
-              >
-                Insert into editor
-              </button>
+              <Tooltip title="Insert into editor" describeChild>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={handleInsert}
+                  style={{
+                    padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
+                    fontSize: FONT_SIZE_SANS.caption,
+                    borderRadius: BORDER_RADIUS.xs,
+                    border: "1px solid var(--palette-grey-700)",
+                    background: "var(--palette-grey-700)",
+                    color: "var(--palette-grey-50)",
+                    cursor: "pointer"
+                  }}
+                >
+                  Insert into editor
+                </button>
+              </Tooltip>
             )}
             <CopyButton value={codeContent} />
           </FlexRow>

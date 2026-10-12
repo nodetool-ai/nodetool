@@ -108,13 +108,13 @@ describe("the belt", () => {
     // `browser` is the web module's fetch-a-page-as-text capability — a
     // different thing that shares a prefix, and it stays.
     expect(names).toContain("browser");
-    expect(names).toContain("take_screenshot");
 
-    // The profile drops yt_dlp and render_model3d too
-    // (yt-dlp-gate.test.ts, blender-gate.test.ts); nothing else goes.
+    // The profile drops yt_dlp, render_model3d and, without a BROWSER_URL,
+    // take_screenshot too (yt-dlp-gate.test.ts, blender-gate.test.ts,
+    // host-access-gate.test.ts); nothing else goes.
     const dropped = BUILTIN_TOOL_NAMES.filter((name) => !names.includes(name));
     expect([...dropped].sort()).toEqual(
-      [...BROWSER_NAMES, "yt_dlp", "render_model3d"].sort()
+      [...BROWSER_NAMES, "yt_dlp", "render_model3d", "take_screenshot"].sort()
     );
   });
 

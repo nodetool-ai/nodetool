@@ -14,6 +14,7 @@ import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 
 import { isProduction } from "../../lib/env";
+import { isCloudProfile } from "../../lib/runtimeConfig";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { openPageTab } from "../workspace/openPageTab";
@@ -91,15 +92,22 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
         placement: "sidebar",
         onClick: () => openPage("costs"),
         dividerAfter: true
-      },
-      {
+      }
+    ];
+
+    // The Model Manager and Downloads fill the server's model caches, which
+    // the cloud does not offer (see LOCAL_ONLY_PAGES in PageSurface).
+    const cloud = isCloudProfile();
+
+    if (!cloud) {
+      actions.push({
         key: "models",
         label: "Model Manager",
         icon: <ViewInArOutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("models")
-      }
-    ];
+      });
+    }
 
     if (!isProduction) {
       actions.push({
@@ -157,8 +165,11 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
           handleOpenHelp();
           finish();
         }
-      },
-      {
+      }
+    );
+
+    if (!cloud) {
+      actions.push({
         key: "downloads",
         label: "Downloads",
         icon: <DownloadIcon />,
@@ -168,15 +179,9 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
           finish();
         },
         secondary: downloadProgress != null ? `${downloadProgress}%` : undefined
-      }
-    );
+      });
+    }
 
     return actions;
-  }, [
-    openPage,
-    finish,
-    handleOpenHelp,
-    openDownloadsDialog,
-    downloadProgress
-  ]);
+  }, [openPage, finish, handleOpenHelp, openDownloadsDialog, downloadProgress]);
 };

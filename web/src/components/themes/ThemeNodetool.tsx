@@ -4,6 +4,10 @@ import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
 import { editorControlsComponents } from "./components/editorControls";
 import { CONTROL } from "../ui_primitives";
+import {
+  TOOLTIP_ENTER_DELAY,
+  TOOLTIP_ENTER_NEXT_DELAY
+} from "../../config/constants";
 
 // Latin subsets only. The unsuffixed `@fontsource/<font>/<weight>.css` files
 // declare every subset the family ships (cyrillic, cyrillic-ext, greek,
@@ -314,6 +318,12 @@ const ThemeNodetool = createTheme({
       }
     },
     MuiTooltip: {
+      // One hover delay everywhere, including the primitives that wrap the
+      // MUI Tooltip themselves (ToolbarIconButton, CopyButton, ...).
+      defaultProps: {
+        enterDelay: TOOLTIP_ENTER_DELAY,
+        enterNextDelay: TOOLTIP_ENTER_NEXT_DELAY
+      },
       styleOverrides: {
         tooltip: ({ theme }) => ({
           backgroundColor: "var(--palette-c_scrim_strong)",

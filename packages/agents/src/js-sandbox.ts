@@ -124,6 +124,7 @@ import {
 } from "./sandbox-json-transport.js";
 import type { RunInWorkerOptions } from "./js-sandbox-worker/host.js";
 import { MAX_RANDOM_BYTES } from "./sandbox-constants.js";
+import { isHostAccessEnabled } from "./host-access-gate.js";
 import {
   deriveBridgeShape,
   precheckCloneSafety,
@@ -447,11 +448,15 @@ export function resolveSandboxLimits(
       120_000
     ),
     // Not clamped — these are capability switches, not magnitudes. Both
-    // resolve to the restrictive value unless the host explicitly opts out.
-    allowPrivateNetwork: limits?.allowPrivateNetwork === true,
+    // resolve to the restrictive value unless the host explicitly opts out,
+    // and the cloud profile never lets them out (see isHostAccessEnabled).
+    allowPrivateNetwork:
+      limits?.allowPrivateNetwork === true && isHostAccessEnabled(),
     userAgent: limits?.userAgent ?? "",
     filesystemAccess:
-      limits?.filesystemAccess === "host" ? "host" : "workspace",
+      limits?.filesystemAccess === "host" && isHostAccessEnabled()
+        ? "host"
+        : "workspace",
     secretScope: resolveSecretScope(limits?.secretScope)
   };
 }

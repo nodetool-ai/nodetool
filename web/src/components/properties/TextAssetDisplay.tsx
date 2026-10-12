@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAssetStore } from "../../stores/AssetStore";
 import TextEditorModal from "./TextEditorModal";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { Tooltip, Text, getSpacingPx, SPACING } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
 
@@ -49,7 +48,7 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
         overflow: "auto"
       }}
     >
-      <Tooltip title="Open Editor" delay={TOOLTIP_ENTER_DELAY}>
+      <Tooltip title="Open editor">
         <button type="button" className="button-expand" onClick={toggleExpand}>
           {isExpanded ? "↙" : "↗"}
         </button>

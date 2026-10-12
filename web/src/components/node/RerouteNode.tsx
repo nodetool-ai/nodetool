@@ -21,8 +21,8 @@ import { DATA_TYPES } from "../../config/data_types";
 import { findOutputHandle } from "../../utils/handleUtils";
 import { useSyncEdgeSelection } from "../../hooks/nodes/useSyncEdgeSelection";
 import { edgesTargeting } from "../../hooks/nodes/edgeIndex";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { hexToRgba } from "../../utils/ColorUtils";
+import { TOOLTIP_DESCRIPTION_DELAY } from "../../config/constants";
 
 const rerouteBackground = (theme: Theme, alpha: number): string =>
   theme.palette.mode === "dark"
@@ -230,7 +230,7 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
   return (
     <Tooltip
       title="Double-click to add a label"
-      delay={TOOLTIP_ENTER_DELAY * 2}
+      delay={TOOLTIP_DESCRIPTION_DELAY}
       placement="top"
     >
       <Container

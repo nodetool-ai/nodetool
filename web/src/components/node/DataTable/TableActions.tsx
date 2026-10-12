@@ -452,7 +452,8 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         <>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
           <ToolbarIconButton
-            title="Undo (Ctrl+Z)"
+            title="Undo"
+            shortcut={["Ctrl", "Z"]}
             onClick={handleUndo}
             disabled={!canUndo}
             className={!canUndo ? "disabled" : ""}
@@ -460,7 +461,8 @@ const TableActions: React.FC<TableActionsProps> = memo(({
             <UndoIcon sx={{ fontSize: 12 }} />
           </ToolbarIconButton>
           <ToolbarIconButton
-            title="Redo (Ctrl+Y)"
+            title="Redo"
+            shortcut={["Ctrl", "Y"]}
             onClick={handleRedo}
             disabled={!canRedo}
             className={!canRedo ? "disabled" : ""}

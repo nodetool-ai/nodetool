@@ -14,13 +14,28 @@ import {
   type CompatModelRow,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
-import { isString, normalizeBaseUrl } from "@nodetool-ai/protocol";
+import {
+  CLOUD_PROFILE_ENV,
+  NODE_ENV_VAR,
+  isCloudProfileActive,
+  isString,
+  normalizeBaseUrl
+} from "@nodetool-ai/protocol";
+import { assertSafePublicHttpsUrl, safeFetch } from "./safe-url.js";
 import {
   classifyListedModel,
   type ListedModelKind
 } from "./custom-model-kinds.js";
 import type { ImageModel, LanguageModel, VideoModel } from "./types.js";
 import type { ProviderCapability } from "./base-provider.js";
+
+function isCloudProfileOn(): boolean {
+  if (typeof process === "undefined") return false;
+  return isCloudProfileActive(
+    process.env[CLOUD_PROFILE_ENV],
+    process.env[NODE_ENV_VAR]
+  );
+}
 
 /** Cap on the model-list probe so an unreachable proxy cannot stall the model menu. */
 const MODEL_LIST_TIMEOUT_MS = 5000;
@@ -113,6 +128,25 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
       throw new Error(`${baseUrlKey} is required`);
     }
     const apiKey = readString(config, apiKeyKey) || NO_KEY;
+
+    // The base URL is the user's own text, and the server fetches it. On the
+    // cloud profile it gets the same SSRF policy as any other caller-chosen
+    // URL: https to a public host, on every redirect hop too. A local or
+    // self-hosted install keeps proxies on localhost and the LAN.
+    if (isCloudProfileOn()) {
+      assertSafePublicHttpsUrl(baseURL);
+      const inner = options.fetchFn ?? globalThis.fetch.bind(globalThis);
+      options = {
+        ...options,
+        fetchFn: (input, init) =>
+          safeFetch(
+            input instanceof Request ? input.url : String(input),
+            init,
+            undefined,
+            inner
+          )
+      };
+    }
 
     super({ providerId, apiKey, baseURL }, options);
 

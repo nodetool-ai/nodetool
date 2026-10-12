@@ -12,11 +12,8 @@ import { IconButton, Tooltip } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useTheme, SxProps, Theme } from "@mui/material/styles";
-import {
-  TOOLTIP_ENTER_DELAY,
-  TOOLTIP_ENTER_NEXT_DELAY
-} from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { tooltipWithShortcut } from "./Tooltip";
 
 export interface CloseButtonProps {
   /**
@@ -28,6 +25,10 @@ export interface CloseButtonProps {
    * @default "Close"
    */
   tooltip?: string;
+  /**
+   * Keyboard shortcut shown in the tooltip, e.g. ["Esc"]
+   */
+  shortcut?: string[];
   /**
    * Tooltip placement
    * @default "bottom"
@@ -85,6 +86,7 @@ export const CloseButton = memo(
       {
         onClick,
         tooltip = "Close",
+        shortcut,
         tooltipPlacement = "bottom",
         buttonSize = "small",
         iconVariant = "close",
@@ -110,9 +112,7 @@ export const CloseButton = memo(
 
       return (
         <Tooltip
-          title={tooltip}
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+          title={tooltipWithShortcut(tooltip, shortcut)}
           placement={tooltipPlacement}
         >
           <span style={{ display: "inline-flex" }}>
