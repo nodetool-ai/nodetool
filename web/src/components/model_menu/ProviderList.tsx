@@ -30,8 +30,8 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  TOOLTIP_ENTER_DELAY,
-  TOOLTIP_ENTER_NEXT_DELAY
+  TOOLTIP_ENTER_NEXT_DELAY,
+  TOOLTIP_DESCRIPTION_DELAY
 } from "../../config/constants";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
@@ -782,7 +782,7 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
                       className="model-menu__provider-badge-tooltip"
                       key={b.label}
                       title={tooltipTitle}
-                      delay={TOOLTIP_ENTER_DELAY * 2}
+                      delay={TOOLTIP_DESCRIPTION_DELAY}
                       nextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
                     >
                       <span

@@ -4,7 +4,6 @@ import React, { memo, useContext, useMemo } from "react";
 import { titleizeString } from "../../utils/titleizeString";
 import isEqual from "../../utils/isEqual";
 import { Tooltip, SPACING, getSpacingPx } from "../ui_primitives";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import HandleTooltip from "../HandleTooltip";
 import { useTheme } from "@mui/material/styles";
@@ -17,6 +16,7 @@ import {
 } from "../../contexts/InspectorPropertyHeaderContext";
 import { FlexRow } from "../ui_primitives";
 import { PropertyHandleTooltipContext } from "../../contexts/PropertyHandleTooltipContext";
+import { TOOLTIP_DESCRIPTION_DELAY } from "../../config/constants";
 
 interface PropertyLabelProps {
   id: string;
@@ -204,16 +204,9 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   ) : (
     <Tooltip
       title={showTooltip ? description || "" : ""}
-      delay={TOOLTIP_ENTER_DELAY * 2}
-      nextDelay={TOOLTIP_ENTER_DELAY}
+      delay={TOOLTIP_DESCRIPTION_DELAY}
       placement="left"
       slotProps={{
-        tooltip: {
-          sx: {
-            fontSize: theme.fontSizeSmall + " !important",
-            color: theme.vars.palette.common.white
-          }
-        },
         popper: {
           modifiers: [
             {

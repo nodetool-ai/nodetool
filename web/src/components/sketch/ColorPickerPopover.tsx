@@ -43,7 +43,6 @@ import {
 import {
   SKETCH_Z_INDEX,
   SKETCH_COLORS,
-  SKETCH_TOOLTIP_DELAY_MS,
   toggleButtonSmallSx,
   colorPickerSliderThumbSx
 } from "./sketchStyles";
@@ -211,7 +210,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
       }}
     >
       <FlexRow className="color-picker__header" align="center" justify="flex-end" sx={{ minHeight: "22px", mt: `-${getSpacingPx(SPACING.sm)}`, mr: `-${getSpacingPx(SPACING.sm)}`, mb: getSpacingPx(SPACING.micro) }}>
-        <Tooltip title="Cancel — keep previous color" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+        <Tooltip title="Cancel — keep previous color">
           <IconButton
             size="small"
             onClick={handleCancel}

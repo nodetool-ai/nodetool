@@ -9,7 +9,6 @@ import { useShowGraphPreview } from "../../stores/WorkflowListViewStore";
 import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/FavoriteWorkflowsStore";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
-import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
 import { FavoriteButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box, BORDER_RADIUS, FONT_WEIGHT, InlineEditableText, SPACING, getSpacingPx } from "../ui_primitives";
 import { WorkflowTriggerIndicator } from "./WorkflowTriggerIndicator";
 
@@ -313,9 +312,6 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     <Tooltip
       title={tooltipContent}
       placement="right"
-      arrow
-      delay={TOOLTIP_ENTER_DELAY}
-      nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
       slotProps={{
         tooltip: {
           sx: {

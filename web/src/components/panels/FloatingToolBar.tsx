@@ -41,7 +41,6 @@ import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import MobilePaneMenu from "../menus/MobilePaneMenu";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { runControlTooltip } from "./runControlTooltip";
 import { cn } from "../editor_ui/editorUtils";
@@ -693,7 +692,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     <Tooltip
       title="Drag to move • double-click to reset"
       placement="top"
-      delay={TOOLTIP_ENTER_DELAY}
     >
       <span
         role="button"
@@ -764,7 +762,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           <Tooltip
             title={getShortcutTooltip("openNodeMenu")}
             placement="top"
-            delay={TOOLTIP_ENTER_DELAY}
           >
             <button
               type="button"
@@ -780,7 +777,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         <Tooltip
           title={conversationOpen ? "Hide conversation" : "Show conversation"}
           placement="top"
-          delay={TOOLTIP_ENTER_DELAY}
         >
           <button
             type="button"
@@ -804,7 +800,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           <Tooltip
             title="Auto Layout"
             placement="top"
-            delay={TOOLTIP_ENTER_DELAY}
           >
             <button
               type="button"
@@ -818,7 +813,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         )}
 
         {!isMobile && (
-          <Tooltip title="Save" placement="top" delay={TOOLTIP_ENTER_DELAY}>
+          <Tooltip title="Save" placement="top">
             <button
               type="button"
               className="composer-action"
@@ -834,7 +829,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           <Tooltip
             title={appActionTooltip}
             placement="top"
-            delay={TOOLTIP_ENTER_DELAY}
           >
             <button
               type="button"
@@ -858,7 +852,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           <Tooltip
             title={getShortcutTooltip("stopWorkflow")}
             placement="top"
-            delay={TOOLTIP_ENTER_DELAY}
           >
             <button
               type="button"
@@ -872,7 +865,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           </Tooltip>
         )}
 
-        <Tooltip title={runTooltip} placement="top" delay={TOOLTIP_ENTER_DELAY}>
+        <Tooltip title={runTooltip} placement="top">
           <button
             type="button"
             className={cn("composer-run", isWorkflowActive && "running")}
@@ -900,7 +893,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         <Tooltip
           title={composerCollapsed ? "Show prompt" : "Hide prompt"}
           placement="top"
-          delay={TOOLTIP_ENTER_DELAY}
         >
           <button
             type="button"
@@ -916,7 +908,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         <Tooltip
           title="Workflow actions"
           placement="top"
-          delay={TOOLTIP_ENTER_DELAY}
         >
           <button
             type="button"

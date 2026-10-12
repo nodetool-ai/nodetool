@@ -273,7 +273,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   );
 
   const field = validationError ? (
-    <Tooltip title={validationError} placement="top" arrow enterDelay={250}>
+    <Tooltip title={validationError} placement="top">
       {inner}
     </Tooltip>
   ) : (

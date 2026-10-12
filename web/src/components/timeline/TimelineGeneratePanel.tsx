@@ -39,7 +39,6 @@ import {
   FlexRow,
   LoadingSpinner,
   TextInput,
-  Toast,
   SPACING
 } from "../ui_primitives";
 import ModeSelectChip from "../chat/composer/ModeSelectChip";
@@ -72,6 +71,7 @@ import {
   STUDIO_VOICES,
   STUDIO_VOICE
 } from "../../studio/curatedModels";
+import { useAlertNotifier } from "../../hooks/useAlertNotifier";
 
 const GENERATION_MODES = ["video", "audio", "music"] as const;
 type GenerationMode = (typeof GENERATION_MODES)[number];
@@ -136,7 +136,7 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
     label: id
   }));
   const [prompt, setPrompt] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const reportError = useAlertNotifier("error");
   const [busy, setBusy] = useState(false);
   // User-picked model wins over the auto-derived default. We track whether the
   // user has explicitly chosen something so the picker stops following the
@@ -225,9 +225,6 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || !model) return;
-    // Clear any prior failure toast before we attempt again — otherwise a
-    // successful retry leaves the previous error visible.
-    setError(null);
     const tracks = timeline
       .getState()
       .tracks.filter((track) => track.type === mediaType);
@@ -240,7 +237,7 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
       .getState()
       .tracks.find((track) => track.type === mediaType && !track.locked)?.id;
     if (!trackId) {
-      setError(
+      reportError(
         `Unlock ${mediaType === "audio" ? "an audio" : "a video"} track first.`
       );
       return;
@@ -274,7 +271,7 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
       setPrompt("");
       onGenerated?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate");
+      reportError(err instanceof Error ? err.message : "Failed to generate");
     } finally {
       setBusy(false);
     }
@@ -295,7 +292,8 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
     generationDuration,
     selectClip,
     directGen,
-    onGenerated
+    onGenerated,
+    reportError
   ]);
 
   const handleKeyDown = useCallback(
@@ -389,7 +387,7 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
       data-testid="topbar-generate"
       aria-label={`Generate ${mode}`}
       // Native tooltip still fires on a disabled button: say why it is off.
-      title={
+      tooltip={
         canSubmit ? undefined : "Type a prompt and pick a model to generate"
       }
       sx={{ flexShrink: 0 }}
@@ -586,7 +584,6 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
         setDurationAnchor(null);
         setResolutionAnchor(null);
         setAspectAnchor(null);
-        setError(null);
       }}
     />
   );
@@ -618,14 +615,6 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
           {generateButton}
         </FlexRow>
       </FlexColumn>
-      <Toast
-        open={error !== null}
-        message={error ?? ""}
-        severity="error"
-        onClose={() => setError(null)}
-        vertical="top"
-        horizontal="center"
-      />
     </>
   );
 });

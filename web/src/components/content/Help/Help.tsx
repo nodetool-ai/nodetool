@@ -21,7 +21,6 @@ import { DATA_TYPES } from "../../../config/data_types";
 import KeyboardShortcutsView from "./KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import ControlsShortcutsTab from "./ControlsShortcutsTab";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { Dialog } from "../../ui_primitives";
 
 interface TabPanelProps {
@@ -215,11 +214,7 @@ const Help = ({
       maxWidth="lg"
       title="Help"
       titleActions={
-        <Tooltip
-          title="Open NodeTool docs"
-          placement="bottom"
-          delay={TOOLTIP_ENTER_DELAY}
-        >
+        <Tooltip title="Open NodeTool docs" placement="bottom">
           <a
             href="https://docs.nodetool.ai"
             target="_blank"

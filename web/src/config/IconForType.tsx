@@ -2,7 +2,6 @@
 import React, { memo } from "react";
 import isEqual from "../utils/isEqual";
 import { Tooltip, BORDER_RADIUS } from "../components/ui_primitives";
-import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import { datatypeByName, normalizeTypeName } from "./data_types";
 
 import any from "../icons/data_types/nodetool/any.svg?react";
@@ -216,7 +215,6 @@ export const IconForType = memo(function IconForType({
       className="icon-container"
     >
       <Tooltip
-        enterDelay={TOOLTIP_ENTER_DELAY}
         title={
           <span
             style={{

@@ -329,7 +329,8 @@ export function VectorLayerPanel({
           </EditorButton>
           <EditorButton
             variant="contained"
-            title="Apply SVG (Ctrl+Enter)"
+            tooltip="Apply SVG"
+            shortcut={["Ctrl", "Enter"]}
             onClick={apply}
             disabled={busy || !dirty}
           >

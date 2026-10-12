@@ -226,7 +226,7 @@ export default function GameSceneTree({ document, activeSceneId, selectedIds, is
               <FolderOpenOutlinedIcon sx={TREE_ICON_SX} />
               <Text component="span" size="small" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{scene.name}</Text>
             </EditorButton>
-            <EditorButton aria-label={`Add entity to ${scene.name}`} title={`Add entity to ${scene.name}`} onClick={(event) => {
+            <EditorButton aria-label={`Add entity to ${scene.name}`} tooltip={`Add entity to ${scene.name}`} onClick={(event) => {
               setAnchor(event.currentTarget); setAddSceneId(scene.id);
             }}><AddIcon sx={TREE_ICON_SX} /></EditorButton>
           </FlexRow>

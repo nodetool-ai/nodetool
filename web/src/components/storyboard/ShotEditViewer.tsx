@@ -677,7 +677,7 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
               size="small"
               onClick={() => void handleOpenImageEditor()}
               disabled={!canEditStill}
-              title="Edit a copy of this still; the edit comes back as a new version"
+              tooltip="Edit a copy of this still; the edit comes back as a new version"
             >
               Open in image editor
             </EditorButton>

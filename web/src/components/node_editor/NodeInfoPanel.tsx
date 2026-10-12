@@ -9,7 +9,6 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { useReactFlow, useViewport, type Node } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
@@ -403,7 +402,6 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
             </span>
           }
           placement="bottom-start"
-          delay={TOOLTIP_ENTER_DELAY}
         >
           <EditorButton
             tabIndex={0}
