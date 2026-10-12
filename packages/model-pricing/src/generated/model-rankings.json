@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "artificialanalysis.ai",
-  "generatedAt": "2026-10-11T10:24:44.035Z",
+  "generatedAt": "2026-10-12T11:26:59.475Z",
   "models": {
     "atlascloud:alibaba/happyhorse-1.1/image-to-video": {
       "canonical": "happyhorse-1-1",
@@ -2385,7 +2385,7 @@
       "creator": "Google",
       "tasks": {
         "image_to_video": {
-          "score": 1100,
+          "score": 1099,
           "normalized": 0.1579,
           "rank": 65,
           "of": 77
@@ -3549,7 +3549,7 @@
       "creator": "KlingAI",
       "tasks": {
         "image_to_video": {
-          "score": 1208,
+          "score": 1207,
           "normalized": 0.4079,
           "rank": 46,
           "of": 77
@@ -4531,7 +4531,7 @@
       "creator": "Google",
       "tasks": {
         "image_to_video": {
-          "score": 1100,
+          "score": 1099,
           "normalized": 0.1579,
           "rank": 65,
           "of": 77
@@ -4757,7 +4757,7 @@
       "creator": "KlingAI",
       "tasks": {
         "image_to_video": {
-          "score": 1208,
+          "score": 1207,
           "normalized": 0.4079,
           "rank": 46,
           "of": 77
@@ -4770,7 +4770,7 @@
       "creator": "Leonardo.Ai",
       "tasks": {
         "image_to_video": {
-          "score": 1027,
+          "score": 1026,
           "normalized": 0.0921,
           "rank": 70,
           "of": 77
@@ -4834,7 +4834,7 @@
           "of": 32
         },
         "image_to_video": {
-          "score": 1158,
+          "score": 1157,
           "normalized": 0.2763,
           "rank": 56,
           "of": 77
@@ -5640,7 +5640,7 @@
       "creator": "Google",
       "tasks": {
         "image_to_video": {
-          "score": 1100,
+          "score": 1099,
           "normalized": 0.1579,
           "rank": 65,
           "of": 77
@@ -5666,7 +5666,7 @@
       "creator": "KlingAI",
       "tasks": {
         "image_to_video": {
-          "score": 1208,
+          "score": 1207,
           "normalized": 0.4079,
           "rank": 46,
           "of": 77
