@@ -80,7 +80,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
     <FlexRow align="center" gap={1} onClick={(e) => e.stopPropagation()}>
       {isCheckingCache && !downloaded && (
         <Chip
-          icon={<LoadingSpinner inline size={12} thickness={5} color="inherit" />}
+          icon={<LoadingSpinner inline size={14} color="inherit" />}
           label="Checking cache…"
         />
       )}

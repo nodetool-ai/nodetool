@@ -1137,7 +1137,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   );
   const downloadingStatus = downloading && (
     <FlexRow align="center" gap={SPACING.xs} role="status">
-      <LoadingSpinner size={16} />
+      <LoadingSpinner inline size={16} />
       <Caption color="secondary">Preparing ZIP…</Caption>
     </FlexRow>
   );

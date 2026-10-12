@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { keyframes } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState, useEffect, memo } from "react";
 import { Tooltip, Text, Caption, EditorButton, LoadingSpinner, Chip, CloseButton, FlexRow, FlexColumn, CopyButton, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
@@ -46,23 +45,8 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       // Color is handled via dynamic style prop or class
     },
-    ".progress-bar-container": {
-      height: "8px",
-      borderRadius: BORDER_RADIUS.sm,
-      overflow: "hidden",
-      position: "relative",
-      background: theme.vars.palette.action.hover,
+    ".download-progress": {
       marginTop: getSpacingPx(SPACING.lg)
-    },
-    ".progress-bar": {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: `linear-gradient(90deg, ${theme.vars.palette.primary.light}, ${theme.vars.palette.primary.dark})`,
-      backgroundSize: "200% 100%",
-      transformOrigin: "right center"
     },
     ".download-details": {
       minHeight: "120px",
@@ -83,27 +67,6 @@ const styles = (theme: Theme) =>
       marginTop: theme.spacing(1)
     }
   });
-
-const pulse = keyframes`
-  0% {
-    opacity: 0.8;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.8;
-  }
-`;
-
-const moveRight = keyframes`
-  0% {
-    background-position: 0% 0;
-  }
-  100% {
-    background-position: 100% 0;
-  }
-`;
 
 export const DownloadProgress: React.FC<{
   name: string;
@@ -210,7 +173,7 @@ export const DownloadProgress: React.FC<{
       return "Disconnected";
     }
     if (isReconnecting) {
-      return "Reconnecting...";
+      return "Reconnecting…";
     }
     if (isStalled) {
       return "Stalled";
@@ -307,8 +270,7 @@ export const DownloadProgress: React.FC<{
             <ProgressBar
               value={download.status === "completed" ? 100 : percent}
               showValue={false}
-              barHeight={4}
-              sx={{ width: "100%" }}
+              size="small"
             />
           </FlexColumn>
           {canCancel && (
@@ -377,12 +339,12 @@ export const DownloadProgress: React.FC<{
         </FlexRow>
       )}
       {(download.status === "start" || download.status === "pending") && (
-        <FlexRow align="center">
-          <LoadingSpinner size="small" />
+        <FlexRow align="center" gap={SPACING.sm}>
+          <LoadingSpinner inline size={14} />
           <Text size="small">
             {download.status === "start"
-              ? "Starting download..."
-              : "Pending download..."}
+              ? "Starting download…"
+              : "Waiting to download…"}
           </Text>
         </FlexRow>
       )}
@@ -436,7 +398,7 @@ export const DownloadProgress: React.FC<{
                     {isDisconnected
                       ? "Disconnected"
                       : isReconnecting
-                        ? "Reconnecting..."
+                        ? "Reconnecting…"
                         : `Stalled (${timeSinceUpdate} since last update)`}
                   </Caption>
                   {isDisconnected && !isReconnecting && (
@@ -458,21 +420,13 @@ export const DownloadProgress: React.FC<{
               </Tooltip>
             )}
           </FlexRow>
-          <Box className="progress-bar-container">
-            <Box
-              className="progress-bar"
-              sx={{
-                width: `${percent}%`,
-                animation: isStalled
-                  ? "none"
-                  : `${pulse} 3s ease-in-out infinite, ${moveRight} 8s linear infinite`,
-                opacity: isStalled ? 0.5 : 1,
-                background: isStalled
-                  ? "var(--palette-warning-main)"
-                  : undefined
-              }}
-            />
-          </Box>
+          <ProgressBar
+            className="download-progress"
+            value={percent}
+            showValue={false}
+            color={isStalled ? "warning" : "primary"}
+            aria-label={`Downloading ${name}`}
+          />
           <Box className="download-details">
             <Tooltip title="Total size of files being downloaded">
               <Text

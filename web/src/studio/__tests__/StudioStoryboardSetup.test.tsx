@@ -150,7 +150,7 @@ describe("StudioStoryboardPage setup stages", () => {
     expect(screen.queryByTestId("board")).not.toBeInTheDocument();
     expect(screen.queryByTestId("agent-panel")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
-    expect(screen.getByText(state === "loading" ? "Loading storyboard…" : "Could not load this storyboard")).toBeInTheDocument();
+    expect(screen.getByText(state === "loading" ? "Loading storyboard" : "Could not load this storyboard")).toBeInTheDocument();
   });
 
   it("retries a failed initial load", async () => {

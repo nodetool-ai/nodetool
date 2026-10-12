@@ -137,7 +137,7 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
             gap={0.5}
             sx={{ flexShrink: 0, color: "text.secondary" }}
           >
-            <LoadingSpinner inline size={12} thickness={5} color="inherit" />
+            <LoadingSpinner inline size={14} color="inherit" />
             <Text sx={{ fontSize: theme.vars.fontSizeSmall, color: "text.secondary" }}>
               Checking…
             </Text>

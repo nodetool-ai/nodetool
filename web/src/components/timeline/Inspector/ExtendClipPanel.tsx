@@ -22,6 +22,7 @@ import {
   SelectField,
   SPACING,
   TextInput,
+  ThinkingIndicator,
   VideoPlayer
 } from "../../ui_primitives";
 import { INSPECTOR_FORM_SX, InspectorSectionTitle } from "./InspectorPrimitives";
@@ -310,11 +311,7 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                   </EditorButton>
                 </>
               ) : (
-                <LoadingSpinner
-                  variant="dots"
-                  size="small"
-                  text="Generating extension…"
-                />
+                <ThinkingIndicator label="Generating extension" announce />
               )}
             </FlexColumn>
           );

@@ -156,8 +156,6 @@ const isFileDrag = (event: React.DragEvent): boolean =>
   Array.from(event.dataTransfer?.types ?? []).includes("Files");
 
 
-/** The render bar sits on the thumbnail's bottom edge, 3px per the design. */
-const RENDER_BAR_HEIGHT = 3;
 const STILL_RENDER_COLORS = [
   colorForType("image"),
   colorForType("video"),
@@ -656,11 +654,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
                 progress == null ? "indeterminate" : "determinate"
               }
               showValue={false}
-              sx={{
-                height: RENDER_BAR_HEIGHT,
-                backgroundColor: "c_overlay_subtle",
-                "& .MuiLinearProgress-bar": { backgroundColor: CLIP_COLOR }
-              }}
+              size="small"
+              accent={CLIP_COLOR}
+              aria-label="Rendering clip"
             />
           </Box>
         )}

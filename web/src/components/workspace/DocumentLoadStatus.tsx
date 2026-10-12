@@ -29,7 +29,7 @@ const DocumentLoadStatus = ({ state, label, onRetry, onClose, closeLabel = "Clos
     sx={{ minHeight: 0 }}
   >
     {state === "loading" ? (
-      <LoadingSpinner text={`Loading ${label}…`} />
+      <LoadingSpinner text={`Loading ${label}`} />
     ) : (
       <EmptyState
         variant="error"

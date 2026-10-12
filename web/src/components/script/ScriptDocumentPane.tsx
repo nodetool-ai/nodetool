@@ -671,7 +671,7 @@ const VoicingStrip = ({
     return (
       <AlertBanner severity="info" compact sx={{ marginX: SPACING.md }}>
         <FlexRow align="center" gap={SPACING.xs}>
-          <LoadingSpinner size={16} />
+          <LoadingSpinner inline size={16} />
           <Text size="smaller">
             {`Voicing ${run.voiced + run.failed.length} of ${run.total} ${
               run.total === 1 ? "line" : "lines"
@@ -1101,7 +1101,7 @@ const ScriptDocumentPane = ({
         {!readOnly &&
           (voicingAll || voicingLive || writing ? (
             <FlexRow align="center" gap={SPACING.xs}>
-              <LoadingSpinner size={18} />
+              <LoadingSpinner inline size={16} />
               <Text size="smaller">
                 {voicingAll || voicingLive ? "Voicing…" : "Writing…"}
               </Text>
@@ -1145,7 +1145,7 @@ const ScriptDocumentPane = ({
         <Box sx={{ flex: 1 }} />
         {exportingAudio && (
           <FlexRow align="center" gap={SPACING.xs}>
-            <LoadingSpinner size={18} />
+            <LoadingSpinner inline size={16} />
             <Text size="smaller">
               Exporting {exportingAudio.toUpperCase()}…
             </Text>

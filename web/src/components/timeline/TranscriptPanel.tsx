@@ -159,7 +159,7 @@ export const TranscriptPanel: React.FC = memo(() => {
             <ToolbarIconButton
               icon={
                 importing ? (
-                  <LoadingSpinner size={14} />
+                  <LoadingSpinner inline size={14} />
                 ) : (
                   <UploadFileIcon fontSize="small" />
                 )
@@ -173,7 +173,7 @@ export const TranscriptPanel: React.FC = memo(() => {
               <ToolbarIconButton
                 icon={
                   extracting ? (
-                    <LoadingSpinner size={14} />
+                    <LoadingSpinner inline size={14} />
                   ) : (
                     <EditNoteIcon fontSize="small" />
                   )

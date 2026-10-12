@@ -281,7 +281,7 @@ const DataframeProperty = ({
         <div className="dropzone-content">
           <UploadFileIcon />
           <span className="dropzone-text">
-            {isLoading ? "Loading..." : "Drop CSV or Excel file"}
+            {isLoading ? "Loading…" : "Drop CSV or Excel file"}
           </span>
           <span className="dropzone-subtext">Supported: CSV, XLSX, XLS</span>
         </div>

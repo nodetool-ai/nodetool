@@ -25,6 +25,9 @@ interface CollectionItemProps {
   deletingCollection: string | null;
 }
 
+const formatEta = (seconds: number): string =>
+  seconds < 60 ? `${seconds}s` : `${Math.round(seconds / 60)}m ${seconds % 60}s`;
+
 const IndexingProgress = memo(function IndexingProgress({
   indexProgress
 }: {
@@ -32,43 +35,21 @@ const IndexingProgress = memo(function IndexingProgress({
 }) {
   if (!indexProgress) { return null; }
 
+  const { current, total, startTime } = indexProgress;
+  let label = `Indexing ${current} of ${total} documents`;
+  if (current > 0) {
+    const avgTimePerItem = (Date.now() - startTime) / current;
+    const etaSeconds = Math.round((avgTimePerItem * (total - current)) / 1000);
+    label += ` · ETA ${formatEta(etaSeconds)}`;
+  }
+
   return (
-    <>
-      <ProgressBar
-        value={(indexProgress.current / indexProgress.total) * 100}
-        showValue={false}
-        sx={{
-          ml: 2,
-          width: 100,
-          display: "inline-block",
-          verticalAlign: "middle"
-        }}
-      />
-      <br />
-      <LoadingSpinner size={16} inline />
-      <Caption sx={{ ml: 1 }}>
-        Indexing {indexProgress.current}&nbsp;of&nbsp;
-        {indexProgress.total} documents
-        {indexProgress.current > 0 && (
-          <>
-            {" "}
-            • ETA:{" "}
-            {(() => {
-              const elapsed = Date.now() - indexProgress.startTime;
-              const avgTimePerItem = elapsed / indexProgress.current;
-              const remainingItems =
-                indexProgress.total - indexProgress.current;
-              const etaSeconds = Math.round(
-                (avgTimePerItem * remainingItems) / 1000
-              );
-              return etaSeconds < 60
-                ? `${etaSeconds}s`
-                : `${Math.round(etaSeconds / 60)}m ${etaSeconds % 60}s`;
-            })()}
-          </>
-        )}
-      </Caption>
-    </>
+    <ProgressBar
+      value={(current / total) * 100}
+      label={label}
+      showValue={false}
+      size="small"
+    />
   );
 });
 
@@ -177,7 +158,7 @@ const CollectionItem = ({
           right: getSpacingPx(SPACING.md)
         }}>
         {deletingCollection === collection.name ? (
-          <LoadingSpinner size={20} inline />
+          <LoadingSpinner size="small" inline />
         ) : (
           <DeleteButton
             onClick={handleDeleteClick}

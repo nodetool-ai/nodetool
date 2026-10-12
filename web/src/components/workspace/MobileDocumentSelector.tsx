@@ -139,9 +139,7 @@ const DocumentStatus = memo(function DocumentStatus({
       {isRunning && !instantUpdate && (
         <LoadingSpinner
           inline
-          variant="circular"
-          size={12}
-          thickness={4}
+          size={14}
           color="primary"
         />
       )}
