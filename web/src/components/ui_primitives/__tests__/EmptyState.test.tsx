@@ -30,6 +30,25 @@ describe("EmptyState", () => {
     });
   });
 
+  describe("custom title", () => {
+    it("shows no variant description under a custom title", () => {
+      renderWithTheme(<EmptyState title="No endpoints yet" />);
+
+      expect(screen.getByText("No endpoints yet")).toBeInTheDocument();
+      expect(
+        screen.queryByText("Get started by creating your first item.")
+      ).not.toBeInTheDocument();
+    });
+
+    it("shows the description passed with a custom title", () => {
+      renderWithTheme(
+        <EmptyState title="No layers yet" description="Add one below." />
+      );
+
+      expect(screen.getByText("Add one below.")).toBeInTheDocument();
+    });
+  });
+
   describe("variants", () => {
     it("renders no-results variant", () => {
       renderWithTheme(<EmptyState variant="no-results" />);

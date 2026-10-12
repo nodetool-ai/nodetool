@@ -995,7 +995,7 @@ import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from ".
 
 ## 14. Controls
 
-Buttons, tooltips, notifications, chips and the other small controls every surface shares.
+Buttons, tooltips, notifications, chips, empty and loading states, tabs and the other small controls every surface shares.
 
 ### Tooltips
 
@@ -1103,6 +1103,30 @@ import { CloseButton, EditorButton } from "../ui_primitives";
 | Tooltip | Pass `tooltip` to the button instead of wrapping it in `Tooltip` |
 | Native button | Only for a tile, card or swatch whose whole surface is the hit target. It keeps a visible focus ring and `type="button"` |
 | Not a button | A tag or filter is a `Chip`. A command stays a button even when it is pill-shaped |
+
+### Empty, loading and tabs
+
+A panel or list with nothing to show draws `EmptyState`. A section that is
+still fetching draws `LoadingSpinner`. A row of views over one surface is
+`TabGroup` with a `TabPanel` per view.
+
+```tsx
+import { EmptyState, LoadingSpinner, TabGroup, TabPanel } from "../ui_primitives";
+
+<EmptyState size="small" title="No layers yet" description="Add one below." />
+<EmptyState size="small" variant="no-results" title="No matching nodes" />
+{isLoading && <LoadingSpinner size="small" />}
+<TabGroup tabs={tabs} value={view} onChange={setView} aria-label="Help sections" />
+```
+
+| Part | Rule |
+|---|---|
+| Size | `small` inside a list, menu panel or sidebar. `medium` fills a panel. `large` fills a page |
+| Text | The title says what is missing in a few words ("No runs yet"). A description says what to do next and is optional. A custom title shows no default description |
+| Icon | The variant picks a default. A passed `icon` takes the same size, so do not size it |
+| Search | A search or filter with no matches uses `variant="no-results"` |
+| Loading | Never bare "Loading…" text. A dropdown option may keep a disabled "Loading…" item |
+| Tabs | `TabGroup`, not raw `Tabs` and `Tab`. Workspace document tabs and the inspector's counted tabs are their own components |
 
 ---
 

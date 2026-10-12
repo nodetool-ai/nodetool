@@ -35,7 +35,7 @@ import { SPACING,
   DynamicInputButton,
   EditButton,
   FlexColumn,
-  FlexRow, BORDER_RADIUS } from "../../ui_primitives";
+  FlexRow, BORDER_RADIUS, EmptyState } from "../../ui_primitives";
 import CompositorEditorModal from "../../compositor/CompositorEditorModal";
 import type { CompositorEditorLayer } from "../../compositor/types";
 import HandleColumn from "../../node/HandleColumn";
@@ -143,13 +143,6 @@ const styles = (theme: Theme) =>
     },
     ".outputs-row": {
       flex: "0 0 auto"
-    },
-    ".empty-state": {
-      padding: theme.spacing(SPACING.xs),
-      color: theme.vars.palette.text.secondary,
-      fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmaller,
-      textAlign: "center"
     }
   });
 
@@ -412,7 +405,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
 
       <FlexColumn className="layers" gap={0.5}>
         {imageKeys.length === 0 ? (
-          <div className="empty-state">No layers yet - add one below.</div>
+          <EmptyState size="small" title="No layers yet" description="Add one below." />
         ) : (
           imageKeys.map((key, idx) => (
             <LayerRow

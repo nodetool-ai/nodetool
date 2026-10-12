@@ -7,7 +7,8 @@ import {
   FlexColumn,
   FlexRow,
   LoadingSpinner,
-  SPACING
+  SPACING,
+  EmptyState
 } from "../ui_primitives";
 import {
   LOOSE_PROJECT_ID,
@@ -103,7 +104,7 @@ const CurrentProjectDocuments = () => {
       ) : error ? (
         <Caption color="error">{error.message}</Caption>
       ) : documents.length === 0 ? (
-        <Caption color="muted">No documents in this project yet.</Caption>
+        <EmptyState size="small" title="No documents in this project yet" />
       ) : (
         <Box
           sx={{
