@@ -122,7 +122,9 @@ async function persistTerminalStatus(
     } else {
       job.markFailed(result.error ?? "Workflow run failed");
     }
-    await job.save();
+    // The check above reads a snapshot; a cancel landing after it must still
+    // stand.
+    await job.saveIfActive();
   } catch (err) {
     log.error("headless job terminal-status persistence failed", {
       jobId,

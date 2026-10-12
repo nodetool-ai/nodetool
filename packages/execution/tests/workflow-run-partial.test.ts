@@ -76,6 +76,9 @@ class FakeJob {
     this.error = message;
   }
   async save(): Promise<void> {}
+  async saveIfActive(): Promise<boolean> {
+    return true;
+  }
 }
 
 const savedAssets: Array<Record<string, unknown>> = [];

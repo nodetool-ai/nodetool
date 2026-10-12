@@ -25,3 +25,4 @@ export * from "./spatial.js";
 export * from "./temporal.js";
 export * from "./effects.js";
 export * from "./frameCompositor.js";
+export * from "./headlessRender.js";
