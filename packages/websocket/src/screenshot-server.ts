@@ -678,6 +678,34 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-09T08:47:30Z",
     model: "claude-3-5-sonnet-20241022",
     provider: "anthropic"
+  },
+  // The agentic-qa chat-find journey continues this thread, so it needs an
+  // earlier exchange to continue.
+  {
+    id: "msg-research-1",
+    user_id: USER_ID,
+    thread_id: "thread-research",
+    role: "user",
+    content:
+      "Which vector database should we use for the search feature in our docs site?",
+    created_at: "2024-12-06T13:05:00Z",
+    model: null,
+    provider: null
+  },
+  {
+    id: "msg-research-2",
+    user_id: USER_ID,
+    thread_id: "thread-research",
+    role: "assistant",
+    content: [
+      {
+        type: "text",
+        text: "For a docs site under a million chunks, start with **pgvector** if you already run Postgres: one database, transactional updates, and good enough recall with an HNSW index. Pick **Qdrant** if you want filtering and payloads as a first-class feature, or **SQLite-vec** for a single-binary deploy. Move to a managed service only when the index outgrows one machine."
+      }
+    ],
+    created_at: "2024-12-06T13:06:10Z",
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic"
   }
 ];
 
