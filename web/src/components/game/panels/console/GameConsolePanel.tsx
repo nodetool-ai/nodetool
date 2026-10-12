@@ -1,10 +1,9 @@
 import { useId, useMemo, useState, type ReactElement } from "react";
-import TerminalOutlinedIcon from "@mui/icons-material/TerminalOutlined";
 import { useStore } from "zustand";
 
 import { getGameConsoleStore } from "../../../../stores/game/GameConsoleStore";
 import GamePanelHeader from "../../GamePanelHeader";
-import { Box, Caption, Chip, EditorButton, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, ScrollArea, SearchInput, SPACING, TextLink } from "../../../ui_primitives";
+import { Box, Caption, Chip, EditorButton, EmptyState, FlexColumn, FlexRow, ScrollArea, SearchInput, SPACING, TextLink } from "../../../ui_primitives";
 import { gameConsolePrompt } from "../../gameAssistantPrompt";
 import {
   countGameConsoleLevels, filterGameConsoleGroups, GAME_CONSOLE_LEVELS, gameConsoleEntityScene,
@@ -60,7 +59,7 @@ export default function GameConsolePanel({ gameId, document, liveEntries = NO_EN
     });
   };
   return <FlexColumn sx={{ height: "100%", minHeight: 0 }}>
-    <GamePanelHeader title="Console" icon={<TerminalOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.body }} />}>
+    <GamePanelHeader title="Console">
       <EditorButton disabled={stored.length === 0} onClick={() => store.getState().clear()}>Clear</EditorButton>
     </GamePanelHeader>
     <FlexRow gap={SPACING.xs} align="center" wrap sx={{ flexShrink: 0, px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>

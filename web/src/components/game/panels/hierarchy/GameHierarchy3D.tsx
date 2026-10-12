@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
 import CircleOutlinedIcon from "@mui/icons-material/CircleOutlined";
 import DirectionsRunIcon from "@mui/icons-material/DirectionsRun";
@@ -68,7 +67,7 @@ function treeRows(entities: readonly GameEntity3D[]): { entity: GameEntity3D; de
 export default function GameHierarchy3D({ document, scene, selectedIds, onSelect, onSelectScene, onAdd, footer }: GameHierarchy3DProps) {
   const rows = treeRows(scene?.entities ?? []);
   return <FlexColumn sx={{ height: "100%", minHeight: 0 }}>
-    <GamePanelHeader title="Hierarchy" icon={<AccountTreeOutlinedIcon sx={ICON_SX} />}>
+    <GamePanelHeader title="Hierarchy">
       <ToolbarIconButton icon={<CropSquareIcon fontSize="small" />} tooltip="Add box" onClick={() => onAdd("box")} />
       <ToolbarIconButton icon={<CircleOutlinedIcon fontSize="small" />} tooltip="Add sphere" onClick={() => onAdd("sphere")} />
       <ToolbarIconButton icon={<LightbulbOutlinedIcon fontSize="small" />} tooltip="Add light" onClick={() => onAdd("light")} />

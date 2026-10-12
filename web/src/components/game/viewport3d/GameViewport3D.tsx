@@ -317,7 +317,7 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
   const hint = host.playDocument ? "WASD, arrows or a gamepad to move. Space to jump. Click to capture the mouse, Esc to release it."
     : flyMode ? "WASD to fly. R/F to rise and descend. Drag to look." : "Drag to orbit. Shift-drag to pan. Scroll to zoom.";
   return <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
-    {!playerOnly && <GamePanelHeader title={host.playDocument ? "Game" : "Scene"}
+    {!playerOnly && <GamePanelHeader title="Viewport" label={host.playDocument ? "Game" : "Scene"}
       icon={host.playDocument ? <SportsEsportsOutlinedIcon sx={HEADER_ICON_SX} /> : <GridViewOutlinedIcon sx={HEADER_ICON_SX} />}>
       {editing && <>
         <FlexRow gap={SPACING.micro} align="center" role="group" aria-label="Transform mode">

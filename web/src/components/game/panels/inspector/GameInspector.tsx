@@ -2,9 +2,7 @@ import { useState } from "react";
 import { gameAssetBinding, gameBehavior, gameDocument, gameEntity, gameRenderEffect, gameScene, type GameDocument, type GameEntity, type GameRenderEffect } from "@nodetool-ai/protocol/game.js";
 import { validateGame, type GameDocumentOp, type GameValidationIssue } from "@nodetool-ai/game-runtime";
 
-import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
-import { Caption, Divider, EditorButton, FlexColumn, FlexRow, FONT_SIZE_SANS, InspectorFieldRow, InspectorSection, InspectorSelect, Label, SectionHeader, SPACING, TabGroup, Text, TextInput } from "../../../ui_primitives";
-import GamePanelHeader from "../../GamePanelHeader";
+import { Caption, Divider, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorSection, InspectorSelect, Label, SectionHeader, SPACING, TabGroup, Text, TextInput } from "../../../ui_primitives";
 import SchemaFields from "../../inspector/SchemaFields";
 import GameOverrideFields from "../../GameOverrideFields";
 import ScriptParamsEditor from "../../inspector/editors/ScriptParamsEditor";
@@ -127,7 +125,6 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
   const inspectedId = tab === "game" ? undefined : entity?.id ?? scene?.id;
 
   return <FlexColumn sx={{ minHeight: 0, height: "100%" }}>
-    <GamePanelHeader title="Inspector" icon={<TuneOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.body }} />} />
     <FlexColumn gap={SPACING.micro} sx={{ px: SPACING.lg, pt: SPACING.md, pb: SPACING.md }}>
       <Text weight={500} truncate>{inspectedName}</Text>
       {inspectedId && <Caption sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={inspectedId}>ID: {inspectedId}</Caption>}
