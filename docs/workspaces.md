@@ -47,7 +47,7 @@ Workspace**, which would open a folder picker with nothing to browse.
 ## Where workspaces are used
 
 - **Agents and chat tools** for file operations
-- **The Code node**, whose `workspace.*` API (`read`, `write`, `list`, `stat`, `mkdir`, `remove`, `copy`, `move`) is confined to the workspace unless **Allow Host Filesystem** is on
+- **The Code node**, whose `workspace.*` API (`read`, `write`, `list`, `stat`, `mkdir`, `remove`, `copy`, `move`) is confined to the workspace unless **Allow Host Filesystem** is on (the cloud profile ignores that switch)
 
 ## API
 

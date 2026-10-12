@@ -8,9 +8,23 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import {
+  StreamableHTTPClientTransport,
+  StreamableHTTPError
+} from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import {
+  ErrorCode,
+  isInitializedNotification,
+  isInitializeRequest,
+  isJSONRPCRequest,
+  isJSONRPCResultResponse,
+  type JSONRPCMessage,
+  type JSONRPCRequest,
+  type RequestId
+} from "@modelcontextprotocol/sdk/types.js";
+import { Agent as UndiciAgent } from "undici";
 import { MCP_GUEST_CONTRACT } from "@nodetool-ai/agents";
 import { createLogger } from "@nodetool-ai/config";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -118,32 +132,167 @@ export async function forwardMcpStdioToLocalServer(
     await probe.close();
   }
 
-  const http = new StreamableHTTPClientTransport(endpoint);
-  http.onmessage = (message) => {
-    if ("result" in message && "protocolVersion" in message.result) {
-      const version = message.result.protocolVersion;
-      if (typeof version === "string") http.setProtocolVersion(version);
+  // The client's own handshake, kept so a replacement session can replay it.
+  let initializeRequest: JSONRPCRequest | undefined;
+  let initializedNotification: JSONRPCMessage | undefined;
+  // While a replacement session replays `initialize`, its response belongs to
+  // the forwarder, not to the client, which already received one.
+  let replayResponse:
+    | { transport: StreamableHTTPClientTransport; id: RequestId; resolve: () => void }
+    | undefined;
+
+  const openTransport = (): StreamableHTTPClientTransport => {
+    const transport = new StreamableHTTPClientTransport(endpoint, {
+      fetch: fetchWithoutTimeouts
+    });
+    transport.onmessage = (message) => {
+      if (isJSONRPCResultResponse(message) && "protocolVersion" in message.result) {
+        const version = message.result.protocolVersion;
+        if (typeof version === "string") transport.setProtocolVersion(version);
+      }
+      if (
+        replayResponse?.transport === transport &&
+        "id" in message &&
+        message.id === replayResponse.id
+      ) {
+        replayResponse.resolve();
+        return;
+      }
+      void stdio.send(message);
+    };
+    transport.onerror = (error) => {
+      log.warn("Local MCP HTTP transport failed", { error: error.message });
+    };
+    return transport;
+  };
+
+  const replayHandshake = async (
+    transport: StreamableHTTPClientTransport
+  ): Promise<void> => {
+    if (!initializeRequest) {
+      throw new Error("The client never initialized the MCP session");
     }
-    void stdio.send(message);
+    const request = initializeRequest;
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      await Promise.race([
+        new Promise<void>((resolve, reject) => {
+          replayResponse = { transport, id: request.id, resolve };
+          transport.send(request).catch(reject);
+        }),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error("Replaying the MCP handshake timed out")),
+            MCP_FORWARDER_HANDSHAKE_TIMEOUT_MS
+          );
+        })
+      ]);
+    } finally {
+      clearTimeout(timer);
+      replayResponse = undefined;
+    }
+    if (initializedNotification) {
+      await transport.send(initializedNotification);
+    }
   };
-  http.onerror = (error) => {
-    log.warn("Local MCP HTTP transport failed", { error: error.message });
+
+  let http = openTransport();
+  let reconnection: Promise<void> | undefined;
+
+  // One replacement session for every request that failed on the same one.
+  // A restarting server refuses connections for a few seconds, so retry those.
+  const reconnect = (failed: StreamableHTTPClientTransport): Promise<void> => {
+    if (http !== failed) return reconnection ?? Promise.resolve();
+    reconnection ??= (async () => {
+      void failed.close().catch(() => undefined);
+      const deadline = Date.now() + MCP_FORWARDER_RECONNECT_WINDOW_MS;
+      for (;;) {
+        const next = openTransport();
+        try {
+          await next.start();
+          await replayHandshake(next);
+          http = next;
+          log.info("Reopened the local MCP session");
+          return;
+        } catch (error) {
+          await next.close().catch(() => undefined);
+          if (
+            classifyForwardFailure(error) !== "unreachable" ||
+            Date.now() >= deadline
+          ) {
+            throw error;
+          }
+          await new Promise((resolve) =>
+            setTimeout(resolve, MCP_FORWARDER_RECONNECT_DELAY_MS)
+          );
+        }
+      }
+    })().finally(() => {
+      reconnection = undefined;
+    });
+    return reconnection;
   };
+
+  // A request is resent only when the server provably never ran it: its
+  // session was gone (404) or nothing accepted the connection. A connection
+  // that drops mid-call may have run the tool already, so that request fails.
+  const forward = async (message: JSONRPCMessage): Promise<void> => {
+    await reconnection?.catch(() => undefined);
+    const transport = http;
+    try {
+      await transport.send(message);
+    } catch (error) {
+      if (
+        !initializeRequest ||
+        isInitializeRequest(message) ||
+        classifyForwardFailure(error) === "other"
+      ) {
+        throw error;
+      }
+      log.info("Local MCP session lost; reconnecting", {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      await reconnect(transport);
+      await http.send(message);
+    }
+  };
+
   let initialization = Promise.resolve();
   stdio.onmessage = (message) => {
-    const send = initialization.then(() => http.send(message));
-    if ("method" in message && message.method === "initialize") {
+    if (isInitializeRequest(message)) {
+      initializeRequest = message as JSONRPCRequest;
+    } else if (isInitializedNotification(message)) {
+      initializedNotification = message;
+    }
+    const send = initialization.then(() => forward(message));
+    if (isInitializeRequest(message)) {
       initialization = send;
     }
     void send.catch((error: unknown) => {
-      log.warn("Forwarding MCP request failed", {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      void stdio.close();
+      const reason = error instanceof Error ? error.message : String(error);
+      log.warn("Forwarding MCP request failed", { error: reason });
+      // Without a session there is nothing to keep open.
+      if (isInitializeRequest(message)) {
+        void stdio.close();
+        return;
+      }
+      // Fail this one request and keep stdio open: the next request
+      // reconnects once the local server is back.
+      if (isJSONRPCRequest(message)) {
+        void stdio.send({
+          jsonrpc: "2.0",
+          id: message.id,
+          error: {
+            code: ErrorCode.ConnectionClosed,
+            message: `NodeTool server request failed: ${reason}`
+          }
+        });
+      }
     });
   };
   stdio.onclose = () => {
     void (async () => {
+      await reconnection?.catch(() => undefined);
       if (http.sessionId) {
         await http.terminateSession().catch(() => undefined);
       }
@@ -153,6 +302,46 @@ export async function forwardMcpStdioToLocalServer(
   await http.start();
   await stdio.start();
   return true;
+}
+
+/** Time a restarted local server gets to accept connections again. */
+export const MCP_FORWARDER_RECONNECT_WINDOW_MS = 30_000;
+const MCP_FORWARDER_RECONNECT_DELAY_MS = 500;
+const MCP_FORWARDER_HANDSHAKE_TIMEOUT_MS = 10_000;
+
+/**
+ * The mount answers with JSON (`enableJsonResponse`), so response headers
+ * arrive only when the tool finishes. undici's default 300 s headers timeout
+ * would fail every call longer than five minutes.
+ */
+const noTimeoutDispatcher = new UndiciAgent({ headersTimeout: 0, bodyTimeout: 0 });
+
+const fetchWithoutTimeouts = (
+  url: string | URL,
+  init?: RequestInit
+): Promise<Response> =>
+  fetch(url, { ...init, dispatcher: noTimeoutDispatcher } as RequestInit);
+
+/**
+ * "session-lost" and "unreachable" mean the server never ran the request;
+ * "other" covers everything else, including a connection dropped mid-call.
+ */
+export function classifyForwardFailure(
+  error: unknown
+): "session-lost" | "unreachable" | "other" {
+  if (error instanceof StreamableHTTPError && error.code === 404) {
+    return "session-lost";
+  }
+  for (
+    let current: unknown = error;
+    current instanceof Error;
+    current = current.cause
+  ) {
+    if ((current as NodeJS.ErrnoException).code === "ECONNREFUSED") {
+      return "unreachable";
+    }
+  }
+  return "other";
 }
 
 /**

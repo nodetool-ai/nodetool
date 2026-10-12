@@ -16,6 +16,7 @@ import {
   BORDER_RADIUS,
   MOTION,
   reducedMotion,
+  ResponsiveImage,
   SPACING
 } from "../../../ui_primitives";
 import { ENTITY_KIND_COLOR, ENTITY_KIND_ICON } from "../../../entities/entityKind";
@@ -47,7 +48,7 @@ const styles = (theme: Theme) =>
       height: 28,
       borderRadius: BORDER_RADIUS.circle,
       objectFit: "cover",
-      display: "block",
+      overflow: "hidden",
       background: theme.vars.palette.background.default
     },
     ".entity-avatar-icon": {
@@ -94,7 +95,8 @@ export const MentionEntityTile: React.FC<MentionEntityTileProps> = React.memo(({
 }) => {
   const theme = useTheme();
   const tileStyles = useMemo(() => styles(theme), [theme]);
-  const thumb = entity.reference_images?.[0]?.uri;
+  // An `asset://` reference, not a URL: ResponsiveImage resolves it.
+  const thumb = entity.reference_images?.[0];
   const Icon = ENTITY_KIND_ICON[entity.kind];
   const kindPaletteKey = ENTITY_KIND_COLOR[entity.kind];
 
@@ -112,8 +114,15 @@ export const MentionEntityTile: React.FC<MentionEntityTileProps> = React.memo(({
       onClick={onSelect}
       onMouseEnter={onMouseEnter}
     >
-      {thumb ? (
-        <img className="entity-avatar" src={thumb} alt="" />
+      {thumb?.uri ? (
+        <ResponsiveImage
+          className="entity-avatar"
+          locator={thumb}
+          preferThumbnail
+          alt=""
+          fit="cover"
+          borderRadius={BORDER_RADIUS.circle}
+        />
       ) : (
         <span className="entity-avatar-icon">
           <Icon />

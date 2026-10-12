@@ -41,6 +41,7 @@ import {
 import { setCredentialCheckOverride } from "@nodetool-ai/runtime";
 import { createTestUiServer } from "./test-ui-server.js";
 import { seedProjects } from "./screenshot-projects.js";
+import { seedDocsExtras } from "./screenshot-docs-seed.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   createFakeExecutorResolver,
@@ -766,7 +767,7 @@ const MOCK_ASSETS = [
   ),
   makeAsset(
     "asset-photo4",
-    "team_offsite_group.jpg",
+    "interview_room.jpg",
     "image/jpeg",
     USER_ID,
     3456712
@@ -859,7 +860,7 @@ const MOCK_ASSETS = [
       kind: "character",
       name: "Marta",
       descriptor:
-        "red-haired detective in a beige trench coat, mid-30s, sharp green eyes, weathered expression",
+        "detective in her sixties, silver bob, dark wool coat, a patient stare that waits people out",
       voice_id: "voice-marta-01",
       tags: ["protagonist", "detective"]
     }
@@ -875,7 +876,7 @@ const MOCK_ASSETS = [
         kind: "location",
         name: "Harbor District",
         descriptor:
-          "foggy industrial harbor at night, rusted cranes, wet cobblestones reflecting sodium lights",
+          "rain-wet street by the docks at night, one streetlight, a parked car, shuttered shops",
         tags: ["exterior", "night"]
       }
     }
@@ -891,22 +892,22 @@ const MOCK_ASSETS = [
         kind: "style",
         name: "Neon Noir",
         descriptor:
-          "high-contrast neon noir, teal and magenta rim lighting, anamorphic lens flares, 35mm film grain",
+          "wet asphalt under neon signs, teal and magenta reflections, steam from the drains, 35mm film grain",
         tags: ["look"]
       }
     }
   ),
   makeAsset(
     "entity-umbrella",
-    "red_umbrella.png",
+    "courier_helmet.png",
     "image/png",
     USER_ID,
     412009,
     {
       nodetool_entity: {
         kind: "prop",
-        name: "Red Umbrella",
-        descriptor: "a battered red umbrella with a bent brass handle",
+        name: "Courier Helmet",
+        descriptor: "black full-face motorcycle helmet with a mirrored visor",
         tags: ["macguffin"]
       }
     }
@@ -1386,8 +1387,8 @@ const STORYBOARD_DOCUMENT = {
       "shot-2",
       1,
       "The find",
-      "A Red Umbrella lies abandoned against a mooring post, its brass handle catching the light",
-      "rack focus from rain to the umbrella",
+      "A Courier Helmet lies abandoned against a mooring post, its visor catching the light",
+      "rack focus from rain to the helmet",
       "close-up"
     ),
     storyboardShot(
@@ -1408,7 +1409,7 @@ const STORYBOARD_DOCUMENT = {
     )
   ],
   brief:
-    "A detective follows a stolen shipment into the harbor at night and finds only a red umbrella where the courier should be.",
+    "A detective follows a stolen shipment into the harbor at night and finds only a helmet where the courier should be.",
   style: "neon noir thriller, rain-slick surfaces, volumetric fog",
   entityIds: [
     "entity-marta",
@@ -1438,6 +1439,19 @@ process.env.ASSET_FOLDER = ASSET_ROOT;
 if (ownsAssetRoot) {
   process.on("exit", () => {
     rmSync(ASSET_ROOT, { recursive: true, force: true });
+  });
+}
+
+// The seeded vector collections go to a scratch database for the same reason:
+// the default path is the user's real store.
+const ownsVectorDb = process.env.VECTORSTORE_DB_PATH === undefined;
+const VECTOR_DIR = ownsVectorDb
+  ? mkdtempSync(join(tmpdir(), "nodetool-screenshot-vectors-"))
+  : null;
+if (VECTOR_DIR) {
+  process.env.VECTORSTORE_DB_PATH = join(VECTOR_DIR, "vectorstore.db");
+  process.on("exit", () => {
+    rmSync(VECTOR_DIR, { recursive: true, force: true });
   });
 }
 
@@ -1600,6 +1614,7 @@ async function seedDatabase(): Promise<void> {
   }
 
   const projectCount = await seedProjects(USER_ID);
+  await seedDocsExtras(USER_ID);
 
   console.log(
     `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_APPLICATIONS.length} applications, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 1 sketch document, 3 timeline sequences, ${projectCount} projects, ${demoSecrets.length} secrets (asset bytes in ${ASSET_ROOT})`
@@ -1736,7 +1751,10 @@ if (HERMETIC) {
 const serverOptions: Parameters<typeof createTestUiServer>[0] = {
   port: PORT,
   host: HOST,
-  resetDatabase: resetSeededDatabase
+  resetDatabase: resetSeededDatabase,
+  // screenshot-docs-seed.ts stores real pictures for the mock photos and
+  // entities, so the server must not answer with its stand-in swatches.
+  seededMediaFromStore: true
 };
 if (existsSync(EXAMPLES_DIR)) {
   serverOptions.examplesDir = EXAMPLES_DIR;

@@ -11,6 +11,8 @@ The audio editor edits an audio asset in place. It decodes the file into samples
 
 Audio tabs have two modes. **View** shows the waveform viewer. **Edit** shows the editor described here. Switching back to **View** with the toggle, or clicking **Done**, keeps your unsaved edits in the editor until you close the tab.
 
+![Audio Editor with a trailer score open: the edit toolbar above a stereo waveform](assets/screenshots/audio-editor.png)
+
 ---
 
 ## The layout

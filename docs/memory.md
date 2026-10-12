@@ -9,6 +9,8 @@ Memory is a store of short notes that an agent writes for itself and reads back 
 
 > **Quick Access:** Open the app menu in the sidebar and choose **Memory** to see everything the agent has saved.
 
+![Memory page listing preferences, an asset, a fact and a decision the agent saved](assets/screenshots/memory-page.png)
+
 ---
 
 ## What a memory holds

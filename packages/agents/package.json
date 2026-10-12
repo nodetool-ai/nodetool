@@ -94,6 +94,9 @@
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^5.0.1"
   },
+  "optionalDependencies": {
+    "office-text-extractor": "^4.0.0"
+  },
   "peerDependencies": {
     "@llamaindex/liteparse": "^1.5.2",
     "@tensorflow-models/coco-ssd": "^2.2.3",

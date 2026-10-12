@@ -295,6 +295,32 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "A user's own MCP server URL. Under the cloud profile the MCP transport is handed safeFetch and the URL is checked on save and probe; a local install may reach its own loopback servers and uses the global fetch."
   },
 
+  {
+    file: "packages/runtime/src/providers/custom-openai-provider.ts",
+    owner: "custom OpenAI-compatible provider",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope:
+      "The API key the user stored for that provider; safeFetch strips Authorization on a cross-origin hop.",
+    redirects: "checked-per-hop",
+    dnsRebinding: "deployment-egress",
+    policy: "guarded",
+    guardedBy: ["safeFetch", "assertSafePublicHttpsUrl"],
+    note: "A user's own provider base URL. Under the cloud profile the constructor refuses a non-public or non-https base URL and every request goes through safeFetch; a local install may reach its own loopback servers and uses the global fetch."
+  },
+  {
+    file: "packages/websocket/src/custom-providers.ts",
+    owner: "custom provider save",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope: "None. Saving a provider fetches nothing; it only checks the URL.",
+    redirects: "none",
+    dnsRebinding: "deployment-egress",
+    policy: "guarded",
+    guardedBy: ["isSafePublicHttpsUrl"],
+    note: "Under the cloud profile a base URL that is not https to a public host is refused on save, before the provider ever runs."
+  },
+
   // -------------------------------------------- guarded (provider result URLs)
   guardedSafeFetch(
     "packages/kie-nodes/src/kie-base.ts",
@@ -551,6 +577,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     policy: "private-integration",
     guardedBy: [],
     note: "Runs on the operator's own machine against their own API URL, which is loopback by default."
+  },
+  {
+    file: "packages/websocket/src/mcp-server.ts",
+    owner: "stdio MCP forwarder",
+    inputSource: "operator",
+    schemes: ["http"],
+    authScope: "local session",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "`nodetool mcp serve` forwards stdio to the local server's /mcp mount. The URL comes from PORT, and the forwarder refuses any host other than 127.0.0.1 or localhost."
   },
   {
     file: "packages/deploy/src/admin-client.ts",

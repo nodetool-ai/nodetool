@@ -33,6 +33,7 @@ import { toolForCapabilityName } from "../capabilities/lazy-tool.js";
 import { isYtDlpEnabled } from "../yt-dlp-gate.js";
 import { isBrowserEnabled } from "../browser-gate.js";
 import { isBlenderEnabled } from "../blender-gate.js";
+import { isHostAccessEnabled } from "../host-access-gate.js";
 
 export const BUILTIN_TOOL_NAMES: readonly string[] = [
   // Filesystem (workspace-relative)
@@ -301,10 +302,11 @@ const BROWSER_TOOL_NAMES: readonly string[] = BUILTIN_TOOL_NAMES.filter(
 /**
  * {@link BUILTIN_TOOL_NAMES} minus the ones this deployment does not offer.
  *
- * Both conditions are the cloud profile: it drops `yt_dlp` (see
+ * Every condition is the cloud profile: it drops `yt_dlp` (see
  * {@link isYtDlpEnabled}), the `browser_*` capabilities (see
- * {@link isBrowserEnabled}) and `render_model3d` (see
- * {@link isBlenderEnabled}), so an agent, a Code node and a JS script all see
+ * {@link isBrowserEnabled}), `render_model3d` (see {@link isBlenderEnabled})
+ * and, without an operator `BROWSER_URL`, `take_screenshot` (see
+ * {@link isHostAccessEnabled}), so an agent, a Code node and a JS script all see
  * the same belt as the node catalog — one gate rather than a per-host filter.
  *
  * Dropping a name here is what a model sees; it is not the enforcement. A
@@ -317,6 +319,10 @@ export function availableBuiltinToolNames(): readonly string[] {
   if (!isBrowserEnabled())
     for (const name of BROWSER_TOOL_NAMES) dropped.add(name);
   if (!isBlenderEnabled()) dropped.add("render_model3d");
+  // Without an operator browser service, a screenshot launches Chrome on the
+  // server (see isHostAccessEnabled).
+  if (!isHostAccessEnabled() && !process.env.BROWSER_URL)
+    dropped.add("take_screenshot");
   if (dropped.size === 0) return BUILTIN_TOOL_NAMES;
   return BUILTIN_TOOL_NAMES.filter((name) => !dropped.has(name));
 }

@@ -14,8 +14,10 @@
 import { Secret, Setting, clearSecretCache } from "@nodetool-ai/models";
 import {
   syncCustomProviders,
-  clearProviderCache
+  clearProviderCache,
+  isSafePublicHttpsUrl
 } from "@nodetool-ai/runtime";
+import { isCloudProfile } from "./lib/cloud-profile.js";
 import {
   CUSTOM_PROVIDERS_SETTING_KEY,
   customProviderApiKeyKey,
@@ -116,6 +118,12 @@ export async function saveCustomProvider(
   if (slugError) throw new Error(slugError);
   const urlError = customProviderBaseUrlError(input.base_url);
   if (urlError) throw new Error(urlError);
+  // The server fetches this URL, so the cloud allows only public https hosts.
+  if (isCloudProfile() && !isSafePublicHttpsUrl(normalizeBaseUrl(input.base_url))) {
+    throw new Error(
+      "On this deployment the base URL must be https to a public host."
+    );
+  }
 
   const definition: CustomProvider = {
     slug: input.slug,

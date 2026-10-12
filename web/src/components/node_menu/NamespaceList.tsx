@@ -30,6 +30,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import AddCircleOutline from "@mui/icons-material/AddCircleOutline";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
 import { useOpenPackageManager } from "../../hooks/useOpenPackageManager";
+import { isCloudProfile } from "../../lib/runtimeConfig";
 
 interface NamespaceListProps {
   namespaceTree: NamespaceTree;
@@ -353,23 +354,25 @@ const NoSelectionContent = memo(function NoSelectionContent({
           </ul>
         </>
       ) : null}
-      <div className="node-packs-info">
-        <EditorButton
-          startIcon={<AddCircleOutline />}
-          size="small"
-          variant="outlined"
-          onClick={openPacksPanel}
-          style={{
-            marginTop: getSpacingPx(SPACING.md),
-            marginBottom: getSpacingPx(SPACING.md),
-            textTransform: "none",
-            lineHeight: "1.5",
-            padding: getSpacingPx(SPACING.xl)
-          }}
-        >
-          Install additional node packs
-        </EditorButton>
-      </div>
+      {!isCloudProfile() && (
+        <div className="node-packs-info">
+          <EditorButton
+            startIcon={<AddCircleOutline />}
+            size="small"
+            variant="outlined"
+            onClick={openPacksPanel}
+            style={{
+              marginTop: getSpacingPx(SPACING.md),
+              marginBottom: getSpacingPx(SPACING.md),
+              textTransform: "none",
+              lineHeight: "1.5",
+              padding: getSpacingPx(SPACING.xl)
+            }}
+          >
+            Install additional node packs
+          </EditorButton>
+        </div>
+      )}
     </div>
   );
 });
@@ -429,16 +432,18 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedInputType,
     selectedOutputType,
     selectedProviderType
-  } = useNodeMenuStore(useShallow((state) => ({
-    searchTerm: state.searchTerm,
-    selectedPath: state.selectedPath,
-    searchResults: state.searchResults,
-    allSearchMatches: state.allSearchMatches,
-    hoveredNode: state.hoveredNode,
-    selectedInputType: state.selectedInputType,
-    selectedOutputType: state.selectedOutputType,
-    selectedProviderType: state.selectedProviderType
-  })));
+  } = useNodeMenuStore(
+    useShallow((state) => ({
+      searchTerm: state.searchTerm,
+      selectedPath: state.selectedPath,
+      searchResults: state.searchResults,
+      allSearchMatches: state.allSearchMatches,
+      hoveredNode: state.hoveredNode,
+      selectedInputType: state.selectedInputType,
+      selectedOutputType: state.selectedOutputType,
+      selectedProviderType: state.selectedProviderType
+    }))
+  );
 
   const allMetadata = useMetadataStore((state) => state.metadata);
 
