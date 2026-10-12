@@ -3,14 +3,11 @@ import React, { memo, useCallback, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import CheckIcon from "@mui/icons-material/Check";
 import {
   ContextMenu,
-  ListItemIcon,
-  ListItemText,
   ListSubheader,
-  MenuItem,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  MenuItemPrimitive
 } from "../../ui_primitives";
 import MediaControlChip from "./MediaControlChip";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
@@ -124,27 +121,15 @@ const PermissionSelector: React.FC<PermissionSelectorProps> = ({
         {MODES.map((m) => {
           const selected = m.id === mode;
           return (
-            <MenuItem
+            <MenuItemPrimitive
               key={m.id}
-              role="menuitemradio"
-              aria-checked={selected}
-              selected={selected}
+              label={m.label}
+              secondary={m.description}
+              icon={<span css={dotCss(dotColor(theme, m.tone))} />}
+              checkable="radio"
+              checked={selected}
               onClick={() => handleSelect(m.id)}
-            >
-              <ListItemIcon>
-                <span css={dotCss(dotColor(theme, m.tone))} />
-              </ListItemIcon>
-              <ListItemText
-                primary={m.label}
-                secondary={m.description}
-                sx={{ whiteSpace: "normal" }}
-              />
-              {selected && (
-                <ListItemIcon>
-                  <CheckIcon fontSize="small" />
-                </ListItemIcon>
-              )}
-            </MenuItem>
+            />
           );
         })}
       </ContextMenu>

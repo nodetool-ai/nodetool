@@ -2,6 +2,7 @@ import React from "react";
 import { useTheme } from "@mui/material/styles";
 import { Box, MenuItem, ListItemIcon, ListItemText, Divider } from "@mui/material";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import CheckIcon from "@mui/icons-material/Check";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { Tooltip } from "./Tooltip";
 import {
@@ -21,6 +22,14 @@ export interface MenuItemPrimitiveProps {
   disabled?: boolean;
   /** Whether the item is selected/active */
   selected?: boolean;
+  /**
+   * A checkable row. `radio` picks one option of a group: the picked row is
+   * selected and shows a check. `checkbox` toggles a setting: a checked row
+   * shows a check. Both set `role` and `aria-checked`.
+   */
+  checkable?: "radio" | "checkbox";
+  /** Whether a checkable row is checked */
+  checked?: boolean;
   /** Whether to show submenu indicator */
   hasSubmenu?: boolean;
   /** Secondary text */
@@ -58,6 +67,8 @@ export const MenuItemPrimitive: React.FC<MenuItemPrimitiveProps> = ({
   onClick,
   disabled = false,
   selected = false,
+  checkable,
+  checked = false,
   hasSubmenu = false,
   secondary,
   tooltip,
@@ -77,7 +88,15 @@ export const MenuItemPrimitive: React.FC<MenuItemPrimitiveProps> = ({
         .join(" ")}
       onClick={onClick}
       disabled={disabled}
-      selected={selected}
+      selected={selected || (checkable === "radio" && checked)}
+      role={
+        checkable === "radio"
+          ? "menuitemradio"
+          : checkable === "checkbox"
+            ? "menuitemcheckbox"
+            : undefined
+      }
+      aria-checked={checkable ? checked : undefined}
       data-testid={testId}
       sx={[
         color === "error" && menuItemDestructiveStyles(theme),
@@ -93,6 +112,18 @@ export const MenuItemPrimitive: React.FC<MenuItemPrimitiveProps> = ({
         <Box component="span" className="shortcut" sx={menuShortcutStyles(theme)}>
           {shortcut}
         </Box>
+      )}
+      {checkable && (
+        <CheckIcon
+          className="check-icon"
+          aria-hidden
+          sx={{
+            marginLeft: shortcut ? 0 : "auto",
+            fontSize: MENU_ICON_SIZE,
+            color: theme.vars.palette.text.secondary,
+            visibility: checked ? "visible" : "hidden"
+          }}
+        />
       )}
       {hasSubmenu && (
         <KeyboardArrowRightIcon

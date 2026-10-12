@@ -4,14 +4,10 @@ import { useMutation } from "@tanstack/react-query";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import FolderIcon from "@mui/icons-material/Folder";
 import AddIcon from "@mui/icons-material/Add";
-import CheckIcon from "@mui/icons-material/Check";
 
 import {
   ContextMenu,
-  ListItemIcon,
-  ListItemText,
   ListSubheader,
-  MenuItem,
   MenuItemPrimitive
 } from "../ui_primitives";
 import MediaControlChip from "../chat/composer/MediaControlChip";
@@ -120,31 +116,18 @@ const WorkspaceChip: React.FC<WorkspaceChipProps> = ({ compact = false }) => {
         {workspaces.map((workspace) => {
           const isSelected = workspace.id === workspaceId;
           return (
-            <MenuItem
+            <MenuItemPrimitive
               key={workspace.id}
-              role="menuitemradio"
-              aria-checked={isSelected}
-              selected={isSelected}
+              label={workspace.name}
+              secondary={workspace.path}
+              icon={<FolderIcon fontSize="small" />}
+              checkable="radio"
+              checked={isSelected}
               onClick={() => {
                 void setWorkspaceId(workspace.id);
                 setOpen(false);
               }}
-            >
-              <ListItemIcon>
-                <FolderIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText
-                primary={workspace.name}
-                secondary={workspace.path}
-                slotProps={{ secondary: { noWrap: true } }}
-                sx={{ minWidth: 0 }}
-              />
-              {isSelected && (
-                <ListItemIcon>
-                  <CheckIcon fontSize="small" />
-                </ListItemIcon>
-              )}
-            </MenuItem>
+            />
           );
         })}
         {canManage && (
