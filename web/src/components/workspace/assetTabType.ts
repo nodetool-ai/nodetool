@@ -1,5 +1,5 @@
 import type { WorkspaceTabType } from "../../stores/WorkspaceTabsStore";
-import { isTextAsset } from "../../utils/assetLanguage";
+import { isSpreadsheetAsset, isTextAsset } from "../../utils/assetLanguage";
 
 /** The minimal asset shape needed to pick a workspace tab type. */
 interface AssetLike {
@@ -27,6 +27,8 @@ export const assetTabType = (asset: AssetLike): WorkspaceTabType | null => {
   ) {
     return "model3d";
   }
+  // Excel workbooks share the text tab, which shows CSV as a table too.
+  if (isSpreadsheetAsset(asset)) return "text";
   // Any text-based format (by extension or MIME) opens in the text editor.
   if (isTextAsset(asset)) return "text";
   return null;

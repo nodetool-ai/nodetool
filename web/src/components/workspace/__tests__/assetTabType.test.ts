@@ -12,6 +12,32 @@ describe("assetTabType", () => {
     });
   });
 
+  describe("spreadsheet assets", () => {
+    it("opens .xlsx workbooks in the text tab, by type or by name", () => {
+      expect(
+        assetTabType({
+          content_type:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        })
+      ).toBe("text");
+      expect(
+        assetTabType({
+          content_type: "application/octet-stream",
+          name: "Budget.XLSX"
+        })
+      ).toBe("text");
+    });
+
+    it("has no tab for legacy .xls workbooks", () => {
+      expect(
+        assetTabType({
+          content_type: "application/vnd.ms-excel",
+          name: "old.xls"
+        })
+      ).toBeNull();
+    });
+  });
+
   describe("svg assets", () => {
     it("returns 'svg' for the SVG content type", () => {
       expect(assetTabType({ content_type: "image/svg+xml" })).toBe("svg");
