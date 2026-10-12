@@ -1483,7 +1483,6 @@ const Model3DEditor = ({
                     key={`${onlySelection ? "selection" : "scene"}-${info.format}`}
                     label={`${onlySelection ? "Selection" : "Scene"} as ${info.label}`}
                     secondary={info.detail}
-                    dense
                     dividerBefore={onlySelection && index === 0}
                     disabled={isExporting || !canSave || (onlySelection && !selectedObject)}
                     onClick={() => {

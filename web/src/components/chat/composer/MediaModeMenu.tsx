@@ -11,13 +11,10 @@ import ReplayIcon from "@mui/icons-material/Replay";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import TuneIcon from "@mui/icons-material/Tune";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
-import CheckIcon from "@mui/icons-material/Check";
 import {
   ContextMenu,
-  ListItemIcon,
-  ListItemText,
   ListSubheader,
-  MenuItem
+  MenuItemPrimitive
 } from "../../ui_primitives";
 import type { MediaMode } from "../../../stores/MediaGenerationStore";
 
@@ -142,31 +139,19 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
       {MODES.filter((m) => !modes || modes.includes(m.id)).map((m) => {
         const selected = m.id === value;
         return (
-          <MenuItem
+          <MenuItemPrimitive
             key={m.id}
-            role="menuitemradio"
-            aria-checked={selected}
-            selected={selected}
+            label={m.label}
+            secondary={m.enabled ? m.description : "Soon"}
+            icon={m.icon}
+            checkable="radio"
+            checked={selected}
             disabled={!m.enabled}
             onClick={() => {
-              if (!m.enabled) {
-                return;
-              }
               onChange(m.id);
               onClose();
             }}
-          >
-            <ListItemIcon>{m.icon}</ListItemIcon>
-            <ListItemText
-              primary={m.label}
-              secondary={m.enabled ? m.description : "Soon"}
-            />
-            {selected && (
-              <ListItemIcon>
-                <CheckIcon fontSize="small" />
-              </ListItemIcon>
-            )}
-          </MenuItem>
+          />
         );
       })}
     </ContextMenu>

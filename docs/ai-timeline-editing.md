@@ -8,6 +8,8 @@ A NodeTool timeline keeps editorial timing separate from generated media. You ca
 compare variations, repair a shot, and adapt a cut for another format without
 rebuilding the sequence.
 
+![A trailer cut in the video editor, with rendered clips on V1, voiceover on A1 and music on A2](assets/screenshots/video-editor-timeline.png)
+
 ## Compare takes without moving the edit
 
 Every generated result is a take on its clip. A take records the generated

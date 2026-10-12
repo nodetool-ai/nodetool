@@ -27,7 +27,6 @@ import EditIcon from "@mui/icons-material/Edit";
 
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import { useNodes } from "../../contexts/NodeContext";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import { isMac } from "../../utils/platform";
@@ -149,7 +148,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       >
         <ToolbarIconButton
           title={isWorkflowRunning ? "Running..." : "Run Node"}
-          delay={TOOLTIP_ENTER_DELAY}
           className="nodrag"
           onClick={runFromHere}
           tabIndex={-1}
@@ -186,7 +184,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             </>
           }
           ariaLabel={isBypassed ? "Enable Node" : "Disable Node"}
-          delay={TOOLTIP_ENTER_DELAY}
           className="nodrag"
           onClick={handleToggleBypass}
           tabIndex={-1}
@@ -207,7 +204,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             </>
           }
           ariaLabel="Duplicate"
-          delay={TOOLTIP_ENTER_DELAY}
           className="nodrag"
           onClick={handleDuplicateNodes}
           tabIndex={-1}
@@ -219,7 +215,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
         <ToolbarIconButton
           title="More Actions"
-          delay={TOOLTIP_ENTER_DELAY}
           className="nodrag"
           onClick={handleOpenDropdown}
           tabIndex={-1}

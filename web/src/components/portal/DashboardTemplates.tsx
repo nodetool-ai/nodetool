@@ -31,7 +31,8 @@ import {
   focusRing,
   getSpacingPx,
   reducedMotion,
-  selectableTileStyles
+  selectableTileStyles,
+  Tooltip
 } from "../ui_primitives";
 import {
   useSectionWrap,
@@ -247,52 +248,53 @@ const TemplateRow = memo(function TemplateRow({
   );
 
   return (
-    <button
-      type="button"
-      className={isLoading ? "tpl-row loading" : "tpl-row"}
-      title={workflow.description || workflow.name}
-      onClick={() => onClick(workflow)}
-    >
-      <span
-        className="tpl-icon"
-        aria-hidden
-        style={
-          category && (!thumbUrl || thumbFailed)
-            ? { background: `${category.color}24`, color: category.color }
-            : undefined
-        }
+    <Tooltip title={workflow.description || workflow.name} describeChild>
+      <button
+        type="button"
+        className={isLoading ? "tpl-row loading" : "tpl-row"}
+        onClick={() => onClick(workflow)}
       >
-        {isLoading ? (
-          <LoadingSpinner size="small" />
-        ) : !thumbUrl || thumbFailed ? (
-          <span className="tpl-glyph">{templateGlyph}</span>
-        ) : (
-          <img
-            className="tpl-thumb"
-            src={thumbUrl}
-            alt=""
-            loading="lazy"
-            onError={() => setThumbFailed(true)}
-          />
-        )}
-      </span>
-      <span className="tpl-copy">
-        <span className="tpl-title">{workflow.name}</span>
-        <span className="tpl-desc">{workflow.description}</span>
-        <span className="tpl-compat">
-          <CompatibilityDetails compatibility={compatibility} />
-          {workflow.graph.nodes.length > 0 && (
-            <span>{formatTemplateCost(costEstimate)}</span>
+        <span
+          className="tpl-icon"
+          aria-hidden
+          style={
+            category && (!thumbUrl || thumbFailed)
+              ? { background: `${category.color}24`, color: category.color }
+              : undefined
+          }
+        >
+          {isLoading ? (
+            <LoadingSpinner size="small" />
+          ) : !thumbUrl || thumbFailed ? (
+            <span className="tpl-glyph">{templateGlyph}</span>
+          ) : (
+            <img
+              className="tpl-thumb"
+              src={thumbUrl}
+              alt=""
+              loading="lazy"
+              onError={() => setThumbFailed(true)}
+            />
           )}
         </span>
-        {category && (
-          <span className="tpl-cat">
-            <span className="cat-dot" style={{ background: category.color }} />
-            {category.label}
+        <span className="tpl-copy">
+          <span className="tpl-title">{workflow.name}</span>
+          <span className="tpl-desc">{workflow.description}</span>
+          <span className="tpl-compat">
+            <CompatibilityDetails compatibility={compatibility} />
+            {workflow.graph.nodes.length > 0 && (
+              <span>{formatTemplateCost(costEstimate)}</span>
+            )}
           </span>
-        )}
-      </span>
-    </button>
+          {category && (
+            <span className="tpl-cat">
+              <span className="cat-dot" style={{ background: category.color }} />
+              {category.label}
+            </span>
+          )}
+        </span>
+      </button>
+    </Tooltip>
   );
 });
 

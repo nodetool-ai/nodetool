@@ -12,8 +12,8 @@ import { Text, Tooltip, BORDER_RADIUS, EYEBROW, SPACING, getSpacingPx } from "..
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
 import {
-  TOOLTIP_ENTER_DELAY,
-  TOOLTIP_ENTER_NEXT_DELAY
+  TOOLTIP_ENTER_NEXT_DELAY,
+  TOOLTIP_DESCRIPTION_DELAY
 } from "../../config/constants";
 import { ExpandCollapseButton } from "../ui_primitives";
 import { assetTypeLabel } from "./assetTypeLabels";
@@ -122,7 +122,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
       <Tooltip
         title={`${isExpanded ? "Collapse" : "Expand"} ${typeLabel.toLowerCase()}`}
         placement="bottom"
-        delay={TOOLTIP_ENTER_DELAY * 2}
+        delay={TOOLTIP_DESCRIPTION_DELAY}
         nextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
       >
         <div

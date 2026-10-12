@@ -32,7 +32,6 @@ import {
 } from "./toolDefinitions";
 import { displayCombo } from "./shortcuts";
 import ColorSwatchPair from "./ColorSwatchPair";
-import { SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 
 const BTN = 32; // button size px
 
@@ -112,8 +111,6 @@ function renderToolButton(def: ToolDefinition, selectMode: SelectToolMode) {
       <Tooltip
         title={tooltip}
         placement="right"
-        enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-        enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
       >
         <Icon sx={{ fontSize: "var(--fontSizeBig)" }} />
       </Tooltip>

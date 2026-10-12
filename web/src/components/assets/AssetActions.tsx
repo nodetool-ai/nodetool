@@ -17,7 +17,6 @@ import { EditorButton } from "../editor_ui";
 import useAssets from "../../serverState/useAssets";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { SIZE_FILTERS, SizeFilterKey } from "../../utils/formatUtils";
@@ -281,7 +280,6 @@ const AssetActions = ({
     <div className="asset-actions" css={styles(theme)}>
       <ButtonGroup className="asset-button-group" size="small" tabIndex={-1}>
         <Tooltip
-          delay={TOOLTIP_ENTER_DELAY}
           title="Select all"
           disableInteractive
         >
@@ -290,7 +288,6 @@ const AssetActions = ({
           </EditorButton>
         </Tooltip>
         <Tooltip
-          delay={TOOLTIP_ENTER_DELAY}
           title="Deselect"
           disableInteractive
         >
@@ -299,7 +296,6 @@ const AssetActions = ({
           </EditorButton>
         </Tooltip>
         <Tooltip
-          delay={TOOLTIP_ENTER_DELAY}
           title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
           disableInteractive
         >
@@ -319,7 +315,6 @@ const AssetActions = ({
       </ButtonGroup>
 
       <Tooltip
-        delay={TOOLTIP_ENTER_DELAY}
         title="Sort assets"
         placement="bottom"
         disableInteractive
@@ -340,7 +335,6 @@ const AssetActions = ({
       </Tooltip>
 
       <Tooltip
-        delay={TOOLTIP_ENTER_DELAY}
         title="Filter by file size"
         placement="bottom"
         disableInteractive

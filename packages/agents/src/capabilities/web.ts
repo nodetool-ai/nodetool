@@ -28,6 +28,10 @@ import {
 } from "@nodetool-ai/runtime";
 import { isAuthEnforced } from "@nodetool-ai/config";
 import { mimeForPath } from "../sandbox-media-ref.js";
+import {
+  LOCAL_SCREENSHOT_DISABLED_ERROR,
+  isHostAccessEnabled
+} from "../host-access-gate.js";
 import type {
   SerpProvider,
   SerpProviderType
@@ -824,6 +828,10 @@ const takeScreenshot: CapabilityExport = {
         const message = e instanceof Error ? e.message : String(e);
         return { error: `Error taking screenshot: ${message}` };
       }
+    }
+
+    if (!isHostAccessEnabled()) {
+      return { error: LOCAL_SCREENSHOT_DISABLED_ERROR, url };
     }
 
     let scheme: string;

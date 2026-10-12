@@ -309,7 +309,6 @@ const RowItem = memo(({
         <Tooltip
           title={timeTooltip}
           placement="top-start"
-          delay={500}
           disabled={showTimestampColumn}
         >
           <div className={`cell content${isExpanded ? " expanded" : ""}`}>

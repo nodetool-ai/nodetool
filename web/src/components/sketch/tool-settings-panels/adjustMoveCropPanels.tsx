@@ -235,14 +235,16 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
       <FlexRow sx={{ gap: getSpacingPx(SPACING.micro), ml: 1 }}>
         <ToolbarIconButton
           icon={<CheckIcon sx={{ fontSize: 18 }} />}
-          tooltip="Commit (Enter)"
+          tooltip="Commit"
+          shortcut={["Enter"]}
           tooltipPlacement="bottom"
           onClick={onCommit}
           sx={{ padding: 1, color: "success.main" }}
         />
         <ToolbarIconButton
           icon={<CloseIcon sx={{ fontSize: 18 }} />}
-          tooltip="Cancel (Esc)"
+          tooltip="Cancel"
+          shortcut={["Esc"]}
           tooltipPlacement="bottom"
           onClick={onCancel}
           sx={{ padding: 1, color: "error.main" }}
@@ -285,7 +287,8 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
       <FlexRow sx={{ gap: getSpacingPx(SPACING.micro), ml: 1 }}>
         <ToolbarIconButton
           icon={<CheckIcon sx={{ fontSize: 18 }} />}
-          tooltip="Apply crop (Enter)"
+          tooltip="Apply crop"
+          shortcut={["Enter"]}
           tooltipPlacement="bottom"
           disabled={!hasPendingCrop}
           onClick={onApply}
@@ -293,7 +296,8 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
         />
         <ToolbarIconButton
           icon={<CloseIcon sx={{ fontSize: 18 }} />}
-          tooltip="Cancel crop preview (Esc)"
+          tooltip="Cancel crop preview"
+          shortcut={["Esc"]}
           tooltipPlacement="bottom"
           disabled={!hasPendingCrop}
           onClick={onCancel}

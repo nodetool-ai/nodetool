@@ -30,7 +30,8 @@ import {
   FONT_SIZE_SANS,
   FONT_WEIGHT,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Tooltip
 } from "../../ui_primitives";
 
 const buttonStyles = (theme: Theme, compact: boolean) =>
@@ -83,27 +84,28 @@ export const ScriptToggleButton: React.FC<ScriptToggleButtonProps> = memo(({ com
   const label = hasScript ? "Remove script" : "Add script";
 
   return (
-    <button
-      type="button"
-      css={buttonStyles(theme, compact)}
-      onClick={handleClick}
-      aria-label={label}
-      title={label}
-      data-testid="script-toggle-button"
-    >
-      {/* Without its label a bare "+" reads as a second Add-track button, so
-          the icon-only variant names the feature instead of the action. */}
-      {compact ? (
-        <SubtitlesOutlinedIcon
-          sx={{ color: hasScript ? "primary.main" : undefined }}
-        />
-      ) : (
-        <>
-          {hasScript ? <GraphicEqIcon /> : <AddIcon />}
-          <span>{label}</span>
-        </>
-      )}
-    </button>
+    <Tooltip title={label} describeChild>
+      <button
+        type="button"
+        css={buttonStyles(theme, compact)}
+        onClick={handleClick}
+        aria-label={label}
+        data-testid="script-toggle-button"
+      >
+        {/* Without its label a bare "+" reads as a second Add-track button, so
+            the icon-only variant names the feature instead of the action. */}
+        {compact ? (
+          <SubtitlesOutlinedIcon
+            sx={{ color: hasScript ? "primary.main" : undefined }}
+          />
+        ) : (
+          <>
+            {hasScript ? <GraphicEqIcon /> : <AddIcon />}
+            <span>{label}</span>
+          </>
+        )}
+      </button>
+    </Tooltip>
   );
 });
 

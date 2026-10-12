@@ -20,6 +20,8 @@ The sidebar panel lists your scripts, newest first, and **Search JS scripts...**
 
 The script tab has four regions.
 
+![JS script editor: the script body, its inputs and outputs, and the Run and Test controls](assets/screenshots/js-script-editor.png)
+
 - **Editor.** The script body in Monaco. Every keystroke autosaves. Undo and redo work as in other documents.
 - **Run console.** Below the editor, with **Run** and **Test** buttons and the result of the last run.
 - **Script tab.** On the right, the settings panel described below.

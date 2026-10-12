@@ -19,7 +19,8 @@ import {
   SPACING,
   TYPOGRAPHY,
   getSpacingPx,
-  selectableTileStyles
+  selectableTileStyles,
+  Tooltip
 } from "../ui_primitives";
 import { useSectionWrap, DashboardSectionHeader } from "./dashboardChrome";
 
@@ -142,32 +143,33 @@ const ExampleAppCard = memo(function ExampleAppCard({
   const src = thumbSrc(app.thumbnailUrl);
   const workflows = app.workflows.length;
   return (
-    <button
-      type="button"
-      className="app-card"
-      title={`Use ${app.name}`}
-      onClick={() => onUse(app)}
-    >
-      <span className="app-thumb" aria-hidden>
-        {src && !thumbFailed ? (
-          <img
-            src={src}
-            alt=""
-            loading="lazy"
-            onError={() => setThumbFailed(true)}
-          />
-        ) : (
-          appGlyph
-        )}
-      </span>
-      <span className="app-body">
-        <span className="app-name">{app.name}</span>
-        <span className="app-desc">{app.description}</span>
-        <span className="app-meta">
-          {workflows} workflow{workflows === 1 ? "" : "s"}
+    <Tooltip title={`Use ${app.name}`} describeChild>
+      <button
+        type="button"
+        className="app-card"
+        onClick={() => onUse(app)}
+      >
+        <span className="app-thumb" aria-hidden>
+          {src && !thumbFailed ? (
+            <img
+              src={src}
+              alt=""
+              loading="lazy"
+              onError={() => setThumbFailed(true)}
+            />
+          ) : (
+            appGlyph
+          )}
         </span>
-      </span>
-    </button>
+        <span className="app-body">
+          <span className="app-name">{app.name}</span>
+          <span className="app-desc">{app.description}</span>
+          <span className="app-meta">
+            {workflows} workflow{workflows === 1 ? "" : "s"}
+          </span>
+        </span>
+      </button>
+    </Tooltip>
   );
 });
 

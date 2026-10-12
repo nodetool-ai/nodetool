@@ -25,7 +25,7 @@ Open **Collections** from the app menu, or go directly to `/collections`. The ex
 
 A name is unique across the store. It can be at most 128 characters and cannot start or end with whitespace, contain `/` or `\`, or contain control characters.
 
-![New Collection](assets/screenshots/screenshot-placeholder.svg)
+![The new-collection form with a name entered](assets/screenshots/collections-create.png)
 
 Dropping a file sends it to `POST /api/collections/:name/index`. The server reads the file as UTF-8 text, splits it into chunks of 2000 characters with 1000 of overlap, and stores each chunk as `<file name>#<n>`. Use text formats such as TXT, Markdown, HTML source, CSV, or transcripts. The route does not extract text from PDF, DOCX, EPUB, or images, so extract their text in a workflow first (for example with `lib.pdf.ExtractText`) and index it with an index node. A file over `NODETOOL_MAX_UPLOAD_BYTES` (1 GiB by default) is rejected.
 
@@ -62,8 +62,6 @@ See the [Chat with Docs example]({{ '/workflows/chat-with-docs' | relative_url }
 A collection's embedding model is chosen when you create it and is recorded in the collection's `embedding_model` and `embedding_provider` metadata. The linked workflow can be changed from the collection tile.
 
 Chunking is not a collection setting. `splitDocument()` defaults to 2000 characters with 1000 characters of overlap, and the upload route uses those defaults.
-
-![Collection Settings](assets/screenshots/screenshot-placeholder.svg)
 
 See [Indexing]({{ '/indexing' | relative_url }}) for deeper tuning notes.
 

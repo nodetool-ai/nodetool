@@ -38,7 +38,8 @@ import { SPACING,
   DynamicInputButton,
   BORDER_RADIUS,
   MOTION,
-  reducedMotion
+  reducedMotion,
+  Tooltip
 } from "../../ui_primitives";
 import { NodeInputs } from "../../node/NodeInputs";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -190,26 +191,26 @@ const VariableInsertBar: React.FC<{
     <div className="variable-bar">
       {showLabel && <span className="variable-bar-label">Variables</span>}
       {variables.map(({ name, source }) => (
-        <button
+        <Tooltip
           key={name}
-          type="button"
-          className={`variable-insert-chip nodrag${
-            source === "graph" ? " variable-insert-chip--graph" : ""
-          }`}
-          onClick={() => insertVariable(name)}
-          aria-label={
-            source === "graph"
-              ? `Insert variable ${name} set by a Set Variable node`
-              : `Insert variable ${name}`
-          }
-          title={
-            source === "graph"
-              ? `Set by a Set Variable node`
-              : undefined
-          }
+          title={source === "graph" ? "Set by a Set Variable node" : ""}
+          describeChild
         >
-          {`{{ ${name} }}`}
-        </button>
+          <button
+            type="button"
+            className={`variable-insert-chip nodrag${
+              source === "graph" ? " variable-insert-chip--graph" : ""
+            }`}
+            onClick={() => insertVariable(name)}
+            aria-label={
+              source === "graph"
+                ? `Insert variable ${name} set by a Set Variable node`
+                : `Insert variable ${name}`
+            }
+          >
+            {`{{ ${name} }}`}
+          </button>
+        </Tooltip>
       ))}
       <DynamicInputButton itemLabel="variable" onAdd={onAdd} />
     </div>

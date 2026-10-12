@@ -4,7 +4,13 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import { BORDER_RADIUS, FlexRow, Text, MOTION } from "../../ui_primitives";
+import {
+  BORDER_RADIUS,
+  FlexRow,
+  Text,
+  MOTION,
+  Tooltip
+} from "../../ui_primitives";
 
 interface MediaControlChipProps {
   /** Leading icon (e.g. clock, aspect, resolution). */
@@ -140,58 +146,59 @@ const MediaControlChip = memo(function MediaControlChip({
   const theme = useTheme();
   const hasLabel = label !== undefined && label !== null && label !== "";
   return (
-    <button
-      ref={ref}
-      type="button"
-      title={title}
-      aria-label={!hasLabel ? title : undefined}
-      className={`media-control-chip${className ? ` ${className}` : ""}${grow ? " media-control-chip-grow" : ""}${active ? " active" : ""}`}
-      css={createStyles(
-        theme,
-        size,
-        emphasis,
-        active,
-        truncate,
-        grow,
-        !hasLabel,
-        maxWidth
-      )}
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={active || undefined}
-    >
-      <FlexRow
-        align="center"
-        gap={hasLabel ? 1 : 0}
-        sx={grow || truncate ? { flex: 1, minWidth: 0 } : undefined}
+    <Tooltip title={title} describeChild disabled={disabled}>
+      <button
+        ref={ref}
+        type="button"
+        aria-label={!hasLabel ? title : undefined}
+        className={`media-control-chip${className ? ` ${className}` : ""}${grow ? " media-control-chip-grow" : ""}${active ? " active" : ""}`}
+        css={createStyles(
+          theme,
+          size,
+          emphasis,
+          active,
+          truncate,
+          grow,
+          !hasLabel,
+          maxWidth
+        )}
+        onClick={onClick}
+        disabled={disabled}
+        aria-pressed={active || undefined}
       >
-        {icon && <span className="media-chip-icon">{icon}</span>}
-        {hasLabel && (
-          <Text
-            component="span"
-            size="small"
-            weight={500}
-            sx={{
-              color: "inherit",
-              lineHeight: 1.2,
-              ...((grow || truncate) && {
-                minWidth: 0,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap"
-              })
-            }}
-          >
-            {label}
-          </Text>
-        )}
-        {showChevron && (
-          <span className="media-chip-chevron">
-            <ExpandLessIcon />
-          </span>
-        )}
-      </FlexRow>
-    </button>
+        <FlexRow
+          align="center"
+          gap={hasLabel ? 1 : 0}
+          sx={grow || truncate ? { flex: 1, minWidth: 0 } : undefined}
+        >
+          {icon && <span className="media-chip-icon">{icon}</span>}
+          {hasLabel && (
+            <Text
+              component="span"
+              size="small"
+              weight={500}
+              sx={{
+                color: "inherit",
+                lineHeight: 1.2,
+                ...((grow || truncate) && {
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
+                })
+              }}
+            >
+              {label}
+            </Text>
+          )}
+          {showChevron && (
+            <span className="media-chip-chevron">
+              <ExpandLessIcon />
+            </span>
+          )}
+        </FlexRow>
+      </button>
+    </Tooltip>
   );
 });
 

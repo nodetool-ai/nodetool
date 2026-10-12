@@ -176,7 +176,7 @@ function SpanLane({ label, nodes, focusedSpanId, onFocus, start, duration }: Spa
               size="small" variant="text"
               aria-pressed={focused}
               aria-label={`Inspect span ${record.name} ${record.span_id}`}
-              title={record.name}
+              tooltip={record.name}
               onClick={() => onFocus(record.span_id)}
               sx={{ minWidth: 0, maxWidth: "100%", justifyContent: "flex-start", textTransform: "none", px: SPACING.xs,
                 color: record.status.code === "ERROR" ? "error.main" : "text.primary", fontWeight: focused ? 600 : 400 }}
@@ -331,10 +331,10 @@ function LogsView({ runId, focusedSpanId, onFocus }: RunViewProps): React.ReactE
             <Caption sx={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{new Date(log.time_ms).toLocaleTimeString()}</Caption>
             <Caption sx={{ color: LOG_LEVEL_COLOR[log.level ?? ""] ?? "text.secondary" }}>{LOG_LEVELS.find(({ value }) => value === log.level)?.label ?? log.level ?? "Event"}</Caption>
             <Caption component="div" color="muted" sx={{ minWidth: 0 }}><TruncatedText component="span" variant="inherit">{log.source ?? log.name}</TruncatedText></Caption>
-            <EditorButton size="small" variant="text" aria-label={`Inspect log span ${log.span_id}`} title={log.span_name} onClick={() => onFocus(log.span_id)}
+            <EditorButton size="small" variant="text" aria-label={`Inspect log span ${log.span_id}`} tooltip={log.span_name} onClick={() => onFocus(log.span_id)}
               sx={{ minWidth: 0, justifyContent: "flex-start", textTransform: "none", px: 0, color: "text.secondary" }}
             ><TruncatedText component="span" variant="inherit">{log.span_name}</TruncatedText></EditorButton>
-            <EditorButton size="small" variant="text" aria-label={`Read ${log.name} event ${log.id}`} title={logText(log).slice(0, 200)} onClick={() => setSelectedLogId(log.id)}
+            <EditorButton size="small" variant="text" aria-label={`Read ${log.name} event ${log.id}`} tooltip={logText(log).slice(0, 200)} onClick={() => setSelectedLogId(log.id)}
               sx={{ minWidth: 0, justifyContent: "flex-start", textTransform: "none", px: 0, color: log.level === "error" ? "error.main" : "text.primary" }}
             ><TruncatedText component="span" variant="inherit">{logText(log).slice(0, 200)}</TruncatedText></EditorButton>
           </Box>} />

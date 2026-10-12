@@ -4,7 +4,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Tooltip, ToolbarIconButton, MOTION, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { memo, useMemo } from "react";
 
 const styles = (theme: Theme, isBypassed: boolean) =>
@@ -94,7 +93,6 @@ const BypassGroupButton: React.FC<BypassGroupButtonProps> = memo(({
           </span>
         </div>
       }
-      delay={TOOLTIP_ENTER_DELAY}
     >
       <ToolbarIconButton
         title=""

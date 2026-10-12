@@ -623,7 +623,7 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
               color="primary"
               onClick={() => void handleSaveAdjustment()}
               disabled={!adjusted || busy || !stillUrl}
-              title="Made in your browser, no provider involved"
+              tooltip="Made in your browser, no provider involved"
             >
               Save as new take
             </EditorButton>

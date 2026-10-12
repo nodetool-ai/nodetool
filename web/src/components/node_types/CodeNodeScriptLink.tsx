@@ -120,7 +120,7 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
             density="compact"
             disabled={busy}
             sx={BUTTON_SX}
-            title="Re-pin this node to the script's current content"
+            tooltip="Re-pin this node to the script's current content"
             onClick={() => void guard("re-pin the script", updateToLatest)}
           >
             Update
@@ -172,7 +172,7 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
         density="compact"
         disabled={busy}
         sx={BUTTON_SX}
-        title="Lift this node's body into a new script"
+        tooltip="Lift this node's body into a new script"
         onClick={() =>
           void guard("extract the script", () => extractToScript(NEW_SCRIPT_NAME))
         }

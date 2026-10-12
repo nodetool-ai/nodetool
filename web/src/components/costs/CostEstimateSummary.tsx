@@ -184,7 +184,7 @@ const CostEstimateSummaryInternal: React.FC<CostEstimateSummaryProps> = ({
                 {row.nodeTitle}
               </span>
               {row.unknown ? (
-                <Tooltip title={row.unknownReason} arrow>
+                <Tooltip title={row.unknownReason}>
                   <span className="cost-unknown" aria-label="Price unknown">
                     <HelpOutlineIcon fontSize="inherit" />
                   </span>
@@ -203,7 +203,7 @@ const CostEstimateSummaryInternal: React.FC<CostEstimateSummaryProps> = ({
           return (
             <div className="cost-item" key={row.key}>
               {row.tooltip ? (
-                <Tooltip title={row.tooltip} arrow>
+                <Tooltip title={row.tooltip}>
                   {rowEl}
                 </Tooltip>
               ) : (
@@ -245,7 +245,6 @@ const CostEstimateSummaryInternal: React.FC<CostEstimateSummaryProps> = ({
               ? `Prices read from the genspend.io catalog snapshot of ${genspendSnapshotOn}`
               : "Prices ship with the app; a nightly sync moves them"
           }
-          arrow
         >
           <span className="cost-credit">
             List prices from provider catalogs and{" "}

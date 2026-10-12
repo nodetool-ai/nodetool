@@ -63,7 +63,7 @@ const StoryboardLinkControlInner = ({
         startIcon={<DashboardOutlinedIcon fontSize="small" />}
         onClick={storyboardId ? onOpen : onDerive}
         disabled={deriving}
-        title={
+        tooltip={
           storyboardId
             ? "Open the storyboard derived from this script"
             : "Derive a storyboard: one shot per line, linked to it"
