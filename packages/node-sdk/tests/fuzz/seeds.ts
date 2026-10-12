@@ -296,8 +296,24 @@ export const SEED_GRAPHS: readonly SeedGraph[] = [
   }
 ];
 
+/**
+ * One Code-node body and the node around it. Every field but `id` and `code`
+ * defaults to the shape the mutants run under: inputs `a`, `text`, `flag`,
+ * `items` with `items` wired, outputs `n`, `out`, `doc`, and no catalog.
+ */
+export interface CodeSeed {
+  id: string;
+  code: string;
+  availableInputs?: readonly string[];
+  connectedInputs?: readonly string[];
+  declaredOutputs?: readonly string[];
+  connectedOutputs?: readonly string[];
+  /** Resolve imports against the stub catalog from `seedCatalog()`. */
+  catalog?: boolean;
+}
+
 /** Bodies the Code-node analyzer is expected to handle without throwing. */
-export const SEED_CODE_BODIES: readonly { id: string; code: string }[] = [
+export const SEED_CODE_BODIES: readonly CodeSeed[] = [
   { id: "emit", code: "await output('n', inputs.a + 1);" },
   {
     id: "stream",
@@ -375,5 +391,212 @@ export const SEED_CODE_BODIES: readonly { id: string; code: string }[] = [
   {
     id: "stream-return-contract",
     code: "for await (const x of stream('items')) {\n  total += x;\n}\nreturn { n: 1, out: 2, doc: 3 };"
+  },
+  { id: "empty-outputs", code: "  \n\t" },
+  { id: "empty-one-output", code: "", declaredOutputs: ["n"] },
+  {
+    id: "empty-one-connected",
+    code: "",
+    declaredOutputs: [],
+    connectedOutputs: ["x"]
+  },
+  {
+    id: "empty-two-connected",
+    code: "",
+    declaredOutputs: [],
+    connectedOutputs: ["x", "y"]
+  },
+  {
+    id: "catalog-imports",
+    catalog: true,
+    code: [
+      "import a from '@nodetool-ai/sandbox-nodetool';",
+      "import b from '@nodetool-ai/sandbox-nodetool/media';",
+      "import c from '@nodetool-ai/sandbox-nodetoolx';",
+      "import d from 'left-pad';",
+      "import d2 from 'left-pad';",
+      "import e from 'fs/promises';",
+      "import f from 'node:nope';",
+      "import g from 'fsx';",
+      "import h from 'nodetool:media';",
+      "import i from '@nodetool-ai/sandbox-csv';",
+      "import j from '@nodetool-ai/sandbox-dates';",
+      "import k from 'ready-pack';",
+      "import l from 'skipped-pack';",
+      "return { n: a, out: b, doc: c };"
+    ].join("\n")
+  },
+  {
+    id: "catalog-one-import",
+    catalog: true,
+    code: "import d from 'left-pad';\nreturn { n: d, out: 2, doc: 3 };"
+  },
+  {
+    id: "catalog-no-pack-import",
+    catalog: true,
+    code: "import a from '@nodetool-ai/sandbox-nodetool';\nreturn { n: a, out: 2, doc: 3 };"
+  },
+  {
+    id: "dynamic-import-only",
+    code: "const m = await import('x');\nreturn { n: m, out: 2, doc: 3 };"
+  },
+  {
+    id: "dynamic-require-only",
+    code: "const r = require('x');\nreturn { n: r, out: 2, doc: 3 };"
+  },
+  {
+    id: "require-not-called",
+    code: "const r = require;\nreturn { n: r, out: 2, doc: 3 };"
+  },
+  { id: "absent-one", code: "return { n: btoa('x'), out: 1, doc: 2 };" },
+  {
+    id: "absent-many",
+    code: "return { n: btoa('x'), out: atob('y'), doc: structuredClone(1) };"
+  },
+  { id: "bare-input-one", code: "return { n: a, out: 1, doc: 2 };" },
+  { id: "bare-input-many", code: "return { n: a + text, out: 1, doc: 2 };" },
+  {
+    id: "bare-and-unknown",
+    code: "return { n: a + text + ghost, out: 1, doc: 2 };"
+  },
+  {
+    id: "unknown-inputs-many",
+    code: "return { n: inputs.p + inputs.q + inputs.a, out: inputs.text, doc: inputs.flag };"
+  },
+  {
+    id: "stream-unknown-one",
+    code: "for await (const x of stream('nope')) {\n  await emit('out', x);\n}\nawait output('n', 1);\nawait output('doc', 2);"
+  },
+  {
+    id: "stream-unconnected-one",
+    code: "for await (const x of stream('a')) {\n  await emit('out', x);\n}\nawait output('n', 1);\nawait output('doc', 2);"
+  },
+  {
+    id: "stream-input-read-many",
+    connectedInputs: ["items", "text"],
+    code: "for await (const x of stream('items')) {\n  await emit('out', x + inputs.items + inputs.text);\n}\nawait output('n', 1);\nawait output('doc', 2);"
+  },
+  {
+    id: "stream-any-connected",
+    connectedInputs: ["items", "text"],
+    code: "for await (const x of stream.any()) {\n  await emit('out', x);\n}\nawait output('n', 1);\nawait output('doc', 2);"
+  },
+  {
+    id: "stream-return-no-emit-one-input",
+    availableInputs: ["items"],
+    code: "for await (const x of stream('items')) {\n  total += x;\n}"
+  },
+  { id: "no-return-outputs", code: "const x = 1;" },
+  { id: "no-return-one-output", declaredOutputs: ["n"], code: "const x = 1;" },
+  {
+    id: "no-return-connected",
+    declaredOutputs: [],
+    connectedOutputs: ["x", "y"],
+    code: "const x = 1;"
+  },
+  {
+    id: "no-return-no-outputs",
+    declaredOutputs: [],
+    code: "const x = 1;"
+  },
+  {
+    id: "fall-through-one-output",
+    declaredOutputs: ["n"],
+    code: "if (inputs.flag) {\n  return { n: 1 };\n}"
+  },
+  {
+    id: "fall-through-no-outputs",
+    declaredOutputs: [],
+    code: "if (inputs.flag) {\n  return { n: 1 };\n}"
+  },
+  {
+    id: "non-object-one-output",
+    declaredOutputs: ["n"],
+    code: "if (inputs.flag) {\n  return 5;\n}\nreturn { n: 1 };"
+  },
+  {
+    id: "non-object-no-outputs",
+    declaredOutputs: [],
+    code: "if (inputs.flag) {\n  return 5;\n}\nreturn { n: 1 };"
+  },
+  {
+    id: "non-object-twice",
+    code: "if (inputs.flag) {\n  return 5;\n}\nif (inputs.a) {\n  return 6;\n}\nreturn { n: 1, out: 2, doc: 3 };"
+  },
+  {
+    id: "missing-one-undeclared-one",
+    declaredOutputs: ["n", "out"],
+    code: "return { n: 1, extra: 2 };"
+  },
+  {
+    id: "missing-many-undeclared-many",
+    code: "return { zzz: 1, yyy: 2 };"
+  },
+  {
+    id: "opaque-return",
+    code: "const o = inputs.a;\nreturn { ...o };"
+  },
+  {
+    id: "return-connected-only",
+    declaredOutputs: [],
+    connectedOutputs: ["x"],
+    code: "return { x: 1, y: 2 };"
+  },
+  {
+    id: "emit-undeclared-many",
+    code: "await output('n', 1);\nawait output('out', 1);\nawait output('doc', 1);\nawait output('p', 2);\nawait output('q', 2);"
+  },
+  {
+    id: "emit-missing-one",
+    declaredOutputs: ["n", "out"],
+    code: "await output('n', 1);"
+  },
+  {
+    id: "emit-connected-only",
+    declaredOutputs: [],
+    connectedOutputs: ["x", "y"],
+    code: "await output('x', 1);\nawait output('z', 2);"
+  },
+  {
+    id: "emit-return-ignored",
+    code: "await output('n', 1);\nawait output('out', 1);\nawait output('doc', 1);\nreturn 5;"
+  },
+  {
+    id: "emit-bare-return",
+    code: "await output('n', 1);\nawait output('out', 1);\nawait output('doc', 1);\nreturn;"
+  },
+  {
+    id: "emit-undefined-return",
+    code: "await output('n', 1);\nawait output('out', 1);\nawait output('doc', 1);\nreturn undefined;"
+  },
+  {
+    id: "unused-one-input",
+    code: "await output('n', inputs.a + inputs.text + inputs.flag);\nawait output('out', 1);\nawait output('doc', 1);"
+  },
+  {
+    id: "unused-all-inputs-read",
+    code: "await output('n', inputs.a + inputs.text + inputs.flag + inputs.items);\nawait output('out', 1);\nawait output('doc', 1);"
+  },
+  {
+    id: "empty-no-outputs",
+    code: "",
+    declaredOutputs: [],
+    connectedOutputs: []
+  },
+  { id: "syntax-error-with-line", code: "const x = 1;\nconst = ;" },
+  { id: "syntax-error-no-line", code: "}) ; (async function(){" },
+  {
+    id: "single-node-builtin",
+    code: "import fs from 'fs';\nreturn { n: fs, out: 2, doc: 3 };"
+  },
+  {
+    id: "emit-one-declared-with-connected",
+    declaredOutputs: ["n"],
+    connectedOutputs: ["x"],
+    code: "await output('x', 1);"
+  },
+  {
+    id: "emit-return-identifier",
+    code: "await output('n', 1);\nawait output('out', 1);\nawait output('doc', 1);\nreturn inputs;"
   }
 ];
