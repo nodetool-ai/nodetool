@@ -7,10 +7,16 @@ export function physicsMaterialSettings3D(material: GamePhysicsMaterial3D): Pick
   return { friction: material.friction, restitution: material.restitution, frictionCombine: material.frictionCombine, restitutionCombine: material.restitutionCombine };
 }
 
+/** Own-key lookup, so a name such as "toString" never resolves to an inherited property. */
+function namedMaterial(document: GameDocument3D, name: string): GamePhysicsMaterial3D | undefined {
+  const materials = document.physicsMaterials;
+  return materials && Object.hasOwn(materials, name) ? materials[name] : undefined;
+}
+
 function resolveEntities(entities: readonly GameEntity3D[], document: GameDocument3D): GameEntity3D[] {
   return entities.map((entity) => {
     const collider = entity.collider3d;
-    const material = collider?.physicsMaterial === undefined ? undefined : document.physicsMaterials?.[collider.physicsMaterial];
+    const material = collider?.physicsMaterial === undefined ? undefined : namedMaterial(document, collider.physicsMaterial);
     return collider && material ? { ...entity, collider3d: { ...collider, ...physicsMaterialSettings3D(material) } } : entity;
   });
 }
@@ -46,7 +52,7 @@ export function physicsMaterialIssues3D(document: GameDocument3D): PhysicsMateri
       const collider = entity.collider3d;
       if (collider?.physicsMaterial === undefined) { continue; }
       const colliderPath = [...path, index, "collider3d"];
-      if (!document.physicsMaterials?.[collider.physicsMaterial]) {
+      if (!namedMaterial(document, collider.physicsMaterial)) {
         issues.push({ code: "unknown_physics_material", path: [...colliderPath, "physicsMaterial"],
           message: `Physics material ${collider.physicsMaterial} is not declared in physicsMaterials` });
       }

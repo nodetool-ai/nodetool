@@ -131,6 +131,14 @@ describe("3D physics materials", () => {
     })).valid).toBe(true);
   });
 
+  it("never resolves a material name to an inherited object property", () => {
+    const game = drop({ physicsMaterial: "toString" }, {}, { ice: { friction: 0, restitution: 0, frictionCombine: "min", restitutionCombine: "average" } });
+    expect(physicsMaterialIssues3D(game).map(({ code }) => code)).toEqual(["unknown_physics_material"]);
+    expect(validateGame3D(game).valid).toBe(false);
+    const ball = colliders(resolvePhysicsMaterials3D(game)).find((collider) => collider.kind === "sphere");
+    expect(ball).toMatchObject({ friction: 0.5, restitution: 0 });
+  });
+
   it("sets and clears materials through set_game and collider references through update_entity", () => {
     const game = drop({}, {});
     const set = applyGameOps3D(game, [
