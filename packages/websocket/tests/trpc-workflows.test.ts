@@ -873,6 +873,85 @@ describe("workflows router", () => {
     });
   });
 
+  describe("exportScript", () => {
+    const savedGraph = {
+      nodes: [
+        { id: "s", type: "nodetool.constant.String", data: { value: "saved" } },
+        { id: "o", type: "nodetool.output.Output", data: { name: "result" } }
+      ],
+      edges: [
+        { source: "s", sourceHandle: "output", target: "o", targetHandle: "value" }
+      ]
+    };
+
+    it("converts the saved graph to a Node.js script named after the workflow", async () => {
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeWorkflow({ name: "My Flow", graph: savedGraph })
+      );
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.exportScript({
+        id: "wf-1",
+        target: "node"
+      });
+      expect(result.filename).toBe("My_Flow.mjs");
+      expect(result.code).toContain('"saved"');
+      expect(result.code).toContain('from "@nodetool-ai/dsl/flow"');
+      expect(result.outputs).toEqual([{ name: "result", type: "any" }]);
+      expect(result.unsupported).toEqual([]);
+    });
+
+    it("converts the editor's graph when one is sent", async () => {
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeWorkflow({ graph: savedGraph })
+      );
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.exportScript({
+        id: "wf-1",
+        target: "sandbox",
+        graph: {
+          nodes: [
+            { id: "s", type: "nodetool.constant.String", data: { value: "unsaved" } }
+          ],
+          edges: []
+        }
+      });
+      expect(result.filename).toBe("Test_Workflow.js");
+      expect(result.code).toContain('"unsaved"');
+      expect(result.code).not.toContain('"saved"');
+    });
+
+    it("refuses another user's private workflow", async () => {
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeWorkflow({ user_id: "someone-else", graph: savedGraph })
+      );
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.exportScript({ id: "wf-1", target: "node" })
+      ).rejects.toThrow(/not found/i);
+    });
+
+    it("reports a graph a script cannot express as invalid input", async () => {
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeWorkflow({
+          graph: {
+            nodes: [
+              { id: "a", type: "nodetool.text.Concat", data: {} },
+              { id: "b", type: "nodetool.text.Concat", data: {} }
+            ],
+            edges: [
+              { source: "a", sourceHandle: "output", target: "b", targetHandle: "a" },
+              { source: "b", sourceHandle: "output", target: "a", targetHandle: "a" }
+            ]
+          }
+        })
+      );
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.exportScript({ id: "wf-1", target: "node" })
+      ).rejects.toThrow(/cycle/);
+    });
+  });
+
   // ── versions ──────────────────────────────────────────────────────────────
   describe("versions", () => {
     describe("list", () => {
