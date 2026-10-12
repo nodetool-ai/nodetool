@@ -11,6 +11,7 @@
  *   - recipes (shipped chains of examples)
  *   - public (list + get) — publicProcedure (no auth required)
  *   - versions (list, create, restore, delete)
+ *   - exportScript (workflow → sandbox or Node.js script)
  *
  * Auth note:
  *   - `public.*` endpoints use publicProcedure — no auth required, matches
@@ -33,6 +34,7 @@ import type {
   WorkflowVersion as WorkflowVersionModel
 } from "@nodetool-ai/models";
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
+import { workflowToScript } from "@nodetool-ai/dsl";
 import { createLogger } from "@nodetool-ai/config";
 import {
   deriveExampleAssetsDir
@@ -74,6 +76,8 @@ import {
   versionDeleteOutput,
   terminalOutputsInput,
   terminalOutputsOutput,
+  exportScriptInput,
+  exportScriptOutput,
   workflowResponse,
   graph as graphSchema,
   sharingGetInput,
@@ -713,6 +717,45 @@ export const workflowsRouter = router({
       }));
 
       return { outputs };
+    }),
+
+  // ── exportScript ──────────────────────────────────────────────────────────
+  // The editor's graph when sent (unsaved edits included), else the saved one.
+  exportScript: protectedProcedure
+    .input(exportScriptInput)
+    .output(exportScriptOutput)
+    .mutation(async ({ ctx, input }) => {
+      const { workflow } = await requireWorkflowRole(
+        input.id,
+        ctx.userId,
+        "viewer"
+      );
+      const graph = input.graph ?? workflow.graph;
+      if (!graph) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Workflow has no graph");
+      }
+      try {
+        const script = workflowToScript(
+          graph as Parameters<typeof workflowToScript>[0],
+          {
+            target: input.target,
+            workflowName: workflow.name,
+            getMetadata: (nodeType) => ctx.registry.getMetadata(nodeType)
+          }
+        );
+        const base =
+          (workflow.name ?? "").replace(/[^A-Za-z0-9._-]+/g, "_") ||
+          "workflow";
+        return {
+          ...script,
+          filename: `${base}.${input.target === "node" ? "mjs" : "js"}`
+        };
+      } catch (error) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          error instanceof Error ? error.message : String(error)
+        );
+      }
     }),
 
   // ── versions ──────────────────────────────────────────────────────────────

@@ -154,6 +154,32 @@ nodetool workflows export-dsl workflow_abc123 -o workflow.ts
 nodetool workflows export-dsl ./my_workflow.json
 ```
 
+### `nodetool workflows export-script <workflow_id_or_file>`
+
+Converts a workflow into a JavaScript script that calls each node in
+dependency order, one awaited call per node. The editor's workflow menu and
+the `workflows.exportScript` tRPC call produce the same script.
+
+**Options:**
+
+- `-t, --target <target>` — `sandbox` (default) writes a body for a JS script
+  document or a Code node, calling nodes through
+  `@nodetool-ai/sandbox-nodetool/flow`. `node` writes a standalone `.mjs` that
+  calls nodes in process through `@nodetool-ai/dsl/flow`, takes the workflow
+  inputs as a JSON argument, reads provider keys from the environment, and
+  prints the outputs as JSON.
+- `-o, --output <file>` — write to file instead of stdout.
+
+A node a script cannot express (a node that runs once per streamed item, a
+control edge, a live input stream) is listed on stderr, and the script throws
+before running any node. A graph with a cycle, such as a `Loop`, is refused.
+
+```bash
+nodetool workflows export-script workflow_abc123 --target node -o flow.mjs
+npm install @nodetool-ai/dsl
+node flow.mjs '{"prompt": "a red fox"}'
+```
+
 ### `nodetool run <dsl-file>`
 
 Shorthand for running a TypeScript DSL workflow file directly.
@@ -342,7 +368,7 @@ nodetool chat --url ws://localhost:7777/ws
 
 Manage workflows. Reads the local database by default; `--api-url` targets a remote server.
 
-**Subcommands:** `list` and `get` (both take `--api-url <url>` and `--json`, and `list` takes `--limit <n>`, default 100), `run`, `export-dsl`, `export-example`, `export-bundle`, `import-bundle`,
+**Subcommands:** `list` and `get` (both take `--api-url <url>` and `--json`, and `list` takes `--limit <n>`, default 100), `run`, `export-dsl`, `export-script`, `export-example`, `export-bundle`, `import-bundle`,
 `migrate-code-inputs`
 
 ```bash
