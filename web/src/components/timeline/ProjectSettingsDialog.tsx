@@ -238,7 +238,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
     >
       <FlexColumn gap={SPACING.xl}>
         {/* ── Canvas size ─────────────────────────────────────────── */}
-        <FormSection label="Canvas size" gap={SPACING.sm}>
+        <FormSection label="Canvas size">
           {/* Label hidden — the section header names it; an outlined variant
               keeps it consistent with the Width/Height fields below. */}
           <SelectField
@@ -250,7 +250,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
             options={RESOLUTION_OPTIONS}
             size="small"
           />
-          <FlexRow gap={SPACING.sm} align="flex-start" sx={{ mt: SPACING.md }}>
+          <FlexRow gap={SPACING.lg} align="flex-start">
             <TextInput
               label="Width"
               type="number"
@@ -283,8 +283,8 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
         </FormSection>
 
         {/* ── Frame rate ──────────────────────────────────────────── */}
-        <FormSection label="Frame rate" gap={SPACING.sm}>
-          <FlexRow gap={SPACING.sm} align="flex-start">
+        <FormSection label="Frame rate">
+          <FlexRow gap={SPACING.lg} align="flex-start">
             <FlexColumn sx={{ flex: 2 }}>
               <SelectField
                 label="Frame rate preset"
@@ -297,7 +297,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
               />
             </FlexColumn>
             <TextInput
-              label="fps"
+              label="FPS"
               type="number"
               size="small"
               value={fpsText}
@@ -314,8 +314,8 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
         </FormSection>
 
         {/* ── Tempo ───────────────────────────────────────────────── */}
-        <FormSection label="Tempo" gap={SPACING.sm}>
-          <FlexRow gap={SPACING.sm} align="flex-start">
+        <FormSection label="Tempo">
+          <FlexRow gap={SPACING.lg} align="flex-start">
             <TextInput
               label="BPM"
               type="number"
@@ -368,7 +368,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
             }
             inputProps={{ min: 0, step: 1 }}
             fullWidth={false}
-            sx={{ mt: SPACING.md, alignSelf: "flex-start" }}
+            sx={{ alignSelf: "flex-start" }}
           />
           {midiClipCount > 0 && (
             <Caption color="secondary">

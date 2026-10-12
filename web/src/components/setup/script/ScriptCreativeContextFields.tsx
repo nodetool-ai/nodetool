@@ -1,14 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CreativeContext } from "@nodetool-ai/protocol";
 
-import {
-  Caption,
-  FlexColumn,
-  GAP,
-  Label,
-  Text,
-  TextInput
-} from "../../ui_primitives";
+import { Box, Caption, FormSection, TextInput } from "../../ui_primitives";
 
 export interface ScriptCreativeContextFieldsProps {
   value?: CreativeContext;
@@ -58,26 +51,22 @@ const ClaimsText: React.FC<ClaimsTextProps> = ({
     []
   );
   return (
-    <FlexColumn gap={GAP.micro}>
-      <Label>{label}</Label>
-      <TextInput
-        label={label}
-        hideLabel
-        multiline
-        rows={3}
-        value={draft}
-        disabled={disabled}
-        helperText={helperText}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={() => {
-          if (draft !== value) {
-            // The commit remounts this field, so unmount must not repeat it.
-            pendingRef.current.value = draft;
-            onCommit(draft);
-          }
-        }}
-      />
-    </FlexColumn>
+    <TextInput
+      label={label}
+      multiline
+      minRows={3}
+      value={draft}
+      disabled={disabled}
+      helperText={helperText}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        if (draft !== value) {
+          // The commit remounts this field, so unmount must not repeat it.
+          pendingRef.current.value = draft;
+          onCommit(draft);
+        }
+      }}
+    />
   );
 };
 
@@ -111,53 +100,49 @@ export const ScriptCreativeContextFields: React.FC<
     [context, onChange]
   );
   return (
-    <FlexColumn
-      gap={GAP.normal}
-      component="section"
-      aria-label="Production context"
-    >
-      <FlexColumn gap={GAP.micro}>
-        <Text size="normal" weight={600} component="h3">
-          Production context
-        </Text>
+    <Box component="section" aria-label="Production context">
+      <FormSection label="Production context">
         <Caption color="secondary" component="p">
-          Optional context for visual production. The script still owns its words.
+          Optional context for visual production. The script still owns its
+          words.
         </Caption>
-      </FlexColumn>
-      {TEXT_FIELDS.map(([key, label, helperText]) => (
-        <TextInput
-          key={key}
-          label={label}
-          value={typeof context[key] === "string" ? context[key] : ""}
+        {TEXT_FIELDS.map(([key, label, helperText]) => (
+          <TextInput
+            key={key}
+            label={label}
+            value={typeof context[key] === "string" ? context[key] : ""}
+            disabled={readOnly}
+            helperText={helperText}
+            onChange={(event) =>
+              update({
+                [key]:
+                  event.target.value.trim().length > 0
+                    ? event.target.value
+                    : undefined
+              })
+            }
+          />
+        ))}
+        <ClaimsText
+          key={`approved:${listValue(context.approved_claims)}`}
+          label="Approved claims"
+          helperText="One approved fact per line."
+          value={listValue(context.approved_claims)}
           disabled={readOnly}
-          helperText={helperText}
-          onChange={(event) =>
-            update({
-              [key]:
-                event.target.value.trim().length > 0
-                  ? event.target.value
-                  : undefined
-            })
+          onCommit={(text) => update({ approved_claims: listFromValue(text) })}
+        />
+        <ClaimsText
+          key={`prohibited:${listValue(context.prohibited_claims)}`}
+          label="Prohibited claims"
+          helperText="One claim to avoid per line."
+          value={listValue(context.prohibited_claims)}
+          disabled={readOnly}
+          onCommit={(text) =>
+            update({ prohibited_claims: listFromValue(text) })
           }
         />
-      ))}
-      <ClaimsText
-        key={`approved:${listValue(context.approved_claims)}`}
-        label="Approved claims"
-        helperText="One approved fact per line."
-        value={listValue(context.approved_claims)}
-        disabled={readOnly}
-        onCommit={(text) => update({ approved_claims: listFromValue(text) })}
-      />
-      <ClaimsText
-        key={`prohibited:${listValue(context.prohibited_claims)}`}
-        label="Prohibited claims"
-        helperText="One claim to avoid per line."
-        value={listValue(context.prohibited_claims)}
-        disabled={readOnly}
-        onCommit={(text) => update({ prohibited_claims: listFromValue(text) })}
-      />
-    </FlexColumn>
+      </FormSection>
+    </Box>
   );
 };
 

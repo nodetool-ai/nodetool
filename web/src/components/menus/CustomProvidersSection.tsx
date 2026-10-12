@@ -399,6 +399,7 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
   const handleCancelDelete = useCallback(() => setPendingDelete(null), []);
 
   const rows = providers ?? [];
+  const envSlug = (draft.slug || "SLUG").toUpperCase();
 
   return (
     <div>
@@ -509,6 +510,7 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
             }
             variant="outlined"
             size="small"
+            helperText={`The URL and key are encrypted and stored per account. The same values can come from the environment instead, as CUSTOM_${envSlug}_BASE_URL and CUSTOM_${envSlug}_API_KEY.`}
           />
           <TextInput
             label="Models"
@@ -540,12 +542,6 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
             size="small"
             helperText="Detected from the model list. Add ids that Test misses. Calls go to /videos."
           />
-          <Caption color="secondary">
-            The URL and key are encrypted and stored per account. The same
-            values can come from the environment instead, as CUSTOM_
-            {(draft.slug || "SLUG").toUpperCase()}_BASE_URL and CUSTOM_
-            {(draft.slug || "SLUG").toUpperCase()}_API_KEY.
-          </Caption>
         </FlexColumn>
       </Dialog>
 

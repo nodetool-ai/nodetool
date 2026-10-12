@@ -198,6 +198,14 @@ export const TextInput = memo(
                     paddingRight: theme.spacing(SPACING.md),
                   }),
                 },
+              // Helper and error text match FormField's hint line: caption
+              // size, flush with the field edge, 4px below it.
+              "& .MuiFormHelperText-root": {
+                fontSize: theme.fontSizeSmaller,
+                lineHeight: 1.4,
+                margin: 0,
+                marginTop: theme.spacing(1),
+              },
               // A dense one-row text area is exactly one control high.
               "& .MuiInputBase-multiline": dense
                 ? {

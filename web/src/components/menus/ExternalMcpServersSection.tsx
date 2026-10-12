@@ -14,7 +14,6 @@ import {
   BORDER_RADIUS,
   Caption,
   Card,
-  Checkbox,
   Chip,
   ConfirmDialog,
   Dialog,
@@ -22,6 +21,7 @@ import {
   EmptyState,
   FlexColumn,
   FlexRow,
+  LabeledSwitch,
   MOTION,
   SPACING,
   SelectField,
@@ -410,13 +410,9 @@ export const ExternalMcpServersSection = memo(
       setDraft((prev) => ({ ...prev, type: value === "http" ? "http" : "stdio" }));
     }, []);
 
-    const handleEnabledChange = useCallback(
-      (e: ChangeEvent<HTMLInputElement>) => {
-        const enabled = e.target.checked;
-        setDraft((prev) => ({ ...prev, enabled }));
-      },
-      []
-    );
+    const handleEnabledChange = useCallback((enabled: boolean) => {
+      setDraft((prev) => ({ ...prev, enabled }));
+    }, []);
 
     const servers = data?.servers ?? [];
     const stdioEnabled = data?.stdio_enabled ?? true;
@@ -513,7 +509,7 @@ export const ExternalMcpServersSection = memo(
               size="small"
             />
             <TextInput
-              label="Id"
+              label="ID"
               value={draft.id}
               onChange={field("id")}
               fullWidth
@@ -614,7 +610,7 @@ export const ExternalMcpServersSection = memo(
                 />
               </>
             )}
-            <Checkbox
+            <LabeledSwitch
               label="Enabled"
               checked={draft.enabled}
               onChange={handleEnabledChange}

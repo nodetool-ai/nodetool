@@ -6,6 +6,7 @@ import {
 } from "@nodetool-ai/protocol";
 import EntityAssetPickerDialog from "../../entities/EntityAssetPickerDialog";
 import {
+  AlertBanner,
   Caption,
   CollapsibleSection,
   EditorButton,
@@ -44,6 +45,7 @@ interface ContextTextProps {
   /** The field shows the stored value again, so its old draft no longer counts. */
   readonly onMountFromStored: () => void;
   readonly multiline?: boolean;
+  readonly helperText?: string;
   readonly readOnly: boolean;
 }
 
@@ -55,6 +57,7 @@ const ContextText = ({
   onDraft,
   onMountFromStored,
   multiline,
+  helperText,
   readOnly
 }: ContextTextProps) => {
   const [draft, setDraft] = useState(value);
@@ -80,6 +83,7 @@ const ContextText = ({
       label={label}
       value={draft}
       multiline={multiline}
+      helperText={helperText}
       inputProps={{ readOnly }}
       onChange={(event) => {
         if (readOnly) {
@@ -177,10 +181,7 @@ export default function CreativeContextFields({
       unmountOnExit
     >
       <FlexColumn gap={GAP.comfortable}>
-        <Caption>
-          Leave fields blank when they do not apply. Claims use one line per
-          claim.
-        </Caption>
+        <Caption>Leave fields blank when they do not apply.</Caption>
         {TEXT_FIELDS.map(([key, label]) => (
           <ContextText
             key={`${key}:${value?.[key] ?? ""}`}
@@ -197,6 +198,7 @@ export default function CreativeContextFields({
           <ContextText
             key={`${key}:${value?.[key]?.join("\n") ?? ""}`}
             multiline
+            helperText="One claim per line."
             readOnly={readOnly}
             label={
               key === "approved_claims"
@@ -279,11 +281,7 @@ export default function CreativeContextFields({
         <Caption>
           Reference assets are included in reviewed production requests.
         </Caption>
-        {error ? (
-          <Caption role="alert" color="error">
-            {error}
-          </Caption>
-        ) : null}
+        {error ? <AlertBanner severity="error">{error}</AlertBanner> : null}
         {pickerKind && !readOnly ? (
           <EntityAssetPickerDialog
             open

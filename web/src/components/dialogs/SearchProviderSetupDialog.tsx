@@ -128,7 +128,7 @@ const SearchProviderSetupDialog: React.FC = () => {
       confirmDisabled={!allFilled}
       isLoading={saving}
       content={
-        <FlexColumn gap={SPACING.md}>
+        <FlexColumn gap={SPACING.lg}>
           <Text>
             {nodeNames
               ? `${nodeNames} uses a web-search tool, but no search provider is configured. `

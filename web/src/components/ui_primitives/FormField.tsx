@@ -141,6 +141,7 @@ export const FormField: React.FC<FormFieldProps> = ({
         </FormFieldContext.Provider>
         {bottomText && (
           <Typography
+            variant="body2"
             sx={{
               fontSize: theme.fontSizeSmaller,
               color: error
