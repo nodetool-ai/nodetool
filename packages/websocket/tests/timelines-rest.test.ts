@@ -7,7 +7,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
-import { strFromU8, unzipSync } from "fflate";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import {
   Asset,
@@ -287,6 +287,60 @@ describe("timeline zip routes", () => {
     expect(
       await adapter.retrieve(adapter.uriForKey(`${USER_ID}/${newAssetId}.mp4`))
     ).toEqual(VIDEO);
+  });
+
+  it("imports a Premiere XML zip into a new timeline with its media", async () => {
+    const asset = await seedAsset();
+    const seq = await seedTimeline(USER_ID, asset.id);
+    const exported = await server.inject({
+      url: `/api/timelines/${seq.id}/export-premiere`
+    });
+
+    const { payload, headers } = await multipart(
+      { project_id: "p2" },
+      { name: "cut-premiere.zip", bytes: new Uint8Array(exported.rawPayload) }
+    );
+    const res = await server.inject({
+      method: "POST",
+      url: "/api/timelines/import-zip",
+      payload,
+      headers
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body).toMatchObject({
+      imported: 1,
+      format: "premiere_xml",
+      missing_clips: 0,
+      warnings: []
+    });
+    expect(body.timeline.name).toBe("My Cut");
+    expect(body.timeline.projectId).toBe("p2");
+    expect(body.timeline.fps).toBe(30);
+    expect(body.timeline.durationMs).toBe(2000);
+    const [clip] = body.timeline.clips;
+    expect(clip).toMatchObject({ name: "Shot 1", mediaType: "video", startMs: 0, durationMs: 2000 });
+    expect(clip.currentAssetId).not.toBe(asset.id);
+    expect(
+      await adapter.retrieve(adapter.uriForKey(`${USER_ID}/${clip.currentAssetId}.mp4`))
+    ).toEqual(VIDEO);
+  });
+
+  it("answers 400 for a zip with neither a bundle nor a Premiere sequence", async () => {
+    const { payload, headers } = await multipart(
+      {},
+      { name: "media.zip", bytes: zipSync({ "notes.txt": strToU8("hi") }) }
+    );
+    const res = await server.inject({
+      method: "POST",
+      url: "/api/timelines/import-zip",
+      payload,
+      headers
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().detail).toContain("neither a NodeTool timeline");
   });
 
   it("defaults the project to `default` when the form omits it", async () => {

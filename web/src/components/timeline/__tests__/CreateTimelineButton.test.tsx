@@ -98,6 +98,41 @@ describe("CreateTimelineButton import", () => {
     );
   });
 
+  it("reports clips and features a Premiere zip could not carry", async () => {
+    mockImportTimelineZip.mockResolvedValue({
+      timeline,
+      imported: 1,
+      missing: [],
+      checksum_mismatches: [],
+      format: "premiere_xml",
+      missing_clips: 2,
+      warnings: [
+        "1 transition(s) were imported as overlapping cuts.",
+        "2 clip(s) were left out because their media was not supplied: a.mov."
+      ]
+    });
+
+    renderButton();
+    await selectFile();
+
+    await waitFor(() =>
+      expect(mockAddNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "warning",
+          content:
+            "2 clip(s) were left out because their media was not in the zip"
+        })
+      )
+    );
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "info",
+        content:
+          "Not carried over from Premiere: 1 transition(s) were imported as overlapping cuts."
+      })
+    );
+  });
+
   it("warns when the archive was missing assets", async () => {
     mockImportTimelineZip.mockResolvedValue({
       timeline,

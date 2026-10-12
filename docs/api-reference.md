@@ -82,7 +82,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Timelines | `/api/timelines/{id}/export-zip`   | `GET`             | Session auth                     | streaming                   | One sequence and the bytes of every asset its clips name, as a zip; `404` when the caller does not own it |
 | Timelines | `/api/timelines/{id}/export-premiere` | `GET`          | Session auth                     | streaming                   | One sequence as a Premiere Pro XML (xmeml) plus its media and an export report, as a zip; `404` when the caller does not own it |
 | Timelines | `/api/timelines/{id}/export-media` | `GET`             | Session auth                     | streaming                   | Every clip's media file plus `clips.csv`, as a zip; `404` when the caller does not own it |
-| Timelines | `/api/timelines/import-zip`       | `POST`            | Session auth                     | no                          | Multipart upload of such a zip; stores the assets and creates a new timeline pointing at them |
+| Timelines | `/api/timelines/import-zip`       | `POST`            | Session auth                     | no                          | Multipart upload of such a zip, or of a zip holding a Premiere Pro XML and its media; stores the assets and creates a new timeline pointing at them |
 | Providers | `/api/fal/credits`                | `GET`             | Session auth                     | no                          | The server's fal.ai account balance; `204` when no `FAL_API_KEY` is configured |
 | Providers | `/api/fal/pricing`                | `GET`             | Session auth                     | no                          | Unit price per fal.ai endpoint, one or more `?endpoint_id=`; cached an hour |
 | Providers | `/api/fal/pricing/estimate`       | `POST`            | Session auth                     | no                          | What a fal.ai endpoint costs for a given quantity; `204` when no `FAL_API_KEY` is configured |
@@ -949,6 +949,13 @@ of every video, image, and audio clip under `media/`, named as in the Premiere
 export, and `clips.csv` with one row per clip (`clip`, `track`, `media_type`,
 `start_s`, `end_s`, `in_s`, `file`). `x-nodetool-export-missing` counts the
 files that could not be read or packed. The zip is `<timeline name>-media.zip`.
+
+`POST /api/timelines/import-zip` also accepts a zip with no `manifest.json` that
+holds a Final Cut Pro 7 XML (xmeml) sequence, such as Premiere Pro's
+File > Export > Final Cut Pro XML zipped with its media. Media is matched by
+file name in any folder of the zip. The response adds `format: "premiere_xml"`,
+`missing_clips` (clips whose file was not in the zip), and `warnings` (what
+had no NodeTool counterpart, such as transitions or nested sequences).
 
 `POST /api/timelines/import-zip` reads the zip back as a multipart form. `file`
 is required; `project_id` defaults to `"default"` (no project) and `name`

@@ -3,7 +3,7 @@
  *   `GET  /api/timelines/:id/export-zip`
  *   `GET  /api/timelines/:id/export-premiere`
  *   `GET  /api/timelines/:id/export-media`
- *   `POST /api/timelines/import-zip`
+ *   `POST /api/timelines/import-zip` (a NodeTool bundle or a Premiere XML zip)
  *
  * The web app reads and writes sequences over `/trpc/timeline.*`; these are the
  * non-tRPC doors, because the responses are binary archives and the upload is
@@ -18,6 +18,7 @@ import { tmpdir } from "node:os";
 import nodePath from "node:path";
 import type { FastifyPluginAsync } from "fastify";
 import type { InterchangeSequence } from "@nodetool-ai/timeline";
+import { timelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import {
   Asset,
   TimelineSequence,
@@ -30,9 +31,15 @@ import { resolveAssetExportSource } from "../lib/asset-export.js";
 import { createAssetModelInterface } from "../lib/asset-model-interface.js";
 import {
   importTimelineBundle,
+  unzipBounded,
   writeTimelineBundle,
+  zipEntryNames,
   type BundledTimeline
 } from "../lib/timeline-bundle.js";
+import {
+  findPremiereXml,
+  importPremiereArchive
+} from "../lib/timeline-premiere-import.js";
 import { planMediaExport, writeMediaExport } from "../lib/timeline-media-export.js";
 import {
   planPremiereExport,
@@ -200,6 +207,82 @@ async function readImportUpload(
   return upload;
 }
 
+/** Store one uploaded file as an asset the caller owns. */
+async function storeOwnedAsset(
+  userId: string,
+  file: { bytes: Uint8Array; name: string; contentType: string }
+): Promise<{ assetId: string }> {
+  const asset = await createAssetModelInterface({
+    userId,
+    name: file.name,
+    contentType: file.contentType,
+    content: file.bytes
+  });
+  return { assetId: asset.id };
+}
+
+/** A new timeline from a zip holding a Premiere Pro XML and its media. */
+async function importPremiereUpload(
+  upload: ImportUpload,
+  userId: string
+): Promise<Response> {
+  let result: Awaited<ReturnType<typeof importPremiereArchive>>;
+  try {
+    const entries = unzipBounded(upload.zipBytes);
+    const xml = findPremiereXml(entries);
+    if (!xml) {
+      return jsonError(
+        400,
+        "Invalid bundle: the zip holds neither a NodeTool timeline (manifest.json) nor a Premiere Pro XML sequence"
+      );
+    }
+    result = await importPremiereArchive(xml, entries, {
+      storeAsset: (file) => storeOwnedAsset(userId, file)
+    });
+  } catch (error) {
+    return jsonError(
+      400,
+      `Invalid Premiere XML: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+  const { timeline } = result;
+  // The same schema gate the bundle import and the tRPC update apply.
+  const parsed = timelineDocument.safeParse({
+    tracks: timeline.tracks,
+    clips: timeline.clips,
+    markers: timeline.markers,
+    transcript: []
+  });
+  if (!parsed.success) {
+    return jsonError(400, `Invalid Premiere XML: ${parsed.error.message}`);
+  }
+  const doc: TimelineDocument = parsed.data;
+  const seq = new TimelineSequence({
+    user_id: userId,
+    project_id: upload.projectId,
+    name: upload.name ?? timeline.name,
+    fps: timeline.fps,
+    width: timeline.width,
+    height: timeline.height,
+    workflow_id: null
+  });
+  seq.fromDocument(doc);
+  seq.duration_ms = timelineDocumentDurationMs(doc);
+  await seq.save();
+  return new Response(
+    JSON.stringify({
+      timeline: seq.toTimelineSequence(),
+      imported: result.imported.length,
+      missing: [],
+      checksum_mismatches: [],
+      format: "premiere_xml",
+      missing_clips: timeline.missingClips,
+      warnings: timeline.warnings
+    }),
+    { status: 200, headers: { "content-type": "application/json" } }
+  );
+}
+
 const timelinesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   const { apiOptions } = opts;
   const userIdOf = (request: Request): string =>
@@ -215,18 +298,26 @@ const timelinesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         return upload;
       }
 
+      let names: string[];
+      try {
+        names = zipEntryNames(upload.zipBytes);
+      } catch (error) {
+        return jsonError(
+          400,
+          `Invalid bundle: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+      // A NodeTool bundle carries a manifest; a zip without one may hold a
+      // Premiere Pro (xmeml) sequence and its media instead.
+      if (!names.includes("manifest.json")) {
+        return importPremiereUpload(upload, userId);
+      }
+
       let result: Awaited<ReturnType<typeof importTimelineBundle>>;
       try {
         result = await importTimelineBundle(upload.zipBytes, {
-          storeAsset: async ({ bytes, name, contentType }) => {
-            const asset = await createAssetModelInterface({
-              userId,
-              name,
-              contentType,
-              content: bytes
-            });
-            return { assetId: asset.id };
-          }
+          storeAsset: ({ bytes, name, contentType }) =>
+            storeOwnedAsset(userId, { bytes, name, contentType })
         });
       } catch (error) {
         return jsonError(

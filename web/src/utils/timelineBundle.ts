@@ -3,7 +3,8 @@
  *   GET  /api/timelines/:id/export-zip → the document + every referenced asset
  *   GET  /api/timelines/:id/export-premiere → a Premiere Pro XML + its media
  *   GET  /api/timelines/:id/export-media → every clip's media + a clip list
- *   POST /api/timelines/import-zip     → a new timeline from such an archive
+ *   POST /api/timelines/import-zip     → a new timeline from such an archive,
+ *                                        or from a Premiere Pro XML zip
  */
 import { restFetch } from "../lib/rest-fetch";
 import type { RouterOutputs } from "../trpc/client";
@@ -17,6 +18,12 @@ export interface ImportTimelineZipResponse {
   imported: number;
   missing: string[];
   checksum_mismatches: string[];
+  /** Set to `premiere_xml` when the zip held a Premiere Pro sequence. */
+  format?: "premiere_xml";
+  /** Premiere import: clips left out because their media was not in the zip. */
+  missing_clips?: number;
+  /** Premiere import: what was not carried over. */
+  warnings?: string[];
 }
 
 function isImportTimelineZipResponse(
@@ -101,7 +108,10 @@ export async function exportTimelineMedia(
   return Number.isFinite(missing) ? missing : null;
 }
 
-/** Upload a timeline zip; the server stores its assets and creates a timeline. */
+/**
+ * Upload a timeline zip, or a zip holding a Premiere Pro XML and its media;
+ * the server stores the assets and creates a timeline.
+ */
 export async function importTimelineZip(
   file: File,
   options: { projectId: string; name?: string }
