@@ -304,6 +304,28 @@ it("scores physics materials authored through the public 3D edit surface", async
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
 
+it("scores a 3D HUD tree with a health bar and an action button authored through the public edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="hud-widget-tree-3d");
+  if (!candidate) { throw new Error("3D HUD eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("3D HUD eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const read = bridge.tools.find(tool=>tool.name==="get_native_game");
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!read || !edit) { throw new Error("Native game tools must exist"); }
+  const { document } = await read.execute({ view: "full" }) as { document: { scenes: { entities: { id: string; behaviors: unknown[] }[] }[] } };
+  const behaviors = document.scenes[0].entities.find(entity=>entity.id==="player")?.behaviors ?? [];
+  const nodes = [
+    { kind: "bar", id: "health", offset: { x: 16, y: 16 }, width: 180, height: 14, source: { kind: "health", entityId: "player" } },
+    { kind: "button", id: "jumpButton", anchor: { x: 0.5, y: 1 }, width: 112, height: 40, action: "jump", text: "Jump" }
+  ];
+  const rejected = await edit.execute({ops:[{op:"set_ui",ui:{nodes}}]});
+  expect(JSON.stringify(rejected)).toContain("HUD bar health reads health of player, which has no health behavior in this scene");
+  await edit.execute({ops:[{op:"update_entity",entity_id:"player",set:{behaviors:[...behaviors,{kind:"health",maximum:5}]}},{op:"set_ui",ui:{nodes}}]});
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
 it("scores a player save script authored through the public edit surface and rejects incorrect ones", async () => {
   const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="player-saves-script");
   const predicate = candidate?.expect.finalState?.[0];

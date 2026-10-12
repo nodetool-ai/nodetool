@@ -53,5 +53,6 @@ export { browserGamepads, GameInput, type GamepadLike, type TouchInputState } fr
 export * from "./ui/layout.js";
 export * from "./ui/paint.js";
 export * from "./ui/hud2d.js";
+export * from "./ui/hud3d.js";
 export * from "./ui/controller.js";
 export { createIndexedDbGameSaveStorage, createLocalGameSaveStorage, loadQuickSave, type GameSaveWebStorage } from "./save-storage.js";

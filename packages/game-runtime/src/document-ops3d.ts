@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   gameAnimationGraph3D, gameAssetBinding3D, gameAudioMixer, gameBehavior3D, gameBody3D, gameCamera3D, gameCollider3D, gameCollisionMatrix3D, gameDocument3D, gamePhysicsMaterials3D,
-  gameEntity3D, gameInputBindings, gameLight3D, gamePerformance3D, gamePrefab3D, gameScene3D, gameScriptParamValue, gameScriptParams, gameTransform3D, gameVector3,
+  gameEntity3D, gameInputBindings, gameLight3D, gamePerformance3D, gamePrefab3D, gameScene3D, gameScriptParamValue, gameScriptParams, gameTransform3D, gameUiTree, gameVector3,
   type AnyGameDocument, type GameDocument, type GameDocument3D, type GameEntity3D, type GamePrefab3D, type GameTransform3D
 } from "@nodetool-ai/protocol";
 import { applyGameOwnershipOperation, authoringMembershipOp, createGameOwnershipDeltaState, overrideMembershipOp, reconcileGameOwnershipDeltas } from "./ownership-ops.js";
@@ -67,6 +67,7 @@ export const gameDocumentOp3D = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("set_game"), presentation: preservingPatch(gameDocument3D.shape.presentation.partial()).optional(), input_actions: gameDocument3D.shape.inputActions.optional(), input_axes: gameDocument3D.shape.inputAxes.optional(), input_bindings: gameInputBindings.nullable().optional(), entry_scene_id: id.optional(), collision_layers: gameDocument3D.shape.collisionLayers.nullable().optional(), collision_matrix: gameCollisionMatrix3D.nullable().optional(), physics_materials: gamePhysicsMaterials3D.nullable().optional() }),
   z.strictObject({ op: z.literal("set_audio"), mixer: gameAudioMixer.nullable() }),
   z.strictObject({ op: z.literal("set_performance"), performance: gamePerformance3D.nullable() }),
+  z.strictObject({ op: z.literal("set_ui"), scene_id: id.optional(), ui: gameUiTree.nullable() }),
   z.strictObject({ op: z.literal("bind_asset"), slot: id, binding: gameAssetBinding3D }),
   z.strictObject({ op: z.literal("unbind_asset"), slot: id }),
   z.strictObject({ op: z.literal("set_animation_graph"), graph_id: id, graph: gameAnimationGraph3D }),
@@ -315,6 +316,11 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
       case "set_performance": {
         if (op.performance === null) { delete draft.performance; }
         else { draft.performance = op.performance; }
+        break;
+      }
+      case "set_ui": {
+        const owner = op.scene_id === undefined ? draft : findScene(op.scene_id, opIndex);
+        if (op.ui === null) { delete owner.ui; } else { owner.ui = op.ui; }
         break;
       }
       case "bind_asset": draft.assets[op.slot] = op.binding; break;

@@ -12,20 +12,6 @@ import type { DockerDeployment } from "./deployment-config.js";
 import { DockerDeploymentSchema } from "./deployment-config.js";
 
 // ============================================================================
-// Common helper
-// ============================================================================
-
-/**
- * Detect the default HuggingFace hub cache directory, resolved the way
- * Python `huggingface_hub` does (`getHfHubCacheDir` in `@nodetool-ai/config`:
- * HF_HUB_CACHE, HUGGINGFACE_HUB_CACHE, HF_HOME/hub, XDG_CACHE_HOME/huggingface/hub,
- * then ~/.cache/huggingface/hub).
- */
-export function detectHfCacheDefault(): string {
-  return getHfHubCacheDir();
-}
-
-// ============================================================================
 // Docker configuration
 // ============================================================================
 
@@ -91,7 +77,7 @@ export function configureDocker(
     },
     paths: {
       workspace: params.workspacePath ?? join(homedir(), ".nodetool-workspace"),
-      hf_cache: params.hfCachePath ?? detectHfCacheDefault()
+      hf_cache: params.hfCachePath ?? getHfHubCacheDir()
     }
   });
 }

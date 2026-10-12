@@ -65,3 +65,25 @@ it("rejects a HUD button that presses an undeclared action", async () => {
   expect(JSON.stringify(report)).toContain("HUD button pause presses undeclared input action pause");
   expect(process.exitCode).toBe(1);
 });
+
+// The same HUD on a 3D game. No scripts, for the same reason as the 2D document.
+const document3D = {
+  schemaVersion: 3, engineVersion: "2", dimension: "3d", id: "hud3d", revision: "r1", entrySceneId: "main", tickRate: 60,
+  presentation: { aspectRatio: 16 / 9, hudWidth: 512, hudHeight: 288 }, inputActions: ["pause"], assets: {},
+  ui: document.ui,
+  scenes: [{ id: "main", name: "Main", activeCameraId: "camera", entities: [
+    { id: "camera", transform3d: { position: { x: 0, y: 2, z: 6 } }, camera3d: { projection: { kind: "perspective", fov: 60 } } },
+    { id: "player", transform3d: {}, primitive: { kind: "box", dimensions: { x: 1, y: 1, z: 1 } }, behaviors: [{ kind: "health", maximum: 3 }] }
+  ] }]
+};
+
+it("validates, replays and captures a 3D game with a HUD widget tree", async () => {
+  await writeFile(gamePath, JSON.stringify(document3D));
+  expect(await run("validate")).toMatchObject({ valid: true, document: { dimension: "3d", ui: { nodes: [{ id: "health" }, { id: "scorePanel" }, { id: "score" }, { id: "pause" }] } } });
+  const inputs = join(directory, "inputs.json");
+  await writeFile(inputs, JSON.stringify(Array.from({ length: 10 }, (_, tick) => ({ pressed: tick === 3 ? ["pause"] : [], justPressed: tick === 3 ? ["pause"] : [] }))));
+  expect(await run("simulate", "--ticks", "10", "--inputs", inputs, "--verify-replay")).toMatchObject({ ok: true, replay: { verified: true } });
+  const png = join(directory, "hud3d.png");
+  expect(await run("capture", "--ticks", "1", "--out", png)).toMatchObject({ tick: 1 });
+  expect((await readFile(png)).subarray(1, 4).toString()).toBe("PNG");
+}, 60_000);

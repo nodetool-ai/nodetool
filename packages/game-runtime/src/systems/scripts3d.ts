@@ -1,4 +1,4 @@
-import { gameParticleEmissionOf, type GameEntityProps } from "@nodetool-ai/protocol";
+import { applyGameUiCommand, gameParticleEmissionOf, gameUiCommandTarget, type GameEntityProps, type GameUiScriptCommand } from "@nodetool-ai/protocol";
 import type { EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { applyGameplayCommand, queueGameplayBehavior, type GameplayCommand } from "../gameplay/lifecycle.js";
@@ -75,6 +75,13 @@ function destroyCalls3D(context: GameSystemContext3D, hookSources: ReadonlySet<s
     if (call) { calls.push(call as unknown as GameScriptCall3D); }
   }
   return calls;
+}
+
+/** Checks that a `ui` command names a node of the document or scene HUD tree that takes its fields, then applies it. */
+function applyUiCommand3D(context: GameSystemContext3D, command: GameUiScriptCommand): void {
+  const target = gameUiCommandTarget([...(context.document.ui?.nodes ?? []), ...(context.currentScene().ui?.nodes ?? [])], command);
+  if (typeof target === "string") { throw new Error(target); }
+  applyGameUiCommand(context.ui, command);
 }
 
 export function stepScripts3D(context: GameSystemContext3D): void {
@@ -163,7 +170,8 @@ export function stepScripts3D(context: GameSystemContext3D): void {
         if (!byId.has(result.entityId)) { delete context.scriptState[call.stateKey]; }
         else { context.scriptState[call.stateKey] = result.state; }
         for (const command of result.commands) {
-          applyGameplayCommand(command as GameplayCommand, result.entityId, context.queues, context.hud, context.emit);
+          if (command.kind === "ui") { applyUiCommand3D(context, command); }
+          else { applyGameplayCommand(command as GameplayCommand, result.entityId, context.queues, context.hud, context.emit); }
         }
         continue;
       }
@@ -260,6 +268,9 @@ export function stepScripts3D(context: GameSystemContext3D): void {
             break;
           case "emitParticles":
             (context.queues.particles ??= []).push(gameParticleEmissionOf(command, result.entityId));
+            break;
+          case "ui":
+            applyUiCommand3D(context, command);
             break;
           default:
             applyGameplayCommand(command, result.entityId, context.queues, context.hud, context.emit);

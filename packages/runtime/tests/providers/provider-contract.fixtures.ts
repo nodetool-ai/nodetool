@@ -49,6 +49,7 @@ export const MEDIA_ONLY_EXEMPTIONS: Record<string, string> = {
     "Image/video generation provider; generateMessage(s) always throws.",
   useapi:
     "Google Flow and Dreamina image/video provider; generateMessage(s) always throws.",
+  vgenv: "MiniMax H3 video provider; generateMessage(s) always throws.",
   meshy: "3D asset generation provider; generateMessage(s) always throws.",
   rodin: "3D asset generation provider; generateMessage(s) always throws.",
   cohere: "Embeddings/rerank provider; generateMessage(s) always throws.",
