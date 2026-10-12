@@ -2,7 +2,10 @@ import { z } from "zod";
 
 /** Script log lines kept per tick. Later lines in the same tick collapse into one overflow line. */
 export const GAME_SCRIPT_LOG_LIMIT = 32;
-/** Characters kept from one log message. Longer messages are truncated, never rejected. */
+/**
+ * UTF-16 code units kept from one log message, cut back to a code-point boundary. Longer messages are truncated.
+ * Log text still counts toward the 64 KiB output limit of a script call, which fails the call when exceeded.
+ */
 export const GAME_SCRIPT_LOG_MESSAGE_LIMIT = 1000;
 
 /**
@@ -17,10 +20,10 @@ export const gameScriptLogCommand = z.strictObject({
 
 export type GameScriptLogCommand = z.infer<typeof gameScriptLogCommand>;
 
-/** A log line from one script call. Log lines are presentation data. */
+/** A log line from one script call. Log lines are presentation data. The overflow line names no entity. */
 export interface GameScriptLogEntry {
   readonly tick: number;
-  readonly entityId: string;
+  readonly entityId?: string;
   readonly level: NonNullable<GameScriptLogCommand["level"]>;
   readonly message: string;
 }
@@ -45,18 +48,38 @@ export class GameScriptLogCollector {
       if (!parsed.success) { throw new Error(`Invalid log command at index ${index}: ${z.prettifyError(parsed.error)}`); }
       if (this.lines.length >= GAME_SCRIPT_LOG_LIMIT) { this.dropped += 1; continue; }
       const { message, level = "log" } = parsed.data;
-      this.lines.push({ tick: this.tick, entityId, level,
-        message: message.length > GAME_SCRIPT_LOG_MESSAGE_LIMIT ? `${message.slice(0, GAME_SCRIPT_LOG_MESSAGE_LIMIT)}…` : message });
+      this.lines.push({ tick: this.tick, entityId, level, message: truncateLogMessage(message) });
     }
     return rest;
   }
 
   entries(): readonly GameScriptLogEntry[] {
     if (this.dropped === 0) { return this.lines; }
-    const last = this.lines[this.lines.length - 1];
-    return [...this.lines, { tick: this.tick, entityId: last.entityId, level: "warning",
-      message: `${this.dropped} more script log lines dropped at tick ${this.tick} (limit ${GAME_SCRIPT_LOG_LIMIT} per tick)` }];
+    return [...this.lines, { tick: this.tick, level: "warning",
+      message: `${this.dropped} more script log ${this.dropped === 1 ? "line" : "lines"} dropped at tick ${this.tick} (limit ${GAME_SCRIPT_LOG_LIMIT} per tick)` }];
   }
+}
+
+function truncateLogMessage(message: string): string {
+  if (message.length <= GAME_SCRIPT_LOG_MESSAGE_LIMIT) { return message; }
+  const last = message.charCodeAt(GAME_SCRIPT_LOG_MESSAGE_LIMIT - 1);
+  // Never keep the high half of a surrogate pair without its low half.
+  const end = last >= 0xd800 && last <= 0xdbff ? GAME_SCRIPT_LOG_MESSAGE_LIMIT - 1 : GAME_SCRIPT_LOG_MESSAGE_LIMIT;
+  return `${message.slice(0, end)}…`;
+}
+
+const SCRIPT_LOGS = Symbol("gameScriptLogs");
+
+/** Attaches the lines logged before a failure to the thrown error, unless it already carries some. */
+export function withGameScriptLogs(error: unknown, logs: readonly GameScriptLogEntry[] | undefined): unknown {
+  if (logs === undefined || logs.length === 0 || !(error instanceof Error) || SCRIPT_LOGS in error) { return error; }
+  Object.defineProperty(error, SCRIPT_LOGS, { value: logs });
+  return error;
+}
+
+/** The script log lines of a failed tick, logged before the failure. */
+export function gameScriptLogsOf(error: unknown): readonly GameScriptLogEntry[] | undefined {
+  return error instanceof Error && SCRIPT_LOGS in error ? (error as Error & { [SCRIPT_LOGS]: readonly GameScriptLogEntry[] })[SCRIPT_LOGS] : undefined;
 }
 
 function isLogCommand(command: unknown): boolean {

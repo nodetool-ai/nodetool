@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { gameAssetBinding, gameSnapshot3D, type GameDocument3D, type GameInspection3D, type GameInputFrame3D, type GameRenderFrame3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
-import { createGameSession3D, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
+import { createGameSession3D, gameScriptLogsOf, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
 import { browserGamepads, FixedTickClock, GameInput3D } from "@nodetool-ai/game-renderer";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
@@ -129,6 +129,9 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       if (!playingRef.current) { display(result.frame, 1); }
     } catch (cause) {
       sessionFailedRef.current = true;
+      // Lines logged before the failure reach the console ahead of the error line.
+      const logs = gameScriptLogsOf(cause);
+      if (logs) { scriptLogs.publish(logs); }
       setInspection(committedRef.current);
       setFrame(lastFrameRef.current);
       setError(cause instanceof Error ? cause.message : String(cause));

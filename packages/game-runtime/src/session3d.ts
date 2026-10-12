@@ -16,7 +16,7 @@ import {
   type GameStepResult3D
 } from "@nodetool-ai/protocol";
 import { initialGameplayState, runGameplayTick } from "./gameplay/lifecycle.js";
-import type { GameScriptLogEntry } from "./script-log.js";
+import { withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
 import type { GameScriptStats } from "./scripts.js";
 import { prepareGameScripts3D, type GameScriptRunner3D } from "./scripts3d.js";
 import { validateGame3D } from "./validate3d.js";
@@ -614,8 +614,12 @@ export async function createGameSession3D(
             systemContext.scriptLogs = undefined;
             systemContext.spatialStep = undefined;
             systemContext.result = undefined;
-            const timings = options.recordTimings ? pipeline.stepTimed(systemContext) : undefined;
-            if (!options.recordTimings) { pipeline.step(systemContext); }
+            let timings: ReturnType<typeof pipeline.stepTimed> | undefined;
+            // A tick that fails after its scripts ran still reports what they logged.
+            try {
+              timings = options.recordTimings ? pipeline.stepTimed(systemContext) : undefined;
+              if (!options.recordTimings) { pipeline.step(systemContext); }
+            } catch (error) { throw withGameScriptLogs(error, systemContext.scriptLogs); }
             const result = readStepResult3D(systemContext);
             return timings ? { ...result, timings } : result;
           },

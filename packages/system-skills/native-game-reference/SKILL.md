@@ -98,7 +98,9 @@ play. Export embeds the font bytes for offline use.
 `level` is `"log"` (the default), `"warning"` or `"error"`. A log line never
 changes the simulation, snapshots or replay, and it does not count toward
 `maxCommands`. A tick keeps 32 lines and reports the rest as one dropped-lines
-warning. Messages longer than 1000 characters are truncated.
+warning. Messages longer than 1000 characters are truncated. Log text still
+counts toward the 64 KiB output limit of a script call. Lines logged before a
+script failure appear in the console ahead of the error.
 
 ### Script time limits
 

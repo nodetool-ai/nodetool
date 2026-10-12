@@ -25,7 +25,7 @@ import {
   runGameplayTick
 } from "./gameplay/lifecycle.js";
 import { validateGame } from "./validate.js";
-import type { GameScriptLogEntry } from "./script-log.js";
+import { withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
 import { hasGameScripts, prepareGameScripts, type GameScriptRunner, type GameScriptStats } from "./scripts.js";
 
 import { statefulGameSystem } from "./systems/pipeline.js";
@@ -542,8 +542,12 @@ function createGameSessionWithRunner(
         systemContext.result = undefined;
         systemContext.events = events;
         systemContext.emit = emit;
-        const timings = options.recordTimings ? pipeline.stepTimed(systemContext) : undefined;
-      if (!options.recordTimings) { pipeline.step(systemContext); }
+        let timings: GameStepTimings | undefined;
+        // A tick that fails after its scripts ran still reports what they logged.
+        try {
+          timings = options.recordTimings ? pipeline.stepTimed(systemContext) : undefined;
+          if (!options.recordTimings) { pipeline.step(systemContext); }
+        } catch (error) { throw withGameScriptLogs(error, systemContext.scriptLogs); }
         const result = readStepResult2D(systemContext);
         return timings ? { ...result, timings } : result;
       },

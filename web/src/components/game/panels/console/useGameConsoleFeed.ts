@@ -42,9 +42,7 @@ export function useGameConsoleFeed(gameId: string, { runtimeError, scriptError, 
   useConsoleLine(gameId, "script", scriptMessage, scriptError?.tick, scriptError?.entityId);
   useConsoleLine(gameId, "diagnostic", diagnosticError?.message ?? null, diagnosticError?.tick, diagnosticError?.entityId);
   useEffect(() => scriptLogs?.subscribe((logs) => {
-    const { append } = getGameConsoleStore(gameId).getState();
-    for (const { level, message, tick: logTick, entityId } of logs) {
-      append({ level, source: "script", message, tick: logTick, entityId });
-    }
+    getGameConsoleStore(gameId).getState().appendAll(logs.map(({ level, message, tick: logTick, entityId }) =>
+      entityId === undefined ? { level, source: "script", message, tick: logTick } : { level, source: "script", message, tick: logTick, entityId }));
   }), [gameId, scriptLogs]);
 }

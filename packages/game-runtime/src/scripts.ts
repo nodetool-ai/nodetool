@@ -2,7 +2,7 @@ import type { QuickJSContext, QuickJSHandle, QuickJSRuntime } from "quickjs-emsc
 import { z } from "zod";
 import { gameNonSpatialScriptCommand, gameUiScriptCommand, resolveGameScriptParams, type GameDocument, type GameEntityProps, type GameScriptParam, type GameScriptParamValue, type GameSnapshot } from "@nodetool-ai/protocol";
 
-import { GameScriptLogCollector, type GameScriptLogEntry } from "./script-log.js";
+import { GameScriptLogCollector, withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
 import { defaultScriptCallClock, startScriptCallTimer, type ScriptCallClock } from "./script-clock.js";
 import { commitScriptHooks, planScriptHooks, scriptHookIssue, SCRIPT_LIFECYCLE_DISPATCH, type GameScriptHookPlan, type GameScriptLifecycle } from "./script-lifecycle.js";
 import { canPersistGameScript } from "./script-persistence.js";
@@ -430,7 +430,8 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       }
     }
     type Batch = ReturnType<IsolatedScriptRunner<Call, Input, Command>["run"]>;
-    const execute = (calls: readonly Call[], input: Input, rngState: number, world: readonly ScriptWorldEntity[] | undefined, batchMs: number): Batch => {
+    const executeBatch = (calls: readonly Call[], input: Input, rngState: number, world: readonly ScriptWorldEntity[] | undefined, batchMs: number,
+      logs: GameScriptLogCollector): Batch => {
       const started = performance.now();
       const batchDeadline = started + batchMs;
       // This limits the logical tick payload, which carries each entity's props once.
@@ -492,7 +493,6 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         return legacyWorld;
       };
       let nextRngState = rngState;
-      const logs = new GameScriptLogCollector(input.tick);
       let serializedResultsBytes = 0;
       let commandCount = 0;
       const byEntity: Record<string, { durationMs: number; calls: number }> = Object.create(null);
@@ -618,6 +618,12 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       const stats = { durationMs: performance.now() - started, commands: commandCount, calls: calls.length, byEntity };
       const lines = logs.entries();
       return lines.length === 0 ? { results, rngState: nextRngState, stats } : { results, rngState: nextRngState, stats, logs: lines };
+    };
+    // A failed batch carries the lines its calls logged before the failure.
+    const execute = (calls: readonly Call[], input: Input, rngState: number, world: readonly ScriptWorldEntity[] | undefined, batchMs: number): Batch => {
+      const logs = new GameScriptLogCollector(input.tick);
+      try { return executeBatch(calls, input, rngState, world, batchMs, logs); }
+      catch (error) { throw withGameScriptLogs(error, logs.entries()); }
     };
     const warmCalls = !warmedCommandSchemas.has(commandSchema);
     const warmHooks = hookSources.size > 0 && !warmedHookSchemas.has(commandSchema);

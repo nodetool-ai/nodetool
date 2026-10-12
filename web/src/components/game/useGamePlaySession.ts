@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameDocument, GameInputFrame, GameRenderFrame, GameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { gameSnapshot } from "@nodetool-ai/protocol/game.js";
-import { createScriptedGameSession, type GameSession } from "@nodetool-ai/game-runtime";
+import { createScriptedGameSession, gameScriptLogsOf, type GameSession } from "@nodetool-ai/game-runtime";
 import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "@nodetool-ai/game-renderer/audio";
 import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, GameInput, GameParticles2D, GameUiController, gameUiViewport2D, type GameRenderer } from "@nodetool-ai/game-renderer";
@@ -149,7 +149,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     if (playDocument) inputHistoryRef.current.record(input, () => session.snapshot());
     try {
       const result = session.step(input);
-      if (result.scriptLogs) scriptLogs.publish(result.scriptLogs);
+      if (result.scriptLogs) { scriptLogs.publish(result.scriptLogs); }
       particlesRef.current?.tick(result.frame, session.takePresentationEvents());
       result.events.forEach((event) => audioRef.current?.handle(event));
       const state = session.snapshot();
@@ -167,6 +167,9 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       });
     } catch (cause) {
       sessionFailedRef.current = true;
+      // Lines logged before the failure reach the console ahead of the error line.
+      const logs = gameScriptLogsOf(cause);
+      if (logs) { scriptLogs.publish(logs); }
       const message = cause instanceof Error ? cause.message : String(cause);
       setError(message);
       if (message.includes("Game script")) setScriptError(scriptFailure(message, lastTickRef.current + 1));

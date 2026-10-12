@@ -3,7 +3,7 @@ import { gameDocument, gameEntity3D, gameInputFrame3D, type GameDocument, type G
 
 import { openGameSession } from "../src/open-session.js";
 import { createTopDownRoomGame } from "../src/sample.js";
-import { GAME_SCRIPT_LOG_LIMIT, GAME_SCRIPT_LOG_MESSAGE_LIMIT } from "../src/script-log.js";
+import { GAME_SCRIPT_LOG_LIMIT, GAME_SCRIPT_LOG_MESSAGE_LIMIT, gameScriptLogsOf } from "../src/script-log.js";
 import { createScriptedGameSession } from "../src/session.js";
 import { blockout } from "./fixtures-game3d.js";
 
@@ -17,12 +17,20 @@ function mover(logs: boolean): string {
     { kind: "log", level: "warning", message: "x " + input.entity.x.toFixed(2) }` : ""}] })`;
 }
 
-function game2D(source: string, maxCommands = 8): GameDocument {
+function game2D(source: string, maxCommands = 8, more: Readonly<Record<string, string>> = {}): GameDocument {
   const base = createTopDownRoomGame("f".repeat(32));
+  const script = (id: string, code: string, x: number) => ({ id, transform2d: { x, y: 2 }, behaviors: [{ kind: "script", source: code, maxCommands, maxTickMs: 50 }] });
   return gameDocument.parse({ ...base, schemaVersion: 4, engineVersion: "3", scenes: base.scenes.map((scene) => ({ ...scene, entities: [
     ...scene.entities,
-    { id: "logger", transform2d: { x: -5, y: 2 }, behaviors: [{ kind: "script", source, maxCommands, maxTickMs: 50 }] }
+    script("logger", source, -5),
+    ...Object.entries(more).map(([id, code], index) => script(id, code, index + 1))
   ] })) });
+}
+
+/** Runs one step that must throw and returns the error. */
+function failure(step: () => unknown): unknown {
+  try { step(); } catch (error) { return error; }
+  throw new Error("The step did not fail");
 }
 
 function game3D(source: string): GameDocument3D {
@@ -102,7 +110,7 @@ describe("2D script log command", () => {
       expect(logs).toHaveLength(GAME_SCRIPT_LOG_LIMIT + 1);
       expect(logs[0].message).toBe(`${"y".repeat(GAME_SCRIPT_LOG_MESSAGE_LIMIT)}…`);
       expect(logs[GAME_SCRIPT_LOG_LIMIT - 1]).toMatchObject({ level: "error", message: `line ${GAME_SCRIPT_LOG_LIMIT - 2}` });
-      expect(logs[GAME_SCRIPT_LOG_LIMIT]).toEqual({ tick: 0, entityId: "logger", level: "warning",
+      expect(logs[GAME_SCRIPT_LOG_LIMIT]).toEqual({ tick: 0, level: "warning",
         message: `10 more script log lines dropped at tick 0 (limit ${GAME_SCRIPT_LOG_LIMIT} per tick)` });
       expect(session.step(idle).scriptLogs).toHaveLength(GAME_SCRIPT_LOG_LIMIT + 1);
     } finally { session.dispose(); }
@@ -117,6 +125,53 @@ describe("2D script log command", () => {
     } finally { session.dispose(); }
   });
 
+  it("names one dropped line in the singular", async () => {
+    const source = `() => ({ state: null, commands: Array.from({ length: ${GAME_SCRIPT_LOG_LIMIT + 1} }, () => ({ kind: "log", message: "x" })) })`;
+    const session = await createScriptedGameSession(game2D(source), 1);
+    try {
+      expect(session.step(idle).scriptLogs?.at(-1)?.message).toBe(`1 more script log line dropped at tick 0 (limit ${GAME_SCRIPT_LOG_LIMIT} per tick)`);
+    } finally { session.dispose(); }
+  });
+
+  it("truncates on a code-point boundary instead of splitting a surrogate pair", async () => {
+    const source = `() => ({ state: null, commands: [{ kind: "log", message: "a".repeat(${GAME_SCRIPT_LOG_MESSAGE_LIMIT - 1}) + "\u{1F600}tail" }] })`;
+    const session = await createScriptedGameSession(game2D(source), 1);
+    try {
+      const message = session.step(idle).scriptLogs?.[0].message ?? "";
+      expect(message).toBe(`${"a".repeat(GAME_SCRIPT_LOG_MESSAGE_LIMIT - 1)}…`);
+      expect(message.isWellFormed()).toBe(true);
+    } finally { session.dispose(); }
+  });
+
+  it("attaches the lines logged before a script failure to the error", async () => {
+    const source = `() => ({ state: null, commands: [{ kind: "log", message: "before" }, { kind: "setVelocity", x: "fast", y: 0 }] })`;
+    const session = await createScriptedGameSession(game2D(source), 1);
+    try {
+      const error = failure(() => session.step(idle));
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toMatch(/Game script .* failed/);
+      expect(gameScriptLogsOf(error)).toEqual([{ tick: 0, entityId: "logger", level: "log", message: "before" }]);
+    } finally { session.dispose(); }
+  });
+
+  it("keeps an earlier script's lines when a later script in the same tick throws", async () => {
+    const session = await createScriptedGameSession(game2D(`() => ({ state: null, commands: [{ kind: "log", message: "first" }] })`, 8,
+      { thrower: `() => { throw new Error("boom"); }` }), 1);
+    try {
+      expect(gameScriptLogsOf(failure(() => session.step(idle)))).toEqual([{ tick: 0, entityId: "logger", level: "log", message: "first" }]);
+    } finally { session.dispose(); }
+  });
+
+  it("attaches the tick's lines when a system rejects a script command after the scripts ran", async () => {
+    const source = `() => ({ state: null, commands: [{ kind: "log", message: "spawning" }, { kind: "spawn", prefabId: "missing" }] })`;
+    const session = await createScriptedGameSession(game2D(source), 1);
+    try {
+      const error = failure(() => session.step(idle));
+      expect((error as Error).message).toContain("missing prefab missing");
+      expect(gameScriptLogsOf(error)?.map((line) => line.message)).toEqual(["spawning"]);
+    } finally { session.dispose(); }
+  });
+
   it("fails the script call on a malformed log command", async () => {
     const session = await createScriptedGameSession(game2D(`() => ({ state: null, commands: [{ kind: "log", message: 5 }] })`), 1);
     try {
@@ -127,6 +182,13 @@ describe("2D script log command", () => {
 
 describe("3D script log command", () => {
   const input = gameInputFrame3D.parse({ pressed: [] });
+
+  it("attaches the lines logged before a failure to the error", async () => {
+    const session = await open3D(game3D(`() => ({ state: null, commands: [{ kind: "log", message: "before" }, { kind: "impulse", impulse: 1 }] })`));
+    try {
+      expect(gameScriptLogsOf(failure(() => session.step(input)))).toEqual([{ tick: 0, entityId: "logger", level: "log", message: "before" }]);
+    } finally { session.dispose(); }
+  });
   const source = (logs: boolean) => `(input) => ({ state: (input.state ?? 0) + input.random(), commands: ${logs
     ? `[{ kind: "log", level: "error", message: "tick " + input.tick }]` : "[]"} })`;
 
