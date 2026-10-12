@@ -531,7 +531,8 @@ const SCRAPHEART_CUT = {
       "scrapheart-track-video",
       0,
       5000,
-      "video"
+      "video",
+      { currentAssetId: "clip-scrapheart-1" }
     ),
     timelineClip(
       "scrapheart-clip-02",
@@ -539,7 +540,8 @@ const SCRAPHEART_CUT = {
       "scrapheart-track-video",
       5000,
       4000,
-      "video"
+      "video",
+      { currentAssetId: "clip-scrapheart-2" }
     ),
     timelineClip(
       "scrapheart-clip-03",
@@ -547,7 +549,8 @@ const SCRAPHEART_CUT = {
       "scrapheart-track-video",
       9000,
       4000,
-      "video"
+      "video",
+      { currentAssetId: "clip-scrapheart-3" }
     ),
     timelineClip(
       "scrapheart-clip-04",
@@ -555,7 +558,8 @@ const SCRAPHEART_CUT = {
       "scrapheart-track-video",
       13000,
       3000,
-      "video"
+      "video",
+      { currentAssetId: "clip-scrapheart-4" }
     ),
     timelineClip(
       "scrapheart-clip-05",
@@ -564,7 +568,7 @@ const SCRAPHEART_CUT = {
       16000,
       4000,
       "image",
-      { status: "draft" }
+      { status: "draft", currentAssetId: "still-scrapheart-5" }
     ),
     timelineClip(
       "scrapheart-clip-06",
@@ -573,7 +577,7 @@ const SCRAPHEART_CUT = {
       20000,
       7000,
       "image",
-      { status: "draft" }
+      { status: "draft", currentAssetId: "still-scrapheart-6" }
     ),
     timelineClip(
       "scrapheart-vo-01",
@@ -849,7 +853,7 @@ const SCRAPHEART_SPEND: SpendSpec[] = [
 const ABYSS_SPEND: SpendSpec[] = [
   ...spendRows(
     "sb-abyss",
-    6,
+    14,
     {
       nodeType: "nodetool.image.TextToImage",
       capability: "text_to_image",
@@ -1101,14 +1105,14 @@ export async function seedProjects(userId: string): Promise<number> {
     {
       id: "proj-scrapheart",
       name: "SCRAPHEART — Trailer",
-      kind: "trailer",
+      kind: "trailer-template",
       thread_id: SCRAPHEART_THREAD_ID,
       hoursAgo: 2
     },
     {
       id: "proj-abyss",
       name: "The Silent Abyss",
-      kind: "trailer",
+      kind: "trailer-template",
       thread_id: null,
       hoursAgo: 24 * 6
     },

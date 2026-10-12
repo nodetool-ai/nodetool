@@ -984,6 +984,12 @@ export interface TestUiServerOptions extends HttpApiOptions {
    */
   passthroughUnknownNodes?: boolean;
   /**
+   * When true, the stand-in images for the mock photo and entity assets are
+   * not served, so the bytes a seed stored under those ids come from the asset
+   * store instead. The documentation screenshots seed real pictures there.
+   */
+  seededMediaFromStore?: boolean;
+  /**
    * Extends node-TYPE resolution (property/output shape used during graph
    * hydration — distinct from `resolveExecutor`, which only resolves how a
    * node EXECUTES) for a type the base registry can't resolve. Consulted
@@ -1501,9 +1507,11 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
       return;
     }
     if (
-      /^\/api\/storage\/(?:[^/]+\/)?(?:asset-photo[1-4](?:_thumb)?\.(?:jpg|jpeg|png)|asset-doc1_thumb\.jpg)$/i.test(
-        url.pathname
-      )
+      (!options.seededMediaFromStore &&
+        /^\/api\/storage\/(?:[^/]+\/)?asset-photo[1-4](?:_thumb)?\.(?:jpg|jpeg|png)$/i.test(
+          url.pathname
+        )) ||
+      /^\/api\/storage\/(?:[^/]+\/)?asset-doc1_thumb\.jpg$/i.test(url.pathname)
     ) {
       res.statusCode = 200;
       res.setHeader("content-type", "image/png");
@@ -1516,7 +1524,10 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
       const entityMatch = url.pathname.match(
         /^\/api\/storage\/(?:[^/]+\/)?(entity-[a-z]+)(?:_thumb)?\.(?:jpg|jpeg|png)$/i
       );
-      const entityPng = entityMatch ? ENTITY_IMAGE_PNGS[entityMatch[1]] : null;
+      const entityPng =
+        entityMatch && !options.seededMediaFromStore
+          ? ENTITY_IMAGE_PNGS[entityMatch[1]]
+          : null;
       if (entityPng) {
         res.statusCode = 200;
         res.setHeader("content-type", "image/png");
