@@ -405,7 +405,8 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
               <EyedropperButton onColorPicked={handleEyedropperPick} />
               <CloseButton
                 onClick={handleApply}
-                tooltip="Close (Esc)"
+                tooltip="Close"
+                shortcut={["Esc"]}
                 buttonSize="small"
               />
             </FlexRow>

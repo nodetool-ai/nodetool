@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { ReasoningToggle, ReasoningToggleProps } from "../ReasoningToggle";
 import mockTheme from "../../../__mocks__/themeMock";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 // Mock LabeledToggle component
 jest.mock("../../ui_primitives", () => ({
@@ -183,7 +184,7 @@ describe("ReasoningToggle", () => {
       renderWithTheme();
       expect(screen.getByTestId("labeled-toggle")).toHaveAttribute(
         "data-enter-delay",
-        "700"
+        String(TOOLTIP_ENTER_DELAY)
       );
     });
 

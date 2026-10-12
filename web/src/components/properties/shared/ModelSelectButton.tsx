@@ -1,6 +1,5 @@
 import React, { memo } from "react";
 import type { SxProps, Theme } from "@mui/material";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useEditorScope } from "../../editor_ui";
 import {
@@ -15,6 +14,7 @@ import {
   getSpacingPx,
   BORDER_RADIUS
 } from "../../ui_primitives";
+import { TOOLTIP_DESCRIPTION_DELAY } from "../../../config/constants";
 
 interface ModelSelectButtonProps {
   label: React.ReactNode;
@@ -60,8 +60,8 @@ function ModelSelectButton({
           </FlexColumn>
         )
       }
-      delay={TOOLTIP_ENTER_DELAY * 2}
-      nextDelay={TOOLTIP_ENTER_DELAY * 2}
+      delay={TOOLTIP_DESCRIPTION_DELAY}
+      nextDelay={TOOLTIP_DESCRIPTION_DELAY}
       slotProps={{
         tooltip: {
           sx: {

@@ -8,7 +8,7 @@ import { useShallow } from "zustand/react/shallow";
 import type { DragEvent as ReactDragEvent } from "react";
 import { ConfirmDialog, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import ClearIcon from "@mui/icons-material/Clear";
-import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
+import { NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -344,8 +344,6 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
                 </div>
               }
               placement="top"
-              delay={TOOLTIP_ENTER_DELAY}
-              enterNextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="recent-tile"

@@ -36,7 +36,6 @@ import {
   LoadingSpinner,
   Popover,
   TextInput,
-  Toast,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx
@@ -60,6 +59,7 @@ import { useMediaOptions } from "../../../hooks/useModelsByProvider";
 import { useLayerCostEstimate } from "../../../hooks/sketch/useLayerCostEstimate";
 import CostEstimateLine from "../../costs/CostEstimateLine";
 import { generationCostLine } from "../../costs/costLine";
+import { useAlertNotifier } from "../../../hooks/useAlertNotifier";
 
 /** Most recent direct-gen binding's model, to seed the form's picker. */
 function seedModelFromBindings() {
@@ -118,7 +118,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
   const imageModelAnchorRef = useRef<HTMLButtonElement>(null);
   const [imageModelOpen, setImageModelOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const reportError = useAlertNotifier("warning");
 
   // Generated-image size — aspect ratio + resolution, mirroring the media
   // composer. These shape the generation output only; the artboard size is
@@ -220,7 +220,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
       await start(layerId);
       setPrompt("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Generation failed.");
+      reportError(e instanceof Error ? e.message : "Generation failed.");
     } finally {
       setGenerating(false);
     }
@@ -374,15 +374,6 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
           </EditorButton>
         </FlexColumn>
       </Popover>
-
-      <Toast
-        open={error !== null}
-        message={error ?? ""}
-        severity="warning"
-        onClose={() => setError(null)}
-        vertical="top"
-        horizontal="center"
-      />
     </>
   );
 };

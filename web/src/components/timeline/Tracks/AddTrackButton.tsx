@@ -31,7 +31,8 @@ import {
   FONT_SIZE_SANS,
   FONT_WEIGHT,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Tooltip
 } from "../../ui_primitives";
 
 const buttonStyles = (theme: Theme, compact: boolean) =>
@@ -130,18 +131,19 @@ export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = f
 
   return (
     <>
-      <button
-        type="button"
-        css={buttonStyles(theme, compact)}
-        onClick={handleOpen}
-        aria-label="Add track"
-        title="Add track"
-        aria-haspopup="menu"
-        data-testid="add-track-button"
-      >
-        <AddIcon />
-        {!compact && <span>Track</span>}
-      </button>
+      <Tooltip title="Add track" describeChild>
+        <button
+          type="button"
+          css={buttonStyles(theme, compact)}
+          onClick={handleOpen}
+          aria-label="Add track"
+          aria-haspopup="menu"
+          data-testid="add-track-button"
+        >
+          <AddIcon />
+          {!compact && <span>Track</span>}
+        </button>
+      </Tooltip>
       <ContextMenu
         open={Boolean(anchorEl)}
         anchorEl={anchorEl}

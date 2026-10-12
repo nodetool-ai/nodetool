@@ -21,8 +21,7 @@ import {
   sketchFieldSx,
   SKETCH_CHECKERBOARD,
   SKETCH_COLORS,
-  SKETCH_SIZE,
-  SKETCH_TOOLTIP_DELAY_MS
+  SKETCH_SIZE
 } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -1031,8 +1030,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         >
           <Tooltip
             title="New layer generated from a text prompt"
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <Button
               aria-label="Add Text-to-Image Layer"
@@ -1048,8 +1045,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </Tooltip>
           <Tooltip
             title="New layer generated from the layers below it"
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <Button
               aria-label="Add Image-to-Image Layer"
@@ -1071,8 +1066,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         >
           <Tooltip
             title="Add a transparent layer"
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <Button
               aria-label="New layer"
@@ -1086,8 +1079,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </Tooltip>
           <Tooltip
             title="More ways to add a layer"
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <IconButton
               aria-label="More ways to add a layer"
@@ -1232,8 +1223,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               ? "Remove Mask Designation"
               : "Set as Mask Layer"
           }
-          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
         >
           <IconButton
             aria-label={
@@ -1259,8 +1248,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           title={
             activeLayer?.alphaLock ? "Unlock Transparency" : "Lock Transparency"
           }
-          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
         >
           <IconButton
             aria-label={
@@ -1278,8 +1265,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
         <Tooltip
           title="Group selected layers"
-          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
         >
           <span>
             <IconButton
@@ -1298,8 +1283,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         <FlexRow align="center" gap={0.5} sx={{ ml: "auto" }}>
           <Tooltip
             title="Duplicate Layer"
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <IconButton
               aria-label="Duplicate Layer"
@@ -1314,8 +1297,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             title={
               hasMultiLayerSelection ? "Remove selected layers" : "Remove Layer"
             }
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <span>
               <IconButton

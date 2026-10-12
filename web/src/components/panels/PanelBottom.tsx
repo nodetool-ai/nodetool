@@ -38,7 +38,6 @@ import {
 } from "../version/VersionHistoryPanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   useWorkflowManager,
   useWorkflowManagerStore
@@ -376,7 +375,7 @@ const TabButton = memo(function TabButton({
   onClick
 }: TabButtonProps) {
   return (
-    <Tooltip title={spec.label} placement="top" delay={TOOLTIP_ENTER_DELAY}>
+    <Tooltip title={spec.label} placement="top">
       <button
         type="button"
         role="tab"

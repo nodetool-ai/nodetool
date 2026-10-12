@@ -15,7 +15,8 @@ import {
   SPACING,
   getSpacingPx,
   ListItem,
-  ListItemButton
+  ListItemButton,
+  Tooltip
 } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
@@ -353,30 +354,42 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
             )}
           </Box>
           <Box className="navigation-buttons">
-            <button
-              type="button"
-              className="nav-button"
-              onClick={navigatePrevious}
+            <Tooltip
+              title="Previous match"
+              shortcut={["Shift", "Enter"]}
+              describeChild
               disabled={results.length === 0}
-              title="Previous (Shift+Enter)"
-              aria-label="Previous match"
             >
-              <ArrowUpwardIcon fontSize="small" />
-            </button>
-            <button
-              type="button"
-              className="nav-button"
-              onClick={navigateNext}
+              <button
+                type="button"
+                className="nav-button"
+                onClick={navigatePrevious}
+                disabled={results.length === 0}
+                aria-label="Previous match"
+              >
+                <ArrowUpwardIcon fontSize="small" />
+              </button>
+            </Tooltip>
+            <Tooltip
+              title="Next match"
+              shortcut={["Enter"]}
+              describeChild
               disabled={results.length === 0}
-              title="Next (Enter)"
-              aria-label="Next match"
             >
-              <ArrowDownwardIcon fontSize="small" />
-            </button>
+              <button
+                type="button"
+                className="nav-button"
+                onClick={navigateNext}
+                disabled={results.length === 0}
+                aria-label="Next match"
+              >
+                <ArrowDownwardIcon fontSize="small" />
+              </button>
+            </Tooltip>
           </Box>
           <CloseButton
             onClick={closeFind}
-            tooltip="Close (Escape)"
+            shortcut={["Esc"]}
             buttonSize="small"
             nodrag={false}
             sx={{ marginLeft: getSpacingPx(SPACING.md) }}

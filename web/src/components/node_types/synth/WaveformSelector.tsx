@@ -9,7 +9,7 @@ import React, { memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
-import { BORDER_RADIUS } from "../../ui_primitives";
+import { BORDER_RADIUS, Tooltip } from "../../ui_primitives";
 const GLYPH_W = 18;
 const GLYPH_H = 10;
 
@@ -79,32 +79,32 @@ const WaveformSelectorInner: React.FC<WaveformSelectorProps> = ({
       {options.map((w) => {
         const active = w === value;
         return (
-          <button
-            key={w}
-            type="button"
-            value={w}
-            className={`waveform-btn${active ? " active" : ""}`}
-            aria-pressed={active}
-            aria-label={w}
-            title={w}
-            onClick={handleClick}
-          >
-            <svg
-              width={GLYPH_W}
-              height={GLYPH_H}
-              viewBox={`0 0 ${GLYPH_W} ${GLYPH_H}`}
-              aria-hidden="true"
+          <Tooltip title={w} key={w} describeChild>
+            <button
+              type="button"
+              value={w}
+              className={`waveform-btn${active ? " active" : ""}`}
+              aria-pressed={active}
+              aria-label={w}
+              onClick={handleClick}
             >
-              <path
-                d={WAVE_PATHS[w] ?? WAVE_PATHS.sine}
-                fill="none"
-                stroke={active ? accentColor : "currentColor"}
-                strokeWidth={1.5}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
+              <svg
+                width={GLYPH_W}
+                height={GLYPH_H}
+                viewBox={`0 0 ${GLYPH_W} ${GLYPH_H}`}
+                aria-hidden="true"
+              >
+                <path
+                  d={WAVE_PATHS[w] ?? WAVE_PATHS.sine}
+                  fill="none"
+                  stroke={active ? accentColor : "currentColor"}
+                  strokeWidth={1.5}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </Tooltip>
         );
       })}
     </div>

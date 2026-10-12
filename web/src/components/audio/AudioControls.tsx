@@ -4,7 +4,6 @@ import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, ReactElement, memo } from "react";
 import { Text, ToolbarIconButton, MOTION, getSpacingPx, SPACING } from "../ui_primitives";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import LoopIcon from "@mui/icons-material/Loop";
 import { PlaybackButton } from "../ui_primitives";
@@ -241,7 +240,6 @@ const AudioControls: React.FC<AudioControlsProps> = memo(({
             />
             <ToolbarIconButton
               tooltip="Loop"
-              delay={TOOLTIP_ENTER_DELAY}
               className={`loop-button${loop ? "" : " disabled"}`}
               size="small"
               onClick={handleToggleLoop}
@@ -250,7 +248,6 @@ const AudioControls: React.FC<AudioControlsProps> = memo(({
             />
             <ToolbarIconButton
               tooltip="Mute"
-              delay={TOOLTIP_ENTER_DELAY}
               className={`mute-button${mute ? "" : " disabled"}`}
               size="small"
               onClick={handleToggleMute}
@@ -259,7 +256,6 @@ const AudioControls: React.FC<AudioControlsProps> = memo(({
             />
             <ToolbarIconButton
               tooltip="Download"
-              delay={TOOLTIP_ENTER_DELAY}
               className={`download-audio-button${filename !== "" ? "" : " disabled"}`}
               size="small"
               onClick={handleDownload}

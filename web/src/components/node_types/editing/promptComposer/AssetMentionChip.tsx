@@ -144,7 +144,6 @@ export const AssetMentionChip: React.FC<{
   return (
     <Tooltip
       placement="top"
-      delay={250}
       title={
         <div css={previewCardStyles(theme)}>
           <img src={hoverPreviewUrl} alt={displayLabel} />
