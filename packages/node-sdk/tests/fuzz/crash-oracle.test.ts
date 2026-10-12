@@ -236,7 +236,9 @@ it.runIf(pinned)(
       return `${mutant.id} ${mutant.mutation} ${codesOf(issues).join(",")}`;
     });
     await expectPinned(signature.join("\n"), "code-issue-codes.txt");
-  }
+  },
+  // Validates every corpus mutant; takes 5-7 s on loaded CI runners.
+  30_000
 );
 
 it(`${CODE} reports the same issues, messages included, for every seed body`, async () => {
