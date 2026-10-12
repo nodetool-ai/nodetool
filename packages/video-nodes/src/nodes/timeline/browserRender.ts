@@ -121,10 +121,16 @@ interface PlaywrightContext {
   ): Promise<void>;
   newPage(): Promise<PlaywrightPage>;
 }
+interface PlaywrightResponse {
+  status(): number;
+}
+interface PlaywrightHandle {
+  dispose(): Promise<void>;
+}
 interface PlaywrightPage {
-  exposeFunction(name: string, fn: (...args: never[]) => unknown): Promise<void>;
-  goto(url: string): Promise<unknown>;
-  waitForFunction(fn: string): Promise<unknown>;
+  exposeFunction(name: string, fn: (...args: never[]) => void): Promise<void>;
+  goto(url: string): Promise<PlaywrightResponse | null>;
+  waitForFunction(fn: string): Promise<PlaywrightHandle>;
   evaluate<R, A>(fn: (arg: A) => R | Promise<R>, arg: A): Promise<R>;
   on(event: "pageerror", listener: (error: Error) => void): void;
   on(event: "console", listener: (message: { type(): string; text(): string }) => void): void;
@@ -289,12 +295,13 @@ async function sendFile(
       return;
     }
   }
-  response.writeHead(range ? 206 : 200, {
+  const headers: Record<string, string> = {
     "content-type": contentType,
     "content-length": String(end - start + 1),
-    "accept-ranges": "bytes",
-    ...(range ? { "content-range": `bytes ${start}-${end}/${size}` } : {})
-  });
+    "accept-ranges": "bytes"
+  };
+  if (range) headers["content-range"] = `bytes ${start}-${end}/${size}`;
+  response.writeHead(range ? 206 : 200, headers);
   if (request.method === "HEAD") {
     response.end();
     return;

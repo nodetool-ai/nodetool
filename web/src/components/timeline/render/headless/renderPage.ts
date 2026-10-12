@@ -71,11 +71,12 @@ async function chooseEncoding(
 ): Promise<HeadlessRenderEncoding> {
   for (const encoding of request.encodings) {
     if (encoding.kind === "png") return encoding;
-    const supported = await canEncodeVideo(encoding.codec, {
+    const options: Parameters<typeof canEncodeVideo>[1] = {
       width: request.width,
-      height: request.height,
-      ...(request.alpha ? { alpha: "keep" as const } : {})
-    }).catch(() => false);
+      height: request.height
+    };
+    if (request.alpha) options.alpha = "keep";
+    const supported = await canEncodeVideo(encoding.codec, options).catch(() => false);
     if (supported) return encoding;
   }
   throw new Error(
