@@ -45,6 +45,7 @@ const FORBIDDEN_NODE_TYPES = new Set([
   "nodetool.llm.ListGenerator",
   "nodetool.llm.GenerateText",
   "nodetool.text.FormatText",
+  "nodetool.text.ToUppercase",
 ]);
 
 /** The real registry types the tutorials are built from. */
@@ -56,7 +57,7 @@ const ALLOWED_NODE_TYPES = new Set([
   "nodetool.agents.Summarizer",
   "nodetool.image.TextToImage",
   "nodetool.generators.ListGenerator",
-  "nodetool.text.ToUppercase",
+  "nodetool.code.Code",
   "nodetool.text.Prompt",
   "nodetool.workflows.base_node.Preview",
 ]);

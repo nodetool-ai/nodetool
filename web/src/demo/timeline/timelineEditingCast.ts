@@ -4,12 +4,10 @@
  * caption, and a scrub through the finished cut. Exercises the real
  * `PreviewArea` + `TracksRegion` — the compositor, track lanes, clip
  * selection, zoom, and playhead — with no backend and no rendered project.
+ * The media is cut from the shipped Kite example ad by
+ * `demo/scripts/build-pattern-cast-media.mjs`.
  */
 import { makeSequence } from "@nodetool-ai/timeline";
-import {
-  EXAMPLE_IMAGE_DATA_URI,
-} from "../assets/exampleImage";
-import { SAMPLE_VIDEO_WEBM_DATA_URI } from "../assets/sampleMedia";
 import {
   addClip,
   clip,
@@ -67,8 +65,8 @@ export const timelineEditingCast: TimelineDemoCast = {
     clips: [introClip],
   }),
   assets: [
-    { key: introAssetKey, dataUri: SAMPLE_VIDEO_WEBM_DATA_URI, contentType: "video/webm" },
-    { key: photoAssetKey, dataUri: EXAMPLE_IMAGE_DATA_URI, contentType: "image/jpeg" },
+    { key: introAssetKey, file: "opening.webm", contentType: "video/webm" },
+    { key: photoAssetKey, file: "cutaway.jpg", contentType: "image/jpeg" },
   ],
   events: [
     selectClips(600, [introClipId]),
@@ -114,6 +112,6 @@ export const timelineEditingCast: TimelineDemoCast = {
     selectClips(6400, []),
 
     zoom(7200, 6),
-    playRange(7600, 0, 8000, 8000),
+    playRange(7600, 0, 7966, 8000),
   ],
 };

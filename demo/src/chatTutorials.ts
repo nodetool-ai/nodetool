@@ -48,7 +48,7 @@ export const CHAT_TUTORIALS: ChatTutorialEntry[] = [
       { id: "chat-overview", fromMs: 0, toMs: 1500, target: { kind: "overview" }, moveMs: 0 },
       { id: "submitted-question", fromMs: 1500, toMs: 3000, target: { kind: "component", focusId: "message-demo-user-300" }, moveMs: 600, anchorMs: 2400, emphasis: "outline-dim" },
       { id: "web-search", fromMs: 3000, toMs: 7500, target: { kind: "component", focusId: "tool-call-demo-tool-call-1" }, moveMs: 600, actionAtMs: 4725, anchorMs: 7000, emphasis: "outline-dim" },
-      { id: "answer", fromMs: 7500, toMs: 18000, target: { kind: "component", focusId: "message-demo-assistant-1" }, moveMs: 600, actionAtMs: 9400, anchorMs: 17000, emphasis: "outline-dim" },
+      { id: "answer", fromMs: 7500, toMs: 18000, target: { kind: "component", focusId: "message-demo-assistant-1" }, moveMs: 600, actionAtMs: 9400, anchorMs: 17000, emphasis: "outline-dim", posterAtMs: 17000 },
       { id: "chat-context", fromMs: 18000, toMs: 21000, target: { kind: "component", focusId: "chat-panel" }, moveMs: 600, anchorMs: 20000 },
     ],
     steps: [

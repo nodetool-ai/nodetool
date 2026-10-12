@@ -14,6 +14,7 @@
 //   its line takes, the vertical derivative, and the clip a Code node names)
 // - the coffee recipe input (the image-enhancement stages)
 // - the T-minus 30 example timeline (the color-boost clip and its grades)
+// - the Kite example ad (the timeline tutorial's opening shot and cutaway)
 //
 // Writes demo/public/casts/<cast id>/, where the Tutorial composition resolves
 // a cast's `cast-asset://<key>` references.
@@ -215,6 +216,19 @@ const mp3 = (out, source, from, to) =>
   frame(path.join(dir, "exposed.jpg"), exposed);
   frame(path.join(dir, "graded.jpg"), graded);
   clip(path.join(dir, "graded.webm"), graded);
+}
+
+// Tutorial: trim and arrange a timeline. The opening shot is the start of the
+// Kite ad, and the cutaway is a later frame of the same ad.
+{
+  const dir = castDir("timeline-trim-arrange");
+  const source = path.join(TIMELINES, "kite/ad.mp4");
+  ffmpeg([
+    "-ss", "0.6", "-t", "6", "-i", source, "-an", "-vf", "scale=960:540",
+    "-c:v", "libvpx-vp9", "-b:v", "600k", "-row-mt", "1", "-deadline", "good", "-cpu-used", "4",
+    path.join(dir, "opening.webm"),
+  ]);
+  ffmpeg(["-ss", "12", "-i", source, "-frames:v", "1", "-vf", "scale=960:540", "-q:v", "3", path.join(dir, "cutaway.jpg")]);
 }
 
 fs.rmSync(tmp, { recursive: true, force: true });

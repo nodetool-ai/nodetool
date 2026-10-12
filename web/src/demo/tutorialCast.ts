@@ -21,7 +21,7 @@
  * they do in the editor.
  */
 import { CAST_VERSION, type CastEvent, type DemoCast } from "./castTypes";
-import { castMessages, edge, meta, node, out, prop } from "./castHelpers";
+import { castMessages, edge, meta, node, out, prop, DEMO_IMAGE_MODEL, DEMO_LANGUAGE_MODEL } from "./castHelpers";
 import { stringInputMeta } from "./cookbook/builders";
 import { EXAMPLE_IMAGE_DATA_URI } from "./assets/exampleImage";
 import type { Workflow } from "../stores/ApiTypes";
@@ -66,8 +66,8 @@ const workflow: Workflow = {
   graph: {
     nodes: [
       node("input", INPUT_TYPE, 0, 140, 250, "Text Input", { name: "prompt", value: PROMPT }),
-      node("enhance", ENHANCE_TYPE, 360, 140, 300, "Enhance Prompt", { prompt: PROMPT }),
-      node("generate", IMAGE_TYPE, 760, 140, 300, "Text To Image", { prompt: "" }),
+      node("enhance", ENHANCE_TYPE, 360, 140, 300, "Enhance Prompt", { prompt: PROMPT, model: DEMO_LANGUAGE_MODEL }),
+      node("generate", IMAGE_TYPE, 760, 140, 300, "Text To Image", { prompt: "", model: DEMO_IMAGE_MODEL }),
     ],
     edges: [
       edge("e1", "input", "output", "enhance", "prompt"),

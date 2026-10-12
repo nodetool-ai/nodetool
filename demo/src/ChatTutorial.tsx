@@ -3,6 +3,7 @@ import { ChatDemoPlayer } from "@web-demo";
 import { getChatCast } from "./casts/chatRegistry";
 import { TutorialShell } from "./components/TutorialShell";
 import { FocusCamera } from "./components/FocusCamera";
+import { TUTORIAL_UI_SCALE } from "./tutorialTheme";
 import type { TutorialStep } from "./components/StepIndicator";
 import type { CaptionCue, TimeMap, TutorialShot } from "./types";
 
@@ -61,6 +62,7 @@ export const ChatTutorial: React.FC<ChatTutorialProps> = ({
     >
       {(presentationTimeMs) => (
         <FocusCamera
+          uiScale={TUTORIAL_UI_SCALE}
           tutorialId={castId}
           shots={shots}
           presentationTimeMs={presentationTimeMs}
