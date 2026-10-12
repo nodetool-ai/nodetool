@@ -291,6 +291,7 @@ const CLIP_PARAM_KEYS = [
   "fadeOutMs",
   "fadeInShape",
   "fadeOutShape",
+  "audioEffects",
   "blendMode",
   "borderRadius",
   "crop",
@@ -1828,6 +1829,9 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
     }
     if (patch.fadeOutShape !== undefined) {
       clip.fadeOutShape = patch.fadeOutShape;
+    }
+    if (patch.audioEffects !== undefined) {
+      clip.audioEffects = patch.audioEffects;
     }
     if (patch.blendMode !== undefined) {
       clip.blendMode = patch.blendMode as TimelineClip["blendMode"];

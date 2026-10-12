@@ -8,12 +8,19 @@ import type { ClipFadeShape, TimeRemapAudioSegment } from "@nodetool-ai/timeline
 import type {
   TimelineClip,
   TimelineTrack,
-  TrackCompressorEffect,
-  TrackEffect,
-  TrackEq3Effect,
-  TrackFilterEffect,
-  TrackGainEffect
+  TrackEffect
 } from "@nodetool-ai/timeline";
+import {
+  applyCompressorEffect,
+  applyEq3Effect,
+  applyFilterEffect,
+  applyGainEffect,
+  buildClipEffectChain,
+  buildEffectUnit,
+  disconnectNodes,
+  type ClipEffectChain,
+  type EffectUnit
+} from "./audioEffectNodes";
 
 /**
  * One clip handed to the graph for scheduling, with the PCM it should play:
@@ -40,18 +47,6 @@ export type ScheduledAudioClip =
       buffer: AudioBuffer;
     };
 
-/**
- * Internal state for a single effect's audio nodes. Each effect chains
- * `input → ...internal... → output` so the chain can wire them in series.
- */
-interface EffectUnit {
-  effect: TrackEffect;
-  input: AudioNode;
-  output: AudioNode;
-  /** All allocated nodes — disconnected on rebuild. */
-  nodes: AudioNode[];
-}
-
 interface TrackChainState {
   /** trackGain output is always connected to the head of `units` (or directly to masterGain if empty). */
   trackGain: GainNode;
@@ -59,8 +54,6 @@ interface TrackChainState {
   effects: TrackEffect[];
   units: EffectUnit[];
 }
-
-const DB_TO_LIN = (db: number): number => Math.pow(10, db / 20);
 
 /** Sample spacing for a shaped fade, and the bounds that spacing is held to. */
 const FADE_CURVE_STEP_MS = 5;
@@ -324,6 +317,13 @@ export class AudioGraph {
   private masterVolume = 1;
   private trackChains = new Map<string, TrackChainState>();
   private clipGains = new Map<string, GainNode>();
+  /** Real-time effect chains of playing clips that carry `audioEffects`. */
+  private clipEffectChains = new Map<string, ClipEffectChain>();
+  /**
+   * Chains whose clip has ended but whose echo or reverb tail is still
+   * sounding. Stopping playback silences these too.
+   */
+  private ringingChains = new Set<ClipEffectChain>();
   /**
    * Sources per clip. A clip with a `timeRemap` plays as one source per
    * constant-rate segment of its curve, so this is a list rather than a single
@@ -449,85 +449,6 @@ export class AudioGraph {
     return this.getOrCreateTrackChain(trackId).trackGain;
   }
 
-  private buildEffectUnit(effect: TrackEffect): EffectUnit | null {
-    const ctx = this.getContext();
-    switch (effect.type) {
-      case "gain": {
-        const node = ctx.createGain();
-        this.applyGainEffect(node, effect);
-        return { effect, input: node, output: node, nodes: [node] };
-      }
-      case "eq3": {
-        const low = ctx.createBiquadFilter();
-        low.type = "lowshelf";
-        const mid = ctx.createBiquadFilter();
-        mid.type = "peaking";
-        const high = ctx.createBiquadFilter();
-        high.type = "highshelf";
-        this.applyEq3Effect(low, mid, high, effect);
-        low.connect(mid);
-        mid.connect(high);
-        return {
-          effect,
-          input: low,
-          output: high,
-          nodes: [low, mid, high]
-        };
-      }
-      case "filter": {
-        const node = ctx.createBiquadFilter();
-        this.applyFilterEffect(node, effect);
-        return { effect, input: node, output: node, nodes: [node] };
-      }
-      case "compressor": {
-        const node = ctx.createDynamicsCompressor();
-        this.applyCompressorEffect(node, effect);
-        return { effect, input: node, output: node, nodes: [node] };
-      }
-      default:
-        return null;
-    }
-  }
-
-  private applyGainEffect(node: GainNode, e: TrackGainEffect): void {
-    node.gain.value = DB_TO_LIN(e.gainDb);
-  }
-
-  private applyEq3Effect(
-    low: BiquadFilterNode,
-    mid: BiquadFilterNode,
-    high: BiquadFilterNode,
-    e: TrackEq3Effect
-  ): void {
-    low.frequency.value = e.lowFreq;
-    low.gain.value = e.lowGainDb;
-    mid.frequency.value = e.midFreq;
-    mid.Q.value = e.midQ;
-    mid.gain.value = e.midGainDb;
-    high.frequency.value = e.highFreq;
-    high.gain.value = e.highGainDb;
-  }
-
-  private applyFilterEffect(
-    node: BiquadFilterNode,
-    e: TrackFilterEffect
-  ): void {
-    node.type = e.mode;
-    node.frequency.value = e.frequency;
-    node.Q.value = e.q;
-  }
-
-  private applyCompressorEffect(
-    node: DynamicsCompressorNode,
-    e: TrackCompressorEffect
-  ): void {
-    node.threshold.value = e.thresholdDb;
-    node.ratio.value = e.ratio;
-    node.attack.value = e.attackMs / 1000;
-    node.release.value = e.releaseMs / 1000;
-    node.knee.value = e.kneeDb;
-  }
-
   /**
    * True if `next` and `prev` have the same enabled effects in the same order
    * (matched by id+type). When this is true we can update parameters in place
@@ -554,10 +475,10 @@ export class AudioGraph {
       const e = nextActive[i];
       switch (e.type) {
         case "gain":
-          this.applyGainEffect(unit.nodes[0] as GainNode, e);
+          applyGainEffect(unit.nodes[0] as GainNode, e);
           break;
         case "eq3":
-          this.applyEq3Effect(
+          applyEq3Effect(
             unit.nodes[0] as BiquadFilterNode,
             unit.nodes[1] as BiquadFilterNode,
             unit.nodes[2] as BiquadFilterNode,
@@ -565,10 +486,10 @@ export class AudioGraph {
           );
           break;
         case "filter":
-          this.applyFilterEffect(unit.nodes[0] as BiquadFilterNode, e);
+          applyFilterEffect(unit.nodes[0] as BiquadFilterNode, e);
           break;
         case "compressor":
-          this.applyCompressorEffect(
+          applyCompressorEffect(
             unit.nodes[0] as DynamicsCompressorNode,
             e
           );
@@ -621,7 +542,7 @@ export class AudioGraph {
     const newUnits: EffectUnit[] = [];
     for (const effect of effects) {
       if (!effect.enabled) continue;
-      const unit = this.buildEffectUnit(effect);
+      const unit = buildEffectUnit(this.getContext(), effect);
       if (unit) newUnits.push(unit);
     }
     chain.units = newUnits;
@@ -722,9 +643,50 @@ export class AudioGraph {
     for (const id of clipIds) {
       const sources = this.clipSources.get(id);
       if (!sources) continue;
-      this.releaseClip(sources, this.clipGains.get(id));
+      this.releaseClip(
+        sources,
+        this.clipGains.get(id),
+        this.clipEffectChains.get(id)
+      );
       this.clipSources.delete(id);
       this.clipGains.delete(id);
+      this.clipEffectChains.delete(id);
+    }
+  }
+
+  /**
+   * Let an ended clip's effect tail ring out, or (when playback stops) ramp
+   * the chain to silence, then disconnect it. The offline export keeps its
+   * chains connected: rendering runs faster than the wall clock, so a timer
+   * would cut a tail the mixdown has not reached yet.
+   */
+  private releaseEffectChain(chain: ClipEffectChain, letRing: boolean): void {
+    if (!(this.ctx instanceof AudioContext)) {
+      return;
+    }
+    if (letRing) {
+      this.ringingChains.add(chain);
+      setTimeout(() => {
+        if (this.ringingChains.delete(chain)) {
+          disconnectNodes(chain.nodes);
+        }
+      }, chain.tailSec * 1000 + DECLICK_RELEASE_MS);
+      return;
+    }
+    this.ringingChains.delete(chain);
+    const now = this.ctx.currentTime;
+    try {
+      rampToSilence(chain.output.gain, now, now + DECLICK_SEC);
+    } catch {
+      /* the chain is already released */
+    }
+    setTimeout(() => disconnectNodes(chain.nodes), DECLICK_RELEASE_MS);
+  }
+
+  /** Silence every tail still ringing from a clip that already ended. */
+  private silenceRingingChains(): void {
+    for (const chain of [...this.ringingChains]) {
+      this.releaseEffectChain(chain, false);
     }
   }
 
@@ -733,9 +695,17 @@ export class AudioGraph {
    * the ramp, then disconnect them and its gain — a streamed segment
    * included, whose element node and gate would otherwise stay attached.
    */
-  private releaseClip(sources: PlayingSource[], gain: GainNode | undefined): void {
+  private releaseClip(
+    sources: PlayingSource[],
+    gain: GainNode | undefined,
+    chain?: ClipEffectChain,
+    letRing = false
+  ): void {
     const now = this.ctx?.currentTime ?? 0;
     const endAt = now + DECLICK_SEC;
+    if (chain) {
+      this.releaseEffectChain(chain, letRing);
+    }
     if (gain) {
       try {
         rampToSilence(gain.gain, now, endAt);
@@ -958,7 +928,15 @@ export class AudioGraph {
       }
 
       const trackGain = this.getTrackGain(clip.trackId);
-      clipGain.connect(trackGain);
+      // Clip effects run after the volume and fades, so a fade-out shapes the
+      // dry sound and an echo or reverb tail decays on its own past it.
+      const effectChain = buildClipEffectChain(ctx, clip.audioEffects);
+      if (effectChain) {
+        clipGain.connect(effectChain.input);
+        effectChain.output.connect(trackGain);
+      } else {
+        clipGain.connect(trackGain);
+      }
 
       const sources: PlayingSource[] = [];
       for (const segment of segments) {
@@ -1016,12 +994,16 @@ export class AudioGraph {
         }
         this.clipSources.delete(clip.id);
         this.clipGains.delete(clip.id);
-        this.releaseClip(sources, clipGain);
+        this.clipEffectChains.delete(clip.id);
+        this.releaseClip(sources, clipGain, effectChain ?? undefined, true);
       };
       for (const src of sources) src.onended = onSourceEnded;
 
       this.clipSources.set(clip.id, sources);
       this.clipGains.set(clip.id, clipGain);
+      if (effectChain) {
+        this.clipEffectChains.set(clip.id, effectChain);
+      }
     }
   }
 
@@ -1062,10 +1044,16 @@ export class AudioGraph {
 
   stopAll(): void {
     for (const [id, sources] of this.clipSources) {
-      this.releaseClip(sources, this.clipGains.get(id));
+      this.releaseClip(
+        sources,
+        this.clipGains.get(id),
+        this.clipEffectChains.get(id)
+      );
     }
     this.clipSources.clear();
     this.clipGains.clear();
+    this.clipEffectChains.clear();
+    this.silenceRingingChains();
   }
 
   /**

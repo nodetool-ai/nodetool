@@ -361,8 +361,11 @@ live preview, so an exported frame is identical to what playback showed:
   compositing. The renderer composites at full sequence resolution, encodes
   frames with WebCodecs, and muxes to MP4 via [mediabunny](https://mediabunny.dev).
 - `render/renderAudio.ts` — mixes the audio tracks down through the same
-  `AudioGraph` (clip gain, fades, speed, mute/solo, DSP chain) driven by an
-  `OfflineAudioContext`.
+  `AudioGraph` (clip gain, fades, speed, clip audio effects, mute/solo, DSP
+  chain) driven by an `OfflineAudioContext`. A clip's `audioEffects` run
+  between its gain and its track (`preview/audioEffectNodes.ts`), and their
+  echo and reverb tails ring past the clip's end. The server mix in
+  `packages/video-nodes` builds the same chain from ffmpeg filters.
 - `useTimelineExport` (`hooks/timeline/`) — wires the store + asset URLs to the
   renderer, reports progress, and downloads the resulting file.
 
