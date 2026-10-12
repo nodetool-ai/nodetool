@@ -107,21 +107,20 @@ export function EditorButton({
   if (!tooltip) {
     return button;
   }
+  // The wrapper stays mounted whether or not the button is disabled: a
+  // disabled button fires no hover events, and swapping the wrapper in and
+  // out would remount the button and drop its focus.
   return (
     <Tooltip title={tooltip} shortcut={shortcut} describeChild>
-      {props.disabled ? (
-        <span
-          style={
-            props.fullWidth
-              ? { display: "flex", width: "100%" }
-              : { display: "inline-flex" }
-          }
-        >
-          {button}
-        </span>
-      ) : (
-        button
-      )}
+      <span
+        style={
+          props.fullWidth
+            ? { display: "flex", width: "100%" }
+            : { display: "inline-flex" }
+        }
+      >
+        {button}
+      </span>
     </Tooltip>
   );
 }
