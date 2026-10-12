@@ -291,6 +291,7 @@ export function useEditorCommands({
       redo: handleRedo,
       clearLayer: canvasActions.handleClearLayer,
       exportPng: canvasActions.handleExportPng,
+      exportPsd: canvasActions.handleExportPsd,
       flipHorizontal: layerActions.handleFlipHorizontal,
       flipVertical: layerActions.handleFlipVertical,
       mergeDown: layerActions.handleMergeDown,

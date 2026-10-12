@@ -21,6 +21,7 @@ import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import FlipIcon from "@mui/icons-material/Flip";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import KeyboardOutlinedIcon from "@mui/icons-material/KeyboardOutlined";
 import SketchEditor, { SketchEditorHandle } from "./SketchEditor";
@@ -42,6 +43,7 @@ import { displayCombo } from "./shortcuts";
 import {
   Caption,
   Divider,
+  EditorMenuItem,
   FlexColumn,
   FlexRow,
   TabGroup,
@@ -125,6 +127,24 @@ const SketchModal: React.FC<SketchModalProps> = ({
   const theme = useTheme();
   const modalStyles = useMemo(() => styles(theme), [theme]);
   const editorRef = useRef<SketchEditorHandle>(null);
+  const exportMenuItems = useCallback(
+    (close: () => void) => [
+      <EditorMenuItem
+        key="export-psd"
+        onClick={() => {
+          close();
+          editorRef.current?.exportPsd();
+        }}
+        data-testid="sketch-export-psd"
+      >
+        <ListItemIcon>
+          <LayersOutlinedIcon fontSize="small" />
+        </ListItemIcon>
+        <ListItemText>Export PSD</ListItemText>
+      </EditorMenuItem>
+    ],
+    []
+  );
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [symmetryAnchorEl, setSymmetryAnchorEl] = useState<HTMLElement | null>(null);
   const [shortcutsPaneOpen, setShortcutsPaneOpen] = useState(false);
@@ -424,6 +444,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
           onExportImage={onExportImage}
           onExportMask={onExportMask}
           suspendKeyboardShortcuts={shortcutsPaneOpen || confirmDiscard}
+          menuItems={exportMenuItems}
         />
         {shortcutsPaneOpen ? (
           <>

@@ -60,6 +60,8 @@ export interface SketchCanvasRef {
   snapshotLayerCanvas: (layerId: string) => HTMLCanvasElement | null;
   restoreLayerCanvas: (layerId: string, source: HTMLCanvasElement) => void;
   flattenToDataUrl: () => string;
+  /** Encode the document as a layered PSD file, or null when it cannot render. */
+  exportPsd: () => Uint8Array<ArrayBuffer> | null;
   getMaskDataUrl: () => string | null;
   clearLayer: (layerId: string) => void;
   clearLayerRect: (

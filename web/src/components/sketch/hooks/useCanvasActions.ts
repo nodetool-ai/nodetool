@@ -96,7 +96,10 @@ export interface UseCanvasActionsReturn
       UseStrokeLifecycleActionsReturn,
       "handleStrokeStart" | "handleStrokeEnd" | "flushLayerThumbnailsWhenIdle"
     >,
-    Pick<UseExportSyncActionsReturn, "syncSketchOutputsNow" | "handleExportPng">,
+    Pick<
+      UseExportSyncActionsReturn,
+      "syncSketchOutputsNow" | "handleExportPng" | "handleExportPsd"
+    >,
     Omit<
       UseCanvasGeometryActionsReturn,
       "nudgePanForCanvasPixelDelta" | "finalizeCanvasCrop"
@@ -258,6 +261,7 @@ export function useCanvasActions({
     handleNudgeLayer: transformActions.handleNudgeLayer,
     handleTrimLayerToBounds: geometryActions.handleTrimLayerToBounds,
     handleExportPng: exportSync.handleExportPng,
+    handleExportPsd: exportSync.handleExportPsd,
     handleCanvasResize: geometryActions.handleCanvasResize,
     handleCanvasResizeStart: geometryActions.handleCanvasResizeStart,
     handleCanvasResizeDrag: geometryActions.handleCanvasResizeDrag,

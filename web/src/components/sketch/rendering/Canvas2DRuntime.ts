@@ -65,6 +65,8 @@ import {
   flattenToDataUrl as flattenToDataUrlFn,
   getMaskDataUrl as getMaskDataUrlFn,
   flattenVisible as flattenVisibleFn,
+  flattenToCanvas as flattenToCanvasFn,
+  renderLayerToCanvas as renderLayerToCanvasFn,
   readbackComposite as readbackCompositeFn,
   clearLayerBySelectionMask as clearLayerBySelectionMaskFn,
   fillLayerBySelectionMask as fillLayerBySelectionMaskFn,
@@ -305,6 +307,17 @@ export class Canvas2DRuntime implements SketchRuntime {
 
   flattenVisible(doc: SketchDocument): string {
     return flattenVisibleFn(doc, this.boundRenderDocComposite);
+  }
+
+  flattenToCanvas(doc: SketchDocument): HTMLCanvasElement | null {
+    return flattenToCanvasFn(doc, this.boundRenderDocComposite);
+  }
+
+  renderLayerToCanvas(
+    doc: SketchDocument,
+    layerId: string
+  ): HTMLCanvasElement | null {
+    return renderLayerToCanvasFn(doc, layerId, this.boundDrawLayerToContext);
   }
 
   // ─── Layer operations ────────────────────────────────────────────────
