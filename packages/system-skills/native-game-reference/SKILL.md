@@ -172,7 +172,7 @@ one before it. Within a tick they run in this order:
 6. `onFixedUpdate` or `onUpdate`. They are aliases. Define one of them.
 
 `onDestroy` runs alone in the tick after the entity despawns. It may return
-only `hud`, `emit`, `spawn`, `despawn`, `sceneTransition` and `log` commands. A scene
+only `hud`, `emit`, `spawn`, `despawn`, `sceneTransition`, `log`, `save` and `load` commands. A scene
 transition discards behavior state without calling `onDestroy`.
 
 `after(ticks, name)` calls the object's method `name` once, `ticks` ticks
@@ -211,6 +211,49 @@ holds every event of the previous tick, targeted or not. A tag target reaches
 nothing on 2D schemas before 4. A plain `{kind: "emit", event}` produces the
 same event as before. Payloads count toward the 64 KiB script input limit once
 per tick.
+
+### Player saves
+
+Scripts save and load in 2D and 3D with two commands:
+
+- `save {slot, data, scope?, snapshot?}` writes `data` to a slot after the tick.
+- `load {slot, scope?}` reads a slot.
+
+`scope` is `"progress"` (the default) or `"settings"`. The two scopes are
+separate stores, so a progress slot and a settings slot can share a name and
+removing one never touches the other. `snapshot: true` also stores the
+end-of-tick session snapshot with a progress save. A settings save with a
+snapshot fails the tick. The player keeps one snapshot save pending at a time,
+and the editor stores the data without the snapshot.
+
+The player runs saves and loads in order, with at most 8 waiting. A request
+past that limit fails without stopping the game, and a failed load answers
+with null data.
+
+A slot name is 1 to 32 letters, digits, `_` or `-`. `data` must be a JSON
+object of at most 16 KiB serialized, 256 keys counted at every depth and 16
+levels deep. Each scope holds at most 16 slots per game. A tick accepts at most
+4 save and load commands across all scripts, and more fail the tick. These
+commands do not count toward `maxCommands` and never enter snapshots.
+
+A load answers on a later tick through `input.loaded`, a list of `{scope, slot,
+data}` where `data` is null for an empty slot. A frame carries at most 2
+results. Keep what the game needs in script state:
+
+```js
+({ onStart() { return { commands: [{ kind: "load", slot: "main" }] }; },
+  onUpdate(input) {
+    const result = input.loaded?.find((entry) => entry.slot === "main");
+    return { state: result ? { best: result.data?.best ?? 0 } : input.state };
+  } })
+```
+
+The loaded data is part of the input frame, so a replay of recorded frames
+reproduces it without storage. The standalone player stores saves in IndexedDB.
+The editor stores them in localStorage under the game id. `nodetool game
+simulate` and agent playtests keep them in memory. `simulate --saves <file>`
+seeds slots from `{progress?, settings?}`, and its JSON report lists the slots
+after the run.
 
 ## 2D visuals
 

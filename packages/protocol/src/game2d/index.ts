@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { gameEntityProps, gameEntityTags } from "../game-entity-metadata.js";
 import { gameEventPayload, gameEventTarget } from "../game-script-events.js";
+import { gameSaveLoadedFrame } from "../game-saves.js";
 import { gameLightingComponent } from "./components/lighting.js";
 import { gameMusicComponent } from "./components/music.js";
 import { finite, positive, vec2, frame } from "./components/common.js";
@@ -98,7 +99,9 @@ export type GameDocument = z.infer<typeof gameDocument>;
 
 export const gameInputFrame = z.object({
   pressed: z.array(z.string()),
-  justPressed: z.array(z.string()).default([])
+  justPressed: z.array(z.string()).default([]),
+  /** Finished save loads delivered to scripts this tick as `input.loaded`. Absent on frames without one. */
+  loaded: gameSaveLoadedFrame.optional()
 });
 
 export type GameInputFrame = z.infer<typeof gameInputFrame>;

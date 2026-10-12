@@ -3,14 +3,16 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import ts from "typescript";
+import { gameLoadCommand, gameSaveCommand } from "@nodetool-ai/protocol";
 import { GAME_SCRIPT_TYPES } from "../src/script-types.js";
 import { gameScriptLogCommand } from "../src/script-log.js";
 import { gameScriptCommand } from "../src/scripts.js";
 
 describe("game script editor types", () => {
   it("declares every runtime command kind", () => {
-    // `log` is declared for authors but removed by the runner before commands reach the simulation.
-    const runtime = [...gameScriptCommand.options.map((option) => option.shape.kind.value), gameScriptLogCommand.shape.kind.value].sort();
+    // `log`, `save` and `load` are declared for authors but removed by the runner before commands reach the simulation.
+    const runtime = [...gameScriptCommand.options.map((option) => option.shape.kind.value), gameScriptLogCommand.shape.kind.value,
+      gameSaveCommand.shape.kind.value, gameLoadCommand.shape.kind.value].sort();
     const declared = [...GAME_SCRIPT_TYPES.matchAll(/kind: "([A-Za-z]+)"/g)].map((match) => match[1]).sort();
     expect(declared).toEqual(runtime);
   });
@@ -34,7 +36,8 @@ describe("schema-derived 3D script declarations", () => {
   it("includes every 3D command kind and checks shape command fields", async () => {
     const { gameScriptCommand3D } = await import("@nodetool-ai/protocol");
     const { GAME_SCRIPT_TYPES_3D } = await import("../src/script-types3d.js");
-    const runtime = [...gameScriptCommand3D.options.map((option) => option.shape.kind.value), gameScriptLogCommand.shape.kind.value].sort();
+    const runtime = [...gameScriptCommand3D.options.map((option) => option.shape.kind.value), gameScriptLogCommand.shape.kind.value,
+      gameSaveCommand.shape.kind.value, gameLoadCommand.shape.kind.value].sort();
     const declared = [...GAME_SCRIPT_TYPES_3D.matchAll(/kind: "([A-Za-z]+)"/g)].map((match) => match[1]).filter((kind) => !["box", "sphere", "capsule"].includes(kind)).sort();
     expect(declared).toEqual(runtime);
     const directory = await mkdtemp(join(tmpdir(), "game-script-types3d-"));

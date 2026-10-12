@@ -450,3 +450,34 @@ it("draws 2D particles in the play view and clears them when the session is repl
     expect(renderedParticles()).toBe(0);
   } finally { view.unmount(); animation.mockRestore(); localStorage.removeItem("nodetool.game.save.play-particles"); }
 });
+
+
+it("performs a session's save requests in scoped localStorage without snapshots and delivers a load on a later frame", async () => {
+  const animation = jest.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+  const user = userEvent.setup();
+  const progressKey = `nodetool.game.saves/${document.id}/progress/main`;
+  const settingsKey = `nodetool.game.saves/${document.id}/settings/main`;
+  const checkpointKey = `nodetool.game.saves/${document.id}/progress/checkpoint`;
+  localStorage.setItem(progressKey, JSON.stringify({ version: 1, data: { best: 7 } }));
+  const candidate = await createScriptedGameSession(document, 1);
+  const original = candidate.step.bind(candidate);
+  // Scripts cannot run under Jest, so the first step reports the requests a script would have issued.
+  const step = jest.spyOn(candidate, "step").mockImplementation((frame) => step.mock.calls.length > 1 ? original(frame) : { ...original(frame), saveRequests: [
+    { kind: "load", tick: 0, entityId: "player", scope: "progress", slot: "main" },
+    { kind: "save", tick: 0, entityId: "player", scope: "settings", slot: "main", data: { volume: 0.3 }, snapshot: false },
+    { kind: "save", tick: 0, entityId: "player", scope: "progress", slot: "checkpoint", data: { room: 2 }, snapshot: true }
+  ] });
+  const view = render(<GameHarness />);
+  try {
+    await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("Canvas 2D"));
+    jest.mocked(createScriptedGameSession).mockResolvedValueOnce(candidate);
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    // The saves run after the load in request order, so the last write means the load has finished.
+    await waitFor(() => expect(localStorage.getItem(checkpointKey)).toBe(JSON.stringify({ version: 1, data: { room: 2 } })));
+    expect(localStorage.getItem(settingsKey)).toBe(JSON.stringify({ version: 1, data: { volume: 0.3 } }));
+    expect(JSON.parse(localStorage.getItem(progressKey) ?? "null")).toEqual({ version: 1, data: { best: 7 } });
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(step.mock.calls.map(([frame]) => frame.loaded)).toEqual([undefined, [{ scope: "progress", slot: "main", data: { best: 7 } }]]);
+  } finally { view.unmount(); animation.mockRestore(); localStorage.removeItem(progressKey); localStorage.removeItem(settingsKey); localStorage.removeItem(checkpointKey); }
+});
