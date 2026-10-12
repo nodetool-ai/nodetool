@@ -49,6 +49,7 @@ import { WorkflowVersion } from "../../stores/ApiTypes";
 import { useRunningJobs } from "../../hooks/useRunningJobs";
 import { useSystemStatsStore } from "../../stores/systemStatsHandler";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
+import { isCloudProfile } from "../../lib/runtimeConfig";
 import { BASE_URL } from "../../stores/BASE_URL";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
@@ -604,7 +605,11 @@ const PanelBottom: React.FC = () => {
               <WorkerStatusIndicator />
             </div>
             <div className="tab-rail" role="tablist">
-              {PANEL_VIEWS.map((view) => (
+              {PANEL_VIEWS.filter(
+                // Workers are remote runners the server provisions, which the
+                // cloud refuses.
+                (view) => view !== "workers" || !isCloudProfile()
+              ).map((view) => (
                 <TabButton
                   key={view}
                   spec={VIEW_SPECS[view]}

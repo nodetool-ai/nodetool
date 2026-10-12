@@ -28,6 +28,10 @@ import {
   convertDocumentSpec
 } from "./documents.specs.js";
 import { isString } from "../utils/type-guards.js";
+import {
+  PANDOC_EXTRA_ARGS_DISABLED_ERROR,
+  isHostAccessEnabled
+} from "../host-access-gate.js";
 import { importOptionalLibrary } from "../host-modules/limits.js";
 
 const execFileAsync = promisify(execFile);
@@ -299,6 +303,13 @@ const convertDocument: CapabilityExport = {
   spec: convertDocumentSpec,
   impl: async (run, params) => {
     const context = run.context;
+    let extraArgs = (params["extra_args"] as string[]) ?? [];
+    if (isString(extraArgs)) {
+      extraArgs = [extraArgs];
+    }
+    if (extraArgs.length > 0 && !isHostAccessEnabled()) {
+      return { error: PANDOC_EXTRA_ARGS_DISABLED_ERROR };
+    }
     try {
       const inputFile = context.resolveWorkspacePath(
         params["input_file"] as string
@@ -308,10 +319,6 @@ const convertDocument: CapabilityExport = {
       );
       const fromFormat = (params["from_format"] as string) ?? "markdown";
       const toFormat = (params["to_format"] as string) ?? "pdf";
-      let extraArgs = (params["extra_args"] as string[]) ?? [];
-      if (isString(extraArgs)) {
-        extraArgs = [extraArgs];
-      }
 
       const parentDir = dirname(outputFile);
       await mkdir(parentDir, { recursive: true });

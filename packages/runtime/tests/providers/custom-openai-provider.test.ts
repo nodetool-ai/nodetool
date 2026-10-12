@@ -25,6 +25,47 @@ afterEach(() => {
   syncCustomProviders([]);
 });
 
+describe("CustomOpenAIProvider under the cloud profile", () => {
+  const saved = process.env.NODETOOL_NODE_PROFILE;
+  afterEach(() => {
+    if (saved === undefined) delete process.env.NODETOOL_NODE_PROFILE;
+    else process.env.NODETOOL_NODE_PROFILE = saved;
+  });
+
+  it("refuses a private or plain-http base URL, which a local install allows", () => {
+    const local = { ...CONFIG, CUSTOM_MYPROXY_BASE_URL: "http://127.0.0.1:8080/v1" };
+    expect(() => new CustomOpenAIProvider(local)).not.toThrow();
+    process.env.NODETOOL_NODE_PROFILE = "cloud";
+    expect(() => new CustomOpenAIProvider(local)).toThrow(/unsafe URL/);
+    expect(
+      () =>
+        new CustomOpenAIProvider({
+          ...CONFIG,
+          CUSTOM_MYPROXY_BASE_URL: "https://169.254.169.254/v1"
+        })
+    ).toThrow(/unsafe URL/);
+  });
+
+  it("does not follow a redirect into a private host", async () => {
+    process.env.NODETOOL_NODE_PROFILE = "cloud";
+    const fetchFn = vi.fn(async () =>
+      new Response(null, {
+        status: 302,
+        headers: { location: "http://10.0.0.5/models" }
+      })
+    );
+    const provider = new CustomOpenAIProvider(CONFIG, {
+      fetchFn: fetchFn as unknown as typeof fetch
+    });
+    await expect(provider.getAvailableLanguageModels()).resolves.toEqual([]);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://proxy.example.com/v1/models");
+    // safeFetch follows redirects itself, checking every hop.
+    expect(init.redirect).toBe("manual");
+  });
+});
+
 describe("CustomOpenAIProvider", () => {
   it("reports the configured wire id", () => {
     const provider = new CustomOpenAIProvider(CONFIG);
