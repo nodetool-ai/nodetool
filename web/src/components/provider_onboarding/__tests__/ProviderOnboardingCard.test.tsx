@@ -174,6 +174,13 @@ describe("ProviderOnboardingCard", () => {
     expect(screen.getByText(/^unavailable$/i)).toBeInTheDocument();
   });
 
+  it("names the provider in the get-a-key link without an article", () => {
+    renderCard(openai, { defaultExpanded: true });
+    expect(
+      screen.getByRole("button", { name: /get a key from openai/i })
+    ).toBeInTheDocument();
+  });
+
   it("expands the key field by default when highlighted", () => {
     renderCard(anthropic, { defaultExpanded: true });
     expect(

@@ -328,7 +328,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     try {
       await saveWorkflow(w);
       addNotification({
-        content: `Workflow ${w.name} saved`,
+        content: `Workflow "${w.name}" saved`,
         type: "success",
         alert: true
       });

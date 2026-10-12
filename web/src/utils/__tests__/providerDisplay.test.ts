@@ -112,6 +112,11 @@ describe("providerDisplay", () => {
   });
 
   describe("formatGenericProviderName", () => {
+    it("names subscription providers by their product", () => {
+      expect(formatGenericProviderName("chatgpt")).toBe("ChatGPT");
+      expect(formatGenericProviderName("claude_agent_sdk")).toBe("Claude");
+    });
+
     it("should format generic provider names", () => {
       expect(formatGenericProviderName("openai")).toBe("OpenAI");
       expect(formatGenericProviderName("anthropic")).toBe("Anthropic");

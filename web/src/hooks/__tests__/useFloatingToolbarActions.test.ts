@@ -458,7 +458,7 @@ describe("useFloatingToolbarActions", () => {
       expect(notifications).toHaveLength(1);
       expect(notifications[0]).toMatchObject({
         type: "success",
-        content: expect.stringContaining("saved")
+        content: expect.stringMatching(/^Workflow ".+" saved$/)
       });
     });
 
