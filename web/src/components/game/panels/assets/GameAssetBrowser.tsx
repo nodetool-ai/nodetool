@@ -83,7 +83,7 @@ function ItemRow({ selected, onClick, ariaLabel, leading, label, meta }: {
       const row = {
         minWidth: 0, minHeight: CONTROL.height.sm, px: SPACING.sm, py: SPACING.micro, border: 0, bgcolor: onClick ? undefined : "transparent",
         color: "text.primary", textAlign: "left", font: "inherit", cursor: onClick ? "pointer" : "default"
-      };
+      } as const;
       return onClick ? { ...selectableRowStyles(theme, { selected }), ...row } : row;
     }}>
     {leading}
