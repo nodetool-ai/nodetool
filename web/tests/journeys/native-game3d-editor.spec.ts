@@ -6,6 +6,7 @@ import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { createNative3DGame } from "@nodetool-ai/game-runtime";
 import { test, expect, waitForAppReady } from "./fixtures";
 
+import { dragGameDockTab } from "./helpers/gameDock";
 import { observeNativeGameReadiness, settleNativeGameEdit, finishNativeGameReadiness } from "./helpers/nativeGameReadiness";
 
 const PROJECT_ID = "proj-scrapheart";
@@ -172,13 +173,7 @@ test("releases native 3D pointer lock when its dock tab becomes inactive and pre
   await expect(page.getByRole("button", { name: "Play", exact: true })).toBeEnabled();
   const original = await canvas.elementHandle();
   if (!original) { throw new Error("Native 3D canvas did not mount"); }
-  const inspectorDrag = await page.getByRole("button", { name: "Drag inspector panel", exact: true }).boundingBox();
-  const viewportGroup = await page.getByRole("tab", { name: "Viewport", exact: true }).locator("..").boundingBox();
-  if (!inspectorDrag || !viewportGroup) { throw new Error("Native controller docking targets have no bounds"); }
-  await page.mouse.move(inspectorDrag.x + inspectorDrag.width / 2, inspectorDrag.y + inspectorDrag.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(viewportGroup.x + viewportGroup.width / 2, viewportGroup.y + viewportGroup.height / 2, { steps: 8 });
-  await page.mouse.up();
+  await dragGameDockTab(page, "Inspector", '[data-game-dock-group]:has([data-dock-tab="viewport"]) [data-game-dock-body]');
   const viewportTab = page.getByRole("tab", { name: "Viewport", exact: true });
   const inspectorTab = page.getByRole("tab", { name: "Inspector", exact: true });
   expect(await inspectorTab.evaluate((node) => node.closest("[data-game-dock-group]")?.getAttribute("data-game-dock-group")))

@@ -776,6 +776,22 @@ uppercase, `text.secondary`. A properties panel uses `InspectorSection`, which
 draws the same title (see [Properties panels](#11-properties-panels)). Omit `title` only when a tab strip above already
 names the panel, as in the agent panels.
 
+### Docked panel groups
+
+An editor whose panels the user rearranges (the game editor) docks them in
+groups. Each group draws a `DockTabStrip` and its body. The tab names the
+panel, so the panel draws no title strip of its own: its first row is a
+toolbar of controls, or its content.
+
+| Part | Rule |
+|---|---|
+| Tab strip | `DOCK_TAB_HEIGHT` (`CONTROL.height.sm`, 28px), `background.default`, 1px `divider` below |
+| Tab | Icon and sentence-case title in `TYPOGRAPHY.sans.label`. The active tab sits on the panel surface (`background.paper`) with a 2px top accent, `primary.main` while focus is inside the group |
+| Close | Shown on the active, hovered or focused tab. Middle click and Delete close too. A panel that must stay open passes `closable: false` |
+| Group menu | One `ToolbarIconButton` at the end of the strip and the same menu on right click or Shift+F10: close, maximize, split, reorder, move to another dock, add a hidden panel |
+| Drag | A tab drags after 4px of travel. `DockDropOverlay` previews the drop: the center adds a tab, an edge splits the group. Escape cancels |
+| Panel toolbar | `CONTROL.height.md` (32px), `SPACING.sm` inset, controls right-aligned, 1px `divider` below. Omit it when the panel has no controls |
+
 ### Dialogs
 
 Dialogs are not panels. Every modal dialog uses the `Dialog` primitive. It

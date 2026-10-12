@@ -76,6 +76,7 @@ const DockTabStripBase = forwardRef<HTMLDivElement, DockTabStripProps>(function 
   const theme = useTheme();
   const tabRefs = useRef(new Map<string, HTMLDivElement>());
   const press = useRef<{ id: string; pointerId: number; x: number; y: number } | null>(null);
+  const dragged = useRef(false);
 
   const focusTab = (index: number): void => {
     const tab = tabs[(index + tabs.length) % tabs.length];
@@ -117,6 +118,9 @@ const DockTabStripBase = forwardRef<HTMLDivElement, DockTabStripProps>(function 
             onPointerDown={(event: React.PointerEvent<HTMLDivElement>) => {
               if (event.button === 1) { event.preventDefault(); return; }
               if (event.button !== 0) { return; }
+              // A press must not pull focus out of the panel being dragged; a plain click focuses the tab below.
+              event.preventDefault();
+              dragged.current = false;
               press.current = { id: tab.id, pointerId: event.pointerId, x: event.clientX, y: event.clientY };
               // Capture, so the press keeps reporting moves after the pointer leaves the tab.
               if (onTabDragStart) { event.currentTarget.setPointerCapture?.(event.pointerId); }
@@ -127,7 +131,12 @@ const DockTabStripBase = forwardRef<HTMLDivElement, DockTabStripProps>(function 
               if (!current || current.pointerId !== event.pointerId || !onTabDragStart) { return; }
               if (Math.hypot(event.clientX - current.x, event.clientY - current.y) < DOCK_TAB_DRAG_THRESHOLD) { return; }
               press.current = null;
+              dragged.current = true;
               onTabDragStart(current.id, event.nativeEvent);
+            }}
+            onClick={(event: React.MouseEvent<HTMLDivElement>) => {
+              if (!dragged.current) { event.currentTarget.focus(); }
+              dragged.current = false;
             }}
             onPointerUp={() => { press.current = null; }}
             onPointerCancel={() => { press.current = null; }}
@@ -150,7 +159,7 @@ const DockTabStripBase = forwardRef<HTMLDivElement, DockTabStripProps>(function 
               else if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onActivate(tab.id); }
             }}
             sx={{
-              position: "relative", flexShrink: 0, maxWidth: 200, minWidth: 0, cursor: "default",
+              position: "relative", flexShrink: 0, maxWidth: 200, minWidth: 0, cursor: "default", touchAction: "none",
               paddingInline: getSpacingPx(SPACING.md), paddingRight: closable ? getSpacingPx(SPACING.xs) : undefined,
               ...TYPOGRAPHY.sans.label,
               color: active ? "text.primary" : "text.secondary",

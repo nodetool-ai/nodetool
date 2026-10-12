@@ -54,7 +54,7 @@ export function GameLayoutMenu({ store, panels }: GameLayoutMenuProps): ReactNod
   };
 
   return <>
-    <EditorButton ref={button} size="small" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(true)}
+    <EditorButton ref={button} size="small" data-game-layout-menu aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(true)}
       startIcon={<DashboardOutlinedIcon fontSize="small" />} endIcon={<ArrowDropDownIcon fontSize="small" />}
       sx={{ color: "text.secondary", "&:hover": { color: "text.primary" } }}>
       {current}
@@ -73,7 +73,7 @@ export function GameLayoutMenu({ store, panels }: GameLayoutMenuProps): ReactNod
       {panels.length > 0 && <ListSubheader>Panels</ListSubheader>}
       {panels.map((panel) => {
         const shown = !hidden.includes(panel.id);
-        return <MenuItemPrimitive key={panel.id} label={panel.title} selected={shown}
+        return <MenuItemPrimitive key={panel.id} label={panel.title}
           icon={shown ? <VisibilityOutlinedIcon /> : <VisibilityOffOutlinedIcon />}
           disabled={panel.id === "viewport"} secondary={shown ? undefined : "Hidden"}
           onClick={() => act(() => store.getState().dispatch({ type: shown ? "hide" : "reveal", panelId: panel.id }))} />;
