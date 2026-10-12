@@ -25,7 +25,7 @@ import type { PaintSurface } from "@nodetool-ai/image-editor/painting.js";
 import { useSketchInstance } from "../../../stores/sketch/SketchInstance";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import { getCanvasRasterBounds } from "../transform/geometry/layerGeometry";
-import { encodeSketchPsd, type DocumentPixels } from "../export/sketchPsd";
+import { encodeSketchPsd, type DocumentPixels } from "../psd/sketchPsd";
 
 function canvasPixels(canvas: HTMLCanvasElement | null): DocumentPixels | null {
   const ctx = canvas?.getContext("2d");

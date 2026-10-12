@@ -22,6 +22,7 @@ import RedoIcon from "@mui/icons-material/Redo";
 import FlipIcon from "@mui/icons-material/Flip";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import KeyboardOutlinedIcon from "@mui/icons-material/KeyboardOutlined";
 import SketchEditor, { SketchEditorHandle } from "./SketchEditor";
@@ -141,6 +142,19 @@ const SketchModal: React.FC<SketchModalProps> = ({
           <LayersOutlinedIcon fontSize="small" />
         </ListItemIcon>
         <ListItemText>Export PSD</ListItemText>
+      </EditorMenuItem>,
+      <EditorMenuItem
+        key="import-psd"
+        onClick={() => {
+          close();
+          editorRef.current?.importPsd();
+        }}
+        data-testid="sketch-import-psd"
+      >
+        <ListItemIcon>
+          <FileUploadOutlinedIcon fontSize="small" />
+        </ListItemIcon>
+        <ListItemText>Import PSD…</ListItemText>
       </EditorMenuItem>
     ],
     []

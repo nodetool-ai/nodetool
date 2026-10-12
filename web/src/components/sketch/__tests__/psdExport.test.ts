@@ -1,5 +1,5 @@
-import { encodePsd, type PsdNode } from "../export/psdEncoder";
-import { buildPsdLayerTree, cropToOpaqueBounds } from "../export/sketchPsd";
+import { encodePsd, type PsdNode } from "../psd/psdEncoder";
+import { buildPsdLayerTree, cropToOpaqueBounds } from "../psd/sketchPsd";
 import { createDefaultDocument, createDefaultLayer } from "../types";
 
 // ─── Minimal PSD reader (independent of the encoder's internals) ─────────────

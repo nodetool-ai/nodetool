@@ -43,6 +43,7 @@ import SketchCanvasPresentation from "./SketchCanvasPresentation";
 import GeneratingLayerOverlay from "./GeneratingLayerOverlay";
 import { getToolHandler } from "./tools";
 import { TransformTool } from "./tools/TransformTool";
+import { isPsdFile } from "./psd/psdFile";
 
 // ─── Canvas Ref Interface ────────────────────────────────────────────────────
 
@@ -369,8 +370,8 @@ function SketchCanvas({ ref, ...props }: SketchCanvasProps) {
         onDropAsset(draggedAsset);
         return;
       }
-      const file = Array.from(e.dataTransfer.files).find((f) =>
-        f.type.startsWith("image/")
+      const file = Array.from(e.dataTransfer.files).find(
+        (f) => f.type.startsWith("image/") || isPsdFile(f)
       );
       if (file && onDropImage) {
         onDropImage(file);

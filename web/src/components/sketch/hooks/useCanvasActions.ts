@@ -287,6 +287,7 @@ export function useCanvasActions({
     handlePaste: geometryActions.handlePaste,
     handlePasteAsNewLayer: geometryActions.handlePasteAsNewLayer,
     handleDropImage: geometryActions.handleDropImage,
+    handleImportPsd: geometryActions.handleImportPsd,
     handleDropAsset: geometryActions.handleDropAsset,
     adjBrightness: geometryActions.adjBrightness,
     adjContrast: geometryActions.adjContrast,

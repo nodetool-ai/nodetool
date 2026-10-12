@@ -107,6 +107,8 @@ export interface SketchEditorHandle {
   exportPng: () => void;
   /** Download the document as a layered PSD. */
   exportPsd: () => void;
+  /** Pick a PSD file and import its layers. */
+  importPsd: () => void;
   flipHorizontal: () => void;
   flipVertical: () => void;
   mergeDown: () => void;

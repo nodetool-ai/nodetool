@@ -1,5 +1,6 @@
 /**
  * psdEncoder – minimal layered Photoshop (PSD, version 1) writer.
+ * `decodePsd` in `psdDecoder.ts` reads files back.
  *
  * Writes 8-bit RGB documents with:
  * - pixel layers carrying name, visibility, opacity, blend mode, position and
@@ -79,6 +80,16 @@ const BLEND_KEYS: Record<BlendMode, string> = {
 
 export function psdBlendKey(mode: BlendMode): string {
   return BLEND_KEYS[mode] ?? "norm";
+}
+
+/** The sketch blend mode for a PSD blend key, or null when it has none. */
+export function blendModeFromPsdKey(key: string): BlendMode | null {
+  for (const [mode, psdKey] of Object.entries(BLEND_KEYS)) {
+    if (psdKey === key) {
+      return mode as BlendMode;
+    }
+  }
+  return null;
 }
 
 // ─── Byte writer ─────────────────────────────────────────────────────────────
