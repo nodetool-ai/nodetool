@@ -41,10 +41,10 @@
     "@jest/globals": "^29.7.0",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/websocket": "*",
-    "@trpc/client": "^11.17.0",
+    "@trpc/client": "^11.19.0",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^22.20.1",
+    "@types/node": "^22.20.5",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.71.1",
@@ -61,20 +61,20 @@
     "node-llama-cpp": "^3.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "sharp": "^0.35.1",
+    "sharp": "^0.35.5",
     "sqlite-vec": "^0.1.9",
-    "ts-jest": "^29.4.11",
+    "ts-jest": "^29.4.14",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vite": "^8.0.16",
     "vite-plugin-electron": "^0.29.1",
-    "ws": "^8.21.0",
-    "zustand": "^5.0.14"
+    "ws": "^8.22.0",
+    "zustand": "^5.0.15"
   },
   "dependencies": {
     "@nodetool-ai/protocol": "*",
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.9",
-    "zod": "^4.4.3"
+    "zod": "^4.6.6"
   },
   "overrides": {
     "minimatch": ">=3.1.4",
