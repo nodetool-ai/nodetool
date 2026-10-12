@@ -193,7 +193,12 @@ describe("tRPC /trpc/messages.list over Fastify", () => {
 
 describe("tRPC /trpc/threads.list over Fastify", () => {
   it("returns the threads list shape", async () => {
-    const { Thread } = await import("@nodetool-ai/models");
+    const { Project, Thread } = await import("@nodetool-ai/models");
+    vi.spyOn(Project, "migrateToPersonal").mockResolvedValue({
+      project: {} as never,
+      migrated: 0,
+      dangling: 0
+    });
     vi.spyOn(Thread, "paginate").mockResolvedValue([[], ""]);
 
     const app = buildTestApp();
