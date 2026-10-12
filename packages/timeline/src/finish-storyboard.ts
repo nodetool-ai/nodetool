@@ -226,16 +226,27 @@ const priceDirection = (element: GraphicsElement): string | undefined =>
 
 function textFontSizePx(element: GraphicsElement, width: number): number {
   if (element.typography?.size) return width * element.typography.size;
+  if (element.role !== "price") return width * 0.065;
+  return width * (priceDirection(element) === "superseded price" ? 0.055 : 0.12);
+}
+
+function defaultSlotY(element: GraphicsElement, index: number): number {
   const price = priceDirection(element);
-  return element.role === "price" ? width * (price === "superseded price" ? 0.055 : 0.12) : width * 0.065;
+  if (price === "superseded price") return 0.65;
+  if (price === "current price") return 0.76;
+  switch (element.role) {
+    case "product": return 0.42;
+    case "logo": return 0.1;
+    case "headline": return 0.18;
+    case "cta": return 0.84;
+    default: return 0.66 + (index % 2) * 0.1;
+  }
 }
 
 /** Default vertical centre and scale of one element, as fractions of the frame. */
 function defaultSlot(element: GraphicsElement, index: number): Slot {
-  const price = priceDirection(element);
-  const priceY = price === "superseded price" ? 0.65 : price === "current price" ? 0.76 : undefined;
   return {
-    y: priceY ?? (element.role === "product" ? 0.42 : element.role === "logo" ? 0.1 : element.role === "headline" ? 0.18 : element.role === "cta" ? 0.84 : 0.66 + (index % 2) * 0.1),
+    y: defaultSlotY(element, index),
     scale: element.role === "logo" ? 0.18 : element.kind === "asset" ? 0.65 : 1
   };
 }
