@@ -345,6 +345,42 @@ describe("retargetPlatformPackages", () => {
     ]);
   });
 
+  // esbuild names its per-arch packages `@esbuild/<platform>-<arch>`, with the
+  // platform after the scope's slash rather than after a hyphen.
+  it("replaces a scoped package named only by platform and arch", async () => {
+    await writePackage(nodeModules, "esbuild", {
+      version: "0.28.1",
+      optionalDependencies: {
+        "@esbuild/darwin-arm64": "0.28.1",
+        "@esbuild/darwin-x64": "0.28.1",
+      },
+    });
+    await writePackage(nodeModules, "@esbuild/darwin-arm64", {
+      version: "0.28.1",
+      os: ["darwin"],
+      cpu: ["arm64"],
+    });
+    const fetchPackage = (name: string, version: string, destDir: string): void => {
+      fs.mkdirSync(destDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(destDir, "package.json"),
+        JSON.stringify({ name, version, os: ["darwin"], cpu: ["x64"] })
+      );
+    };
+
+    const swapped = afterPackArch.retargetPlatformPackages(
+      nodeModules,
+      "darwin",
+      "x64",
+      fetchPackage
+    );
+
+    expect(swapped).toEqual([
+      { from: "@esbuild/darwin-arm64", to: "@esbuild/darwin-x64" },
+    ]);
+    expect(fs.readdirSync(path.join(nodeModules, "@esbuild"))).toEqual(["darwin-x64"]);
+  });
+
   it("leaves packages that match the target arch alone", async () => {
     await writePackage(nodeModules, "@img/sharp-darwin-arm64", {
       version: "0.35.3",
