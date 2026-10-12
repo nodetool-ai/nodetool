@@ -1,0 +1,629 @@
+{
+ "0layers.psd": {
+  "size": [
+   1600,
+   1200
+  ],
+  "compositeRGBSums": [
+   487771327,
+   487771327,
+   487771327
+  ],
+  "layers": []
+ },
+ "1layer.psd": {
+  "size": [
+   101,
+   55
+  ],
+  "compositeRGBSums": [
+   459657,
+   1155993,
+   286327
+  ],
+  "layers": [
+   {
+    "kind": "layer",
+    "name": "Фон",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     0,
+     0,
+     101,
+     55
+    ],
+    "channelSums": [
+     459657,
+     1155993,
+     286327,
+     1416525
+    ]
+   }
+  ]
+ },
+ "2layers.psd": {
+  "size": [
+   101,
+   55
+  ],
+  "compositeRGBSums": [
+   555096,
+   1140871,
+   423826
+  ],
+  "layers": [
+   {
+    "kind": "layer",
+    "name": "Фон",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     0,
+     0,
+     101,
+     55
+    ],
+    "channelSums": [
+     392444,
+     1096809,
+     293679,
+     1416525
+    ]
+   },
+   {
+    "kind": "layer",
+    "name": "Слой",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     8,
+     4,
+     85,
+     46
+    ],
+    "channelSums": [
+     320507,
+     321870,
+     257171,
+     213214
+    ]
+   }
+  ]
+ },
+ "4x4_8bit_rgb.psd": {
+  "size": [
+   4,
+   4
+  ],
+  "compositeRGBSums": [
+   2366,
+   252,
+   1246
+  ],
+  "layers": [
+   {
+    "kind": "layer",
+    "name": "Gradient Fill 1",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     0,
+     0,
+     4,
+     4
+    ],
+    "channelSums": [
+     2366,
+     252,
+     1246,
+     4080
+    ]
+   }
+  ]
+ },
+ "4x4_8bit_grayscale.psd": {
+  "size": [
+   4,
+   4
+  ],
+  "compositeRGBSums": [
+   1117,
+   1117,
+   1117
+  ],
+  "layers": [
+   {
+    "kind": "layer",
+    "name": "Gradient Fill 1",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     0,
+     0,
+     4,
+     4
+    ],
+    "channelSums": [
+     1120,
+     1120,
+     1120,
+     4080
+    ]
+   }
+  ]
+ },
+ "16bit5x5.psd": {
+  "error": "8-bit"
+ },
+ "clipping-mask.psd": {
+  "size": [
+   360,
+   200
+  ],
+  "compositeRGBSums": [
+   14005697,
+   14933248,
+   16084502
+  ],
+  "layers": [
+   {
+    "kind": "layer",
+    "name": "Background",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     0,
+     0,
+     360,
+     200
+    ],
+    "channelSums": [
+     16334904,
+     16961380,
+     17877495,
+     18360000
+    ]
+   },
+   {
+    "kind": "group",
+    "name": "Group 2",
+    "visible": true,
+    "opacity": 255,
+    "children": [
+     {
+      "kind": "group",
+      "name": "Group 1",
+      "visible": true,
+      "opacity": 255,
+      "children": [
+       {
+        "kind": "layer",
+        "name": "Shape 3",
+        "visible": true,
+        "opacity": 255,
+        "blendMode": "normal",
+        "bounds": [
+         103,
+         74,
+         185,
+         72
+        ],
+        "channelSums": [
+         759240,
+         2011320,
+         2650680,
+         3373914
+        ]
+       },
+       {
+        "kind": "layer",
+        "name": "Shape 4",
+        "visible": true,
+        "opacity": 255,
+        "blendMode": "normal",
+        "bounds": [
+         106,
+         -73,
+         157,
+         160
+        ],
+        "channelSums": [
+         6405600,
+         6405600,
+         6405600,
+         2888451
+        ]
+       }
+      ]
+     },
+     {
+      "kind": "layer",
+      "name": "Shape 1",
+      "visible": true,
+      "opacity": 255,
+      "blendMode": "normal",
+      "bounds": [
+       50,
+       44,
+       124,
+       69
+      ],
+      "channelSums": [
+       949716,
+       162564,
+       162564,
+       1635291
+      ]
+     },
+     {
+      "kind": "layer",
+      "name": "Shape 2",
+      "visible": true,
+      "opacity": 255,
+      "blendMode": "normal",
+      "bounds": [
+       141,
+       17,
+       69,
+       75
+      ],
+      "channelSums": [
+       1319625,
+       1319625,
+       1319625,
+       978297
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "empty-layer.psd": {
+  "size": [
+   100,
+   150
+  ],
+  "compositeRGBSums": [
+   3775020,
+   3775020,
+   3775020
+  ],
+  "layers": [
+   {
+    "kind": "layer",
+    "name": "Background",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     0,
+     0,
+     100,
+     150
+    ],
+    "channelSums": [
+     3825000,
+     3825000,
+     3825000,
+     3825000
+    ]
+   },
+   {
+    "kind": "group",
+    "name": "group",
+    "visible": true,
+    "opacity": 255,
+    "children": [
+     {
+      "kind": "layer",
+      "name": "normal",
+      "visible": true,
+      "opacity": 255,
+      "blendMode": "normal",
+      "bounds": [
+       36,
+       57,
+       16,
+       16
+      ],
+      "channelSums": [
+       0,
+       0,
+       0,
+       49980
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "group.psd": {
+  "size": [
+   100,
+   200
+  ],
+  "compositeRGBSums": [
+   4538358,
+   4538358,
+   4538358
+  ],
+  "layers": [
+   {
+    "kind": "layer",
+    "name": "Background",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     0,
+     0,
+     100,
+     200
+    ],
+    "channelSums": [
+     5100000,
+     5100000,
+     5100000,
+     5100000
+    ]
+   },
+   {
+    "kind": "group",
+    "name": "Group 1",
+    "visible": true,
+    "opacity": 255,
+    "children": [
+     {
+      "kind": "layer",
+      "name": "Shape 1",
+      "visible": true,
+      "opacity": 255,
+      "blendMode": "normal",
+      "bounds": [
+       25,
+       24,
+       41,
+       74
+      ],
+      "channelSums": [
+       0,
+       0,
+       0,
+       561642
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "hidden-layer.psd": {
+  "size": [
+   100,
+   150
+  ],
+  "compositeRGBSums": [
+   3444879,
+   3444879,
+   3444879
+  ],
+  "layers": [
+   {
+    "kind": "layer",
+    "name": "Background",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     0,
+     0,
+     100,
+     150
+    ],
+    "channelSums": [
+     3825000,
+     3825000,
+     3825000,
+     3825000
+    ]
+   },
+   {
+    "kind": "layer",
+    "name": "Shape 1",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     20,
+     5,
+     48,
+     49
+    ],
+    "channelSums": [
+     0,
+     0,
+     0,
+     380121
+    ]
+   },
+   {
+    "kind": "layer",
+    "name": "Shape 2",
+    "visible": false,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     20,
+     58,
+     59,
+     17
+    ],
+    "channelSums": [
+     0,
+     0,
+     0,
+     15162
+    ]
+   }
+  ]
+ },
+ "mask.psd": {
+  "size": [
+   100,
+   150
+  ],
+  "compositeRGBSums": [
+   2403956,
+   2409697,
+   2417717
+  ],
+  "layers": [
+   {
+    "kind": "layer",
+    "name": "Background",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     0,
+     0,
+     100,
+     150
+    ],
+    "channelSums": [
+     3825000,
+     3825000,
+     3825000,
+     3825000
+    ]
+   },
+   {
+    "kind": "layer",
+    "name": "Background copy",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     0,
+     0,
+     100,
+     150
+    ],
+    "channelSums": [
+     2435996,
+     2501438,
+     2593244,
+     3825000
+    ]
+   },
+   {
+    "kind": "layer",
+    "name": "Shape 1",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     16,
+     37,
+     67,
+     70
+    ],
+    "channelSums": [
+     0,
+     0,
+     0,
+     1127100
+    ]
+   }
+  ]
+ },
+ "text.psd": {
+  "size": [
+   400,
+   400
+  ],
+  "compositeRGBSums": [
+   40697639,
+   40697639,
+   40697639
+  ],
+  "layers": [
+   {
+    "kind": "layer",
+    "name": "Background",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     0,
+     0,
+     400,
+     400
+    ],
+    "channelSums": [
+     40800000,
+     40800000,
+     40800000,
+     40800000
+    ]
+   },
+   {
+    "kind": "layer",
+    "name": "Line 1 Line 2 Line 3 and text",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     84,
+     110,
+     85,
+     41
+    ],
+    "channelSums": [
+     0,
+     0,
+     0,
+     102361
+    ]
+   }
+  ]
+ },
+ "transparentbg-gimp.psd": {
+  "size": [
+   40,
+   40
+  ],
+  "compositeRGBSums": [
+   408000,
+   408000,
+   408000
+  ],
+  "layers": [
+   {
+    "kind": "layer",
+    "name": "Фон",
+    "visible": true,
+    "opacity": 255,
+    "blendMode": "normal",
+    "bounds": [
+     0,
+     0,
+     40,
+     40
+    ],
+    "channelSums": [
+     408000,
+     408000,
+     408000,
+     154745
+    ]
+   }
+  ]
+ }
+}
