@@ -45,6 +45,7 @@ jest.mock("three/addons/controls/TransformControls.js", () => ({
     attach() {}
     detach() {}
     setMode() {}
+    setSpace() {}
     setTranslationSnap() {}
     setRotationSnap() {}
     setScaleSnap() {}

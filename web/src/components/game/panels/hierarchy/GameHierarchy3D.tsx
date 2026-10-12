@@ -23,7 +23,8 @@ interface GameHierarchy3DProps {
   readonly document: GameDocument3D;
   readonly scene: GameScene3D | undefined;
   readonly selectedIds: readonly string[];
-  readonly onSelect: (id: string) => void;
+  /** `additive` is true for Shift-, Ctrl- or Cmd-click, which toggles the entity in the selection. */
+  readonly onSelect: (id: string, additive: boolean) => void;
   readonly onSelectScene: (id: string) => void;
   readonly onAdd: (kind: AddKind) => void;
   /** Rendered below the tree, pinned to the bottom of the panel. */
@@ -143,7 +144,7 @@ export default function GameHierarchy3D({ document, scene, selectedIds, onSelect
         const expanded = needle !== "" || !collapsed.has(entity.id);
         const name = entity.name || entity.id;
         return <TreeRow key={entity.id} role="listitem" interactive selected={selected} depth={depth}
-          baseIndent={SPACING.none} indentStep={SPACING.xl} onClick={() => onSelect(entity.id)}
+          baseIndent={SPACING.none} indentStep={SPACING.xl} onClick={(event) => onSelect(entity.id, event.shiftKey || event.ctrlKey || event.metaKey)}
           sx={{ pr: SPACING.sm, minHeight: CONTROL.height.xs, gap: SPACING.micro,
             "&:focus-within": { bgcolor: selected ? "action.selected" : "action.hover" } }}>
           {hasChildren
