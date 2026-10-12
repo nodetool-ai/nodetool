@@ -400,7 +400,6 @@ const PlanReviewLines: React.FC<{ rows: readonly PlanReviewField[] }> = ({
           onClick={() => setOpen((value) => !value)}
           endIcon={
             <ExpandMoreIcon
-              fontSize="small"
               sx={{ transform: open ? "rotate(180deg)" : "none" }}
             />
           }

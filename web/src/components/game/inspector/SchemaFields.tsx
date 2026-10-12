@@ -197,7 +197,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
         </FlexRow>;
       })}
       {absent.length > 0 && <FlexRow gap={SPACING.xs} sx={componentSections ? ADD_COMPONENT_ROW_SX : ADD_FIELD_ROW_SX}>
-        {absent.map(([key, child]) => <EditorButton key={key} variant="outlined" startIcon={<AddIcon fontSize="small" />}
+        {absent.map(([key, child]) => <EditorButton key={key} variant="outlined" startIcon={<AddIcon />}
           onClick={() => onChange(withColliderLayer(path, record, key, key === "layer" && path.endsWith("collider3d") ? collisionLayers?.[0] : schemaDefault(child)))}>Add {fieldLabel(key)}</EditorButton>)}
       </FlexRow>}
       {fieldError(issues, issuePath) && <Caption color="error">{fieldError(issues, issuePath)}</Caption>}

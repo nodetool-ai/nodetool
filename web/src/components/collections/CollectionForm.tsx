@@ -147,7 +147,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
             createMutation.isPending ? (
               <LoadingSpinner size="small" color="inherit" />
             ) : (
-              <AddCircleOutlineIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+              <AddCircleOutlineIcon />
             )
           }
         >

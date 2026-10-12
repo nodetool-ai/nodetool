@@ -20,27 +20,6 @@ export const ENTITY_KIND_COLOR = {
   prop: "success"
 } satisfies Record<EntityKind, "primary" | "secondary" | "info" | "success">;
 
-/**
- * Subtle chip styling per entity kind. Uses a translucent tint instead of a
- * solid `filled` background so storyboard chips read as metadata, not as
- * saturated alerts. The palette key stays the same, only the alpha changes.
- */
-export const getEntityKindChipSx = (kind: EntityKind) => {
-  const palette = ENTITY_KIND_COLOR[kind];
-  return {
-    borderRadius: BORDER_RADIUS.pill,
-    backgroundColor: `rgba(var(--palette-${palette}-mainChannel) / 0.12)`,
-    color: `var(--palette-${palette}-main)`,
-    borderColor: `rgba(var(--palette-${palette}-mainChannel) / 0.22)`,
-    "& .MuiChip-deleteIcon": {
-      color: `var(--palette-${palette}-main)`
-    },
-    "& .MuiChip-deleteIcon:hover": {
-      color: `var(--palette-${palette}-main)`
-    }
-  } as const;
-};
-
 /** Icon per entity kind, used where a thumbnail is missing or too small. */
 export const ENTITY_KIND_ICON = {
   character: PersonOutlineIcon,
@@ -57,7 +36,6 @@ export const ENTITY_KIND_ICON = {
  */
 export const getEntityChipSx = (applied: boolean) =>
   ({
-    borderRadius: BORDER_RADIUS.pill,
     backgroundColor: "transparent",
     color: applied ? "text.secondary" : "text.disabled",
     borderColor: applied ? "divider" : "transparent",

@@ -217,15 +217,7 @@ const ModelListItem: React.FC<
                           : "default"
                   }
                   variant="outlined"
-                  sx={{
-                    color:
-                      execution.state === "unavailable"
-                        ? "text.disabled"
-                        : undefined,
-                    borderColor:
-                      execution.state === "unavailable" ? "divider" : undefined,
-                    cursor: "help"
-                  }}
+                  sx={{ cursor: "help" }}
                 />
               </Tooltip>
               {tags.map((tag) => (

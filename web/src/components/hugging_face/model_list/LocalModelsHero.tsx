@@ -99,7 +99,7 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
           variant="outlined"
           size="small"
           fullWidth
-          endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
+          endIcon={<OpenInNewIcon />}
           onClick={() => window.open(DOCS_URL, "_blank", "noopener,noreferrer")}
         >
           Learn more

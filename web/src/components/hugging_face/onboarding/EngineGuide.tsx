@@ -151,7 +151,7 @@ const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
             isBusy ? (
               <LoadingSpinner inline size={14} />
             ) : (
-              <ExtensionOutlinedIcon sx={{ fontSize: 15 }} />
+              <ExtensionOutlinedIcon />
             )
           }
           sx={{ flexShrink: 0 }}
@@ -222,7 +222,7 @@ const EngineGuide: React.FC = () => {
             variant="text"
             density="compact"
             size="small"
-            endIcon={<OpenInNewIcon fontSize="inherit" />}
+            endIcon={<OpenInNewIcon />}
             onClick={openPackageManager}
           >
             Package Manager

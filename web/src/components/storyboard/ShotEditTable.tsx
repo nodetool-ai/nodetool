@@ -22,7 +22,6 @@ import {
   FormSection,
   Text,
   TextInput,
-  BORDER_RADIUS,
   SPACING
 } from "../ui_primitives";
 import {
@@ -70,12 +69,7 @@ const RENDER_MODE_OPTIONS = [
   { value: "reference", label: "Reference" }
 ];
 
-const chipSx = {
-  borderRadius: BORDER_RADIUS.pill,
-  color: "text.secondary",
-  borderColor: "divider",
-  alignSelf: "flex-start"
-} as const;
+const chipSx = { alignSelf: "flex-start" } as const;
 
 const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   draft,

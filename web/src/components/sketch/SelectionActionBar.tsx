@@ -498,7 +498,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
                 isBusy ? (
                   <LoadingSpinner inline size={14} color="inherit" />
                 ) : (
-                  <AutoAwesomeIcon fontSize="small" />
+                  <AutoAwesomeIcon />
                 )
               }
               data-testid="sketch-selection-generate"
@@ -518,7 +518,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
               size="small"
               onClick={handleRemove}
               disabled={!clearActiveLayer}
-              startIcon={<DeleteOutlineIcon fontSize="small" />}
+              startIcon={<DeleteOutlineIcon />}
               data-testid="sketch-selection-remove"
             >
               Remove
@@ -539,7 +539,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
               variant="outlined"
               size="small"
               onClick={() => setRefineOpen((v) => !v)}
-              startIcon={<TuneIcon fontSize="small" />}
+              startIcon={<TuneIcon />}
               data-testid="sketch-selection-refine-edge"
             >
               Refine mask

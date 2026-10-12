@@ -90,7 +90,7 @@ const SceneClipControlsInner: React.FC<SceneClipControlsProps> = ({
       <EditorButton
         size="small"
         variant="text"
-        startIcon={<MovieOutlinedIcon fontSize="small" />}
+        startIcon={<MovieOutlinedIcon />}
         onClick={handleNew}
       >
         Scene clip…

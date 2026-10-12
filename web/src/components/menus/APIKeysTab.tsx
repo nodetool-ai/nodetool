@@ -229,10 +229,6 @@ export const ProviderCard = memo(function ProviderCard({
                 compact
                 variant="outlined"
                 color="primary"
-                sx={{
-                  height: 18,
-                  borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.4)`
-                }}
               />
             )}
           </FlexRow>
@@ -361,7 +357,7 @@ export const ProviderCard = memo(function ProviderCard({
             density="compact"
             variant="text"
             size="small"
-            endIcon={<OpenInNewIcon sx={{ fontSize: "1.2em" }} />}
+            endIcon={<OpenInNewIcon />}
             onClick={() =>
               window.open(meta.docsUrl, "_blank", "noopener,noreferrer")
             }
@@ -376,7 +372,7 @@ export const ProviderCard = memo(function ProviderCard({
                   density="compact"
                   variant="text"
                   size="small"
-                  startIcon={<LinkOffIcon sx={{ fontSize: "1.2em" }} />}
+                  startIcon={<LinkOffIcon />}
                   onClick={oauth.disconnect}
                 >
                   Disconnect
@@ -387,7 +383,7 @@ export const ProviderCard = memo(function ProviderCard({
                 density="compact"
                 variant="outlined"
                 size="small"
-                startIcon={<LoginIcon sx={{ fontSize: "1.2em" }} />}
+                startIcon={<LoginIcon />}
                 onClick={oauth.connect}
                 disabled={oauth.isConnecting}
               >
@@ -1072,7 +1068,7 @@ export const SecurityNotice = memo(function SecurityNotice() {
             density="compact"
             variant="text"
             size="small"
-            endIcon={<OpenInNewIcon sx={{ fontSize: "1.2em" }} />}
+            endIcon={<OpenInNewIcon />}
             onClick={() =>
               window.open(
                 "https://github.com/nodetool-ai/nodetool/blob/main/docs/security.md",
@@ -1223,7 +1219,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
           variant="outlined"
           size="small"
           fullWidth
-          endIcon={<OpenInNewIcon sx={{ fontSize: "1.2em" }} />}
+          endIcon={<OpenInNewIcon />}
           onClick={() =>
             window.open(
               "https://openrouter.ai/",

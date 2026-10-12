@@ -71,7 +71,7 @@ const SketchAIToolbarInner: React.FC = () => {
             <EditorButton
               onClick={() => setGenerateDialogOpen(true)}
               size="small"
-              startIcon={<AddPhotoAlternateIcon fontSize="small" />}
+              startIcon={<AddPhotoAlternateIcon />}
               data-testid="sketch-action-generate-layer"
             >
               Generate Layer
@@ -92,7 +92,7 @@ const SketchAIToolbarInner: React.FC = () => {
               onClick={() => setConfirmRegenOpen(true)}
               disabled={staleCount === 0 || regenBusy}
               size="small"
-              startIcon={<RefreshIcon fontSize="small" />}
+              startIcon={<RefreshIcon />}
               data-testid="sketch-action-regenerate-stale"
             >
               Re-generate Stale ({staleCount})

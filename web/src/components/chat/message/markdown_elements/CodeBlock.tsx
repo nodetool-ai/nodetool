@@ -9,11 +9,10 @@ import {
   BORDER_RADIUS,
   FlexRow,
   FONT_SIZE_MONO,
-  FONT_SIZE_SANS,
   FONT_WEIGHT,
   SPACING,
   getSpacingPx,
-  Tooltip
+  EditorButton
 } from "../../../ui_primitives";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 import {
@@ -305,24 +304,9 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
           <span className="code-block-language">{match ? match[1] : ""}</span>
           <FlexRow gap={SPACING.md} align="center">
             {onInsert != null && (
-              <Tooltip title="Insert into editor" describeChild>
-                <button
-                  type="button"
-                  className="button"
-                  onClick={handleInsert}
-                  style={{
-                    padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
-                    fontSize: FONT_SIZE_SANS.caption,
-                    borderRadius: BORDER_RADIUS.xs,
-                    border: "1px solid var(--palette-grey-700)",
-                    background: "var(--palette-grey-700)",
-                    color: "var(--palette-grey-50)",
-                    cursor: "pointer"
-                  }}
-                >
-                  Insert into editor
-                </button>
-              </Tooltip>
+              <EditorButton variant="outlined" onClick={handleInsert}>
+                Insert into editor
+              </EditorButton>
             )}
             <CopyButton value={codeContent} />
           </FlexRow>

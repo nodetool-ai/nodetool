@@ -87,7 +87,7 @@ const ProviderOnboardingDialog: React.FC = () => {
               <Text size="small">Prefer local models?</Text>
               <Caption>Install Ollama and download a model to run on your machine.</Caption>
             </FlexColumn>
-            <EditorButton component="a" href="https://ollama.com/download" target="_blank" rel="noopener noreferrer" variant="text" endIcon={<OpenInNewIcon sx={{ fontSize: "1.2em" }} />}>Get Ollama</EditorButton>
+            <EditorButton component="a" href="https://ollama.com/download" target="_blank" rel="noopener noreferrer" variant="text" endIcon={<OpenInNewIcon />}>Get Ollama</EditorButton>
           </FlexRow>
         )}
         <FlexRow gap={SPACING.md} align="center">

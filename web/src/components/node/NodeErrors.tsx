@@ -15,7 +15,7 @@ import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { useNodeError } from "../../hooks/nodes/useNodeExecState";
 import { useRunInspection } from "../../hooks/useRunInspection";
 import isEqual from "../../utils/isEqual";
-import { CopyButton, ExternalLink, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { CopyButton, ExternalLink, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, EditorButton } from "../ui_primitives";
 import { extractKieTaskId, KIE_LOGS_URL } from "../../utils/kieTaskId";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 import type { NodeStoreState } from "../../stores/NodeStore";
@@ -86,23 +86,6 @@ const errorStyles = (theme: Theme) =>
       position: "absolute",
       top: 10,
       right: 10,
-    },
-    ".report-button": {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.xs),
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
-      borderRadius: BORDER_RADIUS.sm,
-      border: `1px solid ${theme.vars.palette.grey[1000]}44`,
-      backgroundColor: "transparent",
-      color: theme.vars.palette.grey[1000],
-      fontSize: theme.fontSizeSmaller,
-      cursor: "pointer",
-      textDecoration: "none",
-      lineHeight: "1.4",
-      "&:hover": {
-        backgroundColor: `${theme.vars.palette.grey[1000]}22`,
-      },
     },
   });
 
@@ -200,28 +183,28 @@ const NodeErrorsImpl: React.FC<{
   return (
     <div css={memoizedErrorStyles} className="node-error nodrag nowheel">
       <div className="error-actions">
-        <Tooltip title="Show logs for this node and run">
-          <button
-            type="button"
-            className="report-button nodrag"
-            onClick={handleViewLogs}
-            aria-label="View logs for this node and run"
-          >
-            <ListAltIcon sx={{ fontSize: "0.9em" }} />
-            View logs
-          </button>
-        </Tooltip>
-        <Tooltip title="Report this as a bug">
-          <button
-            type="button"
-            className="report-button nodrag"
-            onClick={handleReport}
-            aria-label="Report this as a bug"
-          >
-            <BugReportIcon sx={{ fontSize: "0.9em" }} />
-            Report
-          </button>
-        </Tooltip>
+        <EditorButton
+          variant="outlined"
+          color="inherit"
+          startIcon={<ListAltIcon />}
+          className="nodrag"
+          onClick={handleViewLogs}
+          tooltip="Show logs for this node and run"
+          aria-label="View logs for this node and run"
+        >
+          View logs
+        </EditorButton>
+        <EditorButton
+          variant="outlined"
+          color="inherit"
+          startIcon={<BugReportIcon />}
+          className="nodrag"
+          onClick={handleReport}
+          tooltip="Report this as a bug"
+          aria-label="Report this as a bug"
+        >
+          Report
+        </EditorButton>
         <CopyButton
           value={errorDisplay}
           tooltip="Copy to clipboard"

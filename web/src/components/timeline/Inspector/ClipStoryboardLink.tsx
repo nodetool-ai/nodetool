@@ -18,24 +18,14 @@ import {
   Chip,
   EditorButton,
   FlexRow,
-  BORDER_RADIUS,
-  CONTROL,
   SPACING
 } from "../../ui_primitives";
 import LinkShotDialog from "../shot/LinkShotDialog";
 import { colorForType } from "../../../config/data_types";
-import { hexToRgba } from "../../../utils/ColorUtils";
 import { useClipStoryboardLink } from "../../../hooks/timeline/useClipStoryboardLink";
 
 /** Violet — the app's colour for anything picture-shaped. */
 const BOARD_COLOR = colorForType("video");
-
-const chipSx = {
-  height: `${CONTROL.height.xs}px`,
-  borderRadius: BORDER_RADIUS.md,
-  borderColor: hexToRgba(BOARD_COLOR, 0.4),
-  color: BOARD_COLOR
-} as const;
 
 interface ClipStoryboardLinkProps {
   clip: TimelineClip;
@@ -80,7 +70,7 @@ const ClipStoryboardLinkInner = ({ clip }: ClipStoryboardLinkProps) => {
         compact
         variant="outlined"
         label={link.label}
-        sx={chipSx}
+        accent={BOARD_COLOR}
         onClick={link.open}
         title={`Open ${link.shot.slug ?? "this shot"} on the storyboard`}
       />
