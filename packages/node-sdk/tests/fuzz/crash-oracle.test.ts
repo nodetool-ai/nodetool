@@ -31,7 +31,12 @@ import {
   parseCodeBody
 } from "../../src/code-analysis.js";
 import { validateCodeNodeBody } from "../../src/code-node-validation.js";
-import { codeCorpus, graphCorpus, seedRegistry } from "./corpus.js";
+import {
+  codeCorpus,
+  graphCorpus,
+  seedCatalog,
+  seedRegistry
+} from "./corpus.js";
 import { SEED_CODE_BODIES, SEED_GRAPHS } from "./seeds.js";
 
 /** The corpus the mutation run scores against, and the one the snapshots pin. */
@@ -238,10 +243,11 @@ it(`${CODE} reports the same issues, messages included, for every seed body`, as
   const lines = SEED_CODE_BODIES.flatMap((seed) =>
     validateCodeNodeBody({
       code: seed.code,
-      availableInputs: ["a", "text", "flag", "items"],
-      connectedInputs: ["items"],
-      declaredOutputs: ["n", "out", "doc"],
-      sandboxModuleCatalog: null
+      availableInputs: seed.availableInputs ?? ["a", "text", "flag", "items"],
+      connectedInputs: seed.connectedInputs ?? ["items"],
+      declaredOutputs: seed.declaredOutputs ?? ["n", "out", "doc"],
+      connectedOutputs: seed.connectedOutputs,
+      sandboxModuleCatalog: seed.catalog ? seedCatalog() : null
     }).map(
       (issue) => `${seed.id} ${issue.severity} ${issue.code} ${issue.message}`
     )
