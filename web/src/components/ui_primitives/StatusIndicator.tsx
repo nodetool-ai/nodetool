@@ -32,6 +32,11 @@ const styles = (theme: Theme, pulse: boolean) =>
     ".status-label": TYPOGRAPHY.sans.caption
   });
 
+const LABEL_STYLE = {
+  small: TYPOGRAPHY.sans.caption,
+  medium: TYPOGRAPHY.sans.label
+} as const;
+
 export type StatusType = "success" | "error" | "warning" | "info" | "pending" | "default";
 
 export interface StatusIndicatorProps {
@@ -113,8 +118,8 @@ const StatusIndicatorInternal: React.FC<StatusIndicatorProps> = ({
           color: statusColors[status]
         },
         ".status-label": {
-          color: labelTone === "muted" ? "text.secondary" : statusColors[status],
-          ...(size === "medium" ? TYPOGRAPHY.sans.label : {})
+          ...LABEL_STYLE[size],
+          color: labelTone === "muted" ? "text.secondary" : statusColors[status]
         }
       }}
     >
