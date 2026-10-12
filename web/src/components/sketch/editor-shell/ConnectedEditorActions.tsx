@@ -18,9 +18,10 @@ import FitScreenIcon from "@mui/icons-material/FitScreen";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
 import CheckIcon from "@mui/icons-material/Check";
+import { useTheme } from "@mui/material/styles";
 
 import {
-  Caption,
+  Box,
   Divider,
   EditorButton,
   EditorMenu,
@@ -30,7 +31,8 @@ import {
   ListItemIcon,
   ListItemText,
   Tooltip,
-  BORDER_RADIUS
+  MENU_ICON_SIZE,
+  menuShortcutStyles
 } from "../../ui_primitives";
 import { useSketchStore, SKETCH_ZOOM_MIN, SKETCH_ZOOM_MAX } from "../state";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
@@ -65,11 +67,28 @@ const ViewToggleItem: React.FC<ViewToggleItemProps> = ({
     data-testid={testId}
   >
     <ListItemIcon>
-      {checked ? <CheckIcon fontSize="small" /> : null}
+      <CheckIcon sx={{ visibility: checked ? "visible" : "hidden" }} />
     </ListItemIcon>
     <ListItemText>{label}</ListItemText>
-    <Caption sx={{ ml: 2, opacity: 0.7 }}>{displayCombo(actionId)}</Caption>
+    <ShortcutLabel>{displayCombo(actionId)}</ShortcutLabel>
   </EditorMenuItem>
+);
+
+/** The shortcut at the end of a hand-built row, in the shared menu style. */
+const ShortcutLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const theme = useTheme();
+  return (
+    <Box component="span" className="shortcut" sx={menuShortcutStyles(theme)}>
+      {children}
+    </Box>
+  );
+};
+
+/** Keeps an icon-less row's label on the same edge as its iconned siblings. */
+const IconSpacer: React.FC = () => (
+  <ListItemIcon>
+    <Box component="span" sx={{ width: MENU_ICON_SIZE, height: MENU_ICON_SIZE }} />
+  </ListItemIcon>
 );
 
 export interface ConnectedEditorActionsProps {
@@ -228,7 +247,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
         onClose={closeMenu}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
-        paperSx={{ borderRadius: BORDER_RADIUS.lg, minWidth: 220 }}
+        paperSx={{ minWidth: 220 }}
       >
         <EditorMenuItem onClick={handleFit} data-testid="sketch-fit-view">
           <ListItemIcon>
@@ -286,7 +305,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
           disabled={!hasGuides}
           data-testid="sketch-clear-guides"
         >
-          <ListItemIcon />
+          <IconSpacer />
           <ListItemText>Clear guides</ListItemText>
         </EditorMenuItem>
 

@@ -95,18 +95,16 @@ export function ClipContextMenu({
   };
 
   return (
-    <ContextMenu open position={position} onClose={onClose} compact>
+    <ContextMenu open position={position} onClose={onClose}>
       <MenuItemPrimitive
         label="Split at playhead"
         icon={<ContentCutOutlinedIcon fontSize="small" />}
-        compact
         onClick={run(actions.splitAtPlayhead)}
       />
       {actions.isMidi && (
         <MenuItemPrimitive
           label="Edit notes"
           icon={<MusicNoteOutlinedIcon fontSize="small" />}
-          compact
           onClick={run(actions.editNotes)}
         />
       )}
@@ -114,20 +112,17 @@ export function ClipContextMenu({
         <MenuItemPrimitive
           label="Edit video…"
           icon={<AutoAwesomeOutlinedIcon fontSize="small" />}
-          compact
           onClick={run(actions.openAiEdit)}
         />
       )}
       <MenuItemPrimitive
         label="Duplicate"
         icon={<ContentCopyIcon fontSize="small" />}
-        compact
         onClick={run(actions.duplicate)}
       />
       <MenuItemPrimitive
         label={hasTransition ? "Remove transition" : "Cross-fade in"}
         icon={<GradientOutlinedIcon fontSize="small" />}
-        compact
         onClick={run(() =>
           hasTransition
             ? removeTransition(clipId)
@@ -138,7 +133,6 @@ export function ClipContextMenu({
         <MenuItemPrimitive
           label={hasFade ? "Remove fades" : "Fade in and out"}
           icon={<GraphicEqOutlinedIcon fontSize="small" />}
-          compact
           onClick={run(() =>
             hasFade
               ? clearFades(new Set([clipId]))
@@ -150,7 +144,6 @@ export function ClipContextMenu({
         <MenuItemPrimitive
           label="Regenerate as new clip"
           icon={<AutoAwesomeMotionIcon fontSize="small" />}
-          compact
           onClick={run(actions.regenerateAsCopy)}
         />
       )}
@@ -163,14 +156,12 @@ export function ClipContextMenu({
             <LockOpenIcon fontSize="small" />
           )
         }
-        compact
         onClick={run(actions.toggleLock)}
       />
       {actions.canReplace && (
         <MenuItemPrimitive
           label="Replace clip…"
           icon={<ImageIcon fontSize="small" />}
-          compact
           onClick={run(actions.openReplace)}
         />
       )}
@@ -182,7 +173,6 @@ export function ClipContextMenu({
               : `Send ${workflowMedia.length} clips to workflow…`
           }
           icon={<AccountTreeOutlinedIcon fontSize="small" />}
-          compact
           onClick={run(() => onSendToWorkflow(workflowMedia, position))}
         />
       )}
@@ -190,7 +180,6 @@ export function ClipContextMenu({
         <MenuItemPrimitive
           label="Open in node editor"
           icon={<OpenInNewIcon fontSize="small" />}
-          compact
           onClick={run(actions.openInNodeEditor)}
         />
       )}
@@ -198,14 +187,14 @@ export function ClipContextMenu({
         <MenuItemPrimitive
           label="Unlink"
           icon={<LinkOffIcon fontSize="small" />}
-          compact
           onClick={run(onUnlink)}
         />
       )}
       <MenuItemPrimitive
         label="Delete"
         icon={<DeleteOutlineOutlinedIcon fontSize="small" />}
-        compact
+        color="error"
+        dividerBefore
         onClick={run(onDelete)}
       />
     </ContextMenu>

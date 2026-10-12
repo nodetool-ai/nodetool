@@ -202,6 +202,12 @@
       "types": "./dist/game-examples.d.ts",
       "import": "./dist/game-examples.js",
       "default": "./dist/game-examples.js"
+    },
+    "./game-build": {
+      "nodetool-dev": "./src/game-build.ts",
+      "types": "./dist/game-build.d.ts",
+      "import": "./dist/game-build.js",
+      "default": "./dist/game-build.js"
     }
   },
   "license": "MIT",

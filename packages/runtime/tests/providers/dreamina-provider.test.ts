@@ -130,6 +130,54 @@ describe("DreaminaProvider", () => {
     expect(calls.filter((c) => c.url.pathname.endsWith("get_history_by_ids"))).toHaveLength(2);
   });
 
+  it("survives a status request that never answers", async () => {
+    vi.useFakeTimers();
+    const done = { task: { status: 50 }, item_list: [{ image: { large_images: [{ image_url: "https://example.com/a.png" }] } }] };
+    let polls = 0;
+    setDreaminaPageRunner({
+      async evaluate(expression: string) {
+        const request = JSON.parse(/const a = (\{.*?\});\n/s.exec(expression)![1]);
+        const url = new URL(request.url);
+        if (url.pathname.endsWith("get_common_config")) return { ret: "0", data: CONFIG };
+        if (url.pathname.endsWith("aigc_draft/generate")) return { ret: "0", data: {} };
+        // The first poll hangs forever, as a stalled request in the tab did.
+        if (polls++ === 0) return new Promise(() => undefined);
+        return { ret: "0", data: { [JSON.parse(request.body).submit_ids[0]]: done } };
+      }
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([4, 5]))));
+    const pending = new DreaminaProvider().textToImage({ model: IMAGE_MODEL, prompt: "x" });
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(Array.from(await pending)).toEqual([4, 5]);
+    expect(polls).toBe(2);
+  });
+
+  it("downloads through the tab when the direct download keeps failing", async () => {
+    vi.useFakeTimers();
+    const done = { task: { status: 50 }, item_list: [{ image: { large_images: [{ image_url: "https://example.com/a.png" }] } }] };
+    let tabDownloads = 0;
+    setDreaminaPageRunner({
+      async evaluate(expression: string) {
+        if (expression.includes("btoa(")) {
+          tabDownloads++;
+          return Buffer.from([7, 8, 9]).toString("base64");
+        }
+        const request = JSON.parse(/const a = (\{.*?\});\n/s.exec(expression)![1]);
+        const url = new URL(request.url);
+        if (url.pathname.endsWith("get_common_config")) return { ret: "0", data: CONFIG };
+        if (url.pathname.endsWith("aigc_draft/generate")) return { ret: "0", data: {} };
+        return { ret: "0", data: { [JSON.parse(request.body).submit_ids[0]]: done } };
+      }
+    });
+    const fetchMock = vi.fn(async () => { throw new TypeError("terminated"); });
+    vi.stubGlobal("fetch", fetchMock);
+    const pending = new DreaminaProvider().textToImage({ model: IMAGE_MODEL, prompt: "x" });
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(Array.from(await pending)).toEqual([7, 8, 9]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(tabDownloads).toBe(1);
+  });
+
   it("reports a failed task", async () => {
     vi.useFakeTimers();
     fakeRunner([{ task: { status: 30 }, fail_code: "1234", fail_msg: "Bad prompt" }]);

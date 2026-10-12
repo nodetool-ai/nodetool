@@ -7,6 +7,7 @@
     "packages/timeline",
     "packages/storyboard",
     "packages/app-runtime",
+    "packages/app-export",
     "packages/game-runtime",
     "packages/game-renderer",
     "packages/image-editor",

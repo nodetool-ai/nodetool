@@ -58,7 +58,7 @@ import {
   Tooltip,
   LabeledSwitch,
   SelectField,
-  NodeMenuItem,
+  MenuItemPrimitive,
   EditorMenu,
   MOTION,
   BORDER_RADIUS,
@@ -1784,9 +1784,11 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
             transformOrigin={{ vertical: "top", horizontal: "right" }}
           >
             {availableTypes.map((t) => (
-              <NodeMenuItem key={t} onClick={() => handleAdd(t)}>
-                {EFFECT_LABELS[t]}
-              </NodeMenuItem>
+              <MenuItemPrimitive
+                key={t}
+                label={EFFECT_LABELS[t]}
+                onClick={() => handleAdd(t)}
+              />
             ))}
           </EditorMenu>
         </FlexRow>

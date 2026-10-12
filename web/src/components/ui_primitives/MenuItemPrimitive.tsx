@@ -1,20 +1,22 @@
-/** @jsxImportSource @emotion/react */
 import React from "react";
-import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { MenuItem, ListItemIcon, ListItemText, Tooltip, Divider } from "@mui/material";
+import { Box, MenuItem, ListItemIcon, ListItemText, Divider } from "@mui/material";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { BORDER_RADIUS, CONTROL, MOTION } from "./tokens";
+import { Tooltip } from "./Tooltip";
+import {
+  MENU_ICON_SIZE,
+  menuItemDestructiveStyles,
+  menuShortcutStyles
+} from "./menuStyles";
 
 export interface MenuItemPrimitiveProps {
-  /** Label text */
+  /** Label text, sentence case */
   label: string;
   /** Optional icon */
   icon?: React.ReactNode;
   /** Click handler */
-  onClick?: (event: React.MouseEvent) => void;
+  onClick?: (event: React.MouseEvent<HTMLElement>) => void;
   /** Whether the item is disabled */
   disabled?: boolean;
   /** Whether the item is selected/active */
@@ -23,129 +25,33 @@ export interface MenuItemPrimitiveProps {
   hasSubmenu?: boolean;
   /** Secondary text */
   secondary?: string;
-  /** Tooltip text */
-  tooltip?: string;
+  /** Tooltip shown to the right of the row */
+  tooltip?: React.ReactNode;
   /** Keyboard shortcut to display */
   shortcut?: string;
-  /** Color variant */
+  /**
+   * Color variant. `error` marks a destructive item (delete, remove).
+   * `primary` marks the one accent action in a menu.
+   */
   color?: "default" | "error" | "primary";
-  /** Dense mode */
-  dense?: boolean;
-  /** Compact mode for tighter menus that need smaller typography and spacing */
-  compact?: boolean;
   /** Divider before this item */
   dividerBefore?: boolean;
   /** Divider after this item */
   dividerAfter?: boolean;
   /** Additional className */
   className?: string;
+  /** Test id on the row */
+  "data-testid"?: string;
 }
 
-const styles = (theme: Theme) => css`
-  .menu-item-primitive {
-    border-radius: ${BORDER_RADIUS.sm};
-    margin: 2px 4px;
-    padding: 8px 12px;
-    transition: ${MOTION.all};
-    
-    &:hover {
-      background-color: ${theme.vars.palette.action.hover};
-    }
-    
-    &.Mui-selected {
-      background-color: ${theme.vars.palette.action.selected};
-      
-      &:hover {
-        background-color: ${theme.vars.palette.action.selected};
-      }
-    }
-    
-    &.error {
-      color: ${theme.vars.palette.error.main};
-      
-      .MuiListItemIcon-root {
-        color: ${theme.vars.palette.error.main};
-      }
-      
-      &:hover {
-        background-color: ${theme.vars.palette.error.main}1a;
-      }
-    }
-    
-    &.primary {
-      color: ${theme.vars.palette.primary.main};
-      
-      .MuiListItemIcon-root {
-        color: ${theme.vars.palette.primary.main};
-      }
-      
-      &:hover {
-        background-color: ${theme.vars.palette.primary.main}1a;
-      }
-    }
-    
-    .MuiListItemIcon-root {
-      min-width: 32px;
-      color: ${theme.vars.palette.text.secondary};
-    }
-    
-    .MuiListItemText-primary {
-      font-size: var(--fontSizeSmall);
-    }
-
-    .MuiListItemText-secondary {
-      font-size: var(--fontSizeSmaller);
-    }
-    
-    .menu-item-end {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-left: auto;
-      padding-left: 16px;
-    }
-
-    .shortcut {
-      font-size: var(--fontSizeSmaller);
-      color: ${theme.vars.palette.text.disabled};
-      font-family: var(--fontFamily2);
-      background: ${theme.vars.palette.action.hover};
-      padding: 2px 6px;
-      border-radius: ${BORDER_RADIUS.sm};
-    }
-    
-    .submenu-icon {
-      color: ${theme.vars.palette.text.disabled};
-      font-size: var(--fontSizeBig);
-    }
-    
-      &.dense {
-        padding: 6px 12px;
-
-        .MuiListItemText-primary {
-          font-size: var(--fontSizeSmall);
-        }
-      }
-
-      &.compact {
-        min-height: ${CONTROL.height.md}px;
-        padding: 4px 12px;
-
-        .MuiListItemIcon-root {
-          min-width: ${CONTROL.height.sm}px;
-        }
-
-        .MuiListItemText-primary {
-          font-size: var(--fontSizeSmaller);
-        }
-
-        .shortcut {
-          font-size: var(--fontSizeSmaller);
-        }
-      }
-    }
-  `;
-
+/**
+ * One row of a menu. The theme gives every MUI `MenuItem` the shared menu row
+ * style (`menuItemStyles`), so this only lays out the icon, label, secondary
+ * line, shortcut and submenu chevron.
+ *
+ * It renders the row and its dividers as siblings, with no wrapper element,
+ * so the menu's arrow-key navigation reaches every row.
+ */
 export const MenuItemPrimitive: React.FC<MenuItemPrimitiveProps> = ({
   label,
   icon,
@@ -157,47 +63,64 @@ export const MenuItemPrimitive: React.FC<MenuItemPrimitiveProps> = ({
   tooltip,
   shortcut,
   color = "default",
-  dense = false,
-  compact = false,
   dividerBefore = false,
   dividerAfter = false,
-  className
+  className,
+  "data-testid": testId
 }) => {
   const theme = useTheme();
-  
+
   const menuItem = (
     <MenuItem
-      className={`menu-item-primitive ${color} ${dense ? "dense" : ""} ${compact ? "compact" : ""} ${className || ""}`}
+      className={["menu-item-primitive", color, className]
+        .filter(Boolean)
+        .join(" ")}
       onClick={onClick}
       disabled={disabled}
       selected={selected}
+      data-testid={testId}
+      sx={[
+        color === "error" && menuItemDestructiveStyles(theme),
+        color === "primary" && {
+          color: theme.vars.palette.primary.main,
+          "& .MuiListItemIcon-root": { color: theme.vars.palette.primary.main }
+        }
+      ]}
     >
       {icon && <ListItemIcon>{icon}</ListItemIcon>}
-      <ListItemText 
-        primary={label} 
-        secondary={secondary}
-      />
-      {(shortcut || hasSubmenu) && (
-        <span className="menu-item-end">
-          {shortcut && <span className="shortcut">{shortcut}</span>}
-          {hasSubmenu && <KeyboardArrowRightIcon className="submenu-icon" />}
-        </span>
+      <ListItemText primary={label} secondary={secondary} />
+      {shortcut && (
+        <Box component="span" className="shortcut" sx={menuShortcutStyles(theme)}>
+          {shortcut}
+        </Box>
+      )}
+      {hasSubmenu && (
+        <KeyboardArrowRightIcon
+          className="submenu-icon"
+          sx={{
+            marginLeft: shortcut ? 0 : "auto",
+            fontSize: MENU_ICON_SIZE,
+            color: theme.vars.palette.text.secondary
+          }}
+        />
       )}
     </MenuItem>
   );
-  
+
   const wrappedItem = tooltip ? (
-    <Tooltip title={tooltip} enterDelay={TOOLTIP_ENTER_DELAY} placement="right">
-      <span>{menuItem}</span>
+    <Tooltip title={tooltip} delay={TOOLTIP_ENTER_DELAY} placement="right">
+      {disabled ? <span>{menuItem}</span> : menuItem}
     </Tooltip>
-  ) : menuItem;
-  
+  ) : (
+    menuItem
+  );
+
   return (
-    <div css={styles(theme)}>
-      {dividerBefore && <Divider sx={{ my: 0.5 }} />}
+    <>
+      {dividerBefore && <Divider />}
       {wrappedItem}
-      {dividerAfter && <Divider sx={{ my: 0.5 }} />}
-    </div>
+      {dividerAfter && <Divider />}
+    </>
   );
 };
 

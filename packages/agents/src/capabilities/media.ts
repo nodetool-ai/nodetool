@@ -524,6 +524,8 @@ const generateImage: CapabilityExport = {
         negative_prompt: params["negative_prompt"],
         width: params["width"],
         height: params["height"],
+        aspect_ratio: aliased(params, "aspect_ratio", "aspectRatio", "aspect"),
+        resolution: aliased(params, "resolution"),
         quality: params["quality"]
       }
     });
@@ -569,6 +571,9 @@ const editImage: CapabilityExport = {
         negative_prompt: params["negative_prompt"],
         target_width: params["target_width"],
         target_height: params["target_height"],
+        aspect_ratio: aliased(params, "aspect_ratio", "aspectRatio", "aspect"),
+        resolution: aliased(params, "resolution"),
+        quality: params["quality"],
         strength: params["strength"]
       }
     });

@@ -13,7 +13,6 @@ import React, {
 } from "react";
 import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import { Asset } from "../../stores/ApiTypes";
-import type { SelectChangeEvent } from "../ui_primitives";
 import {
   Text,
   LoadingSpinner,
@@ -25,9 +24,7 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  Select,
-  MenuItem,
-  FormControl,
+  SelectField,
   Z_INDEX
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
@@ -49,7 +46,6 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
-import LightModeIcon from "@mui/icons-material/LightMode";
 import CloseIcon from "@mui/icons-material/Close";
 import { cn, reactFlowClasses } from "../ui_primitives";
 
@@ -176,9 +172,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
     ".controls-select": {
       minWidth: "100px",
       "& .MuiSelect-select": {
-        color: theme.vars.palette.grey[100],
-        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
-        fontSize: "var(--fontSizeSmall)"
+        color: theme.vars.palette.grey[100]
       },
       "& .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.action.disabled
@@ -614,12 +608,12 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     [asset?.name, captureScreenshot]
   );
 
-  const handleLightingChange = useCallback((event: SelectChangeEvent) => {
-    setLightingPreset(event.target.value as LightingPreset);
+  const handleLightingChange = useCallback((value: string) => {
+    setLightingPreset(value as LightingPreset);
   }, []);
 
-  const handleBackgroundChange = useCallback((event: SelectChangeEvent) => {
-    setBackgroundColor(event.target.value as BackgroundColor);
+  const handleBackgroundChange = useCallback((value: string) => {
+    setBackgroundColor(value as BackgroundColor);
   }, []);
 
   const handleToggleGrid = useCallback(() => {
@@ -803,36 +797,27 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               </ToggleOption>
             </ToggleGroup>
 
-            <FormControl size="small" className="controls-select">
-              <Select
-                value={lightingPreset}
-                onChange={handleLightingChange}
-                variant="outlined"
-                aria-label="Lighting preset"
-                IconComponent={LightModeIcon}
-              >
-                {LIGHTING_PRESETS.map((preset) => (
-                  <MenuItem key={preset.value} value={preset.value}>
-                    {preset.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <SelectField
+              className="controls-select"
+              label="Lighting preset"
+              hideLabel
+              size="small"
+              appearance="inspector"
+              value={lightingPreset}
+              onChange={handleLightingChange}
+              options={LIGHTING_PRESETS}
+            />
 
-            <FormControl size="small" className="controls-select">
-              <Select
-                value={backgroundColor}
-                onChange={handleBackgroundChange}
-                variant="outlined"
-                aria-label="Background color"
-              >
-                {BACKGROUND_COLORS.map((bg) => (
-                  <MenuItem key={bg.value} value={bg.value}>
-                    {bg.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <SelectField
+              className="controls-select"
+              label="Background color"
+              hideLabel
+              size="small"
+              appearance="inspector"
+              value={backgroundColor}
+              onChange={handleBackgroundChange}
+              options={BACKGROUND_COLORS}
+            />
 
             <ToolbarIconButton
               icon={<RestartAltIcon fontSize="small" />}

@@ -17,8 +17,8 @@ import { SPACING,
   CheckerDropzone,
   NodeSlider,
   BORDER_RADIUS,
-  MenuItem,
-  Select,
+  NodeSelect,
+  NodeMenuItem,
   type SelectChangeEvent
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
@@ -115,12 +115,7 @@ const styles = (theme: Theme) =>
     },
     ".range-select": {
       gridColumn: "2 / span 2",
-      width: "100%",
-      fontSize: theme.fontSizeSmaller,
-      textTransform: "capitalize",
-      ".MuiSelect-select": {
-        padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.micro)} 0`
-      }
+      width: "100%"
     },
     ".outputs-row": {
       flex: "0 0 auto"
@@ -182,8 +177,8 @@ const HSLAdjustBodyInner: React.FC<HSLAdjustBodyProps> = ({
   });
 
   const handleRangeChange = useCallback(
-    (event: SelectChangeEvent<ColorRange>) => {
-      setProperty("color_range", event.target.value);
+    (event: SelectChangeEvent<unknown>) => {
+      setProperty("color_range", event.target.value as ColorRange);
       setPropertyComplete();
     },
     [setProperty, setPropertyComplete]
@@ -209,21 +204,18 @@ const HSLAdjustBodyInner: React.FC<HSLAdjustBodyProps> = ({
 
       <div className="controls">
         <span className="ctrl-label">Range</span>
-        <Select
-          className="range-select nodrag"
-          size="small"
-          variant="standard"
+        <NodeSelect
+          className="range-select"
           value={colorRange}
           onChange={handleRangeChange}
           aria-label="Color range"
-          disableUnderline
         >
           {COLOR_RANGES.map((r) => (
-            <MenuItem key={r} value={r} dense sx={{ textTransform: "capitalize" }}>
-              {r}
-            </MenuItem>
+            <NodeMenuItem key={r} value={r}>
+              {r.charAt(0).toUpperCase() + r.slice(1)}
+            </NodeMenuItem>
           ))}
-        </Select>
+        </NodeSelect>
 
         {SLIDERS.map((spec) => {
           const value = clamp1(Number(props[spec.name] ?? 0));

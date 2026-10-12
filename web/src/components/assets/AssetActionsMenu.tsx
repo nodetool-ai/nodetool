@@ -29,7 +29,7 @@ import useAssets from "../../serverState/useAssets";
 import {
   ToolbarIconButton,
   UploadButton,
-  Popover,
+  ContextMenu,
   MenuItemPrimitive,
   FlexRow,
   TruncatedText,
@@ -311,12 +311,12 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
         </FlexRow>
       </FlexRow>
 
-      <Popover
+      <ContextMenu
         open={Boolean(typeFilterAnchor)}
         anchorEl={typeFilterAnchor}
         onClose={() => setTypeFilterAnchor(null)}
-        placement="bottom-left"
-        paperSx={{ py: SPACING.micro, minWidth: 160 }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
         {TYPE_FILTERS.map((filter) => (
           <MenuItemPrimitive
@@ -328,17 +328,16 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
               handleTypeFilterChange(filter.key);
               setTypeFilterAnchor(null);
             }}
-            dense
           />
         ))}
-      </Popover>
+      </ContextMenu>
 
-      <Popover
+      <ContextMenu
         open={Boolean(modelFilterAnchor)}
         anchorEl={modelFilterAnchor}
         onClose={() => setModelFilterAnchor(null)}
-        placement="bottom-left"
-        paperSx={{ py: SPACING.micro, minWidth: 160 }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
         <MenuItemPrimitive
           label="Any model"
@@ -348,21 +347,20 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
             setModelFilter(null);
             setModelFilterAnchor(null);
           }}
-          dense
         />
         {modelOptions.map((model) => (
           <MenuItemPrimitive
             key={model.id}
             label={model.label}
+            icon={<SmartToyOutlinedIcon />}
             selected={modelFilter === model.id}
             onClick={() => {
               setModelFilter(model.id);
               setModelFilterAnchor(null);
             }}
-            dense
           />
         ))}
-      </Popover>
+      </ContextMenu>
 
       {showFilters && (
         <Box

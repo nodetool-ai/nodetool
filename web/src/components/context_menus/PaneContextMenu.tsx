@@ -2,7 +2,7 @@
 import React, { useCallback, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 
-import { EditorButton, Text, Divider, FlexRow, ContextMenu, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Divider, ContextMenu, ListSubheader } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -15,7 +15,9 @@ import GroupWorkIcon from "@mui/icons-material/GroupWork";
 import StarIcon from "@mui/icons-material/Star";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import InputIcon from "@mui/icons-material/Input";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import SchemaIcon from "@mui/icons-material/Schema";
+import AppsIcon from "@mui/icons-material/Apps";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
@@ -253,12 +255,12 @@ const PaneContextMenu: React.FC = () => {
             className: "context-menu pane-context-menu"
           }
         }}
-        paperSx={{ borderRadius: BORDER_RADIUS.lg, width: "240px" }}
+        paperSx={{ width: "240px" }}
       >
         <ContextMenuItem
           onClick={handlePasteAndClose}
           label="Paste"
-          addButtonClassName={`action ${!isClipboardValid ? "disabled" : ""}`}
+          disabled={!isClipboardValid}
           IconComponent={<SouthEastIcon />}
           tooltip={
             !isClipboardValid ? (
@@ -277,30 +279,13 @@ const PaneContextMenu: React.FC = () => {
         />
         <ContextMenuItem
           onClick={handleFitViewAndClose}
-          label="Fit Screen"
+          label="Fit screen"
           IconComponent={<FitScreenIcon />}
           tooltip={getShortcutTooltip("fitView")}
         />
         {favorites.length > 0 && [
           <Divider key="favorites-divider" />,
-          <FlexRow
-            key="favorites-header"
-            align="center"
-            sx={{
-              gap: getSpacingPx(SPACING.md),
-              padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
-              color: "text.secondary",
-              fontSize: "var(--fontSizeSmaller)",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px"
-            }}
-          >
-            <StarIcon
-              sx={{ fontSize: "var(--fontSizeNormal)", color: "warning.main" }}
-            />
-            <Text>Favorites</Text>
-          </FlexRow>,
+          <ListSubheader key="favorites-header">Favorites</ListSubheader>,
           ...favorites.map((favorite) => {
             const displayName = getNodeDisplayName(favorite.nodeType);
             return (
@@ -308,11 +293,7 @@ const PaneContextMenu: React.FC = () => {
                 key={favorite.nodeType}
                 onClick={addFavoriteNode(favorite.nodeType)}
                 label={displayName}
-                IconComponent={
-                  <StarIcon
-                    sx={{ fontSize: "var(--fontSizeNormal)", color: "warning.main", opacity: 0.7 }}
-                  />
-                }
+                IconComponent={<StarIcon />}
                 tooltip={`Add ${displayName} node`}
               />
             );
@@ -321,56 +302,45 @@ const PaneContextMenu: React.FC = () => {
         <Divider />
         <ContextMenuItem
           onClick={handleOpenConstantMenu}
-          controlElement={
-            <EditorButton
-              className="action"
-              endIcon={<KeyboardArrowRightIcon />}
-              density="normal"
-            >
-              <DataObjectIcon />
-              <span className="label">Add Constant Node</span>
-            </EditorButton>
-          }
+          label="Add constant node"
+          IconComponent={<DataObjectIcon />}
+          hasSubmenu
         />
         <ContextMenuItem
           onClick={handleOpenInputMenu}
-          controlElement={
-            <EditorButton
-              className="action"
-              endIcon={<KeyboardArrowRightIcon />}
-              density="normal"
-            >
-              <InputIcon />
-              <span className="label">Add Input Node</span>
-            </EditorButton>
-          }
+          label="Add input node"
+          IconComponent={<InputIcon />}
+          hasSubmenu
         />
         <Divider />
         <ContextMenuItem
           onClick={handleAddCommentAndClose}
-          label="Add Comment"
+          label="Add comment"
           IconComponent={<AddCommentIcon />}
           tooltip={"Hold C key and drag"}
         />
         <ContextMenuItem
           onClick={handleAddGroupAndClose}
-          label="Add Group"
+          label="Add group"
           IconComponent={<GroupWorkIcon />}
           tooltip={"Add a group node"}
         />
         <ContextMenuItem
           onClick={handleCreateNode(WORKFLOW_NODE_TYPE)}
-          label="Add Workflow"
+          label="Add workflow"
+          IconComponent={<AccountTreeIcon />}
           tooltip={"Add a workflow node"}
         />
         <ContextMenuItem
           onClick={handleCreateNode(SUBGRAPH_NODE_TYPE)}
-          label="Add Subgraph"
+          label="Add subgraph"
+          IconComponent={<SchemaIcon />}
           tooltip={"Add an inline subgraph node"}
         />
         <ContextMenuItem
           onClick={handleCreateNode(APP_NODE_TYPE)}
-          label="Add App"
+          label="Add app"
+          IconComponent={<AppsIcon />}
           tooltip={"Run a mini app as a node"}
         />
       </ContextMenu>

@@ -29,6 +29,7 @@ import { getToolHandler } from "../tools";
 import type { SegmentTool } from "../tools/SegmentTool";
 import { useSketchStore } from "../state";
 import { buildSelectionOutsideStrokeMask } from "../selection";
+import { pickPsdFile } from "../psd/psdFile";
 import { useMenuHandler } from "../../../hooks/useIpcRenderer";
 import type { MenuEventData } from "../../../window";
 import type { useCanvasActions } from "./useCanvasActions";
@@ -291,6 +292,14 @@ export function useEditorCommands({
       redo: handleRedo,
       clearLayer: canvasActions.handleClearLayer,
       exportPng: canvasActions.handleExportPng,
+      exportPsd: canvasActions.handleExportPsd,
+      importPsd: () => {
+        void pickPsdFile().then((file) => {
+          if (file) {
+            void canvasActions.handleImportPsd(file);
+          }
+        });
+      },
       flipHorizontal: layerActions.handleFlipHorizontal,
       flipVertical: layerActions.handleFlipVertical,
       mergeDown: layerActions.handleMergeDown,

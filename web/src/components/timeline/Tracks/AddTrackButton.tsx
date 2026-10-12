@@ -23,7 +23,7 @@ import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutl
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
-  Popover,
+  ContextMenu,
   MenuItemPrimitive,
   MOTION,
   BORDER_RADIUS,
@@ -142,11 +142,12 @@ export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = f
         <AddIcon />
         {!compact && <span>Track</span>}
       </button>
-      <Popover
+      <ContextMenu
         open={Boolean(anchorEl)}
         anchorEl={anchorEl}
         onClose={handleClose}
-        placement="bottom-left"
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
         {TRACK_TYPES.map((opt) => (
           <MenuItemPrimitive
@@ -157,6 +158,7 @@ export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = f
           />
         ))}
         <MenuItemPrimitive
+          dividerBefore
           label="New track folder"
           icon={<CreateNewFolderOutlinedIcon fontSize="small" />}
           onClick={() => {
@@ -164,7 +166,7 @@ export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = f
             setAnchorEl(null);
           }}
         />
-      </Popover>
+      </ContextMenu>
     </>
   );
 });

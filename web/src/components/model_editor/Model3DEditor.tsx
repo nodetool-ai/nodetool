@@ -41,6 +41,7 @@ import StraightenIcon from "@mui/icons-material/Straighten";
 import KeyboardIcon from "@mui/icons-material/Keyboard";
 import CircleIcon from "@mui/icons-material/Circle";
 import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
 
 import {
@@ -81,7 +82,14 @@ import ViewportHud from "./ViewportHud";
 import { MenuButton } from "./MenuButton";
 import { readViewPrefs, writeViewPrefs, type ViewPrefs } from "./viewPrefs";
 import { createAnimationPreview } from "./animationPreview";
-import { importModelFile, importModelUrl, isModelFileName } from "./importModel";
+import {
+  IMPORT_ACCEPT,
+  MODEL_FORMATS_LABEL,
+  importModelFile,
+  importModelUrl,
+  isModelFileName,
+  modelNameFromFile
+} from "./importModel";
 import ShortcutsDialog from "./ShortcutsDialog";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import {
@@ -97,6 +105,8 @@ import {
   type PrimitiveKind
 } from "./objectFactory";
 import { exportSceneToGlb } from "./exportGltf";
+import { EXPORT_FORMATS, exportFileName, exportModel, type ExportFormat } from "./exportModel";
+import { saveBlobAsFile } from "../../utils/downloadResponse";
 import {
   bindTracksToUuids,
   cloneObjectDeep,
@@ -767,31 +777,38 @@ const Model3DEditor = ({
     [root, takenNames, pushCommand, requestCamera]
   );
 
+  // Several files import one after another under one overlay, which stays
+  // until the last one is placed.
   const runImport = useCallback(
-    async (load: () => Promise<THREE.Object3D>) => {
+    async (loads: (() => Promise<THREE.Object3D>)[]) => {
       setIsImporting(true);
       setImportError(null);
-      try {
-        placeImport(await load());
-      } catch (error) {
-        setImportError(error instanceof Error ? error.message : "The model could not be read.");
-      } finally {
-        setIsImporting(false);
+      const errors: string[] = [];
+      for (const load of loads) {
+        try {
+          placeImport(await load());
+        } catch (error) {
+          errors.push(error instanceof Error ? error.message : "The model could not be read.");
+        }
       }
+      setImportError(errors.length > 0 ? errors.join(" ") : null);
+      setIsImporting(false);
     },
     [placeImport]
   );
 
+  // Files picked with a model that are not models themselves (an .mtl, a
+  // .bin, textures) are handed to every model so its references resolve.
   const handleImportFiles = useCallback(
     (files: FileList | File[]) => {
-      const models = Array.from(files).filter((file) => isModelFileName(file.name));
+      const all = Array.from(files);
+      const models = all.filter((file) => isModelFileName(file.name));
+      const companions = all.filter((file) => !isModelFileName(file.name));
       if (models.length === 0) {
-        setImportError("Only .glb and .gltf files can be added to the scene.");
+        setImportError(`Choose a ${MODEL_FORMATS_LABEL} file to add to the scene.`);
         return;
       }
-      for (const file of models) {
-        void runImport(() => importModelFile(file));
-      }
+      void runImport(models.map((file) => () => importModelFile(file, companions)));
     },
     [runImport]
   );
@@ -822,10 +839,10 @@ const Model3DEditor = ({
         const asset = dragData.payload;
         const assetUrl = resolveStaticMediaUri(asset.get_url);
         if (!assetUrl || !isModelFileName(asset.name)) {
-          setImportError(`${asset.name} is not a .glb or .gltf model.`);
+          setImportError(`${asset.name} is not a ${MODEL_FORMATS_LABEL} model.`);
           return;
         }
-        void runImport(() => importModelUrl(assetUrl, asset.name));
+        void runImport([() => importModelUrl(assetUrl, asset.name)]);
         return;
       }
       if (e.dataTransfer.files.length > 0) {
@@ -1069,6 +1086,44 @@ const Model3DEditor = ({
     }
   }, [root, onSave, history, stopPreview, animationClips, canSave]);
 
+  // --- Export ------------------------------------------------------------------
+
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const handleExport = useCallback(
+    async (format: ExportFormat, onlySelection: boolean) => {
+      const selection = onlySelection ? selectedObject : null;
+      if ((onlySelection && !selection) || !canSave) {
+        return;
+      }
+      setIsExporting(true);
+      setExportError(null);
+      // Export the rest pose, not the animation frame on screen.
+      stopPreview();
+      try {
+        const blob = await exportModel(root, format, { selection, animations: animationClips });
+        saveBlobAsFile(
+          blob,
+          exportFileName(selection?.name || modelNameFromFile(name ?? ""), format)
+        );
+      } catch (error) {
+        console.error("[Model3DEditor] Export failed:", error);
+        setExportError(error instanceof Error ? error.message : "The model could not be exported.");
+      } finally {
+        setIsExporting(false);
+      }
+    },
+    [root, name, animationClips, stopPreview, canSave, selectedObject]
+  );
+  const exportErrorContext = useMemo(
+    () => ({
+      source: "operation-failure" as const,
+      summary: "3D model failed to export from the 3D editor",
+      errorText: exportError ?? undefined
+    }),
+    [exportError]
+  );
+
   const requestClose = useCallback(() => {
     if (isDirty) {
       setConfirmCloseOpen(true);
@@ -1165,9 +1220,11 @@ const Model3DEditor = ({
   }, [getContainer]);
 
   // The same actions, listed in the Cmd+K menu while this tab is on screen.
+  const exportRef = useRef(handleExport);
+  exportRef.current = handleExport;
   const menuCommands = useMemo<ContextCommand[]>(
-    () =>
-      EDITOR_SHORTCUTS.filter((shortcut) => shortcut.action !== "deselect").map(
+    () => [
+      ...EDITOR_SHORTCUTS.filter((shortcut) => shortcut.action !== "deselect").map(
         (shortcut) => ({
           id: shortcut.action,
           label: shortcut.label,
@@ -1176,6 +1233,13 @@ const Model3DEditor = ({
           run: () => actionsRef.current[shortcut.action]()
         })
       ),
+      ...EXPORT_FORMATS.map((info) => ({
+        id: `export-${info.format}`,
+        label: `Export scene as ${info.label}`,
+        keywords: ["download", info.format],
+        run: () => void exportRef.current(info.format, false)
+      }))
+    ],
     []
   );
   useContextCommands("3D Model", menuCommands, active && !cameraPose);
@@ -1357,7 +1421,7 @@ const Model3DEditor = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+          accept={IMPORT_ACCEPT}
           multiple
           hidden
           aria-label="Import model file"
@@ -1407,6 +1471,30 @@ const Model3DEditor = ({
             active={showAssistant}
             size="small"
           />
+          <MenuButton
+            label="Export"
+            icon={<FileDownloadOutlinedIcon />}
+            tooltip="Download the scene or the selected object as a file"
+          >
+            {(close) =>
+              [false, true].flatMap((onlySelection) =>
+                EXPORT_FORMATS.map((info, index) => (
+                  <MenuItemPrimitive
+                    key={`${onlySelection ? "selection" : "scene"}-${info.format}`}
+                    label={`${onlySelection ? "Selection" : "Scene"} as ${info.label}`}
+                    secondary={info.detail}
+                    dense
+                    dividerBefore={onlySelection && index === 0}
+                    disabled={isExporting || !canSave || (onlySelection && !selectedObject)}
+                    onClick={() => {
+                      void handleExport(info.format, onlySelection);
+                      close();
+                    }}
+                  />
+                ))
+              )
+            }
+          </MenuButton>
           <Tooltip title={withShortcut(isDirty ? "Save changes" : "No unsaved changes", "save")}>
             <span>
               <EditorButton
@@ -1469,8 +1557,20 @@ const Model3DEditor = ({
           )}
           {dropActive && (
             <FlexColumn className="drop-hint" align="center" justify="center">
-              <Text>Drop a .glb or .gltf model to add it to the scene</Text>
+              <Text>Drop a model to add it to the scene</Text>
             </FlexColumn>
+          )}
+          {exportError && (
+            <Box className="viewport-banner">
+              <AlertBanner
+                severity="error"
+                compact
+                onClose={() => setExportError(null)}
+                action={<ReportBugButton context={exportErrorContext} size="small" />}
+              >
+                Export failed: {exportError}
+              </AlertBanner>
+            </Box>
           )}
           {externallyChanged && !saveError && (
             <Box className="viewport-banner">
@@ -1605,11 +1705,17 @@ const Model3DEditor = ({
               onActiveChange={setPreviewActive}
             />
           )}
-          {(isSaving || isLoading || isImporting) && (
+          {(isSaving || isLoading || isImporting || isExporting) && (
             <FlexColumn className="overlay" align="center" justify="center" gap={SPACING.md}>
               <LoadingSpinner />
               <Text color="primary">
-                {isSaving ? "Saving…" : isImporting ? "Importing model…" : "Loading model…"}
+                {isSaving
+                  ? "Saving…"
+                  : isImporting
+                    ? "Importing model…"
+                    : isExporting
+                      ? "Exporting…"
+                      : "Loading model…"}
               </Text>
             </FlexColumn>
           )}

@@ -333,7 +333,6 @@ const SpeakerPicker = ({
         transformOrigin={{ vertical: "top", horizontal: mobile ? "left" : "right" }}
       >
         <MenuItemPrimitive
-          compact
           label="No speaker"
           selected={!speaker}
           onClick={() => assign(null)}
@@ -341,7 +340,6 @@ const SpeakerPicker = ({
         {cast.map((candidate) => (
           <MenuItemPrimitive
             key={candidate.id}
-            compact
             label={candidate.name}
             selected={candidate.id === speaker?.id}
             icon={<SpeakerDot color={candidate.color} />}
@@ -350,7 +348,6 @@ const SpeakerPicker = ({
         ))}
         {!readOnly && (
           <MenuItemPrimitive
-            compact
             dividerBefore
             label="Add speaker"
             icon={<PersonAddIcon fontSize="small" />}
@@ -713,14 +710,12 @@ const ScriptLineRow = ({
         {PAUSE_AFTER_MS.map((option) => (
           <MenuItemPrimitive
             key={option.ms}
-            compact
             label={option.label}
             selected={pauseMs === option.ms}
             onClick={() => setPause(option.ms)}
           />
         ))}
         <MenuItemPrimitive
-          compact
           dividerBefore
           label="Duplicate line"
           icon={<ContentCopyIcon fontSize="small" />}
@@ -730,8 +725,8 @@ const ScriptLineRow = ({
           }}
         />
         <MenuItemPrimitive
-          compact
           color="error"
+          dividerBefore
           label="Delete line"
           icon={<DeleteOutlineIcon fontSize="small" />}
           onClick={() => {

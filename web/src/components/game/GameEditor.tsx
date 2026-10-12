@@ -399,6 +399,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   }
 
   return <GameEditorShell layoutStore={layoutStore} dimension="2d" active={active}
+    exportGame={{ id: refId, name: data.game.name }}
     toolbar={{
         name: data.game.name,
         playing: playing,

@@ -46,6 +46,15 @@ export const GENERATE_IMAGE_SCHEMA: JsonSchema = {
     negative_prompt: { type: "string" as const },
     width: { type: "number" as const },
     height: { type: "number" as const },
+    aspect_ratio: {
+      type: "string" as const,
+      description:
+        "Output aspect ratio such as \"16:9\", \"3:2\" or \"1:1\". The provider rejects a ratio it does not offer."
+    },
+    resolution: {
+      type: "string" as const,
+      description: "Output resolution tier the model lists, such as \"2k\"."
+    },
     quality: { type: "string" as const }
   },
   required: ["provider", "model", "prompt"]
@@ -92,6 +101,16 @@ export const EDIT_IMAGE_SCHEMA: JsonSchema = {
     negative_prompt: { type: "string" as const },
     target_width: { type: "number" as const },
     target_height: { type: "number" as const },
+    aspect_ratio: {
+      type: "string" as const,
+      description:
+        "Output aspect ratio such as \"16:9\", \"3:2\" or \"1:1\". The provider rejects a ratio it does not offer."
+    },
+    resolution: {
+      type: "string" as const,
+      description: "Output resolution tier the model lists, such as \"2k\"."
+    },
+    quality: { type: "string" as const },
     strength: { type: "number" as const }
   },
   required: ["provider", "model", "input_file", "prompt"]

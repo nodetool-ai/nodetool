@@ -39,16 +39,48 @@ export function flattenToDataUrl(
   doc: SketchDocument,
   renderDocumentCompositeToContext: RenderDocumentCompositeFn
 ): string {
+  return (
+    flattenToCanvas(doc, renderDocumentCompositeToContext)?.toDataURL(
+      "image/png"
+    ) ?? ""
+  );
+}
+
+/** Flatten visible non-mask layers into a new document-size canvas. */
+export function flattenToCanvas(
+  doc: SketchDocument,
+  renderDocumentCompositeToContext: RenderDocumentCompositeFn
+): HTMLCanvasElement | null {
   const canvas = window.document.createElement("canvas");
   canvas.width = doc.canvas.width;
   canvas.height = doc.canvas.height;
   const ctx = canvas.getContext("2d");
   if (!ctx) {
-    return "";
+    return null;
   }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   renderDocumentCompositeToContext(ctx, doc, null, null);
-  return canvas.toDataURL("image/png");
+  return canvas;
+}
+
+/**
+ * Render one layer into a new document-size canvas with its transform and
+ * effects but without its opacity or blend mode, whether or not it is visible.
+ */
+export function renderLayerToCanvas(
+  doc: SketchDocument,
+  layerId: string,
+  drawLayerToContext: DrawLayerToContextFn
+): HTMLCanvasElement | null {
+  const canvas = window.document.createElement("canvas");
+  canvas.width = doc.canvas.width;
+  canvas.height = doc.canvas.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return null;
+  }
+  drawLayerToContext(ctx, doc, layerId, false);
+  return canvas;
 }
 
 // ─── Get mask data URL ───────────────────────────────────────────────────────

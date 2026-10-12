@@ -3,13 +3,11 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import {
   BORDER_RADIUS,
   Chip,
+  ContextMenu,
   MOTION,
   MenuItemPrimitive,
-  Popover,
-  SPACING,
   TYPOGRAPHY,
-  Tooltip,
-  getSpacingPx
+  Tooltip
 } from "../ui_primitives";
 import type { NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 import { colorForType } from "../../config/data_types";
@@ -81,7 +79,7 @@ const DynamicSlotTypePickerImpl: React.FC<DynamicSlotTypePickerProps> = ({
           clickable
           label={slotTypeLabel(value)}
           aria-label={`Slot type for ${propertyName}`}
-          aria-haspopup="listbox"
+          aria-haspopup="menu"
           onClick={handleOpen}
           sx={{
             borderRadius: BORDER_RADIUS.sm,
@@ -91,26 +89,26 @@ const DynamicSlotTypePickerImpl: React.FC<DynamicSlotTypePickerProps> = ({
           }}
         />
       </Tooltip>
-      <Popover
+      <ContextMenu
         open={anchorEl !== null}
         anchorEl={anchorEl}
         onClose={handleClose}
-        placement="bottom-left"
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
         maxHeight={320}
-        paperSx={{ padding: getSpacingPx(SPACING.xs) }}
+        slotProps={{
+          list: { "aria-label": `Slot type options for ${propertyName}` }
+        }}
       >
-        <div role="listbox" aria-label={`Slot type options for ${propertyName}`}>
-          {options.map((option) => (
-            <MenuItemPrimitive
-              key={slotTypeKey(option)}
-              compact
-              label={slotTypeLabel(option)}
-              selected={slotTypeKey(option) === currentKey}
-              onClick={() => handleSelect(option)}
-            />
-          ))}
-        </div>
-      </Popover>
+        {options.map((option) => (
+          <MenuItemPrimitive
+            key={slotTypeKey(option)}
+            label={slotTypeLabel(option)}
+            selected={slotTypeKey(option) === currentKey}
+            onClick={() => handleSelect(option)}
+          />
+        ))}
+      </ContextMenu>
     </>
   );
 };

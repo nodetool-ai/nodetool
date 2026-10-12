@@ -15,6 +15,8 @@ import VideogameAssetOutlinedIcon from "@mui/icons-material/VideogameAssetOutlin
 
 import { BORDER_RADIUS, Box, Caption, CONTROL, EditorButton, FlexRow, SPACING, Text, ToolbarIconButton } from "../../ui_primitives";
 import { useGameCommandShortcut } from "./useGameCommands";
+import GameExportButton from "./GameExportButton";
+import type { GameExportTarget } from "../../../utils/gameExportZip";
 
 interface GameToolbarProps {
   name: string;
@@ -37,6 +39,11 @@ interface GameToolbarProps {
   onSave: () => void;
   onLoad: () => void;
   onPublish: () => void;
+  /** Downloads the published revision. The export control is hidden without it. */
+  onExport?: (target: GameExportTarget) => void;
+  exporting?: boolean;
+  /** Compiles a desktop executable on this computer. */
+  onBuildExecutable?: () => void;
   onAssistant: () => void;
   onSceneTree: () => void;
   onInspector: () => void;
@@ -59,7 +66,7 @@ function SaveState({ saveStatus }: { saveStatus: string }) {
 /** Editor title bar: document identity, history, transport controls and panel toggles. */
 export default function GameToolbar({ name, playing, playSession, loading, saving, saveStatus,
   assistantOpen, sceneTreeOpen, inspectorOpen, playHref, canUndo = false, canRedo = false, onUndo, onRedo,
-  onPlay, onStop, onStep, onSave, onLoad, onPublish, onAssistant, onSceneTree, onInspector, onCommandPalette }: GameToolbarProps) {
+  onPlay, onStop, onStep, onSave, onLoad, onPublish, onExport, exporting = false, onBuildExecutable, onAssistant, onSceneTree, onInspector, onCommandPalette }: GameToolbarProps) {
   const undoShortcut = useGameCommandShortcut("edit.undo");
   const redoShortcut = useGameCommandShortcut("edit.redo");
   const paletteShortcut = useGameCommandShortcut("editor.commandPalette");
@@ -104,6 +111,7 @@ export default function GameToolbar({ name, playing, playSession, loading, savin
       {onCommandPalette && <ToolbarIconButton icon={<KeyboardCommandKeyIcon fontSize="small" />} tooltip="Commands"
         shortcut={paletteShortcut} onClick={onCommandPalette} />}
       <Box sx={DIVIDER_SX} />
+      {onExport && <GameExportButton exporting={exporting} onExport={onExport} onBuildExecutable={onBuildExecutable} />}
       <EditorButton variant="contained" disableElevation density="normal" onClick={onPublish} disabled={saving || saveStatus === "saving"}>Publish</EditorButton>
     </FlexRow>
   </Box>;
