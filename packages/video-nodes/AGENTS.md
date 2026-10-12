@@ -90,6 +90,10 @@ logic: a rule belongs in `@nodetool-ai/timeline` or the web exporter.
   BT.709 and ffmpeg (the Node compositor, the VP9 conversion) as BT.601, a
   mean difference of about 0.035 on a test pattern. Tagged clips agree, so
   render fixtures tag their sources (`-colorspace bt709` and friends).
+- **Chroma is interpolated on both sides.** swscale's default yuv420p to RGBA
+  path repeats each chroma sample over a 2×2 block, and Chrome interpolates.
+  `rawFrames.ts` decodes with `accurate_rnd+full_chroma_int` so the Node
+  compositor matches the browser at colour edges.
 - **Compositor.** WebGPU when the page has an adapter whose canvas reads back,
   else Canvas 2D. A software Vulkan adapter on headless Linux reads back
   blank, which the page tests for before it renders. The node logs which

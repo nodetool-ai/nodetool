@@ -108,6 +108,13 @@ function captureStderr(stream: Readable): () => string {
   return () => Buffer.concat(chunks).toString("utf8").trim();
 }
 
+/**
+ * swscale's default yuv420p → RGBA path repeats each chroma sample over a 2×2
+ * block. Chrome interpolates it, so at every colour edge the two renderers
+ * disagreed. Full chroma interpolation with accurate rounding matches.
+ */
+const SCALE_FLAGS = "accurate_rnd+full_chroma_int";
+
 /** Decode a still image to straight-alpha RGBA at `size`. */
 export async function decodeImageRgba(
   filePath: string,
@@ -119,7 +126,7 @@ export async function decodeImageRgba(
     "-i",
     filePath,
     "-vf",
-    `scale=${size.width}:${size.height}`,
+    `scale=${size.width}:${size.height}:flags=${SCALE_FLAGS}`,
     "-frames:v",
     "1",
     "-f",
@@ -249,7 +256,7 @@ export function openVideoFrameStream(
     // its timestamp, so slot k holds the latest frame at or before k / fps:
     // the frame a player, and the preview, shows at that instant.
     opts.nativeSampling ? null : `fps=${fps}:round=up`,
-    `scale=${size.width}:${size.height}`,
+    `scale=${size.width}:${size.height}:flags=${SCALE_FLAGS}`,
     "format=rgba"
   ].filter((f): f is string => f !== null);
 

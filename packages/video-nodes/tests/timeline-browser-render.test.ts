@@ -321,8 +321,8 @@ describe.runIf(!noBrowserReason)("renderTimelineInBrowser", () => {
     }
     process.stderr.write(`parity, mean diff per frame: ${diffs.map((d) => d.toFixed(4)).join(" ")}\n`);
     // The bar: a mean difference of at most 0.02 over the ten frames. What is
-    // left is not the compositor's: Chromium and ffmpeg upsample chroma
-    // differently at every hard edge of the test pattern, and Chromium and
+    // left is not the compositor's: the browser and ffmpeg decoders round
+    // differently at the hard edges of the test pattern, and Chromium and
     // Skia set the title's glyphs about a pixel apart. No single frame may
     // stray far from that.
     const mean = diffs.reduce((sum, diff) => sum + diff, 0) / diffs.length;
