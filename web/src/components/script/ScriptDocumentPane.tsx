@@ -11,6 +11,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import MovieIcon from "@mui/icons-material/Movie";
 import SubtitlesIcon from "@mui/icons-material/Subtitles";
+import AudioFileIcon from "@mui/icons-material/AudioFile";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import MicNoneIcon from "@mui/icons-material/MicNone";
@@ -72,6 +73,10 @@ import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useScriptWriting } from "../../hooks/script/scriptWrites";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
+import {
+  scriptFileBase,
+  useScriptAudioExport
+} from "../../hooks/script/useScriptAudioExport";
 import ScriptLineRow, { TEXT_INSET, type LineKeyNav } from "./ScriptLineRow";
 import { useScriptLineShotLink } from "../../hooks/script/useScriptShotLinks";
 import { useScriptLineFocus } from "../../hooks/script/useScriptLineFocus";
@@ -801,6 +806,8 @@ const ScriptDocumentPane = ({
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const { assemble, assembling, error: assembleError } =
     useAssembleScriptTimeline();
+  const { exportAudio, exporting: exportingAudio } =
+    useScriptAudioExport(scriptId);
 
   const [draggingLineId, setDraggingLineId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
@@ -923,9 +930,7 @@ const ScriptDocumentPane = ({
     if (!script) return;
     const result = exportScriptSubtitles(script, { format: "srt" });
     if (!result) return;
-    const base =
-      script.title.trim().replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^[._]+/, "") ||
-      "script";
+    const base = scriptFileBase(script.title);
     const blob = new Blob([result.text], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -988,6 +993,20 @@ const ScriptDocumentPane = ({
       label: "Export Subtitles (SRT)",
       run: onExportSubtitles
     });
+    if (!exportingAudio) {
+      commands.push(
+        {
+          id: "export-audio-wav",
+          label: "Export Audio (WAV)",
+          run: () => void exportAudio("wav")
+        },
+        {
+          id: "export-audio-mp3",
+          label: "Export Audio (MP3)",
+          run: () => void exportAudio("mp3")
+        }
+      );
+    }
     return commands;
   }, [
     hasVoicedLine,
@@ -996,7 +1015,9 @@ const ScriptDocumentPane = ({
     storyboardId,
     timelineId,
     onSendToTimeline,
-    onExportSubtitles
+    onExportSubtitles,
+    exportingAudio,
+    exportAudio
   ]);
   useContextCommands("Script", menuCommands, active);
 
@@ -1122,6 +1143,14 @@ const ScriptDocumentPane = ({
           </Tooltip>
         )}
         <Box sx={{ flex: 1 }} />
+        {exportingAudio && (
+          <FlexRow align="center" gap={SPACING.xs}>
+            <LoadingSpinner size={18} />
+            <Text size="smaller">
+              Exporting {exportingAudio.toUpperCase()}…
+            </Text>
+          </FlexRow>
+        )}
         {showAssemble && (
           <EditorButton
             size="small"
@@ -1181,6 +1210,24 @@ const ScriptDocumentPane = ({
                   onExportSubtitles();
                 }}
               />
+              {(["wav", "mp3"] as const).map((format) => (
+                <MenuItemPrimitive
+                  key={format}
+                  compact
+                  icon={<AudioFileIcon fontSize="small" />}
+                  label={`Export ${format.toUpperCase()}`}
+                  disabled={!hasVoicedLine || exportingAudio !== null}
+                  tooltip={
+                    hasVoicedLine
+                      ? undefined
+                      : "Voice at least one line to export audio"
+                  }
+                  onClick={() => {
+                    setMoreAnchor(null);
+                    void exportAudio(format);
+                  }}
+                />
+              ))}
             </EditorMenu>
           </>
         )}
