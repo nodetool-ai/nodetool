@@ -8,6 +8,7 @@ import FaqBlock from "../../components/FaqBlock";
 import { breadcrumbSchema } from "../../lib/jsonld";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import ByokCalculator from "../../components/ByokCalculator";
+import SubscriptionSection from "../../components/SubscriptionSection";
 
 export const metadata: Metadata = {
   title: "Pricing — free Studio, free Cloud alpha, pay providers directly | NodeTool",
@@ -186,6 +187,8 @@ export default function PricingPage() {
             </div>
           </div>
         </section>
+
+        <SubscriptionSection className="mt-16" />
 
         {/* Edition comparison table */}
         <section

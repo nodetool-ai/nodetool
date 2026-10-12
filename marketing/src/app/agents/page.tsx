@@ -6,6 +6,7 @@ import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import MarketingClosingAction from "../../components/MarketingClosingAction";
 import MarketingPageShell from "../../components/MarketingPageShell";
 import ProductImage from "../../components/ProductImage";
+import SubscriptionSection from "../../components/SubscriptionSection";
 import AgentRunHero from "../../components/agents/AgentRunHero";
 import AgentSurfaceGrid from "../../components/agents/AgentSurfaceGrid";
 import McpInstallCommand from "../../components/agents/McpInstallCommand";
@@ -160,6 +161,8 @@ export default function AgentsPage() {
           </div>
         </div>
       </section>
+
+      <SubscriptionSection className="rhythm-section" />
 
       <section
         id="agent-loop"
