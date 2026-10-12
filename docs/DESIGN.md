@@ -994,7 +994,7 @@ import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from ".
 
 ## 14. Controls
 
-Buttons, tooltips and the other small controls every surface shares.
+Buttons, tooltips, notifications and the other small controls every surface shares.
 
 ### Tooltips
 
@@ -1025,6 +1025,33 @@ import { EditorButton, Tooltip, ToolbarIconButton } from "../ui_primitives";
 | Label or description | An icon-only button takes its name from its `aria-label` or the tooltip. A button with a visible label passes `describeChild` (built into `EditorButton tooltip`), so the tooltip describes the button instead of renaming it |
 | Disabled | A disabled button shows no tooltip unless it sits in a wrapper. `EditorButton tooltip` adds the wrapper. Say why the button is disabled when the reason is not obvious |
 | One per control | Never nest a `Tooltip` around a primitive that already has `tooltip` or `title` |
+
+### Notifications
+
+Transient feedback, such as a saved file, a failed render or a refused run,
+goes to one notification stack in the top right corner of the workspace. Post
+to it through the notification store. Never mount a `Snackbar` of your own.
+
+```tsx
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { useAlertNotifier } from "../../hooks/useAlertNotifier";
+
+const addNotification = useNotificationStore((s) => s.addNotification);
+addNotification({ type: "success", alert: true, content: "Imported Launch film" });
+
+// A failure from an action, in place of a local error state and its toast
+const reportError = useAlertNotifier("error");
+reportError(err instanceof Error ? err.message : "Failed to generate");
+```
+
+| Part | Rule |
+|---|---|
+| Surface | The stack that `node_editor/Alert` renders: `AlertBanner` rows, newest last, 440px wide at most, full width between gutters on a phone. An error carries a Copy control |
+| Type | `success` for a finished action, `info` for news, `warning` when the action ran but something is missing, `error` when it failed. Pass `alert: true` so the notification pops up and is not only added to the bell's list |
+| Text | One sentence, sentence case, saying what happened: "Imported Launch film", "Unlock a video track first." Name the thing, not the component |
+| Timeout | Leave `timeout` out. The store sizes it from the message length (3s to 12s). `0` keeps a notification until it is dismissed, and job completions use `NOTIFICATION_TIMEOUT_JOB_COMPLETED` |
+| Repeats | Pass a `dedupeKey` (with `replaceExisting` for a value that changes, such as progress) instead of stacking the same message |
+| Inline errors | An error about a form or a dialog stays inline as an `AlertBanner` in that surface, not in the stack |
 
 ---
 

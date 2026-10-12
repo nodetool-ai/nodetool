@@ -16,7 +16,8 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import { ReplaceClipAssetDialog } from "../Tracks/ReplaceClipAssetDialog";
-import { ToolbarIconButton, FlexRow, Toast, SPACING } from "../../ui_primitives";
+import { ToolbarIconButton, FlexRow, SPACING } from "../../ui_primitives";
+import { useAlertNotifier } from "../../../hooks/useAlertNotifier";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
 
     const duplicateBusyRef = useRef(false);
     const [duplicateBusy, setDuplicateBusy] = useState(false);
-    const [duplicateError, setDuplicateError] = useState<string | null>(null);
+    const reportDuplicateError = useAlertNotifier("error");
     const [replaceOpen, setReplaceOpen] = useState(false);
 
     const handleDuplicate = useCallback(async () => {
@@ -63,14 +64,20 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
         const newClipId = await duplicateClip(clipId, duplicateOffsetMs);
         selectClip(newClipId);
       } catch (err) {
-        setDuplicateError(
+        reportDuplicateError(
           err instanceof Error ? err.message : "Failed to duplicate clip"
         );
       } finally {
         duplicateBusyRef.current = false;
         setDuplicateBusy(false);
       }
-    }, [clipId, duplicateOffsetMs, duplicateClip, selectClip]);
+    }, [
+      clipId,
+      duplicateOffsetMs,
+      duplicateClip,
+      selectClip,
+      reportDuplicateError
+    ]);
 
     // ── Regenerate as new clip ─────────────────────────────────────────────
     // Drops a fresh sibling immediately to the right with the same binding
@@ -81,11 +88,17 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
         const newClipId = regenerateAsCopy(clipId, duplicateOffsetMs);
         selectClip(newClipId);
       } catch (err) {
-        setDuplicateError(
+        reportDuplicateError(
           err instanceof Error ? err.message : "Failed to create copy"
         );
       }
-    }, [clipId, duplicateOffsetMs, regenerateAsCopy, selectClip]);
+    }, [
+      clipId,
+      duplicateOffsetMs,
+      regenerateAsCopy,
+      selectClip,
+      reportDuplicateError
+    ]);
 
     // ── Lock ───────────────────────────────────────────────────────────────
 
@@ -186,15 +199,6 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
         {replaceOpen && (
           <ReplaceClipAssetDialog clipId={clipId} onClose={handleCloseReplace} />
         )}
-
-        <Toast
-          open={duplicateError !== null}
-          message={duplicateError ?? ""}
-          severity="error"
-          onClose={() => setDuplicateError(null)}
-          vertical="top"
-          horizontal="center"
-        />
       </>
     );
   }

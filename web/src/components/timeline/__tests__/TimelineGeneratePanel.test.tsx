@@ -4,6 +4,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import type {
   Asset,
   MusicModel,
@@ -446,8 +447,10 @@ describe("TimelineGeneratePanel", () => {
     );
     expect(mockSend).not.toHaveBeenCalled();
     expect(
-      screen.getByText("Unlock an audio track first.")
-    ).toBeInTheDocument();
+      useNotificationStore
+        .getState()
+        .notifications.map((notification) => notification.content)
+    ).toContain("Unlock an audio track first.");
     act(() => instance.doc.getState().addTrack("audio", "Unlocked"));
     await userEvent.click(
       screen.getByRole("button", { name: "Generate audio" })
