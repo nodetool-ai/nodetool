@@ -288,7 +288,7 @@ describe.runIf(!noBrowserReason)("renderTimelineInBrowser", () => {
     const browserOut = path.join(directory, "parity-browser.zip");
     const nodeOut = path.join(directory, "parity-node.zip");
     const output = resolveTimelineOutput({ format: "png_sequence" });
-    await renderTimelineInBrowser({
+    const browser = await renderTimelineInBrowser({
       sequence: fixture(durationMs),
       width: WIDTH,
       height: HEIGHT,
@@ -323,8 +323,14 @@ describe.runIf(!noBrowserReason)("renderTimelineInBrowser", () => {
     // Skia set the title's glyphs about a pixel apart. No single frame may
     // stray far from that.
     const mean = diffs.reduce((sum, diff) => sum + diff, 0) / diffs.length;
-    expect(mean).toBeLessThanOrEqual(0.02);
-    for (const diff of diffs) expect(diff).toBeLessThanOrEqual(0.03);
+    // The CI log is not always at hand, so the failure carries what ran.
+    const ran =
+      `browser ${browser.browser}, ${browser.backend}` +
+      `${browser.webgpuUnusable ? ` (${browser.webgpuUnusable})` : ""}, ` +
+      `${browser.convertedSources} source(s) converted; per-frame diffs ` +
+      diffs.map((d) => d.toFixed(4)).join(" ");
+    expect(mean, ran).toBeLessThanOrEqual(0.02);
+    for (const diff of diffs) expect(diff, ran).toBeLessThanOrEqual(0.03);
   }, 180_000);
 });
 
