@@ -215,6 +215,9 @@ export function sceneRequiresPerFrameResolution(
   return animatedLayout || precomposites.some((group) => group.transition !== undefined) || layers.some(
     (layer) =>
       layer.transition !== undefined || layer.clip.reframe !== undefined ||
+      // A clip fade is folded into the layer's opacity by the scene model, so
+      // the layer set from the clip's first frame (opacity 0) cannot be reused.
+      (layer.clip.fadeInMs ?? 0) > 0 || (layer.clip.fadeOutMs ?? 0) > 0 ||
       layer.camera2d?.keyframes !== undefined ||
       isRunningModel3DLayer(layer) ||
       hasAnimatedAncestorGroup(layer, clips) ||
