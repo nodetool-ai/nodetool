@@ -24,11 +24,13 @@
  *   node scripts/publish-packages.mjs --tag rc --dry-run
  */
 
-import { readFileSync, readdirSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, readdirSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
+import { tmpdir } from "node:os";
+import { pack, existingTarballs } from "./smoke-packed-cli.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
@@ -104,19 +106,23 @@ function main() {
   const { values } = parseArgs({
     options: {
       tag: { type: "string", default: "latest" },
+      "tarballs-dir": { type: "string" },
+      "pack-only": { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
     },
   });
 
   if (values.help) {
-    console.log(`Usage: node scripts/publish-packages.mjs [--tag <dist-tag>] [--dry-run]
+    console.log(`Usage: node scripts/publish-packages.mjs [--tag <dist-tag>] [--dry-run] [--tarballs-dir <dir>] [--pack-only]
 
 Publishes every public workspace package to npm, continuing past failures and
 skipping versions already present on the registry.
 
   --tag <dist-tag>   npm dist-tag to publish under (default: latest)
-  --dry-run          Run npm publish --dry-run for each package`);
+  --dry-run          Run npm publish --dry-run for each tarball
+  --tarballs-dir     Reuse release tarballs or write them with --pack-only
+  --pack-only        Pack public workspaces once without publishing`);
     process.exit(0);
   }
 
@@ -156,87 +162,107 @@ skipping versions already present on the registry.
   }
 
   const packages = publicPackages();
-  console.log(
-    `Publishing ${packages.length} package(s) under dist-tag "${values.tag}"` +
-      (values["dry-run"] ? " (dry run)" : "")
-  );
+  if (packages.length === 0) {
+    throw new Error("No public workspace packages found to publish");
+  }
+  if (values["pack-only"] && !values["tarballs-dir"]) {
+    throw new Error("--pack-only requires --tarballs-dir");
+  }
+  const temporary = !values["tarballs-dir"];
+  const tarballDir = temporary
+    ? mkdtempSync(join(tmpdir(), "nodetool-release-"))
+    : resolve(values["tarballs-dir"]);
+  mkdirSync(tarballDir, { recursive: true });
+  if (values["pack-only"]) {
+    pack(packages, tarballDir);
+    console.log(`Packed ${packages.length} packages in ${tarballDir}`);
+    return;
+  }
+  try {
+    const tarballs = temporary ? pack(packages, tarballDir) : existingTarballs(packages, tarballDir);
+    console.log(
+      `Publishing ${packages.length} package(s) under dist-tag "${values.tag}"` +
+        (values["dry-run"] ? " (dry run)" : "")
+    );
 
-  const published = [];
-  const skipped = [];
-  const failed = [];
-  const blocked = [];
-  /** Packages whose current version is on the registry (or would be, in a dry run). */
-  const available = new Set();
+    const published = [];
+    const skipped = [];
+    const failed = [];
+    const blocked = [];
+    /** Packages whose current version is on the registry (or would be, in a dry run). */
+    const available = new Set();
 
-  for (const pkg of packages) {
-    const { name, version, dir } = pkg;
-    if (!values["dry-run"] && alreadyPublished(name, version)) {
-      console.log(`skip    ${name}@${version} (already on registry)`);
-      skipped.push(`${name}@${version}`);
-      available.add(name);
-      continue;
-    }
-
-    const unmet = unmetDeps(pkg, available);
-    if (unmet.length > 0) {
-      console.error(`BLOCK   ${name}@${version} (needs ${unmet.join(", ")})`);
-      blocked.push(`${name}@${version}`);
-      continue;
-    }
-
-    const args = [
-      "publish",
-      "--access",
-      "public",
-      "--ignore-scripts",
-      "--provenance",
-      "--tag",
-      values.tag,
-    ];
-    if (values["dry-run"]) args.push("--dry-run");
-
-    const res = spawnSync("npm", args, { cwd: dir, encoding: "utf8" });
-    const output = `${res.stdout ?? ""}${res.stderr ?? ""}`;
-
-    switch (classifyPublishResult(res.status, output)) {
-      case "published":
-        console.log(`publish ${name}@${version}`);
-        published.push(`${name}@${version}`);
-        available.add(name);
-        break;
-      case "skipped":
+    for (const pkg of packages) {
+      const { name, version } = pkg;
+      if (!values["dry-run"] && alreadyPublished(name, version)) {
         console.log(`skip    ${name}@${version} (already on registry)`);
         skipped.push(`${name}@${version}`);
         available.add(name);
-        break;
-      default:
-        console.error(`FAIL    ${name}@${version}`);
-        console.error(output.trim());
-        failed.push({ name: `${name}@${version}`, output: output.trim() });
-    }
-  }
+        continue;
+      }
 
-  console.log(
-    `\npublished ${published.length}, skipped ${skipped.length}, ` +
-      `failed ${failed.length}, blocked ${blocked.length}`
-  );
+      const unmet = unmetDeps(pkg, available);
+      if (unmet.length > 0) {
+        console.error(`BLOCK   ${name}@${version} (needs ${unmet.join(", ")})`);
+        blocked.push(`${name}@${version}`);
+        continue;
+      }
 
-  if (failed.length > 0 || blocked.length > 0) {
-    console.error(`\nFailed packages:`);
-    for (const { name } of failed) console.error(`  ${name}`);
-    if (blocked.length > 0) {
-      console.error(`\nNot published because a dependency failed:`);
-      for (const name of blocked) console.error(`  ${name}`);
+      const args = [
+        "publish",
+        tarballs[name],
+        "--access",
+        "public",
+        "--ignore-scripts",
+        "--provenance",
+        "--tag",
+        values.tag,
+      ];
+      if (values["dry-run"]) args.push("--dry-run");
+
+      const res = spawnSync("npm", args, { cwd: ROOT, encoding: "utf8" });
+      const output = `${res.stdout ?? ""}${res.stderr ?? ""}`;
+
+      switch (classifyPublishResult(res.status, output)) {
+        case "published":
+          console.log(`publish ${name}@${version}`);
+          published.push(`${name}@${version}`);
+          available.add(name);
+          break;
+        case "skipped":
+          console.log(`skip    ${name}@${version} (already on registry)`);
+          skipped.push(`${name}@${version}`);
+          available.add(name);
+          break;
+        default:
+          console.error(`FAIL    ${name}@${version}`);
+          console.error(output.trim());
+          failed.push({ name: `${name}@${version}`, output: output.trim() });
+      }
     }
-    console.error(
-      `\nA 404 on PUT for a package that exists means the npm token is not ` +
-        `authorized to write to the @nodetool-ai scope. EOTP means the token ` +
-        `requires two-factor authentication: use a granular token with ` +
-        `"Bypass two-factor authentication", or configure npm trusted ` +
-        `publishing for each package. Re-running this script after fixing ` +
-        `the token will publish only what is still missing.`
+
+    console.log(
+      `\npublished ${published.length}, skipped ${skipped.length}, ` +
+        `failed ${failed.length}, blocked ${blocked.length}`
     );
-    process.exit(1);
+
+    if (failed.length > 0 || blocked.length > 0) {
+      console.error(`\nFailed packages:`);
+      for (const { name } of failed) console.error(`  ${name}`);
+      if (blocked.length > 0) {
+        console.error(`\nNot published because a dependency failed:`);
+        for (const name of blocked) console.error(`  ${name}`);
+      }
+      console.error(
+        `\nConfigure npm trusted publishing for each package in the ` +
+          `@nodetool-ai scope, authorizing this repository and publish.yaml. ` +
+          `Re-running this script after fixing publisher access will publish ` +
+          `only what is still missing.`
+      );
+      process.exitCode = 1;
+    }
+  } finally {
+    if (temporary) { rmSync(tarballDir, { recursive: true, force: true }); }
   }
 }
 

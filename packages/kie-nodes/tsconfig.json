@@ -13,6 +13,7 @@
     "src/generated/*-unit-pricing.json"
   ],
   "references": [
+    {"path": "../model-pricing"},
     {
       "path": "../node-sdk"
     },

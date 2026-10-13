@@ -12,7 +12,7 @@
       "path": "../node-sdk"
     },
     {
-      "path": "../kie-nodes"
+      "path": "../model-pricing"
     }
   ]
 }

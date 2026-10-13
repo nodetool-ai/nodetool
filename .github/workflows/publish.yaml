@@ -92,13 +92,14 @@ jobs:
       # Install the CLI from the packed tarballs and run it against an empty
       # HOME before anything reaches the registry. The post-publish smoke job
       # below only finds a broken release after users can install it.
-      - name: Smoke-test the packed CLI
-        run: node scripts/smoke-packed-cli.mjs
+      - name: Pack release tarballs once
+        run: node scripts/publish-packages.mjs --pack-only --tarballs-dir .release-tarballs
 
-      - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: node scripts/publish-packages.mjs --tag "$NPM_TAG"
+      - name: Smoke-test the packed CLI
+        run: node scripts/smoke-packed-cli.mjs --tarballs-dir .release-tarballs
+
+      - name: Publish to npm with trusted publishing
+        run: node scripts/publish-packages.mjs --tag "$NPM_TAG" --tarballs-dir .release-tarballs
 
       - name: Record published version
         id: published
