@@ -36,6 +36,12 @@ export interface FocusCameraProps {
   safeArea?: SafeArea;
   /** Graph targets can supply graph-space bounds. Component targets default to DOM measurement. */
   resolveTarget?: TargetResolver;
+  /**
+   * Enlarges the product UI inside the frame. The surface lays out in a
+   * viewport `uiScale` times smaller than the frame, then scales up to fill it,
+   * so app-sized text stays readable in wide shots. Bounds stay in frame space.
+   */
+  uiScale?: number;
   /** Called at shot anchors during measurement, then at the requested presentation time. */
   children: (
     presentationTimeMs: number,
@@ -184,6 +190,7 @@ export const FocusCamera: React.FC<FocusCameraProps> = ({
   timeMap,
   safeArea,
   resolveTarget,
+  uiScale = 1,
   children
 }) => {
   const { width, height } = useVideoConfig();
@@ -354,11 +361,20 @@ export const FocusCamera: React.FC<FocusCameraProps> = ({
             : `translate(${offsetX}px, ${offsetY}px) scale(${scale}) translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`
         }}
       >
-        {children(
-          renderedTime,
-          presentationToCastTime(renderedTime, timeMap),
-          componentFocusIds(renderedShot?.target ?? active?.target)
-        )}
+        <div
+          style={{
+            width: CAMERA_BASE_WIDTH / uiScale,
+            height: CAMERA_BASE_HEIGHT / uiScale,
+            transformOrigin: "0 0",
+            transform: `scale(${uiScale})`
+          }}
+        >
+          {children(
+            renderedTime,
+            presentationToCastTime(renderedTime, timeMap),
+            componentFocusIds(renderedShot?.target ?? active?.target)
+          )}
+        </div>
       </div>
       {!measuring && active && activeBounds && active.emphasis ? (
         <FocusOverlay

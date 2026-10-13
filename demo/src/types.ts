@@ -26,6 +26,8 @@ export interface TutorialShot {
   readonly actionAtMs?: number;
   /** Presentation time whose settled layout supplies this shot's target bounds. */
   readonly anchorMs?: number;
+  /** Presentation time to use for the poster still, when the shot's settled end is not the best frame. */
+  readonly posterAtMs?: number;
 }
 
 /** A linear presentation-time interval mapped onto a cast-time interval. */

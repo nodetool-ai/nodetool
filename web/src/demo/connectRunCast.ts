@@ -4,9 +4,10 @@
  * The simplest possible graph — a String Input, a one-step transform, and a
  * Preview — so a first-time user sees the whole loop: add nodes, wire a handle
  * into the next node's input, hit Run, read the output. Built from REAL node
- * types (`nodetool.input.StringInput` → `nodetool.text.ToUppercase` →
- * Preview), so the canvas renders the genuine node bodies. No AI, no assets,
- * instant.
+ * types (`nodetool.input.StringInput` → `nodetool.code.Code` → Preview), so
+ * the canvas renders the genuine node bodies. The transform is a Code node
+ * because the old `nodetool.text.ToUppercase` migrates to one on load. No AI,
+ * no assets, instant.
  */
 import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { CAST_VERSION, type CastEvent, type DemoCast } from "./castTypes";
@@ -15,7 +16,8 @@ import { stringInputMeta } from "./cookbook/builders";
 import type { Workflow } from "../stores/ApiTypes";
 
 const TEXT_TYPE = "nodetool.input.StringInput";
-const UPPER_TYPE = "nodetool.text.ToUppercase";
+const UPPER_TYPE = "nodetool.code.Code";
+const UPPERCASE_CODE = "return { output: inputs.text.toUpperCase() };";
 
 const WF = "wf-connect-run";
 const JOB = "connect-run-job";
@@ -38,7 +40,7 @@ const workflow: Workflow = {
   graph: {
     nodes: [
       node("text", TEXT_TYPE, 0, 160, 260, "Text", { name: "text", value: INPUT }),
-      node("upper", UPPER_TYPE, 380, 160, 260, "Uppercase", { text: "" }),
+      node("upper", UPPER_TYPE, 380, 160, 300, "Uppercase", { code: UPPERCASE_CODE, text: "" }),
       node("preview", PREVIEW_NODE_TYPE, 760, 160, 300, "Preview", {}),
     ],
     edges: [
@@ -84,11 +86,11 @@ export const connectRunCast: DemoCast = {
     [TEXT_TYPE]: stringInputMeta(),
     [UPPER_TYPE]: meta({
       node_type: UPPER_TYPE,
-      title: "To Uppercase",
-      properties: [prop("text", "str")],
+      title: "Code",
+      properties: [prop("code", "str"), prop("text", "str")],
       outputs: [out("output", "str")],
-      inline_fields: ["text"],
-      input_fields: [],
+      inline_fields: ["code"],
+      input_fields: ["text"],
     }),
     [PREVIEW_NODE_TYPE]: meta({
       node_type: PREVIEW_NODE_TYPE,
