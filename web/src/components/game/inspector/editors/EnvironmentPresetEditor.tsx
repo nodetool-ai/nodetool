@@ -18,7 +18,7 @@ export default function EnvironmentPresetEditor({ sceneId, onOps }: EnvironmentP
       <InspectorSelect label="Environment preset" grow value={preset} options={OPTIONS}
         onChange={(value) => setPreset(gameEnvironmentPresetId3D.parse(value))} />
     </InspectorFieldRow>
-    <Caption>Replaces sky, ambient light, fog and post-processing. Keeps existing lights and adds or reuses a preset sun.</Caption>
+    <Caption>Replaces the scene environment. Keeps existing lights and adds or reuses a preset sun.</Caption>
     <EditorButton onClick={() => onOps([gameDocumentOp3D.parse({ op: "apply_environment_preset", scene_id: sceneId, preset })], "Apply Environment Preset")}>
       Apply preset
     </EditorButton>
