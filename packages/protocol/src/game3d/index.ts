@@ -307,3 +307,5 @@ export { gameModelImportSettings3D, type GameModelImportSettings3D, gameAssetBin
 export { GAME_MAX_CULL_DISTANCE_3D, GAME_MAX_CULL_LAYERS_3D, gameRenderCulling3D, type GameRenderCulling3D, gameFrameBudgets, type GameFrameBudgets, gamePerformance3D, type GamePerformance3D } from "./components/performance.js";
 
 export { gamePreparedCollider3D, type GamePreparedCollider3D } from "./components/collider-geometry.js";
+
+export { GAME_ENVIRONMENT_PRESET_IDS_3D, gameEnvironmentPresetId3D, type GameEnvironmentPresetId3D, gameEnvironmentPreset3D, type GameEnvironmentPreset3D, getGameEnvironmentPreset3D } from "./presets.js";
