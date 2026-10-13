@@ -15,14 +15,17 @@
  *
  * Usage (from web/):
  *   npx tsx tests/agentic-qa/runParticipant.ts --packet <packet.json> --out <run-dir/session>
- *     [--model sonnet] [--headed]
+ *     [--model sonnet] [--headed] [--protocol <participant.md>]
+ *
+ * `--protocol` swaps the participant protocol, for example the `ux-research`
+ * skill's think-aloud protocol. The default is the `agentic-qa` one.
  *
  * See .agents/skills/agentic-qa/references/runtime.md for the packet format.
  */
 
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile, appendFile } from "node:fs/promises";
-import { basename, dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import {
@@ -44,7 +47,7 @@ import { installOriginGuard } from "./originGuard";
 
 const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(CURRENT_DIR, "../../..");
-const PROTOCOL_PATH = join(
+const DEFAULT_PROTOCOL_PATH = join(
   REPO_ROOT,
   ".agents/skills/agentic-qa/references/participant.md"
 );
@@ -148,25 +151,28 @@ function parseCli(): {
   out: string;
   model: string;
   headed: boolean;
+  protocol: string;
 } {
   const { values } = parseArgs({
     options: {
       packet: { type: "string" },
       out: { type: "string" },
       model: { type: "string", default: "sonnet" },
-      headed: { type: "boolean", default: false }
+      headed: { type: "boolean", default: false },
+      protocol: { type: "string" }
     }
   });
   if (!values.packet || !values.out) {
     throw new Error(
-      "Usage: runParticipant.ts --packet <packet.json> --out <dir> [--model sonnet] [--headed]"
+      "Usage: runParticipant.ts --packet <packet.json> --out <dir> [--model sonnet] [--headed] [--protocol <participant.md>]"
     );
   }
   return {
     packet: values.packet,
     out: values.out,
     model: values.model ?? "sonnet",
-    headed: values.headed ?? false
+    headed: values.headed ?? false,
+    protocol: values.protocol ? resolve(values.protocol) : DEFAULT_PROTOCOL_PATH
   };
 }
 
@@ -544,7 +550,7 @@ async function main(): Promise<void> {
   await mkdir(join(outDir, "screenshots"), { recursive: true });
   await mkdir(join(outDir, "private"), { recursive: true });
 
-  const protocol = await readFile(PROTOCOL_PATH, "utf8");
+  const protocol = await readFile(cli.protocol, "utf8");
   const systemPrompt = `${protocol.trim()}\n${toolGuide(packet.viewport)}`;
   const prompt = renderPacket(packet);
 
@@ -576,7 +582,7 @@ async function main(): Promise<void> {
     packet,
     renderedPrompt: prompt,
     protocol: {
-      path: basename(PROTOCOL_PATH),
+      path: relative(REPO_ROOT, cli.protocol),
       sha256: createHash("sha256").update(protocol).digest("hex")
     },
     systemPromptSha256: createHash("sha256").update(systemPrompt).digest("hex"),

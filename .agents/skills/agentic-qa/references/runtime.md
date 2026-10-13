@@ -106,8 +106,12 @@ cd web
 npx tsx tests/agentic-qa/runParticipant.ts \
   --packet agentic-qa-runs/<run>/packets/<session>.json \
   --out agentic-qa-runs/<run>/<session> \
-  [--model sonnet] [--headed]
+  [--model sonnet] [--headed] [--protocol <participant.md>]
 ```
+
+`--protocol` replaces the participant protocol. The
+[ux-research](../../ux-research/SKILL.md) skill passes its think-aloud
+protocol this way. The default is this skill's [participant.md](participant.md).
 
 The runner authenticates through `CLAUDE_CODE_OAUTH_TOKEN` or
 `ANTHROPIC_API_KEY` when set, and otherwise through the machine's Claude login.
