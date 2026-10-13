@@ -335,7 +335,7 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
       case "set_animation_graph": draft.animationGraphs = { ...draft.animationGraphs, [op.graph_id]: op.graph }; break;
       case "set_material": draft.materials = { ...draft.materials, [op.material_id]: op.material }; break;
       case "remove_material": {
-        if (!draft.materials?.[op.material_id]) { fail(opIndex, ["material_id"], "Material does not exist"); }
+        if (!draft.materials || !Object.hasOwn(draft.materials, op.material_id)) { fail(opIndex, ["material_id"], "Material does not exist"); }
         delete draft.materials[op.material_id];
         if (Object.keys(draft.materials).length === 0) { delete draft.materials; }
         break;

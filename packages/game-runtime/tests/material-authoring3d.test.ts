@@ -74,4 +74,15 @@ describe("named 3D material authoring", () => {
       code: "missing_material_texture", path: ["materials", "paint", "baseColorTexture", "assetId"]
     }));
   });
+
+  it("requires owned named entries even for prototype property names", () => {
+    const document = blockout();
+    document.materials = {};
+    expect(() => applyGameOps3D(document, [{ op: "remove_material", material_id: "constructor" }])).toThrow(/does not exist/);
+    const candidate = gameDocument3D.parse({ ...document, scenes: [{ ...document.scenes[0], entities: [
+      ...document.scenes[0].entities,
+      { id: "box", transform3d: {}, primitive: { kind: "box", dimensions: { x: 1, y: 1, z: 1 }, materialId: "constructor" } }
+    ] }] });
+    expect(validateGame3D(candidate).diagnostics).toContainEqual(expect.objectContaining({ code: "missing_material" }));
+  });
 });

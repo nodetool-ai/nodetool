@@ -23,7 +23,8 @@ export function materialReferenceIssues3D(document: GameDocument3D): GameDiagnos
         const visual = entity[component];
         if (!visual) { continue; }
         const visualPath = [...path, index, component];
-        const material = visual.materialId === undefined ? visual.material : document.materials?.[visual.materialId];
+        const material = visual.materialId === undefined ? visual.material
+          : document.materials && Object.hasOwn(document.materials, visual.materialId) ? document.materials[visual.materialId] : undefined;
         if (visual.materialId !== undefined && !material) {
           issues.push({ code: "missing_material", path: [...visualPath, "materialId"],
             message: `Material ${visual.materialId} does not exist` });
