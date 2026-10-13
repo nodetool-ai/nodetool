@@ -15,7 +15,7 @@ decision codes of the pack spec.
 |---|---|
 | A0.1 | Start an assignment only when every assignment that blocks it is on `main`. |
 | A0.2 | Re-read the files in section 3 before you edit them. The line numbers in the pack spec date from its review. |
-| A0.3 | Land each assignment as one commit, or as a series that is green at each commit. Run the [mandatory post-change verification](../AGENTS.md#mandatory-post-change-verification) before each commit. |
+| A0.3 | Land each assignment as one commit, or as a series that is green at each commit. Run the [mandatory post-change verification](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification) before each commit. |
 | A0.4 | Run `npm run backend:smoke` for each assignment that changes a manifest, the server entry, or a lazy import. The desktop bundle flattens modules, so a cut can pass in the monorepo and fail in the artifact. |
 | A0.5 | Make each new gate fail on deliberately invalid input before you enforce it (pack spec 19.2). |
 | A0.6 | Do not change the published CLI until A24. Before A24, the CLI manifest keeps its node packs, and the installer stays behind `NODETOOL_PACKS_INSTALLER=1`. |
