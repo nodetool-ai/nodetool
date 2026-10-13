@@ -6,10 +6,15 @@ export function applySpatialScriptCommand3D(
   spatial: SpatialWorld3D,
   state: EntityState3D,
   command: GameScriptCommand3D
-): command is Extract<GameScriptCommand3D, { kind: "impulse" }> {
+): command is Extract<GameScriptCommand3D, { kind: "impulse" | "addForce" | "addTorque" | "addForceAtPoint" }> {
   if (command.kind === "impulse") {
     spatial.impulse(state, command.impulse);
     return true;
   }
-  return false;
+  switch (command.kind) {
+    case "addForce": spatial.addForce(state, command.force); return true;
+    case "addTorque": spatial.addTorque(state, command.torque); return true;
+    case "addForceAtPoint": spatial.addForceAtPoint(state, command.force, command.point); return true;
+    default: return false;
+  }
 }

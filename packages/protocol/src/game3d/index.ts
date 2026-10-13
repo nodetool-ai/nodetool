@@ -9,6 +9,7 @@ import { gameVector3, gameQuaternion3D, gameTransform3D } from "./components/tra
 import { gameNonSpatialBehavior } from "./components/behaviors.js";
 import { gamePrimitive3D } from "./components/primitive.js";
 import { gameModel3D } from "./components/model.js";
+import { gameForceScriptCommand3D } from "./components/force-command.js";
 import { gameBody3D } from "./components/body.js";
 import { gameCollider3D } from "./components/collider.js";
 import { gameCollisionMatrix3D } from "./components/collision-matrix.js";
@@ -216,7 +217,8 @@ export const gameScriptCommand3D = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("shapeQuery"), queryId: id.max(64), shape: gameQueryShape3D,
     position: gameVector3, rotation: gameQuaternion3D.default([0, 0, 0, 1]), mask: layerBits.default(0xffff),
     includeSensors: z.boolean().default(false), maximumResults: z.number().int().min(1).max(32).default(16) }),
-  z.strictObject({ kind: z.literal("setAnimParam"), name: id.max(64), value: z.union([finite.min(-1e6).max(1e6), z.boolean()]) })
+  z.strictObject({ kind: z.literal("setAnimParam"), name: id.max(64), value: z.union([finite.min(-1e6).max(1e6), z.boolean()]) }),
+  ...gameForceScriptCommand3D.options
 ]);
 
 export type GameScriptCommand3D = z.infer<typeof gameScriptCommand3D>;
