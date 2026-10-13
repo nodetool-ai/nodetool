@@ -36,6 +36,11 @@ jobs:
           # another job on main could have written.
           package-manager-cache: false
 
+      # OIDC dist-tag operations require npm 11.21+ and owner opt-in.
+      # https://docs.npmjs.com/trusted-publishers/
+      - name: Use the release npm version
+        run: npm install --global npm@11.21.0 --ignore-scripts --no-audit --no-fund
+
       - name: Install system libraries (keytar/libsecret)
         run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
 
@@ -101,8 +106,11 @@ jobs:
       - name: Smoke-test the packed core-only CLI
         run: node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .release-tarballs
 
-      - name: Publish to npm with trusted publishing
-        run: node scripts/publish-packages.mjs --tag "$NPM_TAG" --tarballs-dir .release-tarballs
+      - name: Publish staging artifacts with trusted publishing
+        run: node scripts/publish-packages.mjs --tag staging --tarballs-dir .release-tarballs
+
+      - name: Verify staging and promote final tags with CLI last
+        run: node scripts/release/promote-staging.mjs --tarballs-dir .release-tarballs --tag "$NPM_TAG"
 
       - name: Record published version
         id: published
@@ -111,9 +119,8 @@ jobs:
     outputs:
       version: ${{ steps.published.outputs.version }}
 
-  # Nothing before this point proves the published tarballs install and run.
-  # rc.11 sat on the "latest" dist-tag for months while every later release
-  # failed, and no check noticed.
+  # Registry verification gates promotion. This additional smoke checks the
+  # public installation path after final tags have moved.
   smoke:
     needs: publish
     runs-on: ubuntu-latest

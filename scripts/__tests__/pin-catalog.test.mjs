@@ -37,8 +37,23 @@ describe("catalog release pins", () => {
     }
     expect(result.owners).toEqual(catalog.owners);
     expect(result.packs[1].provides).toEqual(["@nodetool-ai/game-renderer"]);
+    expect(result.installPins).toEqual([{ name: "@nodetool-ai/game-renderer", version: catalog.coreVersion, integrity: tarballIntegrity(tarballs["@nodetool-ai/game-renderer"]) }]);
     expect(catalog.packs.map(pack => pack.npm.integrity)).toEqual(["", ""]);
     expect(measure).toHaveBeenCalledTimes(catalog.packs.length);
+  });
+
+  it("records runtime aliases and shared pins while replacing stale generated pins", async () => {
+    const { catalog, tarballs, readManifest } = fixture();
+    catalog.installPins = [{ name: "stale", version: "0.0.0", integrity: "stale" }];
+    const additionalPins = [
+      { name: "@typescript/typescript6", installName: "typescript", version: "6.0.2", integrity: `sha512-${createHash("sha512").update("compiler").digest("base64")}` },
+      { name: "mediabunny", version: "1.2.3", shared: true, integrity: `sha512-${createHash("sha512").update("shared").digest("base64")}` }
+    ];
+    const result = await pinCatalog(catalog, tarballs, { additionalPins, readManifest, measure: () => 1024 });
+    expect(result.installPins).toEqual(expect.arrayContaining(additionalPins));
+    expect(result.installPins).toHaveLength(additionalPins.length + 1);
+    expect(result.installPins.some(pin => pin.name === "stale")).toBe(false);
+    expect(catalog.installPins[0].name).toBe("stale");
   });
 
   it.each(["@nodetool-ai/core-nodes", "@nodetool-ai/game-renderer"])("fails before measurement when %s has no tarball", async name => {

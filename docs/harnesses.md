@@ -33,6 +33,8 @@ on Linux x64. It packs the catalog registrar packages and their companion
 libraries, measures each pack in a fresh production install, writes integrity
 and size pins, rebuilds the catalog artifact, and packs the remaining packages.
 It preserves every previously packed tarball and performs no publication.
+The catalog also records original companion hashes, exact npm runtime alias
+identities and shared-library pins. Staging verifies these before promotion.
 
 The install size includes the pack’s production dependency tree. Measurement
 uses local core directory overrides before final core artifacts exist. npm
@@ -43,7 +45,7 @@ cache inside the release artifact directory.
 Run the deterministic pin, measurement and packing-order regressions with:
 
 ```bash
-node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-catalog.test.mjs scripts/__tests__/publish-packages.test.mjs
+node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-catalog.test.mjs scripts/__tests__/publish-packages.test.mjs scripts/__tests__/install-pins.test.mjs scripts/__tests__/staging-release.test.mjs scripts/__tests__/publish-tarballs.test.mjs
 ```
 
 The

@@ -20,8 +20,8 @@
  * Holding dependents back keeps every published version installable.
  *
  * Usage:
- *   node scripts/publish-packages.mjs --tag rc
- *   node scripts/publish-packages.mjs --tag rc --dry-run
+ *   node scripts/publish-packages.mjs --tag staging
+ *   node scripts/publish-packages.mjs --tag staging --dry-run
  */
 
 import { readFileSync, readdirSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
@@ -31,7 +31,7 @@ import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
 import { tmpdir } from "node:os";
 import { pack, existingTarballs } from "./smoke-packed-cli.mjs";
-import { catalogPackageNames, runReleaseCommand, tarballIntegrity, writePinnedCatalog } from "./release/pin-catalog.mjs";
+import { catalogPackageNames, runReleaseCommand, tarballIntegrity, writeReleasePinnedCatalog } from "./release/pin-catalog.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
@@ -107,7 +107,7 @@ export function unmetDeps(pkg, available) {
 export async function packRelease(packages, dest, {
   root = ROOT,
   packPackages = pack,
-  pin = writePinnedCatalog,
+  pin = writeReleasePinnedCatalog,
   rebuildCatalog = () => runReleaseCommand(process.execPath, [join(root, "packages/node-catalog/build.mjs")], { cwd: root })
 } = {}) {
   if (readdirSync(dest).some(name => name.endsWith(".tgz"))) {
@@ -129,7 +129,7 @@ export async function packRelease(packages, dest, {
       if (tarballIntegrity(earlyTarballs[name]) !== integrity) { throw new Error(`Already-packed release artifact changed: ${name}`); }
     }
   };
-  await pin(catalogFile, earlyTarballs, { workspaces: packages, measurementOptions: { cacheDir: join(dest, ".measurement-cache") } });
+  await pin(catalogFile, earlyTarballs, { root, workspaces: packages, measurementOptions: { cacheDir: join(dest, ".measurement-cache") } });
   await rebuildCatalog();
   verifyOriginals();
   const remainingTarballs = await packPackages(remaining, dest);
@@ -137,10 +137,20 @@ export async function packRelease(packages, dest, {
   return { ...earlyTarballs, ...remainingTarballs };
 }
 
+export function assertPublishTag(tag, dryRun = false) {
+  if (!dryRun && tag !== "staging") {
+    throw new Error("Release artifacts must publish to staging. Use scripts/release/promote-staging.mjs after verification for final tags.");
+  }
+}
+
+export async function stageExistingVersion(name, version, run = runReleaseCommand) {
+  await run("npm", ["dist-tag", "add", `${name}@${version}`, "staging"], { cwd: ROOT });
+}
+
 async function main() {
   const { values } = parseArgs({
     options: {
-      tag: { type: "string", default: "latest" },
+      tag: { type: "string", default: "staging" },
       "tarballs-dir": { type: "string" },
       "pack-only": { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
@@ -154,7 +164,7 @@ async function main() {
 Publishes every public workspace package to npm, continuing past failures and
 skipping versions already present on the registry.
 
-  --tag <dist-tag>   npm dist-tag to publish under (default: latest)
+  --tag <dist-tag>   npm dist-tag to publish under (default: staging)
   --dry-run          Run npm publish --dry-run for each tarball
   --tarballs-dir     Reuse release tarballs or write them with --pack-only
   --pack-only        Pack public workspaces once without publishing`);
@@ -214,6 +224,7 @@ skipping versions already present on the registry.
     return;
   }
   try {
+    assertPublishTag(values.tag, values["dry-run"]);
     const tarballs = temporary ? await packRelease(packages, tarballDir) : existingTarballs(packages, tarballDir);
     console.log(
       `Publishing ${packages.length} package(s) under dist-tag "${values.tag}"` +
@@ -231,8 +242,14 @@ skipping versions already present on the registry.
       const { name, version } = pkg;
       if (!values["dry-run"] && alreadyPublished(name, version)) {
         console.log(`skip    ${name}@${version} (already on registry)`);
-        skipped.push(`${name}@${version}`);
-        available.add(name);
+        try {
+          await stageExistingVersion(name, version);
+          skipped.push(`${name}@${version}`);
+          available.add(name);
+        } catch (error) {
+          console.error(`FAIL    ${name}@${version} staging tag`);
+          failed.push({ name: `${name}@${version}`, output: error.message });
+        }
         continue;
       }
 
@@ -266,8 +283,14 @@ skipping versions already present on the registry.
           break;
         case "skipped":
           console.log(`skip    ${name}@${version} (already on registry)`);
-          skipped.push(`${name}@${version}`);
-          available.add(name);
+          try {
+            if (!values["dry-run"]) { await stageExistingVersion(name, version); }
+            skipped.push(`${name}@${version}`);
+            available.add(name);
+          } catch (error) {
+            console.error(`FAIL    ${name}@${version} staging tag`);
+            failed.push({ name: `${name}@${version}`, output: error.message });
+          }
           break;
         default:
           console.error(`FAIL    ${name}@${version}`);

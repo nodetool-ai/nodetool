@@ -4,19 +4,13 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { cleanEnv } from "../smoke-packed-cli.mjs";
 import { canonicalJson } from "../node-catalog/generate.mjs";
-
-export function runReleaseCommand(command, args, options) {
-  const result = spawnSync(command, args, { encoding: "utf8", timeout: 300_000, ...options });
-  if (result.status !== 0) {
-    throw new Error(`${command} ${args.join(" ")} exited ${result.status}\n${result.stdout ?? ""}${result.stderr ?? ""}`);
-  }
-  return result.stdout;
-}
+import { runReleaseCommand } from "./commands.mjs";
+import { collectReleaseInstallPins, validateInstallPin } from "./install-pins.mjs";
+export { runReleaseCommand } from "./commands.mjs";
 
 export function tarballIntegrity(file) {
   return `sha512-${createHash("sha512").update(readFileSync(file)).digest("base64")}`;
@@ -90,6 +84,7 @@ export function measurePackInstallBytes(pack, tarballs, workspaces, {
 /** Validate every packed package before recording any release pin. */
 export async function pinCatalog(catalog, tarballs, {
   workspaces = [],
+  additionalPins = [],
   measurementOptions = {},
   measure = (pack) => measurePackInstallBytes(pack, tarballs, workspaces, measurementOptions),
   readManifest = (file) => JSON.parse(runReleaseCommand("tar", ["-xOf", file, "package/package.json"], {}))
@@ -109,6 +104,19 @@ export async function pinCatalog(catalog, tarballs, {
     }
   }
   const pinned = structuredClone(catalog);
+  const installPins = new Map();
+  for (const pack of catalog.packs) {
+    for (const name of pack.provides) {
+      installPins.set(name, { name, version: catalog.coreVersion, integrity: tarballIntegrity(tarballs[name]) });
+    }
+  }
+  for (const pin of additionalPins) {
+    validateInstallPin(pin);
+    const folder = pin.installName ?? pin.name;
+    if (names.has(folder) || installPins.has(folder)) { throw new Error(`Duplicate release install pin: ${folder}`); }
+    installPins.set(folder, structuredClone(pin));
+  }
+  pinned.installPins = [...installPins.values()].sort((a, b) => (a.installName ?? a.name).localeCompare(b.installName ?? b.name));
   for (const pack of pinned.packs) {
     const installBytes = await measure(pack);
     if (!Number.isSafeInteger(installBytes) || installBytes <= 0) {
@@ -127,6 +135,12 @@ export async function writePinnedCatalog(file, tarballs, options) {
   return pinned;
 }
 
+/** Production release pinning also records the exact runtime and shared-library identities. */
+export async function writeReleasePinnedCatalog(file, tarballs, { root, ...options }) {
+  const additionalPins = await collectReleaseInstallPins({ root });
+  return writePinnedCatalog(file, tarballs, { ...options, additionalPins });
+}
+
 async function main() {
   const { values } = parseArgs({ options: {
     catalog: { type: "string" },
@@ -141,7 +155,7 @@ async function main() {
   const workspaces = JSON.parse(readFileSync(resolve(values.workspaces), "utf8"));
   const measurementOptions = {};
   if (values.cache) { measurementOptions.cacheDir = resolve(values.cache); }
-  await writePinnedCatalog(resolve(values.catalog), tarballs, { workspaces, measurementOptions });
+  await writeReleasePinnedCatalog(resolve(values.catalog), tarballs, { root: resolve(import.meta.dirname, "../.."), workspaces, measurementOptions });
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

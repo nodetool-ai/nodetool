@@ -170,6 +170,13 @@ The two `npx tsx` calls (`packages/cli/src/nodetool-main.ts:586`,
 `npx` fetches `tsx` from the registry when it is absent, which is an install
 without consent.
 
+The release catalog also carries `installPins` for provided companions, npm
+runtime libraries and shared `mediabunny` packages (plan D24). Each record has
+the registry name, exact version and integrity. `installName` identifies an
+npm alias folder and `shared: true` marks shared identity checks. Runtime ids
+still resolve through the protocol runtime table. Source generation and cohort
+version changes clear these pins until release packing fills them.
+
 ### 6.2 Source import edges
 
 A static scan of `src/` in every core package (tests excluded) found these
@@ -734,7 +741,11 @@ command is not covered. `packs doctor` detects its effects.
    desired set.
 4. Take the lock.
 5. Snapshot the tree: every installed package's path, name, version, and
-   integrity from `node_modules/.package-lock.json`.
+   integrity from `node_modules/.package-lock.json`. A global npm install can
+   lack this file. Only that initial global snapshot may omit integrity
+   (plan D25). Existing malformed or stale locks still fail. Post-install
+   verification requires a valid lock and all release pins before scripts or
+   imports. Preserve initial identities and compare every known integrity.
 6. Plan with `npm install --dry-run` and the same flags and specs (14.5).
 7. Run `npm install` with `--ignore-scripts`.
 8. Verify the tree (14.6). No install script and no pack import has run yet.
@@ -789,8 +800,11 @@ the core CLI install today (R1).
 
 A failure in steps 7 to 10 triggers rollback:
 
-- `global`: rerun `npm install --no-save` with the previous desired set, which
-  removes the added packages (E3).
+- `global`: uninstall newly added package roots with scripts disabled, restore
+  the original manifests and replay the previous desired set. npm can retain
+  extraneous packages after `--no-save` calls. If it does, remove only new,
+  unlinked package directories inside the install root that contain no
+  pre-existing snapshot path, then replay the previous desired set.
 - `local`: `npm uninstall --save` for the added specs.
 
 Then the installer compares the tree with the snapshot. When it matches, the

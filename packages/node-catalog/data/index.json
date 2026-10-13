@@ -1,5 +1,6 @@
 {
   "coreVersion": "0.8.3",
+  "installPins": [],
   "owners": {
     "atlascloud.image.Cosmos3SuperTextToImage": "atlascloud",
     "atlascloud.image.Flux2FlexEdit": "atlascloud",

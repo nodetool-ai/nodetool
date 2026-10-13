@@ -782,12 +782,12 @@ export const HARNESSES: HarnessEntry[] = [
   {
     id: "release-pins",
     title: "Release catalog integrity, install measurement and packing order",
-    command: "node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-catalog.test.mjs scripts/__tests__/publish-packages.test.mjs",
+    command: "node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-catalog.test.mjs scripts/__tests__/publish-packages.test.mjs scripts/__tests__/install-pins.test.mjs scripts/__tests__/staging-release.test.mjs scripts/__tests__/publish-tarballs.test.mjs",
     kind: "meta",
     capabilities: ["gated:pr"],
     docs: "docs/harnesses.md § Release catalog pins",
     selfcheck: {
-      command: "node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-catalog.test.mjs scripts/__tests__/publish-packages.test.mjs",
+      command: "node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-catalog.test.mjs scripts/__tests__/publish-packages.test.mjs scripts/__tests__/install-pins.test.mjs scripts/__tests__/staging-release.test.mjs scripts/__tests__/publish-tarballs.test.mjs",
       cost: "cheap"
     }
   },
@@ -1885,7 +1885,10 @@ export const SURFACES: SurfaceEntry[] = [
       "scripts/publish-packages.mjs",
       "scripts/prepare-publish.mjs",
       "scripts/__tests__/pin-catalog.test.mjs",
-      "scripts/__tests__/publish-packages.test.mjs"
+      "scripts/__tests__/publish-packages.test.mjs",
+      "scripts/__tests__/install-pins.test.mjs",
+      "scripts/__tests__/staging-release.test.mjs",
+      "scripts/__tests__/publish-tarballs.test.mjs"
     ]
   },
   {

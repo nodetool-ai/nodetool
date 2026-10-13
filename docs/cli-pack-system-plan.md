@@ -155,6 +155,31 @@ runtime library and every on-demand node pack remains forbidden. Making a
 core package's library peer optional does not remove a library that another
 dependency still requires.
 
+### D24. Install identities in the release catalog
+
+`index.installPins` holds exact version and integrity records for provided
+companions, npm runtime libraries and shared `mediabunny` packages. An alias
+records its registry name in `name` and its installed folder in `installName`.
+The protocol runtime table remains the only mapping from runtime ids to npm
+specs. Shared records have `shared: true`.
+
+Release packing hashes original companion tarballs and reads exact external
+registry metadata. Staging verifies every record. Source generation and a new
+cohort clear these release-specific pins. The installer refuses missing pins.
+
+### D25. Global installation baseline without a hidden lock
+
+A real npm global install has no hidden lockfile. When that file is absent in
+global mode, the initial snapshot records package paths, names, versions and
+realpaths without claiming integrity. Existing malformed or stale locks still
+fail. Local mode still requires its hidden lock.
+
+The dry-run plan remains additive. Post-install verification requires a valid
+hidden lock and every release pin before scripts or imports. Existing package
+identities must remain unchanged, and known initial integrities must match.
+This trusts the already-running CLI installation. Lock metadata does not verify
+pre-existing file contents.
+
 ## 3. Current seams
 
 | Area | Starting point | Consequence |
