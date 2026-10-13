@@ -162,7 +162,8 @@ export const gameRenderFrame3D = z.strictObject({
   lights: z.array(z.strictObject({ entityId: id, transform: gameTransform3D, light: gameLight3D })),
   environment: gameEnvironment3D, hud: z.array(gameHudLabel), ui: gameUiFrame.optional(),
   fonts: z.record(id, gameAssetBinding3D.options[3]).optional(),
-  materials: gameMaterials3D.optional()
+  materials: gameMaterials3D.optional(),
+  images: z.record(id, gameAssetBinding3D.options[5]).optional()
 });
 
 export type GameRenderFrame3D = z.infer<typeof gameRenderFrame3D>;

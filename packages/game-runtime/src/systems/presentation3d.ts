@@ -165,5 +165,8 @@ export function frame3D(
     frame.ui = uiFrame;
   }
   if (document.materials !== undefined) { frame.materials = structuredClone(document.materials); }
+  const images = Object.fromEntries(Object.entries(document.assets)
+    .flatMap(([slot, binding]) => binding.mediaKind === "image" ? [[slot, structuredClone(binding)]] : []));
+  if (Object.keys(images).length > 0) { frame.images = images; }
   return frame;
 }

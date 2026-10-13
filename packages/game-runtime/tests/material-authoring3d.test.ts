@@ -85,4 +85,18 @@ describe("named 3D material authoring", () => {
     ] }] });
     expect(validateGame3D(candidate).diagnostics).toContainEqual(expect.objectContaining({ code: "missing_material" }));
   });
+
+  it("projects copied image bindings for the closed capture resolver", async () => {
+    const document = blockout();
+    document.assets.paint = { mediaKind: "image", assetId: "paint-bytes", digest: "prepared-digest", required: true,
+      format: "png", width: 2, height: 2, byteLength: 64, preparationVersion: "1" };
+    const session = await createGameSession3D(document, 1);
+    try {
+      const frame = session.frame();
+      expect(frame.images?.paint).toEqual(document.assets.paint);
+      if (!frame.images) { throw new Error("Expected image bindings"); }
+      frame.images.paint.digest = "changed";
+      expect(session.frame().images?.paint.digest).toBe("prepared-digest");
+    } finally { session.dispose(); }
+  });
 });
