@@ -4,7 +4,8 @@ import { gameMergeAdapter } from "./merge";
 import { gameMergeAdapter3D } from "./merge3D";
 
 function widen<T extends AnyGameDocument>(adapter: DocumentMergeAdapter<T>, narrow: (doc: AnyGameDocument) => T): DocumentMergeAdapter<AnyGameDocument> {
-  return {
+  const finalize = adapter.finalizeMergedDocument;
+  const widened: DocumentMergeAdapter<AnyGameDocument> = {
     collections: adapter.collections.map((collection) => ({ ...collection,
       read: (doc) => collection.read(narrow(doc)),
       write: (doc, units) => collection.write(narrow(doc), units)
@@ -14,6 +15,10 @@ function widen<T extends AnyGameDocument>(adapter: DocumentMergeAdapter<T>, narr
       write: (doc, value) => scalar.write(narrow(doc), value)
     }))
   };
+  if (finalize) {
+    widened.finalizeMergedDocument = (doc, base, draft, server) => finalize(narrow(doc), narrow(base), narrow(draft), narrow(server));
+  }
+  return widened;
 }
 
 const legacy = widen(gameMergeAdapter, (doc) => {

@@ -112,6 +112,8 @@ interface MergeScalarField<TDoc> {
 
 export interface DocumentMergeAdapter<TDoc> {
   collections: MergeCollection<TDoc>[];
+  /** Restore cross-collection references after all independently merged fields have settled. */
+  finalizeMergedDocument?(doc: TDoc, base: TDoc, draft: TDoc, server: TDoc): TDoc;
   scalars?: MergeScalarField<TDoc>[];
   /**
    * Map one external op onto the units it touched. An entry without `unitId`
@@ -1054,5 +1056,5 @@ export function mergeByUnits<TDoc>(
     }
   }
 
-  return { doc, conflicts, nextBase };
+  return { doc: adapter.finalizeMergedDocument?.(doc, base, draft, server) ?? doc, conflicts, nextBase };
 }
