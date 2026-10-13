@@ -1,5 +1,9 @@
 import { readCatalogIndex } from "./index.js";
 
+export type MissingPackInstall =
+  | { readonly supported: true; readonly reason: null; readonly command: string | null }
+  | { readonly supported: false; readonly reason: string; readonly command: null };
+
 export interface MissingPackDetails {
   readonly error: "missing_pack";
   readonly packs: readonly {
@@ -11,11 +15,7 @@ export interface MissingPackDetails {
   }[];
   readonly runtimeLibraries: readonly string[];
   readonly nodeTypes: readonly string[];
-  readonly install: {
-    readonly supported: false;
-    readonly reason: "Pack installs are not available in this version.";
-    readonly command: null;
-  };
+  readonly install: MissingPackInstall;
   readonly restartRequired: false;
 }
 
@@ -24,14 +24,16 @@ export class MissingPackError extends Error {
   readonly details: MissingPackDetails;
 
   constructor(details: MissingPackDetails) {
-    super(`Node pack ${details.packs.map((pack) => pack.id).join(", ")} is not installed. ${details.install.reason}`);
+    const guidance = details.install.reason ?? details.install.command;
+    super(`Node pack ${details.packs.map((pack) => pack.id).join(", ")} is not installed.${guidance ? ` ${guidance}` : ""}`);
     this.details = details;
   }
 }
 
 export function createMissingPackError(
   packId: string,
-  nodeTypes: readonly string[] = []
+  nodeTypes: readonly string[] = [],
+  install: MissingPackInstall = { supported: false, reason: "Pack installs are not available in this version.", command: null }
 ): MissingPackError {
   const index = readCatalogIndex();
   const byId = new Map(index.packs.map((pack) => [pack.id, pack]));
@@ -70,11 +72,7 @@ export function createMissingPackError(
     }),
     runtimeLibraries: [...runtimeLibraries].sort(),
     nodeTypes: [...new Set(nodeTypes)].sort(),
-    install: {
-      supported: false,
-      reason: "Pack installs are not available in this version.",
-      command: null
-    },
+    install,
     restartRequired: false
   });
 }

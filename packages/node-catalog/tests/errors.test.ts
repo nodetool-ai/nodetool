@@ -32,4 +32,19 @@ describe("missing pack error", () => {
   it("rejects an unknown catalog pack rather than inventing install details", () => {
     expect(() => createMissingPackError("unknown")).toThrow("Unknown node catalog pack: unknown");
   });
+
+  it("preserves explicit supported-install guidance without a null suffix", () => {
+    const error = createMissingPackError("audio", [], { supported: true, reason: null, command: null });
+    expect(error.details.install).toEqual({ supported: true, reason: null, command: null });
+    expect(error.message).toBe("Node pack audio, video is not installed.");
+    const command = createMissingPackError("audio", [], { supported: true, reason: null, command: "nodetool nodes add audio video" });
+    expect(command.message).toContain("nodetool nodes add audio video");
+  });
+
+  it("preserves the host's unsupported-install reason", () => {
+    const reason = 'Packs need a global or local install. Run "npm install -g @nodetool-ai/cli" or "npm install @nodetool-ai/cli" in a project.';
+    const error = createMissingPackError("video", [], { supported: false, reason, command: null });
+    expect(error.details.install).toEqual({ supported: false, reason, command: null });
+    expect(error.message).toContain(reason);
+  });
 });

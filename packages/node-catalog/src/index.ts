@@ -37,4 +37,4 @@ export function packForNodeType(nodeType: string): CatalogPack | undefined {
 export { importPack } from "./import-pack.js";
 export { registerAvailablePacks, registerCatalogPack, catalogPackIdsForBuiltin } from "./register-available-packs.js";
 
-export { MissingPackError, createMissingPackError, type MissingPackDetails } from "./errors.js";
+export { MissingPackError, createMissingPackError, type MissingPackDetails, type MissingPackInstall } from "./errors.js";
