@@ -74,4 +74,13 @@ describe("optional token counter", () => {
     }
     expect(load).toHaveBeenCalledTimes(1);
   });
+
+  it("imports and estimates when the loader fails synchronously", async () => {
+    load.mockImplementation(() => {
+      throw new Error("loader unavailable");
+    });
+    const counter = await import("../src/token-counter.js");
+    await counter.initializeTokenCounter();
+    expect(counter.countTokens("hello world")).toBe(3);
+  });
 });

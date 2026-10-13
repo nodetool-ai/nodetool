@@ -14,9 +14,14 @@ let initialization: Promise<void> | undefined;
 
 /** Start one optional load. Async callers can await exact counting readiness. */
 export function initializeTokenCounter(): Promise<void> {
-  initialization ??= importOptionalModule<{
-    getEncoding(name: "cl100k_base"): Encoder;
-  }>("js-tiktoken")
+  // Start inside the chain: this runs on module load, so a loader that throws
+  // synchronously must reject here instead of failing every importer.
+  initialization ??= Promise.resolve()
+    .then(() =>
+      importOptionalModule<{
+        getEncoding(name: "cl100k_base"): Encoder;
+      }>("js-tiktoken")
+    )
     .then((library) => {
       cachedEncoder = library.getEncoding("cl100k_base");
     })
