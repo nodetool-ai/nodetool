@@ -31,6 +31,7 @@ const nodeModule = getNodeBuiltinSync<typeof import("node:module")>(
 );
 const nodeFs = getNodeBuiltinSync<{
   existsSync: (path: string) => boolean;
+  readFileSync: (path: string) => Uint8Array;
 }>("node:fs");
 const nodeUrl = getNodeBuiltinSync<{
   fileURLToPath: (url: URL | string) => string;
@@ -142,4 +143,17 @@ export function loadPackageAssetJson<T>(
   // `resolvePackageAssetPath` has already checked the ref against the registry,
   // so what `require` returns is that asset's JSON and nothing else.
   return req(resolved) as T;
+}
+
+/** Read a registered binary asset in package and flattened bundle layouts. */
+export function loadPackageAssetBytes(
+  ref: PackageAssetRef,
+  importerUrl: string,
+  registry: readonly PackageAssetRef[] = PACKAGE_RUNTIME_ASSETS
+): Uint8Array {
+  const resolved = resolvePackageAssetPath(ref, importerUrl, registry);
+  if (!nodeFs) {
+    throw new Error("Package binary assets require a Node runtime.");
+  }
+  return nodeFs.readFileSync(resolved);
 }

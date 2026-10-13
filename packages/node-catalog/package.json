@@ -1,0 +1,33 @@
+{
+  "name": "@nodetool-ai/node-catalog",
+  "version": "0.8.3",
+  "type": "module",
+  "engines": { "node": ">=22.0.0" },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "description": "Generated node metadata and exact pack ownership for NodeTool",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs && node build.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/node-sdk": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1"
+  },
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" },
+    "./index.json": "./dist/index.json",
+    "./nodes.ndjson.gz": "./dist/nodes.ndjson.gz"
+  },
+  "files": ["dist", "README.md"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/nodetool-ai/nodetool.git", "directory": "packages/node-catalog" },
+  "publishConfig": { "access": "public" }
+}

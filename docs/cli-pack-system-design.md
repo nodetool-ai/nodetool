@@ -353,12 +353,13 @@ oversized fixture before it is enforced.
 
 `@nodetool-ai/node-catalog` is a new core package. It holds:
 
-- `index.json`: pack entries, runtime library entries, and the exact owner map.
-- `nodes.json.gz`: full metadata for every node type.
+- `index.json`: pack entries and the exact owner map. Runtime library ids use
+  `RUNTIME_NPM_PACKAGES` from `protocol` (D17).
+- `data/nodes.ndjson`: checked-in metadata, one node per line, sorted by
+  `node_type` (D21). The package build writes `dist/nodes.ndjson.gz`.
 
-The 0.8.3 tree registers 3,310 node types with all packs loaded. Their merged
-metadata is 8.16 MB of JSON and 828 KB gzipped. `fal` owns 1,645 types and
-`replicate` 662.
+Run `npm run generate:node-catalog` to rebuild the catalog and report its node
+count. Run `npm run measure:cli-closure` to measure package sizes.
 
 ### 9.1 Format
 
@@ -367,7 +368,6 @@ interface NodeCatalogIndex {
   schemaVersion: 1;
   coreVersion: string;                       // equals the CLI version
   packs: CatalogPack[];
-  runtimeLibraries: CatalogRuntimeLibrary[];
   owners: Record<string, string>;            // node_type -> pack id, total
 }
 
@@ -378,10 +378,11 @@ interface PinnedPackage {
 }
 
 interface CatalogPack {
-  id: string;                                // BUILTIN_NODE_PACKS id, never renamed
+  id: string;                                // stable id, including split domain packs
   kind: "core" | "node-pack";
   npm: PinnedPackage;                        // version === coreVersion
   registrar: string;                         // named export, called with the registry
+  provides: readonly string[];               // first-party packages carried by this pack (D18)
   requires: readonly string[];               // other pack ids
   runtimeLibraries: readonly string[];
   secrets: readonly string[];                // e.g. ["FAL_API_KEY"]
@@ -390,39 +391,34 @@ interface CatalogPack {
   nodeCount: number;
 }
 
-interface CatalogRuntimeLibrary {
-  id: string;
-  packages: readonly PinnedPackage[];        // direct packages to install
-  shared: readonly string[];                 // shared-identity names (D12)
-  scriptAllowlist: readonly PinnedPackage[];
-  installBytes: number;
-}
-
 interface CatalogNode {
   node_type: string;
   pack: string;
   metadata: NodeMetadata;                    // final registrar output
-  declared: DeclaredPropertyMetadata[];      // input to validateNodeProperties
+  declared: readonly DeclaredPropertyMetadata[];      // input to validateNodeProperties
 }
 ```
 
 ### 9.2 Generation
 
 `scripts/generate-node-catalog.mjs` runs in a child process with a fixed
-environment (empty HOME, no secrets, `NODE_ENV=production`):
+environment (an empty temporary home directory, no inherited secrets,
+`NODE_ENV=production`):
 
 1. For each pack, create a fresh `NodeRegistry`, call the pack's registrar, and
    record the registered types as that pack's ownership. Registrars are the
-   source, not class metadata. `registerBaseNodes` overrides metadata for some
-   types (`packages/base-nodes/src/index.ts:605-640`).
+   source, not namespace prefixes. The core and audio registrars apply the
+   compatibility metadata overrides (D19).
 2. Fail when two packs register the same type (duplicate ownership).
 3. Read `getMetadata()` and the class's declared properties for each type.
    Fail when a declared property holds a value that JSON cannot represent.
 4. Sort packs by id, nodes by `node_type`, and object keys. Omit timestamps.
-5. Write `index.json` and `nodes.json.gz` with a fixed gzip level and mtime.
+5. Write `data/index.json` and `data/nodes.ndjson`. The package build gzips
+   the node file with level 9 and a zero mtime, and copies the index into `dist/`.
 
-Pins (`integrity`, `installBytes`) come from the release job (section 17). The
-in-repo file holds placeholder pins that the release job replaces.
+Pins (`integrity`, `installBytes`) and script allowlists come from the release
+job (section 17). The repository file holds empty integrity strings, zero
+install sizes and empty script allowlists that the release job replaces.
 
 `npm run check:node-catalog` regenerates the catalog and diffs it. It fails on
 any difference and asserts that it compared more than zero node types. Add it
@@ -430,7 +426,7 @@ to `test:affected` path checks and to the harness registry
 (`packages/cli/src/harness/registry.ts`) for changes under node packages.
 
 Namespace prefixes stay for display and search only. `findBuiltinPackForNodeType`
-(`packages/protocol/src/builtin-packs.ts:39-46`) picks the first matching
+(`packages/protocol/src/builtin-packs.ts`) picks the first matching
 namespace. `nodetool.control.If` (`core-nodes`), `nodetool.text.Concat`
 (`text-nodes`), and `nodetool.game.SpriteSheet` (`image-nodes`) all start with
 `nodetool`, and `kie` appears in both the `base` and the `kie` pack. The CLI
