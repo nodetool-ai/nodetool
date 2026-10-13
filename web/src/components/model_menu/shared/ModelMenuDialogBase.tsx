@@ -235,7 +235,10 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const providers = modelData.providers ?? providersFromModels;
 
   const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);
-  const sizeBucket = useModelFiltersStore((s) => s.sizeBucket);
+  const storedSizeBucket = useModelFiltersStore((s) => s.sizeBucket);
+  // The cloud version hides the size filter, so a bucket persisted from a
+  // local session must not silently filter its list.
+  const sizeBucket = isProduction ? null : storedSizeBucket;
 
   const baseModels = useMemo(() => {
     if (customView === "favorites") {

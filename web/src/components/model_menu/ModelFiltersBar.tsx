@@ -16,6 +16,7 @@ import useModelFiltersStore, {
   SizeBucket,
   TypeTag
 } from "../../stores/ModelFiltersStore";
+import { isProduction } from "../../lib/env";
 
 const barStyles = css({
   display: "flex",
@@ -87,43 +88,47 @@ const ModelFiltersBar: React.FC = () => {
         ))}
       </EditorMenu>
 
-      {/* Size dropdown (single) */}
-      <ToolbarIconButton
-        icon={<StraightenIcon fontSize="small" />}
-        tooltip={sizeBucket ? `Size: ${sizeBucket}` : "Filter by size"}
-        onClick={(e) => setSizeAnchor(e.currentTarget)}
-        size="small"
-        active={!!sizeBucket || openSize}
-        nodrag={false}
-      />
-      <EditorMenu
-        anchorEl={sizeAnchor}
-        open={openSize}
-        onClose={() => setSizeAnchor(null)}
-        keepMounted
-      >
-        <EditorMenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            setSizeBucket(null);
-          }}
-        >
-          <ListItemText primary="Any size" />
-        </EditorMenuItem>
-        {sizeOptions.map((s) => (
-          <EditorMenuItem
-            key={s}
-            onClick={(e) => {
-              e.stopPropagation();
-              setSizeBucket(s);
-            }}
-            selected={sizeBucket === s}
+      {/* Size dropdown (single). Parameter-count buckets only describe local
+          models, so the cloud version has nothing to filter. */}
+      {!isProduction && (
+        <>
+          <ToolbarIconButton
+            icon={<StraightenIcon fontSize="small" />}
+            tooltip={sizeBucket ? `Size: ${sizeBucket}` : "Filter by size"}
+            onClick={(e) => setSizeAnchor(e.currentTarget)}
+            size="small"
+            active={!!sizeBucket || openSize}
+            nodrag={false}
+          />
+          <EditorMenu
+            anchorEl={sizeAnchor}
+            open={openSize}
+            onClose={() => setSizeAnchor(null)}
+            keepMounted
           >
-            <ListItemText primary={s} />
-          </EditorMenuItem>
-        ))}
-      </EditorMenu>
-
+            <EditorMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                setSizeBucket(null);
+              }}
+            >
+              <ListItemText primary="Any size" />
+            </EditorMenuItem>
+            {sizeOptions.map((s) => (
+              <EditorMenuItem
+                key={s}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSizeBucket(s);
+                }}
+                selected={sizeBucket === s}
+              >
+                <ListItemText primary={s} />
+              </EditorMenuItem>
+            ))}
+          </EditorMenu>
+        </>
+      )}
     </Box>
   );
 };
