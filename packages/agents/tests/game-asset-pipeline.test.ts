@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Asset, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
+import { Asset, Game, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
 import { anyGameDocument, gameAssetBinding, gameAssetBinding3D, gameDocument } from "@nodetool-ai/protocol";
 import { createLocalWorkspace, MemoryCache, ProcessingContext } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter, assetObjectKey } from "@nodetool-ai/storage";
@@ -53,16 +53,27 @@ describe("game asset preparation and kinds", () => {
     await rm(directory, { recursive: true, force: true });
   });
 
-  it.each(["png", "jpeg", "webp"] as const)("resolves installed %s textures through public 3D capture", async (format) => {
-    const { run, workspace, id } = await setup([], "3d");
+  it.each([["png", "png"], ["jpeg", "jpg"], ["webp", "webp"], ["jpeg", "png"], ["png", "jpg"]] as const)("resolves installed %s textures staged as %s through public 3D capture", async (format, candidateExtension) => {
+    const { run, workspace, storage, id } = await setup([], "3d");
     const bytes = await sharp({ create: { width: 4, height: 4, channels: 4, background: "orange" } }).toFormat(format).toBuffer();
     await workspace.write(`texture.${format}`, bytes);
     const candidate = await imported(run, id, "image", "base", `texture.${format}`);
     if (typeof candidate !== "object" || !candidate || !("binding" in candidate)) { throw new Error(JSON.stringify(candidate)); }
+    const binding = gameAssetBinding3D.parse(candidate.binding);
+    const extension = format === "jpeg" ? "jpg" : format;
+    if (candidateExtension !== extension) {
+      const game = await Game.findOwned(USER, id);
+      if (!game) { throw new Error("Expected owned game"); }
+      await workspace.delete(`${game.source_root}/assets/${binding.digest}.${extension}`);
+      await workspace.write(`${game.source_root}/assets/${binding.digest}.${candidateExtension}`, bytes);
+    }
     const installed = await run.invoke("install_native_game_asset", { game_id: id, slot: "base", binding: candidate.binding });
     if (typeof installed !== "object" || !installed || !("document" in installed)) { throw new Error(JSON.stringify(installed)); }
     const document = anyGameDocument.parse(installed.document);
     if (document.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
+    const asset = await Asset.find(USER, document.assets.base.assetId);
+    expect(asset).toMatchObject({ name: `base.${extension}`, content_type: `image/${format}` });
+    expect(await storage.retrieve(storage.uriForKey(assetObjectKey(USER, `${document.assets.base.assetId}.${extension}`)))).toEqual(new Uint8Array(bytes));
     expect(await ownedAssetResolver3D(run, "other-owner", document)("base")).toBeNull();
     expect(await ownedAssetResolver3D(run, USER, { ...document, assets: { base: { ...document.assets.base, assetId: "temporary.png" } } })("base")).toBeNull();
     expect(await run.invoke("edit_native_game", { game_id: id, ops: [
