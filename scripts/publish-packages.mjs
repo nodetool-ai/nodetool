@@ -194,17 +194,17 @@ skipping versions already present on the registry.
 
     for (const pkg of packages) {
       const { name, version } = pkg;
-      if (!values["dry-run"] && alreadyPublished(name, version)) {
-        console.log(`skip    ${name}@${version} (already on registry)`);
-        skipped.push(`${name}@${version}`);
-        available.add(name);
-        continue;
-      }
-
       const unmet = unmetDeps(pkg, available);
       if (unmet.length > 0) {
         console.error(`BLOCK   ${name}@${version} (needs ${unmet.join(", ")})`);
         blocked.push(`${name}@${version}`);
+        continue;
+      }
+
+      if (!values["dry-run"] && alreadyPublished(name, version)) {
+        console.log(`skip    ${name}@${version} (already on registry)`);
+        skipped.push(`${name}@${version}`);
+        available.add(name);
         continue;
       }
 
