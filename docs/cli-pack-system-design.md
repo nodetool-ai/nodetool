@@ -286,13 +286,16 @@ Step 1 commits this walker as a script so that CI can rerun it.
 
 ### 8.2 Results (local-tree estimates)
 
-| Scenario | Packages | Apparent | Disk |
-|---|---|---|---|
-| S0: current CLI closure | 884 | 868 MB | 1,087 MB |
-| S1: draft core (packs and the draft's four libraries removed) | 628 | 395 MB (346 MB external) | 526 MB |
-| S3: proposed core (S1 plus every cut in 6.1) | 550 | 233 MB | 345 MB |
+Run `npm run measure:cli-closure -- --json` for the current closure and
+projected core. The walker rejects an incomplete dependency tree.
 
-S1 external size (346 MB) agrees with the review's 336 MB.
+| Scenario | Apparent | Disk |
+|---|---|---|
+| S0: CLI closure with the prerequisite changes | 686 MB | 838 MB |
+| S3: projected core with the section 6.1 cuts and D16 libraries | 453 MB | 586 MB |
+
+These are local darwin-arm64 estimates. A9 sets the release gate from a clean
+linux-x64 core-only install, with five percent headroom.
 
 D16 cancels three cuts in the table below (`@hyzyla/pdfium`, `mediabunny`,
 `chart.js`) and keeps `webgpu` and `node-av` in core. On the local tree the
