@@ -2,11 +2,32 @@ name: Dependency Cleanup
 
 on:
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "0 3 * * 6" # Saturdays at 03:00 UTC
   workflow_dispatch:
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    outputs:
+      skip: ${{ steps.preflight.outputs.skip }}
+      recent-files: ${{ steps.preflight.outputs.recent-files }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+      - id: preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE_PATTERN: 'clean up dependencies'
+        run: node .github/scripts/agent-preflight.mjs --name dependency-cleanup --title "$TITLE_PATTERN"
+
   dependency-cleanup:
+    needs: preflight
+    if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -20,31 +41,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Node and install dependencies
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-
-      - name: Install all workspace dependencies
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+          build-packages: "false"
 
       - name: Install mobile dependencies
         run: cd mobile && npm ci
-
-      - name: Run quality checks baseline
-        id: pre-check
-        continue-on-error: true
-        run: |
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
-          npm run lint 2>&1 || LINT_EXIT=1
-          npm run test 2>&1 || TEST_EXIT=1
-          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
-          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
-          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
 
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1.0.241
@@ -55,16 +58,19 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing."
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing. Open the PR with the label agent:dependency-cleanup (gh pr create --label agent:dependency-cleanup). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Dependency Cleanup
 
-            Find and clean up unnecessary or outdated dependencies in the NodeTool codebase.
+            Remove dependencies nothing uses and move misplaced ones. Version
+            updates are Dependabot's job (`.github/dependabot.yml`): do not bump,
+            align, or refresh any version here.
 
             ## Scope
             - `/web/package.json`
             - `/electron/package.json`
             - `/mobile/package.json`
+            - `/packages/*/package.json`
 
             ## What to fix
 
@@ -74,21 +80,14 @@ jobs:
             - PostCSS/Babel/ESLint plugins (referenced in config files)
             - Packages used only in scripts defined in package.json
 
-            **Duplicate dependencies**: Packages that appear in multiple workspaces with different versions. Align to a single version where possible.
-
-            **Minor/patch updates**: Update dependencies to their latest minor/patch version (not major). Run `npm outdated` to find candidates. Only update if:
-            - The update is within the same major version
-            - Tests still pass after the update
-
             **Misplaced dependencies**: Runtime packages in `devDependencies` or dev-only packages in `dependencies`. Move them to the correct section.
 
             ## Rules
-            - Do not bump major versions. Major upgrades need manual review.
+            - Never change a version range. If the only change left is a version, open no PR.
             - Do not remove packages you cannot verify are unused — search source, configs, and scripts.
-            - Do not touch version pins that have comments explaining why they're pinned.
             - Do not touch CI workflow files.
-            - Run `npm ci` after any package.json changes to verify the lockfile is consistent.
-            - Keep changes focused — one PR per cleanup run.
+            - Update the lockfile with `npm install` at the root (or `npm --prefix mobile install` for mobile), then run `npm run fix:lockfile-libc`.
+            - If nothing is unused or misplaced, open no PR.
 
             ## Before starting
             - Run `gh pr list --state open --limit 20` — skip if a dependency cleanup PR is already open.
@@ -101,22 +100,4 @@ jobs:
             ```
 
             ## Submit
-            Create a PR titled "chore: clean up dependencies" listing each package added/removed/updated and why.
-
-      - name: Post-change verification
-        if: always()
-        run: |
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
-          npm run lint 2>&1 || LINT_EXIT=1
-          npm run test 2>&1 || TEST_EXIT=1
-
-          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
-            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
-          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
-            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
-          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
-            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
+            Create a PR titled "chore: clean up dependencies" listing each package removed or moved and the search that shows it is unused or misplaced.

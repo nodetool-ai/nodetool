@@ -1004,6 +1004,22 @@ export const HARNESSES: HarnessEntry[] = [
     selfcheck: { command: "npm run test:scripts", cost: "cheap" }
   },
   {
+    id: "workflow-contracts",
+    title: "GitHub workflow contracts (release gates, scheduled agent routines)",
+    // Parses the workflow YAML and pins the shape the release and agent
+    // routines depend on, and unit-tests the scripts they call.
+    command:
+      "node --test .github/tests/docker-deploy.test.mjs .github/tests/agent-workflows.test.mjs",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: ".github/workflows/README.md § Scheduled agent workflows",
+    selfcheck: {
+      command:
+        "node --test .github/tests/docker-deploy.test.mjs .github/tests/agent-workflows.test.mjs",
+      cost: "cheap"
+    }
+  },
+  {
     id: "tutorial-rendering",
     title: "Tutorial render catalog, camera, and replay checks",
     command: "npm run test --workspace=demo",
@@ -1968,6 +1984,12 @@ export const SURFACES: SurfaceEntry[] = [
     // Overlaps with the surfaces that claim individual scripts (bundle
     // staging, codegen drift, docker smoke); a diff there runs both.
     paths: ["scripts/"]
+  },
+  {
+    id: "workflow-contracts",
+    title: "GitHub workflow scripts and contract tests (.github/)",
+    harnesses: ["workflow-contracts"],
+    paths: [".github/scripts/", ".github/tests/"]
   },
   {
     id: "recipes",
