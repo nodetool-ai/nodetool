@@ -170,7 +170,11 @@ it("reports the install message without failing discovery and retries imports", 
       model: ""
     })
   ).rejects.toThrow("Install it from the Package Manager");
-  expect(mocks.load).toHaveBeenCalledTimes(3);
+  // The re-imported runtime token counter adds its own js-tiktoken load.
+  const bindingLoads = mocks.load.mock.calls.filter(
+    ([name]) => name !== "js-tiktoken"
+  );
+  expect(bindingLoads).toHaveLength(3);
 });
 it("names the runtime package to install when the binding is missing", async () => {
   mocks.load.mockRejectedValue(new Error("not installed"));

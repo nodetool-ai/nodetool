@@ -16,21 +16,25 @@ on:
 
 permissions:
   contents: read
-  id-token: write  # for npm provenance attestation
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # for npm provenance attestation
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: ".nvmrc"
           registry-url: "https://registry.npmjs.org"
-          cache: "npm"
+          # Published tarballs build from a clean install, never from a cache
+          # another job on main could have written.
+          package-manager-cache: false
 
       - name: Install system libraries (keytar/libsecret)
         run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
@@ -88,13 +92,14 @@ jobs:
       # Install the CLI from the packed tarballs and run it against an empty
       # HOME before anything reaches the registry. The post-publish smoke job
       # below only finds a broken release after users can install it.
-      - name: Smoke-test the packed CLI
-        run: node scripts/smoke-packed-cli.mjs
+      - name: Pack release tarballs once
+        run: node scripts/publish-packages.mjs --pack-only --tarballs-dir .release-tarballs
 
-      - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: node scripts/publish-packages.mjs --tag "$NPM_TAG"
+      - name: Smoke-test the packed CLI
+        run: node scripts/smoke-packed-cli.mjs --tarballs-dir .release-tarballs
+
+      - name: Publish to npm with trusted publishing
+        run: node scripts/publish-packages.mjs --tag "$NPM_TAG" --tarballs-dir .release-tarballs
 
       - name: Record published version
         id: published
@@ -110,13 +115,14 @@ jobs:
     needs: publish
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: ".nvmrc"
           registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
 
       - name: Install system libraries (keytar/libsecret)
         run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev

@@ -114,6 +114,8 @@ export interface TimelineUIState {
   selectedEdit: SelectedEdit | null;
   /** Magnet: edges snap to clips, the playhead and the grid. Alt-drag bypasses. */
   snapEnabled: boolean;
+  /** During playback the lanes scroll to keep the playhead in view. */
+  followPlayhead: boolean;
   /** Whether the ruler counts seconds or bars. */
   rulerMode: RulerMode;
   /**
@@ -253,6 +255,7 @@ export interface TimelineUIState {
   setDropMode: (mode: DropMode) => void;
   setSelectedEdit: (edit: SelectedEdit | null) => void;
   toggleSnap: () => void;
+  toggleFollowPlayhead: () => void;
   setRulerMode: (mode: RulerMode) => void;
   toggleRulerMode: () => void;
   setGridDivision: (division: TempoGridDivision) => void;
@@ -364,6 +367,7 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     dropMode: "overwrite",
     selectedEdit: null,
     snapEnabled: true,
+    followPlayhead: true,
     rulerMode: "timecode",
     gridDivision: "beat",
     lanesViewportWidthPx: 0,
@@ -497,6 +501,9 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     setSelectedEdit: (edit) => set({ selectedEdit: edit }),
 
     toggleSnap: () => set((state) => ({ snapEnabled: !state.snapEnabled })),
+
+    toggleFollowPlayhead: () =>
+      set((state) => ({ followPlayhead: !state.followPlayhead })),
 
     setRulerMode: (mode) => set({ rulerMode: mode }),
 

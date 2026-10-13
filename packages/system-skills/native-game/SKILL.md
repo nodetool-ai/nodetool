@@ -103,6 +103,21 @@ For a workflow-based brief, `design_game` writes its design and `build_game
 {workflow_id, save?}` creates or selects the native game and stages its asset
 graph. The graph's generated media are candidates until installed.
 
+## Scripts during play
+
+Edit an existing script through `edit_native_game` with an `update_behavior`
+document op. Supply `entity_id`, `index` and `behavior: {source}` to preserve the
+script limits. The editor compiles changed sources
+during play and continues at the current tick with
+existing script state. A compile failure keeps the previous source running and
+reports the error in the Console. Only source edits apply during play. Use
+**Restart from tick 0** to apply other draft changes or reset script state.
+Changing between a function and lifecycle-object script requires a restart.
+
+A successful reload starts a new replay checkpoint at the current tick. Saved
+play states use the accepted script document. Earlier checkpoints belong to
+older source code and cannot be loaded into the changed session.
+
 ## Assets
 
 Generation spends provider credits, and no tool prices it in advance. Before
@@ -155,6 +170,24 @@ locked style string in every generated visual prompt. Review foot alignment,
 terrain joins, lighting, and grade in viewed captures before accepting the art
 pass.
 
+## Audio
+
+Install music in an audio slot, then use `update_scene {scene_id, set: {music:
+{assetId, volume, fadeInTicks, fadeOutTicks, streaming}}}` in 2D or 3D.
+`assetId` names the installed slot. `volume` ranges from 0 to 1 and each fade
+ranges from 0 to 600 ticks. A scene transition overlaps the outgoing fade out
+and incoming fade in.
+
+For long tracks set `streaming: {loopStartSeconds, loopEndSeconds?}`. The
+browser streams the asset through the music bus without decoding the whole
+track. Loop start defaults to 0 seconds. Loop end must exceed loop start,
+and both are bounded by 86400 seconds. Omit loop end to loop to the track's
+end. Omit `streaming` for decoded music. Loading a snapshot positions music at
+the saved logical tick within the loop. Browser audio needs a user gesture.
+
+Use `set_audio {mixer}` for mixer buses and `audioSource` for triggered effects.
+See `native-game-reference` § Audio mix and spatial audio for their fields.
+
 ## 3D authoring
 
 Create with `dimension: "3d"` and optional `template: "exploration"`.
@@ -200,6 +233,14 @@ visual without changing its root controller or collider.
 state, seeded `random`, and previous-tick event delivery. Use `characterIntent`
 for character motion, `setKinematicPose` for kinematic targets, `impulse` or
 `setVelocity` for dynamic bodies, and `teleport` for explicit discontinuities.
+For continuous acceleration, return `{kind: "addForce", force: {x, y, z}}`,
+`{kind: "addTorque", torque: {x, y, z}}` or
+`{kind: "addForceAtPoint", force: {x, y, z}, point: {x, y, z}}`.
+The vectors and application point use world space. These commands act on the
+issuing entity's active dynamic body and accumulate for one simulation tick.
+Return them each tick to keep applying a load. An offset point also produces
+torque. Static, kinematic and absent bodies reject them. 2D scripts do not
+support them.
 `setVisual` changes only a nonphysical visual. `spawn` accepts a prefab and XYZ
 position, rotation and velocity. Shared `emit`, `hud`, `playAnimation`,
 `despawn` and `sceneTransition` commands retain their meanings. Ray and shape

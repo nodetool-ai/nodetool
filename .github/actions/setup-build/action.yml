@@ -14,15 +14,24 @@ inputs:
     description: Whether to run `npm run build:packages`.
     required: false
     default: "true"
+  cache:
+    description: >-
+      `read-write` (default) restores and saves the node_modules and Turbo
+      caches. `read-only` restores but never saves: use it for jobs that run
+      untrusted or model-written commands, so they cannot plant a tree a later
+      job restores. `off` skips both: use it for jobs that publish or deploy.
+    required: false
+    default: "read-write"
 
 runs:
   using: composite
   steps:
     - name: Set up Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
       with:
         node-version-file: ".nvmrc"
-        cache: "npm"
+        cache: ${{ inputs.cache != 'off' && 'npm' || '' }}
+        package-manager-cache: ${{ inputs.cache != 'off' }}
 
     - name: Install system libraries
       shell: bash
@@ -43,7 +52,22 @@ runs:
     # `cache: npm` only caches the download tarballs; this caches the linked tree.
     - name: Cache node_modules
       id: node-modules-cache
-      uses: actions/cache@v5
+      if: inputs.cache == 'read-write'
+      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+      with:
+        path: |
+          node_modules
+          packages/*/node_modules
+          web/node_modules
+          electron/node_modules
+          demo/node_modules
+          examples/*/node_modules
+        key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json', '.nvmrc') }}
+
+    - name: Restore node_modules
+      id: node-modules-restore
+      if: inputs.cache == 'read-only'
+      uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
       with:
         path: |
           node_modules
@@ -55,7 +79,7 @@ runs:
         key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json', '.nvmrc') }}
 
     - name: Install all workspace dependencies
-      if: steps.node-modules-cache.outputs.cache-hit != 'true'
+      if: steps.node-modules-cache.outputs.cache-hit != 'true' && steps.node-modules-restore.outputs.cache-hit != 'true'
       shell: bash
       run: npm ci
       env:
@@ -71,7 +95,7 @@ runs:
     # runner's Node ABI (electron/scripts/rebuild-native.mjs). This explicit,
     # idempotent step is belt-and-suspenders in case that hook is ever skipped.
     - name: Rebuild native modules
-      if: steps.node-modules-cache.outputs.cache-hit != 'true'
+      if: steps.node-modules-cache.outputs.cache-hit != 'true' && steps.node-modules-restore.outputs.cache-hit != 'true'
       shell: bash
       run: npm run rebuild:native
 
@@ -87,8 +111,8 @@ runs:
     # because the key already exists, leaving `test-packages` to restore that
     # stale cache and rebuild from scratch anyway.
     - name: Restore Turbo build outputs
-      if: inputs.build-packages != 'true'
-      uses: actions/cache/restore@v5
+      if: inputs.cache != 'off' && (inputs.build-packages != 'true' || inputs.cache == 'read-only')
+      uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
       with:
         path: .turbo/cache
         key: ${{ runner.os }}-turbo-${{ github.sha }}
@@ -96,8 +120,8 @@ runs:
           ${{ runner.os }}-turbo-
 
     - name: Cache Turbo build outputs
-      if: inputs.build-packages == 'true'
-      uses: actions/cache@v5
+      if: inputs.build-packages == 'true' && inputs.cache == 'read-write'
+      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
       with:
         path: .turbo/cache
         key: ${{ runner.os }}-turbo-${{ github.sha }}
@@ -115,7 +139,7 @@ runs:
     # each entry's own mtime, so a cache hit does not refresh it, and an entry
     # for an unchanged package is rebuilt at most once a week.
     - name: Prune old Turbo build outputs
-      if: inputs.build-packages == 'true'
+      if: inputs.build-packages == 'true' && inputs.cache == 'read-write'
       shell: bash
       run: |
         find .turbo/cache -maxdepth 1 -type f -mtime +7 -delete

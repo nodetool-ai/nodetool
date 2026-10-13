@@ -47,3 +47,40 @@ describe("attachChatPredictionForwarder", () => {
     expect(listener).toBeNull();
   });
 });
+
+describe("attachChatPredictionForwarder todo_update", () => {
+  it("forwards the agent's task list so the chat can render it", () => {
+    const sent: Record<string, unknown>[] = [];
+    let listener: ((msg: ProcessingMessage) => void) | null = null;
+    attachChatPredictionForwarder(
+      (fn) => {
+        listener = fn;
+        return () => {
+          listener = null;
+        };
+      },
+      (msg) => sent.push(msg),
+      { threadId: "t1" }
+    );
+
+    listener?.({
+      type: "todo_update",
+      thread_id: null,
+      todos: [
+        { content: "Generate the logo", status: "in_progress" },
+        { content: "Write captions", status: "pending" }
+      ]
+    } as ProcessingMessage);
+
+    expect(sent).toEqual([
+      {
+        type: "todo_update",
+        thread_id: "t1",
+        todos: [
+          { content: "Generate the logo", status: "in_progress" },
+          { content: "Write captions", status: "pending" }
+        ]
+      }
+    ]);
+  });
+});

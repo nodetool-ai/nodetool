@@ -3,7 +3,7 @@
  *
  * Truncates a conversation to fit within a token budget.
  * Drops oldest messages first, keeping the most recent ones.
- * Token counts come from js-tiktoken (see `./token-counter.ts`).
+ * Token counts use the shared optional encoder or estimator in `./token-counter.ts`.
  */
 
 import type { Message } from "./providers/types.js";

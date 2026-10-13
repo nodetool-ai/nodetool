@@ -5,7 +5,23 @@ import { NpmRuntimePackage } from "./NpmRuntimePackage";
 import { ElectronRuntimePackage } from "./ElectronRuntimePackage";
 import { UvToolRuntimePackage } from "./UvToolRuntimePackage";
 import type { RuntimePackage } from "./types";
+import {
+  RUNTIME_NPM_PACKAGES,
+  type RuntimeNpmPackageId
+} from "@nodetool-ai/protocol/runtime-npm-packages";
 import { MIN_UV_VERSION } from "../../torchruntime";
+
+/** The shared npm specs, copied so the package class owns mutable arrays. */
+function npmSpecs(id: RuntimeNpmPackageId): {
+  npmPackages: string[];
+  packageNames: string[];
+} {
+  const spec = RUNTIME_NPM_PACKAGES[id];
+  return {
+    npmPackages: [...spec.npmPackages],
+    packageNames: [...spec.packageNames],
+  };
+}
 
 /** Concrete runtime package definitions. */
 export const RUNTIME_PACKAGES = {
@@ -140,13 +156,9 @@ export const RUNTIME_PACKAGES = {
     description:
       "Optional Hugging Face Transformers.js runtime (includes the ONNX Runtime) for local JavaScript AI nodes.",
     category: "library",
-    // 3.x, not 4.x: kokoro-js 1.2.1 requires @huggingface/transformers
-    // ^3.5.1. With 4.x installed npm nested a second 3.x copy under
-    // kokoro-js, which cached Kokoro weights inside its own package folder.
-    // Keep this inside the range packages/transformers-js-nodes declares.
+    ...npmSpecs("transformers-js"),
+    // The pinned 3.x specs and why they stay on 3.x live in RUNTIME_NPM_PACKAGES.
     versionRange: "3.x",
-    npmPackages: ["@huggingface/transformers@3.8.1", "kokoro-js@1.2.1"],
-    packageNames: ["@huggingface/transformers", "kokoro-js"],
   }),
 
   "claude-agent-sdk": new NpmRuntimePackage({
@@ -155,9 +167,8 @@ export const RUNTIME_PACKAGES = {
     description:
       "Anthropic's Claude Agent SDK. Powers the Claude Agent LLM provider, which talks to Claude through your logged-in Claude subscription (no API key). Bundles its own claude binary.",
     category: "library",
+    ...npmSpecs("claude-agent-sdk"),
     versionRange: "0.3.x",
-    npmPackages: ["@anthropic-ai/claude-agent-sdk@0.3.283"],
-    packageNames: ["@anthropic-ai/claude-agent-sdk"],
     approxSizeMB: 211,
   }),
 
@@ -167,19 +178,8 @@ export const RUNTIME_PACKAGES = {
     description:
       "Optional TensorFlow.js model packages for image classification, object detection, and Q&A nodes.",
     category: "library",
+    ...npmSpecs("tensorflow-js"),
     versionRange: "4.x",
-    npmPackages: [
-      "@tensorflow/tfjs@4.22.0",
-      "@tensorflow-models/mobilenet@2.1.1",
-      "@tensorflow-models/coco-ssd@2.2.3",
-      "@tensorflow-models/qna@1.0.2",
-    ],
-    packageNames: [
-      "@tensorflow/tfjs",
-      "@tensorflow-models/mobilenet",
-      "@tensorflow-models/coco-ssd",
-      "@tensorflow-models/qna",
-    ],
   }),
 
   "node-llama-cpp": new NpmRuntimePackage({
@@ -188,9 +188,8 @@ export const RUNTIME_PACKAGES = {
     description:
       "Runs GGUF models inside the NodeTool server — no separate llama.cpp server. Ships Metal on macOS; on Windows and Linux npm pulls the CPU, Vulkan and CUDA builds, which is why the download is large.",
     category: "library",
+    ...npmSpecs("node-llama-cpp"),
     versionRange: "3.x",
-    npmPackages: ["node-llama-cpp@3.19.1"],
-    packageNames: ["node-llama-cpp"],
     // The prebuilt binaries dominate: ~50 MB on macOS (Metal only) versus
     // ~640 MB on Windows / Linux, where npm installs every GPU-backend variant
     // matching the platform (CPU, Vulkan, CUDA, CUDA-ext).
@@ -201,9 +200,8 @@ export const RUNTIME_PACKAGES = {
     name: "whisper.cpp",
     description: "Transcribes audio inside the NodeTool backend using local GGML models. Includes CPU and available GPU builds for your platform.",
     category: "library",
+    ...npmSpecs("whisper-cpp"),
     versionRange: "1.1.3",
-    npmPackages: ["@fugood/whisper.node@1.1.3"],
-    packageNames: ["@fugood/whisper.node"],
     approxSizeMB: process.platform === "darwin" ? 5 : 257,
   }),
   playwright: new NpmRuntimePackage({
@@ -212,9 +210,8 @@ export const RUNTIME_PACKAGES = {
     description:
       "Browser automation library that renders timelines in headless Chrome and captures frames of 3D games. It uses an installed Google Chrome, or the Chromium build Playwright downloads separately.",
     category: "library",
+    ...npmSpecs("playwright"),
     versionRange: "1.60.x",
-    npmPackages: ["playwright@1.60.0"],
-    packageNames: ["playwright"],
     approxSizeMB: 12,
   }),
   // The libraries below back individual nodes, sandbox imports and agent
@@ -226,13 +223,8 @@ export const RUNTIME_PACKAGES = {
     description:
       "Reads, extracts and edits PDFs: the PDF nodes, PDF script imports, and the PDF sandbox imports and agent tools.",
     category: "library",
+    ...npmSpecs("pdf-js"),
     versionRange: "1.x",
-    npmPackages: [
-      "@llamaindex/liteparse@1.5.3",
-      "pdf-parse@2.4.5",
-      "pdf-lib@1.17.1",
-    ],
-    packageNames: ["@llamaindex/liteparse", "pdf-parse", "pdf-lib"],
     approxSizeMB: 200,
   }),
   "office-documents": new NpmRuntimePackage({
@@ -241,23 +233,8 @@ export const RUNTIME_PACKAGES = {
     description:
       "Reads and writes Excel, Word, PowerPoint and EPUB files in Code nodes, agent tools and DOCX script imports.",
     category: "library",
+    ...npmSpecs("office-documents"),
     versionRange: "*",
-    npmPackages: [
-      "exceljs@4.4.0",
-      "docx@9.7.1",
-      "mammoth@1.12.1",
-      "pptxgenjs@4.0.1",
-      "office-text-extractor@4.0.0",
-      "epub2@3.0.2",
-    ],
-    packageNames: [
-      "exceljs",
-      "docx",
-      "mammoth",
-      "pptxgenjs",
-      "office-text-extractor",
-      "epub2",
-    ],
     approxSizeMB: 160,
   }),
   "tesseract-ocr": new NpmRuntimePackage({
@@ -266,9 +243,8 @@ export const RUNTIME_PACKAGES = {
     description:
       "Recognizes text in images for the OCR sandbox import. Language data downloads on first use.",
     category: "library",
+    ...npmSpecs("tesseract-ocr"),
     versionRange: "7.x",
-    npmPackages: ["tesseract.js@7.0.0"],
-    packageNames: ["tesseract.js"],
     approxSizeMB: 50,
   }),
   fabric: new NpmRuntimePackage({
@@ -277,9 +253,8 @@ export const RUNTIME_PACKAGES = {
     description:
       "Renders Fabric.js canvas scenes to images for the Fabric sandbox import.",
     category: "library",
+    ...npmSpecs("fabric"),
     versionRange: "7.x",
-    npmPackages: ["fabric@7.4.0"],
-    packageNames: ["fabric"],
     approxSizeMB: 45,
   }),
   "email-imap": new NpmRuntimePackage({
@@ -288,9 +263,17 @@ export const RUNTIME_PACKAGES = {
     description:
       "Searches, archives and labels Gmail messages over IMAP for the email agent tools.",
     category: "library",
+    ...npmSpecs("email-imap"),
     versionRange: "1.x",
-    npmPackages: ["imapflow@1.7.1", "mailparser@3.9.15"],
-    packageNames: ["imapflow", "mailparser"],
     approxSizeMB: 5,
+  }),
+  tokenizer: new NpmRuntimePackage({
+    id: "tokenizer",
+    name: "Token Counting (js-tiktoken)",
+    description: RUNTIME_NPM_PACKAGES.tokenizer.description,
+    category: "library",
+    ...npmSpecs("tokenizer"),
+    versionRange: "1.x",
+    approxSizeMB: 22,
   }),
 } satisfies Record<RuntimePackageId, RuntimePackage>;

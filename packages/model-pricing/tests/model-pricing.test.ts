@@ -4,8 +4,8 @@
  * gets gated on.
  */
 import { describe, it, expect } from "vitest";
-import falUnitPricingCatalog from "@nodetool-ai/fal-nodes/unit-pricing-catalog";
-import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
+import falUnitPricingCatalog from "@nodetool-ai/model-pricing/fal-unit-pricing-catalog";
+import kieUnitPricingCatalog from "@nodetool-ai/model-pricing/kie-unit-pricing-catalog";
 import { genspendPricingCatalog } from "../src/genspend-catalog.js";
 import { getModelUnitPrice } from "../src/index.js";
 import { isParameterPriceable, priceGenspendEntry } from "../src/genspend-calc.js";

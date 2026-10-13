@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   loadPackageAssetJson,
+  loadPackageAssetBytes,
   resolvePackageAssetPath,
   getPackageAssetResolutions
 } from "../src/package-assets.js";
@@ -136,5 +137,22 @@ describe("loadPackageAssetJson", () => {
       registry
     );
     expect(data).toEqual([{ endpointId: "a/b" }]);
+  });
+});
+
+
+describe("loadPackageAssetBytes", () => {
+  it("reads binary bytes in the flattened layout without text conversion", () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "nodetool-binary-assets-"));
+    try {
+      const importerUrl = pathToFileURL(join(tempDir, "server.mjs")).href;
+      const ref = { pkg: "@nodetool-ai/fake", path: "data/nodes.ndjson.gz" };
+      const bytes = new Uint8Array([0, 31, 139, 128, 255]);
+      writeFileSync(join(tempDir, "nodes.ndjson.gz"), bytes);
+      expect([...loadPackageAssetBytes(ref, importerUrl, [ref])]).toEqual([...bytes]);
+      expect(() => loadPackageAssetBytes(ref, importerUrl, [])).toThrow("not registered");
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });

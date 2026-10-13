@@ -16,9 +16,7 @@
   },
   "dependencies": {
     "@nodetool-ai/protocol": "*",
-    "typegpu": "^0.11.6"
-  },
-  "optionalDependencies": {
+    "typegpu": "^0.11.6",
     "webgpu": "^0.4.0"
   },
   "devDependencies": {

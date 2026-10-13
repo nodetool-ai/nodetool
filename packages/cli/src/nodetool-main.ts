@@ -60,6 +60,7 @@ import {
 } from "./supervisor.js";
 import { registerPackageCommands } from "./commands/package.js";
 import { registerPackCommands } from "./commands/packs.js";
+import { registerRuntimeCommands } from "./commands/runtime.js";
 import { registerDeployCommands } from "./commands/deploy.js";
 import { registerHfCommands } from "./commands/models-hf.js";
 import { registerWorkerCommands } from "./commands/worker.js";
@@ -582,14 +583,8 @@ addSupervisorOptions(
           params?: Record<string, unknown>;
         };
         if (idOrFile.endsWith(".ts") || idOrFile.endsWith(".tsx")) {
-          // Execute DSL file via tsx and capture JSON output
-          const { execFileSync } = await import("node:child_process");
-          const output = execFileSync("npx", ["tsx", resolve(idOrFile)], {
-            encoding: "utf8",
-            cwd: dirname(resolve(idOrFile)),
-            timeout: 30000
-          });
-          raw = JSON.parse(output.trim());
+          const { readFileTarget } = await import("./debug/target.js");
+          raw = (await readFileTarget(idOrFile)).raw as typeof raw;
         } else {
           const { readFileSync } = await import("node:fs");
           raw = JSON.parse(readFileSync(idOrFile, "utf8"));
@@ -1736,6 +1731,7 @@ mcp
 registerProjectCommands(program);
 registerPackageCommands(program);
 registerPackCommands(program);
+registerRuntimeCommands(program);
 registerWorkerCommands(program);
 
 // Any command that opens a remote Python bridge keeps the attached worker's

@@ -1,3 +1,4 @@
+import { createGameScriptReloader, type GameScriptReloadResult } from "./script-reload.js";
 import { frame3D } from "./systems/presentation3d.js";
 import {
   gameSnapshot3D,
@@ -70,6 +71,8 @@ export interface GameSession3D {
   frame(): GameRenderFrame3D;
   inspect(query?: GameInspectionQuery3D): GameInspection3D;
   snapshot(): GameSnapshot3D;
+  /** Replaces existing script sources atomically, preserving tick and state and returning the document for saves. */
+  reloadScripts(candidate: GameDocument3D, signal?: AbortSignal): Promise<GameScriptReloadResult<GameDocument3D>>;
   dispose(): void;
 }
 
@@ -180,8 +183,9 @@ export async function createGameSession3D(
   const validation = validateGame3D(value);
   if (!validation.valid || !validation.document) throw new Error(`Invalid 3D game: ${validation.errors.join("; ")}`);
   if (!Number.isSafeInteger(seed) || seed < 0) throw new Error("Game seed must be a nonnegative safe integer");
-  const document = resolvePhysicsMaterials3D(resolveCollisionLayers3D(validation.document));
-  const contentDigest = await digestGame3D(document);
+  let authoredDocument = validation.document;
+  let document = resolvePhysicsMaterials3D(resolveCollisionLayers3D(authoredDocument));
+  let contentDigest = await digestGame3D(document);
   const saved = savedSnapshot ? gameSnapshot3D.parse(savedSnapshot) : undefined;
   if (
     saved &&
@@ -485,7 +489,7 @@ export async function createGameSession3D(
       spatialStep: undefined,
       contacts: [],
       result: undefined,
-      document,
+      get document() { return document; },
       get states() {
         return states;
       },
@@ -617,6 +621,25 @@ export async function createGameSession3D(
       },
       frame
     };
+    const reloadScripts = createGameScriptReloader({
+      initialRevision: document.revision,
+      current: () => authoredDocument,
+      parse: (candidate: GameDocument3D) => {
+        const checked = validateGame3D(candidate);
+        if (!checked.valid || !checked.document) { throw new Error(`Invalid 3D game: ${checked.errors.join("; ")}`); }
+        return checked.document;
+      },
+      assertAvailable,
+      snapshotDigest: candidate => digestGame3D(resolvePhysicsMaterials3D(resolveCollisionLayers3D(candidate))),
+      commit: (candidate, updates, digest) => {
+        if (!runner) { throw new Error("Game session has no scripts to reload"); }
+        const resolved = resolvePhysicsMaterials3D(resolveCollisionLayers3D(candidate));
+        runner.reloadSources(updates);
+        authoredDocument = candidate;
+        document = resolved;
+        contentDigest = digest;
+      }
+    });
     return {
       takePresentationEvents(): readonly (GameEvent3D | GameParticleEmission)[] {
         const pending = presentationEvents;
@@ -676,6 +699,7 @@ export async function createGameSession3D(
         };
       },
       snapshot,
+      reloadScripts,
       dispose(): void {
         if (disposed) return;
         disposed = true;

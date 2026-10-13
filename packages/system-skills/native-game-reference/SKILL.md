@@ -285,8 +285,15 @@ Set `scene.music` to an installed audio `assetId` for looping music. `volume`
 ranges from `0` to `1`, and `fadeInTicks` and `fadeOutTicks` range from `0` to
 `600`. Music starts at the scene's entry tick. Pause suspends audio, reset
 restarts the entry scene once, and loading resumes the loop at the saved
-logical tick. Browser playback starts after a user gesture. A missing or
-undecodable audio asset is reported in the player.
+logical tick. Set `music.streaming: {loopStartSeconds, loopEndSeconds?}` for
+long tracks in 2D or 3D. This streams through the music bus without decoding
+the whole asset. Start defaults to 0 seconds, end defaults to the track's end,
+and an explicit end must exceed start. Both are bounded by 86400 seconds.
+The intro plays once. Custom loop boundaries follow browser media events.
+Existing fades crossfade outgoing and incoming scene tracks. Use `update_scene`
+to replace the whole `music` object. Omit `streaming` to retain decoded
+playback. Browser playback starts after a user gesture. A missing or
+unplayable audio asset is reported in the player.
 
 `visualAnimation` on a sprite animates `rotation`, `scaleX`, `scaleY`,
 `opacity`, or `tint` from `from` to `to` over `durationTicks` in its `tracks`.
@@ -706,9 +713,13 @@ Point the user to these when they work in the game editor alongside you.
   first failing tick and script time by entity. **Replay to tick** rewinds the
   active play session after a script error. **Ask the assistant** passes the
   script context to the game assistant.
+- Editing an existing script source during play recompiles it without resetting
+  the tick or script state. A compilation failure keeps the previous source.
+  Changing script form between a function and lifecycle object requires
+  **Restart from tick 0**. Other draft changes also require a restart.
 - The **Console** panel lists play-session errors, script errors with their
-  tick, **Run 10 s** failures and validation errors. Scripts cannot write log
-  lines yet.
+  tick, reload compilation errors, script log lines, **Run 10 s** failures and
+  validation errors.
 - The **Assets** panel shows the `browse_native_game_assets` catalog with
   thumbnails. **Generate** and **Regenerate** run `generate_game_asset` for
   image, speech and music slots. **Use** binds an older candidate and moves the
@@ -719,3 +730,20 @@ Point the user to these when they work in the game editor alongside you.
   until the user picks **Keep my version** or **Use draft version**.
 - Restoring a revision asks for confirmation because it replaces the draft and
   clears its undo history. The newest 100 published revisions are retained.
+
+
+## 3D forces and torques
+
+Return `{kind: "addForce", force: {x, y, z}}` to accelerate the issuing
+entity's dynamic body, `{kind: "addTorque", torque: {x, y, z}}` to turn it,
+or `{kind: "addForceAtPoint", force: {x, y, z}, point: {x, y, z}}` to apply
+a force at a world-space point. An offset point also produces torque. All
+vectors use world space, even when the body is rotated. Each component must
+be finite and between -1000000 and 1000000.
+
+Loads accumulate within the current simulation tick and clear after its
+physics step. Return the commands on subsequent ticks to keep applying them.
+Use `impulse` for an immediate velocity change. Forces require the issuing
+entity's active dynamic body. Static, kinematic, missing and inactive bodies
+reject them. A nonzero load wakes the body, while a zero load keeps a sleeping
+body asleep. These commands are available only in 3D scripts.

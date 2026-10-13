@@ -150,6 +150,12 @@ defaults:
     values: *noindex
   - scope: { path: "code-node-input-streaming-design.md" }
     values: *noindex
+  - scope: { path: "cli-pack-system-design.md" }
+    values: *noindex
+  - scope: { path: "cli-pack-system-plan.md" }
+    values: *noindex
+  - scope: { path: "runtime-install-design.md" }
+    values: *noindex
   - scope: { path: "custom-node-library-design.md" }
     values: *noindex
   - scope: { path: "document-sync-plan.md" }

@@ -29,7 +29,9 @@ const CLOUD = [
   "moonshot",
   "elevenlabs",
   "meshy",
-  "rodin"
+  "rodin",
+  "azure_openai",
+  "bedrock"
 ];
 // Local engines are never registered under the cloud profile in the first
 // place; the CLI-backed subscription is registered and then pruned.

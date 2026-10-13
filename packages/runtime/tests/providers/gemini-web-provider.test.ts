@@ -66,6 +66,10 @@ interface FakePage {
   scripts: string[];
   downloads: string[];
   modePicked: string | null;
+  /** Every script the provider ran in the page. */
+  expressions: string[];
+  /** The text typed by the last send script, sent once the page reports a request. */
+  typed?: string;
 }
 
 interface FakeOptions {
@@ -80,6 +84,8 @@ interface FakeOptions {
   goneChats?: string[];
   /** The StreamGenerate body for each send, in order. */
   bodies?: string[];
+  /** Pastes the page drops before its uploader is ready. */
+  lostPastes?: number;
 }
 
 /**
@@ -87,11 +93,13 @@ interface FakeOptions {
  * and each StreamGenerate response arrives on the second result poll.
  */
 function fakeTab(options: FakeOptions = {}): FakePage {
-  const page: FakePage = { navigations: [], sent: [], attached: 0, scripts: [], downloads: [], modePicked: null };
+  const page: FakePage = { navigations: [], sent: [], attached: 0, scripts: [], downloads: [], modePicked: null, expressions: [] };
   let pathname = "/app";
   let polls = 0;
   let sends = 0;
   let reads = 0;
+  let pastes = 0;
+  let previews = 0;
   const tab: ExtensionTab = {
     async navigate(url) {
       page.navigations.push(url);
@@ -105,6 +113,7 @@ function fakeTab(options: FakeOptions = {}): FakePage {
     async evaluate(expression) {
       const op = /\/\*nt:([\w-]+)\*\//.exec(expression)?.[1] ?? "stage";
       page.scripts.push(op);
+      page.expressions.push(expression);
       switch (op) {
         case "ready": return true;
         case "settled": return true;
@@ -116,13 +125,23 @@ function fakeTab(options: FakeOptions = {}): FakePage {
           if (MODES.some((m) => m.id === wanted)) page.modePicked = wanted;
           return MODES;
         }
-        case "attach":
-          page.attached += JSON.parse(/const files = (\[.*?\]);/s.exec(expression)![1]).length;
+        case "attach": {
+          const count = JSON.parse(/const files = (\[.*?\]);/s.exec(expression)![1]).length;
+          if (++pastes > (options.lostPastes ?? 0)) {
+            page.attached += count;
+            previews = count;
+          }
           return true;
+        }
+        case "attached": return previews > 0;
         case "send":
           sends += 1;
-          if (sends <= (options.unsentClicks ?? 0)) throw new Error("Error: NT_NOT_SENT");
-          page.sent.push(JSON.parse(/insertText", false, ("(?:[^"\\]|\\.)*")\)/.exec(expression)![1]));
+          page.typed = JSON.parse(/insertText", false, ("(?:[^"\\]|\\.)*")\)/.exec(expression)![1]);
+          return true;
+        case "sent":
+          // A click that starts no request never reports one, however long the poll waits.
+          if (sends <= (options.unsentClicks ?? 0)) return false;
+          if (page.sent.length < sends - (options.unsentClicks ?? 0)) page.sent.push(page.typed!);
           polls = 0;
           return true;
         case "result": {
@@ -227,21 +246,49 @@ describe("GeminiWebProvider", () => {
     expect(page.sent[0]).toContain("Make it night");
   });
 
+  it("pastes again when the page drops the first paste", async () => {
+    const page = fakeTab({ lostPastes: 2 });
+    const pending = new GeminiWebProvider().imageToImage([PNG], { model: IMAGE_MODEL, prompt: "Make it night" });
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(await pending).toEqual(JPEG);
+    expect(page.scripts.filter((op) => op === "attach")).toHaveLength(3);
+    expect(page.attached).toBe(1);
+  });
+
+  it("fails when no paste shows a preview", async () => {
+    fakeTab({ lostPastes: 99 });
+    const pending = new GeminiWebProvider().imageToImage([PNG], { model: IMAGE_MODEL, prompt: "Make it night" });
+    const outcome = expect(pending).rejects.toThrow(/no attachment preview/);
+    await vi.advanceTimersByTimeAsync(30_000);
+    await outcome;
+  });
+
   it("reloads and sends once more when a click starts no request", async () => {
     const page = fakeTab({ unsentClicks: 1 });
     const pending = new GeminiWebProvider().textToImage({ model: IMAGE_MODEL, prompt: "x" });
-    await vi.advanceTimersByTimeAsync(10_000);
+    // The unsent click is detected after a 10 s poll for the request.
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(await pending).toEqual(JPEG);
     // The reload drops the pending click, so only the retried send counts.
     expect(page.navigations).toEqual(["https://gemini.google.com/app", "https://gemini.google.com/app"]);
     expect(page.sent).toHaveLength(1);
   });
 
+  it("waits from Node and never on a timer inside the page", async () => {
+    // Chrome throttles a hidden page's chained timers to one wake-up a minute.
+    const page = fakeTab({ bodies: [streamBody("I'm generating your video.", [], { video: true })] });
+    const pending = new GeminiWebProvider().textToVideo({ model: VIDEO_MODEL, prompt: "x", aspectRatio: "9:16" });
+    await vi.advanceTimersByTimeAsync(60_000);
+    await pending;
+    expect(page.expressions.length).toBeGreaterThan(0);
+    expect(page.expressions.filter((e) => e.includes("setTimeout"))).toEqual([]);
+  });
+
   it("gives up after a second send that starts no request", async () => {
     fakeTab({ unsentClicks: 2 });
     const pending = new GeminiWebProvider().textToImage({ model: IMAGE_MODEL, prompt: "x" });
     const settled = expect(pending).rejects.toThrow("Gemini did not send the message from the background tab");
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     await settled;
   });
 
@@ -275,7 +322,7 @@ describe("GeminiWebProvider", () => {
     const pending = new GeminiWebProvider().textToVideo({ model: VIDEO_MODEL, prompt: "A paper boat in the rain", aspectRatio: "9:16" });
     await vi.advanceTimersByTimeAsync(30_000);
     expect(await pending).toEqual(MP4);
-    expect(page.scripts).toEqual(expect.arrayContaining(["tool", "aspect"]));
+    expect(page.scripts).toEqual(expect.arrayContaining(["tool-open", "tool-chip", "aspect"]));
     expect(page.scripts.indexOf("aspect")).toBeLessThan(page.scripts.indexOf("send"));
     expect(page.scripts.filter((op) => op === "read")).toHaveLength(3);
     expect(page.downloads).toEqual([VIDEO_URL]);

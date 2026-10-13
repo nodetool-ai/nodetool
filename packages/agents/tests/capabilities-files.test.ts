@@ -322,4 +322,12 @@ describe("files capabilities over a real workspace", () => {
       }
     ]);
   });
+
+  // The chat's task list stays "in progress" when the model lists its own
+  // reply as a step it never gets back to complete.
+  it("tells todo_write callers to finish every item before the final answer", () => {
+    expect(toolForCapabilityName("todo_write").description).toContain(
+      "The final answer is not an item: mark every item `completed` before writing it."
+    );
+  });
 });

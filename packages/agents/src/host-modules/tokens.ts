@@ -9,7 +9,7 @@
  * This is what `nodetool.text.CountTokens` used to be.
  */
 
-import { requireText, unwrapLibrary } from "./limits.js";
+import { importOptionalLibrary, requireText, unwrapLibrary } from "./limits.js";
 import { isFunction, isString } from "../utils/type-guards.js";
 
 /** The encodings js-tiktoken ships ranks for, as the old node offered them. */
@@ -38,7 +38,7 @@ function requireEncoding(where: string, value: unknown): EncodingName {
 }
 
 async function loadTiktoken(where: string): Promise<TiktokenLike> {
-  const mod: unknown = await import("js-tiktoken");
+  const mod = await importOptionalLibrary<unknown>(where, "js-tiktoken", "tokenizer");
   return unwrapLibrary<TiktokenLike>(mod, where, "js-tiktoken", (v) =>
     isFunction((v as TiktokenLike | undefined)?.getEncoding)
   );

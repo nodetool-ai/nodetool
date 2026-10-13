@@ -21,7 +21,7 @@ import { createLogger } from "@nodetool-ai/config";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { fetchExternalMedia } from "../external-media-fetch.js";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
-import { createExtensionTab, stageBytesInTab, type ExtensionTab } from "./extension-tab.js";
+import { createExtensionTab, pollTab, stageBytesInTab, type ExtensionTab } from "./extension-tab.js";
 import { detectImageMime } from "./image-mime.js";
 import type {
   ImageModel,
@@ -51,7 +51,12 @@ const CONVERSATION_ID_TIMEOUT_MS = 30_000;
 const CHAT_TIMEOUT_MS = 10 * 60_000;
 const IMAGE_TIMEOUT_MS = 10 * 60_000;
 /** The send script waits in the page for uploads to finish before it clicks. */
-const SEND_TIMEOUT_MS = 90_000;
+const SEND_TIMEOUT_MS = 85_000;
+/** How long after a send click the composer has to empty before the click is repeated. */
+const SEND_ACCEPT_TIMEOUT_MS = 3_000;
+/** Files set before the page is ready show no preview. Set them again after this wait. */
+const ATTACH_TIMEOUT_MS = 5_000;
+const ATTACH_ATTEMPTS = 4;
 const DOWNLOAD_TIMEOUT_MS = 120_000;
 const MAX_POLL_FAILURES = 5;
 const MODELS_TTL_MS = 10 * 60_000;
@@ -143,6 +148,16 @@ async function evaluate<T>(expression: string, timeoutMs?: number): Promise<T> {
   }
 }
 
+/** {@link pollTab} on the ChatGPT tab, with the sign-in check of {@link evaluate}. */
+async function poll<T>(expression: string, timeoutMs: number): Promise<T | null> {
+  try {
+    return await pollTab<T>(currentTab(), expression, timeoutMs);
+  } catch (error) {
+    if (signedOut(error)) throw signInError();
+    throw error;
+  }
+}
+
 async function waitForComposer(): Promise<void> {
   const deadline = Date.now() + READY_TIMEOUT_MS;
   while (Date.now() < deadline) {
@@ -183,7 +198,11 @@ async function readConversation(conversationId: string): Promise<ConversationSta
   })()`);
 }
 
-/** Put images into the composer's file input, the way a file picker would. */
+/**
+ * Put images into the composer's file input, the way a file picker would. The
+ * page drops files that arrive before it is ready, so set them again until
+ * the previews show.
+ */
 async function attachImages(images: Uint8Array[]): Promise<void> {
   if (images.length === 0) return;
   const files: Array<{ id: string; name: string; type: string }> = [];
@@ -192,7 +211,7 @@ async function attachImages(images: Uint8Array[]): Promise<void> {
     const id = await stageBytesInTab(currentTab(), image);
     files.push({ id, name: `image-${index + 1}.${type.split("/")[1] ?? "png"}`, type });
   }
-  await evaluate(`/*nt:attach*/ (() => {
+  const pick = `/*nt:attach*/ (() => {
     const files = ${JSON.stringify(files)};
     const inputs = [...document.querySelectorAll('input[type="file"]')];
     const input = inputs.find((i) => i.multiple && (i.accept === "" || i.accept.includes("image/"))) || inputs[0];
@@ -200,44 +219,51 @@ async function attachImages(images: Uint8Array[]): Promise<void> {
     const transfer = new DataTransfer();
     for (const f of files) {
       const binary = atob(window.__ntStage[f.id]);
-      delete window.__ntStage[f.id];
       transfer.items.add(new File([Uint8Array.from(binary, (c) => c.charCodeAt(0))], f.name, { type: f.type }));
     }
     input.files = transfer.files;
     input.dispatchEvent(new Event("change", { bubbles: true }));
     return true;
-  })()`);
+  })()`;
+  let attached = false;
+  for (let attempt = 1; !attached && attempt <= ATTACH_ATTEMPTS; attempt++) {
+    await evaluate(pick);
+    attached = !!(await poll<boolean>(`/*nt:attached*/ document.querySelectorAll("form img").length >= ${files.length}`, ATTACH_TIMEOUT_MS));
+  }
+  await evaluate(`/*nt:unstage*/ (() => { for (const id of ${JSON.stringify(files.map((f) => f.id))}) delete window.__ntStage[id]; return true; })()`);
+  if (!attached) throw new Error("ChatGPT did not take the images: no attachment preview appeared");
 }
 
 /**
  * Type the text and click send. An attachment's preview appears before its
  * upload finishes, and a click during the upload is ignored while the button
- * still looks enabled. So the script clicks, checks that the composer emptied,
- * and clicks again until the page takes the message.
+ * still looks enabled. So the provider clicks, checks that the composer
+ * emptied, and clicks again until the page takes the message. Every wait polls
+ * from here: Chrome throttles the timers of a page hidden for a while to one
+ * wake-up a minute, so a wait inside the page could take minutes per step.
  */
 async function submit(text: string, attachments: number): Promise<void> {
-  await evaluate(`/*nt:send*/ (async () => {
-    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-    const composer = () => document.querySelector(${JSON.stringify(COMPOSER)});
-    composer().focus();
+  await evaluate(`/*nt:send*/ (() => {
+    const composer = document.querySelector(${JSON.stringify(COMPOSER)});
+    composer.focus();
     document.execCommand("insertText", false, ${JSON.stringify(text)});
-    const deadline = Date.now() + ${SEND_TIMEOUT_MS - 5_000};
-    while (Date.now() < deadline) {
+    return true;
+  })()`);
+  const deadline = Date.now() + SEND_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const ready = await poll<boolean>(`/*nt:sendready*/ (() => {
       const button = document.querySelector(${JSON.stringify(SUBMIT)});
-      const previews = document.querySelectorAll("form img").length >= ${attachments};
-      if (button && !button.disabled && previews) {
-        button.click();
-        for (let i = 0; i < 12; i++) {
-          await sleep(250);
-          const box = composer();
-          if (!box || box.innerText.trim() === "" || location.pathname.startsWith("/c/")) return true;
-        }
-      } else {
-        await sleep(250);
-      }
-    }
-    throw new Error("ChatGPT did not accept the message: the send button stayed disabled or ignored the click");
-  })()`, SEND_TIMEOUT_MS);
+      return !!button && !button.disabled && document.querySelectorAll("form img").length >= ${attachments};
+    })()`, Math.max(0, deadline - Date.now()));
+    if (!ready) break;
+    await evaluate(`/*nt:click*/ (() => { document.querySelector(${JSON.stringify(SUBMIT)}).click(); return true; })()`);
+    const accepted = await poll<boolean>(`/*nt:accepted*/ (() => {
+      const box = document.querySelector(${JSON.stringify(COMPOSER)});
+      return !box || box.innerText.trim() === "" || location.pathname.startsWith("/c/");
+    })()`, SEND_ACCEPT_TIMEOUT_MS);
+    if (accepted) return;
+  }
+  throw new Error("ChatGPT did not accept the message: the send button stayed disabled or ignored the click");
 }
 
 async function waitForConversationId(signal?: AbortSignal): Promise<string> {

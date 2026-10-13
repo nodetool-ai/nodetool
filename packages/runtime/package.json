@@ -25,15 +25,11 @@
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/storage": "*",
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/exporter-trace-otlp-proto": "^0.221.0",
-    "@opentelemetry/instrumentation-undici": "^0.31.0",
+    "@opentelemetry/core": "^2.10.0",
     "@opentelemetry/resources": "^2.10.0",
-    "@opentelemetry/sdk-node": "^0.221.0",
     "@opentelemetry/sdk-trace-base": "^2.10.0",
-    "@opentelemetry/semantic-conventions": "^1.40.0",
     "@pydantic/genai-prices": "^0.1.9",
     "fflate": "^0.8.2",
-    "js-tiktoken": "^1.0.21",
     "msgpackr": "^1.11.2",
     "openai": "^6.35.0",
     "replicate": "^1.4.0",
@@ -42,6 +38,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "js-tiktoken": "^1.0.21",
     "@anthropic-ai/claude-agent-sdk": "^0.3.283",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
@@ -49,10 +46,14 @@
     "vitest": "^5.0.1"
   },
   "peerDependencies": {
+    "js-tiktoken": "^1.0.21",
     "@anthropic-ai/claude-agent-sdk": "^0.3.283",
     "node-llama-cpp": "^3.0.0"
   },
   "peerDependenciesMeta": {
+    "js-tiktoken": {
+      "optional": true
+    },
     "@anthropic-ai/claude-agent-sdk": {
       "optional": true
     },

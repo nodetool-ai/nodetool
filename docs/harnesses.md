@@ -1280,7 +1280,9 @@ renderer and standalone builds include the runtime and verified media.
 `create_native_game {project_id, name, dimension: "3d"}` starts an exploration
 blockout. The editor provides orbit and fly cameras, picking, transform gizmos,
 snapping, diagnostic overlays, script editing and draft undo. Play pins a cloned
-draft. Later edits require restarting play. `playtest_native_game` accepts
+draft. Existing script source edits compile during play, preserving tick and
+script state. Invalid edits retain the previous source and report a Console
+error. Other edits require **Restart from tick 0**. `playtest_native_game` accepts
 recorded analog `axes` and `look`, spatial and grounded assertions, and snapshot
 replay checks. `autoplay_native_game` returns an unsupported diagnostic for 3D.
 Use a recorded route to verify its completion.
@@ -2500,7 +2502,9 @@ message events emitted by `BaseProvider`.
 
 #### Sinks
 
-Multiple sinks can run simultaneously (each gets its own span processor):
+Multiple sinks can run simultaneously (each gets its own span processor).
+The network sink sends OTLP/HTTP JSON. Configure a collector that accepts JSON
+on its HTTP traces endpoint.
 
 ```bash
 # JSONL log file (analyzer-friendly — one span per line)

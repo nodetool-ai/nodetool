@@ -30,6 +30,22 @@ const plan = (files) => buildPlan(files, PACKAGES, computeAffected);
 const labels = (files) => plan(files).steps.map((s) => s.label);
 
 describe("buildPlan", () => {
+  it.each(["scripts/bump-version.mjs", "scripts/__tests__/bump-version.test.mjs"])("selects the catalog version fixture for %s", (file) => {
+    expect(labels([file])).toEqual(["catalog version bump"]);
+    expect(plan([file]).globalFiles).toEqual([]);
+  });
+
+  it.each([
+    "scripts/node-catalog/packs.mjs",
+    "scripts/node-catalog/tiers.mjs",
+    "scripts/node-catalog/generate.mjs",
+    "scripts/generate-node-catalog.mjs",
+    "scripts/__tests__/node-catalog.test.mjs"
+  ])("selects generator fixtures and catalog drift for %s", (file) => {
+    expect(labels([file])).toEqual(["node catalog generator", "node catalog drift"]);
+    expect(plan([file]).globalFiles).toEqual([]);
+  });
+
   it("selects the browser tracing shim regression for its standalone test", () => {
     const { steps, globalFiles } = plan(["scripts/__tests__/browser-tracing-stub.test.mjs"]);
     expect(globalFiles).toEqual([]);

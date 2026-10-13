@@ -71,7 +71,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const activeSceneId = document?.scenes.some((scene) => scene.id === editorSceneId)
     ? editorSceneId : document?.entrySceneId ?? null;
   const { canvasRef, inputRef, playing, playDocument, playState, backend, error, setError,
-    scriptError: hostScriptError, frame, onViewportAspect, onCamera, resetCamera, step, beginPlay, stop,
+    scriptError: hostScriptError, frame, onViewportAspect, onCamera, resetCamera, step, beginPlay, restart, stop,
     save, load, replayBeforeError, runtimeEntities, scriptLogs, profiler } = useGamePlaySession({ refId, active, document,
       editorSceneId: activeSceneId ?? undefined, name: data?.game.name });
   const diagnostics = useGameScriptDiagnostics(document, openGameDiagnosticSession2D);
@@ -413,6 +413,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
         inspectorOpen: inspectorOpen,
         playHref: `/game/${encodeURIComponent(refId)}`,
         onPlay: beginPlay,
+        onRestart: restart,
         onStop: stop,
         onStep: () => { if (playDocument) step(); },
         onSave: save,

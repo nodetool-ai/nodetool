@@ -195,3 +195,11 @@ it("steps back to the last page when documents disappear", async () => {
   ).toBeInTheDocument();
   expect(screen.getByText("5–5 of 5")).toBeInTheDocument();
 });
+
+it("says the documents are ordered most recent first", () => {
+  documentCount = 9;
+  renderDocuments();
+  expect(
+    screen.getByText("Documents · 9 · most recent first")
+  ).toBeInTheDocument();
+});

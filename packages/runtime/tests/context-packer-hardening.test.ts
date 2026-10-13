@@ -5,13 +5,15 @@
  * boundaries: the keep/drop decisions reveal the precise token cost of each
  * message kind (null, string, text block, non-text block) and of the system
  * prompt. Costs are derived from the shared `countTokens` so the assertions
- * track the real js-tiktoken tokenization rather than a char-based proxy.
+ * track the active encoder or estimator.
  * See MUTATION_TESTING.md.
  */
 import { describe, it, expect } from "vitest";
 import { packContext } from "../src/context-packer.js";
-import { countTokens } from "../src/token-counter.js";
+import { countTokens, initializeTokenCounter } from "../src/token-counter.js";
 import type { Message } from "../src/providers/types.js";
+
+await initializeTokenCounter();
 
 const user = (content: Message["content"]): Message =>
   ({ role: "user", content }) as Message;

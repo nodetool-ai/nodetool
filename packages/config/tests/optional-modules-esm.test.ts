@@ -105,6 +105,15 @@ describe("importOptionalModule from the optional node_modules", () => {
       })
     );
     await writeFile(join(pkg, "dist", "lib.js"), "export const marker = 42;\n");
+    // A second copy of a package the normal module graph also has (config
+    // depends on zod), so a test can tell which tree a load came from.
+    const shadow = join(root, "node_modules", "zod");
+    await mkdir(shadow, { recursive: true });
+    await writeFile(
+      join(shadow, "package.json"),
+      JSON.stringify({ name: "zod", type: "module", exports: { ".": "./index.js" } })
+    );
+    await writeFile(join(shadow, "index.js"), "export const marker = \"optional\";\n");
     process.env["NODETOOL_OPTIONAL_NODE_MODULES"] = join(root, "node_modules");
   });
 
@@ -126,5 +135,11 @@ describe("importOptionalModule from the optional node_modules", () => {
 
   it("still rejects a package that is not installed", async () => {
     await expect(importOptionalModule("@nt-test/absent")).rejects.toThrow();
+  });
+
+  it("prefers the normal module graph over the optional root", async () => {
+    const mod = await importOptionalModule<{ marker?: string; z?: unknown }>("zod");
+    expect(mod.marker).toBeUndefined();
+    expect(mod.z).toBeDefined();
   });
 });

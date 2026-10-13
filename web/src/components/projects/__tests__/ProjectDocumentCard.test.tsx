@@ -39,6 +39,22 @@ it("keeps the full title accessible while truncating its compact label", () => {
   });
 });
 
+it("says when the document was last edited", () => {
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <ProjectDocumentCard
+        document={{ ...document, updatedAt: twoHoursAgo }}
+        sourceProjectId="p1"
+        onOpen={jest.fn()}
+        compact
+      />
+    </ThemeProvider>
+  );
+
+  expect(screen.getByText(/Edited 2 hours ago/)).toBeInTheDocument();
+});
+
 const renderCard = (
   overrides: Partial<ProjectDocument> = {},
   onRename: jest.Mock | undefined = jest.fn(),

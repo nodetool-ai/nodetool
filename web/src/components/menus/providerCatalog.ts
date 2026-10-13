@@ -40,6 +40,8 @@ import voyageColorIcon from "../../icons/providers/voyage-color.svg";
 import evolinkIcon from "../../icons/evolink.svg";
 import gmiIcon from "../../icons/gmi.svg";
 import metaColorIcon from "../../icons/providers/meta-color.svg";
+import azureColorIcon from "../../icons/providers/azure-color.svg";
+import bedrockColorIcon from "../../icons/providers/bedrock-color.svg";
 
 
 export interface ProviderMeta {
@@ -216,6 +218,35 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://docs.x.ai/",
     icon: xaiIcon,
     mono: true
+  },
+  {
+    key: "AZURE_OPENAI_API_KEY",
+    providerId: PROVIDER_IDS.AZURE_OPENAI,
+    name: "Azure OpenAI",
+    description: "OpenAI models deployed on Azure or Microsoft Foundry.",
+    section: "language",
+    docsUrl: "https://learn.microsoft.com/azure/ai-foundry/openai/",
+    icon: azureColorIcon,
+    note: "List deployment names separated by commas, e.g. gpt-5.5, gpt-image-2.",
+    fields: [
+      { key: "AZURE_OPENAI_API_KEY", label: "API key", secret: true },
+      { key: "AZURE_OPENAI_ENDPOINT", label: "Endpoint" },
+      { key: "AZURE_OPENAI_DEPLOYMENTS", label: "Deployments" }
+    ]
+  },
+  {
+    key: "BEDROCK_ACCESS_KEY_ID",
+    providerId: PROVIDER_IDS.BEDROCK,
+    name: "Amazon Bedrock",
+    description: "Claude, Llama, Mistral, Nova and image models on AWS.",
+    section: "language",
+    docsUrl: "https://docs.aws.amazon.com/bedrock/",
+    icon: bedrockColorIcon,
+    fields: [
+      { key: "BEDROCK_ACCESS_KEY_ID", label: "Access key ID", secret: true },
+      { key: "BEDROCK_SECRET_ACCESS_KEY", label: "Secret access key", secret: true },
+      { key: "BEDROCK_REGION", label: "Region" }
+    ]
   },
   {
     key: "META_API_KEY",

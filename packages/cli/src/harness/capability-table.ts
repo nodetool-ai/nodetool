@@ -1658,7 +1658,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-files.test.ts",
-      "packages/agents/tests/capabilities-files-virtual.test.ts",
+      "packages/agents/tests/capabilities-files-token-counter.test.ts",
     ],
   },
   {
@@ -1720,7 +1720,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "todo_write",
     module: "files",
     impl: "packages/agents/src/capabilities/files.ts",
-    contract: "46879814ae61",
+    contract: "f042b9d36772",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-files.test.ts",

@@ -188,7 +188,7 @@ export {
   type ZodOrJsonSchema
 } from "@nodetool-ai/protocol/zod-schema";
 export { VariableChannel } from "./variable-channel.js";
-export { countTokens, truncateToTokens } from "./token-counter.js";
+export { countTokens, truncateToTokens, initializeTokenCounter } from "./token-counter.js";
 export {
   PythonStdioBridge,
   type PythonBridgeOptions,

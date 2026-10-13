@@ -239,3 +239,17 @@ describe("readWorkspacePackages", () => {
     ).toEqual(["reliability/journeys"]);
   });
 });
+
+
+describe("node catalog drift gate", () => {
+  it.each([
+    "packages/core-nodes/src/index.ts",
+    "packages/image-nodes/src/nodes/game.ts",
+    "packages/kie-nodes/src/kie-manifest.json",
+    "packages/whisper-cpp/src/index.ts",
+    "packages/node-catalog/data/nodes.ndjson",
+    "scripts/node-catalog/packs.mjs"
+  ])("selects the catalog selfcheck for %s", (file) => {
+    expect(planGate([file]).checks.some((check) => check.harnessId === "node-catalog")).toBe(true);
+  });
+});

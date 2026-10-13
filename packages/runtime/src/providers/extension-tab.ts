@@ -147,6 +147,29 @@ async function downloadWithBrowser(client: CdpClient, url: string): Promise<Uint
   return new Uint8Array(Buffer.concat(chunks));
 }
 
+/** How often {@link pollTab} asks the page again. */
+const POLL_TAB_INTERVAL_MS = 250;
+
+/**
+ * Evaluate `expression` until it returns a truthy value and return that value,
+ * or null when `timeoutMs` passes first.
+ *
+ * The waiting runs here, never in the page. Chrome throttles the chained
+ * timers of a page hidden for five minutes to one wake-up a minute, so a
+ * `setTimeout` loop inside the page can take minutes per step, while each
+ * evaluation from here runs at once. Page scripts therefore do one step each
+ * and leave every wait to this loop.
+ */
+export async function pollTab<T>(tab: ExtensionTab, expression: string, timeoutMs: number): Promise<T | null> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const value = (await tab.evaluate(expression)) as T;
+    if (value) return value;
+    if (Date.now() >= deadline) return null;
+    await new Promise((resolve) => setTimeout(resolve, POLL_TAB_INTERVAL_MS));
+  }
+}
+
 /**
  * Put `bytes` into the page as `window.__ntStage[id]` (a base64 string) and
  * return the id. A page script reads and deletes it.

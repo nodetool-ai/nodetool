@@ -8,6 +8,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PauseIcon from "@mui/icons-material/Pause";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import RedoIcon from "@mui/icons-material/Redo";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import SkipNextIcon from "@mui/icons-material/SkipNext";
 import StopIcon from "@mui/icons-material/Stop";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
@@ -37,6 +38,7 @@ interface GameToolbarProps {
   onPlay: () => void;
   onStop: () => void;
   onStep: () => void;
+  onRestart?: () => void;
   onSave: () => void;
   onLoad: () => void;
   onPublish: () => void;
@@ -53,7 +55,7 @@ interface GameToolbarProps {
   layoutMenu?: ReactNode;
 }
 
-const DIVIDER_SX = { width: "1px", alignSelf: "stretch", my: SPACING.sm, bgcolor: "divider", flexShrink: 0 } as const;
+const DIVIDER_SX = { borderLeft: 1, borderColor: "divider", alignSelf: "stretch", my: SPACING.sm, flexShrink: 0 } as const;
 
 function SaveState({ saveStatus }: { saveStatus: string }) {
   const color = saveStatus === "saved" ? "success.main" : saveStatus === "saving" ? "info.main" : saveStatus === "error" ? "error.main" : "warning.main";
@@ -69,7 +71,7 @@ function SaveState({ saveStatus }: { saveStatus: string }) {
 /** Editor title bar: document identity, history, transport controls and panel toggles. */
 export default function GameToolbar({ name, playing, playSession, loading, saving, saveStatus,
   assistantOpen, sceneTreeOpen, inspectorOpen, playHref, canUndo = false, canRedo = false, onUndo, onRedo,
-  onPlay, onStop, onStep, onSave, onLoad, onPublish, onExport, exporting = false, onBuildExecutable, onAssistant, onSceneTree, onInspector, onCommandPalette, layoutMenu }: GameToolbarProps) {
+  onPlay, onStop, onStep, onRestart, onSave, onLoad, onPublish, onExport, exporting = false, onBuildExecutable, onAssistant, onSceneTree, onInspector, onCommandPalette, layoutMenu }: GameToolbarProps) {
   const undoShortcut = useGameCommandShortcut("edit.undo");
   const redoShortcut = useGameCommandShortcut("edit.redo");
   const paletteShortcut = useGameCommandShortcut("editor.commandPalette");
@@ -97,6 +99,7 @@ export default function GameToolbar({ name, playing, playSession, loading, savin
         sx={playSession ? { bgcolor: "primary.main", color: "primary.contrastText", "&:hover": { bgcolor: "primary.dark", color: "primary.contrastText" } } : undefined} />
       <ToolbarIconButton icon={<SkipNextIcon fontSize="small" />} tooltip="Step" onClick={onStep} disabled={playing || loading || !playSession} />
       <ToolbarIconButton icon={<StopIcon fontSize="small" />} tooltip="Stop" onClick={onStop} disabled={loading || !playSession} />
+      {onRestart && <ToolbarIconButton icon={<RestartAltIcon fontSize="small" />} tooltip="Restart from tick 0" onClick={onRestart} disabled={loading || !playSession} />}
     </FlexRow>
 
     <FlexRow gap={SPACING.xs} align="center" justify="flex-end" sx={{ minWidth: 0 }}>

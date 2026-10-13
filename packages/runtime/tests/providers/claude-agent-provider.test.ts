@@ -1385,6 +1385,43 @@ describe("ClaudeAgentProvider", () => {
     expect(opts.strictMcpConfig).toBe(true);
   });
 
+  it("keeps NodeTool's todo_write so the task list reaches the chat UI", async () => {
+    // The SDK's TodoWrite keeps the list inside the session. NodeTool's
+    // todo_write posts the `todo_update` the chat sidebar renders, so it must
+    // stay an MCP tool and its call must reach the caller's dispatch.
+    const { fn, calls } = fakeQuery([
+      sysInit("sess-todo"),
+      assistantTextMsg("ok"),
+      successResult()
+    ]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    const executed: string[] = [];
+    await collect(
+      provider.generateLoop({
+        messages: [sysMsg("x"), userMsg("plan three steps")],
+        model: "haiku",
+        workspaceDir: "/tmp/ws",
+        tools: [{ name: "todo_write", description: "checklist" }],
+        executeTool: async (call) => {
+          executed.push(call.name);
+          return "ok";
+        }
+      })
+    );
+
+    const opts = calls[0].options as Options;
+    expect(opts.allowedTools).toEqual(["mcp__nodetool_tools__todo_write"]);
+    expect(opts.tools).not.toContain("TodoWrite");
+    await mcp.captured.defs[0].handler({
+      todos: [{ content: "Step one", status: "in_progress" }]
+    });
+    expect(executed).toEqual(["todo_write"]);
+  });
+
   it("keeps the path-scoped NodeTool tools when no workspace is given", async () => {
     // The SDK's Read/Write/Glob/Grep resolve against cwd. Without a workspace
     // to point cwd at, they would read somewhere else entirely, so NodeTool's

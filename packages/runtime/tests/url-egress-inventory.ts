@@ -309,6 +309,25 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "A user's own provider base URL. Under the cloud profile the constructor refuses a non-public or non-https base URL and every request goes through safeFetch; a local install may reach its own loopback servers and uses the global fetch."
   },
   {
+    file: "packages/runtime/src/providers/azure-openai-provider.ts",
+    owner: "Azure OpenAI provider",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope:
+      "The user's Azure OpenAI key; safeFetch strips the api-key and Authorization headers on a cross-origin hop.",
+    redirects: "checked-per-hop",
+    dnsRebinding: "deployment-egress",
+    policy: "guarded",
+    guardedBy: ["safeFetch"],
+    note: "The user's own Azure resource endpoint. Under the cloud profile every request goes through safeFetch; a local install may reach a private (Private Link) endpoint and uses the global fetch."
+  },
+  guardedSafeFetch(
+    "packages/runtime/src/providers/bedrock-provider.ts",
+    "Amazon Bedrock chat image and document URLs",
+    "chat-client",
+    "An https URL on a chat image or document part is fetched through safeFetch; Converse and InvokeModel calls go to the fixed bedrock-runtime.<region>.amazonaws.com host, with the region checked against the AWS region format."
+  ),
+  {
     file: "packages/websocket/src/custom-providers.ts",
     owner: "custom provider save",
     inputSource: "operator",

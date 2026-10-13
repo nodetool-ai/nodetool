@@ -132,3 +132,20 @@ describe("live 3D preview scheduling", () => {
     expect(sceneRequiresPerFrameResolution([model3d(1, undefined)])).toBe(false);
   });
 });
+
+describe("clip fade preview scheduling", () => {
+  it("re-resolves a fading clip on every frame instead of holding its first-frame opacity", () => {
+    const track = makeTrack({ id: "video", type: "video", index: 0, visible: true });
+    const memory = makeClip({
+      id: "memory", trackId: track.id, mediaType: "video", currentAssetId: "asset",
+      status: "generated", startMs: 0, durationMs: 3000, fadeInMs: 250, fadeOutMs: 250
+    });
+    // The layer set from the clip's first frame carries the fade-in's opacity 0.
+    const { layers } = computeActiveLayersWithHorizon([track], [memory], 0);
+    expect(layers[0].opacity).toBe(0);
+    expect(sceneRequiresPerFrameResolution(layers)).toBe(true);
+
+    const plain = { ...memory, fadeInMs: undefined, fadeOutMs: undefined };
+    expect(sceneRequiresPerFrameResolution(computeActiveLayers([track], [plain], 0))).toBe(false);
+  });
+});

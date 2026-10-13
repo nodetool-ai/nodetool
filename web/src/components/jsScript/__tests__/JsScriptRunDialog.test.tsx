@@ -88,6 +88,27 @@ describe("JsScriptRunDialog", () => {
     expect(onRun).toHaveBeenCalledWith({ inputs: { prompt: "hello" } });
   });
 
+  it("keeps the line breaks typed into a str port", async () => {
+    const onRun = jest.fn();
+    renderDialog(
+      <JsScriptRunDialog
+        open
+        inputs={[{ name: "prompt", type: "str" }]}
+        onClose={() => {}}
+        onRun={onRun}
+      />
+    );
+
+    const field = screen.getByLabelText("Prompt");
+    expect(field.tagName).toBe("TEXTAREA");
+    await userEvent.type(field, "first{Shift>}{Enter}{/Shift}second");
+    await userEvent.click(screen.getByRole("button", { name: "Run" }));
+
+    expect(onRun).toHaveBeenCalledWith({
+      inputs: { prompt: "first\nsecond" }
+    });
+  });
+
   it("uses a switch for a bool port", async () => {
     const onRun = jest.fn();
     renderDialog(

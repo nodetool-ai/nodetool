@@ -54,6 +54,12 @@
       "import": "./dist/game.js",
       "default": "./dist/game.js"
     },
+    "./runtime-npm-packages": {
+      "nodetool-dev": "./src/runtime-npm-packages.ts",
+      "types": "./dist/runtime-npm-packages.d.ts",
+      "import": "./dist/runtime-npm-packages.js",
+      "default": "./dist/runtime-npm-packages.js"
+    },
     "./missing-runtime-package": {
       "nodetool-dev": "./src/missing-runtime-package.ts",
       "types": "./dist/missing-runtime-package.d.ts",

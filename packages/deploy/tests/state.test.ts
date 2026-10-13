@@ -171,6 +171,7 @@ describe("StateManager", () => {
       expect(state!.last_deployed).toBeDefined();
       const ts = new Date(state!.last_deployed as string);
       expect(ts.getTime()).toBeGreaterThanOrEqual(before.getTime() - 1000);
+      expect(ts.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
     });
 
     it("skips timestamp when updateTimestamp is false", async () => {

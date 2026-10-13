@@ -106,7 +106,7 @@ const CurrentProjectDocuments = () => {
       <FlexRow align="center" gap={SPACING.md} wrap>
         <ProjectSelector inline />
         <Caption color="muted">
-          Documents{total > 0 ? ` · ${total}` : ""}
+          Documents{total > 0 ? ` · ${total} · most recent first` : ""}
         </Caption>
       </FlexRow>
       {isPending ? (

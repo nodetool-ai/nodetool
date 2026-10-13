@@ -23,8 +23,7 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/config": "*",
-    "@openclaw/fs-safe": "^0.5.6"
+    "@nodetool-ai/config": "*"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",

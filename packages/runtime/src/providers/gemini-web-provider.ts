@@ -13,7 +13,9 @@
  * a frozen Gemini runs a send click only when the tab is shown, which starts
  * a second turn later. The extension tab unfreezes the page before each
  * script. A click that still starts no request is dropped with a reload, and
- * the turn is retried once.
+ * the turn is retried once. Chrome also throttles the timers of a page hidden
+ * for a while to one wake-up a minute, so no page script waits on a timer: each
+ * one does a single step, and every wait polls from here ({@link pollTab}).
  *
  * A video finishes minutes after its turn ends. The provider polls the chat
  * with the read call the page itself uses (`hNvQHb`) until the video appears.
@@ -33,7 +35,7 @@ import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { fetchExternalMedia } from "../external-media-fetch.js";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { composeDelta, composePrompt } from "./chatgpt-provider.js";
-import { createExtensionTab, stageBytesInTab, type ExtensionTab } from "./extension-tab.js";
+import { createExtensionTab, pollTab, stageBytesInTab, type ExtensionTab } from "./extension-tab.js";
 import { detectImageMime } from "./image-mime.js";
 import type {
   ImageModel,
@@ -75,7 +77,19 @@ const VIDEO_POLL_INTERVAL_MS = 5_000;
 const READY_TIMEOUT_MS = 20_000;
 const APP_SETTLE_TIMEOUT_MS = 10_000;
 /** The send script waits in the page for uploads to finish before it clicks. */
-const SEND_TIMEOUT_MS = 90_000;
+/** How long the send button may stay disabled while attachments upload. */
+const SEND_READY_TIMEOUT_MS = 75_000;
+/** How long after the send click the page has to start its request. */
+const SEND_START_TIMEOUT_MS = 10_000;
+/** How long a background tab may take to render a composer menu button. */
+const MENU_TIMEOUT_MS = 10_000;
+/** How long an opened menu may take to show its items. */
+const MENU_ITEM_TIMEOUT_MS = 3_000;
+/** The first open of the mode picker after a page load can take a few seconds. */
+const MODE_LIST_TIMEOUT_MS = 6_000;
+/** A paste before the uploader is ready shows no preview. Paste again after this wait. */
+const PASTE_TIMEOUT_MS = 3_000;
+const PASTE_ATTEMPTS = 5;
 const CHAT_TIMEOUT_MS = 10 * 60_000;
 const IMAGE_TIMEOUT_MS = 10 * 60_000;
 const VIDEO_TIMEOUT_MS = 15 * 60_000;
@@ -117,6 +131,11 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 
 async function evaluate<T>(expression: string, timeoutMs?: number): Promise<T> {
   return (await currentTab().evaluate(expression, timeoutMs)) as T;
+}
+
+/** {@link pollTab} on the Gemini tab. */
+function poll<T>(expression: string, timeoutMs: number): Promise<T | null> {
+  return pollTab<T>(currentTab(), expression, timeoutMs);
 }
 
 /** The page path of a chat drops the `c_` prefix of its id. */
@@ -174,50 +193,43 @@ async function openNewChat(): Promise<void> {
 
 /** Turn on the tool whose menu item shows `icon`. */
 async function enableTool(icon: string): Promise<void> {
-  await evaluate(`/*nt:tool*/ (async () => {
-    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-    const icon = ${JSON.stringify(icon)};
-    let tools = null;
-    for (let i = 0; i < 40 && !tools; i++) {
-      tools = document.querySelector(${JSON.stringify(TOOLS_BUTTON)});
-      if (!tools) await sleep(250);
-    }
-    if (!tools) throw new Error("The Gemini composer has no tools menu");
-    tools.click();
-    let item = null;
-    for (let i = 0; i < 20 && !item; i++) {
-      await sleep(150);
-      item = [...document.querySelectorAll(${JSON.stringify(`${OVERLAY} [role=menuitemcheckbox]`)})].find((b) => b.querySelector('mat-icon[fonticon="' + icon + '"]'));
-    }
-    if (!item) throw new Error("The Gemini tools menu has no " + icon + " tool. The account may not offer it");
-    if (item.getAttribute("aria-checked") !== "true") item.click();
-    for (let i = 0; i < 20; i++) {
-      await sleep(150);
-      const chip = [...document.querySelectorAll(${JSON.stringify(`${INPUT_AREA} button`)})].find((b) => b.querySelector('mat-icon[fonticon="' + icon + '"]'));
-      if (chip) return true;
-    }
-    throw new Error("The Gemini " + icon + " tool did not turn on");
-  })()`);
+  const tools = await poll<boolean>(`/*nt:tool-menu*/ !!document.querySelector(${JSON.stringify(TOOLS_BUTTON)})`, MENU_TIMEOUT_MS);
+  if (!tools) throw new Error("The Gemini composer has no tools menu");
+  await evaluate(`/*nt:tool-open*/ (() => { document.querySelector(${JSON.stringify(TOOLS_BUTTON)}).click(); return true; })()`);
+  const item = await poll<"on" | "off">(`/*nt:tool-item*/ (() => {
+    const item = [...document.querySelectorAll(${JSON.stringify(`${OVERLAY} [role=menuitemcheckbox]`)})].find((b) => b.querySelector(${JSON.stringify(`mat-icon[fonticon="${icon}"]`)}));
+    return item ? (item.getAttribute("aria-checked") === "true" ? "on" : "off") : null;
+  })()`, MENU_ITEM_TIMEOUT_MS);
+  if (!item) throw new Error(`The Gemini tools menu has no ${icon} tool. The account may not offer it`);
+  if (item === "off") {
+    await evaluate(`/*nt:tool-pick*/ (() => {
+      const item = [...document.querySelectorAll(${JSON.stringify(`${OVERLAY} [role=menuitemcheckbox]`)})].find((b) => b.querySelector(${JSON.stringify(`mat-icon[fonticon="${icon}"]`)}));
+      if (item) item.click();
+      return true;
+    })()`);
+  }
+  const chip = await poll<boolean>(`/*nt:tool-chip*/ [...document.querySelectorAll(${JSON.stringify(`${INPUT_AREA} button`)})].some((b) => b.querySelector(${JSON.stringify(`mat-icon[fonticon="${icon}"]`)}))`, MENU_ITEM_TIMEOUT_MS);
+  if (!chip) throw new Error(`The Gemini ${icon} tool did not turn on`);
 }
 
 /** Pick a video aspect ratio in the composer's aspect menu. */
 async function selectVideoAspect(aspectRatio: "16:9" | "9:16"): Promise<void> {
   const icon = aspectRatio === "9:16" ? "crop_9_16" : "crop_16_9";
-  await evaluate(`/*nt:aspect*/ (async () => {
-    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const state = await evaluate<"selected" | "opened">(`/*nt:aspect*/ (() => {
     const button = [...document.querySelectorAll(${JSON.stringify(`${INPUT_AREA} button`)})].find((b) => b.querySelector('mat-icon[fonticon^="crop_"]'));
     if (!button) throw new Error("The Gemini video composer has no aspect ratio menu");
-    if (button.querySelector('mat-icon[fonticon=${JSON.stringify(icon)}]')) return true;
+    if (button.querySelector(${JSON.stringify(`mat-icon[fonticon="${icon}"]`)})) return "selected";
     button.click();
-    let option = null;
-    for (let i = 0; i < 20 && !option; i++) {
-      await sleep(150);
-      option = [...document.querySelectorAll(${JSON.stringify(`${OVERLAY} [role=menuitemradio]`)})].find((b) => b.querySelector('mat-icon[fonticon=${JSON.stringify(icon)}]'));
-    }
-    if (!option) throw new Error("The Gemini aspect ratio menu has no ${aspectRatio} option");
+    return "opened";
+  })()`);
+  if (state === "selected") return;
+  const picked = await poll<boolean>(`/*nt:aspect-pick*/ (() => {
+    const option = [...document.querySelectorAll(${JSON.stringify(`${OVERLAY} [role=menuitemradio]`)})].find((b) => b.querySelector(${JSON.stringify(`mat-icon[fonticon="${icon}"]`)}));
+    if (!option) return false;
     option.click();
     return true;
-  })()`);
+  })()`, MENU_ITEM_TIMEOUT_MS);
+  if (!picked) throw new Error(`The Gemini aspect ratio menu has no ${aspectRatio} option`);
 }
 
 /**
@@ -225,30 +237,29 @@ async function selectVideoAspect(aspectRatio: "16:9" | "9:16"): Promise<void> {
  * {@link GEMINI_WEB_AUTO_MODEL}. Modes carry a stable `data-mode-id`.
  */
 async function selectMode(modeId: string): Promise<void> {
-  const modes = await evaluate<Array<{ id: string; name: string }>>(`/*nt:modes*/ (async () => {
-    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-    // A background tab renders the mode picker seconds after the composer.
-    let toggle = null;
-    for (let i = 0; i < 40 && !toggle; i++) {
-      toggle = document.querySelector(${JSON.stringify(MODE_BUTTON)});
-      if (!toggle) await sleep(250);
-    }
-    if (!toggle) return [];
+  // A background tab renders the mode picker seconds after the composer.
+  const toggle = await poll<boolean>(`/*nt:mode-menu*/ !!document.querySelector(${JSON.stringify(MODE_BUTTON)})`, MENU_TIMEOUT_MS);
+  let modes: Array<{ id: string; name: string }> = [];
+  if (toggle) {
+    await evaluate(`/*nt:mode-open*/ (() => {
+      const toggle = document.querySelector(${JSON.stringify(MODE_BUTTON)});
+      if (toggle.getAttribute("aria-expanded") !== "true") toggle.click();
+      return true;
+    })()`);
     // The first open after a page load can take a few seconds.
-    if (toggle.getAttribute("aria-expanded") !== "true") toggle.click();
-    let items = [];
-    for (let i = 0; i < 40 && items.length === 0; i++) {
-      await sleep(150);
-      items = [...document.querySelectorAll("[data-mode-id]")];
-    }
-    const modes = items.map((item) => ({ id: item.getAttribute("data-mode-id"), name: item.innerText.split("\\n")[0].trim() }));
-    const wanted = ${JSON.stringify(modeId)};
-    const pick = items.find((item) => item.getAttribute("data-mode-id") === wanted);
-    if (pick) pick.click();
-    else if (toggle.getAttribute("aria-expanded") === "true") toggle.click();
+    modes = (await poll<Array<{ id: string; name: string }>>(`/*nt:modes*/ (() => {
+      const items = [...document.querySelectorAll("[data-mode-id]")];
+      if (items.length === 0) return null;
+      const modes = items.map((item) => ({ id: item.getAttribute("data-mode-id"), name: item.innerText.split("\\n")[0].trim() }));
+      const wanted = ${JSON.stringify(modeId)};
+      const pick = items.find((item) => item.getAttribute("data-mode-id") === wanted);
+      const toggle = document.querySelector(${JSON.stringify(MODE_BUTTON)});
+      if (pick) pick.click();
+      else if (toggle && toggle.getAttribute("aria-expanded") === "true") toggle.click();
+      return modes;
+    })()`, MODE_LIST_TIMEOUT_MS)) ?? [];
     await sleep(300);
-    return modes;
-  })()`);
+  }
   if (modes.length > 0) {
     liveModels = {
       at: Date.now(),
@@ -260,7 +271,11 @@ async function selectMode(modeId: string): Promise<void> {
   }
 }
 
-/** Paste images into the composer, the way a clipboard paste would. */
+/**
+ * Paste images into the composer, the way a clipboard paste would. The page
+ * drops a paste that arrives before its uploader is ready, and the mode
+ * button can appear before that. So paste again until the previews show.
+ */
 async function attachImages(images: Uint8Array[]): Promise<void> {
   if (images.length === 0) return;
   const files: Array<{ id: string; name: string; type: string }> = [];
@@ -269,29 +284,37 @@ async function attachImages(images: Uint8Array[]): Promise<void> {
     const id = await stageBytesInTab(currentTab(), image);
     files.push({ id, name: `image-${index + 1}.${type.split("/")[1] ?? "png"}`, type });
   }
-  await evaluate(`/*nt:attach*/ (() => {
+  const paste = `/*nt:attach*/ (() => {
     const files = ${JSON.stringify(files)};
     const composer = document.querySelector(${JSON.stringify(COMPOSER)});
     const transfer = new DataTransfer();
     for (const f of files) {
       const binary = atob(window.__ntStage[f.id]);
-      delete window.__ntStage[f.id];
       transfer.items.add(new File([Uint8Array.from(binary, (c) => c.charCodeAt(0))], f.name, { type: f.type }));
     }
     composer.focus();
     composer.dispatchEvent(new ClipboardEvent("paste", { clipboardData: transfer, bubbles: true, cancelable: true }));
     return true;
-  })()`);
+  })()`;
+  let attached = false;
+  for (let attempt = 1; !attached && attempt <= PASTE_ATTEMPTS; attempt++) {
+    await evaluate(paste);
+    attached = !!(await poll<boolean>(`/*nt:attached*/ document.querySelectorAll(${JSON.stringify(ATTACHMENT)}).length >= ${files.length}`, PASTE_TIMEOUT_MS));
+  }
+  await evaluate(`/*nt:unstage*/ (() => { for (const id of ${JSON.stringify(files.map((f) => f.id))}) delete window.__ntStage[id]; return true; })()`);
+  if (!attached) throw new Error("Gemini did not take the pasted images: no attachment preview appeared");
 }
+
+/** The send click started no request. The caller reloads the page and sends again. */
+class NotSentError extends Error {}
 
 /**
  * Record the page's `StreamGenerate` responses in `window.__ntGemini`, type
- * the text and click send once. The script waits for the attachment previews
- * and an enabled button first, then checks that the page started a request.
+ * the text and click send once. The click waits for the attachment previews
+ * and an enabled button, then the page must start a request.
  */
 async function submit(text: string, attachments: number): Promise<void> {
-  await evaluate(`/*nt:send*/ (async () => {
-    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  await evaluate(`/*nt:send*/ (() => {
     if (!window.__ntGeminiHooked) {
       window.__ntGeminiHooked = true;
       const open = XMLHttpRequest.prototype.open;
@@ -315,28 +338,21 @@ async function submit(text: string, attachments: number): Promise<void> {
     const composer = document.querySelector(${JSON.stringify(COMPOSER)});
     composer.focus();
     document.execCommand("insertText", false, ${JSON.stringify(text)});
-    // The send button slides in after the first character. A click during
-    // that animation starts no request.
-    await sleep(500);
-    const deadline = Date.now() + ${SEND_TIMEOUT_MS - 15_000};
-    for (;;) {
-      if (Date.now() > deadline) throw new Error("Gemini did not accept the message: the send button stayed disabled or the upload did not finish");
-      const button = document.querySelector(${JSON.stringify(SUBMIT)});
-      const previews = document.querySelectorAll(${JSON.stringify(ATTACHMENT)});
-      const uploading = [...previews].some((p) => p.querySelector("mat-progress-spinner, [role=progressbar]"));
-      if (button && !button.disabled && button.getAttribute("aria-disabled") !== "true" && previews.length >= ${attachments} && !uploading) {
-        button.click();
-        break;
-      }
-      await sleep(250);
-    }
-    const sendDeadline = Date.now() + 10000;
-    while (Date.now() < sendDeadline) {
-      if (window.__ntGemini.started) return true;
-      await sleep(250);
-    }
-    throw new Error("NT_NOT_SENT");
-  })()`, SEND_TIMEOUT_MS);
+    return true;
+  })()`);
+  // The send button slides in after the first character. A click during
+  // that animation starts no request.
+  await sleep(500);
+  const ready = await poll<boolean>(`/*nt:send-ready*/ (() => {
+    const button = document.querySelector(${JSON.stringify(SUBMIT)});
+    const previews = document.querySelectorAll(${JSON.stringify(ATTACHMENT)});
+    const uploading = [...previews].some((p) => p.querySelector("mat-progress-spinner, [role=progressbar]"));
+    return !!button && !button.disabled && button.getAttribute("aria-disabled") !== "true" && previews.length >= ${attachments} && !uploading;
+  })()`, SEND_READY_TIMEOUT_MS);
+  if (!ready) throw new Error("Gemini did not accept the message: the send button stayed disabled or the upload did not finish");
+  await evaluate(`/*nt:click*/ (() => { document.querySelector(${JSON.stringify(SUBMIT)}).click(); return true; })()`);
+  const started = await poll<boolean>(`/*nt:sent*/ !!(window.__ntGemini && window.__ntGemini.started)`, SEND_START_TIMEOUT_MS);
+  if (!started) throw new NotSentError("Gemini did not start a request after the send click");
 }
 
 interface RecordedResponse {
@@ -377,7 +393,7 @@ async function sendAndRead(setup: () => Promise<void>, text: string, images: Uin
       await submit(text, images.length);
       break;
     } catch (error) {
-      if (!(error instanceof Error && error.message.includes("NT_NOT_SENT"))) throw error;
+      if (!(error instanceof NotSentError)) throw error;
       if (attempt > 1) throw new Error("Gemini did not send the message from the background tab. Show the Gemini tab once and try again");
       log.warn("Gemini did not send the message; reloading the page and retrying once");
     }

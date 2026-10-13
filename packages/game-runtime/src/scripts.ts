@@ -1,6 +1,6 @@
 import type { QuickJSContext, QuickJSHandle, QuickJSRuntime } from "quickjs-emscripten-core";
 import { z } from "zod";
-import { gameNonSpatialScriptCommand, gameUiScriptCommand, resolveGameScriptParams, type GameDocument, type GameEntityProps, type GameInputFrame, type GameScriptParam, type GameScriptParamValue, type GameSnapshot } from "@nodetool-ai/protocol";
+import { gameBehavior, gameNonSpatialScriptCommand, gameUiScriptCommand, resolveGameScriptParams, type GameDocument, type GameEntityProps, type GameInputFrame, type GameScriptParam, type GameScriptParamValue, type GameSnapshot } from "@nodetool-ai/protocol";
 
 import { GameScriptLogCollector, withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
 import { GameScriptSaveCollector, type GameSaveRequest } from "./script-saves.js";
@@ -115,8 +115,12 @@ export interface GameScriptRunner {
   /** Lifecycle source keys whose object defines `onEvent`. */
   readonly eventSources?: ReadonlySet<string>;
   retain?(stateKeys: ReadonlySet<string>): void;
+  /** Compiles every replacement before changing sources or retained realms. */
+  reloadSources(updates: readonly GameScriptSourceUpdate[]): void;
   dispose(): void;
 }
+
+export interface GameScriptSourceUpdate { readonly sourceKey: string; readonly source: string }
 
 export function scriptSourceKey(sceneId: string, entityId: string, behaviorIndex: number): string {
   return JSON.stringify([sceneId, entityId, behaviorIndex]);
@@ -207,6 +211,8 @@ export interface IsolatedScriptRunner<Call extends IsolatedScriptCall, Input ext
   /** Lifecycle source keys whose object defines `onEvent`. */
   readonly eventSources?: ReadonlySet<string>;
   retain?(stateKeys: ReadonlySet<string>): void;
+  /** Compiles every replacement before changing sources or retained realms. */
+  reloadSources(updates: readonly GameScriptSourceUpdate[]): void;
   dispose(): void;
 }
 
@@ -659,6 +665,34 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       }
     }
     return {
+      reloadSources(updates): void {
+        const candidates: { update: GameScriptSourceUpdate; persistent: boolean; onEvent: boolean }[] = [];
+        for (const update of updates) {
+          gameBehavior.options[9].shape.source.parse(update.source);
+          if (!sources.has(update.sourceKey)) { throw new Error(`Unknown game script ${update.sourceKey}`); }
+          const deadline = performance.now() + 100;
+          runtime.setInterruptHandler(() => performance.now() >= deadline);
+          const persistent = canPersistGameScript(update.source);
+          const inspected = inspectSource(update.sourceKey, update.source, persistent);
+          try {
+            if (inspected.hooks !== hookSources.has(update.sourceKey)) {
+              throw new Error("Changing between a function and lifecycle hooks requires restart from tick 0");
+            }
+            candidates.push({ update, persistent, onEvent: inspected.onEvent });
+          } finally { disposeRealm(inspected.realm); }
+        }
+        const changedKeys = new Set(candidates.map(({ update }) => update.sourceKey));
+        for (const { update, persistent, onEvent } of candidates) {
+          sources.set(update.sourceKey, update.source);
+          if (persistent) { persistentSources.add(update.sourceKey); } else { persistentSources.delete(update.sourceKey); }
+          if (onEvent) { eventSources.add(update.sourceKey); } else { eventSources.delete(update.sourceKey); }
+          const realm = prepared.get(update.sourceKey);
+          if (realm) { disposeRealm(realm); prepared.delete(update.sourceKey); }
+        }
+        for (const [stateKey, realm] of realms) {
+          if (changedKeys.has(realm.sourceKey)) { disposeRealm(realm); realms.delete(stateKey); }
+        }
+      },
       hookSources,
       eventSources,
       retain,

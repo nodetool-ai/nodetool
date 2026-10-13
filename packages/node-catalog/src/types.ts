@@ -1,0 +1,35 @@
+import type { DeclaredPropertyMetadata, NodeMetadata } from "@nodetool-ai/node-sdk";
+
+export interface PinnedPackage {
+  readonly name: string;
+  readonly version: string;
+  readonly integrity: string;
+}
+
+export interface CatalogPack {
+  readonly id: string;
+  readonly kind: "core" | "node-pack";
+  readonly npm: PinnedPackage;
+  readonly registrar: string;
+  readonly provides: readonly string[];
+  readonly requires: readonly string[];
+  readonly runtimeLibraries: readonly string[];
+  readonly secrets: readonly string[];
+  readonly scriptAllowlist: readonly PinnedPackage[];
+  readonly installBytes: number;
+  readonly nodeCount: number;
+}
+
+export interface NodeCatalogIndex {
+  readonly schemaVersion: 1;
+  readonly coreVersion: string;
+  readonly packs: readonly CatalogPack[];
+  readonly owners: Readonly<Record<string, string>>;
+}
+
+export interface CatalogNode {
+  readonly node_type: string;
+  readonly pack: string;
+  readonly metadata: NodeMetadata;
+  readonly declared: readonly DeclaredPropertyMetadata[];
+}

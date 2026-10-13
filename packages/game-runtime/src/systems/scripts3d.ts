@@ -1,4 +1,5 @@
 import { applyGameUiCommand, gameParticleEmissionOf, gameUiCommandTarget, type GameEntityProps, type GameUiScriptCommand } from "@nodetool-ai/protocol";
+import { applySpatialScriptCommand3D } from "../spatial3d/script-commands.js";
 import type { EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { applyGameplayCommand, queueGameplayBehavior, type GameplayCommand } from "../gameplay/lifecycle.js";
@@ -181,6 +182,9 @@ export function stepScripts3D(context: GameSystemContext3D): void {
         throw new Error(`Script target missing: ${result.entityId}`);
       }
       for (const command of result.commands) {
+        if (applySpatialScriptCommand3D(context.currentSpatial(), state, command)) {
+          continue;
+        }
         switch (command.kind) {
           case "setProp":
           case "removeProp":
@@ -200,9 +204,6 @@ export function stepScripts3D(context: GameSystemContext3D): void {
               throw new Error(`Velocity requires a dynamic body or platform (${result.entityId})`);
             }
             context.currentSpatial().setVelocity(state, command.velocity);
-            break;
-          case "impulse":
-            context.currentSpatial().impulse(state, command.impulse);
             break;
           case "teleport":
             if (!state.definition.body3d || state.definition.body3d.type === "static") {
