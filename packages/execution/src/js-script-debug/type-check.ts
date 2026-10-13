@@ -17,6 +17,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { importOptionalModule } from "@nodetool-ai/config";
 import type { JsScriptDebugIssue } from "./types.js";
 
 /** `specifier -> absolute path to the pack's shipped .d.ts`, e.g. `"@nodetool-ai/sandbox-timeline" -> ".../sandbox/index.d.ts"`. */
@@ -77,9 +78,8 @@ const UNRESOLVED_MODULE_CODES = new Set([2307, 2882]);
  * script's own file, each naming the message TypeScript gives — which names
  * the offending property (`caret` on an object-literal type mismatch) the
  * way every other check in this module names the identifier it complains
- * about. Never throws: a `typescript` failure to load or a filesystem error
- * is swallowed and reported as nothing found, since this check is additive
- * on top of the AST-level one in `validateCodeNodeBody`.
+ * about. A compiler load failure returns a warning, since this check is
+ * additive on top of the AST-level one in `validateCodeNodeBody`.
  */
 export async function typeCheckAgainstPackDts(
   code: string,
@@ -89,23 +89,25 @@ export async function typeCheckAgainstPackDts(
 
   let ts: typeof import("typescript");
   try {
-    ts = (await import("typescript")).default ?? (await import("typescript"));
+    const compiler = await importOptionalModule<
+      typeof import("typescript") & { default?: typeof import("typescript") }
+    >("typescript");
+    ts = compiler.default ?? compiler;
   } catch (error) {
-    // `typescript` failing to load means this install cannot type-check at
-    // all — a warning, not an error, since that is not the script's fault and
-    // must not fail `validate` outright (the AST-level checks above already
-    // ran and still stand). `typescript` is only a runtime dependency of this
-    // package (`packages/execution/package.json`), and this dynamic import is
-    // the only place it is ever loaded — a validate call with no pack
-    // `.d.ts` sources, and every other caller of this package, never touches
-    // the module at all.
+    // The optional compiler cannot prevent the AST checks from running.
+    const missing =
+      error instanceof Error &&
+      "code" in error &&
+      (error.code === "ERR_MODULE_NOT_FOUND" || error.code === "MODULE_NOT_FOUND");
     return [
       {
         severity: "warning",
         code: "type_check_unavailable",
-        message: `Could not load the TypeScript compiler, so the script's imports were not type-checked against any installed pack's .d.ts: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        message: missing
+          ? "Type checking was skipped because typescript is not installed. Install the optional TypeScript compiler with \"npm install typescript@npm:@typescript/typescript6@6.0.2\"."
+          : `Could not load the TypeScript compiler, so the script's imports were not type-checked against any installed pack's .d.ts: ${
+              error instanceof Error ? error.message : String(error)
+            }`
       }
     ];
   }
