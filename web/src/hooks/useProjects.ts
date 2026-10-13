@@ -4,6 +4,7 @@
  */
 
 import { useCallback } from "react";
+import { useMutation } from "@tanstack/react-query";
 
 import { trpc, trpcClient } from "../trpc/client";
 import {
@@ -14,6 +15,7 @@ import {
   type WorkspaceTabType
 } from "../stores/WorkspaceTabsStore";
 import { useNotificationStore } from "../stores/NotificationStore";
+import { exportProjectFile, importProjectFile } from "../utils/projectArchive";
 
 /**
  * Open the surface a project is started from. One tab, so every entry point —
@@ -81,6 +83,19 @@ export const useArchiveProject = () => {
 export const useRestoreProject = () => {
   const invalidate = useInvalidateProjects();
   return trpc.projects.restore.useMutation({ onSuccess: invalidate });
+};
+
+/** Download a project as a `.nodetool-project` file. */
+export const useExportProject = () =>
+  useMutation({
+    mutationFn: (project: { id: string; name: string }) =>
+      exportProjectFile(project.id, project.name)
+  });
+
+/** Create a new project from a `.nodetool-project` file. */
+export const useImportProject = () => {
+  const invalidate = useInvalidateProjects();
+  return useMutation({ mutationFn: importProjectFile, onSuccess: invalidate });
 };
 
 export const useDeleteProject = () => {
