@@ -17,7 +17,6 @@
   "dependencies": {
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/runtime": "*",
-    "@elevenlabs/elevenlabs-js": "^2.0.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {

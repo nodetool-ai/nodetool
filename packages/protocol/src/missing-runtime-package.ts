@@ -79,7 +79,7 @@ export function missingRuntimePackageError(
 ): MissingRuntimePackageError {
   const name = RUNTIME_PACKAGE_NAMES[runtimePackage];
   return new MissingRuntimePackageError(
-    `The optional "${specifier}" package is not installed. Install ${name} from the Package Manager, or run "npm install ${specifier}" where NodeTool runs.`,
+    `The optional "${specifier}" package is not installed. Install ${name} from the Package Manager, or run "nodetool runtime add ${runtimePackage}" in the CLI.`,
     runtimePackage,
     { cause }
   );

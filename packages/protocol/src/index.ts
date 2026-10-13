@@ -4,6 +4,7 @@
 
 export * from "./messages.js";
 export * from "./missing-runtime-package.js";
+export * from "./runtime-npm-packages.js";
 export type { DocumentOp } from "./document-ops.js";
 export * from "./supervisor.js";
 export * from "./ws-commands.js";

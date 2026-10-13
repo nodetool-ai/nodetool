@@ -60,6 +60,7 @@ import {
 } from "./supervisor.js";
 import { registerPackageCommands } from "./commands/package.js";
 import { registerPackCommands } from "./commands/packs.js";
+import { registerRuntimeCommands } from "./commands/runtime.js";
 import { registerDeployCommands } from "./commands/deploy.js";
 import { registerHfCommands } from "./commands/models-hf.js";
 import { registerWorkerCommands } from "./commands/worker.js";
@@ -1736,6 +1737,7 @@ mcp
 registerProjectCommands(program);
 registerPackageCommands(program);
 registerPackCommands(program);
+registerRuntimeCommands(program);
 registerWorkerCommands(program);
 
 // Any command that opens a remote Python bridge keeps the attached worker's

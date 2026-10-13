@@ -1,0 +1,127 @@
+/**
+ * `nodetool runtime` and the optional-node root it fills. The root lives in
+ * the data directory, so each test points XDG_DATA_HOME / APPDATA at a
+ * temporary directory and never touches the real one or the network.
+ */
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { Command } from "commander";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { RUNTIME_NPM_PACKAGES } from "@nodetool-ai/protocol";
+
+import {
+  optionalNodeModulesDir,
+  applyOptionalNodeModules
+} from "../../optional-node-root.js";
+import { registerRuntimeCommands } from "../runtime.js";
+
+const ENV_KEYS = ["XDG_DATA_HOME", "APPDATA", "NODETOOL_OPTIONAL_NODE_MODULES"];
+let saved: Record<string, string | undefined>;
+let dataHome: string;
+
+beforeEach(async () => {
+  saved = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
+  dataHome = await mkdtemp(join(tmpdir(), "nodetool-runtime-"));
+  process.env["XDG_DATA_HOME"] = dataHome;
+  process.env["APPDATA"] = dataHome;
+  delete process.env["NODETOOL_OPTIONAL_NODE_MODULES"];
+});
+
+afterEach(async () => {
+  for (const key of ENV_KEYS) {
+    const value = saved[key];
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+  vi.restoreAllMocks();
+  await rm(dataHome, { recursive: true, force: true });
+});
+
+/** Install a fake package into the optional-node root. */
+async function fakeInstall(name: string, version: string): Promise<void> {
+  const dir = join(optionalNodeModulesDir(), name);
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "package.json"), JSON.stringify({ name, version }));
+}
+
+async function run(args: string[]): Promise<string> {
+  const program = new Command().exitOverride();
+  registerRuntimeCommands(program);
+  const lines: string[] = [];
+  vi.spyOn(console, "log").mockImplementation((line: unknown) => {
+    lines.push(String(line));
+  });
+  await program.parseAsync(["node", "nodetool", ...args]);
+  return lines.join("\n");
+}
+
+describe("applyOptionalNodeModules", () => {
+  it("leaves the variable unset while the root has no node_modules", () => {
+    applyOptionalNodeModules();
+    expect(process.env["NODETOOL_OPTIONAL_NODE_MODULES"]).toBeUndefined();
+  });
+
+  it("points the variable at the root once something is installed", async () => {
+    await fakeInstall("js-tiktoken", "1.0.21");
+    applyOptionalNodeModules();
+    expect(process.env["NODETOOL_OPTIONAL_NODE_MODULES"]).toBe(
+      optionalNodeModulesDir()
+    );
+  });
+
+  it("keeps a root the caller already chose", async () => {
+    await fakeInstall("js-tiktoken", "1.0.21");
+    process.env["NODETOOL_OPTIONAL_NODE_MODULES"] = "/desktop/optional-node";
+    applyOptionalNodeModules();
+    expect(process.env["NODETOOL_OPTIONAL_NODE_MODULES"]).toBe(
+      "/desktop/optional-node"
+    );
+  });
+});
+
+describe("nodetool runtime", () => {
+  it("lists every catalog package with what the root holds", async () => {
+    await fakeInstall("js-tiktoken", "1.0.21");
+    // Only one half of a two-package runtime package: not installed.
+    await fakeInstall("imapflow", "1.7.1");
+
+    const listed = JSON.parse(await run(["runtime", "list", "--json"])) as {
+      packages: Array<{ id: string; installed: boolean; version: string }>;
+    };
+
+    expect(listed.packages.map((row) => row.id).sort()).toEqual(
+      Object.keys(RUNTIME_NPM_PACKAGES).sort()
+    );
+    const byId = new Map(listed.packages.map((row) => [row.id, row]));
+    expect(byId.get("tokenizer")).toMatchObject({ installed: true, version: "1.0.21" });
+    expect(byId.get("email-imap")).toMatchObject({ installed: false });
+    expect(byId.get("fabric")).toMatchObject({ installed: false });
+  });
+
+  it("refuses an unknown id before it runs npm", async () => {
+    await expect(run(["runtime", "add", "tokenizer", "left-pad"])).rejects.toThrow(
+      /Unknown runtime package: left-pad/
+    );
+  });
+
+  it("prints the root it installs into", async () => {
+    expect(await run(["runtime", "path"])).toBe(join(dataHome, "nodetool", "optional-node"));
+  });
+});
+
+describe("RUNTIME_NPM_PACKAGES", () => {
+  it("pins every spec to an exact version of a package it names", () => {
+    for (const [id, spec] of Object.entries(RUNTIME_NPM_PACKAGES)) {
+      const names = spec.npmPackages.map((entry) => {
+        const match = /^(@?[^@]+)@(\d+\.\d+\.\d+)$/.exec(entry);
+        expect(match, `${id}: ${entry} is not name@x.y.z`).not.toBeNull();
+        return match?.[1];
+      });
+      expect([...names].sort(), id).toEqual([...spec.packageNames].sort());
+    }
+  });
+});

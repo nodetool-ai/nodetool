@@ -92,9 +92,7 @@
     "pptxgenjs": "^4.0.1",
     "tesseract.js": "^7.0.0",
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "vitest": "^5.0.1"
-  },
-  "optionalDependencies": {
+    "vitest": "^5.0.1",
     "office-text-extractor": "^4.0.0"
   },
   "peerDependencies": {

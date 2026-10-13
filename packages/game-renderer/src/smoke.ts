@@ -1,7 +1,9 @@
 import { createServer } from "node:http";
 import { readFile, realpath } from "node:fs/promises";
 import { extname, join, sep } from "node:path";
-import { chromium, type Browser, type LaunchOptions } from "playwright";
+import type { Browser, BrowserType, LaunchOptions } from "playwright";
+import { importOptionalModule } from "@nodetool-ai/config";
+import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 import { z } from "zod";
 import type { GameInputFrame3D } from "@nodetool-ai/protocol";
 
@@ -64,7 +66,11 @@ export async function smokeStandaloneGame(directory: string, options: GameSmokeO
     const launchOptions: LaunchOptions = { headless: true, chromiumSandbox: true,
       args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] };
     if (options.executablePath) { launchOptions.executablePath = options.executablePath; }
-    browser = await chromium.launch(launchOptions);
+    // Playwright may live in the optional-node root (`nodetool runtime add playwright`).
+    let playwright: { readonly chromium: BrowserType };
+    try { playwright = await importOptionalModule<{ readonly chromium: BrowserType }>("playwright", { commonJs: true }); }
+    catch (error) { throw missingRuntimePackageError("playwright", "playwright", error); }
+    browser = await playwright.chromium.launch(launchOptions);
     controller.signal.throwIfAborted();
     const context = await browser.newContext({ serviceWorkers: "block" });
     await context.route("**/*", route => {
