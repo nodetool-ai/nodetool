@@ -31,6 +31,20 @@ type MenuView = "root" | NewDocumentSubmenu;
 /** The menu's width, and its room at most, in px. */
 const MENU_WIDTH = 320;
 const MENU_MAX_WIDTH = 340;
+// Space kept between the menu and the bottom of the window.
+const MENU_VIEWPORT_GAP = 16;
+
+/**
+ * The menu may grow down to the bottom of the window. A fixed share of the
+ * viewport hid most blank documents on short windows with no cue to scroll.
+ */
+const menuMaxHeight = (anchorEl: HTMLElement | null): string => {
+  if (!anchorEl) {
+    return "70vh";
+  }
+  const top = Math.ceil(anchorEl.getBoundingClientRect().bottom);
+  return `calc(100vh - ${top + MENU_VIEWPORT_GAP}px)`;
+};
 
 /**
  * The `[+]` menu for the workspace tab bar. Two sections: the guided
@@ -89,7 +103,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       onClose={close}
       anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       transformOrigin={{ vertical: "top", horizontal: "left" }}
-      maxHeight="70vh"
+      maxHeight={menuMaxHeight(anchorEl)}
       paperSx={{ width: MENU_WIDTH, maxWidth: MENU_MAX_WIDTH }}
       slotProps={{ list: { ref: listRef } }}
     >

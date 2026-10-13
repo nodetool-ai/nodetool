@@ -81,6 +81,15 @@ const getEmptyStore = () => {
   return emptyStore;
 };
 
+/**
+ * A text input takes several lines, since a script's text often spans
+ * paragraphs and a one-line field dropped the line breaks of pasted text.
+ */
+const runDialogInput = (port: JsScriptPort) => {
+  const input = workflowInputForScriptPort(port);
+  return input.kind === "string" ? { ...input, multiline: true } : input;
+};
+
 const usesJsonField = (port: JsScriptPort, streaming: boolean): boolean =>
   streaming || isJsonScriptPortType(port.type);
 
@@ -191,7 +200,7 @@ const JsScriptRunDialog = ({
                   ) : (
                     <WorkflowInputControl
                       key={port.name}
-                      input={workflowInputForScriptPort(port)}
+                      input={runDialogInput(port)}
                       value={
                         values[port.name] !== undefined
                           ? values[port.name]

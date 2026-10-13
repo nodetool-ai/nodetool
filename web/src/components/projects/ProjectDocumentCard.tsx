@@ -24,6 +24,7 @@ import CopyProjectDocumentAction, {
   isCopyableDocument
 } from "./CopyProjectDocumentAction";
 import {
+  documentEditedLine,
   documentProgress,
   documentStatusLine,
   formatDocumentSpend,
@@ -109,7 +110,9 @@ const ProjectDocumentCard = ({
               whiteSpace: "nowrap"
             }}
           >
-            {documentStatusLine(document)}
+            {[documentStatusLine(document), documentEditedLine(document)]
+              .filter(Boolean)
+              .join(" · ")}
           </Caption>
           {!compact && (
             <Box
