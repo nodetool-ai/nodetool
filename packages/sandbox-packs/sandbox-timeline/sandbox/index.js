@@ -121,6 +121,24 @@ function reduceConstantRuns(points) {
 }
 
 /** Ticks per quarter note in a midi clip's `notes`, as the document counts them. */
+/**
+ * The asset id a media clip stores. Asset tools print `asset://<id>.<ext>`
+ * (often with a 12-character id), while every renderer and the editor read a
+ * bare id, so the scheme and extension come off here and `v.save()` resolves
+ * a short id to the full one. `package://` and `http(s)://` locators are not
+ * asset ids and pass through unchanged.
+ */
+export function clipAssetId(ref) {
+  if (typeof ref !== "string") return ref;
+  const trimmed = ref.trim();
+  if (trimmed.startsWith("asset://")) {
+    const rest = trimmed.slice("asset://".length).split(/[?#]/)[0];
+    return rest.replace(/\.[A-Za-z0-9]{1,8}$/, "") || rest;
+  }
+  const hexWithExt = /^([0-9a-f]{12,32})\.[A-Za-z0-9]{1,8}$/.exec(trimmed);
+  return hexWithExt ? hexWithExt[1] : trimmed;
+}
+
 export const MIDI_PPQ = 960;
 /**
  * `[beat, pitch, lenBeats?, velocity?]` tuples (musical time — beats, not
@@ -956,7 +974,7 @@ export function video(options = {}) {
       clip._pathPoints = points;
       return clip;
     };
-    const image = (assetId, o = {}) => makeClip("image", ctx, { ...o, currentAssetId: assetId });
+    const image = (assetId, o = {}) => makeClip("image", ctx, { ...o, currentAssetId: clipAssetId(assetId) });
 
     /**
      * `media(mediaType, assetId, o)` is the shared body for `video`/`audio`:
@@ -971,7 +989,7 @@ export function video(options = {}) {
      */
     function media(mediaType, assetId, o = {}) {
       const { in: inAt, volume, fadeIn, fadeOut, speed, mute, remap, ...rest } = o;
-      const clip = { ...rest, currentAssetId: assetId };
+      const clip = { ...rest, currentAssetId: clipAssetId(assetId) };
       if (inAt !== undefined) clip.inPointMs = msFor(inAt);
       if (volume !== undefined) clip.volumeDb = volume;
       if (fadeIn !== undefined) clip.fadeInMs = msFor(fadeIn);
@@ -1499,7 +1517,7 @@ export function video(options = {}) {
       id: o.id ?? nid("aud", `audio:${trackId}`), name: o.name ?? "audio", trackId,
       startMs: msFor(at), durationMs: Math.max(1, msFor(dur ?? v._durationMs / 1000 - at)),
       mediaType: "audio", sourceType: "imported", status: "generated", locked: false, versions: [],
-      currentAssetId: assetId
+      currentAssetId: clipAssetId(assetId)
     };
     for (const k of FIELDS) if (rest[k] !== undefined) clip[k] = rest[k];
     if (volume !== undefined) clip.volumeDb = volume;
