@@ -80,6 +80,16 @@ jest.mock("../../../stores/NotificationStore", () => ({
     selector({ addNotification: jest.fn() })
 }));
 
+const mockSetMode = jest.fn();
+jest.mock("@mui/material/styles", () => ({
+  ...jest.requireActual("@mui/material/styles"),
+  useColorScheme: () => ({
+    mode: "dark",
+    systemMode: "dark",
+    setMode: mockSetMode
+  })
+}));
+
 import SettingsPage from "../SettingsMenu";
 
 const renderSettings = () =>
@@ -132,6 +142,18 @@ describe("SettingsPage", () => {
     expect(
       screen.getByRole("button", { name: "Models & Providers" })
     ).toBeInTheDocument();
+  });
+
+  // UX research study 2: people looking for a way to make the app easier to
+  // read opened Appearance and found only the time format.
+  it("lets people choose the theme under Appearance", async () => {
+    const user = userEvent.setup();
+    renderSettings();
+    const theme = screen.getByRole("combobox", { name: "Theme" });
+    expect(theme).toHaveTextContent("Dark");
+    await user.click(theme);
+    await user.click(screen.getByRole("option", { name: "Light" }));
+    expect(mockSetMode).toHaveBeenCalledWith("light");
   });
 
   it("lists only sections that match the search in the sidebar", async () => {
