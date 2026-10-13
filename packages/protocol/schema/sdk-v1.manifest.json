@@ -22,13 +22,13 @@
       "media_type": "application/schema+json",
       "path": "sdk-v1.execution.schema.json",
       "profile": "execution",
-      "sha256": "bcafbf30fbe648fee9449b100f7f09f240bec18c00d8dc9ffbf78bc1be39ea7b"
+      "sha256": "b15a3a9d823f26593410fbfe6bd391eeda329b65ff852d79e9443c1e8df16f43"
     },
     {
       "media_type": "application/schema+json",
       "path": "sdk-v1.discovery.schema.json",
       "profile": "discovery",
-      "sha256": "f121c65742848fc411de2b40b98b3661cee4bb7402f246038179b853d782189b"
+      "sha256": "733830147788535450dedd6acbd755ed74c761992350d8b062469db68de0fbaa"
     },
     {
       "media_type": "application/vnd.aai.asyncapi+json;version=3.0",
