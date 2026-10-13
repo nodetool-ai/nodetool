@@ -7,6 +7,7 @@ import { build } from "esbuild";
 import { resolvePackageAssetPath } from "@nodetool-ai/config";
 import { gameDocument3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import { validateGame3D, decodePreparedGameCollider3D } from "@nodetool-ai/game-runtime";
+import { prepareGameImage3D } from "./renderer3d/assets/image-preparation.js";
 import { prepareGameModel } from "./renderer3d/preparation.js";
 import type { StandaloneAsset, StandaloneGameBuild } from "./build.js";
 import { TOUCH_CONTROLS_CSS } from "./touch-controls.js";
@@ -36,7 +37,7 @@ async function playerBundle(): Promise<Uint8Array> {
   return player.contents;
 }
 
-/** Atomically exports verified model/collider content and all runtime code for static HTTP serving. */
+/** Atomically exports verified asset content and all runtime code for static HTTP serving. */
 export async function buildStandaloneGame3D(options: BuildStandaloneGame3DOptions): Promise<StandaloneGameBuild> {
   options.signal?.throwIfAborted();
   const document = gameDocument3D.parse(options.document);
@@ -68,6 +69,12 @@ export async function buildStandaloneGame3D(options: BuildStandaloneGame3DOption
         if (!prepared.ok) { throw new Error(`Export model ${logicalId} failed preparation: ${prepared.diagnostics.map((entry) => entry.message).join("; ")}`); }
         if (JSON.stringify(prepared.model.nodeIds) !== JSON.stringify(binding.nodeIds) || JSON.stringify(prepared.model.clipIds) !== JSON.stringify(binding.clipIds)) { throw new Error(`Prepared selectors changed for model ${logicalId}`); }
         extension = "glb";
+      } else if (binding.mediaKind === "image") {
+        const prepared = await prepareGameImage3D(asset.bytes, { assetId: binding.assetId, expectedDigest: binding.digest, signal: options.signal });
+        if (!prepared.ok) { throw new Error(`Export image ${logicalId} failed preparation: ${prepared.diagnostics.map((entry) => entry.message).join("; ")}`); }
+        const actual = prepared.image.binding;
+        if (actual.width !== binding.width || actual.height !== binding.height || actual.format !== binding.format || actual.byteLength !== binding.byteLength) { throw new Error(`Export image metadata changed for ${logicalId}`); }
+        extension = binding.format;
       } else if (binding.mediaKind === "collider") {
         await decodePreparedGameCollider3D(asset.bytes, binding);
         extension = "json";

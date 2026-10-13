@@ -1,3 +1,4 @@
+import type { GameImageSources3D } from "./assets/image-contract.js";
 import { GameFonts3D } from "./hud/fonts.js";
 import { RenderPipeline3D } from "./pipeline.js";
 import { GameModelCache3D } from "./assets/cache.js";
@@ -58,7 +59,7 @@ export interface GameModelSource3D {
   readonly bytes: Uint8Array;
   readonly digest?: string;
 }
-export interface CreateGameRenderer3DOptions extends GameSkySources3D {
+export interface CreateGameRenderer3DOptions extends GameSkySources3D, GameImageSources3D {
   readonly canvas: HTMLCanvasElement;
   readonly resolveFont?: (logicalId: string, signal: AbortSignal) => Promise<GameModelSource3D | null>;
   readonly onDiagnostic?: (message: string) => void;
