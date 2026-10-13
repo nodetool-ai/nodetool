@@ -521,7 +521,32 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
           debris?.render?.kind === "mesh" && debris.render.shape === "box" && debris.render.align === "velocity";
       } }]
   }
-}];
+}, ...([false, true] as const).map((is3D): ToolLoopEvalCase<AnyGameDocument> => ({
+  id: is3D ? "streaming-music-3d" : "streaming-music",
+  description: "Author streamed scene music with loop points and a scene crossfade through public edit ops.",
+  objective: "Play the music.theme audio slot as streamed music in the entry scene. Loop from 12 to 90 seconds, at volume 0.6, with a 30-tick fade in and a 45-tick fade out.",
+  createBridge: () => {
+    if (is3D) {
+      const document = createNative3DGame("streaming-music-3d-eval");
+      document.assets["music.theme"] = { assetId: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", digest: "music-theme-fixture", mediaKind: "audio", required: false };
+      return createGameToolBridge3D(document);
+    }
+    const document = { ...createTopDownRoomGame("streaming-music-eval"), schemaVersion: 2 as const };
+    document.assets["music.theme"] = { assetId: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", digest: "music-theme-fixture", mediaKind: "audio", width: 1, height: 1, pivot: { x: 0.5, y: 0.5 }, sampling: "nearest" };
+    return createGameToolBridge(document);
+  },
+  systemPrompt: "Use get_native_game and edit_native_game. update_scene set music replaces scene music with {assetId, volume, fadeInTicks, fadeOutTicks, streaming?: {loopStartSeconds, loopEndSeconds?}}. Streaming routes long tracks through the music bus without decoding the whole asset. Loop end must exceed loop start. Omit streaming to retain decoded playback.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "streamingMusic", detail: "The entry scene lacks streamed music with the requested loop, volume and fades.",
+      test: document => {
+        const music = document.scenes.find(scene => scene.id === document.entrySceneId)?.music;
+        return music?.assetId === "music.theme" && music.volume === 0.6 && music.fadeInTicks === 30 && music.fadeOutTicks === 45
+          && music.streaming?.loopStartSeconds === 12 && music.streaming.loopEndSeconds === 90;
+      } }]
+  }
+}))
+];
 
 /** Headless 3D game editor bridge that exercises the production 3D op reducer. */
 export function createGame3DToolBridge(initial: GameDocument3D): HeadlessSurfaceBridge<GameDocument3D> {

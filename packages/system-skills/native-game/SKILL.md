@@ -155,6 +155,24 @@ locked style string in every generated visual prompt. Review foot alignment,
 terrain joins, lighting, and grade in viewed captures before accepting the art
 pass.
 
+## Audio
+
+Install music in an audio slot, then use `update_scene {scene_id, set: {music:
+{assetId, volume, fadeInTicks, fadeOutTicks, streaming}}}` in 2D or 3D.
+`assetId` names the installed slot. `volume` ranges from 0 to 1 and each fade
+ranges from 0 to 600 ticks. A scene transition overlaps the outgoing fade out
+and incoming fade in.
+
+For long tracks set `streaming: {loopStartSeconds, loopEndSeconds?}`. The
+browser streams the asset through the music bus without decoding the whole
+track. Loop start defaults to 0 seconds. Loop end must exceed loop start,
+and both are bounded by 86400 seconds. Omit loop end to loop to the track's
+end. Omit `streaming` for decoded music. Loading a snapshot seeks music to
+the saved logical tick within the loop. Browser audio needs a user gesture.
+
+Use `set_audio {mixer}` for mixer buses and `audioSource` for triggered effects.
+See `native-game-reference` § Audio mix and spatial audio for their fields.
+
 ## 3D authoring
 
 Create with `dimension: "3d"` and optional `template: "exploration"`.

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createGameSession, createScriptedGameSession, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
+import { createGameSession, createNative3DGame, createScriptedGameSession, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 import { gameParticles } from "@nodetool-ai/protocol";
 import { registerGameCommands } from "../src/commands/game.js";
 
@@ -433,4 +433,28 @@ it("validates a 2D document with 3D-only particle fields and prints the warnings
   registerGameCommands(text);
   await text.parseAsync(["node", "nodetool", "game", "validate", gamePath]);
   expect(output).toMatch(/^Game document is valid\nWarning scenes\.0\.entities\.\d+\.particles\.emitters\.0\.softness: 2D particles ignore softness/);
+});
+
+it.each(["2D", "3D"])("validates and replays %s streamed scene music through the CLI", async (dimension) => {
+  const document = dimension === "3D" ? createNative3DGame("a".repeat(32)) : { ...createTopDownRoomGame("a".repeat(32)), schemaVersion: 2 as const };
+  if (dimension === "3D") {
+    document.assets["music.theme"] = { assetId: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", digest: "music-theme-fixture", mediaKind: "audio", required: false };
+  } else {
+    document.assets["music.theme"] = { assetId: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", digest: "music-theme-fixture", mediaKind: "audio", width: 1, height: 1 };
+  }
+  await writeFile(gamePath, JSON.stringify({ ...document, scenes: document.scenes.map(scene => ({ ...scene,
+    music: { assetId: "music.theme", volume: 0.6, fadeInTicks: 30, fadeOutTicks: 45,
+      streaming: { loopStartSeconds: 12, loopEndSeconds: 90 } }
+  })) }));
+  const program = new Command();
+  registerGameCommands(program);
+  await program.parseAsync(["node", "nodetool", "game", "validate", gamePath, "--json"]);
+  expect(JSON.parse(output.trim())).toMatchObject({ valid: true });
+  output = "";
+  const report = await runSimulation("--ticks", "120", "--seed", "1", "--verify-replay");
+  expect(report).toMatchObject({ ok: true, replay: { resumeTick: 60, verified: true } });
+  expect(report.error).toBeUndefined();
+  expect(report.replay).not.toHaveProperty("divergence");
+  expect(report.snapshot).toMatchObject({ tick: 120, music: { assetId: "music.theme", startTick: 0 } });
+  expect(report.snapshot).not.toHaveProperty("music.streaming");
 });
