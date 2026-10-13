@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { gameAnimationGraph3D, gameAssetBinding3D, gameDocument3D, gameEntity3D, gamePrefab3D, gameScene3D, type GameDocument3D } from "@nodetool-ai/protocol";
+import { gameAnimationGraph3D, gameAssetBinding3D, gameDocument3D, gameEntity3D, gameMaterial3D, gamePrefab3D, gameScene3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import type { DocumentMergeAdapter } from "../documentMerge";
 import { authoringMergeScalars } from "./authoringMerge";
 
@@ -7,6 +7,7 @@ const sceneUnit = gameScene3D.omit({ entities: true });
 const entityUnit = gameEntity3D.extend({ sceneId: z.string() });
 const assetUnit = z.object({ slot: z.string(), binding: gameAssetBinding3D });
 const prefabUnit = z.object({ id: z.string(), prefab: gamePrefab3D });
+const materialUnit = z.object({ id: z.string(), material: gameMaterial3D });
 const animationGraphUnit = z.object({ id: z.string(), graph: gameAnimationGraph3D });
 
 function referencedAnimationGraphs(doc: GameDocument3D): Set<string> {
@@ -14,7 +15,26 @@ function referencedAnimationGraphs(doc: GameDocument3D): Set<string> {
   return new Set(entities.flatMap((entity) => entity.animator3d?.graph === undefined ? [] : [entity.animator3d.graph]));
 }
 
+function retainReferencedMaterials(doc: GameDocument3D, sources: readonly GameDocument3D[]): GameDocument3D {
+  const entities = [...doc.scenes.flatMap((scene) => scene.entities), ...Object.values(doc.prefabs).flatMap((prefab) => prefab.entities)];
+  const referenced = new Set(entities.flatMap((entity) => [entity.primitive?.materialId, entity.model?.materialId])
+    .filter((id): id is string => id !== undefined));
+  let restored: GameDocument3D["materials"];
+  for (const materialId of referenced) {
+    if (doc.materials && Object.hasOwn(doc.materials, materialId)) { continue; }
+    const material = sources.map((source) => source.materials && Object.hasOwn(source.materials, materialId)
+      ? source.materials[materialId] : undefined).find((value) => value !== undefined);
+    if (material) {
+      restored ??= { ...doc.materials };
+      // Material IDs may name Object prototype properties.
+      Object.defineProperty(restored, materialId, { value: material, enumerable: true, writable: true, configurable: true });
+    }
+  }
+  return restored ? { ...doc, materials: restored } : doc;
+}
+
 export const gameMergeAdapter3D: DocumentMergeAdapter<GameDocument3D> = {
+  finalizeMergedDocument: (doc, base, draft, server) => retainReferencedMaterials(doc, [draft, server, base]),
   collections: [
     {
       kind: "scene",
@@ -52,6 +72,17 @@ export const gameMergeAdapter3D: DocumentMergeAdapter<GameDocument3D> = {
       write: (doc, values) => ({ ...doc, prefabs: Object.fromEntries(prefabUnit.array().parse(values).map((item) => [item.id, item.prefab])) }),
       unitId: (value) => prefabUnit.parse(value).id,
       unitLabel: (value) => `prefab ${prefabUnit.parse(value).id}`
+    },
+    {
+      kind: "material",
+      read: (doc) => Object.entries(doc.materials ?? {}).map(([id, material]) => ({ id, material })),
+      write: (doc, values) => {
+        const { materials: _previous, ...rest } = doc;
+        const materials = Object.fromEntries(materialUnit.array().parse(values).map((item) => [item.id, item.material]));
+        return retainReferencedMaterials(Object.keys(materials).length === 0 ? rest : { ...rest, materials }, [doc]);
+      },
+      unitId: (value) => materialUnit.parse(value).id,
+      unitLabel: (value) => `material ${materialUnit.parse(value).id}`
     },
     {
       kind: "animationGraph",
