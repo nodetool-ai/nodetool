@@ -11,6 +11,8 @@ import { PERMISSION_GATE_CONTEXT_KEY, ProcessingContext, headlessGate } from "@n
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { missingRuntimeDetailsOf, type MissingRuntimeDetails } from "@nodetool-ai/protocol";
 import { buildFullRegistry } from "../node-registry.js";
+import { findMissingPacks } from "@nodetool-ai/execution";
+import { MissingPackError } from "@nodetool-ai/protocol";
 
 interface NodeRunResult {
   nodeType: string;
@@ -50,6 +52,8 @@ export async function runSingleNode(
   options: RunSingleNodeOptions = {}
 ): Promise<NodeRunResult> {
   const registry = await buildFullRegistry();
+  const missing = await findMissingPacks({ nodes: [{ type: nodeType, properties: options.props ?? {} }] }, registry);
+  if (missing) { throw new MissingPackError(missing); }
   if (!registry.has(nodeType)) {
     throw new Error(
       `Unknown node type "${nodeType}". It is not in the local TS registry (Python-only nodes can't be run this way).`

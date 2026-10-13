@@ -27,6 +27,7 @@
 
 import { z } from "zod";
 import { missingRuntimeDetailsSchema } from "./missing-runtime-package.js";
+import { missingPackDetailsSchema } from "./missing-pack.js";
 import { isRecord, isString } from "./predicates.js";
 import {
   supervisorDecisionSchema,
@@ -219,7 +220,8 @@ export const jobUpdateSchema = z.object({
    * client has no other way to tell that apart from a node crash, since both
    * arrive as `failed` with prose in `error`. Absent for ordinary failures.
    */
-  error_code: z.string().nullable().optional()
+  error_code: z.string().nullable().optional(),
+  missing_pack: missingPackDetailsSchema.nullable().optional()
 });
 export type JobUpdate = z.infer<typeof jobUpdateSchema>;
 
@@ -379,11 +381,13 @@ export const nodeErrorDetailSchema = z.object({
   /**
    * `provider_auth`: the provider refused the credential (401/403).
    * `missing_runtime_package`: an optional package is not installed.
+   * `missing_pack`: a node pack needed by this invocation is not installed.
    */
   code: z.string(),
   /** Runtime package to install, for `missing_runtime_package`. */
   runtime_package: z.string().nullable().optional(),
   missing_runtime: missingRuntimeDetailsSchema.nullable().optional(),
+  missing_pack: missingPackDetailsSchema.nullable().optional(),
   /** Provider id as the runtime knows it (e.g. `openai`). */
   provider: z.string().nullable().optional(),
   /** Secret key holding that provider's credential (e.g. `OPENAI_API_KEY`). */

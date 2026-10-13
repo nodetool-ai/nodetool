@@ -2,6 +2,7 @@ import { createLogger } from "@nodetool-ai/config";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ToolLike } from "./agent-utils.js";
 import { isObjectLike } from "@nodetool-ai/node-sdk";
+import { missingPackDetailsOf } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Control tool support for Agent nodes with outgoing control edges
@@ -138,12 +139,20 @@ export function buildControlTools(controlContext: unknown): ControlTool[] {
 
         try {
           const result = await context.sendControlEvent(targetId, callArgs);
+          const missing = missingPackDetailsOf(result);
+          if (missing) {
+            return { ...missing, status: "error", target_node_id: targetId };
+          }
           return {
             status: "completed",
             target_node_id: targetId,
             result
           };
         } catch (err) {
+          const missing = missingPackDetailsOf(err);
+          if (missing) {
+            return { ...missing, status: "error", target_node_id: targetId };
+          }
           return {
             status: "error",
             target_node_id: targetId,

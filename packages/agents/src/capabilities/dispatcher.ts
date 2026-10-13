@@ -119,8 +119,8 @@ export function createCapabilityDispatcher(
       }
       // Plain data out, exactly as the belt bridge hands it over, so the two
       // paths cannot show the guest different values for one call — including
-      // an `{error}` payload, which is a failure to throw on rather than a
-      // value to compute with. A gate refusal arrives that way.
+      // a gate refusal, which throws. Structured missing-pack results remain
+      // data so the calling action can continue after the unavailable tool.
       const value = toTransferable(
         await run.invoke(found.spec.name, record)
       );

@@ -101,20 +101,22 @@ export async function runNpm(
 /** Installer commands retain forced policy while returning machine-readable output. */
 export async function runInstallerNpm(
   root: string, args: readonly string[],
-  options: { readonly mode: NpmInstallMode; readonly dryRun?: boolean; readonly rebuild?: boolean; readonly signal?: AbortSignal }
+  options: { readonly mode: NpmInstallMode; readonly dryRun?: boolean; readonly rebuild?: boolean; readonly signal?: AbortSignal; readonly onWarning?: (warning: string) => void }
 ): Promise<string> {
   assertInstallerModuleIdentity();
   const cli = findNpmCli();
-  checkNpmVersion(await npmCall(cli, ["--version"], root, true, options.signal));
+  const warning = checkNpmVersion(await npmCall(cli, ["--version"], root, true, options.signal));
+  if (warning) { (options.onWarning ?? ((value: string) => process.stderr.write(value + "\n")))(warning); }
   const flags = npmInstallFlags(options.mode).filter((flag) => flag !== "--dry-run=false" &&
     (!options.rebuild || flag !== "--ignore-scripts"));
   return npmCall(cli, [...args, ...flags, `--dry-run=${String(options.dryRun ?? false)}`,
     ...(options.rebuild ? ["--ignore-scripts=false", "--foreground-scripts"] : [])], root, true, options.signal);
 }
 
-export async function installerNpmVersion(root: string, signal?: AbortSignal): Promise<string> {
+export async function installerNpmVersion(root: string, signal?: AbortSignal, onWarning?: (warning: string) => void): Promise<string> {
   assertInstallerModuleIdentity();
   const version = (await npmCall(findNpmCli(), ["--version"], root, true, signal)).trim();
-  checkNpmVersion(version);
+  const warning = checkNpmVersion(version);
+  if (warning) { (onWarning ?? ((value: string) => process.stderr.write(value + "\n")))(warning); }
   return version;
 }

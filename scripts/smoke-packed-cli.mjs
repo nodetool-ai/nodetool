@@ -308,10 +308,10 @@ return result;`;
  * Start `nodetool mcp serve`, send initialize and tools/list over stdio, and
  * resolve with the tool count. Stdout is newline-delimited JSON-RPC.
  */
-export async function probeMcp(bin, env, cwd, workflow, timeoutMs = 120_000) {
+export async function probeMcp(bin, env, cwd, workflow, timeoutMs = 120_000, launchArgs = []) {
   const port = await freePort();
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(bin, ["mcp", "serve"], { env: { ...env, PORT: String(port) }, cwd, stdio: ["pipe", "pipe", "pipe"] });
+    const child = spawn(bin, [...launchArgs, "mcp", "serve"], { env: { ...env, PORT: String(port) }, cwd, stdio: ["pipe", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
     let listedTools = 0;
@@ -319,6 +319,10 @@ export async function probeMcp(bin, env, cwd, workflow, timeoutMs = 120_000) {
       child.kill("SIGKILL");
       reject(new Error(`mcp serve did not answer within ${timeoutMs}ms\n${stderr}`));
     }, timeoutMs);
+    child.once("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
     const send = (msg) => child.stdin.write(`${JSON.stringify(msg)}\n`);
     child.stderr.on("data", (d) => (stderr += d));
     child.on("exit", (code) => {
@@ -569,8 +573,15 @@ empty project, and runs it against an empty HOME.
         throw new Error(`Missing FAL validation omitted availability or property issues: ${validated.stdout}`);
       }
       const failed = spawnSync(bin, ["workflows", "run", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
-      if (failed.status === null || failed.status === 0 || !/fal/i.test(`${failed.stdout}${failed.stderr}`)) {
-        throw new Error(`Missing FAL execution must fail and name fal: ${failed.stdout}${failed.stderr}`);
+      const missingPack = JSON.parse(failed.stdout);
+      if (failed.status !== 3 || missingPack.error !== "missing_pack" || !missingPack.packs.some(pack => pack.id === "fal")) {
+        throw new Error(`Missing FAL execution must return missing_pack and exit 3: ${failed.stdout}${failed.stderr}`);
+      }
+      writeFileSync(falFixture, JSON.stringify({ graph: { nodes: [{ id: "fal", type: "fal.text_to_image.Flux1Dev", properties: { prompt: "Core-only pack preflight" } }], edges: [] } }));
+      const installOnly = spawnSync(bin, ["validate", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
+      const installReport = JSON.parse(installOnly.stdout).report;
+      if (installOnly.status !== 3 || !installReport.issues.some(issue => issue.code === "pack_not_installed") || installReport.issues.some(issue => issue.severity === "error" && issue.code !== "pack_not_installed")) {
+        throw new Error(`Missing-pack-only validation must exit 3: ${installOnly.stdout}${installOnly.stderr}`);
       }
       console.log("ok  missing FAL validates properties and fails execution with the pack name");
     }

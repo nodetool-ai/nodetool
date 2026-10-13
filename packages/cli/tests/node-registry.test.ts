@@ -67,14 +67,14 @@ describe("CLI command host policies", () => {
       "utf8"
     );
     expect(source).not.toMatch(/register\w+Nodes\(/);
-    expect(source.match(/registerAvailablePacks\(/g)).toHaveLength(3);
+    expect(source.match(/registerCliPacks\(/g)).toHaveLength(3);
     expect(
       source.match(
-        /registerAvailablePacks\(registry, CLI_LOCAL_BUILTIN_PACK_POLICY\)/g
+        /registerCliPacks\(registry, CLI_LOCAL_BUILTIN_PACK_POLICY\)/g
       )
     ).toHaveLength(2);
     expect(source).toContain(
-      "await registerAvailablePacks(NodeRegistry.global, CLI_DSL_BUILTIN_PACK_POLICY)"
+      "await registerCliPacks(NodeRegistry.global, CLI_DSL_BUILTIN_PACK_POLICY)"
     );
   });
 });

@@ -1,43 +1,19 @@
-import { readCatalogIndex } from "./index.js";
+import { readCatalogIndex } from "./catalog-data.js";
+import type { NodeCatalogIndex } from "./types.js";
 
-export type MissingPackInstall =
-  | { readonly supported: true; readonly reason: null; readonly command: string | null }
-  | { readonly supported: false; readonly reason: string; readonly command: null };
-
-export interface MissingPackDetails {
-  readonly error: "missing_pack";
-  readonly packs: readonly {
-    readonly id: string;
-    readonly npm: string;
-    readonly version: string;
-    readonly installBytes: number;
-    readonly requires: readonly string[];
-  }[];
-  readonly runtimeLibraries: readonly string[];
-  readonly nodeTypes: readonly string[];
-  readonly install: MissingPackInstall;
-  readonly restartRequired: false;
-}
-
-export class MissingPackError extends Error {
-  override readonly name = "MissingPackError";
-  readonly details: MissingPackDetails;
-
-  constructor(details: MissingPackDetails) {
-    const guidance = details.install.reason ?? details.install.command;
-    super(`Node pack ${details.packs.map((pack) => pack.id).join(", ")} is not installed.${guidance ? ` ${guidance}` : ""}`);
-    this.details = details;
-  }
-}
+import { MissingPackError, type MissingPackInstall } from "@nodetool-ai/protocol";
+import { currentPackInstall } from "./loader-context.js";
+export { MissingPackError, type MissingPackDetails, type MissingPackInstall } from "@nodetool-ai/protocol";
 
 export function createMissingPackError(
-  packId: string,
+  packId: string | readonly string[],
   nodeTypes: readonly string[] = [],
-  install: MissingPackInstall = { supported: false, reason: "Pack installs are not available in this version.", command: null }
+  install: MissingPackInstall = currentPackInstall() ?? { supported: false, reason: "Pack installs are not available in this version.", command: null },
+  catalog: NodeCatalogIndex = readCatalogIndex()
 ): MissingPackError {
-  const index = readCatalogIndex();
+  const index = catalog;
   const byId = new Map(index.packs.map((pack) => [pack.id, pack]));
-  const pending = [packId];
+  const pending = typeof packId === "string" ? [packId] : [...packId];
   const ids = new Set<string>();
   const runtimeLibraries = new Set<string>();
   for (let i = 0; i < pending.length; i++) {

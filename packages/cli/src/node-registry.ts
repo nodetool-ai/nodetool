@@ -9,7 +9,7 @@
  * unknown types as "not in the local TS registry".
  */
 import { NodeRegistry, type BuiltinPackPolicy } from "@nodetool-ai/node-sdk";
-import { registerAvailablePacks } from "@nodetool-ai/node-catalog";
+import { registerCliPacks } from "./packs/host.js";
 
 import { BUILTIN_NODE_PACKS } from "@nodetool-ai/protocol";
 import { installSandboxCatalog } from "./sandbox-catalog.js";
@@ -39,6 +39,6 @@ export const CLI_DSL_BUILTIN_PACK_POLICY = {
 export async function buildFullRegistry(): Promise<NodeRegistry> {
   installSandboxCatalog();
   const registry = new NodeRegistry();
-  await registerAvailablePacks(registry, CLI_BUILTIN_PACK_POLICY);
+  await registerCliPacks(registry, CLI_BUILTIN_PACK_POLICY);
   return registry;
 }

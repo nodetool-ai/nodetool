@@ -42,7 +42,8 @@ import {
   NodeRegistry,
   createGraphNodeTypeResolver
 } from "@nodetool-ai/node-sdk";
-import { registerAvailablePacks } from "@nodetool-ai/node-catalog";
+import { registerCliPacks } from "./packs/host.js";
+import { refusePackInstallsInProcess } from "./packs/install-process.js";
 import { CLI_LOCAL_BUILTIN_PACK_POLICY, CLI_DSL_BUILTIN_PACK_POLICY } from "./node-registry.js";
 import { ProcessingContext, createLocalWorkspace, initTelemetry, onPythonBridgeCreated } from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
@@ -332,7 +333,7 @@ addSupervisorOptions(
       const { runDslFile } = await import("./run-dsl.js");
       const { NodeRegistry } = await import("@nodetool-ai/node-sdk");
 
-      await registerAvailablePacks(NodeRegistry.global, CLI_DSL_BUILTIN_PACK_POLICY);
+      await registerCliPacks(NodeRegistry.global, CLI_DSL_BUILTIN_PACK_POLICY);
 
       const supervisorConfig = parseSupervisorFlags(opts);
       const absolutePath = resolve(dslFile);
@@ -440,7 +441,8 @@ program
   .option("--host <host>", "Host to bind", "127.0.0.1")
   .option("--port <port>", "Port to listen on", "7777")
   .action((opts) => {
-    const serverPath = resolve(__dirname, "../../websocket/dist/server.js");
+    refusePackInstallsInProcess("serve");
+    const serverPath = resolve(__dirname, "../dist/packs/serve.js");
     process.env["HOST"] = opts.host;
     process.env["PORT"] = opts.port;
     const result = spawnSync(process.execPath, [serverPath], {
@@ -600,7 +602,7 @@ addSupervisorOptions(
       // need to duplicate that here.
 
       const registry = new NodeRegistry();
-      await registerAvailablePacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
+      await registerCliPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
 
       const jobId = `job-${Date.now()}`;
       // Resolve asset URIs (e.g. /api/storage/<key>) against the local
@@ -1669,6 +1671,7 @@ mcp
   )
   .action(async () => {
     try {
+      refusePackInstallsInProcess("mcp serve");
       const {
         createMcpServer,
         createMcpStdioTransport,
@@ -1684,7 +1687,7 @@ mcp
       // A local TS-node registry powers list_nodes / search_nodes /
       // validate_workflow without spinning up a Python worker.
       const registry = new NodeRegistry();
-      await registerAvailablePacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
+      await registerCliPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
 
       // stdio serves exactly one local user; "1" is the local single-user id.
       const server = createMcpServer({

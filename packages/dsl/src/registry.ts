@@ -49,6 +49,24 @@ export interface ExecutorResolverOptions {
   registry?: NodeRegistry | undefined;
 }
 
+/** Refuse only catalog entries present in the selected registries, without constructing a node. */
+export function assertNodePackAvailable(
+  nodeType: string,
+  opts: ExecutorResolverOptions | undefined,
+  builtinRegistry: NodeRegistry
+): void {
+  const registries = [opts?.registry, NodeRegistry.global, builtinRegistry];
+  if (registries.some((registry) => registry?.has(nodeType))) {
+    return;
+  }
+  for (const registry of registries) {
+    const entry = registry?.catalogEntry(nodeType);
+    if (entry && registry?.availability(nodeType) === "catalog") {
+      throw createMissingPackError(entry.pack, [nodeType]);
+    }
+  }
+}
+
 /**
  * The resolution chain: caller override → `NodeRegistry.global` → builtin packs
  * → the Python bridge. Unknown types throw.

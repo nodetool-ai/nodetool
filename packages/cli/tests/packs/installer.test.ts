@@ -1,9 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, rm, unlink, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { installPacks, type InstallerOperations } from "../../src/packs/installer.js";
-import { parseInstallPlan, snapshotInstallTree, assertAdditivePlan, assertTreePins, removeSnapshotAdditions } from "../../src/packs/install-tree.js";
+import { installPacks as installAuthorizedPacks, type InstallPacksRequest, type InstallerOperations } from "../../src/packs/installer.js";
+import { authorizePackInstallCommand } from "../../src/commands/pack-install-authorization.js";
+async function installPacks(request: InstallPacksRequest, operations: InstallerOperations) {
+  const authorization = await authorizePackInstallCommand({ request, command: "packs-add" });
+  if (!authorization) { throw new Error("Missing fixture authorization"); }
+  return installAuthorizedPacks(request, authorization, operations);
+}
+import { parseInstallPlan, snapshotInstallTree, readInstallTree, installTreeRestored, assertAdditivePlan, assertTreePins, removeSnapshotAdditions } from "../../src/packs/install-tree.js";
 import type { NodeCatalogIndex } from "@nodetool-ai/node-catalog";
 
 const roots: string[] = [];
@@ -18,7 +24,7 @@ async function fixture() {
   await writeFile(join(root, "package.json"), JSON.stringify({ name: "project", version: "1.0.0" }));
   await writeFile(join(root, "node_modules/.package-lock.json"), JSON.stringify({ packages: {} }));
   const mode = { kind: "local" as const, installRoot: root, nodeModulesRoot: join(root, "node_modules"), cliRoot: root, coreVersion: "1.0.0", pathStyle: "posix" as const };
-  const request = { mode, packs: ["fixture"], authorized: true, stateFile: join(root, "state/cli-packs.json"), catalog };
+  const request = { mode, packs: ["fixture"], stateFile: join(root, "state/cli-packs.json"), catalog };
   const add = async (integrity = "sha512-fixture") => {
     await mkdir(join(root, "node_modules/@nodetool-ai/fixture-nodes"), { recursive: true });
     await writeFile(join(root, "node_modules/@nodetool-ai/fixture-nodes/package.json"), JSON.stringify({ name: "@nodetool-ai/fixture-nodes", version: "1.0.0" }));
@@ -55,7 +61,7 @@ describe("pack installer", () => {
     const f = await fixture(); vi.stubEnv("NODETOOL_PACKS_INSTALLER", "0");
     await expect(installPacks(f.request, f.operations)).rejects.toThrow(/disabled/);
     vi.stubEnv("NODETOOL_PACKS_INSTALLER", "1");
-    await expect(installPacks({ ...f.request, authorized: false }, f.operations)).rejects.toThrow(/authorization/);
+    await expect(installAuthorizedPacks(f.request, JSON.parse("{}"), f.operations)).rejects.toThrow(/authorization/);
     expect(f.npm).not.toHaveBeenCalled();
   });
   it("fails closed for absent runtime pins before npm changes the tree", async () => {
@@ -160,5 +166,37 @@ describe("pack installer", () => {
     const oldDescendant = { ...current[0], path: current[0].path + "/node_modules/old-package" };
     await expect(removeSnapshotAdditions(f.root, f.request.mode.nodeModulesRoot, [oldDescendant])).rejects.toThrow(/preexisting package/);
     expect(await snapshotInstallTree(f.root)).toEqual(current);
+  });
+  it("explicitly installs a provided companion that is not a dependency of the primary pack", async () => {
+    const f = await fixture();
+    const pin = { name: "@nodetool-ai/fixture-provider", version: "1.0.0", integrity: "sha512-provider" };
+    const catalog = { ...f.request.catalog, installPins: [pin], packs: f.request.catalog.packs.map((pack) => ({ ...pack, provides: [pin.name] })) };
+    f.npm.mockImplementation(async (_root, args, options) => {
+      if (options.dryRun) { return '{"add":[{"name":"@nodetool-ai/fixture-nodes","version":"1.0.0"},{"name":"@nodetool-ai/fixture-provider","version":"1.0.0"}],"change":[],"remove":[]}'; }
+      if (args[0] !== "install") { return ""; }
+      expect(args).toContain("@nodetool-ai/fixture-provider@1.0.0");
+      await f.add(); await mkdir(join(f.root, "node_modules", pin.name));
+      await writeFile(join(f.root, "node_modules", pin.name, "package.json"), JSON.stringify({ name: pin.name, version: pin.version }));
+      await writeFile(join(f.root, "node_modules/.package-lock.json"), JSON.stringify({ packages: {
+        "node_modules/@nodetool-ai/fixture-nodes": { version: "1.0.0", integrity: "sha512-fixture" },
+        [`node_modules/${pin.name}`]: { version: pin.version, integrity: pin.integrity }
+      } })); return "";
+    });
+    expect((await installPacks({ ...f.request, catalog }, f.operations)).packs).toEqual(["fixture"]);
+  });
+  it("global baseline exception accepts only an absent whole lock, never malformed or stale locks", async () => {
+    const f = await fixture(); await f.add(); const file = join(f.root, "node_modules/.package-lock.json"); await unlink(file);
+    await expect(snapshotInstallTree(f.root)).rejects.toMatchObject({ code: "ENOENT" });
+    const baseline = await readInstallTree(f.root, true); expect(baseline.missingLock).toBe(true); expect(baseline.packages[0].integrity).toBeUndefined();
+    await writeFile(file, "broken"); await expect(readInstallTree(f.root, true)).rejects.toThrow();
+    await writeFile(file, '{"packages":{}}'); await expect(readInstallTree(f.root, true)).rejects.toThrow(/stale/);
+  });
+  it("global baseline exception refuses links and never waives a known integrity", async () => {
+    const f = await fixture(); await f.add(); const file = join(f.root, "node_modules/.package-lock.json"); const before = await snapshotInstallTree(f.root);
+    expect(installTreeRestored(before, [{ ...before[0], integrity: "different" }], true)).toBe(false);
+    expect(installTreeRestored([{ ...before[0], integrity: undefined }], before, true)).toBe(true);
+    expect(() => assertTreePins(before, [{ ...before[0], integrity: "different" }], [], new Set(), "1.0.0", true)).toThrow(/changed/);
+    await unlink(file); await symlink(join(f.root, "node_modules/@nodetool-ai/fixture-nodes"), join(f.root, "node_modules/linked"), "junction");
+    await expect(readInstallTree(f.root, true)).rejects.toThrow(/linked package/);
   });
 });

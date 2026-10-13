@@ -18,8 +18,14 @@ const lockSchema = z.object({ packages: z.record(z.string(), z.object({
 })) });
 
 /** Inspect every nested package, including entries omitted by an invalid hidden lock. */
-export async function snapshotInstallTree(root: string): Promise<readonly TreePackage[]> {
-  const lock = lockSchema.parse(JSON.parse(await readFile(join(root, "node_modules/.package-lock.json"), "utf8")));
+export async function readInstallTree(root: string, allowMissingGlobalLock = false): Promise<{ readonly packages: readonly TreePackage[]; readonly missingLock: boolean }> {
+  let lock: z.infer<typeof lockSchema> | undefined;
+  let raw: string | undefined;
+  try { raw = await readFile(join(root, "node_modules/.package-lock.json"), "utf8"); }
+  catch (error) {
+    if (!(allowMissingGlobalLock && error instanceof Error && "code" in error && error.code === "ENOENT")) { throw error; }
+  }
+  if (raw !== undefined) { lock = lockSchema.parse(JSON.parse(raw)); }
   const result: TreePackage[] = [];
   const pending = [join(root, "node_modules")];
   while (pending.length) {
@@ -46,13 +52,16 @@ export async function snapshotInstallTree(root: string): Promise<readonly TreePa
       if (actual !== resolve(directory)) { throw new Error(`Installer refuses linked package ${directory}`); }
       const manifest = manifestSchema.parse(JSON.parse(await readFile(join(directory, "package.json"), "utf8")));
       const path = relative(root, directory).replaceAll("\\", "/");
-      const pinned = lock.packages[path];
-      if (!pinned || pinned.version !== manifest.version) { throw new Error(`Hidden lock is missing or stale for ${path}`); }
-      result.push({ path, name: manifest.name, version: manifest.version, integrity: pinned.integrity, realPath: actual });
+      const pinned = lock?.packages[path];
+      if (lock && (!pinned || pinned.version !== manifest.version)) { throw new Error(`Hidden lock is missing or stale for ${path}`); }
+      result.push({ path, name: manifest.name, version: manifest.version, integrity: pinned?.integrity, realPath: actual });
       pending.push(join(directory, "node_modules"));
     }
   }
-  return result.sort((a, b) => a.path.localeCompare(b.path));
+  return { packages: result.sort((a, b) => a.path.localeCompare(b.path)), missingLock: lock === undefined };
+}
+export async function snapshotInstallTree(root: string): Promise<readonly TreePackage[]> {
+  return (await readInstallTree(root)).packages;
 }
 
 export interface InstallPlan { readonly add: readonly { name: string; version: string }[]; readonly change: readonly unknown[]; readonly remove: readonly unknown[] }
@@ -105,11 +114,12 @@ export function assertAdditivePlan(plan: InstallPlan, before: readonly TreePacka
   }
 }
 
-export function assertTreePins(before: readonly TreePackage[], after: readonly TreePackage[], pins: readonly VerificationPin[], coreNames: ReadonlySet<string>, coreVersion: string): void {
+export function assertTreePins(before: readonly TreePackage[], after: readonly TreePackage[], pins: readonly VerificationPin[], coreNames: ReadonlySet<string>, coreVersion: string, initialGlobalLockMissing = false): void {
   const paths = new Map(after.map((entry) => [entry.path, entry]));
   for (const previous of before) {
     const next = paths.get(previous.path);
-    if (!next || next.name !== previous.name || next.version !== previous.version || next.integrity !== previous.integrity || next.realPath !== previous.realPath) {
+    if (!next || next.name !== previous.name || next.version !== previous.version ||
+      (!(initialGlobalLockMissing && previous.integrity === undefined) && next.integrity !== previous.integrity) || next.realPath !== previous.realPath) {
       throw new Error(`Install changed an existing package: ${previous.path}`);
     }
   }
@@ -127,6 +137,15 @@ export function assertTreePins(before: readonly TreePackage[], after: readonly T
       throw new Error(`Package integrity or version does not match pin: ${pin.name}`);
     }
   }
+}
+export function installTreeRestored(before: readonly TreePackage[], after: readonly TreePackage[], initialGlobalLockMissing = false): boolean {
+  if (before.length !== after.length) { return false; }
+  const paths = new Map(after.map((entry) => [entry.path, entry]));
+  return before.every((old) => {
+    const entry = paths.get(old.path);
+    return entry && entry.name === old.name && entry.version === old.version && entry.realPath === old.realPath &&
+      ((initialGlobalLockMissing && old.integrity === undefined) || entry.integrity === old.integrity);
+  });
 }
 
 export async function assertSharedIdentities(tree: readonly TreePackage[], shared: readonly PinnedPackage[]): Promise<void> {

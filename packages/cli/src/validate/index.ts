@@ -1,3 +1,4 @@
+import { findMissingPacks } from "@nodetool-ai/execution/missing-packs";
 /**
  * Wires the node-sdk {@link validateGraph} to the real node registry and the
  * shared target resolver (DB id / JSON file / DSL file). Integration code —
@@ -24,10 +25,12 @@ interface ValidateResult {
   report: GraphValidationReport;
 }
 
+type ValidationRegistry = GraphValidationRegistry & Partial<Pick<NodeRegistry, "list" | "getNodePackageId">>;
+
 interface ValidateDeps {
   loadFromDb: (id: string) => Promise<{ graph: DebugGraph } | null>;
   /** Registry view supplied by tests or an embedding host. */
-  registry?: GraphValidationRegistry;
+  registry?: ValidationRegistry;
   /**
    * Answers which exact `keys` this install can resolve from its secret store.
    * Omit where no store exists — file/DSL targets skip the missing-secret
@@ -68,6 +71,8 @@ export async function runValidate(
       availability: (t) => registry.availability(t),
       catalogEntry: (t) => registry.catalogEntry(t),
       catalogPack: (t) => registry.catalogPack(t),
+      list: () => registry.list?.() ?? [],
+      getNodePackageId: (t) => registry.getNodePackageId?.(t),
       getMetadata: (t) => registry.getMetadata(t),
       validateNode: (d, h) => registry.validateNode(d, h),
       listProviderIds: () => listRegisteredProviderIds(),
@@ -95,5 +100,22 @@ export async function runValidate(
   const report = validateGraph(resolved.graph, registryView, {
     availableSecrets
   });
+  if (registryView.availability && registryView.catalogEntry) {
+    const missing = await findMissingPacks(resolved.graph, {
+      availability: (type) => registryView.availability?.(type) ?? "unknown",
+      catalogEntry: (type) => registryView.catalogEntry?.(type),
+      list: () => registryView.list?.() ?? [],
+      getNodePackageId: (type) => registryView.getNodePackageId?.(type)
+    }, { loadWorkflow: deps.loadFromDb });
+    if (missing) {
+      const reported = new Set(report.issues.filter((issue) => issue.code === "pack_not_installed").map((issue) => issue.packId));
+      const extra = missing.packs.filter((pack) => !reported.has(pack.id)).map((pack) => ({
+        severity: "error" as const, code: "pack_not_installed", packId: pack.id,
+        installBytes: pack.installBytes, installCommand: missing.install.command,
+        message: `Node pack "${pack.id}" is required by the workflow and is not installed.`
+      }));
+      return { target: resolved.info, report: { ...report, ok: false, issues: [...report.issues, ...extra], counts: { ...report.counts, errors: report.counts.errors + extra.length } } };
+    }
+  }
   return { target: resolved.info, report };
 }

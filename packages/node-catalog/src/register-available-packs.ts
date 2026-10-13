@@ -3,12 +3,12 @@ import {
   BUILTIN_NODE_PACKS
 } from "@nodetool-ai/protocol";
 import { builtinPackUnavailableReason, isCallable, type BuiltinPackPolicy, type NodeRegistry } from "@nodetool-ai/node-sdk";
-import { readCatalogIndex, readCatalogNodes } from "./index.js";
+import { readCatalogIndex, readCatalogNodes } from "./catalog-data.js";
 import { importPack } from "./import-pack.js";
 import { MissingPackError } from "./errors.js";
 import type { CatalogNode, CatalogPack } from "./types.js";
 
-// The split domain packs inherit the required legacy base policy until A15.
+// Standalone library callers retain the legacy base policy. Hosts constrain imports through their inventory.
 const BASE_DOMAINS = ["core", "text", "llm", "code", "data", "document", "image", "audio", "video", "integration", "automation", "game", "blender", "manimgx"];
 const registrarSchema = z.custom<(registry: NodeRegistry) => void>(isCallable);
 
@@ -57,7 +57,7 @@ export async function registerCatalogPack(registry: NodeRegistry, packId: string
   }
 }
 
-/** Register resolvable packs and preserve catalog metadata for missing enabled packs. */
+/** Register admitted packs and preserve catalog metadata for missing enabled packs. */
 export async function registerAvailablePacks(
   registry: NodeRegistry,
   policy: BuiltinPackPolicy = {}

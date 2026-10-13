@@ -1,6 +1,8 @@
 import type { CatalogPack } from "./types.js";
-import { readCatalogIndex } from "./index.js";
+import { readCatalogIndex } from "./catalog-data.js";
 import { createMissingPackError } from "./errors.js";
+import { loadPackLoaderContext } from "./loader-context.js";
+import { resolveInstalledPack } from "./installed-resolver.js";
 
 function packSpecifier(pack: CatalogPack, specifier?: string): string {
   if (specifier === undefined) {
@@ -28,6 +30,11 @@ export async function importPack<T extends object = Record<string, unknown>>(
     throw new Error(`Unknown node pack: ${packId}`);
   }
   const target = packSpecifier(pack, specifier);
+  const context = await loadPackLoaderContext();
+  if (context) {
+    const module: T = await import(resolveInstalledPack(pack, target, context));
+    return module;
+  }
   let resolved: string;
   try {
     resolved = import.meta.resolve(target);

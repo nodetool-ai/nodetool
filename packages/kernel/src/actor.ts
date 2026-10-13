@@ -21,14 +21,16 @@ import type {
   CorrelationLineage,
   NodeDescriptor,
   ControlEvent,
-  NodeErrorDetail
+  NodeErrorDetail,
+  MissingPackDetails
 } from "@nodetool-ai/protocol";
 import {
   EMPTY_LINEAGE,
   LOOP_NODE_TYPE,
   TypeMetadata,
   missingRuntimePackageOf,
-  missingRuntimeDetailsOf
+  missingRuntimeDetailsOf,
+  missingPackDetailsOf
 } from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
@@ -83,6 +85,8 @@ import {
  * See runner.ts for the consumer.
  */
 export interface OutputRoutingHints {
+  /** Reject this controlled invocation while keeping the actor available for later calls. */
+  controlError?: MissingPackDetails;
   invocationLineage?: CorrelationLineage;
   perSlotLineage?: Record<string, CorrelationLineage>;
   /**
@@ -191,6 +195,7 @@ export function enumerateAllPendingKeys(
 export interface ActorResult {
   outputs: Record<string, unknown>;
   error?: string;
+  errorDetail?: NodeErrorDetail;
 }
 
 /**
@@ -413,7 +418,10 @@ export class NodeActor {
       // instead of asking them to parse the message.
       const failure = providerFailureDetail(err);
       const runtimePackage = missingRuntimePackageOf(err);
-      if (failure) {
+      const missingPack = missingPackDetailsOf(err);
+      if (missingPack) {
+        errorDetail = { code: "missing_pack", missing_pack: missingPack };
+      } else if (failure) {
         errorDetail = {
           code: failure.code,
           provider: failure.provider,
@@ -446,7 +454,11 @@ export class NodeActor {
 
     if (errorMessage !== undefined) {
       this._emitNodeStatus("error", undefined, errorMessage, errorDetail);
-      return { outputs: {}, error: errorMessage };
+      const result: ActorResult = { outputs: {}, error: errorMessage };
+      if (errorDetail) {
+        result.errorDetail = errorDetail;
+      }
+      return result;
     }
 
     // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
@@ -1321,6 +1333,9 @@ export class NodeActor {
       try {
         return await inInvocationAccount(account, invoke);
       } catch (err) {
+        if (this.node.is_controlled && missingPackDetailsOf(err)) {
+          throw err;
+        }
         if (!this._supervisor) {
           if (!this._degradeOnContentFilter(err, false)) throw err;
           await this._skipInvocation();
@@ -2031,9 +2046,24 @@ export class NodeActor {
           ...this._appendStaticItems(inputs),
           ...this._currentControlProperties
         });
-        const outputs = await this._invokeWithRecovery(merged, () =>
-          this._executor.process(merged, this._executionContext)
-        );
+        let outputs: Record<string, unknown> | typeof SKIPPED;
+        try {
+          outputs = await this._invokeWithRecovery(merged, () =>
+            this._executor.process(merged, this._executionContext)
+          );
+        } catch (error) {
+          const missing = missingPackDetailsOf(error);
+          if (!missing) {
+            throw error;
+          }
+          this._emitNodeStatus("error", undefined, error instanceof Error ? error.message : String(error), { code: "missing_pack", missing_pack: missing });
+          await this._sendOutputs(this.node.id, {}, {
+            controlError: missing,
+            skipInvocation: true,
+            invocationLineage: this._currentInvocationLineage ?? EMPTY_LINEAGE
+          });
+          continue;
+        }
         if (outputs === SKIPPED) continue;
         this._latestResult = outputs;
         await this._sendOutputs(this.node.id, outputs);

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 const { buildRegistry } = vi.hoisted(() => ({ buildRegistry: vi.fn(async () => ({ has: () => true })) }));
 vi.mock("../src/node-registry.js", () => ({ buildFullRegistry: buildRegistry }));
 vi.mock("../src/command-errors.js", () => ({ printCommandError: vi.fn() }));
+vi.mock("@nodetool-ai/execution/missing-packs", () => ({ findMissingPacks: async () => null }));
 
 const cleanReport = {
   ok: true,

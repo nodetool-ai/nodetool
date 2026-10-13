@@ -218,28 +218,53 @@ budget. Package-root savings overlap and must not be summed. A9 remains open.
 ## Immediate continuation
 
 A14 install-mode and inventory helpers are committed as `a7c58b1e81`.
-They detect Unix and Windows layouts without spawning npm, recognize custom
-user prefixes and canonicalize symlinked global roots. Inventory rejects wrong
-versions, malformed packages and missing companions, with diagnostics for the
-future doctor command. Mode-specific error guidance is explicit. A15 still
-needs to connect this snapshot to actual CLI and server loading.
+A15 connects their snapshot to CLI registration, providers and the installed
+server source. The loader admits exact versions and resolves exports from the
+admitted package roots. It refuses ancestor copies and wrong-version packs.
 
-A13.3 release pinning is implemented with registrar and companion tarballs
-packed first, integrity and Linux production-tree size measurement, a pinned
-catalog rebuild, then the remaining core artifacts. Earlier tarballs remain
-immutable. The measured tree has scripts disabled according to the default
-pack policy and includes dependencies, so it is an estimate for consent, not
-the final disk footprint after allowlisted rebuilds. Staging verification and
-promotion remain A13.4/A13.5. No npm publication is authorized by this handoff.
+A16 adds shared missing-pack payloads, graph preflight with referenced workflow
+lookups, CLI exit 3 and HTTP, WebSocket and MCP transport. A17 extends dynamic
+agent and DSL calls. Review found that real controlled-node failures still lost
+the payload and failed the run. That repair is in progress. Stub-only control
+tests did not establish the required behavior.
 
-Astra cleared both assignments after reproducing and verifying the symlinked
-global-prefix fix. Focused tests, package builds, root lint and typecheck, docs
-checks and harness selection pass. Actual Linux pack measurement runs in the
-new read-only `release-pins` job, without publication.
+A13.3 release pinning is committed as `fe59d9a14b`. Its read-only remote Linux
+measurement job passed. The catalog now also records original companion hashes,
+exact runtime alias identities and shared-library pins. A13.4/A13.5 implement
+staging verification and final promotion with the CLI last. Focused release
+regressions passed and Astra cleared the release scope. No npm publication or
+dist-tag change was performed. The npm owner still needs to enable trusted
+publishing and dist-tag operations before those release steps can run.
+
+A20 is checkpointed as `b847731b28`, behind `NODETOOL_PACKS_INSTALLER=1` with no
+command entry. It snapshots and plans, verifies pins before scripts, rebuilds
+only the allowlist and load-checks in a child. Local registry tests cover
+integrity refusal, additive plan refusal and rollback. npm 11 can retain global
+extraneous packages during rollback, so guarded cleanup removes only new,
+unlinked paths before replay and snapshot comparison. A same-version npm global
+change plan remains refused under the specified additive-only rule. A21 is
+replacing the temporary boolean with opaque CLI authorization. Review also
+proved that real global npm installations lack the hidden lock required by the
+initial snapshot. D25 defines the constrained baseline fallback. That repair
+and its real global-prefix regression are in progress.
 
 The first core CI attempt failed at `check:typescript` because four new
-workspace dependencies lacked project references. `37b5b1ef0a` adds them, and
-the reproduced policy check now passes. Fresh remote checks are required.
+workspace dependencies lacked project references. `37b5b1ef0a` adds them. The
+next attempt passed release measurement but stopped at script fixtures before
+the actual core install. Fresh-MCP smoke now launches the built entry directly
+and handles spawn errors. The publish fixture now uses an isolated repository
+and the cleaned environment. Fresh remote checks are still required.
+
+Foundation CI exposed catalog cycles and Node tracing imports in browser
+bundles. `54c21f4df2` fixes both and updates the stale typed-runtime test.
+Workflow-runner browser E2E passed on that head. The next dependency check
+reported a path-delimiter false positive in storage. `95be83aa5e` records the
+checker exception without changing behavior. The child still needs to merge
+these parent fixes after its checkpoint. Parent and child remain drafts.
+
+The production dependency scanner now enumerates runtime AST imports rather
+than counting erased type queries. Invalid production imports, empty scans,
+side-effect imports and mixed imports are retained regressions.
 
 1. Inspect [draft PR #6558](https://github.com/nodetool-ai/nodetool/pull/6558),
    stacked against `codex/cli-pack-system-runtime`. The A4/A8 checkpoint is

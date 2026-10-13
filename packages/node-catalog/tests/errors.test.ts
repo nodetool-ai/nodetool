@@ -8,7 +8,7 @@ const state = vi.hoisted(() => ({
     ]
   }
 }));
-vi.mock("../src/index.js", () => ({ readCatalogIndex: () => state.index }));
+vi.mock("../src/catalog-data.js", () => ({ readCatalogIndex: () => state.index }));
 const { MissingPackError, createMissingPackError } = await import("../src/errors.js");
 
 describe("missing pack error", () => {

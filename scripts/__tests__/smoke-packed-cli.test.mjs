@@ -201,8 +201,14 @@ it("executes a core workflow through a fresh local MCP database", async () => {
   const home = appFixture();
   const root = resolve(import.meta.dirname, "../..");
   const graph = JSON.parse(readFileSync(join(root, "examples/workflows/hello_input_output_cli.json"), "utf8")).graph;
-  const tools = await probeMcp(join(root, "node_modules/.bin/nodetool"), {
+  const tools = await probeMcp(process.execPath, {
     ...cleanEnv(home), SECRETS_MASTER_KEY: "a".repeat(64)
-  }, home, graph, 45000);
+  }, home, graph, 45000, [join(root, "packages/cli/dist/nodetool.js")]);
   expect(tools).toBeGreaterThan(0);
 }, 60000);
+
+it("reports an unavailable MCP executable without an unhandled spawn error", async () => {
+  const home = appFixture();
+  await expect(probeMcp(join(home, "missing-nodetool"), cleanEnv(home), home))
+    .rejects.toMatchObject({ code: "ENOENT" });
+});

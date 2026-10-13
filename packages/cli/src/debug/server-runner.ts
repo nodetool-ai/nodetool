@@ -244,6 +244,9 @@ export async function runOnServer(
   if (result.missingRuntime) {
     report.missingRuntime = result.missingRuntime;
   }
+  if (result.missingPack) {
+    report.missingPack = result.missingPack;
+  }
   if (supervisor) {
     report.supervised = {
       provider: supervisor.providerId,
