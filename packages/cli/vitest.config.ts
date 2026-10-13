@@ -37,7 +37,6 @@ function nodetoolStubPlugin(): Plugin {
     "@nodetool-ai/fal-nodes",
     "@nodetool-ai/replicate-nodes",
     "@nodetool-ai/dsl",
-    "@nodetool-ai/protocol",
     "@nodetool-ai/config",
     "@nodetool-ai/deploy",
     "@nodetool-ai/vectorstore",

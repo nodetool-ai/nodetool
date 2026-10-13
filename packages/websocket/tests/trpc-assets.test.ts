@@ -30,17 +30,17 @@ vi.mock("@nodetool-ai/config", async (orig) => {
   };
 });
 
-// Mock filesystem writes so update() with `data` doesn't hit disk.
-vi.mock("node:fs/promises", async (orig) => {
-  const actual = await orig<typeof import("node:fs/promises")>();
+// Keep router orchestration at the storage boundary, including safe-root writes.
+vi.mock("../src/lib/thumbnail.js", async (orig) => {
+  const actual = await orig<typeof import("../src/lib/thumbnail.js")>();
   return {
     ...actual,
-    mkdir: vi.fn().mockResolvedValue(undefined),
-    writeFile: vi.fn().mockResolvedValue(undefined)
+    storeAssetWithThumbnail: vi.fn().mockResolvedValue(undefined)
   };
 });
 
 import { Asset } from "@nodetool-ai/models";
+import { storeAssetWithThumbnail } from "../src/lib/thumbnail.js";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -316,6 +316,9 @@ describe("assets router", () => {
       });
       // size is set to the byteLength of the decoded buffer.
       expect(a.size).toBe(5);
+      expect(storeAssetWithThumbnail).toHaveBeenCalledWith(
+        "user-1", "a1", "a1.png", new TextEncoder().encode("hello"), "image/png"
+      );
     });
 
     it("throws NOT_FOUND when the asset does not exist", async () => {
