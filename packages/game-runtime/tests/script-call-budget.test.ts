@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { QuickJSContext, QuickJSRuntime } from "quickjs-emscripten-core";
 import { gameDocument, type GameDocument } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame } from "../src/sample.js";
-import { defaultScriptCallClock, wallScriptCallClock } from "../src/script-clock.js";
+import { defaultScriptCallClock, wallScriptCallClock, threadCpuScriptCallClock, startScriptCallTimer } from "../src/script-clock.js";
 import { prepareGameScripts, scriptSourceKey, type GameScriptCall } from "../src/scripts.js";
 
 // Destructuring the input makes this a fresh-context script, so every call creates and disposes a context.
@@ -20,7 +20,7 @@ const key = scriptSourceKey("room", "worker", 0);
 const call: GameScriptCall = { sourceKey: key, stateKey: key, entityId: "worker", source: "worker", state: null, x: 0, y: 0,
   velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxTickMs: 20, maxCommands: 8 };
 
-afterEach(() => { vi.restoreAllMocks(); });
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("per-call script budget", () => {
   it("creates a fresh context before the call budget starts and evaluates the user source inside it", async () => {
@@ -75,27 +75,28 @@ describe("per-call script budget", () => {
 
 describe("per-call script clock", () => {
   const input = (tick: number) => ({ tick, pressed: [], justPressed: [], events: [], world: [] });
-  // Linux can lag a running thread's CPU time by a scheduler tick, so the call's own work must stay well under the limit.
-  // The block stays short because it also counts against the 50 ms wall-clock batch budget.
+  // An explicitly injected CPU clock excludes blocked time. The block still counts against the batch wall budget.
   const shortCall: GameScriptCall = { ...call, maxTickMs: 6 };
-  const threadCpuMs = (): number => { const { user, system } = process.threadCpuUsage(); return (user + system) / 1000; };
   // A world entity whose snapshot copy blocks the thread without using CPU. The snapshot is built inside the call window.
   const blockingWorld = (ms: number) => [{
     id: "sleeper", source: "sleeper", y: 0, velocityX: 0, velocityY: 0,
     get x(): number { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); return 0; }
   }];
 
-  it("measures calls in thread CPU time on Node", () => {
-    expect(defaultScriptCallClock.kind).toBe("thread-cpu");
+  it("measures the default clock according to the host policy", () => {
+    expect(defaultScriptCallClock.kind).toBe(process.platform === "linux" ? "wall" : "thread-cpu");
     const cpu = defaultScriptCallClock.now();
     const wall = performance.now();
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 30);
     expect(performance.now() - wall).toBeGreaterThanOrEqual(29);
-    expect(defaultScriptCallClock.now() - cpu).toBeLessThan(20);
+    if (defaultScriptCallClock.kind === "thread-cpu") { expect(defaultScriptCallClock.now() - cpu).toBeLessThan(20); }
+    else { expect(defaultScriptCallClock.now() - cpu).toBeGreaterThanOrEqual(29); }
   });
 
-  it("does not count time the thread spends blocked inside a call", async () => {
-    const runner = await prepareGameScripts(fixture());
+  it("does not count blocked time when a CPU clock is explicitly injected", async () => {
+    const runner = await prepareGameScripts(fixture(), { callClock: {
+      kind: "thread-cpu", now() { const usage = process.threadCpuUsage(); return (usage.user + usage.system) / 1000; }
+    } });
     try {
       const started = performance.now();
       const batch = runner.run([shortCall], input(0), 1, blockingWorld(8));
@@ -111,17 +112,45 @@ describe("per-call script clock", () => {
     } finally { runner.dispose(); }
   });
 
-  it("interrupts a CPU-bound loop once it has used its call limit", async () => {
+  it.each([1, 20])("interrupts a CPU-bound loop at a %i ms call limit", async (limit) => {
     const base = fixture();
     const looping = gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) =>
-      entity.id === "worker" ? { ...entity, behaviors: [{ kind: "script", source: "({ state }) => { while (true) {} }", maxTickMs: 20, maxCommands: 8 }] } : entity) })) });
+      entity.id === "worker" ? { ...entity, behaviors: [{ kind: "script", source: "({ state }) => { while (true) {} }", maxTickMs: limit, maxCommands: 8 }] } : entity) })) });
     const runner = await prepareGameScripts(looping);
     try {
-      const cpu = threadCpuMs();
+      const cpu = defaultScriptCallClock.now();
       const wall = performance.now();
-      expect(() => runner.run([call], input(0), 1)).toThrow(/interrupted/);
-      // The call stops at 20 ms of thread CPU, or earlier at the 50 ms wall-clock batch budget.
-      expect(threadCpuMs() - cpu >= 20 || performance.now() - wall >= 50).toBe(true);
+      expect(() => runner.run([{ ...call, maxTickMs: limit }], input(0), 1)).toThrow(/interrupted/);
+      // The per-call CPU budget and the independent 50 ms batch wall budget both remain enforced.
+      expect(defaultScriptCallClock.now() - cpu >= limit || performance.now() - wall >= 50).toBe(true);
     } finally { runner.dispose(); }
+  });
+});
+
+
+describe("Linux call budget policy", () => {
+  it("enforces a 1 ms call even when the native CPU counter has not advanced", () => {
+    const usage = vi.fn().mockReturnValue({ user: 0, system: 0 });
+    vi.stubGlobal("process", { platform: "linux", threadCpuUsage: usage });
+    vi.spyOn(performance, "now").mockReturnValueOnce(0).mockReturnValueOnce(0).mockReturnValue(1.5);
+    const clock = threadCpuScriptCallClock() ?? wallScriptCallClock;
+    expect(startScriptCallTimer(clock, 1)()).toBe(true);
+    expect(clock.kind).toBe("wall");
+    expect(usage).not.toHaveBeenCalled();
+  });
+
+  it("ignores stale previous-call CPU samples and uses the current wall interval", () => {
+    const usage = vi.fn().mockReturnValueOnce({ user: 0, system: 0 }).mockReturnValue({ user: 2040, system: 0 });
+    vi.stubGlobal("process", { platform: "linux", threadCpuUsage: usage });
+    vi.spyOn(performance, "now").mockReturnValueOnce(0).mockReturnValueOnce(0).mockReturnValue(0.5);
+    const clock = threadCpuScriptCallClock() ?? wallScriptCallClock;
+    expect(startScriptCallTimer(clock, 1)()).toBe(false);
+    expect(usage).not.toHaveBeenCalled();
+  });
+
+  it("retains CPU clock conversion on other Node hosts", () => {
+    const usage = vi.fn().mockReturnValue({ user: 1500, system: 500 });
+    vi.stubGlobal("process", { platform: "darwin", threadCpuUsage: usage });
+    expect(threadCpuScriptCallClock()?.now()).toBe(2);
   });
 });
