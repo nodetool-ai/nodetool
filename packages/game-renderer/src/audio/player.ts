@@ -1,4 +1,4 @@
-import { gameAudioMixer, type GameAssetBinding, type GameAssetBinding3D, type GameAudioEmitter, type GameAudioMixerInput, type GameEvent, type GameEvent3D, type GameSnapshot } from "@nodetool-ai/protocol";
+import { gameAudioMixer, type GameAssetBinding, type GameAssetBinding3D, type GameAudioEmitter, type GameAudioMixerInput, type GameEvent, type GameEvent3D, type GameSnapshot, type GameScene } from "@nodetool-ai/protocol";
 import { GameAudioMixer, type GameAudioMixerState } from "./mixer.js";
 import {
   createGameAudioPanner, gameAudioDopplerRate, gameAudioVelocity, placeGameAudioListener, placeGameAudioPanner, setGameAudioDopplerRate,
@@ -20,6 +20,8 @@ const MAX_VOICES = 32;
 export interface GameAudioOptions {
   readonly assets: Readonly<Record<string, GameAssetBinding | GameAssetBinding3D>>;
   readonly tickRate: number;
+  /** Scene music settings are presentation configuration, separate from snapshots. */
+  readonly scenes?: ReadonlyArray<Pick<GameScene, "id" | "music">>;
   readonly resolveAsset: (binding: GameAssetBinding | GameAssetBinding3D) => Promise<string | null>;
   readonly status: (message: string) => void;
   readonly context?: AudioContext;
@@ -66,6 +68,12 @@ export class GameAudioPlayer {
   updateMixer(settings: GameAudioMixerInput | undefined): void {
     if (this.disposed) return;
     this.mixer.update(this.mixerSettings(settings));
+  }
+
+  /** Updates scene presentation settings without replacing the audio context. */
+  updateScenes(scenes: GameAudioOptions["scenes"]): void {
+    if (this.disposed) return;
+    this.options = { ...this.options, scenes };
   }
 
   /** Player-facing bus volume, for example from a settings screen. */
