@@ -156,8 +156,6 @@ defaults:
     values: *noindex
   - scope: { path: "runtime-install-design.md" }
     values: *noindex
-  - scope: { path: "runtime-package-interface.md" }
-    values: *noindex
   - scope: { path: "custom-node-library-design.md" }
     values: *noindex
   - scope: { path: "document-sync-plan.md" }
@@ -262,6 +260,7 @@ exclude:
   - CLOUD_NODE_CURATION.md
   - CODE_NODE_COVERAGE.md
   - COMPONENT_STREAMLINE_PLAN.md
+  - runtime-package-interface.md
   # Internal product/design specs (PRDs, drafts) — not for the public site.
   - STUDIO_PRD.md
   - STUDIO_MVP_PROMPT.md
