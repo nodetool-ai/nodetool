@@ -69,6 +69,8 @@ export class CdpRelay {
   private port: chrome.runtime.Port | null = null;
   private connection: RelayConnectionState = "disconnected";
   private attachedTabId: number | null = null;
+  private hostOwnsTab = false;
+  private controlQueue: Promise<void> = Promise.resolve();
   private lastError: string | null = null;
   private reconnectDelay = RECONNECT_MIN_MS;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -103,6 +105,7 @@ export class CdpRelay {
       return;
     }
     this.attachedTabId = null;
+    this.hostOwnsTab = false;
     this.sendFatal(`Debugger detached: ${reason}`);
     this.emitStatus();
   };
@@ -149,6 +152,7 @@ export class CdpRelay {
    * reason spelled out — not a silent jump to some other tab.
    */
   async attachActiveTab(): Promise<number> {
+    if (this.hostOwnsTab) throw new Error("A browser client owns the tab. Stop its request before attaching another tab.");
     const [tab] = await chrome.tabs.query({
       active: true,
       currentWindow: true,
@@ -162,12 +166,14 @@ export class CdpRelay {
         `Cannot attach to the active tab: ${reason} Switch to a normal web page, then attach again.`,
       );
     }
+    if (this.hostOwnsTab) throw new Error("A browser client owns the tab. Stop its request before attaching another tab.");
     await this.attachTab(tab.id);
     return tab.id;
   }
 
   /** Detach the debugger from the current tab, if attached. */
   async detach(reason = "User detached"): Promise<void> {
+    this.hostOwnsTab = false;
     await this.teardownDebugger(reason, true);
     this.emitStatus();
   }
@@ -197,7 +203,12 @@ export class CdpRelay {
     this.port = port;
 
     port.onMessage.addListener((message: unknown) => {
-      void this.handleMessage(message);
+      const frame = asFrame(message);
+      if (frame?.kind === "attach" || frame?.kind === "detach") {
+        this.controlQueue = this.controlQueue.then(() => this.handleMessage(message)).catch((error) => this.sendFatal(errorMessage(error)));
+      } else {
+        void this.handleMessage(message);
+      }
     });
 
     port.onDisconnect.addListener(() => {
@@ -238,10 +249,13 @@ export class CdpRelay {
         await this.handleCdpCommand(frame.id, frame.method, frame.params);
         break;
       case "attach":
+        this.hostOwnsTab = true;
         await this.handleAttachRequest(frame.urlMatch);
         break;
       case "detach":
+        this.hostOwnsTab = false;
         await this.teardownDebugger(frame.reason ?? "Host detached", false);
+        this.send<DetachFrame>({ kind: "detach", reason: frame.reason ?? "Host detached" });
         this.emitStatus();
         break;
       case "ping":
