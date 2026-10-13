@@ -5,7 +5,7 @@ import {
   resolveBuiltinPackEnabled
 } from "@nodetool-ai/protocol";
 import { isCallable, type BuiltinPackPolicy, type NodeRegistry } from "@nodetool-ai/node-sdk";
-import { readCatalogIndex, readCatalogNodes } from "./index.js";
+import { readCatalogIndex, readCatalogNodes } from "./catalog-data.js";
 import { importPack } from "./import-pack.js";
 import { MissingPackError } from "./errors.js";
 import type { CatalogNode, CatalogPack } from "./types.js";

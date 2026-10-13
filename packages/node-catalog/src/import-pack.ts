@@ -1,5 +1,5 @@
 import type { CatalogPack } from "./types.js";
-import { readCatalogIndex } from "./index.js";
+import { readCatalogIndex } from "./catalog-data.js";
 import { createMissingPackError } from "./errors.js";
 
 function packSpecifier(pack: CatalogPack, specifier?: string): string {

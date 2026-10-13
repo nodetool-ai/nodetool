@@ -1,9 +1,16 @@
-import { AsyncLocalStorage } from "node:async_hooks";
+import type { AsyncLocalStorage } from "node:async_hooks";
 import { ROOT_CONTEXT, type Context, type ContextManager } from "@opentelemetry/api";
+import { getNodeBuiltinSync } from "@nodetool-ai/config";
 
 /** Preserve active spans across Node promises and timers. */
 export class NodeTraceContextManager implements ContextManager {
-  private readonly storage = new AsyncLocalStorage<Context>();
+  private readonly storage: AsyncLocalStorage<Context>;
+
+  constructor() {
+    const hooks = getNodeBuiltinSync<typeof import("node:async_hooks")>("node:async_hooks");
+    if (!hooks) { throw new Error("Node trace context requires node:async_hooks"); }
+    this.storage = new hooks.AsyncLocalStorage<Context>();
+  }
 
   active(): Context { return this.storage.getStore() ?? ROOT_CONTEXT; }
 

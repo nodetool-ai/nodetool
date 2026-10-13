@@ -1,4 +1,4 @@
-import { readCatalogIndex } from "./index.js";
+import { readCatalogIndex } from "./catalog-data.js";
 
 export interface MissingPackDetails {
   readonly error: "missing_pack";
