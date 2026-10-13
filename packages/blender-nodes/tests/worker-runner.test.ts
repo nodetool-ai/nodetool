@@ -126,7 +126,9 @@ describe("WorkerBlenderRunner", () => {
     expect(stub.requests).toHaveLength(1);
     const request = stub.requests[0]!;
     expect(request.inputs).toEqual({ model: "model" });
-    expect(request.timeout).toBe(6);
+    // The worker gets what is left of the 6s budget after the op files are read, in whole seconds.
+    expect(request.timeout).toBeGreaterThanOrEqual(1);
+    expect(request.timeout).toBeLessThanOrEqual(6);
     expect(Object.keys(request.blobs).sort()).toEqual([
       "model",
       ...(await filesBelow(resolveOpScriptDir()))
