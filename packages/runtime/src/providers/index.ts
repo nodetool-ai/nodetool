@@ -60,6 +60,8 @@ import { EvolinkProvider } from "./evolink-provider.js";
 import { GMIProvider } from "./gmi-provider.js";
 import { MetaProvider } from "./meta-provider.js";
 import { DeepSeekProvider } from "./deepseek-provider.js";
+import { AzureOpenAIProvider } from "./azure-openai-provider.js";
+import { BedrockProvider } from "./bedrock-provider.js";
 import { XAIProvider } from "./xai-provider.js";
 import { LMStudioProvider } from "./lmstudio-provider.js";
 import { VLLMProvider } from "./vllm-provider.js";
@@ -258,6 +260,17 @@ export { EvolinkProvider };
 export { GMIProvider };
 export { MetaProvider };
 export { DeepSeekProvider };
+export {
+  AzureOpenAIProvider,
+  azureOpenAIResourceRoot,
+  inferAzureDeploymentKind,
+  parseAzureDeployments
+} from "./azure-openai-provider.js";
+export type {
+  AzureDeployment,
+  AzureDeploymentKind
+} from "./azure-openai-provider.js";
+export { BedrockProvider };
 export { XAIProvider };
 export { LMStudioProvider };
 export { VLLMProvider };
@@ -636,6 +649,22 @@ registerBuiltinProvider(PROVIDER_IDS.DEEPSEEK, DeepSeekProvider, {
   DEEPSEEK_API_KEY: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.XAI, XAIProvider, { XAI_API_KEY: "" });
+// Azure OpenAI / Microsoft Foundry: models are the user's deployment names.
+// The API version is optional; without it requests use the v1 API.
+registerBuiltinProvider(
+  PROVIDER_IDS.AZURE_OPENAI,
+  AzureOpenAIProvider,
+  { AZURE_OPENAI_API_KEY: "", AZURE_OPENAI_ENDPOINT: "" },
+  { AZURE_OPENAI_DEPLOYMENTS: "", AZURE_OPENAI_API_VERSION: "" }
+);
+// Amazon Bedrock: SigV4-signed with an IAM access key. Models are listed from
+// the region unless BEDROCK_MODEL_IDS pins them.
+registerBuiltinProvider(
+  PROVIDER_IDS.BEDROCK,
+  BedrockProvider,
+  { BEDROCK_ACCESS_KEY_ID: "", BEDROCK_SECRET_ACCESS_KEY: "" },
+  { BEDROCK_SESSION_TOKEN: "", BEDROCK_REGION: "", BEDROCK_MODEL_IDS: "" }
+);
 registerBuiltinProvider(PROVIDER_IDS.HUGGINGFACE, HuggingFaceProvider, {
   HF_TOKEN: ""
 });

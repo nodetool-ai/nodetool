@@ -1171,6 +1171,10 @@ export const PROVIDER_IDS = {
   EVOLINK: "evolink",
   GMI: "gmi",
   META: "meta",
+  // Cloud marketplaces: Azure OpenAI / Microsoft Foundry deployments and
+  // Amazon Bedrock models, reached with the user's own cloud credentials.
+  AZURE_OPENAI: "azure_openai",
+  BEDROCK: "bedrock",
   // NodeTool's own managed models: curated delegates run on platform keys and
   // metered against the user's credit balance (BYOK providers stay unmetered).
   NODETOOL: "nodetool",
