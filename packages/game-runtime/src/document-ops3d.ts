@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   gameAnimationGraph3D, gameAssetBinding3D, gameAudioMixer, gameBehavior3D, gameBody3D, gameCamera3D, gameCollider3D, gameCollisionMatrix3D, gameDocument3D, gamePhysicsMaterials3D,
-  gameEntity3D, gameInputBindings, gameLight3D, gameMaterial3D, gameMaterials3D, gamePerformance3D, gamePrefab3D, gameScene3D, gameScriptParamValue, gameScriptParams, gameTransform3D, gameUiTree, gameVector3,
+  gameEntity3D, gameInputBindings, gameLight3D, gameMaterial3D, gameMaterials3D, gamePerformance3D, gamePrefab3D, gameScene3D, gameScriptParamValue, gameScriptParams, gameTextureSlot3D, gameTransform3D, gameUiTree, gameVector3,
   type AnyGameDocument, type GameDocument, type GameDocument3D, type GameEntity3D, type GamePrefab3D, type GameTransform3D
 } from "@nodetool-ai/protocol";
 import { applyGameOwnershipOperation, authoringMembershipOp, createGameOwnershipDeltaState, overrideMembershipOp, reconcileGameOwnershipDeltas } from "./ownership-ops.js";
@@ -20,14 +20,27 @@ function preservingPatch<Schema extends z.ZodType>(schema: Schema) {
     if (!parsed.success) { for (const issue of parsed.error.issues) { context.addIssue({ code: "custom", path: issue.path, message: issue.message }); } }
   });
 }
+const textureSlotPatch = gameTextureSlot3D.partial().extend({
+  tiling: gameTextureSlot3D.shape.tiling.unwrap().partial().nullable().optional(),
+  offset: gameTextureSlot3D.shape.offset.unwrap().partial().nullable().optional()
+});
+const materialPatch = gameMaterial3D.partial().extend({
+  baseColorTexture: textureSlotPatch.nullable().optional(),
+  normalTexture: textureSlotPatch.nullable().optional(),
+  ormTexture: textureSlotPatch.nullable().optional(),
+  emissiveTexture: textureSlotPatch.nullable().optional(),
+  shading: gameMaterial3D.shape.shading.unwrap().nullable().optional(),
+  toonSteps: gameMaterial3D.shape.toonSteps.unwrap().nullable().optional(),
+  outline: gameMaterial3D.shape.outline.unwrap().partial().nullable().optional()
+});
 const entitySet = preservingPatch(gameEntity3D.partial().extend({
   tags: gameEntity3D.shape.tags.unwrap().nullable().optional(),
   props: gameEntity3D.shape.props.unwrap().nullable().optional(),
   id: z.never().optional(),
   parentId: id.nullable().optional(),
   transform3d: gameTransform3D.partial().extend({ position: gameVector3.partial().optional(), scale: gameTransform3D.shape.scale.unwrap().partial().optional() }).optional(),
-  primitive: gameEntity3D.shape.primitive.unwrap().partial().nullable().optional(),
-  model: gameEntity3D.shape.model.unwrap().partial().nullable().optional(),
+  primitive: gameEntity3D.shape.primitive.unwrap().partial().extend({ materialId: id.nullable().optional(), material: materialPatch.optional() }).nullable().optional(),
+  model: gameEntity3D.shape.model.unwrap().partial().extend({ materialId: id.nullable().optional(), material: materialPatch.optional() }).nullable().optional(),
   body3d: z.union(gameBody3D.options.map((schema) => schema.partial())).nullable().optional(),
   collider3d: z.union(gameCollider3D.options.map((schema) => schema.partial().extend({
     layer: id.nullable().optional(), physicsMaterial: id.nullable().optional(),
@@ -335,7 +348,7 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
       case "set_animation_graph": draft.animationGraphs = { ...draft.animationGraphs, [op.graph_id]: op.graph }; break;
       case "set_material": draft.materials = { ...draft.materials, [op.material_id]: op.material }; break;
       case "remove_material": {
-        if (!draft.materials?.[op.material_id]) { fail(opIndex, ["material_id"], "Material does not exist"); }
+        if (!draft.materials || !Object.hasOwn(draft.materials, op.material_id)) { fail(opIndex, ["material_id"], "Material does not exist"); }
         delete draft.materials[op.material_id];
         if (Object.keys(draft.materials).length === 0) { delete draft.materials; }
         break;

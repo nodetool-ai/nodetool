@@ -1,9 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { gameDocument3D, gameMaterial3D } from "@nodetool-ai/protocol";
+import { gameDocument3D, gameMaterial3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import { anyGameDocumentOp, applyAnyGameOps, applyGameOps3D } from "../src/document-ops3d.js";
 import { validateGame3D } from "../src/validate3d.js";
 import { blockout } from "./fixtures-game3d.js";
 import { createGameSession3D, replayGame3D } from "../src/session3d.js";
+
+function applyJsonMaterialOps(document: GameDocument3D, operations: readonly unknown[]): GameDocument3D {
+  const decoded: unknown = JSON.parse(JSON.stringify(operations));
+  if (!Array.isArray(decoded)) { throw new Error("Expected JSON operation array"); }
+  return applyAnyGameOps(document, decoded.map((value: unknown) => anyGameDocumentOp.parse(value)));
+}
+
+function texturedMaterialDocument(): GameDocument3D {
+  const document = blockout();
+  const texture = { assetId: "surface", tiling: { x: 2, y: 3 }, offset: { x: 0.25, y: 0.5 } };
+  const material = { color: "#00ff00", opacity: 0.2, shading: "toon", toonSteps: 3,
+    outline: { color: "#000000", width: 0.05 }, baseColorTexture: texture, normalTexture: texture,
+    ormTexture: texture, emissiveTexture: texture };
+  return gameDocument3D.parse({ ...document, materials: { paint: { color: "#ff0000" } },
+    assets: { surface: { mediaKind: "image", assetId: "image", digest: "image-digest", format: "png", width: 2, height: 2, byteLength: 64, preparationVersion: "1" },
+      rig: { mediaKind: "model", assetId: "rig", digest: "model-digest", bounds: { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } },
+        nodeIds: [], clipIds: [], geometryBytes: 0, textureBytes: 0, triangles: 0 } },
+    scenes: [{ ...document.scenes[0], entities: [...document.scenes[0].entities,
+      { id: "box", transform3d: {}, primitive: { kind: "box", dimensions: { x: 1, y: 1, z: 1 }, materialId: "paint", material } },
+      { id: "model", transform3d: {}, model: { assetId: "rig", materialId: "paint", material } }
+    ] }] });
+}
 
 describe("named 3D material authoring", () => {
   it("projects isolated presentation materials and exactly replays 120 ticks from tick 60", async () => {
@@ -74,4 +96,85 @@ describe("named 3D material authoring", () => {
       code: "missing_material_texture", path: ["materials", "paint", "baseColorTexture", "assetId"]
     }));
   });
+
+  it("requires owned named entries even for prototype property names", () => {
+    const document = blockout();
+    document.materials = {};
+    expect(() => applyGameOps3D(document, [{ op: "remove_material", material_id: "constructor" }])).toThrow(/does not exist/);
+    const candidate = gameDocument3D.parse({ ...document, scenes: [{ ...document.scenes[0], entities: [
+      ...document.scenes[0].entities,
+      { id: "box", transform3d: {}, primitive: { kind: "box", dimensions: { x: 1, y: 1, z: 1 }, materialId: "constructor" } }
+    ] }] });
+    expect(validateGame3D(candidate).diagnostics).toContainEqual(expect.objectContaining({ code: "missing_material" }));
+  });
+
+  it("projects copied image bindings for the closed capture resolver", async () => {
+    const document = blockout();
+    document.assets.paint = { mediaKind: "image", assetId: "paint-bytes", digest: "prepared-digest", required: true,
+      format: "png", width: 2, height: 2, byteLength: 64, preparationVersion: "1" };
+    const session = await createGameSession3D(document, 1);
+    try {
+      const frame = session.frame();
+      expect(frame.images?.paint).toEqual(document.assets.paint);
+      if (!frame.images) { throw new Error("Expected image bindings"); }
+      frame.images.paint.digest = "changed";
+      expect(session.frame().images?.paint.digest).toBe("prepared-digest");
+    } finally { session.dispose(); }
+  });
+  it("clears primitive and model material references through JSON patches without losing inline settings", () => {
+    const before = texturedMaterialDocument();
+    const after = applyJsonMaterialOps(before, [
+      { op: "update_entity", entity_id: "box", set: { primitive: { materialId: null } } },
+      { op: "update_entity", entity_id: "model", set: { model: { materialId: null } } }
+    ]);
+    for (const id of ["box", "model"]) {
+      const original = before.scenes[0].entities.find((entity) => entity.id === id);
+      const restored = after.scenes[0].entities.find((entity) => entity.id === id);
+      const source = original?.primitive ?? original?.model;
+      const visual = restored?.primitive ?? restored?.model;
+      expect(visual).not.toHaveProperty("materialId");
+      expect(visual?.material).toEqual(source?.material);
+    }
+  });
+
+  it.each(["primitive", "model"] as const)("clears new inline %s material options and patches UV components through JSON", (component) => {
+    const before = texturedMaterialDocument();
+    const entityId = component === "primitive" ? "box" : "model";
+    const updated = applyJsonMaterialOps(before, [{ op: "update_entity", entity_id: entityId,
+      set: { [component]: { materialId: null, material: { baseColorTexture: { tiling: { x: 4 }, offset: { y: -0.5 } } } } } }]);
+    const material = updated.scenes[0].entities.find((entity) => entity.id === entityId)?.[component]?.material;
+    expect(material?.baseColorTexture).toEqual({ assetId: "surface", tiling: { x: 4, y: 3 }, offset: { x: 0.25, y: -0.5 } });
+    const uvCleared = applyJsonMaterialOps(updated, [{ op: "update_entity", entity_id: entityId,
+      set: { [component]: { material: { baseColorTexture: { tiling: null, offset: null } } } } }]);
+    expect(uvCleared.scenes[0].entities.find((entity) => entity.id === entityId)?.[component]?.material?.baseColorTexture)
+      .toEqual({ assetId: "surface" });
+    const cleared = applyJsonMaterialOps(uvCleared, [{ op: "update_entity", entity_id: entityId,
+      set: { [component]: { material: { baseColorTexture: null, normalTexture: null, ormTexture: null,
+        emissiveTexture: null, shading: null, toonSteps: null, outline: null } } } }]);
+    const result = cleared.scenes[0].entities.find((entity) => entity.id === entityId)?.[component]?.material;
+    expect(result?.color).toBe("#00ff00");
+    expect(result?.opacity).toBe(0.2);
+    for (const field of ["baseColorTexture", "normalTexture", "ormTexture", "emissiveTexture", "shading", "toonSteps", "outline"]) {
+      expect(result).not.toHaveProperty(field);
+    }
+    expect(before.scenes[0].entities.find((entity) => entity.id === entityId)?.[component]?.material?.baseColorTexture?.tiling)
+      .toEqual({ x: 2, y: 3 });
+  });
+
+  it("retains full merged validation and rejects invalid partial material patches atomically", () => {
+    const before = texturedMaterialDocument();
+    const original = structuredClone(before);
+    for (const material of [{ color: null }, { baseColorTexture: { assetId: null } },
+      { baseColorTexture: { tiling: { x: 0 } } }, { baseColorTexture: { offset: { y: Infinity } } },
+      { toonSteps: 9 }, { outline: { width: 0.11 } }, { baseColorTexture: { assetId: "missing" } }]) {
+      expect(() => applyJsonMaterialOps(before, [{ op: "update_entity", entity_id: "box",
+        set: { primitive: { materialId: null, material } } }])).toThrow();
+      expect(before).toEqual(original);
+    }
+    const noUv = applyJsonMaterialOps(before, [{ op: "update_entity", entity_id: "box",
+      set: { primitive: { material: { baseColorTexture: { tiling: null } } } } }]);
+    expect(() => applyJsonMaterialOps(noUv, [{ op: "update_entity", entity_id: "box",
+      set: { primitive: { material: { baseColorTexture: { tiling: { x: 2 } } } } } }])).toThrow();
+  });
+
 });

@@ -58,7 +58,6 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
     for (const issue of collisionLayerIssues3D(document)) { add(issue.code, issue.path, issue.message); }
     for (const issue of physicsMaterialIssues3D(document)) { add(issue.code, issue.path, issue.message); }
     for (const issue of materialReferenceIssues3D(document)) { add(issue.code, issue.path, issue.message); }
-    // 3D documents bind no image assets, so a 3D HUD image node always reports a missing image.
     for (const issue of gameUiIssues(document)) { add("invalid_ui", issue.path, issue.message); }
     for (const [slot, asset] of Object.entries(document.assets)) {
       if (asset.mediaKind === "model" || asset.mediaKind === "collider") {
