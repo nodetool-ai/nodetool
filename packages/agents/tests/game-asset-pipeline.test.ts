@@ -4,7 +4,7 @@ import { join } from "node:path";
 import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
-import { gameAssetBinding, gameDocument } from "@nodetool-ai/protocol";
+import { anyGameDocument, gameAssetBinding, gameAssetBinding3D, gameDocument } from "@nodetool-ai/protocol";
 import { createLocalWorkspace, MemoryCache, ProcessingContext } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter, assetObjectKey } from "@nodetool-ai/storage";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
@@ -22,13 +22,15 @@ function documentOf(result: unknown) {
   return gameDocument.parse(result.document);
 }
 
-async function setup(capabilities: readonly CapabilityExport[] = []) {
+async function setup(capabilities: readonly CapabilityExport[] = [], dimension: "2d" | "3d" = "2d") {
   const storage = new InMemoryStorageAdapter();
   const workspace = createLocalWorkspace(directory);
   const context = new ProcessingContext({ jobId: "game-asset-test", userId: USER,
     cache: new MemoryCache(), workspace, assetStorage: storage });
   const run = createCapabilityRun({ context, gate: UNGATED, capabilities });
-  const document = documentOf(await run.invoke("create_native_game", { project_id: PROJECT, name: "Asset room" }));
+  const created = await run.invoke("create_native_game", { project_id: PROJECT, name: "Asset room", dimension });
+  if (typeof created !== "object" || !created || !("document" in created)) { throw new Error(JSON.stringify(created)); }
+  const document = anyGameDocument.parse(created.document);
   return { run, context, workspace, storage, id: document.id };
 }
 
@@ -48,6 +50,44 @@ describe("game asset preparation and kinds", () => {
     vi.restoreAllMocks();
     ModelObserver.clear();
     await rm(directory, { recursive: true, force: true });
+  });
+
+  it("stages generated 3D image bytes and installs a verified image binding", async () => {
+    const { run, workspace, id } = await setup([], "3d");
+    const bytes = await sharp({ create: { width: 4, height: 4, channels: 4, background: "orange" } }).png().toBuffer();
+    await workspace.write("generated-texture.png", bytes);
+    vi.spyOn(generateImage, "impl").mockResolvedValue({ path: "generated-texture.png", mime_type: "image/png" });
+    const staged = await run.invoke("generate_game_asset", { game_id: id.slice(0, 12), slot: "base", kind: "image", prompt: "Texture", provider: "test", model: "image", install: false });
+    expect(staged).not.toHaveProperty("error");
+    if (typeof staged !== "object" || !staged || !("binding" in staged)) { throw new Error(JSON.stringify(staged)); }
+    const binding = gameAssetBinding3D.parse(staged.binding);
+    expect(binding).toMatchObject({ mediaKind: "image", width: 4, height: 4, byteLength: bytes.length, format: "png", preparationVersion: "1" });
+    expect(binding).not.toHaveProperty("frame");
+    const installed = await run.invoke("install_native_game_asset", { game_id: id, slot: "base", binding: { ...binding, width: 128 } });
+    expect(installed).not.toHaveProperty("error");
+    if (typeof installed !== "object" || !installed || !("document" in installed)) { throw new Error(JSON.stringify(installed)); }
+    const document = anyGameDocument.parse(installed.document);
+    expect(document.assets.base).toMatchObject({ width: 4, height: 4 });
+    const copied = await run.invoke("generate_game_asset", { game_id: id, slot: "copy", kind: "image", input_file: `asset://${document.assets.base.assetId.slice(0, 12)}.png`, install: false });
+    expect(copied).toMatchObject({ binding: { digest: binding.digest, width: 4, height: 4 } });
+    for (const slot of ["normal", "orm", "emissive"]) {
+      expect(await run.invoke("install_native_game_asset", { game_id: id, slot, binding })).not.toHaveProperty("error");
+    }
+    expect(await run.invoke("edit_native_game", { game_id: id, ops: [
+      { op: "set_material", material_id: "toon", material: { shading: "toon", toonSteps: 4, outline: { color: "#000000", width: 0.02 },
+        baseColorTexture: { assetId: "base", tiling: { x: 2, y: 3 }, offset: { x: 0.25, y: -0.5 } },
+        normalTexture: { assetId: "normal" }, ormTexture: { assetId: "orm" }, emissiveTexture: { assetId: "emissive" } } },
+      { op: "update_entity", entity_id: "crate", set: { primitive: { materialId: "toon" } } }
+    ] })).not.toHaveProperty("error");
+    const played = await run.invoke("playtest_native_game", { game_id: id, seed: 1, inputs: [{ pressed: [], ticks: 120 }], restore_at_tick: 60,
+      assertions: [{ replay_matches: true }] });
+    expect(played).not.toHaveProperty("error");
+    expect(played).toMatchObject({ ticks: 120, replay_matches: true, script_error: null });
+    expect(await run.invoke("generate_game_asset", { game_id: id, slot: "atlas", kind: "image", input_file: "generated-texture.png", preparation: { sheet: { cols: 2, rows: 1 } } }))
+      .toMatchObject({ error: expect.stringContaining("3D images") });
+    await workspace.write("invalid.png", new Uint8Array([1, 2, 3]));
+    expect(await run.invoke("generate_game_asset", { game_id: id, slot: "invalid", kind: "image", input_file: "invalid.png", install: false }))
+      .toMatchObject({ error: "Image preparation failed" });
   });
 
   it("imports a pose atlas and returns frame bindings usable in one document edit", async () => {
