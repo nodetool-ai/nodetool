@@ -14,8 +14,9 @@ export function applyEnvironmentPreset3D(scene: GameScene3D, id: GameEnvironment
   const preset = getGameEnvironmentPreset3D(id);
   const parents = new Set(scene.entities.flatMap((entity) => entity.parentId === undefined ? [] : [entity.parentId]));
   const linkedId = scene.environment.sky?.kind === "procedural" ? scene.environment.sky.sunEntityId : undefined;
-  const existing = scene.entities.find((entity) => entity.tags?.includes(PRESET_SUN_TAG) && isPresetSun(entity, parents)) ??
-    scene.entities.find((entity) => entity.id === linkedId && isPresetSun(entity, parents));
+  const eligible = scene.entities.filter((entity) => isPresetSun(entity, parents));
+  const existing = eligible.find((entity) => entity.tags?.includes(PRESET_SUN_TAG)) ??
+    eligible.find((entity) => entity.id === linkedId) ?? (eligible.length === 1 ? eligible[0] : undefined);
   let sun: GameEntity3D;
   if (existing) {
     sun = { ...existing, light3d: preset.sun.light, transform3d: { ...existing.transform3d, rotation: preset.sun.rotation },
