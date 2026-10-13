@@ -64,6 +64,8 @@ export type PrepareGameModelResult =
 
 const SUPPORTED_EXTENSIONS = new Set([
   "KHR_materials_unlit", "KHR_materials_emissive_strength", "KHR_texture_transform", "KHR_mesh_quantization",
+  "KHR_materials_clearcoat", "KHR_materials_transmission", "KHR_materials_sheen", "KHR_materials_specular",
+  "KHR_materials_ior", "KHR_materials_volume",
 ]);
 const COMPONENT_BYTES = new Map([[5120, 1], [5121, 1], [5122, 2], [5123, 2], [5125, 4], [5126, 4]]);
 const COMPONENTS = new Map([["SCALAR", 1], ["VEC2", 2], ["VEC3", 3], ["VEC4", 4], ["MAT2", 4], ["MAT3", 9], ["MAT4", 16]]);
