@@ -996,6 +996,139 @@
                 }
               ]
             },
+            "missing_pack": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "properties": {
+                    "error": {
+                      "const": "missing_pack",
+                      "type": "string"
+                    },
+                    "install": {
+                      "oneOf": [
+                        {
+                          "additionalProperties": true,
+                          "properties": {
+                            "command": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "reason": {
+                              "type": "null"
+                            },
+                            "supported": {
+                              "const": true,
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "supported",
+                            "reason",
+                            "command"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": true,
+                          "properties": {
+                            "command": {
+                              "type": "null"
+                            },
+                            "reason": {
+                              "type": "string"
+                            },
+                            "supported": {
+                              "const": false,
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "supported",
+                            "reason",
+                            "command"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "nodeTypes": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "readOnly": true,
+                      "type": "array"
+                    },
+                    "packs": {
+                      "items": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "installBytes": {
+                            "minimum": 0,
+                            "type": "number"
+                          },
+                          "npm": {
+                            "type": "string"
+                          },
+                          "requires": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "readOnly": true,
+                            "type": "array"
+                          },
+                          "version": {
+                            "type": "string"
+                          }
+                        },
+                        "readOnly": true,
+                        "required": [
+                          "id",
+                          "npm",
+                          "version",
+                          "installBytes",
+                          "requires"
+                        ],
+                        "type": "object"
+                      },
+                      "readOnly": true,
+                      "type": "array"
+                    },
+                    "restartRequired": {
+                      "type": "boolean"
+                    },
+                    "runtimeLibraries": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "readOnly": true,
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "packs",
+                    "runtimeLibraries",
+                    "nodeTypes",
+                    "install",
+                    "restartRequired"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "queue_position": {
               "anyOf": [
                 {
@@ -1114,6 +1247,231 @@
                   "properties": {
                     "code": {
                       "type": "string"
+                    },
+                    "missing_pack": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": true,
+                          "properties": {
+                            "error": {
+                              "const": "missing_pack",
+                              "type": "string"
+                            },
+                            "install": {
+                              "oneOf": [
+                                {
+                                  "additionalProperties": true,
+                                  "properties": {
+                                    "command": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "reason": {
+                                      "type": "null"
+                                    },
+                                    "supported": {
+                                      "const": true,
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "supported",
+                                    "reason",
+                                    "command"
+                                  ],
+                                  "type": "object"
+                                },
+                                {
+                                  "additionalProperties": true,
+                                  "properties": {
+                                    "command": {
+                                      "type": "null"
+                                    },
+                                    "reason": {
+                                      "type": "string"
+                                    },
+                                    "supported": {
+                                      "const": false,
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "supported",
+                                    "reason",
+                                    "command"
+                                  ],
+                                  "type": "object"
+                                }
+                              ]
+                            },
+                            "nodeTypes": {
+                              "items": {
+                                "type": "string"
+                              },
+                              "readOnly": true,
+                              "type": "array"
+                            },
+                            "packs": {
+                              "items": {
+                                "additionalProperties": true,
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "installBytes": {
+                                    "minimum": 0,
+                                    "type": "number"
+                                  },
+                                  "npm": {
+                                    "type": "string"
+                                  },
+                                  "requires": {
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "readOnly": true,
+                                    "type": "array"
+                                  },
+                                  "version": {
+                                    "type": "string"
+                                  }
+                                },
+                                "readOnly": true,
+                                "required": [
+                                  "id",
+                                  "npm",
+                                  "version",
+                                  "installBytes",
+                                  "requires"
+                                ],
+                                "type": "object"
+                              },
+                              "readOnly": true,
+                              "type": "array"
+                            },
+                            "restartRequired": {
+                              "type": "boolean"
+                            },
+                            "runtimeLibraries": {
+                              "items": {
+                                "type": "string"
+                              },
+                              "readOnly": true,
+                              "type": "array"
+                            }
+                          },
+                          "required": [
+                            "error",
+                            "packs",
+                            "runtimeLibraries",
+                            "nodeTypes",
+                            "install",
+                            "restartRequired"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "missing_runtime": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": true,
+                          "properties": {
+                            "bringYourOwn": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "managed": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "missing": {
+                              "type": "string"
+                            },
+                            "reason": {
+                              "enum": [
+                                "missing",
+                                "incompatible",
+                                "broken"
+                              ],
+                              "type": "string"
+                            },
+                            "restart": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "runtimePackage": {
+                              "enum": [
+                                "python",
+                                "nodejs",
+                                "ffmpeg",
+                                "pandoc",
+                                "pdftotext",
+                                "yt-dlp",
+                                "rust",
+                                "manimgx",
+                                "transformers-js",
+                                "tensorflow-js",
+                                "node-llama-cpp",
+                                "whisper-cpp",
+                                "playwright",
+                                "claude-agent-sdk",
+                                "pdf-js",
+                                "office-documents",
+                                "tesseract-ocr",
+                                "fabric",
+                                "email-imap",
+                                "tokenizer",
+                                "imaging",
+                                "typescript",
+                                "tracing",
+                                "rapier",
+                                "esbuild"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "runtimePackage",
+                            "missing",
+                            "reason",
+                            "managed",
+                            "bringYourOwn",
+                            "restart"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "provider": {
                       "anyOf": [
@@ -1718,6 +2076,139 @@
             }
           ]
         },
+        "missing_pack": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "properties": {
+                "error": {
+                  "const": "missing_pack",
+                  "type": "string"
+                },
+                "install": {
+                  "oneOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "command": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "reason": {
+                          "type": "null"
+                        },
+                        "supported": {
+                          "const": true,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "supported",
+                        "reason",
+                        "command"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "command": {
+                          "type": "null"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "supported": {
+                          "const": false,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "supported",
+                        "reason",
+                        "command"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "nodeTypes": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "readOnly": true,
+                  "type": "array"
+                },
+                "packs": {
+                  "items": {
+                    "additionalProperties": true,
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "installBytes": {
+                        "minimum": 0,
+                        "type": "number"
+                      },
+                      "npm": {
+                        "type": "string"
+                      },
+                      "requires": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "readOnly": true,
+                        "type": "array"
+                      },
+                      "version": {
+                        "type": "string"
+                      }
+                    },
+                    "readOnly": true,
+                    "required": [
+                      "id",
+                      "npm",
+                      "version",
+                      "installBytes",
+                      "requires"
+                    ],
+                    "type": "object"
+                  },
+                  "readOnly": true,
+                  "type": "array"
+                },
+                "restartRequired": {
+                  "type": "boolean"
+                },
+                "runtimeLibraries": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "readOnly": true,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "error",
+                "packs",
+                "runtimeLibraries",
+                "nodeTypes",
+                "install",
+                "restartRequired"
+              ],
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "queue_position": {
           "anyOf": [
             {
@@ -1884,6 +2375,231 @@
               "properties": {
                 "code": {
                   "type": "string"
+                },
+                "missing_pack": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "error": {
+                          "const": "missing_pack",
+                          "type": "string"
+                        },
+                        "install": {
+                          "oneOf": [
+                            {
+                              "additionalProperties": true,
+                              "properties": {
+                                "command": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "reason": {
+                                  "type": "null"
+                                },
+                                "supported": {
+                                  "const": true,
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "supported",
+                                "reason",
+                                "command"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": true,
+                              "properties": {
+                                "command": {
+                                  "type": "null"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "supported": {
+                                  "const": false,
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "supported",
+                                "reason",
+                                "command"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        },
+                        "nodeTypes": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "readOnly": true,
+                          "type": "array"
+                        },
+                        "packs": {
+                          "items": {
+                            "additionalProperties": true,
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "installBytes": {
+                                "minimum": 0,
+                                "type": "number"
+                              },
+                              "npm": {
+                                "type": "string"
+                              },
+                              "requires": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "readOnly": true,
+                                "type": "array"
+                              },
+                              "version": {
+                                "type": "string"
+                              }
+                            },
+                            "readOnly": true,
+                            "required": [
+                              "id",
+                              "npm",
+                              "version",
+                              "installBytes",
+                              "requires"
+                            ],
+                            "type": "object"
+                          },
+                          "readOnly": true,
+                          "type": "array"
+                        },
+                        "restartRequired": {
+                          "type": "boolean"
+                        },
+                        "runtimeLibraries": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "readOnly": true,
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "error",
+                        "packs",
+                        "runtimeLibraries",
+                        "nodeTypes",
+                        "install",
+                        "restartRequired"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "missing_runtime": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "bringYourOwn": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "managed": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "missing": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "enum": [
+                            "missing",
+                            "incompatible",
+                            "broken"
+                          ],
+                          "type": "string"
+                        },
+                        "restart": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "runtimePackage": {
+                          "enum": [
+                            "python",
+                            "nodejs",
+                            "ffmpeg",
+                            "pandoc",
+                            "pdftotext",
+                            "yt-dlp",
+                            "rust",
+                            "manimgx",
+                            "transformers-js",
+                            "tensorflow-js",
+                            "node-llama-cpp",
+                            "whisper-cpp",
+                            "playwright",
+                            "claude-agent-sdk",
+                            "pdf-js",
+                            "office-documents",
+                            "tesseract-ocr",
+                            "fabric",
+                            "email-imap",
+                            "tokenizer",
+                            "imaging",
+                            "typescript",
+                            "tracing",
+                            "rapier",
+                            "esbuild"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "runtimePackage",
+                        "missing",
+                        "reason",
+                        "managed",
+                        "bringYourOwn",
+                        "restart"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "provider": {
                   "anyOf": [
