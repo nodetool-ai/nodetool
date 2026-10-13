@@ -217,8 +217,10 @@ budget. Package-root savings overlap and must not be summed. A9 remains open.
 
 ## Immediate continuation
 
-1. Push this fork and open a draft PR against `codex/cli-pack-system-runtime`.
-   Inspect its remote packed-core-cli checks and the foundation PR checks.
+1. Inspect [draft PR #6558](https://github.com/nodetool-ai/nodetool/pull/6558),
+   stacked against `codex/cli-pack-system-runtime`. The A4/A8 checkpoint is
+   `4a18eef330`. Inspect its remote packed-core-cli checks and the foundation
+   PR checks.
    Fix failures before marking either layer ready.
 2. After actual core-only Linux installation succeeds, implement A9 using the
    measured installed size plus the plan’s margin. Prove the size check fails

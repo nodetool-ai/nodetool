@@ -424,7 +424,9 @@ These are the other A4.6 source cuts:
 
 - `routes/nodes.ts` uses `importPack("integration")`.
 - `routes/documents.ts` uses `importPack("document", "lib/pdf-text")`.
-- The file-watch predicates move from `automation-nodes` into `websocket`.
+- The file-watch predicates move from `automation-nodes` into `nodes-utils`,
+  shared with `websocket` without adding Node path imports to the browser
+  protocol entrypoint.
 - `routes/kie-pricing.ts` reads from `model-pricing`.
 - `trpc/routers/models.ts` returns empty model lists with a pack hint.
 - `trpc/routers/games.ts`, `routes/games.ts` and `model-download-runtime.ts`

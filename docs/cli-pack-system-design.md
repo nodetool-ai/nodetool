@@ -192,7 +192,7 @@ pack or heavy-library specifier.
 | `packages/websocket/src/server.ts:28-30` → `transformers-js-provider`, `whisper-cpp`, `base-nodes` (`setCodeNodeAgentsModule`) | static | Providers register only when installed. Import `setCodeNodeAgentsModule` from `code-nodes`, which stays core. |
 | `packages/websocket/src/routes/nodes.ts:10` → `base-nodes` (`resolveComfyWorkflow`, `resolveKieDynamicSchema`) | static | `importPack("integration")`. The route returns `missing_pack`. |
 | `packages/websocket/src/routes/documents.ts:17` → `document-nodes/lib/pdf-text` | static | `importPack("document", "lib/pdf-text")`. The route already handles `missingRuntimePackageOf` (`:16`). |
-| `packages/websocket/src/triggers/file-watch.ts:35` → `automation-nodes` | static | Extract the file-watch predicates into core (`protocol` or `websocket`). They are pure functions. |
+| `packages/websocket/src/triggers/file-watch.ts:35` → `automation-nodes` | static | Extract the file-watch predicates into `nodes-utils`, shared with websocket. Keep their Node path imports out of the browser protocol entrypoint. |
 | `packages/websocket/src/trpc/routers/games.ts:9` → `game-renderer/preparation3d` | static | `importRuntimeLibrary("game-renderer")`. |
 | `packages/websocket/src/routes/kie-pricing.ts:7` → `kie-nodes/kie-pricing-api` | static | Move `kie-pricing-api.ts` into `model-pricing`. It has no imports. |
 | `packages/websocket/src/trpc/routers/models.ts:7,44` → `whisper-cpp`, `transformers-js-nodes` | static | Lazy. Return empty model lists with a pack hint when absent. |
