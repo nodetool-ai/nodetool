@@ -3,12 +3,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
+import { Asset, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
 import { anyGameDocument, gameAssetBinding, gameAssetBinding3D, gameDocument } from "@nodetool-ai/protocol";
 import { createLocalWorkspace, MemoryCache, ProcessingContext } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter, assetObjectKey } from "@nodetool-ai/storage";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import type { CapabilityExport, CapabilityRun } from "../src/capabilities/types.js";
+import { ownedAssetResolver3D } from "../src/capabilities/game3d.js";
 import { generateImage } from "../src/capabilities/media.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { GAME_ASSET_NODE_RUNNER_CONTEXT_KEY, type GameAssetNodeRunner } from "../src/capabilities/game-asset-source.js";
@@ -50,6 +51,36 @@ describe("game asset preparation and kinds", () => {
     vi.restoreAllMocks();
     ModelObserver.clear();
     await rm(directory, { recursive: true, force: true });
+  });
+
+  it.each(["png", "jpeg", "webp"] as const)("resolves installed %s textures through public 3D capture", async (format) => {
+    const { run, workspace, id } = await setup([], "3d");
+    const bytes = await sharp({ create: { width: 4, height: 4, channels: 4, background: "orange" } }).toFormat(format).toBuffer();
+    await workspace.write(`texture.${format}`, bytes);
+    const candidate = await imported(run, id, "image", "base", `texture.${format}`);
+    if (typeof candidate !== "object" || !candidate || !("binding" in candidate)) { throw new Error(JSON.stringify(candidate)); }
+    const installed = await run.invoke("install_native_game_asset", { game_id: id, slot: "base", binding: candidate.binding });
+    if (typeof installed !== "object" || !installed || !("document" in installed)) { throw new Error(JSON.stringify(installed)); }
+    const document = anyGameDocument.parse(installed.document);
+    if (document.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
+    expect(await ownedAssetResolver3D(run, "other-owner", document)("base")).toBeNull();
+    expect(await ownedAssetResolver3D(run, USER, { ...document, assets: { base: { ...document.assets.base, assetId: "temporary.png" } } })("base")).toBeNull();
+    expect(await run.invoke("edit_native_game", { game_id: id, ops: [
+      { op: "update_entity", entity_id: "crate", set: { primitive: { material: { baseColorTexture: { assetId: "base" } } } } }
+    ] })).not.toHaveProperty("error");
+    const unknown = await Asset.create({ user_id: USER, project_id: PROJECT, parent_id: USER,
+      name: "unknown.bin", content_type: "application/octet-stream", size: bytes.length });
+    if (!(unknown instanceof Asset)) { throw new Error("Expected owned asset"); }
+    expect(await ownedAssetResolver3D(run, USER, { ...document, assets: { base: { ...document.assets.base, assetId: unknown.id } } })("base")).toBeNull();
+    const renderer = await import("@nodetool-ai/game-renderer/node3d");
+    const capture = vi.spyOn(renderer, "captureGameFrame3D").mockImplementation(async (frame, options) => {
+      expect(frame.images.base).toMatchObject({ mediaKind: "image", format });
+      expect(await options.resolveAsset?.("base", new AbortController().signal)).toEqual({ bytes: new Uint8Array(bytes), digest: document.assets.base.digest });
+      throw new Error("Verified capture image boundary");
+    });
+    expect(await run.invoke("capture_native_game_frame", { game_id: id, ticks: [0], seed: 1 }))
+      .toMatchObject({ error: "Verified capture image boundary" });
+    expect(capture).toHaveBeenCalledOnce();
   });
 
   it("stages generated 3D image bytes and installs a verified image binding", async () => {
