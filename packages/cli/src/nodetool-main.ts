@@ -89,6 +89,7 @@ import { registerCostsCommands } from "./commands/costs.js";
 import { registerErrorsCommands } from "./commands/errors.js";
 import { registerGenerationsCommands } from "./commands/generations.js";
 import { registerRunsCommands } from "./commands/runs.js";
+import { registerProjectCommands } from "./commands/projects.js";
 import { registerGameCommands } from "./commands/game.js";
 import { registerAuthCommands } from "./commands/auth.js";
 import { registerTelegramCommands } from "./commands/telegram.js";
@@ -1732,6 +1733,7 @@ mcp
 // package
 // ---------------------------------------------------------------------------
 
+registerProjectCommands(program);
 registerPackageCommands(program);
 registerPackCommands(program);
 registerWorkerCommands(program);

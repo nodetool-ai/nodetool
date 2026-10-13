@@ -66,6 +66,12 @@ studies the choice and not the setup.
 | `find-cost` | The participant names the amount spent and where it saw it. | Which word it searched for: cost, usage, billing, or credits. | [spend](../../agentic-qa/references/protocols/first-use.md#spend) |
 | `change-look` | The theme or text size changed. | Whether it looked in settings, a profile menu, or the browser. | [appearance](../../agentic-qa/references/protocols/first-use.md#appearance) |
 
+Study 2 found two tasks whose end state asks more than their text:
+`switch-model` ("Change it") lets a participant stop at the picker without
+seeing a reply, and `find-help` ("Find help") lets it stop when help is open
+without learning from it. Judge those end states as written, and report the
+wording gap with the result.
+
 ## Adding a task
 
 Add a row to both tables in the same change as the study that first uses it.

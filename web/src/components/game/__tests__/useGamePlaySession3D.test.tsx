@@ -20,7 +20,7 @@ jest.mock("@nodetool-ai/game-renderer/browser3d", () => ({
   })
 }), { virtual: true });
 jest.mock("@nodetool-ai/game-renderer/audio", () => ({ gameAudioSpatialView2D: jest.fn(() => ({})), gameAudioSpatialView3D: jest.fn(() => ({})),
-  GameAudioPlayer: jest.fn().mockImplementation(() => ({ updateAssets: jest.fn(), updateMixer: jest.fn(), preload: jest.fn(), sync: jest.fn(), resume: jest.fn(), pause: jest.fn(),
+  GameAudioPlayer: jest.fn().mockImplementation(() => ({ updateScenes: jest.fn(), updateAssets: jest.fn(), updateMixer: jest.fn(), preload: jest.fn(), sync: jest.fn(), resume: jest.fn(), pause: jest.fn(),
     reset: jest.fn(), handle: jest.fn(), updateSpatial: jest.fn(), dispose: jest.fn() }))
 }));
 jest.mock("../../../utils/resolveMediaUri", () => ({
@@ -338,4 +338,20 @@ it.each(["Restore", "Replay failure", "Restart"])("preserves the first 3D failur
     await user.click(screen.getByRole("button", { name: "Step" }));
     expect(screen.getByTestId("tick").textContent).toBe("1");
   } finally { view.unmount(); animation.mockRestore(); }
+});
+
+it("delivers edited scenes to the retained 3D audio player", async () => {
+  const document = fixture();
+  const initialCalls = jest.mocked(GameAudioPlayer).mock.calls.length;
+  const view = render(<Harness document={document} />);
+  try {
+    await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("WebGL2"));
+    const audio = jest.mocked(GameAudioPlayer).mock.results[initialCalls].value;
+    expect(audio.updateScenes).toHaveBeenCalledWith(document.scenes);
+    const edited = { ...document, assets: { ...document.assets, music: { mediaKind: "audio" as const, assetId: "a".repeat(32), digest: "music", required: false } },
+      scenes: document.scenes.map(scene => ({ ...scene, music: { assetId: "music", volume: 0.5, fadeInTicks: 0, fadeOutTicks: 0 } })) };
+    view.rerender(<Harness document={edited} />);
+    await waitFor(() => expect(audio.updateScenes).toHaveBeenLastCalledWith(edited.scenes));
+    expect(jest.mocked(GameAudioPlayer).mock.calls).toHaveLength(initialCalls + 1);
+  } finally { view.unmount(); }
 });

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { gameAssetBinding, gameSnapshot, type GameEvent, type GameRenderFrame } from "@nodetool-ai/protocol";
-import { GameAudioPlayer, gameAudioSpatialView2D } from "../src/audio.js";
+import { GameAudioPlayer, gameAudioSpatialView2D, type GameAudioOptions } from "../src/audio.js";
 
 class FakeParam {
   value = 1;
@@ -84,6 +84,8 @@ class FakeContext {
   readonly sources: FakeSource[] = [];
   readonly gains: FakeGain[] = [];
   readonly panners: FakePanner[] = [];
+  readonly mediaSources: FakeNode[] = [];
+  createMediaElementSource(): FakeNode { const source = new FakeNode(); this.mediaSources.push(source); return source; }
   readonly listener = new FakeListener();
   createPanner(): FakePanner { const panner = new FakePanner(); this.panners.push(panner); return panner; }
   createBufferSource(): FakeSource { const source = new FakeSource(); this.sources.push(source); return source; }
@@ -384,5 +386,279 @@ describe("spatial game audio voices", () => {
     expect(context.panners[0].panningModel).toBe("HRTF");
     expect(context.panners[0].positionX.value).toBe(-4);
     audio.dispose();
+  });
+});
+
+
+class FakeMedia extends EventTarget {
+  src = "";
+  crossOrigin: string | null = null;
+  preload = "";
+  loop = false;
+  readyState = 0;
+  currentTime = 0;
+  duration = 300;
+  paused = true;
+  play = vi.fn(async () => { this.paused = false; });
+  pause = vi.fn(() => { this.paused = true; });
+  load = vi.fn();
+  removeAttribute(name: string): void { if (name === "src") this.src = ""; }
+  metadata(duration = 300): void { this.duration = duration; this.readyState = 1; this.dispatchEvent(new Event("loadedmetadata")); }
+}
+
+function streamedPlayer(context: FakeContext, resolveAsset: GameAudioOptions["resolveAsset"] = async (asset) => asset.assetId) {
+  const media: FakeMedia[] = [];
+  vi.stubGlobal("Audio", class extends FakeMedia { constructor() { super(); media.push(this); } });
+  const binding = gameAssetBinding.parse({ assetId: "./long.wav", digest: "music", mediaKind: "audio", width: 1, height: 1 });
+  const status = vi.fn();
+  const audio = new GameAudioPlayer({ context: context as unknown as AudioContext, tickRate: 60,
+    assets: { music: binding }, scenes: [{ id: "room", music: { assetId: "music", volume: 0.4, fadeInTicks: 60, fadeOutTicks: 30,
+      streaming: { loopStartSeconds: 10, loopEndSeconds: 20 } } }], resolveAsset, status });
+  return { audio, media, status, binding };
+}
+
+describe("streamed scene music", () => {
+  it("starts the fade-in when playback is ready instead of consuming it while media buffers", async () => {
+    const context = new FakeContext();
+    const { audio, media } = streamedPlayer(context);
+    audio.sync(snapshot(0, 0));
+    await audio.unlock();
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    let completePlay: (() => void) | undefined;
+    media[0].play.mockImplementationOnce(() => new Promise<void>((resolve) => { completePlay = resolve; }));
+    media[0].metadata();
+    const voiceGain = context.mediaSources[0].outputs[0] as FakeGain;
+    expect(voiceGain.gain.calls).toEqual([["set", 0, 5]]);
+    completePlay?.();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(voiceGain.gain.calls.slice(-2)).toEqual([["set", 0, 5], ["ramp", 0.4, 6]]);
+    audio.dispose();
+  });
+
+  it("uses native whole-track looping and corrects hardware drift from the snapshot tick on resume", async () => {
+    const { audio, media } = streamedPlayer(new FakeContext());
+    audio.updateScenes([{ id: "room", music: { assetId: "music", volume: 0.4, fadeInTicks: 60, fadeOutTicks: 30,
+      streaming: { loopStartSeconds: 0 } } }]);
+    audio.sync(snapshot(18060, 0)); // 301 seconds in a 300-second track.
+    await audio.unlock();
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    media[0].metadata();
+    expect(media[0].currentTime).toBe(1);
+    expect(media[0].loop).toBe(true);
+    media[0].currentTime = 19;
+    audio.pause();
+    audio.sync(snapshot(18120, 0));
+    audio.resume();
+    await vi.waitFor(() => expect(media[0].paused).toBe(false));
+    expect(media[0].currentTime).toBe(2);
+    expect(media).toHaveLength(1);
+    audio.dispose();
+  });
+
+  it("preserves the intro and wraps custom loop points including a delayed boundary notification", async () => {
+    const { audio, media } = streamedPlayer(new FakeContext());
+    audio.sync(snapshot(300, 0));
+    await audio.unlock();
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    media[0].metadata();
+    expect(media[0].currentTime).toBe(5);
+    media[0].currentTime = 20.25;
+    media[0].dispatchEvent(new Event("timeupdate"));
+    expect(media[0].currentTime).toBe(10.25);
+    media[0].currentTime = 300;
+    media[0].dispatchEvent(new Event("ended"));
+    expect(media[0].currentTime).toBe(10);
+    expect(media[0].play).toHaveBeenCalledTimes(2);
+    audio.dispose();
+  });
+
+  it("reports invalid track loop points once and retries with edited scene settings", async () => {
+    const { audio, media, status } = streamedPlayer(new FakeContext());
+    audio.sync(snapshot(0, 0));
+    await audio.unlock();
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    media[0].metadata(8);
+    expect(status).toHaveBeenCalledWith(expect.stringContaining("loop points must fit"));
+    for (let tick = 1; tick <= 120; tick++) audio.sync(snapshot(tick, 0));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(media).toHaveLength(1);
+    expect(status).toHaveBeenCalledTimes(1);
+    audio.updateScenes([{ id: "room", music: { assetId: "music", volume: 0.4, fadeInTicks: 60, fadeOutTicks: 30,
+      streaming: { loopStartSeconds: 2, loopEndSeconds: 6 } } }]);
+    await vi.waitFor(() => expect(media).toHaveLength(2));
+    media[1].metadata(8);
+    expect(media[1].currentTime).toBe(2);
+    expect(media[1].paused).toBe(false);
+    audio.dispose();
+  });
+
+  it("discards a pending URL on reset and a changed asset binding", async () => {
+    const resolveOld: Array<(url: string | null) => void> = [];
+    const context = new FakeContext();
+    const { audio, media, status, binding } = streamedPlayer(context, (asset) => asset.digest === "music" ?
+      new Promise((resolve) => { resolveOld.push(resolve); }) : Promise.resolve(asset.assetId));
+    audio.sync(snapshot(0, 0));
+    await audio.unlock();
+    expect(media).toHaveLength(0);
+    audio.reset(snapshot(90, 10));
+    audio.updateAssets({ music: { ...binding, digest: "replacement", assetId: "./replacement.wav" } });
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    media[0].metadata();
+    expect(media[0].src).toBe("./replacement.wav");
+    expect(media[0].currentTime).toBeCloseTo(80 / 60);
+    expect(resolveOld).toHaveLength(2);
+    for (const resolve of resolveOld) resolve(null);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(media).toHaveLength(1);
+    expect(status).not.toHaveBeenCalled();
+    audio.dispose();
+  });
+
+  it("removes old metadata listeners on reset and starts one new voice at the restored tick", async () => {
+    const { audio, media } = streamedPlayer(new FakeContext());
+    audio.sync(snapshot(0, 0));
+    await audio.unlock();
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    audio.reset(snapshot(90, 10));
+    await vi.waitFor(() => expect(media).toHaveLength(2));
+    media[0].metadata();
+    expect(media[0].play).not.toHaveBeenCalled();
+    expect(media[0].src).toBe("");
+    media[1].metadata();
+    expect(media[1].currentTime).toBeCloseTo(80 / 60);
+    expect(audio.mixerState().buses.music.activeVoices).toBe(1);
+    audio.dispose();
+  });
+
+  it("switches edited scene music between streaming and decoded playback without changing its logical start", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([1]))));
+    const context = new FakeContext();
+    const { audio, media } = streamedPlayer(context);
+    audio.sync(snapshot(1650, 0));
+    await audio.unlock();
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    media[0].metadata();
+    audio.updateScenes([{ id: "room", music: { assetId: "music", volume: 0.4, fadeInTicks: 60, fadeOutTicks: 30 } }]);
+    await vi.waitFor(() => expect(context.sources).toHaveLength(1));
+    expect(media[0].src).toBe("");
+    expect(context.sources[0].starts).toEqual([1.5]);
+    audio.updateScenes([{ id: "room", music: { assetId: "music", volume: 0.4, fadeInTicks: 60, fadeOutTicks: 30,
+      streaming: { loopStartSeconds: 12, loopEndSeconds: 90 } } }]);
+    await vi.waitFor(() => expect(media).toHaveLength(2));
+    expect(context.sources[0].stops).toHaveLength(1);
+    media[1].metadata();
+    expect(media[1].currentTime).toBe(27.5);
+    expect(audio.mixerState().buses.music.activeVoices).toBe(1);
+    audio.dispose();
+  });
+
+  it("does not let an older play completion pause a newer resumed playback", async () => {
+    const context = new FakeContext();
+    const { audio, media } = streamedPlayer(context);
+    audio.sync(snapshot(0, 0));
+    await audio.unlock();
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    let completeOldPlay: (() => void) | undefined;
+    media[0].play.mockImplementationOnce(() => new Promise<void>((resolve) => { completeOldPlay = resolve; }));
+    media[0].metadata();
+    audio.pause();
+    audio.resume();
+    await vi.waitFor(() => expect(media[0].paused).toBe(false));
+    completeOldPlay?.();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(media[0].paused).toBe(false);
+    audio.dispose();
+  });
+
+  it("freezes both tracks of a crossfade during pause and releases the outgoing track after resume", async () => {
+    const context = new FakeContext();
+    const { audio, media } = streamedPlayer(context);
+    const first = snapshot(0, 0);
+    first.music = { ...first.music!, fadeInTicks: 0, fadeOutTicks: 6 };
+    audio.sync(first);
+    await audio.unlock();
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    media[0].metadata();
+    await vi.waitFor(() => expect(media[0].paused).toBe(false));
+    audio.sync({ ...first, tick: 60, music: { ...first.music!, startTick: 60 } });
+    await vi.waitFor(() => expect(media).toHaveLength(2));
+    media[1].metadata();
+    expect(audio.mixerState().buses.music.activeVoices).toBe(2);
+    audio.pause();
+    await new Promise<void>((resolve) => setTimeout(resolve, 150));
+    expect(media.every((element) => element.paused)).toBe(true);
+    expect(media[0].src).toBe("./long.wav");
+    audio.resume();
+    await vi.waitFor(() => expect(media[0].src).toBe(""));
+    expect(media[1].paused).toBe(false);
+    expect(audio.mixerState().buses.music.activeVoices).toBe(1);
+    audio.dispose();
+  });
+
+  it("keeps rejected playback stopped across ticks and retries after another user gesture", async () => {
+    const context = new FakeContext();
+    const { audio, media, status } = streamedPlayer(context);
+    audio.sync(snapshot(0, 0));
+    await audio.unlock();
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    media[0].play.mockRejectedValueOnce(new Error("autoplay blocked"));
+    media[0].metadata();
+    await vi.waitFor(() => expect(status).toHaveBeenCalledWith(expect.stringContaining("autoplay blocked")));
+    for (let tick = 1; tick <= 120; tick++) audio.sync(snapshot(tick, 0));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(media).toHaveLength(1);
+    expect(audio.mixerState().buses.music.activeVoices).toBe(0);
+    await audio.unlock();
+    await vi.waitFor(() => expect(media).toHaveLength(2));
+    media[1].metadata();
+    await vi.waitFor(() => expect(media[1].paused).toBe(false));
+    expect(media[1].currentTime).toBe(2);
+    audio.dispose();
+  });
+
+  it("reserves room for scene music by ending an effect when the shared voice cap is full", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([1]))));
+    const context = new FakeContext();
+    const { audio, media } = streamedPlayer(context);
+    await audio.unlock();
+    for (let index = 0; index < 32; index++) {
+      audio.handle({ kind: "audio", action: "start", voiceId: `effect:${index}`, assetId: "music", loop: false,
+        volume: 1, fadeInTicks: 0, fadeOutTicks: 0 });
+    }
+    await vi.waitFor(() => expect(context.sources).toHaveLength(32));
+    audio.sync(snapshot(0, 0));
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    media[0].metadata();
+    await vi.waitFor(() => expect(media[0].paused).toBe(false));
+    expect(audio.mixerState().buses.music.activeVoices).toBe(1);
+    expect(audio.mixerState().buses.sfx.activeVoices).toBe(31);
+    expect(context.sources[0].stops).toHaveLength(1);
+    audio.dispose();
+  });
+
+  it("streams a long track without fetching or decoding it and seeks the snapshot offset into its authored loop", async () => {
+    const fetchAsset = vi.fn(async () => new Response(new Uint8Array([1])));
+    vi.stubGlobal("fetch", fetchAsset);
+    const context = new FakeContext();
+    const { audio, media } = streamedPlayer(context);
+    audio.preload();
+    audio.sync(snapshot(1650, 0)); // 27.5 seconds, after the intro and one loop.
+    expect(media).toHaveLength(0);
+    await audio.unlock();
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    expect(fetchAsset).not.toHaveBeenCalled();
+    expect(context.sources).toHaveLength(0);
+    media[0].metadata();
+    await vi.waitFor(() => expect(media[0].paused).toBe(false));
+    expect(media[0].currentTime).toBe(17.5);
+    expect(media[0].crossOrigin).toBe("anonymous");
+    expect(context.mediaSources).toHaveLength(1);
+    expect(audio.mixerState().buses.music.activeVoices).toBe(1);
+    audio.sync(snapshot(1660, 0));
+    expect(media).toHaveLength(1);
+    audio.dispose();
+    expect(media[0].paused).toBe(true);
+    expect(media[0].src).toBe("");
+    expect(context.mediaSources[0].outputs).toHaveLength(0);
   });
 });

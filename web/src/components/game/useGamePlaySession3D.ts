@@ -194,11 +194,13 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     const audio = audioRef.current ?? new GameAudioPlayer({
       assets: Object.fromEntries(Object.entries(current.assets).flatMap(([slot, binding]) => binding.mediaKind === "audio" || binding.mediaKind === "font" ? [[slot,
         gameAssetBinding.parse({ ...binding, width: 1, height: 1 })]] : [])),
+      scenes: current.scenes,
       tickRate: current.tickRate,
       resolveAsset: async (binding) => resolveMediaUri(binding.assetId.startsWith("package://") ? binding.assetId : `asset://${binding.assetId}`),
       status: setError
     });
     audioRef.current = audio;
+    audio.updateScenes(current.scenes);
     audio.updateAssets(current.assets);
     audio.updateMixer(current.audio?.mixer);
     if (!playingRef.current) { audio.pause(); }

@@ -62,6 +62,8 @@ const createProject = jest.fn();
 const archiveMutation = { mutate: archiveProject, isPending: false };
 const restoreMutation = { mutate: restoreProject, isPending: false };
 const deleteMutation = { mutate: deleteProject, isPending: false };
+const importProject = jest.fn();
+const exportProject = jest.fn();
 
 jest.mock("../../../hooks/useProjects", () => ({
   useProjectSummaries: () => summaries,
@@ -71,6 +73,8 @@ jest.mock("../../../hooks/useProjects", () => ({
   useArchiveProject: () => archiveMutation,
   useRestoreProject: () => restoreMutation,
   useDeleteProject: () => deleteMutation,
+  useImportProject: () => ({ mutate: importProject, isPending: false }),
+  useExportProject: () => ({ mutate: exportProject, isPending: false }),
   useOpenProject: () => openProject,
   useOpenNewProjectTab: () => openNewProject,
   useCreateProject: () => ({ mutateAsync: createProject, isPending: false })
@@ -177,5 +181,32 @@ describe("ProjectListSurface", () => {
     renderSurface();
     await userEvent.click(screen.getByRole("button", { name: /Start a project/ }));
     expect(screen.getByLabelText("Project name")).toBeInTheDocument();
+  });
+
+  it("imports a chosen project file and opens the new project", async () => {
+    importProject.mockImplementation(
+      (_file: File, options: { onSuccess: (result: unknown) => void }) =>
+        options.onSuccess({
+          project: { id: "p9", name: "Imported" },
+          counts: {},
+          missing: [],
+          checksum_mismatches: [],
+          skipped: []
+        })
+    );
+    renderSurface();
+    const file = new File([new Uint8Array([1])], "spot.nodetool-project");
+    await userEvent.upload(screen.getByLabelText("Project file"), file);
+    expect(importProject).toHaveBeenCalledWith(file, expect.anything());
+    expect(openProject).toHaveBeenCalledWith({ id: "p9", name: "Imported" });
+  });
+
+  it("exports a project from its card", async () => {
+    renderSurface();
+    await userEvent.click(screen.getByRole("button", { name: "Export" }));
+    expect(exportProject).toHaveBeenCalledWith(
+      { id: "p1", name: "Aurora Launch Spot" },
+      expect.anything()
+    );
   });
 });

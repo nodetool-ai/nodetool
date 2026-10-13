@@ -1288,6 +1288,44 @@ Music position is saved as a scene start tick; loading seeks within the decoded
 loop. Audio starts after a browser gesture. The CLI simulation and image capture
 record logical audio events and state without producing audio samples.
 
+## Project Files
+
+### `nodetool projects`
+
+List projects and move whole projects between installs as `.nodetool-project`
+files. Runs against the local database, asset store, and workspaces. The
+server serves the same format at `GET /api/projects/:id/export` and
+`POST /api/projects/import`, so a file from either side imports on the other.
+
+**Subcommands:**
+
+- `list [--archived] [--json]` — projects, newest first.
+- `export <project_id> [-o <file>] [--json]` — write the project to a file.
+  The default name is `<project name>.nodetool-project`.
+- `import <file> [--name <name>] [--json]` — create a new project from a file
+  and print its id.
+
+A project file holds every row filed under the project: workflows and their
+versions, storyboards, scripts, timelines, sketches, mini apps, JavaScript
+scripts, and games, each with its version history. It also holds chats with
+their messages, assets with their stored bytes, and every file in the
+project's workspaces. Jobs, run traces, and spend records stay behind.
+
+Import never overwrites. It creates a new project and gives every row a new
+id, then rewrites each reference to an exported id: id columns, document JSON,
+`asset://` locators, workspace file paths, and JSON files in workspaces.
+Imported workflows are private. Workspaces become managed folders, because the
+exporting machine's paths mean nothing on another one. The Personal project
+imports as an ordinary named project.
+
+**Examples:**
+
+```bash
+nodetool projects list
+nodetool projects export 6f1c2e... -o launch-spot.nodetool-project
+nodetool projects import launch-spot.nodetool-project --name "Launch spot (copy)"
+```
+
 ## Job Management
 
 ### `nodetool jobs`

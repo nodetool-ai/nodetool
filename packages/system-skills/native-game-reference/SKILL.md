@@ -285,8 +285,15 @@ Set `scene.music` to an installed audio `assetId` for looping music. `volume`
 ranges from `0` to `1`, and `fadeInTicks` and `fadeOutTicks` range from `0` to
 `600`. Music starts at the scene's entry tick. Pause suspends audio, reset
 restarts the entry scene once, and loading resumes the loop at the saved
-logical tick. Browser playback starts after a user gesture. A missing or
-undecodable audio asset is reported in the player.
+logical tick. Set `music.streaming: {loopStartSeconds, loopEndSeconds?}` for
+long tracks in 2D or 3D. This streams through the music bus without decoding
+the whole asset. Start defaults to 0 seconds, end defaults to the track's end,
+and an explicit end must exceed start. Both are bounded by 86400 seconds.
+The intro plays once. Custom loop boundaries follow browser media events.
+Existing fades crossfade outgoing and incoming scene tracks. Use `update_scene`
+to replace the whole `music` object. Omit `streaming` to retain decoded
+playback. Browser playback starts after a user gesture. A missing or
+unplayable audio asset is reported in the player.
 
 `visualAnimation` on a sprite animates `rotation`, `scaleX`, `scaleY`,
 `opacity`, or `tint` from `from` to `to` over `durationTicks` in its `tracks`.

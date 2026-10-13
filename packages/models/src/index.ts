@@ -341,6 +341,17 @@ export {
 } from "./project-membership.js";
 export type { ProjectMemberType } from "./project-membership.js";
 export {
+  PROJECT_ARCHIVE_TABLE_NAMES,
+  PROJECT_ARCHIVE_TABLES,
+  persistProjectArchive,
+  projectArchiveColumns,
+  projectArchivePrimaryKey,
+  readProjectArchiveRecords,
+  type ProjectArchiveRecords,
+  type ProjectArchiveRow,
+  type ProjectArchiveTableName
+} from "./project-archive.js";
+export {
   persistProjectCopy,
   type ProjectCopyAsset,
   type ProjectCopyDocument

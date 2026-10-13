@@ -206,6 +206,7 @@ import timelineTrackObjectRoutes from "./routes/timeline-track-object.js";
 import storyboardsRoutes from "./routes/storyboards.js";
 import gamesRoutes from "./routes/games.js";
 import timelinesRoutes from "./routes/timelines.js";
+import projectArchiveRoutes from "./routes/project-archive.js";
 import documentsRoutes from "./routes/documents.js";
 import sandboxModulesRoutes from "./routes/sandbox-modules.js";
 import falCreditsRoute from "./routes/fal-credits.js";
@@ -1688,6 +1689,7 @@ await app.register(timelineTrackObjectRoutes, routeOpts);
 await app.register(storyboardsRoutes, routeOpts);
 await app.register(gamesRoutes, routeOpts);
 await app.register(timelinesRoutes, routeOpts);
+await app.register(projectArchiveRoutes, routeOpts);
 // PDF/DOCX text extraction for script and screenplay imports. Stores
 // nothing and needs no apiOptions.
 await app.register(documentsRoutes);

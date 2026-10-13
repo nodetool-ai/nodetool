@@ -69,6 +69,7 @@ async function start(): Promise<void> {
   }
   const audio = new GameAudioPlayer({
     assets: game.assets,
+    scenes: game.scenes,
     tickRate: game.tickRate,
     resolveAsset: async (binding) => binding.assetId.startsWith("./assets/") ? binding.assetId : null,
     status: showStatus,
