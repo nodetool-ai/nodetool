@@ -1,3 +1,5 @@
+import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
+
 /**
  * `@nodetool-ai/manimgx-nodes` — ManimGX scenes as workflow nodes.
  *
@@ -50,3 +52,13 @@ export const MANIMGX_NODES = [
   ...MANIMGX_INSPECT_NODES,
   ...MANIMGX_GENERATE_NODES
 ];
+
+export const ALL_MANIMGX_NODES: readonly NodeClass[] = [
+  ...MANIMGX_NODES,
+];
+
+export function registerManimgxNodes(registry: NodeRegistry): void {
+  for (const nodeClass of ALL_MANIMGX_NODES) {
+    registry.register(nodeClass);
+  }
+}

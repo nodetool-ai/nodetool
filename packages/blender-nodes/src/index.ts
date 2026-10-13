@@ -1,3 +1,5 @@
+import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
+
 /**
  * `@nodetool-ai/blender-nodes` — Blender headless integration (Stage 3).
  *
@@ -105,3 +107,13 @@ export const BLENDER_NODES = [
   ...BLENDER_PREPARE_NODES,
   ...BLENDER_EXPORT_NODES
 ];
+
+export const ALL_BLENDER_NODES: readonly NodeClass[] = [
+  ...BLENDER_NODES,
+];
+
+export function registerBlenderNodes(registry: NodeRegistry): void {
+  for (const nodeClass of ALL_BLENDER_NODES) {
+    registry.register(nodeClass);
+  }
+}
