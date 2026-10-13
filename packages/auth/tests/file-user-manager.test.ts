@@ -263,3 +263,17 @@ describe("FileUserManager.getUserById", () => {
     expect(await manager.getUserById("user_nobody_00000000")).toBeNull();
   });
 });
+
+it("keeps Alice credentials and role readable while another manager rotates Bob", async () => {
+  const alice = await manager.addUser("alice", "admin");
+  await manager.addUser("bob");
+  const reader = new FileUserManager(usersFilePath);
+  let done = false;
+  const writer = (async () => { for (let i = 0; i < 100; i++) await manager.resetToken("bob"); done = true; })();
+  try {
+    do {
+      expect((await reader.verifyToken(alice.token))?.id).toBe(alice.userId);
+      expect((await reader.getUserById(alice.userId))?.role).toBe("admin");
+    } while (!done);
+  } finally { await writer; }
+});

@@ -286,7 +286,13 @@ function attachWatcher(
       const fullPath = path.join(watchPath, filename.toString());
       // One stat, not existsSync then statSync: a file removed between the
       // two made statSync throw inside the watcher and crash the server.
-      const stats = fs.statSync(fullPath, { throwIfNoEntry: false });
+      let stats: fs.Stats | undefined;
+      try {
+        stats = fs.statSync(fullPath, { throwIfNoEntry: false });
+      } catch (error) {
+        log.warn(`Unable to inspect watched path ${fullPath}`, error instanceof Error ? error : new Error(String(error)));
+        return;
+      }
       const exists = stats !== undefined;
       const isDirectory = stats?.isDirectory() ?? false;
 
