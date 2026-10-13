@@ -118,6 +118,7 @@ export function diffGameDocuments3D(from: GameDocument3D, to: GameDocument3D): G
   for (const slot of Object.keys(from.assets)) {
     if (!(slot in to.assets)) { ops.push({ op: "unbind_asset", slot }); }
   }
+  if (ops.every((op) => op.op === "set_animation_graph" || op.op === "remove_animation_graph")) { return ops; }
   const applied = applyGameOps3D(from, ops);
   return [...ops, ...diffGameOwnership(from, to, applied).map((op) => gameDocumentOp3D.parse(op))];
 }

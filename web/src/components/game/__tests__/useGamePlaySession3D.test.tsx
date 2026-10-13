@@ -430,6 +430,10 @@ it("hot reloads 3D source without recreating play, logs invalid edits, and resta
     await user.click(screen.getByRole("button", { name: "Step" }));
     expect(store.getState().groups.at(-1)?.message).toBe("speed 4 state 2");
     await user.click(screen.getByRole("button", { name: "Save" }));
+    view.rerender(<Harness document={hotReloadFixture3D(source(4))} />);
+    await user.click(screen.getByRole("button", { name: "Restart" }));
+    await waitFor(() => expect(screen.getByTestId("tick")).toHaveTextContent("0"));
+    await user.click(screen.getByRole("button", { name: "Pause" }));
     await user.click(screen.getByRole("button", { name: "Step" }));
     await user.click(screen.getByRole("button", { name: "Restore" }));
     await waitFor(() => expect(screen.getByTestId("tick")).toHaveTextContent("3"));

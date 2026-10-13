@@ -4,7 +4,9 @@ import { gameMergeAdapter } from "./merge";
 import { gameMergeAdapter3D } from "./merge3D";
 
 function widen<T extends AnyGameDocument>(adapter: DocumentMergeAdapter<T>, narrow: (doc: AnyGameDocument) => T): DocumentMergeAdapter<AnyGameDocument> {
+  const finalize = adapter.finalize;
   return {
+    finalize: finalize ? (result, base, draft, server) => finalize({ ...result, doc: narrow(result.doc), nextBase: narrow(result.nextBase) }, narrow(base), narrow(draft), narrow(server)) : undefined,
     collections: adapter.collections.map((collection) => ({ ...collection,
       read: (doc) => collection.read(narrow(doc)),
       write: (doc, units) => collection.write(narrow(doc), units)

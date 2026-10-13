@@ -272,7 +272,7 @@ jobs:
             },
             {
               "check": "lint",
-              "command": "npm run lint",
+              "command": "npm run lint && npm run lint:anti-slop:check",
               "when": "always"
             },
             {

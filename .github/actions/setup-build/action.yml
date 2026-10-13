@@ -30,8 +30,8 @@ runs:
       uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
       with:
         node-version-file: ".nvmrc"
-        cache: ${{ inputs.cache != 'off' && 'npm' || '' }}
-        package-manager-cache: ${{ inputs.cache != 'off' }}
+        cache: ${{ inputs.cache == 'read-write' && 'npm' || '' }}
+        package-manager-cache: false
 
     - name: Install system libraries
       shell: bash
@@ -49,7 +49,7 @@ runs:
     # Cache the installed workspace node_modules keyed on the lockfile (and Node
     # version). On a hit we skip `npm ci` and the native rebuild entirely — the
     # restored tree already has better-sqlite3 built for this runner. setup-node's
-    # `cache: npm` only caches the download tarballs; this caches the linked tree.
+    # npm caches registry responses as well as tarballs; this caches the linked tree.
     - name: Cache node_modules
       id: node-modules-cache
       if: inputs.cache == 'read-write'

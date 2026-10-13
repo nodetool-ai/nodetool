@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { gameAssetBinding, gameSnapshot3D, type GameDocument3D, type GameInspection3D, type GameInputFrame3D, type GameRenderFrame3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { z } from "zod";
+import { gameDocument3D, gameAssetBinding, gameSnapshot3D, type GameDocument3D, type GameInspection3D, type GameInputFrame3D, type GameRenderFrame3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
 import { createGameSession3D, gameScriptLogsOf, type GamePlayerSaves, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
 import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, gameAudioVoiceCount, GameInput3D, GameUiController, gameUiViewport3D } from "@nodetool-ai/game-renderer";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
+import { useGameDraft } from "../../stores/game/GameDraftStore";
 import { useGameScriptReload } from "./useGameScriptReload";
 import { createEditorGameSaves } from "./gameEditorSaves";
 import { GameReplayHistory } from "./gameReplayHistory";
@@ -58,6 +60,8 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const [readyGeneration, setReadyGeneration] = useState(0);
   const [restoring, setRestoring] = useState(false);
   const [effectivePlayDocument, setEffectivePlayDocument] = useState<GameDocument3D | null>(null);
+  const behaviorStructureVersions = useGameDraft(refId, (state) => state.behaviorStructureVersions);
+  const playBehaviorVersionsRef = useRef(behaviorStructureVersions);
   const savesRef = useRef<GamePlayerSaves | null>(null);
   const sessionFailedRef = useRef(false);
   const sessionOptionsRef = useRef<GameSession3DOptions>({});
@@ -70,6 +74,8 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const hudRef = useRef<GameUiController | null>(null);
   const [playing, setPlaying] = useState(false);
   const [playDocument, setPlayDocument] = useState<GameDocument3D | null>(null);
+  const blockedEntities = useMemo(() => new Set(Object.keys(behaviorStructureVersions).filter((key) =>
+    behaviorStructureVersions[key] !== playBehaviorVersionsRef.current[key])), [behaviorStructureVersions, playDocument]);
   const [frame, setFrame] = useState<GameRenderFrame3D | null>(null);
   const [inspection, setInspection] = useState<GameInspection3D | null>(null);
   const [backend, setBackend] = useState("Initializing");
@@ -337,7 +343,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     };
   }, [playing, active, playDocument, sessionDocument, step, display]);
 
-  const cancelReload = useGameScriptReload({ draft: document, playDocument: restoring ? null : playDocument, sessionRef, effectiveDocumentRef, readyGeneration, scriptLogs,
+  const cancelReload = useGameScriptReload({ draft: document, playDocument: restoring ? null : playDocument, sessionRef, effectiveDocumentRef, readyGeneration, scriptLogs, blockedEntities, lastCommittedTick: committedRef.current?.tick ?? 0,
     checkpoint: (session) => { historyRef.current.clear(session.snapshot()); setEffectivePlayDocument(effectiveDocumentRef.current); } });
 
   const restart = (): void => {
@@ -347,6 +353,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     profiler.clearLive();
     setError(null);
     setEffectivePlayDocument(null);
+    playBehaviorVersionsRef.current = behaviorStructureVersions;
     setPlayDocument(structuredClone(document));
     setPlaying(true);
     inputRef.current.release();
@@ -356,6 +363,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const beginPlay = (): void => {
     if (playDocument && sessionFailedRef.current) { return; }
     if (!playDocument) { historyRef.current.clear(); profiler.clearLive(); setEffectivePlayDocument(null);
+    playBehaviorVersionsRef.current = behaviorStructureVersions;
     setPlayDocument(structuredClone(document)); }
     inputRef.current.release();
     setPlaying((value) => !value);
@@ -365,7 +373,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const save = (): void => {
     const session = sessionRef.current;
     if (!session) { return; }
-    try { localStorage.setItem(`nodetool.game.save.${refId}`, JSON.stringify(session.snapshot())); setError(null); }
+    try { localStorage.setItem(`nodetool.game.save.${refId}`, JSON.stringify({ document: effectiveDocumentRef.current ?? sessionDocument, snapshot: session.snapshot() })); setError(null); }
     catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
   };
   const load = async (): Promise<void> => {
@@ -373,14 +381,17 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     try {
       const raw = localStorage.getItem(`nodetool.game.save.${refId}`);
       if (!raw) { return; }
-      const snapshot = gameSnapshot3D.parse(JSON.parse(raw));
+      const stored = z.object({ document: gameDocument3D, snapshot: gameSnapshot3D }).safeParse(JSON.parse(raw));
+      const snapshot = stored.success ? stored.data.snapshot : gameSnapshot3D.parse(JSON.parse(raw));
       const generation = ++generationRef.current;
       restoreGeneration = generation;
       cancelReload();
       setRestoring(true);
-      const effectiveDocument = effectiveDocumentRef.current ?? sessionDocument;
+      const previousDocument = effectiveDocumentRef.current;
+      const effectiveDocument = stored.success ? stored.data.document : previousDocument ?? sessionDocument;
+      if (effectiveDocument.id !== sessionDocument.id) { throw new Error("Saved game belongs to a different document"); }
       const restored = await createGameSession3D(effectiveDocument, 1, snapshot, sessionOptionsRef.current);
-      if (generation !== generationRef.current || effectiveDocumentRef.current !== effectiveDocument || sessionOptionsRef.current.signal?.aborted) { restored.dispose(); if (generationRef.current === generation) { setRestoring(false); } return; }
+      if (generation !== generationRef.current || effectiveDocumentRef.current !== previousDocument || sessionOptionsRef.current.signal?.aborted) { restored.dispose(); if (generationRef.current === generation) { setRestoring(false); } return; }
       historyRef.current.clear(snapshot);
       sessionRef.current?.dispose();
       sessionRef.current = restored;

@@ -138,7 +138,7 @@ async function start(): Promise<void> {
   }
   if (window.matchMedia("(pointer: coarse)").matches) enableTouch();
   window.addEventListener("touchstart", enableTouch, { passive: true });
-  for (const type of ["pointerdown", "touchend", "keydown"] as const) window.addEventListener(type, unlockAudio, { passive: true });
+  for (const type of ["pointerdown", "touchend", "keydown"] as const) window.addEventListener(type, unlockAudio, { passive: true, capture: true });
   const fullscreen = element("fullscreen");
   if (!document.fullscreenEnabled) fullscreen.hidden = true;
   fullscreen.addEventListener("click", () => {
@@ -158,9 +158,9 @@ async function start(): Promise<void> {
   const QUICK_SAVE = "quicksave";
   // Quick saves from before IndexedDB storage, moved into the quicksave slot on the first load.
   const legacyQuickSave = { storage: localStorage, key: `nodetool-game:${game.id}:${game.revision}:save` };
-  function stepSession(frame: GameInputFrame) {
-    const result = session.step(saves.withLoaded(frame));
-    saves.handle(result.saveRequests, () => session.snapshot());
+  function stepSession(frame: GameInputFrame, replay = false) {
+    const result = session.step(replay ? frame : saves.withLoaded(frame));
+    if (!replay) { saves.handle(result.saveRequests, () => session.snapshot()); }
     return result;
   }
 
@@ -304,7 +304,7 @@ async function start(): Promise<void> {
     },
     step: async (input: GameInputFrame) => {
       paused = true;
-      const result = stepSession(input);
+      const result = stepSession(input, true);
       latest = result.frame;
       particles.tick(result.frame, session.takePresentationEvents());
       result.events.forEach(event => audio.handle(event));

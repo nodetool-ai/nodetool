@@ -83,12 +83,12 @@ async function start(): Promise<void> {
   audio.preload(); audio.sync(session.snapshot());
   const budget = new GameFrameBudgetMonitor(game.performance?.budgets);
   const particles = new GameParticles3D(game.tickRate);
-  for (const event of ["pointerdown", "keydown"] as const) { window.addEventListener(event, () => { void audio.unlock(); }, { signal: controller.signal }); }
+  for (const event of ["pointerdown", "keydown"] as const) { window.addEventListener(event, () => { void audio.unlock(); }, { signal: controller.signal, capture: true }); }
   // Script saves use per-game IndexedDB storage. Loaded data reaches scripts on the next frame.
   const saves = new GamePlayerSaves(createIndexedDbGameSaveStorage(game.id), { onError: (error) => status(error.message) });
-  const step = (nextInput: GameInputFrame3D): void => {
-    const result = session.step(saves.withLoaded(nextInput)); frame = result.frame;
-    saves.handle(result.saveRequests, () => session.snapshot());
+  const step = (nextInput: GameInputFrame3D, replay = false): void => {
+    const result = session.step(replay ? nextInput : saves.withLoaded(nextInput)); frame = result.frame;
+    if (!replay) { saves.handle(result.saveRequests, () => session.snapshot()); }
     particles.tick(result.frame, session.takePresentationEvents());
     for (const event of result.events) { audio.handle(event); }
     audio.sync(session.snapshot());
@@ -201,12 +201,12 @@ async function start(): Promise<void> {
   }, { once: true });
   window.nativeGame3DPlayer = Object.freeze({
     pause: () => { paused = true; release(); clock.reset(); },
-    step: async (nextInput: GameInputFrame3D) => { paused = true; step(nextInput); await render(1); },
+    step: async (nextInput: GameInputFrame3D) => { paused = true; step(nextInput, true); await render(1); },
     reset: async () => { paused = true; const replacement = await open(); session.dispose(); session = replacement; saves.clear(); audio.reset(session.snapshot()); frame = session.frame(); particles.clear(); release(); clock.reset(); await render(1); },
     advance: async (inputs: readonly GameInputFrame3D[]) => {
       if (inputs.length > 10_000) { throw new Error("Recorded route exceeds 10000 ticks"); }
       paused = true;
-      for (const nextInput of inputs) { step(nextInput); }
+      for (const nextInput of inputs) { step(nextInput, true); }
       await render(1);
     },
     snapshot: () => session.snapshot(),
