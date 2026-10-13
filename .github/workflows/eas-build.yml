@@ -64,23 +64,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: ".nvmrc"
-
-      # Same cache key as quality-checks.yml, so this job usually restores the
-      # tree that workflow already installed instead of running `npm ci`.
-      - name: Cache mobile node_modules
-        id: mobile-node-modules
-        uses: actions/cache@v5
-        with:
-          path: mobile/node_modules
-          key: ${{ runner.os }}-mobile-node-modules-${{ hashFiles('mobile/package-lock.json') }}
+          # App builds install fresh, never from a cache another job on main
+          # could have written.
+          package-manager-cache: false
 
       - name: Install mobile dependencies
-        if: steps.mobile-node-modules.outputs.cache-hit != 'true'
         run: cd mobile && npm ci
 
       - name: Resolve the app config
@@ -106,17 +99,21 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: ".nvmrc"
+          # App builds install fresh, never from a cache another job on main
+          # could have written.
+          package-manager-cache: false
 
-      - uses: expo/expo-github-action@v9
+      - uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # 9.0.0
         with:
           eas-version: latest
           token: ${{ env.EXPO_TOKEN }}
           packager: npm
+          eas-cache: false
 
       - name: Install mobile dependencies
         run: cd mobile && npm ci

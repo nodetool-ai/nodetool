@@ -61,6 +61,8 @@ below.
 | `copilot-setup-steps.yml` | Environment setup for the Copilot coding agent | none/maintenance | n/a (setup only) |
 | `crash-fuzzer.yaml` | Daily fuzz of `validate` / `jsscript validate` / `node run` over mutated documents; agent root-causes each crash or hang | none/maintenance | Advisory (`continue-on-error`) |
 | `dead-code-cleanup.yaml` | Scheduled agent removes unused exports/imports/code | none/maintenance | Advisory (`continue-on-error`) |
+| `codeql.yml` | CodeQL for TypeScript and the workflow files on pull requests, pushes to `main`, and weekly | none/maintenance | Advisory |
+| `dependency-audit.yml` | `scripts/check-npm-audit.mjs` on pull requests that change a manifest or lockfile (fails on an added high or critical advisory) and nightly (fails on any advisory `.github/npm-audit-allowlist.json` does not explain) | none/maintenance | Advisory; needs the npm registry, so it stays out of Ring 0 |
 | `dependency-cleanup.yaml` | Weekly agent removes unused dependencies and moves misplaced ones. Version updates are Dependabot's | none/maintenance | Advisory (`continue-on-error`) |
 | `docs-ci.yml` | Docs site build + internal link/image check on PR | none/maintenance | Required for `docs/**` |
 | `docs-completeness.yaml` | Daily agent documents undocumented CLI commands, routes, env vars, packages | none/maintenance | Advisory |
@@ -87,7 +89,7 @@ below.
 | `quality-guard.yml` | Reusable pre/post quality-gate wrapper. No workflow calls it | none/maintenance | Unused |
 | `screenshots.yml` | Capture and commit documentation screenshots | none/maintenance | Manual |
 | `chat-history-performance.yml` | Deterministic Playwright chat-history virtualization regression | 0 | Required when chat-history code changes |
-| `security-audit.yaml` | Manual scan for dependency CVEs, dangerous patterns, Electron misconfig | none/maintenance | Advisory (`continue-on-error`) |
+| `security-audit.yaml` | Weekly agent audits one attack-surface area (HTTP auth, URL egress, sandbox, file paths, Electron IPC, secrets), requires a failing test per finding, and files exploitable ones as draft security advisories. Needs the `SECURITY_ADVISORY_TOKEN` secret | none/maintenance | Advisory |
 | `seo-seed.yml` | Seed SEO showcase assets via generation providers | none/maintenance | Manual |
 | `shipped-feature-inliner.yaml` | Weekly agent inlines flags whose feature has fully shipped | none/maintenance | Advisory (`continue-on-error`) |
 | `test-coverage.yaml` | Weekly agent adds tests for uncovered code | none/maintenance | Advisory (`continue-on-error`) |
@@ -296,8 +298,11 @@ shape. `.github/tests/agent-workflows.test.mjs` enforces it in the `lint` leg of
   `$RUNNER_TEMP/agent-recent-files.txt` and are told to leave those files alone.
   logic-simplifier also drops them from its hotspot scan. Without this, a
   deterministic scan picks the same function every night.
-- **Setup.** `./.github/actions/setup-build` installs dependencies with the
-  shared `node_modules` and Turbo caches.
+- **Setup.** `./.github/actions/setup-build` installs dependencies with
+  `cache: read-only`: the job restores the shared `node_modules` and Turbo
+  caches but never saves one, so a model-run command cannot plant a tree that
+  a deploy or another job restores. Release, publish, and deploy jobs use
+  `cache: off`.
 - **No full suites around the agent.** The PR's own CI is the gate. A
   typecheck, lint, and test run on the runner before and after the agent
   doubled the run time and checked the runner's checkout, not the pushed
@@ -312,7 +317,8 @@ shape. `.github/tests/agent-workflows.test.mjs` enforces it in the `lint` leg of
 ## Manual Trigger
 
 ```bash
-gh workflow run security-audit.yaml
+gh workflow run security-audit.yaml -f area=sandbox
+gh workflow run dependency-audit.yml
 gh workflow run quality-assurance.yaml
 gh workflow run dead-code-cleanup.yaml
 gh workflow run performance-optimization.yaml

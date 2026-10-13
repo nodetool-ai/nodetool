@@ -1,0 +1,256 @@
+{
+  "advisories": [
+    {
+      "project": "root",
+      "id": "GHSA-2883-xcg3-v3hh",
+      "package": "js-yaml",
+      "severity": "high",
+      "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
+      "url": "https://github.com/advisories/GHSA-2883-xcg3-v3hh",
+      "reason": "All three advisories are parse-time. office-text-extractor only calls js-yaml's dump() to format spreadsheet rows. Electron's app-builder-lib parses our own build config at build time. The sandbox-yaml pack bundles its own copy into the QuickJS guest, where the run's CPU timeout bounds a quadratic parse."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-2p57-rm9w-gvfp",
+      "package": "ip",
+      "severity": "high",
+      "title": "ip SSRF improper categorization in isPublic",
+      "url": "https://github.com/advisories/GHSA-2p57-rm9w-gvfp",
+      "reason": "Optional dependency of werift via node-av, used for ICE candidates. NodeTool's SSRF checks (safeFetch) do not use ip.isPublic."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-4cwx-7wf7-3272",
+      "package": "undici",
+      "severity": "high",
+      "title": "undici vulnerable to cross-user information disclosure and parse-time crash via degenerate private cache directives",
+      "url": "https://github.com/advisories/GHSA-4cwx-7wf7-3272",
+      "reason": "Affects the hoisted undici 7.28 that cheerio uses for fromURL. NodeTool loads HTML with cheerio.load and never calls fromURL. The cache interceptor, WebSocket client and BalancedPool are not used. The API server's own undici (packages/websocket) is 7.30, which is fixed."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-52cp-r559-cp3m",
+      "package": "js-yaml",
+      "severity": "high",
+      "title": "js-yaml: YAML merge-key chains can force quadratic CPU consumption",
+      "url": "https://github.com/advisories/GHSA-52cp-r559-cp3m",
+      "reason": "All three advisories are parse-time. office-text-extractor only calls js-yaml's dump() to format spreadsheet rows. Electron's app-builder-lib parses our own build config at build time. The sandbox-yaml pack bundles its own copy into the QuickJS guest, where the run's CPU timeout bounds a quadratic parse."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-5p4m-2wfm-xmqj",
+      "package": "js-yaml",
+      "severity": "high",
+      "title": "JS-YAML: Quadratic CPU consumption in !!omap resolution (3.x and 4.x) \u2014 CVE-2026-59870 fix not backported",
+      "url": "https://github.com/advisories/GHSA-5p4m-2wfm-xmqj",
+      "reason": "All three advisories are parse-time. office-text-extractor only calls js-yaml's dump() to format spreadsheet rows. Electron's app-builder-lib parses our own build config at build time. The sandbox-yaml pack bundles its own copy into the QuickJS guest, where the run's CPU timeout bounds a quadratic parse."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-858h-whjf-mvg5",
+      "package": "simple-git",
+      "severity": "high",
+      "title": "simple-git: unsafe-operations plugin bypass via git long-option abbreviation (--receive-p/--exe) -> command execution (residual of CVE-2026-28291)",
+      "url": "https://github.com/advisories/GHSA-858h-whjf-mvg5",
+      "reason": "Reached only through node-llama-cpp, which uses simple-git to clone llama.cpp source in its own CLI. NodeTool never calls that path or passes git options. Fix needs node-llama-cpp 4 (major)."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-8gw3-rxh4-v6jx",
+      "package": "expr-eval",
+      "severity": "high",
+      "title": "expr-eval vulnerable to Prototype Pollution",
+      "url": "https://github.com/advisories/GHSA-8gw3-rxh4-v6jx",
+      "reason": "Formula strings come from sandbox guests. __proto__ assignments and constructor access did not pollute Object.prototype when tried against 2.0.2. No patched release. Follow-up: replace with expr-eval-fork@3."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-g4wm-2vf7-vfgr",
+      "package": "simple-git",
+      "severity": "high",
+      "title": "simple-git allows command execution through unblocked Git configuration includes",
+      "url": "https://github.com/advisories/GHSA-g4wm-2vf7-vfgr",
+      "reason": "Reached only through node-llama-cpp, which uses simple-git to clone llama.cpp source in its own CLI. NodeTool never calls that path or passes git options. Fix needs node-llama-cpp 4 (major)."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-j95f-988m-3j2f",
+      "package": "@tiptap/core",
+      "severity": "high",
+      "title": "Tiptap: Quadratic ReDoS in block and inline Markdown attribute parsing",
+      "url": "https://github.com/advisories/GHSA-j95f-988m-3j2f",
+      "reason": "Pulled in by @puckeditor/core for the app builder's rich-text fields. ReDoS in Markdown attribute parsing affects the editing user's own tab. The fix needs the whole @tiptap family moved together (core 3.31 pins @tiptap/pm 3.31), which Puck must allow."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-jc85-fpwf-qm7x",
+      "package": "expr-eval",
+      "severity": "high",
+      "title": "expr-eval does not restrict functions passed to the evaluate function",
+      "url": "https://github.com/advisories/GHSA-jc85-fpwf-qm7x",
+      "reason": "Needs attacker-controlled functions in the evaluate() context. The sandbox-expr host module receives its variables from the QuickJS guest as JSON data, so no function can arrive. Follow-up: replace with expr-eval-fork@3."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-jrc7-96c5-q579",
+      "package": "maplibre-gl",
+      "severity": "critical",
+      "title": "MapLibre GL JS: XSS Sanitizer Bypass in DOM.sanitize() via Live NamedNodeMap Removal Skip",
+      "url": "https://github.com/advisories/GHSA-jrc7-96c5-q579",
+      "reason": "Reached through plotly.js map traces in the web app. Reachability of MapLibre's DOM.sanitize from Plotly figure data is not traced. Fix needs plotly.js 4 (major). Follow-up: trace or upgrade."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-m9gg-hp2v-232j",
+      "package": "@grpc/grpc-js",
+      "severity": "high",
+      "title": "@grpc/grpc-js: In certain configurations, getAuthContext can return unauthorized certificates as though they were authorized",
+      "url": "https://github.com/advisories/GHSA-m9gg-hp2v-232j",
+      "reason": "Only the OpenTelemetry OTLP gRPC log exporter uses it, as a client. The advisory concerns getAuthContext on a server, which NodeTool does not run. npm keeps 1.14.4 hoisted although ^1.14.3 allows 1.14.5."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-q9v2-7m5w-4693",
+      "package": "expr-eval",
+      "severity": "critical",
+      "title": "expr-eval vulnerable to Code Execution",
+      "url": "https://github.com/advisories/GHSA-q9v2-7m5w-4693",
+      "reason": "Needs toJSFunction(). The only caller, packages/agents/src/host-modules/expr.ts, calls Parser.evaluate(). No patched release. Follow-up: replace with expr-eval-fork@3."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-rfgv-xxqx-mfg5",
+      "package": "undici",
+      "severity": "high",
+      "title": "undici vulnerable to Denial of Service via unrequested WebSocket subprotocol",
+      "url": "https://github.com/advisories/GHSA-rfgv-xxqx-mfg5",
+      "reason": "Affects the hoisted undici 7.28 that cheerio uses for fromURL. NodeTool loads HTML with cheerio.load and never calls fromURL. The cache interceptor, WebSocket client and BalancedPool are not used. The API server's own undici (packages/websocket) is 7.30, which is fixed."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-v5rq-49vh-5v5c",
+      "package": "@simple-git/argv-parser",
+      "severity": "critical",
+      "title": "simple-git: `VISUAL` editor environment variable is omitted from unsafe editor detection",
+      "url": "https://github.com/advisories/GHSA-v5rq-49vh-5v5c",
+      "reason": "Same path as simple-git: node-llama-cpp's source-download CLI only. Fix needs node-llama-cpp 4 (major)."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "severity": "high",
+      "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns",
+      "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+      "reason": "Via chokidar 3 in tailwindcss at build time. Glob patterns come from our own config, not users."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-w293-vg96-wgc3",
+      "package": "undici",
+      "severity": "high",
+      "title": "undici vulnerable to TLS certificate validation bypass via dropped connect options in BalancedPool",
+      "url": "https://github.com/advisories/GHSA-w293-vg96-wgc3",
+      "reason": "Affects the hoisted undici 7.28 that cheerio uses for fromURL. NodeTool loads HTML with cheerio.load and never calls fromURL. The cache interceptor, WebSocket client and BalancedPool are not used. The API server's own undici (packages/websocket) is 7.30, which is fixed."
+    },
+    {
+      "project": "root",
+      "id": "GHSA-x6jw-m9v5-85vh",
+      "package": "simple-git",
+      "severity": "critical",
+      "title": "simple-git unsafe-operation guard does not block trailer command configuration",
+      "url": "https://github.com/advisories/GHSA-x6jw-m9v5-85vh",
+      "reason": "Reached only through node-llama-cpp, which uses simple-git to clone llama.cpp source in its own CLI. NodeTool never calls that path or passes git options. Fix needs node-llama-cpp 4 (major)."
+    },
+    {
+      "project": "mobile",
+      "id": "GHSA-22p9-wv53-3rq4",
+      "package": "linkify-it",
+      "severity": "high",
+      "title": "LinkifyIt#match scan loop has quadratic algorithmic complexity",
+      "url": "https://github.com/advisories/GHSA-22p9-wv53-3rq4",
+      "reason": "markdown-it link detection in chat rendering. Quadratic scans on hostile text slow only the device rendering that message. No fixed release yet."
+    },
+    {
+      "project": "mobile",
+      "id": "GHSA-3949-f494-cm99",
+      "package": "prismjs",
+      "severity": "high",
+      "title": "Cross-site Scripting in Prism",
+      "url": "https://github.com/advisories/GHSA-3949-f494-cm99",
+      "reason": "Syntax highlighting in chat through react-native-syntax-highlighter. Output renders as React Native Text, with no DOM, so the XSS advisories do not apply. The ReDoS affects only the user's own device. No fix in the Prism 1 line that the highlighter accepts."
+    },
+    {
+      "project": "mobile",
+      "id": "GHSA-5p2g-fcmc-qvqq",
+      "package": "image-size",
+      "severity": "high",
+      "title": "image-size: JXL and HEIF parsers allow denial of service through infinite loops",
+      "url": "https://github.com/advisories/GHSA-5p2g-fcmc-qvqq",
+      "reason": "Used by Metro, the bundler, on our own assets at build time. Not shipped in the app. Fix needs a Metro release that moves past image-size ^1."
+    },
+    {
+      "project": "mobile",
+      "id": "GHSA-86w9-cpqp-85rv",
+      "package": "node-forge",
+      "severity": "high",
+      "title": "node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements",
+      "url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+      "reason": "Used by the Expo CLI for code-signing certificates at build time. Not shipped in the app. Fix needs an Expo SDK upgrade."
+    },
+    {
+      "project": "mobile",
+      "id": "GHSA-gj77-59wh-66hg",
+      "package": "prismjs",
+      "severity": "high",
+      "title": "Regular Expression Denial of Service (ReDoS) in Prism",
+      "url": "https://github.com/advisories/GHSA-gj77-59wh-66hg",
+      "reason": "Syntax highlighting in chat through react-native-syntax-highlighter. Output renders as React Native Text, with no DOM, so the XSS advisories do not apply. The ReDoS affects only the user's own device. No fix in the Prism 1 line that the highlighter accepts."
+    },
+    {
+      "project": "mobile",
+      "id": "GHSA-h4hr-7fg3-h35w",
+      "package": "prismjs",
+      "severity": "high",
+      "title": "Denial of service in prismjs",
+      "url": "https://github.com/advisories/GHSA-h4hr-7fg3-h35w",
+      "reason": "Syntax highlighting in chat through react-native-syntax-highlighter. Output renders as React Native Text, with no DOM, so the XSS advisories do not apply. The ReDoS affects only the user's own device. No fix in the Prism 1 line that the highlighter accepts."
+    },
+    {
+      "project": "mobile",
+      "id": "GHSA-v245-v573-v5vm",
+      "package": "linkify-it",
+      "severity": "high",
+      "title": "linkify-it: Quadratic-complexity DoS via the `mailto:` validator scan-loop on attacker text",
+      "url": "https://github.com/advisories/GHSA-v245-v573-v5vm",
+      "reason": "markdown-it link detection in chat rendering. Quadratic scans on hostile text slow only the device rendering that message. No fixed release yet."
+    },
+    {
+      "project": "mobile",
+      "id": "GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "severity": "high",
+      "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns",
+      "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+      "reason": "Via micromatch in Metro and Expo tooling at build time. Patterns come from our own config."
+    },
+    {
+      "project": "mobile",
+      "id": "GHSA-w3rx-r6r6-pgpr",
+      "package": "image-size",
+      "severity": "high",
+      "title": "image-size: ICNS parser allows denial of service through an infinite loop",
+      "url": "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr",
+      "reason": "Used by Metro, the bundler, on our own assets at build time. Not shipped in the app. Fix needs a Metro release that moves past image-size ^1."
+    },
+    {
+      "project": "mobile",
+      "id": "GHSA-wvhm-4hhf-97x9",
+      "package": "prismjs",
+      "severity": "high",
+      "title": "Cross-Site Scripting in Prism",
+      "url": "https://github.com/advisories/GHSA-wvhm-4hhf-97x9",
+      "reason": "Syntax highlighting in chat through react-native-syntax-highlighter. Output renders as React Native Text, with no DOM, so the XSS advisories do not apply. The ReDoS affects only the user's own device. No fix in the Prism 1 line that the highlighter accepts."
+    }
+  ]
+}

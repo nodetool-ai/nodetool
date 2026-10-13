@@ -45,7 +45,11 @@ for (const { file, wf } of routines) {
     const names = steps.map((s) => s.name);
     assert.ok(!names.includes("Run quality checks baseline"));
     assert.ok(!names.includes("Post-change verification"));
-    assert.ok(steps.some((s) => s.uses === "./.github/actions/setup-build"));
+    // A model-driven job can run anything, so it may read the shared caches but
+    // never write one a deploy or another job would restore.
+    const setup = steps.find((s) => s.uses === "./.github/actions/setup-build");
+    assert.ok(setup, "no setup-build step");
+    assert.equal(setup.with?.cache, "read-only");
     assert.ok(!steps.some((s) => s.uses?.startsWith("actions/setup-node")));
   });
 
@@ -108,4 +112,20 @@ test("report tallies outcomes and net lines per agent label", () => {
     { label: "agent:perf", opened: 1, merged: 0, closed: 0, open: 1, net: 0 },
   ]);
   assert.match(toMarkdown(rows, 30), /\| dead-code-cleanup \| 2 \| 1 \| 1 \| 0 \| -49 \|/);
+});
+
+test("jobs that publish or deploy never restore a shared cache", () => {
+  const steps = (file) => Object.values(read(file).jobs).flatMap((job) => job.steps ?? []);
+  for (const file of ["release.yaml", "publish.yaml", "eas-build.yml", "web-deploy.yml"]) {
+    for (const step of steps(file)) {
+      assert.ok(!step.uses?.startsWith("actions/cache"), `${file}: ${step.name ?? step.uses}`);
+      if (step.uses?.startsWith("actions/setup-node")) {
+        assert.equal(step.with?.cache, undefined, `${file}: setup-node cache`);
+        assert.equal(step.with?.["package-manager-cache"], false, `${file}: setup-node package-manager-cache`);
+      }
+      if (step.uses === "./.github/actions/setup-build") {
+        assert.equal(step.with?.cache, "off", `${file}: setup-build cache`);
+      }
+    }
+  }
 });

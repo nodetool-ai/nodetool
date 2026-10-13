@@ -1,63 +1,110 @@
 name: Security Audit
 
+# One attack-surface area per run, rotating weekly, with a failing test required
+# before anything counts as a finding. Dependency advisories are not this
+# routine's job: scripts/check-npm-audit.mjs gates them (dependency-audit.yml).
+#
+# The repository is public, so an exploitable finding never goes into a pull
+# request, a commit, an issue, or the job log. The agent writes it to a file in
+# $RUNNER_TEMP and the last step files it as a draft repository security
+# advisory, visible to maintainers only. That step needs the
+# SECURITY_ADVISORY_TOKEN secret: a fine-grained token on this repository with
+# "Repository security advisories: write". Without it the run stops before the
+# agent starts, so no finding can be produced with nowhere private to put it.
+#
+# Hardening that fixes no exploitable path (a missing schema on a route that
+# already checks auth, say) goes through an ordinary labeled pull request.
+
 on:
+  schedule:
+    - cron: "15 5 * * 1" # Mondays at 05:15 UTC
   workflow_dispatch:
+    inputs:
+      area:
+        description: "Area to audit (default: this week's rotation)"
+        required: false
+        type: choice
+        default: rotation
+        options:
+          - rotation
+          - http-auth
+          - url-egress
+          - sandbox
+          - file-paths
+          - electron-ipc
+          - secrets
 
 jobs:
-  security-audit:
+  preflight:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    outputs:
+      skip: ${{ steps.preflight.outputs.skip }}
+      recent-files: ${{ steps.preflight.outputs.recent-files }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - id: preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE_PATTERN: '^security:'
+        run: node .github/scripts/agent-preflight.mjs --name security-audit --title "$TITLE_PATTERN"
+
+  security-audit:
+    needs: preflight
+    if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
     permissions:
       id-token: write
       contents: write
       pull-requests: write
       issues: write
-      security-events: write
       actions: read
     steps:
+      - name: Require a private place for findings
+        env:
+          ADVISORY_TOKEN: ${{ secrets.SECURITY_ADVISORY_TOKEN }}
+        run: |
+          if [ -z "$ADVISORY_TOKEN" ]; then
+            echo "::error::SECURITY_ADVISORY_TOKEN is not set. Findings would have nowhere private to go, so the audit does not run. See the header of security-audit.yaml."
+            exit 1
+          fi
+
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Node and install dependencies
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
+          cache: "read-only"
+          build-packages: "true"
 
-      - name: Install all workspace dependencies
-        run: npm ci
+      - name: Pick this run's area
+        id: area
         env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
-
-      - name: Install mobile dependencies
-        run: cd mobile && npm ci
-
-      - name: Run npm audit
-        continue-on-error: true
+          REQUESTED: ${{ github.event.inputs.area }}
         run: |
-          echo "## npm audit results" >> $GITHUB_STEP_SUMMARY
-          echo "### workspace root (web, electron, packages/*)" >> $GITHUB_STEP_SUMMARY
-          npm audit --json > npm-audit.json 2>/dev/null || true
-          npm audit 2>/dev/null | tail -20 >> $GITHUB_STEP_SUMMARY || true
-          echo "### mobile" >> $GITHUB_STEP_SUMMARY
-          cd mobile && npm audit --json > npm-audit.json 2>/dev/null || true
-          npm audit 2>/dev/null | tail -20 >> $GITHUB_STEP_SUMMARY || true
-
-      - name: Run quality checks baseline
-        id: pre-check
-        continue-on-error: true
-        run: |
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
-          npm run lint 2>&1 || LINT_EXIT=1
-          npm run test 2>&1 || TEST_EXIT=1
-          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
-          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
-          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+          AREAS=(http-auth url-egress sandbox file-paths electron-ipc secrets)
+          if [ -n "$REQUESTED" ] && [ "$REQUESTED" != "rotation" ]; then
+            AREA="$REQUESTED"
+          else
+            AREA="${AREAS[$(( 10#$(date -u +%V) % ${#AREAS[@]} ))]}"
+          fi
+          echo "area=$AREA" >> "$GITHUB_OUTPUT"
+          echo "## Security audit area: $AREA" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run Claude Code
-        uses: anthropics/claude-code-action@v1.0.241
+        uses: anthropics/claude-code-action@cab360f6565aa35a51d6ce9e43f1f4287c0a32ea # v1.0.241
+        env:
+          AREA: ${{ steps.area.outputs.area }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
@@ -65,65 +112,101 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing."
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing. Open the PR with the label agent:security-audit (gh pr create --label agent:security-audit). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
-            # Security Audit
+            # Security Audit: ${{ steps.area.outputs.area }}
 
-            Audit NodeTool for security vulnerabilities and fix what you find.
+            Audit one area of NodeTool for vulnerabilities an attacker can
+            reach, and prove each one with a failing test before you report it.
+            Read `docs/DEVELOPMENT_STANDARDS.md` §16 first: it states the rules
+            this code must meet.
 
-            ## Scope
-            - `/web` — React frontend
-            - `/electron` — desktop app (Electron)
-            - `/mobile` — React Native app
+            ## This run's area
 
-            ## What to check
+            Work only on the area named in the title.
 
-            **Dependencies**: Read `*/npm-audit.json` for known CVEs. Fix critical/high severity by updating packages. Do not bump major versions without checking for breaking changes.
+            - **http-auth** — `packages/websocket/src/` routes and tRPC
+              procedures, `packages/auth/`. Every route and procedure must
+              check the caller (`isPublicAuthExemptRoute` lists the
+              exceptions), and every query must scope rows to the caller's
+              user. Look for a missing check, a check after the work, and an
+              id taken from the request without an ownership check.
+            - **url-egress** — every surface in `docs/url-egress-inventory.md`
+              and any fetch of a caller-, provider- or model-chosen URL not
+              listed there. Each must go through `safeFetch` or
+              `fetchExternalMedia` (`@nodetool-ai/runtime`), including every
+              redirect hop.
+            - **sandbox** — the QuickJS guest boundary: `packages/agents/src/js-sandbox*`,
+              `src/host-modules/`, `src/wasm-sandbox/`, and the limits in
+              `docs/javascript-sandbox.md`. Look for a host bridge that
+              trusts guest input (paths, sizes, URLs, secret names) or a
+              limit the guest can route around.
+            - **file-paths** — workspace path resolution, uploads, downloads,
+              archive extraction, and asset storage keys. A user-supplied
+              path or archive entry must not escape its root.
+            - **electron-ipc** — `electron/src/` IPC handlers, protocol
+              handlers, and window settings (see `electron/src/AGENTS.md`).
+              Every handler must validate its arguments and its sender.
+            - **secrets** — secrets in logs, error messages, traces, tool
+              results, or API responses; `@nodetool-ai/security`.
 
-            **Code patterns** (search for these):
-            - `dangerouslySetInnerHTML` without sanitization (DOMPurify)
-            - `eval()` or `new Function()` with user input
-            - Hardcoded API keys, tokens, or passwords in source files
-            - User input passed directly to DOM or URLs without validation
-            - File upload handlers without type/size validation
+            ## A finding needs a reproduction
 
-            **Electron-specific**:
-            - `nodeIntegration` should be `false`
-            - `contextIsolation` should be `true`
-            - IPC messages should be validated
+            For each suspected issue, write a test in the package's own suite
+            that exercises the real code path and fails on the current code.
+            Run it and watch it fail. A suspicion you cannot reproduce is not
+            a finding: leave it out.
+
+            ## Where findings go
+
+            The repository is public. Choose exactly one outcome.
+
+            **1. An exploitable finding.** Do not commit, push, open a pull
+            request or issue, or describe it in any command output or log
+            line. Write two files and stop:
+
+            - `$RUNNER_TEMP/security-advisory.json`, the body for
+              `POST /repos/{owner}/{repo}/security-advisories`:
+              `{"summary": "...", "description": "...", "severity": "critical|high|medium|low",
+              "vulnerabilities": [{"package": {"ecosystem": "npm", "name": "<affected @nodetool-ai package>"},
+              "vulnerable_version_range": "<= <current version>"}]}`.
+              The description holds the affected files, the attack path, the
+              reproduction test's full source, and a proposed fix as a diff.
+            - Nothing else. The workflow files the advisory and deletes the
+              file.
+
+            **2. Hardening with no exploitable path.** Open a pull request
+            titled "security: harden <what>" with the fix and the test that
+            pins it. Describe the defect plainly, without an attack recipe.
+
+            **3. Nothing found.** Write one line per surface you checked to
+            `$GITHUB_STEP_SUMMARY` and make no changes.
 
             ## Rules
-            - Fix real vulnerabilities only. Do not add speculative defenses or wrap everything in try/catch.
-            - One PR per audit. Keep changes focused and reviewable.
-            - Maximum 10 files changed.
-            - Do not touch CI workflows.
+            - Do not upgrade dependencies. `scripts/check-npm-audit.mjs` owns
+              advisories.
+            - Do not add speculative defenses or wrap code in try/catch.
+            - Do not touch CI workflow files.
+            - One area, one outcome per run.
 
-            ## Before starting
-            - Run `gh pr list --state open --limit 20` — skip if a security PR is already open.
-
-            ## Verification
-            After fixing, all checks must still pass:
-            ```bash
-            npm run typecheck && npm run lint && npm run test
-            ```
-
-            ## Submit
-            Create a PR titled "security: <brief description>" listing each vulnerability fixed and its severity.
-
-      - name: Post-change verification
+      - name: File the draft advisory
         if: always()
+        env:
+          GH_TOKEN: ${{ secrets.SECURITY_ADVISORY_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
-          npm run lint 2>&1 || LINT_EXIT=1
-          npm run test 2>&1 || TEST_EXIT=1
-
-          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
-            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          FILE="$RUNNER_TEMP/security-advisory.json"
+          if [ ! -f "$FILE" ]; then
+            echo "No exploitable finding this run." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
-          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
-            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          # The response carries the advisory text, so keep it out of the log.
+          if gh api --method POST "repos/$REPO/security-advisories" --input "$FILE" > /dev/null; then
+            echo "Filed a draft security advisory. See the repository's Security tab." >> "$GITHUB_STEP_SUMMARY"
+            STATUS=0
+          else
+            echo "::error::Filing the draft advisory failed. The finding is not stored anywhere; rerun the audit for this area."
+            STATUS=1
           fi
-          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
-            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
+          rm -f "$FILE"
+          exit $STATUS

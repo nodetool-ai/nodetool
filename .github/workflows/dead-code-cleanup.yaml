@@ -16,9 +16,10 @@ jobs:
       skip: ${{ steps.preflight.outputs.skip }}
       recent-files: ${{ steps.preflight.outputs.recent-files }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: .github/scripts
+          persist-credentials: false
       - id: preflight
         env:
           GH_TOKEN: ${{ github.token }}
@@ -37,20 +38,21 @@ jobs:
       actions: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up Node and install dependencies
         uses: ./.github/actions/setup-build
         with:
+          cache: "read-only"
           build-packages: "false"
 
       - name: Install mobile dependencies
         run: cd mobile && npm ci
 
       - name: Run Claude Code
-        uses: anthropics/claude-code-action@v1.0.241
+        uses: anthropics/claude-code-action@cab360f6565aa35a51d6ce9e43f1f4287c0a32ea # v1.0.241
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
