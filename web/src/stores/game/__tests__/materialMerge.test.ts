@@ -1,10 +1,11 @@
 import { expect, it } from "@jest/globals";
 import { gameDocument3D, gameMaterial3D, type GameDocument3D, type GameEntity3D } from "@nodetool-ai/protocol";
-import { createNative3DGame, validateGame3D } from "@nodetool-ai/game-runtime";
+import { applyAnyGameOps, createNative3DGame, createTopDownRoomGame, validateGame3D } from "@nodetool-ai/game-runtime";
 
 import { mergeByUnits } from "../../documentMerge";
 import { acceptServerAnyGameUnit, anyGameMergeAdapter } from "../anyMerge";
 import { gameMergeAdapter3D } from "../merge3D";
+import { getGameDraftStore } from "../GameDraftStore";
 
 const gold = gameMaterial3D.parse({ color: "#ffaa00" });
 const silver = gameMaterial3D.parse({ color: "#aabbcc" });
@@ -33,7 +34,7 @@ it("merges distinct material edits and reports competing edits on one material",
   const server = { ...base, materials: { gold, copper: silver } };
   const merged = mergeByUnits(base, draft, server, gameMergeAdapter3D, { mergeWithoutOps: true });
   expect(merged.conflicts).toEqual([]);
-  expect(merged.doc.materials).toEqual({ gold: silver, copper: silver });
+  expect(gameDocument3D.parse(merged.doc).materials).toEqual({ gold: silver, copper: silver });
   const contested = mergeByUnits(base, draft, { ...base, materials: { gold: gameMaterial3D.parse({ color: "#ff0000" }) } },
     anyGameMergeAdapter(base), { mergeWithoutOps: true });
   expect(contested.conflicts).toHaveLength(1);
@@ -130,7 +131,7 @@ it("retains a full named material table referenced by a large entity list", () =
   delete server.materials;
   for (const slot of Object.keys(images)) { delete server.assets[slot]; }
   const merged = mergeByUnits(base, draft, server, gameMergeAdapter3D, { mergeWithoutOps: true });
-  expect(merged.doc.materials).toEqual(materials);
+  expect(gameDocument3D.parse(merged.doc).materials).toEqual(materials);
   for (const slot of Object.keys(images)) { expect(merged.doc.assets[slot]).toEqual(images[slot]); }
   expect(validateGame3D(merged.doc).valid).toBe(true);
   expect(merged.doc.scenes[0].entities).toHaveLength(draft.scenes[0].entities.length);
@@ -159,7 +160,7 @@ it.each([false, true])("restores image bindings for deleted presets in both merg
     const merged = mergeByUnits(base, draft, server, anyGameMergeAdapter(base), { mergeWithoutOps: true });
     expect(validateGame3D(merged.doc).valid).toBe(true);
     expect(merged.doc.assets.paint).toEqual(base.assets.paint);
-    expect(merged.doc.materials).toEqual(base.materials);
+    expect(gameDocument3D.parse(merged.doc).materials).toEqual(base.materials);
     expect(merged.doc.scenes[0].name).toBe("Remote scene name");
   }
 });
@@ -216,7 +217,7 @@ it("restores only owned image bindings for prototype-named material texture slot
   assignMaterial(draft, false);
   const server = structuredClone(base);
   delete server.materials;
-  delete server.assets.constructor;
+  Reflect.deleteProperty(server.assets, "constructor");
   const merged = mergeByUnits(base, draft, server, gameMergeAdapter3D, { mergeWithoutOps: true });
   expect(Object.hasOwn(merged.doc.assets, "constructor")).toBe(true);
   expect(merged.doc.assets.constructor).toEqual(base.assets.constructor);
@@ -234,7 +235,7 @@ it("restores image identity from the source that supplies the selected preset", 
   server.assets.paint = { ...base.assets.paint, assetId: "server-image", digest: "server-image-digest" };
   const merged = mergeByUnits(base, draft, server, anyGameMergeAdapter(base), { mergeWithoutOps: true });
   expect(validateGame3D(merged.doc).valid).toBe(true);
-  expect(merged.doc.materials).toEqual(server.materials);
+  expect(gameDocument3D.parse(merged.doc).materials).toEqual(server.materials);
   expect(merged.doc.assets.paint).toEqual(server.assets.paint);
 });
 
@@ -246,7 +247,7 @@ it("keeps an unused locally edited textured preset valid when its remote copy an
   delete server.materials;
   delete server.assets.paint;
   const merged = mergeByUnits(base, draft, server, gameMergeAdapter3D, { mergeWithoutOps: true });
-  expect(merged.doc.materials).toEqual(draft.materials);
+  expect(gameDocument3D.parse(merged.doc).materials).toEqual(draft.materials);
   expect(validateGame3D(merged.doc).valid).toBe(true);
   expect(merged.doc.assets.paint).toEqual(draft.assets.paint);
 });
@@ -316,7 +317,7 @@ it.each(["primitive", "model"] as const)("restores owned constructor image alias
   if (!visual) { throw new Error("Fixture component missing"); }
   visual.material = { ...visual.material, normalTexture: { assetId: "constructor" } };
   const server = structuredClone(base);
-  delete server.assets.constructor;
+  Reflect.deleteProperty(server.assets, "constructor");
   const merged = mergeByUnits(base, draft, server, gameMergeAdapter3D, { mergeWithoutOps: true });
   expect(validateGame3D(merged.doc).valid).toBe(true);
   expect(Object.hasOwn(merged.doc.assets, "constructor")).toBe(true);
@@ -398,4 +399,75 @@ it("indexes inline source scopes distinctly when scene and entity IDs contain se
   const merged = finalize(combined, base, draft, server, []);
   expect(validateGame3D(merged).valid).toBe(true);
   expect(merged.assets.paint).toEqual(base.assets.paint);
+});
+
+function expectWholeDocumentChoices(base: GameDocument3D, first: GameDocument3D, second: GameDocument3D): void {
+  for (const [draft, remote] of [[gameDocument3D.parse(first), gameDocument3D.parse(second)], [gameDocument3D.parse(second), gameDocument3D.parse(first)]]) {
+    const server = { ...remote, revision: remote.revision + 1 };
+    const merged = mergeByUnits(base, draft, server, anyGameMergeAdapter(base), { mergeWithoutOps: true });
+    const expected = { ...draft, id: server.id, revision: server.revision };
+    expect(merged.doc).toEqual(expected);
+    expect(merged.nextBase).toEqual(base);
+    expect(merged.conflicts).toEqual([{ unit: { kind: "document", id: "document", label: "document" }, external: server, draft, reason: "replaced" }]);
+    const store = getGameDraftStore(base.id);
+    store.getState().load(base, "before");
+    expect(() => store.getState().applyMerged(merged.doc, server, "after")).not.toThrow();
+    expect(store.getState().savedDocument).toEqual(server);
+    expect(store.getState().baseUpdatedAt).toBe("after");
+    expect(applyAnyGameOps(server, store.getState().captureSaveOps())).toEqual(expected);
+    expect(store.getState().captureSaveDocument()?.document).toEqual(expected);
+    expect(() => store.getState().acceptConflict(server, "document", "document")).not.toThrow();
+    expect(store.getState().document).toEqual(server);
+    expect(store.getState().pendingOps).toEqual([]);
+    expect(store.getState().saveStatus).toBe("saved");
+  }
+}
+
+it("rejects whole-document conflict choices that change game identity or dimension", () => {
+  const current = createNative3DGame("document-choice");
+  expect(() => acceptServerAnyGameUnit(current, { ...current, id: "different" }, "document", "document")).toThrow(/identity and dimension/);
+  expect(() => acceptServerAnyGameUnit(current, createTopDownRoomGame(current.id), "document", "document")).toThrow(/identity and dimension/);
+  const invalid = structuredClone(current);
+  invalid.entrySceneId = "missing";
+  expect(() => acceptServerAnyGameUnit(current, invalid, "document", "document")).toThrow(/invalid game document/);
+});
+
+it("does not hide unrelated native merge errors behind a document conflict", () => {
+  const base = createNative3DGame("merge-error");
+  const draft = { ...base, name: "" };
+  expect(() => mergeByUnits(base, draft, base, anyGameMergeAdapter(base), { mergeWithoutOps: true })).toThrow();
+});
+
+it("keeps concurrent valid material tables inside the preset bound", () => {
+  const base = createNative3DGame("material-bound-merge");
+  base.materials = Object.fromEntries(Array.from({ length: 255 }, (_, index) => [`material-${index}`, gold]));
+  const draft = { ...base, materials: { ...base.materials, local: silver } };
+  const server = { ...base, materials: { ...base.materials, remote: gold } };
+  expect(validateGame3D(draft).valid).toBe(true);
+  expect(validateGame3D(server).valid).toBe(true);
+  expectWholeDocumentChoices(base, draft, server);
+});
+it.each(["inline", "preset"] as const)("keeps joint image/model consumers valid when merging a new %s texture", (mode) => {
+  const base = withInlineVisual("primitive", false);
+  const draft = structuredClone(base);
+  const visual = inlineVisual(draft, false).primitive;
+  if (!visual) { throw new Error("Fixture primitive missing"); }
+  if (mode === "inline") { visual.material.normalTexture = { assetId: "paint" }; }
+  else {
+    draft.materials = { gold: gameMaterial3D.parse({ normalTexture: { assetId: "paint" } }) };
+    visual.materialId = "gold";
+  }
+  const server = structuredClone(base);
+  server.assets.paint = { mediaKind: "model", assetId: "server-model", digest: "model-digest", required: true, format: "glb", preparationVersion: "1",
+    bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } }, nodeIds: ["node:0"], clipIds: [],
+    geometryBytes: 1, textureBytes: 0, triangles: 1, supportedExtensions: [] };
+  const model = structuredClone(inlineVisual(server, false));
+  model.id = "remote-model";
+  delete model.parentId;
+  delete model.primitive;
+  model.model = { assetId: "paint", castShadow: true, receiveShadow: true };
+  server.scenes[0].entities.push(model);
+  expect(validateGame3D(draft).valid).toBe(true);
+  expect(validateGame3D(server).valid).toBe(true);
+  expectWholeDocumentChoices(base, draft, server);
 });

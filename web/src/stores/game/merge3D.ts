@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { gameAnimationGraph3D, gameAssetBinding3D, gameDocument3D, gameEntity3D, gameMaterial3D, gamePrefab3D, gameScene3D, type GameDocument3D, type GameEntity3D, type GameMaterial3D } from "@nodetool-ai/protocol";
-import type { DocumentMergeAdapter, MergeConflict } from "../documentMerge";
+import { validateGame3D } from "@nodetool-ai/game-runtime";
+import { mergeByUnits, type DocumentMergeAdapter, type MergeConflict, type MergeOptions, type MergeResult } from "../documentMerge";
 import { authoringMergeScalars } from "./authoringMerge";
 
 const sceneUnit = gameScene3D.omit({ entities: true });
@@ -84,7 +85,33 @@ function retainReferencedMaterials(doc: GameDocument3D, sources: readonly GameDo
   return { ...doc, ...(restored ? { materials: restored } : {}), ...(restoredAssets ? { assets: restoredAssets } : {}) };
 }
 
+function mergeNative3D(base: GameDocument3D, draft: GameDocument3D, server: GameDocument3D, options?: MergeOptions): MergeResult<GameDocument3D> {
+  const { merge: _merge, ...adapter } = gameMergeAdapter3D;
+  let merged: MergeResult<GameDocument3D> | undefined;
+  let materialLimitError: z.ZodError | undefined;
+  try {
+    merged = mergeByUnits(base, draft, server, adapter, options);
+    if (validateGame3D(merged.doc).valid) { return merged; }
+  } catch (error) {
+    if (!(error instanceof z.ZodError) || error.issues.length === 0 || !error.issues.every((issue) =>
+      issue.code === "custom" && issue.path.length === 1 && issue.path[0] === "materials" && issue.message === "At most 256 named materials")) {
+      throw error;
+    }
+    materialLimitError = error;
+  }
+  if (!validateGame3D(draft).valid || !validateGame3D(server).valid) {
+    if (merged) { return merged; }
+    throw materialLimitError;
+  }
+  const kept = validateGame3D({ ...draft, id: server.id, revision: server.revision });
+  if (!kept.valid || !kept.document) { throw new Error("Cannot preserve the native game draft"); }
+  // A document conflict exposes both complete choices instead of losing unrelated server changes under an asset conflict.
+  return { doc: kept.document, nextBase: base, conflicts: [{ unit: { kind: "document", id: "document", label: "document" },
+    external: server, draft, reason: "replaced" }] };
+}
+
 export const gameMergeAdapter3D: DocumentMergeAdapter<GameDocument3D> = {
+  merge: mergeNative3D,
   finalizeMergedDocument: (doc, base, draft, server, conflicts) => retainReferencedMaterials(doc, [draft, server, base], conflicts),
   collections: [
     {
