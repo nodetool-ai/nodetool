@@ -37,7 +37,7 @@ export interface MergeConflict {
   unit: MergeConflictUnit;
   /** The value the draft refused. Null for an external delete. */
   external: unknown;
-  /** The draft value that won, when the banner shows both sides. */
+  /** The draft candidate, when the banner shows both sides. */
   draft?: unknown;
   reason: MergeConflictReason;
 }
@@ -113,7 +113,7 @@ interface MergeScalarField<TDoc> {
 export interface DocumentMergeAdapter<TDoc> {
   collections: MergeCollection<TDoc>[];
   /** Restore cross-collection references after all independently merged fields have settled. */
-  finalizeMergedDocument?(doc: TDoc, base: TDoc, draft: TDoc, server: TDoc): TDoc;
+  finalizeMergedDocument?(doc: TDoc, base: TDoc, draft: TDoc, server: TDoc, conflicts: MergeConflict[]): TDoc;
   scalars?: MergeScalarField<TDoc>[];
   /**
    * Map one external op onto the units it touched. An entry without `unitId`
@@ -1056,5 +1056,5 @@ export function mergeByUnits<TDoc>(
     }
   }
 
-  return { doc: adapter.finalizeMergedDocument?.(doc, base, draft, server) ?? doc, conflicts, nextBase };
+  return { doc: adapter.finalizeMergedDocument?.(doc, base, draft, server, conflicts) ?? doc, conflicts, nextBase };
 }

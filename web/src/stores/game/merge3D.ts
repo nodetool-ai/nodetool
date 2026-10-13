@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { gameAnimationGraph3D, gameAssetBinding3D, gameDocument3D, gameEntity3D, gameMaterial3D, gamePrefab3D, gameScene3D, type GameDocument3D } from "@nodetool-ai/protocol";
-import type { DocumentMergeAdapter } from "../documentMerge";
+import type { DocumentMergeAdapter, MergeConflict } from "../documentMerge";
 import { authoringMergeScalars } from "./authoringMerge";
 
 const sceneUnit = gameScene3D.omit({ entities: true });
@@ -15,26 +15,51 @@ function referencedAnimationGraphs(doc: GameDocument3D): Set<string> {
   return new Set(entities.flatMap((entity) => entity.animator3d?.graph === undefined ? [] : [entity.animator3d.graph]));
 }
 
-function retainReferencedMaterials(doc: GameDocument3D, sources: readonly GameDocument3D[]): GameDocument3D {
+const MATERIAL_TEXTURE_FIELDS = ["baseColorTexture", "normalTexture", "ormTexture", "emissiveTexture"] as const;
+
+function retainReferencedMaterials(doc: GameDocument3D, sources: readonly GameDocument3D[], conflicts?: MergeConflict[]): GameDocument3D {
   const entities = [...doc.scenes.flatMap((scene) => scene.entities), ...Object.values(doc.prefabs).flatMap((prefab) => prefab.entities)];
-  const referenced = new Set(entities.flatMap((entity) => [entity.primitive?.materialId, entity.model?.materialId])
-    .filter((id): id is string => id !== undefined));
+  const referenced = new Set([...Object.keys(doc.materials ?? {}), ...entities.flatMap((entity) => [entity.primitive?.materialId, entity.model?.materialId])
+    .filter((id): id is string => id !== undefined)]);
+  const conflictedAssets = new Set(conflicts?.filter((conflict) => conflict.unit.kind === "asset").map((conflict) => conflict.unit.id));
   let restored: GameDocument3D["materials"];
+  let restoredAssets: GameDocument3D["assets"] | undefined;
   for (const materialId of referenced) {
-    if (doc.materials && Object.hasOwn(doc.materials, materialId)) { continue; }
-    const material = sources.map((source) => source.materials && Object.hasOwn(source.materials, materialId)
-      ? source.materials[materialId] : undefined).find((value) => value !== undefined);
-    if (material) {
+    const materialSource = sources.find((source) => source.materials && Object.hasOwn(source.materials, materialId));
+    const material = doc.materials && Object.hasOwn(doc.materials, materialId) ? doc.materials[materialId] : materialSource?.materials?.[materialId];
+    if (!material) { continue; }
+    if (!doc.materials || !Object.hasOwn(doc.materials, materialId)) {
       restored ??= { ...doc.materials };
       // Material IDs may name Object prototype properties.
       Object.defineProperty(restored, materialId, { value: material, enumerable: true, writable: true, configurable: true });
     }
+    const materialValue = JSON.stringify(material);
+    for (const field of MATERIAL_TEXTURE_FIELDS) {
+      const slot = material[field]?.assetId;
+      if (!slot) { continue; }
+      const current = Object.hasOwn(doc.assets, slot) ? doc.assets[slot] : undefined;
+      if (current?.mediaKind === "image") { continue; }
+      const source = sources.find((candidate) => candidate.materials && Object.hasOwn(candidate.materials, materialId)
+        && JSON.stringify(candidate.materials[materialId]) === materialValue
+        && Object.hasOwn(candidate.assets, slot) && candidate.assets[slot].mediaKind === "image");
+      const binding = source?.assets[slot];
+      if (!binding) { continue; }
+      restoredAssets ??= { ...doc.assets };
+      Object.defineProperty(restoredAssets, slot, { value: binding, enumerable: true, writable: true, configurable: true });
+      if (current && conflicts && !conflictedAssets.has(slot)) {
+        conflictedAssets.add(slot);
+        conflicts.push({ unit: { kind: "asset", id: slot, label: `asset ${slot}` },
+          external: sources[1] && Object.hasOwn(sources[1].assets, slot) ? { slot, binding: sources[1].assets[slot] } : null,
+          draft: sources[0] && Object.hasOwn(sources[0].assets, slot) ? { slot, binding: sources[0].assets[slot] } : null, reason: "edited" });
+      }
+    }
   }
-  return restored ? { ...doc, materials: restored } : doc;
+  if (!restored && !restoredAssets) { return doc; }
+  return { ...doc, ...(restored ? { materials: restored } : {}), ...(restoredAssets ? { assets: restoredAssets } : {}) };
 }
 
 export const gameMergeAdapter3D: DocumentMergeAdapter<GameDocument3D> = {
-  finalizeMergedDocument: (doc, base, draft, server) => retainReferencedMaterials(doc, [draft, server, base]),
+  finalizeMergedDocument: (doc, base, draft, server, conflicts) => retainReferencedMaterials(doc, [draft, server, base], conflicts),
   collections: [
     {
       kind: "scene",
