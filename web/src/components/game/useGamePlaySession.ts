@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { z } from "zod";
 import type { GameDocument, GameInputFrame, GameRenderFrame, GameSnapshot } from "@nodetool-ai/protocol/game.js";
-import { gameSnapshot } from "@nodetool-ai/protocol/game.js";
+import { gameDocument, gameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, gameScriptLogsOf, type GamePlayerSaves, type GameSession } from "@nodetool-ai/game-runtime";
 import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "@nodetool-ai/game-renderer/audio";
@@ -8,6 +9,7 @@ import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickCl
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
+import { useGameDraft } from "../../stores/game/GameDraftStore";
 import { useGameScriptReload } from "./useGameScriptReload";
 import { createEditorGameSaves } from "./gameEditorSaves";
 import { GameReplayHistory } from "./gameReplayHistory";
@@ -46,6 +48,8 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const [readyGeneration, setReadyGeneration] = useState(0);
   const [restoring, setRestoring] = useState(false);
   const [effectivePlayDocument, setEffectivePlayDocument] = useState<GameDocument | null>(null);
+  const behaviorStructureVersions = useGameDraft(refId, (state) => state.behaviorStructureVersions);
+  const playBehaviorVersionsRef = useRef(behaviorStructureVersions);
   const savesRef = useRef<GamePlayerSaves | null>(null);
   const particlesRef = useRef<GameParticles2D | null>(null);
   const sessionFailedRef = useRef(false);
@@ -69,6 +73,8 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const [sessionOptions] = useState(() => ({ recordTimings: profiler.recording }));
   const [playing, setPlaying] = useState(false);
   const [playDocument, setPlayDocument] = useState<GameDocument | null>(null);
+  const blockedEntities = useMemo(() => new Set(Object.keys(behaviorStructureVersions).filter((key) =>
+    behaviorStructureVersions[key] !== playBehaviorVersionsRef.current[key])), [behaviorStructureVersions, playDocument]);
   const [renderDocument, setRenderDocument] = useState<GameDocument | null>(null);
   const [playState, setPlayState] = useState<PlayState>({ tick: 0, score: 0, won: false, sceneId: "" });
   const [backend, setBackend] = useState("Initializing");
@@ -350,7 +356,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     return () => { cancelAnimationFrame(request); window.document.removeEventListener("visibilitychange", onVisibility); };
   }, [active, sessionDocument, playing, step]);
 
-  const cancelReload = useGameScriptReload({ draft: document, playDocument: restoring ? null : playDocument, sessionRef, effectiveDocumentRef, readyGeneration, scriptLogs,
+  const cancelReload = useGameScriptReload({ draft: document, playDocument: restoring ? null : playDocument, sessionRef, effectiveDocumentRef, readyGeneration, scriptLogs, blockedEntities, lastCommittedTick: lastTickRef.current,
     checkpoint: (session) => { inputHistoryRef.current.clear(session.snapshot()); setEffectivePlayDocument(effectiveDocumentRef.current); } });
 
   const restart = (): void => {
@@ -362,6 +368,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     setError(null);
     setScriptError(null);
     setEffectivePlayDocument(null);
+    playBehaviorVersionsRef.current = behaviorStructureVersions;
     setPlayDocument(structuredClone(document));
     setPlaying(true);
     inputRef.current.release();
@@ -377,6 +384,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       profiler.clearLive();
       setScriptError(null);
       setEffectivePlayDocument(null);
+      playBehaviorVersionsRef.current = behaviorStructureVersions;
       setPlayDocument(document);
     }
     setPlaying((current) => !current);
@@ -394,7 +402,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
 
   const save = () => {
     const session = sessionRef.current;
-    if (session) localStorage.setItem(`nodetool.game.save.${refId}`, JSON.stringify(session.snapshot()));
+    if (session) localStorage.setItem(`nodetool.game.save.${refId}`, JSON.stringify({ document: effectiveDocumentRef.current ?? sessionDocument, snapshot: session.snapshot() }));
   };
 
   const load = async () => {
@@ -403,15 +411,18 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     const raw = localStorage.getItem(`nodetool.game.save.${refId}`);
     if (!raw) return;
     try {
-      const parsed = gameSnapshot.safeParse(JSON.parse(raw) as unknown);
+      const stored = z.object({ document: gameDocument, snapshot: gameSnapshot }).safeParse(JSON.parse(raw));
+      const parsed = gameSnapshot.safeParse(stored.success ? stored.data.snapshot : JSON.parse(raw));
       if (!parsed.success) { setError("Saved game data is invalid"); return; }
       const generation = ++sessionGenerationRef.current;
       restoreGeneration = generation;
       cancelReload();
       setRestoring(true);
-      const effectiveDocument = effectiveDocumentRef.current ?? sessionDocument;
+      const previousDocument = effectiveDocumentRef.current;
+      const effectiveDocument = stored.success ? stored.data.document : previousDocument ?? sessionDocument;
+      if (effectiveDocument.id !== sessionDocument.id) { throw new Error("Saved game belongs to a different document"); }
       const restored = await createScriptedGameSession(effectiveDocument, 1, parsed.data, undefined, sessionOptions);
-      if (sessionGenerationRef.current !== generation || effectiveDocumentRef.current !== effectiveDocument) { restored.dispose(); if (sessionGenerationRef.current === generation) { setRestoring(false); } return; }
+      if (sessionGenerationRef.current !== generation || effectiveDocumentRef.current !== previousDocument) { restored.dispose(); if (sessionGenerationRef.current === generation) { setRestoring(false); } return; }
       setPlaying(false);
       inputHistoryRef.current.clear(parsed.data);
       setScriptError(null);

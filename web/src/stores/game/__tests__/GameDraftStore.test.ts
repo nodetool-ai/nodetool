@@ -67,7 +67,7 @@ it("rejects a merge that references an asset removed by the server (F4)", () => 
   expect(() => store.getState().applyMerged(merged, document, "second")).toThrow(/missing/);
   expect(store.getState().pendingOps).toEqual([]);
   expect(store.getState().document).toEqual(document);
-  expect(store.getState().baseUpdatedAt).toBe("second");
+  expect(store.getState().baseUpdatedAt).toBe("first");
 });
 
 

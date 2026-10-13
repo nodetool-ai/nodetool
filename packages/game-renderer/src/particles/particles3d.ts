@@ -44,6 +44,7 @@ export class GameParticles3D implements GameParticleField {
 export interface GameParticleSample3D {
   readonly entityId: string;
   readonly emitterId: string;
+  readonly emitter?: GameParticleEmitter;
   readonly x: number;
   readonly y: number;
   readonly z: number;
@@ -63,7 +64,7 @@ export interface GameParticleSample3D {
 export function gameParticleSamples3D(field: GameParticleField): GameParticleSample3D[] {
   const samples: GameParticleSample3D[] = [];
   field.forEachParticle((particle) => {
-    samples.push({ entityId: particle.entityId, emitterId: particle.emitterId, x: particle.x, y: particle.y, z: particle.z,
+    samples.push({ emitter: particle.emitter, entityId: particle.entityId, emitterId: particle.emitterId, x: particle.x, y: particle.y, z: particle.z,
       vx: particle.vx, vy: particle.vy, vz: particle.vz, size: particle.size, rotation: particle.rotation,
       r: particle.r, g: particle.g, b: particle.b, opacity: particle.opacity, life: particle.life });
   });
@@ -71,8 +72,8 @@ export function gameParticleSamples3D(field: GameParticleField): GameParticleSam
 }
 
 /**
- * A particle field over copied samples. Each sample takes its emitter definition from the frame, so samples whose
- * entity or emitter the frame does not carry are dropped.
+ * A particle field over copied samples, including world particles whose emitter has left the frame.
+ * Older payloads resolve their emitter definition from the frame.
  */
 export function gameParticleFieldFromSamples3D(samples: readonly GameParticleSample3D[], frame: GameRenderFrame3D): GameParticleField {
   const emitters = new Map<string, GameParticleEmitter>();
@@ -84,7 +85,7 @@ export function gameParticleFieldFromSamples3D(samples: readonly GameParticleSam
   return {
     forEachParticle(visit) {
       for (const sample of samples) {
-        const emitter = emitters.get(`${sample.entityId}\u0000${sample.emitterId}`);
+        const emitter = sample.emitter ?? emitters.get(`${sample.entityId}\u0000${sample.emitterId}`);
         if (emitter) {
           visit({ ...sample, emitter });
         }

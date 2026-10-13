@@ -112,6 +112,7 @@ interface MergeScalarField<TDoc> {
 
 export interface DocumentMergeAdapter<TDoc> {
   collections: MergeCollection<TDoc>[];
+  finalize?(result: MergeResult<TDoc>, base: TDoc, draft: TDoc, server: TDoc): MergeResult<TDoc>;
   scalars?: MergeScalarField<TDoc>[];
   /**
    * Map one external op onto the units it touched. An entry without `unitId`
@@ -1054,5 +1055,6 @@ export function mergeByUnits<TDoc>(
     }
   }
 
-  return { doc, conflicts, nextBase };
+  const result = { doc, conflicts, nextBase };
+  return adapter.finalize ? adapter.finalize(result, base, draft, server) : result;
 }

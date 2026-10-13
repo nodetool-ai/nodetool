@@ -14,6 +14,7 @@
   "overrides": [
     {
       "files": [
+        "packages/app-export/src/**",
         "packages/app-runtime/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/audio-nodes/src/**",
@@ -48,6 +49,7 @@
         "packages/kie-codegen/src/**",
         "packages/kie-nodes/src/**",
         "packages/llm-nodes/src/**",
+        "packages/manimgx-nodes/src/**",
         "packages/minimax-nodes/src/**",
         "packages/model-pricing/src/**",
         "packages/model3d/src/**",
@@ -77,6 +79,7 @@
     },
     {
       "files": [
+        "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
         "packages/automation-nodes/src/**",
@@ -103,6 +106,7 @@
         "packages/image-editor/src/**",
         "packages/integration-nodes/src/**",
         "packages/kie-codegen/src/**",
+        "packages/manimgx-nodes/src/**",
         "packages/minimax-nodes/src/**",
         "packages/model-pricing/src/**",
         "packages/model3d/src/**",
@@ -174,6 +178,7 @@
     {
       "files": [
         "packages/agents/src/**",
+        "packages/app-export/src/**",
         "packages/app-runtime/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/audio-nodes/src/**",
@@ -210,6 +215,7 @@
         "packages/kie-codegen/src/**",
         "packages/kie-nodes/src/**",
         "packages/llm-nodes/src/**",
+        "packages/manimgx-nodes/src/**",
         "packages/minimax-nodes/src/**",
         "packages/model-pricing/src/**",
         "packages/model3d/src/**",
@@ -337,6 +343,7 @@
     {
       "files": [
         "electron/src/**",
+        "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
         "packages/automation-nodes/src/**",

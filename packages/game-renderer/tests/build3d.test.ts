@@ -52,7 +52,7 @@ describe("offline 3D export", () => {
     visual.behaviors.push(gameNonSpatialBehavior.parse({ kind: "script", maxTickMs: 50, source: `(input) => {
       const clip = input.justPressed.includes("jump") ? "jump" : Math.abs(input.axes.moveX || 0) + Math.abs(input.axes.moveZ || 0) > 0 ? "run" : "idle";
       const customPresses = (input.state && input.state.customPresses || 0) + Number(input.justPressed.includes("e"));
-      return { state: { clip, customPresses }, commands: [{ kind: "playAnimation", clip }] };
+      return { state: { clip, customPresses }, commands: [{ kind: "playAnimation", clip }, ...(input.tick === 0 ? [{ kind: "save", slot: "replay", data: { written: true } }, { kind: "load", slot: "replay" }] : [])] };
     }` }));
     document.scenes[0].environment.shadows.enabled = true;
     await buildStandaloneGame3D({ document, outputDir: output, resolveAsset: async (assetId) => assetId === "acceptance-rig" ? { bytes: prepared.bytes, mimeType: "model/gltf-binary" } : null });
@@ -88,6 +88,7 @@ describe("offline 3D export", () => {
       expect(await page.evaluate(() => window.nativeGame3DPlayer.snapshot().entities.find((entity) => entity.id === "player-visual")?.animation?.clipId)).toBe("clip:0");
       await page.evaluate(() => window.nativeGame3DPlayer.step({ pressed: ["jump"], justPressed: ["jump"], axes: {}, look: { x: 0, y: 0 } }));
       expect(await page.evaluate(() => window.nativeGame3DPlayer.snapshot().entities.find((entity) => entity.id === "player-visual")?.animation?.clipId)).toBe("clip:2");
+      expect(await page.evaluate(() => window.nativeGame3DPlayer.saves.load("progress", "replay"))).toBeNull();
       await page.evaluate(() => window.nativeGame3DPlayer.step({ pressed: [], justPressed: [], axes: { moveZ: -1 }, look: { x: 0, y: 0 } }));
       expect(await page.evaluate(() => window.nativeGame3DPlayer.snapshot().entities.find((entity) => entity.id === "player-visual")?.animation?.clipId)).toBe("clip:1");
       await page.evaluate(() => window.nativeGame3DPlayer.reset());
@@ -99,9 +100,11 @@ describe("offline 3D export", () => {
       expect(await page.evaluate(() => Object.values(window.nativeGame3DPlayer.snapshot().scriptState).some((state) => state !== null && typeof state === "object" && !Array.isArray(state) && state.customPresses === 1))).toBe(true);
       await page.keyboard.up("e");
       await page.evaluate(() => window.nativeGame3DPlayer.reset());
+      await page.evaluate(() => window.nativeGame3DPlayer.saves.remove("progress", "replay"));
       const inputs = Array.from({ length: 195 }, () => ({ pressed: [], justPressed: [], axes: { moveZ: -1 }, look: { x: 0, y: 0 } }));
       inputs.forEach((input) => session.step(input));
       const snapshot = await page.evaluate(async (route) => { await window.nativeGame3DPlayer.advance(route); return window.nativeGame3DPlayer.snapshot(); }, inputs);
+      expect(await page.evaluate(() => window.nativeGame3DPlayer.saves.load("progress", "replay"))).toBeNull();
       expect(snapshot.won).toBe(true);
       expect(snapshot.score).toBe(2);
       expect(snapshot).toEqual(session.snapshot());

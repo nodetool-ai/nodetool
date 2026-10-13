@@ -31,7 +31,7 @@ import {
   writeProjectArchive,
   type OpenWorkspace
 } from "../src/lib/project-archive.js";
-import { collectZip } from "../src/lib/zip-stream.js";
+import { collectZip, ZipStreamWriter } from "../src/lib/zip-stream.js";
 
 const owner = "archive-owner";
 const importer = "archive-importer";
@@ -449,4 +449,115 @@ describe("project files", () => {
     ).list("", { recursive: true });
     expect(leftovers.filter((entry) => !entry.isDirectory)).toEqual([]);
   });
+  it.each(["missing", "wrong-table"])("rejects a message parent from %s before writes", async (kind) => {
+    const seeded = await seedProject();
+    const { bytes } = await exportProject(owner, seeded.projectId);
+    const entries = unzipSync(bytes);
+    const records = JSON.parse(strFromU8(entries["records.json"]!));
+    records.messages[0].thread_id = kind === "missing" ? "e".repeat(32) : seeded.image.id;
+    entries["records.json"] = strToU8(JSON.stringify(records));
+    await expect(importArchive(zipSync(entries))).rejects.toThrow(/thread_id/);
+    expect(await Project.listByUser(importer)).toEqual([]);
+  });
+
+  it("rehashes current and historical drafts after rewriting game references", async () => {
+    const seeded = await seedProject();
+    const files = createLocalWorkspace(seeded.workspace.path);
+    const { createHash } = await import("node:crypto");
+    const source = JSON.stringify({ id: seeded.gameId, revision: seeded.revision });
+    const digest = createHash("sha256").update(source).digest("hex");
+    const version = `${digest}.YQ.${"d".repeat(32)}`;
+    await files.write(`games/${seeded.gameId}/drafts/${version}.json`, source);
+    await getPortableDb().update(PROJECT_ARCHIVE_TABLES.games.table).set({ draft_version_id: version });
+    await getPortableDb().insert(PROJECT_ARCHIVE_TABLES.game_draft_changes.table).values({
+      id: "f".repeat(32), game_id: seeded.gameId, actor: "user", ops: "[]", summary: "edit",
+      before_updated_at: "a", before_digest: version, created_at: new Date().toISOString()
+    });
+    const { bytes } = await exportProject(owner, seeded.projectId);
+    const result = await importArchive(bytes);
+    const records = await import("@nodetool-ai/models").then((m) => m.readProjectArchiveRecords(importer, result.project.id));
+    const game = records.games[0]!;
+    const workspace = new Workspace(records.workspaces[0]!);
+    const rewritten = await createLocalWorkspace(workspace.path).readText(`${game.source_root}/drafts/${game.draft_version_id}.json`);
+    expect(rewritten).not.toBeNull();
+    expect(String(game.draft_version_id).split(".")[0]).toBe(createHash("sha256").update(rewritten!).digest("hex"));
+    expect(records.game_draft_changes[0]!.before_digest).toBe(game.draft_version_id);
+  });
+
+  it("removes workspace roots after an asset store failure", async () => {
+    const seeded = await seedProject();
+    const { bytes } = await exportProject(owner, seeded.projectId);
+    let created = "";
+    await expect(importProjectArchive(bytes, {
+      userId: importer, storage, openWorkspace,
+      workspacePath: async (_user, id) => {
+        created = await workspacePath(importer, id);
+        const { mkdir } = await import("node:fs/promises");
+        await mkdir(created, { recursive: true });
+        return created;
+      },
+      storeAssetBytes: async () => { throw new Error("store failed"); }
+    })).rejects.toThrow("store failed");
+    const { access } = await import("node:fs/promises");
+    await expect(access(created)).rejects.toThrow();
+  });
+
+  it("rejects exports exceeding the importer aggregate limit, including metadata", async () => {
+    const seeded = await seedProject();
+    await expect(collectZip((writer) => writeProjectArchive({
+      userId: owner, projectId: seeded.projectId, storage, openWorkspace, maxBytes: 4
+    }, writer))).rejects.toThrow(/archive size limit/);
+  });
+
+  it("rolls back thumbnails created by the production asset hook", async () => {
+    const seeded = await seedProject();
+    const { bytes } = await exportProject(owner, seeded.projectId);
+    const entries = unzipSync(bytes);
+    const records = JSON.parse(strFromU8(entries["records.json"]!));
+    delete records.storyboards[0].document;
+    entries["records.json"] = strToU8(JSON.stringify(records));
+    const { projectArchiveHost } = await import("../src/lib/project-archive-host.js");
+    const host = projectArchiveHost();
+    const { getAssetAdapter } = await import("../src/lib/storage.js");
+    const { getAssetThumbnailKey } = await import("../src/lib/asset-paths.js");
+    let thumbnail = "";
+    await expect(importProjectArchive(zipSync(entries), {
+      userId: importer, storage: getAssetAdapter(), openWorkspace, workspacePath,
+      removeAssetBytes: host.removeAssetBytes,
+      storeAssetBytes: async ({ userId, assetId, contentType, bytes }) => {
+        const adapter = getAssetAdapter();
+        await adapter.store(getAssetStorageKey(userId, assetId, contentType), bytes, contentType);
+        thumbnail = adapter.uriForKey(getAssetThumbnailKey(userId, assetId));
+        await adapter.store(getAssetThumbnailKey(userId, assetId), new Uint8Array([1]), "image/jpeg");
+      }
+    })).rejects.toThrow();
+    expect(await getAssetAdapter().exists(thumbnail)).toBe(false);
+  });
+
+  it("rejects exports with more entries than import accepts", async () => {
+    const seeded = await seedProject();
+    const files = createLocalWorkspace(seeded.workspace.path);
+    const writer = new ZipStreamWriter(async () => {});
+    await expect(writeProjectArchive({
+      userId: owner, projectId: seeded.projectId, storage,
+      openWorkspace: () => ({
+        ...files,
+        list: async () => Array.from({ length: 100_001 }, (_, index) => ({
+          path: `${index}.txt`, name: `${index}.txt`, size: 0, modifiedAt: 0, isDirectory: false
+        })),
+        read: async () => new Uint8Array()
+      })
+    }, writer)).rejects.toThrow(/archive entry limit/);
+  }, 20_000);
+
+  it("counts emitted ZIP bytes including directory overhead", async () => {
+    let emitted = 0;
+    const writer = new ZipStreamWriter(async (chunk) => { emitted += chunk.length; });
+    await writer.add("asset.bin", new Uint8Array([1, 2, 3]));
+    expect(writer.bytesWritten).toBe(emitted);
+    expect(emitted).toBeGreaterThan(3);
+    await writer.finish();
+    expect(writer.bytesWritten).toBe(emitted);
+  });
+
 });

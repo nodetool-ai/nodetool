@@ -37,6 +37,7 @@ jobs:
         run: node .github/scripts/agent-preflight.mjs --name abstraction-police --title "$TITLE_PATTERN"
 
   abstraction-police:
+    cache-mode: read
     needs: preflight
     if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest

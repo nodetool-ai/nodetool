@@ -1,3 +1,4 @@
+import { validateGame3D } from "@nodetool-ai/game-runtime";
 import { z } from "zod";
 import { gameAnimationGraph3D, gameAssetBinding3D, gameDocument3D, gameEntity3D, gamePrefab3D, gameScene3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import type { DocumentMergeAdapter } from "../documentMerge";
@@ -15,6 +16,13 @@ function referencedAnimationGraphs(doc: GameDocument3D): Set<string> {
 }
 
 export const gameMergeAdapter3D: DocumentMergeAdapter<GameDocument3D> = {
+  finalize: (result, base, draft, server) => {
+    if (validateGame3D(result.doc).valid) { return result; }
+    return { doc: draft, nextBase: base, conflicts: [...result.conflicts, {
+      unit: { kind: "document", id: "document", label: "document dependencies" },
+      external: server, draft, reason: "dangling"
+    }] };
+  },
   collections: [
     {
       kind: "scene",

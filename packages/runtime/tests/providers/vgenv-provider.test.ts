@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { safeFetch } from "../../src/providers/safe-url.js";
 import { VgenvProvider } from "../../src/providers/vgenv-provider.js";
 
 vi.mock("../../src/generation-receipt.js", () => ({
@@ -39,7 +40,7 @@ async function settle<T>(promise: Promise<T>): Promise<T> {
   }
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("VgenvProvider", () => {
   it("requires an API key", () => {
@@ -216,6 +217,63 @@ describe("VgenvProvider", () => {
     await expect(settle(provider().textToVideo({ model: MODEL, prompt: "x" })))
       .rejects.toThrow("vgenv video status failed: video not found");
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("bounds retry backoff by the polling deadline and cancels", async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "POST" || init?.method === "DELETE") return reply({ id: "deadline", status: "queued" });
+      return new Response("unavailable", { status: 503, headers: { "Retry-After": "30" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    vi.useFakeTimers();
+    const result = provider().textToVideo({ model: MODEL, prompt: "x", timeoutSeconds: 10 }).catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(await result).toMatchObject({ message: expect.stringContaining("timed out") });
+    expect(fetchMock).toHaveBeenLastCalledWith(expect.any(String), expect.objectContaining({ method: "DELETE" }));
+    vi.useRealTimers();
+  });
+
+  it("aborts a stalled status fetch at the deadline", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "POST" || init?.method === "DELETE") return reply({ id: "stalled", status: "queued" });
+      return new Promise<Response>((_resolve, reject) => init?.signal?.addEventListener("abort", () => reject(init.signal?.reason), { once: true }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const result = provider().textToVideo({ model: MODEL, prompt: "x", timeoutSeconds: 10 }).catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(await result).toMatchObject({ message: expect.stringContaining("timed out") });
+    expect(fetchMock).toHaveBeenLastCalledWith(expect.any(String), expect.objectContaining({ method: "DELETE" }));
+  });
+
+  it("bounds best-effort cancellation independently of the caller signal", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "DELETE") {
+        return new Promise<Response>((_resolve, reject) => init.signal?.addEventListener("abort", () => reject(init.signal?.reason), { once: true }));
+      }
+      controller.abort();
+      return reply({ id: "cancel", status: "queued" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    let settled = false;
+    const result = provider().textToVideo({ model: MODEL, prompt: "x", signal: controller.signal }).catch(() => { settled = true; });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(settled).toBe(true);
+    await result;
+    vi.useRealTimers();
+  });
+
+  it("retries a failed result body without resubmitting generation", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => reply({ id: "body", status: "succeeded", output: { url: "https://cdn.vgenv.com/v.mp4" } })));
+    const download = vi.mocked(safeFetch);
+    download.mockClear();
+    download.mockResolvedValueOnce(new Response(new ReadableStream({ start(controller) { controller.error(new TypeError("connection terminated")); } })));
+    download.mockResolvedValueOnce(new Response(new Uint8Array([4, 5])));
+    expect(Array.from(await settle(provider().textToVideo({ model: MODEL, prompt: "x" })))).toEqual([4, 5]);
+    expect(download).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
   it("rejects an unknown model id", async () => {
