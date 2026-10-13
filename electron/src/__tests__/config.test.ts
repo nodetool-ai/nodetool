@@ -310,6 +310,12 @@ describe('Config', () => {
       };
     });
 
+    it('passes explicit desktop certificate trust to the backend after the fuse strips Node variables', () => {
+      process.env.NODETOOL_EXTRA_CA_CERTS = '/org/trusted.pem';
+      delete process.env.NODE_EXTRA_CA_CERTS;
+      expect(getProcessEnv().NODE_EXTRA_CA_CERTS).toBe('/org/trusted.pem');
+    });
+
     it('should return process environment with conda paths on Windows', () => {
       Object.defineProperty(process, 'platform', {
         value: 'win32'

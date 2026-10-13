@@ -235,6 +235,9 @@ const getProcessEnv = (): ProcessEnv => {
       baseEnv[key] = value;
     }
   }
+  if (baseEnv.NODETOOL_EXTRA_CA_CERTS) {
+    baseEnv.NODE_EXTRA_CA_CERTS = baseEnv.NODETOOL_EXTRA_CA_CERTS;
+  }
 
   const envKeysToClear = [
     "CONDA_PREFIX",
