@@ -2758,7 +2758,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "9ac735b3ddd5",
+    contract: "00d48f5390cf",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
@@ -2789,7 +2789,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "generate_game_asset",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "2e7bc4c2b6b8",
+    contract: "cbf61bed04a8",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
