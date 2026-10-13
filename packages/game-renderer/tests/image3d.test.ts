@@ -43,6 +43,19 @@ function exifJpeg(orientation: number, littleEndian: boolean, afterSof = false, 
   bytes.set(jpeg.subarray(0, offset)); bytes.set(segment, offset); bytes.set(jpeg.subarray(offset), offset + segment.length);
   return bytes;
 }
+function jpegWithMarkerFill(bytes: Uint8Array): Uint8Array {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let cursor = 2;
+  while (cursor + 4 <= bytes.length) {
+    const marker = bytes[cursor + 1]; cursor += view.getUint16(cursor + 2) + 2;
+    if (marker !== undefined && [192, 193, 194].includes(marker)) {
+      const filled = new Uint8Array(bytes.length + 1);
+      filled.set(bytes.subarray(0, cursor)); filled[cursor] = 255; filled.set(bytes.subarray(cursor), cursor + 1);
+      return filled;
+    }
+  }
+  throw new Error("Fixture JPEG SOF missing");
+}
 async function prepared(): Promise<PreparedGameImage3D> {
   const result = await prepareGameImage3D(png(), { assetId: "owned-image" });
   if (!result.ok) { throw new Error(result.diagnostics[0]?.message); }
@@ -109,12 +122,20 @@ describe("prepared primitive image assets", () => {
       await page.goto("http://127.0.0.1/"); await page.addScriptTag({ content: script.text });
       for (const orientation of [1, 6, 8]) {
         for (const littleEndian of [false, true]) {
-          const bytes = exifJpeg(orientation, littleEndian, littleEndian);
+          const bytes = jpegWithMarkerFill(exifJpeg(orientation, littleEndian, littleEndian));
           expect(await page.evaluate((input) => window.exifImageProbe(input), [...bytes]))
             .toEqual({ width: orientation >= 5 ? 2 : 4, height: orientation >= 5 ? 4 : 2, textureBytes: 32 });
         }
       }
     } finally { await browser.close(); }
+  });
+  it("accepts legal repeated marker fill bytes after JPEG SOF", async () => {
+    const bytes = jpegWithMarkerFill(new Uint8Array(createCanvas(4, 2).toBuffer("image/jpeg")));
+    const decoded = await loadImage(bytes);
+    expect({ width: decoded.width, height: decoded.height }).toEqual({ width: 4, height: 2 });
+    const result = await prepareGameImage3D(bytes, { assetId: "image" });
+    expect(result.ok).toBe(true);
+    if (result.ok) { expect(result.image.binding).toMatchObject({ width: 4, height: 2 }); }
   });
   it.each([false, true])("uses bounded EXIF orientation in %s-endian JPEG metadata", async (littleEndian) => {
     for (const afterSof of [false, true]) {

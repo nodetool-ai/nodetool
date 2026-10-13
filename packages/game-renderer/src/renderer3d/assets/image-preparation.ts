@@ -62,6 +62,8 @@ function dimensions(bytes: Uint8Array): { format: ImageFormat3D; width: number; 
     let orientation = 1;
     while (cursor + 2 <= bytes.length) {
       if (bytes[cursor] !== 255) { throw new Error("Malformed JPEG marker"); }
+      while (cursor + 1 < bytes.length && bytes[cursor + 1] === 255) { cursor++; }
+      if (cursor + 2 > bytes.length) { throw new Error("Truncated JPEG marker"); }
       const marker = bytes[cursor + 1];
       if (marker === 217 || marker === 218) { break; }
       if (cursor + 4 > bytes.length) { throw new Error("Truncated JPEG segment"); }
