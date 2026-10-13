@@ -259,7 +259,7 @@ export async function createGameSession3D(
       saved?.music ??
       (scene.music
         ? {
-            ...scene.music,
+            assetId: scene.music.assetId, volume: scene.music.volume, fadeInTicks: scene.music.fadeInTicks, fadeOutTicks: scene.music.fadeOutTicks,
             voiceId: `scene:${scene.id}:music`,
             startTick: tick
           }
@@ -421,7 +421,7 @@ export async function createGameSession3D(
         hud = new Map(state.hud.map((label) => [label.id, structuredClone(label)]));
         ui = new Map(Object.entries(structuredClone(state.ui ?? {})));
         music = structuredClone(state.music ?? (restoredScene.music
-          ? { ...restoredScene.music, voiceId: `scene:${restoredScene.id}:music`, startTick: state.tick }
+          ? { assetId: restoredScene.music.assetId, volume: restoredScene.music.volume, fadeInTicks: restoredScene.music.fadeInTicks, fadeOutTicks: restoredScene.music.fadeOutTicks, voiceId: `scene:${restoredScene.id}:music`, startTick: state.tick }
           : null));
         instances = structuredClone(state.prefabInstances);
         states = restoreEntityStates3D(document, restoredScene, state.entities);

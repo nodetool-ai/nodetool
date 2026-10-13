@@ -77,7 +77,7 @@ async function start(): Promise<void> {
     } });
   renderer.resize(game.presentation.hudWidth, game.presentation.hudWidth / game.presentation.aspectRatio);
   let frame = session.frame();
-  const audio = new GameAudioPlayer({ assets: game.assets, tickRate: game.tickRate,
+  const audio = new GameAudioPlayer({ assets: game.assets, scenes: game.scenes, tickRate: game.tickRate,
     resolveAsset: async (binding) => manifest.assets[Object.entries(game.assets).find(([, entry]) => entry.assetId === binding.assetId && entry.digest === binding.digest)?.[0] ?? ""] ?? null,
     status, mixer: game.audio?.mixer });
   audio.preload(); audio.sync(session.snapshot());

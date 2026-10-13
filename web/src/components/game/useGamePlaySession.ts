@@ -211,11 +211,13 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     }, () => playbackActiveRef.current);
     const audio = audioRef.current ?? new GameAudioPlayer({
       assets: sessionDocument.assets,
+      scenes: sessionDocument.scenes,
       tickRate: sessionDocument.tickRate,
       resolveAsset: async (binding) => binding.assetId.startsWith("builtin:") ? null : resolveMediaUri(binding.assetId.startsWith("package://") ? binding.assetId : `asset://${binding.assetId}`),
       status: setError
     });
     audioRef.current = audio;
+    audio.updateScenes(sessionDocument.scenes);
     audio.updateAssets(sessionDocument.assets);
     audio.updateMixer(sessionDocument.audio?.mixer);
     if (playbackActiveRef.current) audio.resume();

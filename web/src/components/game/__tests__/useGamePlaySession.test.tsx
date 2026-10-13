@@ -26,12 +26,13 @@ const mockAudioInstances: Array<{
   sync: jest.Mock;
   reset: jest.Mock;
   preload: jest.Mock;
+  updateScenes: jest.Mock;
   dispose: jest.Mock;
 }> = [];
 
 jest.mock("@nodetool-ai/game-renderer/audio", () => ({ gameAudioSpatialView2D: jest.fn(() => ({})), gameAudioSpatialView3D: jest.fn(() => ({})),
   GameAudioPlayer: jest.fn().mockImplementation(() => {
-    const audio = { reset: jest.fn(), pause: jest.fn(), resume: jest.fn(), sync: jest.fn(), updateAssets: jest.fn(), updateMixer: jest.fn(), preload: jest.fn(), updateSpatial: jest.fn(), dispose: jest.fn() };
+    const audio = { reset: jest.fn(), pause: jest.fn(), resume: jest.fn(), sync: jest.fn(), updateScenes: jest.fn(), updateAssets: jest.fn(), updateMixer: jest.fn(), preload: jest.fn(), updateSpatial: jest.fn(), dispose: jest.fn() };
     mockAudioInstances.push(audio);
     return audio;
   })
@@ -480,4 +481,18 @@ it("performs a session's save requests in scoped localStorage without snapshots 
     await user.click(screen.getByRole("button", { name: "Step" }));
     expect(step.mock.calls.map(([frame]) => frame.loaded)).toEqual([undefined, [{ scope: "progress", slot: "main", data: { best: 7 } }]]);
   } finally { view.unmount(); animation.mockRestore(); localStorage.removeItem(progressKey); localStorage.removeItem(settingsKey); localStorage.removeItem(checkpointKey); }
+});
+
+it("delivers edited scene audio settings to the retained audio player", async () => {
+  mockAudioInstances.length = 0;
+  const view = render(<GameHarness />);
+  try {
+    await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("Canvas 2D"));
+    const audio = mockAudioInstances[0];
+    expect(audio.updateScenes).toHaveBeenCalledWith(document.scenes);
+    const edited = { ...document, scenes: document.scenes.map(scene => ({ ...scene, music: { assetId: "sfx.collect", volume: 0.5, fadeInTicks: 0, fadeOutTicks: 0 } })) };
+    view.rerender(<GameHarness gameDocument={edited} />);
+    await waitFor(() => expect(audio.updateScenes).toHaveBeenLastCalledWith(edited.scenes));
+    expect(mockAudioInstances).toHaveLength(1);
+  } finally { view.unmount(); }
 });
