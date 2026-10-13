@@ -1112,6 +1112,8 @@ function findListedAsset(
 }
 
 export class ProcessingContext {
+  /** Host policy inherited by native calls and copied contexts. */
+  readonly nodeExecutorGuard?: (executor: import("./node-executor.js").NodeExecutor, nodeType: string, inputs: Record<string, unknown>) => import("./node-executor.js").NodeExecutor;
   readonly jobId: string;
   readonly workflowId: string | null;
   /** Chat thread id, when this context is serving a chat-driven agent run. */
@@ -1322,6 +1324,7 @@ export class ProcessingContext {
     environment?: Record<string, string>;
     authToken?: string | null;
     sandboxModuleCatalog?: SandboxModuleCatalog | null;
+    nodeExecutorGuard?: ProcessingContext["nodeExecutorGuard"];
     secretResolver?: (
       key: string,
       userId: string
@@ -1383,6 +1386,7 @@ export class ProcessingContext {
     }
     this.environment = { ...env, ...(opts.environment ?? {}) };
     this.authToken = opts.authToken ?? null;
+    this.nodeExecutorGuard = opts.nodeExecutorGuard;
     // An explicit option — including null — wins over the host default.
     this.sandboxModuleCatalog =
       opts.sandboxModuleCatalog !== undefined
@@ -1443,6 +1447,7 @@ export class ProcessingContext {
       environment: { ...this.environment },
       authToken: this.authToken,
       sandboxModuleCatalog: this.sandboxModuleCatalog,
+      nodeExecutorGuard: this.nodeExecutorGuard,
       fetchFn: this._fetch,
       secretResolver: this._secretResolver ?? undefined,
       tempUrlResolver: this._tempUrlResolver ?? undefined,

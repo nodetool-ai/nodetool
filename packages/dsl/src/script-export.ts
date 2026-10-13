@@ -83,7 +83,7 @@ const JS_RESERVED = new Set([
 
 /** Names the generated helpers and the sandbox globals already use. */
 const RESERVED_NAMES = [
-  "SKIPPED", "pick", "ready", "call", "callStreaming", "runNode",
+  "SKIPPED", "pick", "ready", "aggregate", "call", "callStreaming", "runNode",
   "streamNode", "isEmission", "inputs", "output", "emit", "results", "main",
   "flow", "stream", "state", "progress", "console", "media", "workspace",
   "fetch", "sleep", "crypto", "format", "image", "audio", "video", "canvas",
@@ -117,7 +117,7 @@ interface NormalizedGraph {
   controlEdges: Edge[];
 }
 
-function normalizeGraph(graph: WorkflowLike): NormalizedGraph {
+function normalizeGraph(graph: WorkflowLike, getMetadata: NonNullable<WorkflowToScriptOptions["getMetadata"]>): NormalizedGraph {
   if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
     throw new Error("Workflow graph must contain node and edge arrays");
   }
@@ -134,10 +134,15 @@ function normalizeGraph(graph: WorkflowLike): NormalizedGraph {
       ...(asRecord(raw.properties) ?? asRecord(raw.data) ?? {}),
       ...(asRecord(raw.dynamic_properties) ?? {})
     };
+    const metadata = getMetadata(type);
     descriptors.push({
       id,
       type,
       properties,
+      outputs: { ...Object.fromEntries((metadata?.outputs ?? []).map((slot) => [slot.name, typeToString(slot.type)])), ...(asRecord(raw.outputs) ?? {}) },
+      propertyTypes: { ...Object.fromEntries((metadata?.properties ?? []).map((slot) => [slot.name, typeToString(slot.type)])), ...(asRecord(raw.propertyTypes) ?? {}) },
+      dynamic_outputs: asRecord(raw.dynamic_outputs) ?? undefined,
+      dynamic_properties: asRecord(raw.dynamic_properties) ?? undefined,
       ui_properties: asRecord(raw.ui_properties) ?? undefined
     } as NodeDescriptor);
     extras.set(id, {
@@ -331,20 +336,27 @@ function pick(result, slot) {
   return result === SKIPPED || !(slot in result) ? SKIPPED : result[slot];
 }
 
-// A node runs only when every connected input arrived. In a list input fed by
-// several edges, the edges that delivered nothing are left out.
-function ready(props) {
+function aggregate(values, flatten) {
+  const received = values.filter((value) => value !== SKIPPED);
+  return received.length === 0 ? SKIPPED : flatten ? received.flat(1) : received;
+}
+
+// An untaken branch skips the node. Partial input keeps saved defaults.
+function ready(props, defaults = {}) {
   const out = {};
+  let received = false;
+  let absent = false;
   for (const [key, value] of Object.entries(props)) {
-    if (value === SKIPPED) return null;
-    out[key] = Array.isArray(value) ? value.filter((item) => item !== SKIPPED) : value;
+    if (value === SKIPPED) { absent = true; continue; }
+    received = true;
+    out[key] = value;
   }
-  return out;
+  return absent && !received ? null : { ...defaults, ...out };
 }
 
 // Run a node and return its outputs, the last value per slot.
-async function call(type, props) {
-  const args = ready(props);
+async function call(type, props, defaults) {
+  const args = ready(props, defaults);
   return args === null ? SKIPPED : await runNode(type, args);
 }
 
@@ -354,8 +366,8 @@ function isEmission(item) {
 
 // Run a node item by item: onItem sees each item, the result is the last value
 // per slot.
-async function callStreaming(type, props, onItem) {
-  const args = ready(props);
+async function callStreaming(type, props, onItem, defaults) {
+  const args = ready(props, defaults);
   if (args === null) return SKIPPED;
   const last = {};
   for await (const item of streamNode(type, args)) {
@@ -405,7 +417,7 @@ export function workflowToScript(
   options: WorkflowToScriptOptions
 ): WorkflowScript {
   const getMetadata = options.getMetadata ?? builtinMetadataFor;
-  const { nodes, edges, controlEdges } = normalizeGraph(graph);
+  const { nodes, edges, controlEdges } = normalizeGraph(graph, getMetadata);
   const ordered = topologicalSort(nodes, edges);
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const metadataOf = (node: ScriptNode): NodeMetadata | undefined =>
@@ -424,6 +436,9 @@ export function workflowToScript(
       unsupported.push({ node_id: node.id, node_type: node.type, message });
     }
   };
+  for (const node of nodes) {
+    if (node.type === "nodetool.control.Zip") refuse(node, "requires iteration lineage that native script calls cannot represent");
+  }
   for (const edge of controlEdges) {
     refuse(
       byId.get(edge.target)!,
@@ -542,6 +557,19 @@ export function workflowToScript(
     }
   }
 
+  for (const node of [...ordered].reverse()) {
+    if (!isSinkNode(node)) continue;
+    const valueEdges = (incoming.get(node.id) ?? []).filter((edge) => edge.targetHandle === "value");
+    const consumers = streamConsumers.get(node.id) ?? [];
+    if (consumers.length === 0 || !valueEdges.every((edge) => perItemSinkEdges.has(edge))) continue;
+    for (const edge of valueEdges) {
+      const upstream = streamConsumers.get(edge.source) ?? [];
+      upstream.push(...consumers.map((consumer) => ({ ...consumer, slot: edge.sourceHandle })));
+      streamConsumers.set(edge.source, upstream);
+    }
+    streamConsumers.delete(node.id);
+  }
+
   // Several edges into one list input arrive as one list. Into any other
   // input each value is its own run of the node, which one call is not.
   for (const node of ordered) {
@@ -566,7 +594,6 @@ export function workflowToScript(
     if (collected) return collected;
     const source = byId.get(edge.source)!;
     const variable = variables.get(source.id)!;
-    if (isExternalInput(source) && edge.sourceHandle === "output") return variable;
     return `pick(${variable}, ${JSON.stringify(edge.sourceHandle)})`;
   };
 
@@ -578,15 +605,13 @@ export function workflowToScript(
       (byHandle.get(edge.targetHandle) ?? byHandle.set(edge.targetHandle, []).get(edge.targetHandle)!).push(edge);
     }
     const inner = `${indent}  `;
-    for (const [key, value] of Object.entries(node.properties)) {
-      if (byHandle.has(key)) continue;
-      props.push([key, formatLiteral(value, inner)]);
-    }
     for (const [handle, handleEdges] of byHandle) {
       const expressions = handleEdges.map(expressionFor);
+      const type = metadataOf(node)?.properties.find((property) => property.name === handle)?.type;
+      const combined = `aggregate([${expressions.join(", ")}], ${type?.type === "list" && type.type_args?.[0]?.type !== "list"})`;
       props.push([
         handle,
-        expressions.length === 1 ? expressions[0]! : `[${expressions.join(", ")}]`
+        expressions.length === 1 ? expressions[0]! : combined
       ]);
     }
     if (props.length === 0) return "{}";
@@ -594,10 +619,13 @@ export function workflowToScript(
   };
 
   const body: string[] = [];
+  const buffers = new Set([...streamConsumers.values()].flatMap((consumers) => consumers.flatMap((consumer) => consumer.collectVar ? [consumer.collectVar] : [])));
+  for (const buffer of buffers) body.push(`const ${buffer} = [];`);
+  if (buffers.size > 0) body.push("");
   for (const node of ordered) {
     const variable = variables.get(node.id)!;
     const title = node.name ?? nameProperty(node);
-    body.push(`// ${title ? `${title} — ` : ""}${node.type} (${node.id})`);
+    body.push(commentLine(`${title ? `${title} — ` : ""}${node.type} (${node.id})`));
 
     if (unsupported.some((issue) => issue.node_id === node.id)) {
       body.push(`const ${variable} = SKIPPED; // not supported, see the check above`);
@@ -607,12 +635,7 @@ export function workflowToScript(
 
     if (isExternalInput(node)) {
       const port = inputPortOf.get(node.id)!;
-      const fallback = node.properties.value;
-      body.push(
-        fallback === undefined || fallback === null
-          ? `const ${variable} = inputs.${port};`
-          : `const ${variable} = inputs.${port} ?? ${formatLiteral(fallback, "")};`
-      );
+      body.push(`const ${variable} = await call(${JSON.stringify(node.type)}, { ...${formatLiteral(node.properties, "")}, value: inputs.${port} ?? ${formatLiteral(node.properties.value, "")} });`);
       body.push("");
       continue;
     }
@@ -625,7 +648,7 @@ export function workflowToScript(
         body.push("");
         continue;
       }
-      body.push(`const ${variable} = await call(${JSON.stringify(node.type)}, ${propsLiteral(node, "")});`);
+      body.push(`const ${variable} = await call(${JSON.stringify(node.type)}, ${propsLiteral(node, "")}, ${formatLiteral(node.properties, "")});`);
       body.push(`if (${variable} !== SKIPPED) await output(${JSON.stringify(port)}, ${variable}.output);`);
       body.push("");
       continue;
@@ -633,14 +656,11 @@ export function workflowToScript(
 
     const consumers = streamConsumers.get(node.id) ?? [];
     if (consumers.length === 0) {
-      body.push(`const ${variable} = await call(${JSON.stringify(node.type)}, ${propsLiteral(node, "")});`);
+      body.push(`const ${variable} = await call(${JSON.stringify(node.type)}, ${propsLiteral(node, "")}, ${formatLiteral(node.properties, "")});`);
       body.push("");
       continue;
     }
 
-    for (const consumer of consumers) {
-      if (consumer.collectVar) body.push(`const ${consumer.collectVar} = [];`);
-    }
     body.push(`const ${variable} = await callStreaming(${JSON.stringify(node.type)}, ${propsLiteral(node, "")}, async (item) => {`);
     const bySlot = new Map<string, StreamConsumer[]>();
     for (const consumer of consumers) {
@@ -658,7 +678,7 @@ export function workflowToScript(
       }
       body.push("  }");
     }
-    body.push("});");
+    body.push(`}, ${formatLiteral(node.properties, "")});`);
     body.push("");
   }
 

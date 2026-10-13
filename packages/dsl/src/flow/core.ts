@@ -337,12 +337,14 @@ async function openScope(
   nodeType: string,
   inputs: Record<string, unknown>
 ): Promise<CallScope> {
-  const executor = await call.flow.resolveExecutor({
+  const resolved = await call.flow.resolveExecutor({
     id: call.nodeId,
     type: nodeType,
     properties: inputs
   });
   const context = call.flow.contextFor(call.signal);
+  const guard = context.nodeExecutorGuard;
+  const executor = guard ? guard(resolved, nodeType, inputs) : resolved;
   await executor.initialize?.();
   return {
     executor,
