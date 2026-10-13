@@ -1,14 +1,14 @@
 /**
- * Pure helpers of `node scripts/smoke-packed-cli.mjs`. The install itself runs
- * in the publish workflow; these pin what it installs and what it checks.
+ * Helpers and fresh local MCP execution for `scripts/smoke-packed-cli.mjs`.
+ * The complete packed installs run in CI.
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { cleanEnv, existingTarballs, missingCommands, smokeManifest } from "../smoke-packed-cli.mjs";
+import { assertCoreOnlyInstall, cleanEnv, codecProbeSource, coreOnlyCliManifest, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, probeMcp, REQUIRED_COMMANDS, repackCoreCli, smokeManifest } from "../smoke-packed-cli.mjs";
 
 const fixtures = [];
 afterEach(() => { for (const root of fixtures.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
@@ -56,11 +56,7 @@ describe("missingCommands", () => {
   it("finds commands only at the command-list indent", () => {
     const help = [
       "Commands:",
-      "  serve [options]    Start the server",
-      "  mcp                Use NodeTool as an MCP server",
-      "  run <dsl-file>     Run a DSL file",
-      "  validate <ref>     Check a graph",
-      "  debug <ref>        Run and inspect",
+      ...REQUIRED_COMMANDS.filter(name => name !== "node").map(name => `  ${name} [options]    Description`),
       "    node             (an option description, not a command)"
     ].join("\n");
     expect(missingCommands(help)).toEqual(["node"]);
@@ -83,3 +79,130 @@ describe("cleanEnv", () => {
     }
   });
 });
+
+function installFixture(app, name, manifest = {}, modules = "node_modules") {
+  const dir = join(app, modules, name);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ name, version: "1.0.0", ...manifest }));
+  return dir;
+}
+
+function appFixture(dependencies = {}) {
+  const root = mkdtempSync(join(tmpdir(), "nodetool-core-guard-"));
+  fixtures.push(root);
+  writeFileSync(join(root, "package.json"), JSON.stringify({ name: "core-guard-fixture", version: "1.0.0", private: true, dependencies }));
+  return root;
+}
+
+describe("core-only tarballs", () => {
+  it("removes packs from every install edge and retains the executable core nodes", () => {
+    const original = { name: "@nodetool-ai/cli", version: "1.2.3",
+      dependencies: { "@nodetool-ai/base-nodes": "1.2.3", "@nodetool-ai/game-renderer": "1.2.3", "@nodetool-ai/node-catalog": "1.2.3", tsx: "4.22.4" },
+      optionalDependencies: { "@nodetool-ai/fal-nodes": "1.2.3" },
+      peerDependencies: { "@nodetool-ai/transformers-js-provider": "1.2.3" },
+      peerDependenciesMeta: { "@nodetool-ai/transformers-js-provider": { optional: true } } };
+    const result = coreOnlyCliManifest(original);
+    expect(result.dependencies).not.toHaveProperty("@nodetool-ai/base-nodes");
+    expect(result.dependencies).not.toHaveProperty("@nodetool-ai/game-renderer");
+    expect(result.optionalDependencies).toEqual({});
+    expect(result.peerDependencies).toEqual({});
+    expect(result.peerDependenciesMeta).toEqual({});
+    expect(result.dependencies).toMatchObject({ "@nodetool-ai/core-nodes": "1.2.3", "@nodetool-ai/text-nodes": "1.2.3", "@nodetool-ai/data-nodes": "1.2.3", "@nodetool-ai/llm-nodes": "1.2.3", "@nodetool-ai/code-nodes": "1.2.3", tsx: "4.22.4" });
+    expect(original.dependencies).toHaveProperty("@nodetool-ai/base-nodes");
+  });
+
+  it("re-packs the test CLI while preserving its original tarball", () => {
+    const root = appFixture();
+    const original = releaseTarball(root, "original.tgz", "@nodetool-ai/cli", "1.2.3");
+    const result = repackCoreCli(original, root);
+    const read = file => JSON.parse(spawnSync("tar", ["-xOf", file, "package/package.json"], { encoding: "utf8" }).stdout);
+    expect(read(result).dependencies).toHaveProperty("@nodetool-ai/core-nodes", "1.2.3");
+    expect(read(original)).not.toHaveProperty("dependencies");
+  });
+});
+
+describe("core-only contamination guard", () => {
+  it("rejects an empty audit and accepts a tree containing executable core packages", () => {
+    const app = appFixture();
+    expect(() => assertCoreOnlyInstall(app)).toThrow("inspected no installed packages");
+    installFixture(app, "@nodetool-ai/core-nodes");
+    expect(assertCoreOnlyInstall(app)).toBe(1);
+  });
+
+  it.each(["@nodetool-ai/fal-nodes", "@nodetool-ai/base-nodes", "@nodetool-ai/game-renderer", "sharp", "@napi-rs/canvas", "@dimforge/rapier3d-compat"])("fails when %s is deliberately installed as a nested dependency", name => {
+    const app = appFixture();
+    installFixture(app, "@nodetool-ai/core-nodes");
+    const nested = installFixture(app, name, {}, "node_modules/@nodetool-ai/core-nodes/node_modules");
+    expect(installedPackages(join(app, "node_modules")).map(entry => entry.manifest.name)).toContain(name);
+    expect(() => assertCoreOnlyInstall(app)).toThrow(`${name} (${nested})`);
+  });
+
+  it("rejects a deliberately installed pack tarball", () => {
+    const app = appFixture();
+    const tarball = releaseTarball(app, "fal.tgz", "@nodetool-ai/fal-nodes", "1.2.3");
+    const installed = spawnSync("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", `file:${tarball}`], { cwd: app, encoding: "utf8", timeout: 30000 });
+    expect(installed.status, installed.stderr).toBe(0);
+    expect(() => assertCoreOnlyInstall(app)).toThrow("@nodetool-ai/fal-nodes");
+  });
+
+  it("allows esbuild only when tsx requires that installed version", () => {
+    const app = appFixture({ tsx: "1.0.0" });
+    installFixture(app, "tsx", { dependencies: { esbuild: "~0.28.0" } });
+    installFixture(app, "esbuild", { version: "0.28.1" });
+    expect(assertCoreOnlyInstall(app)).toBe(2);
+    installFixture(app, "esbuild", { version: "0.27.0" });
+    expect(() => assertCoreOnlyInstall(app)).toThrow(/npm ls .* exited 1/);
+  });
+
+  it("rejects an esbuild copy outside the tsx dependency closure", () => {
+    const app = appFixture({ tsx: "1.0.0" });
+    installFixture(app, "tsx", { dependencies: { esbuild: "~0.28.0" } });
+    installFixture(app, "esbuild", { version: "0.28.1" });
+    installFixture(app, "@nodetool-ai/core-nodes");
+    installFixture(app, "esbuild", { version: "0.28.1" }, "node_modules/@nodetool-ai/core-nodes/node_modules");
+    expect(() => assertCoreOnlyInstall(app)).toThrow("esbuild is installed outside its required core dependency closure");
+  });
+
+  it("allows TypeScript only when tRPC's installed mandatory peers require it", () => {
+    const app = appFixture({ "@trpc/client": "1.0.0", "@trpc/server": "1.0.0" });
+    for (const name of ["@trpc/client", "@trpc/server"]) {
+      installFixture(app, name, { peerDependencies: { typescript: ">=5.7.2" } });
+    }
+    installFixture(app, "typescript", { name: "@typescript/typescript6", version: "6.0.2" });
+    expect(assertCoreOnlyInstall(app)).toBe(3);
+    installFixture(app, "typescript", { version: "5.6.0" });
+    expect(() => assertCoreOnlyInstall(app)).toThrow(/npm ls .* exited 1/);
+  });
+});
+
+describe("packed runtime probes", () => {
+  it("generates valid module source for the codec identity decode", () => {
+    const source = codecProbeSource("/tmp/fixture.mp4");
+    const checked = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: source, encoding: "utf8" });
+    expect(checked.status, checked.stderr).toBe(0);
+    expect(source).toContain("await ensureCodecs()");
+    expect(source).toContain("audio.numberOfFrames, 1024");
+    expect(source).toContain("video.displayWidth, 64");
+    expect(source).toContain("video.displayHeight, 48");
+  });
+
+  it("executes MCP workflow code against the workflow tools", async () => {
+    const source = mcpWorkflowCode({ nodes: [], edges: [] }).replace(/^import[^\n]+\n/, "");
+    const calls = [];
+    const create = async args => { calls.push(args); return { id: "workflow" }; };
+    const run = async args => { calls.push(args); return { status: "completed", output: "packed MCP smoke" }; };
+    const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
+    await expect(new AsyncFunction("create_workflow", "run_workflow", source)(create, run)).resolves.toMatchObject({ status: "completed" });
+    expect(calls).toEqual([{ name: "Packed MCP smoke", graph: { nodes: [], edges: [] } }, { workflow_id: "workflow", params: { text: "packed MCP smoke" } }]);
+  });
+});
+
+it("executes a core workflow through a fresh local MCP database", async () => {
+  const home = appFixture();
+  const root = resolve(import.meta.dirname, "../..");
+  const graph = JSON.parse(readFileSync(join(root, "examples/workflows/hello_input_output_cli.json"), "utf8")).graph;
+  const tools = await probeMcp(join(root, "node_modules/.bin/nodetool"), {
+    ...cleanEnv(home), SECRETS_MASTER_KEY: "a".repeat(64)
+  }, home, graph, 45000);
+  expect(tools).toBeGreaterThan(0);
+}, 60000);

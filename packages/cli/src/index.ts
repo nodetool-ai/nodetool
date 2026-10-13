@@ -30,7 +30,7 @@ import {
   DEFAULT_MODELS,
   KNOWN_PROVIDERS
 } from "./providers.js";
-import { initDb } from "@nodetool-ai/models";
+import { initDb, migrateSqliteDb } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -176,7 +176,9 @@ function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
 }
 
 try {
-  initDb(getDefaultDbPath());
+  const dbPath = getDefaultDbPath();
+  await migrateSqliteDb(dbPath);
+  initDb(dbPath);
 } catch {
   // DB unavailable — secret lookups will fall back to env vars
 }
@@ -235,7 +237,7 @@ const enabledTools = opts.tools
 // when running locally (no --url): the server has its own.
 const cliRegistry: NodeRegistry | undefined = opts.url
   ? undefined
-  : buildFullRegistry();
+  : await buildFullRegistry();
 
 // Build configured providers unconditionally so `find_model` and the
 // media-generation tools (generate_image, generate_speech, etc.) are

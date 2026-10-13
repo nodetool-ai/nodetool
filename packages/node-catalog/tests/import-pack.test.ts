@@ -34,7 +34,7 @@ it("keeps unavailable packs catalog-only and preserves initialization errors", a
       }
     });
     const { NodeRegistry } = await import("@nodetool-ai/node-sdk");
-    const { importPack, registerAvailablePacks, readCatalogNodes, MissingPackError } = await import(source);
+    const { importPack, registerAvailablePacks, registerCatalogPack, readCatalogNodes, MissingPackError } = await import(source);
     await assert.rejects(importPack("fal"), error => error instanceof MissingPackError && error.details.install.supported === false);
     const registry = new NodeRegistry();
     await registerAvailablePacks(registry, { includeOptionalPacks: true });
@@ -45,6 +45,10 @@ it("keeps unavailable packs catalog-only and preserves initialization errors", a
       assert.deepEqual(registry.getMetadata(node.node_type), node.metadata);
     }
     assert.equal(registry.availability("nodetool.control.If"), "executable");
+    const single = new NodeRegistry();
+    await registerCatalogPack(single, "fal");
+    assert.equal(single.listMetadata().length, nodes.length);
+    for (const node of nodes) assert.equal(single.availability(node.node_type), "catalog");
     hooks.deregister();
     const failing = registerHooks({
       load(url, context, nextLoad) {

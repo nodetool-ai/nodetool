@@ -21,8 +21,7 @@
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
     "@sebastianwessel/quickjs": "^3.0.1",
-    "acorn": "^8.16.0",
-    "esbuild": "^0.28.1"
+    "acorn": "^8.16.0"
   },
   "devDependencies": {
     "@nodetool-ai/whisper-cpp": "*",
@@ -42,7 +41,8 @@
     "subtitle": "^4.2.2",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "uqr": "^0.1.3",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "esbuild": "^0.28.1"
   },
   "exports": {
     ".": {
@@ -81,5 +81,13 @@
     "quickjs",
     "esbuild",
     "compiler"
-  ]
+  ],
+  "peerDependencies": {
+    "esbuild": "^0.28.1"
+  },
+  "peerDependenciesMeta": {
+    "esbuild": {
+      "optional": true
+    }
+  }
 }

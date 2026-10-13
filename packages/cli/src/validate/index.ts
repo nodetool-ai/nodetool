@@ -42,12 +42,15 @@ interface ValidateDeps {
 // within a process. A one-shot `nodetool validate` pays it once either way;
 // a batch caller (scripts/validate-examples.mjs) validates hundreds of graphs
 // in one process and must not pay it per graph.
-let cachedRegistry: NodeRegistry | null = null;
+let cachedRegistry: Promise<NodeRegistry> | null = null;
 
 async function sharedRegistry(): Promise<NodeRegistry> {
   if (!cachedRegistry) {
-    const { buildFullRegistry } = await import("../node-registry.js");
-    cachedRegistry = buildFullRegistry();
+    const attempt = import("../node-registry.js").then(({ buildFullRegistry }) => buildFullRegistry());
+    cachedRegistry = attempt;
+    attempt.catch(() => {
+      if (cachedRegistry === attempt) { cachedRegistry = null; }
+    });
   }
   return cachedRegistry;
 }

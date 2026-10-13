@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { loadImage } from "@napi-rs/canvas";
+import { loadCanvas } from "@nodetool-ai/runtime";
 import { z } from "zod";
 import type { StoryboardDocument, TimelineSequence } from "@nodetool-ai/models";
 import {
@@ -1084,6 +1084,7 @@ export async function finishStoryboardAgentically(
     const bytes = await loadAsset(assetId);
     if (bytes) {
       try {
+        const { loadImage } = await loadCanvas();
         const image = await loadImage(Buffer.from(bytes));
         size = { width: image.width, height: image.height };
       } catch {

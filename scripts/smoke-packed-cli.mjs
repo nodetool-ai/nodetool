@@ -16,35 +16,50 @@
  * Checks, each against an empty HOME:
  *   1. `nodetool --version` prints the workspace version.
  *   2. `nodetool --help` lists the agent harness commands.
- *   3. `nodetool mcp serve` answers an MCP initialize and lists tools.
- *   4. `nodetool workflows run` executes a workflow that calls no model.
- *   5. `nodetool serve` answers `GET /health`.
+ *   3. `nodetool mcp serve` answers initialize and lists tools. Core-only also
+ *      runs a core workflow through execute_code.
+ *   4. JSON and TypeScript DSL workflows run without calling a model.
+ *   5. Mediabunny decodes the checked-in audio/video fixture.
+ *   6. `nodetool serve` answers `GET /health`.
+ * Core-only additionally imports the DSL, validates a missing FAL node's
+ * properties, checks its run fails, and rejects excluded installed packages.
  *
  * Usage:
- *   node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>] [--tarballs-dir <dir>]
+ *   node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>] [--tarballs-dir <dir>] [--core-only]
  */
 
 import { randomBytes } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync
 } from "node:fs";
+import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+import { CORE_PACKAGES, NODE_PACKS, RUNTIME_LIBRARIES } from "./node-catalog/tiers.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const PACKAGE_ROOTS = ["packages", "reliability"];
 const CLI_NAME = "@nodetool-ai/cli";
-const REQUIRED_COMMANDS = ["serve", "mcp", "run", "validate", "debug", "node"];
+export const REQUIRED_COMMANDS = [
+  "run", "info", "serve", "chat", "workflows", "jobs", "assets", "models", "storage",
+  "secrets", "settings", "mcp", "projects", "package", "packs", "runtime", "worker",
+  "deploy", "agent", "db", "debug", "app", "apps", "validate", "timeline", "sketch",
+  "game", "jsscript", "reliability", "node", "generate", "extension", "eval", "jtbd",
+  "affected", "harness", "collections", "costs", "errors", "generations", "runs", "auth",
+  "telegram", "help"
+];
 const NO_MODEL_WORKFLOW = "examples/workflows/hello_input_output_cli.json";
 
 /** Every public package under PACKAGE_ROOTS, as { name, version, dir }. */
@@ -82,6 +97,130 @@ export function smokeManifest(tarballs) {
     dependencies: { [CLI_NAME]: `file:${tarballs[CLI_NAME]}` },
     overrides
   };
+}
+
+const CORE_NODE_PACKAGES = ["core-nodes", "text-nodes", "data-nodes", "llm-nodes", "code-nodes"].map(name => `@nodetool-ai/${name}`);
+const EXCLUDED_PACKAGES = new Set(["@nodetool-ai/base-nodes", ...NODE_PACKS.flatMap(pack => [pack.npmName, ...pack.provides])]);
+
+/** Test-only manifest cut. The published CLI keeps its bundled packs until A24. */
+export function coreOnlyCliManifest(manifest) {
+  const result = structuredClone(manifest);
+  for (const field of ["dependencies", "optionalDependencies", "peerDependencies", "peerDependenciesMeta"]) {
+    if (!result[field]) { continue; }
+    for (const name of EXCLUDED_PACKAGES) { delete result[field][name]; }
+  }
+  result.dependencies ??= {};
+  for (const name of CORE_NODE_PACKAGES) { result.dependencies[name] = manifest.version; }
+  return result;
+}
+
+export function repackCoreCli(file, dest) {
+  const staging = mkdtempSync(join(dest, "cli-repack-"));
+  try {
+    run("tar", ["-xzf", file, "-C", staging], {});
+    const manifestFile = join(staging, "package", "package.json");
+    const manifest = JSON.parse(readFileSync(manifestFile, "utf8"));
+    if (manifest.name !== CLI_NAME) { throw new Error(`Expected ${CLI_NAME}, got ${manifest.name}`); }
+    writeFileSync(manifestFile, `${JSON.stringify(coreOnlyCliManifest(manifest), null, 2)}\n`);
+    return pack([{ name: CLI_NAME, dir: join(staging, "package") }], dest)[CLI_NAME];
+  } finally {
+    rmSync(staging, { recursive: true, force: true });
+  }
+}
+
+/** Enumerate installed manifests, including nested and scoped packages. */
+export function installedPackages(root) {
+  const packages = [];
+  const pending = [root];
+  const visited = new Set();
+  while (pending.length > 0) {
+    const modules = pending.pop();
+    if (!existsSync(modules)) { continue; }
+    const actual = realpathSync(modules);
+    if (visited.has(actual)) { continue; }
+    visited.add(actual);
+    for (const entry of readdirSync(modules, { withFileTypes: true })) {
+      if (entry.name.startsWith(".")) { continue; }
+      const dir = join(modules, entry.name);
+      if (entry.name.startsWith("@")) { pending.push(dir); continue; }
+      const manifest = join(dir, "package.json");
+      if (!existsSync(manifest)) { continue; }
+      const name = basename(modules).startsWith("@") ? `${basename(modules)}/${entry.name}` : entry.name;
+      packages.push({ name, dir: realpathSync(dir), manifest: JSON.parse(readFileSync(manifest, "utf8")) });
+      pending.push(join(dir, "node_modules"));
+    }
+  }
+  return packages;
+}
+
+/** Reject accidental packs and optional runtimes anywhere in the clean tree. */
+export function assertCoreOnlyInstall(appDir) {
+  const packages = installedPackages(join(appDir, "node_modules"));
+  if (packages.length === 0) { throw new Error("Core-only guard inspected no installed packages"); }
+  const forbiddenRuntime = new Set(RUNTIME_LIBRARIES.flatMap(library => library.packages).filter(name => name !== "esbuild" && name !== "typescript"));
+  const contamination = packages.filter(({ name, manifest }) => EXCLUDED_PACKAGES.has(name) || EXCLUDED_PACKAGES.has(manifest.name) || forbiddenRuntime.has(name) || forbiddenRuntime.has(manifest.name));
+  if (contamination.length > 0) {
+    throw new Error(`Core-only install contains excluded packages: ${contamination.map(({ manifest, dir }) => `${manifest.name} (${dir})`).join(", ")}`);
+  }
+  for (const [compiler, dependentNames, field] of [
+    ["esbuild", ["tsx"], "dependencies"],
+    ["typescript", ["@trpc/client", "@trpc/server"], "peerDependencies"]
+  ]) {
+    const copies = packages.filter(({ name, manifest }) => name === compiler || manifest.name === compiler || (compiler === "typescript" && manifest.name === "@typescript/typescript6"));
+    if (copies.length === 0) { continue; }
+    const dependents = packages.filter(({ manifest }) => dependentNames.includes(manifest.name));
+    const permitted = new Set();
+    for (const { manifest, dir } of dependents) {
+      if (!manifest[field]?.[compiler]) { throw new Error(`${manifest.name} does not declare its ${compiler} requirement`); }
+      const requireFromDependent = createRequire(join(dir, "package.json"));
+      permitted.add(realpathSync(join(requireFromDependent.resolve(`${compiler}/package.json`), "..")));
+    }
+    if (copies.some(({ dir }) => !permitted.has(dir))) { throw new Error(`${compiler} is installed outside its required core dependency closure`); }
+    // npm validates every installed copy against the dependents' declared semver ranges.
+    run("npm", ["ls", "--all", "--json", compiler], { cwd: appDir });
+  }
+  return packages.length;
+}
+
+/** Decode through the agents bootstrap and the same installed Mediabunny instance. */
+export function codecProbeSource(fixture) {
+  return `
+import assert from 'node:assert/strict';
+import { readFileSync, realpathSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+const rootRequire = createRequire(join(process.cwd(), 'package.json'));
+const agentsEntry = rootRequire.resolve('@nodetool-ai/agents');
+const agentsRequire = createRequire(agentsEntry);
+const serverRequire = createRequire(agentsRequire.resolve('@mediabunny/server'));
+assert.equal(realpathSync(agentsRequire.resolve('mediabunny')), realpathSync(serverRequire.resolve('mediabunny')));
+assert.equal(realpathSync(rootRequire.resolve('mediabunny')), realpathSync(agentsRequire.resolve('mediabunny')));
+const { ensureCodecs, inputFrom } = await import(pathToFileURL(join(dirname(agentsEntry), 'analysis', 'mediabunny-runtime.js')).href);
+const { AudioSampleSink, VideoSampleSink } = await import('mediabunny');
+await ensureCodecs();
+const input = inputFrom(new Uint8Array(readFileSync(${JSON.stringify(fixture)})));
+try {
+  const audioTrack = await input.getPrimaryAudioTrack();
+  const videoTrack = await input.getPrimaryVideoTrack();
+  assert.ok(audioTrack);
+  assert.ok(videoTrack);
+  const audio = await new AudioSampleSink(audioTrack).getSample(0);
+  const video = await new VideoSampleSink(videoTrack).getSample(0);
+  assert.ok(audio);
+  assert.ok(video);
+  try {
+    assert.equal(audio.numberOfFrames, 1024);
+    assert.equal(audio.numberOfChannels, 1);
+    assert.equal(video.displayWidth, 64);
+    assert.equal(video.displayHeight, 48);
+    const pixels = new Uint8Array(64 * 48 * 4);
+    await video.copyTo(pixels, { format: 'RGBA' });
+    assert.ok(pixels.some(value => value !== 0));
+  } finally { audio.close(); video.close(); }
+} finally { input.dispose(); }
+console.log('ok  packed Mediabunny decodes 1024 audio samples and a 64x48 video frame');
+`;
 }
 
 /** Commands from REQUIRED_COMMANDS that `help` does not list. */
@@ -156,15 +295,26 @@ export function existingTarballs(packages, directory) {
   return tarballs;
 }
 
+export function mcpWorkflowCode(graph) {
+  return `import { create_workflow, run_workflow } from "@nodetool-ai/sandbox-nodetool/workflows";
+const created = await create_workflow({ name: "Packed MCP smoke", graph: ${JSON.stringify(graph)} });
+if (created.error || !created.id) { throw new Error(JSON.stringify(created)); }
+const result = await run_workflow({ workflow_id: created.id, params: { text: "packed MCP smoke" } });
+if (result.error || result.status === "failed") { throw new Error(JSON.stringify(result)); }
+return result;`;
+}
+
 /**
  * Start `nodetool mcp serve`, send initialize and tools/list over stdio, and
  * resolve with the tool count. Stdout is newline-delimited JSON-RPC.
  */
-function probeMcp(bin, env, cwd, timeoutMs = 120_000) {
+export async function probeMcp(bin, env, cwd, workflow, timeoutMs = 120_000) {
+  const port = await freePort();
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(bin, ["mcp", "serve"], { env, cwd, stdio: ["pipe", "pipe", "pipe"] });
+    const child = spawn(bin, ["mcp", "serve"], { env: { ...env, PORT: String(port) }, cwd, stdio: ["pipe", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
+    let listedTools = 0;
     const timer = setTimeout(() => {
       child.kill("SIGKILL");
       reject(new Error(`mcp serve did not answer within ${timeoutMs}ms\n${stderr}`));
@@ -187,13 +337,38 @@ function probeMcp(bin, env, cwd, timeoutMs = 120_000) {
           send({ jsonrpc: "2.0", method: "notifications/initialized" });
           send({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
         } else if (msg.id === 2) {
+          listedTools = msg.result?.tools?.length ?? 0;
+          if (msg.error) {
+            clearTimeout(timer);
+            child.kill();
+            reject(new Error(`tools/list failed: ${JSON.stringify(msg.error)}`));
+          } else if (workflow) {
+            if (!msg.result.tools.some(tool => tool.name === "execute_code")) {
+              clearTimeout(timer);
+              child.kill();
+              reject(new Error("MCP did not expose execute_code"));
+              return;
+            }
+            send({ jsonrpc: "2.0", id: 3, method: "tools/call", params: {
+              name: "execute_code", arguments: { title: "Run a core-only smoke workflow", code: mcpWorkflowCode(workflow) }
+            } });
+          } else {
+            clearTimeout(timer);
+            child.removeAllListeners("exit");
+            child.kill();
+            resolvePromise(msg.result.tools.length);
+          }
+        } else if (msg.id === 3) {
           clearTimeout(timer);
           child.removeAllListeners("exit");
           child.kill();
-          if (msg.error) {
-            reject(new Error(`tools/list failed: ${JSON.stringify(msg.error)}`));
+          const text = (msg.result?.content ?? []).filter(item => item.type === "text").map(item => item.text).join("\n");
+          if (msg.error || msg.result?.isError || !text.includes("packed MCP smoke")) {
+            reject(new Error(`MCP execute_code did not run the core workflow: ${JSON.stringify(msg)}`));
           } else {
-            resolvePromise(msg.result.tools.length);
+            const outcome = JSON.parse(text);
+            if (outcome.ok !== true) { reject(new Error(`MCP code action failed: ${text}`)); }
+            else { resolvePromise(listedTools); }
           }
         }
       }
@@ -272,15 +447,17 @@ async function main() {
       keep: { type: "boolean", default: false },
       "work-dir": { type: "string" },
       "tarballs-dir": { type: "string" },
+      "core-only": { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false }
     }
   });
   if (values.help) {
-    console.log(`Usage: node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>] [--tarballs-dir <dir>]
+    console.log(`Usage: node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>] [--tarballs-dir <dir>] [--core-only]
 
 Packs every public workspace, installs ${CLI_NAME} from the tarballs into an
 empty project, and runs it against an empty HOME.
 
+  --core-only       Repack the CLI without on-demand node packs and check the isolated core
   --keep            Keep the work directory for inspection
   --work-dir <dir>  Use this directory instead of a new temp directory
   --tarballs-dir <dir>  Reuse release tarballs, checking workspace names and versions`);
@@ -296,14 +473,22 @@ empty project, and runs it against an empty HOME.
   for (const d of [tarballDir, appDir, home]) mkdirSync(d, { recursive: true });
 
   try {
-    const packages = publicPackages();
+    const packages = publicPackages().filter(pkg => !values["core-only"] || CORE_PACKAGES.includes(pkg.name));
     const cli = packages.find((p) => p.name === CLI_NAME);
     if (!cli) throw new Error(`${CLI_NAME} is not a public workspace`);
 
     const tarballs = values["tarballs-dir"]
       ? existingTarballs(packages, resolve(values["tarballs-dir"]))
       : pack(packages, tarballDir);
-    console.log(`Using ${packages.length} packed package(s)`);
+    if (values["core-only"]) {
+      for (const [name, file] of Object.entries(tarballs)) {
+        const copied = join(tarballDir, file.split(/[\\/]/).pop());
+        if (resolve(file) !== resolve(copied)) { copyFileSync(file, copied); }
+        tarballs[name] = copied;
+      }
+      tarballs[CLI_NAME] = repackCoreCli(tarballs[CLI_NAME], tarballDir);
+    }
+    console.log(`Using ${packages.length} packed package(s)${values["core-only"] ? " for core-only smoke" : ""}`);
 
     writeFileSync(
       join(appDir, "package.json"),
@@ -314,6 +499,12 @@ empty project, and runs it against an empty HOME.
       cwd: appDir,
       stdio: ["ignore", "pipe", "pipe"]
     });
+    if (values["core-only"]) {
+      const inspected = assertCoreOnlyInstall(appDir);
+      console.log(`ok  core-only guard inspected ${inspected} installed packages`);
+      run(process.execPath, ["--input-type=module", "-e", 'await import("@nodetool-ai/dsl");'], { cwd: appDir, timeout: 120_000 });
+      console.log("ok  the packed DSL imports without node packs");
+    }
     const diskUsage = run("du", ["-sk", "node_modules"], { cwd: appDir }).trim();
     console.log(`Packed CLI disk usage (KiB, report only): ${diskUsage}`);
 
@@ -333,9 +524,10 @@ empty project, and runs it against an empty HOME.
     }
     console.log(`ok  nodetool --help lists ${REQUIRED_COMMANDS.join(", ")}`);
 
-    const tools = await probeMcp(bin, env, appDir);
+    const coreWorkflow = values["core-only"] ? JSON.parse(readFileSync(join(ROOT, NO_MODEL_WORKFLOW), "utf8")).graph : undefined;
+    const tools = await probeMcp(bin, env, appDir, coreWorkflow);
     if (tools === 0) throw new Error("nodetool mcp serve listed no tools");
-    console.log(`ok  nodetool mcp serve lists ${tools} tools`);
+    console.log(`ok  nodetool mcp serve lists tools${coreWorkflow ? " and runs a core workflow through execute_code" : ` (${tools})`}`);
 
     const workflowFixture = join(appDir, "hello_input_output_cli.json");
     writeFileSync(workflowFixture, readFileSync(join(ROOT, NO_MODEL_WORKFLOW)));
@@ -366,6 +558,26 @@ empty project, and runs it against an empty HOME.
       throw new Error(`nodetool run did not execute the TypeScript workflow:\n${dslOutput}`);
     }
     console.log("ok  nodetool run executes a TypeScript workflow without downloads");
+
+    if (values["core-only"]) {
+      const falFixture = join(appDir, "missing-fal.json");
+      writeFileSync(falFixture, JSON.stringify({ graph: { nodes: [{ id: "fal", type: "fal.text_to_image.Flux1Dev", properties: { prompt: 42 } }], edges: [] } }));
+      const validated = spawnSync(bin, ["validate", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
+      if (validated.status !== 1) { throw new Error(`Missing FAL validation exited ${validated.status}: ${validated.stdout}${validated.stderr}`); }
+      const report = JSON.parse(validated.stdout).report;
+      if (!report.issues.some(issue => issue.code === "pack_not_installed") || !report.issues.some(issue => issue.code === "property")) {
+        throw new Error(`Missing FAL validation omitted availability or property issues: ${validated.stdout}`);
+      }
+      const failed = spawnSync(bin, ["workflows", "run", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
+      if (failed.status === null || failed.status === 0 || !/fal/i.test(`${failed.stdout}${failed.stderr}`)) {
+        throw new Error(`Missing FAL execution must fail and name fal: ${failed.stdout}${failed.stderr}`);
+      }
+      console.log("ok  missing FAL validates properties and fails execution with the pack name");
+    }
+
+    const codecFixture = join(appDir, "codec-identity.mp4");
+    copyFileSync(join(ROOT, "scripts", "fixtures", "codec-identity.mp4"), codecFixture);
+    console.log(run(process.execPath, ["--input-type=module", "-e", codecProbeSource(codecFixture)], { env, cwd: appDir, timeout: 120_000 }).trim());
 
     await probeServe(bin, env, appDir);
     console.log("ok  nodetool serve answers /health");

@@ -6,6 +6,25 @@ way it is. The index — which harness answers which need — is
 [AGENTS.md § Agent Harnesses & Tooling](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#agent-harnesses--tooling).
 Flag-level reference for the CLI: [cli.md](cli.md).
 
+## Packed CLI smoke
+
+After `npm run build:packages`, run `node scripts/smoke-packed-cli.mjs` to
+install the public package tarballs into an isolated project and exercise the
+CLI. Add `--core-only` to repack the test CLI without on-demand node packs.
+The published CLI manifest retains its packs until the final switch.
+
+The core smoke runs JSON and TypeScript workflows, executes a workflow through
+local MCP, starts the HTTP server, checks catalog validation for an absent FAL
+pack, and decodes audio and video through the installed media codecs. It audits
+nested installed packages for accidental pack or optional-library dependencies.
+The compiler exceptions and their range checks are defined in
+[plan D23](cli-pack-system-plan.md#d23-compiler-dependencies-required-by-core-packages).
+
+The smoke prints `du -sk node_modules` for the installed tree. This is the Linux
+measurement used to establish the later size gate. The dedicated
+`packed-core-cli.yml` workflow runs the core smoke on pull requests, including
+stacked branches. Release CI runs it beside the full packed smoke.
+
 ## CLI
 
 Two entry points: `nodetool` (management commands) and `nodetool-chat` (interactive chat).

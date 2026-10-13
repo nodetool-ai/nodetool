@@ -935,6 +935,7 @@ export type RuntimePackageId =
   | "imaging"
   | "typescript"
   | "tracing"
+  | "rapier"
   | "esbuild";
 
 export interface RuntimePackageStatus {

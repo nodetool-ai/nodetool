@@ -17,6 +17,11 @@ npm run dev:server          # from repo root (tsx --watch)
 node packages/websocket/dist/server.js   # built server
 ```
 
+Standalone startup registers installed node packs through the catalog and
+keeps metadata for enabled packs that are missing. Bundled desktop and server
+hosts inject their pack source. This package does not install node packs.
+Imaging loads when requested and reports the `imaging` runtime if unavailable.
+
 ## Develop
 
 ```bash

@@ -98,6 +98,9 @@ jobs:
       - name: Smoke-test the packed CLI
         run: node scripts/smoke-packed-cli.mjs --tarballs-dir .release-tarballs
 
+      - name: Smoke-test the packed core-only CLI
+        run: node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .release-tarballs
+
       - name: Publish to npm with trusted publishing
         run: node scripts/publish-packages.mjs --tag "$NPM_TAG" --tarballs-dir .release-tarballs
 

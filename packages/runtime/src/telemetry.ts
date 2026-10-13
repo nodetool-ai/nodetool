@@ -30,7 +30,8 @@
 import { context, propagation, trace, type Tracer } from "@opentelemetry/api";
 import { createLogger, setLogHook } from "@nodetool-ai/config";
 import type { StdoutFormat } from "./trace-exporters.js";
-import { ContentFilteringSpanExporter, RunTraceSpanProcessor, installRunTraceLogHook } from "./run-trace-processor.js";
+import { ContentFilteringSpanExporter, RunTraceSpanProcessor, installRunTraceLogHook, hasRunTraceStore } from "./run-trace-processor.js";
+import { loadTracingModule } from "./tracing-module.js";
 import { getRunTraceScope } from "./run-trace-context.js";
 import { TRACE_SPAN_EVENT_LIMIT } from "@nodetool-ai/protocol";
 import { ATTR_SERVICE_NAME } from "./trace-semantic-conventions.js";
@@ -71,7 +72,7 @@ export interface TelemetryOptions {
  * Initialize OpenTelemetry instrumentation.
  *
  * Idempotent: calling more than once is a no-op (returns the previous result).
- * The durable processor is always active. External sinks remain optional.
+ * A configured durable store or external sink enables instrumentation.
  */
 export async function initTelemetry(
   options: TelemetryOptions = {}
@@ -98,9 +99,14 @@ export async function initTelemetry(
   const traceFilePath = options.traceFile ?? process.env["NODETOOL_TRACE_FILE"];
 
   const hasOtlp = !!(traceloopKey || otlpEndpoint || otlpTracesEndpoint);
-  const { resourceFromAttributes } = await import("@opentelemetry/resources");
+  if (!hasOtlp && !consoleMode && !stdoutFormat && !traceFilePath && !hasRunTraceStore()) {
+    return false;
+  }
+  const { CompositePropagator, W3CTraceContextPropagator, W3CBaggagePropagator } =
+    await loadTracingModule<typeof import("@opentelemetry/core")>("@opentelemetry/core");
+  const { resourceFromAttributes } = await loadTracingModule<typeof import("@opentelemetry/resources")>("@opentelemetry/resources");
   const { BasicTracerProvider, BatchSpanProcessor, SimpleSpanProcessor, ConsoleSpanExporter, RandomIdGenerator, AlwaysOnSampler } =
-    await import("@opentelemetry/sdk-trace-base");
+    await loadTracingModule<typeof import("@opentelemetry/sdk-trace-base")>("@opentelemetry/sdk-trace-base");
 
   const serviceName =
     options.serviceName ?? process.env["OTEL_SERVICE_NAME"] ?? "nodetool";
@@ -157,8 +163,6 @@ export async function initTelemetry(
     idGenerator: { generateTraceId: () => getRunTraceScope()?.traceId ?? ids.generateTraceId(), generateSpanId: () => ids.generateSpanId() }
   });
 
-  const { CompositePropagator, W3CTraceContextPropagator, W3CBaggagePropagator } =
-    await import("@opentelemetry/core");
   context.setGlobalContextManager(new NodeTraceContextManager());
   propagation.setGlobalPropagator(new CompositePropagator({
     propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()]

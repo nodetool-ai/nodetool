@@ -14,7 +14,7 @@ describe("CLI node registry", () => {
         "tsx",
         "--input-type=module",
         "-e",
-        'import { buildFullRegistry } from "./src/node-registry.ts"; console.log(buildFullRegistry().has("atlascloud.video.SyncLipsyncV3"));'
+        'import { buildFullRegistry } from "./src/node-registry.ts"; console.log((await buildFullRegistry()).has("atlascloud.video.SyncLipsyncV3"));'
       ],
       { cwd: cliRoot, encoding: "utf8" }
     );
@@ -34,16 +34,17 @@ describe("CLI command host policies", () => {
         "--input-type=module",
         "-e",
         `import { NodeRegistry } from "@nodetool-ai/node-sdk";
-       import { registerBuiltinPacks } from "@nodetool-ai/base-nodes/builtin-packs";
+       import { registerAvailablePacks } from "@nodetool-ai/node-catalog";
        import { buildFullRegistry, CLI_LOCAL_BUILTIN_PACK_POLICY, CLI_DSL_BUILTIN_PACK_POLICY } from "./src/node-registry.ts";
-       const local = new NodeRegistry(); registerBuiltinPacks(local, CLI_LOCAL_BUILTIN_PACK_POLICY);
-       const dsl = new NodeRegistry(); registerBuiltinPacks(dsl, CLI_DSL_BUILTIN_PACK_POLICY);
-       console.log(JSON.stringify([buildFullRegistry().listNodePackageIds(), local.listNodePackageIds(), dsl.listNodePackageIds()]));`
+       const local = new NodeRegistry(); await registerAvailablePacks(local, CLI_LOCAL_BUILTIN_PACK_POLICY);
+       const dsl = new NodeRegistry(); await registerAvailablePacks(dsl, CLI_DSL_BUILTIN_PACK_POLICY);
+       console.log(JSON.stringify([(await buildFullRegistry()).listNodePackageIds(), local.listNodePackageIds(), dsl.listNodePackageIds()]));`
       ],
       { cwd: cliRoot, encoding: "utf8" }
     );
+    const domains = ["audio", "automation", "blender", "code", "core", "data", "document", "game", "image", "integration", "llm", "manimgx", "text", "video"];
     const local = [
-      "base",
+      ...domains,
       "elevenlabs",
       "fal",
       "huggingface",
@@ -54,9 +55,9 @@ describe("CLI command host policies", () => {
       "whisper-cpp"
     ];
     expect(JSON.parse(output.trim())).toEqual([
-      ["atlascloud", ...local],
-      local,
-      ["base"]
+      ["atlascloud", ...local].sort(),
+      local.sort(),
+      domains
     ]);
   });
 
@@ -66,14 +67,14 @@ describe("CLI command host policies", () => {
       "utf8"
     );
     expect(source).not.toMatch(/register\w+Nodes\(/);
-    expect(source.match(/registerBuiltinPacks\(/g)).toHaveLength(3);
+    expect(source.match(/registerAvailablePacks\(/g)).toHaveLength(3);
     expect(
       source.match(
-        /registerBuiltinPacks\(registry, CLI_LOCAL_BUILTIN_PACK_POLICY\)/g
+        /registerAvailablePacks\(registry, CLI_LOCAL_BUILTIN_PACK_POLICY\)/g
       )
     ).toHaveLength(2);
     expect(source).toContain(
-      "registerBuiltinPacks(NodeRegistry.global, CLI_DSL_BUILTIN_PACK_POLICY)"
+      "await registerAvailablePacks(NodeRegistry.global, CLI_DSL_BUILTIN_PACK_POLICY)"
     );
   });
 });

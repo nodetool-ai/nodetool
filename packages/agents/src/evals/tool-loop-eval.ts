@@ -119,7 +119,7 @@ export interface ToolLoopEvalCase<TFinal = ToolLoopFinalState> {
    * drives. Called once per run, so each case starts from a fresh in-memory
    * state.
    */
-  createBridge: () => HeadlessSurfaceBridge<TFinal>;
+  createBridge: () => HeadlessSurfaceBridge<TFinal> | Promise<HeadlessSurfaceBridge<TFinal>>;
   /**
    * Surface-specific system prompt. Falls back to the runner's `systemPrompt`
    * option, then the graph-editor default.
@@ -434,7 +434,7 @@ async function runCase<TFinal>(
   evalCase: ToolLoopEvalCase<TFinal>,
   opts: RunToolLoopEvalOptions<TFinal>
 ): Promise<ToolLoopCaseResult> {
-  const bridge = evalCase.createBridge();
+  const bridge = await evalCase.createBridge();
   // An interactive case gets one extra tool alongside the surface tools: the
   // scripted user it can escalate to.
   const escalation = evalCase.escalation

@@ -1,3 +1,4 @@
+import { importPack } from "@nodetool-ai/node-catalog";
 import { createHash } from "node:crypto";
 import { posix } from "node:path";
 import { z } from "zod";
@@ -92,8 +93,8 @@ function sessionOptions3D(run: CapabilityRun, user: string, document: GameDocume
 }
 
 export async function captureFrames3D(run: CapabilityRun, user: string, document: GameDocument3D, ticks: readonly number[], inputs: readonly GameInputFrame3D[], seed: number, options: Record<string, unknown>): Promise<unknown> {
-  const { captureGameFrame3D } = await import("@nodetool-ai/game-renderer/node3d");
-  const { GameParticles3D } = await import("@nodetool-ai/game-renderer");
+  const { captureGameFrame3D } = await importPack<typeof import("@nodetool-ai/game-renderer/node3d")>("game", "@nodetool-ai/game-renderer/node3d");
+  const { GameParticles3D } = await importPack<typeof import("@nodetool-ai/game-renderer")>("game", "@nodetool-ai/game-renderer");
   const particles = new GameParticles3D(document.tickRate);
   const resolveAsset = ownedAssetResolver3D(run, user, document);
   const snapshotInput = options.snapshot === undefined ? undefined : gameSnapshot3D.safeParse(options.snapshot);
@@ -294,7 +295,7 @@ export async function stageModelGameAsset3D(run: CapabilityRun, game: Game, work
   };
   const sourceId = typeof input === "string" && input.startsWith("asset://") && run.context.userId ?
     (await Asset.find(run.context.userId, input.slice(8).replace(/\.(glb|gltf|json)$/i, "")))?.id : undefined;
-  const { normalizeGameModel3D, createGameColliderCandidate3D } = await import("@nodetool-ai/game-renderer/preparation3d");
+  const { normalizeGameModel3D, createGameColliderCandidate3D } = await importPack<typeof import("@nodetool-ai/game-renderer/preparation3d")>("game", "@nodetool-ai/game-renderer/preparation3d");
   let binding: GameAssetBinding3D;
   let isPreparedCollider = false;
   if (kind === "collider") {

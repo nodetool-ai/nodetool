@@ -1,3 +1,4 @@
+import { importPack } from "@nodetool-ai/node-catalog";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
@@ -7,7 +8,7 @@ import { anyGameAssetBinding as gameAssetBinding, gameAssetBinding as legacyAsse
 import { autoplayNativeGame, MAX_GAME_ROUTE_TICKS, createMemoryGameSaveStorage, createScriptedGameSession, GamePlayerSaves, createTopDownRoomGame, createNative3DGame, decodePreparedGameCollider3D, validateAnyGame, trackGameAuthoringEdits, anyGameDocumentOp as gameDocumentOp, GameOpError, type GameAutoplayOptions } from "@nodetool-ai/game-runtime";
 import { workspaceFromRow } from "@nodetool-ai/execution/service";
 import { assetKeyCandidates, assetObjectKey } from "@nodetool-ai/storage";
-import type { Workspace as RunWorkspace, StorageAdapter } from "@nodetool-ai/runtime";
+import { loadCanvas, type Workspace as RunWorkspace, type StorageAdapter } from "@nodetool-ai/runtime";
 import type { TauriAppMetadata } from "@nodetool-ai/game-renderer/build-tauri";
 import type { CapabilityExport, CapabilityModule, CapabilityRun } from "./types.js";
 import { gameOutline3D, inputFrames3D, playtestGame3D, captureFrames3D, colliderBinding3D, stageModelGameAsset3D } from "./game3d.js";
@@ -190,8 +191,8 @@ async function captureFrames(run: CapabilityRun, user: string, document: LegacyG
     wallTimeLimited = Date.now() >= deadlineAt;
     return cancelled || wallTimeLimited;
   };
-  const { captureGameFrame } = await import("@nodetool-ai/game-renderer/node");
-  const { GameParticles2D } = await import("@nodetool-ai/game-renderer");
+  const { captureGameFrame } = await importPack<typeof import("@nodetool-ai/game-renderer/node")>("game", "@nodetool-ai/game-renderer/node");
+  const { GameParticles2D } = await importPack<typeof import("@nodetool-ai/game-renderer")>("game", "@nodetool-ai/game-renderer");
   const particles = new GameParticles2D(document.tickRate);
   const diagnostics: string[] = [];
   const storage = run.context.assetStorage;
@@ -257,7 +258,7 @@ async function captureFrames(run: CapabilityRun, user: string, document: LegacyG
       const pixelScale = frame.pixelsPerUnit * frame.camera.zoom * scale;
       const overlays = Array.isArray(options.overlays) ? options.overlays.filter((value): value is string => typeof value === "string") : [];
       if (overlays.length > 0) {
-        const { createCanvas, loadImage } = await import("@napi-rs/canvas");
+        const { createCanvas, loadImage } = await loadCanvas();
         const source = await loadImage(Buffer.from(png));
         const canvas = createCanvas(source.width, source.height);
         const context = canvas.getContext("2d");
@@ -565,7 +566,7 @@ const install: CapabilityExport = {
     let binding: AnyGameAssetBinding = parsed.data;
     try {
       if (binding.mediaKind === "model") {
-        const { prepareGameModelBinding3D } = await import("@nodetool-ai/game-renderer/preparation3d");
+        const { prepareGameModelBinding3D } = await importPack<typeof import("@nodetool-ai/game-renderer/preparation3d")>("game", "@nodetool-ai/game-renderer/preparation3d");
         const prepared = await prepareGameModelBinding3D(bytes, { assetId: binding.assetId, expectedDigest: binding.digest, signal: run.context.signal });
         if (!prepared.ok) { return { error: "Model preparation failed", diagnostics: prepared.diagnostics }; }
         const sourceAsset = binding.sourceAssetId ? await Asset.find(user, binding.sourceAssetId) : null;
@@ -801,7 +802,7 @@ const generateAsset: CapabilityExport = {
     const reference = typeof args["reference_slot"] === "string" ? draft.document.assets[args["reference_slot"]] : undefined;
     if (args["reference_slot"] !== undefined && !reference) { return { error: "reference_slot is not bound" }; }
     if (reference && kind !== "image") { return { error: "reference_slot requires kind image" }; }
-    const { imagePreparationSettings, prepareGameImage, imagePreparationMetadata, gameFontFormat } = await import("@nodetool-ai/game-nodes");
+    const { imagePreparationSettings, prepareGameImage, imagePreparationMetadata, gameFontFormat } = await importPack<typeof import("@nodetool-ai/game-nodes")>("game", "@nodetool-ai/game-nodes");
     const settings = kind === "image" ? imagePreparationSettings.safeParse(args["preparation"] ?? {}) : null;
     if (settings && !settings.success) { return { error: "Invalid image preparation", issues: settings.error.issues }; }
     if (kind !== "image" && args["preparation"] !== undefined) { return { error: "preparation requires kind image" }; }
@@ -1037,7 +1038,7 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
   let metadata: TauriAppMetadata | undefined;
   if (target === "tauri") {
     tauriApp = { name: game.name };
-    const { tauriAppMetadata } = await import("@nodetool-ai/game-renderer/build-tauri");
+    const { tauriAppMetadata } = await importPack<typeof import("@nodetool-ai/game-renderer/build-tauri")>("game", "@nodetool-ai/game-renderer/build-tauri");
     try { metadata = tauriAppMetadata(document, tauriApp); }
     catch (error) { return { error: error instanceof Error ? error.message : String(error) }; }
     // The app name comes from the game row, which can change without a new revision.
@@ -1084,13 +1085,13 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
   try {
     const output = join(staging, "player");
     if (tauriApp) {
-      const { buildTauriGameProject } = await import("@nodetool-ai/game-renderer/build-tauri");
+      const { buildTauriGameProject } = await importPack<typeof import("@nodetool-ai/game-renderer/build-tauri")>("game", "@nodetool-ai/game-renderer/build-tauri");
       await buildTauriGameProject({ document, outputDir: output, resolveAsset, app: tauriApp, signal: request.signal });
     } else if (document.schemaVersion === 3) {
-      const { buildStandaloneGame3D } = await import("@nodetool-ai/game-renderer/build3d");
+      const { buildStandaloneGame3D } = await importPack<typeof import("@nodetool-ai/game-renderer/build3d")>("game", "@nodetool-ai/game-renderer/build3d");
       await buildStandaloneGame3D({ document, outputDir: output, resolveAsset, signal: request.signal });
     } else {
-      const { buildStandaloneGame } = await import("@nodetool-ai/game-renderer/build");
+      const { buildStandaloneGame } = await importPack<typeof import("@nodetool-ai/game-renderer/build")>("game", "@nodetool-ai/game-renderer/build");
       await buildStandaloneGame({ document, outputDir: output, resolveAsset });
     }
     const files: Array<{ path: string; bytes: Uint8Array }> = [];

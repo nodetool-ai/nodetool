@@ -3516,7 +3516,8 @@
       "registrar": "registerGameNodes",
       "requires": [],
       "runtimeLibraries": [
-        "imaging"
+        "imaging",
+        "rapier"
       ],
       "scriptAllowlist": [],
       "secrets": []

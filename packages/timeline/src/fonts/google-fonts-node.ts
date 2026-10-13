@@ -12,7 +12,7 @@
  * and disk-cache half with no `@napi-rs/canvas` dependency.
  */
 
-import { GlobalFonts } from "@napi-rs/canvas";
+import { loadCanvas } from "@nodetool-ai/runtime";
 
 import { resolveGoogleFontFamily, type GoogleFontResolution } from "./google-fonts-fetch.js";
 import { collectFontFaceRequests, type FontFaceRequest } from "./google-fonts.js";
@@ -26,6 +26,7 @@ export {
 } from "./google-fonts-fetch.js";
 
 const registeredFiles = new Set<string>();
+const { GlobalFonts } = await loadCanvas();
 
 /** Register a resolved family's faces with `@napi-rs/canvas`, once each. */
 export function registerGoogleFontFaces(resolution: GoogleFontResolution): void {

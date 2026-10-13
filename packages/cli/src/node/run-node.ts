@@ -49,7 +49,7 @@ export async function runSingleNode(
   nodeType: string,
   options: RunSingleNodeOptions = {}
 ): Promise<NodeRunResult> {
-  const registry = buildFullRegistry();
+  const registry = await buildFullRegistry();
   if (!registry.has(nodeType)) {
     throw new Error(
       `Unknown node type "${nodeType}". It is not in the local TS registry (Python-only nodes can't be run this way).`

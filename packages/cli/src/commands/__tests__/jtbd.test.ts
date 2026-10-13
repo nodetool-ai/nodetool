@@ -23,7 +23,7 @@ const TEST_JOB: ErasedJob = {
   difficulty: "smoke",
   objective: "Do the test job",
   outcomeNames: [],
-  start: () => ({ tools: [], grade: () => [] })
+  start: async () => ({ tools: [], grade: () => [] })
 };
 
 const originalExitCode = process.exitCode;

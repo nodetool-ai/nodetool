@@ -4,9 +4,12 @@
 
 Continue implementing [the plan](../docs/cli-pack-system-plan.md) and
 [the design](../docs/cli-pack-system-design.md). The overall project is unfinished.
-The current branch is `codex/cli-pack-system-runtime`, based on `origin/main`
-at `5882ebefd0`, the merge of PR #6545. The branch contains the remaining
-foundation work. Its final checkpoint is explicitly work in progress.
+The current branch is `codex/cli-pack-dependency-cuts`, forked from
+`codex/cli-pack-system-runtime` at `7fc7941c4d` on the user’s explicit
+instruction. The foundation PR is
+[PR #6550](https://github.com/nodetool-ai/nodetool/pull/6550). Keep the new PR
+stacked against that branch until the foundation lands. Both layers remain
+work in progress pending remote verification.
 
 Read [repository instructions](../AGENTS.md),
 [development standards](../docs/DEVELOPMENT_STANDARDS.md), the touched area
@@ -91,7 +94,7 @@ wiring. The later checkpoint contains that wiring. No isolated build of the
 intermediate A12 staged tree was run. Earlier complete-tree server tests,
 bundle smoke, packed CLI smoke and dev health/metadata parity passed. A full
 lint run subsequently identified a missing explicit return annotation in
-base-nodes/src/server-pack-source.ts, which still needs correction.
+base-nodes/src/server-pack-source.ts, which the continuation fixes below corrected.
 
 ### A2: implemented in checkpoint, reviewed
 
@@ -101,7 +104,7 @@ installation details. Installed classes and catalog fallback preserve D22
 metadata/policy parity. Astra independently verified loader errors and policy
 combinations and cleared this scope.
 
-Four runtime library IDs were added: imaging, typescript, tracing and esbuild.
+The foundation added runtime library IDs: imaging, typescript, tracing and esbuild.
 The shared npm registry pins them, including the TypeScript npm alias.
 Desktop lists bundled libraries as Included without install/remove actions.
 Web and Electron focused tests passed.
@@ -158,79 +161,71 @@ This checkout uses Node from the local mise installation. Set `TMPDIR=/dev/shm`
 for local checks because writes to `/tmp` hit its quota. Mobile dependencies
 were restored with `npm --prefix mobile ci` before rerunning typecheck.
 
-## Earlier verification and remaining failures
+## Dependency-cut fork
 
-Central normal npm install completed successfully. Lockfile libc checks passed.
-The latest combined package build passed 71/71 tasks and root typecheck exited
-0. These checks preceded the final mechanical conditional-spread lint edits.
+A4.1, A4.2, A4.3, A4.5, A4.6, A4.7 and A4.8 are implemented on this fork.
+A4.4 was already merged. The CLI still declares bundled node packs and the
+renderer. Removing those published dependencies remains A24.
 
-Root lint exited 1 from new anti-slop violations. Seven conditional-empty-object
-spread violations were then fixed across six runtime files:
+Runtime imaging and tracing libraries load through typed optional boundaries.
+Canvas consumers await initialization at their existing asynchronous entry
+points. Compiler esbuild and game-runtime Rapier are optional peers with
+retryable loading. Rapier preserves its literal browser import and adds the
+managed runtime fallback only on Node. Rapier is registered as a runtime
+library and as an Included desktop dependency.
 
-- packages/cli/src/node/run-node.ts
-- packages/cli/src/debug/server-runner.ts
-- packages/agents/src/js-sandbox.ts
-- packages/agents/src/capabilities/code-grading.ts
-- packages/agents/src/capabilities/code.ts
-- packages/kernel/src/runner.ts, two sites
+Agents, DSL, websocket and CLI use catalog-backed registration and lazy pack
+loading. The websocket standalone source no longer falls back to the private
+server or base-nodes. Shared builtin policy removes excluded catalog metadata
+as well as installed classes. The direct-pack-import migration ledger is empty
+and its regression now requires it to remain empty.
 
-Focused oxlint on those six files passed. They use typed result objects and
-guarded property assignments. Full lint has NOT been rerun after those fixes.
-Remaining known lint failures from the preceding full run:
+Astra identified two regressions and cleared their fixes. A core workflow can
+run without optional tracing when only the implicit durable trace sink is
+configured. Explicit sinks, broken modules and transitive failures still throw.
+Catalog policy filtering now removes metadata-only entries. Retained negative
+regressions exercise both boundaries.
 
-- base-nodes/src/server-pack-source.ts: exported factory lacks return type.
-- cli/src/runtime-env.ts: runtime typeof checks.
-- config/src/runtime-locations.ts: unsafe unknown dictionary, unknown function
-  parameter and runtime typeof checks.
-- cli/src/command-errors.ts: runtime typeof checks.
+A8 is implemented with a separate core-only packed CLI smoke. It repacks only
+test manifest copies, physically excludes optional pack tarballs, recursively
+checks the installed dependency tree, decodes a checked-in audio/video fixture,
+and runs real DSL, JSON, MCP and HTTP probes. The existing full release smoke
+still uses the original publish tarballs. The guard permits only demonstrated
+intrinsic esbuild and TypeScript dependencies from tsx and tRPC, with resolved
+path and semver checks. D23 records these exceptions.
 
-Fix these by parsing external inputs at their boundary and using typed values,
-then rerun meaningful focused tests and the required checks. Do not weaken lint
-or add broad overrides. Existing unrelated warnings do not require cleanup.
+The isolated MCP probe reproduced a first-write migration failure. CLI async
+startup now applies SQLite migrations before initializing the database. A real
+fresh-database MCP regression failed before the fix and passed afterward. The
+smoke uses an unused port so it cannot forward to an ambient server.
 
-Earlier aggregate test:affected and harness gate had only the macOS game golden
-font failure: Linux expects Liberation Sans, this host supplies .SF NS. User
-explicitly accepted ignoring local Linux testing and running remotely. The
-current branch has NOT had fresh complete affected tests or harness gate.
-Run those in remote CI, and inspect failures. Build packages first.
+The new packed-core-cli remote workflow runs package builds, affected tests,
+typecheck, lint, harness gate, backend smoke and the actual isolated core-only
+install on every applicable PR base branch. It uses no Docker. Publishing also
+runs the core-only smoke before publication.
 
-Earlier packed CLI smoke required an ephemeral SECRETS_MASTER_KEY to avoid a
-host keychain hang. It runs from a throwaway cwd and uses a timeout. No provider
-keys are necessary for the no-model checks. Do not expose credentials.
+Package builds, root lint, root typecheck, agent-doc checks, dependency audit,
+harness selection and focused hidden-dependency, registry, migration, codec
+and smoke-helper tests passed locally. The actual packed core-only install,
+complete affected tests, actual harness gate and backend smoke still require
+remote Linux CI. Do not claim A8 acceptance until those checks pass.
 
-Local verification logs are not transferred. Reproduce checks on the other
-computer or use CI. Do not claim completion on review alone.
+Closure measurements compare baseline workspace manifests at `7fc7941c4d`
+against the fork using the same local installed tree and compiled bytes. They
+show source/manifest edge savings, not a clean Linux install or a final size
+budget. Package-root savings overlap and must not be summed. A9 remains open.
 
 ## Immediate continuation
 
-1. Inspect fresh CI for [PR #6550](https://github.com/nodetool-ai/nodetool/pull/6550),
-   including affected tests, harness gate and backend smoke. Resolve failures
-   before marking the foundation work ready.
-2. After the foundation assignments land on `main`, continue A4.1 and A4.8 in
-   parallel, then the dependent source/manifest cuts.
-   Do not change the published CLI manifest's bundled packs until A24.
-3. After A4 cuts, implement A8 core-only smoke and A9 size gate. Then continue
-   publishing metadata, installed-pack source, cross-surface missing-pack
-   errors, install flow/authorization/commands/npm matrix, and finally A24.
-
-Useful cut boundaries already inspected:
-
-- A4.1 owns runtime manifest, image-codec.ts, new canvas-codec.ts and exports,
-  run-trace-processor.ts and hidden-dependency image/tracing tests. Enumerate
-  all OpenTelemetry imports before moving peers. Add loadCanvas and use imaging
-  errors. Trace libraries load only when a trace sink is set.
-- A4.8 owns sandbox-compiler lazy esbuild and game-runtime optional Rapier.
-  bundle.ts reads esbuild.version synchronously in optionsDigest, so coordinate
-  its cache callers when making the load async. spatial3d/world.ts already
-  imports Rapier dynamically, but needs structured missing-runtime and retry
-  behavior verified with an actually hidden dependency.
-- A4.2 depends on loadCanvas. A4.3 moves agents' pack imports through importPack.
-  A4.5 cuts DSL packs. A4.6 cuts websocket packs and removes A12's temporary
-  server fallback. A4.7 cuts CLI source imports while retaining manifest packs.
-
-For every cut, update the exact import baseline, measure closure saving, retain
-hidden-dependency regressions and run backend:smoke. Follow the plan's actual
-acceptance criteria rather than treating a manifest-only cut as complete.
+1. Push this fork and open a draft PR against `codex/cli-pack-system-runtime`.
+   Inspect its remote packed-core-cli checks and the foundation PR checks.
+   Fix failures before marking either layer ready.
+2. After actual core-only Linux installation succeeds, implement A9 using the
+   measured installed size plus the plan’s margin. Prove the size check fails
+   on an oversized fixture before enforcing it. Do not invent a threshold.
+3. Continue the remaining publishing metadata, installed-pack source,
+   cross-surface missing-pack errors, authorized installer, commands and npm
+   matrix. Perform A24 only after its prerequisites pass.
 
 Q6 recommends `nodetool nodes` for new commands because `nodetool packs` already
 means sandbox packs. Q9 concerns local project manifest/lockfile authorization.

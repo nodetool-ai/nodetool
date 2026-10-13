@@ -11,7 +11,7 @@
  * watcher for any registration that is no longer enabled, no longer exists,
  * or whose watched path/recursion setting changed. Pattern/ignore-pattern
  * matching and debounce reuse `FileWatchTriggerNode`'s own logic via the
- * shared `@nodetool-ai/automation-nodes` helper, so the adapter and the
+ * shared `@nodetool-ai/nodes-utils` helper, so the adapter and the
  * in-editor live-test path can never drift apart.
  *
  * Follows `scheduler.ts`'s shape: a pure-ish sweep function callers can drive
@@ -32,7 +32,7 @@ import {
   shouldProcessFileWatchPath,
   isWatchedFileEvent,
   type FileWatchFilter
-} from "@nodetool-ai/automation-nodes";
+} from "@nodetool-ai/nodes-utils";
 import {
   isFunctionValue,
   isString

@@ -13,7 +13,7 @@ decision codes of the pack spec.
 
 | Code | Rule |
 |---|---|
-| A0.1 | Start an assignment only when every assignment that blocks it is on `main`. |
+| A0.1 | Start an assignment only when every assignment that blocks it is on `main`, unless the user explicitly authorizes dependent work on a fork of the prerequisite branch. Keep that work in a stacked PR. |
 | A0.2 | Re-read the files in section 3 before you edit them. The line numbers in the pack spec date from its review. |
 | A0.3 | Land each assignment as one commit, or as a series that is green at each commit. Run the [mandatory post-change verification](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification) before each commit. |
 | A0.4 | Run `npm run backend:smoke` for each assignment that changes a manifest, the server entry, or a lazy import. The desktop bundle flattens modules, so a cut can pass in the monorepo and fail in the artifact. |
@@ -52,9 +52,10 @@ two errors and two install roots for one concept.
 | `tokenizer` | `tokenizer` (exists) |
 | `tracing` (OpenTelemetry) | `tracing` (new) |
 | `esbuild` (6.1 row, not in the tier list) | `esbuild` (new) |
+| `@dimforge/rapier3d-compat` (optional physics peer) | `rapier` (new) |
 | `game-renderer` | none, see D18 |
 
-The desktop app and the Docker image bundle the four new libraries. Their
+The desktop app and the Docker image bundle the new libraries. Their
 registry entries name the hosts that bundle them. The desktop Package Manager
 shows these entries as included and never offers an install.
 
@@ -139,6 +140,20 @@ steps:
 With all packs installed, the result is equal to `registerBuiltinPacks`. With
 no packs installed, the result is the core nodes plus catalog entries. A15
 replaces the "resolves" test with the installed set and its version check.
+
+### D23. Compiler dependencies required by core packages
+
+The core-only guard permits `esbuild` because `tsx` requires it (D11).
+It permits TypeScript because `@trpc/client` and `@trpc/server` declare a
+non-optional TypeScript peer. Both tRPC packages remain core dependencies.
+Removing these compiler packages would require replacing the TypeScript
+workflow loader or the API framework.
+
+The smoke guard verifies that these packages resolve from their core
+dependents and satisfy the declared dependency or peer ranges. Every other
+runtime library and every on-demand node pack remains forbidden. Making a
+core package's library peer optional does not remove a library that another
+dependency still requires.
 
 ## 3. Current seams
 

@@ -82,7 +82,7 @@ Non-goals:
 |---|---|---|
 | Core | `cli`, `protocol`, `config`, `security`, `auth`, `storage`, `models`, `node-sdk`, `kernel`, `runtime`, `execution`, `agents`, `chat`, `websocket`, `dsl`, `vectorstore`, `app-runtime`, `app-export`, `compute`, `model-pricing`, `timeline`, `gpu`, `storyboard`, `image-editor`, `model3d`, `browser`, `sandbox-compiler`, `huggingface`, `game-runtime`, `deploy`, `telegram`, `sdk`, `nodes-utils`, the core node packages `core-nodes`, `text-nodes`, `data-nodes`, `llm-nodes`, `code-nodes`, and the new `node-catalog` | with the CLI |
 | Node pack | One npm package per pack id. Existing ids from `BUILTIN_NODE_PACKS` (`packages/protocol/src/builtin-packs.ts:61`): `whisper-cpp`, `elevenlabs`, `minimax`, `transformers-js`, `fal`, `kie`, `topaz`, `reve`, `atlascloud`, `higgsfield`, `together`, `replicate`, `huggingface`. New ids from the `base` split: `image`, `audio`, `video`, `document`, `game`, `blender`, `manimgx`, `automation`, `integration` | on demand |
-| Runtime library | Third-party packages that a core code path loads lazily: `imaging` (`sharp`, `@napi-rs/canvas`), `llama` (`node-llama-cpp`), `typescript`, `tokenizer` (`js-tiktoken`), `tracing` (OpenTelemetry SDK packages), `game-renderer` (first-party, not a node pack) | on demand |
+| Runtime library | Third-party packages that a core code path loads lazily: `imaging` (`sharp`, `@napi-rs/canvas`), `node-llama-cpp`, `typescript`, `tokenizer` (`js-tiktoken`), `tracing` (OpenTelemetry SDK packages), `esbuild`, `rapier` (`@dimforge/rapier3d-compat`). First-party libraries belong to their node pack (plan D18). | on demand |
 
 Rules:
 
@@ -157,7 +157,7 @@ Read from the `package.json` files. "Cut" names the change.
 | `runtime` → `js-tiktoken` | `packages/runtime/package.json:36` | Already an optional peer with a lazy import. Remove the remaining optional dependency from `runtime` and `agents` so clean installs omit it. Runtime id `tokenizer`. |
 | `runtime` → `sharp` | `packages/runtime/package.json:40` | Optional peer. All four runtime uses are already dynamic. |
 | `runtime` → OpenTelemetry SDK packages | `packages/runtime/package.json:28-33` | Keep `@opentelemetry/api`. Make `core`, `resources` and `sdk-trace-base` optional peers. They also pull in `sdk-trace` and `semantic-conventions`. Runtime library `tracing`. |
-| `game-runtime` → `@dimforge/rapier3d-compat` | `packages/game-runtime/package.json:17` | Optional peer. Regular dependency of the `game` pack. The import is already dynamic (`packages/game-runtime/src/spatial3d/world.ts:11`). |
+| `game-runtime` → `@dimforge/rapier3d-compat` | `packages/game-runtime/package.json` | Optional peer. Regular dependency of the `game` pack. The browser keeps a literal dynamic import. Node can fall back to the managed `rapier` runtime root. Failed attempts reset the initialization cache. |
 | `sandbox-compiler` → `esbuild` | `packages/sandbox-compiler/package.json:25` | Optional peer. Needed only by `nodetool packs compile`. |
 | `data-nodes` → `@napi-rs/canvas`, `chart.js` | `packages/data-nodes/package.json:18,23` | `chart.js` stays a dependency (D16). `@napi-rs/canvas` becomes an optional peer. The chart node already imports it dynamically (`packages/data-nodes/src/nodes/lib-charts.ts:162-167`). |
 
@@ -241,8 +241,11 @@ that installs the CLI tarball with no pack tarballs available:
 8. `nodetool run` on that workflow exits 3 and prints the `missing_pack` JSON
    with `--json`.
 9. A guard asserts that no `@nodetool-ai/*` node pack and none of the runtime
-   libraries in section 4 exist under the install's `node_modules`. The check
-   fails on a deliberately added pack before it is enforced.
+   libraries in section 4 exist under the install's `node_modules`, except
+   `esbuild` required by `tsx` and TypeScript required by the non-optional tRPC
+   peers (plan D23). The exceptions must resolve from those dependents and
+   satisfy their declared ranges. The check fails on a deliberately added pack
+   before it is enforced.
 
 ## 7. Shared third-party identity (F4)
 

@@ -52,7 +52,7 @@ function dirname(p: string): string {
   return nodePath.dirname(p);
 }
 import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
-import { ExportResultCode, type ExportResult } from "@opentelemetry/core";
+import type { ExportResult } from "@opentelemetry/core";
 import type { TraceRecord } from "@nodetool-ai/protocol";
 import { externalSpanRecord } from "./run-trace-processor.js";
 export type { TraceRecord } from "@nodetool-ai/protocol";
@@ -96,10 +96,10 @@ export class JsonlFileSpanExporter implements SpanExporter {
             JSON.stringify(externalSpanRecord(span)) + "\n"
           );
         }
-        resultCallback({ code: ExportResultCode.SUCCESS });
+        resultCallback({ code: 0 });
       })
       .catch((err) => {
-        resultCallback({ code: ExportResultCode.FAILED, error: err as Error });
+        resultCallback({ code: 1, error: err as Error });
       });
   }
 
@@ -184,9 +184,9 @@ export class StdoutSpanExporter implements SpanExporter {
           process.stdout.write(formatPretty(rec) + "\n");
         }
       }
-      resultCallback({ code: ExportResultCode.SUCCESS });
+      resultCallback({ code: 0 });
     } catch (err) {
-      resultCallback({ code: ExportResultCode.FAILED, error: err as Error });
+      resultCallback({ code: 1, error: err as Error });
     }
   }
 

@@ -42,7 +42,7 @@ import {
   NodeRegistry,
   createGraphNodeTypeResolver
 } from "@nodetool-ai/node-sdk";
-import { registerBuiltinPacks } from "@nodetool-ai/base-nodes/builtin-packs";
+import { registerAvailablePacks } from "@nodetool-ai/node-catalog";
 import { CLI_LOCAL_BUILTIN_PACK_POLICY, CLI_DSL_BUILTIN_PACK_POLICY } from "./node-registry.js";
 import { ProcessingContext, createLocalWorkspace, initTelemetry, onPythonBridgeCreated } from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
@@ -138,7 +138,9 @@ function ensureDb(): void {
 }
 
 async function setupDb(): Promise<void> {
-  ensureDb();
+  const dbPath = getDefaultDbPath();
+  await migrateSqliteDb(dbPath);
+  initDb(dbPath);
   // Resolve the master encryption key from keychain / env / AWS so that
   // both encryption (Secret.upsert) and decryption (Secret.getDecryptedValue)
   // use the same persistent key. Without this, a fresh process would
@@ -330,7 +332,7 @@ addSupervisorOptions(
       const { runDslFile } = await import("./run-dsl.js");
       const { NodeRegistry } = await import("@nodetool-ai/node-sdk");
 
-      registerBuiltinPacks(NodeRegistry.global, CLI_DSL_BUILTIN_PACK_POLICY);
+      await registerAvailablePacks(NodeRegistry.global, CLI_DSL_BUILTIN_PACK_POLICY);
 
       const supervisorConfig = parseSupervisorFlags(opts);
       const absolutePath = resolve(dslFile);
@@ -598,7 +600,7 @@ addSupervisorOptions(
       // need to duplicate that here.
 
       const registry = new NodeRegistry();
-      registerBuiltinPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
+      await registerAvailablePacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
 
       const jobId = `job-${Date.now()}`;
       // Resolve asset URIs (e.g. /api/storage/<key>) against the local
@@ -1682,7 +1684,7 @@ mcp
       // A local TS-node registry powers list_nodes / search_nodes /
       // validate_workflow without spinning up a Python worker.
       const registry = new NodeRegistry();
-      registerBuiltinPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
+      await registerAvailablePacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
 
       // stdio serves exactly one local user; "1" is the local single-user id.
       const server = createMcpServer({

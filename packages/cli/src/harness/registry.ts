@@ -768,6 +768,18 @@ export const HARNESSES: HarnessEntry[] = [
     selfcheck: { command: "npm run backend:smoke", cost: "expensive" }
   },
   {
+    id: "packed-core-cli",
+    title: "Core-only packed CLI install and execution smoke",
+    command: "node scripts/smoke-packed-cli.mjs --core-only",
+    kind: "meta",
+    capabilities: ["gated:pr"],
+    docs: "docs/harnesses.md § Packed CLI smoke",
+    selfcheck: {
+      command: "node scripts/smoke-packed-cli.mjs --core-only",
+      cost: "expensive"
+    }
+  },
+  {
     id: "docker-smoke",
     title: "Deploy-image smoke (build, boot, load app in a browser)",
     command: "node scripts/docker-smoke.mjs http://localhost:7777",
@@ -965,7 +977,7 @@ export const HARNESSES: HarnessEntry[] = [
     capabilities: ["no-db", "gated:pr"],
     docs: "docs/cli-pack-system-plan.md § A1. The node catalog",
     selfcheck: {
-      command: "npm run check:node-catalog && node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/node-catalog.test.mjs scripts/__tests__/bump-version.test.mjs",
+      command: "npm run check:node-catalog && node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/node-catalog.test.mjs scripts/__tests__/bump-version.test.mjs tools/oxlint/pack-boundaries/tests/no-direct-pack-imports.test.ts",
       cost: "cheap"
     }
   },
@@ -1843,6 +1855,16 @@ export const SURFACES: SurfaceEntry[] = [
     ]
   },
   {
+    id: "packed-core-cli",
+    title: "Isolated core CLI package installation",
+    harnesses: ["packed-core-cli"],
+    paths: [
+      "scripts/smoke-packed-cli.mjs",
+      "scripts/fixtures/codec-identity.mp4",
+      ".github/workflows/packed-core-cli.yml"
+    ]
+  },
+  {
     id: "node-catalog",
     title: "Exact node pack ownership and catalog metadata",
     harnesses: ["node-catalog"],
@@ -1850,6 +1872,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/node-catalog/",
       "packages/node-sdk/src/",
       "scripts/node-catalog/",
+      "tools/oxlint/pack-boundaries/",
       "scripts/generate-node-catalog.mjs",
       "scripts/__tests__/node-catalog.test.mjs",
       "scripts/bump-version.mjs",

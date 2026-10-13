@@ -189,6 +189,7 @@ describe("DSL execution compatibility", () => {
       .mockResolvedValue({ outputs: { output: "python" }, blobs: {} });
     // Only the transport/resolver surface is needed, without starting a subprocess.
     const bridge = {
+      isConnected: true,
       close,
       execute,
       hasNodeType: (type: string) => type === "python.Test",

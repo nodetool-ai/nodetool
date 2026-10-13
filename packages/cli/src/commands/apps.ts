@@ -27,6 +27,7 @@ import {
   createTimeOrderedUuid,
   releasedApplicationRelease
 } from "@nodetool-ai/models";
+import { checkoutPackageAssetsDir } from "../package-assets.js";
 
 import { asJson, printTable } from "./output.js";
 import { setupLocalDb, LOCAL_USER_ID } from "./local-db.js";
@@ -106,26 +107,12 @@ async function collectAppBundle(
  * directory, then `nodetool/assets` of the installed base-nodes package.
  */
 async function packageAssetRoots(): Promise<string[]> {
-  const { existsSync } = await import("node:fs");
-  const { dirname, join } = await import("node:path");
-  const { fileURLToPath } = await import("node:url");
   const roots: string[] = [];
   const configured = process.env["NODETOOL_PACKAGE_ASSETS_DIR"];
   if (configured) roots.push(configured);
-  try {
-    let dir = dirname(
-      fileURLToPath(import.meta.resolve("@nodetool-ai/base-nodes"))
-    );
-    for (let depth = 0; depth < 4; depth += 1) {
-      const candidate = join(dir, "nodetool", "assets");
-      if (existsSync(candidate)) {
-        roots.push(candidate);
-        break;
-      }
-      dir = dirname(dir);
-    }
-  } catch {
-    // base-nodes is not resolvable from here; samples stay unresolved.
+  const packageAssets = checkoutPackageAssetsDir();
+  if (packageAssets) {
+    roots.push(packageAssets);
   }
   return roots;
 }
@@ -240,7 +227,7 @@ export function registerAppsCommands(program: Command): void {
 
           const secrets = requiredSecretNames(
             bundle,
-            buildFullRegistry(),
+            await buildFullRegistry(),
             getProviderSecretKey
           );
           const providerSecrets = listRegisteredProviderIds()

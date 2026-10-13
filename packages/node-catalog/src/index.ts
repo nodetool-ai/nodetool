@@ -35,6 +35,6 @@ export function packForNodeType(nodeType: string): CatalogPack | undefined {
   return owner === undefined ? undefined : index.packs.find((pack) => pack.id === owner);
 }
 export { importPack } from "./import-pack.js";
-export { registerAvailablePacks } from "./register-available-packs.js";
+export { registerAvailablePacks, registerCatalogPack, catalogPackIdsForBuiltin } from "./register-available-packs.js";
 
 export { MissingPackError, createMissingPackError, type MissingPackDetails } from "./errors.js";

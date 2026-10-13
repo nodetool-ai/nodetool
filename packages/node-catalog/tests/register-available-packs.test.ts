@@ -1,7 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { NodeRegistry, type BuiltinPackPolicy } from "@nodetool-ai/node-sdk";
 import { registerBuiltinPacks, CLI_BUILTIN_PACK_POLICY } from "@nodetool-ai/base-nodes/builtin-packs";
-import { registerAvailablePacks } from "../src/register-available-packs.js";
+import { catalogPackIdsForBuiltin, registerAvailablePacks, registerCatalogPack } from "../src/register-available-packs.js";
+
+it("maps legacy base policy to domain packs and rejects unknown ids", () => {
+  expect(catalogPackIdsForBuiltin("base")).toEqual([
+    "core", "text", "llm", "code", "data", "document", "image", "audio", "video",
+    "integration", "automation", "game", "blender", "manimgx"
+  ]);
+  expect(catalogPackIdsForBuiltin("fal")).toEqual(["fal"]);
+  expect(() => catalogPackIdsForBuiltin("unknown")).toThrow("Unknown built-in node pack");
+});
+
+it("registers one available pack without bootstrapping other packs", async () => {
+  const registry = new NodeRegistry();
+  await registerCatalogPack(registry, "text");
+  expect(registry.list().length).toBeGreaterThan(0);
+  expect(registry.list().every((type) => registry.getNodePackageId(type) === "text")).toBe(true);
+  await expect(registerCatalogPack(registry, "unknown")).rejects.toThrow("Unknown node pack");
+});
 
 it.each([
   ["CLI", CLI_BUILTIN_PACK_POLICY],

@@ -85,6 +85,7 @@ below.
 | `opencode.yml` | Interactive assistant on `/oc` comments | none/maintenance | Advisory |
 | `performance-optimization.yaml` | Weekly agent fixes React perf issues (memo, selectors) | none/maintenance | Advisory (`continue-on-error`) |
 | `publish.yaml` | Publish npm packages on a `v*` tag | none/maintenance | Required for its own job |
+| `packed-core-cli.yml` | Install the core-only CLI tarballs and verify workflows, MCP, HTTP startup, codecs and dependency isolation | 2 | Required for its own job |
 | `quality-assurance.yaml` | Daily agent fixes failing typecheck/lint/tests on `main` | none/maintenance | Advisory (`continue-on-error`) |
 | `quality-guard.yml` | Reusable pre/post quality-gate wrapper. No workflow calls it | none/maintenance | Unused |
 | `screenshots.yml` | Capture and commit documentation screenshots | none/maintenance | Manual |

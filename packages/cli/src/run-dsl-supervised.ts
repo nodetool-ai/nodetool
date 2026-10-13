@@ -42,7 +42,7 @@ export async function runDslFileSupervised(
   jsonMode: boolean
 ): Promise<SupervisedDslRun> {
   const workflows = await loadDslWorkflows(filePath);
-  const registry = buildFullRegistry();
+  const registry = await buildFullRegistry();
   const results: Record<string, Record<string, unknown>> = {};
   const allInterventions: Intervention[] = [];
 

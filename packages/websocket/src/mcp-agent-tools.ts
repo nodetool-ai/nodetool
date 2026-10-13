@@ -84,7 +84,7 @@ import { tmpdir } from "node:os";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-import sharp from "sharp";
+import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { getAssetAdapter } from "./lib/storage.js";
 import { normalizeAssetContentType } from "./lib/asset-paths.js";
 import {
@@ -950,6 +950,7 @@ export function registerAgentMcpTools(
               ? fileURLToPath(imageId)
               : imageId;
             const bytes = await readFile(path);
+            const sharp = await loadSharpOrThrow();
             await sharp(bytes).metadata();
             const mime = isSvgBytes(bytes)
               ? "image/svg+xml"

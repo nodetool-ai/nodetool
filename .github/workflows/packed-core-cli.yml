@@ -1,0 +1,52 @@
+name: Packed Core CLI
+
+on:
+  pull_request:
+    paths:
+      - 'packages/**'
+      - 'scripts/smoke-packed-cli.mjs'
+      - 'scripts/fixtures/codec-identity.mp4'
+      - 'scripts/node-catalog/tiers.mjs'
+      - 'scripts/prepare-publish.mjs'
+      - 'scripts/__tests__/smoke-packed-cli.test.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.nvmrc'
+      - '.github/actions/setup-build/**'
+      - '.github/workflows/packed-core-cli.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: packed-core-cli-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-build
+        with:
+          extra-apt: ffmpeg mesa-vulkan-drivers
+      - name: Install mobile check dependencies
+        run: npm --prefix mobile ci
+      - name: Verify affected tests
+        run: npm run test:affected
+      - name: Verify types
+        run: npm run typecheck
+      - name: Verify lint
+        run: npm run lint
+      - name: Verify harnesses
+        run: npm run dev:nodetool -- harness gate --base origin/main
+      - name: Verify the packaged backend
+        run: npm run backend:smoke
+      - name: Pin workspace versions in the test tarballs
+        run: node scripts/prepare-publish.mjs
+      - name: Smoke-test the packed core-only CLI
+        run: node scripts/smoke-packed-cli.mjs --core-only
