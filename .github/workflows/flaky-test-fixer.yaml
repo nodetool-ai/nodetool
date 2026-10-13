@@ -13,7 +13,7 @@ name: Flaky Test Fixer
 
 on:
   schedule:
-    - cron: "0 2 * * *" # Daily at 02:00 UTC
+    - cron: "0 2 * * 3" # Wednesdays at 02:00 UTC
   workflow_dispatch:
     inputs:
       repeats:
@@ -22,7 +22,28 @@ on:
         default: "2"
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    outputs:
+      skip: ${{ steps.preflight.outputs.skip }}
+      recent-files: ${{ steps.preflight.outputs.recent-files }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+      - id: preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE_PATTERN: 'deflake'
+        run: node .github/scripts/agent-preflight.mjs --name flaky-test-fixer --title "$TITLE_PATTERN"
+
   flaky-test-fixer:
+    needs: preflight
+    if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -37,22 +58,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Node and install dependencies
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-
-      - name: Install all workspace dependencies
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+          build-packages: "true"
 
       - name: Install mobile dependencies
         run: cd mobile && npm ci
-
-      - name: Build packages
-        run: npm run build:packages
 
       - name: Read flakes out of CI history
         id: history
@@ -147,7 +159,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing."
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing. Open the PR with the label agent:flaky-test-fixer (gh pr create --label agent:flaky-test-fixer). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Root-Cause a Flaky Test
 
@@ -225,27 +237,3 @@ jobs:
             Create a PR titled "fix(test): deflake <test>" naming the source of
             non-determinism, the reproduction command, the failure rate before
             and after, and why the fix removes the cause rather than the symptom.
-
-      - name: Post-change verification
-        if: always() && env.FLAKES_FOUND == '1'
-        run: |
-          echo "## Post-Change Suites" >> $GITHUB_STEP_SUMMARY
-          FAIL=0
-          npm run lint || FAIL=1
-          npm run test || FAIL=1
-          npm run test:packages || FAIL=1
-
-          if [ $FAIL -eq 0 ]; then
-            echo "Suites passed" >> $GITHUB_STEP_SUMMARY
-            exit 0
-          fi
-
-          # The randomized repeats above are this run's baseline. If they were
-          # already failing, a red suite here says nothing new — the whole point
-          # of this workflow is that these suites fail intermittently.
-          if [ "$REPEAT_FAILURES" = "1" ]; then
-            echo "Suites failed, but they were already failing before the change" >> $GITHUB_STEP_SUMMARY
-            exit 0
-          fi
-          echo "Suites failed after the deflake change, having passed before it" >> $GITHUB_STEP_SUMMARY
-          exit 1

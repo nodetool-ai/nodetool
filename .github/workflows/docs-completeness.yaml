@@ -15,7 +15,28 @@ on:
   workflow_dispatch:
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    outputs:
+      skip: ${{ steps.preflight.outputs.skip }}
+      recent-files: ${{ steps.preflight.outputs.recent-files }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+      - id: preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE_PATTERN: '^docs: document'
+        run: node .github/scripts/agent-preflight.mjs --name docs-completeness --title "$TITLE_PATTERN"
+
   docs-completeness:
+    needs: preflight
+    if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -29,20 +50,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Node and install dependencies
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-
-      - name: Install all workspace dependencies
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
-
-      # The CLI enumerates its commands from the built node registry.
-      - name: Build packages
-        run: npm run build:packages
+          build-packages: "true"
 
       - name: Inventory documented vs. undocumented surfaces
         id: coverage
@@ -125,7 +136,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "All prose you write follows docs/WRITING_STYLE.md: concise, concrete, no AI slop (leverage, seamless, robust, comprehensive, it's worth noting, rule-of-three padding). Document what the code does, in the voice the surrounding docs already use."
+            --append-system-prompt "All prose you write follows docs/WRITING_STYLE.md: concise, concrete, no AI slop (leverage, seamless, robust, comprehensive, it's worth noting, rule-of-three padding). Document what the code does, in the voice the surrounding docs already use. Open the PR with the label agent:docs-completeness (gh pr create --label agent:docs-completeness). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Documentation Completeness
 

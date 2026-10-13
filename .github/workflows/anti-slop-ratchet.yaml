@@ -13,7 +13,28 @@ on:
   workflow_dispatch:
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    outputs:
+      skip: ${{ steps.preflight.outputs.skip }}
+      recent-files: ${{ steps.preflight.outputs.recent-files }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+      - id: preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE_PATTERN: '^refactor\(lint\)'
+        run: node .github/scripts/agent-preflight.mjs --name anti-slop-ratchet --title "$TITLE_PATTERN"
+
   anti-slop-ratchet:
+    needs: preflight
+    if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -28,16 +49,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Node and install dependencies
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-
-      - name: Install all workspace dependencies
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+          build-packages: "false"
 
       - name: Install mobile dependencies
         run: cd mobile && npm ci
@@ -71,20 +86,6 @@ jobs:
           echo "PAIR_MODE=$PAIR_MODE" >> $GITHUB_ENV
           echo "Target selection for this run: **$PAIR_MODE**." >> $GITHUB_STEP_SUMMARY
 
-      - name: Run quality checks baseline
-        id: pre-check
-        continue-on-error: true
-        run: |
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0; PKG_TEST_EXIT=0
-          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
-          npm run lint 2>&1 || LINT_EXIT=1
-          npm run test 2>&1 || TEST_EXIT=1
-          npm run test:packages 2>&1 || PKG_TEST_EXIT=1
-          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
-          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
-          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
-          echo "PKG_TEST_PRE_EXIT=$PKG_TEST_EXIT" >> $GITHUB_ENV
-
       - name: Run Claude Code
         if: env.REMAINING_PAIRS != '0'
         uses: anthropics/claude-code-action@v1.0.241
@@ -95,7 +96,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff."
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Open the PR with the label agent:anti-slop-ratchet (gh pr create --label agent:anti-slop-ratchet). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Drive anti-slop (rule, tree) pairs to zero
 
@@ -255,31 +256,3 @@ jobs:
             each fix named rather than annotated, the failure you induced to
             prove the ratchet works, and anything you deliberately left as a
             holdout.
-
-      - name: Post-change verification
-        if: always() && env.REMAINING_PAIRS != '0'
-        run: |
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0; PKG_TEST_EXIT=0
-          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
-          npm run lint 2>&1 || LINT_EXIT=1
-          npm run test 2>&1 || TEST_EXIT=1
-          npm run test:packages 2>&1 || PKG_TEST_EXIT=1
-
-          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
-            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
-          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
-            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
-          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
-            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
-          if [ "$PKG_TEST_PRE_EXIT" -eq 0 ] && [ $PKG_TEST_EXIT -ne 0 ]; then
-            echo "New package test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
-
-          # The enforced config is generated from a measurement. A pair driven
-          # to zero without `:write` being run leaves it unratcheted, and a
-          # regression leaves it claiming a zero that is gone — both are drift,
-          # and both look like success without this.
-          npm run lint:anti-slop:check
