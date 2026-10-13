@@ -260,7 +260,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
     });
     await queries.games.draftChanges.invalidate({ id: refId });
   };
-  const restart = useMemo(() => host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document),
+  const restart = useMemo(() => host.playDocument && JSON.stringify({ ...host.playDocument, revision: document.revision }) !== JSON.stringify(document),
     [host.playDocument, document]);
   const notice = host.error || draftError || operationError || restart;
   return <GameEditorShell layoutStore={layoutStore} dimension="3d" active={active}
