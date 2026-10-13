@@ -11,11 +11,32 @@ name: Abstraction Improver
 
 on:
   schedule:
-    - cron: "30 8 * * *" # Daily at 08:30 UTC
+    - cron: "30 8 * * 1" # Mondays at 08:30 UTC
   workflow_dispatch:
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    outputs:
+      skip: ${{ steps.preflight.outputs.skip }}
+      recent-files: ${{ steps.preflight.outputs.recent-files }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+      - id: preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE_PATTERN: '^refactor: flatten'
+        run: node .github/scripts/agent-preflight.mjs --name abstraction-improver --title "$TITLE_PATTERN"
+
   abstraction-improver:
+    needs: preflight
+    if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -29,16 +50,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Node and install dependencies
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
+          build-packages: "false"
 
-      - name: Install all workspace dependencies
-        run: npm ci
+      - name: List files this routine changed recently
         env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+          RECENT_FILES: ${{ needs.preflight.outputs.recent-files }}
+        run: printf '%s\n' "$RECENT_FILES" > "$RUNNER_TEMP/agent-recent-files.txt"
 
       - name: Install mobile dependencies
         run: cd mobile && npm ci
@@ -144,19 +164,6 @@ jobs:
           echo "Findings: $FINDINGS" >> $GITHUB_STEP_SUMMARY
           if [ "${FINDINGS:-0}" -gt 0 ]; then echo "THIN_FOUND=1" >> $GITHUB_ENV; else echo "THIN_FOUND=0" >> $GITHUB_ENV; fi
 
-      - name: Run quality checks baseline
-        if: env.THIN_FOUND == '1'
-        id: pre-check
-        continue-on-error: true
-        run: |
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
-          npm run lint 2>&1 || LINT_EXIT=1
-          npm run test 2>&1 || TEST_EXIT=1
-          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
-          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
-          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
-
       - name: Run Claude Code
         if: env.THIN_FOUND == '1'
         uses: anthropics/claude-code-action@v1.0.241
@@ -167,7 +174,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, and prose throat-clearing."
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, and prose throat-clearing. Open the PR with the label agent:abstraction-improver (gh pr create --label agent:abstraction-improver). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Flatten an Over-Engineered Abstraction
 
@@ -234,21 +241,3 @@ jobs:
             ## Submit
             Create a PR titled "refactor: flatten <abstraction>" explaining what
             the layer was for, why nothing needs it, and what now calls what.
-
-      - name: Post-change verification
-        if: always() && env.THIN_FOUND == '1'
-        run: |
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
-          npm run lint 2>&1 || LINT_EXIT=1
-          npm run test 2>&1 || TEST_EXIT=1
-
-          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
-            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
-          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
-            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
-          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
-            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
