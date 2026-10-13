@@ -713,9 +713,13 @@ Point the user to these when they work in the game editor alongside you.
   first failing tick and script time by entity. **Replay to tick** rewinds the
   active play session after a script error. **Ask the assistant** passes the
   script context to the game assistant.
+- Editing an existing script source during play recompiles it without resetting
+  the tick or script state. A compilation failure keeps the previous source.
+  Changing script form between a function and lifecycle object requires
+  **Restart from tick 0**. Other draft changes also require a restart.
 - The **Console** panel lists play-session errors, script errors with their
-  tick, **Run 10 s** failures and validation errors. Scripts cannot write log
-  lines yet.
+  tick, reload compilation errors, script log lines, **Run 10 s** failures and
+  validation errors.
 - The **Assets** panel shows the `browse_native_game_assets` catalog with
   thumbnails. **Generate** and **Regenerate** run `generate_game_asset` for
   image, speech and music slots. **Use** binds an older candidate and moves the

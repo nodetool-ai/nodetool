@@ -8,6 +8,7 @@ import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickCl
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
+import { useGameScriptReload } from "./useGameScriptReload";
 import { createEditorGameSaves } from "./gameEditorSaves";
 import { GameReplayHistory } from "./gameReplayHistory";
 import { createGameScriptLogChannel } from "./gameScriptLogChannel";
@@ -41,6 +42,10 @@ interface UseGamePlaySessionOptions {
 export function useGamePlaySession({ refId, active, document, editorSceneId, name }: UseGamePlaySessionOptions) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sessionRef = useRef<GameSession | null>(null);
+  const effectiveDocumentRef = useRef<GameDocument | null>(null);
+  const [readyGeneration, setReadyGeneration] = useState(0);
+  const [restoring, setRestoring] = useState(false);
+  const [effectivePlayDocument, setEffectivePlayDocument] = useState<GameDocument | null>(null);
   const savesRef = useRef<GamePlayerSaves | null>(null);
   const particlesRef = useRef<GameParticles2D | null>(null);
   const sessionFailedRef = useRef(false);
@@ -251,6 +256,9 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       if (!createdSession) return;
       if (cancelled || sessionGenerationRef.current !== generation) { createdSession.dispose(); return; }
       sessionRef.current = createdSession;
+      effectiveDocumentRef.current = sessionDocument;
+      setReadyGeneration((value) => value + 1);
+      setEffectivePlayDocument(sessionDocument);
       savesRef.current = createEditorGameSaves(sessionDocument.id, setError);
       particlesRef.current = new GameParticles2D(sessionDocument.tickRate);
       sessionFailedRef.current = false;
@@ -342,6 +350,24 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     return () => { cancelAnimationFrame(request); window.document.removeEventListener("visibilitychange", onVisibility); };
   }, [active, sessionDocument, playing, step]);
 
+  const cancelReload = useGameScriptReload({ draft: document, playDocument: restoring ? null : playDocument, sessionRef, effectiveDocumentRef, readyGeneration, scriptLogs,
+    checkpoint: (session) => { inputHistoryRef.current.clear(session.snapshot()); setEffectivePlayDocument(effectiveDocumentRef.current); } });
+
+  const restart = (): void => {
+    cancelReload();
+    setRestoring(false);
+    if (!document) { return; }
+    inputHistoryRef.current.clear();
+    profiler.clearLive();
+    setError(null);
+    setScriptError(null);
+    setEffectivePlayDocument(null);
+    setPlayDocument(structuredClone(document));
+    setPlaying(true);
+    inputRef.current.release();
+    canvasRef.current?.focus();
+  };
+
   const beginPlay = () => {
     if (playDocument && sessionFailedRef.current) { return; }
     inputRef.current.release();
@@ -350,6 +376,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       inputHistoryRef.current.clear();
       profiler.clearLive();
       setScriptError(null);
+      setEffectivePlayDocument(null);
       setPlayDocument(document);
     }
     setPlaying((current) => !current);
@@ -357,6 +384,8 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   };
 
   const stop = () => {
+    cancelReload();
+    setRestoring(false);
     setPlaying(false);
     setPlayDocument(null);
     inputHistoryRef.current.clear();
@@ -369,6 +398,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   };
 
   const load = async () => {
+    let restoreGeneration: number | null = null;
     if (!sessionDocument) return;
     const raw = localStorage.getItem(`nodetool.game.save.${refId}`);
     if (!raw) return;
@@ -376,39 +406,64 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       const parsed = gameSnapshot.safeParse(JSON.parse(raw) as unknown);
       if (!parsed.success) { setError("Saved game data is invalid"); return; }
       const generation = ++sessionGenerationRef.current;
-      const restored = await createScriptedGameSession(sessionDocument, 1, parsed.data, undefined, sessionOptions);
-      if (sessionGenerationRef.current !== generation) { restored.dispose(); return; }
+      restoreGeneration = generation;
+      cancelReload();
+      setRestoring(true);
+      const effectiveDocument = effectiveDocumentRef.current ?? sessionDocument;
+      const restored = await createScriptedGameSession(effectiveDocument, 1, parsed.data, undefined, sessionOptions);
+      if (sessionGenerationRef.current !== generation || effectiveDocumentRef.current !== effectiveDocument) { restored.dispose(); if (sessionGenerationRef.current === generation) { setRestoring(false); } return; }
       setPlaying(false);
       inputHistoryRef.current.clear(parsed.data);
       setScriptError(null);
       disposeSession();
       sessionRef.current = restored;
+      effectiveDocumentRef.current = effectiveDocument;
+      setEffectivePlayDocument(effectiveDocument);
+      setRestoring(false);
+      setReadyGeneration((value) => value + 1);
       savesRef.current?.clear();
       particlesRef.current = new GameParticles2D(sessionDocument.tickRate);
       sessionFailedRef.current = false;
       audioRef.current?.reset(restored.snapshot());
       showCurrentFrame();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    } catch (cause) {
+      if (restoreGeneration !== null && sessionGenerationRef.current !== restoreGeneration) { return; }
+      if (restoreGeneration !== null) { setRestoring(false); }
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }
   };
 
   const replayBeforeError = async (displayedFailure: ScriptFailure | null = scriptError): Promise<void> => {
+    let restoreGeneration: number | null = null;
     if (!playDocument || !displayedFailure || displayedFailure.tick < 1) return;
     setPlaying(false);
     try {
       const generation = ++sessionGenerationRef.current;
+      restoreGeneration = generation;
+      cancelReload();
+      setRestoring(true);
+      const effectiveDocument = effectiveDocumentRef.current ?? playDocument;
       const history = inputHistoryRef.current.replay();
-      const replay = await createScriptedGameSession(playDocument, 1, history.snapshot, undefined, sessionOptions);
-      if (sessionGenerationRef.current !== generation) { replay.dispose(); return; }
+      const replay = await createScriptedGameSession(effectiveDocument, 1, history.snapshot, undefined, sessionOptions);
+      if (sessionGenerationRef.current !== generation || effectiveDocumentRef.current !== effectiveDocument) { replay.dispose(); if (sessionGenerationRef.current === generation) { setRestoring(false); } return; }
       try { for (const input of history.inputs.slice(0, -1)) { replay.step(input); } }
       catch (cause) { replay.dispose(); throw cause; }
       disposeSession();
       sessionRef.current = replay;
+      effectiveDocumentRef.current = effectiveDocument;
+      setEffectivePlayDocument(effectiveDocument);
+      setRestoring(false);
+      setReadyGeneration((value) => value + 1);
       savesRef.current?.clear();
       particlesRef.current = new GameParticles2D(playDocument.tickRate);
       sessionFailedRef.current = false;
       audioRef.current?.reset(replay.snapshot());
       showCurrentFrame();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    } catch (cause) {
+      if (restoreGeneration !== null && sessionGenerationRef.current !== restoreGeneration) { return; }
+      if (restoreGeneration !== null) { setRestoring(false); }
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }
   };
 
   const runtimeEntities = (() => {
@@ -417,7 +472,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     catch { return null; }
   })();
 
-  return { canvasRef, inputRef, playing, playDocument, playState, backend, error, setError,
+  return { canvasRef, inputRef, playing, playDocument: playDocument ? effectivePlayDocument ?? playDocument : null, playState, backend, error, setError,
     scriptError, setScriptError, frame, showCurrentFrame, onViewportAspect, onCamera, resetCamera,
-    step, beginPlay, stop, save, load, replayBeforeError, runtimeEntities, scriptLogs, profiler };
+    step, beginPlay, restart, stop, save, load, replayBeforeError, runtimeEntities, scriptLogs, profiler };
 }

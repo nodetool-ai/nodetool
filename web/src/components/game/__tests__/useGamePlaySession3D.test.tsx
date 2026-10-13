@@ -6,9 +6,16 @@ import userEvent from "@testing-library/user-event";
 import { gameAuthoring, gameDocument3D, type GameDocument3D, type GameRenderFrame3D } from "@nodetool-ai/protocol";
 import { createGameSession3D, decodePreparedGameCollider3D } from "@nodetool-ai/game-runtime";
 import { useGamePlaySession3D } from "../useGamePlaySession3D";
+import { useGameConsoleFeed } from "../panels/console/useGameConsoleFeed";
+import { getGameConsoleStore } from "../../../stores/game/GameConsoleStore";
 import { FixedTickClock } from "@nodetool-ai/game-renderer";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import { asResolvedMediaUrl, resolveMediaUri } from "../../../utils/resolveMediaUri";
+
+jest.mock("@nodetool-ai/game-runtime", () => {
+  const runtime = jest.requireActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
+  return { ...runtime, createGameSession3D: jest.fn(runtime.createGameSession3D) };
+});
 
 const mockRenderers: { render: jest.Mock; dispose: jest.Mock }[] = [];
 
@@ -42,7 +49,10 @@ function fixture(): GameDocument3D {
 
 function Harness({ document, sceneId = "level" }: { document: GameDocument3D; sceneId?: string }) {
   const session = useGamePlaySession3D({ refId: "hook3d", document, active: true, editorSceneId: sceneId });
+  useGameConsoleFeed("hot-reload-3d", { runtimeError: session.error, scriptError: null, diagnosticError: null,
+    tick: session.inspection?.tick ?? 0, scriptLogs: session.scriptLogs });
   return <>
+    <button onClick={session.restart}>Restart</button>
     <canvas ref={session.canvasRef} tabIndex={0} />
     <button onClick={session.beginPlay}>{session.playing ? "Pause" : "Play"}</button>
     <button onClick={session.stop}>Stop</button>
@@ -354,4 +364,91 @@ it("delivers edited scenes to the retained 3D audio player", async () => {
     await waitFor(() => expect(audio.updateScenes).toHaveBeenLastCalledWith(edited.scenes));
     expect(jest.mocked(GameAudioPlayer).mock.calls).toHaveLength(initialCalls + 1);
   } finally { view.unmount(); }
+});
+
+function hotReloadFixture3D(source: string): GameDocument3D {
+  const base = fixture();
+  return gameDocument3D.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) =>
+    entity.id === "floor" ? { ...entity, behaviors: [{ kind: "script", source, maxTickMs: 50 }] } : entity) })) });
+}
+
+it("hot reloads 3D source without recreating play, logs invalid edits, and restarts from the latest draft", async () => {
+  const animation = jest.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+  const user = userEvent.setup();
+  const source = (speed: number) => `(input) => ({ state: (input.state ?? 0) + 1, commands: [{ kind: "log", message: "speed ${speed} state " + (input.state ?? 0) }] })`;
+  const actual = jest.requireActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
+  const store = getGameConsoleStore("hot-reload-3d");
+  store.getState().clear();
+  jest.mocked(createGameSession3D).mockImplementation(async (candidate, seed, snapshot, options) => {
+    const silent = { ...candidate, scenes: candidate.scenes.map((scene) => ({ ...scene,
+      entities: scene.entities.map((entity) => ({ ...entity, behaviors: entity.behaviors.filter((behavior) => behavior.kind !== "script") })) })) };
+    let session = await actual.createGameSession3D(silent, seed, undefined, options);
+    if (snapshot) {
+      expect(snapshot.gameRevision).toBe(candidate.revision);
+      expect(snapshot.contentDigest).toBe(createHash("sha256").update(candidate.revision).digest("hex"));
+      // The mocked compiler removes script behaviors. Its backing physics session needs that fixture's digest.
+      const backingSnapshot = { ...snapshot, contentDigest: session.snapshot().contentDigest };
+      session.dispose();
+      session = await actual.createGameSession3D(silent, seed, backingSnapshot, options);
+    }
+    let effective = candidate;
+    let count = snapshot?.tick ?? 0;
+    return { ...session, snapshot: () => ({ ...session.snapshot(), gameRevision: effective.revision,
+      contentDigest: createHash("sha256").update(effective.revision).digest("hex") }), reloadScripts: jest.fn(async (edited) => {
+      const code = edited.scenes[0].entities.find((entity) => entity.id === "floor")?.behaviors[0];
+      if (code?.kind === "script" && code.source === "(input) => {") { return { ok: false as const, error: "Game script compilation failed" }; }
+      effective = { ...edited, revision: `script:test-speed-${code?.kind === "script" ? code.source.match(/speed (\d+)/)?.[1] : "unknown"}` };
+      return { ok: true as const, changed: true, document: effective };
+    }), step: (input) => {
+      const result = session.step(input);
+      const code = effective.scenes[0].entities.find((entity) => entity.id === "floor")?.behaviors[0];
+      const speed = code?.kind === "script" ? code.source.match(/speed (\d+)/)?.[1] : undefined;
+      return { ...result, scriptLogs: [{ level: "log" as const, message: `speed ${speed} state ${count++}`, tick: result.tick }] };
+    } };
+  });
+  const view = render(<Harness document={hotReloadFixture3D(source(1))} />);
+  try {
+    await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("WebGL2"));
+    const previewCreations = jest.mocked(createGameSession3D).mock.calls.length;
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    await waitFor(() => expect(jest.mocked(createGameSession3D)).toHaveBeenCalledTimes(previewCreations + 1));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    const creations = jest.mocked(createGameSession3D).mock.calls.length;
+    view.rerender(<Harness document={hotReloadFixture3D(source(4))} />);
+    await waitFor(() => expect(jest.mocked(createGameSession3D).mock.results.at(-1)).toBeDefined());
+    await act(async () => { await Promise.resolve(); });
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(screen.getByTestId("tick")).toHaveTextContent("2");
+    expect(store.getState().groups.at(-1)?.message).toBe("speed 4 state 1");
+    expect(jest.mocked(createGameSession3D)).toHaveBeenCalledTimes(creations);
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    view.rerender(<Harness document={hotReloadFixture3D("(input) => {")} />);
+    await waitFor(() => expect(store.getState().groups.some((entry) => entry.level === "error")).toBe(true));
+    expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(store.getState().groups.at(-1)?.message).toBe("speed 4 state 2");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    await user.click(screen.getByRole("button", { name: "Restore" }));
+    await waitFor(() => expect(screen.getByTestId("tick")).toHaveTextContent("3"));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(store.getState().groups.at(-1)?.message).toBe("speed 4 state 3");
+    expect(jest.mocked(createGameSession3D).mock.calls.at(-1)?.[0].scenes[0].entities.find((entity) => entity.id === "floor")?.behaviors[0]).toMatchObject({ source: source(4) });
+    expect(jest.mocked(createGameSession3D).mock.calls.at(-1)?.[0].revision).toBe("script:test-speed-4");
+    expect(jest.mocked(createGameSession3D).mock.calls.at(-1)?.[0].revision).not.toBe(fixture().revision);
+    expect(jest.mocked(createGameSession3D).mock.calls.at(-1)?.[2]?.gameRevision).toBe("script:test-speed-4");
+    await user.click(screen.getByRole("button", { name: "Replay failure" }));
+    await act(async () => { await jest.mocked(createGameSession3D).mock.results.at(-1)?.value; });
+    expect(jest.mocked(createGameSession3D).mock.calls.at(-1)?.[0].revision).toBe("script:test-speed-4");
+    expect(jest.mocked(createGameSession3D).mock.calls.at(-1)?.[2]?.gameRevision).toBe("script:test-speed-4");
+    view.rerender(<Harness document={hotReloadFixture3D(source(8))} />);
+    await act(async () => { await Promise.resolve(); });
+    await user.click(screen.getByRole("button", { name: "Restart" }));
+    await waitFor(() => expect(screen.getByTestId("tick")).toHaveTextContent("0"));
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(store.getState().groups.at(-1)?.message).toBe("speed 8 state 0");
+  } finally { view.unmount(); animation.mockRestore(); jest.mocked(createGameSession3D).mockImplementation(actual.createGameSession3D); }
 });

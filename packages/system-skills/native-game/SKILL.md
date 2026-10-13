@@ -103,6 +103,21 @@ For a workflow-based brief, `design_game` writes its design and `build_game
 {workflow_id, save?}` creates or selects the native game and stages its asset
 graph. The graph's generated media are candidates until installed.
 
+## Scripts during play
+
+Edit an existing script through `edit_native_game` with an `update_behavior`
+document op. Supply `entity_id`, `index` and `behavior: {source}` to preserve the
+script limits. The editor compiles changed sources
+during play and continues at the current tick with
+existing script state. A compile failure keeps the previous source running and
+reports the error in the Console. Only source edits apply during play. Use
+**Restart from tick 0** to apply other draft changes or reset script state.
+Changing between a function and lifecycle-object script requires a restart.
+
+A successful reload starts a new replay checkpoint at the current tick. Saved
+play states use the accepted script document. Earlier checkpoints belong to
+older source code and cannot be loaded into the changed session.
+
 ## Assets
 
 Generation spends provider credits, and no tool prices it in advance. Before

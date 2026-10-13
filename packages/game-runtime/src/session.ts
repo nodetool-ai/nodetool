@@ -1,3 +1,4 @@
+import { createGameScriptReloader, type GameScriptReloadResult } from "./script-reload.js";
 import { frameFor } from "./systems/presentation2d.js";
 import { contactKey } from "./systems/collision2d.js";
 import type { GameSystemContext2D } from "./systems/context2d.js";
@@ -75,6 +76,8 @@ export interface GameSession {
   frame(): GameRenderFrame;
   inspect(query?: { entityId?: string }): GameInspection;
   snapshot(): GameSnapshot;
+  /** Replaces existing script sources atomically, preserving tick and state and returning the document for saves. */
+  reloadScripts(candidate: GameDocument, signal?: AbortSignal): Promise<GameScriptReloadResult<GameDocument>>;
   dispose(): void;
 }
 
@@ -164,7 +167,7 @@ function createGameSessionWithRunner(
   if (!validation.valid || !validation.document) {
     throw new Error(`Invalid game: ${validation.errors.join("; ")}`);
   }
-  const document = validation.document;
+  let document = validation.document;
   if (!Number.isSafeInteger(seed) || seed < 0) {
     throw new Error("Game seed must be a nonnegative safe integer");
   }
@@ -465,7 +468,7 @@ function createGameSessionWithRunner(
     set rngState(value) {
       rngState = value;
     },
-    document,
+    get document() { return document; },
     isSpawnedId,
     get hud() {
       return hud;
@@ -585,6 +588,24 @@ function createGameSessionWithRunner(
     );
   }
 
+  const reloadScripts = createGameScriptReloader({
+    initialRevision: document.revision,
+    current: () => document,
+    parse: (candidate: GameDocument) => {
+      const checked = validateGame(candidate);
+      if (!checked.valid || !checked.document) { throw new Error(`Invalid game: ${checked.errors.join("; ")}`); }
+      return checked.document;
+    },
+    assertAvailable: () => {
+      if (disposed) { throw new Error("Game session is disposed"); }
+      if (failed) { throw new Error("Game session stopped after a failed step"); }
+    },
+    commit: (candidate, updates) => {
+      if (!scriptRunner) { throw new Error("Game session has no scripts to reload"); }
+      scriptRunner.reloadSources(updates);
+      document = candidate;
+    }
+  });
   return {
     takePresentationEvents(): readonly (GameEvent | GameParticleEmission)[] {
       const pending = presentationEvents;
@@ -612,6 +633,7 @@ function createGameSessionWithRunner(
       };
     },
     snapshot,
+    reloadScripts,
     dispose(): void {
       disposed = true;
       states = [];

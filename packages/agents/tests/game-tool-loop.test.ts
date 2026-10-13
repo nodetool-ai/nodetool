@@ -392,3 +392,22 @@ it.each(["streaming-music", "streaming-music-3d"])("scores %s authored through u
   } } }] })).not.toHaveProperty("error");
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
+
+
+it.each(["script-hot-reload", "script-hot-reload-3d"].flatMap(id => (["set_script", "update_behavior"] as const).map(op => [id, op] as const)))("scores a source-only edit for %s through %s", async (id, op) => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item => item.id === id);
+  if (!candidate) { throw new Error("Hot reload eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  const edit = bridge.tools.find(tool => tool.name === "edit_native_game");
+  if (!predicate || !edit) { throw new Error("Hot reload eval must expose source editing and scoring"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const behavior = bridge.finalState().scenes[0].entities.find(entity => entity.id === "mover")?.behaviors[0];
+  if (behavior?.kind !== "script") { throw new Error("Mover must have an existing script"); }
+  const source = behavior.source.replace("x: 1", "x: 4");
+  const patch = op === "set_script" ? { op, entity_id: "mover", index: 0, source }
+    : { op, entity_id: "mover", index: 0, behavior: { source } };
+  const result = await edit.execute({ ops: [patch] });
+  expect(result).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});

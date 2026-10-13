@@ -280,6 +280,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
         onUndo: () => getGameDraftStore(refId).getState().undo(),
         onRedo: () => getGameDraftStore(refId).getState().redo(),
         onPlay: host.beginPlay,
+        onRestart: host.restart,
         onStop: host.stop,
         onStep: () => host.step(),
         onSave: host.save,

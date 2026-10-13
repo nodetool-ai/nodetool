@@ -1,6 +1,6 @@
 import * as acorn from "acorn";
 import { z } from "zod";
-import { gameDocument, gameDocument3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
+import { gameDocument, gameDocument3D, gameEntity, gameEntity3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
 import { applyGameOps, applyGameOps3D, collisionLayerBits3D, resolvePhysicsMaterials3D, validateGame3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
 import type { HeadlessSurfaceBridge, ToolLoopEvalCase } from "../tool-loop-eval.js";
 
@@ -545,7 +545,42 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
           && music.streaming?.loopStartSeconds === 12 && music.streaming.loopEndSeconds === 90;
       } }]
   }
-}))
+})), ...([false, true] as const).map((is3D): ToolLoopEvalCase<AnyGameDocument> => {
+  const source = is3D
+    ? "(input) => ({ state: (input.state ?? 0) + 1, commands: [{ kind: 'setVelocity', velocity: { x: 4, y: 0, z: 0 } }] })"
+    : "(input) => ({ state: (input.state ?? 0) + 1, commands: [{ kind: 'setVelocity', x: 4, y: 0 }] })";
+  return {
+    id: is3D ? "script-hot-reload-3d" : "script-hot-reload",
+    description: "Edit an existing script source through public ops for hot reload during play.",
+    objective: `Replace mover's existing script source with exactly this function, preserving the behavior's limits: ${source}`,
+    createBridge: () => {
+      const initialSource = source.replace("x: 4", "x: 1");
+      const behavior = { kind: "script" as const, source: initialSource, maxCommands: 4, maxTickMs: 20 };
+      if (is3D) {
+        const document = createNative3DGame("script-hot-reload-3d-eval");
+        document.scenes[0].entities.push(gameEntity3D.parse({ id: "mover", name: "Mover", templateOnly: false,
+          transform3d: { position: { x: 4, y: 1, z: 0 }, rotation: [0, 0, 0, 1], scale: { x: 1, y: 1, z: 1 } },
+          behaviors: [behavior], body3d: { type: "dynamic", gravityScale: 0 },
+          collider3d: { kind: "box", halfExtents: { x: 0.25, y: 0.25, z: 0.25 }, friction: 0 } }));
+        return createGameToolBridge3D(document);
+      }
+      const document = { ...createTopDownRoomGame("script-hot-reload-eval"), schemaVersion: 2 as const };
+      document.scenes[0].entities.push(gameEntity.parse({ id: "mover", name: "Mover",
+        transform2d: { x: -5, y: 2, rotation: 0, scaleX: 1, scaleY: 1 }, behaviors: [behavior],
+        body2d: { type: "kinematic", velocity: { x: 0, y: 0 }, gravityScale: 0 } }));
+      return createGameToolBridge(document);
+    },
+    systemPrompt: "Use get_native_game and edit_native_game. set_script {entity_id, index, source} replaces only a script's source and preserves its limits. An active editor play session applies valid source edits at its current tick, retaining script state. A compile error retains the previous source and appears in the Console. Other draft changes need Restart from tick 0.",
+    expect: {
+      requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+      finalState: [{ name: "updatedScriptSource", detail: "Mover's source or existing script limits do not match the requested edit.",
+        test: document => {
+          const behavior = document.scenes[0].entities.find(entity => entity.id === "mover")?.behaviors[0];
+          return behavior?.kind === "script" && behavior.source === source && behavior.maxCommands === 4 && behavior.maxTickMs === 20;
+        } }]
+    }
+  };
+})
 ];
 
 /** Headless 3D game editor bridge that exercises the production 3D op reducer. */

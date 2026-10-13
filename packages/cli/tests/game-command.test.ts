@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createGameSession, createNative3DGame, createScriptedGameSession, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
-import { gameParticles } from "@nodetool-ai/protocol";
+import { applyGameOps, applyGameOps3D, createGameSession, createNative3DGame, createScriptedGameSession, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
+import { gameEntity, gameEntity3D, gameParticles } from "@nodetool-ai/protocol";
 import { registerGameCommands } from "../src/commands/game.js";
 
 vi.mock("@nodetool-ai/game-runtime", async (importOriginal) => {
@@ -457,4 +457,24 @@ it.each(["2D", "3D"])("validates and replays %s streamed scene music through the
   expect(report.replay).not.toHaveProperty("divergence");
   expect(report.snapshot).toMatchObject({ tick: 120, music: { assetId: "music.theme", startTick: 0 } });
   expect(report.snapshot).not.toHaveProperty("music.streaming");
+});
+
+it.each(["2D", "3D"])("simulates an ops-authored %s script source edit and replays from tick 60", async dimension => {
+  const behavior = { kind: "script", source: "(input) => ({ state: input.state, commands: [] })", maxCommands: 4, maxTickMs: 20 };
+  const source = "(input) => ({ state: (input.state ?? 0) + 1, commands: [{ kind: 'emit', event: 'updated-speed' }] })";
+  const op = { op: "set_script" as const, entity_id: "mover", index: 0, source };
+  const document = dimension === "3D" ? (() => {
+    const initial = createNative3DGame("b".repeat(32));
+    initial.scenes[0].entities.push(gameEntity3D.parse({ id: "mover", transform3d: { position: { x: 4, y: 1, z: 0 } }, behaviors: [behavior] }));
+    return applyGameOps3D(initial, [op]);
+  })() : (() => {
+    const initial = { ...createTopDownRoomGame("a".repeat(32)), schemaVersion: 2 as const };
+    initial.scenes[0].entities.push(gameEntity.parse({ id: "mover", transform2d: { x: -5, y: 2 }, behaviors: [behavior] }));
+    return applyGameOps(initial, [op]);
+  })();
+  await writeFile(gamePath, JSON.stringify(document));
+  const report = await runSimulation("--ticks", "120", "--seed", "1", "--verify-replay");
+  expect(report).toMatchObject({ ok: true, replay: { verified: true, resumeTick: 60 },
+    snapshot: { tick: 120, scriptState: { [JSON.stringify([document.entrySceneId, "mover", 0])]: 120 } } });
+  expect(report).toHaveProperty("events", expect.arrayContaining([expect.objectContaining({ kind: "trigger", event: "updated-speed" })]));
 });
