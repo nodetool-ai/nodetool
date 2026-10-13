@@ -7,7 +7,7 @@ import { prepareGameImage3D } from "./image-preparation.js";
 export async function decodeGameImage3D(image: PreparedGameImage3D, signal: AbortSignal): Promise<Texture> {
   signal.throwIfAborted();
   const bitmap = await createImageBitmap(new Blob([new Uint8Array(image.bytes).buffer], { type: `image/${image.binding.format}` }),
-    { imageOrientation: "none", premultiplyAlpha: "none", colorSpaceConversion: "none" });
+    { imageOrientation: "flipY", premultiplyAlpha: "none", colorSpaceConversion: "none" });
   if (signal.aborted) { bitmap.close(); signal.throwIfAborted(); }
   const texture = new Texture(bitmap);
   const close = (): void => { texture.removeEventListener("dispose", close); bitmap.close(); };

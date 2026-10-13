@@ -93,6 +93,9 @@ describe("prepared primitive image assets", () => {
     vi.stubGlobal("createImageBitmap", vi.fn(async () => bitmap));
     try {
       const texture = await decodeGameImage3D(await prepared(), new AbortController().signal);
+      expect(createImageBitmap).toHaveBeenCalledWith(expect.any(Blob), {
+        imageOrientation: "flipY", premultiplyAlpha: "none", colorSpaceConversion: "none"
+      });
       texture.clone().dispose(); expect(bitmap.close).not.toHaveBeenCalled();
       texture.dispose(); texture.dispose(); expect(bitmap.close).toHaveBeenCalledTimes(1);
     } finally { vi.unstubAllGlobals(); }
