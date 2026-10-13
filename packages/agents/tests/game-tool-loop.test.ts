@@ -1,4 +1,6 @@
 import { expect, it } from "vitest";
+import { gameDocument3D } from "@nodetool-ai/protocol";
+import { createGameSession3D } from "@nodetool-ai/game-runtime";
 import { GAME_3D_TOOL_LOOP_CASES, GAME_TOOL_LOOP_CASES } from "../src/evals/surfaces/game.js";
 
 it("scores native entity metadata authored through the public edit surface", async () => {
@@ -410,4 +412,58 @@ it.each(["script-hot-reload", "script-hot-reload-3d"].flatMap(id => (["set_scrip
   const result = await edit.execute({ ops: [patch] });
   expect(result).not.toHaveProperty("error");
   expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
+it("authors all three world-space force commands through public edits and replays their motion", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item => item.id === "forces-and-torques-3d");
+  if (!candidate) { throw new Error("Force eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  const edit = bridge.tools.find(tool => tool.name === "edit_native_game");
+  if (!predicate || !edit) { throw new Error("Force eval must expose public editing and scoring"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const source = "input => ({ state: input.state, commands: input.tick === 0 ? [{ kind: 'addForce', force: { x: 120, y: 0, z: 0 } }, { kind: 'addTorque', torque: { x: 0, y: 60, z: 0 } }, { kind: 'addForceAtPoint', force: { x: 0, y: 0, z: 120 }, point: { x: 20, y: 11, z: 20 } }] : [] })";
+  const behaviors = bridge.finalState().scenes[0].entities.find(entity => entity.id === "crate")?.behaviors ?? [];
+  const author = async (value: string) => edit.execute({ ops: [{ op: "update_entity", entity_id: "crate", set: {
+    behaviors: [...behaviors, { kind: "script", source: value }]
+  } }] });
+  expect(await author(source.replace("y: 60", "y: 0"))).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  expect(await author(source)).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+  const document = gameDocument3D.parse(bridge.finalState());
+  const session = await createGameSession3D(document, 1);
+  let resumed: Awaited<ReturnType<typeof createGameSession3D>> | undefined;
+  let initialAngular = { x: 0, y: 0, z: 0 };
+  try {
+    for (let tick = 0; tick < 120; tick++) {
+      const input = { pressed: [] };
+      const result = session.step(input);
+      if (tick === 0) {
+        const crate = session.snapshot().entities.find(entity => entity.id === "crate");
+        if (!crate) { throw new Error("Force fixture crate must survive its first tick"); }
+        initialAngular = crate.angularVelocity;
+      }
+      if (tick === 59) {
+        resumed = await createGameSession3D(document, 1, session.snapshot());
+      } else if (resumed) {
+        expect(resumed.step(input).events).toEqual(result.events);
+        expect(resumed.snapshot()).toEqual(session.snapshot());
+      }
+    }
+    const crate = session.snapshot().entities.find(entity => entity.id === "crate");
+    if (!crate) { throw new Error("Force fixture crate must survive"); }
+    expect(crate.transform.position.x).toBeGreaterThan(20);
+    expect(crate.transform.position.z).toBeGreaterThan(20);
+    expect(crate.velocity.x).toBeCloseTo(0.25, 4);
+    expect(crate.velocity.z).toBeCloseTo(0.25, 4);
+    expect(Math.abs(initialAngular.x)).toBeGreaterThan(0);
+    expect(Math.abs(initialAngular.y)).toBeGreaterThan(0);
+    expect(crate.angularVelocity.x).toBeCloseTo(initialAngular.x, 4);
+    expect(crate.angularVelocity.y).toBeCloseTo(initialAngular.y, 4);
+    expect(crate.transform.rotation).not.toEqual([0, 0, 0, 1]);
+  } finally {
+    resumed?.dispose();
+    session.dispose();
+  }
 });

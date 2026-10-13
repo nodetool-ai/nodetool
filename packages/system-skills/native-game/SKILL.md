@@ -233,6 +233,14 @@ visual without changing its root controller or collider.
 state, seeded `random`, and previous-tick event delivery. Use `characterIntent`
 for character motion, `setKinematicPose` for kinematic targets, `impulse` or
 `setVelocity` for dynamic bodies, and `teleport` for explicit discontinuities.
+For continuous acceleration, return `{kind: "addForce", force: {x, y, z}}`,
+`{kind: "addTorque", torque: {x, y, z}}` or
+`{kind: "addForceAtPoint", force: {x, y, z}, point: {x, y, z}}`.
+The vectors and application point use world space. These commands act on the
+issuing entity's active dynamic body and accumulate for one simulation tick.
+Return them each tick to keep applying a load. An offset point also produces
+torque. Static, kinematic and absent bodies reject them. 2D scripts do not
+support them.
 `setVisual` changes only a nonphysical visual. `spawn` accepts a prefab and XYZ
 position, rotation and velocity. Shared `emit`, `hud`, `playAnimation`,
 `despawn` and `sceneTransition` commands retain their meanings. Ray and shape

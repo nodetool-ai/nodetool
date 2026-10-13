@@ -730,3 +730,20 @@ Point the user to these when they work in the game editor alongside you.
   until the user picks **Keep my version** or **Use draft version**.
 - Restoring a revision asks for confirmation because it replaces the draft and
   clears its undo history. The newest 100 published revisions are retained.
+
+
+## 3D forces and torques
+
+Return `{kind: "addForce", force: {x, y, z}}` to accelerate the issuing
+entity's dynamic body, `{kind: "addTorque", torque: {x, y, z}}` to turn it,
+or `{kind: "addForceAtPoint", force: {x, y, z}, point: {x, y, z}}` to apply
+a force at a world-space point. An offset point also produces torque. All
+vectors use world space, even when the body is rotated. Each component must
+be finite and between -1000000 and 1000000.
+
+Loads accumulate within the current simulation tick and clear after its
+physics step. Return the commands on subsequent ticks to keep applying them.
+Use `impulse` for an immediate velocity change. Forces require the issuing
+entity's active dynamic body. Static, kinematic, missing and inactive bodies
+reject them. A nonzero load wakes the body, while a zero load keeps a sleeping
+body asleep. These commands are available only in 3D scripts.

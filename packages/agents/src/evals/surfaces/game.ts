@@ -4,6 +4,8 @@ import { gameDocument, gameDocument3D, gameEntity, gameEntity3D, type AnyGameDoc
 import { applyGameOps, applyGameOps3D, collisionLayerBits3D, resolvePhysicsMaterials3D, validateGame3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
 import type { HeadlessSurfaceBridge, ToolLoopEvalCase } from "../tool-loop-eval.js";
 
+const FORCE_SCRIPT_EVAL_SOURCE = "input => ({ state: input.state, commands: input.tick === 0 ? [{ kind: 'addForce', force: { x: 120, y: 0, z: 0 } }, { kind: 'addTorque', torque: { x: 0, y: 60, z: 0 } }, { kind: 'addForceAtPoint', force: { x: 0, y: 0, z: 120 }, point: { x: 20, y: 11, z: 20 } }] : [] })";
+
 const SCRIPT_PARAMS_EVAL_SOURCE = "(input) => ({ state: input.params, commands: [] })";
 
 /** Headless game editor bridge that exercises the production op reducer. */
@@ -580,8 +582,29 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         } }]
     }
   };
-})
-];
+}), {
+  id: "forces-and-torques-3d",
+  description: "Author all three world-space force commands on a dynamic 3D body through public script edits.",
+  objective: `Add a script behavior to the crate with exactly this source, preserving its other behaviors: ${FORCE_SCRIPT_EVAL_SOURCE}`,
+  createBridge: () => {
+    const document = applyGameOps3D(createNative3DGame("forces-eval"), [{ op: "update_entity", entity_id: "crate", set: {
+      transform3d: { position: { x: 20, y: 10, z: 20 } }, body3d: { gravityScale: 0 }
+    } }]);
+    return createGameToolBridge3D(document);
+  },
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity {entity_id, set: {behaviors}} replaces the behaviors array. A script behavior is {kind: script, source}. addForce {force}, addTorque {torque} and addForceAtPoint {force, point} are 3D script commands. All vectors use world space and act on the issuing entity's active dynamic body for one tick. Return them each tick to maintain a load.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "crateForceScript", detail: "The crate does not have the requested one-tick force and torque script.",
+      test: state => {
+        const parsed = gameDocument3D.safeParse(state);
+        if (!parsed.success) { return false; }
+        const crate = parsed.data.scenes[0].entities.find(entity => entity.id === "crate");
+        return crate?.body3d?.type === "dynamic" && crate.behaviors.length === 1 &&
+          crate.behaviors[0].kind === "script" && crate.behaviors[0].source === FORCE_SCRIPT_EVAL_SOURCE;
+      } }]
+  }
+}];
 
 /** Headless 3D game editor bridge that exercises the production 3D op reducer. */
 export function createGame3DToolBridge(initial: GameDocument3D): HeadlessSurfaceBridge<GameDocument3D> {
