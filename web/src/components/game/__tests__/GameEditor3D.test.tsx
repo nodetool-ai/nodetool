@@ -116,6 +116,26 @@ beforeEach(() => {
   getGameDraftStore(mockDocument.id).getState().load(mockDocument, mockToken);
 });
 
+it("keeps the draft warning hidden after an accepted source reload changes only the runtime revision", () => {
+  mockPlayDocument = { ...mockDocument, revision: "accepted-runtime-revision" };
+  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  expect(screen.queryByText("The draft changed. Stop and play again to apply it.")).not.toBeInTheDocument();
+});
+
+it.each(["source", "name"])("warns when a %s draft change has not reached the play session", (field) => {
+  mockPlayDocument = structuredClone(mockDocument);
+  mockPlayDocument.revision = "accepted-runtime-revision";
+  const player = mockPlayDocument.scenes[0].entities.find((entity) => entity.id === "player");
+  if (!player) { throw new Error("Fixture player missing"); }
+  if (field === "source") {
+    player.behaviors = [{ kind: "script", source: "previous source", maxCommands: 16, maxTickMs: 8 }];
+  } else {
+    player.name = "Previous player name";
+  }
+  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  expect(screen.getByText("The draft changed. Stop and play again to apply it.")).toBeInTheDocument();
+});
+
 it.each(["host", "diagnostic"])("offers 3D host replay only for host failures: %s", async (provenance) => {
   const user = userEvent.setup();
   mockPlayDocument = mockDocument;
