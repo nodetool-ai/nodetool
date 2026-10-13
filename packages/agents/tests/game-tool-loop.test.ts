@@ -369,3 +369,26 @@ it("scores 3D particle draw styles authored through the public 3D edit surface",
     {id:"debris",render:{kind:"mesh",shape:"box",align:"velocity"}}]}}}]})).not.toHaveProperty("error");
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
+
+it.each(["streaming-music", "streaming-music-3d"])("scores %s authored through update_scene", async (id) => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item => item.id === id);
+  if (!candidate) { throw new Error("Streaming music eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Streaming music eval must inspect final state"); }
+  const edit = bridge.tools.find(tool => tool.name === "edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  const sceneId = bridge.finalState().entrySceneId;
+  const music = { assetId: "music.theme", volume: 0.6, fadeInTicks: 30, fadeOutTicks: 45 };
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  await expect(edit.execute({ ops: [{ op: "update_scene", scene_id: sceneId, set: { music: {
+    ...music, streaming: { loopStartSeconds: 90, loopEndSeconds: 12 }
+  } } }] })).rejects.toThrow();
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  expect(await edit.execute({ ops: [{ op: "update_scene", scene_id: sceneId, set: { music } }] })).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  expect(await edit.execute({ ops: [{ op: "update_scene", scene_id: sceneId, set: { music: {
+    ...music, streaming: { loopStartSeconds: 12, loopEndSeconds: 90 }
+  } } }] })).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
