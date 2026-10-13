@@ -650,7 +650,7 @@ const ScriptLineRow = ({
 
   const voiceButton = voicing ? (
     <FlexRow align="center" sx={{ paddingX: SPACING.md }}>
-      <LoadingSpinner size={20} />
+      <LoadingSpinner size="small" />
     </FlexRow>
   ) : (
     !readOnly && (

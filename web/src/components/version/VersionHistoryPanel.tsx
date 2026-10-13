@@ -273,7 +273,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         }}
       >
         <FlexColumn align="center" justify="center" fullHeight>
-          <LoadingSpinner size="medium" text="Loading versions..." />
+          <LoadingSpinner size="medium" text="Loading versions" />
         </FlexColumn>
       </div>
     );

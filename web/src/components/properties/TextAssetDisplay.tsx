@@ -36,7 +36,7 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
   }, [data]);
 
   const memoizedPreviewText = useMemo(() => {
-    return data ? data.substring(0, MAX_TEXT_LENGTH) : "Loading preview...";
+    return data ? data.substring(0, MAX_TEXT_LENGTH) : "Loading preview…";
   }, [data]);
 
   return (
@@ -60,7 +60,7 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
         {error
           ? "Error loading preview."
           : isLoading
-          ? "Loading preview..."
+          ? "Loading preview…"
           : memoizedPreviewText}
       </Text>
 

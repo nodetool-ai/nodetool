@@ -75,7 +75,7 @@ describe("ButtonWidget", () => {
         outputKeys: []
       });
     });
-    const runningButton = screen.getByRole("button", { name: "Running" });
+    const runningButton = screen.getByRole("button", { name: "Running…" });
     expect(runningButton).toBeDisabled();
     expect(runtime.value.dispatch).toHaveBeenCalledTimes(1);
 
@@ -210,7 +210,7 @@ describe("ButtonWidget", () => {
       runningState()
     );
 
-    const button = screen.getByRole("button", { name: "Running" });
+    const button = screen.getByRole("button", { name: "Running…" });
     expect(button).toBeDisabled();
     expect(runtime.value.dispatch).not.toHaveBeenCalled();
   });

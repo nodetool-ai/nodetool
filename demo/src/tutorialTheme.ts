@@ -6,3 +6,5 @@ export const TUTORIAL_FOCUS_BORDER_WIDTH = 3;
 export const TUTORIAL_FOCUS_FADE_MS = 180;
 export const TUTORIAL_CAMERA_SETTLE_MS = 220;
 export const TUTORIAL_DEFAULT_SAFE_AREA = { top: 88, bottom: 224 } as const;
+/** Product UI enlargement for fixed-surface tutorials (doc, chat, timeline). */
+export const TUTORIAL_UI_SCALE = 1.4;

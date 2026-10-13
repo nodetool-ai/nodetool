@@ -140,7 +140,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
           disabled={installing}
           sx={{ alignSelf: "flex-start", mt: SPACING.micro }}
         >
-          {installing ? "Installing..." : `Install ${runtimeNames}`}
+          {installing ? "Installing…" : `Install ${runtimeNames}`}
         </EditorButton>
       ) : (
         <div className="warning-text">

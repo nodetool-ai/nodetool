@@ -160,7 +160,7 @@ describe("JobItem", () => {
     it("displays loading text when workflow is not loaded", () => {
       mockUseWorkflow.mockReturnValue({ data: null } as any);
       renderWithTheme(<JobItem job={baseJob} />);
-      expect(screen.getByText("Loading...")).toBeInTheDocument();
+      expect(screen.getByText("Loading…")).toBeInTheDocument();
     });
   });
 

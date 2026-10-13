@@ -10,7 +10,7 @@
  */
 import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { CAST_VERSION, type CastEvent, type DemoCast } from "./castTypes";
-import { castMessages, edge, meta, node, out, prop } from "./castHelpers";
+import { castMessages, edge, meta, node, out, prop, DEMO_LANGUAGE_MODEL } from "./castHelpers";
 import { stringInputMeta } from "./cookbook/builders";
 import type { Workflow } from "../stores/ApiTypes";
 
@@ -55,7 +55,7 @@ const workflow: Workflow = {
       node("source", INPUT_TYPE, 0, 150, 300, "Article", { name: "article", value: ARTICLE }),
       // The Summarizer's `text` is its primary input — fed from upstream here, so
       // its inline field stays empty and the streamed summary fills the card.
-      node("summary", SUMMARIZE_TYPE, 460, 150, 320, "Summarizer", { text: "" }),
+      node("summary", SUMMARIZE_TYPE, 460, 150, 320, "Summarizer", { text: "", model: DEMO_LANGUAGE_MODEL }),
       node("preview", PREVIEW_NODE_TYPE, 900, 150, 340, "Preview", {}),
     ],
     edges: [

@@ -189,7 +189,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
             aria-label="Delete"
           >
             {isDeleting ? (
-              <LoadingSpinner inline size={20} color="inherit" />
+              <LoadingSpinner inline size="small" color="inherit" />
             ) : (
               "Delete"
             )}

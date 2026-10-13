@@ -152,7 +152,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         >
           {isUploading && (
             <div className="loading-overlay">
-              <LoadingSpinner variant="circular" size="medium" /> Uploading assets…
+              <LoadingSpinner size="medium" /> Uploading assets…
             </div>
           )}
           <ReactFlowWrapper workflowId={workflowId} />

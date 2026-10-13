@@ -134,6 +134,6 @@ describe("WorkspaceTree", () => {
     // The open folder keeps its contents rather than falling back to the
     // placeholder the refetched root carries.
     expect(screen.getByText("one.md")).toBeInTheDocument();
-    expect(screen.queryByText("loading...")).not.toBeInTheDocument();
+    expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
   });
 });

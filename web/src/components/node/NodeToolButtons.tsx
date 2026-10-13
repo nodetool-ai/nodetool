@@ -147,7 +147,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         }}
       >
         <ToolbarIconButton
-          title={isWorkflowRunning ? "Running..." : "Run Node"}
+          title={isWorkflowRunning ? "Running…" : "Run Node"}
           className="nodrag"
           onClick={runFromHere}
           tabIndex={-1}

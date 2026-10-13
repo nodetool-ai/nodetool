@@ -240,7 +240,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
           </Text>
           {estimateLoading ? (
             <FlexRow gap={1} align="center" sx={{ mt: 1 }}>
-              <LoadingSpinner size={12} />
+              <LoadingSpinner inline size={14} />
               <Text
                 size="small"
                 sx={{
@@ -282,7 +282,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
           </Caption>
           {creditsLoading ? (
             <FlexRow gap={1} align="center" sx={{ mt: 0.5 }}>
-              <LoadingSpinner size={12} />
+              <LoadingSpinner inline size={14} />
               <Text
                 size="small"
                 sx={{

@@ -108,7 +108,7 @@ symlinked skill folder to its target, so the two hops resolve.
 
 It needs `name` and `description` in the frontmatter and skips a skill missing
 either. Everything else Claude Code puts there, Codex ignores — including
-`disable-model-invocation: true`, which is why the nine typed-only skills each
+`disable-model-invocation: true`, which is why the typed-only skills each
 carry Codex's own form of that rule:
 
 ```yaml

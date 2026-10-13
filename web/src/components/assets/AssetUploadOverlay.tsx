@@ -4,9 +4,8 @@ import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { Text, Box, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING, SHADOW } from "../ui_primitives";
+import { Text, FlexColumn, ProgressBar, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING, SHADOW } from "../ui_primitives";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-import LinearProgressWithLabel from "./LinearProgressWithLabel";
 
 const styles = (theme: Theme) =>
   css({
@@ -34,9 +33,6 @@ const styles = (theme: Theme) =>
       boxShadow: SHADOW(theme).lg,
       padding: getSpacingPx(SPACING.xl),
       borderRadius: BORDER_RADIUS.lg
-    },
-    ul: {
-      padding: `0 ${getSpacingPx(SPACING.xl)}`
     }
   });
 
@@ -50,24 +46,25 @@ const AssetUploadOverlay = () => {
 
   return ReactDOM.createPortal(
     <div css={styles(theme)} className="uploading-overlay">
-      <div className="uploading-message">
-        <Box>
-          <Text size="big" >Uploading assets</Text>
-          <Text size="normal" weight={600}>
-            {completed} / {files.length} files completed
-          </Text>
-        </Box>
-        <LinearProgressWithLabel value={overallProgress} />
-        <ul>
+      <FlexColumn className="uploading-message" gap={SPACING.lg}>
+        <Text size="big" weight={600}>
+          Uploading assets
+        </Text>
+        <ProgressBar
+          value={overallProgress}
+          label={`${completed} of ${files.length} files uploaded`}
+        />
+        <FlexColumn gap={SPACING.md} sx={{ px: SPACING.xl }}>
           {files.map((file) => (
-            <LinearProgressWithLabel
+            <ProgressBar
               key={file.id}
-              filename={file.file.name}
               value={file.progress || 0}
+              label={file.file.name}
+              size="small"
             />
           ))}
-        </ul>
-      </div>
+        </FlexColumn>
+      </FlexColumn>
     </div>,
     document.body
   );

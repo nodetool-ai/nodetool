@@ -812,8 +812,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               <LoadingSpinner size="small" />
               <Caption sx={{ color: "text.secondary" }}>
                 {loadingProgress
-                  ? `Loading models: ${loadingProgress.loaded}/${loadingProgress.total} providers...`
-                  : "Loading models..."}
+                  ? `Loading models: ${loadingProgress.loaded}/${loadingProgress.total} providers…`
+                  : "Loading models…"}
               </Caption>
             </>
           )}

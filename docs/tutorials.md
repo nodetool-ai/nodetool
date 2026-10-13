@@ -1,257 +1,245 @@
 ---
 layout: page
 title: "Tutorials"
-description: "Short video guides for NodeTool. Learn how to edit sketches, create scripts, make storyboards, build mini apps, and use nodes."
+description: "Short videos that show NodeTool at work: edit a sketch, voice a script, board a storyboard, build a mini app, cut a scene, and repeat the result with a workflow."
 ---
 
-These short guides are for beginners. Each video shows a real example,
-so you can see what to ask for and what the AI creates.
+Each video is under a minute and replays a real session in the NodeTool editor.
+You see what to ask for, what the assistant does, and where the result lands.
+The same videos play in the app: open the logo menu and choose **Tutorials**.
 
-The first group shows you the quickest way to create things: just ask the AI, and it does the work.
-The second group shows you how to fix mistakes, answer the AI's questions, and test your work.
-The last group covers the basics of using nodes to build workflows.
+The first group shows how to make something by asking.
+The second shows how to steer the assistant when the first answer is not right.
+The last group shows how to repeat a result with a workflow, one node at a time.
 
-Want to build a workflow from an empty canvas? Follow [Your First Workflow](first-workflow.md).
+New to NodeTool? Start with the [Quick Start](getting-started.md).
+The [Glossary](glossary.md) explains the terms used below.
 
-New here? Read our [Quick Start](getting-started.md) to learn the basics, or check out our [Glossary](glossary.md) for definitions.
+## Make it by asking
 
-## Edit a sketch by asking
+### Edit a sketch by asking
 
-Tell the Sketch Assistant what to change, and it works like a real editor.
-It adds layers and changes settings automatically.
+Say what you want changed. The Sketch Assistant uses the real layer tools:
+it adds a layer, sets the blend mode, and sets the opacity while you watch the layer panel.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/sketch-assistant.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/sketch-assistant.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-You will see how the AI reads your layers and makes new ones. You can still change everything yourself later.
+**Try it:** open a sketch and ask for a soft vignette.
+The new layer appears in the layer panel, and you can change it by hand afterwards.
 
 Read more: [Sketch Editor](sketch-editor.md), [Chat & Agents](global-chat-agents.md).
 
-## Write and voice a script
+### Write and voice a script
 
-Turn a blank page into spoken audio. The Script Assistant chooses voices,
-writes the text, and records the lines.
+Go from a blank page to voiced audio in one request.
+The Script Assistant casts the speakers first, writes their lines, then records a take for each line.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/script-assistant.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/script-assistant.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-You will learn how to describe what you want, see why voices are chosen first,
-and learn how to pick different recordings.
+**Try it:** ask for a short two-speaker script, then have the assistant voice it.
+Each line gets a take you can replace or record again.
 
-Read more: [Creative Agent](creative-agent.md), [Chat & Agents](global-chat-agents.md).
+Read more: [Script Editor](script-editor.md), [Creative Agent](creative-agent.md).
 
-## Make a storyboard
+### Board a shot list
 
-Describe your video, and the Storyboard Assistant plans the shots.
-You can review the plan before it creates any images.
+Describe the video. The Storyboard Assistant writes the shots, including camera direction,
+before it generates any image. Approve the board, and the stills render shot by shot.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/storyboard-assistant.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/storyboard-assistant.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-You will learn how to plan shots first, change your mind early, and watch the images load.
+**Try it:** describe a short piece, read the shot list, and change a shot while it is still free to change.
 
-Read more: [Creative Agent](creative-agent.md#the-storyboard-plan-pick-a-still-then-spend).
+Read more: [Storyboard Editor](storyboard-editor.md), [Creative Agent](creative-agent.md#the-storyboard-plan-pick-a-still-then-spend).
 
-## Build a mini app
+### Build a mini app
 
-Describe a simple app in one sentence.
-The App Assistant sets up the logic and buttons for you.
+Describe an app in one sentence: an input, a button, and an answer.
+The App Assistant adds the operation, declares a setting that persists between sessions,
+and places each widget against something the app declares.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/app-assistant.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/app-assistant.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-You will see how an app is made without writing code, how to save settings,
-and how buttons connect to logic.
+**Try it:** open a mini app from the Examples page, fill in its input, and run it.
 
 Read more: [Mini Apps](mini-apps.md), [App Builder](app-builder.md), [Building Mini Apps](mini-apps-guide.md).
 
-## Write JavaScript code
+### Write a JS script
 
-Tell the AI what you need the code to do.
-The assistant sets up the rules, writes the code, and creates a test to check it.
+Say what goes in and what should come out. The assistant declares the ports first,
+writes the body, and saves a test case that runs in the sandbox.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/jsscript-assistant.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/jsscript-assistant.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-You will see why rules are made first, that the code is safe,
-and how tests prevent future errors.
+The script runs sandboxed with no file system access, and the saved case catches the next edit that breaks it.
 
 Read more: [JS Scripts](js-scripts.md), [JavaScript Sandbox](javascript-sandbox.md).
 
-## Fix mistakes easily
+### Ask the chat agent
 
-If the result is not right, just say so in the next message.
-The AI will fix the current layer instead of starting over.
-
-<video controls preload="metadata" poster="{{ '/assets/tutorials/sketch-correction.jpg' | relative_url }}">
-  <source src="{{ '/assets/tutorials/sketch-correction.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-You will see how fixes apply to the same layer, so you don't get too many layers,
-and learn how to finish editing it yourself.
-
-Read more: [Sketch Editor](sketch-editor.md), [Chat & Agents](global-chat-agents.md).
-
-## The AI asks before doing
-
-If your request is not clear, the AI will ask questions instead of guessing.
-This saves you time and resources.
-
-<video controls preload="metadata" poster="{{ '/assets/tutorials/storyboard-ask.jpg' | relative_url }}">
-  <source src="{{ '/assets/tutorials/storyboard-ask.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-You will see what happens while it waits for your answer,
-how your answer shapes the plan, and how you approve it before images are made.
-
-Read more: [Creative Agent](creative-agent.md), [Chat & Agents](global-chat-agents.md).
-
-## Catch errors with tests
-
-Tell the AI what errors you are worried about.
-It saves this as a test, runs it, and shows any failures clearly.
-
-<video controls preload="metadata" poster="{{ '/assets/tutorials/jsscript-repair.jpg' | relative_url }}">
-  <source src="{{ '/assets/tutorials/jsscript-repair.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-You will see why testing first is good, learn what failing tests tell you,
-and see how tests protect your code.
-
-Read more: [JS Scripts](js-scripts.md), [JavaScript Sandbox](javascript-sandbox.md).
-
-## Chat with the agent
-
-You can ask the Chat agent questions. It searches the web,
-shows you its search process, and writes answers word by word.
+Ask Chat about a recent discovery. The agent runs a web search where you can see it,
+then streams its answer.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/chat-agent-qa.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/chat-agent-qa.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-You will learn how to use Chat, watch the agent work in real-time,
-and read answers as they arrive.
+**Try it:** start a new chat and ask about something that happened this week.
+The tool call appears before the answer.
 
 Read more: [Chat](global-chat.md), [Chat & Agents](global-chat-agents.md).
 
-## Build your first workflow
+### Cut a scene together
 
-Learn the whole process: type a short idea, watch the AI expand it,
-and see it turn into a picture. No coding needed, just linking boxes.
-
-<video controls preload="metadata" poster="{{ '/assets/tutorials/first-workflow.jpg' | relative_url }}">
-  <source src="{{ '/assets/tutorials/first-workflow.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-You will see how data moves between boxes, how to track progress,
-and where your final picture appears.
-
-Read more: [Your First Workflow](first-workflow.md), [Workflow Editor](workflow-editor.md).
-
-## Connect boxes and run
-
-Learn the basics. Add a box, connect it to another,
-press Run, and see what happens.
-
-<video controls preload="metadata" poster="{{ '/assets/tutorials/connect-run.jpg' | relative_url }}">
-  <source src="{{ '/assets/tutorials/connect-run.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-You will learn about inputs and outputs, what the connection dots do,
-how to start the process, and how to view results.
-
-Read more: [Workflow Editor](workflow-editor.md#connections), [Key Concepts](key-concepts.md).
-
-## Generate a list of items
-
-Give one instruction and get many results.
-An AI box can turn a topic into a numbered list, showing items as they appear.
-
-<video controls preload="metadata" poster="{{ '/assets/tutorials/list-generator.jpg' | relative_url }}">
-  <source src="{{ '/assets/tutorials/list-generator.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-You will see how to start an AI box, watch answers arrive in parts,
-and use the list later in the process.
-
-Read more: [Workflow Editor](workflow-editor.md), [Cookbook](cookbook.md).
-
-## Ask the AI a question
-
-Type a question, send it to the AI box,
-and watch the answer write out before it finishes.
-
-<video controls preload="metadata" poster="{{ '/assets/tutorials/ask-ai.jpg' | relative_url }}">
-  <source src="{{ '/assets/tutorials/ask-ai.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-You will see how to send a question, watch the answer,
-and use the answer somewhere else.
-
-Read more: [Workflow Editor](workflow-editor.md#running-workflows), [Models & Providers](models-and-providers.md).
-
-## Combine multiple inputs
-
-Learn how to connect multiple lines. You can link two text boxes into one Format Text box
-to create a combined sentence from different parts.
-
-<video controls preload="metadata" poster="{{ '/assets/tutorials/combine-inputs.jpg' | relative_url }}">
-  <source src="{{ '/assets/tutorials/combine-inputs.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-You will learn how to connect several inputs, how to use `{% raw %}{{ placeholders }}{% endraw %}`,
-and how to build changing instructions.
-
-Read more: [Workflow Editor](workflow-editor.md#connections), [Key Concepts](key-concepts.md).
-
-## Summarize a document
-
-Turn long text into short points.
-A Summarizer box can shorten articles or transcripts, writing as it goes.
-
-<video controls preload="metadata" poster="{{ '/assets/tutorials/summarize-text.jpg' | relative_url }}">
-  <source src="{{ '/assets/tutorials/summarize-text.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-You will see how to input long text, watch the summary write,
-and pass the final result forward.
-
-Read more: [Summarize RSS](workflows/summarize-rss.md), [Meeting Transcript Summarizer](workflows/meeting-transcript-summarizer.md).
-
-## Describe an image
-
-Mix pictures and words together. Put a photo into an Image Input box,
-connect it to an Agent, and watch the AI describe the photo.
-
-<video controls preload="metadata" poster="{{ '/assets/tutorials/describe-image.jpg' | relative_url }}">
-  <source src="{{ '/assets/tutorials/describe-image.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-You will see how to add pictures, let the AI see them,
-and use the description text later.
-
-Read more: [Image to Audio Story](workflows/image-to-audio-story.md), [Models & Providers](models-and-providers.md).
-
-## Edit a video scene
-
-Learn the video editor: cut clips, arrange shots,
-add captions that match the sound, and watch your video.
+The video editor trims the opening clip, moves the next shot to meet its edge,
+and adds a caption on its own track. Then it plays the finished cut.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/timeline-trim-arrange.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/timeline-trim-arrange.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-You will see how to cut clips, add synced captions,
-and watch the result in your browser.
+**Try it:** place two clips on a timeline, trim the cut between them, add a caption, and preview the result.
 
 Read more: [Video Editor](video-editor.md), [AI Timeline Editing](ai-timeline-editing.md).
 
+## Steer the assistant
+
+### Correct it without starting over
+
+A warm wash comes back too strong. Ask for less in the next message, and the assistant edits the layer
+that is already there. The layer count stays the same and nothing is generated again.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/sketch-correction.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/sketch-correction.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+The chat shows which tool call the correction ran, and the layer panel lets you finish the edit yourself.
+
+Read more: [Sketch Editor](sketch-editor.md), [Chat & Agents](global-chat-agents.md).
+
+### It asks before it spends
+
+A brief that leaves out the format gets a question back instead of a guess.
+The board stays empty and nothing renders until you answer.
+Your answer sets the format and the number of shots.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/storyboard-ask.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/storyboard-ask.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+Read more: [Storyboard Editor](storyboard-editor.md), [Creative Agent](creative-agent.md).
+
+### A test catches it
+
+Name the case you do not trust. The assistant saves it as a test and runs it.
+The test fails and shows why. The assistant repairs the body and runs the same cases again, and they pass.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/jsscript-repair.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/jsscript-repair.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+The case stays saved, so the next edit that breaks it fails there first.
+
+Read more: [JS Scripts](js-scripts.md), [JavaScript Sandbox](javascript-sandbox.md).
+
+## Repeat it with a workflow
+
+A workflow saves the steps behind a result so you can run them again with new inputs.
+These videos build small workflows on the canvas.
+To build one yourself from an empty canvas, follow [Your First Workflow](first-workflow.md).
+
+### Build your first workflow
+
+A prompt goes into an LLM node that expands it, and the expanded prompt goes into an image model.
+Watch the nodes run and the image appear on the canvas.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/first-workflow.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/first-workflow.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+You see how nodes pass data through their handles, how a running node shows progress,
+and where the generated image appears.
+
+Read more: [Your First Workflow](first-workflow.md), [Workflow Editor](workflow-editor.md).
+
+### Connect and run
+
+Follow a text value through three connected nodes: a text input, a Code node that uppercases it,
+and a Preview that shows HELLO NODETOOL.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/connect-run.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/connect-run.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+You see how outputs connect to inputs, how nodes report completion, and where a result appears.
+
+Read more: [Workflow Editor](workflow-editor.md#connections), [Key Concepts](key-concepts.md).
+
+### Generate a list
+
+One topic goes into a List Generator node, and the items stream out one by one.
+The list can then feed every node after it, which is how batch generation starts.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/list-generator.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/list-generator.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+Read more: [Workflow Editor](workflow-editor.md), [Cookbook](cookbook.md).
+
+### Ask the AI
+
+Type a question, send it to an Agent node, and watch the answer stream in before it lands in a Preview.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/ask-ai.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/ask-ai.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+Read more: [Workflow Editor](workflow-editor.md#running-workflows), [Models & Providers](models-and-providers.md).
+
+### Combine two inputs
+
+Two text inputs flow into one Prompt node, which fills a template and produces one sentence.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/combine-inputs.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/combine-inputs.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+You see how several inputs connect to one node and how `{% raw %}{{ placeholders }}{% endraw %}` build a prompt from reusable parts.
+
+Read more: [Workflow Editor](workflow-editor.md#connections), [Key Concepts](key-concepts.md).
+
+### Summarize a document
+
+A long passage goes into a Summarizer node, which writes the key points as it goes.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/summarize-text.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/summarize-text.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+Read more: [Summarize RSS](workflows/summarize-rss.md), [Meeting Transcript Summarizer](workflows/meeting-transcript-summarizer.md).
+
+### Describe an image
+
+A picture goes into an Image Input, which connects to an Agent node.
+The model looks at the picture and describes it in words you can use in the next node.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/describe-image.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/describe-image.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+Read more: [Image to Audio Story](workflows/image-to-audio-story.md), [Models & Providers](models-and-providers.md).
+
 ---
 
-Ready to start? Read the [Quick Start](getting-started.md), then
-look at the [Examples]({{ '/workflows/' | relative_url }}).
+Ready to make something? Read the [Quick Start](getting-started.md), then
+browse the [Examples]({{ '/workflows/' | relative_url }}).

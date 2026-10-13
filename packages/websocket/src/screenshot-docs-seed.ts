@@ -392,6 +392,11 @@ const MOCK_MEDIA: { id: string; source: string; contentType: string }[] = [
     contentType: "image/png"
   },
   {
+    id: "asset-first-workflow-image",
+    source: `${BASE_NODE_ASSETS}/storyboards/lighthouse-keeper/headland-at-dusk.jpg`,
+    contentType: "image/jpeg"
+  },
+  {
     id: "entity-marta",
     source: "marketing/public/storyboards/the-interrogation/home-at-nine.jpg",
     contentType: "image/png"

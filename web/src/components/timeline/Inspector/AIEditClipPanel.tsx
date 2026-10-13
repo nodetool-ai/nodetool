@@ -33,7 +33,8 @@ import {
   LoadingSpinner,
   SelectField,
   SPACING,
-  TextInput
+  TextInput,
+  ThinkingIndicator
 } from "../../ui_primitives";
 import {
   INSPECTOR_FORM_SX,
@@ -438,11 +439,7 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
             </FlexColumn>
 
             {active && (
-              <LoadingSpinner
-                variant="dots"
-                size="small"
-                text="Editing video…"
-              />
+              <ThinkingIndicator label="Editing video" announce />
             )}
             {settlementMessage && (
               <Caption color="error">{settlementMessage}</Caption>

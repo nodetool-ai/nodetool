@@ -321,7 +321,7 @@ const PreviewRegion: React.FC<{
       }
     >
       {isLoading ? (
-        <LoadingSpinner text="Loading sequence…" />
+        <LoadingSpinner text="Loading sequence" />
       ) : sequenceUnavailable ? (
         <FlexColumn
           align="center"

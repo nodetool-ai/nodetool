@@ -292,6 +292,71 @@ const STORY_GRAPH = {
   ]
 };
 
+/**
+ * The graph docs/first-workflow.md builds, step by step: String Input → Agent
+ * → Text To Image → Preview, with the idea and System text the page uses.
+ */
+const FIRST_WORKFLOW_GRAPH = {
+  nodes: [
+    {
+      id: "fw-idea",
+      type: "nodetool.input.StringInput",
+      data: { name: "idea", value: "a lighthouse on a cliff at dusk" },
+      ui_properties: { position: { x: 40, y: 150 }, width: 240 }
+    },
+    {
+      id: "fw-agent",
+      type: "nodetool.agents.Agent",
+      data: {
+        model: {
+          type: "language_model",
+          provider: "anthropic",
+          id: "claude-sonnet-5",
+          name: "Claude Sonnet 5"
+        },
+        system:
+          "Rewrite the user's idea as one detailed image prompt. Describe subject, light, and style. Reply with the prompt only."
+      },
+      ui_properties: { position: { x: 330, y: 110 }, width: 300 }
+    },
+    {
+      id: "fw-image",
+      type: "nodetool.image.TextToImage",
+      data: {},
+      ui_properties: { position: { x: 680, y: 110 }, width: 260 }
+    },
+    {
+      id: "fw-preview",
+      type: "nodetool.workflows.base_node.Preview",
+      data: {},
+      ui_properties: { position: { x: 990, y: 110 }, width: 300 }
+    }
+  ],
+  edges: [
+    {
+      id: "fw-edge-idea",
+      source: "fw-idea",
+      sourceHandle: "output",
+      target: "fw-agent",
+      targetHandle: "prompt"
+    },
+    {
+      id: "fw-edge-prompt",
+      source: "fw-agent",
+      sourceHandle: "text",
+      target: "fw-image",
+      targetHandle: "prompt"
+    },
+    {
+      id: "fw-edge-preview",
+      source: "fw-image",
+      sourceHandle: "output",
+      target: "fw-preview",
+      targetHandle: "value"
+    }
+  ]
+};
+
 const MOCK_WORKFLOWS = [
   makeWorkflow(
     "wf-story-generator",
@@ -301,6 +366,24 @@ const MOCK_WORKFLOWS = [
     "2024-12-15T11:30:00Z",
     "private",
     STORY_GRAPH
+  ),
+  // docs/first-workflow.md: the empty canvas of step 1 and the finished graph.
+  // Old dates keep both at the end of the recent-workflow lists.
+  makeWorkflow(
+    "wf-first-empty",
+    "New Workflow",
+    "",
+    [],
+    "2024-09-02T09:00:00Z"
+  ),
+  makeWorkflow(
+    "wf-first-workflow",
+    "Lighthouse at Dusk",
+    "Turns a short idea into a detailed image prompt and a picture",
+    ["image", "agent"],
+    "2024-09-03T09:00:00Z",
+    "private",
+    FIRST_WORKFLOW_GRAPH
   ),
   makeWorkflow(
     "wf-mini-app",
@@ -801,6 +884,14 @@ const MOCK_ASSETS = [
     "image/png",
     "folder-images",
     7892341
+  ),
+  // The picture the first-workflow docs run produces (docs/first-workflow.md).
+  makeAsset(
+    "asset-first-workflow-image",
+    "lighthouse_at_dusk.jpg",
+    "image/jpeg",
+    "folder-images",
+    412876
   ),
   makeAsset(
     "asset-audio-folder-1",

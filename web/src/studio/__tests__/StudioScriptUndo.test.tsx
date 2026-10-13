@@ -88,7 +88,7 @@ describe("StudioScriptPage server load", () => {
     stage = "idea";
     loadState = "loading";
     renderPage();
-    expect(screen.getByText("Loading script…")).toBeInTheDocument();
+    expect(screen.getByText("Loading script")).toBeInTheDocument();
     expect(screen.queryByTestId("setup-flow")).toBeNull();
   });
 

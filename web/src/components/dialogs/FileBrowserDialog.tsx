@@ -256,7 +256,7 @@ function FileBrowserDialog({
             label: f.name,
             path: f.path,
             children: [
-              { id: `${f.path}_loading`, label: "Loading...", path: "" }
+              { id: `${f.path}_loading`, label: "Loading…", path: "" }
             ] as ExtendedTreeItem[]
           }));
         setTreeItems(roots);
@@ -328,7 +328,7 @@ function FileBrowserDialog({
     }
 
     const loadMissingAncestors = async () => {
-      // Find ancestors that are in the tree but have "Loading..." children
+      // Find ancestors that are in the tree but have "Loading…" children
       // We skip the current path itself since we only need its parent loaded to show it
       // (or if we want to show children of current path in tree, we could include it)
 
@@ -398,7 +398,7 @@ function FileBrowserDialog({
                   label: f.name,
                   path: f.path,
                   children: [
-                    { id: `${f.path}_loading`, label: "Loading...", path: "" }
+                    { id: `${f.path}_loading`, label: "Loading…", path: "" }
                   ] as ExtendedTreeItem[]
                 }));
               return { id: path, children: folders.length > 0 ? folders : [] };
@@ -679,7 +679,7 @@ function FileBrowserDialog({
               label: f.name,
               path: f.path,
               children: [
-                { id: `${f.path}_loading`, label: "Loading...", path: "" }
+                { id: `${f.path}_loading`, label: "Loading…", path: "" }
               ] as ExtendedTreeItem[]
             }));
 

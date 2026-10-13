@@ -192,6 +192,7 @@ Need a container/surface?
 Need feedback?
 ├── Loading → LoadingSpinner
 ├── Progress → ProgressBar
+├── Waiting on a model → ThinkingIndicator
 ├── Placeholder → Skeleton
 ├── Media being generated → MagicGenerationFill
 ├── Nothing to show → EmptyState

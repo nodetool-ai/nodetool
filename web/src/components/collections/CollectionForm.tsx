@@ -151,7 +151,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
             )
           }
         >
-          {createMutation.isPending ? "Creating..." : "Create"}
+          {createMutation.isPending ? "Creating…" : "Create"}
         </EditorButton>
       </FlexRow>
 

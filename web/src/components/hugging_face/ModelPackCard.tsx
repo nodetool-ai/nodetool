@@ -202,10 +202,6 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
             <ProgressBar
               value={downloadProgress}
               showValue={false}
-              sx={{
-                borderRadius: BORDER_RADIUS.lg,
-                backgroundColor: "var(--palette-grey-700)"
-              }}
             />
             <Caption color="secondary">
               Downloading {activeDownloads.length} of {pack.models.length} models…
