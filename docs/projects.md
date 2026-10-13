@@ -2,7 +2,7 @@
 layout: page
 title: "Projects"
 permalink: /projects
-description: "Group the documents for one job under a project, start a project from a skill, and file, copy, archive, or delete them."
+description: "Group the documents for one job under a project, start a project from a skill, and file, copy, export, import, archive, or delete them."
 ---
 
 A project is a name over the documents that belong to one job: a storyboard, a script, a cut, key art, a mini app. It owns no content of its own. A document belongs to a project because it carries that project's id, and the project card reads status, rendered stills, and spend back from those documents.
@@ -65,9 +65,27 @@ Documents that belong to no project appear under **Not in a project** at the bot
 
 On a document card, **Copy** opens a dialog with a **Destination project** field. The copy brings the referenced assets, entities, and supported documents with it, and the source stays unchanged. Workflows are listed but cannot be copied this way.
 
+## Export and import a project
+
+**Export** on a project card downloads the whole project as one
+`.nodetool-project` file. The file holds the project's documents, workflows,
+mini apps, games, and JavaScript scripts with their version history, its
+conversations, its assets with their media, and every file in its workspaces.
+Jobs, run history, and spend records are not included.
+
+**Import project** at the top of the project list reads such a file and
+creates a new project from it, then opens it. Importing never changes an
+existing project. Every document, asset, and conversation gets a new id, and
+references between them are rewritten to point at the new copies, so the
+same file can be imported twice. Imported workflows are private, and a
+project exported from Personal arrives as an ordinary named project.
+
+The same files move through the command line with `nodetool projects export`
+and `nodetool projects import`. See the [CLI reference](cli.md#nodetool-projects).
+
 ## Archive, restore, and delete
 
-Each card carries **Archive** and **Delete** buttons. They are absent for Personal.
+Each card carries **Export**, **Archive**, and **Delete** buttons. They are absent for Personal.
 
 - **Archive** hides the project from the selector and deletes nothing. Archived projects are listed under **Archived projects** at the end of the list, where **Restore** brings one back.
 - **Delete** asks for confirmation in a dialog titled "Delete *name*?". It removes the project and all of its documents, conversations, generated outputs, assets, jobs, and project files. This cannot be undone.

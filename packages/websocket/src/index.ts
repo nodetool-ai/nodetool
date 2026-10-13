@@ -77,6 +77,22 @@ export {
   type ImportBundleResult,
   type StoreAssetInput
 } from "./lib/workflow-bundle.js";
+export {
+  importProjectArchive,
+  managedImportWorkspacePath,
+  readProjectArchiveManifest,
+  writeProjectArchive,
+  ProjectArchiveError,
+  PROJECT_ARCHIVE_EXTENSION,
+  PROJECT_ARCHIVE_FORMAT,
+  PROJECT_ARCHIVE_VERSION,
+  type ImportProjectArchiveOptions,
+  type ImportProjectArchiveResult,
+  type ProjectArchiveManifest,
+  type WriteProjectArchiveOptions
+} from "./lib/project-archive.js";
+export { projectArchiveHost } from "./lib/project-archive-host.js";
+export { ZipStreamWriter, collectZip, streamZip } from "./lib/zip-stream.js";
 export { mcpToolHostDeps, createExampleWorkflowCatalog } from "./mcp-tool-deps.js";
 export {
   createAssetModelInterface,

@@ -1,4 +1,11 @@
-import { useCallback, useMemo, useState, type DragEvent } from "react";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent
+} from "react";
 
 import {
   AutoGrid,
@@ -32,6 +39,7 @@ import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
 import {
   useAssignDocument,
   useArchivedProjects,
+  useImportProject,
   useOpenProject,
   useProjectSummaries,
   useUnassignedDocuments
@@ -41,6 +49,7 @@ import ProjectLifecycleActions from "./ProjectLifecycleActions";
 import NewProjectDialog from "./NewProjectDialog";
 import { PROJECT_COLOR } from "./projectIdentity";
 import type { ProjectDetail } from "./projectStatus";
+import { PROJECT_FILE_EXTENSION } from "../../utils/projectArchive";
 
 /**
  * How many loose documents the strip lists. Every document a user has ever
@@ -112,6 +121,44 @@ const ProjectListSurface = () => {
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
+  );
+  const importProject = useImportProject();
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const chooseImportFile = useCallback(
+    () => importInputRef.current?.click(),
+    []
+  );
+  const handleImportFile = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      // Clear the input so choosing the same file again fires a change.
+      event.target.value = "";
+      if (!file) {
+        return;
+      }
+      importProject.mutate(file, {
+        onSuccess: (result) => {
+          const problems =
+            result.missing.length + result.checksum_mismatches.length;
+          addNotification({
+            type: problems > 0 ? "warning" : "success",
+            alert: true,
+            content:
+              problems > 0
+                ? `Imported ${result.project.name}, but ${problems} file(s) were missing or damaged`
+                : `Imported ${result.project.name}`
+          });
+          void openProject(result.project);
+        },
+        onError: (error) =>
+          addNotification({
+            type: "error",
+            alert: true,
+            content: `Could not import ${file.name}: ${error.message}`
+          })
+      });
+    },
+    [addNotification, importProject, openProject]
   );
 
   const matches = useMemo(() => {
@@ -211,6 +258,22 @@ const ProjectListSurface = () => {
             fullWidth
           />
         </Box>
+        <EditorButton
+          variant="outlined"
+          onClick={chooseImportFile}
+          disabled={importProject.isPending}
+          sx={{ whiteSpace: "nowrap" }}
+        >
+          {importProject.isPending ? "Importing…" : "Import project"}
+        </EditorButton>
+        <input
+          ref={importInputRef}
+          type="file"
+          accept={`${PROJECT_FILE_EXTENSION},application/zip`}
+          aria-label="Project file"
+          onChange={handleImportFile}
+          style={{ display: "none" }}
+        />
         <EditorButton
           variant="contained"
           color="primary"
