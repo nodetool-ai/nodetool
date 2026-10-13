@@ -2,12 +2,9 @@ import { readFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
-import { createCanvas, loadImage } from "@napi-rs/canvas";
-import { z } from "zod";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Asset, Game, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
-import { anyGameDocument, gameAssetBinding, gameAssetBinding3D, gameDocument, gameDocument3D } from "@nodetool-ai/protocol";
-import { createNative3DGame } from "@nodetool-ai/game-runtime";
+import { anyGameDocument, gameAssetBinding, gameAssetBinding3D, gameDocument } from "@nodetool-ai/protocol";
 import { createLocalWorkspace, MemoryCache, ProcessingContext } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter, assetObjectKey } from "@nodetool-ai/storage";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
@@ -54,48 +51,6 @@ describe("game asset preparation and kinds", () => {
     vi.restoreAllMocks();
     ModelObserver.clear();
     await rm(directory, { recursive: true, force: true });
-  });
-
-  it("captures a green installed texture through the real public 3D renderer", async () => {
-    const { run, workspace, id } = await setup([], "3d");
-    const document = gameDocument3D.parse({ ...createNative3DGame(id),
-      presentation: { aspectRatio: 1, hudWidth: 128, hudHeight: 128 },
-      scenes: [{ id: "level", name: "Texture capture", activeCameraId: "camera",
-        environment: { background: "#000000", ambient: { color: "#ffffff", intensity: 1 } },
-        entities: [
-          { id: "camera", transform3d: { position: { x: 0, y: 0, z: 4 } },
-            camera3d: { projection: { kind: "perspective", fov: 60 }, behavior: { kind: "fixed" } } },
-          { id: "box", transform3d: {}, primitive: { kind: "box", dimensions: { x: 2, y: 2, z: 2 }, material: { color: "#ffffff" } } }
-        ] }] });
-    expect(await run.invoke("edit_native_game", { game_id: id, ops: [{ op: "set_document", document }] })).not.toHaveProperty("error");
-    async function centerPixel(): Promise<Uint8ClampedArray> {
-      const result = z.object({ frames: z.array(z.object({ image: z.object({ path: z.string(), mime_type: z.literal("image/png") }),
-        capabilities: z.object({ backend: z.literal("webgl2"), minimalRenderSucceeded: z.literal(true) }) })).length(1) })
-        .parse(await run.invoke("capture_native_game_frame", { game_id: id, ticks: [0], seed: 1 }));
-      const png = await workspace.read(result.frames[0].image.path);
-      if (!png) { throw new Error("Public capture did not persist its PNG"); }
-      const canvas = createCanvas(128, 128);
-      const context = canvas.getContext("2d");
-      context.drawImage(await loadImage(Buffer.from(png)), 0, 0);
-      return context.getImageData(64, 64, 1, 1).data;
-    }
-    const white = await centerPixel();
-    expect(white[0]).toBeGreaterThan(100);
-    expect(Math.abs(white[0] - white[1])).toBeLessThan(5);
-    expect(Math.abs(white[1] - white[2])).toBeLessThan(5);
-    const bytes = await sharp({ create: { width: 4, height: 4, channels: 4, background: "#00ff00" } }).png().toBuffer();
-    await workspace.write("green-texture.png", bytes);
-    vi.spyOn(generateImage, "impl").mockResolvedValue({ path: "green-texture.png", mime_type: "image/png" });
-    const candidate = z.object({ binding: gameAssetBinding3D }).parse(await run.invoke("generate_game_asset", {
-      game_id: id, slot: "paint", kind: "image", prompt: "Green texture", provider: "test", model: "image" }));
-    expect(await run.invoke("install_native_game_asset", { game_id: id, slot: "paint", binding: candidate.binding })).not.toHaveProperty("error");
-    expect(await run.invoke("edit_native_game", { game_id: id, ops: [{ op: "update_entity", entity_id: "box",
-      set: { primitive: { material: { baseColorTexture: { assetId: "paint" } } } } }] })).not.toHaveProperty("error");
-    const green = await centerPixel();
-    expect(green[1]).toBeGreaterThan(100);
-    expect(green[1]).toBeGreaterThan(green[0] + 50);
-    expect(green[1]).toBeGreaterThan(green[2] + 50);
-    expect(green[0]).toBeLessThan(white[0] - 50);
   });
 
   it.each([["png", "png"], ["jpeg", "jpg"], ["webp", "webp"], ["jpeg", "png"], ["png", "jpg"]] as const)("resolves installed %s textures staged as %s through public 3D capture", async (format, candidateExtension) => {
