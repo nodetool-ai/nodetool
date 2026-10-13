@@ -6,7 +6,7 @@ import { PlanningUpdate } from "../../stores/ApiTypes";
 import { css } from "@emotion/react";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
-import { MOTION, reducedMotion, SPACING } from "../ui_primitives";
+import { LoadingSpinner, SPACING } from "../ui_primitives";
 
 interface PlanningUpdateDisplayProps {
   planningUpdate: PlanningUpdate;
@@ -28,17 +28,7 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       marginTop: theme.spacing(SPACING.micro),
       color: theme.vars.palette.success.main,
-      "& svg": { fontSize: "var(--fontSizeNormal)" },
-      "&.active svg": {
-        color: theme.vars.palette.primary.main,
-        animation: `spin ${MOTION.spin} infinite`,
-        ...reducedMotion({ animation: "none" })
-      }
-    },
-
-    "@keyframes spin": {
-      from: { transform: "rotate(0deg)" },
-      to: { transform: "rotate(360deg)" }
+      "& > svg": { fontSize: "var(--fontSizeNormal)" }
     },
 
     ".planning-name": {
@@ -77,9 +67,11 @@ const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
 
   return (
     <div className="planning-item" css={cssStyles}>
-      <span className={`planning-icon ${isActive ? "active" : ""}`}>
+      <span className="planning-icon">
         {isComplete ? (
           <CheckCircleOutlineIcon />
+        ) : isActive ? (
+          <LoadingSpinner inline size={14} />
         ) : (
           <AutorenewIcon />
         )}

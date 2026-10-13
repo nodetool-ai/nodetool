@@ -226,7 +226,7 @@ const WorkspacesManager: React.FC = () => {
         <div className="workspaces-manager">
           {isLoading ? (
             <FlexRow justify="center" align="center" sx={{ py: 4 }}>
-              <LoadingSpinner size={30} />
+              <LoadingSpinner size="medium" />
             </FlexRow>
           ) : error ? (
             <Box className="empty-state">

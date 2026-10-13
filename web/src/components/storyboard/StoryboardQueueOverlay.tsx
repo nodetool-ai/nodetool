@@ -20,6 +20,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  ProgressBar,
   ScrollArea,
   Text,
   ToolbarIconButton,
@@ -94,68 +95,26 @@ const KIND_LABEL = {
   clip: "Clip"
 } satisfies Record<ShotJobKind, string>;
 
-const sweep = keyframes`
-  0% { transform: translateX(-110%); }
-  100% { transform: translateX(320%); }
-`;
-
 const panelEnter = keyframes`
   from { opacity: 0; transform: translateY(6px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 `;
-
-const progressStyles = (theme: Theme) =>
-  css({
-    position: "relative",
-    height: "4px",
-    borderRadius: BORDER_RADIUS.pill,
-    overflow: "hidden",
-    backgroundColor: theme.vars.palette.c_overlay,
-    "&::after": {
-      content: '""',
-      position: "absolute",
-      inset: 0,
-      width: "35%",
-      borderRadius: "inherit",
-      background: `linear-gradient(90deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main})`,
-      animation: `${sweep} ${MOTION.pulse} infinite`
-    },
-    ...reducedMotion({
-      "&::after": { animation: "none", width: "100%", opacity: 0.5 }
-    })
-  });
 
 /**
  * Progress bar under a rendering job: determinate when the run reports
  * progress, an indeterminate sweep otherwise.
  */
 const RenderBar = memo(function RenderBar({ progress }: { progress?: number }) {
-  const theme = useTheme();
-  if (progress != null && progress > 0 && progress < 100) {
-    return (
-      <Box
-        sx={{
-          position: "relative",
-          height: "4px",
-          borderRadius: BORDER_RADIUS.pill,
-          overflow: "hidden",
-          backgroundColor: theme.vars.palette.c_overlay
-        }}
-      >
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            width: `${progress}%`,
-            borderRadius: "inherit",
-            background: `linear-gradient(90deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main})`,
-            transition: `width ${MOTION.normal}`
-          }}
-        />
-      </Box>
-    );
-  }
-  return <Box css={progressStyles(theme)} />;
+  const determinate = progress != null && progress > 0 && progress < 100;
+  return (
+    <ProgressBar
+      value={determinate ? progress : 0}
+      progressVariant={determinate ? "determinate" : "indeterminate"}
+      showValue={false}
+      size="small"
+      aria-label="Rendering"
+    />
+  );
 });
 
 const cardSx: SxProps<Theme> = {

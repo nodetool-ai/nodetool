@@ -281,7 +281,7 @@ export const CodePanel: React.FC = memo(() => {
   if (isLoading) {
     return (
       <FlexColumn align="center" justify="center" fullHeight sx={{ flex: 1 }}>
-        <LoadingSpinner size="small" text="Loading code…" />
+        <LoadingSpinner size="small" text="Loading code" />
       </FlexColumn>
     );
   }

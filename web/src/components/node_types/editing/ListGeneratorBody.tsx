@@ -289,7 +289,7 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
               : "List"
             : `${items.length} item${items.length === 1 ? "" : "s"}`}
         </span>
-        {isRunning && <LoadingSpinner inline size={12} color="inherit" />}
+        {isRunning && <LoadingSpinner inline size={14} color="inherit" />}
       </div>
 
       {items.length === 0 ? (

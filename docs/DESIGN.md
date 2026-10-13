@@ -490,7 +490,7 @@ iteration.
 
 | Token | Value | Use |
 |---|---|---|
-| `MOTION.spin` | `1s linear` | Continuous rotation (loading spinners) |
+| `MOTION.spin` | `1s linear` | Continuous rotation (flowing edges). Loading uses `LoadingSpinner` |
 | `MOTION.pulse` | `2s ease-in-out` | Breathing / pulsing status indicators |
 
 {% raw %}
@@ -1143,6 +1143,44 @@ import { EmptyState, LoadingSpinner, TabGroup, TabPanel } from "../ui_primitives
 | Search | A search or filter with no matches uses `variant="no-results"` |
 | Loading | Never bare "Loading…" text. A dropdown option may keep a disabled "Loading…" item |
 | Tabs | `TabGroup`, not raw `Tabs` and `Tab`. Workspace document tabs and the inspector's counted tabs are their own components |
+
+### Progress and generation status
+
+A wait shows one of five marks, picked by what the user is waiting on. Never
+draw a spinner, bar, sweep or rotating icon of your own.
+
+```tsx
+import {
+  LoadingSpinner, MagicGenerationFill, ProgressBar, StatusPill, ThinkingIndicator
+} from "../ui_primitives";
+
+<LoadingSpinner size="small" text="Loading versions" />
+<EditorButton startIcon={busy ? <LoadingSpinner inline size={16} color="inherit" /> : <SaveIcon />}>
+  {busy ? "Saving…" : "Save"}
+</EditorButton>
+<ProgressBar value={percent} label={file.name} size="small" />
+<ProgressBar value={0} progressVariant="indeterminate" showValue={false} size="small" accent={CLIP_COLOR} aria-label="Rendering clip" />
+<ThinkingIndicator label="Editing video" announce />
+{generating && <MagicGenerationFill borderRadius={BORDER_RADIUS.md} />}
+<StatusPill tone="rendering" accent={CLIP_COLOR}>rendering clip</StatusPill>
+```
+
+| Waiting on | Mark |
+|---|---|
+| A fetch, a save or a step with no measure | `LoadingSpinner`. `small` in a list, row or sidebar, `medium` to fill a panel, `large` to fill a page |
+| Work that reports progress, or a running job under its card | `ProgressBar`, determinate when a value exists and `progressVariant="indeterminate"` until then |
+| A model composing text, a plan or an edit | `ThinkingIndicator` with a label |
+| Media being generated | `MagicGenerationFill` over the media's frame, which needs `position: relative` |
+| The state of a render or a run, after or during it | `StatusPill` on a thumbnail or card, `StatusIndicator` (dot and label) in a list row |
+
+| Part | Rule |
+|---|---|
+| Inline spinner | A spinner that stands in for an icon passes `inline` and that icon's size: 14 beside caption text, in a chip or a step badge, 16 in a button. Inside a button or chip it passes `color="inherit"`. Never set `thickness` or restyle `.MuiCircularProgress-root` |
+| Step in progress | A running step in a plan, todo or timeline shows an inline `LoadingSpinner`, not a rotating `Autorenew` icon |
+| Bar size | `ProgressBar` is 6px on its own line and `size="small"` (4px) on a card edge or in a dense row. Never set its `height`, track colour or bar colour through `sx` |
+| Bar colour | Primary by default. A surface's own colour (a clip, a node namespace) goes in `accent`. A stalled transfer passes `color="warning"`. One colour per bar, no gradients |
+| Accessible name | A labelled `ProgressBar` takes its name from `label`. A bar with no visible label passes `aria-label`. A `ThinkingIndicator` that is the only sign of the wait passes `announce` |
+| Text | Sentence case. The `text` of `LoadingSpinner` and the `label` of `ThinkingIndicator` carry no ellipsis, because the mark already moves: "Loading models". A busy label written as text, on a button or in a caption, ends with one "…" character, never three dots: "Saving…", "Generating…" |
 
 ---
 

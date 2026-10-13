@@ -209,7 +209,7 @@ const fileToTreeItem = (file: FileInfo): TreeViewItem => {
     item.children = [
       {
         id: file.path + "/loading",
-        label: "loading...",
+        label: "Loading…",
         className: "loading-item",
         children: []
       }
@@ -271,7 +271,7 @@ const depthOf = (path: string): number => path.split("/").length;
 
 const shouldLoadChildren = (item: TreeViewItem | undefined): boolean => {
   return Boolean(
-    item?.children?.length === 1 && item.children[0].label === "loading..."
+    item?.children?.length === 1 && item.children[0].label === "Loading…"
   );
 };
 
@@ -321,7 +321,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
   // The query answers with the root listing; lazily-loaded children are merged
   // into this copy as folders expand.
   //
-  // A refetch replaces the whole tree, which puts a `loading...` placeholder
+  // A refetch replaces the whole tree, which puts a `Loading…` placeholder
   // back under every folder that was open — and nothing would ever replace it,
   // because MUI keeps its expansion state and so fires no expand event. The
   // open folders are therefore re-listed here, which is also what makes a file

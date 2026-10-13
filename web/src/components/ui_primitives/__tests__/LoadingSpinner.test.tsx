@@ -32,66 +32,26 @@ describe("LoadingSpinner", () => {
     });
   });
 
-  describe("variants", () => {
-    it("renders circular variant", () => {
-      const { container } = renderWithTheme(<LoadingSpinner variant="circular" />);
-
-      const circularProgress = container.querySelector("svg");
-      expect(circularProgress).toBeInTheDocument();
-    });
-
-    it("renders dots variant", () => {
-      const { container } = renderWithTheme(<LoadingSpinner variant="dots" />);
-
-      const dotsContainer = container.querySelector(".dots-container");
-      expect(dotsContainer).toBeInTheDocument();
-
-      const dots = container.querySelectorAll(".dot");
-      expect(dots).toHaveLength(3);
-    });
-  });
-
   describe("sizes", () => {
-    it("renders with small size", () => {
-      const { container } = renderWithTheme(<LoadingSpinner size="small" />);
+    it.each([
+      ["small", 20],
+      ["medium", 32],
+      ["large", 48]
+    ] as const)("draws the %s preset at %ipx", (size, px) => {
+      const { container } = renderWithTheme(<LoadingSpinner size={size} />);
 
-      const spinner = container.querySelector(".loading-spinner");
-      expect(spinner).toBeInTheDocument();
-
-      const dots = container.querySelectorAll(".dot");
-      if (dots.length > 0) {
-        const firstDotStyles = window.getComputedStyle(dots[0]!);
-        expect(firstDotStyles.width).toBe("6px");
-        expect(firstDotStyles.height).toBe("6px");
-      }
+      const ring = container.querySelector(".MuiCircularProgress-root");
+      expect(ring).toHaveStyle({ width: `${px}px`, height: `${px}px` });
     });
 
-    it("renders with medium size (default)", () => {
-      const { container } = renderWithTheme(<LoadingSpinner size="medium" />);
+    it("renders an inline icon-sized ring with no status wrapper", () => {
+      const { container } = renderWithTheme(<LoadingSpinner inline size={14} />);
 
-      const spinner = container.querySelector(".loading-spinner");
-      expect(spinner).toBeInTheDocument();
-
-      const dots = container.querySelectorAll(".dot");
-      if (dots.length > 0) {
-        const firstDotStyles = window.getComputedStyle(dots[0]!);
-        expect(firstDotStyles.width).toBe("8px");
-        expect(firstDotStyles.height).toBe("8px");
-      }
-    });
-
-    it("renders with large size", () => {
-      const { container } = renderWithTheme(<LoadingSpinner size="large" />);
-
-      const spinner = container.querySelector(".loading-spinner");
-      expect(spinner).toBeInTheDocument();
-
-      const dots = container.querySelectorAll(".dot");
-      if (dots.length > 0) {
-        const firstDotStyles = window.getComputedStyle(dots[0]!);
-        expect(firstDotStyles.width).toBe("12px");
-        expect(firstDotStyles.height).toBe("12px");
-      }
+      expect(container.querySelector(".loading-spinner")).not.toBeInTheDocument();
+      const ring = container.querySelector(".MuiCircularProgress-root");
+      expect(ring).toHaveStyle({ width: "14px", height: "14px" });
+      // Small rings use a heavier stroke than MUI's 3.6 default.
+      expect(container.querySelector("circle")).toHaveAttribute("stroke-width", "5");
     });
   });
 
@@ -104,9 +64,9 @@ describe("LoadingSpinner", () => {
     });
 
     it("renders with custom text", () => {
-      renderWithTheme(<LoadingSpinner text="Loading data..." />);
+      renderWithTheme(<LoadingSpinner text="Loading data" />);
 
-      expect(screen.getByText("Loading data...")).toBeInTheDocument();
+      expect(screen.getByText("Loading data")).toBeInTheDocument();
     });
 
     it("applies loading-text class to text element", () => {
@@ -160,35 +120,10 @@ describe("LoadingSpinner", () => {
   });
 
   describe("combinations", () => {
-    it("renders dots variant with text and custom className", () => {
-      const { container } = renderWithTheme(
-        <LoadingSpinner variant="dots" text="Loading..." className="my-spinner" />
-      );
-
-      const spinner = container.querySelector(".loading-spinner");
-      expect(spinner).toHaveClass("my-spinner");
-
-      expect(screen.getByText("Loading...")).toBeInTheDocument();
-
-      const dotsContainer = container.querySelector(".dots-container");
-      expect(dotsContainer).toBeInTheDocument();
-    });
-
     it("renders small size with text", () => {
-      renderWithTheme(<LoadingSpinner size="small" text="Processing..." />);
+      renderWithTheme(<LoadingSpinner size="small" text="Processing" />);
 
-      expect(screen.getByText("Processing...")).toBeInTheDocument();
-    });
-
-    it("renders large dots variant with text", () => {
-      const { container } = renderWithTheme(
-        <LoadingSpinner size="large" variant="dots" text="Loading large..." />
-      );
-
-      const dots = container.querySelectorAll(".dot");
-      expect(dots).toHaveLength(3);
-
-      expect(screen.getByText("Loading large...")).toBeInTheDocument();
+      expect(screen.getByText("Processing")).toBeInTheDocument();
     });
   });
 
@@ -206,15 +141,6 @@ describe("LoadingSpinner", () => {
       const textElement = container.querySelector(".loading-text");
       expect(textElement).toBeInTheDocument();
       expect(textElement).toHaveTextContent("Loading content");
-    });
-  });
-
-  describe("exported types", () => {
-    it("exports LoadingVariant type", () => {
-      // This test ensures the type is exported correctly
-      // If this compiles, the type export is working
-      const variant: "circular" | "dots" = "circular";
-      expect(variant).toBe("circular");
     });
   });
 });

@@ -7,6 +7,7 @@ import {
   FlexColumn,
   FlexRow,
   PanelHeader,
+  ProgressBar,
   Text,
   ToolbarIconButton,
   Tooltip,
@@ -49,11 +50,6 @@ const formatClock = (startedAt: string | null | undefined, now: number) => {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 };
 
-const sweep = keyframes`
-  0% { transform: translateX(-110%); }
-  100% { transform: translateX(320%); }
-`;
-
 const panelEnter = keyframes`
   from { opacity: 0; transform: translateY(-6px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -64,31 +60,17 @@ const panelExit = keyframes`
   to { opacity: 0; transform: translateY(-6px) scale(0.98); }
 `;
 
-const progressStyles = (theme: Theme) =>
-  css({
-    position: "relative",
-    height: "4px",
-    borderRadius: BORDER_RADIUS.pill,
-    overflow: "hidden",
-    backgroundColor: theme.vars.palette.c_overlay,
-    "&::after": {
-      content: '""',
-      position: "absolute",
-      inset: 0,
-      width: "35%",
-      borderRadius: "inherit",
-      background: `linear-gradient(90deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main})`,
-      animation: `${sweep} ${MOTION.pulse} infinite`
-    },
-    ...reducedMotion({
-      "&::after": { animation: "none", width: "100%", opacity: 0.5 }
-    })
-  });
-
-/** Indeterminate gradient progress bar shown under a running job. */
+/** Indeterminate progress bar shown under a running job. */
 const RunBar = memo(function RunBar() {
-  const theme = useTheme();
-  return <Box css={progressStyles(theme)} />;
+  return (
+    <ProgressBar
+      value={0}
+      progressVariant="indeterminate"
+      showValue={false}
+      size="small"
+      aria-label="Running"
+    />
+  );
 });
 
 /** Job title — the stored run name, falling back to the workflow name. */
