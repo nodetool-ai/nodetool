@@ -24,6 +24,7 @@
  * namespaces".
  */
 
+import { countTokens, initializeTokenCounter } from "@nodetool-ai/runtime";
 import type {
   JsonSchema,
   ProcessingContext,
@@ -66,7 +67,6 @@ export function fileCapabilityRun(context: ProcessingContext): CapabilityRun {
 
 const MAX_READ_CHARS = 100_000;
 const MAX_TOKENS = 25_000;
-const TOKEN_MODEL = "gpt-4" as const;
 const DEFAULT_READ_LIMIT = 2000;
 
 /** Context variable holding the set of file paths read in this session. */
@@ -155,12 +155,6 @@ function formatNumberedLines(content: string, startLine: number): string {
   return lines
     .map((line, i) => `${String(startLine + i).padStart(width, " ")}\t${line}`)
     .join("\n");
-}
-
-async function countTokens(text: string): Promise<number> {
-  const { encodingForModel } = await import("js-tiktoken");
-  const enc = encodingForModel(TOKEN_MODEL);
-  return enc.encode(text).length;
 }
 
 function isBinaryBytes(bytes: Uint8Array): boolean {
@@ -276,7 +270,8 @@ const readFileCapability: CapabilityExport = {
     const truncated = slice.length > MAX_READ_CHARS;
     const content = truncated ? slice.slice(0, MAX_READ_CHARS) : slice;
 
-    const tokenCount = await countTokens(content);
+    await initializeTokenCounter();
+    const tokenCount = countTokens(content);
     if (tokenCount > MAX_TOKENS) {
       return (
         `Error: requested window (${endIdx - startIdx} lines) is ` +

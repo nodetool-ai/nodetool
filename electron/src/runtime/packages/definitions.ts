@@ -293,4 +293,15 @@ export const RUNTIME_PACKAGES = {
     packageNames: ["imapflow", "mailparser"],
     approxSizeMB: 5,
   }),
+  tokenizer: new NpmRuntimePackage({
+    id: "tokenizer",
+    name: "Token Counting (js-tiktoken)",
+    description:
+      "Counts tokens exactly for OpenAI encodings. Without it, token counts are a conservative estimate.",
+    category: "library",
+    versionRange: "1.x",
+    npmPackages: ["js-tiktoken@1.0.21"],
+    packageNames: ["js-tiktoken"],
+    approxSizeMB: 22,
+  }),
 } satisfies Record<RuntimePackageId, RuntimePackage>;

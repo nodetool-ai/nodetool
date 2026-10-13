@@ -25,7 +25,8 @@ export type RuntimePackageId =
   | "office-documents"
   | "tesseract-ocr"
   | "fabric"
-  | "email-imap";
+  | "email-imap"
+  | "tokenizer";
 
 /** Display names for the runtime packages, as the Package Manager lists them. */
 export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> = {
@@ -47,7 +48,8 @@ export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> =
   "office-documents": "Office Documents",
   "tesseract-ocr": "Tesseract OCR",
   fabric: "Fabric.js",
-  "email-imap": "Email (IMAP)"
+  "email-imap": "Email (IMAP)",
+  tokenizer: "Token Counting (js-tiktoken)"
 };
 
 const MISSING_RUNTIME_PACKAGE = Symbol.for("nodetool.missingRuntimePackage");

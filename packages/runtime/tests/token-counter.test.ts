@@ -1,8 +1,10 @@
 /**
  * Unit tests for the shared js-tiktoken token counter.
  */
-import { describe, it, expect } from "vitest";
-import { countTokens, truncateToTokens } from "../src/token-counter.js";
+import { beforeAll, describe, it, expect } from "vitest";
+import { countTokens, truncateToTokens, initializeTokenCounter } from "../src/token-counter.js";
+
+beforeAll(initializeTokenCounter);
 
 describe("countTokens", () => {
   it("returns 0 for empty/nullish input", () => {

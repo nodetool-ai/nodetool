@@ -239,6 +239,8 @@ const SERVER_OPTIONAL_PACKAGES = [
   // email-imap
   "imapflow",
   "mailparser",
+  // tokenizer
+  "js-tiktoken",
   // headless Chromium driver: RenderTimeline (packages/video-nodes
   // browserRender.ts) and 3D game capture (packages/game-renderer node3d.ts).
   // The image's Chromium is /usr/bin/chromium, through CHROME_PATH.

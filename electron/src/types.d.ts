@@ -930,7 +930,8 @@ export type RuntimePackageId =
   | "office-documents"
   | "tesseract-ocr"
   | "fabric"
-  | "email-imap";
+  | "email-imap"
+  | "tokenizer";
 
 export interface RuntimePackageStatus {
   id: RuntimePackageId;
