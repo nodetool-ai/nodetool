@@ -2,6 +2,7 @@ import { Texture } from "three";
 import { gameAssetBinding3D } from "@nodetool-ai/protocol";
 import type { GameImageSources3D, PreparedGameImage3D } from "./image-contract.js";
 import { prepareGameImage3D } from "./image-preparation.js";
+import { GAME_MODEL_BUDGETS } from "../preparation.js";
 
 /** Decodes prepared bytes without issuing a URL request, retaining bitmap ownership until texture disposal. */
 export async function decodeGameImage3D(image: PreparedGameImage3D, signal: AbortSignal): Promise<Texture> {
@@ -21,12 +22,14 @@ interface ImageEntry3D {
   readonly pending: Promise<Texture>;
   texture?: Texture;
   textureBytes: number;
+  readonly release: () => void;
 }
 
 /** Owns canonical image textures. Materials clone them when choosing UV transforms or color space. */
 export class GameImageCache3D {
   private readonly entries = new Map<string, ImageEntry3D>();
   private disposed = false;
+  private reservedBytes = 0;
   private readonly onAbort = (): void => this.dispose();
   constructor(private readonly sources: GameImageSources3D, private readonly signal: AbortSignal) {
     signal.addEventListener("abort", this.onAbort, { once: true });
@@ -40,7 +43,13 @@ export class GameImageCache3D {
     if (existing) { return existing.pending; }
     const controller = new AbortController();
     const signal = AbortSignal.any([this.signal, controller.signal]);
-    const entry: ImageEntry3D = { controller, textureBytes: 0, pending: this.load(logicalId, signal).then((texture) => {
+    let reservation = 0;
+    const reserve = (bytes: number): void => {
+      if (this.reservedBytes + bytes > GAME_MODEL_BUDGETS.maxTextureBytes) { throw new Error("Image cache exceeds aggregate texture byte budget"); }
+      this.reservedBytes += bytes; reservation = bytes;
+    };
+    const release = (): void => { this.reservedBytes -= reservation; reservation = 0; };
+    const entry: ImageEntry3D = { controller, release, textureBytes: 0, pending: this.load(logicalId, signal, reserve).then((texture) => {
       if (signal.aborted || this.disposed) { texture.dispose(); signal.throwIfAborted(); throw new Error("Image cache is disposed"); }
       entry.texture = texture;
       const image: unknown = texture.image;
@@ -48,11 +57,15 @@ export class GameImageCache3D {
         entry.textureBytes = image.width * image.height * 4;
       }
       return texture;
+    }).catch((error: unknown) => {
+      release();
+      if (this.entries.get(logicalId) === entry) { this.entries.delete(logicalId); }
+      throw error;
     }) };
     this.entries.set(logicalId, entry);
     return entry.pending;
   }
-  private async load(logicalId: string, signal: AbortSignal): Promise<Texture> {
+  private async load(logicalId: string, signal: AbortSignal, reserve: (bytes: number) => void): Promise<Texture> {
     const source = await this.sources.resolveImage?.(logicalId, signal);
     signal.throwIfAborted();
     if (!source) { throw new Error(`Image asset ${logicalId} is missing`); }
@@ -63,6 +76,8 @@ export class GameImageCache3D {
     if (binding.width !== checked.image.binding.width || binding.height !== checked.image.binding.height || binding.format !== checked.image.binding.format || binding.byteLength !== source.bytes.length) {
       throw new Error("Image source metadata does not match binding");
     }
+    signal.throwIfAborted();
+    reserve(binding.width * binding.height * 4);
     const texture = await (this.sources.decodeImage ?? decodeGameImage3D)(checked.image, signal);
     try {
       signal.throwIfAborted();
@@ -76,13 +91,20 @@ export class GameImageCache3D {
   async invalidate(slot: string): Promise<void> {
     const entry = this.entries.get(slot);
     this.entries.delete(slot);
-    if (entry) { entry.controller.abort(); entry.texture?.dispose(); entry.texture = undefined; await entry.pending.catch(() => undefined); }
+    if (entry) {
+      entry.controller.abort();
+      if (entry.texture) { entry.texture.dispose(); entry.texture = undefined; entry.release(); }
+      await entry.pending.catch(() => undefined);
+    }
   }
   dispose(): void {
     if (this.disposed) { return; }
     this.disposed = true;
     this.signal.removeEventListener("abort", this.onAbort);
-    for (const entry of this.entries.values()) { entry.controller.abort(); entry.texture?.dispose(); }
+    for (const entry of this.entries.values()) {
+      entry.controller.abort();
+      if (entry.texture) { entry.texture.dispose(); entry.release(); }
+    }
     this.entries.clear();
   }
 }

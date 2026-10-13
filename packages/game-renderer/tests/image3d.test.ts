@@ -128,3 +128,40 @@ describe("prepared primitive image assets", () => {
     await invalidation; await rejection; expect(disposal).toHaveBeenCalledTimes(1); expect(cache.textureBytes).toBe(0); cache.dispose();
   });
 });
+
+describe("aggregate primitive texture budget", () => {
+  async function largeImage(): Promise<PreparedGameImage3D> {
+    const bytes = new Uint8Array(createCanvas(4096, 4096).toBuffer("image/png"));
+    const result = await prepareGameImage3D(bytes, { assetId: "large" });
+    if (!result.ok) { throw new Error(result.diagnostics[0]?.message); }
+    return result.image;
+  }
+  it("reserves concurrent decodes and retains canceled reservations until decoding finishes", async () => {
+    const image = await largeImage();
+    const started = Promise.withResolvers<void>();
+    const pending = Promise.withResolvers<void>();
+    const decoder = vi.fn(async () => {
+      if (decoder.mock.calls.length === 2) { started.resolve(); }
+      await pending.promise; return new Texture({ width: 4096, height: 4096 });
+    });
+    const cache = new GameImageCache3D({ resolveImage: async () => image, decodeImage: decoder }, new AbortController().signal);
+    const first = cache.get("first"); const second = cache.get("second");
+    const firstRejection = expect(first).rejects.toMatchObject({ name: "AbortError" });
+    await started.promise;
+    await expect(cache.get("third")).rejects.toThrow("aggregate texture byte budget"); expect(decoder).toHaveBeenCalledTimes(2);
+    const invalidated = cache.invalidate("first");
+    await expect(cache.get("fourth")).rejects.toThrow("aggregate texture byte budget");
+    pending.resolve();
+    await invalidated; await firstRejection; await second;
+    await cache.invalidate("third");
+    expect(await cache.get("third")).toBeInstanceOf(Texture);
+    expect(cache.textureBytes).toBe(128 * 1024 * 1024); cache.dispose(); expect(cache.textureBytes).toBe(0);
+  });
+  it("releases failed decoder reservations so other assets remain loadable", async () => {
+    const image = await largeImage();
+    const decoder = vi.fn(async () => { throw new Error("decode failed"); });
+    const cache = new GameImageCache3D({ resolveImage: async () => image, decodeImage: decoder }, new AbortController().signal);
+    for (const slot of ["one", "two", "one"]) { await expect(cache.get(slot)).rejects.toThrow("decode failed"); }
+    expect(decoder).toHaveBeenCalledTimes(3); expect(cache.textureBytes).toBe(0); cache.dispose();
+  });
+});
