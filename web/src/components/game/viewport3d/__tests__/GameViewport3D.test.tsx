@@ -101,7 +101,7 @@ async function mountViewport(useCommandStore = false, useShell = false) {
   const host: GamePlaySession3D = {
     canvasRef, rendererRef: { current: renderer }, inputRef: { current: new GameInput3D() },
     frame, inspection: null, backend: "webgl2", playing: false, playDocument: null, error: null,
-    beginPlay: jest.fn(), stop: jest.fn(), step: jest.fn(), save: jest.fn(),
+    beginPlay: jest.fn(), restart: jest.fn(), stop: jest.fn(), step: jest.fn(), save: jest.fn(),
     load: jest.fn().mockResolvedValue(undefined), replayBeforeError: jest.fn().mockResolvedValue(undefined)
   };
   const store = getGameDraftStore("viewport3d-command-gesture");
@@ -290,7 +290,7 @@ it("releases pointer lock when a running play session fails", async () => {
   const inputRef = { current: input };
   const host = (playing: boolean, error: string | null): GamePlaySession3D => ({
     canvasRef, rendererRef: { current: null }, inputRef, frame: session.frame(), inspection: null,
-    backend: "webgl2", playing, playDocument: document, error, beginPlay: jest.fn(), stop: jest.fn(), step: jest.fn(),
+    backend: "webgl2", playing, playDocument: document, error, beginPlay: jest.fn(), restart: jest.fn(), stop: jest.fn(), step: jest.fn(),
     save: jest.fn(), load: jest.fn().mockResolvedValue(undefined), replayBeforeError: jest.fn().mockResolvedValue(undefined)
   });
   const view = (playing: boolean, error: string | null) => <ThemeProvider theme={createTheme({ cssVariables: true })}>
@@ -348,7 +348,7 @@ async function mountSceneViewport(selectedIds: string[]) {
   const host: GamePlaySession3D = {
     canvasRef: createRef<HTMLCanvasElement>(), rendererRef: { current: renderer }, inputRef: { current: new GameInput3D() },
     frame, inspection: null, backend: "webgl2", playing: false, playDocument: null, error: null,
-    beginPlay: jest.fn(), stop: jest.fn(), step: jest.fn(), save: jest.fn(),
+    beginPlay: jest.fn(), restart: jest.fn(), stop: jest.fn(), step: jest.fn(), save: jest.fn(),
     load: jest.fn().mockResolvedValue(undefined), replayBeforeError: jest.fn().mockResolvedValue(undefined)
   };
   const store = getGameDraftStore("viewport3d-multi-select");
