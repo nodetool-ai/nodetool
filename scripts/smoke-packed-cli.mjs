@@ -5,7 +5,8 @@
  * keychain, no provider keys. A fresh test-only master key keeps secret-store
  * initialization independent of the host keychain.
  *
- * Every public workspace is packed with `npm pack`. A throwaway project
+ * By default every public workspace is packed with `npm pack`. Pass
+ * `--tarballs-dir` to reuse the release tarballs. A throwaway project
  * depends on the CLI tarball, and `overrides` point every other workspace
  * name at its tarball, so npm resolves the whole tree the way the registry
  * would after a complete publish, without touching the registry for our own
@@ -20,7 +21,7 @@
  *   5. `nodetool serve` answers `GET /health`.
  *
  * Usage:
- *   node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>]
+ *   node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>] [--tarballs-dir <dir>]
  */
 
 import { randomBytes } from "node:crypto";
@@ -121,7 +122,7 @@ function run(cmd, args, opts) {
   return res.stdout;
 }
 
-function pack(packages, dest) {
+export function pack(packages, dest) {
   const tarballs = {};
   for (const { name, dir } of packages) {
     const out = run(
@@ -132,6 +133,26 @@ function pack(packages, dest) {
     const [info] = JSON.parse(out);
     tarballs[name] = join(dest, info.filename);
   }
+  return tarballs;
+}
+
+/** Reuse the exact release tarballs rather than packing the workspaces again. */
+export function existingTarballs(packages, directory) {
+  const expected = new Map(packages.map((pkg) => [pkg.name, pkg.version]));
+  const tarballs = {};
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith(".tgz")) { continue; }
+    const file = resolve(directory, entry.name);
+    const manifest = JSON.parse(run("tar", ["-xOf", file, "package/package.json"], {}));
+    if (!expected.has(manifest.name)) { continue; }
+    if (manifest.version !== expected.get(manifest.name)) {
+      throw new Error(`${manifest.name} tarball version ${manifest.version} differs from workspace ${expected.get(manifest.name)}`);
+    }
+    if (tarballs[manifest.name]) { throw new Error(`Duplicate tarball for ${manifest.name}`); }
+    tarballs[manifest.name] = file;
+  }
+  const missing = [...expected.keys()].filter((name) => !tarballs[name]);
+  if (missing.length > 0) { throw new Error(`Missing release tarballs: ${missing.join(", ")}`); }
   return tarballs;
 }
 
@@ -250,17 +271,19 @@ async function main() {
     options: {
       keep: { type: "boolean", default: false },
       "work-dir": { type: "string" },
+      "tarballs-dir": { type: "string" },
       help: { type: "boolean", short: "h", default: false }
     }
   });
   if (values.help) {
-    console.log(`Usage: node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>]
+    console.log(`Usage: node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>] [--tarballs-dir <dir>]
 
 Packs every public workspace, installs ${CLI_NAME} from the tarballs into an
 empty project, and runs it against an empty HOME.
 
   --keep            Keep the work directory for inspection
-  --work-dir <dir>  Use this directory instead of a new temp directory`);
+  --work-dir <dir>  Use this directory instead of a new temp directory
+  --tarballs-dir <dir>  Reuse release tarballs, checking workspace names and versions`);
     return;
   }
 
@@ -277,8 +300,10 @@ empty project, and runs it against an empty HOME.
     const cli = packages.find((p) => p.name === CLI_NAME);
     if (!cli) throw new Error(`${CLI_NAME} is not a public workspace`);
 
-    console.log(`Packing ${packages.length} package(s) into ${tarballDir}`);
-    const tarballs = pack(packages, tarballDir);
+    const tarballs = values["tarballs-dir"]
+      ? existingTarballs(packages, resolve(values["tarballs-dir"]))
+      : pack(packages, tarballDir);
+    console.log(`Using ${packages.length} packed package(s)`);
 
     writeFileSync(
       join(appDir, "package.json"),
@@ -289,7 +314,6 @@ empty project, and runs it against an empty HOME.
       cwd: appDir,
       stdio: ["ignore", "pipe", "pipe"]
     });
-
     const diskUsage = run("du", ["-sk", "node_modules"], { cwd: appDir }).trim();
     console.log(`Packed CLI disk usage (KiB, report only): ${diskUsage}`);
 
