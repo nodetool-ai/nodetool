@@ -71,7 +71,7 @@ it("preserves a preset sun edited into a physics entity and allocates a new pure
   const document = apply(createNative3DGame("edited-preset-sun"), "sunny-day");
   const edited = document.scenes[0].entities.at(-1);
   if (!edited) { throw new Error("Preset sun missing"); }
-  edited.body3d = { type: "static" };
+  edited.body3d = gameEntity3D.parse({ ...edited, body3d: { type: "static" } }).body3d;
   const before = structuredClone(edited);
   const result = apply(document, "night");
   expect(result.scenes[0].entities.find((entity) => entity.id === edited.id)).toEqual(before);
