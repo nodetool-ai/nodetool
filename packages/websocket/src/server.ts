@@ -23,7 +23,8 @@ import {
   configureLogging,
   getDefaultDbPath,
   getPostgresDatabaseUrl,
-  loadEnvironment
+  loadEnvironment,
+  applyRuntimeEnv
 } from "@nodetool-ai/config";
 import {
   bootstrapNodeRegistry,
@@ -261,6 +262,9 @@ type ElectronProcess = typeof process & { readonly type?: string };
 }
 
 loadEnvironment(resolve(dirname(fileURLToPath(import.meta.url)), "../../.."));
+process.env["NODETOOL_HOST"] ??= "source";
+process.env["NODETOOL_SERVER_PROCESS"] = "1";
+applyRuntimeEnv();
 const packSource = options.packSource ?? await loadBundledPackSource();
 setDefaultPackSource(packSource);
 const isProduction = process.env["NODETOOL_ENV"] === "production";

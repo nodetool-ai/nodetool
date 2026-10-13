@@ -22,6 +22,7 @@ import { getTsxWatchCommand } from "./dev-commands.mjs";
 import { ensurePortsFree, findListenerPids } from "./dev-ports.mjs";
 
 const mode = process.argv[2] ?? "server";
+process.env.NODETOOL_HOST ??= "source";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(scriptDir, "..");
 

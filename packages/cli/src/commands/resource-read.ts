@@ -169,8 +169,7 @@ export function registerResourceReadCommands(
         }
         emitList(opts, rows, WORKFLOW_FIELDS, ["id", "name", "updated_at"]);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 
@@ -205,8 +204,7 @@ export function registerResourceReadCommands(
           "updated_at"
         ]);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 
@@ -249,8 +247,7 @@ export function registerResourceReadCommands(
           "cost"
         ]);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 
@@ -286,8 +283,7 @@ export function registerResourceReadCommands(
           "cost"
         ]);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 
@@ -344,8 +340,7 @@ export function registerResourceReadCommands(
           "size"
         ]);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 
@@ -381,8 +376,7 @@ export function registerResourceReadCommands(
           "created_at"
         ]);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 }

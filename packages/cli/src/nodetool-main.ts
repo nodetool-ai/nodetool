@@ -36,7 +36,6 @@ import { installLocalModelInterfaces } from "./local-model-interfaces.js";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import {
   ExecutionSession,
-  isExecutionPreflightError,
   type RawGraphInput
 } from "@nodetool-ai/execution";
 import {
@@ -105,7 +104,7 @@ import {
 } from "./providers.js";
 import { isString } from "./predicates.js";
 import { printTable, asJson, readSecretValue } from "./commands/output.js";
-import { printCommandError } from "./command-errors.js";
+import { printCommandError, commandMissingRuntime } from "./command-errors.js";
 import { childExitCode } from "./child-exit.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -260,15 +259,6 @@ async function makeLocalAssetFetcher(): Promise<
 // installing them before `setupDb()` is safe.
 await installLocalModelInterfaces();
 
-/**
- * What to print when a run command fails. A preflight refusal already reads as
- * a complete explanation — printing the error class in front of it only buries
- * the secret name the user has to go set.
- */
-function describeRunFailure(error: unknown): string {
-  return isExecutionPreflightError(error) ? error.message : String(error);
-}
-
 // ---------------------------------------------------------------------------
 // info
 // ---------------------------------------------------------------------------
@@ -379,8 +369,7 @@ addSupervisorOptions(
         }
       }
     } catch (e) {
-      console.error(describeRunFailure(e));
-      process.exit(1);
+      process.exit(printCommandError(e, opts.json));
     }
   }
 );
@@ -721,6 +710,9 @@ addSupervisorOptions(
         : Promise.resolve();
 
       const result = await session.result;
+      if (result.status === "failed" && commandMissingRuntime(result)) {
+        process.exit(printCommandError(result, opts.json));
+      }
       await interventionLines;
       supervisor?.handle.close();
 
@@ -757,8 +749,7 @@ addSupervisorOptions(
 
       process.exit(result.status === "completed" ? 0 : 1);
     } catch (e) {
-      console.error(describeRunFailure(e));
-      process.exit(1);
+      process.exit(printCommandError(e, opts.json));
     }
   }
 );
@@ -823,8 +814,7 @@ workflows
 
         console.log(script.code);
       } catch (e) {
-        printCommandError(e);
-        process.exit(1);
+        process.exit(printCommandError(e));
       }
     }
   );
@@ -886,8 +876,7 @@ workflows
 
         console.log(source);
       } catch (e) {
-        printCommandError(e);
-        process.exit(1);
+        process.exit(printCommandError(e));
       }
     }
   );
@@ -1058,8 +1047,7 @@ workflows
         }
         console.log(outPath);
       } catch (e) {
-        printCommandError(e);
-        process.exit(1);
+        process.exit(printCommandError(e));
       }
     }
   );
@@ -1176,8 +1164,7 @@ workflows
         );
         console.log(outPath);
       } catch (e) {
-        printCommandError(e);
-        process.exit(1);
+        process.exit(printCommandError(e));
       }
     }
   );
@@ -1245,8 +1232,7 @@ workflows
         }
       }
     } catch (e) {
-      printCommandError(e, opts.json);
-      process.exit(1);
+      process.exit(printCommandError(e, opts.json));
     }
   });
 
@@ -1325,8 +1311,7 @@ models
       }
       printTable(rows.map(modelRow));
     } catch (e) {
-      printCommandError(e, opts.json);
-      process.exit(1);
+      process.exit(printCommandError(e, opts.json));
     }
   });
 
@@ -1349,8 +1334,7 @@ models
         }))
       );
     } catch (e) {
-      printCommandError(e, opts.json);
-      process.exit(1);
+      process.exit(printCommandError(e, opts.json));
     }
   });
 
@@ -1384,8 +1368,7 @@ models
       }
       printTable(rows.map(modelRow));
     } catch (e) {
-      printCommandError(e, opts.json);
-      process.exit(1);
+      process.exit(printCommandError(e, opts.json));
     }
   });
 
@@ -1439,8 +1422,7 @@ models
       }
       printTable(rows.map(modelRow));
     } catch (e) {
-      printCommandError(e, opts.json);
-      process.exit(1);
+      process.exit(printCommandError(e, opts.json));
     }
   });
 
@@ -1468,8 +1450,7 @@ models
       }
       printTable(rows.map(modelRow));
     } catch (e) {
-      printCommandError(e, opts.json);
-      process.exit(1);
+      process.exit(printCommandError(e, opts.json));
     }
   });
 
@@ -1508,8 +1489,7 @@ storage
       }
       if (report.failed > 0) process.exit(1);
     } catch (e) {
-      printCommandError(e, opts.json);
-      process.exit(1);
+      process.exit(printCommandError(e, opts.json));
     }
   });
 
@@ -1542,8 +1522,7 @@ workflows
       }
       if (report.failed > 0) process.exit(1);
     } catch (e) {
-      printCommandError(e, opts.json);
-      process.exit(1);
+      process.exit(printCommandError(e, opts.json));
     }
   });
 
@@ -1571,8 +1550,7 @@ secrets
         items.map((s) => ({ key: s.key, updated_at: s.updated_at ?? "" }))
       );
     } catch (e) {
-      printCommandError(e);
-      process.exit(1);
+      process.exit(printCommandError(e));
     }
   });
 
@@ -1595,8 +1573,7 @@ secrets
       });
       console.log(`Secret '${key}' stored.`);
     } catch (e) {
-      printCommandError(e);
-      process.exit(1);
+      process.exit(printCommandError(e));
     }
   });
 
@@ -1614,8 +1591,7 @@ secrets
       }
       console.log(value);
     } catch (e) {
-      printCommandError(e);
-      process.exit(1);
+      process.exit(printCommandError(e));
     }
   });
 
@@ -1719,8 +1695,7 @@ mcp
       // The stdio transport keeps the event loop alive until the client
       // closes the connection.
     } catch (e) {
-      printCommandError(e);
-      process.exit(1);
+      process.exit(printCommandError(e));
     }
   });
 

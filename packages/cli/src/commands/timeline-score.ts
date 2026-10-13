@@ -106,8 +106,7 @@ export function registerTimelineScoreCommand(
           opts.minScore !== undefined && result.score < opts.minScore;
         process.exit(failed ? 1 : 0);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 }

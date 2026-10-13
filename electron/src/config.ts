@@ -8,6 +8,7 @@ import { readSettings, updateSetting } from "./settings";
 import { getSystemDataPath } from "./systemPaths";
 import { uvToolDirs } from "./runtime/packages/uvToolDirs";
 import { isString } from "./typePredicates";
+import { applyRuntimeEnv, runtimeLocations } from "@nodetool-ai/config";
 
 // Base paths
 const srcPath: string = __dirname;
@@ -32,31 +33,20 @@ const PID_FILE_PATH: string = path.join(PID_DIRECTORY, "server.pid");
 // IMPORTANT: These paths MUST match getDefaultInstallLocation() in python.ts
 // to avoid looking in the wrong place when settings are unavailable
 const getDefaultCondaEnvPath = (): string => {
-  switch (process.platform) {
-    case "win32":
-      return process.env.ALLUSERSPROFILE
-        ? path.join(process.env.ALLUSERSPROFILE, "nodetool", "conda_env")
-        : path.join(
-            process.env.APPDATA ||
-              path.join(os.homedir(), "AppData", "Roaming"),
-            "nodetool",
-            "conda_env"
-          );
-    case "darwin":
-      // Use ~/nodetool_env to match getDefaultInstallLocation() in python.ts
-      return path.join(os.homedir(), "nodetool_env");
-    case "linux":
-      return process.env.SUDO_USER
-        ? "/opt/nodetool/conda_env"
-        : path.join(os.homedir(), ".local/share/nodetool/conda_env");
-    default:
-      return path.join(os.homedir(), ".nodetool/conda_env");
-  }
+  const location = runtimeLocations({ ...process.env, NODETOOL_HOST: "desktop" }, {
+    desktopUserData: app.getPath("userData"), settings: {}
+  }).condaEnv;
+  if (!location) { throw new Error("The desktop host requires a conda environment location"); }
+  return location;
 };
 
 let cachedCondaEnvPath: string | null = null;
 
 const getCondaEnvPath = (): string => {
+  const override = process.env.NODETOOL_CONDA_ENV?.trim();
+  if (override) {
+    return override;
+  }
   if (cachedCondaEnvPath !== null) {
     return cachedCondaEnvPath;
   }
@@ -349,7 +339,10 @@ const getProcessEnv = (): ProcessEnv => {
     PYTHONUNBUFFERED: "1",
     PYTHONNOUSERSITE: "1",
     UV_CACHE_DIR: uvCacheDir,
-    NODETOOL_OPTIONAL_NODE_MODULES: getOptionalNodeModulesPath(),
+    NODETOOL_HOST: baseEnv.NODETOOL_HOST ?? "desktop",
+    NODETOOL_DESKTOP_USER_DATA: baseEnv.NODETOOL_DESKTOP_USER_DATA ?? userDataPath,
+    NODETOOL_CONDA_ENV: baseEnv.NODETOOL_CONDA_ENV ?? condaPath,
+    NODETOOL_OPTIONAL_NODE_MODULES: baseEnv.NODETOOL_OPTIONAL_NODE_MODULES ?? getOptionalNodeModulesPath(),
     NODETOOL_EXTENSION_DIST: extensionDistPath,
     PATH:
       process.platform === "win32"
@@ -359,6 +352,7 @@ const getProcessEnv = (): ProcessEnv => {
   if (llamaCache) {
     env.LLAMA_CACHE = llamaCache;
   }
+  applyRuntimeEnv(env, { desktopUserData: userDataPath, condaEnv: condaPath });
   return env;
 };
 

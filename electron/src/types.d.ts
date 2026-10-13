@@ -931,9 +931,15 @@ export type RuntimePackageId =
   | "tesseract-ocr"
   | "fabric"
   | "email-imap"
-  | "tokenizer";
+  | "tokenizer"
+  | "imaging"
+  | "typescript"
+  | "tracing"
+  | "esbuild";
 
 export interface RuntimePackageStatus {
+  /** Included in the backend bundle, with no install lifecycle. */
+  bundled?: boolean;
   id: RuntimePackageId;
   name: string;
   description: string;

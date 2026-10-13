@@ -91,8 +91,7 @@ export function registerValidateCommand(program: Command): void {
           (opts.warningsAsErrors === true && report.counts.warnings > 0);
         process.exit(failed ? 1 : 0);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 }

@@ -365,8 +365,7 @@ export function registerTimelineRenderCommand(
         }
         process.exit(result.complete || result.stills ? 0 : 1);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 }

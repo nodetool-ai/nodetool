@@ -5,7 +5,7 @@ import { WsAdapter } from "../ws-adapter.js";
 import { WebSocketClientSession } from "../websocket-client-session.js";
 import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
-import { isPythonNodeType } from "@nodetool-ai/protocol";
+import { isPythonNodeType, missingRuntimePackageError } from "@nodetool-ai/protocol";
 import {
   PythonNodeExecutor,
   getProvider,
@@ -150,6 +150,9 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
         if (catalogEntry && registry.availability(node.type) === "catalog") {
           throw createMissingPackError(catalogEntry.pack, [node.type]);
         }
+        if (!getPythonBridgeReady() && isPythonNodeType(node.type)) {
+          throw missingRuntimePackageError("Python worker", "python");
+        }
         // The bridge is the swappable reference: an attached worker becomes its
         // target, so Python nodes run on the worker even if this connection
         // predates the attach.
@@ -188,6 +191,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
             // blaming an unrelated import failure. Require a non-empty prefix.
             return suffix.length > 0 && node.type.startsWith(suffix);
           });
+          if (!getPythonBridgeReady()) { throw missingRuntimePackageError("Python worker", "python"); }
           throw new Error(
             getPythonBridgeReady()
               ? `Python node "${node.type}" cannot execute: it is declared in metadata but was not loaded by the Python worker.${matchingLoadError ? ` Load error: ${matchingLoadError.module}: ${matchingLoadError.error}.` : stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : " Check Python worker status/load errors for import failures."}`

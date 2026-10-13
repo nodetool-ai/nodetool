@@ -53,6 +53,16 @@ export {
 export { importOptionalModule } from "./optional-modules.js";
 
 export {
+  runtimeLocations,
+  runtimeBinPath,
+  applyRuntimeEnv,
+  isNodetoolHost,
+  type NodetoolHost,
+  type RuntimeLocations,
+  type RuntimeLocationOptions
+} from "./runtime-locations.js";
+
+export {
   PACKAGE_RUNTIME_ASSETS,
   PACKAGE_RUNTIME_ASSET_DIRS,
   SHIPPED_SANDBOX_PACKS_SOURCE_DIR,

@@ -20,9 +20,11 @@
 
 import {
   missingRuntimePackageOf,
+  missingRuntimeDetailsOf,
   sandboxHostModule,
   type ResolvedSandboxModule,
-  type RuntimePackageId
+  type RuntimePackageId,
+  type MissingRuntimeDetails
 } from "@nodetool-ai/protocol";
 
 import { toGuestBytesDeep } from "../sandbox-bytes.js";
@@ -75,7 +77,7 @@ export function createSandboxHostDispatcher(
      * installed. The guest receives only the message, so this is how the
      * package id reaches the host that can offer the install.
      */
-    onMissingRuntimePackage?: (runtimePackage: RuntimePackageId) => void;
+    onMissingRuntimePackage?: (runtimePackage: RuntimePackageId, details: MissingRuntimeDetails | null) => void;
   } = {}
 ): SandboxHostDispatcher | undefined {
   const hostModules = modules.filter(
@@ -144,7 +146,7 @@ export function createSandboxHostDispatcher(
       } catch (error) {
         const runtimePackage = missingRuntimePackageOf(error);
         if (runtimePackage !== null) {
-          options.onMissingRuntimePackage?.(runtimePackage);
+          options.onMissingRuntimePackage?.(runtimePackage, missingRuntimeDetailsOf(error));
         }
         throw error;
       }

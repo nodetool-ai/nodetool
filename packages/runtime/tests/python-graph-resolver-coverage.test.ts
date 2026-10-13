@@ -140,6 +140,7 @@ describe("resolvePythonNodeExecutor (metadata + fallbacks)", () => {
     >
   ): PythonBridgeBase {
     return {
+      isConnected: true,
       hasNodeType: (t: string) => t in known,
       getNodeMetadata: () =>
         Object.entries(known).map(([node_type, meta]) => ({
@@ -172,6 +173,7 @@ describe("resolvePythonNodeExecutor (metadata + fallbacks)", () => {
   it("handles a known type whose metadata entry is missing (no outputs)", () => {
     // hasNodeType says yes, but getNodeMetadata has no matching entry.
     const bridge = {
+      isConnected: true,
       hasNodeType: () => true,
       getNodeMetadata: () => [],
       close: vi.fn()

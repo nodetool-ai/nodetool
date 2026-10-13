@@ -25,6 +25,22 @@ function npmSpecs(id: RuntimeNpmPackageId): {
 
 /** Concrete runtime package definitions. */
 export const RUNTIME_PACKAGES = {
+  imaging: new ElectronRuntimePackage({
+    id: "imaging", name: "Image & Canvas Libraries", category: "library", versionRange: "*",
+    description: RUNTIME_NPM_PACKAGES.imaging.description
+  }),
+  typescript: new ElectronRuntimePackage({
+    id: "typescript", name: "TypeScript", category: "library", versionRange: "*",
+    description: RUNTIME_NPM_PACKAGES.typescript.description
+  }),
+  tracing: new ElectronRuntimePackage({
+    id: "tracing", name: "Execution Tracing", category: "library", versionRange: "*",
+    description: RUNTIME_NPM_PACKAGES.tracing.description
+  }),
+  esbuild: new ElectronRuntimePackage({
+    id: "esbuild", name: "Sandbox Compiler", category: "library", versionRange: "*",
+    description: RUNTIME_NPM_PACKAGES.esbuild.description
+  }),
   python: new CondaRuntimePackage({
     id: "python",
     name: "Python",

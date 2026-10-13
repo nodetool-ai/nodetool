@@ -53,6 +53,7 @@ describe("host module with a missing optional package", () => {
 
     expect(result.success).toBe(false);
     expect(result.missingRuntimePackage).toBe("office-documents");
+    expect(result.missingRuntime).toMatchObject({ runtimePackage: "office-documents", missing: "exceljs", reason: "missing" });
     expect(result.error).toContain("Office Documents");
   });
 
@@ -67,6 +68,7 @@ describe("host module with a missing optional package", () => {
 
     expect(result.success).toBe(true);
     expect(result.missingRuntimePackage).toBeUndefined();
+    expect(result.missingRuntime).toBeUndefined();
     expect(String(result.result)).toContain("handled:");
   });
 });

@@ -343,6 +343,13 @@ source propagate. A4.6 replaces both temporary paths with the catalog source.
    `esbuild` to `RUNTIME_NPM_PACKAGES`, `RuntimePackageId` and the desktop
    definitions (D17). Add the bundling hosts to each entry.
 
+To keep A2 and the dependent A4 cuts independently verifiable, the import rule
+temporarily permits existing import sites listed in
+`tools/oxlint/pack-boundaries/migration-baseline.json`. Each entry names a file,
+specifier, exact AST statement and occurrence count. New imports fail, including
+additional occurrences in a listed file. Each A4 cut removes its entries, and
+unused entries fail lint. Type-only imports are erased and remain allowed.
+
 **Acceptance:**
 
 - With all packs in the tree, `registerAvailablePacks` produces the same types

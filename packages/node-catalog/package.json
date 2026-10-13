@@ -14,7 +14,8 @@
   "dependencies": {
     "@nodetool-ai/config": "*",
     "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/node-sdk": "*"
+    "@nodetool-ai/node-sdk": "*",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
