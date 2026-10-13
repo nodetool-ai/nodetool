@@ -116,6 +116,8 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | MCP OAuth Client ID Metadata Document fetch | `packages/websocket/src/oauth/cimd.ts` | model/client (an MCP client's self-hosted `client_id` URL) |
 | external MCP server (HTTP transport) | `packages/websocket/src/external-mcp.ts` | operator (a user's own MCP server URL; guarded under the cloud profile, loopback allowed on a local install) |
 | custom OpenAI-compatible provider | `packages/runtime/src/providers/custom-openai-provider.ts`, checked on save in `packages/websocket/src/custom-providers.ts` | operator (a user's own base URL; guarded under the cloud profile, loopback allowed on a local install) |
+| Azure OpenAI provider | `packages/runtime/src/providers/azure-openai-provider.ts` | operator (a user's own Azure resource endpoint; guarded under the cloud profile, private endpoints allowed on a local install) |
+| Amazon Bedrock chat media | `packages/runtime/src/providers/bedrock-provider.ts` | chat client (https URLs on image and document parts; API calls use the fixed regional AWS host) |
 
 The provider row is eleven files, each downloading a URL a provider's response
 named — plus one reading a URL the caller's own message named

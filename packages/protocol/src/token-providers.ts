@@ -32,7 +32,9 @@ export const GENAI_PROVIDER_MAP: Readonly<Record<string, string>> = {
   xai: "x-ai",
   grok: "x-ai",
   moonshot: "moonshotai",
-  moonshotai: "moonshotai"
+  moonshotai: "moonshotai",
+  azure_openai: "azure",
+  bedrock: "aws"
 };
 
 /** Providers that run locally and incur no API cost. */

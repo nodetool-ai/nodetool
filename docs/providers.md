@@ -18,6 +18,8 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | OpenAI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Anthropic | ✅ | | | | | | |
+| Azure OpenAI | ✅ | ✅ | | ✅ | ✅ | ✅ | |
+| Amazon Bedrock | ✅ | ✅ | | | | | |
 | Google Gemini | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | xAI (Grok) | ✅ | ✅ | ✅ | | | | |
 | DeepSeek | ✅ | | | | | | |
@@ -79,6 +81,18 @@ OpenAI covers chat (GPT), image generation (GPT-Image), Sora 2 Pro video, TTS, W
 ## Anthropic
 
 Anthropic runs Claude chat models with tool calling and image input for vision tasks. It doesn't generate images, video, or audio. Cloud only, keyed by `ANTHROPIC_API_KEY`; models are fetched live from the Anthropic API. See the [Anthropic provider guide](developer/providers/anthropic.md).
+
+## Azure OpenAI
+
+Azure OpenAI runs OpenAI models deployed in your own Azure OpenAI or Microsoft Foundry resource: chat, GPT Image generation and editing, TTS, Whisper transcription, and embeddings. Requests use OpenAI's wire format, so each call behaves like the OpenAI provider with the deployment name as the model. Cloud only, keyed by `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` (for example `https://<resource>.openai.azure.com`, with or without a trailing `/openai`).
+
+Azure does not report what a deployment serves, so the models are the names in `AZURE_OPENAI_DEPLOYMENTS`, separated by commas. A name containing `image` or `dall-e` is an image model, `tts` a speech model, `whisper` or `transcribe` a transcription model, and `embedding` an embedding model. Any other name is a chat model. Add `:chat`, `:image`, `:tts`, `:asr`, or `:embedding` to a name to set its kind, for example `my-painter:image`. Without `AZURE_OPENAI_API_VERSION` the provider calls the v1 API at `<endpoint>/openai/v1`. Set a dated version such as `2025-04-01-preview` to use the `/openai/deployments/<name>` routes. Under the cloud profile the endpoint must be a public https host. A deployment named after its model, such as `gpt-5.5`, is priced from the Azure rates in `@pydantic/genai-prices`.
+
+## Amazon Bedrock
+
+Amazon Bedrock runs chat through the Converse API, which covers every Bedrock chat model: Claude, Llama, Mistral, Amazon Nova, and others. It streams text and tool calls, accepts images and documents, and passes Claude extended thinking through. Image generation runs Amazon Nova Canvas, Titan Image, and Stability models. Cloud only, keyed by an IAM access key in `BEDROCK_ACCESS_KEY_ID` and `BEDROCK_SECRET_ACCESS_KEY`, with `BEDROCK_SESSION_TOKEN` for temporary credentials. The keys are separate from the `AWS_*` variables so an S3 storage key is never used for Bedrock.
+
+`BEDROCK_REGION` picks the region (default `us-east-1`). Models are listed from that region: on-demand foundation models plus the system-defined cross-region inference profiles such as `eu.anthropic.claude-sonnet-4-6`, which Claude needs in most regions. The IAM user needs `bedrock:ListFoundationModels`, `bedrock:ListInferenceProfiles`, `bedrock:InvokeModel`, and `bedrock:InvokeModelWithResponseStream`. Set `BEDROCK_MODEL_IDS` to a comma-separated list of model or inference profile IDs to offer only those and skip the listing calls. Costs are priced from the AWS rates in `@pydantic/genai-prices`.
 
 ## Google Gemini
 
