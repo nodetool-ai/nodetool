@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { useAssetStore } from "../../stores/AssetStore";
 import {
   creationProjectId,
   useWorkspaceTabsStore
@@ -24,23 +23,18 @@ import {
 import {
   EXAMPLE_MODEL_PACKS,
   exampleModelOverviewUri,
+  exampleModelQueryKeys,
   fetchExampleModelCatalog,
-  fetchExampleModelFile,
   type ExampleModel
 } from "../../utils/exampleModels";
 import { notifyMutationError } from "../../utils/notifyMutationError";
-
-const exampleModelQueryKeys = {
-  all: ["example-models"] as const,
-  catalog: (pack: string) =>
-    [...exampleModelQueryKeys.all, "catalog", pack] as const
-};
+import { useAddExampleModelAsset } from "../../hooks/useAddExampleModelAsset";
 
 const DashboardExampleModels = () => {
   const [pack, setPack] = useState(EXAMPLE_MODEL_PACKS[0].slug);
   const navigate = useNavigate();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
-  const createAsset = useAssetStore((state) => state.createAsset);
+  const addExampleModelAsset = useAddExampleModelAsset();
   const catalog = useQuery({
     queryKey: exampleModelQueryKeys.catalog(pack),
     queryFn: () => fetchExampleModelCatalog(pack),
@@ -50,15 +44,7 @@ const DashboardExampleModels = () => {
     retry: false,
     mutationFn: async (model: ExampleModel) => {
       const projectId = creationProjectId();
-      const file = await fetchExampleModelFile(model);
-      const asset = await createAsset(
-        file,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        projectId
-      );
+      const asset = await addExampleModelAsset(model, projectId);
       return { asset, projectId };
     },
     onSuccess: ({ asset, projectId }, model) => {
