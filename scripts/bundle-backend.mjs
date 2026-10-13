@@ -42,9 +42,9 @@ const ELECTRON_DIR = path.join(ROOT_DIR, "electron");
 const ENTRY_POINT = path.join(
   ROOT_DIR,
   "packages",
-  "websocket",
+  "server",
   "dist",
-  "server.js"
+  "main.js"
 );
 const NATIVE_HOST_ENTRY_POINT = path.join(
   ROOT_DIR,

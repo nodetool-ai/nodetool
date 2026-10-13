@@ -452,7 +452,7 @@ program
     const serverPath = resolve(__dirname, "../../websocket/dist/server.js");
     process.env["HOST"] = opts.host;
     process.env["PORT"] = opts.port;
-    const result = spawnSync("node", [serverPath], {
+    const result = spawnSync(process.execPath, [serverPath], {
       stdio: "inherit",
       env: { ...process.env }
     });

@@ -224,7 +224,10 @@ The pack spec names no cut that is already done.
 6. Import `setCodeNodeAgentsModule` from `code-nodes`, not `base-nodes`.
 
 Until A2 lands, the main block in `websocket` uses the bundled source through
-a dynamic import of `@nodetool-ai/server`. A4.6 removes this temporary path.
+a dynamic import of `@nodetool-ai/server` when that private workspace resolves.
+The packed CLI excludes private workspaces, so it falls back to the same
+factory exported by `base-nodes/server-pack-source`. Errors within a resolved
+source propagate. A4.6 replaces both temporary paths with the catalog source.
 
 **Acceptance:**
 

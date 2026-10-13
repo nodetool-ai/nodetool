@@ -65,7 +65,7 @@ const host = process.env.HOST ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 7777);
 
 const entrypoints = {
-  server: "dist/server.js",
+  server: "../server/dist/main.js",
   "test-ui": "dist/test-ui-server.js",
 };
 
@@ -143,4 +143,7 @@ if (await isPortInUse(host, port)) {
 }
 
 await run(npmCommand, buildCommands[buildMode], rootDir);
+if (mode === "server") {
+  await run(npmCommand, ["run", "build", "--workspace", "@nodetool-ai/server"], rootDir);
+}
 await run(process.execPath, [entrypoints[mode]], websocketDir);

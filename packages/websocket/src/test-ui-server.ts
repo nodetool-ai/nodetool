@@ -1327,7 +1327,7 @@ export function resolvePackageAsset(pathname: string, roots: string[]): string |
   return null;
 }
 
-export function createTestUiServer(options: TestUiServerOptions = {}) {
+export async function createTestUiServer(options: TestUiServerOptions = {}) {
   const host = options.host ?? "127.0.0.1";
   const port = options.port ?? Number(process.env.PORT ?? 7777);
   const examplesDir = resolveExamplesDir(options);
@@ -1338,7 +1338,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     roots: metadataRoots,
     maxDepth: options.metadataMaxDepth ?? 8
   });
-  registerBuiltInNodes(registry);
+  await registerBuiltInNodes(registry);
   applyProductionNodePolicy(registry);
   options.configureRegistry?.(registry);
   const resolvedApiOptions: HttpApiOptions = {
@@ -1659,7 +1659,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     // DB unavailable — secrets will appear unconfigured
   }
 
-  const srv = createTestUiServer();
+  const srv = await createTestUiServer();
   void srv.listen().then(() => {
     log.info("Server listening", {
       host: srv.info.host,

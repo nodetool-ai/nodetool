@@ -87,6 +87,18 @@
     "vitest": "^5.0.1"
   },
   "exports": {
+    "./server": {
+      "nodetool-dev": "./src/server.ts",
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "default": "./dist/server.js"
+    },
+    "./pack-source": {
+      "nodetool-dev": "./src/pack-source.ts",
+      "types": "./dist/pack-source.d.ts",
+      "import": "./dist/pack-source.js",
+      "default": "./dist/pack-source.js"
+    },
     ".": {
       "nodetool-dev": "./src/index.ts",
       "types": "./dist/index.d.ts",

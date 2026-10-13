@@ -1836,6 +1836,7 @@ export const SURFACES: SurfaceEntry[] = [
     title: "Packaged Electron backend (bundled server.mjs)",
     harnesses: ["backend-smoke"],
     paths: [
+      "packages/server/",
       "scripts/bundle-backend.mjs",
       "scripts/verify-backend-bundle.mjs",
       "packages/config/src/package-asset-registry.ts"
