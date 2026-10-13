@@ -2,7 +2,8 @@
 /**
  * Install `@nodetool-ai/cli` from packed tarballs and check that it runs the
  * way an agent uses it on a clean machine: no repository, no `.env`, no
- * keychain, no provider keys.
+ * keychain, no provider keys. A fresh test-only master key keeps secret-store
+ * initialization independent of the host keychain.
  *
  * Every public workspace is packed with `npm pack`. A throwaway project
  * depends on the CLI tarball, and `overrides` point every other workspace
@@ -22,6 +23,7 @@
  *   node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>]
  */
 
+import { randomBytes } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import {
   existsSync,
@@ -137,9 +139,9 @@ function pack(packages, dest) {
  * Start `nodetool mcp serve`, send initialize and tools/list over stdio, and
  * resolve with the tool count. Stdout is newline-delimited JSON-RPC.
  */
-function probeMcp(bin, env, timeoutMs = 120_000) {
+function probeMcp(bin, env, cwd, timeoutMs = 120_000) {
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(bin, ["mcp", "serve"], { env, stdio: ["pipe", "pipe", "pipe"] });
+    const child = spawn(bin, ["mcp", "serve"], { env, cwd, stdio: ["pipe", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
     const timer = setTimeout(() => {
@@ -204,12 +206,13 @@ function freePort() {
  * Start `nodetool serve` and resolve once `GET /health` answers 200. The
  * server is killed either way.
  */
-async function probeServe(bin, env, timeoutMs = 120_000) {
+async function probeServe(bin, env, cwd, timeoutMs = 120_000) {
   const port = await freePort();
   // `serve` runs the server as a child process, so start a process group
   // and kill the whole group, or the server outlives the check.
   const child = spawn(bin, ["serve", "--port", String(port)], {
     env,
+    cwd,
     detached: true,
     stdio: ["ignore", "pipe", "pipe"]
   });
@@ -288,42 +291,56 @@ empty project, and runs it against an empty HOME.
     });
 
     const bin = join(appDir, "node_modules", ".bin", "nodetool");
-    const env = cleanEnv(home);
+    const env = { ...cleanEnv(home), SECRETS_MASTER_KEY: randomBytes(32).toString("base64") };
+    const cliOptions = { env, cwd: appDir, timeout: 120_000 };
 
-    const version = run(bin, ["--version"], { env }).trim();
+    const version = run(bin, ["--version"], cliOptions).trim();
     if (version !== cli.version) {
       throw new Error(`nodetool --version printed '${version}', expected '${cli.version}'`);
     }
     console.log(`ok  nodetool --version = ${version}`);
 
-    const missing = missingCommands(run(bin, ["--help"], { env }));
+    const missing = missingCommands(run(bin, ["--help"], cliOptions));
     if (missing.length > 0) {
       throw new Error(`nodetool --help is missing: ${missing.join(", ")}`);
     }
     console.log(`ok  nodetool --help lists ${REQUIRED_COMMANDS.join(", ")}`);
 
-    const tools = await probeMcp(bin, env);
+    const tools = await probeMcp(bin, env, appDir);
     if (tools === 0) throw new Error("nodetool mcp serve listed no tools");
     console.log(`ok  nodetool mcp serve lists ${tools} tools`);
 
+    const workflowFixture = join(appDir, "hello_input_output_cli.json");
+    writeFileSync(workflowFixture, readFileSync(join(ROOT, NO_MODEL_WORKFLOW)));
     const out = run(
       bin,
       [
         "workflows",
         "run",
-        resolve(ROOT, NO_MODEL_WORKFLOW),
+        workflowFixture,
         "--params",
         JSON.stringify({ text: "packed smoke" }),
         "--json"
       ],
-      { env }
+      cliOptions
     );
     if (!out.includes("packed smoke")) {
       throw new Error(`nodetool workflows run did not echo its input:\n${out}`);
     }
     console.log("ok  nodetool workflows run executes a no-model workflow");
 
-    await probeServe(bin, env);
+    const dslDir = join(appDir, "examples", "workflows");
+    mkdirSync(dslDir, { recursive: true });
+    for (const filename of ["package.json", "concat_text.ts"]) {
+      writeFileSync(join(dslDir, filename), readFileSync(join(ROOT, "examples", "workflows", filename)));
+    }
+    const dslOutput = run(bin, ["run", join(dslDir, "concat_text.ts"), "--json"], cliOptions);
+    if (!dslOutput.includes("Hello, NodeTool!")) {
+      throw new Error(`nodetool run did not execute the TypeScript workflow:\n${dslOutput}`);
+    }
+    console.log("ok  nodetool run executes a TypeScript workflow without downloads");
+
+    await probeServe(bin, env, appDir);
     console.log("ok  nodetool serve answers /health");
   } finally {
     if (values.keep || values["work-dir"]) {
