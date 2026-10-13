@@ -44,6 +44,7 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import NotificationButton from "../panels/NotificationButton";
+import SettingsHeaderButton from "../panels/SettingsHeaderButton";
 import OpenMenu from "./OpenMenu";
 import WorkspaceTabItem from "./WorkspaceTabItem";
 import MobileDocumentSelector from "./MobileDocumentSelector";
@@ -891,6 +892,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
           {headerActions}
           <ActivityIndicator />
           <NotificationButton />
+          <SettingsHeaderButton />
         </div>
       </div>
     </div>
