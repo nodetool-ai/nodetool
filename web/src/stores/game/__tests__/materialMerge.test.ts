@@ -1,5 +1,5 @@
 import { expect, it } from "@jest/globals";
-import { gameDocument3D, gameMaterial3D, type GameDocument3D } from "@nodetool-ai/protocol";
+import { gameDocument3D, gameMaterial3D, type GameDocument3D, type GameEntity3D } from "@nodetool-ai/protocol";
 import { createNative3DGame, validateGame3D } from "@nodetool-ai/game-runtime";
 
 import { mergeByUnits } from "../../documentMerge";
@@ -262,4 +262,140 @@ it.each(["baseColorTexture", "normalTexture", "ormTexture", "emissiveTexture"] a
   const merged = mergeByUnits(base, draft, server, gameMergeAdapter3D, { mergeWithoutOps: true });
   expect(validateGame3D(merged.doc).valid).toBe(true);
   expect(merged.doc.assets.paint).toEqual(base.assets.paint);
+});
+
+function inlineVisual(document: GameDocument3D, prefab: boolean): GameEntity3D {
+  const entity = prefab ? document.prefabs.visual.entities[0] : document.scenes[0].entities.find((entry) => entry.id === "player-visual");
+  if (!entity) { throw new Error("Fixture visual missing"); }
+  return entity;
+}
+function withInlineVisual(component: "primitive" | "model", prefab: boolean, slot = "paint"): GameDocument3D {
+  const document = withTexturedMaterial(slot);
+  delete document.materials;
+  const sceneVisual = inlineVisual(document, false);
+  if (prefab) {
+    const entity = structuredClone(sceneVisual);
+    delete entity.parentId;
+    document.prefabs.visual = { rootId: entity.id, entities: [entity], externalAssets: [], externalScenes: [] };
+  }
+  if (component === "model") {
+    document.assets.hero = { mediaKind: "model", assetId: "hero", digest: "hero-digest", required: true, format: "glb", preparationVersion: "1",
+      bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } }, nodeIds: ["node:0"], clipIds: [],
+      geometryBytes: 1, textureBytes: 0, triangles: 1, supportedExtensions: [] };
+    const visual = inlineVisual(document, prefab);
+    delete visual.primitive;
+    visual.model = { assetId: "hero", castShadow: true, receiveShadow: true, material: {} };
+    if (prefab) { document.prefabs.visual.externalAssets = ["hero"]; }
+  }
+  return gameDocument3D.parse(document);
+}
+const inlineCases = (["primitive", "model"] as const).flatMap((component) => [false, true].flatMap((prefab) =>
+  (["baseColorTexture", "normalTexture", "ormTexture", "emissiveTexture"] as const).map((field) => ({ component, prefab, field }))));
+it.each(inlineCases)("inline textures survive deletion in either merge direction: $component $field prefab=$prefab", ({ component, prefab, field }) => {
+  const base = withInlineVisual(component, prefab);
+  const assigned = structuredClone(base);
+  const visual = inlineVisual(assigned, prefab)[component];
+  if (!visual) { throw new Error("Fixture component missing"); }
+  visual.material = { ...visual.material, [field]: { assetId: "paint" } };
+  if (prefab) { assigned.prefabs.visual.externalAssets.push("paint"); }
+  const deleted = structuredClone(base);
+  delete deleted.assets.paint;
+  for (const [draft, server] of [[assigned, deleted], [deleted, assigned]]) {
+    expect(validateGame3D(draft).valid).toBe(true);
+    expect(validateGame3D(server).valid).toBe(true);
+    const merged = mergeByUnits(base, draft, server, anyGameMergeAdapter(base), { mergeWithoutOps: true });
+    expect(validateGame3D(merged.doc).valid).toBe(true);
+    expect(merged.doc.assets.paint).toEqual(base.assets.paint);
+  }
+});
+
+it.each(["primitive", "model"] as const)("restores owned constructor image aliases for inline %s materials", (component) => {
+  const base = withInlineVisual(component, false, "constructor");
+  const draft = structuredClone(base);
+  const visual = inlineVisual(draft, false)[component];
+  if (!visual) { throw new Error("Fixture component missing"); }
+  visual.material = { ...visual.material, normalTexture: { assetId: "constructor" } };
+  const server = structuredClone(base);
+  delete server.assets.constructor;
+  const merged = mergeByUnits(base, draft, server, gameMergeAdapter3D, { mergeWithoutOps: true });
+  expect(validateGame3D(merged.doc).valid).toBe(true);
+  expect(Object.hasOwn(merged.doc.assets, "constructor")).toBe(true);
+});
+it.each(["primitive", "model"] as const)("preserves compatible remote image identity for inline %s materials", (component) => {
+  const base = withInlineVisual(component, false);
+  const draft = structuredClone(base);
+  const visual = inlineVisual(draft, false)[component];
+  if (!visual) { throw new Error("Fixture component missing"); }
+  visual.material = { ...visual.material, normalTexture: { assetId: "paint" } };
+  const server = structuredClone(base);
+  server.assets.paint = { ...base.assets.paint, assetId: "remote-image", digest: "remote-image-digest" };
+  const merged = mergeByUnits(base, draft, server, gameMergeAdapter3D, { mergeWithoutOps: true });
+  expect(validateGame3D(merged.doc).valid).toBe(true);
+  expect(merged.doc.assets.paint).toEqual(server.assets.paint);
+});
+it.each(["primitive", "model"] as const)("ignores inline texture dependencies shadowed by a named %s material", (component) => {
+  const base = withInlineVisual(component, false);
+  base.materials = { plain: gold };
+  const draft = structuredClone(base);
+  const visual = inlineVisual(draft, false)[component];
+  if (!visual) { throw new Error("Fixture component missing"); }
+  visual.materialId = "plain";
+  visual.material = { ...visual.material, normalTexture: { assetId: "paint" } };
+  const server = structuredClone(base);
+  delete server.assets.paint;
+  const merged = mergeByUnits(base, draft, server, gameMergeAdapter3D, { mergeWithoutOps: true });
+  expect(validateGame3D(merged.doc).valid).toBe(true);
+  expect(Object.hasOwn(merged.doc.assets, "paint")).toBe(false);
+});
+it.each(["primitive", "model"] as const)("raises and safely accepts inline %s image conflicts in either direction", (component) => {
+  const base = withInlineVisual(component, false);
+  const assigned = structuredClone(base);
+  const visual = inlineVisual(assigned, false)[component];
+  if (!visual) { throw new Error("Fixture component missing"); }
+  visual.material = { ...visual.material, normalTexture: { assetId: "paint" } };
+  const replaced = structuredClone(base);
+  replaced.assets.paint = { mediaKind: "audio", assetId: "other-audio", digest: "other-digest", required: true };
+  for (const [draft, server] of [[assigned, replaced], [replaced, assigned]]) {
+    const merged = mergeByUnits(base, draft, server, anyGameMergeAdapter(base), { mergeWithoutOps: true });
+    expect(validateGame3D(merged.doc).valid).toBe(true);
+    expect(merged.conflicts).toContainEqual(expect.objectContaining({
+      unit: { kind: "asset", id: "paint", label: "asset paint" },
+      external: { slot: "paint", binding: server.assets.paint }, draft: { slot: "paint", binding: draft.assets.paint }
+    }));
+    const accepted = acceptServerAnyGameUnit(merged.doc, server, "asset", "paint");
+    if (accepted.schemaVersion !== 3) { throw new Error("Unexpected game dimension"); }
+    expect(validateGame3D(accepted).valid).toBe(true);
+    expect(accepted.assets.paint).toEqual(base.assets.paint);
+  }
+});
+
+it("indexes inline source scopes distinctly when scene and entity IDs contain separators", () => {
+  const base = withInlineVisual("primitive", false);
+  const first = base.scenes[0];
+  first.id = "a:b";
+  base.entrySceneId = first.id;
+  const firstVisual = first.entities.find((entity) => entity.id === "player-visual");
+  if (!firstVisual) { throw new Error("Fixture visual missing"); }
+  firstVisual.id = "c";
+  const second = structuredClone(first);
+  second.id = "a";
+  const secondVisual = second.entities.find((entity) => entity.id === "c");
+  if (!secondVisual) { throw new Error("Fixture visual missing"); }
+  secondVisual.id = "b:c";
+  base.scenes.push(second);
+  const draft = structuredClone(base);
+  const visual = draft.scenes[0].entities.find((entity) => entity.id === "c")?.primitive;
+  if (!visual) { throw new Error("Fixture primitive missing"); }
+  visual.material.normalTexture = { assetId: "paint" };
+  const server = structuredClone(base);
+  delete server.assets.paint;
+  expect(validateGame3D(draft).valid).toBe(true);
+  expect(validateGame3D(server).valid).toBe(true);
+  const combined = structuredClone(draft);
+  delete combined.assets.paint;
+  const finalize = gameMergeAdapter3D.finalizeMergedDocument;
+  if (!finalize) { throw new Error("Missing native finalizer"); }
+  const merged = finalize(combined, base, draft, server, []);
+  expect(validateGame3D(merged).valid).toBe(true);
+  expect(merged.assets.paint).toEqual(base.assets.paint);
 });
