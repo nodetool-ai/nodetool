@@ -12,7 +12,7 @@
  */
 
 import { access, mkdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 
 import {
   buildPricingBundles as buildPricingBundlesGeneric,
@@ -147,4 +147,13 @@ export async function preserveOrWriteEmptyPricingBundles(
     await writeEmptyCatalogBundle(paths.catalogPath);
   }
   return "partial";
+}
+
+/** Split model pricing into core while keeping node pricing with its pack. */
+export function pricingPaths(manifestPath: string): PricingOutputPaths {
+  const generatedDir = join(dirname(manifestPath), "generated");
+  return {
+    byNodeTypePath: join(generatedDir, "fal-node-type-pricing.json"),
+    catalogPath: join(dirname(manifestPath), "..", "..", "model-pricing", "src", "generated", "fal-unit-pricing.json")
+  };
 }

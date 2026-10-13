@@ -11,19 +11,15 @@
   "include": [
     "src",
     "src/generated/genspend-pricing.json",
-    "src/generated/model-rankings.json"
+    "src/generated/model-rankings.json",
+    "src/generated/fal-unit-pricing.json",
+    "src/generated/kie-unit-pricing.json"
   ],
   "exclude": [
     "dist",
     "tests"
   ],
   "references": [
-    {
-      "path": "../fal-nodes"
-    },
-    {
-      "path": "../kie-nodes"
-    },
     {
       "path": "../node-sdk"
     },

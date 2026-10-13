@@ -70,7 +70,7 @@ buttons, Video Count toggle) are not part of any flow. See § 4.3.
 | S4 hover toolbar, insert, duplicate, upload | Add shot (appends), Delete shot in the inspector, no duplicate, no per-shot download, no upload of an own still. | `ShotInspector.tsx` |
 | S4 entity chips in text | Entity refs exist in the protocol and `applyEntities`, but the card renders plain text. | `creative.ts` `entity_ref` |
 | S5 dialog | Inspector docked under the grid: title, description, framing, lens, angle, movement, length with the `from takes` / `pinned` toggle, cost, entity chips, takes gallery, script panel, Revise take, Generate still, Render clip. | `ShotInspector.tsx`, `ShotTakesGallery.tsx`, `cameraOptions.ts` |
-| S5 image toolbar | Separate image editor at `/assets/edit/:assetId`; not reachable from the shot. | `docs/image-editor.md` |
+| S5 image toolbar | Editing an image opens it in the sketch editor from the asset viewer. The `/assets/edit/:assetId` route is retired. | `AssetViewer.tsx` |
 | Prompt composition | Still prompt = action, framing, board style. Clip prompt = motion, action. Direct clip = action, framing, motion, style. Lens, angle and movement are stored but never reach a prompt. | `hooks/storyboard/useGenerateShot.ts` |
 | Versions | `keyframe_versions` and `clip_versions` are bare media refs. Nothing records what a version was rendered from. | `creative.ts` `Shot` |
 | Export | Download ZIP, Preview, Assemble timeline (sorts by `shot.index`). | `utils/storyboardZip.ts`, `packages/timeline/src/storyboard.ts` |

@@ -2,8 +2,8 @@
  * Shared types and helpers for writing per-provider pricing bundles during
  * codegen.
  *
- * Each provider (FAL, Replicate, Kie, …) builds the same two JSON files
- * alongside its node manifest:
+ * Each provider builds two JSON files: node prices alongside its manifest,
+ * and model prices in the core model-pricing package:
  *
  *   1. `<provider>-node-type-pricing.json` — `byNodeType` map keyed by the
  *      runtime NodeTool `node_type`, used by the frontend to attach a
@@ -106,7 +106,10 @@ export async function writePricingBundles(
   },
   paths: PricingOutputPaths
 ): Promise<void> {
-  await mkdir(dirname(paths.byNodeTypePath), { recursive: true });
+  await Promise.all([
+    mkdir(dirname(paths.byNodeTypePath), { recursive: true }),
+    mkdir(dirname(paths.catalogPath), { recursive: true })
+  ]);
   await Promise.all([
     writeFile(
       paths.byNodeTypePath,

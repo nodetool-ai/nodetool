@@ -4,7 +4,7 @@ import {
   fetchAllKiePricingRecords,
   resolveKiePricing,
   type KieModelPricingSummary,
-} from "@nodetool-ai/kie-nodes/kie-pricing-api";
+} from "@nodetool-ai/model-pricing/kie-pricing-api";
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
