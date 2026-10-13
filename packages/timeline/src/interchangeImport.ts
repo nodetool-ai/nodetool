@@ -35,7 +35,13 @@ function decodeEntities(value: string): string {
  * comments, processing instructions and the DOCTYPE are skipped, and only the
  * predefined and numeric entities are expanded, so a DTD cannot inflate it.
  */
+export const MAX_PREMIERE_XML_BYTES = 8 * 1024 * 1024;
+
 export function parseXml(source: string): XmlElement {
+  if (source.length > MAX_PREMIERE_XML_BYTES || new TextEncoder().encode(source).byteLength > MAX_PREMIERE_XML_BYTES) {
+    throw new Error("XML exceeds the 8 MiB limit");
+  }
+  let nodes = 0;
   const root: XmlElement = { name: "#document", attrs: {}, children: [], text: "" };
   const stack: XmlElement[] = [root];
   let index = 0;
@@ -72,17 +78,49 @@ export function parseXml(source: string): XmlElement {
       }
       index = end + 1;
     } else {
-      const end = source.indexOf(">", index);
-      if (end < 0) throw new Error("Unterminated XML tag");
+      let end = index + 1;
+      let quote = "";
+      for (; end < source.length; end += 1) {
+        if (end - index > 64 * 1024) { throw new Error("XML tag exceeds the token limit"); }
+        const character = source[end];
+        if (quote) {
+          if (character === quote) { quote = ""; }
+        } else if (character === '"' || character === "'") { quote = character; }
+        else if (character === ">") { break; }
+      }
+      if (end === source.length) { throw new Error("Unterminated XML tag"); }
       let body = source.slice(index + 1, end);
       const selfClosing = body.endsWith("/");
       if (selfClosing) body = body.slice(0, -1);
       const name = body.match(/^[^\s/>]+/)?.[0];
       if (!name) throw new Error("Malformed XML tag");
       const attrs: Record<string, string> = {};
-      for (const match of body.slice(name.length).matchAll(/([^\s=]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) {
-        attrs[match[1]!] = decodeEntities(match[2] ?? match[3] ?? "");
+      let cursor = name.length;
+      const whitespace = (): void => { while (cursor < body.length && /\s/.test(body[cursor] ?? "")) { cursor += 1; } };
+      while (cursor < body.length) {
+        if (!/\s/.test(body[cursor] ?? "")) { throw new Error("Malformed XML attribute separator"); }
+        whitespace();
+        if (cursor === body.length) { break; }
+        const start = cursor;
+        while (cursor < body.length && !/[\s=]/.test(body[cursor] ?? "")) { cursor += 1; }
+        const key = body.slice(start, cursor);
+        whitespace();
+        if (!key || body[cursor] !== "=") { throw new Error("Malformed XML attribute"); }
+        cursor += 1;
+        whitespace();
+        const delimiter = body[cursor];
+        if (delimiter !== '"' && delimiter !== "'") { throw new Error("Malformed XML attribute value"); }
+        cursor += 1;
+        const valueStart = cursor;
+        while (cursor < body.length && body[cursor] !== delimiter) { cursor += 1; }
+        if (cursor === body.length) { throw new Error("Unterminated XML attribute value"); }
+        if (Object.hasOwn(attrs, key)) { throw new Error("Duplicate XML attribute"); }
+        Object.defineProperty(attrs, key, { value: decodeEntities(body.slice(valueStart, cursor)), enumerable: true });
+        cursor += 1;
       }
+      nodes += 1;
+      if (nodes > 200_000) { throw new Error("XML exceeds the node limit"); }
+      if (stack.length >= 128) { throw new Error("XML exceeds the depth limit"); }
       const element: XmlElement = { name, attrs, children: [], text: "" };
       stack.at(-1)!.children.push(element);
       if (!selfClosing) stack.push(element);
@@ -230,8 +268,19 @@ export function readPremiereXml(xml: string): PremiereSequence {
       .filter((element) => element.name === "track")
       .map((track, trackIndex) => {
         const items = track.children;
+        const followingTransitionEnd: number[] = new Array(items.length);
+        let nextEnd = -1;
+        for (let position = items.length - 1; position >= 0; position -= 1) {
+          followingTransitionEnd[position] = nextEnd;
+          const item = items[position];
+          if (item?.name === "transitionitem") { nextEnd = numberOf(item, "end") ?? -1; }
+        }
+        let previousTransitionStart = -1;
         items.forEach((item, position) => {
-          if (item.name === "transitionitem") transitions += 1;
+          if (item.name === "transitionitem") {
+            transitions += 1;
+            previousTransitionStart = numberOf(item, "start") ?? -1;
+          }
           if (item.name === "generatoritem") skipped += 1;
           if (item.name !== "clipitem") return;
           const fileId = child(item, "file")?.attrs.id;
@@ -242,8 +291,8 @@ export function readPremiereXml(xml: string): PremiereSequence {
           // A clip under a transition reports -1; the transition holds the edge.
           let start = numberOf(item, "start") ?? -1;
           let end = numberOf(item, "end") ?? -1;
-          if (start < 0) start = numberOf(items.slice(0, position).reverse().find((other) => other.name === "transitionitem"), "start") ?? -1;
-          if (end < 0) end = numberOf(items.slice(position + 1).find((other) => other.name === "transitionitem"), "end") ?? -1;
+          if (start < 0) { start = previousTransitionStart; }
+          if (end < 0) { end = followingTransitionEnd[position] ?? -1; }
           if (start < 0 || end <= start) {
             skipped += 1;
             return;
@@ -288,6 +337,7 @@ export function readPremiereXml(xml: string): PremiereSequence {
     .filter((element) => element.name === "marker")
     .map((marker) => ({ name: textOf(marker, "name") || textOf(marker, "comment") || "Marker", frame: numberOf(marker, "in") ?? 0 }));
 
+  const usedFileIds = new Set(clips.map((clip) => clip.fileId));
   return {
     name: textOf(sequence, "name") || "Imported sequence",
     fps,
@@ -296,7 +346,7 @@ export function readPremiereXml(xml: string): PremiereSequence {
     videoTracks,
     audioTracks,
     clips,
-    files: [...files.values()].filter((file) => clips.some((clip) => clip.fileId === file.id)),
+    files: [...files.values()].filter((file) => usedFileIds.has(file.id)),
     markers,
     frameMs,
     warnings
@@ -342,13 +392,16 @@ export function premiereToTimeline(
     if (clip.kind !== "audio") continue;
     const picture = clip.links
       .map((id) => byId.get(id))
-      .find((other) => other?.kind === "video" && other.fileId === clip.fileId && other.start === clip.start);
+      .find((other) => other?.kind === "video" && other.fileId === clip.fileId && other.start === clip.start
+        && other.end === clip.end && other.in === clip.in && (other.speed ?? 1) === (clip.speed ?? 1));
     if (picture && !folded.has(picture.id)) folded.set(picture.id, clip);
   }
   const foldedAudio = new Set([...folded.values()].map((clip) => clip.id));
 
-  const used = (kind: "video" | "audio", index: number) =>
-    sequence.clips.some((clip) => clip.kind === kind && clip.trackIndex === index && !foldedAudio.has(clip.id));
+  const usedTracks = new Set<string>();
+  for (const clip of sequence.clips) {
+    if (!foldedAudio.has(clip.id)) { usedTracks.add(`${clip.kind}:${clip.trackIndex}`); }
+  }
   const trackIds = new Map<string, string>();
   const tracks: TimelineTrack[] = [];
   const addTrack = (kind: "video" | "audio", index: number) => {
@@ -367,14 +420,14 @@ export function premiereToTimeline(
   };
   // Premiere's highest video track draws on top, and index 0 is the top here.
   for (let index = sequence.videoTracks.length - 1; index >= 0; index -= 1) {
-    if (used("video", index)) addTrack("video", index);
+    if (usedTracks.has(`video:${index}`)) addTrack("video", index);
   }
   sequence.audioTracks.forEach((_, index) => {
-    if (used("audio", index)) addTrack("audio", index);
+    if (usedTracks.has(`audio:${index}`)) addTrack("audio", index);
   });
 
   const clips: TimelineClip[] = [];
-  const clipIds = new Map<string, string>();
+  const importedBySource = new Map<string, TimelineClip>();
   let missingClips = 0;
   const missingFiles = new Set<string>();
   for (const source of sequence.clips) {
@@ -409,12 +462,12 @@ export function premiereToTimeline(
       if (source.kind === "video") clip.hidden = true;
       else clip.muted = true;
     }
-    if (sound && sound !== source && !sound.enabled) clip.muted = true;
+    if (sound && sound !== source && (!sound.enabled || !sequence.audioTracks[sound.trackIndex]?.enabled)) clip.muted = true;
     // The file has sound the Premiere cut did not use: keep it silent here.
-    if (source.kind === "video" && !sound && file.hasAudio && !source.links.some((id) => byId.get(id)?.kind === "audio")) {
+    if (source.kind === "video" && !sound && file.hasAudio) {
       clip.muted = true;
     }
-    clipIds.set(source.id, clip.id);
+    importedBySource.set(source.id, clip);
     clips.push(clip);
   }
 
@@ -422,13 +475,15 @@ export function premiereToTimeline(
   // linkId so they move together and the picture's own sound stays silent.
   const linked = new Set<string>();
   for (const source of sequence.clips) {
-    if (!clipIds.has(source.id) || linked.has(source.id)) continue;
-    const group = [source.id, ...source.links].filter((id, position, all) => clipIds.has(id) && all.indexOf(id) === position);
+    const imported = importedBySource.get(source.id);
+    if (!imported || linked.has(source.id)) continue;
+    const group = [...new Set([source.id, ...source.links])].filter((id) => importedBySource.has(id));
     if (group.length < 2) continue;
-    const linkId = newId ? newId("link") : `link-${clipIds.get(source.id)}`;
+    const linkId = newId ? newId("link") : `link-${imported.id}`;
     for (const id of group) {
       linked.add(id);
-      clips.find((clip) => clip.id === clipIds.get(id))!.linkId = linkId;
+      const member = importedBySource.get(id);
+      if (member) { member.linkId = linkId; }
     }
   }
 
