@@ -558,7 +558,9 @@ const install: CapabilityExport = {
     if (!candidate || createHash("sha256").update(candidate.bytes).digest("hex") !== parsed.data.digest) {
       return { error: "Candidate asset is missing or changed" };
     }
-    const { path, extension, contentType, bytes } = candidate;
+    const { path, bytes } = candidate;
+    let { extension, contentType } = candidate;
+    let targetPath = path;
     if (base !== undefined && base !== game.current_revision) return { error: "Game was modified concurrently" };
     const draft = await Game.readDraft(user, game.id, workspace);
     if (!draft) return { error: "Game draft is missing" };
@@ -570,6 +572,9 @@ const install: CapabilityExport = {
         const prepared = await prepareGameImage3D(bytes, { assetId: binding.assetId, expectedDigest: binding.digest, signal: run.context.signal });
         if (!prepared.ok) { return { error: "Image preparation failed", diagnostics: prepared.diagnostics }; }
         binding = { ...prepared.image.binding, required: binding.required ?? true };
+        extension = prepared.image.binding.format === "jpeg" ? "jpg" : prepared.image.binding.format;
+        contentType = `image/${prepared.image.binding.format}`;
+        targetPath = `${game.source_root}/assets/${binding.digest}.${extension}`;
       } else if (binding.mediaKind === "model") {
         const { prepareGameModelBinding3D } = await import("@nodetool-ai/game-renderer/preparation3d");
         const prepared = await prepareGameModelBinding3D(bytes, { assetId: binding.assetId, expectedDigest: binding.digest, signal: run.context.signal });
@@ -591,7 +596,7 @@ const install: CapabilityExport = {
     if (!targetBinding.success) { return { error: "Asset binding does not match the game dimension" }; }
     const storage = run.context.assetStorage;
     if (!storage) return { error: "Asset storage is unavailable" };
-    if (candidateWorkspace !== workspace) await workspace.write(path, bytes, contentType);
+    if (candidateWorkspace !== workspace || targetPath !== path) await workspace.write(targetPath, bytes, contentType);
     const installed = await Asset.create({
       user_id: user,
       project_id: game.project_id,
