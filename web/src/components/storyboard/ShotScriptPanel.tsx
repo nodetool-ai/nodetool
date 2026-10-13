@@ -104,7 +104,7 @@ const ScriptLineEntry = ({
       <FlexRow align="center" gap={SPACING.micro} sx={{ flexShrink: 0 }}>
         <StatusIndicator status={meta.status} label={meta.label} />
         {voicing ? (
-          <LoadingSpinner size={20} />
+          <LoadingSpinner size="small" />
         ) : (
           <Tooltip
             title={

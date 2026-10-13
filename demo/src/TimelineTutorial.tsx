@@ -1,8 +1,11 @@
 import React from "react";
+import { staticFile } from "remotion";
 import { TimelineDemoPlayer } from "@web-demo";
 import { getTimelineCast } from "./casts/timelineRegistry";
 import { TutorialShell } from "./components/TutorialShell";
 import { FocusCamera } from "./components/FocusCamera";
+import { TUTORIAL_UI_SCALE } from "./tutorialTheme";
+import { usePendingMediaDelay } from "./promo/usePendingMediaDelay";
 import type { TutorialStep } from "./components/StepIndicator";
 import type { CaptionCue, TimeMap, TutorialShot } from "./types";
 
@@ -44,6 +47,8 @@ export const TimelineTutorial: React.FC<TimelineTutorialProps> = ({
   outroPoints,
 }) => {
   const cast = getTimelineCast(castId);
+  const resolveAssetUrl = (file: string) => staticFile(`casts/${cast.id}/${file}`);
+  const onPendingMedia = usePendingMediaDelay(castId);
 
   return (
     <TutorialShell
@@ -60,13 +65,19 @@ export const TimelineTutorial: React.FC<TimelineTutorialProps> = ({
     >
       {(presentationTimeMs) => (
         <FocusCamera
+          uiScale={TUTORIAL_UI_SCALE}
           tutorialId={castId}
           shots={shots}
           presentationTimeMs={presentationTimeMs}
           timeMap={timeMap}
         >
           {(_samplePresentationMs, sampleCastMs) => (
-            <TimelineDemoPlayer cast={cast} timeMs={sampleCastMs} />
+            <TimelineDemoPlayer
+              cast={cast}
+              timeMs={sampleCastMs}
+              resolveAssetUrl={resolveAssetUrl}
+              onPendingMedia={onPendingMedia}
+            />
           )}
         </FocusCamera>
       )}

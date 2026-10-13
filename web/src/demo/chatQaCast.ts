@@ -9,7 +9,7 @@
  */
 import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { CAST_VERSION, type CastEvent, type DemoCast } from "./castTypes";
-import { castMessages, edge, meta, node, out, prop } from "./castHelpers";
+import { castMessages, edge, meta, node, out, prop, DEMO_LANGUAGE_MODEL } from "./castHelpers";
 import { stringInputMeta } from "./cookbook/builders";
 import type { Workflow } from "../stores/ApiTypes";
 
@@ -46,7 +46,7 @@ const workflow: Workflow = {
   graph: {
     nodes: [
       node("question", INPUT_TYPE, 0, 150, 260, "Question", { name: "question", value: QUESTION }),
-      node("chat", CHAT_TYPE, 400, 150, 320, "Agent", { prompt: QUESTION }),
+      node("chat", CHAT_TYPE, 400, 150, 320, "Agent", { prompt: QUESTION, model: DEMO_LANGUAGE_MODEL }),
       node("preview", PREVIEW_NODE_TYPE, 840, 150, 340, "Preview", {}),
     ],
     edges: [

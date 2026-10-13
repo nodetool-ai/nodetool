@@ -14,6 +14,10 @@ export type CatalogEntry = (typeof TUTORIAL_CATALOG)[number];
 
 export function posterFrame(entry: CatalogEntry): number {
   const shots = entry.props.shots;
+  const pinned = shots?.find((shot) => shot.posterAtMs !== undefined)?.posterAtMs;
+  if (pinned !== undefined) {
+    return Math.round((entry.props.introSeconds + pinned / 1000) * entry.fps);
+  }
   const result = shots ? [...shots].reverse().find((shot) => shot.target.kind !== "overview") ?? shots.at(-1) : undefined;
   const timeMs = result
     ? Math.max(result.fromMs + (result.moveMs ?? 650), result.toMs - 500)

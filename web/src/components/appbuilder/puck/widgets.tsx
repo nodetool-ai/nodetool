@@ -2,7 +2,6 @@
 import React from "react";
 import { parseChoiceCardOptions, type ChoiceCardOption } from "@nodetool-ai/app-runtime";
 export type { ChoiceCardOption } from "@nodetool-ai/app-runtime";
-import { keyframes } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import type { SystemStyleObject } from "@mui/system";
 import ReactMarkdown, { type Options } from "react-markdown";
@@ -26,7 +25,9 @@ import {
   Card,
   DataTable,
   Divider,
+  LoadingSpinner,
   ProgressBar,
+  MagicGenerationFill,
   Caption,
   SectionHeader,
   FormGroup,
@@ -37,7 +38,6 @@ import {
   SPACING,
   SPACING_PX,
   TYPOGRAPHY,
-  reducedMotion,
   AudioPlayback,
   ResponsiveImage,
   VideoPlayer, getSpacingPx
@@ -152,16 +152,11 @@ const asItems = (value: unknown): unknown[] =>
 /** Height of an empty media slot in a running app, before anything was made. */
 const IDLE_PLACEHOLDER_PX = 96;
 
-const placeholderPulse = keyframes`
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
-`;
-
 /**
  * An empty media slot. The builder canvas keeps the author's full height so the
  * layout can be judged. A running app shows a short dashed strip until the
- * operation that fills it starts, then the full-height frame pulses so the
- * page does not jump when the result lands.
+ * operation that fills it starts, then the full-height frame draws the shared
+ * generation fill so the page does not jump when the result lands.
  */
 const MediaPlaceholder: React.FC<{
   height: number;
@@ -181,17 +176,17 @@ const MediaPlaceholder: React.FC<{
         border: "1px dashed",
         borderColor: "divider",
         borderRadius: BORDER_RADIUS.md,
+        position: "relative",
         bgcolor: producing ? "action.hover" : "transparent",
         color: "text.secondary",
         transition: `height ${MOTION.normal}, ${MOTION.background}`,
-        ...(producing && {
-          borderStyle: "solid",
-          animation: `${placeholderPulse} ${MOTION.pulse} infinite`,
-          ...reducedMotion({ animation: "none" })
-        })
+        ...(producing && { borderStyle: "solid" })
       }}
     >
-      <Caption color="secondary">{producing ? "Generating…" : text}</Caption>
+      {producing && <MagicGenerationFill borderRadius={BORDER_RADIUS.md} />}
+      <Caption color="secondary" sx={{ position: "relative" }}>
+        {producing ? "Generating…" : text}
+      </Caption>
     </FlexColumn>
   );
 };
@@ -853,7 +848,6 @@ export const ProgressWidget: React.FC<WidgetCommon & { label?: string }> = (
           !hasValue && isRunning ? "indeterminate" : "determinate"
         }
         showValue={hasValue}
-        barHeight={6}
       />
     </FlexColumn>
   );
@@ -1697,42 +1691,6 @@ export const DateInputWidget: React.FC<
 
 // ── Action widget ───────────────────────────────────────────────────────────
 
-// A light sweep travelling across the button face — the "working" signal while
-// the run is in flight.
-const buttonShimmer = keyframes`
-  from { transform: translateX(-100%); }
-  to { transform: translateX(200%); }
-`;
-
-// The trailing ellipsis breathes one dot at a time so the label reads as live.
-const ellipsisPulse = keyframes`
-  0%, 100% { opacity: 0.2; }
-  50% { opacity: 1; }
-`;
-
-const RunningLabel: React.FC = () => (
-  <Box
-    component="span"
-    sx={{ display: "inline-flex", alignItems: "baseline", gap: getSpacingPx(SPACING.micro) }}
-  >
-    Running
-    <Box component="span" aria-hidden sx={{ display: "inline-flex" }}>
-      {[0, 1, 2].map((i) => (
-        <Box
-          key={i}
-          component="span"
-          sx={{
-            animation: `${ellipsisPulse} ${MOTION.pulse} ${i * 0.18}s infinite`,
-            ...reducedMotion({ animation: "none", opacity: 1 })
-          }}
-        >
-          .
-        </Box>
-      ))}
-    </Box>
-  </Box>
-);
-
 export const ButtonWidget: React.FC<
   WidgetCommon & {
     label?: string;
@@ -1773,26 +1731,14 @@ export const ButtonWidget: React.FC<
         py: SPACING.sm,
         // A step-navigation button is compact, like the stepper above it.
         ...(!fullWidth && { px: SPACING.lg, py: SPACING.xs, fontSize: "var(--fontSizeSmall)" }),
-        position: "relative",
-        overflow: "hidden",
         // Keep the run state vivid rather than dimmed-out while it works.
-        ...(showRunning && {
-          "&.Mui-disabled": { opacity: 1 },
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(100deg, transparent 20%, rgba(var(--palette-primary-contrastTextChannel) / 0.28) 50%, transparent 80%)",
-            transform: "translateX(-100%)",
-            animation: `${buttonShimmer} ${MOTION.pulse} infinite`,
-            pointerEvents: "none",
-            ...reducedMotion({ animation: "none", opacity: 0 })
-          }
-        })
+        ...(showRunning && { "&.Mui-disabled": { opacity: 1 } })
       }}
+      startIcon={
+        showRunning ? <LoadingSpinner inline size={16} color="inherit" /> : undefined
+      }
     >
-      {showRunning ? <RunningLabel /> : (props.label ?? "Button")}
+      {showRunning ? "Running…" : (props.label ?? "Button")}
     </EditorButton>
   );
   if (fullWidth) return button;

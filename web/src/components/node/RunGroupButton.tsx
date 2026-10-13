@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, ToolbarIconButton, LoadingSpinner, MOTION, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, LoadingSpinner, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import { memo, useCallback, useMemo } from "react";
 
@@ -26,11 +26,6 @@ const styles = (theme: Theme, _isRunning: boolean) =>
       },
       "& svg": {
         fontSize: 18
-      },
-      "& .MuiCircularProgress-root": {
-        width: "16px !important",
-        height: "16px !important",
-        color: theme.vars.palette.common.black
       }
     }
   });
@@ -56,32 +51,9 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
     }
   }, [isWorkflowRunning, onClick]);
 
-  const tooltipSpanStyle = useMemo(() => ({
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "center",
-    gap: getSpacingPx(SPACING.micro)
-  }), []);
-
-  const tooltipTextStyle = useMemo(() => ({
-    fontSize: "1.1em",
-    color: "white"
-  }), []);
-
   return (
     <Tooltip
-      title={
-        isWorkflowRunning ? (
-          "Group is currently running..."
-        ) : (
-          <div
-            className="tooltip-span"
-            style={tooltipSpanStyle}
-          >
-            <span style={tooltipTextStyle}>Run Group</span>
-          </div>
-        )
-      }
+      title={isWorkflowRunning ? "Group is running" : "Run group"}
     >
       <ToolbarIconButton
         title=""
@@ -91,7 +63,11 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
         className={`run-button ${isWorkflowRunning ? "disabled" : ""}`}
         onClick={handleClick}
       >
-        {isRunning ? <LoadingSpinner size="small" /> : <PlayArrow />}
+        {isRunning ? (
+          <LoadingSpinner inline size={16} color="inherit" />
+        ) : (
+          <PlayArrow />
+        )}
       </ToolbarIconButton>
     </Tooltip>
   );

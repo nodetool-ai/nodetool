@@ -202,7 +202,7 @@ describe("TimelineEditor", () => {
 
       renderEditor();
 
-      expect(screen.getByText("Loading sequence…")).toBeInTheDocument();
+      expect(screen.getByText("Loading sequence")).toBeInTheDocument();
     });
 
     it("does not show not-found UI while loading", () => {

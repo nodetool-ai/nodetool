@@ -33,6 +33,7 @@ import {
   EditorButton,
   FlexRow,
   LoadingSpinner,
+  MagicGenerationFill,
   MOTION,
   reducedMotion,
   TextInput,
@@ -339,8 +340,8 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
     };
   }
 
-  // Gently pulsing glow ring shared by the action bar and the selection region
-  // while a generation is in flight. Reduced motion holds it at a steady glow.
+  // Gently pulsing glow ring around the action bar while a generation is in
+  // flight. The selection region itself draws the shared generation fill. Reduced motion holds it at a steady glow.
   const ch = theme.vars.palette.primary.mainChannel;
   const generatingRing = {
     content: '""',
@@ -356,7 +357,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
 
   return (
     <>
-      {/* In-progress glow over the region being generated. Sits above the
+      {/* Generation fill over the region being generated. Sits above the
           marching-ants overlay (which still outlines the exact selection) and
           just below the action bar. */}
       {isBusy && regionStyle && (
@@ -374,12 +375,11 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
             minHeight: 8,
             pointerEvents: "none",
             zIndex: SKETCH_Z_INDEX.overlay + 4,
-            borderRadius: BORDER_RADIUS.sm,
-            backgroundColor: `rgba(${ch} / 0.1)`,
-            boxShadow: `inset 0 0 0 1px rgba(${ch} / 0.45)`,
-            "&::after": generatingRing
+            borderRadius: BORDER_RADIUS.sm
           }}
-        />
+        >
+          <MagicGenerationFill framed borderRadius={BORDER_RADIUS.sm} />
+        </Box>
       )}
       <FlexRow
         className="sketch-selection-action-bar"

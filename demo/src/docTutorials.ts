@@ -201,7 +201,8 @@ export const DOC_TUTORIALS: DocTutorialEntry[] = [
         },
         moveMs: 600,
         actionAtMs: 13200,
-        anchorMs: 13800
+        anchorMs: 13800,
+        posterAtMs: 14000
       },
       {
         id: "populated-script",
@@ -330,7 +331,8 @@ export const DOC_TUTORIALS: DocTutorialEntry[] = [
         moveMs: 600,
         actionAtMs: 9000,
         anchorMs: 9800,
-        emphasis: "outline"
+        emphasis: "outline",
+        posterAtMs: 14500
       },
       {
         id: "saved-test",
@@ -462,7 +464,8 @@ export const DOC_TUTORIALS: DocTutorialEntry[] = [
         moveMs: 600,
         actionAtMs: 11400,
         anchorMs: 14200,
-        emphasis: "outline-dim"
+        emphasis: "outline-dim",
+        posterAtMs: 14000
       },
       {
         id: "assembled-app",
@@ -701,7 +704,8 @@ export const DOC_TUTORIALS: DocTutorialEntry[] = [
         moveMs: 600,
         actionAtMs: 12200,
         anchorMs: 13800,
-        emphasis: "outline"
+        emphasis: "outline",
+        posterAtMs: 14500
       },
       {
         id: "planned-unrendered-board",
@@ -809,7 +813,8 @@ export const DOC_TUTORIALS: DocTutorialEntry[] = [
         moveMs: 600,
         actionAtMs: 23300,
         anchorMs: 26600,
-        emphasis: "outline-dim"
+        emphasis: "outline-dim",
+        posterAtMs: 26500
       },
       {
         id: "same-cases-green",

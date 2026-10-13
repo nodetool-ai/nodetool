@@ -289,7 +289,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
           </Caption>
           {creditsLoading ? (
             <FlexRow gap={1} align="center" sx={{ mt: 0.5 }}>
-              <LoadingSpinner size={12} />
+              <LoadingSpinner inline size={14} />
               <Text
                 size="small"
                 sx={{

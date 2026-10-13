@@ -8,7 +8,7 @@ import {
   Collapse,
   MOTION,
   BORDER_RADIUS,
-  LinearProgress,
+  ProgressBar,
   FlexRow,
   FlexColumn,
   Text,
@@ -143,16 +143,12 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
       }}
     >
       {isRunning && (
-        <LinearProgress
-          variant={progress ? "determinate" : "indeterminate"}
-          value={progress ? (progress.progress / progress.total) * 100 : undefined}
-          sx={{
-            height: 3,
-            backgroundColor: `${nsColor}20`,
-            "& .MuiLinearProgress-bar": {
-              backgroundColor: nsColor,
-            },
-          }}
+        <ProgressBar
+          progressVariant={progress ? "determinate" : "indeterminate"}
+          value={progress ? (progress.progress / progress.total) * 100 : 0}
+          showValue={false}
+          size="small"
+          accent={nsColor}
         />
       )}
 

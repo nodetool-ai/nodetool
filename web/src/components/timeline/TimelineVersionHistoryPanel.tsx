@@ -286,7 +286,7 @@ export const TimelineVersionHistoryPanel: React.FC<
       <ScrollArea css={listStyles(theme)} sx={{ flex: 1, minHeight: 0 }}>
         {isLoading ? (
           <FlexColumn align="center" justify="center" sx={{ py: 4 }}>
-            <LoadingSpinner size="small" text="Loading versions…" />
+            <LoadingSpinner size="small" text="Loading versions" />
           </FlexColumn>
         ) : error ? (
           <FlexColumn gap={0.5} sx={{ p: 2 }}>

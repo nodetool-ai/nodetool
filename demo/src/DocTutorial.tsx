@@ -3,6 +3,7 @@ import { DocDemoPlayer } from "@web-demo";
 import { getDocCast } from "./casts/docRegistry";
 import { TutorialShell } from "./components/TutorialShell";
 import { FocusCamera } from "./components/FocusCamera";
+import { TUTORIAL_UI_SCALE } from "./tutorialTheme";
 import type { TutorialStep } from "./components/StepIndicator";
 import type { CaptionCue, TimeMap, TutorialShot } from "./types";
 
@@ -62,6 +63,7 @@ export const DocTutorial: React.FC<DocTutorialProps> = ({
     >
       {(presentationTimeMs) => (
         <FocusCamera
+          uiScale={TUTORIAL_UI_SCALE}
           tutorialId={castId}
           shots={shots}
           presentationTimeMs={presentationTimeMs}

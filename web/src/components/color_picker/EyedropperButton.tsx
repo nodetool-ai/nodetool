@@ -43,7 +43,7 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
   return (
     <StateIconButton
       icon={<ColorizeIcon fontSize="small" />}
-      tooltip={isPicking ? "Picking color..." : "Pick color from screen"}
+      tooltip={isPicking ? "Picking color…" : "Pick color from screen"}
       onClick={handleClick}
       disabled={disabled || isPicking}
       isLoading={isPicking}

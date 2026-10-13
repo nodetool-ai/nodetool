@@ -3,14 +3,15 @@ import React, { memo } from "react";
 import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Typography, Tooltip } from "@mui/material";
-import { reducedMotion } from "./tokens";
+import { Box, Typography } from "@mui/material";
+import { GAP } from "./spacing";
+import { MOTION, TYPOGRAPHY, reducedMotion } from "./tokens";
+import { Tooltip } from "./Tooltip";
 import CircleIcon from "@mui/icons-material/Circle";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import WarningIcon from "@mui/icons-material/Warning";
 import PendingIcon from "@mui/icons-material/Pending";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const pulseAnimation = keyframes`
   0% { opacity: 1; }
@@ -22,17 +23,19 @@ const styles = (theme: Theme, pulse: boolean) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: theme.spacing(1),
+    gap: theme.spacing(GAP.tight),
     ".status-icon": {
       fontSize: 12,
-      animation: pulse ? `${pulseAnimation} 2s infinite` : "none",
+      animation: pulse ? `${pulseAnimation} ${MOTION.pulse} infinite` : "none",
       ...reducedMotion({ animation: "none" })
     },
-    ".status-label": {
-      fontSize: 12,
-      fontWeight: 500
-    }
+    ".status-label": TYPOGRAPHY.sans.caption
   });
+
+const LABEL_STYLE = {
+  small: TYPOGRAPHY.sans.caption,
+  medium: TYPOGRAPHY.sans.label
+} as const;
 
 export type StatusType = "success" | "error" | "warning" | "info" | "pending" | "default";
 
@@ -115,8 +118,8 @@ const StatusIndicatorInternal: React.FC<StatusIndicatorProps> = ({
           color: statusColors[status]
         },
         ".status-label": {
-          color: labelTone === "muted" ? "text.secondary" : statusColors[status],
-          fontSize: size === "small" ? 12 : 14
+          ...LABEL_STYLE[size],
+          color: labelTone === "muted" ? "text.secondary" : statusColors[status]
         }
       }}
     >
@@ -131,7 +134,7 @@ const StatusIndicatorInternal: React.FC<StatusIndicatorProps> = ({
 
   if (tooltip) {
     return (
-      <Tooltip title={tooltip} enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Tooltip title={tooltip}>
         {content}
       </Tooltip>
     );

@@ -85,7 +85,7 @@ export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps, EmptyStateVariant } from "./EmptyState";
 
 export { LoadingSpinner } from "./LoadingSpinner";
-export type { LoadingSpinnerProps, LoadingVariant } from "./LoadingSpinner";
+export type { LoadingSpinnerProps } from "./LoadingSpinner";
 
 export { default as MagicGenerationFill } from "./MagicGenerationFill";
 export {
