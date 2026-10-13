@@ -79,6 +79,18 @@ it("preserves a preset sun edited into a physics entity and allocates a new pure
   expect(apply(result, "neon-interior").scenes[0].entities).toHaveLength(result.scenes[0].entities.length);
 });
 
+it("preserves a linked sun that parents unrelated entities instead of rotating their world poses", () => {
+  const document = createNative3DGame("parent-sun");
+  const scene = document.scenes[0];
+  scene.environment.sky = { kind: "procedural", sunEntityId: "sun", turbidity: 2, rayleigh: 2, groundColor: "#000000", intensity: 1 };
+  scene.entities.push(gameEntity3D.parse({ id: "sun-child", parentId: "sun", transform3d: { position: { x: 1, y: 1, z: 0 } },
+    primitive: { kind: "box", dimensions: { x: 1, y: 1, z: 1 }, material: { color: "#ffffff" } } }));
+  const before = structuredClone(scene.entities);
+  const result = apply(document, "sunny-day");
+  expect(result.scenes[0].entities.slice(0, before.length)).toEqual(before);
+  expect(result.scenes[0].entities.at(-1)?.id).toBe("environment-sun");
+});
+
 it("uses preset shadows when available and preserves an unrelated shadow caster when occupied", () => {
   let document = createNative3DGame("shadow-priority");
   document.scenes[0].entities = document.scenes[0].entities.filter((entity) => entity.light3d === undefined);
