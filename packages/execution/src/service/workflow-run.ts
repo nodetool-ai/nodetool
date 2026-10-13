@@ -563,9 +563,6 @@ export interface PartialRunReport {
   reused: ReusedNode[];
 }
 
-/** How many saved assets a generation lookup reads, newest first. */
-const PREVIOUS_GENERATION_SCAN = 50;
-
 /**
  * The node's previous generation from the assets its earlier runs saved, in
  * this workflow. A multi-selection (`selected_generations`) streams several
@@ -581,15 +578,20 @@ async function loadPreviousGeneration(
   const selected = ui["selected_generations"];
   if (Array.isArray(selected) && selected.length >= 2) return null;
   const pinned = ui["selected_generation"];
-  const [rows] = await Asset.paginate(userId, {
-    workflowId,
-    nodeId: node.id,
-    limit: PREVIOUS_GENERATION_SCAN
-  });
+  const pinnedId = isString(pinned) && pinned !== "" ? pinned : undefined;
+  const chosen = pinnedId
+    ? await Asset.find(userId, pinnedId)
+    : (await Asset.paginate(userId, { workflowId, nodeId: node.id, limit: 1 }))[0][0];
+  if (!chosen || chosen.workflow_id !== workflowId || chosen.node_id !== node.id) {
+    return null;
+  }
+  const rows = chosen.job_id
+    ? await Asset.listByJobNode(userId, workflowId, node.id, chosen.job_id)
+    : [chosen];
   return previousGenerationFromAssets(
     rows,
     metadata,
-    isString(pinned) && pinned !== "" ? pinned : undefined
+    chosen.id
   );
 }
 
@@ -764,7 +766,7 @@ export async function runWorkflow(
       deps.loadPreviousGeneration = (node, metadata) =>
         loadPreviousGeneration(userId, workflowId, node, metadata);
     }
-    const plan = await planPartialRun(runnableGraph, nodeIds, deps);
+    const plan = await planPartialRun(hydrateRunGraph(runnableGraph, registry), nodeIds, deps);
     if (plan.kind === "unknown_nodes") {
       return {
         kind: "error",

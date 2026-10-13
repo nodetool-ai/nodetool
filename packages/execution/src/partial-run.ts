@@ -13,6 +13,7 @@
  * upstream runs.
  */
 import { getAssetFileName } from "@nodetool-ai/protocol";
+import { rewriteBypassedNodes } from "@nodetool-ai/kernel";
 import type { Edge, GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
 import type { NodeMetadata, TypeMetadata } from "@nodetool-ai/node-sdk";
 
@@ -63,16 +64,13 @@ export function unknownNodeIds(
 }
 
 /**
- * A generation's value for one output handle: the named handle, else the sole
- * value of a single-output generation. Mirrors `outputOf` in
- * `web/src/utils/nodeGenerations.ts`, except that a generation with several
- * other handles yields nothing rather than the whole record.
+ * A named output must match exactly. An unnamed edge may use the sole output.
  */
 export function generationOutputFor(
   outputs: Record<string, unknown>,
   handle: string | null | undefined
 ): unknown {
-  if (handle && Object.hasOwn(outputs, handle)) return outputs[handle];
+  if (handle) return Object.hasOwn(outputs, handle) ? outputs[handle] : undefined;
   const keys = Object.keys(outputs);
   return keys.length === 1 ? outputs[keys[0]!] : undefined;
 }
@@ -81,17 +79,17 @@ const isListType = (type: TypeMetadata | undefined): boolean =>
   type?.type === "list";
 
 /** Whether the target's input `handle` takes a list, so edges aggregate. */
-function inputIsList(
+function inputType(
   node: NodeDescriptor,
   handle: string,
   metadata: NodeMetadata | undefined
-): boolean {
+): TypeMetadata | undefined {
   const declared = metadata?.properties.find((p) => p.name === handle)?.type;
-  if (declared) return isListType(declared);
+  if (declared) return declared;
   const slot = node.dynamic_inputs?.[handle] as
     | { type?: TypeMetadata }
     | undefined;
-  return isListType(slot?.type);
+  return slot?.type;
 }
 
 /** Write inlined values into a node, keeping dynamic inputs dynamic. */
@@ -124,6 +122,7 @@ export async function planPartialRun(
   if (unknown.length > 0) {
     return { kind: "unknown_nodes", ids: unknown };
   }
+  graph = rewriteBypassedNodes(graph);
 
   const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
   const inbound = new Map<string, Edge[]>();
@@ -187,6 +186,9 @@ export async function planPartialRun(
   while (stack.length > 0) {
     const id = stack.pop()!;
     for (const edge of outbound.get(id) ?? []) {
+      if (edge.edge_type === "control") {
+        requireRun(edge.target);
+      }
       if (keep.has(edge.target)) {
         markLive(edge);
       }
@@ -235,7 +237,9 @@ export async function planPartialRun(
       handles = new Map();
       valuesByTarget.set(edge.target, handles);
     }
-    handles.set(handle, [...(handles.get(handle) ?? []), value]);
+    const values = handles.get(handle);
+    if (values) values.push(value);
+    else handles.set(handle, [value]);
     if (!reused.has(edge.source)) {
       const generation = await previous.get(edge.source)!;
       reused.set(edge.source, {
@@ -256,10 +260,11 @@ export async function planPartialRun(
       for (const [handle, list] of handles) {
         // Several edges into a list input aggregate, as the kernel does;
         // anywhere else the last edge wins.
+        const type = inputType(node, handle, metadata);
         values.set(
           handle,
-          list.length > 1 && inputIsList(node, handle, metadata)
-            ? list
+          list.length > 1 && isListType(type)
+            ? type?.type_args?.[0]?.type === "list" ? list : list.flat(1)
             : list[list.length - 1]
         );
       }
@@ -355,20 +360,20 @@ export function previousGenerationFromAssets(
         typeof meta["output_name"] === "string"
           ? meta["output_name"]
           : primaryOutputName(metadata);
-      media.set(handle, [
-        ...(media.get(handle) ?? []),
-        {
+      const ref = {
           type: refType,
           uri: `asset://${getAssetFileName(row.id, ct)}`,
           asset_id: row.id
-        }
-      ]);
+        };
+      const refs = media.get(handle);
+      if (refs) refs.push(ref);
+      else media.set(handle, [ref]);
     } else if (ct.startsWith("text/")) {
       const text = meta["text"];
       if (typeof text !== "string") continue;
       // The inline copy is capped; a truncated one is not the output.
       const bytes = Buffer.byteLength(text, "utf8");
-      if (row.size !== null && row.size !== bytes) continue;
+      if (row.size === null || row.size > 200_000 || row.size !== bytes) continue;
       outputs[primaryOutputName(metadata)] = text;
     } else if (ct.includes("json")) {
       const json = meta["json"];
