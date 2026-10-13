@@ -105,8 +105,9 @@ graph. The graph's generated media are candidates until installed.
 
 ## Scripts during play
 
-Edit an existing script with `set_script {entity_id, index, source}`. The editor
-compiles changed sources during play and continues at the current tick with
+Edit an existing script through `edit_native_game` with a `set_script` document
+op. Supply `entity_id`, `index` and `source`. The editor compiles changed sources
+during play and continues at the current tick with
 existing script state. A compile failure keeps the previous source running and
 reports the error in the Console. Only source edits apply during play. Use
 **Restart from tick 0** to apply other draft changes or reset script state.
