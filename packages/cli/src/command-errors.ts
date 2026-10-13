@@ -6,21 +6,21 @@
  * was indistinguishable from a broken pipe. The human message still goes to
  * stderr; `--json` additionally puts `{"error": …}` on stdout.
  */
+import { z } from "zod";
 import { missingRuntimeDetailsOf, missingRuntimeDetailsSchema, missingRuntimeText, type MissingRuntimeDetails } from "@nodetool-ai/protocol";
+
+const commandFailureSchema = z.object({
+  missingRuntime: missingRuntimeDetailsSchema.optional().catch(undefined),
+  server: z.object({
+    missingRuntime: missingRuntimeDetailsSchema.optional().catch(undefined)
+  }).optional().catch(undefined)
+});
 
 export function commandMissingRuntime(value: unknown): MissingRuntimeDetails | null {
   const details = missingRuntimeDetailsOf(value);
   if (details) { return details; }
-  if (!value || typeof value !== "object") { return null; }
-  if ("missingRuntime" in value) {
-    const parsed = missingRuntimeDetailsSchema.safeParse(value.missingRuntime);
-    if (parsed.success) { return parsed.data; }
-  }
-  if ("server" in value && value.server && typeof value.server === "object" && "missingRuntime" in value.server) {
-    const parsed = missingRuntimeDetailsSchema.safeParse(value.server.missingRuntime);
-    if (parsed.success) { return parsed.data; }
-  }
-  return null;
+  const parsed = commandFailureSchema.safeParse(value);
+  return parsed.success ? parsed.data.missingRuntime ?? parsed.data.server?.missingRuntime ?? null : null;
 }
 
 /** Missing runtimes use the shared install-required exit code. */

@@ -1,7 +1,11 @@
 import yaml from "js-yaml";
+import { z } from "zod";
 import { getNodeBuiltinSync, safeProcessEnv, safeProcessPlatform } from "./node-import.js";
 
 export type NodetoolHost = "desktop" | "cli" | "npx" | "source" | "docker";
+
+const runtimeSettingsSchema = z.object({ CONDA_ENV: z.string().optional() });
+type RuntimeSettings = z.infer<typeof runtimeSettingsSchema>;
 
 export interface RuntimeLocations {
   readonly host: NodetoolHost;
@@ -16,10 +20,10 @@ export interface RuntimeLocationOptions {
   readonly platform?: NodeJS.Platform;
   readonly homeDir?: string;
   readonly condaEnv?: string;
-  readonly settings?: Readonly<Record<string, unknown>>;
+  readonly settings?: Readonly<RuntimeSettings>;
 }
 
-export function isNodetoolHost(value: unknown): value is NodetoolHost {
+export function isNodetoolHost(value: string | undefined): value is NodetoolHost {
   return value === "desktop" || value === "cli" || value === "npx" || value === "source" || value === "docker";
 }
 
@@ -61,11 +65,10 @@ export function runtimeLocations(
   const condaOverride = env["NODETOOL_CONDA_ENV"]?.trim() || undefined;
   let configuredConda: string | undefined;
   if (!condaOverride && !options.condaEnv) {
-    const settings: unknown = options.settings ?? (fs.existsSync(settingsFile)
-      ? yaml.load(fs.readFileSync(settingsFile, "utf8")) : undefined);
-    if (settings && typeof settings === "object" && "CONDA_ENV" in settings &&
-      typeof settings.CONDA_ENV === "string" && settings.CONDA_ENV.trim()) {
-      configuredConda = settings.CONDA_ENV;
+    const settings = runtimeSettingsSchema.safeParse(options.settings ?? (fs.existsSync(settingsFile)
+      ? yaml.load(fs.readFileSync(settingsFile, "utf8")) : undefined));
+    if (settings.success && settings.data.CONDA_ENV?.trim()) {
+      configuredConda = settings.data.CONDA_ENV;
     }
   }
   const uvRoot = paths.join(root, "uv-tools");

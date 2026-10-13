@@ -8,7 +8,7 @@
 import { describe, it, expect } from "vitest";
 import { createRequire } from "node:module";
 import { Workbook } from "exceljs";
-import { zipSync, strToU8 } from "fflate";
+import { zipSync, strToU8, unzipSync, strFromU8 } from "fflate";
 import {
   SANDBOX_HOST_MODULES,
   type ResolvedSandboxModule,
@@ -1265,19 +1265,30 @@ describe("@nodetool-ai/sandbox-exif", () => {
 });
 
 describe("@nodetool-ai/sandbox-pptxgen", () => {
-  it("builds a one-slide deck", async () => {
+  it("builds a deck with text and an embedded PNG", async () => {
     const result = await run(
       `import { build } from "@nodetool-ai/sandbox-pptxgen";
        const bytes = await build({
          title: "Deck",
-         slides: [{ items: [{ type: "text", x: 0.5, y: 0.5, w: 8, h: 1, text: "Hello" }] }]
+         slides: [{ items: [
+           { type: "text", x: 0.5, y: 0.5, w: 8, h: 1, text: "Hello" },
+           { type: "image", x: 1, y: 2, w: 1, h: 1,
+             data: fromBase64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/FxoAAAAASUVORK5CYII=") }
+         ] }]
        });
-       return { ok: bytes instanceof Uint8Array, len: bytes.length, zip: bytes[0] === 0x50 && bytes[1] === 0x4b };`,
+       return toBase64(bytes);`,
       "pptxgen"
     );
     expect(result.success).toBe(true);
-    expect(result.result).toMatchObject({ ok: true, zip: true });
-    expect((result.result as { len: number }).len).toBeGreaterThan(1000);
+    expect(typeof result.result).toBe("string");
+    if (typeof result.result !== "string") {
+      throw new Error("PPTX build did not return base64 bytes");
+    }
+    const archive = unzipSync(Buffer.from(result.result, "base64"));
+    expect(strFromU8(archive["ppt/slides/slide1.xml"])).toContain("Hello");
+    expect(
+      Object.keys(archive).filter((name) => name.startsWith("ppt/media/") && name.endsWith(".png"))
+    ).toHaveLength(1);
   });
 });
 

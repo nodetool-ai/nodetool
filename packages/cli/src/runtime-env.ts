@@ -1,6 +1,9 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { z } from "zod";
 import { applyRuntimeEnv, isNodetoolHost, type NodetoolHost } from "@nodetool-ai/config";
+
+const cliManifestSchema = z.object({ version: z.string() });
 
 export function cliHostForPath(path: string): NodetoolHost {
   const normalized = path.replaceAll("\\", "/");
@@ -16,9 +19,9 @@ export function initializeCliRuntime(entryUrl: string): void {
     throw new Error(`Unknown NODETOOL_HOST: ${process.env["NODETOOL_HOST"]}`);
   }
   if (process.env["NODETOOL_CLI_VERSION"] === undefined) {
-    const manifest: unknown = JSON.parse(readFileSync(new URL("../package.json", entryUrl), "utf8"));
-    if (manifest && typeof manifest === "object" && "version" in manifest && typeof manifest.version === "string") {
-      process.env["NODETOOL_CLI_VERSION"] = manifest.version;
+    const manifest = cliManifestSchema.safeParse(JSON.parse(readFileSync(new URL("../package.json", entryUrl), "utf8")));
+    if (manifest.success) {
+      process.env["NODETOOL_CLI_VERSION"] = manifest.data.version;
     }
   }
   applyRuntimeEnv();

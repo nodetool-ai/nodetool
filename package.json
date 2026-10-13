@@ -252,6 +252,12 @@
     "office-text-extractor": "^4.0.0"
   },
   "overrides": {
+    "epub2": {
+      "adm-zip": "^0.6.1"
+    },
+    "pptxgenjs": {
+      "image-size": "^2.0.4"
+    },
     "unzipper": ">=0.12.3",
     "sharp": "^0.35.3"
   },

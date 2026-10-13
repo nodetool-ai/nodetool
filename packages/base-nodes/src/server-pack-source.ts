@@ -9,8 +9,15 @@ import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-pro
 import { registerWhisperCppProviders } from "@nodetool-ai/whisper-cpp";
 import type { BuiltinPackPolicy } from "@nodetool-ai/node-sdk";
 
+interface BundledPackSource {
+  readonly register: typeof registerBuiltinPacks;
+  readonly setEnabled: typeof setBuiltinPackEnabled;
+  readonly unavailableReason: typeof builtinPackUnavailableReason;
+  readonly registerProviders: (policy: BuiltinPackPolicy) => void;
+}
+
 /** Transitional public source for packed CLI releases that still carry every pack. */
-export function createBundledPackSource() {
+export function createBundledPackSource(): BundledPackSource {
   return {
     register: registerBuiltinPacks,
     setEnabled: setBuiltinPackEnabled,

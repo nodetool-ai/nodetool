@@ -136,7 +136,29 @@ or desktop-only messages. Focused boundary tests passed, including actual
 child CLI missing-module runs. Astra cleared runtime steps 1/2 before the final
 mechanical lint edits described below.
 
-## Verification and remaining failures
+## Continuation fixes
+
+The return annotation and input-parser lint failures below are fixed. Runtime
+settings, CLI manifest versions and transported runtime errors now use typed
+schemas. Regression tests cover malformed settings and manifests, and fallback
+from invalid direct error details to valid nested details.
+
+The new server workspace exposed existing document dependencies to the
+production audit. Parent-scoped overrides update EPUB's `adm-zip` and PPTX's
+`image-size`. Real EPUB chapter reads and PPTX text/image writes passed against
+the patched dependencies. The dependency audit passes against the failing CI
+run's base. The PPTX sandbox test now checks the written text and PNG ZIP entry.
+
+Package builds, root lint, root typecheck and focused config/CLI tests passed.
+Astra cleared the source fixes and scoped overrides. Broad affected tests,
+harness gate and backend smoke still require the new remote CI result. The PR
+remains a draft until that verification completes.
+
+This checkout uses Node from the local mise installation. Set `TMPDIR=/dev/shm`
+for local checks because writes to `/tmp` hit its quota. Mobile dependencies
+were restored with `npm --prefix mobile ci` before rerunning typecheck.
+
+## Earlier verification and remaining failures
 
 Central normal npm install completed successfully. Lockfile libc checks passed.
 The latest combined package build passed 71/71 tasks and root typecheck exited
@@ -181,10 +203,11 @@ computer or use CI. Do not claim completion on review alone.
 
 ## Immediate continuation
 
-1. Inspect the checkpoint diff and fix the remaining lint violations. Rebuild
-   after the final mechanical lint edits and run focused tests plus mandatory
-   checks. Push fixes and open or update a follow-up PR for this branch.
-2. Continue A4.1 and A4.8 in parallel, then the dependent source/manifest cuts.
+1. Inspect fresh CI for [PR #6550](https://github.com/nodetool-ai/nodetool/pull/6550),
+   including affected tests, harness gate and backend smoke. Resolve failures
+   before marking the foundation work ready.
+2. After the foundation assignments land on `main`, continue A4.1 and A4.8 in
+   parallel, then the dependent source/manifest cuts.
    Do not change the published CLI manifest's bundled packs until A24.
 3. After A4 cuts, implement A8 core-only smoke and A9 size gate. Then continue
    publishing metadata, installed-pack source, cross-surface missing-pack

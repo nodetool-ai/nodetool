@@ -13,6 +13,8 @@ describe("CLI missing-runtime boundary", () => {
     expect(JSON.parse(String(log.mock.calls[0]?.[0]))).toEqual({ error: "missing_runtime_package", ...details });
     expect(commandFailureExitCode({ status: "failed", missingRuntime: details })).toBe(3);
     expect(commandMissingRuntime({ server: { missingRuntime: details } })).toEqual(details);
+    expect(commandMissingRuntime({ missingRuntime: { runtimePackage: "invalid" }, server: { missingRuntime: details } })).toEqual(details);
+    expect(commandMissingRuntime({ missingRuntime: details, server: false })).toEqual(details);
   });
 
   it("keeps ordinary failures on exit1 and rejects malformed runtime details", () => {
@@ -21,5 +23,10 @@ describe("CLI missing-runtime boundary", () => {
     expect(printCommandError(new Error("ordinary failure"), true)).toBe(1);
     expect(JSON.parse(String(log.mock.calls[0]?.[0]))).toEqual({ error: "ordinary failure" });
     expect(commandFailureExitCode({ missingRuntime: { runtimePackage: "not-a-runtime" } })).toBe(1);
+  });
+
+  it.each([null, undefined, false, "failure", [], { server: "failure" }])("rejects a malformed command failure: %j", (failure) => {
+    expect(commandMissingRuntime(failure)).toBeNull();
+    expect(commandFailureExitCode(failure)).toBe(1);
   });
 });

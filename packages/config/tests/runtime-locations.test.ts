@@ -43,6 +43,16 @@ describe("runtime locations", () => {
     expect(runtimeLocations({ HOME: home, NODETOOL_HOST: "cli" }, { platform: "darwin" }).condaEnv).toBe(recorded);
   });
 
+  it.each(["null", "true", "- CONDA_ENV", "CONDA_ENV: 123", "CONDA_ENV: '   '"])("ignores settings without a usable conda path: %s", (settings) => {
+    const home = mkdtempSync(join(tmpdir(), "runtime-settings-"));
+    directories.push(home);
+    const dir = join(home, ".config", "nodetool");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "settings.yaml"), settings);
+    expect(runtimeLocations({ HOME: home, NODETOOL_HOST: "cli" }, { platform: "linux" }).condaEnv)
+      .toBe(join(home, ".local", "share", "nodetool", "conda_env"));
+  });
+
   it("keeps desktop Windows and sudo Linux defaults separate from per-user CLI defaults", () => {
     const env = { HOME: "C:\\Users\\test", APPDATA: "C:\\Users\\test\\AppData", ALLUSERSPROFILE: "C:\\ProgramData" };
     expect(runtimeLocations({ ...env, NODETOOL_HOST: "desktop" }, { platform: "win32", desktopUserData: "C:\\desktop", settings: {} }).condaEnv)
