@@ -213,17 +213,19 @@ describe("3D controller boundaries", () => {
   it("applies script impulses to dynamic bodies and preserves replay", async () => {
     const document = fixture([{ id: "crate", transform3d: { position: { x: 4, y: 5, z: 0 } },
       body3d: { type: "dynamic" }, collider3d: { kind: "box", halfExtents: { x: 0.5, y: 0.5, z: 0.5 } },
-      behaviors: [{ kind: "script", maxTickMs: 50,
-        source: `input => ({state:null,commands:input.tick===0||input.tick===3?[{kind:'impulse',impulse:{x:2,y:0,z:0}}]:[]})` }] }]);
+      behaviors: [{ kind: "script", maxTickMs: 20,
+        source: `input => ({state:null,commands:input.tick===0||input.tick===90?[{kind:'impulse',impulse:{x:2,y:0,z:0}}]:[]})` }] }]);
+    document.scenes[0].gravity = { x: 0, y: 0, z: 0 };
     const session = await createGameSession3D(document, 1);
     try {
       session.step(input());
       const first = session.inspect({ entityId: "crate" }).entities[0];
       expect(first.velocity.x).toBeGreaterThan(0);
       expect(first.transform.position.x).toBeGreaterThan(4);
+      stepTicks(session, 59);
       const checkpoint = session.snapshot();
-      const steps = Array.from({ length: 5 }, () => session.step(input()));
-      const replayed = await replayGame3D(document, 1, Array.from({ length: 5 }, () => input()), checkpoint);
+      const steps = Array.from({ length: 60 }, () => session.step(input()));
+      const replayed = await replayGame3D(document, 1, Array.from({ length: 60 }, () => input()), checkpoint);
       expect(replayed.steps.map((step) => step.events)).toEqual(steps.map((step) => step.events));
       expect(replayed.snapshot).toEqual(session.snapshot());
       expect(session.inspect({ entityId: "crate" }).entities[0].velocity.x).toBeGreaterThan(first.velocity.x);
