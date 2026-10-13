@@ -24,10 +24,12 @@ interface FakePage {
  * A chatgpt.com tab: the composer is ready, a send moves the URL to the
  * conversation, and each conversation poll returns the next scripted state.
  */
-function fakeTab(states: PathNode[][], options: { signedIn?: boolean; models?: Array<{ slug: string; title: string }>; goneThreads?: string[] } = {}): FakePage {
+function fakeTab(states: PathNode[][], options: { signedIn?: boolean; models?: Array<{ slug: string; title: string }>; goneThreads?: string[]; lostAttaches?: number } = {}): FakePage {
   const page: FakePage = { navigations: [], sent: [], attached: 0, staged: [], scripts: [] };
   let pathname = "/";
   let polls = 0;
+  let picks = 0;
+  let previews = 0;
   const tab: ExtensionTab = {
     async download() { throw new Error("ChatGPT downloads in the page"); },
     async navigate(url) {
@@ -49,9 +51,17 @@ function fakeTab(states: PathNode[][], options: { signedIn?: boolean; models?: A
           page.sent.push(JSON.parse(/insertText", false, ("(?:[^"\\]|\\.)*")\)/.exec(expression)![1]));
           if (!pathname.startsWith("/c/")) pathname = `/c/${CONVERSATION_ID}`;
           return true;
-        case "attach":
-          page.attached += JSON.parse(/const files = (\[.*?\]);/s.exec(expression)![1]).length;
+        case "attach": {
+          // The page drops files set before it is ready.
+          const count = JSON.parse(/const files = (\[.*?\]);/s.exec(expression)![1]).length;
+          if (++picks > (options.lostAttaches ?? 0)) {
+            page.attached += count;
+            previews = count;
+          }
           return true;
+        }
+        case "attached": return previews > 0;
+        case "unstage": return true;
         case "location": return pathname;
         case "conversation": {
           const path = states[Math.min(polls++, states.length - 1)];
@@ -203,6 +213,18 @@ describe("ChatGPTProvider", () => {
     expect((await pending).content).toBe("an apple");
     expect(page.attached).toBe(1);
     expect(page.staged.join("")).toContain(Buffer.from(PNG).toString("base64"));
+  });
+
+  it("sets the files again when the page drops the first ones", async () => {
+    const page = fakeTab([[node("user", "what is this"), node("assistant", "an apple", { endTurn: true })]], { lostAttaches: 1 });
+    const pending = new ChatGPTProvider().generateMessage({
+      model: "auto",
+      messages: [{ role: "user", content: [{ type: "text", text: "what is this" }, { type: "image_url", image: { data: PNG, mimeType: "image/png" } }] }]
+    });
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect((await pending).content).toBe("an apple");
+    expect(page.scripts.filter((op) => op === "attach")).toHaveLength(2);
+    expect(page.attached).toBe(1);
   });
 
   it("generates an image in a regular chat and downloads it in the tab", async () => {

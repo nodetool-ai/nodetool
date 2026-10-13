@@ -6,6 +6,7 @@ import { fetchExternalMedia } from "../external-media-fetch.js";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { createDreaminaMusic, type DreaminaMusic } from "./dreamina-music.js";
 import { DREAMINA_IMAGE_MODELS, DREAMINA_VIDEO_MODELS } from "./dreamina-models.js";
+import { filePendingStore, pendingJobKey, type DreaminaPendingStore } from "./dreamina-pending.js";
 import type { EncodedAudioResult, ImageModel, Message, MusicModel, ImageToImageParams, ImageToVideoParams, ProviderStreamItem, ReferenceToVideoInputs, ReferenceToVideoParams, TextToImageParams, TextToMusicParams, TextToVideoParams, VideoModel, NamedReferenceImage } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.dreamina");
@@ -89,6 +90,17 @@ function runner(): DreaminaPageRunner {
   return (pageRunner ??= createExtensionRunner());
 }
 
+let pendingStore: DreaminaPendingStore | null = null;
+
+/** Replace the store of uncollected jobs. Tests use this to keep the data directory untouched. */
+export function setDreaminaPendingStore(store: DreaminaPendingStore | null): void {
+  pendingStore = store;
+}
+
+function pendingJobs(): DreaminaPendingStore {
+  return (pendingStore ??= filePendingStore());
+}
+
 /**
  * A request to the tab that did not answer in time. Its outcome is unknown:
  * for the generate request, Dreamina may already run (and bill) the job.
@@ -128,7 +140,8 @@ const MAX_POLL_FAILURES = 5;
 const UNCONFIRMED_SUBMIT_GRACE_MS = 30_000;
 const GENERATE_PATH = "/mweb/v1/aigc_draft/generate";
 const DEFAULT_TIMEOUT_MS = 5 * 60_000;
-const VIDEO_TIMEOUT_MS = 10 * 60_000;
+/** Dreamina queues video for well over ten minutes at busy times. */
+const VIDEO_TIMEOUT_MS = 30 * 60_000;
 const CONFIG_TTL_MS = 5 * 60_000;
 /** One API request in the tab gives up after this, so a stalled request cannot block a poll. */
 const API_TIMEOUT_MS = 30_000;
@@ -712,15 +725,37 @@ async function submitAndAwait(body: Record<string, unknown>, submitId: string, t
   try {
     await callApi(GENERATE_PATH, body);
   } catch (error) {
-    if (!tabLost(error) && !stalled(error)) throw error;
+    if (!tabLost(error) && !stalled(error)) {
+      throw new DreaminaSubmitRejectedError(error instanceof Error ? error.message : String(error), { cause: error });
+    }
     unconfirmed = error as Error;
     log.warn("Dreamina submit has no answer, looking the job up by id", { submitId, error: unconfirmed.message });
   }
+  log.info("Dreamina generation submitted", { submitId, timeoutMs, confirmed: !unconfirmed });
+  return awaitJob(submitId, timeoutMs, signal, unconfirmed);
+}
+
+/** Dreamina answered the submit with an error, so no job runs. */
+class DreaminaSubmitRejectedError extends Error {}
+
+/** The job is not in Dreamina's history: it never arrived, or the history dropped it. */
+class DreaminaJobMissingError extends Error {}
+
+/** A job that Dreamina itself reported as failed. Asking again for the same job cannot help. */
+class DreaminaJobFailedError extends Error {}
+
+/**
+ * Poll the job `submitId` until it finishes and return its record. A job that
+ * does not show in the history within {@link UNCONFIRMED_SUBMIT_GRACE_MS} is
+ * missing, when its submit was not confirmed (`unconfirmed`) or when it is an
+ * older job picked up again (`unconfirmed` is null and `resumed` is true).
+ */
+async function awaitJob(submitId: string, timeoutMs: number, signal?: AbortSignal, unconfirmed: Error | null = null, resumed = false): Promise<HistoryRecord> {
   const started = Date.now();
   const deadline = started + timeoutMs;
-  log.info("Dreamina generation submitted", { submitId, timeoutMs, confirmed: !unconfirmed });
   let pollFailures = 0;
   let lastStatus: number | undefined;
+  let seen = false;
   for (;;) {
     await sleep(POLL_INTERVAL_MS, signal);
     let history: Record<string, HistoryRecord>;
@@ -739,22 +774,24 @@ async function submitAndAwait(body: Record<string, unknown>, submitId: string, t
     pollFailures = 0;
     const record = history[submitId];
     if (record) {
-      unconfirmed = null;
-    } else if (unconfirmed && Date.now() - started > UNCONFIRMED_SUBMIT_GRACE_MS) {
-      throw new Error(`Dreamina generation ${submitId} did not reach Dreamina before the tab was lost (${unconfirmed.message}). Keep the Dreamina tab open and try again`);
+      seen = true;
+    } else if (!seen && (unconfirmed || resumed) && Date.now() - started > UNCONFIRMED_SUBMIT_GRACE_MS) {
+      throw new DreaminaJobMissingError(unconfirmed
+        ? `Dreamina generation ${submitId} did not reach Dreamina before the tab was lost (${unconfirmed.message}). Keep the Dreamina tab open and try again`
+        : `Dreamina generation ${submitId} is no longer in the Dreamina history`);
     }
     const status = record?.task?.status;
     if (status !== lastStatus) {
       log.info("Dreamina task status", { submitId, status, hasRecord: record !== undefined, elapsedMs: Date.now() - started });
       lastStatus = status;
     }
-    if (status === TASK_DONE) return record;
+    if (status === TASK_DONE) return record!;
     if (status === TASK_FAILED) {
-      throw new Error(`Dreamina generation failed: ${record?.fail_msg || "unknown reason"} (fail_code ${record?.fail_code ?? "unknown"})`);
+      throw new DreaminaJobFailedError(`Dreamina generation failed: ${record?.fail_msg || "unknown reason"} (fail_code ${record?.fail_code ?? "unknown"})`);
     }
     if (Date.now() > deadline) {
       log.warn("Dreamina generation timed out", { submitId, lastStatus, record: JSON.stringify(record ?? null).slice(0, 2000) });
-      throw new Error(`Dreamina generation ${submitId} timed out after ${timeoutMs / 1000}s (last task status ${lastStatus ?? "none"})`);
+      throw new Error(`Dreamina generation ${submitId} timed out after ${timeoutMs / 1000}s (last task status ${lastStatus ?? "none"}). The job keeps running on Dreamina; the same request picks it up again instead of paying for a new one`);
     }
   }
 }
@@ -1055,6 +1092,23 @@ export class DreaminaProvider extends BaseProvider {
     }
     if (inputs.first && !takesFirstFrame(config)) throw new Error(`Dreamina model ${config.model_name} does not take a first frame image`);
     if (inputs.last && !videoInputTypes(config).includes("end_frame")) throw new Error(`Dreamina model ${config.model_name} does not take a last frame image`);
+    const timeoutMs = (params.timeoutSeconds ?? VIDEO_TIMEOUT_MS / 1000) * 1000;
+    // A random seed is not part of the request's identity: a retry draws a new one.
+    const key = pendingJobKey(
+      { kind: "video", model: config.model_req_key, prompt, ratio, resolution, seconds, seed: params.seed ?? null, counts: [inputs.references.length, videoInputs.length, audioInputs.length] },
+      [...inputs.references, ...videoInputs, ...audioInputs, inputs.first, inputs.last]
+    );
+    const earlier = pendingJobs().find(key);
+    if (earlier) {
+      log.info("Dreamina picks up the earlier job for this request", { submitId: earlier });
+      try {
+        return await this.collectVideo(config.model_req_key, key, await awaitJob(earlier, timeoutMs, params.signal, null, true), earlier, params.signal);
+      } catch (error) {
+        if (!(error instanceof DreaminaJobMissingError || error instanceof DreaminaJobFailedError)) throw error;
+        pendingJobs().remove(key);
+        log.warn("The earlier Dreamina job cannot be collected, submitting a new one", { submitId: earlier, error: error.message });
+      }
+    }
     const references: UploadedImage[] = [];
     for (const image of inputs.references) references.push(await uploadImage(image));
     const videos: UploadedVideo[] = [];
@@ -1071,16 +1125,37 @@ export class DreaminaProvider extends BaseProvider {
 
     const submitId = randomUUID();
     const seed = params.seed ?? Math.floor(Math.random() * 4_000_000_000);
-    const record = await submitAndAwait({
-      extend: { root_model: config.model_req_key },
-      submit_id: submitId,
-      metrics_extra: JSON.stringify({ isDefaultSeed: 1, originSubmitId: submitId, isRegenerate: false }),
-      draft_content: videoDraftFor(config.model_req_key, prompt, seed, ratio, resolution, seconds * 1000, submitId, references, bounds, videos, audios),
-      http_common_info: { aid: Number(APP_ID) }
-    }, submitId, (params.timeoutSeconds ?? VIDEO_TIMEOUT_MS / 1000) * 1000, params.signal);
+    // Recorded before the submit: a submit whose answer is lost may still run.
+    pendingJobs().add(key, submitId);
+    let record: HistoryRecord;
+    try {
+      record = await submitAndAwait({
+        extend: { root_model: config.model_req_key },
+        submit_id: submitId,
+        metrics_extra: JSON.stringify({ isDefaultSeed: 1, originSubmitId: submitId, isRegenerate: false }),
+        draft_content: videoDraftFor(config.model_req_key, prompt, seed, ratio, resolution, seconds * 1000, submitId, references, bounds, videos, audios),
+        http_common_info: { aid: Number(APP_ID) }
+      }, submitId, timeoutMs, params.signal);
+    } catch (error) {
+      // A rejected submit or a failed job leaves nothing to collect. Any other
+      // error (a timeout, a lost tab, a cancel) may leave a running, paid job.
+      if (!(error instanceof DreaminaSubmitRejectedError || error instanceof DreaminaJobFailedError || error instanceof DreaminaJobMissingError)) throw error;
+      pendingJobs().remove(key);
+      throw error;
+    }
+    return this.collectVideo(config.model_req_key, key, record, submitId, params.signal);
+  }
+
+  /** Download a finished job's video and drop its record. */
+  private async collectVideo(model: string, key: string, record: HistoryRecord, submitId: string, signal?: AbortSignal | null): Promise<Uint8Array> {
     const url = record.item_list?.[0]?.video?.transcoded_video?.origin?.video_url;
-    if (!url) throw new Error("Dreamina finished without a video");
-    log.debug("Dreamina video generation completed", { model: config.model_req_key, submitId });
-    return download(url, params.signal);
+    if (!url) {
+      pendingJobs().remove(key);
+      throw new Error("Dreamina finished without a video");
+    }
+    const video = await download(url, signal ?? undefined);
+    pendingJobs().remove(key);
+    log.debug("Dreamina video generation completed", { model, submitId });
+    return video;
   }
 }
