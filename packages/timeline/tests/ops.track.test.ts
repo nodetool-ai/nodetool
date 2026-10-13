@@ -82,3 +82,98 @@ it("keeps materialization ownership after deleting an owned track", () => {
   expect(result.state.storyboardMaterializations).toEqual(state.storyboardMaterializations);
   expect(result.state.storyboardMaterializations).not.toBe(state.storyboardMaterializations);
 });
+
+describe("delete_track side effects on surviving clips", () => {
+  const owned = "123456789abc00000000000000000000";
+
+  it("unlinks a clip left alone and keeps a link that still has two members", () => {
+    const state = seed();
+    state.clips = [
+      makeClip({ id: "gone", trackId: owned, linkId: "solo" }),
+      makeClip({ id: "lonely", trackId: "second", linkId: "solo" }),
+      makeClip({ id: "gone2", trackId: owned, linkId: "pair" }),
+      makeClip({ id: "kept1", trackId: "second", linkId: "pair" }),
+      makeClip({ id: "kept2", trackId: "second", linkId: "pair" })
+    ];
+    const result = applyTimelineTrackOp(
+      state,
+      { op: "delete_track", target: owned, deleteClips: true },
+      ctx
+    );
+    expect(result.error).toBeUndefined();
+    const byId = new Map(result.state.clips.map((c) => [c.id, c]));
+    expect(byId.get("lonely")?.linkId).toBeUndefined();
+    expect(byId.get("kept1")?.linkId).toBe("pair");
+    expect(byId.get("kept2")?.linkId).toBe("pair");
+    expect([...result.changedClipIds].sort()).toEqual(
+      ["gone", "gone2", "lonely"].sort()
+    );
+  });
+
+  it("drops media tracks of deleted clips and releases clips bound to them", () => {
+    const state = seed();
+    state.clips = [
+      makeClip({ id: "gone", trackId: owned }),
+      makeClip({
+        id: "bound",
+        trackId: "second",
+        trackBinding: { trackId: "mt-gone", mode: "position" }
+      }),
+      makeClip({
+        id: "other",
+        trackId: "second",
+        trackBinding: { trackId: "mt-kept", mode: "position" }
+      })
+    ];
+    const mediaTrack = (id: string, clipId: string) => ({
+      id,
+      clipId,
+      sourceAssetId: "a",
+      name: id,
+      kind: "point" as const,
+      sourceStartMs: 0,
+      sourceEndMs: 1,
+      samples: [],
+      status: "ready" as const
+    });
+    state.mediaTracks = [
+      mediaTrack("mt-gone", "gone"),
+      mediaTrack("mt-kept", "other")
+    ];
+    const result = applyTimelineTrackOp(
+      state,
+      { op: "delete_track", target: owned, deleteClips: true },
+      ctx
+    );
+    expect(result.error).toBeUndefined();
+    expect(result.state.mediaTracks?.map((t) => t.id)).toEqual(["mt-kept"]);
+    const byId = new Map(result.state.clips.map((c) => [c.id, c]));
+    expect(byId.get("bound")?.trackBinding).toBeUndefined();
+    expect(byId.get("other")?.trackBinding?.trackId).toBe("mt-kept");
+    expect(result.changedClipIds).toContain("bound");
+    expect(result.changedClipIds).not.toContain("other");
+  });
+
+  it("refuses a populated track unless deleteClips is set, and a locked track always", () => {
+    const state = seed();
+    const refused = applyTimelineTrackOp(
+      state,
+      { op: "delete_track", target: owned },
+      ctx
+    );
+    expect(refused.error).toContain("deleteClips: true");
+    const emptied = applyTimelineTrackOp(
+      state,
+      { op: "delete_track", target: "second" },
+      ctx
+    );
+    expect(emptied.error).toContain("still holds 1 clip(s): child");
+    state.tracks[0]!.locked = true;
+    const locked = applyTimelineTrackOp(
+      state,
+      { op: "delete_track", target: owned, deleteClips: true },
+      ctx
+    );
+    expect(locked.error).toBeTruthy();
+  });
+});
