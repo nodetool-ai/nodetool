@@ -66,13 +66,45 @@ describe("WorkspaceTabItem rename input", () => {
     expect(screen.getByRole("tab").querySelector(".glyph")).toBeNull();
   });
 
+  // UX research study 2 (A1-29, A2-32, A3-31): the "Examples" tab's tooltip
+  // sat over the page's "Timelines" tab and caught the click meant for it.
+  it("shows no tooltip for a name that fits", async () => {
+    jest.useFakeTimers();
+    try {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderTab();
+      const name = screen.getByText(tab.title);
+      Object.defineProperty(name, "scrollWidth", { value: 120 });
+      Object.defineProperty(name, "clientWidth", { value: 120 });
+
+      await user.hover(name);
+      act(() => {
+        jest.advanceTimersByTime(500);
+      });
+
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+      // Leave the tab so MUI's shared "recently open" window closes before
+      // the next test hovers.
+      await user.unhover(name);
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("shows the full tab name on hover well before the chrome delay", async () => {
     jest.useFakeTimers();
     try {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
       renderTab();
+      const name = screen.getByText(tab.title);
+      // The name is cut off: wider than the space the tab gives it.
+      Object.defineProperty(name, "scrollWidth", { value: 240 });
+      Object.defineProperty(name, "clientWidth", { value: 120 });
 
-      await user.hover(screen.getByText(tab.title));
+      await user.hover(name);
       expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 
       act(() => {

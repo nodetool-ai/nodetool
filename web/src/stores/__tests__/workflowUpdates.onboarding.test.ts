@@ -32,14 +32,26 @@ const dispatch = (status: string, jobId = "runner-job") =>
   );
 
 beforeEach(() => {
-  useOnboardingStore.setState({ completedSteps: [], dismissed: false });
+  useOnboardingStore.setState({
+    completedSteps: [],
+    dismissed: false,
+    ideaDescribed: true
+  });
   mockRunnerStore.setState.mockClear();
 });
 
 describe("handleUpdate — describe-idea onboarding step", () => {
-  it("marks the step when a run completes", () => {
+  it("marks the step when a run completes after an idea was described", () => {
     dispatch("completed");
     expect(useOnboardingStore.getState().completedSteps).toContain(
+      "describe-idea"
+    );
+  });
+
+  it("does not mark the step for a run with no described idea", () => {
+    useOnboardingStore.setState({ ideaDescribed: false });
+    dispatch("completed");
+    expect(useOnboardingStore.getState().completedSteps).not.toContain(
       "describe-idea"
     );
   });

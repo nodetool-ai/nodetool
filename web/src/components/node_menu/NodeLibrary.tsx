@@ -309,8 +309,10 @@ const NodeLibrary = memo<NodeLibraryProps>(
       }
     }, [autoFocusEnabled]);
 
+    // Hidden nodes stay runnable but never appear in the palette, so the
+    // rail counts must leave them out to match the listed rows.
     const allNodes = useMemo(
-      () => Object.values(metadataRecord),
+      () => Object.values(metadataRecord).filter((node) => !node.hidden),
       [metadataRecord]
     );
 

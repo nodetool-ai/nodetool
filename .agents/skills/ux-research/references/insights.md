@@ -18,10 +18,10 @@ for the same behavior.
 | `study-1-I4` | The script run dialog's one-line field drops line breaks in a list input | 2 | `fix` | Multi-line field for `str` ports | 2026-10-12 |
 | `study-1-I5` | Rail icons need hovering and status-bar terms stay unexplained | 2 | `decide` | Rail labels, and whether developer terms belong in the status bar. Study 2 adds 6 of 6 sessions that hovered or guessed the rail | 2026-10-13 |
 | `study-1-I6` | Most "+ New" blank documents are hidden at 1280 × 720 with no scroll cue | 2 | `fix` | Fit the menu to the window or show that it scrolls | 2026-10-12 |
-| `study-2-I1` | People look for rename on the item, but it exists only on the open tab | 3 | `decide` | Rename on the card and panel row, an editable heading, or both | 2026-10-13 |
-| `study-2-I2` | "Ready-made" leads to example apps that ask for models before they run | 2 | `decide` | Open Examples on what runs without setup, or say on each card what it needs | 2026-10-13 |
-| `study-2-I3` | People who want larger text find only the light and dark switch | 2 | `fix` | Theme choice added to Settings, Appearance. Text size setting needs a decision | 2026-10-13 |
-| `study-2-I4` | Settings and Help live in the logo menu, where people do not look | 2 | `decide` | List them in the More panel, or add a labeled help button | 2026-10-13 |
+| `study-2-I1` | People look for rename on the item, but it exists only on the open tab | 3 | `fix` | Decided 2026-10-13: Rename on the Home card and Documents panel row (menu and inline edit). Validate with `rename-item` | 2026-10-13 |
+| `study-2-I2` | "Ready-made" leads to example apps that ask for models before they run | 2 | `fix` | Decided 2026-10-13: each example card says "Runs as is" or what it needs. Validate with `run-example` | 2026-10-13 |
+| `study-2-I3` | People who want larger text find only the light and dark switch | 2 | `fix` | Theme choice shipped in PR 6523. Decided 2026-10-13: a Text size setting under Settings, Appearance. Validate with `change-look` | 2026-10-13 |
+| `study-2-I4` | Settings and Help live in the logo menu, where people do not look | 2 | `fix` | Decided 2026-10-13: Settings and Help also listed in the More panel. Validate with `find-help` and `change-look` | 2026-10-13 |
 | `study-2-I5` | "Costs" answers the spend question at a glance | 0 | `accept` | Keep. Retest finding it from a cold start | 2026-10-13 |
 | `study-2-I6` | People undo a small change by redoing it by hand | 1 | `research` | Next study: undo after a larger change | 2026-10-13 |
 | `study-2-I7` | The Library's empty state leads straight to upload | 0 | `accept` | Keep | 2026-10-13 |

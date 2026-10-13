@@ -8,7 +8,8 @@
  */
 
 import React, { memo, forwardRef, useCallback, useMemo, ReactNode } from "react";
-import { IconButton, Tooltip } from "@mui/material";
+import { IconButton } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import TrashIcon from "../../icons/trash.svg?react";
 import ClearIcon from "@mui/icons-material/Clear";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
