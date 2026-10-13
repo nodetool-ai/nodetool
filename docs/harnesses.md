@@ -2502,7 +2502,9 @@ message events emitted by `BaseProvider`.
 
 #### Sinks
 
-Multiple sinks can run simultaneously (each gets its own span processor):
+Multiple sinks can run simultaneously (each gets its own span processor).
+The network sink sends OTLP/HTTP JSON. Configure a collector that accepts JSON
+on its HTTP traces endpoint.
 
 ```bash
 # JSONL log file (analyzer-friendly — one span per line)
