@@ -1,4 +1,5 @@
 import type { AnyGameDocument } from "@nodetool-ai/protocol";
+import { validateAnyGame } from "@nodetool-ai/game-runtime";
 import type { DocumentMergeAdapter } from "../documentMerge";
 import { gameMergeAdapter } from "./merge";
 import { gameMergeAdapter3D } from "./merge3D";
@@ -15,6 +16,10 @@ function widen<T extends AnyGameDocument>(adapter: DocumentMergeAdapter<T>, narr
       write: (doc, value) => scalar.write(narrow(doc), value)
     }))
   };
+  const merge = adapter.merge;
+  if (merge) {
+    widened.merge = (base, draft, server, options) => merge(narrow(base), narrow(draft), narrow(server), options);
+  }
   if (finalize) {
     widened.finalizeMergedDocument = (doc, base, draft, server, conflicts) => finalize(narrow(doc), narrow(base), narrow(draft), narrow(server), conflicts);
   }
@@ -36,6 +41,14 @@ export function anyGameMergeAdapter(document: AnyGameDocument): DocumentMergeAda
 }
 
 export function acceptServerAnyGameUnit(current: AnyGameDocument, server: AnyGameDocument, kind: string, id: string): AnyGameDocument {
+  if (kind === "document" && id === "document") {
+    if (current.id !== server.id || (current.schemaVersion === 3) !== (server.schemaVersion === 3)) {
+      throw new Error("Game identity and dimension cannot change during conflict resolution");
+    }
+    const checked = validateAnyGame(server);
+    if (!checked.valid) { throw new Error("Cannot accept an invalid game document"); }
+    return checked.document;
+  }
   const adapter = anyGameMergeAdapter(current);
   const collection = adapter.collections.find((entry) => entry.kind === kind);
   if (collection) {

@@ -111,6 +111,8 @@ interface MergeScalarField<TDoc> {
 }
 
 export interface DocumentMergeAdapter<TDoc> {
+  /** Allow a domain to enforce constraints across independently merged units. */
+  merge?(base: TDoc, draft: TDoc, server: TDoc, options?: MergeOptions): MergeResult<TDoc>;
   collections: MergeCollection<TDoc>[];
   /** Restore cross-collection references after all independently merged fields have settled. */
   finalizeMergedDocument?(doc: TDoc, base: TDoc, draft: TDoc, server: TDoc, conflicts: MergeConflict[]): TDoc;
@@ -984,6 +986,7 @@ export function mergeByUnits<TDoc>(
   adapter: DocumentMergeAdapter<TDoc>,
   options?: MergeOptions
 ): MergeResult<TDoc> {
+  if (adapter.merge) { return adapter.merge(base, draft, server, options); }
   const { touched, hasOps, attributedAny } = buildTouchMap(
     adapter,
     options?.ops,
