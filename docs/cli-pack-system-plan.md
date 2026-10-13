@@ -161,7 +161,9 @@ dependency still requires.
 companions, npm runtime libraries and shared `mediabunny` packages. An alias
 records its registry name in `name` and its installed folder in `installName`.
 The protocol runtime table remains the only mapping from runtime ids to npm
-specs. Shared records have `shared: true`.
+specs. Shared records have `shared: true`. Runtime pins also carry `installBytes`
+from fresh Linux production-tree measurements with scripts disabled. Summed
+estimates can overlap because each includes its own dependency tree.
 
 Release packing hashes original companion tarballs and reads exact external
 registry metadata. Staging verifies every record. Source generation and a new

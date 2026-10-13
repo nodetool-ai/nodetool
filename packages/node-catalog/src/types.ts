@@ -10,6 +10,8 @@ export interface InstallPackagePin extends PinnedPackage {
   /** The installed folder name when npm aliases a different registry package. */
   readonly installName?: string;
   readonly shared?: boolean;
+  /** Fresh Linux production-tree estimate before allowlisted rebuilds. */
+  readonly installBytes?: number;
 }
 
 export interface CatalogPack {

@@ -174,7 +174,9 @@ The release catalog also carries `installPins` for provided companions, npm
 runtime libraries and shared `mediabunny` packages (plan D24). Each record has
 the registry name, exact version and integrity. `installName` identifies an
 npm alias folder and `shared: true` marks shared identity checks. Runtime ids
-still resolve through the protocol runtime table. Source generation and cohort
+still resolve through the protocol runtime table. Runtime pins include measured
+`installBytes` for their production trees with scripts disabled. Each estimate
+includes dependencies, so sums can overlap. Source generation and cohort
 version changes clear these pins until release packing fills them.
 
 ### 6.2 Source import edges

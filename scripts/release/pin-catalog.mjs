@@ -37,6 +37,11 @@ export function catalogPackageNames(catalog) {
 export function measurementManifest(pack, tarballs, workspaces) {
   const file = tarballs[pack.npm.name];
   if (!file) { throw new Error(`Missing release tarball for ${pack.npm.name}`); }
+  const dependencies = { [pack.npm.name]: `file:${file}` };
+  for (const name of pack.provides) {
+    if (!tarballs[name]) { throw new Error(`Missing release companion tarball for ${name}`); }
+    dependencies[name] = `file:${tarballs[name]}`;
+  }
   const overrides = {};
   for (const workspace of workspaces) {
     if (workspace.name === pack.npm.name) { continue; }
@@ -45,13 +50,13 @@ export function measurementManifest(pack, tarballs, workspaces) {
   return {
     name: "nodetool-release-pack-measurement",
     private: true,
-    dependencies: { [pack.npm.name]: `file:${file}` },
+    dependencies,
     overrides
   };
 }
 
 /** Total allocated disk bytes, including the pack's production dependencies. */
-export function measurePackInstallBytes(pack, tarballs, workspaces, {
+export function measureProductionInstallBytes(id, manifest, {
   platform = process.platform,
   arch = process.arch,
   run = runReleaseCommand,
@@ -66,19 +71,34 @@ export function measurePackInstallBytes(pack, tarballs, workspaces, {
     const home = join(work, "home");
     mkdirSync(home);
     const env = cleanEnv(home);
-    writeFileSync(join(work, "package.json"), `${JSON.stringify(measurementManifest(pack, tarballs, workspaces), null, 2)}\n`);
+    writeFileSync(join(work, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
     const installArgs = ["install", "--install-links", "--ignore-scripts", "--omit=dev", "--no-audit", "--no-fund"];
     if (cacheDir) { installArgs.push("--cache", cacheDir); }
     run("npm", installArgs, { cwd: work, env });
     const usage = run("du", ["-sk", "node_modules"], { cwd: work, env }).trim();
     const match = /^(\d+)\s+node_modules$/.exec(usage);
-    if (!match) { throw new Error(`Invalid install size for ${pack.id}: ${usage}`); }
+    if (!match) { throw new Error(`Invalid install size for ${id}: ${usage}`); }
     const bytes = Number(match[1]) * 1024;
-    if (!Number.isSafeInteger(bytes) || bytes <= 0) { throw new Error(`Invalid install size for ${pack.id}: ${usage}`); }
+    if (!Number.isSafeInteger(bytes) || bytes <= 0) { throw new Error(`Invalid install size for ${id}: ${usage}`); }
     return bytes;
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
+}
+
+export function measurePackInstallBytes(pack, tarballs, workspaces, options) {
+  return measureProductionInstallBytes(pack.id, measurementManifest(pack, tarballs, workspaces), options);
+}
+
+/** Each runtime estimate includes its own production dependency tree. */
+export function measureRuntimeInstallBytes(pin, options) {
+  validateInstallPin(pin);
+  const folder = pin.installName ?? pin.name;
+  const spec = folder === pin.name ? pin.version : `npm:${pin.name}@${pin.version}`;
+  return measureProductionInstallBytes(folder, {
+    name: "nodetool-release-runtime-measurement", private: true,
+    dependencies: { [folder]: spec }
+  }, options);
 }
 
 /** Validate every packed package before recording any release pin. */
@@ -136,8 +156,19 @@ export async function writePinnedCatalog(file, tarballs, options) {
 }
 
 /** Production release pinning also records the exact runtime and shared-library identities. */
-export async function writeReleasePinnedCatalog(file, tarballs, { root, ...options }) {
+export async function writeReleasePinnedCatalog(file, tarballs, {
+  root, measureRuntime = pin => measureRuntimeInstallBytes(pin, options.measurementOptions), ...options
+}) {
   const additionalPins = await collectReleaseInstallPins({ root });
+  for (const pin of additionalPins) {
+    if (!pin.shared) {
+      pin.installBytes = await measureRuntime(pin);
+      if (!Number.isSafeInteger(pin.installBytes) || pin.installBytes <= 0) {
+        throw new Error(`Missing runtime installBytes for ${pin.name}`);
+      }
+      validateInstallPin(pin);
+    }
+  }
   return writePinnedCatalog(file, tarballs, { ...options, additionalPins });
 }
 

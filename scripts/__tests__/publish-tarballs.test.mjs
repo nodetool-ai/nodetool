@@ -88,7 +88,8 @@ if (args[0] === "pack") {
   if (!isolated || !args.includes("--ignore-scripts") || !args.includes("--install-links") || !args.includes("--omit=dev")) { process.exit(1); }
   const manifest = JSON.parse(readFileSync("package.json", "utf8"));
   const [name, target] = Object.entries(manifest.dependencies)[0];
-  if (!target.startsWith("file:") || !existsSync(target.slice(5))) { process.exit(1); }
+  const runtime = manifest.name === "nodetool-release-runtime-measurement" && name === "typescript" && target === "npm:@typescript/typescript6@6.0.2";
+  if (!runtime && (!target.startsWith("file:") || !existsSync(target.slice(5)))) { process.exit(1); }
   const tree = join(process.cwd(), "node_modules", name);
   mkdirSync(tree, { recursive: true });
   writeFileSync(join(tree, "payload"), "synthetic installed production payload");
@@ -120,7 +121,7 @@ if (args[0] === "pack") {
       const publishes = calls.filter((call) => call.args[0] === "publish");
       expect(packs).toHaveLength(packages.length);
       expect(new Set(packs.map(call => call.name))).toEqual(new Set(packages.map(name => `@nodetool-ai/${name}`)));
-      expect(installs).toHaveLength(2);
+      expect(installs).toHaveLength(3);
       expect(installs.every(call => call.isolated)).toBe(true);
       expect(new Set(installs.map(call => call.cwd)).size).toBe(installs.length);
       expect(publishes).toHaveLength(packs.length);
@@ -142,11 +143,12 @@ if (args[0] === "pack") {
       }
       expect(pinned.installPins).toEqual(expect.arrayContaining([
         { name: "@nodetool-ai/game-renderer", version: "1.2.3", integrity: packs.find(call => call.name === "@nodetool-ai/game-renderer").integrity },
-        { name: "@typescript/typescript6", installName: "typescript", version: "6.0.2", integrity: expect.stringMatching(/^sha512-/) },
+        { name: "@typescript/typescript6", installName: "typescript", version: "6.0.2", integrity: expect.stringMatching(/^sha512-/), installBytes: expect.any(Number) },
         { name: "mediabunny", version: "4.5.6", shared: true, integrity: expect.stringMatching(/^sha512-/) },
         { name: "@mediabunny/server", version: "4.5.6", shared: true, integrity: expect.stringMatching(/^sha512-/) }
       ]));
       expect(pinned.installPins).toHaveLength(4);
+      expect(pinned.installPins.find(pin => pin.installName === "typescript").installBytes).toBeGreaterThan(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

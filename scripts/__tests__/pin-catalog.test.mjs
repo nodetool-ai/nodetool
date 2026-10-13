@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { catalogPackageNames, measurementManifest, measurePackInstallBytes, pinCatalog, tarballIntegrity, writePinnedCatalog } from "../release/pin-catalog.mjs";
+import { catalogPackageNames, measurementManifest, measurePackInstallBytes, measureRuntimeInstallBytes, pinCatalog, tarballIntegrity, writePinnedCatalog } from "../release/pin-catalog.mjs";
 
 const roots = [];
 afterEach(() => { for (const root of roots.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
@@ -130,6 +130,23 @@ describe("catalog release pins", () => {
 });
 
 describe("Linux production install measurement", () => {
+  it("measures the exact alias target with dependencies and scripts disabled", () => {
+    const { root } = fixture();
+    const pin = { name: "@typescript/typescript6", installName: "typescript", version: "6.0.2", integrity: `sha512-${createHash("sha512").update("compiler").digest("base64")}` };
+    let inspected = false;
+    const bytes = measureRuntimeInstallBytes(pin, { platform: "linux", arch: "x64", temporaryRoot: root,
+      run: (command, args, options) => {
+        if (command === "npm") {
+          inspected = true;
+          expect(args).toContain("--ignore-scripts");
+          expect(JSON.parse(readFileSync(join(options.cwd, "package.json"), "utf8")).dependencies).toEqual({ typescript: "npm:@typescript/typescript6@6.0.2" });
+        }
+        return command === "du" ? "24\tnode_modules" : "";
+      } });
+    expect(inspected).toBe(true);
+    expect(bytes).toBe(24576);
+  });
+
   it("uses immutable pack tarballs and measurement-only core directory overrides", () => {
     const { catalog, tarballs } = fixture();
     const result = measurementManifest(catalog.packs[1], tarballs, [
@@ -137,7 +154,10 @@ describe("Linux production install measurement", () => {
       { name: "@nodetool-ai/game-renderer", dir: "/workspace/game-renderer" },
       { name: "@nodetool-ai/node-sdk", dir: "/workspace/node-sdk" }
     ]);
-    expect(result.dependencies).toEqual({ "@nodetool-ai/game-nodes": `file:${tarballs["@nodetool-ai/game-nodes"]}` });
+    expect(result.dependencies).toEqual({
+      "@nodetool-ai/game-nodes": `file:${tarballs["@nodetool-ai/game-nodes"]}`,
+      "@nodetool-ai/game-renderer": `file:${tarballs["@nodetool-ai/game-renderer"]}`
+    });
     expect(result.overrides).toEqual({ "@nodetool-ai/game-renderer": `file:${tarballs["@nodetool-ai/game-renderer"]}`, "@nodetool-ai/node-sdk": "file:/workspace/node-sdk" });
   });
 

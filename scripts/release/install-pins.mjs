@@ -22,6 +22,9 @@ export function validateInstallPin(pin) {
   if (pin.shared !== undefined && typeof pin.shared !== "boolean") {
     throw new Error(`Invalid shared install pin: ${pin.name}`);
   }
+  if (pin.installBytes !== undefined && (!Number.isSafeInteger(pin.installBytes) || pin.installBytes <= 0)) {
+    throw new Error(`Invalid installBytes for ${pin.name}`);
+  }
   return pin;
 }
 
