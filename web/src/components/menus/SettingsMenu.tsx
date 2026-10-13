@@ -4,7 +4,7 @@ import React, { memo, useMemo } from "react";
 import {
   useMediaQuery
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { useColorScheme, useTheme } from "@mui/material/styles";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useAuth from "../../stores/useAuth";
@@ -112,6 +112,11 @@ const AUTOSAVE_INTERVAL_OPTIONS = [
   { value: 15, label: "15 minutes" },
   { value: 30, label: "30 minutes" },
   { value: 60, label: "60 minutes" }
+] as const;
+
+const THEME_MODE_OPTIONS = [
+  { value: "dark", label: "Dark" },
+  { value: "light", label: "Light" }
 ] as const;
 
 const TIME_FORMAT_OPTIONS = [
@@ -395,6 +400,18 @@ function SettingsPage() {
     [setSelectionMode]
   );
 
+  const {
+    mode: themeMode,
+    systemMode,
+    setMode: setThemeMode
+  } = useColorScheme();
+  const resolvedThemeMode = themeMode === "system" ? systemMode : themeMode;
+  const handleThemeModeChange = useCallback(
+    (value: string) => {
+      setThemeMode(value === "light" ? "light" : "dark");
+    },
+    [setThemeMode]
+  );
   const handleTimeFormatChange = useCallback(
     (value: string) => {
       setTimeFormat(value === "12h" ? "12h" : "24h");
@@ -788,6 +805,20 @@ function SettingsPage() {
                       >
                         Appearance
                       </Text>
+                      {resolvedThemeMode && (
+                        <SearchItem
+                          search={search}
+                          keywords="appearance theme dark light mode colors contrast readability"
+                        >
+                          <SelectField
+                            label="Theme"
+                            value={resolvedThemeMode}
+                            onChange={handleThemeModeChange}
+                            options={THEME_MODE_OPTIONS}
+                            description="Dark or light colors for the whole app. The sun and moon button in the sidebar switches it too."
+                          />
+                        </SearchItem>
+                      )}
                       <SearchItem
                         search={search}
                         keywords="appearance time format 12h 24h"
