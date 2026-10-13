@@ -324,21 +324,26 @@ const MAX_BUNDLE_ENTRIES = 10_000;
  * can expand to tens of GB and OOM the server. The filter runs per entry with
  * the header-declared uncompressed size, before that entry is inflated.
  */
-export function unzipBounded(zipBytes: Uint8Array): Record<string, Uint8Array> {
+export function unzipBounded(
+  zipBytes: Uint8Array,
+  limits: { maxBytes?: number; maxEntries?: number } = {}
+): Record<string, Uint8Array> {
+  const maxBytes = limits.maxBytes ?? MAX_BUNDLE_UNCOMPRESSED_BYTES;
+  const maxEntries = limits.maxEntries ?? MAX_BUNDLE_ENTRIES;
   let totalUncompressed = 0;
   let entryCount = 0;
   return unzipSync(zipBytes, {
     filter: (file) => {
       entryCount += 1;
-      if (entryCount > MAX_BUNDLE_ENTRIES) {
+      if (entryCount > maxEntries) {
         throw new Error(
-          `Bundle rejected: too many entries (limit ${MAX_BUNDLE_ENTRIES})`
+          `Bundle rejected: too many entries (limit ${maxEntries})`
         );
       }
       totalUncompressed += file.originalSize;
-      if (totalUncompressed > MAX_BUNDLE_UNCOMPRESSED_BYTES) {
+      if (totalUncompressed > maxBytes) {
         throw new Error(
-          `Bundle rejected: decompressed size exceeds ${MAX_BUNDLE_UNCOMPRESSED_BYTES} bytes`
+          `Bundle rejected: decompressed size exceeds ${maxBytes} bytes`
         );
       }
       return true;
