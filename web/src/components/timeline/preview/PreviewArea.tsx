@@ -65,6 +65,7 @@ import { useAssetStore } from "../../../stores/AssetStore";
 import { PlaybackClock } from "./PlaybackClock";
 import { AudioGraph } from "./AudioGraph";
 import type { ScheduledAudioClip } from "./AudioGraph";
+import { AudioScrubber } from "./audioScrub";
 import { getMidiClipBuffer } from "./midiRender";
 import { PreviewCompositor } from "./PreviewCompositor";
 import { getAssetMediaUrl } from "../../../utils/assetHelpers";
@@ -565,7 +566,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
      * than silencing the whole gesture.
      */
     const resolveScheduledClip = useCallback(
-      async (clip: TimelineClip): Promise<ScheduledAudioClip | null> => {
+      async (
+        clip: TimelineClip,
+        lookupAsset: typeof getAsset = getAsset
+      ): Promise<ScheduledAudioClip | null> => {
         if (clip.mediaType === "midi") {
           const state = timelineApi.getState();
           try {
@@ -581,7 +585,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           }
         }
         try {
-          const asset = await getAsset(clip.currentAssetId!);
+          const asset = await lookupAsset(clip.currentAssetId!);
           const url = getAssetMediaUrl(asset);
           // Size and duration pick decoded or streamed playback in the graph.
           return url
@@ -653,6 +657,71 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       },
       [timelineApi]
     );
+
+    /** Plays a grain of the mix on each paused playhead move. */
+    const scrubberRef = useRef<AudioScrubber | null>(null);
+    useEffect(() => {
+      const graph = graphRef.current;
+      // A grain must not wait on a server round trip per pointermove, so the
+      // scrub keeps each asset lookup. A failed lookup is dropped and retried.
+      const assetLookups = new Map<string, ReturnType<typeof getAsset>>();
+      const lookupAsset = (id: string): ReturnType<typeof getAsset> => {
+        let lookup = assetLookups.get(id);
+        if (!lookup) {
+          lookup = getAsset(id);
+          assetLookups.set(id, lookup);
+          lookup.catch(() => assetLookups.delete(id));
+        }
+        return lookup;
+      };
+      const scrubber = new AudioScrubber({
+        start: async (position, isStale) => {
+          const state = timelineApi.getState();
+          const clipsNow = auditionedClips(
+            state.clips,
+            useTimelineUIStore.getState().audition
+          );
+          const ownAudio = ownAudioClipIds(clipsNow, state.tracks);
+          const soundsAt = (clip: TimelineClip, atMs: number): boolean =>
+            clip.startMs <= atMs && isPendingAudioClip(clip, atMs, ownAudio);
+          const sounding = clipsNow.filter((c) => soundsAt(c, position()));
+          if (sounding.length === 0) return position();
+          const resolved = await Promise.all(
+            sounding.map((clip) => resolveScheduledClip(clip, lookupAsset))
+          );
+          // The cursor moved on while the clips resolved: play where it is
+          // now, with the resolved clips that still sound there.
+          const atMs = position();
+          if (isStale()) return atMs;
+          await graph.playGrain(
+            resolved.filter(
+              (c): c is ScheduledAudioClip =>
+                c !== null && soundsAt(c.clip, atMs)
+            ),
+            state.tracks,
+            atMs,
+            isStale
+          );
+          return atMs;
+        },
+        release: (fadeMs) => graph.releaseGrain(fadeMs / 1000),
+        stop: () => graph.stopAll(),
+        idle: () => graph.suspend()
+      });
+      scrubberRef.current = scrubber;
+      // A paused move is a scrub. A pause also writes the position, so a
+      // change that crosses a play or pause transition is left out.
+      const unsubscribe = playbackApi.subscribe((state, previous) => {
+        if (state.isPlaying || previous.isPlaying) return;
+        if (state.currentTimeMs === previous.currentTimeMs) return;
+        scrubber.request(state.currentTimeMs);
+      });
+      return () => {
+        unsubscribe();
+        scrubber.cancel();
+        scrubberRef.current = null;
+      };
+    }, [playbackApi, timelineApi, resolveScheduledClip, getAsset]);
 
     /**
      * Re-scan for audio clips that entered the lookahead window since the
@@ -732,7 +801,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           if (key !== null) scheduledAudioKeysRef.current.set(c.id, key);
         }
 
-        const resolved = await Promise.all(pending.map(resolveScheduledClip));
+        const resolved = await Promise.all(
+          pending.map((c) => resolveScheduledClip(c))
+        );
         if (isStale()) return;
 
         const validClips = resolved.filter(
@@ -841,6 +912,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
       const graph = graphRef.current;
       const clock = clockRef.current;
+      // A scrub grain's timer must not stop the sources scheduled below.
+      scrubberRef.current?.cancel();
 
       // Kill any running clock now: during the async work below (context
       // resume, asset fetches) a still-ticking clock would keep overwriting
@@ -939,7 +1012,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       );
 
       const scheduledClips = await Promise.all(
-        windowedClips.map(resolveScheduledClip)
+        windowedClips.map((c) => resolveScheduledClip(c))
       );
 
       const validClips = scheduledClips.filter(
