@@ -8,6 +8,7 @@
  */
 
 import type { RouterOutputs } from "../../trpc/client";
+import { relativeTime } from "../../utils/formatDateAndTime";
 
 export type ProjectDetail = RouterOutputs["projects"]["summaries"][number];
 export type ProjectDocument = ProjectDetail["documents"][number];
@@ -111,6 +112,10 @@ export const projectProgress = (
  * exactly the document it is given, and says nothing for the kinds whose
  * status the summary does not derive.
  */
+/** When the document last changed, such as "Edited 2 hours ago". */
+export const documentEditedLine = (document: ProjectDocument): string =>
+  document.updatedAt ? `Edited ${relativeTime(document.updatedAt)}` : "";
+
 export const documentStatusLine = (document: ProjectDocument): string => {
   const status = document.status;
   if (!status) return "";
