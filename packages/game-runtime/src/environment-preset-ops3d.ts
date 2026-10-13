@@ -3,18 +3,19 @@ import { gameEntity3D, gameEntityTags, getGameEnvironmentPreset3D, type GameEnti
 const PRESET_SUN_TAG = "environment-preset-sun";
 const SUN_FIELDS = new Set(["id", "name", "transform3d", "light3d", "tags", "props", "behaviors", "templateOnly"]);
 
-function isPresetSun(entity: GameEntity3D): boolean {
+function isPresetSun(entity: GameEntity3D, parents: ReadonlySet<string>): boolean {
   return entity.light3d?.kind === "directional" && !entity.templateOnly && entity.behaviors.length === 0 &&
-    Object.keys(entity).every((key) => SUN_FIELDS.has(key)) &&
+    !parents.has(entity.id) && Object.keys(entity).every((key) => SUN_FIELDS.has(key)) &&
     (entity.tags?.includes(PRESET_SUN_TAG) === true || gameEntityTags.safeParse([...entity.tags ?? [], PRESET_SUN_TAG]).success);
 }
 
 /** Apply presentation settings and retain a dedicated render-only sun across preset changes. */
 export function applyEnvironmentPreset3D(scene: GameScene3D, id: GameEnvironmentPresetId3D): GameScene3D {
   const preset = getGameEnvironmentPreset3D(id);
+  const parents = new Set(scene.entities.flatMap((entity) => entity.parentId === undefined ? [] : [entity.parentId]));
   const linkedId = scene.environment.sky?.kind === "procedural" ? scene.environment.sky.sunEntityId : undefined;
-  const existing = scene.entities.find((entity) => entity.tags?.includes(PRESET_SUN_TAG) && isPresetSun(entity)) ??
-    scene.entities.find((entity) => entity.id === linkedId && isPresetSun(entity));
+  const existing = scene.entities.find((entity) => entity.tags?.includes(PRESET_SUN_TAG) && isPresetSun(entity, parents)) ??
+    scene.entities.find((entity) => entity.id === linkedId && isPresetSun(entity, parents));
   let sun: GameEntity3D;
   if (existing) {
     sun = { ...existing, light3d: preset.sun.light, transform3d: { ...existing.transform3d, rotation: preset.sun.rotation },
