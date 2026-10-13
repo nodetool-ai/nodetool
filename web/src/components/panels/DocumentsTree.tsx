@@ -53,7 +53,6 @@ import {
   TYPOGRAPHY,
   PanelHeader,
   ToolbarIconButton,
-  focusRing,
   selectableRowStyles
 } from "../ui_primitives";
 
