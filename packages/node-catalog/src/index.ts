@@ -34,3 +34,5 @@ export function packForNodeType(nodeType: string): CatalogPack | undefined {
   const owner = index.owners[nodeType];
   return owner === undefined ? undefined : index.packs.find((pack) => pack.id === owner);
 }
+
+export { MissingPackError, createMissingPackError, type MissingPackDetails } from "./errors.js";

@@ -56,6 +56,7 @@
     "@nodetool-ai/minimax-nodes": "*",
     "@nodetool-ai/model-pricing": "*",
     "@nodetool-ai/models": "*",
+    "@nodetool-ai/node-catalog": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/replicate-nodes": "*",

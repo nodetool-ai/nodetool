@@ -1,9 +1,11 @@
+import { createMissingPackError } from "@nodetool-ai/node-catalog";
 import type { FastifyPluginAsync } from "fastify";
 import { createLogger } from "@nodetool-ai/config";
 import { WsAdapter } from "../ws-adapter.js";
 import { WebSocketClientSession } from "../websocket-client-session.js";
 import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
+import { isPythonNodeType } from "@nodetool-ai/protocol";
 import {
   PythonNodeExecutor,
   getProvider,
@@ -121,11 +123,19 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       // the runner it is not talking to them.
       appSession: req.appSession,
       beforeRunJob: async (graph) => {
+        for (const node of graph.nodes) {
+          const entry = registry.catalogEntry(node.type);
+          if (entry && registry.availability(node.type) === "catalog") {
+            throw createMissingPackError(entry.pack, [node.type]);
+          }
+        }
         const needsBridge = runNeedsPythonBridge(graph.nodes, {
           bridgeReady: getPythonBridgeReady(),
           bridgeAvailable: pythonBridge.isAvailable(),
-          isPythonNodeType: (type) =>
-            !!registry.getMetadata(type) && !registry.has(type),
+          isPythonNodeType: (type) => {
+            const availability = registry.availability(type);
+            return availability === "python" || (availability === "unknown" && isPythonNodeType(type));
+          },
           providerIds: listRegisteredProviderIds
         });
         if (needsBridge) {
@@ -135,6 +145,10 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       resolveExecutor: (node) => {
         if (registry.has(node.type)) {
           return registry.resolve(node);
+        }
+        const catalogEntry = registry.catalogEntry(node.type);
+        if (catalogEntry && registry.availability(node.type) === "catalog") {
+          throw createMissingPackError(catalogEntry.pack, [node.type]);
         }
         // The bridge is the swappable reference: an attached worker becomes its
         // target, so Python nodes run on the worker even if this connection
@@ -160,7 +174,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
             meta?.requires_vram_gb
           );
         }
-        if (registry.getMetadata(node.type) && !registry.has(node.type)) {
+        if (registry.availability(node.type) === "python") {
           const stderrSummary = (
             pythonBridge
           ).getRecentStderrSummary?.() ?? null;

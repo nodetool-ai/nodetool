@@ -33,6 +33,8 @@ const echoExecutor = {
 // An editor-only node has no executor anywhere: resolving one is the failure
 // this normalization prevents.
 const registry = {
+  availability(type: string) { return this.has(type) ? "executable" : "unknown"; },
+  catalogEntry: () => undefined,
   has: (t: string) => t === "test.Echo" || t === "nodetool.output.Output",
   resolve: (node: { type: string }) => {
     if (!node.type.startsWith("test.") && node.type !== "nodetool.output.Output") {
