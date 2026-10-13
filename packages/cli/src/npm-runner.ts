@@ -97,3 +97,24 @@ export async function runNpm(
   }
   await npmCall(cli, [...args, ...npmInstallFlags(options.mode, options.scriptPolicy)], root, false, options.signal);
 }
+
+/** Installer commands retain forced policy while returning machine-readable output. */
+export async function runInstallerNpm(
+  root: string, args: readonly string[],
+  options: { readonly mode: NpmInstallMode; readonly dryRun?: boolean; readonly rebuild?: boolean; readonly signal?: AbortSignal }
+): Promise<string> {
+  assertInstallerModuleIdentity();
+  const cli = findNpmCli();
+  checkNpmVersion(await npmCall(cli, ["--version"], root, true, options.signal));
+  const flags = npmInstallFlags(options.mode).filter((flag) => flag !== "--dry-run=false" &&
+    (!options.rebuild || flag !== "--ignore-scripts"));
+  return npmCall(cli, [...args, ...flags, `--dry-run=${String(options.dryRun ?? false)}`,
+    ...(options.rebuild ? ["--ignore-scripts=false", "--foreground-scripts"] : [])], root, true, options.signal);
+}
+
+export async function installerNpmVersion(root: string, signal?: AbortSignal): Promise<string> {
+  assertInstallerModuleIdentity();
+  const version = (await npmCall(findNpmCli(), ["--version"], root, true, signal)).trim();
+  checkNpmVersion(version);
+  return version;
+}
