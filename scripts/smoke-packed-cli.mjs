@@ -317,6 +317,9 @@ empty project, and runs it against an empty HOME.
     const diskUsage = run("du", ["-sk", "node_modules"], { cwd: appDir }).trim();
     console.log(`Packed CLI disk usage (KiB, report only): ${diskUsage}`);
 
+    const diskUsage = run("du", ["-sk", "node_modules"], { cwd: appDir }).trim();
+    console.log(`Packed CLI disk usage (KiB, report only): ${diskUsage}`);
+
     const bin = join(appDir, "node_modules", ".bin", "nodetool");
     const env = { ...cleanEnv(home), SECRETS_MASTER_KEY: randomBytes(32).toString("base64") };
     const cliOptions = { env, cwd: appDir, timeout: 120_000 };
