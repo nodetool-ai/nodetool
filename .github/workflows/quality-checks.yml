@@ -464,9 +464,9 @@ jobs:
           bash -e -o pipefail -c "$NODETOOL_CHECK_COMMAND" || exit $?
           echo "::endgroup::"
 
-      - name: Check production release workflow contracts
+      - name: Check workflow contracts
         if: matrix.check == 'lint'
-        run: node --test .github/tests/docker-deploy.test.mjs
+        run: node --test .github/tests/docker-deploy.test.mjs .github/tests/agent-workflows.test.mjs
 
       - name: Install Chromium for agentic QA checks
         if: matrix.check == 'lint'

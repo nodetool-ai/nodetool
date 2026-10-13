@@ -2,11 +2,32 @@ name: Quality Assurance
 
 on:
   schedule:
-    - cron: "0 */6 * * *"
+    - cron: "0 1 * * *" # Daily at 01:00 UTC
   workflow_dispatch:
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    outputs:
+      skip: ${{ steps.preflight.outputs.skip }}
+      recent-files: ${{ steps.preflight.outputs.recent-files }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+      - id: preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE_PATTERN: '^fix: resolve'
+        run: node .github/scripts/agent-preflight.mjs --name quality-assurance --title "$TITLE_PATTERN"
+
   quality-assurance:
+    needs: preflight
+    if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -20,16 +41,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Node and install dependencies
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-
-      - name: Install all workspace dependencies
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+          # `npm run typecheck` covers mobile, which reads protocol from dist/.
+          build-packages: "true"
 
       - name: Install mobile dependencies
         run: cd mobile && npm ci
@@ -37,6 +53,10 @@ jobs:
       - name: Run quality checks
         id: quality-check
         continue-on-error: true
+        # `bash` runs with `-eo pipefail`, so `if npm run typecheck | tee` tests
+        # npm's status. GitHub's default `bash -e` tested tee's, which is always
+        # 0: every check reported PASS and the agent never ran.
+        shell: bash
         run: |
           echo "## Quality Check Results" >> $GITHUB_STEP_SUMMARY
           FAILED=0
@@ -76,7 +96,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing."
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing. Open the PR with the label agent:quality-assurance (gh pr create --label agent:quality-assurance). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Fix Broken Quality Checks
 
@@ -109,14 +129,3 @@ jobs:
             ## Submit
             If you made changes, create a PR with a title like "fix: resolve typecheck/lint/test failures" describing what broke and how you fixed it.
             If everything was already passing (logs show no errors), do nothing.
-
-      - name: Post-change verification
-        if: always() && env.QUALITY_FAILED == '1'
-        run: |
-          echo "## Post-Fix Verification" >> $GITHUB_STEP_SUMMARY
-          if npm run typecheck && npm run lint && npm run test; then
-            echo "All checks passing." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "Checks still failing after fix attempt." >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi

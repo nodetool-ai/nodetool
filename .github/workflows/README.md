@@ -51,24 +51,24 @@ below.
 | `user-journeys.yml` | `journeys`: Playwright journey suite nightly, on dispatch, and on pull requests with the `browser-suites` label (build a graph and run it, chat, mini app, library). `reliability-ring1` (on push to `main`, schedule, dispatch): full `reliability/journeys/*` suite on kernel+ws-server with `--diff`, plus one packaged-backend journey — gates `fly-deploy.yml` | 1 | `reliability-ring1` gates deploy; `journeys` advisory on labeled PRs |
 | `release.yaml` | Cross-platform signed release artifacts, packed-tree smoke, a packed-backend reliability journey per OS, updater assets | 2 | Required |
 | `example-smoke-debug.yml` | Nightly + manual real-provider smoke via `nodetool debug` | 2 | Nightly (spend-capped), also dispatch-only |
-| `abstraction-improver.yaml` | Scheduled agent flattens single-implementation interfaces, forwarding wrappers, re-export-only barrels | none/maintenance | Advisory (`continue-on-error`) |
+| `agent-pr-report.yml` | Monthly table of opened, merged, and closed PRs and net lines per `agent:*` label | none/maintenance | n/a (report only) |
+| `abstraction-improver.yaml` | Weekly agent flattens single-implementation interfaces, forwarding wrappers, re-export-only barrels | none/maintenance | Advisory (`continue-on-error`) |
 | `abstraction-police.yaml` | Scheduled agent fixes layering violations found by `check:*` plus the import greps no script covers | none/maintenance | Advisory (`continue-on-error`) |
 | `anti-slop-ratchet.yaml` | Daily agent drives anti-slop (rule, tree) pairs to zero, regenerates the enforced overrides, and proves the new ratchet can fail. Every fourth run takes a large pair instead of a nearly-done tree — this is where the app trees' `as any` and missing return types are worked, since `type-safety.yaml` folded into it | none/maintenance | Advisory |
 | `app-build-eval.yml` | Nightly `app-build` eval suite; reports the one-shot rate, gates nothing | none/maintenance | Advisory (report only) |
 | `aur-publish.yml` | Build, install and launch-test the `nodetool-bin` AUR package in Arch Linux on packaging PRs, then publish it after a stable release | none/maintenance | Required for its own job |
-| `claude-code-review.yml` | Claude reviews new/updated PRs | none/maintenance | Advisory |
 | `claude.yml` | Claude responds to `@claude` mentions and comments | none/maintenance | Advisory |
 | `copilot-setup-steps.yml` | Environment setup for the Copilot coding agent | none/maintenance | n/a (setup only) |
 | `crash-fuzzer.yaml` | Daily fuzz of `validate` / `jsscript validate` / `node run` over mutated documents; agent root-causes each crash or hang | none/maintenance | Advisory (`continue-on-error`) |
 | `dead-code-cleanup.yaml` | Scheduled agent removes unused exports/imports/code | none/maintenance | Advisory (`continue-on-error`) |
-| `dependency-cleanup.yaml` | Scheduled agent prunes unused deps, aligns/updates versions | none/maintenance | Advisory (`continue-on-error`) |
+| `dependency-cleanup.yaml` | Weekly agent removes unused dependencies and moves misplaced ones. Version updates are Dependabot's | none/maintenance | Advisory (`continue-on-error`) |
 | `docs-ci.yml` | Docs site build + internal link/image check on PR | none/maintenance | Required for `docs/**` |
 | `docs-completeness.yaml` | Daily agent documents undocumented CLI commands, routes, env vars, packages | none/maintenance | Advisory |
 | `docs-correctness.yaml` | Daily agent checks docs claims against the code and fixes stale ones | none/maintenance | Advisory |
 | `docs-lint.yml` | Markdown lint on push/PR | none/maintenance | Required for `**/*.md` |
 | `duplicate-unifier.yaml` | Scheduled agent merges duplicated implementations found by a sliding-window hash | none/maintenance | Advisory (`continue-on-error`) |
 | `eas-build.yml` | Cloud-build the Expo app in `mobile/` on EAS | none/maintenance | Manual / tag-gated |
-| `flaky-test-fixer.yaml` | Daily agent root-causes flakes from CI re-run history and randomized repeat runs | none/maintenance | Advisory (`continue-on-error`) |
+| `flaky-test-fixer.yaml` | Weekly agent root-causes flakes from CI re-run history and randomized repeat runs | none/maintenance | Advisory (`continue-on-error`) |
 | `flatpak-ci.yml` | Build the Flatpak desktop package once a day and on dispatch | none/maintenance | Required for its own job |
 | `genspend-pricing.yml` | Nightly GenSpend price sync; opens a PR when a price moved | none/maintenance | Advisory |
 | `internal-only-shipper.yaml` | Scheduled agent ships or deletes features gated to dev/internal builds | none/maintenance | Advisory (`continue-on-error`) |
@@ -81,16 +81,16 @@ below.
 | `mutation-changed.yml` | `nodetool-mutator` on the functions a PR adds or rewrites in the mutation-tested packages; lists survivors | none/maintenance | Advisory |
 | `mutation-testing.yaml` | Weekly, differential `nodetool-mutator` report over the mutation-tested packages | none/maintenance | Advisory |
 | `opencode.yml` | Interactive assistant on `/oc` comments | none/maintenance | Advisory |
-| `performance-optimization.yaml` | Scheduled agent fixes React perf issues (memo, selectors) | none/maintenance | Advisory (`continue-on-error`) |
+| `performance-optimization.yaml` | Weekly agent fixes React perf issues (memo, selectors) | none/maintenance | Advisory (`continue-on-error`) |
 | `publish.yaml` | Publish npm packages on a `v*` tag | none/maintenance | Required for its own job |
-| `quality-assurance.yaml` | Scheduled agent fixes failing typecheck/lint/tests | none/maintenance | Advisory (`continue-on-error`) |
-| `quality-guard.yml` | Reusable pre/post quality-gate wrapper for the scheduled agent workflows | none/maintenance | Infra |
+| `quality-assurance.yaml` | Daily agent fixes failing typecheck/lint/tests on `main` | none/maintenance | Advisory (`continue-on-error`) |
+| `quality-guard.yml` | Reusable pre/post quality-gate wrapper. No workflow calls it | none/maintenance | Unused |
 | `screenshots.yml` | Capture and commit documentation screenshots | none/maintenance | Manual |
 | `chat-history-performance.yml` | Deterministic Playwright chat-history virtualization regression | 0 | Required when chat-history code changes |
 | `security-audit.yaml` | Manual scan for dependency CVEs, dangerous patterns, Electron misconfig | none/maintenance | Advisory (`continue-on-error`) |
 | `seo-seed.yml` | Seed SEO showcase assets via generation providers | none/maintenance | Manual |
-| `shipped-feature-inliner.yaml` | Scheduled agent inlines flags whose feature has fully shipped | none/maintenance | Advisory (`continue-on-error`) |
-| `test-coverage.yaml` | Scheduled agent adds tests for uncovered code | none/maintenance | Advisory (`continue-on-error`) |
+| `shipped-feature-inliner.yaml` | Weekly agent inlines flags whose feature has fully shipped | none/maintenance | Advisory (`continue-on-error`) |
+| `test-coverage.yaml` | Weekly agent adds tests for uncovered code | none/maintenance | Advisory (`continue-on-error`) |
 | `ui-primitives-compliance.yaml` | Scheduled agent migrates raw MUI imports to `ui_primitives/`, fixes hardcoded design tokens | none/maintenance | Advisory (`continue-on-error`) |
 | `useless-test-pruner.yaml` | Scheduled agent deletes or strengthens tests proven unable to fail under mutation | none/maintenance | Advisory (`continue-on-error`) |
 | `workflow-example-validation.yaml` | Weekly `nodetool validate` + repair of shipped example workflows | none/maintenance | Advisory (`continue-on-error`) |
@@ -276,6 +276,39 @@ nightly full run. The archive is kept apart from
 build outputs, and four shards saving it per commit would evict the
 node_modules and build caches from the repository's 10 GB.
 
+## Scheduled agent workflows
+
+Every scheduled workflow that runs the Claude action and opens PRs follows one
+shape. `.github/tests/agent-workflows.test.mjs` enforces it in the `lint` leg of
+`quality-checks.yml`.
+
+- **Preflight job.** `.github/scripts/agent-preflight.mjs` runs before any
+  install. It creates the `agent:<workflow>` label and skips the run when one of
+  the routine's PRs is still open. It also lists the files the routine's PRs
+  changed in the last 30 days. A routine's PRs are the ones with its label, plus
+  Claude-authored PRs whose title matches `TITLE_PATTERN`, which covers PRs
+  opened before the labels existed. A manual dispatch runs even when a PR is
+  open.
+- **Recently changed files.** Routines that pick one target per run
+  (logic-simplifier, logic-bugfixer, duplicate-unifier, abstraction-improver,
+  abstraction-police, performance-optimization, test-coverage,
+  ui-primitives-compliance, useless-test-pruner) get the list at
+  `$RUNNER_TEMP/agent-recent-files.txt` and are told to leave those files alone.
+  logic-simplifier also drops them from its hotspot scan. Without this, a
+  deterministic scan picks the same function every night.
+- **Setup.** `./.github/actions/setup-build` installs dependencies with the
+  shared `node_modules` and Turbo caches.
+- **No full suites around the agent.** The PR's own CI is the gate. A
+  typecheck, lint, and test run on the runner before and after the agent
+  doubled the run time and checked the runner's checkout, not the pushed
+  branch. The agent still runs the checks named in its prompt.
+- **Labels and self-review.** The agent opens its PR with
+  `--label agent:<workflow>`. Before opening it, the agent applies the
+  `code-review` skill to its own diff and lists findings it did not fix under a
+  Self-review heading.
+- **Outcomes.** `agent-pr-report.yml` reports merge rate and net lines per
+  label each month. Use it to decide whether a routine still pays for itself.
+
 ## Manual Trigger
 
 ```bash
@@ -300,6 +333,7 @@ gh workflow run flaky-test-fixer.yaml
 gh workflow run abstraction-improver.yaml
 gh workflow run abstraction-police.yaml
 gh workflow run anti-slop-ratchet.yaml
+gh workflow run agent-pr-report.yml
 gh workflow run example-smoke-debug.yml
 gh workflow run user-journeys.yml
 ```
