@@ -194,6 +194,7 @@
     "check:keys": "node scripts/check-key-boundaries.mjs",
     "check:coupled-deps": "node scripts/check-coupled-deps.mjs",
     "check:lockfile": "node scripts/check-lockfile-sync.mjs",
+    "check:npm-audit": "node scripts/check-npm-audit.mjs",
     "check:typescript": "node scripts/check-typescript-policy.mjs",
     "check:lockfile-libc": "node scripts/patch-lockfile-libc.mjs --check",
     "fix:lockfile-libc": "node scripts/patch-lockfile-libc.mjs",

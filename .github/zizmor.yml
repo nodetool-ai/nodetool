@@ -1,0 +1,14 @@
+# zizmor (https://docs.zizmor.sh) runs in the lint leg of quality-checks.yml.
+# Each ignore names the file and the reason the finding does not apply.
+rules:
+  dangerous-triggers:
+    ignore:
+      # Deploys after the Docker workflow, which runs only on pushes to main,
+      # preview branches and tags; the deploy job also requires the triggering
+      # run's head repository to be this repository.
+      - fly-deploy.yml
+      # Follows "Deploy to Docker" above and checks that run's deploy job.
+      - web-deploy.yml
+      # Follows the Release workflow, which runs on schedule, tags and
+      # dispatch, never on a pull request.
+      - aur-publish.yml

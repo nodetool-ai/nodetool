@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # The extracted Electron tree, the package and the install each take
       # several GB. Drop preinstalled SDKs this job does not use.
@@ -123,7 +123,7 @@ jobs:
           sudo chown -R "$(id -u):$(id -g)" aur-pkg
           cat aur-pkg/PKGBUILD aur-pkg/.SRCINFO
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: aur-nodetool-bin-${{ needs.resolve.outputs.version }}
           path: |
@@ -140,7 +140,7 @@ jobs:
     if: needs.resolve.outputs.publish == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: aur-nodetool-bin-${{ needs.resolve.outputs.version }}
           path: aur-pkg

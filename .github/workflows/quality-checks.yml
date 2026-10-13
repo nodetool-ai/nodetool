@@ -433,7 +433,7 @@ jobs:
       matrix: ${{ fromJSON(needs.changes.outputs.static) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
 
@@ -441,20 +441,6 @@ jobs:
         uses: ./.github/actions/setup-build
         with:
           build-packages: "false"
-
-      - name: Run npm audit (advisory)
-        # Advisory only (continue-on-error) so a pre-existing vulnerability
-        # backlog doesn't block every PR, but high/critical issues in the
-        # production dependency closure are surfaced in the job summary.
-        if: matrix.check == 'deps'
-        continue-on-error: true
-        run: |
-          echo "::group::npm audit (production deps, high+)"
-          echo "## npm audit (production deps, high and critical)" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          npm audit --omit=dev --audit-level=high 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "::endgroup::"
 
       - name: Run ${{ matrix.check }}
         env:
@@ -467,6 +453,13 @@ jobs:
       - name: Check workflow contracts
         if: matrix.check == 'lint'
         run: node --test .github/tests/docker-deploy.test.mjs .github/tests/agent-workflows.test.mjs
+
+      # Template injection, unpinned actions, cache poisoning and over-broad
+      # permissions in the workflows themselves. .github/zizmor.yml records
+      # each accepted exception and why.
+      - name: Check workflow security (zizmor)
+        if: matrix.check == 'lint'
+        run: pipx run zizmor==1.30.1 --offline --config .github/zizmor.yml --min-severity high --format github .github/workflows .github/actions
 
       - name: Install Chromium for agentic QA checks
         if: matrix.check == 'lint'
@@ -491,7 +484,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
 
@@ -501,7 +494,7 @@ jobs:
           build-packages: "true"
 
       - name: Upload package dist
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: packages-dist
           path: packages/*/dist
@@ -517,7 +510,7 @@ jobs:
       # common-ancestor computation and break both globs' download paths).
       # Only the `bundle` leg of the `built` job below downloads it.
       - name: Upload reliability harness dist
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: reliability-harness-dist
           path: reliability/harness/dist
@@ -592,7 +585,7 @@ jobs:
       matrix: ${{ fromJSON(needs.changes.outputs.built) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Most legs only need the tip; the test-packages shards and
           # harness-gate need full history — the former for Turbo's
@@ -640,7 +633,7 @@ jobs:
           JS
 
       - name: Download package dist
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: packages-dist
           path: packages
@@ -653,7 +646,7 @@ jobs:
       # selfcheck via `--all` on push to main.
       - name: Download reliability harness dist
         if: matrix.check == 'harness-gate'
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: reliability-harness-dist
           path: reliability/harness/dist
@@ -672,7 +665,7 @@ jobs:
       # scripts/ci-plan.mjs).
       - name: Cache Blender
         if: matrix.check == 'test-packages-nodes' && matrix.blender == 'true'
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: ~/blender
           key: ${{ runner.os }}-blender-5.2.1
@@ -701,7 +694,7 @@ jobs:
       - name: Cache mobile node_modules
         if: matrix.mobile-deps == 'true'
         id: mobile-node-modules
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: mobile/node_modules
           key: ${{ runner.os }}-mobile-node-modules-${{ hashFiles('mobile/package-lock.json') }}
@@ -737,7 +730,7 @@ jobs:
       # 10 GB.
       - name: Restore Jest transform cache
         if: matrix.jest-cache != ''
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: .jest-cache
           key: ${{ runner.os }}-jest-${{ matrix.jest-cache }}-${{ github.sha }}
@@ -746,7 +739,7 @@ jobs:
 
       - name: Restore backend test results
         if: startsWith(matrix.check, 'test-packages-')
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: .turbo/test-results
           key: ${{ runner.os }}-test-results-${{ matrix.check }}-${{ github.sha }}
@@ -798,7 +791,7 @@ jobs:
 
       - name: Retain native game golden diagnostics
         if: matrix.check == 'harness-gate' && !cancelled()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: native-game-golden-diagnostics
           path: ${{ runner.temp }}/native-game-golden-diagnostics
@@ -818,14 +811,14 @@ jobs:
 
       - name: Save backend test results
         if: startsWith(matrix.check, 'test-packages-') && !cancelled()
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: .turbo/test-results
           key: ${{ runner.os }}-test-results-${{ matrix.check }}-${{ github.sha }}
 
       - name: Save Jest transform cache
         if: matrix.jest-cache != '' && github.event_name != 'pull_request' && !cancelled()
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: .jest-cache
           key: ${{ runner.os }}-jest-${{ matrix.jest-cache }}-${{ github.sha }}
@@ -853,7 +846,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
@@ -942,7 +935,7 @@ jobs:
 
       - name: Upload screenshot
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: docker-smoke-screenshot
           path: /tmp/smoke/docker-smoke.png
@@ -968,7 +961,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Node, install deps, build packages
         uses: ./.github/actions/setup-build
@@ -988,7 +981,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Node, install deps, build packages
         # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless
@@ -1002,7 +995,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
@@ -1021,7 +1014,7 @@ jobs:
 
       - name: Upload Playwright diagnostics
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: workflow-runner-playwright-report
           path: |
