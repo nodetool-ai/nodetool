@@ -82,7 +82,10 @@ function retainReferencedMaterials(doc: GameDocument3D, sources: readonly GameDo
     }
   }
   if (!restored && !restoredAssets) { return doc; }
-  return { ...doc, ...(restored ? { materials: restored } : {}), ...(restoredAssets ? { assets: restoredAssets } : {}) };
+  const result = { ...doc };
+  if (restored) { result.materials = restored; }
+  if (restoredAssets) { result.assets = restoredAssets; }
+  return result;
 }
 
 function mergeNative3D(base: GameDocument3D, draft: GameDocument3D, server: GameDocument3D, options?: MergeOptions): MergeResult<GameDocument3D> {
