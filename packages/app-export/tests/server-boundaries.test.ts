@@ -1,6 +1,6 @@
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, expect, test } from "vitest";
 // @ts-expect-error Template modules run as plain ESM.
@@ -177,4 +177,44 @@ test("real exported workflow cannot read project credentials through string path
     expect(result.status).toBe("failed");
     expect(JSON.stringify(result)).not.toContain(Buffer.from("fixture secret").toString("base64"));
   }
+}, 30_000);
+
+test("real filesystem writers preserve nested destinations and blank filename fallbacks", async () => {
+  const { root, storage } = await fixture();
+  const { NodeRegistry } = await import("@nodetool-ai/node-sdk");
+  const { SaveTextFileNode, SaveDocumentFileNode, SaveImageFileImageNode } = await import("@nodetool-ai/base-nodes");
+  const { ProcessingContext } = await import("@nodetool-ai/runtime");
+  const registry = new NodeRegistry();
+  for (const cls of [SaveTextFileNode, SaveDocumentFileNode, SaveImageFileImageNode]) registry.register(cls);
+  const context = new ProcessingContext({ userId: "1", jobId: "writer-test", workflowId: null, workspaceDir: storage.rootDir });
+  const assets = join(root, "assets");
+  await mkdir(assets);
+  await writeFile(join(assets, "sample.txt"), "trusted asset");
+  const boundary = createNodeInputBoundary([storage.rootDir, assets]);
+  const execute = async (type: string, inputs: Record<string, unknown>) => {
+    const executor = guardExecutor(registry.resolve({ id: "write", type, properties: inputs }), registry.resolveMetadata(type), boundary, inputs);
+    await executor.initialize();
+    return executor.process(inputs, context);
+  };
+  const folder = join(storage.rootDir, "sub");
+  await execute(SaveTextFileNode.nodeType, { text: "text", folder, name: "note.txt", save_to_workspace: false });
+  expect(await readFile(join(folder, "note.txt"), "utf8")).toBe("text");
+  await execute(SaveDocumentFileNode.nodeType, { document: { type: "document", text: "document" }, folder, filename: "", save_to_workspace: false });
+  expect(await readFile(join(folder, "document.txt"), "utf8")).toBe("document");
+  const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aP1cAAAAASUVORK5CYII=";
+  await execute(SaveImageFileImageNode.nodeType, { image: { type: "image", data: png }, folder, filename: "photo.png", save_to_workspace: false });
+  expect((await readFile(join(folder, "photo.png"))).length).toBeGreaterThan(0);
+  const defaultImage = await execute(SaveImageFileImageNode.nodeType, { image: { type: "image", data: png }, folder, filename: "", save_to_workspace: false });
+  expect(dirname(defaultImage.path)).toBe(folder);
+  expect(basename(defaultImage.path)).toMatch(/^image_/);
+  await symlink(join(root, "outside.png"), join(folder, "escape.png"));
+  await expect(execute(SaveImageFileImageNode.nodeType, { image: { type: "image", data: png }, folder, filename: "escape", save_to_workspace: false })).rejects.toThrow("storage");
+  for (const name of ["../../.env", ["../../.env"], join(root, "credential.txt")]) {
+    await expect(execute(SaveTextFileNode.nodeType, { text: "overwrite", folder, name, save_to_workspace: false })).rejects.toThrow("storage");
+  }
+  await expect(execute(SaveDocumentFileNode.nodeType, { document: { type: "document", text: "overwrite" }, folder, filename: "../../.env", save_to_workspace: false })).rejects.toThrow("storage");
+  await expect(execute(SaveDocumentFileNode.nodeType, { document: { type: "document", text: "overwrite" }, path: join(root, ".env"), save_to_workspace: false })).rejects.toThrow("storage");
+  await expect(execute(SaveDocumentFileNode.nodeType, { document: { type: "document", text: "overwrite" }, path: join(assets, "page.html"), save_to_workspace: false })).rejects.toThrow("storage");
+  expect(await boundary({ path: join(assets, "sample.txt") }, { properties: [{ name: "path" }] })).toEqual({ path: join(assets, "sample.txt") });
+  await expect(execute(SaveImageFileImageNode.nodeType, { image: { type: "image", data: png }, folder, filename: "../../.env", save_to_workspace: false })).rejects.toThrow("storage");
 }, 30_000);
