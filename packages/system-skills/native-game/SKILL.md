@@ -167,7 +167,7 @@ For long tracks set `streaming: {loopStartSeconds, loopEndSeconds?}`. The
 browser streams the asset through the music bus without decoding the whole
 track. Loop start defaults to 0 seconds. Loop end must exceed loop start,
 and both are bounded by 86400 seconds. Omit loop end to loop to the track's
-end. Omit `streaming` for decoded music. Loading a snapshot seeks music to
+end. Omit `streaming` for decoded music. Loading a snapshot positions music at
 the saved logical tick within the loop. Browser audio needs a user gesture.
 
 Use `set_audio {mixer}` for mixer buses and `audioSource` for triggered effects.
