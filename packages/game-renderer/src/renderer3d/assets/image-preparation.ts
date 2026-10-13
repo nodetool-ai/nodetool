@@ -16,6 +16,25 @@ function pngCrc(bytes: Uint8Array): number {
   for (const byte of bytes) { crc = (crc >>> 8) ^ (CRC_TABLE[(crc ^ byte) & 255] ?? 0); }
   return (crc ^ 0xffffffff) >>> 0;
 }
+function jpegExifOrientation(bytes: Uint8Array): number | undefined {
+  if (bytes.length < 14 || bytes[0] !== 69 || bytes[1] !== 120 || bytes[2] !== 105 || bytes[3] !== 102 || bytes[4] !== 0 || bytes[5] !== 0) { return undefined; }
+  const view = new DataView(bytes.buffer, bytes.byteOffset + 6, bytes.length - 6);
+  const byteOrder = view.getUint16(0);
+  if (byteOrder !== 0x4949 && byteOrder !== 0x4d4d) { return undefined; }
+  const littleEndian = byteOrder === 0x4949;
+  if (view.getUint16(2, littleEndian) !== 42) { return undefined; }
+  const offset = view.getUint32(4, littleEndian);
+  if (offset < 8 || offset > view.byteLength - 2) { return undefined; }
+  const count = view.getUint16(offset, littleEndian);
+  if (count > Math.floor((view.byteLength - offset - 2) / 12)) { return undefined; }
+  for (let index = 0; index < count; index++) {
+    const entry = offset + 2 + index * 12;
+    if (view.getUint16(entry, littleEndian) !== 0x112 || view.getUint16(entry + 2, littleEndian) !== 3 || view.getUint32(entry + 4, littleEndian) !== 1) { continue; }
+    const orientation = view.getUint16(entry + 8, littleEndian);
+    if (orientation >= 1 && orientation <= 8) { return orientation; }
+  }
+  return undefined;
+}
 function dimensions(bytes: Uint8Array): { format: ImageFormat3D; width: number; height: number } {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   if (bytes.length >= 33 && view.getUint32(0) === 0x89504e47 && view.getUint32(4) === 0x0d0a1a0a &&
@@ -39,16 +58,22 @@ function dimensions(bytes: Uint8Array): { format: ImageFormat3D; width: number; 
   }
   if (bytes.length >= 4 && view.getUint16(0) === 0xffd8 && view.getUint16(bytes.length - 2) === 0xffd9) {
     let cursor = 2;
-    while (cursor + 4 <= bytes.length) {
+    let size: { width: number; height: number } | undefined;
+    let orientation = 1;
+    while (cursor + 2 <= bytes.length) {
       if (bytes[cursor] !== 255) { throw new Error("Malformed JPEG marker"); }
       const marker = bytes[cursor + 1];
+      if (marker === 217 || marker === 218) { break; }
+      if (cursor + 4 > bytes.length) { throw new Error("Truncated JPEG segment"); }
       const length = view.getUint16(cursor + 2);
       if (length < 2 || length > bytes.length - cursor - 2) { throw new Error("Truncated JPEG segment"); }
+      if (marker === 225) { orientation = jpegExifOrientation(bytes.subarray(cursor + 4, cursor + 2 + length)) ?? orientation; }
       if (marker !== undefined && [192, 193, 194].includes(marker) && length >= 8) {
-        return { format: "jpeg", width: view.getUint16(cursor + 7), height: view.getUint16(cursor + 5) };
+        size = { width: view.getUint16(cursor + 7), height: view.getUint16(cursor + 5) };
       }
       cursor += length + 2;
     }
+    if (size) { return { format: "jpeg", width: orientation >= 5 ? size.height : size.width, height: orientation >= 5 ? size.width : size.height }; }
   }
   if (bytes.length >= 30 && view.getUint32(0) === 0x52494646 && view.getUint32(8) === 0x57454250 && view.getUint32(4, true) === bytes.length - 8) {
     const kind = view.getUint32(12);

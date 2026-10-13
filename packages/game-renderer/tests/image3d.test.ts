@@ -1,3 +1,6 @@
+import { resolve } from "node:path";
+import { build } from "esbuild";
+import { chromium } from "@playwright/test";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { describe, expect, it, vi } from "vitest";
 import { Texture } from "three";
@@ -6,10 +9,39 @@ import { prepareGameImage3D } from "../src/renderer3d/assets/image-preparation.j
 import { decodeGameImage3D, GameImageCache3D } from "../src/renderer3d/assets/image-cache.js";
 import type { PreparedGameImage3D } from "../src/renderer3d/assets/image-contract.js";
 
+declare global {
+  interface Window { exifImageProbe: (bytes: number[]) => Promise<{ width: number; height: number; textureBytes: number }>; }
+}
+
 function png(): Uint8Array {
   const canvas = createCanvas(2, 3);
   canvas.getContext("2d").fillRect(0, 0, 2, 3);
   return new Uint8Array(canvas.toBuffer("image/png"));
+}
+function exifJpeg(orientation: number, littleEndian: boolean, afterSof = false, mutate?: (view: DataView) => void): Uint8Array {
+  const jpeg = new Uint8Array(createCanvas(4, 2).toBuffer("image/jpeg"));
+  const exif = new Uint8Array(36);
+  exif.set([69, 120, 105, 102, 0, 0]);
+  const view = new DataView(exif.buffer, 6);
+  view.setUint16(0, littleEndian ? 0x4949 : 0x4d4d);
+  view.setUint16(2, 42, littleEndian); view.setUint32(4, 8, littleEndian);
+  view.setUint16(8, 1, littleEndian); view.setUint16(10, 0x112, littleEndian);
+  view.setUint16(12, 3, littleEndian); view.setUint32(14, 1, littleEndian);
+  view.setUint16(18, orientation, littleEndian); mutate?.(view);
+  let offset = 2;
+  if (afterSof) {
+    const source = new DataView(jpeg.buffer);
+    while (offset + 4 <= jpeg.length) {
+      const marker = jpeg[offset + 1]; const length = source.getUint16(offset + 2);
+      offset += length + 2;
+      if (marker !== undefined && [192, 193, 194].includes(marker)) { break; }
+    }
+  }
+  const segment = new Uint8Array(exif.length + 4);
+  segment.set([255, 225]); new DataView(segment.buffer).setUint16(2, exif.length + 2); segment.set(exif, 4);
+  const bytes = new Uint8Array(jpeg.length + segment.length);
+  bytes.set(jpeg.subarray(0, offset)); bytes.set(segment, offset); bytes.set(jpeg.subarray(offset), offset + segment.length);
+  return bytes;
 }
 async function prepared(): Promise<PreparedGameImage3D> {
   const result = await prepareGameImage3D(png(), { assetId: "owned-image" });
@@ -56,6 +88,58 @@ describe("prepared primitive image assets", () => {
     expect(result.image.binding).toMatchObject({ format, width: 2, height: 3 });
     const cache = new GameImageCache3D({ resolveImage: async () => result.image, decodeImage: decode }, new AbortController().signal);
     expect((await cache.get("slot")).image.width).toBe(2); cache.dispose();
+  });
+  it("loads EXIF orientations 1, 6 and 8 through the actual browser bitmap cache", async () => {
+    const bundle = await build({ stdin: { contents: `
+      import {prepareGameImage3D} from "./src/renderer3d/assets/image-preparation.ts";
+      import {GameImageCache3D} from "./src/renderer3d/assets/image-cache.ts";
+      window.exifImageProbe = async (bytes) => {
+        const prepared = await prepareGameImage3D(new Uint8Array(bytes), {assetId: "image"});
+        if (!prepared.ok) { throw new Error(JSON.stringify(prepared.diagnostics)); }
+        const cache = new GameImageCache3D({resolveImage: async () => prepared.image}, new AbortController().signal);
+        try { const texture = await cache.get("image"); return {width: texture.image.width, height: texture.image.height, textureBytes: cache.textureBytes}; }
+        finally { cache.dispose(); }
+      };`, resolveDir: resolve(".") }, bundle: true, platform: "browser", format: "iife", write: false, conditions: ["nodetool-dev"] });
+    const script = bundle.outputFiles[0]; if (!script) { throw new Error("Image probe bundle missing"); }
+    const browser = await chromium.launch({ headless: true, chromiumSandbox: true });
+    try {
+      const page = await browser.newPage();
+      await page.route("**/*", (route) => route.request().url() === "http://127.0.0.1/"
+        ? route.fulfill({ contentType: "text/html", body: "<html></html>" }) : route.abort());
+      await page.goto("http://127.0.0.1/"); await page.addScriptTag({ content: script.text });
+      for (const orientation of [1, 6, 8]) {
+        for (const littleEndian of [false, true]) {
+          const bytes = exifJpeg(orientation, littleEndian, littleEndian);
+          expect(await page.evaluate((input) => window.exifImageProbe(input), [...bytes]))
+            .toEqual({ width: orientation >= 5 ? 2 : 4, height: orientation >= 5 ? 4 : 2, textureBytes: 32 });
+        }
+      }
+    } finally { await browser.close(); }
+  });
+  it.each([false, true])("uses bounded EXIF orientation in %s-endian JPEG metadata", async (littleEndian) => {
+    for (const afterSof of [false, true]) {
+      for (const orientation of [1, 2, 3, 4, 5, 6, 7, 8]) {
+        const bytes = exifJpeg(orientation, littleEndian, afterSof);
+        const result = await prepareGameImage3D(bytes, { assetId: "image" });
+        expect(result.ok).toBe(true);
+        if (!result.ok) { return; }
+        expect(result.image.binding).toMatchObject({ width: orientation >= 5 ? 2 : 4, height: orientation >= 5 ? 4 : 2 });
+        expect(result.image.bytes).toEqual(bytes);
+      }
+    }
+  });
+  it.each([
+    (view: DataView) => view.setUint32(4, 0xffffffff, true),
+    (view: DataView) => view.setUint16(8, 0xffff, true),
+    (view: DataView) => view.setUint32(14, 2, true),
+    (view: DataView) => view.setUint16(18, 9, true),
+    (view: DataView) => view.setUint16(10, 0x999, true),
+    (view: DataView) => view.setUint16(2, 0, true),
+    (view: DataView) => view.setUint32(4, 29, true)
+  ])("ignores malformed or unrelated EXIF metadata without unbounded reads", async (mutate) => {
+    const result = await prepareGameImage3D(exifJpeg(6, true, false, mutate), { assetId: "image" });
+    expect(result.ok).toBe(true);
+    if (result.ok) { expect(result.image.binding).toMatchObject({ width: 4, height: 2 }); }
   });
   it("loads once, accounts decoded memory and disposes each canonical source on invalidation", async () => {
     const image = await prepared();
