@@ -15,10 +15,9 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/fal-nodes": "*",
-    "@nodetool-ai/kie-nodes": "*",
     "@nodetool-ai/node-sdk": "*",
-    "@nodetool-ai/protocol": "*"
+    "@nodetool-ai/protocol": "*",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@nodetool-ai/atlascloud-nodes": "*",
@@ -43,6 +42,24 @@
       "types": "./dist/model-rankings.d.ts",
       "import": "./dist/model-rankings.js",
       "default": "./dist/model-rankings.js"
+    },
+    "./fal-unit-pricing-catalog": {
+      "nodetool-dev": "./src/fal-unit-pricing-catalog.ts",
+      "types": "./dist/fal-unit-pricing-catalog.d.ts",
+      "import": "./dist/fal-unit-pricing-catalog.js",
+      "default": "./dist/fal-unit-pricing-catalog.js"
+    },
+    "./kie-unit-pricing-catalog": {
+      "nodetool-dev": "./src/kie-unit-pricing-catalog.ts",
+      "types": "./dist/kie-unit-pricing-catalog.d.ts",
+      "import": "./dist/kie-unit-pricing-catalog.js",
+      "default": "./dist/kie-unit-pricing-catalog.js"
+    },
+    "./kie-pricing-api": {
+      "nodetool-dev": "./src/kie-pricing-api.ts",
+      "types": "./dist/kie-pricing-api.d.ts",
+      "import": "./dist/kie-pricing-api.js",
+      "default": "./dist/kie-pricing-api.js"
     }
   },
   "license": "MIT",

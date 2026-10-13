@@ -22,8 +22,8 @@ Looked up in order, first hit wins:
    rung, an audio axis, an input surcharge), or bills per second, per character,
    or per token. Those rows say what a *rung* costs, so they price the run
    rather than one unit of it.
-2. **FAL** — `@nodetool-ai/fal-nodes/unit-pricing-catalog`, keyed by `endpoint_id`.
-3. **kie** — `@nodetool-ai/kie-nodes/unit-pricing-catalog`, keyed by `model_id`,
+2. **FAL** — `@nodetool-ai/model-pricing/fal-unit-pricing-catalog`, keyed by `endpoint_id`.
+3. **kie** — `@nodetool-ai/model-pricing/kie-unit-pricing-catalog`, keyed by `model_id`,
    using the USD conversion (a raw credit figure has no fixed USD value).
 4. **GenSpend's flat scalar** — one number per generation, nothing to narrow.
 
