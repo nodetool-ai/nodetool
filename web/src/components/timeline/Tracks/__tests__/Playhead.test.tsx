@@ -16,6 +16,9 @@ import { Playhead } from "../Playhead";
 import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelinePlaybackStore } from "../../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
+import { installPointerEvent } from "../../../../test-utils/timelineClipHarness";
+
+installPointerEvent();
 
 const renderPlayhead = (endMs?: number) =>
   render(
@@ -47,6 +50,42 @@ describe("Playhead", () => {
       useTimelinePlaybackStore.getState().setTimeMs(2000);
     });
     expect(el.style.transform).toBe("translateX(192px)");
+  });
+
+  describe("over the ruler", () => {
+    const renderWithRuler = () =>
+      render(
+        <ThemeProvider theme={mockTheme}>
+          <TimelineProvider>
+            <Playhead heightPx={300} trackAreaOffsetPx={0} grabTopPx={28} />
+          </TimelineProvider>
+        </ThemeProvider>
+      );
+
+    it("lets clicks in the ruler band through to the markers under it", () => {
+      renderWithRuler();
+      const root = screen.getByTestId("playhead");
+      const grab = screen.getByTestId("playhead-grab");
+      // The full-height root draws the line and pill but takes no pointer.
+      expect(getComputedStyle(root).pointerEvents).toBe("none");
+      // Only the zone below the ruler grabs the playhead.
+      expect(getComputedStyle(grab).pointerEvents).toBe("auto");
+      expect(grab.style.top).toBe("28px");
+    });
+
+    it("drags from the grab zone below the ruler", () => {
+      act(() => {
+        useTimelineUIStore.getState().setZoom(10);
+      });
+      renderWithRuler();
+      const grab = screen.getByTestId("playhead-grab");
+      // jsdom has no pointer capture; the browser captures on the grab zone.
+      grab.setPointerCapture = jest.fn();
+      fireEvent.pointerDown(grab, { button: 0, buttons: 1, clientX: 0, pointerId: 1 });
+      fireEvent.pointerMove(grab, { buttons: 1, clientX: 50, pointerId: 1 });
+      fireEvent.pointerUp(grab, { pointerId: 1 });
+      expect(useTimelinePlaybackStore.getState().getTimeMs()).toBe(500);
+    });
   });
 
   it("reflects the live position in the timecode pill", () => {

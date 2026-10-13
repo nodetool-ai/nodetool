@@ -55,9 +55,12 @@ const HIT_AREA_WIDTH_PX = 16;
 const PILL_HEIGHT_PX = 20;
 
 /**
- * Outer hit area — invisibly wider than the line so the user can grab the
- * playhead anywhere along its full height. The visible line is centred via
- * `::before`. The pill sits as a positioned child on top.
+ * Outer element — it spans the full height and draws the line (`::before`)
+ * and the pill, but takes no pointer events itself. The grab zone below,
+ * invisibly wider than the line, takes the pointer. Over the ruler it leaves
+ * a band free, so the markers there stay clickable: a click on a marker parks
+ * the playhead on it, and a full-height hit area would then cover the marker.
+ * The ruler scrubs on its own, so the band loses no gesture.
  */
 const hitAreaStyles = (theme: Theme, dragging: boolean) =>
   css({
@@ -71,9 +74,7 @@ const hitAreaStyles = (theme: Theme, dragging: boolean) =>
     // transform is folded into that same imperative translateX.
     left: 0,
     width: HIT_AREA_WIDTH_PX,
-    cursor: dragging ? "grabbing" : "ew-resize",
-    touchAction: "none",
-    pointerEvents: "auto",
+    pointerEvents: "none",
     zIndex: Z_INDEX.dropdown,
     "&::before": {
       content: '""',
@@ -91,6 +92,17 @@ const hitAreaStyles = (theme: Theme, dragging: boolean) =>
       outline: `2px solid ${theme.vars.palette.secondary.main}`,
       outlineOffset: 2
     }
+  });
+
+const grabZoneStyles = (dragging: boolean) =>
+  css({
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    cursor: dragging ? "grabbing" : "ew-resize",
+    touchAction: "none",
+    pointerEvents: "auto"
   });
 
 const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
@@ -127,10 +139,15 @@ interface PlayheadProps {
   heightPx: number;
   /** Content end (last clip end or project duration). Defaults to the store's durationMs. */
   endMs?: number;
+  /**
+   * Height of the band at the top that does not grab the playhead (the ruler
+   * with its markers). The line and pill still draw over it.
+   */
+  grabTopPx?: number;
 }
 
 export const Playhead: React.FC<PlayheadProps> = memo(
-  ({ trackAreaOffsetPx = 0, heightPx, endMs }) => {
+  ({ trackAreaOffsetPx = 0, heightPx, endMs, grabTopPx = 0 }) => {
     const theme = useTheme();
 
     // Geometry inputs that DO change reactively (zoom/scroll). We keep them in
@@ -156,6 +173,7 @@ export const Playhead: React.FC<PlayheadProps> = memo(
       () => hitAreaStyles(theme, dragging),
       [theme, dragging]
     );
+    const grabZoneCss = useMemo(() => grabZoneStyles(dragging), [dragging]);
     const pillCss = useMemo(
       () => pillStyles(theme, dragging, hovered),
       [theme, dragging, hovered]
@@ -234,7 +252,11 @@ export const Playhead: React.FC<PlayheadProps> = memo(
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLDivElement>) => {
         e.preventDefault();
-        e.currentTarget.setPointerCapture(e.pointerId);
+        // Capture on the grab zone: the root takes no pointer events, and the
+        // captured events still bubble to the handlers here.
+        if (e.target instanceof Element) {
+          e.target.setPointerCapture(e.pointerId);
+        }
         dragStartXRef.current = e.clientX;
         dragStartMsRef.current = playbackStoreApi.getState().getTimeMs();
         setDragging(true);
@@ -305,6 +327,11 @@ export const Playhead: React.FC<PlayheadProps> = memo(
         onPointerCancel={handlePointerUp}
         onKeyDown={handleKeyDown}
       >
+        <div
+          css={grabZoneCss}
+          style={{ top: grabTopPx }}
+          data-testid="playhead-grab"
+        />
         <div
           ref={pillRef}
           css={pillCss}
