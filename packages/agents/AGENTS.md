@@ -1515,14 +1515,16 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
 - On `claude_agent_sdk` the built-in wins outright. The provider drops every
   tool `SDK_NATIVE_TOOL_REPLACEMENTS` maps (`read_file`→`Read`,
   `write_file`→`Write`, `edit_file`→`Edit`, `glob`→`Glob`, `grep`→`Grep`,
-  `web_search`→`WebSearch`, `todo_write`→`TodoWrite`) from its MCP toolset and
-  lets the SDK's own tool serve the call. The path-scoped five are substituted
+  `web_search`→`WebSearch`) from its MCP toolset and lets the SDK's own tool
+  serve the call. The path-scoped five are substituted
   only when the caller passes a `workspaceDir`, which becomes the session
   `cwd` — without it the SDK would resolve paths outside the run's workspace,
   so NodeTool's contained versions stay. `list_directory`, `browser`,
   `http_request`, `download_file` and `run_subtask` are never substituted: no
   built-in covers what they do (`Task` would hand the child SDK tools, not the
-  NodeTool belt). See `packages/runtime/src/providers/core-tools.ts`.
+  NodeTool belt). Neither is `todo_write`: `TodoWrite` keeps the list inside
+  the SDK session, and the chat's task list is drawn from the `todo_update`
+  that NodeTool's version posts. See `packages/runtime/src/providers/core-tools.ts`.
 - Progressive disclosure: resident tools (`CODEACT_RESIDENT_TOOL_NAMES` —
   the search family incl. `web_search`/`search_nodes`/`run_search`/
   `asset_search`/`grep`/`glob`, the Claude-agent file set

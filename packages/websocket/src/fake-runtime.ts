@@ -33,6 +33,7 @@ import {
   sampleForSchema,
   isToolCall,
   getRegisteredProvider,
+  getProvider,
   type BaseProvider,
   type CredentialCheckResult,
   type ImageModel,
@@ -348,6 +349,18 @@ export class FakeProvider extends ScriptedProvider {
 }
 
 /**
+ * Provider ids named in `NODETOOL_REAL_PROVIDERS` (comma-separated). They stay
+ * real while everything else is faked, so an agent eval can drive a real model
+ * (`claude_agent_sdk`) against fake image, video and speech providers.
+ */
+export function realProviderIds(): string[] {
+  return (process.env.NODETOOL_REAL_PROVIDERS ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0);
+}
+
+/**
  * Replace every registered provider (openai, anthropic, gemini, …) with the
  * FakeProvider, keeping its display name and access kind so settings and
  * pickers show "OpenAI" rather than the bare id.
@@ -361,11 +374,14 @@ export class FakeProvider extends ScriptedProvider {
  *
  * Call again after node registration: providers self-register on import, so a
  * package loaded during registry setup can add a real provider afterwards.
+ * Ids in `keep` (default: {@link realProviderIds}) are left registered as is.
  */
 export function fakeAllProviders({
-  requireCredentials = false
-}: { requireCredentials?: boolean } = {}): void {
+  requireCredentials = false,
+  keep = realProviderIds()
+}: { requireCredentials?: boolean; keep?: readonly string[] } = {}): void {
   for (const id of listRegisteredProviderIds()) {
+    if (keep.includes(id)) continue;
     const registration = getRegisteredProvider(id);
     if (registration?.cls.prototype instanceof FakeProvider) continue;
     class FakeForProvider extends FakeProvider {
@@ -394,9 +410,16 @@ export async function acceptCredential(
   return { status: "valid", message: "The key was accepted." };
 }
 
-/** A `resolveProvider` implementation that always hands back a fake. */
-export const resolveFakeProvider = async (): Promise<BaseProvider> =>
-  new FakeProvider();
+/**
+ * A `resolveProvider` implementation that hands back a fake, except for an id
+ * in {@link realProviderIds}, which resolves to the real registered provider.
+ */
+export const resolveFakeProvider = async (
+  providerId?: string
+): Promise<BaseProvider> =>
+  providerId && realProviderIds().includes(providerId)
+    ? getProvider(providerId, async (key) => process.env[key] ?? null)
+    : new FakeProvider();
 
 // ── Executor faking ─────────────────────────────────────────────────────────
 
