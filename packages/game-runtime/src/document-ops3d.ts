@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   gameAnimationGraph3D, gameAssetBinding3D, gameAudioMixer, gameBehavior3D, gameBody3D, gameCamera3D, gameCollider3D, gameCollisionMatrix3D, gameDocument3D, gamePhysicsMaterials3D,
-  gameEntity3D, gameInputBindings, gameLight3D, gamePerformance3D, gamePrefab3D, gameScene3D, gameScriptParamValue, gameScriptParams, gameTransform3D, gameUiTree, gameVector3,
+  gameEntity3D, gameInputBindings, gameLight3D, gameMaterial3D, gameMaterials3D, gamePerformance3D, gamePrefab3D, gameScene3D, gameScriptParamValue, gameScriptParams, gameTransform3D, gameUiTree, gameVector3,
   type AnyGameDocument, type GameDocument, type GameDocument3D, type GameEntity3D, type GamePrefab3D, type GameTransform3D
 } from "@nodetool-ai/protocol";
 import { applyGameOwnershipOperation, authoringMembershipOp, createGameOwnershipDeltaState, overrideMembershipOp, reconcileGameOwnershipDeltas } from "./ownership-ops.js";
@@ -64,14 +64,16 @@ export const gameDocumentOp3D = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("set_prefab"), prefab_id: id, prefab: gamePrefab3D }),
   z.strictObject({ op: z.literal("remove_prefab"), prefab_id: id }),
   z.strictObject({ op: z.literal("instantiate_prefab"), scene_id: id, prefab_id: id, instance_id: id, transform: gameTransform3D.optional() }),
-  z.strictObject({ op: z.literal("set_game"), presentation: preservingPatch(gameDocument3D.shape.presentation.partial()).optional(), input_actions: gameDocument3D.shape.inputActions.optional(), input_axes: gameDocument3D.shape.inputAxes.optional(), input_bindings: gameInputBindings.nullable().optional(), entry_scene_id: id.optional(), collision_layers: gameDocument3D.shape.collisionLayers.nullable().optional(), collision_matrix: gameCollisionMatrix3D.nullable().optional(), physics_materials: gamePhysicsMaterials3D.nullable().optional() }),
+  z.strictObject({ op: z.literal("set_game"), presentation: preservingPatch(gameDocument3D.shape.presentation.partial()).optional(), input_actions: gameDocument3D.shape.inputActions.optional(), input_axes: gameDocument3D.shape.inputAxes.optional(), input_bindings: gameInputBindings.nullable().optional(), entry_scene_id: id.optional(), collision_layers: gameDocument3D.shape.collisionLayers.nullable().optional(), collision_matrix: gameCollisionMatrix3D.nullable().optional(), physics_materials: gamePhysicsMaterials3D.nullable().optional(), materials: gameMaterials3D.nullable().optional() }),
   z.strictObject({ op: z.literal("set_audio"), mixer: gameAudioMixer.nullable() }),
   z.strictObject({ op: z.literal("set_performance"), performance: gamePerformance3D.nullable() }),
   z.strictObject({ op: z.literal("set_ui"), scene_id: id.optional(), ui: gameUiTree.nullable() }),
   z.strictObject({ op: z.literal("bind_asset"), slot: id, binding: gameAssetBinding3D }),
   z.strictObject({ op: z.literal("unbind_asset"), slot: id }),
   z.strictObject({ op: z.literal("set_animation_graph"), graph_id: id, graph: gameAnimationGraph3D }),
-  z.strictObject({ op: z.literal("remove_animation_graph"), graph_id: id })
+  z.strictObject({ op: z.literal("remove_animation_graph"), graph_id: id }),
+  z.strictObject({ op: z.literal("set_material"), material_id: id, material: gameMaterial3D }),
+  z.strictObject({ op: z.literal("remove_material"), material_id: id })
 ]);
 export type GameDocumentOp3D = z.input<typeof gameDocumentOp3D>;
 
@@ -304,6 +306,8 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
         else if (op.collision_layers !== undefined) { draft.collisionLayers = op.collision_layers; }
         if (op.collision_matrix === null) { delete draft.collisionMatrix; }
         else if (op.collision_matrix !== undefined) { draft.collisionMatrix = op.collision_matrix; }
+        if (op.materials === null) { delete draft.materials; }
+        else if (op.materials !== undefined) { draft.materials = op.materials; }
         if (op.physics_materials === null) { delete draft.physicsMaterials; }
         else if (op.physics_materials !== undefined) { draft.physicsMaterials = op.physics_materials; }
         break;
@@ -329,6 +333,13 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
         delete draft.assets[op.slot]; break;
       }
       case "set_animation_graph": draft.animationGraphs = { ...draft.animationGraphs, [op.graph_id]: op.graph }; break;
+      case "set_material": draft.materials = { ...draft.materials, [op.material_id]: op.material }; break;
+      case "remove_material": {
+        if (!draft.materials?.[op.material_id]) { fail(opIndex, ["material_id"], "Material does not exist"); }
+        delete draft.materials[op.material_id];
+        if (Object.keys(draft.materials).length === 0) { delete draft.materials; }
+        break;
+      }
       case "remove_animation_graph": {
         if (!draft.animationGraphs?.[op.graph_id]) { fail(opIndex, ["graph_id"], "Animation graph does not exist"); }
         delete draft.animationGraphs[op.graph_id];

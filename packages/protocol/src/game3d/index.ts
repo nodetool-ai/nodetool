@@ -8,6 +8,7 @@ import { finite, positive, id, tick, color, layerBits } from "./components/commo
 import { gameVector3, gameQuaternion3D, gameTransform3D } from "./components/transform.js";
 import { gameNonSpatialBehavior } from "./components/behaviors.js";
 import { gamePrimitive3D } from "./components/primitive.js";
+import { gameMaterial3D } from "./components/material.js";
 import { gameModel3D } from "./components/model.js";
 import { gameForceScriptCommand3D } from "./components/force-command.js";
 import { gameBody3D } from "./components/body.js";
@@ -74,6 +75,10 @@ export type GamePrefab3D = z.infer<typeof gamePrefab3D>;
 
 export const gamePresentation3D = z.strictObject({ aspectRatio: positive, hudWidth: positive, hudHeight: positive });
 
+export const gameMaterials3D = z.record(id, gameMaterial3D)
+  .refine((materials) => Object.keys(materials).length <= 256, { message: "At most 256 named materials" });
+export type GameMaterials3D = z.infer<typeof gameMaterials3D>;
+
 export const gameDocument3D = z.strictObject({
   authoring: gameAuthoring.optional(),
   schemaVersion: z.literal(3), engineVersion: z.literal("2"), dimension: z.literal("3d"),
@@ -83,6 +88,7 @@ export const gameDocument3D = z.strictObject({
   physicsMaterials: gamePhysicsMaterials3D.optional(), assets: z.record(id, gameAssetBinding3D),
   prefabs: z.record(id, gamePrefab3D).default({}), scenes: z.array(gameScene3D).min(1).max(64),
   animationGraphs: gameAnimationGraphs3D.optional(),
+  materials: gameMaterials3D.optional(),
   audio: gameAudioSettings.optional(),
   performance: gamePerformance3D.optional(),
   ui: gameUiTree.optional()
@@ -155,7 +161,8 @@ export const gameRenderFrame3D = z.strictObject({
     cullDistance: positive.optional().describe("Camera distance beyond which the renderer hides this entity, resolved from renderCulling.") })),
   lights: z.array(z.strictObject({ entityId: id, transform: gameTransform3D, light: gameLight3D })),
   environment: gameEnvironment3D, hud: z.array(gameHudLabel), ui: gameUiFrame.optional(),
-  fonts: z.record(id, gameAssetBinding3D.options[3]).optional()
+  fonts: z.record(id, gameAssetBinding3D.options[3]).optional(),
+  materials: gameMaterials3D.optional()
 });
 
 export type GameRenderFrame3D = z.infer<typeof gameRenderFrame3D>;
@@ -265,7 +272,7 @@ export { gameVector3, type GameVector3, gameQuaternion3D, type GameQuaternion3D,
 
 export { gameNonSpatialBehavior, type GameNonSpatialBehavior, gameBehavior3D, type GameBehavior3D } from "./components/behaviors.js";
 
-export { gameMaterial3D } from "./components/material.js";
+export { gameMaterial3D, gameTextureSlot3D, type GameMaterial3D, type GameTextureSlot3D } from "./components/material.js";
 
 export { gamePrimitive3D, type GamePrimitive3D } from "./components/primitive.js";
 

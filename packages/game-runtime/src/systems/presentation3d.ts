@@ -79,6 +79,7 @@ export function frame3D(
     sceneId: scene.id,
     tick,
     presentation: document.presentation,
+    ...(document.materials === undefined ? {} : { materials: structuredClone(document.materials) }),
     fonts: Object.fromEntries(
       Object.entries(document.assets).flatMap(([slot, binding]) => (binding.mediaKind === "font" ? [[slot, binding]] : []))
     ),
