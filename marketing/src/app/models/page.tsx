@@ -11,6 +11,7 @@ import {
   type Modality,
 } from "@/data/modelEntries";
 import { modelComparisonEntries } from "@/data/modelComparisonEntries";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
   description: hub.description,
   alternates: { canonical: "/models" },
   openGraph: {
+    images: DEFAULT_OG_IMAGES,
     title: hub.title,
     description: hub.description,
     url: `${BASE_URL}/models`,
