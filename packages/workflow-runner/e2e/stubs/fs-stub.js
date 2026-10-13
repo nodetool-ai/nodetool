@@ -26,6 +26,7 @@ export const cpSync = notInBrowser("cpSync");
 export const unlinkSync = notInBrowser("unlinkSync");
 export const rmSync = notInBrowser("rmSync");
 export const mkdtempSync = notInBrowser("mkdtempSync");
+export const renameSync = notInBrowser("renameSync");
 
 // `constants` is data, not behavior — `accessSync(p, constants.R_OK)` reads it
 // before it ever calls, so a throwing stub would break at the wrong moment.
@@ -52,5 +53,6 @@ export default {
   unlinkSync,
   rmSync,
   mkdtempSync,
+  renameSync,
   constants
 };
