@@ -1,3 +1,4 @@
+import type { GameImageSources3D } from "./assets/image-contract.js";
 import { GameFonts3D } from "./hud/fonts.js";
 import { RenderPipeline3D } from "./pipeline.js";
 import { GameModelCache3D } from "./assets/cache.js";
