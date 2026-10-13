@@ -16,7 +16,7 @@ function widen<T extends AnyGameDocument>(adapter: DocumentMergeAdapter<T>, narr
     }))
   };
   if (finalize) {
-    widened.finalizeMergedDocument = (doc, base, draft, server) => finalize(narrow(doc), narrow(base), narrow(draft), narrow(server));
+    widened.finalizeMergedDocument = (doc, base, draft, server, conflicts) => finalize(narrow(doc), narrow(base), narrow(draft), narrow(server), conflicts);
   }
   return widened;
 }
@@ -44,7 +44,8 @@ export function acceptServerAnyGameUnit(current: AnyGameDocument, server: AnyGam
     const index = units.findIndex((unit) => collection.unitId(unit) === id);
     const filtered = units.filter((unit) => collection.unitId(unit) !== id);
     if (replacement) { filtered.splice(index < 0 ? filtered.length : index, 0, replacement); }
-    return collection.write(current, filtered);
+    const accepted = collection.write(current, filtered);
+    return adapter.finalizeMergedDocument?.(accepted, current, current, server, []) ?? accepted;
   }
   const scalar = adapter.scalars?.find((entry) => entry.name === id);
   return scalar ? scalar.write(current, scalar.read(server)) : current;
