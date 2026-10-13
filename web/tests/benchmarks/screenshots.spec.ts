@@ -1506,6 +1506,286 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "editor-node-menu.png");
     });
 
+    // ── docs/first-workflow.md ──────────────────────────────────────────────
+    //
+    // One picture per step of the first-workflow tutorial, on the graph the
+    // page builds: wf-first-empty is the canvas of step 1, wf-first-workflow
+    // the finished String Input → Agent → Text To Image → Preview graph.
+
+    /**
+     * Answer the Anthropic model list with the model the seeded graph picks.
+     * The real list comes from Anthropic's API, which the capture cannot
+     * reach, and a model missing from the list shows its raw id.
+     */
+    async function stubAnthropicModels(page: Page): Promise<void> {
+      const models = [
+        {
+          type: "language_model",
+          id: "claude-sonnet-5",
+          name: "Claude Sonnet 5",
+          provider: "anthropic"
+        }
+      ];
+      await page.route(/\/trpc\/[^?]*models\.llmByProvider/, async (route) => {
+        const request = route.request();
+        const url = new URL(request.url());
+        const procedures = url.pathname.split("/trpc/")[1].split(",");
+        const batched = url.searchParams.get("batch") === "1";
+        const input = JSON.parse(request.postData() ?? "{}") as Record<
+          string,
+          { provider?: string }
+        >;
+        const response = await route.fetch();
+        const body = (await response.json()) as unknown;
+        const items = batched ? (body as unknown[]) : [body];
+        const patched = items.map((item, index) => {
+          const args = batched ? input[String(index)] : input;
+          return procedures[index] === "models.llmByProvider" &&
+            args?.provider === "anthropic"
+            ? { result: { data: models } }
+            : item;
+        });
+        await route.fulfill({
+          response,
+          json: batched ? patched : patched[0]
+        });
+      });
+    }
+
+    /** The canvas point at a fraction of the editor's width and height. */
+    async function canvasPoint(
+      page: Page,
+      fx: number,
+      fy: number
+    ): Promise<{ x: number; y: number }> {
+      const box = await page.locator(".react-flow").first().boundingBox();
+      if (!box) throw new Error("Editor canvas has no geometry");
+      return { x: box.x + box.width * fx, y: box.y + box.height * fy };
+    }
+
+    async function openFirstWorkflow(page: Page): Promise<void> {
+      await seedChatModel(page);
+      await stubAnthropicModels(page);
+      await gotoPage(page, "/editor/wf-first-workflow");
+      await expect(page.locator(".react-flow__node")).toHaveCount(4, {
+        timeout: 15000
+      });
+      await expect(
+        page.locator('.react-flow__node[data-id="fw-agent"]')
+      ).toContainText("Claude Sonnet 5", { timeout: 15000 });
+      await waitForAnimation(page, 800);
+    }
+
+    async function selectNode(page: Page, nodeId: string): Promise<void> {
+      await page
+        .locator(`.react-flow__node[data-id="${nodeId}"]`)
+        .click({ position: { x: 80, y: 14 } });
+    }
+
+    /**
+     * Play a run of wf-first-workflow into the editor. The frames go through
+     * the same routing a server run's frames take, so the canvas renders them
+     * as it renders a real run. `phase` "start" streams half the Agent's text
+     * and stops; "finish" completes the run; "fail" fails Text To Image.
+     */
+    async function playFirstWorkflowRun(
+      page: Page,
+      phase: "start" | "finish" | "fail"
+    ): Promise<void> {
+      await page.evaluate(async (phaseInPage) => {
+        // Vite serves the app's own module instance at its source path.
+        const managerPath = "/src/lib/websocket/GlobalWebSocketManager.ts";
+        const { globalWebSocketManager } = (await import(
+          /* @vite-ignore */ managerPath
+        )) as {
+          globalWebSocketManager: {
+            deliverLocal: (message: Record<string, unknown>) => void;
+          };
+        };
+        const workflow_id = "wf-first-workflow";
+        const job_id = "job-first-workflow";
+        const send = (message: Record<string, unknown>): void =>
+          globalWebSocketManager.deliverLocal({
+            workflow_id,
+            job_id,
+            ...message
+          });
+        const wait = (ms: number): Promise<void> =>
+          new Promise((resolve) => setTimeout(resolve, ms));
+        const node = (
+          node_id: string,
+          node_name: string,
+          status: string,
+          extra: Record<string, unknown> = {}
+        ): void =>
+          send({ type: "node_update", node_id, node_name, status, ...extra });
+        const image = {
+          type: "image",
+          uri: "asset://asset-first-workflow-image",
+          asset_id: "asset-first-workflow-image"
+        };
+        const prompt =
+          "A white stone lighthouse on a rugged sea cliff at dusk, its lamp " +
+          "just lit. Storm clouds break over the horizon and leave a band of " +
+          "amber light above dark, foaming water. Wet rocks and wind-bent " +
+          "grass in the foreground. Cinematic photograph, wide angle, cool " +
+          "blue shadows against a warm sunset glow.";
+        const words = prompt.split(/(?<= )/);
+        const half = Math.floor(words.length / 2);
+        const stream = async (from: number, to: number): Promise<void> => {
+          for (const word of words.slice(from, to)) {
+            send({ type: "chunk", node_id: "fw-agent", content: word });
+            await wait(30);
+          }
+        };
+
+        if (phaseInPage === "start") {
+          send({ type: "job_update", status: "running" });
+          node("fw-idea", "String Input", "running");
+          await wait(40);
+          node("fw-idea", "String Input", "completed", {
+            result: { output: "a lighthouse on a cliff at dusk" }
+          });
+          node("fw-agent", "Agent", "running");
+          await stream(0, half);
+          return;
+        }
+        await stream(half, words.length);
+        node("fw-agent", "Agent", "completed", { result: { text: prompt } });
+        node("fw-image", "Text To Image", "running");
+        await wait(2600);
+        if (phaseInPage === "fail") {
+          const error = "Missing required secret: FAL_API_KEY";
+          node("fw-image", "Text To Image", "error", { error });
+          send({ type: "job_update", status: "failed", error });
+          return;
+        }
+        node("fw-image", "Text To Image", "completed", {
+          result: { output: image }
+        });
+        node("fw-preview", "Preview", "running");
+        await wait(30);
+        node("fw-preview", "Preview", "completed", {
+          result: { output: image }
+        });
+        send({ type: "job_update", status: "completed" });
+      }, phase);
+    }
+
+    test("First workflow – empty canvas", async ({ page }) => {
+      test.skip(shouldSkip("first-workflow-empty.png"), "Already captured");
+      await seedChatModel(page);
+      await gotoPage(page, "/editor/wf-first-empty");
+      await page
+        .locator(".react-flow")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 });
+      await expect(page.locator(".react-flow__node")).toHaveCount(0);
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "first-workflow-empty.png");
+    });
+
+    test("First workflow – node menu search", async ({ page }) => {
+      test.skip(shouldSkip("first-workflow-node-menu.png"), "Already captured");
+      await seedChatModel(page);
+      await gotoPage(page, "/editor/wf-first-empty");
+      const point = await canvasPoint(page, 0.3, 0.3);
+      await page.mouse.move(point.x, point.y);
+      await page.keyboard.press(" ");
+      const search = page
+        .getByRole("searchbox", { name: "Search for nodes..." })
+        .first();
+      await search.waitFor({ state: "visible", timeout: 5000 });
+      await search.fill("string input");
+      await page
+        .getByText("String Input", { exact: true })
+        .first()
+        .waitFor({ state: "visible", timeout: 10000 });
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 600);
+      await saveScreenshot(page, "first-workflow-node-menu.png");
+    });
+
+    // Step 3: the Agent selected, its Params tab in the Inspector.
+    test("First workflow – Agent in the Inspector", async ({ page }) => {
+      test.skip(shouldSkip("first-workflow-inspector.png"), "Already captured");
+      await openFirstWorkflow(page);
+      await selectNode(page, "fw-agent");
+      await page
+        .getByRole("tab", { name: /^Params/ })
+        .first()
+        .waitFor({ state: "visible", timeout: 10000 });
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "first-workflow-inspector.png");
+    });
+
+    // Step 6: release a drag from Text To Image's output on empty canvas.
+    test("First workflow – connection menu", async ({ page }) => {
+      test.skip(
+        shouldSkip("first-workflow-connection-menu.png"),
+        "Already captured"
+      );
+      await openFirstWorkflow(page);
+      // The finished graph already has its Preview. Remove it to show the
+      // step that adds it, then close the Inspector the selection opened.
+      await selectNode(page, "fw-preview");
+      await page.keyboard.press("Delete");
+      await expect(page.locator(".react-flow__node")).toHaveCount(3);
+      await page.getByRole("button", { name: "Close inspector" }).click();
+      await waitForAnimation(page, 400);
+      const handle = page
+        .locator(
+          '.react-flow__node[data-id="fw-image"] .react-flow__handle.source'
+        )
+        .first();
+      const box = await handle.boundingBox();
+      if (!box) throw new Error("Text To Image output handle has no geometry");
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      const drop = { x: box.x + 90, y: box.y + 40 };
+      await page.mouse.move(drop.x, drop.y, { steps: 12 });
+      await page.mouse.up();
+      await page
+        .getByRole("menuitem", { name: /Preview/ })
+        .first()
+        .waitFor({ state: "visible", timeout: 10000 });
+      await waitForAnimation(page, 600);
+      await saveScreenshot(page, "first-workflow-connection-menu.png");
+    });
+
+    // Step 7: the run, captured while the Agent writes and when it is done.
+    test("First workflow – run", async ({ page }) => {
+      test.skip(
+        shouldSkip("first-workflow-running.png") &&
+          shouldSkip("first-workflow-result.png"),
+        "Already captured"
+      );
+      await openFirstWorkflow(page);
+      await playFirstWorkflowRun(page, "start");
+      await waitForAnimation(page, 300);
+      // The working node shows a spinner, which saveScreenshot refuses.
+      await assertNoErrorBoundary(page);
+      await page.screenshot({
+        path: path.join(SCREENSHOT_DIR, "first-workflow-running.png")
+      });
+      console.log("  📸 first-workflow-running.png");
+      await playFirstWorkflowRun(page, "finish");
+      await waitForAnimation(page, 1500);
+      await saveScreenshot(page, "first-workflow-result.png");
+    });
+
+    // Step 7, when a node fails: the error shows on the node.
+    test("First workflow – failed node", async ({ page }) => {
+      test.skip(shouldSkip("first-workflow-error.png"), "Already captured");
+      await openFirstWorkflow(page);
+      await playFirstWorkflowRun(page, "start");
+      await playFirstWorkflowRun(page, "fail");
+      const away = await canvasPoint(page, 0.5, 0.6);
+      await page.mouse.move(away.x, away.y);
+      await waitForAnimation(page, 1200);
+      await saveScreenshot(page, "first-workflow-error.png");
+    });
+
     test("Editor – optional node packs", async ({ page }) => {
       test.skip(shouldSkip("node-menu-optional-packs.png"), "Already captured");
       await openEditorWithNodes(page);
