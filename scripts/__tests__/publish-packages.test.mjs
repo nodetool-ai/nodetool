@@ -6,10 +6,15 @@
  * as success and a genuine error is not — misreading either direction is silent:
  * one aborts a recoverable release, the other reports a broken release as green.
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 import {
   classifyPublishResult,
+  packRelease,
   publishOrder,
   unmetDeps,
   workspaceDeps
@@ -103,5 +108,82 @@ describe("unmetDeps", () => {
   it("lets a package through once every dependency is available", () => {
     const available = new Set(["app-runtime", "protocol"]);
     expect(unmetDeps({ name: "agents", deps: ["app-runtime", "protocol"] }, available)).toEqual([]);
+  });
+});
+
+const releaseRoots = [];
+afterEach(() => { for (const root of releaseRoots.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
+function releaseFixture() {
+  const root = mkdtempSync(join(tmpdir(), "publish-pack-order-"));
+  releaseRoots.push(root);
+  const dest = join(root, "tarballs");
+  mkdirSync(dest);
+  const data = join(root, "packages/node-catalog/data");
+  mkdirSync(data, { recursive: true });
+  writeFileSync(join(data, "index.json"), JSON.stringify({ packs: [
+    { npm: { name: "core-nodes" }, provides: [] },
+    { npm: { name: "game-nodes" }, provides: ["game-renderer"] }
+  ] }));
+  return { root, dest, packages: ["cli", "core-nodes", "game-nodes", "game-renderer", "node-catalog"].map(name => ({ name })) };
+}
+
+describe("release packing order", () => {
+  it("packs every catalog registrar and companion once, pins and rebuilds catalog, then packs remaining core", async () => {
+    const { root, dest, packages } = releaseFixture();
+    const events = [];
+    const artifacts = await packRelease(packages, dest, { root,
+      packPackages: batch => {
+        events.push(["pack", batch.map(pkg => pkg.name)]);
+        return Object.fromEntries(batch.map(pkg => {
+          const file = join(dest, `${pkg.name}.tgz`);
+          writeFileSync(file, `original ${pkg.name}`);
+          return [pkg.name, file];
+        }));
+      },
+      pin: async (file, tarballs, options) => {
+        events.push(["pins", Object.keys(tarballs)]);
+        expect(options.workspaces).toEqual(packages);
+        expect(file).toBe(join(root, "packages/node-catalog/data/index.json"));
+      },
+      rebuildCatalog: () => { events.push(["catalog"]); }
+    });
+    expect(events).toEqual([
+      ["pack", ["core-nodes", "game-nodes", "game-renderer"]],
+      ["pins", ["core-nodes", "game-nodes", "game-renderer"]],
+      ["catalog"],
+      ["pack", ["cli", "node-catalog"]]
+    ]);
+    expect(Object.keys(artifacts)).toEqual(["core-nodes", "game-nodes", "game-renderer", "cli", "node-catalog"]);
+    expect(readFileSync(artifacts["game-nodes"], "utf8")).toBe("original game-nodes");
+  });
+
+  it("refuses to overwrite existing original artifacts", async () => {
+    const { root, dest, packages } = releaseFixture();
+    writeFileSync(join(dest, "existing.tgz"), "original");
+    await expect(packRelease(packages, dest, { root })).rejects.toThrow("must be empty");
+    expect(readFileSync(join(dest, "existing.tgz"), "utf8")).toBe("original");
+  });
+
+  it("refuses a release missing a catalog companion before packing", async () => {
+    const { root, dest, packages } = releaseFixture();
+    await expect(packRelease(packages.filter(pkg => pkg.name !== "game-renderer"), dest, { root })).rejects.toThrow("No public workspace package for catalog entry game-renderer");
+  });
+
+  it("detects deliberate artifact replacement during the pin write before packing core", async () => {
+    const { root, dest, packages } = releaseFixture();
+    const batches = [];
+    await expect(packRelease(packages, dest, { root,
+      packPackages: batch => {
+        batches.push(batch);
+        return Object.fromEntries(batch.map(pkg => {
+          const file = join(dest, `${pkg.name}.tgz`);
+          writeFileSync(file, "original");
+          return [pkg.name, file];
+        }));
+      },
+      pin: async (_file, tarballs) => { writeFileSync(tarballs["game-renderer"], "altered"); },
+      rebuildCatalog: () => {}
+    })).rejects.toThrow("Already-packed release artifact changed: game-renderer");
+    expect(batches).toHaveLength(1);
   });
 });

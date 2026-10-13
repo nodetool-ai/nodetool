@@ -31,6 +31,7 @@ import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
 import { tmpdir } from "node:os";
 import { pack, existingTarballs } from "./smoke-packed-cli.mjs";
+import { catalogPackageNames, runReleaseCommand, tarballIntegrity, writePinnedCatalog } from "./release/pin-catalog.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
@@ -102,7 +103,41 @@ export function unmetDeps(pkg, available) {
   return pkg.deps.filter((d) => !available.has(d));
 }
 
-function main() {
+/** Packing has a catalog boundary independent of the later publish dependency order. */
+export async function packRelease(packages, dest, {
+  root = ROOT,
+  packPackages = pack,
+  pin = writePinnedCatalog,
+  rebuildCatalog = () => runReleaseCommand(process.execPath, [join(root, "packages/node-catalog/build.mjs")], { cwd: root })
+} = {}) {
+  if (readdirSync(dest).some(name => name.endsWith(".tgz"))) {
+    throw new Error("Release tarball directory must be empty. Reuse existing artifacts with --tarballs-dir without --pack-only.");
+  }
+  const catalogFile = join(root, "packages/node-catalog/data/index.json");
+  const catalog = JSON.parse(readFileSync(catalogFile, "utf8"));
+  const names = catalogPackageNames(catalog);
+  const available = new Set(packages.map(pkg => pkg.name));
+  for (const name of names) {
+    if (!available.has(name)) { throw new Error(`No public workspace package for catalog entry ${name}`); }
+  }
+  const early = packages.filter(pkg => names.has(pkg.name));
+  const remaining = packages.filter(pkg => !names.has(pkg.name));
+  const earlyTarballs = await packPackages(early, dest);
+  const originalHashes = new Map(Object.entries(earlyTarballs).map(([name, file]) => [name, tarballIntegrity(file)]));
+  const verifyOriginals = () => {
+    for (const [name, integrity] of originalHashes) {
+      if (tarballIntegrity(earlyTarballs[name]) !== integrity) { throw new Error(`Already-packed release artifact changed: ${name}`); }
+    }
+  };
+  await pin(catalogFile, earlyTarballs, { workspaces: packages, measurementOptions: { cacheDir: join(dest, ".measurement-cache") } });
+  await rebuildCatalog();
+  verifyOriginals();
+  const remainingTarballs = await packPackages(remaining, dest);
+  verifyOriginals();
+  return { ...earlyTarballs, ...remainingTarballs };
+}
+
+async function main() {
   const { values } = parseArgs({
     options: {
       tag: { type: "string", default: "latest" },
@@ -174,12 +209,12 @@ skipping versions already present on the registry.
     : resolve(values["tarballs-dir"]);
   mkdirSync(tarballDir, { recursive: true });
   if (values["pack-only"]) {
-    pack(packages, tarballDir);
+    await packRelease(packages, tarballDir);
     console.log(`Packed ${packages.length} packages in ${tarballDir}`);
     return;
   }
   try {
-    const tarballs = temporary ? pack(packages, tarballDir) : existingTarballs(packages, tarballDir);
+    const tarballs = temporary ? await packRelease(packages, tarballDir) : existingTarballs(packages, tarballDir);
     console.log(
       `Publishing ${packages.length} package(s) under dist-tag "${values.tag}"` +
         (values["dry-run"] ? " (dry run)" : "")
@@ -267,5 +302,5 @@ skipping versions already present on the registry.
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main();
+  main().catch(error => { console.error(error.message); process.exitCode = 1; });
 }

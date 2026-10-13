@@ -217,6 +217,30 @@ budget. Package-root savings overlap and must not be summed. A9 remains open.
 
 ## Immediate continuation
 
+A14 install-mode and inventory helpers are committed as `a7c58b1e81`.
+They detect Unix and Windows layouts without spawning npm, recognize custom
+user prefixes and canonicalize symlinked global roots. Inventory rejects wrong
+versions, malformed packages and missing companions, with diagnostics for the
+future doctor command. Mode-specific error guidance is explicit. A15 still
+needs to connect this snapshot to actual CLI and server loading.
+
+A13.3 release pinning is implemented with registrar and companion tarballs
+packed first, integrity and Linux production-tree size measurement, a pinned
+catalog rebuild, then the remaining core artifacts. Earlier tarballs remain
+immutable. The measured tree has scripts disabled according to the default
+pack policy and includes dependencies, so it is an estimate for consent, not
+the final disk footprint after allowlisted rebuilds. Staging verification and
+promotion remain A13.4/A13.5. No npm publication is authorized by this handoff.
+
+Astra cleared both assignments after reproducing and verifying the symlinked
+global-prefix fix. Focused tests, package builds, root lint and typecheck, docs
+checks and harness selection pass. Actual Linux pack measurement runs in the
+new read-only `release-pins` job, without publication.
+
+The first core CI attempt failed at `check:typescript` because four new
+workspace dependencies lacked project references. `37b5b1ef0a` adds them, and
+the reproduced policy check now passes. Fresh remote checks are required.
+
 1. Inspect [draft PR #6558](https://github.com/nodetool-ai/nodetool/pull/6558),
    stacked against `codex/cli-pack-system-runtime`. The A4/A8 checkpoint is
    `4a18eef330`. Inspect its remote packed-core-cli checks and the foundation
@@ -225,7 +249,7 @@ budget. Package-root savings overlap and must not be summed. A9 remains open.
 2. After actual core-only Linux installation succeeds, implement A9 using the
    measured installed size plus the plan’s margin. Prove the size check fails
    on an oversized fixture before enforcing it. Do not invent a threshold.
-3. Continue the remaining publishing metadata, installed-pack source,
+3. Continue staging verification and promotion, the installed-pack source,
    cross-surface missing-pack errors, authorized installer, commands and npm
    matrix. Perform A24 only after its prerequisites pass.
 

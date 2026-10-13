@@ -515,10 +515,16 @@ beside phase 1.
    step.
 2. **A13.2 Tarballs.** Pack each package once and publish the tarball files.
 3. **A13.3 Pins.** Use this order:
-   1. Pack the node packs.
+   1. Pack every catalog registrar package, including core registrars, and
+      its first-party companion packages. Preserve these original tarballs.
    2. Compute the integrity and `installBytes` of each pack on linux-x64.
+      Measure a fresh production install with scripts disabled, matching the
+      default pack installer policy. Include its production dependency tree.
+      Before final core tarballs exist, use local core folder overrides with
+      `--install-links`, which respects each package's `files` field.
    3. Write the pins into `node-catalog/data/index.json`.
-   4. Pack the core packages.
+   4. Rebuild the pinned catalog artifact, then pack the remaining core
+      packages. Do not repack the earlier registrar or companion artifacts.
 4. **A13.4 Staging.** Publish everything under the dist-tag `staging`. Then
    verify these points:
    - For each pin, `npm view <name>@<version> dist.integrity` equals the pin.

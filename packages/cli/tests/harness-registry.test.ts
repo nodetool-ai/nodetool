@@ -234,6 +234,7 @@ describe("gated capability matches a real CI trigger", () => {
     "app-build": "dev:nodetool -- harness gate",
     "backend-smoke": "npm run backend:smoke",
     "packed-core-cli": "node scripts/smoke-packed-cli.mjs --core-only",
+    "release-pins": "scripts/__tests__/pin-catalog.test.mjs",
     "docker-smoke": "docker-smoke.mjs http://localhost:7777",
     "provider-contract": "provider-contract-probes",
     "provider-codegen": "npm run generate:fal:check -- --strict",

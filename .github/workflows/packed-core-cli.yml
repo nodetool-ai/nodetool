@@ -8,6 +8,10 @@ on:
       - 'scripts/fixtures/codec-identity.mp4'
       - 'scripts/node-catalog/tiers.mjs'
       - 'scripts/prepare-publish.mjs'
+      - 'scripts/publish-packages.mjs'
+      - 'scripts/release/**'
+      - 'scripts/__tests__/pin-catalog.test.mjs'
+      - 'scripts/__tests__/publish-packages.test.mjs'
       - 'scripts/__tests__/smoke-packed-cli.test.mjs'
       - 'package.json'
       - 'package-lock.json'
@@ -50,3 +54,15 @@ jobs:
         run: node scripts/prepare-publish.mjs
       - name: Smoke-test the packed core-only CLI
         run: node scripts/smoke-packed-cli.mjs --core-only
+  release-pins:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/setup-build
+        with:
+          cache: read-only
+      - name: Pin workspace versions in the test tarballs
+        run: node scripts/prepare-publish.mjs
+      - name: Measure and pin original pack tarballs without publishing
+        run: node scripts/publish-packages.mjs --pack-only --tarballs-dir .release-pins

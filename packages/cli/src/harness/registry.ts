@@ -780,6 +780,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "release-pins",
+    title: "Release catalog integrity, install measurement and packing order",
+    command: "node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-catalog.test.mjs scripts/__tests__/publish-packages.test.mjs",
+    kind: "meta",
+    capabilities: ["gated:pr"],
+    docs: "docs/harnesses.md § Release catalog pins",
+    selfcheck: {
+      command: "node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-catalog.test.mjs scripts/__tests__/publish-packages.test.mjs",
+      cost: "cheap"
+    }
+  },
+  {
     id: "docker-smoke",
     title: "Deploy-image smoke (build, boot, load app in a browser)",
     command: "node scripts/docker-smoke.mjs http://localhost:7777",
@@ -1862,6 +1874,18 @@ export const SURFACES: SurfaceEntry[] = [
       "scripts/smoke-packed-cli.mjs",
       "scripts/fixtures/codec-identity.mp4",
       ".github/workflows/packed-core-cli.yml"
+    ]
+  },
+  {
+    id: "release-pins",
+    title: "Release tarball catalog pins",
+    harnesses: ["release-pins"],
+    paths: [
+      "scripts/release/",
+      "scripts/publish-packages.mjs",
+      "scripts/prepare-publish.mjs",
+      "scripts/__tests__/pin-catalog.test.mjs",
+      "scripts/__tests__/publish-packages.test.mjs"
     ]
   },
   {

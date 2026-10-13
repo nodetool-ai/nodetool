@@ -25,6 +25,31 @@ measurement used to establish the later size gate. The dedicated
 `packed-core-cli.yml` workflow runs the core smoke on pull requests, including
 stacked branches. Release CI runs it beside the full packed smoke.
 
+## Release catalog pins
+
+After building packages and running `node scripts/prepare-publish.mjs`, run
+`node scripts/publish-packages.mjs --pack-only --tarballs-dir <empty-directory>`
+on Linux x64. It packs the catalog registrar packages and their companion
+libraries, measures each pack in a fresh production install, writes integrity
+and size pins, rebuilds the catalog artifact, and packs the remaining packages.
+It preserves every previously packed tarball and performs no publication.
+
+The install size includes the pack’s production dependency tree. Measurement
+uses local core directory overrides before final core artifacts exist. npm
+packs those directories according to their `files` fields, with scripts
+disabled. Each install has a fresh project and home, with a shared download
+cache inside the release artifact directory.
+
+Run the deterministic pin, measurement and packing-order regressions with:
+
+```bash
+node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-catalog.test.mjs scripts/__tests__/publish-packages.test.mjs
+```
+
+The
+`release-pins` job in `packed-core-cli.yml` verifies actual Linux measurement
+and packing without publishing.
+
 ## CLI
 
 Two entry points: `nodetool` (management commands) and `nodetool-chat` (interactive chat).
