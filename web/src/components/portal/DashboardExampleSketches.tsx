@@ -5,6 +5,7 @@ import {
   creationProjectId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
+import useOnboardingStore from "../../stores/OnboardingStore";
 import { trpc } from "../../trpc/client";
 import {
   AutoGrid,
@@ -25,6 +26,8 @@ import {
 } from "../../utils/exampleSketches";
 import { installExampleSketch } from "../../utils/installExampleSketch";
 import { notifyMutationError } from "../../utils/notifyMutationError";
+import { NO_EXAMPLE_NEEDS } from "../../utils/exampleNeeds";
+import ExampleNeedsPill from "./ExampleNeedsPill";
 
 const DashboardExampleSketches = () => {
   const [category, setCategory] = useState("All");
@@ -49,6 +52,7 @@ const DashboardExampleSketches = () => {
         projectId: created.projectId
       });
       navigate("/workspace");
+      useOnboardingStore.getState().markStep("keep-creating");
     },
     onError: (error) => notifyMutationError("add the example sketch", error)
   });
@@ -98,6 +102,7 @@ const DashboardExampleSketches = () => {
               <Caption>{example.category}</Caption>
               <Text sx={TYPOGRAPHY.sans.label}>{example.name}</Text>
               <Caption color="secondary">{example.description}</Caption>
+              <ExampleNeedsPill needs={NO_EXAMPLE_NEEDS} />
               <EditorButton
                 disabled={install.isPending}
                 aria-label={`Open ${example.name}`}

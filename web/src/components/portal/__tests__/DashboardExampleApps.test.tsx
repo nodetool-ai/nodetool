@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import DashboardExampleApps from "../DashboardExampleApps";
+import useOnboardingStore from "../../../stores/OnboardingStore";
 
 const listExampleApps = jest.fn();
 const installExampleApp = jest.fn();
@@ -71,6 +72,29 @@ describe("DashboardExampleApps", () => {
     listExampleApps.mockResolvedValue(APPS);
   });
 
+  it("says what each app needs before it runs", async () => {
+    listExampleApps.mockResolvedValue([
+      {
+        ...APPS[0],
+        needs: { modelKinds: ["image_model"], requiredSettings: [] }
+      },
+      {
+        ...APPS[1],
+        needs: { modelKinds: [], requiredSettings: [] }
+      }
+    ]);
+    renderApps();
+
+    const vary = await screen.findByRole("button", { name: /vary image/i });
+    expect(within(vary).getByTestId("example-needs")).toHaveTextContent(
+      "Needs an image model"
+    );
+    const sku = screen.getByRole("button", { name: /sku factory/i });
+    expect(within(sku).getByTestId("example-needs")).toHaveTextContent(
+      "Runs as is"
+    );
+  });
+
   it("lists only known app details without unavailable compatibility metadata", async () => {
     renderApps();
 
@@ -116,6 +140,7 @@ describe("DashboardExampleApps", () => {
 });
 
 it("opens a used app in its own tab without installing it", async () => {
+  useOnboardingStore.setState({ completedSteps: [] });
   listExampleApps.mockResolvedValue(APPS);
   renderApps();
   await userEvent.click(await screen.findByRole("button", { name: /vary image/i }));
@@ -128,4 +153,8 @@ it("opens a used app in its own tab without installing it", async () => {
   });
   expect(installExampleApp).not.toHaveBeenCalled();
   expect(screen.getByText("Start from an app")).toBeInTheDocument();
+  // Opening an example ticks the checklist's examples step.
+  expect(useOnboardingStore.getState().completedSteps).toContain(
+    "keep-creating"
+  );
 });

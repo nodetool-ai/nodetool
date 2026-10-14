@@ -153,6 +153,15 @@ const WorkspaceTabItem = ({
     [onActivate, tab.id]
   );
 
+  const [titleTruncated, setTitleTruncated] = useState(false);
+  const handleNameMouseOver = useCallback(
+    (event: MouseEvent<HTMLSpanElement>) => {
+      const name = event.currentTarget;
+      setTitleTruncated(name.scrollWidth > name.clientWidth);
+    },
+    []
+  );
+
   return (
     <>
       <div
@@ -195,13 +204,19 @@ const WorkspaceTabItem = ({
                 color="primary"
               />
             )}
+            {/* Only a cut-off name needs its full text. The tooltip drops
+                below the tab onto the page's own tabs, so it never takes the
+                pointer either. */}
             <Tooltip
-              title={displayTitle}
+              title={titleTruncated ? displayTitle : ""}
               placement="bottom"
               delay={TAB_TITLE_TOOLTIP_DELAY}
               nextDelay={TAB_TITLE_TOOLTIP_NEXT_DELAY}
+              disableInteractive
             >
-              <span className="tab-name">{displayTitle}</span>
+              <span className="tab-name" onMouseOver={handleNameMouseOver}>
+                {displayTitle}
+              </span>
             </Tooltip>
             {isWorkflowDirty && (
               <span

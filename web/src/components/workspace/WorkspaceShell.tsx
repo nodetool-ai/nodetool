@@ -12,6 +12,7 @@ import {
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkspaceMenuShortcuts } from "../../hooks/useWorkspaceMenuShortcuts";
+import { useWorkspaceDocumentTitle } from "../../hooks/useWorkspaceDocumentTitle";
 import {
   HEADER_HEIGHT,
   TOOLBAR_WIDTH,
@@ -122,6 +123,7 @@ const WorkspaceShell = () => {
   );
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
+  useWorkspaceDocumentTitle();
   const setCurrentWorkflowId = useWorkflowManager(
     (state) => state.setCurrentWorkflowId
   );

@@ -10,6 +10,7 @@ import TrackedLink from "@/components/TrackedLink";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import { templateEntries, type TemplateEntry } from "@/data/templates";
 import { recipeEntries } from "@/data/recipes";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -19,6 +20,7 @@ export const metadata: Metadata = {
     "Browse editable NodeTool workflow templates for image, video, audio, agents, and marketing. Open any in Studio, or explore simplified runnable mini apps.",
   alternates: { canonical: `${BASE_URL}/templates` },
   openGraph: {
+    images: DEFAULT_OG_IMAGES,
     title: "AI Workflow Templates — NodeTool",
     description:
       "Browse editable NodeTool workflow templates for image, video, audio, agents, and marketing. Open any in Studio, or explore simplified runnable mini apps.",

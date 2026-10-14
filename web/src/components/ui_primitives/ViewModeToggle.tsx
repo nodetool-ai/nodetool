@@ -20,9 +20,9 @@ import React, { forwardRef, memo, useMemo } from "react";
 import {
   ToggleButton,
   ToggleButtonGroup,
-  ToggleButtonGroupProps,
-  Tooltip
+  ToggleButtonGroupProps
 } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import { useTheme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,

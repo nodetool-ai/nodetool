@@ -10,7 +10,8 @@ interface GameSurfaceProps {
 
 export default function GameSurface({ refId, active, mode }: GameSurfaceProps) {
   return mode === "view" ? (
-    <SavedGamePlayer gameId={refId} active={active} />
+    // The workspace titles the browser tab after the active tab.
+    <SavedGamePlayer gameId={refId} active={active} setsDocumentTitle={false} />
   ) : (
     <GameEditor refId={refId} active={active} />
   );
