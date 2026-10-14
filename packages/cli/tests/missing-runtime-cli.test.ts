@@ -10,7 +10,7 @@ function runMissing(args: string[], preload?: string, built = false) {
   const home = mkdtempSync(join(tmpdir(), "nodetool-runtime-cli-"));
   directories.push(home);
   const env = {
-    HOME: home, USERPROFILE: home, APPDATA: home, XDG_DATA_HOME: home,
+    HOME: home, USERPROFILE: home, APPDATA: home, XDG_DATA_HOME: home, TMPDIR: home, TMP: home, TEMP: home,
     NODETOOL_HOST: "cli", NODETOOL_ENV: "development", NODETOOL_LOG_LEVEL: "error",
     PATH: join(home, "empty-path"), NODETOOL_CONDA_ENV: join(home, "absent-conda"),
     NODETOOL_PYTHON: join(home, "absent-python"), SECRETS_MASTER_KEY: "a".repeat(64)

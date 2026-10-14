@@ -45,7 +45,7 @@ export async function registerAvailablePacks(
     if (!enabled(pack, policy)) {
       continue;
     }
-    let module: Record<string, unknown>;
+    let module: object;
     try {
       module = await importPack(pack.id);
     } catch (error) {
@@ -55,7 +55,7 @@ export async function registerAvailablePacks(
       missing.add(pack.id);
       continue;
     }
-    const registrar = registrarSchema.parse(module[pack.registrar]);
+    const registrar = z.object({ [pack.registrar]: registrarSchema }).parse(module)[pack.registrar];
     registry.registerPackage(pack.id, registrar);
   }
   if (missing.size > 0) {
