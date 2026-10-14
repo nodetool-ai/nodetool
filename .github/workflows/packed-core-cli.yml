@@ -63,6 +63,8 @@ jobs:
         run: node scripts/prepare-publish.mjs
       - name: Smoke-test the packed core-only CLI
         run: node scripts/smoke-packed-cli.mjs --core-only
+      - name: Smoke-test the packed full CLI
+        run: node scripts/smoke-packed-cli.mjs
   core-smoke:
     needs: [verification, packed-install]
     if: always()

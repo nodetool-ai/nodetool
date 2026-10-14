@@ -24,6 +24,10 @@ it("keeps the required core-smoke status dependent on verification and the indep
     expect(checks).toContain(command);
   }
   expect(workflow.jobs["packed-install"].needs).toBeUndefined();
+  const packedChecks = workflow.jobs["packed-install"].steps.map(step => step.run);
+  expect(packedChecks).toContain("node scripts/smoke-packed-cli.mjs --core-only");
+  expect(packedChecks).toContain("node scripts/smoke-packed-cli.mjs");
+  expect(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs")).toBeGreaterThan(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --core-only"));
   for (const job of ["verification", "packed-install", "release-pins"]) {
     expect(workflow.jobs[job].steps.find(step => step.uses === "./.github/actions/setup-build").with.cache).toBe("read-only");
   }
