@@ -1354,17 +1354,37 @@ export async function installExpectedPackages(): Promise<{
           emitServerLog(message);
           emitBootMessage(message);
 
-          await runPackInstall(
-            (torchBackend) => [
-              "pip",
-              "install",
-              ...buildInstallIndexArgs(torchBackend),
-              "--system",
-              spec,
-              ...coInstalledRequirements(installed, [pkg.packageName]),
-            ],
-            backend
-          );
+          const installArgs = (withPacks: boolean) => (torchBackend: TorchBackend | null) => [
+            "pip",
+            "install",
+            ...buildInstallIndexArgs(torchBackend),
+            "--system",
+            spec,
+            ...(withPacks
+              ? coInstalledRequirements(installed, [pkg.packageName])
+              : []),
+          ];
+          try {
+            await runPackInstall(installArgs(true), backend);
+          } catch (resolveError: unknown) {
+            if (canonicalizePackageName(pkg.packageName) !== "nodetool-core") {
+              throw resolveError;
+            }
+            // An installed pack that pins an older core (a stale registry
+            // pack) makes the joint resolve unsatisfiable. The core floor is
+            // what the bridge needs, so install core in its own transaction.
+            const others = installed
+              .map((p) => canonicalizePackageName(p.name))
+              .filter((n) => n.startsWith("nodetool-") && n !== "nodetool-core");
+            const warning =
+              `Could not resolve ${spec} together with the installed packs ` +
+              `(${others.join(", ") || "none"}); installing it alone. A pack ` +
+              `that pins an older nodetool-core may not load: remove or update it.`;
+            logMessage(warning, "warn");
+            emitServerLog(warning);
+            emitBootMessage(warning);
+            await runPackInstall(installArgs(false), backend);
+          }
           packagesUpdated += 1;
           logMessage(`Updated ${spec}`);
         } catch (error: unknown) {
