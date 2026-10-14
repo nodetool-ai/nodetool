@@ -23,7 +23,6 @@ export type RuntimePackageId =
   | "node-llama-cpp"
   | "whisper-cpp"
   | "playwright"
-  | "claude-agent-sdk"
   | "pdf-js"
   | "office-documents"
   | "tesseract-ocr"
@@ -50,7 +49,6 @@ export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> =
   "node-llama-cpp": "llama.cpp (in-process)",
   "whisper-cpp": "whisper.cpp",
   playwright: "Playwright",
-  "claude-agent-sdk": "Claude Agent SDK",
   "pdf-js": "PDF Libraries",
   "office-documents": "Office Documents",
   "tesseract-ocr": "Tesseract OCR",

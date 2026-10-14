@@ -628,41 +628,73 @@ both instead of inventing its own.
 
 ---
 
-## Claude Agent SDK
+## Claude Agent provider
 
 `ClaudeAgentProvider` (`packages/runtime/src/providers/claude-agent-provider.ts`)
-is a **pure LLM provider** that reaches Claude through the local `claude` CLI
-(the Claude Agent SDK transport) instead of an API key. It sends no
-`ANTHROPIC_API_KEY`; the CLI authenticates with the machine's logged-in Claude
-subscription (credentials stored under `~/.claude`), so it bills against the
-subscription rather than per-token API spend.
+reaches Claude through the user's installed Claude Code CLI instead of an API
+key. It sends no `ANTHROPIC_API_KEY`. The CLI authenticates with the machine's
+logged-in Claude subscription (credentials under `~/.claude`), so it bills
+against the subscription rather than per-token API spend. No npm package is
+involved: the provider runs the `claude` executable itself.
 
-Internally it spawns the executable in non-interactive print mode
-(`claude -p --output-format stream-json --verbose --include-partial-messages`)
-and translates the CLI's newline-delimited JSON stream into the standard
-`ProviderStreamItem` stream (text + thinking chunks). The Claude Code agent loop
-is collapsed to a single, tool-free turn so it behaves like a plain chat
-completion:
+### Transport
 
-- `--system-prompt <prompt>` fully **replaces** the coding-agent preset with the
-  caller's system message (or a generic assistant prompt), giving vanilla LLM
-  behaviour rather than the Claude Code persona.
-- `--allowedTools ""` disables every built-in tool, and `--max-turns 1` keeps it
-  to one model call. `hasToolSupport()` returns `false` — the caller drives any
-  tool loop with a `tool_use`-returning provider (e.g. `AnthropicProvider`).
+`packages/runtime/src/providers/claude-cli.ts` starts one process per turn:
+
+```
+claude -p --input-format stream-json --output-format stream-json --verbose \
+  --include-partial-messages --tools <built-ins> --setting-sources= \
+  --strict-mcp-config --permission-mode bypassPermissions ...
+```
+
+Both sides exchange JSON lines. The provider first sends an `initialize`
+control request with the system prompt (which replaces the Claude Code preset),
+the structured-output schema, the skills to enable, and the names of the MCP
+servers it serves itself. Then it sends the user turn and translates the
+stream (`system/init`, `stream_event` deltas, `assistant`, `user` tool results,
+`result`) into `ProviderStreamItem`s. Stdin closes after the first `result`,
+which ends the process.
+
+NodeTool's tools reach the CLI's agent loop as a host-served MCP server named
+`nodetool_tools`. The CLI sends `mcp_message` control requests (`initialize`,
+`tools/list`, `tools/call`) over the same pipes, and the provider answers them
+from its tool handlers. Nothing listens on a port, and each tool's JSON Schema
+goes to the CLI unchanged.
+
+- `generateMessages` is the tool-free primitive: one turn, every built-in
+  disabled (`--tools ""` plus `--disallowedTools`), structured output through
+  `--json-schema`.
+- `generateLoop` lets the CLI run its own loop over the offered tools. NodeTool
+  file and search tools that a built-in covers (`read_file` → `Read`, and the
+  others in `SDK_NATIVE_TOOL_REPLACEMENTS`) are replaced when a workspace is
+  given. User skills are written to a throwaway local plugin loaded with
+  `--plugin-dir-no-mcp`. `providedToolsOnly` keeps the loop to the supplied
+  tools.
+- A `threadId` resumes the CLI session (`--resume`) and sends only the new user
+  turn. The session token is surfaced as a `ProviderSessionUpdate`.
 
 Provider id: `claude_agent_sdk` (`PROVIDER_IDS.CLAUDE_AGENT_SDK`). It registers
-with no credential kwargs (auth lives in the CLI's store, so it is always
-"configured"; a missing CLI surfaces at call time) and is pruned from the cloud
-profile since it needs a local executable. Token usage is attributed to the
-concrete dated model the CLI resolves an alias to (captured from the
-`message_start` event) so cost maps onto Anthropic pricing.
+with no credential kwargs (it is always "configured"; a missing CLI surfaces at
+call time) and is pruned from the cloud profile. Token usage is attributed to
+the concrete model the CLI resolves an alias to.
+
+### Finding the CLI
+
+The `CLAUDE_CLI_PATH` setting (Settings → Integrations, or the environment)
+pins the executable. It must exist. When it is unset, the provider takes the
+first `claude` on `PATH`, then the install locations: `~/.local/bin/claude`
+(native installer), `~/.claude/local/claude`, `/opt/homebrew/bin/claude`,
+`/usr/local/bin/claude`, `/usr/bin/claude`, and the npm, Bun and Volta bin
+directories. On Windows it looks for `claude.exe` on `PATH` and in
+`%USERPROFILE%\.local\bin`. An npm `.cmd` shim is skipped because it needs a
+shell to start. A desktop app started outside a shell often has a `PATH`
+without these directories, which is why the locations are probed.
 
 ### Signing in
 
 `nodetool auth claude login` runs the same OAuth flow the `claude` CLI does
 (public client, PKCE, JSON token endpoint) and writes the tokens to
-`$CLAUDE_CONFIG_DIR/.credentials.json` — the file the SDK reads — so a NodeTool
+`$CLAUDE_CONFIG_DIR/.credentials.json` — the file the CLI reads — so a NodeTool
 login and a `claude login` are interchangeable. On a headless or remote host,
 `--manual` skips the loopback listener and takes the `code#state` shown in the
 browser instead. The same flow is served at
@@ -671,49 +703,36 @@ card on the Models & Providers settings page. Implementation and protocol notes:
 [packages/runtime/src/providers/oauth/README.md](../packages/runtime/src/providers/oauth/README.md).
 
 `CLAUDE_CODE_OAUTH_TOKEN` remains the alternative on hosts with no interactive
-login; it is explicitly allowlisted through the nested-session env stripping
+login. It is explicitly allowlisted through the nested-session env stripping
 below.
 
-**Soft dependency.** `@anthropic-ai/claude-agent-sdk` is an *optional peer
-dependency* of `@nodetool-ai/runtime` — it is not installed by default and must
-be added with the package manager (`npm install @anthropic-ai/claude-agent-sdk`)
-before this provider can run. The package is imported lazily, so its absence
-only surfaces — as a clear install hint — when the provider is actually used;
-the rest of the runtime and the browser worker bundle never pull it in.
-
-### Executable resolution & nested sessions
-
-The SDK resolves its own bundled `claude` binary, shipped per platform as an
-optional dependency of `@anthropic-ai/claude-agent-sdk` (e.g.
-`@anthropic-ai/claude-agent-sdk-linux-x64`), so nothing has to be on `PATH`;
-`options.pathToClaudeCodeExecutable` overrides it and NodeTool does not set it.
-Users still have to be logged in — auth comes from the credential store under
-`~/.claude`. The `@anthropic-ai/claude-code` CLI the desktop app offers as the
-`claude` runtime package is what the separate Claude Code *agent node* needs,
-not this provider.
+### Nested sessions
 
 When NodeTool itself runs **under** Claude Code (e.g. Claude Code on the web),
 the inherited `CLAUDECODE` / `CLAUDE_CODE_*` / `CLAUDE_SESSION_*` /
 `CLAUDE_ENABLE_*` / `CLAUDE_AFTER_*` / `CLAUDE_AUTO_*` env vars are stripped from
 the spawned child so the nested CLI starts clean. `ANTHROPIC_BASE_URL` and
-`HTTP_PROXY` / `HTTPS_PROXY` are preserved for API routing.
+`HTTP_PROXY` / `HTTPS_PROXY` are preserved for API routing. `NODE_OPTIONS` is
+dropped so an inherited value cannot break an npm-installed CLI.
 
-**`uid=0` blocker (tool path).** The tool-free primitive
-(`generateMessages`) runs without permission bypass, but `generateLoop` with
-tools exposes them as an in-process MCP server and runs the SDK under
-`permissionMode: "bypassPermissions"` + `allowDangerouslySkipPermissions: true`
-(see the query options in `claude-agent-provider.ts`). The CLI **refuses
-`--dangerously-skip-permissions` as `root`/sudo** — so the tool path fails
-(`Claude Code process exited with code 1`) whenever NodeTool runs as `uid=0`,
-which the web sandbox does. Two ways out:
-- Run the server as a **non-root** user — but only if that user can reach the
-  CLI's auth (in the web sandbox the OAuth credentials + proxy CA bundle are
-  root-only, so switching users trips `authentication_failed` and a CA
-  `EACCES`). This is the SDK's intended fix and works on normal hosts.
-- Set **`IS_SANDBOX=1`** in the environment. It is preserved by
-  `buildChildEnv()` (not a `CLAUDE_*` var) and lifts the CLI's root refusal.
-  Accurate and safe inside an actual sandboxed container; do **not** set it on a
-  real multi-tenant host.
+The CLI refuses `bypassPermissions` as `root` outside a sandbox. Run the server
+as a non-root user, or set `IS_SANDBOX=1` inside an actual sandboxed container.
+`IS_SANDBOX` is preserved by `buildChildEnv()`. Do not set it on a multi-tenant
+host.
+
+### Tests
+
+`tests/providers/claude-agent-provider.test.ts` covers the stream translation
+with a scripted runner. `tests/providers/claude-cli.test.ts` drives the real
+transport against `tests/fixtures/fake-claude-cli.mjs`, which speaks the control
+protocol. `tests/providers/claude-agent-provider.e2e.test.ts` runs every
+provider feature against the real, signed-in CLI and is skipped unless
+`NODETOOL_CLAUDE_CLI_E2E=1`:
+
+```bash
+cd packages/runtime
+NODETOOL_CLAUDE_CLI_E2E=1 npx vitest run tests/providers/claude-agent-provider.e2e.test.ts
+```
 
 ---
 

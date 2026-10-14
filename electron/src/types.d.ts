@@ -925,7 +925,6 @@ export type RuntimePackageId =
   | "node-llama-cpp"
   | "whisper-cpp"
   | "playwright"
-  | "claude-agent-sdk"
   | "pdf-js"
   | "office-documents"
   | "tesseract-ocr"
