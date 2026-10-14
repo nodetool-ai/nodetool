@@ -18,6 +18,20 @@ if (physicalRoot.length >= 260 || !sameDirectory(root, physicalRoot)) {
 }
 process.chdir(physicalRoot);
 process.cwd = () => root;
+const promiseFs = require("node:fs/promises");
+const mkdtemp = promiseFs.mkdtemp;
+promiseFs.mkdtemp = (prefix, ...options) => {
+  if (typeof prefix === "string" && prefix.length >= 260) {
+    const relative = path.relative(root, prefix);
+    const separator = prefix.endsWith("\\") || prefix.endsWith("/") ? prefix.slice(-1) : "";
+    const inside = (relative !== "" || separator !== "") && relative !== ".." && !relative.startsWith(".." + path.sep) && !path.isAbsolute(relative);
+    const physical = inside ? path.resolve(physicalRoot, relative) + separator : null;
+    if (physical && physical.length < 260 && sameDirectory(path.dirname(prefix + "XXXXXX"), path.dirname(physical + "XXXXXX"))) {
+      prefix = physical;
+    }
+  }
+  return mkdtemp(prefix, ...options);
+};
 const children = require("node:child_process");
 const spawn = children.spawn;
 children.spawn = (...call) => {

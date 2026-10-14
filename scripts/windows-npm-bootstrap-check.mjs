@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { findNpmCli, installerNpmVersion, runInstallerNpm, runNpm } from "../packages/cli/src/npm-runner.ts";
@@ -30,6 +30,7 @@ try {
   await runInstallerNpm(root, ["install", tarball], { mode: "local" });
   assert(JSON.parse(readFileSync(join(root, "package.json"), "utf8")).dependencies["native-bootstrap-fixture"]);
   assert.equal(JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8")).packages["node_modules/native-bootstrap-fixture"].version, "1.0.0");
+  assert(readdirSync(join(root, "npm-cache/_cacache/content-v2")).length > 0);
   assert.equal(readFileSync(join(base, "package.json"), "utf8"), original);
   assert.throws(() => readFileSync(join(base, "package-lock.json")), { code: "ENOENT" });
   const packageRoot = join(root, "node_modules/native-bootstrap-fixture");

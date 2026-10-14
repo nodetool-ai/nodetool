@@ -79,11 +79,13 @@ it("the verified child retains logical cwd and maps lifecycle cwd to the same sh
   const code = mock.calls[0].args[1];
   const physical = "C:\\SHORT~1";
   const spawn = vi.fn(); const children = { spawn }; const loaded = vi.fn();
+  const mkdtemp = vi.fn(); const promiseFs = { mkdtemp };
   const processFixture = { argv: [process.execPath, root, "fixture-cli", "--version"], execPath: process.execPath,
     cwd: () => "\\\\?\\" + physical, chdir: vi.fn() };
   const requireFixture = (name: string) => {
-    if (name === "node:fs") { return { statSync: (path: string) => ({ dev: 1n, ino: path.endsWith("pkg") ? 2n : 1n, isDirectory: () => true }) }; }
+    if (name === "node:fs") { return { statSync: (path: string) => ({ dev: 1n, ino: path.includes("wrong-cache") ? (path.startsWith(root) ? 3n : 4n) : path.endsWith("pkg") ? 2n : 1n, isDirectory: () => true }) }; }
     if (name === "node:path") { return win32; }
+    if (name === "node:fs/promises") { return promiseFs; }
     if (name === "node:child_process") { return children; }
     if (name === "node:module") { return { syncBuiltinESMExports: vi.fn() }; }
     return loaded(name);
@@ -96,4 +98,16 @@ it("the verified child retains logical cwd and maps lifecycle cwd to the same sh
   children.spawn("cmd.exe", ["/c", "fixture"], options);
   expect(spawn).toHaveBeenCalledWith("cmd.exe", ["/c", "fixture"], { ...options, cwd: physical + "\\pkg" });
   expect(options.cwd).toBe(root + "\\pkg");
+  promiseFs.mkdtemp(root + "\\npm-cache\\tmp\\fixture-", "utf8");
+  expect(mkdtemp).toHaveBeenCalledWith(physical + "\\npm-cache\\tmp\\fixture-", "utf8");
+  promiseFs.mkdtemp(root + "\\npm-cache\\tmp\\", "utf8");
+  expect(mkdtemp).toHaveBeenLastCalledWith(physical + "\\npm-cache\\tmp\\", "utf8");
+  promiseFs.mkdtemp(root + "\\npm-cache\\tmp/", "utf8");
+  expect(mkdtemp).toHaveBeenLastCalledWith(physical + "\\npm-cache\\tmp/", "utf8");
+  promiseFs.mkdtemp(root + "\\wrong-cache\\fixture-", "utf8");
+  expect(mkdtemp).toHaveBeenLastCalledWith(root + "\\wrong-cache\\fixture-", "utf8");
+  promiseFs.mkdtemp("C:\\external\\" + "x".repeat(270), "utf8");
+  expect(mkdtemp).toHaveBeenLastCalledWith("C:\\external\\" + "x".repeat(270), "utf8");
+  promiseFs.mkdtemp(root, "utf8");
+  expect(mkdtemp).toHaveBeenLastCalledWith(root, "utf8");
 });
