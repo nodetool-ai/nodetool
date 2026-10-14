@@ -1,7 +1,38 @@
 import { expect, it } from "vitest";
-import { gameDocument3D } from "@nodetool-ai/protocol";
+import { GAME_ENVIRONMENT_PRESET_IDS_3D, gameDocument3D, getGameEnvironmentPreset3D } from "@nodetool-ai/protocol";
 import { createGameSession3D } from "@nodetool-ai/game-runtime";
 import { GAME_3D_TOOL_LOOP_CASES, GAME_TOOL_LOOP_CASES } from "../src/evals/surfaces/game.js";
+
+it("applies all four named lighting presets through public edits and checks the eval predicate", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find((item) => item.id === "environment-preset-3d");
+  if (!candidate) { throw new Error("Environment preset eval must be registered"); }
+  const bridge = candidate.createBridge();
+  const edit = bridge.tools.find((tool) => tool.name === "edit_native_game");
+  const predicate = candidate.expect.finalState?.[0];
+  if (!edit || !predicate) { throw new Error("Environment preset eval must expose public edits and its predicate"); }
+  const initial = structuredClone(bridge.finalState());
+  const initialDocument = gameDocument3D.parse(initial);
+  const originalSun = initialDocument.scenes[0].entities.find((entity) => entity.light3d?.kind === "directional");
+  if (!originalSun) { throw new Error("Native default sun missing"); }
+  expect(predicate.test(initial)).toBe(false);
+  await expect(edit.execute({ ops: [{ op: "apply_environment_preset", preset: "constructor" }] })).rejects.toThrow();
+  expect(bridge.finalState()).toEqual(initial);
+  for (const preset of GAME_ENVIRONMENT_PRESET_IDS_3D) {
+    expect(await edit.execute({ ops: [{ op: "apply_environment_preset", preset }] })).not.toHaveProperty("error");
+    const document = gameDocument3D.parse(bridge.finalState());
+    const scene = document.scenes[0];
+    const expected = getGameEnvironmentPreset3D(preset).environment;
+    const sun = scene.entities.find((entity) => entity.tags?.includes("environment-preset-sun"));
+    if (!sun) { throw new Error("Preset operation must select a sun"); }
+    expect(scene.entities).toHaveLength(initialDocument.scenes[0].entities.length);
+    expect(sun.id).toBe(originalSun.id);
+    if (expected.sky?.kind === "procedural") { expected.sky.sunEntityId = sun.id; }
+    expect(scene.environment).toEqual(expected);
+    expect(predicate.test(document)).toBe(preset === "sunny-day");
+  }
+  expect(await edit.execute({ ops: [{ op: "apply_environment_preset", preset: "sunny-day" }] })).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
 
 it("scores native entity metadata authored through the public edit surface", async () => {
   const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="entity-tags-properties");
