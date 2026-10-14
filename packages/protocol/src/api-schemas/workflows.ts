@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isRecord } from "../predicates.js";
+import { exampleNeeds } from "../example-needs.js";
 
 // ── WorkflowRunMode ──────────────────────────────────────────────────────────
 
@@ -148,6 +149,8 @@ export const workflowResponse = z.object({
   workspace_id: z.string().nullable(),
   required_providers: z.unknown().nullable(),
   required_models: z.unknown().nullable(),
+  /** Set on shipped examples: the models and keys the graph asks for. */
+  needs: exampleNeeds.nullable().optional(),
   html_app: z.string().nullable(),
   app_doc: z.record(z.string(), z.unknown()).nullable().optional(),
   etag: z.string().nullable()

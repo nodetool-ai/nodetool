@@ -65,9 +65,11 @@ export function parseCodeBody(code: string): ParsedCodeBody | CodeParseError {
     try {
       const wrapped = acorn.parse(`(async function(){\n${code}\n})()`, {
         ...PARSE_OPTIONS,
+        // Stryker disable next-line BooleanLiteral: `return` is already legal inside the wrapper function, so the flag changes nothing (equivalent).
         allowReturnOutsideFunction: false
       });
       const statement = wrapped.body[0];
+      // Stryker disable next-line ConditionalExpression,OptionalChaining: the wrapper source starts with `(`, so body[0] is always an ExpressionStatement (equivalent).
       if (statement?.type === "ExpressionStatement") {
         const call = statement.expression;
         if (

@@ -227,7 +227,8 @@ describe("cloud provider + pack allowlists", () => {
       "node_llama_cpp",
       "vllm",
       "transformers_js",
-      "claude_agent_sdk"
+      "claude_agent_sdk",
+      "antigravity"
     ]) {
       expect(isCloudProvider(id)).toBe(false);
     }

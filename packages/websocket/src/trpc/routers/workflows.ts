@@ -33,7 +33,8 @@ import type {
   Workflow as WorkflowModel,
   WorkflowVersion as WorkflowVersionModel
 } from "@nodetool-ai/models";
-import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
+import { loadPythonPackageMetadata, type NodeRegistry } from "@nodetool-ai/node-sdk";
+import { scanExampleNeeds } from "@nodetool-ai/protocol";
 import { workflowToScript } from "@nodetool-ai/dsl";
 import { createLogger } from "@nodetool-ai/config";
 import {
@@ -331,7 +332,8 @@ interface ExampleMetadata {
 
 function buildExamplesFromDir(
   examplesDir: string,
-  examplesAssetsFallbackDir?: string
+  examplesAssetsFallbackDir?: string,
+  registry?: NodeRegistry
 ): unknown[] {
   if (!existsSync(examplesDir)) return [];
   const assetsDir = deriveExampleAssetsDir(
@@ -390,6 +392,10 @@ function buildExamplesFromDir(
         workspace_id: null,
         required_providers: null,
         required_models: null,
+        needs: scanExampleNeeds(
+          parsed.graph,
+          (nodeType) => registry?.getMetadata(nodeType)?.required_settings
+        ),
         html_app: null,
         app_doc: null,
         etag: null
@@ -404,13 +410,15 @@ function buildExamplesFromDir(
 function buildExampleWorkflows(apiOptions: {
   examplesDir?: string;
   examplesAssetsFallbackDir?: string;
+  registry?: NodeRegistry;
   metadataRoots?: string[];
   metadataMaxDepth?: number;
 }): unknown[] {
   if (apiOptions.examplesDir) {
     return buildExamplesFromDir(
       apiOptions.examplesDir,
-      apiOptions.examplesAssetsFallbackDir
+      apiOptions.examplesAssetsFallbackDir,
+      apiOptions.registry
     );
   }
   const loaded = loadPythonPackageMetadata({

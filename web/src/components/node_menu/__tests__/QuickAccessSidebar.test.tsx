@@ -22,7 +22,7 @@ const renderSidebar = (
   );
 
 describe("QuickAccessSidebar", () => {
-  it("shows Documents, Chats, Library, Entities, Nodes, and More", () => {
+  it("shows Documents, Chats, Library, Entities, Examples, Nodes, and More", () => {
     renderSidebar();
     expect(
       screen
@@ -33,6 +33,7 @@ describe("QuickAccessSidebar", () => {
       "Chats",
       "Library",
       "Entities",
+      "Examples",
       "Nodes",
       "More"
     ]);

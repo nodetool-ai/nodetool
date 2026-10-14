@@ -15,6 +15,7 @@ import {
   KIND_LABEL,
   type ProviderEntry,
 } from "@/data/providerEntries";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -25,6 +26,7 @@ export const metadata: Metadata = {
   description: hub.description,
   alternates: { canonical: "/providers" },
   openGraph: {
+    images: DEFAULT_OG_IMAGES,
     title: hub.title,
     description: hub.description,
     url: `${BASE_URL}/providers`,

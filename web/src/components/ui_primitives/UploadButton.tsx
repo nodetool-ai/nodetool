@@ -8,7 +8,8 @@
  */
 
 import React, { memo, forwardRef, useCallback, useRef } from "react";
-import { IconButton, Button, Tooltip } from "@mui/material";
+import { IconButton, Button } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import UploadIcon from "@mui/icons-material/Upload";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";

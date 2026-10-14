@@ -4,6 +4,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { MemoryRouter } from "react-router-dom";
 import mockTheme from "../../../__mocks__/themeMock";
 import DashboardExampleGames from "../DashboardExampleGames";
+import useOnboardingStore from "../../../stores/OnboardingStore";
 
 jest.mock("../ExampleGamePlayView", () => ({ __esModule: true, default: ({ slug }: { slug: string }) => <div>Playing {slug}</div> }));
 
@@ -55,8 +56,13 @@ it("shows the game and opens an installed copy in play mode", async () => {
 
 it("plays a shipped game without installing it", async () => {
   mutate.mockClear();
+  useOnboardingStore.setState({ completedSteps: [] });
   render(<MemoryRouter><ThemeProvider theme={mockTheme}><DashboardExampleGames /></ThemeProvider></MemoryRouter>);
   await userEvent.click(screen.getByRole("button", { name: "Play" }));
   expect(await screen.findByText("Playing kindle")).toBeInTheDocument();
   expect(mutate).not.toHaveBeenCalled();
+  // Playing an example ticks the checklist's examples step.
+  expect(useOnboardingStore.getState().completedSteps).toContain(
+    "keep-creating"
+  );
 });

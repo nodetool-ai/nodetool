@@ -7,6 +7,7 @@ import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import { ideaCategories, getIdeaCategory } from "@/data/ideasEntries";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -38,6 +39,7 @@ export async function generateMetadata({
     description: cat.description,
     alternates: { canonical: cat.route },
     openGraph: {
+      images: DEFAULT_OG_IMAGES,
       title: `${cat.label} workflow ideas — NodeTool`,
       description: cat.description,
       url: `${BASE_URL}${cat.route}`,
