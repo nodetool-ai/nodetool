@@ -624,7 +624,7 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         if (expected.environment.sky?.kind === "procedural") { expected.environment.sky.sunEntityId = sun.id; }
         return isDeepStrictEqual(scene.environment, expected.environment) &&
           isDeepStrictEqual(sun.transform3d.rotation, expected.sun.rotation) &&
-          sun.light3d.color === expected.sun.light.color && sun.light3d.intensity === expected.sun.light.intensity;
+          isDeepStrictEqual(sun.light3d, expected.sun.light);
       } }]
   }
 }];
