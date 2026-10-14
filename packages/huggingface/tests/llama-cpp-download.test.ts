@@ -18,12 +18,13 @@ const saved: Record<string, string | undefined> = {};
 
 beforeEach(async () => {
   home = await mkdtemp(join(tmpdir(), "llama-dl-"));
-  for (const key of ["HOME", "USERPROFILE", "LOCALAPPDATA"]) {
+  for (const key of ["HOME", "USERPROFILE", "LOCALAPPDATA", "XDG_CACHE_HOME"]) {
     saved[key] = process.env[key];
   }
   process.env.HOME = home;
   process.env.USERPROFILE = home;
   process.env.LOCALAPPDATA = home;
+  process.env.XDG_CACHE_HOME = join(home, ".cache");
 });
 
 afterEach(async () => {
