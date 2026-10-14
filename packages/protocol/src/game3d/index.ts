@@ -27,6 +27,7 @@ import { gameEmitParticlesCommand } from "../game-particles.js";
 import { gameAudioSettings } from "../game2d/components/audio.js";
 import { gameInputBindings } from "../game-input.js";
 import { gameUiFrame, gameUiOverrides, gameUiScriptCommand, gameUiTree } from "../game-ui.js";
+import { gameScreens } from "../game-screens.js";
 import { GAME_2D_ENGINE_BY_SCHEMA, gameDocument, gameEntity, gameEvent, gameHudLabel, gameScene, gameSnapshot } from "../game.js";
 
 const diagnosticPath = z.array(z.union([z.string(), z.number(), z.symbol().transform((value) => value.toString())]));
@@ -85,7 +86,8 @@ export const gameDocument3D = z.strictObject({
   animationGraphs: gameAnimationGraphs3D.optional(),
   audio: gameAudioSettings.optional(),
   performance: gamePerformance3D.optional(),
-  ui: gameUiTree.optional()
+  ui: gameUiTree.optional(),
+  screens: gameScreens.optional()
 });
 
 export type GameDocument3D = z.infer<typeof gameDocument3D>;
