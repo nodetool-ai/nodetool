@@ -15,6 +15,11 @@ jest.mock("../CurrentProjectDocuments", () => ({
   default: () => <div data-testid="current-project-documents" />
 }));
 
+jest.mock("../RecentChats", () => ({
+  __esModule: true,
+  default: () => <div data-testid="recent-chats" />
+}));
+
 jest.mock("../../portal/DashboardTemplates", () => ({
   __esModule: true,
   default: () => <div>Workflow examples</div>

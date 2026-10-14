@@ -9,11 +9,10 @@ import { memo } from "react";
 
 import { ToggleGroup, ToggleOption } from "../../ui_primitives";
 
-export type MobileRail = "chat" | "documents" | "todos" | "task";
+export type MobileRail = "chat" | "todos" | "task";
 
 const RAIL_LABELS: Record<MobileRail, string> = {
   chat: "Chat",
-  documents: "Documents",
   todos: "Tasks",
   task: "Task"
 };
