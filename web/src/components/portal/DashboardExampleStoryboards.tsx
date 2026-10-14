@@ -9,6 +9,7 @@ import { useExampleStoryboards, useInstallExampleStoryboard } from "../../hooks/
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { creationProjectId, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import useOnboardingStore from "../../stores/OnboardingStore";
 import {
   AutoGrid,
   EmptyState,
@@ -19,7 +20,9 @@ import {
   selectableTileStyles,
   Tooltip
 } from "../ui_primitives";
+import { storyboardNeeds } from "../../utils/exampleNeeds";
 import { DashboardSectionHeader, useSectionWrap } from "./dashboardChrome";
+import ExampleNeedsPill from "./ExampleNeedsPill";
 
 const styles = (theme: Theme) =>
   css({
@@ -138,6 +141,7 @@ const StoryboardCard = memo(function StoryboardCard({
         <span className="board-body">
           <span className="board-name">{storyboard.name}</span>
           <span className="board-description">{storyboard.description}</span>
+          <ExampleNeedsPill needs={storyboardNeeds(storyboard)} />
           <span className="board-meta">
             {storyboard.shotCount} shot{storyboard.shotCount === 1 ? "" : "s"} · Stills included
           </span>
@@ -171,6 +175,7 @@ const DashboardExampleStoryboards = () => {
               projectId: created.projectId
             });
             navigate("/workspace");
+            useOnboardingStore.getState().markStep("keep-creating");
           },
           onError: (error) => {
             addNotification({

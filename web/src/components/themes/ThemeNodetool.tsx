@@ -1,8 +1,13 @@
-import { createTheme } from "@mui/material/styles";
+import { createTheme, type ThemeOptions } from "@mui/material/styles";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
 import { editorControlsComponents } from "./components/editorControls";
+import {
+  DEFAULT_TEXT_SIZE,
+  TEXT_SIZE_SCALES,
+  type TextSize
+} from "./textSizes";
 import { CONTROL, MOTION } from "../ui_primitives";
 import {
   TOOLTIP_ENTER_DELAY,
@@ -37,7 +42,7 @@ import "@fontsource/jetbrains-mono/latin-600.css";
 
 // Theme augmentation moved to a single global file `theme.d.ts` to avoid duplication
 
-const ThemeNodetool = createTheme({
+const nodetoolThemeOptions: ThemeOptions = {
   cssVariables: {
     cssVarPrefix: "",
     colorSchemeSelector: "class"
@@ -56,6 +61,8 @@ const ThemeNodetool = createTheme({
   // references via `var(--fontSize*)`. Change a size HERE and it propagates
   // everywhere. See ui_primitives/tokens.ts (TYPOGRAPHY) for the size+weight
   // combinations.
+  // The default sizes; createNodetoolTheme swaps in the user's text size
+  // from TEXT_SIZE_SCALES.
   fontSizeGiant: "22px", // → display
   fontSizeBig: "18px", // → title
   fontSizeNormal: "15px", // → body
@@ -493,6 +500,27 @@ const ThemeNodetool = createTheme({
     },
     ...editorControlsComponents
   }
-});
+};
+
+/**
+ * Build the app theme at one text size. Only the type scale changes between
+ * sizes: the `--fontSize*` variables, the JS `theme.fontSize*` values and
+ * MUI's own typography all read the same table, so text grows without any
+ * CSS zoom or transform that would skew canvas or popover coordinates.
+ */
+export const createNodetoolTheme = (textSize: TextSize = DEFAULT_TEXT_SIZE) => {
+  const sizes = TEXT_SIZE_SCALES[textSize];
+  return createTheme({
+    ...nodetoolThemeOptions,
+    fontSizeGiant: `${sizes.giant}px`,
+    fontSizeBig: `${sizes.big}px`,
+    fontSizeNormal: `${sizes.normal}px`,
+    fontSizeSmall: `${sizes.small}px`,
+    fontSizeSmaller: `${sizes.smaller}px`,
+    typography: { ...nodetoolThemeOptions.typography, fontSize: sizes.normal }
+  });
+};
+
+const ThemeNodetool = createNodetoolTheme();
 
 export default ThemeNodetool;
