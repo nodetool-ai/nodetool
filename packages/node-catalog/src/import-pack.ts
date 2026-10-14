@@ -19,7 +19,7 @@ function packSpecifier(pack: CatalogPack, specifier?: string): string {
 }
 
 /** Import only the requested catalog pack, without substituting a runtime root. */
-export async function importPack<T extends object = Record<string, unknown>>(
+export async function importPack<T extends object = object>(
   packId: string,
   specifier?: string
 ): Promise<T> {
