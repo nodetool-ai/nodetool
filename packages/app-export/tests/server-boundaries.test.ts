@@ -3,6 +3,13 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, expect, test } from "vitest";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { LoadCSVAssetsNode, LoadTextAssetsNode, SaveTextFileNode, SaveDocumentFileNode, SaveImageFileImageNode } from "@nodetool-ai/base-nodes";
+import { ProcessingContext } from "@nodetool-ai/runtime";
+// Load the native runtime before test deadlines start; cold package imports
+// can consume the execution budget when CI runs package suites concurrently.
+// @ts-expect-error Template modules run as plain ESM.
+import { createRunner } from "../template/server/runner.mjs";
 // @ts-expect-error Template modules run as plain ESM.
 import { createNodeInputBoundary, guardExecutor } from "../template/server/input-boundary.mjs";
 // @ts-expect-error Template modules run as plain ESM.
@@ -116,8 +123,6 @@ test("real exported scripts read uploads through the sandbox workspace", async (
   };
   await writeFile(join(root, ".env"), "fixture secret");
   await writeFile(join(root, "app.bundle.json"), JSON.stringify({ app: { operations: [], ui: {} }, workflows: [], scripts: [{ key: "s", name: "Read upload", document }, { key: "native", name: "Native read", document: nativeDocument }] }));
-  // @ts-expect-error Template modules run as plain ESM.
-  const { createRunner } = await import("../template/server/runner.mjs");
   const runner = createRunner({ root, dataDir: join(root, "data") });
   await runner.storage.store("uploads/document.txt", Buffer.from("uploaded text"), "text/plain");
   const result = await runner.runScript({ scriptKey: "s", params: { document: { type: "document", uri: "/api/storage/uploads/document.txt" } }, send: () => {} });
@@ -134,8 +139,6 @@ test("real exported scripts read uploads through the sandbox workspace", async (
 test("real native folder defaults scan storage and reject alternate host path objects", async () => {
   const { root, storage } = await fixture();
   await writeFile(join(root, "host.csv"), "value\nsecret\n");
-  const { NodeRegistry } = await import("@nodetool-ai/node-sdk");
-  const { LoadCSVAssetsNode, LoadTextAssetsNode } = await import("@nodetool-ai/base-nodes");
   const registry = new NodeRegistry();
   registry.register(LoadCSVAssetsNode);
   registry.register(LoadTextAssetsNode);
@@ -166,8 +169,6 @@ test("real exported workflow cannot read project credentials through string path
     }
   };
   await writeFile(join(root, "app.bundle.json"), JSON.stringify({ app: { operations: [], ui: {} }, workflows: [workflow], scripts: [] }));
-  // @ts-expect-error Template modules run as plain ESM.
-  const { createRunner } = await import("../template/server/runner.mjs");
   const runner = createRunner({ root, dataDir: join(root, "data") });
   await runner.storage.store("uploads/document.txt", Buffer.from("uploaded text"), "text/plain");
   const upload = await runner.run({ workflowKey: "w", params: { document: "/api/storage/uploads/document.txt" }, send: () => {} });
@@ -181,9 +182,6 @@ test("real exported workflow cannot read project credentials through string path
 
 test("real filesystem writers preserve nested destinations and blank filename fallbacks", async () => {
   const { root, storage } = await fixture();
-  const { NodeRegistry } = await import("@nodetool-ai/node-sdk");
-  const { SaveTextFileNode, SaveDocumentFileNode, SaveImageFileImageNode } = await import("@nodetool-ai/base-nodes");
-  const { ProcessingContext } = await import("@nodetool-ai/runtime");
   const registry = new NodeRegistry();
   for (const cls of [SaveTextFileNode, SaveDocumentFileNode, SaveImageFileImageNode]) registry.register(cls);
   const context = new ProcessingContext({ userId: "1", jobId: "writer-test", workflowId: null, workspaceDir: storage.rootDir });

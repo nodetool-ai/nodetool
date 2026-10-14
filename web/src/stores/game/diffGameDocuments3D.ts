@@ -17,6 +17,7 @@ function hasRemovedProperty(from: unknown, to: unknown): boolean {
 }
 
 export function diffGameDocuments3D(from: GameDocument3D, to: GameDocument3D): GameDocumentOp3D[] {
+  if (!changed(from, to)) { return []; }
   const ops: GameDocumentOp3D[] = [];
   for (const [slot, binding] of Object.entries(to.assets)) {
     if (changed(from.assets[slot], binding)) { ops.push({ op: "bind_asset", slot, binding }); }
