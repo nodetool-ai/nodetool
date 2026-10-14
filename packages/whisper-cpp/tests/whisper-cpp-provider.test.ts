@@ -161,7 +161,7 @@ it("reports the install message without failing discovery and retries imports", 
   const { WhisperCppProvider } = await import("../src/whisper-cpp-provider.js");
   const provider = new WhisperCppProvider({ WHISPER_CPP_MODELS_DIR: dir });
   expect(await provider.unavailableReason()).toContain(
-    "Install it from the Package Manager"
+    "nodetool runtime add whisper-cpp"
   );
   expect(await provider.getAvailableASRModels()).toEqual([]);
   await expect(
@@ -169,7 +169,12 @@ it("reports the install message without failing discovery and retries imports", 
       audio: new Uint8Array([1]),
       model: ""
     })
-  ).rejects.toThrow("Install it from the Package Manager");
+  ).rejects.toMatchObject({
+    name: "MissingRuntimePackageError",
+    runtimePackage: "whisper-cpp",
+    details: { runtimePackage: "whisper-cpp", missing: "@fugood/whisper.node",
+      reason: "missing", managed: "nodetool runtime add whisper-cpp" }
+  });
   // The re-imported runtime token counter adds its own js-tiktoken load.
   const bindingLoads = mocks.load.mock.calls.filter(
     ([name]) => name !== "js-tiktoken"

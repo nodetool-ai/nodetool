@@ -22,6 +22,7 @@ import type {
 import type { JsScriptBridgeFinalState } from "@nodetool-ai/agents";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+import type { MissingRuntimeDetails } from "@nodetool-ai/protocol";
 import type { JsScriptInteractionStep } from "./interactions.js";
 import { runInteractionSteps } from "../interaction-script.js";
 import { writeDebugBundle } from "../debug-bundle.js";
@@ -38,6 +39,7 @@ export interface JsScriptRunResult {
   streamed?: unknown[];
   logs: string[];
   error?: string;
+  missingRuntime?: MissingRuntimeDetails;
   duration_ms: number;
 }
 
@@ -49,6 +51,7 @@ export interface JsScriptCaseResult {
   streamed?: unknown[];
   logs: string[];
   error?: string;
+  missingRuntime?: MissingRuntimeDetails;
   mismatches: { output: string; expected: unknown; actual: unknown }[];
 }
 
@@ -57,6 +60,7 @@ export interface JsScriptTestReport {
   passed: number;
   failed: number;
   results: JsScriptCaseResult[];
+  missingRuntime?: MissingRuntimeDetails;
 }
 
 /** The pieces of the shared core this host calls. */

@@ -41,6 +41,7 @@
     "@nodetool-ai/huggingface-nodes": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/minimax-nodes": "*",
+    "@nodetool-ai/node-catalog": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/reve-nodes": "*",

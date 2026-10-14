@@ -233,7 +233,7 @@ export function createSdkV1Service(
           );
         }
         return sdkNodeTypeInventoryOutput.parse(
-          getSdkNodeTypeInventory({
+          await getSdkNodeTypeInventory({
             registry: input.registry,
             pythonBridgeReady: input.pythonBridgeReady,
             input: input.request

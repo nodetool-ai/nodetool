@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { missingRuntimeDetailsOf } from "@nodetool-ai/protocol";
 import {
   HostBinaryMissingError,
   MAX_CAPTURED_BYTES,
@@ -13,6 +14,16 @@ import {
 } from "../src/host-binaries.js";
 
 describe("runHostBinary", () => {
+  it("maps a missing managed ffprobe binary to runtime details", async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), "nt-managed-host-bin-"));
+    try {
+      const missing = path.join(cwd, "ffprobe");
+      const error = await runHostBinary(missing, [], { cwd, timeoutMs: 2000 }).catch((cause: unknown) => cause);
+      expect(missingRuntimeDetailsOf(error)).toMatchObject({ runtimePackage: "ffmpeg", missing, reason: "missing" });
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
   it("runs a PATH binary with argv and no shell", async () => {
     const cwd = await mkdtemp(path.join(tmpdir(), "nt-host-bin-"));
     try {

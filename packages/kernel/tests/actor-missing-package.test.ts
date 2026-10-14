@@ -3,14 +3,12 @@ import { MissingRuntimePackageError } from "@nodetool-ai/protocol";
 import { WorkflowRunner } from "../src/runner.js";
 
 describe("missing runtime package failure", () => {
-  it("names the package to install on the failed node_update", async () => {
+  it.each(["whisper-cpp", "ffmpeg", "python"] as const)("retains %s details through node_update and the run result", async (runtimePackage) => {
+    const error = new MissingRuntimePackageError("Runtime fixture is not installed", runtimePackage);
     const runner = new WorkflowRunner("missing-pkg", {
       resolveExecutor: () => ({
         process: async () => {
-          throw new MissingRuntimePackageError(
-            "whisper.cpp is not installed",
-            "whisper-cpp"
-          );
+          throw error;
         }
       })
     });
@@ -27,7 +25,9 @@ describe("missing runtime package failure", () => {
     ) as { error_detail?: unknown } | undefined;
     expect(failed?.error_detail).toEqual({
       code: "missing_runtime_package",
-      runtime_package: "whisper-cpp"
+      runtime_package: runtimePackage,
+      missing_runtime: error.details
     });
+    expect(result.missingRuntime).toEqual(error.details);
   });
 });

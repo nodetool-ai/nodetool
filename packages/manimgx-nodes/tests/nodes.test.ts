@@ -6,7 +6,7 @@ import {
   type FakeContextHandle,
   type Message
 } from "@nodetool-ai/runtime";
-import { missingRuntimePackageOf } from "@nodetool-ai/protocol";
+import { missingRuntimeDetailsOf, missingRuntimePackageOf } from "@nodetool-ai/protocol";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -70,8 +70,13 @@ describe("ManimGX nodes against a fake manimgx", () => {
       const node = new RenderSceneNode();
       node.assign({ code: scene("ok") });
       const error = await node.process(handle.context).catch((err: unknown) => err);
-      expect(String(error)).toMatch(/nodetool\.manimgx\.RenderScene: manimgx was not found/);
+      expect(String(error)).toMatch(/nodetool\.manimgx\.RenderScene: manimgx is not installed or not on PATH/);
       expect(missingRuntimePackageOf(error)).toBe("manimgx");
+      expect(missingRuntimeDetailsOf(error)).toMatchObject({
+        runtimePackage: "manimgx",
+        missing: "manimgx",
+        reason: "missing"
+      });
     } finally {
       process.env["PATH"] = saved.path;
       process.env["HOME"] = saved.home;

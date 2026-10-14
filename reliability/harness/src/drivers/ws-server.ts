@@ -133,7 +133,7 @@ export class WsServerDriver implements RunDriver {
     // lives on the per-connection runner. `createTestUiServer` builds one per
     // upgrade and keeps it private; this hook is the only way to read it.
     const runners: WebSocketClientSession[] = [];
-    const srv = createTestUiServer({
+    const srv = await createTestUiServer({
       host: "127.0.0.1",
       port: 0,
       onRunnerCreated: (runner) => runners.push(runner),

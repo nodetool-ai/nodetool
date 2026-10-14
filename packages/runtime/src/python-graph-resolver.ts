@@ -18,7 +18,7 @@ import { createPythonBridge } from "./python-bridge-factory.js";
 import { PythonNodeExecutor } from "./python-node-executor.js";
 import type { PythonBridgeBase } from "./python-bridge-base.js";
 import type { PythonBridgeOptions } from "./python-bridge-types.js";
-import { isNonEmptyString } from "@nodetool-ai/protocol";
+import { isNonEmptyString, isPythonNodeType, missingRuntimePackageError, missingRuntimePackageOf } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.python-graph-resolver");
 
@@ -74,6 +74,10 @@ export async function connectPythonBridgeForGraph(
       // Remote worker explicitly requested — surface the failure.
       throw err;
     }
+    if (nodes.some((node) => isNonEmptyString(node.type) && !hasTsExecutor(node.type) && isPythonNodeType(node.type))) {
+      throw missingRuntimePackageOf(err) === "python" ? err
+        : missingRuntimePackageError("Python worker", "python", err, { reason: "broken" });
+    }
     // No remote configured and a local worker isn't available here; fall
     // through so unresolved node types report the normal error.
     log.warn(
@@ -95,7 +99,11 @@ export function resolvePythonNodeExecutor(
   bridge: PythonBridgeBase | null,
   node: GraphNodeLike
 ): PythonNodeExecutor | null {
-  if (!bridge || !bridge.hasNodeType(node.type)) return null;
+  if (!bridge || !bridge.isConnected) {
+    if (isPythonNodeType(node.type)) { throw missingRuntimePackageError("Python worker", "python"); }
+    return null;
+  }
+  if (!bridge.hasNodeType(node.type)) return null;
 
   const meta = bridge
     .getNodeMetadata()

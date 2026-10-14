@@ -18,7 +18,7 @@ import {
 import { registerRuntimeCommands } from "../runtime.js";
 import * as npmRunner from "../../npm-runner.js";
 
-const ENV_KEYS = ["XDG_DATA_HOME", "APPDATA", "NODETOOL_OPTIONAL_NODE_MODULES"];
+const ENV_KEYS = ["XDG_DATA_HOME", "APPDATA", "HOME", "USERPROFILE", "NODETOOL_OPTIONAL_NODE_MODULES", "NODETOOL_HOST", "PATH", "UV_TOOL_DIR", "UV_TOOL_BIN_DIR", "UV_PYTHON_INSTALL_DIR"];
 let saved: Record<string, string | undefined>;
 let dataHome: string;
 
@@ -27,6 +27,9 @@ beforeEach(async () => {
   dataHome = await mkdtemp(join(tmpdir(), "nodetool-runtime-"));
   process.env["XDG_DATA_HOME"] = dataHome;
   process.env["APPDATA"] = dataHome;
+  process.env["HOME"] = dataHome;
+  process.env["USERPROFILE"] = dataHome;
+  process.env["NODETOOL_HOST"] = "cli";
   delete process.env["NODETOOL_OPTIONAL_NODE_MODULES"];
 });
 
@@ -62,9 +65,9 @@ async function run(args: string[]): Promise<string> {
 }
 
 describe("applyOptionalNodeModules", () => {
-  it("leaves the variable unset while the root has no node_modules", () => {
+  it("sets the variable before node_modules exists so a later install can resolve", () => {
     applyOptionalNodeModules();
-    expect(process.env["NODETOOL_OPTIONAL_NODE_MODULES"]).toBeUndefined();
+    expect(process.env["NODETOOL_OPTIONAL_NODE_MODULES"]).toBe(optionalNodeModulesDir());
   });
 
   it("points the variable at the root once something is installed", async () => {
@@ -148,7 +151,7 @@ describe("RUNTIME_NPM_PACKAGES", () => {
   it("pins every spec to an exact version of a package it names", () => {
     for (const [id, spec] of Object.entries(RUNTIME_NPM_PACKAGES)) {
       const names = spec.npmPackages.map((entry) => {
-        const match = /^(@?[^@]+)@(\d+\.\d+\.\d+)$/.exec(entry);
+        const match = /^(@?[^@]+)@(?:npm:@typescript\/typescript6@)?(\d+\.\d+\.\d+)$/.exec(entry);
         expect(match, `${id}: ${entry} is not name@x.y.z`).not.toBeNull();
         return match?.[1];
       });
