@@ -168,7 +168,7 @@ Implements the workflow execution engine:
 Provides adapters for AI providers:
 - `AnthropicProvider`, `OpenAIProvider`, `GeminiProvider`
 - `OllamaProvider`, `MistralProvider`, `GroqProvider`
-- `ClaudeAgentProvider` — Claude Agent SDK integration (uses Claude subscription, not API key)
+- `ClaudeAgentProvider` — Claude through the headless Claude Code CLI (uses Claude subscription, not API key)
 - `PythonStdioBridge` — calls Python-based nodes (HuggingFace, MLX) via local stdio subprocess
 - `ProcessingContext` — execution context with secret resolution
 

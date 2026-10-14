@@ -169,14 +169,14 @@ describe("preload contract", () => {
   test("runtime package methods route to expected IPC channels", () => {
     jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
 
-    api.packages.installRuntime("claude-agent-sdk");
-    api.packages.uninstallRuntime("claude-agent-sdk");
-    api.packages.updateRuntime("claude-agent-sdk");
+    api.packages.installRuntime("tensorflow-js");
+    api.packages.uninstallRuntime("tensorflow-js");
+    api.packages.updateRuntime("tensorflow-js");
 
     expect(jest.mocked(electronMock.ipcRenderer.invoke).mock.calls).toEqual([
-      [IpcChannels.RUNTIME_PACKAGE_INSTALL, { packageId: "claude-agent-sdk", installLocation: undefined }],
-      [IpcChannels.RUNTIME_PACKAGE_UNINSTALL, { packageId: "claude-agent-sdk" }],
-      [IpcChannels.RUNTIME_PACKAGE_UPDATE, { packageId: "claude-agent-sdk" }],
+      [IpcChannels.RUNTIME_PACKAGE_INSTALL, { packageId: "tensorflow-js", installLocation: undefined }],
+      [IpcChannels.RUNTIME_PACKAGE_UNINSTALL, { packageId: "tensorflow-js" }],
+      [IpcChannels.RUNTIME_PACKAGE_UPDATE, { packageId: "tensorflow-js" }],
     ]);
   });
 
