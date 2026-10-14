@@ -1147,6 +1147,9 @@ export const PROVIDER_IDS = {
   // Claude via the Claude Agent SDK / `claude` CLI (no API key — uses the
   // machine's logged-in Claude subscription, spawning the CLI as a subprocess).
   CLAUDE_AGENT_SDK: "claude_agent_sdk",
+  // Google models via the Antigravity CLI (`agy`) in headless mode (no API
+  // key — uses the machine's signed-in Antigravity account, spawning the CLI).
+  ANTIGRAVITY: "antigravity",
   // Dreamina (CapCut) driven through the NodeTool Chrome extension in the
   // user's own logged-in Chrome tab (no API key, local installs only).
   DREAMINA: "dreamina",
