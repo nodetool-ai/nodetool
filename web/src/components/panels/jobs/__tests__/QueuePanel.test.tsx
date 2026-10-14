@@ -1,5 +1,6 @@
 import { asMock } from "../../../../test-utils/doubles";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 import QueuePanel from "../QueuePanel";
@@ -10,8 +11,8 @@ jest.mock("../../../../hooks/useRunningJobs", () => ({
   useRunningJobs: jest.fn()
 }));
 
-// Render each job as a simple row so we test QueuePanel's bucketing into
-// columns, not JobItem internals.
+// Render each job as a simple row so we test QueuePanel's bucketing and
+// filtering, not JobItem internals.
 jest.mock("../JobItem", () => ({
   __esModule: true,
   default: ({ job }: { job: Job }) => (
@@ -23,14 +24,19 @@ jest.mock("../JobItem", () => ({
 
 const mockUseRunningJobs = asMock(useRunningJobs);
 
-const job = (id: string, status: string): Job =>
+const job = (
+  id: string,
+  status: string,
+  extra: Partial<Job> = {}
+): Job =>
   ({
     id,
     user_id: "u",
     job_type: "workflow",
     workflow_id: "wf",
     status,
-    started_at: null
+    started_at: null,
+    ...extra
   }) as Job;
 
 const renderPanel = () =>
@@ -47,8 +53,13 @@ const setJobs = (jobs: Job[]) =>
     error: null
   });
 
-const column = (name: string) =>
+const section = (name: string) =>
   within(screen.getByRole("region", { name }));
+
+const rowIds = (name: string) =>
+  section(name)
+    .queryAllByTestId("job-row")
+    .map((row) => row.textContent);
 
 describe("QueuePanel", () => {
   beforeEach(() => {
@@ -65,69 +76,82 @@ describe("QueuePanel", () => {
     expect(screen.queryAllByTestId("job-row")).toHaveLength(0);
   });
 
-  it("renders four lifecycle columns", () => {
-    setJobs([]);
-    renderPanel();
-    expect(screen.getByRole("region", { name: "Running" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Queued" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("region", { name: "Completed" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("region", { name: "Cancelled" })
-    ).toBeInTheDocument();
-  });
-
-  it("places each job in its lifecycle column", () => {
+  it("puts running and queued jobs in Active, running first", () => {
     setJobs([
-      job("a", "running"),
-      job("b", "queued"),
-      job("c", "completed"),
-      job("d", "cancelled")
-    ]);
-    renderPanel();
-
-    const running = column("Running").getAllByTestId("job-row");
-    expect(running).toHaveLength(1);
-    expect(running[0]).toHaveAttribute("data-status", "running");
-
-    const queued = column("Queued").getAllByTestId("job-row");
-    expect(queued).toHaveLength(1);
-    expect(queued[0]).toHaveAttribute("data-status", "queued");
-
-    const completed = column("Completed").getAllByTestId("job-row");
-    expect(completed).toHaveLength(1);
-    expect(completed[0]).toHaveAttribute("data-status", "completed");
-
-    const cancelled = column("Cancelled").getAllByTestId("job-row");
-    expect(cancelled).toHaveLength(1);
-    expect(cancelled[0]).toHaveAttribute("data-status", "cancelled");
-  });
-
-  it("groups starting/scheduled with queued, failed with completed, and cancelled on its own", () => {
-    setJobs([
-      job("a", "starting"),
+      job("q", "queued"),
       job("s", "scheduled"),
-      job("b", "failed"),
-      job("c", "cancelled")
+      job("st", "starting"),
+      job("r", "running"),
+      job("c", "completed")
     ]);
     renderPanel();
 
-    expect(column("Queued").getAllByTestId("job-row")).toHaveLength(2);
-    expect(column("Completed").getAllByTestId("job-row")).toHaveLength(1);
-    expect(column("Cancelled").getAllByTestId("job-row")).toHaveLength(1);
-    expect(column("Running").queryAllByTestId("job-row")).toHaveLength(0);
+    expect(rowIds("Active")).toEqual(["r", "q", "s", "st"]);
+    expect(section("Active").getByText("1 running · 3 queued")).toBeInTheDocument();
+    expect(rowIds("History")).toEqual(["c"]);
   });
 
-  it("shows the empty text for columns with no jobs", () => {
-    setJobs([job("a", "running")]);
+  it("says nothing is active when no job is running or queued", () => {
+    setJobs([job("c", "completed")]);
     renderPanel();
-    expect(column("Queued").getByText("Queue is empty")).toBeInTheDocument();
     expect(
-      column("Completed").getByText("No completed jobs")
+      section("Active").getByText(/Nothing running or queued/)
     ).toBeInTheDocument();
-    expect(
-      column("Cancelled").getByText("Nothing cancelled")
-    ).toBeInTheDocument();
+  });
+
+  it("lists finished jobs newest first, grouped by day", () => {
+    const now = Date.now();
+    const iso = (msAgo: number) => new Date(now - msAgo).toISOString();
+    setJobs([
+      job("old", "completed", { finished_at: iso(3 * 86400000) }),
+      job("new", "completed", { finished_at: iso(1000) }),
+      job("mid", "failed", { finished_at: iso(60000) })
+    ]);
+    renderPanel();
+
+    expect(rowIds("History")).toEqual(["new", "mid", "old"]);
+    expect(screen.getByRole("list", { name: "Today" })).toBeInTheDocument();
+  });
+
+  it("filters history by failed, completed and cancelled", async () => {
+    const user = userEvent.setup();
+    setJobs([
+      job("ok", "completed"),
+      job("bad", "failed"),
+      job("late", "timed_out"),
+      job("err", "completed", { error: "boom" }),
+      job("stop", "cancelled")
+    ]);
+    renderPanel();
+
+    const history = section("History");
+    expect(history.getByRole("button", { name: "All 5" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+
+    await user.click(history.getByRole("button", { name: "Failed 3" }));
+    expect(rowIds("History").sort()).toEqual(["bad", "err", "late"]);
+
+    await user.click(history.getByRole("button", { name: "Completed 1" }));
+    expect(rowIds("History")).toEqual(["ok"]);
+
+    await user.click(history.getByRole("button", { name: "Cancelled 1" }));
+    expect(rowIds("History")).toEqual(["stop"]);
+  });
+
+  it("hides filters with no jobs", () => {
+    setJobs([job("ok", "completed")]);
+    renderPanel();
+    const history = section("History");
+    expect(history.getByRole("button", { name: "All 1" })).toBeInTheDocument();
+    expect(history.queryByRole("button", { name: /Failed/ })).toBeNull();
+    expect(history.queryByRole("button", { name: /Cancelled/ })).toBeNull();
+  });
+
+  it("shows an empty state when nothing has finished", () => {
+    setJobs([job("r", "running")]);
+    renderPanel();
+    expect(section("History").getByText("No finished runs yet")).toBeInTheDocument();
   });
 });
