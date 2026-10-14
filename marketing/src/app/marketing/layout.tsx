@@ -27,12 +27,6 @@ export const metadata: Metadata = {
       "From the first idea through to delivery: product videos, ad creative, thumbnails, and brand assets, from every major model, on your own keys.",
     url: "https://nodetool.ai/marketing",
     siteName: "NodeTool",
-    images: [
-      {
-        url: "/preview.png",
-        alt: "NodeTool Marketing Workflow Canvas",
-      },
-    ],
     locale: "en_US",
     type: "website",
   },
@@ -41,7 +35,6 @@ export const metadata: Metadata = {
     title: "AI for Advertising | NodeTool",
     description:
       "Every model. Your keys. Your agent. Advertising production end to end.",
-    images: ["/preview.png"],
   },
 };
 

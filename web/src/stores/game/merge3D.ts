@@ -17,7 +17,10 @@ function referencedAnimationGraphs(doc: GameDocument3D): Set<string> {
 
 export const gameMergeAdapter3D: DocumentMergeAdapter<GameDocument3D> = {
   finalize: (result, base, draft, server) => {
-    if (validateGame3D(result.doc).valid) { return result; }
+    // Reject only errors the merge introduced: a draft or server document
+    // that was already invalid must not discard an otherwise clean merge.
+    const known = new Set([...validateGame3D(draft).errors, ...validateGame3D(server).errors]);
+    if (validateGame3D(result.doc).errors.every((error) => known.has(error))) { return result; }
     return { doc: draft, nextBase: base, conflicts: [...result.conflicts, {
       unit: { kind: "document", id: "document", label: "document dependencies" },
       external: server, draft, reason: "dangling"
