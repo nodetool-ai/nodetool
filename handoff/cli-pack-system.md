@@ -351,3 +351,11 @@ smoke-copy attempt hit temporary-storage quota. Removing the clean, fully
 pushed temporary parent checkout freed space, and the same artifact passed
 on retry. The temporary parent checkout no longer exists. Build, typecheck
 and lint passed before the final npm-launcher delta.
+
+The local full harness finished with 40 of 43 checks passing. Its failed
+browser game check is repaired in focused reruns, including editor cadence.
+The email tests now mock the optional loader boundary, so hidden imports do
+not bypass their parser stubs. Both email suites pass after the fixture fix.
+The matrix report test now imports Vitest, matching test:scripts. The full
+scripts suite passes with the session-local lsof tool on PATH. These repairs
+still require a fresh complete harness verdict.
