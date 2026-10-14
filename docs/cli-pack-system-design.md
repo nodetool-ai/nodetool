@@ -252,9 +252,10 @@ that installs the CLI tarball with no pack tarballs available:
 9. A guard asserts that no `@nodetool-ai/*` node pack and none of the runtime
    libraries in section 4 exist under the install's `node_modules`, except
    `esbuild` required by `tsx` and TypeScript required by the non-optional tRPC
-   peers (plan D23). The exceptions must resolve from those dependents and
-   satisfy their declared ranges. The check fails on a deliberately added pack
-   before it is enforced.
+   peers (plan D23), including the compiler alias dependency declared by their
+   resolved `@typescript/typescript6` wrapper. The exceptions must resolve from
+   those dependents and satisfy their declared ranges. The check fails on a
+   deliberately added pack before it is enforced.
 
 ## 7. Shared third-party identity (F4)
 

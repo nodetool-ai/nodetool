@@ -185,6 +185,25 @@ describe("core-only contamination guard", () => {
     expect(() => assertCoreOnlyInstall(app)).toThrow("esbuild is installed outside its required core dependency closure");
   });
 
+  it("admits only the declared compiler dependency of tRPC's resolved TypeScript wrapper", () => {
+    const app = appFixture({ "@trpc/server": "1.0.0" });
+    installFixture(app, "@trpc/server", { peerDependencies: { typescript: ">=5.7.2" } });
+    installFixture(app, "typescript", { name: "@typescript/typescript6", version: "6.0.2", dependencies: { "@typescript/old": "npm:typescript@^6" } });
+    installFixture(app, "@typescript/old", { name: "typescript", version: "6.0.3" });
+    expect(assertCoreOnlyInstall(app)).toBe(3);
+    installFixture(app, "@nodetool-ai/core-nodes");
+    installFixture(app, "typescript", { version: "6.0.3" }, "node_modules/@nodetool-ai/core-nodes/node_modules");
+    expect(() => assertCoreOnlyInstall(app)).toThrow("typescript is installed outside its required core dependency closure");
+  });
+
+  it("rejects a wrapper compiler that violates its declared alias range", () => {
+    const app = appFixture({ "@trpc/server": "1.0.0" });
+    installFixture(app, "@trpc/server", { peerDependencies: { typescript: ">=5.7.2" } });
+    installFixture(app, "typescript", { name: "@typescript/typescript6", version: "6.0.2", dependencies: { "@typescript/old": "npm:typescript@^6" } });
+    installFixture(app, "@typescript/old", { name: "typescript", version: "5.6.0" });
+    expect(() => assertCoreOnlyInstall(app)).toThrow(/npm ls .* exited 1/);
+  });
+
   it("allows TypeScript only when tRPC's installed mandatory peers require it", () => {
     const app = appFixture({ "@trpc/client": "1.0.0", "@trpc/server": "1.0.0" });
     for (const name of ["@trpc/client", "@trpc/server"]) {

@@ -147,6 +147,8 @@ replaces the "resolves" test with the installed set and its version check.
 The core-only guard permits `esbuild` because `tsx` requires it (D11).
 It permits TypeScript because `@trpc/client` and `@trpc/server` declare a
 non-optional TypeScript peer. Both tRPC packages remain core dependencies.
+When that peer resolves to `@typescript/typescript6`, its declared
+`@typescript/old` compiler alias is part of the same required closure.
 Removing these compiler packages would require replacing the TypeScript
 workflow loader or the API framework.
 

@@ -170,14 +170,26 @@ export function assertCoreOnlyInstall(appDir) {
     if (copies.length === 0) { continue; }
     const dependents = packages.filter(({ manifest }) => dependentNames.includes(manifest.name));
     const permitted = new Set();
+    const requiredAliases = new Set();
     for (const { manifest, dir } of dependents) {
       if (!manifest[field]?.[compiler]) { throw new Error(`${manifest.name} does not declare its ${compiler} requirement`); }
       const requireFromDependent = createRequire(join(dir, "package.json"));
       permitted.add(realpathSync(join(requireFromDependent.resolve(`${compiler}/package.json`), "..")));
     }
+    if (compiler === "typescript") {
+      for (const { manifest, dir } of copies) {
+        if (!permitted.has(dir) || manifest.name !== "@typescript/typescript6" || !manifest.dependencies?.["@typescript/old"]?.startsWith("npm:typescript@")) { continue; }
+        const requireFromWrapper = createRequire(join(dir, "package.json"));
+        permitted.add(realpathSync(join(requireFromWrapper.resolve("@typescript/old/package.json"), "..")));
+        requiredAliases.add("@typescript/old");
+      }
+    }
     if (copies.some(({ dir }) => !permitted.has(dir))) { throw new Error(`${compiler} is installed outside its required core dependency closure`); }
     // npm validates every installed copy against the dependents' declared semver ranges.
     run("npm", ["ls", "--all", "--json", compiler], { cwd: appDir });
+    for (const alias of requiredAliases) {
+      run("npm", ["ls", "--all", "--json", alias], { cwd: appDir });
+    }
   }
   return packages.length;
 }

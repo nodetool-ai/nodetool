@@ -12,6 +12,7 @@ on:
       - 'packages/cli/tests/_helpers/pack-registry.ts'
       - 'packages/cli/tests/_fixtures/npm-matrix-*.pem'
       - 'scripts/test-npm-matrix.mjs'
+      - 'scripts/windows-long-cwd-probe.mjs'
       - 'scripts/__tests__/test-npm-matrix.test.mjs'
       - '.github/workflows/node-pack-npm-matrix.yml'
       - 'package.json'
@@ -72,6 +73,9 @@ jobs:
           MATRIX_NPM_VERSION: ${{ matrix.npm }}
         run: |
           node --input-type=module -e 'import { execFileSync } from "node:child_process"; import { dirname, resolve } from "node:path"; const prefix = process.platform === "win32" ? dirname(process.execPath) : resolve(dirname(process.execPath), ".."); const entry = resolve(prefix, process.platform === "win32" ? "node_modules/npm/bin/npm-cli.js" : "lib/node_modules/npm/bin/npm-cli.js"); execFileSync(process.execPath, [entry, "install", "--global", "--prefix=" + prefix, "npm@" + process.env.MATRIX_NPM_VERSION, "--ignore-scripts", "--no-audit", "--no-fund"], {stdio:"inherit"});'
+      - name: Diagnose native Windows long working directories
+        if: runner.os == 'Windows'
+        run: node scripts/windows-long-cwd-probe.mjs
       - name: Exercise the actual npm installer matrix
         env:
           NODETOOL_NPM_MATRIX: '1'
