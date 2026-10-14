@@ -181,17 +181,6 @@ export const RUNTIME_PACKAGES = {
     versionRange: "3.x",
   }),
 
-  "claude-agent-sdk": new NpmRuntimePackage({
-    id: "claude-agent-sdk",
-    name: "Claude Agent SDK",
-    description:
-      "Anthropic's Claude Agent SDK. Powers the Claude Agent LLM provider, which talks to Claude through your logged-in Claude subscription (no API key). Bundles its own claude binary.",
-    category: "library",
-    ...npmSpecs("claude-agent-sdk"),
-    versionRange: "0.3.x",
-    approxSizeMB: 211,
-  }),
-
   "tensorflow-js": new NpmRuntimePackage({
     id: "tensorflow-js",
     name: "TensorFlow.js Models",

@@ -863,7 +863,7 @@ A user's own MCP servers — Blender, Hugging Face, a local script — join the
 belt as ordinary `Tool`s named `mcp_<server>_<tool>`. That one shape is why
 every loop reaches them the same way: the base provider loop and the OpenAI
 Responses loop (Codex included) dispatch through the harness `executeTool`,
-the Claude Agent SDK wraps the belt in its in-process MCP server, and a
+the Claude Agent provider serves the belt to the CLI as an MCP server, and a
 CodeAct guest imports them from `@nodetool-ai/sandbox-nodetool/mcp`
 (`graftedModuleFor` in `codeact/capability-modules.ts`). No provider knows
 they are remote.
@@ -2336,7 +2336,7 @@ SDK's own agent loop (not the harness):
   `IS_SANDBOX=yes` (as in Claude Code on the web) does **not** satisfy it and the
   child exits with code 1 and zero tool calls, which looks like an auth/spawn
   failure but isn't. Override it explicitly: `IS_SANDBOX=1 npm run …`. See
-  [docs/AGENTS.md § Claude Agent SDK](../../docs/AGENTS.md) for the full
+  [docs/AGENTS.md § Claude Agent provider](../../docs/AGENTS.md#claude-agent-provider) for the full
   nested-session recipe.
 
 ```bash

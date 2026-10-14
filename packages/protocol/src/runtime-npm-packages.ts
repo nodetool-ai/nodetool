@@ -57,11 +57,6 @@ export const RUNTIME_NPM_PACKAGES = {
     packageNames: ["@huggingface/transformers", "kokoro-js"],
     description: "Local Transformers.js models, including the ONNX Runtime."
   },
-  "claude-agent-sdk": {
-    npmPackages: ["@anthropic-ai/claude-agent-sdk@0.3.283"],
-    packageNames: ["@anthropic-ai/claude-agent-sdk"],
-    description: "The Claude Agent provider, which uses a Claude subscription."
-  },
   "tensorflow-js": {
     npmPackages: [
       "@tensorflow/tfjs@4.22.0",

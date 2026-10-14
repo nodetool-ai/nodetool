@@ -421,12 +421,12 @@ verification requirements.
 
 ### Nested Claude Agent Sessions
 
-The Claude Agent SDK spawns a native `claude` subprocess. In nested sessions,
-strip `CLAUDECODE` and `CLAUDE_CODE_*`, `CLAUDE_SESSION_*`, `CLAUDE_ENABLE_*`,
-`CLAUDE_AFTER_*`, `CLAUDE_AUTO_*` variables. Run as a non-root user because the
-SDK refuses `--dangerously-skip-permissions` at uid 0. Preserve
-`ANTHROPIC_BASE_URL`, `HTTP_PROXY`, and `HTTPS_PROXY` for routing. See
-[Claude Agent SDK](docs/AGENTS.md#claude-agent-sdk).
+The Claude Agent provider runs the installed `claude` CLI headless. In nested
+sessions, strip `CLAUDECODE` and `CLAUDE_CODE_*`, `CLAUDE_SESSION_*`,
+`CLAUDE_ENABLE_*`, `CLAUDE_AFTER_*`, `CLAUDE_AUTO_*` variables. Run as a
+non-root user because the CLI refuses `bypassPermissions` at uid 0 outside a
+sandbox. Preserve `ANTHROPIC_BASE_URL`, `HTTP_PROXY`, and `HTTPS_PROXY` for
+routing. See [Claude Agent provider](docs/AGENTS.md#claude-agent-provider).
 
 ## Agent Harnesses & Tooling
 

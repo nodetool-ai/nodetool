@@ -35,7 +35,6 @@
   },
   "devDependencies": {
     "js-tiktoken": "^1.0.21",
-    "@anthropic-ai/claude-agent-sdk": "^0.3.283",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
     "typescript": "npm:@typescript/typescript6@6.0.2",
@@ -48,7 +47,6 @@
   },
   "peerDependencies": {
     "js-tiktoken": "^1.0.21",
-    "@anthropic-ai/claude-agent-sdk": "^0.3.283",
     "node-llama-cpp": "^3.0.0",
     "sharp": "^0.35.3",
     "@opentelemetry/core": "^2.10.0",
@@ -58,9 +56,6 @@
   },
   "peerDependenciesMeta": {
     "js-tiktoken": {
-      "optional": true
-    },
-    "@anthropic-ai/claude-agent-sdk": {
       "optional": true
     },
     "node-llama-cpp": {

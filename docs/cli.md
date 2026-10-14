@@ -2508,7 +2508,8 @@ need a target or a key are printed as manual work rather than silently skipped.
 - `--deps` — also touch surfaces whose paths sit in a workspace downstream of a
   changed one.
 - `--include-suites` — also run `suiteOnly` selfchecks, which only re-run
-  suites `npm run test:affected` runs for the same diff.
+  suites `npm run test:affected` runs for the same diff, and workspace test
+  commands skipped when a global-file diff selects the full test suite.
 - `--jobs <n>` — run cheap selfchecks `n` at a time (default 1). Each check's
   output prints as one block when it finishes. Expensive checks run serially
   afterwards.
@@ -2518,6 +2519,18 @@ A changed root manifest, lockfile, root `tsconfig*.json`, `turbo.json`,
 `.nvmrc`, or shared `scripts/run-*.mjs` launcher selects every selfcheck. The
 plan step loads no built package, so `--dry-run` works before
 `npm run build:packages`.
+
+For global-file diffs, commands that only run workspace test suites covered
+by the full `test:affected` selection are skipped by default. Commands with
+other work or unknown workspaces still run. This assumes `test:affected`
+runs for the same diff. `--all` alone does not enable those extra skips.
+CI adds `--include-suites` when its `skip-tests` input disables package tests.
+
+Check starts and completions print to stderr, including with `--json`.
+Each result includes `durationMs`, while stdout keeps the JSON output.
+CI uses `--jobs 2` and `NODETOOL_TEST_WORKERS=1` to run two cheap checks
+concurrently with serial test files inside each check. Expensive checks
+remain serial, and timeouts still apply.
 
 ```bash
 nodetool harness gate --base main

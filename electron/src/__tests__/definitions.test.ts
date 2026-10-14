@@ -53,8 +53,8 @@ describe("RUNTIME_PACKAGES", () => {
       }
     });
 
-    it("classifies transformers-js, claude-agent-sdk, tensorflow-js as libraries", () => {
-      for (const id of ["transformers-js", "claude-agent-sdk", "tensorflow-js"]) {
+    it("classifies transformers-js, tensorflow-js as libraries", () => {
+      for (const id of ["transformers-js", "tensorflow-js"]) {
         expect(RUNTIME_PACKAGES[id as keyof typeof RUNTIME_PACKAGES].category).toBe("library");
       }
     });
