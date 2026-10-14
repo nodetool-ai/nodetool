@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({
   index: {
     packs: [
-      { id: "video", npm: { name: "@nodetool-ai/video-nodes", version: "1.2.3" }, installBytes: 30, requires: ["audio"], runtimeLibraries: ["imaging"] },
-      { id: "audio", npm: { name: "@nodetool-ai/audio-nodes", version: "1.2.3" }, installBytes: 20, requires: ["video"], runtimeLibraries: ["codec", "imaging"] }
+      { id: "video", kind: "node-pack", npm: { name: "@nodetool-ai/video-nodes", version: "1.2.3" }, installBytes: 30, requires: ["audio"], runtimeLibraries: ["imaging"] },
+      { id: "audio", kind: "node-pack", npm: { name: "@nodetool-ai/audio-nodes", version: "1.2.3" }, installBytes: 20, requires: ["video"], runtimeLibraries: ["codec", "imaging"] }
     ]
   }
 }));
@@ -33,10 +33,10 @@ describe("missing pack error", () => {
     expect(() => createMissingPackError("unknown")).toThrow("Unknown node catalog pack: unknown");
   });
 
-  it("preserves explicit supported-install guidance without a null suffix", () => {
+  it("builds concrete supported-install guidance from the exact actionable closure", () => {
     const error = createMissingPackError("audio", [], { supported: true, reason: null, command: null });
-    expect(error.details.install).toEqual({ supported: true, reason: null, command: null });
-    expect(error.message).toBe("Node pack audio, video is not installed.");
+    expect(error.details.install).toEqual({ supported: true, reason: null, command: "nodetool nodes add audio imaging video" });
+    expect(error.message).toContain("nodetool nodes add audio imaging video");
     const command = createMissingPackError("audio", [], { supported: true, reason: null, command: "nodetool nodes add audio video" });
     expect(command.message).toContain("nodetool nodes add audio video");
   });

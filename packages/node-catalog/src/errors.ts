@@ -3,6 +3,7 @@ import type { NodeCatalogIndex } from "./types.js";
 
 import { MissingPackError, type MissingPackInstall } from "@nodetool-ai/protocol";
 import { currentPackInstall } from "./loader-context.js";
+import { isRuntimeNpmPackageId } from "@nodetool-ai/protocol/runtime-npm-packages";
 export { MissingPackError, type MissingPackDetails, type MissingPackInstall } from "@nodetool-ai/protocol";
 
 export function createMissingPackError(
@@ -31,6 +32,10 @@ export function createMissingPackError(
       runtimeLibraries.add(runtimeId);
     }
   }
+  const commandIds = [...new Set([...ids].filter(id => byId.get(id)?.kind === "node-pack").concat([...runtimeLibraries].filter(isRuntimeNpmPackageId)))].sort();
+  const guidance: MissingPackInstall = install.supported && install.command === null
+    ? { ...install, command: commandIds.length ? `nodetool nodes add ${commandIds.join(" ")}` : "nodetool nodes doctor --installed" }
+    : install;
   return new MissingPackError({
     error: "missing_pack",
     packs: [...ids].sort().map((id) => {
@@ -48,7 +53,7 @@ export function createMissingPackError(
     }),
     runtimeLibraries: [...runtimeLibraries].sort(),
     nodeTypes: [...new Set(nodeTypes)].sort(),
-    install,
+    install: guidance,
     restartRequired: false
   });
 }

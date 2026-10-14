@@ -562,7 +562,7 @@ them.
 D14. The installed set is what exists in the tree. On start the CLI reads
 `<root>/node_modules/@nodetool-ai/` once and keeps the entries that the catalog
 lists with `version === coreVersion`. A pack with another version is ignored
-and reported by `packs doctor`.
+and reported by `nodes doctor`.
 
 The desired set lives in `<data dir>/cli-packs.json`, keyed by the realpath of
 the install root: `{ root, coreVersion, packs: string[], runtimeLibraries: string[] }`.
@@ -613,7 +613,7 @@ same way through `importRuntimeLibrary`.
   ],
   "runtimeLibraries": [],
   "nodeTypes": ["fal.image.FluxDev"],
-  "install": { "supported": true, "reason": null, "command": "nodetool packs add fal" },
+  "install": { "supported": true, "reason": null, "command": "nodetool nodes add fal" },
   "restartRequired": false
 }
 ```
@@ -637,7 +637,7 @@ No production code in `packages/cli/src` assigns exit code 3. It uses 0, 1,
 
 An install proceeds only with one of these:
 
-1. An explicit `nodetool packs add <id...>` or `packs add --restore`.
+1. An explicit `nodetool nodes add <id...>` or `nodes add --restore`.
 2. `--install-missing` on `run`, `debug`, `node run`, or `workflows run`.
 3. `NODETOOL_AUTO_INSTALL=1` in the environment of those commands.
 4. An interactive prompt, when stdin and stderr are TTYs and `CI` is unset. The
@@ -674,7 +674,7 @@ category in `auto` mode (`packages/runtime/src/permission-gate.ts:57-59`), and
 
 After a global CLI upgrade, the new CLI finds the previous desired set in
 `cli-packs.json` and packs missing from the tree (E4). It prints one stderr
-line: `2 packs from 0.8.3 are not installed for 0.8.4: fal, video. Run "nodetool packs add --restore".`
+line: `2 packs from 0.8.3 are not installed for 0.8.4: fal, video. Run "nodetool nodes add --restore".`
 
 The CLI never reinstalls without authorization from 13.1. In a run with
 `--install-missing` or `NODETOOL_AUTO_INSTALL=1`, it installs only what that
@@ -733,7 +733,7 @@ release are serialized through a short-lived sibling `.guard` directory. The
 guard is never stolen, because deleting a replacement owner’s lock can admit
 concurrent installers. If its owner stops while holding the guard, installation
 times out and names the directory to remove after confirming that owner stopped. A user's own concurrent `npm`
-command is not covered. `packs doctor` detects its effects.
+command is not covered. `nodes doctor` detects its effects.
 
 ### 14.4 Flow
 
@@ -755,7 +755,7 @@ command is not covered. `packs doctor` detects its effects.
    `npm rebuild <name> --ignore-scripts=false --foreground-scripts`. Each must
    match its pinned version and integrity.
 10. Load-check in a child process:
-    `nodetool packs doctor --installed --json --pack <ids>`. It registers each
+    `nodetool nodes doctor --installed --json --pack <ids>`. It registers each
     new pack in a fresh registry, compares the owned types with the catalog,
     and checks that the pack resolves `@nodetool-ai/node-sdk` to the core's
     realpath.
@@ -773,13 +773,17 @@ formats.
 The plan is refused when:
 
 - It changes or removes any package that exists before the install, except the
-  packages a `packs remove` request owns exclusively.
+  packages a `nodes remove` request owns exclusively.
 - It adds a core package or a second copy of a shared-identity library.
 - It adds an `@nodetool-ai` package whose version differs from the core
   version.
 
-Installs are therefore additive. A running `serve` process keeps working,
-because no file it loaded changes.
+npm 11 can report a same-identity replay as `change`. Normalize only the
+catalog-owned pack/companion action proven by its known release integrity and
+exact before/after snapshot path (plan D26). Protected packages and unproven
+actions retain change refusal. Post-install checks confirm package identities
+and original pins before scripts or imports. Running servers retain their
+loaded registry and need the restart notice to see newly installed packs.
 
 ### 14.6 Verification (F5)
 
@@ -812,28 +816,28 @@ A failure in steps 7 to 10 triggers rollback:
 Then the installer compares the tree with the snapshot. When it matches, the
 installer releases the lock and exits 1 with the original error. When it does
 not match, `cli-packs.json` records `dirty: true`, and every later start prints
-a one-line pointer to `nodetool packs doctor --repair`.
+a one-line pointer to `nodetool nodes doctor --repair`.
 
 ## 15. Command surface
 
 `nodetool packs` exists today with `compile` for sandbox packs
-(`packages/cli/src/commands/packs.ts:21`). The new verbs join it (Q6).
+(`packages/cli/src/commands/packs.ts:21`). Node-pack management uses `nodetool nodes` (Q6). The sandbox command remains `nodetool packs compile`.
 
 ```
-nodetool packs list [--json]              id, kind, installed, version, size, node count, required by
-nodetool packs add <id...> [--yes]        install packs or runtime libraries with their requirements
-nodetool packs add --restore              install the desired set recorded for this root
-nodetool packs add --for <workflow|file>  install every pack one graph needs
-nodetool packs remove <id...>             remove, keeping packs that another installed pack requires
-nodetool packs doctor [--json] [--repair] mode, npm version, versions, integrity, single copies, registration, dirty state
-nodetool packs why <node_type|id>         owner pack, requirements, runtime libraries, installed state
+nodetool nodes list [--json]              id, kind, installed, version, size, node count, required by
+nodetool nodes add <id...> [--yes]        install packs or runtime libraries with their requirements
+nodetool nodes add --restore              install the desired set recorded for this root
+nodetool nodes add --for <workflow|file>  install every pack one graph needs
+nodetool nodes remove <id...>             remove, keeping packs that another installed pack requires
+nodetool nodes doctor [--json] [--repair] mode, npm version, versions, integrity, single copies, registration, dirty state
+nodetool nodes why <node_type|id>         owner pack, requirements, runtime libraries, installed state
 nodetool packs compile                    unchanged (sandbox packs)
 
 nodetool run|debug|node run|workflows run ... --install-missing
 ```
 
-`--yes` on `packs add` skips the prompt. The explicit command is the
-authorization. `packs remove` warns that running `serve` and `mcp serve`
+`--yes` on `nodes add` skips the prompt. The explicit command is the
+authorization. `nodes remove` warns that running `serve` and `mcp serve`
 processes may fail on a later lazy import from the removed pack.
 
 ## 16. Process model and caches (D2, Q4)
@@ -844,7 +848,7 @@ with inherited stdio and `NODETOOL_PACKS_REEXEC=1`. It exits with
 `childExitCode` (`packages/cli/src/child-exit.ts:12`). A re-executed process
 never installs. If packs are still missing, it exits 3.
 
-`packs add` from a terminal prints:
+`nodes add` from a terminal prints:
 `Restart running "nodetool serve" and "nodetool mcp serve" processes to load fal.`
 
 Because of re-exec, no cache needs a refresh path. These are the snapshots
@@ -960,8 +964,8 @@ Node 22 (npm 10.9.x) and Node 24 (npm 11.x):
 | Registry mirror with custom CA | Install succeeds, integrity matches |
 | Offline with a warm cache | Install succeeds |
 | Offline with a cold cache | Clear network error, tree unchanged |
-| Two concurrent `packs add` | Second waits, both succeed |
-| Install killed during `npm install` | `packs doctor` reports, `--repair` restores |
+| Two concurrent `nodes add` | Second waits, both succeed |
+| Install killed during `npm install` | `nodes doctor` reports, `--repair` restores |
 | Root-owned global prefix | EACCES message, no `sudo` |
 | Windows long paths and the global `%APPDATA%\npm` layout | Mode detection and installs succeed |
 | `NODE_OPTIONS=--preserve-symlinks` | Refused |
@@ -977,7 +981,7 @@ Node 22 (npm 10.9.x) and Node 24 (npm 11.x):
    - Apply every cut in 6.1 and 6.2, add the loader helpers (6.3), and fix
      D11.
    - Add the core-only smoke variant (6.4). It installs a CI-built CLI tarball
-     whose manifest has the node packs removed. The published CLI keeps its
+     whose manifest has the node nodes removed. The published CLI keeps its
      packs during this step, so users see no change.
    - Exit criteria: the core-only smoke passes, the size check reports at or
      below 320 MB disk (D13), and `npm run backend:smoke` passes for the
@@ -999,9 +1003,9 @@ Node 22 (npm 10.9.x) and Node 24 (npm 11.x):
   NodeTool packages, allowlisted script packages, and shared-identity libraries
   are pinned.
 - R2. A global CLI upgrade removes packs (E4). The restore line and
-  `packs add --restore` cover it, but an unattended upgrade leaves runs failing
+  `nodes add --restore` cover it, but an unattended upgrade leaves runs failing
   with `missing_pack` until someone authorizes a restore.
-- R3. `packs remove` can break a running server on a later lazy import.
+- R3. `nodes remove` can break a running server on a later lazy import.
 - R4. Moving a library to an optional peer removes it from the monorepo tree
   and the desktop bundle unless a pack depends on it (D9). `npm run
   backend:smoke` and `bundle-backend.mjs` must cover each moved library.
@@ -1010,14 +1014,13 @@ Node 22 (npm 10.9.x) and Node 24 (npm 11.x):
 
 ## 22. Open questions
 
-- Q6. `nodetool packs` already means sandbox pack tooling, and the agent
-  capability `packs` lists sandbox packages. Keep one command for both kinds,
-  or rename the new verbs to `nodetool nodes add` and similar?
+- Q6. Implementation follows the recommended `nodetool nodes` namespace.
+  `nodetool packs compile` and the sandbox `packs` capability retain their meaning.
 - Q8. Should `llm-nodes` and `code-nodes` stay core? They have no heavy
   dependencies, and the Agent and Code nodes are common in core workflows.
-- Q9. Local mode writes the user's `package.json` and lockfile. Is that
-  acceptable, or should local mode require an explicit `npm install` and only
-  print the command?
+- Q9. Local mutation requires explicit CLI authorization. The prompt names
+  package.json and package-lock.json, and the authorization binds the root
+  and mutation paths.
 
 Q7 is resolved: chat compaction uses the existing character-count fallback
 when the `tokenizer` runtime package is absent.

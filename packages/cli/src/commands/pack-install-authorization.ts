@@ -1,13 +1,17 @@
 import { RUNTIME_NPM_PACKAGES, isRuntimeNpmPackageId } from "@nodetool-ai/protocol/runtime-npm-packages";
 import { prepareInstallSelection, type InstallSelection, type InstallPacksRequest } from "../packs/install-selection.js";
 import { assertPackInstallProcessAllowed } from "../packs/install-process.js";
+import { preparePackRemoval } from "../packs/removal-selection.js";
 
 const AUTHORIZATION = Symbol("CLI install authorization");
 export interface InstallAuthorization { readonly [AUTHORIZATION]: true }
-export type InstallCommandContext = "packs-add" | "packs-restore" | "run" | "debug" | "node-run" | "workflows-run" |
+export type InstallCommandContext = "packs-add" | "packs-restore" | "packs-remove" | "packs-repair" | "run" | "debug" | "node-run" | "workflows-run" |
   "serve" | "mcp-serve" | "headless-job" | "chat" | "agent-tool";
 export type InstallAuthorizationSource = "explicit" | "flag" | "environment" | "prompt";
 interface AuthorizedScope {
+  readonly requestedPacks: ReadonlySet<string>;
+  readonly requestedLibraries: ReadonlySet<string>;
+  readonly operation: "install" | "remove" | "repair";
   readonly source: InstallAuthorizationSource;
   readonly root: string;
   readonly coreVersion: string;
@@ -15,6 +19,7 @@ interface AuthorizedScope {
   readonly packs: ReadonlySet<string>;
   readonly libraries: ReadonlySet<string>;
   readonly scripts: ReadonlySet<string>;
+  readonly mutationPaths: ReadonlySet<string>;
 }
 const issued = new WeakMap<InstallAuthorization, AuthorizedScope>();
 const runCommands = new Set<InstallCommandContext>(["run", "debug", "node-run", "workflows-run"]);
@@ -41,11 +46,12 @@ export async function authorizePackInstallCommand(options: {
   readonly request: InstallPacksRequest;
   readonly command: InstallCommandContext;
   readonly installMissing?: boolean;
+  readonly confirm?: boolean;
   readonly prompt?: (options: { message: string; default: false }) => Promise<boolean>;
 }): Promise<InstallAuthorization | null> {
   assertPackInstallProcessAllowed();
   let source: InstallAuthorizationSource;
-  if (options.command === "packs-add" || options.command === "packs-restore") { source = "explicit"; }
+  if (options.command === "packs-add" || options.command === "packs-restore" || options.command === "packs-remove" || options.command === "packs-repair") { source = "explicit"; }
   else if (!runCommands.has(options.command)) { return null; }
   else if (options.installMissing) { source = "flag"; }
   else if (process.env["NODETOOL_AUTO_INSTALL"] === "1") { source = "environment"; }
@@ -53,15 +59,19 @@ export async function authorizePackInstallCommand(options: {
     if (!process.stdin.isTTY || !process.stderr.isTTY || process.env["CI"] !== undefined) { return null; }
     source = "prompt";
   }
-  const selection = await prepareInstallSelection(options.request);
-  if (source === "prompt") {
+  const operation = options.command === "packs-remove" ? "remove" : options.command === "packs-repair" ? "repair" : "install";
+  const selection = operation === "remove" ? (await preparePackRemoval(options.request)).authorization :
+    await prepareInstallSelection(options.request, operation === "repair" ? { allowDirty: true, restoreDesired: true } : {});
+  if (source === "prompt" || options.confirm) {
+    if (!process.stdin.isTTY || !process.stderr.isTTY || process.env["CI"] !== undefined) { throw new Error("Use --yes to confirm a node pack install in a non-interactive terminal"); }
     const prompt = options.prompt ?? (await import("@inquirer/prompts")).confirm;
     if (!await prompt({ message: installPromptMessage(selection), default: false })) { return null; }
   }
   const value: InstallAuthorization = Object.freeze({ [AUTHORIZATION]: true as const });
-  issued.set(value, { source, root: selection.root, coreVersion: selection.coreVersion, mode: selection.mode,
+  issued.set(value, { requestedPacks: new Set(options.request.packs), requestedLibraries: new Set(options.request.runtimeLibraries ?? []), operation, source, root: selection.root, coreVersion: selection.coreVersion, mode: selection.mode,
     packs: new Set(selection.packs.map((pack) => pack.id)), libraries: new Set(selection.runtimeLibraries),
-    scripts: new Set(selection.scripts.map((pin) => JSON.stringify({ name: pin.name, version: pin.version, integrity: pin.integrity }))) });
+    scripts: new Set(selection.scripts.map((pin) => JSON.stringify({ name: pin.name, version: pin.version, integrity: pin.integrity }))),
+    mutationPaths: new Set(selection.mutationPaths ?? []) });
   return value;
 }
 
@@ -69,11 +79,31 @@ export function assertLiveInstallAuthorization(value: InstallAuthorization): voi
   assertPackInstallProcessAllowed();
   if (!issued.has(value)) { throw new Error("Installing node packs requires a live CLI command authorization"); }
 }
-export function assertInstallAuthorizationScope(value: InstallAuthorization, selection: InstallSelection): void {
+export class StaleInstallAuthorizationError extends Error {
+  constructor() { super("Installed packs changed while this command waited. A fresh CLI authorization is required."); this.name = "StaleInstallAuthorizationError"; }
+}
+
+export function assertInstallAuthorizationScope(value: InstallAuthorization, selection: InstallSelection, operation: AuthorizedScope["operation"] = "install", request?: InstallPacksRequest): void {
   assertLiveInstallAuthorization(value);
   const scope = issued.get(value)!;
+  if (scope.operation !== operation) { throw new Error(`Install authorization cannot authorize ${operation}`); }
   if (scope.root !== selection.root || scope.coreVersion !== selection.coreVersion || scope.mode !== selection.mode) {
     throw new Error("Install authorization does not match the install root, mode, or core version");
+  }
+  // A concurrent command can expand npm replay. The old token stays invalid.
+  // Only unchanged direct requests may ask the command layer for a new grant.
+  const extraPacks = selection.packs.filter(pack => !scope.packs.has(pack.id));
+  const extraLibraries = selection.runtimeLibraries.filter(id => !scope.libraries.has(id));
+  const extraScripts = selection.scripts.filter(pin => !scope.scripts.has(JSON.stringify({ name: pin.name, version: pin.version, integrity: pin.integrity })));
+  if (operation === "install" && request &&
+    new Set(request.packs).size === scope.requestedPacks.size && request.packs.every(id => scope.requestedPacks.has(id)) &&
+    new Set(request.runtimeLibraries ?? []).size === scope.requestedLibraries.size && (request.runtimeLibraries ?? []).every(id => scope.requestedLibraries.has(id)) &&
+    (extraPacks.length > 0 || extraLibraries.length > 0) &&
+    extraPacks.every(pack => selection.installedIds.includes(pack.id)) &&
+    extraLibraries.every(id => selection.replayLibraries.includes(id)) &&
+    extraScripts.every(pin => extraPacks.some(pack => pack.scriptAllowlist.some(script =>
+      script.name === pin.name && script.version === pin.version && script.integrity === pin.integrity)))) {
+    throw new StaleInstallAuthorizationError();
   }
   for (const pack of selection.packs) { if (!scope.packs.has(pack.id)) { throw new Error(`Pack ${pack.id} is outside the install authorization`); } }
   for (const id of selection.runtimeLibraries) { if (!scope.libraries.has(id)) { throw new Error(`Runtime library ${id} is outside the install authorization`); } }
@@ -81,5 +111,8 @@ export function assertInstallAuthorizationScope(value: InstallAuthorization, sel
     if (!scope.scripts.has(JSON.stringify({ name: pin.name, version: pin.version, integrity: pin.integrity }))) {
       throw new Error(`Install script ${pin.name}@${pin.version} is outside the install authorization`);
     }
+  }
+  for (const path of selection.mutationPaths ?? []) {
+    if (!scope.mutationPaths.has(path)) { throw new Error(`Removal path ${path} is outside the install authorization`); }
   }
 }

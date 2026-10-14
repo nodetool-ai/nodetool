@@ -7,6 +7,7 @@ const host = pathToFileURL(resolve(import.meta.dirname, "../../src/packs/host.ts
 const providers = pathToFileURL(resolve(import.meta.dirname, "../../src/providers.ts")).href;
 const doctor = pathToFileURL(resolve(import.meta.dirname, "../../src/packs/doctor.ts")).href;
 const serve = resolve(import.meta.dirname, "../../src/packs/serve.ts");
+const installProcess = pathToFileURL(resolve(import.meta.dirname, "../../src/packs/install-process.ts")).href;
 const runtimeEnv = pathToFileURL(resolve(import.meta.dirname, "../../src/runtime-env.ts")).href;
 
 function hostFixture(body: string) {
@@ -46,6 +47,24 @@ function hostFixture(body: string) {
 }
 
 describe("CLI installed pack host", () => {
+  it("prints an upgrade restore notice once without installing or admitting desired packs", () => {
+    const child = hostFixture(`
+      process.env.XDG_DATA_HOME = root;
+      const stateDir = join(root, 'nodetool');
+      mkdirSync(stateDir);
+      writeFileSync(join(stateDir, 'cli-packs.json'), JSON.stringify({ [root]: {
+        root, coreVersion: '0.0.0', packs: ['game'], runtimeLibraries: []
+      } }));
+      const first = await loadCliPackSnapshot();
+      assert.equal(await loadCliPackSnapshot(), first);
+      assert.equal(first.packs.some(pack => pack.id === 'game'), false);
+      assert.equal(readFileSync(join(root, 'package.json'), 'utf8'), JSON.stringify({ dependencies: { '@nodetool-ai/cli': version } }));
+    `);
+    expect(child.status, child.stderr).toBe(0);
+    expect(child.stderr.match(/1 pack from 0\.0\.0/g)).toHaveLength(1);
+    expect(child.stderr).toContain('nodetool nodes add --restore');
+  });
+
   it("shares one admitted snapshot between command and server registries", () => {
     const child = hostFixture(`
       const source = await getCliPackSource();
@@ -101,7 +120,8 @@ describe("CLI installed pack host", () => {
       writeFileSync(join(cli, 'src', 'nodetool.ts'), '');
       writeFileSync(file, readFileSync(${JSON.stringify(serve)}, 'utf8')
         .replace('from "../runtime-env.js"', 'from ' + ${JSON.stringify(JSON.stringify(runtimeEnv))})
-        .replace('from "./host.js"', 'from ' + ${JSON.stringify(JSON.stringify(host))}));
+        .replace('from "./host.js"', 'from ' + ${JSON.stringify(JSON.stringify(host))})
+        .replace('from "./install-process.js"', 'from ' + ${JSON.stringify(JSON.stringify(installProcess))}));
       registerHooks({ resolve(specifier, context, next) {
         if (specifier === '@nodetool-ai/websocket/server') return { url: 'data:text/javascript,' + encodeURIComponent(${JSON.stringify(server)}), shortCircuit: true };
         return next(specifier, context);

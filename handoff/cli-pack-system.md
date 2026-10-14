@@ -224,9 +224,10 @@ admitted package roots. It refuses ancestor copies and wrong-version packs.
 
 A16 adds shared missing-pack payloads, graph preflight with referenced workflow
 lookups, CLI exit 3 and HTTP, WebSocket and MCP transport. A17 extends dynamic
-agent and DSL calls. Review found that real controlled-node failures still lost
-the payload and failed the run. That repair is in progress. Stub-only control
-tests did not establish the required behavior.
+agent and DSL calls. Review reproduced three gaps in real controlled-node execution, lazy single-node
+results and tool-result telemetry. Those fixes now preserve refusal data, keep
+controlled actors available and allow continuation. Real runner regressions
+passed and Astra cleared them.
 
 A13.3 release pinning is committed as `fe59d9a14b`. Its read-only remote Linux
 measurement job passed. The catalog now also records original companion hashes,
@@ -241,12 +242,15 @@ command entry. It snapshots and plans, verifies pins before scripts, rebuilds
 only the allowlist and load-checks in a child. Local registry tests cover
 integrity refusal, additive plan refusal and rollback. npm 11 can retain global
 extraneous packages during rollback, so guarded cleanup removes only new,
-unlinked paths before replay and snapshot comparison. A same-version npm global
-change plan remains refused under the specified additive-only rule. A21 is
-replacing the temporary boolean with opaque CLI authorization. Review also
-proved that real global npm installations lack the hidden lock required by the
-initial snapshot. D25 defines the constrained baseline fallback. That repair
-and its real global-prefix regression are in progress.
+unlinked paths before replay and snapshot comparison. D26 normalizes npm 11 replay only for exact catalog-owned node packs with
+known matching integrity and unchanged name, version and realpath. Protected
+core, shared, runtime and user packages remain refused. A21 replaces the temporary boolean with opaque CLI authorization. It binds
+root, mode, core version, expanded ids and approved scripts, then rechecks under
+the lock. Serve and MCP set permanent refusal flags. Review also proved that
+real global npm installations lack the initial hidden lock. D25 implements the
+constrained baseline fallback with strict post-install pins. Genuine global
+prefix bootstrap and rollback regressions pass. Astra cleared A20/A21 at
+`55c710ee6e`.
 
 The first core CI attempt failed at `check:typescript` because four new
 workspace dependencies lacked project references. `37b5b1ef0a` adds them. The
@@ -259,8 +263,26 @@ Foundation CI exposed catalog cycles and Node tracing imports in browser
 bundles. `54c21f4df2` fixes both and updates the stale typed-runtime test.
 Workflow-runner browser E2E passed on that head. The next dependency check
 reported a path-delimiter false positive in storage. `95be83aa5e` records the
-checker exception without changing behavior. The child still needs to merge
-these parent fixes after its checkpoint. Parent and child remain drafts.
+checker exception without changing behavior. The child merges these fixes and the later telemetry-peer packaging repair.
+The backend smoke now relocates outside the checkout to expose unstaged peers.
+The isolated artifact boot passed. Parent and child remain drafts.
+
+`55bedffba8` repairs old protocol/registry fixtures and mocks the asset-storage
+boundary rather than individual filesystem writes. A clean asset-directory
+regression failed before the fix and passed afterward. These fixtures are
+merged into child checkpoint `f408cc0238`. Fresh remote checks are running.
+
+A22 command/removal/repair and A23 matrix implementations are present in the
+shared checkout. Astra cleared the frozen transaction and command behavior.
+The six platform/npm execution outcomes remain pending remote CI. The
+concurrent-install fixture now uses independent commands and passes. The old
+authorization remains invalid, while command renewal repeats consent against
+the same displayed selection. Astra cleared the renewal delta with actual
+concurrent npm execution. M13 still needs a genuine in-flight npm interruption
+in addition to its post-mutation checkpoint regression.
+D26 requires a verified same-identity replay normalization for npm global adds,
+so the second-pack and concurrency matrix cases can meet their intended
+behavior. Keep strict refusal for protected packages and unproven changes.
 
 The production dependency scanner now enumerates runtime AST imports rather
 than counting erased type queries. Invalid production imports, empty scans,
@@ -278,10 +300,11 @@ side-effect imports and mixed imports are retained regressions.
    cross-surface missing-pack errors, authorized installer, commands and npm
    matrix. Perform A24 only after its prerequisites pass.
 
-Q6 recommends `nodetool nodes` for new commands because `nodetool packs` already
-means sandbox packs. Q9 concerns local project manifest/lockfile authorization.
-Earlier questions have no recorded answer. Continue independent work and use
-existing authorization carefully when these decisions become relevant.
+Q6 follows the recommended `nodetool nodes` namespace because `nodetool packs`
+already means sandbox packs. Q9 uses explicit local CLI authorization naming
+the project manifest and lockfile and binding their mutation paths. These
+implementation choices follow the recommendations without claiming a separate
+user answer.
 
 ## Preserved user edit
 

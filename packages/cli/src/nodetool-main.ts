@@ -60,6 +60,8 @@ import {
 } from "./supervisor.js";
 import { registerPackageCommands } from "./commands/package.js";
 import { registerPackCommands } from "./commands/packs.js";
+import { registerNodesCommands } from "./commands/nodes.js";
+import { installMissingPacksAndReexec } from "./commands/install-missing-packs.js";
 import { registerRuntimeCommands } from "./commands/runtime.js";
 import { registerDeployCommands } from "./commands/deploy.js";
 import { registerHfCommands } from "./commands/models-hf.js";
@@ -105,7 +107,7 @@ import {
 } from "./providers.js";
 import { isString } from "./predicates.js";
 import { printTable, asJson, readSecretValue } from "./commands/output.js";
-import { printCommandError, commandMissingRuntime } from "./command-errors.js";
+import { printCommandError, commandMissingRuntime, commandMissingPack } from "./command-errors.js";
 import { childExitCode } from "./child-exit.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -326,8 +328,9 @@ addSupervisorOptions(
     .command("run <dsl-file>")
     .description("Run a TypeScript/JavaScript DSL workflow file")
     .option("--json", "Output results as JSON (default: pretty-print)")
+    .option("--install-missing", "Authorize missing node pack installation, then re-execute once")
 ).action(
-  async (dslFile: string, opts: { json?: boolean } & SupervisorCliOptions) => {
+  async (dslFile: string, opts: { json?: boolean; installMissing?: boolean } & SupervisorCliOptions) => {
     try {
       const { resolve } = await import("node:path");
       const { runDslFile } = await import("./run-dsl.js");
@@ -372,6 +375,8 @@ addSupervisorOptions(
         }
       }
     } catch (e) {
+      const exit = await installMissingPacksAndReexec(e, { command: "run", installMissing: opts.installMissing });
+      if (exit !== null) { process.exit(exit); }
       process.exit(printCommandError(e, opts.json));
     }
   }
@@ -496,6 +501,7 @@ addSupervisorOptions(
     .description("Run a workflow by ID, JSON file, or TypeScript DSL file")
     .option("--params <json>", "JSON params string")
     .option("--json", "Output as JSON")
+    .option("--install-missing", "Authorize missing node pack installation, then re-execute once")
     .option(
       "--asset-output-mode <mode>",
       "How media outputs are materialized: native | raw | data_uri | workspace | storage_url | temp_url",
@@ -521,6 +527,7 @@ addSupervisorOptions(
       assetOutputMode?: string;
       workspace?: string;
       triggerEvent?: string;
+      installMissing?: boolean;
     } & SupervisorCliOptions
   ) => {
     try {
@@ -714,7 +721,9 @@ addSupervisorOptions(
         : Promise.resolve();
 
       const result = await session.result;
-      if (result.status === "failed" && commandMissingRuntime(result)) {
+      if (result.status === "failed" && (commandMissingRuntime(result) || commandMissingPack(result))) {
+        const exit = await installMissingPacksAndReexec(result, { command: "workflows-run", installMissing: opts.installMissing });
+        if (exit !== null) { process.exit(exit); }
         process.exit(printCommandError(result, opts.json));
       }
       await interventionLines;
@@ -753,6 +762,8 @@ addSupervisorOptions(
 
       process.exit(result.status === "completed" ? 0 : 1);
     } catch (e) {
+      const exit = await installMissingPacksAndReexec(e, { command: "workflows-run", installMissing: opts.installMissing });
+      if (exit !== null) { process.exit(exit); }
       process.exit(printCommandError(e, opts.json));
     }
   }
@@ -1711,6 +1722,10 @@ mcp
 registerProjectCommands(program);
 registerPackageCommands(program);
 registerPackCommands(program);
+registerNodesCommands(program, async () => {
+  const { createNodeCommandServices } = await import("./packs/command-service.js");
+  return createNodeCommandServices();
+});
 registerRuntimeCommands(program);
 registerWorkerCommands(program);
 

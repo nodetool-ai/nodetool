@@ -9,7 +9,7 @@
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { PERMISSION_GATE_CONTEXT_KEY, ProcessingContext, headlessGate } from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
-import { missingRuntimeDetailsOf, type MissingRuntimeDetails } from "@nodetool-ai/protocol";
+import { missingRuntimeDetailsOf, missingPackDetailsOf, type MissingRuntimeDetails, type MissingPackDetails } from "@nodetool-ai/protocol";
 import { buildFullRegistry } from "../node-registry.js";
 import { findMissingPacks } from "@nodetool-ai/execution";
 import { MissingPackError } from "@nodetool-ai/protocol";
@@ -20,6 +20,7 @@ interface NodeRunResult {
   ok: boolean;
   error: string | null;
   missingRuntime?: MissingRuntimeDetails;
+  missingPack?: MissingPackDetails;
   durationMs: number;
   /** Every record emitted by the node (one entry for a one-shot process()). */
   chunks: Array<Record<string, unknown>>;
@@ -105,6 +106,7 @@ export async function runSingleNode(
     };
   } catch (err) {
     const missingRuntime = missingRuntimeDetailsOf(err);
+    const missingPack = missingPackDetailsOf(err);
     const result: NodeRunResult = {
       nodeType,
       title,
@@ -116,6 +118,9 @@ export async function runSingleNode(
     };
     if (missingRuntime) {
       result.missingRuntime = missingRuntime;
+    }
+    if (missingPack) {
+      result.missingPack = missingPack;
     }
     return result;
   }

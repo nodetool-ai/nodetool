@@ -1,14 +1,20 @@
 import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import { realpath } from "node:fs/promises";
+import { getNodetoolDataDir } from "@nodetool-ai/config";
 import {
   loadPackLoaderContext,
   registerAvailablePacks,
   setPackLoaderContextProvider,
+  type NodeCatalogIndex,
   type PackLoaderContext
 } from "@nodetool-ai/node-catalog";
 import type { BuiltinPackPolicy, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PackSource } from "@nodetool-ai/websocket/pack-source";
 import { detectInstallMode, installDetailsForMode } from "./mode.js";
 import { readInstalledPacks, type InstalledPackSnapshot } from "./installed.js";
+import { readDesiredState } from "./install-selection.js";
+import { restoreWarning } from "./management.js";
 
 let entryUrl: string | undefined;
 let snapshot: InstalledPackSnapshot | undefined;
@@ -23,13 +29,30 @@ export function loaderContextForSnapshot(value: InstalledPackSnapshot): PackLoad
 }
 
 /** Configure the host before loading commands. Help and non-pack commands do no inventory IO. */
-export function configureCliPackHost(url: string): void {
+export function configureCliPackHost(url: string, options: {
+  readonly catalog?: NodeCatalogIndex;
+  readonly stateFile?: string;
+} = {}): void {
   entryUrl = url;
   snapshot = undefined;
   sourcePromise = undefined;
-  setPackLoaderContextProvider(() => {
+  setPackLoaderContextProvider(async () => {
     const mode = detectInstallMode(fileURLToPath(url));
-    snapshot = readInstalledPacks(mode);
+    snapshot = readInstalledPacks(mode, options.catalog);
+    if (mode.kind === "global" || mode.kind === "local") {
+      try {
+        const root = await realpath(mode.installRoot);
+        const desired = (await readDesiredState(options.stateFile ?? join(getNodetoolDataDir(), "cli-packs.json")))[root];
+        if (desired?.dirty) {
+          process.stderr.write("Node pack installation is dirty. Run \"nodetool nodes doctor --repair\".\n");
+        } else {
+          const warning = restoreWarning(snapshot, desired);
+          if (warning) { process.stderr.write(warning + "\n"); }
+        }
+      } catch {
+        process.stderr.write("Cannot read node pack desired state. Run \"nodetool nodes doctor\".\n");
+      }
+    }
     return loaderContextForSnapshot(snapshot);
   });
 }

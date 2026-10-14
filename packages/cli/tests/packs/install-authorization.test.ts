@@ -5,7 +5,9 @@ import { tmpdir } from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { NodeCatalogIndex } from "@nodetool-ai/node-catalog";
-import { authorizePackInstallCommand } from "../../src/commands/pack-install-authorization.js";
+import { installWithCommandAuthorization } from "../../src/commands/authorized-pack-install.js";
+import { prepareInstallSelection } from "../../src/packs/install-selection.js";
+import { authorizePackInstallCommand, assertInstallAuthorizationScope, StaleInstallAuthorizationError } from "../../src/commands/pack-install-authorization.js";
 import { installPacks, type InstallerOperations } from "../../src/packs/installer.js";
 
 const roots: string[] = [];
@@ -177,4 +179,59 @@ it("installer isolation gate rejects a deliberately added CLI production depende
   await writeFile(join(f.root, "packages/websocket/package.json"), '{"name":"@nodetool-ai/websocket","dependencies":{"@nodetool-ai/cli":"1"}}');
   await writeFile(join(f.root, "packages/cli/package.json"), '{"name":"@nodetool-ai/cli"}');
   await expect(auditInstallerIsolation(f.root)).rejects.toThrow();
+});
+
+it("stale replay requests a new grant while changed direct requests remain refused", async () => {
+  const f = await fixture();
+  const extra = { ...f.catalog.packs[0], id: "other", npm: { ...f.catalog.packs[0].npm, name: "@nodetool-ai/other-nodes" } };
+  const catalog = { ...f.catalog, packs: [...f.catalog.packs, extra] };
+  const request = { ...f.request, catalog };
+  const token = (await authorizePackInstallCommand({ request, command: "packs-add" }))!;
+  const selection = await prepareInstallSelection(request);
+  const replay = { ...selection, packs: [...selection.packs, extra], installedIds: ["other"] };
+  expect(() => assertInstallAuthorizationScope(token, replay, "install", request)).toThrow(StaleInstallAuthorizationError);
+  expect(() => assertInstallAuthorizationScope(token, replay, "install", { ...request, packs: ["other"] })).toThrow(/outside the install authorization/);
+  expect(() => assertInstallAuthorizationScope(token, { ...replay, installedIds: [] }, "install", request)).toThrow(/outside the install authorization/);
+});
+
+it("command renewal repeats interactive consent and stops when the second prompt declines", async () => {
+  const f = await fixture(); terminal();
+  const prompt = vi.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+  const install = vi.fn(async () => { throw new StaleInstallAuthorizationError(); });
+  const result = await installWithCommandAuthorization({
+    authorize: () => authorizePackInstallCommand({ request: f.request, command: "run", prompt }), install
+  });
+  expect(result).toBe(false); expect(prompt).toHaveBeenCalledTimes(2); expect(install).toHaveBeenCalledTimes(1);
+  expect(prompt.mock.calls.every(([options]) => options.default === false)).toBe(true);
+});
+
+it("command renewal is bounded and never retries unrelated failures", async () => {
+  const f = await fixture();
+  const authorize = vi.fn(() => authorizePackInstallCommand({ request: f.request, command: "packs-add" }));
+  const install = vi.fn(async () => { throw new StaleInstallAuthorizationError(); });
+  await expect(installWithCommandAuthorization({ authorize, install })).rejects.toThrow(StaleInstallAuthorizationError);
+  expect(authorize).toHaveBeenCalledTimes(4);
+  const failure = vi.fn(async () => { throw new Error("broken dependency"); });
+  await expect(installWithCommandAuthorization({ authorize, install: failure })).rejects.toThrow("broken dependency");
+  expect(failure).toHaveBeenCalledTimes(1);
+});
+
+it("explicit add confirmation binds the displayed selection while another pack appears", async () => {
+  const f = await fixture(); terminal();
+  const extra = { ...f.catalog.packs[0], id: "other", npm: { ...f.catalog.packs[0].npm, name: "@nodetool-ai/other-nodes" } };
+  const request = { ...f.request, catalog: { ...f.catalog, packs: [...f.catalog.packs, extra] } };
+  const prompt = vi.fn(async ({ message }: { message: string; default: false }) => {
+    expect(message).not.toContain("Pack other:");
+    const directory = join(f.root, "node_modules/@nodetool-ai/other-nodes");
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, "package.json"), JSON.stringify({ name: extra.npm.name, version: extra.npm.version }));
+    await writeFile(join(f.root, "node_modules/.package-lock.json"), JSON.stringify({ packages: {
+      "node_modules/@nodetool-ai/other-nodes": { version: extra.npm.version, integrity: extra.npm.integrity }
+    } }));
+    return true;
+  });
+  const token = (await authorizePackInstallCommand({ request, command: "packs-add", confirm: true, prompt }))!;
+  const current = await prepareInstallSelection(request);
+  expect(() => assertInstallAuthorizationScope(token, current, "install", request)).toThrow(StaleInstallAuthorizationError);
+  expect(prompt).toHaveBeenCalledTimes(1);
 });

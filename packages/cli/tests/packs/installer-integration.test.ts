@@ -44,15 +44,16 @@ it("real wrong catalog integrity fails before child imports and rolls back", asy
   await expect(installPacks({ ...f.request, catalog }, { ...f.operations, loadCheck: load })).rejects.toThrow(/integrity/);
   expect(load).not.toHaveBeenCalled(); expect(await snapshotInstallTree(f.root)).toEqual(before);
 }, 30000);
-it("real global same-version reinstallation plan is refused without changing the prior pack", async () => {
+it("real global known pinned replay adds another pack and retains the full desired set", async () => {
   const f = await setup(); const mode = { ...f.request.mode, kind: "global" as const };
   const pin = f.tarballs.get("@nodetool-ai/fixture2-nodes@1.0.0")!;
   const catalog = { ...f.request.catalog, packs: [...f.request.catalog.packs, { ...f.request.catalog.packs[0], id: "fixture2", npm: { name: pin.name, version: pin.version, integrity: pin.integrity } }] };
   const manifest = await readFile(join(f.root, "package.json"));
   await installPacks({ ...f.request, mode, catalog }, f.operations);
   const before = await snapshotInstallTree(f.root);
-  await expect(installPacks({ ...f.request, mode, catalog, packs: ["fixture2"] }, f.operations)).rejects.toThrow(/changes/);
-  expect(await snapshotInstallTree(f.root)).toEqual(before);
+  const desired = await installPacks({ ...f.request, mode, catalog, packs: ["fixture2"] }, f.operations);
+  expect(desired.packs).toEqual(["fixture", "fixture2"]);
+  expect(installTreeRestored(before, (await snapshotInstallTree(f.root)).filter((entry) => entry.name !== pin.name))).toBe(true);
   expect(await readFile(join(f.root, "package.json"))).toEqual(manifest);
 }, 30000);
 it("real empty-global-desired rollback explicitly prunes additions and restores the snapshot", async () => {
@@ -88,4 +89,13 @@ it("actual npm global prefix rollback compares identities when baseline hashes w
   await expect(installPacks(f.request, { ...f.operations, loadCheck: async () => { throw new Error("global bootstrap child failed"); } })).rejects.toThrow("global bootstrap child failed");
   const after = await snapshotInstallTree(f.cliRoot);
   expect(installTreeRestored(f.before.packages, after, true)).toBe(true);
+}, 30000);
+it("actual npm global prefix adds a second pack without changing known prior package identities", async () => {
+  const f = await actualGlobalFixture(); await installPacks(f.request, f.operations);
+  const before = await snapshotInstallTree(f.cliRoot);
+  const pin = f.tarballs.get("@nodetool-ai/fixture2-nodes@1.0.0")!;
+  const catalog = { ...f.request.catalog, packs: [...f.request.catalog.packs, { ...f.request.catalog.packs[0], id: "fixture2", npm: { name: pin.name, version: pin.version, integrity: pin.integrity } }] };
+  const result = await installPacks({ ...f.request, catalog, packs: ["fixture2"] }, f.operations);
+  expect(result.packs).toEqual(["fixture", "fixture2"]);
+  expect(installTreeRestored(before, (await snapshotInstallTree(f.cliRoot)).filter((entry) => entry.name !== pin.name))).toBe(true);
 }, 30000);

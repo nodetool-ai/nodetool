@@ -1,0 +1,82 @@
+name: Node Pack npm Matrix
+
+on:
+  pull_request:
+    paths:
+      - 'packages/cli/src/packs/**'
+      - 'packages/cli/src/commands/nodes.ts'
+      - 'packages/cli/src/commands/pack-install-authorization.ts'
+      - 'packages/cli/src/npm-runner.ts'
+      - 'packages/cli/src/install-lock.ts'
+      - 'packages/cli/tests/packs/npm-matrix.test.ts'
+      - 'packages/cli/tests/_helpers/pack-registry.ts'
+      - 'packages/cli/tests/_fixtures/npm-matrix-*.pem'
+      - 'scripts/test-npm-matrix.mjs'
+      - 'scripts/__tests__/test-npm-matrix.test.mjs'
+      - '.github/workflows/node-pack-npm-matrix.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.nvmrc'
+  schedule:
+    - cron: '43 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: node-pack-npm-matrix-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  npm-matrix:
+    name: ${{ matrix.os }} / Node ${{ matrix.node }} / npm ${{ matrix.npm }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+        node: ['22', '24']
+        include:
+          - node: '22'
+            npm: '10.9.4'
+          - node: '24'
+            npm: '11.16.0'
+          - os: ubuntu-24.04
+            arch: X64
+          - os: macos-15
+            arch: ARM64
+          - os: windows-2025
+            arch: X64
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Install and build the workspace
+        shell: bash
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+        run: |
+          npm ci --ignore-scripts
+          npm run build:packages
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false
+      - name: Pin npm inside the ephemeral runner runtime
+        shell: bash
+        env:
+          MATRIX_NPM_VERSION: ${{ matrix.npm }}
+        run: |
+          node --input-type=module -e 'import { execFileSync } from "node:child_process"; import { dirname, resolve } from "node:path"; const prefix = process.platform === "win32" ? dirname(process.execPath) : resolve(dirname(process.execPath), ".."); const entry = resolve(prefix, process.platform === "win32" ? "node_modules/npm/bin/npm-cli.js" : "lib/node_modules/npm/bin/npm-cli.js"); execFileSync(process.execPath, [entry, "install", "--global", "--prefix=" + prefix, "npm@" + process.env.MATRIX_NPM_VERSION, "--ignore-scripts", "--no-audit", "--no-fund"], {stdio:"inherit"});'
+      - name: Exercise the actual npm installer matrix
+        env:
+          NODETOOL_NPM_MATRIX: '1'
+          NODETOOL_NPM_MATRIX_DEFAULT_PREFIX: '1'
+          NODETOOL_NPM_MATRIX_EXPECT_NPM: ${{ matrix.npm }}
+          NODETOOL_NPM_MATRIX_EXPECT_NODE: ${{ matrix.node }}
+          NODETOOL_NPM_MATRIX_EXPECT_ARCH: ${{ matrix.arch }}
+        run: node scripts/test-npm-matrix.mjs
