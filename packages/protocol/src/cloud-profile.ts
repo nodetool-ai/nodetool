@@ -240,6 +240,8 @@ export const NON_CLOUD_PROVIDER_IDS: readonly string[] = [
   "transformers_js",
   // A personal subscription reached by spawning the local `claude` CLI.
   "claude_agent_sdk",
+  // A personal account reached by spawning the local `agy` CLI.
+  "antigravity",
   // A logged-in Dreamina tab in the user's own Chrome, reached through the
   // NodeTool extension.
   "dreamina",

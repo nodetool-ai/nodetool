@@ -38,6 +38,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | MiniMax | ✅ | ✅ | ✅ | ✅ | | | |
 | Codex (OpenAI OAuth) | ✅ | ✅ | | | | | |
 | Claude Agent SDK | ✅ | | | | | | |
+| Antigravity | ✅ | | | | | | |
 | Evolink | ✅ | ✅ | ✅ | | | | |
 | kie.ai | ✅¹ | ✅ | ✅ | ✅ | | | |
 | AKI | ✅ | ✅ | | | | | |
@@ -170,6 +171,12 @@ Codex reaches GPT chat models and GPT Image generation (GPT Image 2 and 1.5) thr
 ## Claude Agent SDK
 
 Claude Agent SDK reaches Claude by running your local, logged-in `claude` CLI in headless mode instead of calling the Anthropic API directly, billing against your Claude subscription rather than per-token API spend. Install [Claude Code](https://claude.com/claude-code) first. NodeTool finds `claude` on your PATH or in the usual install locations, or set **CLAUDE_CLI_PATH** in Settings → Integrations to point at it. It supports tool calls, which run inside NodeTool while the CLI drives the loop. Images in the prompt are forwarded when they are inline PNG, JPEG, GIF, or WebP data. A remote image URL is rejected, so resolve media references before the call. There is no API key. Sign in with the **Claude Code** card in Settings → Models & Providers or run `nodetool auth claude login` (add `--manual` on a headless host). The provider is not available in NodeTool's hosted cloud because it needs a local executable. See the [Anthropic provider guide](developer/providers/anthropic.md).
+
+## Antigravity
+
+Antigravity reaches the models in Google's Antigravity CLI (`agy`), including Gemini, by running the CLI in [headless mode](https://antigravity.google/docs/cli/headless/) on your signed-in Antigravity account. There is no API key. Install `agy` and run it once in a terminal to sign in. NodeTool also looks for the CLI in `~/.local/bin`, where the official installer puts it. The model list is whatever `agy models` prints, and effort is part of each model id (for example `gemini-3.1-pro-high`).
+
+Each turn spawns `agy` in an empty scratch directory under the system temp folder, so the CLI's own file tools cannot touch your files. Shell commands stay blocked because NodeTool never passes `--dangerously-skip-permissions`. NodeTool tools are not offered to the model, and prompts must be text: a message with images fails instead of losing them. A forced single tool call (structured output) uses the CLI's `--json-schema`. Follow-up turns in a chat resume the same Antigravity conversation with `--conversation`. The provider is not available in NodeTool's hosted cloud because it needs a local executable.
 
 ## Evolink
 
