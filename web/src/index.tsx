@@ -29,8 +29,8 @@ import {
 
 import ErrorBoundary from "./ErrorBoundary";
 
-import { LoadingSpinner, ThemeRoot } from "./components/ui_primitives";
-import ThemeNodetool from "./components/themes/ThemeNodetool";
+import { LoadingSpinner } from "./components/ui_primitives";
+import AppThemeRoot from "./components/themes/AppThemeRoot";
 
 import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
@@ -693,7 +693,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
   return (
     <React.StrictMode>
       <TRPCProvider>
-        <ThemeRoot theme={ThemeNodetool}>
+        <AppThemeRoot>
           <MobileClassProvider>
             <MenuProvider>
               <MenuNavigationBridge />
@@ -822,7 +822,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
               </WorkflowManagerProvider>
             </MenuProvider>
           </MobileClassProvider>
-        </ThemeRoot>
+        </AppThemeRoot>
       </TRPCProvider>
     </React.StrictMode>
   );

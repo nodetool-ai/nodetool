@@ -10,6 +10,7 @@ interface ExampleGamePlayViewProps {
   slug: string;
 }
 
+/** Opened by a game card's Play button, so the game starts without a second click. */
 export default function ExampleGamePlayView({
   slug
 }: ExampleGamePlayViewProps) {
@@ -42,9 +43,21 @@ export default function ExampleGamePlayView({
   const { name, document } = query.data;
   return document.schemaVersion === 3 ? (
     <Suspense fallback={<LoadingSpinner text="Loading 3D player" />}>
-      <Player3D gameId={`example:${slug}`} name={name} document={document} />
+      <Player3D
+        gameId={`example:${slug}`}
+        name={name}
+        document={document}
+        autoPlay
+      />
     </Suspense>
   ) : (
-    <GamePlayer gameId={`example:${slug}`} name={name} document={document} />
+    // Embedded in the Examples tab: the workspace owns the browser tab title.
+    <GamePlayer
+      gameId={`example:${slug}`}
+      name={name}
+      document={document}
+      setsDocumentTitle={false}
+      autoPlay
+    />
   );
 }

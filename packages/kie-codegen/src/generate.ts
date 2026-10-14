@@ -14,7 +14,7 @@ import { configToManifest, type ManifestEntry } from "./manifest.js";
 import { generateKieConfigs } from "./generate-configs.js";
 import {
   fetchKiePricingCatalog,
-} from "@nodetool-ai/kie-nodes/kie-pricing-api";
+} from "@nodetool-ai/model-pricing/kie-pricing-api";
 import {
   buildKiePricingBundles,
   pricingPaths,

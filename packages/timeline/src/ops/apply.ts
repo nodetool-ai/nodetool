@@ -3182,8 +3182,7 @@ function runTrackOp(scope: OpScope, op: TimelineTrackOp): TimelineOpResult {
       const onIt = scope.clips.filter((c) => c.trackId === track.id);
       if (deleteClips) {
         scope.assertWritable(onIt);
-      }
-      if (onIt.length > 0 && !deleteClips) {
+      } else if (onIt.length > 0) {
         throw new Error(
           `Track "${track.name}" still holds ${onIt.length} clip(s): ` +
             `${onIt.map((c) => c.id).join(", ")}. Move them first, or pass ` +
@@ -3211,8 +3210,9 @@ function runTrackOp(scope: OpScope, op: TimelineTrackOp): TimelineOpResult {
       for (const linkId of removedLinks) {
         const remainingLinked = scope.clips.filter((c) => c.linkId === linkId);
         if (remainingLinked.length === 1) {
-          delete remainingLinked[0]!.linkId;
-          scope.touch(remainingLinked[0]!.id);
+          const [orphan] = remainingLinked;
+          delete orphan!.linkId;
+          scope.touch(orphan!.id);
         }
       }
       // Subject tracks belong to a clip; they go with it, and a clip bound to
@@ -3224,14 +3224,14 @@ function runTrackOp(scope: OpScope, op: TimelineTrackOp): TimelineOpResult {
         scope.mediaTracks = scope.mediaTracks.filter(
           (t) => !droppedMediaTracks.has(t.id)
         );
-        for (const clip of scope.clips) {
-          if (
-            clip.trackBinding &&
-            droppedMediaTracks.has(clip.trackBinding.trackId)
-          ) {
-            delete clip.trackBinding;
-            scope.touch(clip.id);
-          }
+      }
+      for (const clip of scope.clips) {
+        if (
+          clip.trackBinding &&
+          droppedMediaTracks.has(clip.trackBinding.trackId)
+        ) {
+          delete clip.trackBinding;
+          scope.touch(clip.id);
         }
       }
       scope.touch(...removedClipIds);

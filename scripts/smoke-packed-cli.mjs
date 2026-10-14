@@ -2,9 +2,11 @@
 /**
  * Install `@nodetool-ai/cli` from packed tarballs and check that it runs the
  * way an agent uses it on a clean machine: no repository, no `.env`, no
- * keychain, no provider keys.
+ * keychain, no provider keys. A fresh test-only master key keeps secret-store
+ * initialization independent of the host keychain.
  *
- * Every public workspace is packed with `npm pack`. A throwaway project
+ * By default every public workspace is packed with `npm pack`. Pass
+ * `--tarballs-dir` to reuse the release tarballs. A throwaway project
  * depends on the CLI tarball, and `overrides` point every other workspace
  * name at its tarball, so npm resolves the whole tree the way the registry
  * would after a complete publish, without touching the registry for our own
@@ -19,9 +21,10 @@
  *   5. `nodetool serve` answers `GET /health`.
  *
  * Usage:
- *   node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>]
+ *   node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>] [--tarballs-dir <dir>]
  */
 
+import { randomBytes } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import {
   existsSync,
@@ -119,7 +122,7 @@ function run(cmd, args, opts) {
   return res.stdout;
 }
 
-function pack(packages, dest) {
+export function pack(packages, dest) {
   const tarballs = {};
   for (const { name, dir } of packages) {
     const out = run(
@@ -133,13 +136,33 @@ function pack(packages, dest) {
   return tarballs;
 }
 
+/** Reuse the exact release tarballs rather than packing the workspaces again. */
+export function existingTarballs(packages, directory) {
+  const expected = new Map(packages.map((pkg) => [pkg.name, pkg.version]));
+  const tarballs = {};
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith(".tgz")) { continue; }
+    const file = resolve(directory, entry.name);
+    const manifest = JSON.parse(run("tar", ["-xOf", file, "package/package.json"], {}));
+    if (!expected.has(manifest.name)) { continue; }
+    if (manifest.version !== expected.get(manifest.name)) {
+      throw new Error(`${manifest.name} tarball version ${manifest.version} differs from workspace ${expected.get(manifest.name)}`);
+    }
+    if (tarballs[manifest.name]) { throw new Error(`Duplicate tarball for ${manifest.name}`); }
+    tarballs[manifest.name] = file;
+  }
+  const missing = [...expected.keys()].filter((name) => !tarballs[name]);
+  if (missing.length > 0) { throw new Error(`Missing release tarballs: ${missing.join(", ")}`); }
+  return tarballs;
+}
+
 /**
  * Start `nodetool mcp serve`, send initialize and tools/list over stdio, and
  * resolve with the tool count. Stdout is newline-delimited JSON-RPC.
  */
-function probeMcp(bin, env, timeoutMs = 120_000) {
+function probeMcp(bin, env, cwd, timeoutMs = 120_000) {
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(bin, ["mcp", "serve"], { env, stdio: ["pipe", "pipe", "pipe"] });
+    const child = spawn(bin, ["mcp", "serve"], { env, cwd, stdio: ["pipe", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
     const timer = setTimeout(() => {
@@ -204,12 +227,13 @@ function freePort() {
  * Start `nodetool serve` and resolve once `GET /health` answers 200. The
  * server is killed either way.
  */
-async function probeServe(bin, env, timeoutMs = 120_000) {
+async function probeServe(bin, env, cwd, timeoutMs = 120_000) {
   const port = await freePort();
   // `serve` runs the server as a child process, so start a process group
   // and kill the whole group, or the server outlives the check.
   const child = spawn(bin, ["serve", "--port", String(port)], {
     env,
+    cwd,
     detached: true,
     stdio: ["ignore", "pipe", "pipe"]
   });
@@ -247,17 +271,19 @@ async function main() {
     options: {
       keep: { type: "boolean", default: false },
       "work-dir": { type: "string" },
+      "tarballs-dir": { type: "string" },
       help: { type: "boolean", short: "h", default: false }
     }
   });
   if (values.help) {
-    console.log(`Usage: node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>]
+    console.log(`Usage: node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>] [--tarballs-dir <dir>]
 
 Packs every public workspace, installs ${CLI_NAME} from the tarballs into an
 empty project, and runs it against an empty HOME.
 
   --keep            Keep the work directory for inspection
-  --work-dir <dir>  Use this directory instead of a new temp directory`);
+  --work-dir <dir>  Use this directory instead of a new temp directory
+  --tarballs-dir <dir>  Reuse release tarballs, checking workspace names and versions`);
     return;
   }
 
@@ -274,8 +300,10 @@ empty project, and runs it against an empty HOME.
     const cli = packages.find((p) => p.name === CLI_NAME);
     if (!cli) throw new Error(`${CLI_NAME} is not a public workspace`);
 
-    console.log(`Packing ${packages.length} package(s) into ${tarballDir}`);
-    const tarballs = pack(packages, tarballDir);
+    const tarballs = values["tarballs-dir"]
+      ? existingTarballs(packages, resolve(values["tarballs-dir"]))
+      : pack(packages, tarballDir);
+    console.log(`Using ${packages.length} packed package(s)`);
 
     writeFileSync(
       join(appDir, "package.json"),
@@ -286,44 +314,60 @@ empty project, and runs it against an empty HOME.
       cwd: appDir,
       stdio: ["ignore", "pipe", "pipe"]
     });
+    const diskUsage = run("du", ["-sk", "node_modules"], { cwd: appDir }).trim();
+    console.log(`Packed CLI disk usage (KiB, report only): ${diskUsage}`);
 
     const bin = join(appDir, "node_modules", ".bin", "nodetool");
-    const env = cleanEnv(home);
+    const env = { ...cleanEnv(home), SECRETS_MASTER_KEY: randomBytes(32).toString("base64") };
+    const cliOptions = { env, cwd: appDir, timeout: 120_000 };
 
-    const version = run(bin, ["--version"], { env }).trim();
+    const version = run(bin, ["--version"], cliOptions).trim();
     if (version !== cli.version) {
       throw new Error(`nodetool --version printed '${version}', expected '${cli.version}'`);
     }
     console.log(`ok  nodetool --version = ${version}`);
 
-    const missing = missingCommands(run(bin, ["--help"], { env }));
+    const missing = missingCommands(run(bin, ["--help"], cliOptions));
     if (missing.length > 0) {
       throw new Error(`nodetool --help is missing: ${missing.join(", ")}`);
     }
     console.log(`ok  nodetool --help lists ${REQUIRED_COMMANDS.join(", ")}`);
 
-    const tools = await probeMcp(bin, env);
+    const tools = await probeMcp(bin, env, appDir);
     if (tools === 0) throw new Error("nodetool mcp serve listed no tools");
     console.log(`ok  nodetool mcp serve lists ${tools} tools`);
 
+    const workflowFixture = join(appDir, "hello_input_output_cli.json");
+    writeFileSync(workflowFixture, readFileSync(join(ROOT, NO_MODEL_WORKFLOW)));
     const out = run(
       bin,
       [
         "workflows",
         "run",
-        resolve(ROOT, NO_MODEL_WORKFLOW),
+        workflowFixture,
         "--params",
         JSON.stringify({ text: "packed smoke" }),
         "--json"
       ],
-      { env }
+      cliOptions
     );
     if (!out.includes("packed smoke")) {
       throw new Error(`nodetool workflows run did not echo its input:\n${out}`);
     }
     console.log("ok  nodetool workflows run executes a no-model workflow");
 
-    await probeServe(bin, env);
+    const dslDir = join(appDir, "examples", "workflows");
+    mkdirSync(dslDir, { recursive: true });
+    for (const filename of ["package.json", "concat_text.ts"]) {
+      writeFileSync(join(dslDir, filename), readFileSync(join(ROOT, "examples", "workflows", filename)));
+    }
+    const dslOutput = run(bin, ["run", join(dslDir, "concat_text.ts"), "--json"], cliOptions);
+    if (!dslOutput.includes("Hello, NodeTool!")) {
+      throw new Error(`nodetool run did not execute the TypeScript workflow:\n${dslOutput}`);
+    }
+    console.log("ok  nodetool run executes a TypeScript workflow without downloads");
+
+    await probeServe(bin, env, appDir);
     console.log("ok  nodetool serve answers /health");
   } finally {
     if (values.keep || values["work-dir"]) {

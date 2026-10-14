@@ -3,7 +3,7 @@
 Status: proposed, revision 2. Scope: how NodeTool installs and finds optional
 software on every host: npm runtime libraries, the conda environment, Python
 packages and uv tools. It extends the
-[Runtime Package Interface](runtime-package-interface.md), which is implemented
+[Runtime Package Interface](https://github.com/nodetool-ai/nodetool/blob/main/docs/runtime-package-interface.md), which is implemented
 for the desktop app only. TypeScript node packs stay under the
 [CLI Pack System](cli-pack-system-design.md). This design does not change its
 D2.
@@ -98,7 +98,7 @@ Other hosts:
 - **F5. The install rules for conda and uv live in Electron.**
   `electron/src/runtime/packages/definitions.ts` holds them. Only the npm specs
   are shared (`packages/protocol/src/runtime-npm-packages.ts`).
-  [runtime-package-interface.md](runtime-package-interface.md#server-cannot-resolve-runtimes-electron-only-for-v1)
+  [runtime-package-interface.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/runtime-package-interface.md#server-cannot-resolve-runtimes-electron-only-for-v1)
   records this as "Electron-only for v1".
 - **F6. Binary, Python and uv tool failures name no command that works outside
   the desktop.** `MissingBinaryError` (`video-nodes`) and `host-binaries.ts`
@@ -398,7 +398,7 @@ The optional package @llamaindex/liteparse (PDF Libraries) is not installed.
 Install it, then run the command again:
   nodetool runtime add pdf-js
 or with npm:
-  npm install --prefix "/Users/me/.local/share/nodetool/optional-node" @llamaindex/liteparse@1.5.3 pdf-parse@2.4.5 pdf-lib@1.17.1
+  npm install --prefix "<dataDir>/optional-node" @llamaindex/liteparse@1.5.3 pdf-parse@2.4.5 pdf-lib@1.17.1
 ```
 
 Structured forms (D12):
@@ -515,7 +515,7 @@ that step (F43).
 | Page | Change |
 |---|---|
 | [cli-pack-system-design.md](cli-pack-system-design.md) | Runtime libraries that a pack declares install into the host's npm root through `runtime add`, not into the pack install root. The lock implementation is shared. |
-| [runtime-package-interface.md](runtime-package-interface.md) | Replace "Electron-only for v1" with a link to this design. Replace the newest-compatible version rule with D3. |
+| [runtime-package-interface.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/runtime-package-interface.md) | Replace "Electron-only for v1" with a link to this design. Replace the newest-compatible version rule with D3. |
 | [installation.md](installation.md) | Remove the macOS `NODETOOL_PYTHON` workaround after step 1. Use `nodetool runtime add python` after step 4. |
 | [cli.md](cli.md) | The `runtime` commands of section 5.6. |
 | [docker-production-deploy.md](docker-production-deploy.md) | The `NODETOOL_RUNTIME_PACKAGES` build argument. |

@@ -791,6 +791,7 @@ const NewProjectSurface = ({
         title: "New chat",
         projectId
       });
+      useOnboardingStore.getState().markIdeaDescribed();
       closeTab(
         tabId(flowRef ? "guided-flow" : "project-new", flowRef ?? PROJECT_NEW_REF)
       );

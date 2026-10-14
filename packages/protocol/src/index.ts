@@ -18,6 +18,7 @@ export * from "./asset-file-name.js";
 export * from "./package-assets.js";
 export * from "./resource-uri.js";
 export * from "./model-selection.js";
+export * from "./example-needs.js";
 export {
   TypeMetadata,
   areTypeNamesCompatible

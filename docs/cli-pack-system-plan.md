@@ -1,6 +1,5 @@
 # CLI Pack System Implementation Plan
 
-**Status:** Plan. Not started.
 **Design:** [CLI Pack System](cli-pack-system-design.md), called "the pack spec"
 below. **Related:** [Runtime Install Design](runtime-install-design.md).
 
@@ -16,7 +15,7 @@ decision codes of the pack spec.
 |---|---|
 | A0.1 | Start an assignment only when every assignment that blocks it is on `main`. |
 | A0.2 | Re-read the files in section 3 before you edit them. The line numbers in the pack spec date from its review. |
-| A0.3 | Land each assignment as one commit, or as a series that is green at each commit. Run the [mandatory post-change verification](../AGENTS.md#mandatory-post-change-verification) before each commit. |
+| A0.3 | Land each assignment as one commit, or as a series that is green at each commit. Run the [mandatory post-change verification](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification) before each commit. |
 | A0.4 | Run `npm run backend:smoke` for each assignment that changes a manifest, the server entry, or a lazy import. The desktop bundle flattens modules, so a cut can pass in the monorepo and fail in the artifact. |
 | A0.5 | Make each new gate fail on deliberately invalid input before you enforce it (pack spec 19.2). |
 | A0.6 | Do not change the published CLI until A24. Before A24, the CLI manifest keeps its node packs, and the installer stays behind `NODETOOL_PACKS_INSTALLER=1`. |
@@ -85,10 +84,12 @@ list. The generator in pack spec 9.2 needs one registrar per pack.
   `src/index.ts`. The domain packages are `core`, `text`, `llm`, `code`,
   `data`, `document`, `image`, `audio`, `video`, `integration`, `automation`,
   `game`, `blender` and `manimgx`.
-- The four metadata overrides in `registerBaseNodes` move into
-  `registerCoreNodes`. The overrides are Preview, Workflow, App and Subgraph.
-- `registerBaseNodes` becomes a list of calls to the domain registrars, in the
-  current `ALL_BASE_NODES` order. The desktop app sees no change.
+- The Workflow, App and Subgraph metadata overrides move into
+  `registerCoreNodes`. Preview belongs to audio and its override moves into
+  `registerAudioNodes`.
+- `registerBaseNodes` calls the domain registrars in a staging registry and
+  registers the resulting classes and metadata in the existing interleaved
+  `ALL_BASE_NODES` order. The desktop app sees no change.
 
 ### D20. The bundled server entry moves to a private workspace
 
@@ -187,8 +188,10 @@ The pack spec names no cut that is already done.
 
 1. Add a registrar to each domain package. It registers the lists that
    `ALL_BASE_NODES` takes from that package, in the same order.
-2. Move the four metadata overrides into `registerCoreNodes`.
-3. Change `registerBaseNodes` to call the 14 registrars.
+2. Move Workflow, App and Subgraph overrides into `registerCoreNodes`, and
+   Preview into its owning `registerAudioNodes`.
+3. Change `registerBaseNodes` to call the 14 registrars and replay their
+   metadata in the original interleaved order.
 
 **Acceptance:**
 

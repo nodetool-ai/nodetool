@@ -3,7 +3,7 @@
  * the data directory, so each test points XDG_DATA_HOME / APPDATA at a
  * temporary directory and never touches the real one or the network.
  */
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Command } from "commander";
@@ -11,10 +11,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RUNTIME_NPM_PACKAGES } from "@nodetool-ai/protocol";
 
 import {
+  optionalNodeRoot,
   optionalNodeModulesDir,
   applyOptionalNodeModules
 } from "../../optional-node-root.js";
 import { registerRuntimeCommands } from "../runtime.js";
+import * as npmRunner from "../../npm-runner.js";
 
 const ENV_KEYS = ["XDG_DATA_HOME", "APPDATA", "NODETOOL_OPTIONAL_NODE_MODULES"];
 let saved: Record<string, string | undefined>;
@@ -106,6 +108,35 @@ describe("nodetool runtime", () => {
     await expect(run(["runtime", "add", "tokenizer", "left-pad"])).rejects.toThrow(
       /Unknown runtime package: left-pad/
     );
+  });
+
+  it("installs exact registry specs under the target lock with a module manifest", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const npm = vi.spyOn(npmRunner, "runNpm").mockImplementation(async (root) => {
+      const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
+      expect(manifest).toMatchObject({ private: true, type: "module" });
+      const lock = JSON.parse(await readFile(join(root, ".nodetool-runtime.lock"), "utf8"));
+      expect(lock).toMatchObject({ pid: process.pid });
+      expect(lock.token).toEqual(expect.any(String));
+    });
+    await run(["runtime", "add", "tokenizer"]);
+    expect(npm).toHaveBeenCalledWith(optionalNodeRoot(),
+      ["install", ...RUNTIME_NPM_PACKAGES.tokenizer.npmPackages],
+      expect.objectContaining({ mode: "local", scriptPolicy: "user" }));
+    await expect(readFile(join(optionalNodeRoot(), ".nodetool-runtime.lock"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("removes only the requested package names under the same target lock", async () => {
+    await writeFile(join(dataHome, "package.json"), "{}");
+    await mkdir(optionalNodeRoot(), { recursive: true });
+    await writeFile(join(optionalNodeRoot(), "package.json"), "{}");
+    const npm = vi.spyOn(npmRunner, "runNpm").mockImplementation(async (root) => {
+      expect(JSON.parse(await readFile(join(root, ".nodetool-runtime.lock"), "utf8"))).toMatchObject({ pid: process.pid });
+    });
+    await run(["runtime", "remove", "tokenizer"]);
+    expect(npm).toHaveBeenCalledWith(optionalNodeRoot(),
+      ["uninstall", ...RUNTIME_NPM_PACKAGES.tokenizer.packageNames],
+      expect.objectContaining({ mode: "local", scriptPolicy: "user" }));
   });
 
   it("prints the root it installs into", async () => {
