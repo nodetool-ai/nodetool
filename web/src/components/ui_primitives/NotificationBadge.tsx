@@ -2,7 +2,8 @@
 import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { MOTION } from "./tokens";
-import { Badge, BadgeProps, Tooltip } from "@mui/material";
+import { Badge, BadgeProps } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 export interface NotificationBadgeProps {

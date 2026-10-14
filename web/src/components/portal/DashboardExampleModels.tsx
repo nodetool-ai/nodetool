@@ -6,6 +6,7 @@ import {
   creationProjectId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
+import useOnboardingStore from "../../stores/OnboardingStore";
 import {
   AutoGrid,
   Card,
@@ -29,6 +30,8 @@ import {
   type ExampleModel
 } from "../../utils/exampleModels";
 import { notifyMutationError } from "../../utils/notifyMutationError";
+import { NO_EXAMPLE_NEEDS } from "../../utils/exampleNeeds";
+import ExampleNeedsPill from "./ExampleNeedsPill";
 
 const exampleModelQueryKeys = {
   all: ["example-models"] as const,
@@ -70,6 +73,7 @@ const DashboardExampleModels = () => {
         projectId
       });
       navigate("/workspace");
+      useOnboardingStore.getState().markStep("keep-creating");
     },
     onError: (error) => notifyMutationError("add the example model", error)
   });
@@ -132,6 +136,7 @@ const DashboardExampleModels = () => {
                 <FlexColumn gap={SPACING.sm} sx={{ height: "100%" }}>
                   <Text sx={TYPOGRAPHY.sans.label}>{model.name}</Text>
                   <Caption color="secondary">{model.use}</Caption>
+                  <ExampleNeedsPill needs={NO_EXAMPLE_NEEDS} />
                   <Caption>
                     {model.triangles.toLocaleString()} triangles
                     {model.clips.length > 0

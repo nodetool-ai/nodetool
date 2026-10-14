@@ -15,11 +15,11 @@
  */
 
 import React, { forwardRef, memo, useMemo } from "react";
-import { IconButton, IconButtonProps, Tooltip } from "@mui/material";
+import { IconButton, IconButtonProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
-import { tooltipWithShortcut } from "./Tooltip";
+import { Tooltip, tooltipWithShortcut } from "./Tooltip";
 import { isString } from "../../utils/typePredicates";
 
 export interface ToolbarIconButtonProps

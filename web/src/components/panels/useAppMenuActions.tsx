@@ -25,7 +25,11 @@ export interface AppMenuAction {
   label: string;
   icon: React.ReactNode;
   onClick: () => void;
-  placement: "logo" | "sidebar";
+  /**
+   * Where the entry shows on desktop: the logo menu, the rail's More panel,
+   * or both. Mobile and the command palette show every entry once.
+   */
+  placement: "logo" | "sidebar" | "both";
   /** Trailing text, e.g. live download progress. */
   secondary?: string;
   /** Group separator after this entry. */
@@ -153,14 +157,14 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
         key: "settings",
         label: "Settings",
         icon: <SettingsIcon />,
-        placement: "logo",
+        placement: "both",
         onClick: () => openPage("settings")
       },
       {
         key: "help",
         label: "Help",
         icon: <HelpOutlineIcon />,
-        placement: "logo",
+        placement: "both",
         onClick: () => {
           handleOpenHelp();
           finish();

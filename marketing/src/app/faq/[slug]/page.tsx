@@ -13,6 +13,7 @@ import {
   FAQ_CATEGORY_LABELS,
   type FaqEntry,
 } from "@/data/faqEntries";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -33,6 +34,7 @@ export async function generateMetadata({
     description: faq.description,
     alternates: { canonical: faq.route },
     openGraph: {
+      images: DEFAULT_OG_IMAGES,
       title: faq.question,
       description: faq.description,
       url: `${BASE_URL}${faq.route}`,

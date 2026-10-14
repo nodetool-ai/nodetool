@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, type KeyboardEvent } from "react";
+import { lazy, Suspense, useEffect, useRef, type KeyboardEvent } from "react";
 import { useParams } from "react-router-dom";
 import type { GameDocument } from "@nodetool-ai/protocol/game.js";
 
@@ -6,6 +6,7 @@ import { trpc } from "../../trpc/client";
 import { Box, Caption, EditorButton, EmptyState, FlexColumn, FlexRow, LoadingSpinner, SPACING, Text } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import { useGamePlaySession } from "./useGamePlaySession";
+import { gamePlayStatus } from "./gamePlayStatus";
 
 interface GamePlayerProps {
   gameId: string;
@@ -14,12 +15,27 @@ interface GamePlayerProps {
   active?: boolean;
   /** False when the player is embedded in another page, such as a chat reply. */
   setsDocumentTitle?: boolean;
+  /** Start the game as soon as the renderer is ready, for a Play button that opened the player. */
+  autoPlay?: boolean;
 }
 
-export function GamePlayer({ gameId, name, document, active = true, setsDocumentTitle = true }: GamePlayerProps) {
+export function GamePlayer({ gameId, name, document, active = true, setsDocumentTitle = true, autoPlay = false }: GamePlayerProps) {
   const { canvasRef, inputRef, playing, playDocument, playState, backend, error,
     beginPlay, stop } = useGamePlaySession({ refId: gameId, active, document, name });
-  const status = playState.won ? "Won" : playing ? "Playing" : playDocument ? "Paused" : "Ready";
+  const status = gamePlayStatus({
+    won: playState.won,
+    playing,
+    paused: Boolean(playDocument),
+    sceneName: document.scenes.find((scene) => scene.id === playState.sceneId)?.name,
+    sceneCount: document.scenes.length
+  });
+
+  const autoPlayedRef = useRef(false);
+  useEffect(() => {
+    if (!autoPlay || autoPlayedRef.current || backend === "Initializing" || playDocument) return;
+    autoPlayedRef.current = true;
+    beginPlay();
+  }, [autoPlay, backend, playDocument, beginPlay]);
 
   useEffect(() => {
     if (!setsDocumentTitle) return;
