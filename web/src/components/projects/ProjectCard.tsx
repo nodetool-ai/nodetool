@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, type DragEvent } from "react";
+import { memo, useCallback, useMemo, useState, type DragEvent } from "react";
 
 import { useTheme } from "@mui/material/styles";
 
@@ -11,7 +11,8 @@ import {
   ResponsiveImage,
   SPACING,
   StatusPill,
-  Text,
+  Tooltip,
+  TruncatedText,
   TYPOGRAPHY,
   selectableTileStyles
 } from "../ui_primitives";
@@ -21,13 +22,53 @@ import {
   formatSpend,
   projectProgress,
   projectStatusLine,
-  type ProjectDetail
+  type ProjectDetail,
+  type ProjectDocument
 } from "./projectStatus";
 import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
 import ProjectLifecycleActions from "./ProjectLifecycleActions";
 
 const MEDIA_HEIGHT = 176;
 const EMPTY_MEDIA_HEIGHT_XS = 72;
+
+/** What each kind of project document is called in the card's tooltip. */
+const DOCUMENT_NOUN: Record<ProjectDocument["type"], [string, string]> = {
+  storyboard: ["board", "boards"],
+  script: ["script", "scripts"],
+  timeline: ["cut", "cuts"],
+  sketch: ["sketch", "sketches"],
+  application: ["app", "apps"],
+  game: ["game", "games"],
+  jsscript: ["JS script", "JS scripts"],
+  workflow: ["workflow", "workflows"]
+};
+
+interface DocumentKindCount {
+  type: ProjectDocument["type"];
+  count: number;
+}
+
+/**
+ * The project's documents counted by kind, in the order they first appear,
+ * so a project of forty documents reads as a few glyphs instead of forty.
+ */
+const countByKind = (
+  documents: readonly ProjectDocument[]
+): DocumentKindCount[] => {
+  const counts = new Map<ProjectDocument["type"], number>();
+  for (const doc of documents) {
+    counts.set(doc.type, (counts.get(doc.type) ?? 0) + 1);
+  }
+  return [...counts].map(([type, count]) => ({ type, count }));
+};
+
+const describeKinds = (kinds: readonly DocumentKindCount[]): string =>
+  kinds
+    .map(({ type, count }) => {
+      const [one, many] = DOCUMENT_NOUN[type];
+      return `${count} ${count === 1 ? one : many}`;
+    })
+    .join(" · ");
 
 interface ProjectCardProps {
   detail: ProjectDetail;
@@ -37,8 +78,8 @@ interface ProjectCardProps {
 }
 
 /**
- * One project in the list: what it has rendered, what it cost, and — for a
- * board that has stills — what it looks like.
+ * One project in the list: what it looks like, how far it has got, and what
+ * it cost. Export, archive and delete sit behind the overflow button.
  */
 const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
   const theme = useTheme();
@@ -46,6 +87,8 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
   const { project, documents, spend } = detail;
   const stills = documents.flatMap((doc) => doc.thumbnails).slice(0, 3);
   const progress = projectProgress(documents);
+  const kinds = useMemo(() => countByKind(documents), [documents]);
+  const statusLine = projectStatusLine(documents);
 
   const handleDrop = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
@@ -71,19 +114,23 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
       onDrop={handleDrop}
       sx={{
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
         ...selectableTileStyles(theme, { selected: dropActive })
       }}
     >
       <Box
         sx={{
           position: "relative",
-          // A project without stills keeps a short band for its progress
-          // pill on phones instead of a tall empty frame.
+          flexShrink: 0,
+          // A project without stills keeps a short band on phones instead of
+          // a tall empty frame.
           height:
             stills.length === 0
               ? { xs: `${EMPTY_MEDIA_HEIGHT_XS}px`, sm: `${MEDIA_HEIGHT}px` }
               : `${MEDIA_HEIGHT}px`,
-          bgcolor: "background.paper",
+          bgcolor: "action.hover",
+          borderBottom: `1px solid ${theme.vars.palette.divider}`,
           display: "grid",
           gap: SPACING.micro,
           gridTemplateColumns: stills.length > 1 ? "2fr 1fr" : "1fr",
@@ -105,56 +152,123 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
           />
         ))}
         {stills.length === 0 && (
-          <FlexRow align="center" justify="center" fullHeight>
-            <Caption color="muted">No stills yet</Caption>
-          </FlexRow>
-        )}
-        {progress && (
-          <StatusPill
-            tone={progress.done ? "done" : "neutral"}
-            sx={{
-              position: "absolute",
-              left: SPACING.md,
-              bottom: SPACING.md
-            }}
+          <FlexColumn
+            align="center"
+            justify="center"
+            gap={SPACING.sm}
+            fullHeight
           >
-            {progress.label}
-          </StatusPill>
+            {kinds.length > 0 && (
+              <FlexRow
+                gap={SPACING.lg}
+                aria-hidden
+                sx={{ display: { xs: "none", sm: "flex" } }}
+              >
+                {kinds.map(({ type }) => (
+                  <Box
+                    key={type}
+                    component="span"
+                    sx={{ color: TYPE_COLOR[type], ...TYPOGRAPHY.sans.title }}
+                  >
+                    {TYPE_GLYPH[type]}
+                  </Box>
+                ))}
+              </FlexRow>
+            )}
+            <Caption color="muted">
+              {documents.length === 0 ? "Nothing made yet" : "No stills yet"}
+            </Caption>
+          </FlexColumn>
         )}
       </Box>
 
-      <FlexColumn gap={SPACING.md} sx={{ p: { xs: SPACING.lg, sm: SPACING.xl } }}>
-        <FlexRow align="center" gap={SPACING.md}>
-          <Box component="span" aria-hidden sx={{ color: PROJECT_COLOR }}>
+      <FlexColumn
+        gap={SPACING.sm}
+        sx={{
+          flex: 1,
+          px: { xs: SPACING.lg, sm: SPACING.xl },
+          pt: SPACING.lg,
+          pb: { xs: SPACING.lg, sm: SPACING.xl }
+        }}
+      >
+        <FlexRow align="center" gap={SPACING.md} sx={{ minHeight: 28 }}>
+          <Box
+            component="span"
+            aria-hidden
+            sx={{ color: PROJECT_COLOR, ...TYPOGRAPHY.sans.caption }}
+          >
             {PROJECT_GLYPH}
           </Box>
-          <Text sx={{ flex: 1, ...TYPOGRAPHY.sans.label }}>{project.name}</Text>
-          <Caption color="secondary">
+          <TruncatedText sx={{ flex: 1, minWidth: 0, ...TYPOGRAPHY.sans.label }}
+          >
+            {project.name}
+          </TruncatedText>
+          {progress && (
+            <StatusPill
+              tone={progress.done ? "done" : "neutral"}
+              sx={{ flexShrink: 0 }}
+            >
+              {progress.label}
+            </StatusPill>
+          )}
+          <ProjectLifecycleActions project={project} layout="menu" />
+        </FlexRow>
+        <TruncatedText
+          showTooltip
+          sx={{ ...TYPOGRAPHY.sans.caption, color: "text.secondary" }}
+        >
+          {statusLine}
+        </TruncatedText>
+        <FlexRow align="center" gap={SPACING.md} sx={{ mt: "auto", pt: SPACING.sm }}>
+          {kinds.length > 0 && (
+            <Tooltip title={describeKinds(kinds)}>
+              <FlexRow
+                align="center"
+                gap={SPACING.md}
+                aria-label={describeKinds(kinds)}
+                sx={{ minWidth: 0, overflow: "hidden" }}
+              >
+                {kinds.map(({ type, count }) => (
+                  <FlexRow
+                    key={type}
+                    component="span"
+                    align="center"
+                    gap={SPACING.xs}
+                    aria-hidden
+                    sx={{ flexShrink: 0 }}
+                  >
+                    <Box
+                      component="span"
+                      sx={{ color: TYPE_COLOR[type], ...TYPOGRAPHY.sans.caption }}
+                    >
+                      {TYPE_GLYPH[type]}
+                    </Box>
+                    {count > 1 && (
+                      <Caption component="span" color="secondary">
+                        {count}
+                      </Caption>
+                    )}
+                  </FlexRow>
+                ))}
+              </FlexRow>
+            </Tooltip>
+          )}
+          <Box sx={{ flex: 1 }} />
+          <Tooltip title="Spent at provider rates">
+            <Box
+              component="span"
+              sx={{
+                ...TYPOGRAPHY.mono.caption,
+                color: "text.primary",
+                whiteSpace: "nowrap"
+              }}
+            >
+              {formatSpend(spend)}
+            </Box>
+          </Tooltip>
+          <Caption color="muted" sx={{ whiteSpace: "nowrap" }}>
             {relativeTime(project.updatedAt)}
           </Caption>
-        </FlexRow>
-        <Caption color="secondary">{projectStatusLine(documents)}</Caption>
-        <FlexRow align="center" gap={SPACING.md}>
-          <ProjectLifecycleActions project={project} />
-          <FlexRow gap={SPACING.sm} aria-hidden>
-            {documents.map((doc) => (
-              <Box
-                key={`${doc.type}:${doc.ref}`}
-                component="span"
-                sx={{
-                  color: TYPE_COLOR[doc.type],
-                  ...TYPOGRAPHY.sans.caption
-                }}
-              >
-                {TYPE_GLYPH[doc.type]}
-              </Box>
-            ))}
-          </FlexRow>
-          <Box sx={{ flex: 1 }} />
-          <Box component="span" sx={{ ...TYPOGRAPHY.mono.caption }}>
-            {formatSpend(spend)}
-          </Box>
-          <Caption color="muted">provider rates</Caption>
         </FlexRow>
       </FlexColumn>
     </Card>
