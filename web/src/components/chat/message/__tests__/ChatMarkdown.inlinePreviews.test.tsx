@@ -62,77 +62,10 @@ jest.mock("../../../../lib/chat/openResource", () => ({
   canOpenResource: () => true
 }));
 
-/**
- * react-markdown is ESM-only; this mock handles markdown images `![](src)`
- * and links `[label](href)` and forwards them to `components.img` /
- * `components.a`, sanitizing through `urlTransform` the way the real one does.
- */
-jest.mock("react-markdown", () => {
-  const react = jest.requireActual<typeof import("react")>("react");
-  const SAFE_SCHEME = /^(https?|mailto|irc|ircs|xmpp):/i;
-  const defaultUrlTransform = (url: string): string => {
-    const colon = url.indexOf(":");
-    if (colon === -1 || SAFE_SCHEME.test(url)) return url;
-    const questionMark = url.indexOf("?");
-    const hash = url.indexOf("#");
-    const slash = url.indexOf("/");
-    const beforePath =
-      (slash === -1 || colon < slash) &&
-      (questionMark === -1 || colon < questionMark) &&
-      (hash === -1 || colon < hash);
-    return beforePath ? "" : url;
-  };
-  const TOKEN = /!\[([^\]]*)\]\(([^)]+)\)|\[([^\]]*)\]\(([^)]+)\)/g;
-  const MockMarkdown = ({
-    children,
-    components,
-    urlTransform
-  }: {
-    children?: string;
-    components?: {
-      img?: React.ComponentType<{ src?: string; alt?: string }>;
-      a?: React.ComponentType<React.ComponentPropsWithoutRef<"a">>;
-    };
-    urlTransform?: (url: string) => string | null | undefined;
-  }) => {
-    const content = children ?? "";
-    const transform = urlTransform ?? defaultUrlTransform;
-    const parts: React.ReactNode[] = [];
-    let cursor = 0;
-    let match: RegExpExecArray | null;
-    TOKEN.lastIndex = 0;
-    while ((match = TOKEN.exec(content)) !== null) {
-      parts.push(content.slice(cursor, match.index));
-      if (match[1] !== undefined && match[2] !== undefined) {
-        const src = transform(match[2]) ?? "";
-        if (src && components?.img) {
-          parts.push(
-            react.createElement(components.img, {
-              key: match.index,
-              src,
-              alt: match[1]
-            })
-          );
-        }
-      } else if (match[3] !== undefined && match[4] !== undefined) {
-        const href = transform(match[4]) ?? "";
-        if (href && components?.a) {
-          parts.push(
-            react.createElement(
-              components.a,
-              { href, key: match.index },
-              match[3]
-            )
-          );
-        }
-      }
-      cursor = match.index + match[0].length;
-    }
-    parts.push(content.slice(cursor));
-    return react.createElement(react.Fragment, null, ...parts);
-  };
-  return { __esModule: true, default: MockMarkdown, defaultUrlTransform };
-});
+jest.mock("react-markdown", () => ({
+  __esModule: true,
+  ...jest.requireActual("../../../../__mocks__/linkedMarkdownMock")
+}));
 
 // Import after mocks
 import ChatMarkdown from "../ChatMarkdown";
