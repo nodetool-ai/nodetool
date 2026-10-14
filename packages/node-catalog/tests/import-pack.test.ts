@@ -3,6 +3,10 @@ import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 import { importPack } from "../src/import-pack.js";
 
+const CHILD_TIMEOUT_MS = 30_000;
+// Actual pack roots and subprocesses load built media dependencies under CI load.
+const PACK_IMPORT_TEST_TIMEOUT_MS = CHILD_TIMEOUT_MS + 5_000;
+
 it("rejects unknown pack IDs and specifiers outside the pack's closure", async () => {
   await expect(importPack("unknown-pack")).rejects.toThrow(/Unknown node pack/);
   await expect(importPack("fal", "@nodetool-ai/replicate-nodes")).rejects.toThrow(/does not provide/);
@@ -15,7 +19,7 @@ it("supports a pack's registrar, relative subpaths and provided first-party pack
   expect(pack["registerFalNodes"]).toEqual(expect.any(Function));
   expect(await importPack("document", "lib/pdf-text")).toHaveProperty("extractPdfText");
   expect(await importPack("game", "@nodetool-ai/game-renderer/preparation3d")).toHaveProperty("prepareGameModel");
-});
+}, PACK_IMPORT_TEST_TIMEOUT_MS);
 
 it("keeps unavailable packs catalog-only and preserves initialization errors", async () => {
   const root = fileURLToPath(new URL("../../../", import.meta.url));
@@ -63,7 +67,7 @@ it("keeps unavailable packs catalog-only and preserves initialization errors", a
     process.stdout.write("catalog fallback and initialization failure verified");
   `;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 30_000);
+  const timer = setTimeout(() => controller.abort(), CHILD_TIMEOUT_MS);
   const child = spawn(process.execPath, ["--input-type=module", "-e", script], {
     cwd: root, stdio: ["ignore", "pipe", "pipe"], signal: controller.signal
   });
@@ -82,4 +86,4 @@ it("keeps unavailable packs catalog-only and preserves initialization errors", a
     clearTimeout(timer);
     child.kill();
   }
-});
+}, PACK_IMPORT_TEST_TIMEOUT_MS);

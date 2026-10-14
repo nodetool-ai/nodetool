@@ -30,6 +30,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  windows-long-cwd-diagnostic:
+    name: Windows long cwd / Node ${{ matrix.node }}
+    runs-on: windows-2025
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false
+      - name: Diagnose native Windows long working directories
+        run: node scripts/windows-long-cwd-probe.mjs
   npm-matrix:
     name: ${{ matrix.os }} / Node ${{ matrix.node }} / npm ${{ matrix.npm }}
     runs-on: ${{ matrix.os }}
@@ -73,9 +89,6 @@ jobs:
           MATRIX_NPM_VERSION: ${{ matrix.npm }}
         run: |
           node --input-type=module -e 'import { execFileSync } from "node:child_process"; import { dirname, resolve } from "node:path"; const prefix = process.platform === "win32" ? dirname(process.execPath) : resolve(dirname(process.execPath), ".."); const entry = resolve(prefix, process.platform === "win32" ? "node_modules/npm/bin/npm-cli.js" : "lib/node_modules/npm/bin/npm-cli.js"); execFileSync(process.execPath, [entry, "install", "--global", "--prefix=" + prefix, "npm@" + process.env.MATRIX_NPM_VERSION, "--ignore-scripts", "--no-audit", "--no-fund"], {stdio:"inherit"});'
-      - name: Diagnose native Windows long working directories
-        if: runner.os == 'Windows'
-        run: node scripts/windows-long-cwd-probe.mjs
       - name: Exercise the actual npm installer matrix
         env:
           NODETOOL_NPM_MATRIX: '1'

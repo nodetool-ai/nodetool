@@ -3,6 +3,10 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 
+const CHILD_TIMEOUT_MS = 30_000;
+// Allow child startup and cleanup to finish before the outer test deadline.
+const SUBPROCESS_TEST_TIMEOUT_MS = CHILD_TIMEOUT_MS + 5_000;
+
 function fixture(body: string, version: "matching" | "wrong"): ReturnType<typeof spawnSync> {
   const inventory = pathToFileURL(resolve(import.meta.dirname, "../../cli/src/packs/installed.ts")).href;
   const mode = pathToFileURL(resolve(import.meta.dirname, "../../cli/src/packs/mode.ts")).href;
@@ -39,7 +43,7 @@ function fixture(body: string, version: "matching" | "wrong"): ReturnType<typeof
     const snapshot = readInstalledPacks(classifyInstallLayout({ cliRoot: join(root, 'node_modules', '@nodetool-ai', 'cli'), coreVersion, projectHasCli: true }), catalog.readCatalogIndex());
     catalog.setPackLoaderContext({ coreVersion, packs: snapshot.packs.map(pack => ({ id: pack.id, packages: [pack, ...pack.providedPackages] })), install: { supported: true, reason: null, command: null } });
     try { ${body} } finally { rmSync(root, { recursive: true, force: true }); }
-  `], { cwd: resolve(import.meta.dirname, "../../.."), encoding: "utf8", timeout: 30000 });
+  `], { cwd: resolve(import.meta.dirname, "../../.."), encoding: "utf8", timeout: CHILD_TIMEOUT_MS });
 }
 
 describe("installed pack loader", () => {
@@ -54,7 +58,7 @@ describe("installed pack loader", () => {
       assert.equal(globalThis.falLoads, undefined);
     `, "wrong");
     expect(child.status, child.stderr?.toString()).toBe(0);
-  });
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
 
   it("anchors import-only exports and subpaths to the admitted package", () => {
     const child = fixture(`
@@ -62,7 +66,7 @@ describe("installed pack loader", () => {
       assert.equal((await catalog.importPack('fal', 'subpath')).marker, 'admitted-subpath');
     `, "matching");
     expect(child.status, child.stderr?.toString()).toBe(0);
-  });
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
 
   it("honors ESM condition order and refuses private subpaths", () => {
     const child = fixture(`
@@ -72,7 +76,7 @@ describe("installed pack loader", () => {
       await assert.rejects(catalog.importPack('fal', 'private'), error => error.name !== 'MissingPackError' && error.message.includes('does not export'));
     `, "matching");
     expect(child.status, child.stderr?.toString()).toBe(0);
-  });
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
 
   it("preserves admitted package initialization and transitive resolution failures", () => {
     const child = fixture(`
@@ -82,7 +86,7 @@ describe("installed pack loader", () => {
       await assert.rejects(catalog.importPack('fal', 'subpath'), error => error.code === 'ERR_MODULE_NOT_FOUND' && error.message.includes('nodetool-fixture-missing-transitive'));
     `, "matching");
     expect(child.status, child.stderr?.toString()).toBe(0);
-  });
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
 
   it("rejects export symlinks escaping the admitted package", () => {
     const child = fixture(`
@@ -91,5 +95,5 @@ describe("installed pack loader", () => {
       await assert.rejects(catalog.importPack('fal', 'subpath'), error => error.message.includes('escapes admitted package'));
     `, "matching");
     expect(child.status, child.stderr?.toString()).toBe(0);
-  });
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
 });

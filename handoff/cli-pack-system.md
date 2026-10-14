@@ -352,13 +352,15 @@ pushed temporary parent checkout freed space, and the same artifact passed
 on retry. The temporary parent checkout no longer exists. Build, typecheck
 and lint passed before the final npm-launcher delta.
 
-The local full harness finished with 40 of 43 checks passing. Its failed
+The first local full harness finished with 40 of 43 checks passing. Its failed
 browser game check is repaired in focused reruns, including editor cadence.
 The email tests now mock the optional loader boundary, so hidden imports do
 not bypass their parser stubs. Both email suites pass after the fixture fix.
 The matrix report test now imports Vitest, matching test:scripts. The full
 scripts suite passes with the session-local lsof tool on PATH. These repairs
-still require a fresh complete harness verdict.
+passed the fresh complete local harness: 43 of 43 selfchecks. The isolated
+backend smoke, build, typecheck and lint also pass. Remote mandatory
+verification remains required.
 
 Packed Core CLI now runs packed-install independently of verification, so
 the actual Linux install and size report do not wait behind broad suites.
@@ -367,3 +369,25 @@ succeed, including failure, skip and cancellation controls. Verification
 retains all mandatory commands and backend smoke. Each build uses read-only
 caches. Astra cleared the job graph, and the guard regression passes.
 Read packed-install logs for A9, and require the aggregate before completion.
+
+`9fbce321c5` fixes the actual core-only guard reproduction. tRPC resolves
+TypeScript to `@typescript/typescript6`, whose required compiler dependency
+is `@typescript/old` with an npm TypeScript alias. The guard now admits only
+that exact dependency resolved from an already-admitted wrapper and validates
+its declared range separately. The real minimal npm reproduction and all 24
+guard tests pass. Astra cleared the change. The full packed Linux smoke and
+A9 measurement still need remote success.
+
+On `26861f78df`, both macOS legs and Linux npm 11 passed. Linux npm 10 failed
+during dependency installation with ECONNRESET before the matrix. Both Windows
+legs passed 19 of 20 cases and failed M15 with ENAMETOOLONG when the bootstrap
+entered the admitted long directory. This remains a production issue, not a
+fixture exception. The Windows diagnostic compares normal and namespaced
+spawn/chdir on the same long directory before choosing a fix. Do not claim
+Windows acceptance from the Linux bootstrap tests.
+
+Remote affected tests also exposed seven node-catalog integration tests whose
+outer five-second deadline expired under concurrent builds. Their child
+limits remain 30 seconds. Their outer limits now allow five seconds for
+cleanup. The focused eight tests pass and assertions are unchanged. Fresh
+remote verification must pass before marking either PR ready.
