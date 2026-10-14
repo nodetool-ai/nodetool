@@ -66,6 +66,7 @@ export {
 export {
   resolvePackageAssetPath,
   loadPackageAssetJson,
+  loadPackageAssetBytes,
   getPackageAssetResolutions,
   type PackageAssetResolution
 } from "./package-assets.js";

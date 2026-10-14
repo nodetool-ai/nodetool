@@ -166,6 +166,20 @@ async function mapWithConcurrency<T, R>(
 }
 
 /**
+ * Runs each task once the one queued before it has settled. One render call's
+ * shot writes go through one queue: renders finishing together would otherwise
+ * all read the same update token, and every CAS but one would fail.
+ */
+function serialQueue(): <T>(task: () => Promise<T>) => Promise<T> {
+  let tail: Promise<unknown> = Promise.resolve();
+  return (task) => {
+    const run = tail.then(task, task);
+    tail = run.catch(() => undefined);
+    return run;
+  };
+}
+
+/**
  * Apply `patch` to one shot and persist the board.
  *
  * Renders run concurrently against a single row, so the write is a CAS on the
@@ -238,6 +252,9 @@ export async function renderShots(
   options: RenderShotsOptions = {}
 ): Promise<ShotRenderOutcome[]> {
   const newId = options.newId ?? (() => crypto.randomUUID());
+  const serialize = serialQueue();
+  const writeShot = (shotId: string, patch: (shot: Shot) => Shot) =>
+    serialize(() => patchShot(host, ref.id, shotId, patch));
   return mapWithConcurrency(plans, options.concurrency ?? 1, async (plan) => {
     const base: ShotRenderOutcome = {
       shotId: plan.shotId,
@@ -377,9 +394,7 @@ export async function renderShots(
         }
         const assetId = asset.asset_id;
         const assetUri = asset.uri ?? "";
-        const updated = await patchShot(
-          host,
-          ref.id,
+        const updated = await writeShot(
           plan.shotId,
           (current) => {
             if (plan.kind === "keyframe") {
@@ -436,7 +451,7 @@ export async function renderShots(
       }
       return outcome;
     } catch (e) {
-      await patchShot(host, ref.id, plan.shotId, (current) => ({
+      await writeShot(plan.shotId, (current) => ({
         ...current,
         status: "failed"
       }));

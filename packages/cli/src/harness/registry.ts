@@ -958,6 +958,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "node-catalog",
+    title: "Node catalog ownership and metadata drift",
+    command: "npm run check:node-catalog",
+    kind: "static",
+    capabilities: ["no-db", "gated:pr"],
+    docs: "docs/cli-pack-system-plan.md § A1. The node catalog",
+    selfcheck: {
+      command: "npm run check:node-catalog && node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/node-catalog.test.mjs scripts/__tests__/bump-version.test.mjs",
+      cost: "cheap"
+    }
+  },
+  {
     id: "mutator",
     title: "Mutation testing (nodetool-mutator)",
     command: "npm run mutate -- --base origin/main packages/<name>/src",
@@ -1827,6 +1839,47 @@ export const SURFACES: SurfaceEntry[] = [
       "scripts/bundle-backend.mjs",
       "scripts/verify-backend-bundle.mjs",
       "packages/config/src/package-asset-registry.ts"
+    ]
+  },
+  {
+    id: "node-catalog",
+    title: "Exact node pack ownership and catalog metadata",
+    harnesses: ["node-catalog"],
+    paths: [
+      "packages/node-catalog/",
+      "packages/node-sdk/src/",
+      "scripts/node-catalog/",
+      "scripts/generate-node-catalog.mjs",
+      "scripts/__tests__/node-catalog.test.mjs",
+      "scripts/bump-version.mjs",
+      "scripts/__tests__/bump-version.test.mjs",
+      "packages/atlascloud-nodes/",
+      "packages/audio-nodes/",
+      "packages/automation-nodes/",
+      "packages/blender-nodes/",
+      "packages/code-nodes/",
+      "packages/core-nodes/",
+      "packages/data-nodes/",
+      "packages/document-nodes/",
+      "packages/elevenlabs-nodes/",
+      "packages/fal-nodes/",
+      "packages/game-nodes/",
+      "packages/higgsfield-nodes/",
+      "packages/huggingface-nodes/",
+      "packages/image-nodes/",
+      "packages/integration-nodes/",
+      "packages/kie-nodes/",
+      "packages/llm-nodes/",
+      "packages/manimgx-nodes/",
+      "packages/minimax-nodes/",
+      "packages/replicate-nodes/",
+      "packages/reve-nodes/",
+      "packages/text-nodes/",
+      "packages/together-nodes/",
+      "packages/topaz-nodes/",
+      "packages/transformers-js-nodes/",
+      "packages/video-nodes/",
+      "packages/whisper-cpp/"
     ]
   },
   {

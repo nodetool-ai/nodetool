@@ -184,7 +184,10 @@ const COMMON_EXTERNAL_PACKAGES = [
   // esbuild cannot see, so nothing stages it implicitly.
   "@huggingface/inference",
 
-  // Telemetry (conditionally loaded)
+  // Telemetry (conditionally loaded). `api` is a peer dependency of the staged
+  // OpenTelemetry packages, so the walk over `dependencies` never reaches it;
+  // staging it also keeps one copy shared by server.mjs and those packages.
+  "@opentelemetry/api",
   "@opentelemetry/sdk-node",
   "@opentelemetry/resources",
   "@opentelemetry/sdk-trace-base",

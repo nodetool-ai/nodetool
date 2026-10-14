@@ -18,6 +18,12 @@ import { shallow } from "zustand/shallow";
 import { instantiatePaletteNode } from "../../utils/instantiatePaletteNode";
 import useMetadataStore from "../../stores/MetadataStore";
 import { blockToConstant } from "./useGenerationToCanvas";
+import { useAddExampleModelAsset } from "../useAddExampleModelAsset";
+import { creationProjectId } from "../../stores/WorkspaceTabsStore";
+import { trpcClient } from "../../trpc/client";
+import { EXAMPLE_SKETCHES } from "../../utils/exampleSketches";
+import { installExampleSketch } from "../../utils/installExampleSketch";
+import { notifyMutationError } from "../../utils/notifyMutationError";
 
 /** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -103,6 +109,7 @@ export const useDropHandler = (): UseDropHandlerResult => {
   const addNodeFromAsset = useAddNodeFromAsset();
   const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const addExampleModelAsset = useAddExampleModelAsset();
 
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -154,47 +161,102 @@ export const useDropHandler = (): UseDropHandlerResult => {
           return;
         }
 
-        if (dragData.type === "sketch") {
-          const sketch = dragData.payload;
-          const metadata = getMetadata(CONSTANT_SKETCH_NODE_TYPE);
+        // Sketches and timelines enter the graph as constant nodes that
+        // reference the saved document by id.
+        const addDocumentNode = (
+          nodeType: string,
+          kind: "sketch" | "timeline",
+          id: string,
+          title: string
+        ): void => {
+          const metadata = getMetadata(nodeType);
           if (!metadata) {
             addNotification({
               type: "error",
-              content: "Could not create sketch node: metadata is missing.",
+              content: `Could not create ${kind} node: metadata is missing.`,
               alert: true
             });
             return;
           }
           const newNode = createNode(metadata, position);
-          newNode.data.properties.value = {
-            type: "sketch",
-            id: sketch.id
-          };
-          newNode.data.title = sketch.name || "Untitled sketch";
+          newNode.data.properties.value = { type: kind, id };
+          newNode.data.title = title;
           addNode(newNode);
-          addRecentNode(CONSTANT_SKETCH_NODE_TYPE);
+          addRecentNode(nodeType);
+        };
+
+        if (dragData.type === "sketch") {
+          const sketch = dragData.payload;
+          addDocumentNode(
+            CONSTANT_SKETCH_NODE_TYPE,
+            "sketch",
+            sketch.id,
+            sketch.name || "Untitled sketch"
+          );
           return;
         }
 
         if (dragData.type === "timeline") {
           const timeline = dragData.payload;
-          const metadata = getMetadata(CONSTANT_TIMELINE_NODE_TYPE);
-          if (!metadata) {
-            addNotification({
-              type: "error",
-              content: "Could not create timeline node: metadata is missing.",
-              alert: true
-            });
+          addDocumentNode(
+            CONSTANT_TIMELINE_NODE_TYPE,
+            "timeline",
+            timeline.id,
+            timeline.name || "Untitled video"
+          );
+          return;
+        }
+
+        // Examples from the Examples panel are copied into the project first,
+        // then enter the graph like the saved asset or document they became.
+        if (dragData.type === "example-model") {
+          try {
+            const asset = await addExampleModelAsset(dragData.payload);
+            addNodeFromAsset(asset, position);
+          } catch (error) {
+            notifyMutationError("add the example model", error);
+          }
+          return;
+        }
+
+        if (dragData.type === "example-sketch") {
+          const { slug } = dragData.payload;
+          const example = EXAMPLE_SKETCHES.find((entry) => entry.slug === slug);
+          if (!example) {
             return;
           }
-          const newNode = createNode(metadata, position);
-          newNode.data.properties.value = {
-            type: "timeline",
-            id: timeline.id
-          };
-          newNode.data.title = timeline.name || "Untitled video";
-          addNode(newNode);
-          addRecentNode(CONSTANT_TIMELINE_NODE_TYPE);
+          try {
+            const created = await installExampleSketch(
+              example,
+              creationProjectId()
+            );
+            addDocumentNode(
+              CONSTANT_SKETCH_NODE_TYPE,
+              "sketch",
+              created.id,
+              created.name
+            );
+          } catch (error) {
+            notifyMutationError("add the example sketch", error);
+          }
+          return;
+        }
+
+        if (dragData.type === "example-timeline") {
+          try {
+            const created = await trpcClient.timeline.installExample.mutate({
+              slug: dragData.payload.slug,
+              projectId: creationProjectId()
+            });
+            addDocumentNode(
+              CONSTANT_TIMELINE_NODE_TYPE,
+              "timeline",
+              created.id,
+              created.name
+            );
+          } catch (error) {
+            notifyMutationError("add the example timeline", error);
+          }
           return;
         }
 
@@ -345,7 +407,8 @@ export const useDropHandler = (): UseDropHandlerResult => {
       handleCsvFile,
       handleGenericFile,
       addNotification,
-      getMetadata
+      getMetadata,
+      addExampleModelAsset
     ]
   );
 

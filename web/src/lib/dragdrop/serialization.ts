@@ -21,7 +21,10 @@ const VALID_DRAG_TYPES: ReadonlySet<string> = new Set<DragDataType>([
   "file",
   "tab",
   "collection-file",
-  "chat-media"
+  "chat-media",
+  "example-model",
+  "example-sketch",
+  "example-timeline"
 ]);
 
 function isDragData(value: unknown): value is DragData {
@@ -75,7 +78,10 @@ const LEGACY_KEY_MAP = {
   file: "", // External files don't use custom keys
   tab: "text/plain",
   "collection-file": "",
-  "chat-media": "" // Only carried in the unified format
+  "chat-media": "", // Only carried in the unified format
+  "example-model": "",
+  "example-sketch": "",
+  "example-timeline": ""
 } satisfies Record<DragDataType, string>;
 
 /**

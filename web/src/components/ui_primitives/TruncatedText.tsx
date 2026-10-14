@@ -7,7 +7,8 @@
  */
 
 import { forwardRef } from "react";
-import { Typography, TypographyProps, Tooltip } from "@mui/material";
+import { Typography, TypographyProps } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import { isString } from "../../utils/typePredicates";
 
 export interface TruncatedTextProps extends TypographyProps {

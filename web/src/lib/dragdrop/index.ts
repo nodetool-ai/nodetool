@@ -4,6 +4,7 @@ export type {
   ChatMediaDragPayload,
   SketchDragPayload,
   TimelineDragPayload,
+  ExampleDocumentDragPayload,
   DragData,
   DragMetadata,
   DropZoneConfig,

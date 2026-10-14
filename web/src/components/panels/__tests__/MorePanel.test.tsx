@@ -32,7 +32,14 @@ describe("MorePanel", () => {
     expect(
       screen.getByRole("button", { name: /Workspaces/ })
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Settings$/ })).toBeNull();
+  });
+
+  it("lists Settings and Help once, and leaves Downloads to the logo menu", () => {
+    renderPanel();
+
+    expect(screen.getAllByRole("button", { name: /^Settings$/ })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /^Help$/ })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: /^Downloads/ })).toBeNull();
   });
 
   it("searches across every section", async () => {

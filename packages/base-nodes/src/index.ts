@@ -1,5 +1,19 @@
-import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
-import { getNodeMetadata } from "@nodetool-ai/node-sdk";
+import { registerCoreNodes } from "@nodetool-ai/core-nodes";
+import { registerTextNodes } from "@nodetool-ai/text-nodes";
+import { registerLlmNodes } from "@nodetool-ai/llm-nodes";
+import { registerCodeNodes } from "@nodetool-ai/code-nodes";
+import { registerDataNodes } from "@nodetool-ai/data-nodes";
+import { registerDocumentNodes } from "@nodetool-ai/document-nodes";
+import { registerImageNodes } from "@nodetool-ai/image-nodes";
+import { registerAudioNodes } from "@nodetool-ai/audio-nodes";
+import { registerVideoNodes } from "@nodetool-ai/video-nodes";
+import { registerIntegrationNodes } from "@nodetool-ai/integration-nodes";
+import { registerAutomationNodes } from "@nodetool-ai/automation-nodes";
+import { registerGameNodes } from "@nodetool-ai/game-nodes";
+import { registerBlenderNodes } from "@nodetool-ai/blender-nodes";
+import { registerManimgxNodes } from "@nodetool-ai/manimgx-nodes";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 
 export {
   IfNode,
@@ -603,109 +617,27 @@ export { LIB_IMAGE_FILTER_EXTRAS_NODES } from "@nodetool-ai/image-nodes/nodes/li
 export { LIB_IMAGE_COLOR_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-color";
 
 export function registerBaseNodes(registry: NodeRegistry): void {
+  const domainRegistry = new NodeRegistry();
+  registerCoreNodes(domainRegistry);
+  registerTextNodes(domainRegistry);
+  registerLlmNodes(domainRegistry);
+  registerCodeNodes(domainRegistry);
+  registerDataNodes(domainRegistry);
+  registerDocumentNodes(domainRegistry);
+  registerImageNodes(domainRegistry);
+  registerAudioNodes(domainRegistry);
+  registerVideoNodes(domainRegistry);
+  registerIntegrationNodes(domainRegistry);
+  registerAutomationNodes(domainRegistry);
+  registerGameNodes(domainRegistry);
+  registerBlenderNodes(domainRegistry);
+  registerManimgxNodes(domainRegistry);
+
+  // Domain lists are interleaved in the compatibility barrel. Replay their
+  // resolved metadata in the existing order to preserve the desktop node list.
   for (const nodeClass of ALL_BASE_NODES) {
-    if (nodeClass.nodeType === "nodetool.workflows.base_node.Preview") {
-      registry.register(nodeClass, {
-        metadata: {
-          ...getNodeMetadata(nodeClass),
-          title: "Preview",
-          description: "Preview values inside the workflow graph",
-          namespace: "nodetool.workflows.base_node",
-          node_type: "nodetool.workflows.base_node.Preview",
-          properties: [
-            {
-              name: "value",
-              type: { type: "any", type_args: [] },
-              default: null
-            },
-            { name: "name", type: { type: "str", type_args: [] }, default: "" }
-          ],
-          outputs: [{ name: "output", type: { type: "any", type_args: [] } }],
-          inline_fields: ["value", "name"]
-        }
-      });
-      continue;
-    }
-    if (nodeClass.nodeType === "nodetool.workflows.workflow_node.Workflow") {
-      registry.register(nodeClass, {
-        metadata: {
-          title: "Workflow",
-          description:
-            "Execute a sub-workflow. Select a workflow to populate its inputs and outputs dynamically.",
-          namespace: "nodetool.workflows.workflow_node",
-          node_type: "nodetool.workflows.workflow_node.Workflow",
-          supports_dynamic_inputs: true,
-          is_streaming_output: true,
-          properties: [
-            {
-              name: "workflow_id",
-              type: { type: "str", type_args: [] },
-              default: ""
-            },
-            {
-              name: "workflow_json",
-              type: { type: "dict", type_args: [] },
-              default: {}
-            }
-          ],
-          outputs: [],
-          inline_fields: []
-        }
-      });
-      continue;
-    }
-    if (nodeClass.nodeType === "nodetool.workflows.app_node.App") {
-      registry.register(nodeClass, {
-        metadata: {
-          title: "App",
-          description: nodeClass.description,
-          namespace: "nodetool.workflows.app_node",
-          node_type: "nodetool.workflows.app_node.App",
-          supports_dynamic_inputs: true,
-          supports_dynamic_outputs: true,
-          is_streaming_output: true,
-          properties: [
-            {
-              name: "app_id",
-              type: { type: "str", type_args: [] },
-              default: ""
-            },
-            {
-              name: "app_json",
-              type: { type: "dict", type_args: [] },
-              default: {}
-            }
-          ],
-          outputs: [],
-          inline_fields: []
-        }
-      });
-      continue;
-    }
-    if (nodeClass.nodeType === "nodetool.workflows.subgraph.Subgraph") {
-      registry.register(nodeClass, {
-        metadata: {
-          title: "Subgraph",
-          description:
-            "Execute an inline sub-graph as an isolated workflow. Inputs/outputs are derived from inner Input/Output nodes.",
-          namespace: "nodetool.workflows.subgraph",
-          node_type: "nodetool.workflows.subgraph.Subgraph",
-          supports_dynamic_inputs: true,
-          supports_dynamic_outputs: true,
-          is_streaming_output: true,
-          properties: [
-            {
-              name: "graph",
-              type: { type: "dict", type_args: [] },
-              default: { nodes: [], edges: [] }
-            }
-          ],
-          outputs: [],
-          inline_fields: []
-        }
-      });
-      continue;
-    }
-    registry.register(nodeClass);
+    registry.register(nodeClass, {
+      metadata: domainRegistry.resolveMetadata(nodeClass.nodeType)
+    });
   }
 }

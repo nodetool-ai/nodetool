@@ -4,21 +4,25 @@
  * the project's group.
  */
 
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState, type MouseEvent } from "react";
 
 import {
   BORDER_RADIUS,
   Box,
   Caption,
   Card,
+  ContextMenu,
   FlexColumn,
   FlexRow,
+  InlineEditableText,
   Label,
+  MenuItemPrimitive,
   SPACING,
   StatusPill,
   TYPOGRAPHY
 } from "../ui_primitives";
 import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
+import { tabCanRename } from "../workspace/tabRename";
 import ProjectDocumentPreview from "./ProjectDocumentPreview";
 import CopyProjectDocumentAction, {
   isCopyableDocument
@@ -35,102 +39,159 @@ interface ProjectDocumentCardProps {
   document: ProjectDocument;
   sourceProjectId: string;
   onOpen: (document: ProjectDocument) => void;
+  /** Saves a new name. Without it, or for a kind with no rename, the card has no menu. */
+  onRename?: (document: ProjectDocument, name: string) => void;
   compact?: boolean;
 }
+
+const nameSx = {
+  flex: 1,
+  minWidth: 0,
+  mb: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap"
+} as const;
 
 const ProjectDocumentCard = ({
   document,
   sourceProjectId,
   onOpen,
+  onRename,
   compact = false
 }: ProjectDocumentCardProps) => {
   const handleOpen = useCallback(() => onOpen(document), [onOpen, document]);
   const progress = documentProgress(document);
+  const canRename = Boolean(onRename) && tabCanRename(document.type);
+  const [menuPosition, setMenuPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [editing, setEditing] = useState(false);
+
+  const handleContextMenu = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      if (!canRename || editing) {
+        return;
+      }
+      event.preventDefault();
+      // Shift+F10 and the context-menu key report no pointer position.
+      if (event.clientX === 0 && event.clientY === 0) {
+        const rect = event.currentTarget.getBoundingClientRect();
+        setMenuPosition({ x: rect.left, y: rect.bottom });
+        return;
+      }
+      setMenuPosition({ x: event.clientX, y: event.clientY });
+    },
+    [canRename, editing]
+  );
+  const handleCloseMenu = useCallback(() => setMenuPosition(null), []);
+  const handleBeginRename = useCallback(() => {
+    setMenuPosition(null);
+    setEditing(true);
+  }, []);
+  const handleCommitRename = useCallback(
+    (name: string) => onRename?.(document, name),
+    [document, onRename]
+  );
 
   return (
-    <Card
-      variant="outlined"
-      padding="none"
-      clickable
-      onClick={handleOpen}
-      aria-label={document.name}
-      sx={{
-        overflow: "hidden",
-        minWidth: 0,
-        borderRadius: BORDER_RADIUS.md,
-        ...(compact && {
-          "& > :first-child": { height: "auto", aspectRatio: "3 / 1" }
-        })
-      }}
-    >
-      <ProjectDocumentPreview document={document} />
-      <FlexColumn
-        gap={SPACING.sm}
-        sx={{ p: compact ? SPACING.md : SPACING.lg }}
+    <>
+      <Card
+        variant="outlined"
+        padding="none"
+        clickable={!editing}
+        onClick={handleOpen}
+        onContextMenu={handleContextMenu}
+        aria-label={editing ? undefined : document.name}
+        sx={{
+          overflow: "hidden",
+          minWidth: 0,
+          borderRadius: BORDER_RADIUS.md,
+          ...(compact && {
+            "& > :first-child": { height: "auto", aspectRatio: "3 / 1" }
+          })
+        }}
       >
-        <FlexRow align="center" gap={SPACING.md} sx={{ minWidth: 0 }}>
-          <Box
-            component="span"
-            aria-hidden
-            sx={{ color: TYPE_COLOR[document.type] }}
-          >
-            {TYPE_GLYPH[document.type]}
-          </Box>
-          <Label
-            title={document.name}
-            sx={{
-              flex: 1,
-              minWidth: 0,
-              mb: 0,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap"
-            }}
-          >
-            {document.name}
-          </Label>
-          {progress && !compact && (
-            <StatusPill
-              tone={progress.tone}
-              accent={TYPE_COLOR[document.type]}
-              sx={{ borderRadius: BORDER_RADIUS.xs }}
-            >
-              {progress.label}
-            </StatusPill>
-          )}
-        </FlexRow>
-        <FlexRow align="baseline" gap={SPACING.md}>
-          <Caption
-            color="secondary"
-            sx={{
-              flex: 1,
-              minWidth: 0,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap"
-            }}
-          >
-            {[documentStatusLine(document), documentEditedLine(document)]
-              .filter(Boolean)
-              .join(" · ")}
-          </Caption>
-          {!compact && (
+        <ProjectDocumentPreview document={document} />
+        <FlexColumn
+          gap={SPACING.sm}
+          sx={{ p: compact ? SPACING.md : SPACING.lg }}
+        >
+          <FlexRow align="center" gap={SPACING.md} sx={{ minWidth: 0 }}>
             <Box
               component="span"
-              sx={{ ...TYPOGRAPHY.mono.caption, color: "text.secondary" }}
+              aria-hidden
+              sx={{ color: TYPE_COLOR[document.type] }}
             >
-              {formatDocumentSpend(document)}
+              {TYPE_GLYPH[document.type]}
             </Box>
+            {editing ? (
+              <InlineEditableText
+                ariaLabel="Document name"
+                value={document.name}
+                editing
+                onEditingChange={setEditing}
+                onCommit={handleCommitRename}
+                sx={{ ...TYPOGRAPHY.sans.label, flex: 1 }}
+              />
+            ) : (
+              <Label title={document.name} sx={nameSx}>
+                {document.name}
+              </Label>
+            )}
+            {progress && !compact && (
+              <StatusPill
+                tone={progress.tone}
+                accent={TYPE_COLOR[document.type]}
+                sx={{ borderRadius: BORDER_RADIUS.xs }}
+              >
+                {progress.label}
+              </StatusPill>
+            )}
+          </FlexRow>
+          <FlexRow align="baseline" gap={SPACING.md}>
+            <Caption
+              color="secondary"
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
+              }}
+            >
+              {[documentStatusLine(document), documentEditedLine(document)]
+                .filter(Boolean)
+                .join(" · ")}
+            </Caption>
+            {!compact && (
+              <Box
+                component="span"
+                sx={{ ...TYPOGRAPHY.mono.caption, color: "text.secondary" }}
+              >
+                {formatDocumentSpend(document)}
+              </Box>
+            )}
+          </FlexRow>
+          {!compact && isCopyableDocument(document) && (
+            <CopyProjectDocumentAction
+              document={document}
+              sourceProjectId={sourceProjectId}
+            />
           )}
-        </FlexRow>
-        {!compact && isCopyableDocument(document) && (
-          <CopyProjectDocumentAction
-            document={document}
-            sourceProjectId={sourceProjectId}
-          />
-        )}
-      </FlexColumn>
-    </Card>
+        </FlexColumn>
+      </Card>
+      {canRename && (
+        <ContextMenu
+          open={menuPosition !== null}
+          position={menuPosition}
+          onClose={handleCloseMenu}
+        >
+          <MenuItemPrimitive label="Rename" onClick={handleBeginRename} />
+        </ContextMenu>
+      )}
+    </>
   );
 };
 

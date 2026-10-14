@@ -11,7 +11,9 @@ import { persist } from "zustand/middleware";
  *  - `dockWidth` — width (px) of the whole dock, or `null` for the responsive
  *                  default (`min(820px, 100vw - 32px)`).
  *  - `composerCollapsed` — the prompt is hidden and only the workflow toolbar
- *                  row (Run, canvas tools) stays on the canvas.
+ *                  row (Run, canvas tools) stays on the canvas. Starts
+ *                  collapsed on a short window, where the full composer
+ *                  would cover the bottom third of the graph.
  *
  * Transient view flags (`conversationCollapsed`, `threadsOpen`) are kept here
  * too so the keyboard shortcut and command menu can drive them, but they are
@@ -29,6 +31,13 @@ export const MIN_DOCK_WIDTH = 360;
 export const MAX_DOCK_WIDTH = 1200;
 
 const DEFAULT_POSITION: DockPosition = { x: 0, y: 0 };
+
+/** Windows at most this tall (px) start with the composer collapsed. */
+export const SHORT_VIEWPORT_MAX_HEIGHT = 800;
+
+export const defaultComposerCollapsed = (): boolean =>
+  typeof window !== "undefined" &&
+  window.innerHeight <= SHORT_VIEWPORT_MAX_HEIGHT;
 
 export const clampOverlayHeight = (h: number): number =>
   Math.max(MIN_OVERLAY_HEIGHT, Math.min(h, MAX_OVERLAY_HEIGHT));
@@ -61,7 +70,7 @@ export const useCanvasChatDockStore = create<CanvasChatDockState>()(
       position: DEFAULT_POSITION,
       overlayHeight: DEFAULT_OVERLAY_HEIGHT,
       dockWidth: null,
-      composerCollapsed: false,
+      composerCollapsed: defaultComposerCollapsed(),
       conversationCollapsed: true,
       threadsOpen: false,
 

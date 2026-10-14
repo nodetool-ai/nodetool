@@ -57,6 +57,12 @@ import {
 } from "../../stores/SettingsPageStore";
 import { isFunction } from "../../utils/typePredicates";
 import { NumberSetting } from "./NumberSetting";
+import {
+  DEFAULT_TEXT_SIZE,
+  TEXT_SIZES,
+  TEXT_SIZE_LABELS,
+  isTextSize
+} from "../themes/textSizes";
 import StorageHistorySettings from "../settings/StorageHistorySettings";
 import {
   SETTINGS_TAB_ITEMS,
@@ -118,6 +124,11 @@ const THEME_MODE_OPTIONS = [
   { value: "dark", label: "Dark" },
   { value: "light", label: "Light" }
 ] as const;
+
+const TEXT_SIZE_OPTIONS = TEXT_SIZES.map((size) => ({
+  value: size,
+  label: TEXT_SIZE_LABELS[size]
+}));
 
 const TIME_FORMAT_OPTIONS = [
   { value: "12h", label: "12h" },
@@ -192,6 +203,7 @@ function SettingsPage() {
   const setPanControls = useSettingsStore((state) => state.setPanControls);
   const setSelectionMode = useSettingsStore((state) => state.setSelectionMode);
   const setTimeFormat = useSettingsStore((state) => state.setTimeFormat);
+  const setTextSize = useSettingsStore((state) => state.setTextSize);
   const setSelectNodesOnDrag = useSettingsStore(
     (state) => state.setSelectNodesOnDrag
   );
@@ -411,6 +423,12 @@ function SettingsPage() {
       setThemeMode(value === "light" ? "light" : "dark");
     },
     [setThemeMode]
+  );
+  const handleTextSizeChange = useCallback(
+    (value: string) => {
+      setTextSize(isTextSize(value) ? value : DEFAULT_TEXT_SIZE);
+    },
+    [setTextSize]
   );
   const handleTimeFormatChange = useCallback(
     (value: string) => {
@@ -819,6 +837,18 @@ function SettingsPage() {
                           />
                         </SearchItem>
                       )}
+                      <SearchItem
+                        search={search}
+                        keywords="appearance text size font size zoom larger smaller bigger readability accessibility"
+                      >
+                        <SelectField
+                          label="Text size"
+                          value={settings.textSize}
+                          onChange={handleTextSizeChange}
+                          options={TEXT_SIZE_OPTIONS}
+                          description="Size of text across the whole app, including menus and nodes."
+                        />
+                      </SearchItem>
                       <SearchItem
                         search={search}
                         keywords="appearance time format 12h 24h"

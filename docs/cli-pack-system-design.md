@@ -111,6 +111,9 @@ The generator in section 9 decides ownership, not this table.
 
 ## 5. Decisions and finding map
 
+The [implementation plan](cli-pack-system-plan.md#2-plan-decisions) defines
+D17 to D22, including the shared runtime registry and bundled server entry.
+
 | Code | Status in this design |
 |---|---|
 | F1 | Fixed by D5 and section 13. The installer checks its own authorization. |
@@ -142,7 +145,6 @@ Read from the `package.json` files. "Cut" names the change.
 |---|---|---|
 | `cli` → 14 node packs (`atlascloud`, `base`, `elevenlabs`, `fal`, `huggingface-nodes`, `minimax`, `replicate`, `reve`, `transformers-js-nodes`, `transformers-js-provider`, `video`, `whisper-cpp`) and `game-renderer` | `packages/cli/package.json:24-75` | Remove. Load through the pack loader (section 12). |
 | `cli` → `reliability-harness` | `packages/cli/package.json:46` | Remove. It depends on `base-nodes` and `websocket` (`reliability/harness/package.json`). `nodetool reliability` already imports it dynamically (`packages/cli/src/commands/reliability.ts:98`) and reports "development checkout only" when absent. |
-| `cli` → `node-llama-cpp` | `packages/cli/package.json:68` | Remove. `runtime` already declares it as an optional peer (`packages/runtime/package.json:53`). Runtime library `llama`. |
 | `agents` → `blender-nodes`, `game-nodes`, `game-renderer`, `video-nodes` | `packages/agents/package.json:26,30,31,44` | Remove. Lazy pack import (6.2). |
 | `agents` → `@mediabunny/server`, `mediabunny` | `packages/agents/package.json:23,61` | Keep as dependencies (D16). |
 | `agents` → `@napi-rs/canvas` | `packages/agents/package.json:24` | Optional peer. Runtime library `imaging`. |
@@ -150,12 +152,11 @@ Read from the `package.json` files. "Cut" names the change.
 | `websocket` → 18 node packs | `packages/websocket/package.json:35-81` | Remove. Lazy pack import. |
 | `websocket` → `@hyzyla/pdfium`, `sharp` | `packages/websocket/package.json:29,78` | `@hyzyla/pdfium` stays a dependency (D16). `sharp` becomes an optional peer. Runtime library `imaging`. |
 | `dsl` → `base-nodes`, `elevenlabs`, `huggingface-nodes`, `minimax`, `reve`, `transformers-js-nodes`, `whisper-cpp` | `packages/dsl/package.json:37-50` | Remove. Metadata comes from the catalog (6.2). |
-| `execution` → `typescript` | `packages/execution/package.json:29` | Optional peer. Runtime library `typescript`. The only use is a dynamic import (`packages/execution/src/js-script-debug/type-check.ts:90,125`). |
 | `execution` → `gpu` → `webgpu` | `packages/execution/package.json:20`, `packages/gpu/package.json:22` | Move `webgpu` from `optionalDependencies` to `dependencies` (D16). |
 | `model-pricing` → `fal-nodes`, `kie-nodes` | `packages/model-pricing/package.json:18-19` | Move the generated unit-price JSON into `model-pricing`. Change the codegen output paths. The imports are `packages/model-pricing/src/index.ts:46-47`. |
-| `runtime` → `js-tiktoken` | `packages/runtime/package.json:36` | Optional peer. Runtime library `tokenizer` (Q7). |
+| `runtime` → `js-tiktoken` | `packages/runtime/package.json:36` | Already an optional peer with a lazy import. Remove the remaining optional dependency from `runtime` and `agents` so clean installs omit it. Runtime id `tokenizer`. |
 | `runtime` → `sharp` | `packages/runtime/package.json:40` | Optional peer. All four runtime uses are already dynamic. |
-| `runtime` → OpenTelemetry SDK packages | `packages/runtime/package.json:28-33` | Keep `@opentelemetry/api`. Make the other six optional peers. Runtime library `tracing`. |
+| `runtime` → OpenTelemetry SDK packages | `packages/runtime/package.json:28-33` | Keep `@opentelemetry/api`. Make `core`, `resources` and `sdk-trace-base` optional peers. They also pull in `sdk-trace` and `semantic-conventions`. Runtime library `tracing`. |
 | `game-runtime` → `@dimforge/rapier3d-compat` | `packages/game-runtime/package.json:17` | Optional peer. Regular dependency of the `game` pack. The import is already dynamic (`packages/game-runtime/src/spatial3d/world.ts:11`). |
 | `sandbox-compiler` → `esbuild` | `packages/sandbox-compiler/package.json:25` | Optional peer. Needed only by `nodetool packs compile`. |
 | `data-nodes` → `@napi-rs/canvas`, `chart.js` | `packages/data-nodes/package.json:18,23` | `chart.js` stays a dependency (D16). `@napi-rs/canvas` becomes an optional peer. The chart node already imports it dynamically (`packages/data-nodes/src/nodes/lib-charts.ts:162-167`). |
@@ -200,7 +201,6 @@ pack or heavy-library specifier.
 | `packages/dsl/src/registry.ts:30-69` → `base-nodes` and six packs | dynamic | Use the catalog pack loader. Catalog-only types are never Python candidates (section 10). |
 | `packages/model-pricing/src/index.ts:46-47` | static | See 6.1. |
 | `packages/websocket/src/lib/thumbnail.ts:29`, `mcp-agent-tools.ts:87`, `screenshot-docs-seed.ts:26`, `trpc/routers/games.ts:4` → `sharp` | static | Route through `runtime/src/image-codec.ts`, which already imports `sharp` dynamically. |
-| `packages/runtime/src/token-counter.ts:13` → `js-tiktoken` | static | Lazy, with a character-count estimate when absent (Q7). |
 | `packages/runtime/src/run-trace-processor.ts:3` → `@opentelemetry/resources` | static | Lazy. Load only when a trace sink is configured. |
 | `packages/sandbox-compiler/src/bundle.ts:17` → `esbuild` | static | Lazy. |
 
@@ -286,13 +286,16 @@ Step 1 commits this walker as a script so that CI can rerun it.
 
 ### 8.2 Results (local-tree estimates)
 
-| Scenario | Packages | Apparent | Disk |
-|---|---|---|---|
-| S0: current CLI closure | 884 | 868 MB | 1,087 MB |
-| S1: draft core (packs and the draft's four libraries removed) | 628 | 395 MB (346 MB external) | 526 MB |
-| S3: proposed core (S1 plus every cut in 6.1) | 550 | 233 MB | 345 MB |
+Run `npm run measure:cli-closure -- --json` for the current closure and
+projected core. The walker rejects an incomplete dependency tree.
 
-S1 external size (346 MB) agrees with the review's 336 MB.
+| Scenario | Apparent | Disk |
+|---|---|---|
+| S0: CLI closure with the prerequisite changes | 686 MB | 838 MB |
+| S3: projected core with the section 6.1 cuts and D16 libraries | 453 MB | 586 MB |
+
+These are local darwin-arm64 estimates. A9 sets the release gate from a clean
+linux-x64 core-only install, with five percent headroom.
 
 D16 cancels three cuts in the table below (`@hyzyla/pdfium`, `mediabunny`,
 `chart.js`) and keeps `webgpu` and `node-av` in core. On the local tree the
@@ -326,8 +329,7 @@ Savings of each cut, measured on top of S1:
 | Projected clean core | about 213 MB | about 314 MB |
 
 The largest remaining items in S3: `better-sqlite3` (26.5 MB locally),
-`@openclaw/fs-safe` (16.7 MB, of which 15 MB is native binaries for seven
-platforms in `dist/native/`), `drizzle-orm` (9.9 MB), `openai` (9.3 MB),
+`drizzle-orm` (9.9 MB), `openai` (9.3 MB),
 `@mixmark-io/domino` via `turndown` (7.4 MB), `@anthropic-ai/sdk` (6.1 MB), and
 NodeTool's own `dist/` (50 MB apparent: 16 MB JavaScript, 15 MB maps, 14 MB
 declarations).
@@ -339,9 +341,9 @@ D13. The gate measures `du -sk node_modules` after a clean
 
 - Hard gate at the end of step 1: the walker's measurement of the D16 core.
   The earlier 320 MB figure excludes the D16 libraries.
-- Ratchet target for a later release: 250 MB disk. It needs the upstream
-  `@openclaw/fs-safe` per-platform split (about −13 MB), no declaration files
-  in runtime-only packages (about −14 MB), and lazy provider SDKs.
+- Ratchet target for a later release: 250 MB disk. It needs fewer declaration
+  files in runtime-only packages and lazy provider SDKs. The fs-safe dependency
+  has already been removed.
 
 The previous 200 MB goal is not reachable with SQLite, the LLM provider SDKs,
 the MCP SDK, and Fastify in core. The check must fail on a deliberately
@@ -351,12 +353,13 @@ oversized fixture before it is enforced.
 
 `@nodetool-ai/node-catalog` is a new core package. It holds:
 
-- `index.json`: pack entries, runtime library entries, and the exact owner map.
-- `nodes.json.gz`: full metadata for every node type.
+- `index.json`: pack entries and the exact owner map. Runtime library ids use
+  `RUNTIME_NPM_PACKAGES` from `protocol` (D17).
+- `data/nodes.ndjson`: checked-in metadata, one node per line, sorted by
+  `node_type` (D21). The package build writes `dist/nodes.ndjson.gz`.
 
-The 0.8.3 tree registers 3,310 node types with all packs loaded. Their merged
-metadata is 8.16 MB of JSON and 828 KB gzipped. `fal` owns 1,645 types and
-`replicate` 662.
+Run `npm run generate:node-catalog` to rebuild the catalog and report its node
+count. Run `npm run measure:cli-closure` to measure package sizes.
 
 ### 9.1 Format
 
@@ -365,7 +368,6 @@ interface NodeCatalogIndex {
   schemaVersion: 1;
   coreVersion: string;                       // equals the CLI version
   packs: CatalogPack[];
-  runtimeLibraries: CatalogRuntimeLibrary[];
   owners: Record<string, string>;            // node_type -> pack id, total
 }
 
@@ -376,10 +378,11 @@ interface PinnedPackage {
 }
 
 interface CatalogPack {
-  id: string;                                // BUILTIN_NODE_PACKS id, never renamed
+  id: string;                                // stable id, including split domain packs
   kind: "core" | "node-pack";
   npm: PinnedPackage;                        // version === coreVersion
   registrar: string;                         // named export, called with the registry
+  provides: readonly string[];               // first-party packages carried by this pack (D18)
   requires: readonly string[];               // other pack ids
   runtimeLibraries: readonly string[];
   secrets: readonly string[];                // e.g. ["FAL_API_KEY"]
@@ -388,39 +391,34 @@ interface CatalogPack {
   nodeCount: number;
 }
 
-interface CatalogRuntimeLibrary {
-  id: string;
-  packages: readonly PinnedPackage[];        // direct packages to install
-  shared: readonly string[];                 // shared-identity names (D12)
-  scriptAllowlist: readonly PinnedPackage[];
-  installBytes: number;
-}
-
 interface CatalogNode {
   node_type: string;
   pack: string;
   metadata: NodeMetadata;                    // final registrar output
-  declared: DeclaredPropertyMetadata[];      // input to validateNodeProperties
+  declared: readonly DeclaredPropertyMetadata[];      // input to validateNodeProperties
 }
 ```
 
 ### 9.2 Generation
 
 `scripts/generate-node-catalog.mjs` runs in a child process with a fixed
-environment (empty HOME, no secrets, `NODE_ENV=production`):
+environment (an empty temporary home directory, no inherited secrets,
+`NODE_ENV=production`):
 
 1. For each pack, create a fresh `NodeRegistry`, call the pack's registrar, and
    record the registered types as that pack's ownership. Registrars are the
-   source, not class metadata. `registerBaseNodes` overrides metadata for some
-   types (`packages/base-nodes/src/index.ts:605-640`).
+   source, not namespace prefixes. The core and audio registrars apply the
+   compatibility metadata overrides (D19).
 2. Fail when two packs register the same type (duplicate ownership).
 3. Read `getMetadata()` and the class's declared properties for each type.
    Fail when a declared property holds a value that JSON cannot represent.
 4. Sort packs by id, nodes by `node_type`, and object keys. Omit timestamps.
-5. Write `index.json` and `nodes.json.gz` with a fixed gzip level and mtime.
+5. Write `data/index.json` and `data/nodes.ndjson`. The package build gzips
+   the node file with level 9 and a zero mtime, and copies the index into `dist/`.
 
-Pins (`integrity`, `installBytes`) come from the release job (section 17). The
-in-repo file holds placeholder pins that the release job replaces.
+Pins (`integrity`, `installBytes`) and script allowlists come from the release
+job (section 17). The repository file holds empty integrity strings, zero
+install sizes and empty script allowlists that the release job replaces.
 
 `npm run check:node-catalog` regenerates the catalog and diffs it. It fails on
 any difference and asserts that it compared more than zero node types. Add it
@@ -428,7 +426,7 @@ to `test:affected` path checks and to the harness registry
 (`packages/cli/src/harness/registry.ts`) for changes under node packages.
 
 Namespace prefixes stay for display and search only. `findBuiltinPackForNodeType`
-(`packages/protocol/src/builtin-packs.ts:39-46`) picks the first matching
+(`packages/protocol/src/builtin-packs.ts`) picks the first matching
 namespace. `nodetool.control.If` (`core-nodes`), `nodetool.text.Concat`
 (`text-nodes`), and `nodetool.game.SpriteSheet` (`image-nodes`) all start with
 `nodetool`, and `kie` appears in both the `base` and the `kie` pack. The CLI
@@ -693,7 +691,11 @@ One lock per install root: `<root>/node_modules/.nodetool-packs.lock`, created
 with exclusive create (`wx`). It holds the pid, host name, a random token, and
 the start time. The owner rewrites its mtime every 5 seconds. Another installer
 waits up to 10 minutes and prints a line every 10 seconds. A lock with an mtime
-older than 60 seconds is stale and is removed. A user's own concurrent `npm`
+older than 60 seconds is stale and is removed. Creation, stale removal and
+release are serialized through a short-lived sibling `.guard` directory. The
+guard is never stolen, because deleting a replacement owner’s lock can admit
+concurrent installers. If its owner stops while holding the guard, installation
+times out and names the directory to remove after confirming that owner stopped. A user's own concurrent `npm`
 command is not covered. `packs doctor` detects its effects.
 
 ### 14.4 Flow
@@ -967,15 +969,14 @@ Node 22 (npm 10.9.x) and Node 24 (npm 11.x):
 - Q6. `nodetool packs` already means sandbox pack tooling, and the agent
   capability `packs` lists sandbox packages. Keep one command for both kinds,
   or rename the new verbs to `nodetool nodes add` and similar?
-- Q7. Is a character-count estimate acceptable for chat compaction when
-  `tokenizer` is absent, or must `js-tiktoken` stay in core at 21 MB?
 - Q8. Should `llm-nodes` and `code-nodes` stay core? They have no heavy
   dependencies, and the Agent and Code nodes are common in core workflows.
 - Q9. Local mode writes the user's `package.json` and lockfile. Is that
   acceptable, or should local mode require an explicit `npm install` and only
   print the command?
-- Q10. Who owns the upstream request to split `@openclaw/fs-safe` native
-  binaries per platform?
+
+Q7 is resolved: chat compaction uses the existing character-count fallback
+when the `tokenizer` runtime package is absent.
 
 Q2 from the review becomes the matrix in 19.3. Q1, Q3, Q4, and Q5 are answered
 in sections 12.2, 13.3, 16, and 11.1.
