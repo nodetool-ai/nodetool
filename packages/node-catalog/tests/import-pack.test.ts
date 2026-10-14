@@ -17,7 +17,7 @@ it("rejects unknown pack IDs and specifiers outside the pack's closure", async (
 });
 
 it("supports a pack's registrar, relative subpaths and provided first-party packages", async () => {
-  const pack = await importPack("fal");
+  const pack = await importPack<typeof import("@nodetool-ai/fal-nodes")>("fal");
   expect(pack["registerFalNodes"]).toEqual(expect.any(Function));
   expect(await importPack("document", "lib/pdf-text")).toHaveProperty("extractPdfText");
   expect(await importPack("game", "@nodetool-ai/game-renderer/preparation3d")).toHaveProperty("prepareGameModel");

@@ -32,7 +32,7 @@ export function catalogPackIdsForBuiltin(id: string): readonly string[] {
 }
 
 async function registerPackClass(registry: NodeRegistry, pack: CatalogPack): Promise<boolean> {
-  let module: Record<string, unknown>;
+  let module: object;
   try {
     module = await importPack(pack.id);
   } catch (error) {
@@ -41,7 +41,8 @@ async function registerPackClass(registry: NodeRegistry, pack: CatalogPack): Pro
     }
     return false;
   }
-  registry.registerPackage(pack.id, registrarSchema.parse(module[pack.registrar]));
+  const registrar = z.object({ [pack.registrar]: registrarSchema }).parse(module)[pack.registrar];
+  registry.registerPackage(pack.id, registrar);
   return true;
 }
 
