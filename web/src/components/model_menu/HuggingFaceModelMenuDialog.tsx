@@ -101,8 +101,8 @@ function HuggingFaceModelMenuDialog({
       onClose={onClose}
       modelData={sortedModelData}
       onModelChange={onModelChange}
-      title="Select HuggingFace Model"
-      searchPlaceholder="Search HuggingFace models..."
+      title="Select HuggingFace model"
+      searchPlaceholder="Search HuggingFace models"
       storeHook={useHuggingFaceImageModelMenuStore}
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
