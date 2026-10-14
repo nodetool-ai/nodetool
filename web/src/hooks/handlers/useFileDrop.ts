@@ -84,6 +84,14 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
 
       const dragData = deserializeDragData(event.dataTransfer);
 
+      // Examples are copied in by the targets that take them (a 3D model
+      // input handles "example-model" itself); everywhere else they are the
+      // wrong kind of value, not text to paste in.
+      if (dragData?.type.startsWith("example-")) {
+        addNotification(invalidTypeNotification(props.type));
+        return;
+      }
+
       // A multi-selection drag onto this single-value field uses the first
       // selected asset of an accepted type.
       const droppedAssets =

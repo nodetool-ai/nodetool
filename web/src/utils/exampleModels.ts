@@ -32,6 +32,13 @@ export interface ExampleModel {
   readonly use: string;
 }
 
+/** Query keys for the pack catalogs, shared by every surface that lists them. */
+export const exampleModelQueryKeys = {
+  all: ["example-models"] as const,
+  catalog: (pack: string) =>
+    [...exampleModelQueryKeys.all, "catalog", pack] as const
+};
+
 export interface ExampleModelCatalog {
   readonly name: string;
   readonly models: readonly ExampleModel[];

@@ -214,7 +214,7 @@ it("keeps the consolidated document tree and utility views in the mobile tab row
       )
     )
   ).toEqual([
-    ["Projects", "Documents", "Chats", "Library", "Entities", "More"]
+    ["Projects", "Documents", "Chats", "Library", "Entities", "Examples", "More"]
   ]);
   expect(screen.queryByLabelText("Workflows")).not.toBeInTheDocument();
   expect(screen.queryByLabelText("Apps")).not.toBeInTheDocument();

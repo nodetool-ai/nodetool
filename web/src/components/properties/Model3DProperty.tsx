@@ -17,6 +17,9 @@ import AssetViewer from "../assets/AssetViewer";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import { resolveAssetUri } from "../node/output/hooks";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
+import { deserializeDragData } from "../../lib/dragdrop";
+import { useAddExampleModelAsset } from "../../hooks/useAddExampleModelAsset";
+import { notifyMutationError } from "../../utils/notifyMutationError";
 
 const styles = (theme: Theme) =>
   css({
@@ -171,12 +174,25 @@ const Model3DProperty = (props: PropertyProps) => {
     setIsDragOver(false);
   }, []);
 
+  const addExampleModelAsset = useAddExampleModelAsset();
+  const { onChange } = props;
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
-      onDrop(e);
       setIsDragOver(false);
+      const dragData = deserializeDragData(e.dataTransfer);
+      if (dragData?.type !== "example-model") {
+        onDrop(e);
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      addExampleModelAsset(dragData.payload)
+        .then((asset) => onChange(mediaRefFromAsset(asset, "model_3d")))
+        .catch((error: unknown) =>
+          notifyMutationError("add the example model", error)
+        );
     },
-    [onDrop]
+    [onDrop, onChange, addExampleModelAsset]
   );
 
   const handleUrlChange = useCallback(
