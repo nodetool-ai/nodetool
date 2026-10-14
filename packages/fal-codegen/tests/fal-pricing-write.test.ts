@@ -8,6 +8,8 @@ import {
   nodeTypeFor,
   preserveOrWriteEmptyPricingBundles,
   pricingBundleFilesExist,
+  pricingPaths,
+  writeEmptyPricingBundles,
   type SpecWithModule
 } from "../src/fal-pricing-write.js";
 import type { PricingEntry } from "../src/fal-pricing-fetch.js";
@@ -176,6 +178,23 @@ describe("preserveOrWriteEmptyPricingBundles", () => {
       expect(catalog.prices).toEqual({});
     } finally {
       await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+
+describe("split pricing output", () => {
+  it("keeps node prices with the pack and creates the core catalog directory", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nodetool-fal-pricing-"));
+    try {
+      const paths = pricingPaths(join(root, "fal-nodes", "src", "fal-manifest.json"));
+      expect(paths.catalogPath).toBe(join(root, "model-pricing", "src", "generated", "fal-unit-pricing.json"));
+      expect(paths.byNodeTypePath).toBe(join(root, "fal-nodes", "src", "generated", "fal-node-type-pricing.json"));
+      await writeEmptyPricingBundles(paths);
+      expect(await pricingBundleFilesExist(paths)).toBe(true);
+      expect(JSON.parse(await readFile(paths.catalogPath, "utf8"))).toMatchObject({ prices: {} });
+    } finally {
+      await rm(root, { recursive: true, force: true });
     }
   });
 });

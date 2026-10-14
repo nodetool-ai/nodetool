@@ -18,6 +18,7 @@ import {
   type ProviderEntry,
 } from "@/data/providerEntries";
 import type { ProviderModelKind } from "@/data/providerCatalog.generated";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -41,6 +42,7 @@ export async function generateMetadata({
     description: entry.description,
     alternates: { canonical: route },
     openGraph: {
+      images: DEFAULT_OG_IMAGES,
       title: entry.title,
       description: entry.description,
       url: `${BASE_URL}${route}`,

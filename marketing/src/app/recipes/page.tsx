@@ -6,6 +6,7 @@ import JsonLd from "@/components/JsonLd";
 import TrackedLink from "@/components/TrackedLink";
 import RecipeCard from "@/components/RecipeCard";
 import { recipeEntries } from "@/data/recipes";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 const BASE_URL = "https://nodetool.ai";
 export const metadata: Metadata = {
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
     "Make product ads, multilingual videos, catalogue images, and storyboards with NodeTool's guided flows. Follow each step with real UI examples.",
   alternates: { canonical: `${BASE_URL}/recipes` },
   openGraph: {
+    images: DEFAULT_OG_IMAGES,
     title: "Guided AI recipes | NodeTool",
     description:
       "Make product ads, multilingual videos, catalogue images, and storyboards with NodeTool's guided flows. Follow each step with real UI examples.",

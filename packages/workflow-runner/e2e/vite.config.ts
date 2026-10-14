@@ -45,7 +45,7 @@ const BUILTIN_STUBS: Record<string, string> = {
   buffer: `${STUBS}/buffer-stub.js`,
   assert: `${STUBS}/empty.js`,
   process: `${STUBS}/empty.js`,
-  async_hooks: `${STUBS}/empty.js`,
+  async_hooks: `${STUBS}/async-hooks-stub.js`,
   module: `${STUBS}/empty.js`
 };
 
