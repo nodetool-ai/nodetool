@@ -758,6 +758,39 @@ describe("workflows router", () => {
       expect(result.next).toBeNull();
     });
 
+    it("says which models and keys each shipped example asks for", async () => {
+      const examplesDir = new URL(
+        "../../base-nodes/nodetool/examples/nodetool-base",
+        import.meta.url
+      ).pathname;
+      const registry = {
+        getMetadata: (nodeType: string) =>
+          nodeType.startsWith("openai.")
+            ? { required_settings: ["OPENAI_API_KEY"] }
+            : undefined
+      };
+      const caller = createCaller(
+        makeCtx({ apiOptions: { examplesDir, registry } as never })
+      );
+      const result = await caller.workflows.examples({});
+      const needsOf = (name: string): unknown =>
+        (
+          result.workflows as Array<{ name: string; needs?: unknown }>
+        ).find((workflow) => workflow.name === name)?.needs;
+      expect(needsOf("Blur an Image")).toEqual({
+        modelKinds: [],
+        requiredSettings: []
+      });
+      expect(needsOf("A Poster in Portrait")).toEqual({
+        modelKinds: ["image_model"],
+        requiredSettings: []
+      });
+      expect(needsOf("Brand a UGC Product Video")).toEqual({
+        modelKinds: [],
+        requiredSettings: ["OPENAI_API_KEY"]
+      });
+    });
+
     it("rejects unauthenticated callers", async () => {
       const caller = createCaller(makeCtx({ userId: null }));
       await expect(caller.workflows.examples({})).rejects.toMatchObject({

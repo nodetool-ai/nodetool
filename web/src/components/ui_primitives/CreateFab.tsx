@@ -14,7 +14,8 @@
  */
 
 import React, { forwardRef, memo } from "react";
-import { Fab, FabProps, Tooltip } from "@mui/material";
+import { Fab, FabProps } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import AddIcon from "@mui/icons-material/Add";
 import { useTheme } from "@mui/material/styles";
 import {

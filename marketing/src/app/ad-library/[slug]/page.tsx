@@ -15,6 +15,7 @@ import AdBeatSequence from "@/components/adLibrary/AdBeatSequence";
 import { ComplexityMeter } from "@/components/adLibrary/AdConceptCard";
 import { adRecipes, formatKey } from "@/data/adLibrary";
 import type { AdRecipe } from "@/data/adLibrary";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 interface AdRecipePageProps {
   readonly params: Promise<{ slug: string }>;
@@ -36,6 +37,7 @@ export async function generateMetadata({
     description: recipe.objective,
     alternates: { canonical: `https://nodetool.ai${recipe.route}` },
     openGraph: {
+      images: DEFAULT_OG_IMAGES,
       title: recipe.title,
       description: recipe.objective,
       url: `https://nodetool.ai${recipe.route}`,

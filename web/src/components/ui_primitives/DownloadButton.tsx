@@ -8,7 +8,8 @@
  */
 
 import React, { memo, forwardRef, useCallback } from "react";
-import { IconButton, Button, Tooltip } from "@mui/material";
+import { IconButton, Button } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import { LoadingSpinner } from "./LoadingSpinner";
 import DownloadIcon from "@mui/icons-material/Download";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";

@@ -13,6 +13,7 @@ import {
   creationProjectId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
+import useOnboardingStore from "../../stores/OnboardingStore";
 import {
   AutoGrid,
   Box,
@@ -30,7 +31,9 @@ import {
   TYPOGRAPHY,
   getSpacingPx
 } from "../ui_primitives";
+import { NO_EXAMPLE_NEEDS } from "../../utils/exampleNeeds";
 import { DashboardSectionHeader, useSectionWrap } from "./dashboardChrome";
+import ExampleNeedsPill from "./ExampleNeedsPill";
 
 const ExampleGamePlayView = lazy(() => import("./ExampleGamePlayView"));
 
@@ -77,6 +80,7 @@ const GameCard = memo(function GameCard({
         <Caption size="smaller" color="secondary">
           {game.description}
         </Caption>
+        <ExampleNeedsPill needs={NO_EXAMPLE_NEEDS} />
         <Caption size="smaller" color="muted">
           {game.controls}
         </Caption>
@@ -108,7 +112,10 @@ const DashboardExampleGames = () => {
     null
   );
   const handlePlay = useCallback(
-    (game: ExampleGameSummary) => setPlayingGame(game),
+    (game: ExampleGameSummary) => {
+      setPlayingGame(game);
+      useOnboardingStore.getState().markStep("keep-creating");
+    },
     []
   );
   const theme = useTheme();
@@ -136,6 +143,7 @@ const DashboardExampleGames = () => {
               projectId: created.game.projectId
             });
             navigate("/workspace");
+            useOnboardingStore.getState().markStep("keep-creating");
           },
           onError: (error) => {
             addNotification({

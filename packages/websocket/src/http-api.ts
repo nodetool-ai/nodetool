@@ -52,7 +52,7 @@ import {
   updateAssetBytesModelInterface
 } from "./lib/asset-model-interface.js";
 import { probeAssetDurationSeconds } from "./lib/asset-duration.js";
-import { verdictSchema } from "@nodetool-ai/protocol";
+import { scanExampleNeeds, verdictSchema } from "@nodetool-ai/protocol";
 import {
   cancelDebugSession,
   debugSessions,
@@ -837,7 +837,8 @@ interface ExampleMetadata {
  */
 function buildExamplesFromDir(
   examplesDir: string,
-  examplesAssetsFallbackDir?: string
+  examplesAssetsFallbackDir?: string,
+  registry?: NodeRegistry
 ): unknown[] {
   if (!existsSync(examplesDir)) return [];
   const assetsDir = deriveExampleAssetsDir(
@@ -896,6 +897,10 @@ function buildExamplesFromDir(
         workspace_id: null,
         required_providers: null,
         required_models: null,
+        needs: scanExampleNeeds(
+          parsed.graph,
+          (nodeType) => registry?.getMetadata(nodeType)?.required_settings
+        ),
         html_app: null,
         app_doc: isObjectLike(parsed.app_doc) ? parsed.app_doc : null,
         etag: null
@@ -912,6 +917,7 @@ export function buildExampleWorkflows(
     HttpApiOptions,
     | "examplesDir"
     | "examplesAssetsFallbackDir"
+    | "registry"
     | "metadataRoots"
     | "metadataMaxDepth"
   >
@@ -920,7 +926,8 @@ export function buildExampleWorkflows(
   if (options.examplesDir) {
     return buildExamplesFromDir(
       options.examplesDir,
-      options.examplesAssetsFallbackDir
+      options.examplesAssetsFallbackDir,
+      options.registry
     );
   }
   const loaded = loadPythonPackageMetadata({

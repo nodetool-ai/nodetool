@@ -24,6 +24,7 @@ export const closeSync = notInBrowser("closeSync");
 export const createReadStream = notInBrowser("createReadStream");
 export const createWriteStream = notInBrowser("createWriteStream");
 export const cpSync = notInBrowser("cpSync");
+export const renameSync = notInBrowser("renameSync");
 export const unlinkSync = notInBrowser("unlinkSync");
 export const rmSync = notInBrowser("rmSync");
 export const mkdtempSync = notInBrowser("mkdtempSync");
@@ -67,6 +68,7 @@ export default {
   createReadStream,
   createWriteStream,
   cpSync,
+  renameSync,
   unlinkSync,
   rmSync,
   mkdtempSync,

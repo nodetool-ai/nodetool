@@ -454,13 +454,21 @@ const ModelListIndex: React.FC = () => {
           "While this worker is attached, any model you download lands on its volume."
       };
     }
+    if ((allModels?.length ?? 0) === 0) {
+      return {
+        searchOff: false,
+        title: "No models installed yet",
+        description:
+          "Download one from Recommended or the Hub, or open Get Started."
+      };
+    }
     return {
       searchOff: true,
       title: "No models available",
       description:
         "Try adjusting the size filter or selecting a different category."
     };
-  }, [modelSearchTerm, source, scope]);
+  }, [modelSearchTerm, source, scope, allModels]);
 
   if (isLoading) {
     return (

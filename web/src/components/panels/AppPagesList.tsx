@@ -83,7 +83,7 @@ const AppPagesList: React.FC<AppPagesListProps> = ({
   const normalizedQuery = query.trim().toLowerCase();
   const filteredActions = actions.filter(
     (action) =>
-      (scope === "all" || action.placement === "sidebar") &&
+      (scope === "all" || action.placement !== "logo") &&
       `${action.label} ${action.secondary ?? ""}`
         .toLowerCase()
         .includes(normalizedQuery)
