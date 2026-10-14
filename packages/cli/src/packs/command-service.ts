@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { getNodetoolDataDir } from "@nodetool-ai/config";
 import { readCatalogIndex, readCatalogNodes, type NodeCatalogIndex } from "@nodetool-ai/node-catalog";
 import { RUNTIME_NPM_PACKAGES, isRuntimeNpmPackageId } from "@nodetool-ai/protocol/runtime-npm-packages";
-import type { NodeCommandServices, NodesDoctorOptions } from "../commands/nodes.js";
+import type { PackCommandServices, PackDoctorOptions } from "../commands/pack-management.js";
 import { installWithCommandAuthorization } from "../commands/authorized-pack-install.js";
 import { authorizePackInstallCommand } from "../commands/pack-install-authorization.js";
 import { loadCliPackSnapshot } from "./host.js";
@@ -31,8 +31,8 @@ async function verifyInstalledInChild(cliRoot: string, installRoot: string, ids:
   });
 }
 
-/** Called only inside a nodes command. No entrypoint or module import reads desired state. */
-export interface NodeCommandServiceOptions {
+/** Called only inside a packs command. No entrypoint or module import reads desired state. */
+export interface PackCommandServiceOptions {
   readonly snapshot?: InstalledPackSnapshot;
   readonly catalog?: NodeCatalogIndex;
   readonly catalogNodes?: ReturnType<typeof readCatalogNodes>;
@@ -40,7 +40,7 @@ export interface NodeCommandServiceOptions {
   readonly operations?: InstallerOperations;
 }
 
-export async function createNodeCommandServices(context: NodeCommandServiceOptions = {}): Promise<NodeCommandServices> {
+export async function createPackCommandServices(context: PackCommandServiceOptions = {}): Promise<PackCommandServices> {
   const snapshot = context.snapshot ?? await loadCliPackSnapshot();
   const catalog = context.catalog ?? readCatalogIndex();
   const stateFile = context.stateFile ?? join(getNodetoolDataDir(), "cli-packs.json");
@@ -113,7 +113,7 @@ export async function createNodeCommandServices(context: NodeCommandServiceOptio
       console.log(result.removed.length ? `Removed: ${result.removed.join(", ")}` : "No installed packages were removed.");
       process.stderr.write('Running "nodetool serve" and "nodetool mcp serve" processes may fail on later lazy imports. Restart them after removing packs.\n');
     },
-    async doctor(options: NodesDoctorOptions) {
+    async doctor(options: PackDoctorOptions) {
       const issues: Array<{ kind: string; message: string }> = [];
       const baseline = { ...reportPackInstallation(snapshot), installRoot: root,
         reason: snapshot.mode.kind === "global" || snapshot.mode.kind === "local" ? null : snapshot.mode.reason,

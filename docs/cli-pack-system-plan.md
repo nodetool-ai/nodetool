@@ -33,7 +33,7 @@ The runtime library tier of the pack spec uses the ids of
 These rules apply:
 
 - A missing library throws `missingRuntimePackageError`.
-- `nodetool nodes add` installs node packs or runtime library ids through
+- `nodetool packs add` installs node packs or runtime library ids through
   the pinned, authorized installer. The existing `nodetool runtime add`
   remains available for compatibility.
 - The catalog has no `CatalogRuntimeLibrary` entries. A pack lists runtime
@@ -580,7 +580,7 @@ beside phase 1.
      and the workflow `publish.yaml`.
 
    Before A22, the release job installs one pack beside the CLI with plain npm.
-   After A22, it uses `nodes add`.
+   After A22, it uses `packs add`.
 5. **A13.5 Promotion.** Run `npm dist-tag add <name>@<version> latest` for
    each package, with the CLI last. A verification failure leaves `latest`
    unchanged.
@@ -604,7 +604,7 @@ beside phase 1.
 1. Detect the install mode from the realpath of the CLI entry (pack spec
    11.1). Do not run `npm root -g` at startup.
 2. Read the installed set (pack spec 11.3, D14). Ignore a pack whose version
-   differs from the core version, and record it for `nodes doctor`.
+   differs from the core version, and record it for `packs doctor`.
 3. Fill the `install` field of `MissingPackError` for each mode. Use the npx
    text from 11.1.
 
@@ -624,7 +624,7 @@ directory and a workspace checkout.
 **Acceptance:**
 
 - A pack with a wrong version stays catalog-only.
-- `nodes doctor` reports the wrong version. Before A22, a unit test of the
+- `packs doctor` reports the wrong version. Before A22, a unit test of the
   report function covers this.
 
 ### A16. `missing_pack` on every surface
@@ -690,7 +690,7 @@ with two processes shows that the second process waits.
 `packages/cli/src/npm-runner.ts`.
 
 1. Extract the npm call from `optional-node-root.ts` into `npm-runner.ts`.
-   Then `runtime add` and `nodes add` use one runner.
+   Then `runtime add` and `packs add` use one runner.
 2. Locate `npm-cli.js` beside `process.execPath` (pack spec 14.1). Check
    npm 10.9.0 or later (D15). Refuse `--preserve-symlinks`.
 3. Build the forced flags of pack spec 14.2 for each mode.
@@ -741,7 +741,7 @@ with two processes shows that the second process waits.
 
 ### A22. The commands and the re-exec
 
-**Blocked by:** A21. Q6 follows the recommended `nodetool nodes` namespace.
+**Blocked by:** A21. Q6 is resolved: the user selected `nodetool packs`.
 
 1. Add `list`, `add`, `add --restore`, `add --for`, `remove`, `doctor` and
    `why` (pack spec 15).
@@ -778,16 +778,16 @@ A second re-executed process never installs.
 
 1. Remove the 14 node packs and `game-renderer` from
    `packages/cli/package.json`.
-2. Make the full packed smoke install packs through `nodes add`.
+2. Make the full packed smoke install packs through `packs add`.
 3. Remove `NODETOOL_PACKS_INSTALLER`.
 4. Update `docs/cli.md` and `docs/node-packs.md`. Add a release note about
-   `nodes add --restore`.
+   `packs add --restore`.
 
 **Acceptance:**
 
 - A clean `npm install -g @nodetool-ai/cli@<staging>` is within the size
   gate.
-- `nodes add fal` followed by a `fal` workflow run succeeds.
+- `packs add fal` followed by a `fal` workflow run succeeds.
 
 ## 10. Dependency order
 
@@ -820,12 +820,13 @@ and the runtime install steps 1 and 2 beside it.
 
 ## 11. Open questions
 
-- **Q6.** Implementation follows the recommended `nodetool nodes` namespace.
-  Sandbox tooling keeps `nodetool packs compile`.
+- **Q6.** The user selected `nodetool packs` for installer management.
+  The existing `nodetool packs compile` subcommand remains available.
 - **Q8.** This plan keeps `llm-nodes` and `code-nodes` in core, as the
   pack spec tier table does.
-- **Q9.** Local mode requires explicit CLI authorization naming the project
-  manifest and lockfile. The token binds the root and mutation paths.
+- **Q9.** The user authorized local installer updates to the selected project’s
+  package.json and package-lock.json. CLI authorization still binds the root
+  and mutation paths and names those files in the prompt.
 
 ## 12. Risks of this plan
 

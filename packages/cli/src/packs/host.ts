@@ -44,13 +44,13 @@ export function configureCliPackHost(url: string, options: {
         const root = await realpath(mode.installRoot);
         const desired = (await readDesiredState(options.stateFile ?? join(getNodetoolDataDir(), "cli-packs.json")))[root];
         if (desired?.dirty) {
-          process.stderr.write("Node pack installation is dirty. Run \"nodetool nodes doctor --repair\".\n");
+          process.stderr.write("Node pack installation is dirty. Run \"nodetool packs doctor --repair\".\n");
         } else {
           const warning = restoreWarning(snapshot, desired);
           if (warning) { process.stderr.write(warning + "\n"); }
         }
       } catch {
-        process.stderr.write("Cannot read node pack desired state. Run \"nodetool nodes doctor\".\n");
+        process.stderr.write("Cannot read node pack desired state. Run \"nodetool packs doctor\".\n");
       }
     }
     return loaderContextForSnapshot(snapshot);

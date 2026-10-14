@@ -75,7 +75,7 @@ export function restoreWarning(snapshot: InstalledPackSnapshot, desired: Desired
   if (missing.length === 0) {
     return null;
   }
-  return `${missing.length} pack${missing.length === 1 ? "" : "s"} from ${desired.coreVersion} ${missing.length === 1 ? "is" : "are"} not installed for ${snapshot.mode.coreVersion}: ${missing.join(", ")}. Run "nodetool nodes add --restore".`;
+  return `${missing.length} pack${missing.length === 1 ? "" : "s"} from ${desired.coreVersion} ${missing.length === 1 ? "is" : "are"} not installed for ${snapshot.mode.coreVersion}: ${missing.join(", ")}. Run "nodetool packs add --restore".`;
 }
 
 /** Removal retains any requested pack still required by another installed pack. */

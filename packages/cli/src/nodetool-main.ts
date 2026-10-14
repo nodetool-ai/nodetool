@@ -60,7 +60,6 @@ import {
 } from "./supervisor.js";
 import { registerPackageCommands } from "./commands/package.js";
 import { registerPackCommands } from "./commands/packs.js";
-import { registerNodesCommands } from "./commands/nodes.js";
 import { installMissingPacksAndReexec } from "./commands/install-missing-packs.js";
 import { registerRuntimeCommands } from "./commands/runtime.js";
 import { registerDeployCommands } from "./commands/deploy.js";
@@ -1722,10 +1721,6 @@ mcp
 registerProjectCommands(program);
 registerPackageCommands(program);
 registerPackCommands(program);
-registerNodesCommands(program, async () => {
-  const { createNodeCommandServices } = await import("./packs/command-service.js");
-  return createNodeCommandServices();
-});
 registerRuntimeCommands(program);
 registerWorkerCommands(program);
 

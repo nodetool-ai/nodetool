@@ -141,23 +141,23 @@ describe.runIf(process.env["NODETOOL_NPM_MATRIX"] === "1")("actual npm matrix", 
     const stderr = vi.spyOn(process.stderr, "write");
     configureCliPackHost(pathToFileURL(join(request.mode.cliRoot, "index.js")).href, { catalog: { ...request.catalog!, coreVersion: "1.1.0" }, stateFile: request.stateFile });
     await loadCliPackSnapshot();
-    expect(stderr.mock.calls.map(([line]) => String(line)).join("")).toContain("nodetool nodes add --restore");
+    expect(stderr.mock.calls.map(([line]) => String(line)).join("")).toContain("nodetool packs add --restore");
   });
 
   it("M05 local add and remove update manifests and npm ci retains the installed pack", async () => {
     const f = await setupMatrixFixture();
     const mode = f.request.mode;
-    const { createNodeCommandServices } = await import("../../src/packs/command-service.js");
-    const { registerNodesCommands } = await import("../../src/commands/nodes.js");
+    const { createPackCommandServices } = await import("../../src/packs/command-service.js");
+    const { registerPackCommands } = await import("../../src/commands/packs.js");
     const program = new Command();
-    registerNodesCommands(program, () => createNodeCommandServices({ snapshot: readInstalledPacks(mode, f.request.catalog), catalog: f.request.catalog,
+    registerPackCommands(program, () => createPackCommandServices({ snapshot: readInstalledPacks(mode, f.request.catalog), catalog: f.request.catalog,
       stateFile: f.request.stateFile, operations: f.operations }));
-    await program.parseAsync(["nodes", "add", "fixture", "--yes"], { from: "user" });
+    await program.parseAsync(["packs", "add", "fixture", "--yes"], { from: "user" });
     const manifest = JSON.parse(await readFile(join(f.root, "package.json"), "utf8"));
     expect(manifest.dependencies["@nodetool-ai/fixture-nodes"]).toBe("1.0.0");
     await f.operations.npm(f.root, ["ci"], { mode: "local" });
     expect((await snapshotInstallTree(f.root)).map(entry => entry.name)).toContain("@nodetool-ai/fixture-nodes");
-    await program.parseAsync(["nodes", "remove", "fixture"], { from: "user" });
+    await program.parseAsync(["packs", "remove", "fixture"], { from: "user" });
     expect(JSON.parse(await readFile(join(f.root, "package.json"), "utf8")).dependencies["@nodetool-ai/fixture-nodes"]).toBeUndefined();
     expect((await snapshotInstallTree(f.root)).map(entry => entry.name)).not.toContain("@nodetool-ai/fixture-nodes");
   });
@@ -264,8 +264,8 @@ describe.runIf(process.env["NODETOOL_NPM_MATRIX"] === "1")("actual npm matrix", 
       active++; peak = Math.max(peak, active);
       try { return await f.operations.npm(...args); } finally { active--; }
     } };
-    const { createNodeCommandServices } = await import("../../src/packs/command-service.js");
-    const services = await Promise.all([0, 1].map(() => createNodeCommandServices({
+    const { createPackCommandServices } = await import("../../src/packs/command-service.js");
+    const services = await Promise.all([0, 1].map(() => createPackCommandServices({
       snapshot: readInstalledPacks(request.mode, request.catalog), catalog: request.catalog, stateFile: request.stateFile, operations
     })));
     const results = await Promise.allSettled([services[0].add(["fixture"], { yes: true }), services[1].add(["fixture2"], { yes: true })]);
@@ -340,8 +340,8 @@ describe.runIf(process.env["NODETOOL_NPM_MATRIX"] === "1")("actual npm matrix", 
     }
     const lock = join(f.root, "node_modules", ".nodetool-packs.lock");
     const stale = new Date(Date.now() - 120_000); await utimes(lock, stale, stale);
-    const { createNodeCommandServices } = await import("../../src/packs/command-service.js");
-    const services = await createNodeCommandServices({ snapshot: readInstalledPacks(request.mode, request.catalog), catalog: request.catalog, stateFile: request.stateFile, operations: f.operations });
+    const { createPackCommandServices } = await import("../../src/packs/command-service.js");
+    const services = await createPackCommandServices({ snapshot: readInstalledPacks(request.mode, request.catalog), catalog: request.catalog, stateFile: request.stateFile, operations: f.operations });
     const report = await services.doctor({});
     expect(report).toMatchObject({ healthy: false });
     expect(await services.doctor({ repair: true })).toMatchObject({ healthy: true, dirty: false });

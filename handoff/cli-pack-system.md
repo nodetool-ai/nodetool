@@ -304,11 +304,11 @@ and native matrix are implemented. Continue with the real release and staging
 prerequisites. Perform A24 only after its required checks and release proofs
 pass. Publishing npm packages and merging PRs still need separate authorization.
 
-Q6 follows the recommended `nodetool nodes` namespace because `nodetool packs`
-already means sandbox packs. Q9 uses explicit local CLI authorization naming
-the project manifest and lockfile and binding their mutation paths. These
-implementation choices follow the recommendations without claiming a separate
-user answer.
+Q6 is resolved by the user’s selection of `nodetool packs` for installer
+management alongside the existing `packs compile` subcommand. Q9 is resolved
+by the user’s authorization to update the selected project’s package.json and
+package-lock.json. CLI authorization continues to name those files and bind
+the install root and mutation paths.
 
 ## Preserved user edit
 
@@ -320,7 +320,7 @@ Preserve it on the original machine. No force push or reset was performed.
 
 ## Command and matrix checkpoint
 
-`32fa5f97c7` adds the reviewed `nodetool nodes` command surface, removal,
+`32fa5f97c7` adds the reviewed installer command surface, removal,
 repair, authorized re-execution and native platform/npm matrix. Independent
 concurrent commands now renew stale authorization without changing the old
 grant. Prompts bind the displayed selection to the resulting token.
@@ -451,18 +451,16 @@ size plus five percent rounded up. [Design section 8.4](../docs/cli-pack-system-
 records the measurement and limit. Before main integration, a real 16 KiB
 fixture failed a 1 KiB budget and passed at equality. The helper also refuses
 invalid measurements and limits. All 49 helper tests pass and Astra cleared
-the integration. Fresh CI must prove the enforced gate on the packed install.
+the integration. The [enforced packed-install check on `70b4c5c38f`](https://github.com/nodetool-ai/nodetool/actions/runs/38497247390/job/115635716082)
+passes at 849,612 KiB, below 892,097 KiB. The full bundled smoke also passes.
+Small block-allocation differences remain within the measured margin.
 
-The broad verification job on that run stopped at the new FAL catalog
+The broad verification job on `5b2631ab38` stopped at the new FAL catalog
 regression's five-second import deadline. Its assertions passed in focused
 runs and in the real packed smoke. Only that integration test now has a
 30-second deadline. The other 456 script tests passed in the failed run.
 Mandatory verification and the required aggregate check still need success.
 A24 remains blocked by its release and verification prerequisites.
-
-`70b4c5c38f` passes the actual enforced size gate in CI: 849,612 KiB is below
-892,097 KiB. The full bundled smoke also passes. Small block-allocation
-differences remain within the measured margin.
 
 Foundation CI on `7eeb417b5c` exposed stale OCR/TFJS and Whisper message
 assertions, plus the already-repaired email mock boundary. The child reproduces
@@ -477,3 +475,14 @@ dependencies remain intact. Child merge `dfdc94737a` retains the dependency
 cuts and has the same tree as fixture checkpoint `af78fc513b`. Both wrappers
 remain in the tested 3.0 patch series. Fresh mandatory CI on both layers is
 still required before completion.
+
+The user selected `nodetool packs` for installer management and authorized
+local project manifest and lockfile updates. One command now contains
+`compile`, `list`, `add`, `remove`, `doctor` and `why`, with lazy service loading.
+The combined registration regression fails before reconciliation and passes
+afterward. All 44 focused command, management and mode checks pass, as does
+the actual npm M05 add, clean-install and remove case. Root build, typecheck
+and lint pass. Catalog fixture `8f9a11a565` simulates missing optional packs
+from published catalog ownership while retaining real core registration and
+FAL metadata and initialization assertions. Its eight focused checks pass
+without increasing either deadline. Broader CI remains pending.

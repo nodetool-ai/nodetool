@@ -42,7 +42,7 @@ describe("node pack command reports", () => {
 
   it("warns after upgrades without treating desired intent as installed or as authorization", () => {
     const desired = { root: "/project", coreVersion: "1.2.2", packs: ["video", "game"], runtimeLibraries: [] };
-    expect(restoreWarning(snapshot(["game"]), desired)).toBe('1 pack from 1.2.2 is not installed for 1.2.3: video. Run "nodetool nodes add --restore".');
+    expect(restoreWarning(snapshot(["game"]), desired)).toBe('1 pack from 1.2.2 is not installed for 1.2.3: video. Run "nodetool packs add --restore".');
     expect(restoreWarning(snapshot(["game", "video"]), desired)).toBeNull();
     expect(restoreWarning(snapshot([]), { ...desired, coreVersion: "1.2.3" })).toBeNull();
     expect(restartNotice(["video", "game", "game"])).toContain("processes to load game, video");

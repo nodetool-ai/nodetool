@@ -29,7 +29,7 @@ export async function inspectPackInstallLock(mode: InstallMode): Promise<readonl
     }
     const interrupted = stopped || Date.now() - info.mtimeMs > 60_000;
     issues.push({ kind: interrupted ? "interrupted_install" : "active_install",
-      message: interrupted ? `Interrupted install lock at ${file}. Run nodetool nodes doctor --repair after its heartbeat expires.` : `An install is active at ${file}. Wait for it to finish before checking or repairing the tree.` });
+      message: interrupted ? `Interrupted install lock at ${file}. Run nodetool packs doctor --repair after its heartbeat expires.` : `An install is active at ${file}. Wait for it to finish before checking or repairing the tree.` });
   } catch (error) {
     if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) {
       issues.push({ kind: "invalid_install_lock", message: `Cannot inspect install lock ${file}: ${error instanceof Error ? error.message : String(error)}` });

@@ -99,7 +99,7 @@ export async function removePacks(request: InstallPacksRequest, authorization: I
       } catch { restored = false; }
       if (!restored) {
         await writeDesiredState(request.stateFile, { ...previous, dirty: true });
-        throw new Error("Pack removal failed and rollback did not restore the tree. Run nodetool nodes doctor --repair.", { cause });
+        throw new Error("Pack removal failed and rollback did not restore the tree. Run nodetool packs doctor --repair.", { cause });
       }
       throw cause;
     }

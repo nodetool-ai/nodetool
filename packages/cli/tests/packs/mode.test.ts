@@ -167,7 +167,7 @@ describe("pack install layout classification", () => {
     const install = installDetailsForMode(mode);
     expect(install.supported).toBe(kind === "global" || kind === "local");
     expect(install.command).toBeNull();
-    expect(installDetailsForMode(mode, ["video", "game", "video"]).command).toBe(kind === "global" || kind === "local" ? "nodetool nodes add game video" : null);
+    expect(installDetailsForMode(mode, ["video", "game", "video"]).command).toBe(kind === "global" || kind === "local" ? "nodetool packs add game video" : null);
     if (kind === "npx") {
       expect(install.reason).toBe('Packs need a global or local install. Run "npm install -g @nodetool-ai/cli" or "npm install @nodetool-ai/cli" in a project.');
     }
@@ -192,7 +192,7 @@ describe("pack install layout classification", () => {
         const payload = JSON.parse(JSON.stringify(error.details));
         assert.equal(payload.install.supported, kind === 'global' || kind === 'local');
         assert.equal(payload.install.reason, kind === 'global' || kind === 'local' ? null : mode.reason);
-        assert.equal(payload.install.command, kind === 'global' || kind === 'local' ? 'nodetool nodes add fal' : null);
+        assert.equal(payload.install.command, kind === 'global' || kind === 'local' ? 'nodetool packs add fal' : null);
         assert.ok(!error.message.includes('null'));
       }
     `], { cwd: join(import.meta.dirname, "../../../.."), encoding: "utf8", timeout: 30000 });

@@ -62,7 +62,7 @@ describe("CLI installed pack host", () => {
     `);
     expect(child.status, child.stderr).toBe(0);
     expect(child.stderr.match(/1 pack from 0\.0\.0/g)).toHaveLength(1);
-    expect(child.stderr).toContain('nodetool nodes add --restore');
+    expect(child.stderr).toContain('nodetool packs add --restore');
   });
 
   it("shares one admitted snapshot between command and server registries", () => {

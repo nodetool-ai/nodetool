@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createNodeCommandServices } from "../../src/packs/command-service.js";
+import { createPackCommandServices } from "../../src/packs/command-service.js";
 import { readCatalogNodes } from "@nodetool-ai/node-catalog";
 import { readInstalledPacks } from "../../src/packs/installed.js";
 import { readDesiredState } from "../../src/packs/install-state.js";
@@ -14,7 +14,7 @@ describe("node command services with actual npm", () => {
     const f = await setupPackRegistry();
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    const services = () => createNodeCommandServices({ snapshot: readInstalledPacks(f.request.mode, f.request.catalog),
+    const services = () => createPackCommandServices({ snapshot: readInstalledPacks(f.request.mode, f.request.catalog),
       catalog: f.request.catalog, stateFile: f.request.stateFile, operations: f.operations });
     expect((await (await services()).list()).find(row => row.id === "fixture")?.installed).toBe(false);
     await (await services()).add(["fixture"], { yes: true });
@@ -34,7 +34,7 @@ describe("node command services with actual npm", () => {
     const catalog = { ...f.request.catalog, owners: { "fixture.Absent": "fixture" } };
     const file = join(f.directory, "workflow.json");
     await writeFile(file, JSON.stringify({ nodes: [{ id: "n", type: "fixture.Absent", properties: {} }], edges: [] }));
-    const service = await createNodeCommandServices({ snapshot: readInstalledPacks(f.request.mode, catalog), catalog,
+    const service = await createPackCommandServices({ snapshot: readInstalledPacks(f.request.mode, catalog), catalog,
       catalogNodes: [{ ...readCatalogNodes()[0], node_type: "fixture.Absent", pack: "fixture" }],
       stateFile: f.request.stateFile, operations: f.operations });
     await service.add([], { for: file, yes: true });
@@ -44,7 +44,7 @@ describe("node command services with actual npm", () => {
   it("requires noninteractive confirmation and refuses preview-disabled installs before npm", async () => {
     const f = await setupPackRegistry();
     const npm = vi.spyOn(f.operations, "npm");
-    const service = await createNodeCommandServices({ snapshot: readInstalledPacks(f.request.mode, f.request.catalog),
+    const service = await createPackCommandServices({ snapshot: readInstalledPacks(f.request.mode, f.request.catalog),
       catalog: f.request.catalog, stateFile: f.request.stateFile, operations: f.operations });
     vi.stubEnv("NODETOOL_PACKS_INSTALLER", "0");
     await expect(service.add(["fixture"], { yes: true })).rejects.toThrow("disabled");
@@ -54,7 +54,7 @@ describe("node command services with actual npm", () => {
   it("does not overlook a missing runtime library merely because the owning node pack is installed", async () => {
     const f = await setupPackRegistry();
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    const initial = await createNodeCommandServices({ snapshot: readInstalledPacks(f.request.mode, f.request.catalog),
+    const initial = await createPackCommandServices({ snapshot: readInstalledPacks(f.request.mode, f.request.catalog),
       catalog: f.request.catalog, stateFile: f.request.stateFile, operations: f.operations });
     await initial.add(["fixture"], { yes: true });
     const catalog = { ...f.request.catalog, owners: { "fixture.Installed": "fixture" },
@@ -62,7 +62,7 @@ describe("node command services with actual npm", () => {
     const file = join(f.directory, "runtime-workflow.json");
     await writeFile(file, JSON.stringify({ nodes: [{ id: "n", type: "fixture.Installed", properties: {} }], edges: [] }));
     const npm = vi.spyOn(f.operations, "npm");
-    const service = await createNodeCommandServices({ snapshot: readInstalledPacks(f.request.mode, catalog), catalog,
+    const service = await createPackCommandServices({ snapshot: readInstalledPacks(f.request.mode, catalog), catalog,
       catalogNodes: [{ ...readCatalogNodes()[0], node_type: "fixture.Installed", pack: "fixture" }],
       stateFile: f.request.stateFile, operations: f.operations });
     // The fixture deliberately has no public runtime tarballs or release pins.
@@ -75,7 +75,7 @@ describe("node command services with actual npm", () => {
     const f = await setupPackRegistry();
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    const service = () => createNodeCommandServices({ snapshot: readInstalledPacks(f.request.mode, f.request.catalog),
+    const service = () => createPackCommandServices({ snapshot: readInstalledPacks(f.request.mode, f.request.catalog),
       catalog: f.request.catalog, stateFile: f.request.stateFile, operations: f.operations });
     await (await service()).add(["fixture"], { yes: true });
     await (await service()).remove(["fixture"]);
@@ -88,7 +88,7 @@ describe("node command services with actual npm", () => {
   it("reports dirty intent and clears it only after an explicit repair and fresh child load", async () => {
     const f = await setupPackRegistry();
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    const service = () => createNodeCommandServices({ snapshot: readInstalledPacks(f.request.mode, f.request.catalog),
+    const service = () => createPackCommandServices({ snapshot: readInstalledPacks(f.request.mode, f.request.catalog),
       catalog: f.request.catalog, stateFile: f.request.stateFile, operations: f.operations });
     await (await service()).add(["fixture"], { yes: true });
     const state = await readDesiredState(f.request.stateFile);

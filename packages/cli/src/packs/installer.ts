@@ -113,7 +113,7 @@ async function installPacksTransaction(request: InstallPacksRequest, authorizati
       } catch { restored = false; }
       if (!restored) {
         await writeDesiredState(request.stateFile, { ...previous, dirty: true });
-        throw new Error("Pack install failed and rollback did not restore the tree. Run nodetool nodes doctor --repair.", { cause });
+        throw new Error("Pack install failed and rollback did not restore the tree. Run nodetool packs doctor --repair.", { cause });
       }
       if (operation === "repair") { await writeDesiredState(request.stateFile, { ...previous, dirty: true }); }
       throw cause;

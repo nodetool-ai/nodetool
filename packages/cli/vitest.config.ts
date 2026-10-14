@@ -74,7 +74,7 @@ function nodetoolStubPlugin(): Plugin {
 const realPackageTests = [
   "tests/packs/npm-matrix.test.ts",
   "tests/packs/command-service.test.ts",
-  "tests/packs/nodes-command.test.ts",
+  "tests/packs/pack-management-command.test.ts",
   "tests/packs/reexec.test.ts",
   "tests/packs/node-run-lazy.test.ts",
   "tests/command-errors-runtime.test.ts",

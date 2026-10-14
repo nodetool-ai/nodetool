@@ -2601,7 +2601,7 @@ nodetool package docs --compact
 nodetool package node-docs --package-name nodetool.text
 ```
 
-### `nodetool nodes`
+### `nodetool packs`
 
 Manage node packs and npm runtime libraries for a global CLI installation or
 an npm project. Mutation is a preview feature enabled with
@@ -2610,14 +2610,15 @@ checkouts support diagnostics but refuse installation changes.
 
 | Command | Behavior |
 |---|---|
-| `nodes list [--json]` | Show available packs, installation state and size estimates. |
-| `nodes add <ids...> [--yes]` | Install the pinned packs or runtime libraries and their requirements. |
-| `nodes add --restore [--yes]` | Restore the desired set recorded for this install root. |
-| `nodes add --for <workflow-or-file> [--yes]` | Install missing requirements of a saved workflow or an explicitly named local file. |
-| `nodes remove <ids...>` | Remove packages owned exclusively by the selection while preserving retained requirements. |
-| `nodes doctor [--json] [--installed] [--pack <ids...>]` | Check the mode, versions, integrity and installation state. Registration checks use a fresh child process. |
-| `nodes doctor --repair` | Repair a dirty installation after verifying its pinned cohort. |
-| `nodes why <node_type-or-id>` | Explain ownership, requirements and installation state. |
+| `packs compile [--json] [--force]` | Compile installed sandbox pack modules. See [sandbox compilation](#nodetool-packs-compile). |
+| `packs list [--json]` | Show available packs, installation state and size estimates. |
+| `packs add <ids...> [--yes]` | Install the pinned packs or runtime libraries and their requirements. |
+| `packs add --restore [--yes]` | Restore the desired set recorded for this install root. |
+| `packs add --for <workflow-or-file> [--yes]` | Install missing requirements of a saved workflow or an explicitly named local file. |
+| `packs remove <ids...>` | Remove packages owned exclusively by the selection while preserving retained requirements. |
+| `packs doctor [--json] [--installed] [--pack <ids...>]` | Check the mode, versions, integrity and installation state. Registration checks use a fresh child process. |
+| `packs doctor --repair` | Repair a dirty installation after verifying its pinned cohort. |
+| `packs why <node_type-or-id>` | Explain ownership, requirements and installation state. |
 
 Add commands prompt with package versions, size estimates, approved scripts
 and local manifest changes. Use `--yes` in a non-interactive terminal. Local

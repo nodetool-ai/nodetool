@@ -4,7 +4,8 @@ on:
   pull_request:
     paths:
       - 'packages/cli/src/packs/**'
-      - 'packages/cli/src/commands/nodes.ts'
+      - 'packages/cli/src/commands/pack-management.ts'
+      - 'packages/cli/src/commands/packs.ts'
       - 'packages/cli/src/commands/pack-install-authorization.ts'
       - 'packages/cli/src/npm-runner.ts'
       - 'packages/cli/src/install-lock.ts'

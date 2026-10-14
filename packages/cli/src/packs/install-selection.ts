@@ -55,7 +55,7 @@ export async function prepareInstallSelection(request: InstallPacksRequest, opti
   if (catalog.coreVersion !== mode.coreVersion) { throw new Error("Catalog and CLI versions differ"); }
   const root = await realpath(mode.installRoot);
   const previous = (await readDesiredState(request.stateFile))[root] ?? { root, coreVersion: mode.coreVersion, packs: [], runtimeLibraries: [] };
-  if (previous.dirty && !options.allowDirty) { throw new Error("Pack installation is dirty. Run nodetool nodes doctor --repair."); }
+  if (previous.dirty && !options.allowDirty) { throw new Error("Pack installation is dirty. Run nodetool packs doctor --repair."); }
   const tree = await readInstallTree(root, mode.kind === "global");
   const before = tree.packages;
   const names = new Set(before.map((entry) => entry.name));
