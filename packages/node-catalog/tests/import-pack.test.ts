@@ -3,6 +3,10 @@ import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 import { importPack } from "../src/import-pack.js";
 
+const CHILD_TIMEOUT_MS = 30_000;
+// Actual pack roots and subprocesses load built media dependencies under CI load.
+const PACK_IMPORT_TEST_TIMEOUT_MS = CHILD_TIMEOUT_MS + 5_000;
+
 it("rejects unknown pack IDs and specifiers outside the pack's closure", async () => {
   await expect(importPack("unknown-pack")).rejects.toThrow(/Unknown node pack/);
   await expect(importPack("fal", "@nodetool-ai/replicate-nodes")).rejects.toThrow(/does not provide/);
@@ -15,18 +19,30 @@ it("supports a pack's registrar, relative subpaths and provided first-party pack
   expect(pack["registerFalNodes"]).toEqual(expect.any(Function));
   expect(await importPack("document", "lib/pdf-text")).toHaveProperty("extractPdfText");
   expect(await importPack("game", "@nodetool-ai/game-renderer/preparation3d")).toHaveProperty("prepareGameModel");
-});
+}, PACK_IMPORT_TEST_TIMEOUT_MS);
 
 it("keeps unavailable packs catalog-only and preserves initialization errors", async () => {
   const root = fileURLToPath(new URL("../../../", import.meta.url));
   const script = `
     import assert from "node:assert/strict";
     import { registerHooks } from "node:module";
+    const started = Date.now();
+    const phase = message => process.stdout.write("catalog fixture: " + message + " (" + (Date.now() - started) + "ms)\\n");
     const source = ${JSON.stringify(new URL("../dist/index.js", import.meta.url).href)};
+    phase("loading metadata");
+    const { importPack, registerAvailablePacks, readCatalogIndex, readCatalogNodes, MissingPackError } = await import(source);
+    const packs = readCatalogIndex().packs;
+    const unavailable = new Set(packs.filter(pack => pack.kind === "node-pack")
+      .flatMap(pack => [pack.npm.name, ...pack.provides]));
+    assert(unavailable.size > 0);
+    assert(unavailable.has("@nodetool-ai/fal-nodes"));
+    assert(packs.some(pack => pack.kind === "core" && pack.npm.name === "@nodetool-ai/core-nodes"));
+    for (const pack of packs.filter(pack => pack.kind === "core")) assert(!unavailable.has(pack.npm.name));
+    phase("metadata ready");
     const hooks = registerHooks({
       resolve(specifier, context, nextResolve) {
-        if (specifier === "@nodetool-ai/fal-nodes") {
-          const error = new Error("Cannot find package @nodetool-ai/fal-nodes");
+        if (unavailable.has(specifier)) {
+          const error = new Error("Cannot find package " + specifier);
           error.code = "ERR_MODULE_NOT_FOUND";
           throw error;
         }
@@ -34,10 +50,11 @@ it("keeps unavailable packs catalog-only and preserves initialization errors", a
       }
     });
     const { NodeRegistry } = await import("@nodetool-ai/node-sdk");
-    const { importPack, registerAvailablePacks, readCatalogNodes, MissingPackError } = await import(source);
     await assert.rejects(importPack("fal"), error => error instanceof MissingPackError && error.details.install.supported === false);
     const registry = new NodeRegistry();
+    phase("registering available core");
     await registerAvailablePacks(registry, { includeOptionalPacks: true });
+    phase("core-only registration ready");
     const nodes = readCatalogNodes().filter(node => node.pack === "fal");
     assert(nodes.length > 0);
     for (const node of nodes) {
@@ -59,7 +76,7 @@ it("keeps unavailable packs catalog-only and preserves initialization errors", a
     process.stdout.write("catalog fallback and initialization failure verified");
   `;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 30_000);
+  const timer = setTimeout(() => controller.abort(), CHILD_TIMEOUT_MS);
   const child = spawn(process.execPath, ["--input-type=module", "-e", script], {
     cwd: root, stdio: ["ignore", "pipe", "pipe"], signal: controller.signal
   });
@@ -69,13 +86,19 @@ it("keeps unavailable packs catalog-only and preserves initialization errors", a
   child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
   try {
     const code = await new Promise<number | null>((resolve, reject) => {
-      child.on("error", reject);
+      const failed = (error: Error) => reject(new Error(
+        `Catalog fixture child failed: ${error.message}\nstdout:\n${stdout}\nstderr:\n${stderr}`,
+        { cause: error }
+      ));
+      child.on("error", failed);
+      child.stdout.on("error", failed);
+      child.stderr.on("error", failed);
       child.on("close", resolve);
     });
-    expect(code, stderr).toBe(0);
+    expect(code, `stdout:\n${stdout}\nstderr:\n${stderr}`).toBe(0);
     expect(stdout).toContain("catalog fallback and initialization failure verified");
   } finally {
     clearTimeout(timer);
     child.kill();
   }
-});
+}, PACK_IMPORT_TEST_TIMEOUT_MS);

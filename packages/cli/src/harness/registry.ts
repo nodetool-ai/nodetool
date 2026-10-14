@@ -965,7 +965,7 @@ export const HARNESSES: HarnessEntry[] = [
     capabilities: ["no-db", "gated:pr"],
     docs: "docs/cli-pack-system-plan.md § A1. The node catalog",
     selfcheck: {
-      command: "npm run check:node-catalog && node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/node-catalog.test.mjs scripts/__tests__/bump-version.test.mjs",
+      command: "npm run check:node-catalog && node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/node-catalog.test.mjs scripts/__tests__/bump-version.test.mjs tools/oxlint/pack-boundaries/tests/no-direct-pack-imports.test.ts",
       cost: "cheap"
     }
   },
@@ -1850,6 +1850,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/node-catalog/",
       "packages/node-sdk/src/",
       "scripts/node-catalog/",
+      "tools/oxlint/pack-boundaries/",
       "scripts/generate-node-catalog.mjs",
       "scripts/__tests__/node-catalog.test.mjs",
       "scripts/bump-version.mjs",
