@@ -486,3 +486,23 @@ and lint pass. Catalog fixture `8f9a11a565` simulates missing optional packs
 from published catalog ownership while retaining real core registration and
 FAL metadata and initialization assertions. Its eight focused checks pass
 without increasing either deadline. Broader CI remains pending.
+
+## Latest namespace and foundation verification
+
+`f6021d0734` implements the user-selected `nodetool packs` namespace while
+preserving `packs compile`. Q9 explicitly allows authorized project manifest
+and lockfile updates. Build, root typecheck and lint pass for that change.
+The merged catalog regressions pass 12 focused tests.
+
+Foundation `2551ec2739` fixes the catalog mock boundary, bounds pack integration
+tests and maps the pack-boundary plugin into the harness gate. The wrong mock
+and missing mapping were reproduced before repair. Parent-focused catalog
+and mapping/plugin checks pass. The prior Blender render timeout remains
+unmodified pending fresh CI evidence.
+
+The foundation PR conflicted with main, preventing new PR checks. Reviewed
+merge `f673ce1ddc` resolves an equivalent storage comment and asset-test changes,
+with 44 focused tests passing. Child merge `f700e5a749` incorporates it without
+conflicts and preserves the dependency cuts and unified packs command. Both
+layers require fresh mandatory CI. A24 remains blocked by release and
+verification prerequisites. No npm publication, tag mutation or PR merge occurred.
