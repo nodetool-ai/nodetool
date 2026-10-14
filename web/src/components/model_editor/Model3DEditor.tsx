@@ -845,6 +845,14 @@ const Model3DEditor = ({
         void runImport([() => importModelUrl(assetUrl, asset.name)]);
         return;
       }
+      if (dragData?.type === "example-model") {
+        const model = dragData.payload;
+        const modelUrl = resolveStaticMediaUri(model.uri);
+        if (modelUrl) {
+          void runImport([() => importModelUrl(modelUrl, model.file)]);
+        }
+        return;
+      }
       if (e.dataTransfer.files.length > 0) {
         handleImportFiles(e.dataTransfer.files);
       }
