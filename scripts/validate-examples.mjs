@@ -156,7 +156,7 @@ function findExamples(dir) {
     const stat = statSync(full);
     if (stat.isDirectory()) {
       results.push(...findExamples(full));
-    } else if (entry.endsWith(".json") && full.includes("/examples/")) {
+    } else if (entry !== "package.json" && entry.endsWith(".json") && full.includes("/examples/")) {
       results.push(full);
     }
   }

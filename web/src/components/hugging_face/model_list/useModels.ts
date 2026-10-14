@@ -91,6 +91,15 @@ export const isManageableModel = (model: UnifiedModel): boolean => {
   return isLocalProvider(model.provider ?? undefined);
 };
 
+/**
+ * A model counts as installed when its files are on this machine (or the
+ * attached worker) or a local runtime already serves it. The Installed list,
+ * its status counts and the Local Models summary all use this one rule, so a
+ * recommended model that still needs a download never shows up as installed.
+ */
+export const isInstalledModel = (model: UnifiedModel): boolean =>
+  model.downloaded === true || model.execution?.state === "ready";
+
 const sortModels = (
   models: UnifiedModel[],
   field: ModelSortField,
@@ -228,7 +237,9 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     if (source === "onboarding") return [];
     if (source === "recommended") return recommendedCatalog;
     if (source === "hub") return hubModels;
-    return rawModels?.filter(isManageableModel);
+    return rawModels?.filter(
+      (model) => isManageableModel(model) && isInstalledModel(model)
+    );
   }, [source, recommendedCatalog, hubModels, rawModels]);
 
   const groupedModels = useMemo(

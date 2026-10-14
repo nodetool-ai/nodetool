@@ -337,7 +337,7 @@ export default defineConfig(async ({ mode }) => {
         ),
         "@nodetool/fal-unit-pricing-catalog": resolve(
           configDir,
-          "../packages/fal-nodes/src/generated/fal-unit-pricing.json"
+          "../packages/model-pricing/src/generated/fal-unit-pricing.json"
         ),
         "@nodetool/kie-node-type-pricing": resolve(
           configDir,
@@ -345,7 +345,7 @@ export default defineConfig(async ({ mode }) => {
         ),
         "@nodetool/kie-unit-pricing-catalog": resolve(
           configDir,
-          "../packages/kie-nodes/src/generated/kie-unit-pricing.json"
+          "../packages/model-pricing/src/generated/kie-unit-pricing.json"
         ),
       },
     },

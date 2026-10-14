@@ -3,7 +3,7 @@
  * CLI for generating FAL node manifest from OpenAPI schemas.
  *
  * Also fetches per-endpoint unit pricing from the FAL pricing API and writes
- * two JSON bundles next to the manifest (under `src/generated/`). Pass
+ * node pricing in the pack and model pricing in `model-pricing`. Pass
  * `--no-pricing` to leave existing bundles untouched. When `FAL_API_KEY` is
  * unset, existing bundles are preserved; empty stubs are written only when
  * neither file exists yet (fresh checkout).
@@ -20,7 +20,7 @@
 
 import { parseArgs } from "node:util";
 import { writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { SchemaFetcher } from "./schema-fetcher.js";
 import { SchemaParser } from "./schema-parser.js";
 import { NodeGenerator } from "./node-generator.js";
@@ -29,6 +29,7 @@ import type { NodeSpec } from "./types.js";
 import { fetchFalPricing } from "./fal-pricing-fetch.js";
 import {
   buildPricingBundles,
+  pricingPaths,
   preserveOrWriteEmptyPricingBundles,
   writePricingBundles,
   type SpecWithModule
@@ -68,13 +69,6 @@ function throwIfStrictFailures(
   );
 }
 
-function pricingPaths(manifestPath: string) {
-  const generatedDir = join(dirname(manifestPath), "generated");
-  return {
-    byNodeTypePath: join(generatedDir, "fal-node-type-pricing.json"),
-    catalogPath: join(generatedDir, "fal-unit-pricing.json")
-  };
-}
 
 async function generatePricing(
   specs: SpecWithModule[],

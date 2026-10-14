@@ -32,25 +32,21 @@ jest.mock("../../stores/NodeStore", () => ({
     }))
 }));
 
-jest.mock("../../stores/workflowUpdates", () => ({
-  subscribeToWorkflowUpdates: jest.fn(),
-  unsubscribeFromWorkflowUpdates: jest.fn()
-}));
+jest.mock("../../stores/workflowUpdates", () =>
+  jest.requireActual("../../test-utils/workflowManagerMocks").workflowUpdatesMock()
+);
 
-jest.mock("../../stores/WorkflowRunner", () => ({
-  getWorkflowRunnerStore: jest.fn(() => ({ getState: () => ({}) })),
-  disposeWorkflowRunnerStore: jest.fn()
-}));
+jest.mock("../../stores/WorkflowRunner", () =>
+  jest.requireActual("../../test-utils/workflowManagerMocks").workflowRunnerMock()
+);
 
-jest.mock("../../stores/runReconciliation", () => ({
-  startRunReconciliation: jest.fn(),
-  stopRunReconciliation: jest.fn()
-}));
+jest.mock("../../stores/runReconciliation", () =>
+  jest.requireActual("../../test-utils/workflowManagerMocks").runReconciliationMock()
+);
 
-jest.mock("../../components/appbuilder/runtime/appRuntimeStore", () => ({
-  disposeAppRuntimeStore: jest.fn(),
-  workflowInstanceId: (id: string) => id
-}));
+jest.mock("../../components/appbuilder/runtime/appRuntimeStore", () =>
+  jest.requireActual("../../test-utils/workflowManagerMocks").appRuntimeStoreMock()
+);
 
 import type { WorkflowManagerStore } from "../../stores/WorkflowManagerStore";
 

@@ -49,6 +49,7 @@ import JsScriptListPanel, {
   CreateJsScriptButton
 } from "../jsScript/JsScriptListPanel";
 import SkillListPanel from "../skills/SkillListPanel";
+import ExamplesPanel from "../examples/ExamplesPanel";
 import ChatListPanel from "../chat/ChatListPanel";
 import ApplicationListPanel, {
   CreateApplicationButton,
@@ -616,6 +617,25 @@ const PanelContent = memo(function PanelContent({
             />
           )}
           <EntityListPanel projectId={projectId} />
+        </FlexColumn>
+      )}
+      {activeView === "examples" && (
+        <FlexColumn
+          className="examples-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeader
+              title="Examples"
+              docsTopic={activeCategory.docsTopic}
+              description={headlineDescription}
+            />
+          )}
+          <ExamplesPanel />
         </FlexColumn>
       )}
       {activeView === "scripts" && (

@@ -42,7 +42,14 @@ interface OnboardingStore {
   dismissed: boolean;
   /** The first-run provider sign-in offer has been shown once already. */
   providerSignInOffered: boolean;
+  /**
+   * The user sent a description from the new-project composer. The
+   * describe-idea step completes on the first finished run after that, so
+   * running an example without describing anything does not tick it.
+   */
+  ideaDescribed: boolean;
   markStep: (step: OnboardingStepId) => void;
+  markIdeaDescribed: () => void;
   dismiss: () => void;
   markProviderSignInOffered: () => void;
 }
@@ -53,6 +60,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
       completedSteps: [],
       dismissed: false,
       providerSignInOffered: false,
+      ideaDescribed: false,
 
       markStep: (step: OnboardingStepId) => {
         set((state) =>
@@ -60,6 +68,10 @@ export const useOnboardingStore = create<OnboardingStore>()(
             ? state
             : { completedSteps: [...state.completedSteps, step] }
         );
+      },
+
+      markIdeaDescribed: () => {
+        set({ ideaDescribed: true });
       },
 
       dismiss: () => {

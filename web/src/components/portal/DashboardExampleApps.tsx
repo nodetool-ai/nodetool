@@ -5,6 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import useOnboardingStore from "../../stores/OnboardingStore";
 import { BASE_URL } from "../../stores/BASE_URL";
 import {
   listExampleApps,
@@ -23,6 +24,7 @@ import {
   Tooltip
 } from "../ui_primitives";
 import { useSectionWrap, DashboardSectionHeader } from "./dashboardChrome";
+import ExampleNeedsPill from "./ExampleNeedsPill";
 
 /** Query key for the shipped example apps, shared with any invalidation. */
 export const EXAMPLE_APPS_QUERY_KEY = ["applications", "examples"] as const;
@@ -164,6 +166,7 @@ const ExampleAppCard = memo(function ExampleAppCard({
         <span className="app-body">
           <span className="app-name">{app.name}</span>
           <span className="app-desc">{app.description}</span>
+          <ExampleNeedsPill needs={app.needs} />
           <span className="app-meta">
             {workflows} workflow{workflows === 1 ? "" : "s"}
           </span>
@@ -191,13 +194,15 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
   const sectionWrap = useSectionWrap();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const handleUse = useCallback(
-    (app: ExampleAppSummary) =>
+    (app: ExampleAppSummary) => {
       openTab({
         type: "example-app",
         ref: app.slug,
         mode: "view",
         title: app.name
-      }),
+      });
+      useOnboardingStore.getState().markStep("keep-creating");
+    },
     [openTab]
   );
 

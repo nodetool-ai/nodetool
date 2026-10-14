@@ -3,7 +3,6 @@ import { useShallow } from "zustand/react/shallow";
 
 import { FlexColumn } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
-import ProjectDocumentsSidebar from "../chat/sidebar/ProjectDocumentsSidebar";
 import { clearChatTurn, peekChatTurn } from "../chat/pendingChatTurn";
 import WelcomePlaceholder from "../chat/containers/WelcomePlaceholder";
 import useGlobalChatStore, {
@@ -13,7 +12,6 @@ import useChatDraftStore from "../../stores/ChatDraftStore";
 import useThreadModel from "../../hooks/chat/useThreadModel";
 import type { Message } from "../../stores/ApiTypes";
 import {
-  LOOSE_PROJECT_ID,
   creationProjectId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
@@ -104,11 +102,6 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
 
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
-  const activeProjectId = useWorkspaceTabsStore((state) => state.activeProjectId);
-  const personalProjectId = useWorkspaceTabsStore((state) => state.personalProjectId);
-  const projectId = activeProjectId && activeProjectId !== LOOSE_PROJECT_ID
-    ? activeProjectId
-    : personalProjectId;
 
   // Connect the shared chat WebSocket. Deliberately no disconnect on unmount:
   // the connection is a singleton shared by every mounted chat tab, so closing
@@ -295,9 +288,6 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         uiContext={inspectionUiContext}
         noMessagesPlaceholder={noMessagesPlaceholder}
         showNewChatButton
-        projectDocumentsSidebar={
-          <ProjectDocumentsSidebar projectId={projectId} active={active} />
-        }
       />
     </FlexColumn>
   );

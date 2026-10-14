@@ -15,6 +15,7 @@ import {
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
 import { trpc } from "../../trpc/client";
+import { useRenameDocument } from "../../hooks/useRenameDocument";
 import ProjectDocumentCard from "./ProjectDocumentCard";
 import ProjectSelector from "./ProjectSelector";
 import type { ProjectDocument } from "./projectStatus";
@@ -86,6 +87,15 @@ const CurrentProjectDocuments = () => {
     },
     [openTab, projectId]
   );
+  const renameDocument = useRenameDocument();
+  const handleRename = useCallback(
+    (document: ProjectDocument, name: string) =>
+      void renameDocument(
+        { type: document.type, ref: document.ref, currentName: document.name },
+        name
+      ),
+    [renameDocument]
+  );
 
   if (!projectId) return null;
 
@@ -120,6 +130,7 @@ const CurrentProjectDocuments = () => {
               document={document}
               sourceProjectId={projectId}
               onOpen={openDocument}
+              onRename={handleRename}
               compact
             />
           ))}

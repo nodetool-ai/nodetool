@@ -690,5 +690,11 @@ export function noise(seed?: number): (x: number) => number;
 export function rad(degrees: number): number;
 export function hash(n: number): number;
 export function ease(name: EaseName): string;
+/**
+ * The bare asset id a media clip stores: strips `asset://` and a file
+ * extension, leaves `package://` and `http(s)://` locators unchanged.
+ * `s.image`, `s.video`, `s.audio` and `v.audio` apply it themselves.
+ */
+export function clipAssetId(ref: string): string;
 
 export const MIDI_PPQ: number;

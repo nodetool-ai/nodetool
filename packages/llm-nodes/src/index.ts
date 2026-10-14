@@ -1,3 +1,13 @@
+import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
+import { AGENT_NODES } from "./nodes/agents.js";
+import { GENERATOR_NODES } from "./nodes/generators.js";
+import { DIRECTOR_NODES } from "./nodes/director.js";
+import { SHOTS_NODES } from "./nodes/shots.js";
+import { GEMINI_NODES } from "./nodes/gemini.js";
+import { MISTRAL_NODES } from "./nodes/mistral.js";
+import { OPENAI_NODES } from "./nodes/openai.js";
+import { XAI_NODES } from "./nodes/xai.js";
+
 /**
  * @nodetool-ai/llm-nodes — LLM provider + agent node bundle.
  *
@@ -21,3 +31,20 @@ export * from "./nodes/mistral.js";
 export { OPENAI_NODES } from "./nodes/openai.js";
 export { GEMINI_NODES } from "./nodes/gemini.js";
 export { XAI_NODES } from "./nodes/xai.js";
+
+export const ALL_LLM_NODES: readonly NodeClass[] = [
+  ...AGENT_NODES,
+  ...GENERATOR_NODES,
+  ...DIRECTOR_NODES,
+  ...SHOTS_NODES,
+  ...GEMINI_NODES,
+  ...MISTRAL_NODES,
+  ...OPENAI_NODES,
+  ...XAI_NODES,
+];
+
+export function registerLlmNodes(registry: NodeRegistry): void {
+  for (const nodeClass of ALL_LLM_NODES) {
+    registry.register(nodeClass);
+  }
+}

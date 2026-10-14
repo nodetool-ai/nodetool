@@ -41,6 +41,7 @@ describe("quickAccessCategories", () => {
       "chats",
       "library",
       "entities",
+      "examples",
       "nodes",
       "more"
     ]);
@@ -49,6 +50,7 @@ describe("quickAccessCategories", () => {
       "chats",
       "library",
       "entities",
+      "examples",
       "nodes"
     ]);
   });
