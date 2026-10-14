@@ -150,6 +150,24 @@ describe('installExpectedPackages', () => {
     expect(args.join(' ')).not.toContain('9.9.9');
   });
 
+  test('installs core alone when a stale pack that pins an older core blocks the joint resolve', async () => {
+    fakeUv(
+      [
+        { name: 'nodetool-core', version: '0.8.0' },
+        { name: 'nodetool-whispercpp', version: '0.6.3rc47' },
+      ],
+      /nodetool-core>=0\.8\.2 nodetool-whispercpp>=/
+    );
+
+    const result = await installExpectedPackages();
+
+    expect(result).toMatchObject({ success: true, packagesUpdated: 1, failures: [] });
+    const calls = installCalls();
+    expect(calls).toHaveLength(2);
+    expect(calls[1]).toContain('nodetool-core>=0.8.2');
+    expect(calls[1].join(' ')).not.toContain('nodetool-whispercpp');
+  });
+
   test('reports a failed install without throwing', async () => {
     fakeUv([{ name: 'nodetool-core', version: '0.6.0' }], /nodetool-core>=/);
 
