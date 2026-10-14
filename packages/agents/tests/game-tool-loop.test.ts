@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { GAME_ENVIRONMENT_PRESET_IDS_3D, gameDocument3D, getGameEnvironmentPreset3D } from "@nodetool-ai/protocol";
-import { createGameSession3D } from "@nodetool-ai/game-runtime";
+import { createGameSession3D, validateGame3D } from "@nodetool-ai/game-runtime";
 import { GAME_3D_TOOL_LOOP_CASES, GAME_TOOL_LOOP_CASES } from "../src/evals/surfaces/game.js";
 
 it("applies all four named lighting presets through public edits and checks the eval predicate", async () => {
@@ -32,6 +32,12 @@ it("applies all four named lighting presets through public edits and checks the 
   }
   expect(await edit.execute({ ops: [{ op: "apply_environment_preset", preset: "sunny-day" }] })).not.toHaveProperty("error");
   expect(predicate.test(bridge.finalState())).toBe(true);
+  const missingShadows = gameDocument3D.parse(bridge.finalState());
+  const alteredSun = missingShadows.scenes[0].entities.find((entity) => entity.id === originalSun.id);
+  if (alteredSun?.light3d?.kind !== "directional") { throw new Error("Preset sun missing"); }
+  alteredSun.light3d.castShadow = false;
+  expect(validateGame3D(missingShadows).valid).toBe(true);
+  expect(predicate.test(missingShadows)).toBe(false);
 });
 
 it("scores native entity metadata authored through the public edit surface", async () => {
