@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, writeFile, symlink } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, delimiter } from "node:path";
+import { join } from "node:path";
 import { promisify } from "node:util";
 import { expect, it, vi } from "vitest";
 import { findNpmCli, runInstallerNpm, runNpm } from "../src/npm-runner.js";
@@ -9,8 +9,6 @@ import { findNpmCli, runInstallerNpm, runNpm } from "../src/npm-runner.js";
 const exec = promisify(execFile);
 it("real npm bootstrap preserves target-relative configuration, INIT_CWD, and target manifests", async () => {
   const base = await mkdtemp(join(tmpdir(), "npm-prefix-"));
-  const platform = Object.getOwnPropertyDescriptor(process, "platform")!;
-  const nativeWindows = process.platform === "win32";
   try {
     vi.stubEnv("npm_config_cache", undefined); vi.stubEnv("NPM_CONFIG_CACHE", undefined);
     const cli = findNpmCli(); if (!cli) { throw new Error("Fixture requires npm-cli.js"); }
@@ -27,30 +25,18 @@ it("real npm bootstrap preserves target-relative configuration, INIT_CWD, and ta
       scripts: { record: "node -e \"require('fs').writeFileSync('init-cwd.txt', process.env.INIT_CWD)\"" } }));
     await writeFile(join(root, ".npmrc"), "registry=https://target-project.invalid/\ncafile=./cert.pem\ncache=./npm-cache\n");
     await writeFile(join(root, "cert.pem"), "fixture certificate");
-    if (!nativeWindows) {
-      expect((await npm(["config", "get", "cafile"], root)).stdout.trim()).toBe(join(root, "cert.pem"));
-      expect((await npm(["config", "get", "cache"], root)).stdout.trim()).toBe(join(root, "npm-cache"));
-    }
     const priorCafile = (await npm(["config", "get", "cafile", `--prefix=${root}`])).stdout.trim();
     expect(priorCafile).not.toBe(join(root, "cert.pem"));
-    if (!nativeWindows) {
-      const bin = join(base, "node_modules/npm/bin"); await mkdir(bin, { recursive: true });
-      await symlink(cli, join(bin, "npm-cli.js"));
-      vi.stubEnv("PATH", base + delimiter + process.env["PATH"]);
-    }
-    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
     const cafile = await runInstallerNpm(root, ["config", "get", "cafile"], { mode: "local" });
     const cache = await runInstallerNpm(root, ["config", "get", "cache"], { mode: "local" });
     expect(cafile.trim()).toBe(join(root, "cert.pem"));
     expect(cache.trim()).toBe(join(root, "npm-cache"));
     await runInstallerNpm(root, ["install", tarball], { mode: "local" });
-    if (!nativeWindows) {
-      await runNpm(root, ["run", "record"], { mode: "local", scriptPolicy: "user" });
-      expect(await readFile(join(root, "init-cwd.txt"), "utf8")).toBe(root);
-    }
+    await runNpm(root, ["run", "record"], { mode: "local", scriptPolicy: "user" });
+    expect(await readFile(join(root, "init-cwd.txt"), "utf8")).toBe(root);
     expect(JSON.parse(await readFile(join(root, "package.json"), "utf8")).dependencies["prefix-fixture-package"]).toBeDefined();
     expect(JSON.parse(await readFile(join(root, "package-lock.json"), "utf8")).packages["node_modules/prefix-fixture-package"].version).toBe("1.0.0");
     expect(await readFile(join(base, "package.json"), "utf8")).toBe(baseline);
     await expect(readFile(join(base, "package-lock.json"))).rejects.toMatchObject({ code: "ENOENT" });
-  } finally { Object.defineProperty(process, "platform", platform); vi.unstubAllEnvs(); await rm(base, { recursive: true, force: true }); }
+  } finally { vi.unstubAllEnvs(); await rm(base, { recursive: true, force: true }); }
 }, 30000);

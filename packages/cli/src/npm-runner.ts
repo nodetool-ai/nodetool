@@ -2,6 +2,42 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, join, delimiter, win32 } from "node:path";
 
+const WINDOWS_NPM_BOOTSTRAP = String.raw`
+const [root, cli, ...args] = process.argv.slice(1);
+const fs = require("node:fs");
+const path = require("node:path");
+const rawCwd = process.cwd();
+const physicalRoot = rawCwd.startsWith("\\\\?\\UNC\\") ? "\\\\" + rawCwd.slice(8) : rawCwd.startsWith("\\\\?\\") ? rawCwd.slice(4) : rawCwd;
+const sameDirectory = (left, right) => {
+  const a = fs.statSync(left, { bigint: true });
+  const b = fs.statSync(right, { bigint: true });
+  return a.isDirectory() && b.isDirectory() && a.ino !== 0n && b.ino !== 0n && a.dev === b.dev && a.ino === b.ino;
+};
+if (physicalRoot.length >= 260 || !sameDirectory(root, physicalRoot)) {
+  throw new Error("Windows npm requires a verified short path to the install directory. Use a shorter installation prefix.");
+}
+process.chdir(physicalRoot);
+process.cwd = () => root;
+const children = require("node:child_process");
+const spawn = children.spawn;
+children.spawn = (...call) => {
+  const index = Array.isArray(call[1]) ? 2 : 1;
+  const options = call[index];
+  if (options && typeof options.cwd === "string" && options.cwd.length >= 260) {
+    const relative = path.relative(root, options.cwd);
+    const inside = relative !== ".." && !relative.startsWith(".." + path.sep) && !path.isAbsolute(relative);
+    const physical = inside ? path.resolve(physicalRoot, relative) : null;
+    const cwd = physical && physical.length < 260 && sameDirectory(options.cwd, physical)
+      ? physical : path.toNamespacedPath(options.cwd);
+    call[index] = { ...options, cwd };
+  }
+  return spawn(...call);
+};
+require("node:module").syncBuiltinESMExports();
+process.argv = [process.execPath, cli, ...args];
+require(cli);
+`;
+
 export type NpmInstallMode = "global" | "local";
 
 /** Override npm configuration that could change the verified install shape. */
@@ -68,14 +104,10 @@ function npmCall(cli: string | null, args: readonly string[], root: string,
   let cwd = root;
   let launchArgs = cli ? [cli, ...args] : [...args];
   if (process.platform === "win32" && root.length >= 260) {
-    // CreateProcess limits cwd. Enter the project after Node starts so npm's
-    // relative configuration and lifecycle INIT_CWD retain their meaning.
-    while (cwd.length >= 260) {
-      const parent = win32.dirname(cwd);
-      if (parent === cwd) { throw new Error("Cannot launch npm from this Windows install path"); }
-      cwd = parent;
-    }
-    launchArgs = ["-e", "const [root, cli, ...args] = process.argv.slice(1); process.chdir(root); process.argv = [process.execPath, cli, ...args]; require(cli);", root, cli!, ...args];
+    // libuv can obtain a short directory alias from namespaced cwd input.
+    // Keep npm's logical project path while lifecycle children use that alias.
+    cwd = win32.toNamespacedPath(root);
+    launchArgs = ["-e", WINDOWS_NPM_BOOTSTRAP, root, cli!, ...args];
   }
   return new Promise((resolve, reject) => {
     const child = spawn(cli ? process.execPath : "npm", launchArgs, {

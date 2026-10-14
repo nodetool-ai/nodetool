@@ -13,6 +13,7 @@ on:
       - 'packages/cli/tests/_fixtures/npm-matrix-*.pem'
       - 'scripts/test-npm-matrix.mjs'
       - 'scripts/windows-long-cwd-probe.mjs'
+      - 'scripts/windows-npm-bootstrap-check.mjs'
       - 'scripts/__tests__/test-npm-matrix.test.mjs'
       - '.github/workflows/node-pack-npm-matrix.yml'
       - 'package.json'
@@ -38,6 +39,11 @@ jobs:
       fail-fast: false
       matrix:
         node: [22, 24]
+        include:
+          - node: 22
+            npm: '10.9.4'
+          - node: 24
+            npm: '11.16.0'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -46,6 +52,15 @@ jobs:
           package-manager-cache: false
       - name: Diagnose native Windows long working directories
         run: node scripts/windows-long-cwd-probe.mjs
+      - name: Pin npm inside the ephemeral runner runtime
+        env:
+          MATRIX_NPM_VERSION: ${{ matrix.npm }}
+        run: |
+          node --input-type=module -e 'import { execFileSync } from "node:child_process"; import { dirname, resolve } from "node:path"; const prefix = dirname(process.execPath); const entry = resolve(prefix, "node_modules/npm/bin/npm-cli.js"); execFileSync(process.execPath, [entry, "install", "--global", "--prefix=" + prefix, "npm@" + process.env.MATRIX_NPM_VERSION, "--ignore-scripts", "--no-audit", "--no-fund"], {stdio:"inherit"});'
+      - name: Verify native Windows npm configuration and lifecycle paths
+        env:
+          MATRIX_NPM_VERSION: ${{ matrix.npm }}
+        run: node --experimental-strip-types scripts/windows-npm-bootstrap-check.mjs
   npm-matrix:
     name: ${{ matrix.os }} / Node ${{ matrix.node }} / npm ${{ matrix.npm }}
     runs-on: ${{ matrix.os }}

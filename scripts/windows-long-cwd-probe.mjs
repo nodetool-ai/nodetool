@@ -12,7 +12,7 @@ if (process.platform !== "win32" && !process.argv.includes("--exercise")) {
     mkdirSync(root, { recursive: true });
     if (root.length <= 260) { throw new Error("Diagnostic fixture must exceed MAX_PATH"); }
     const canonicalRoot = realpathSync(root);
-    const report = "console.log(JSON.stringify({cwd:process.cwd(),realpath:require('node:fs').realpathSync(process.cwd())}));";
+    const report = "console.log(JSON.stringify({cwd:process.cwd()}));console.log(JSON.stringify({realpath:require('node:fs').realpathSync(process.cwd())}));";
     const probes = [
       { name: "spawn-normal", cwd: root, code: report },
       { name: "spawn-namespaced", cwd: toNamespacedPath(root), code: report },
