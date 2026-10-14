@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { Suspense, useEffect, useMemo } from "react";
+import React, { Suspense, useEffect, useMemo, useRef } from "react";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -53,14 +53,16 @@ const styles = (theme: Theme, isDragging: boolean) =>
     "--workspace-rail-top": "0px",
     backgroundColor: "var(--c_editor_bg_color)",
 
-    // Only a visible tab can suppress workspace chrome. Panel preferences
-    // stay untouched and reappear when the flow finishes or the tab changes.
+    // A guided flow keeps the left panel. A flow inside a workflow tab sits
+    // beside the open drawer, like every non-canvas surface, instead of under
+    // it.
     "&:has(.tab-layer:not([inert]) [data-setup-flow])": {
-      "& .panel-left-container, & .panel-left-mobile-launcher": {
-        display: "none"
+      "& .workspace-content": {
+        marginLeft: "var(--workspace-drawer-gutter) !important"
       },
-      "& .workspace-content": { marginLeft: "0 !important" },
-      "& .workspace-main": { "--workspace-content-left": "0px !important" }
+      "& .workspace-main": {
+        "--workspace-content-left": "var(--workspace-drawer-gutter) !important"
+      }
     },
 
     "& .workspace-main": {
@@ -109,8 +111,27 @@ const styles = (theme: Theme, isDragging: boolean) =>
  * shown, others hidden) so editor state survives tab switches. The node
  * editor's docked inspector renders only while a workflow Edit tab is active.
  */
+/** The left margin that keeps content beside the left rail and its drawer. */
+const drawerGutter = (
+  isMobile: boolean,
+  panelVisible: boolean,
+  panelSize: number
+): number => {
+  if (isMobile) {
+    return 0;
+  }
+  if (!panelVisible) {
+    return TOOLBAR_WIDTH;
+  }
+  return (
+    TOOLBAR_WIDTH +
+    Math.max(panelSize - TOOLBAR_WIDTH, LEFT_PANEL_MIN_DRAWER_WIDTH)
+  );
+};
+
 const WorkspaceShell = () => {
   const theme = useTheme();
+  const shellRef = useRef<HTMLDivElement>(null);
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
   const isDragging = usePanelStore((state) => state.panel.isDragging);
   const shellStyles = useMemo(
@@ -156,12 +177,27 @@ const WorkspaceShell = () => {
   const drawerWidth = usePanelStore((state) =>
     needsDrawerGutter ? state.panel.panelSize : 0
   );
-  const contentMarginLeft = isMobile
-    ? 0
-    : needsDrawerGutter
-      ? TOOLBAR_WIDTH +
-        Math.max(drawerWidth - TOOLBAR_WIDTH, LEFT_PANEL_MIN_DRAWER_WIDTH)
-      : TOOLBAR_WIDTH;
+  const contentMarginLeft = drawerGutter(
+    isMobile,
+    needsDrawerGutter,
+    drawerWidth
+  );
+
+  // A guided flow in a workflow tab needs the drawer gutter too, but which
+  // tab shows a flow is only known to CSS. Publish the gutter as a variable
+  // written outside React, so a drag on the canvas does not re-render the
+  // shell.
+  useEffect(() => {
+    const write = (): void => {
+      const { isVisible, panelSize } = usePanelStore.getState().panel;
+      shellRef.current?.style.setProperty(
+        "--workspace-drawer-gutter",
+        `${drawerGutter(isMobile, isVisible, panelSize)}px`
+      );
+    };
+    write();
+    return usePanelStore.subscribe(write);
+  }, [isMobile]);
 
   // Keep the WorkflowManager's "current workflow" aligned with the active
   // workflow tab so the docked panels and run state target the right graph.
@@ -181,7 +217,7 @@ const WorkspaceShell = () => {
 
   return (
     <WorkspaceHeaderActionsProvider>
-      <div css={shellStyles} className="workspace-shell">
+      <div ref={shellRef} css={shellStyles} className="workspace-shell">
         {/* The guided game/workflow flows build their graphs through the same
           `ui_*` tools an agent drives, from tabs (e.g. New Project) where the
           editor chrome — and its own sync — is not mounted. Without this the
