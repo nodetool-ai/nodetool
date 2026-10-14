@@ -1,11 +1,14 @@
 import { spawn } from "node:child_process";
 import { expect, it } from "vitest";
 
+const CHILD_TIMEOUT_MS = 15_000;
+const IMPORT_SAFETY_TEST_TIMEOUT_MS = CHILD_TIMEOUT_MS + 5_000;
+
 it("imports the bundled source and server API without starting the host", async () => {
   const server = new URL("../../websocket/dist/server.js", import.meta.url).href;
   const source = new URL("../dist/index.js", import.meta.url).href;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15_000);
+  const timeout = setTimeout(() => controller.abort(), CHILD_TIMEOUT_MS);
   const child = spawn(process.execPath, ["--input-type=module", "-e", `
     import assert from "node:assert/strict";
     const signals = ["SIGINT", "SIGTERM", "SIGUSR2"];
@@ -32,4 +35,4 @@ it("imports the bundled source and server API without starting the host", async 
     clearTimeout(timeout);
     child.kill();
   }
-});
+}, IMPORT_SAFETY_TEST_TIMEOUT_MS);
