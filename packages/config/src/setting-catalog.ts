@@ -257,6 +257,11 @@ sec(
   "LMStudio",
   "API key for an LM Studio server that requires authentication. Leave empty for a default LM Studio install."
 );
+s(
+  "CLAUDE_CLI_PATH",
+  "ClaudeAgent",
+  "Path to the Claude Code CLI (claude) the Claude Agent provider runs. Leave empty to find it on PATH or in the usual install locations (~/.local/bin, ~/.claude/local, Homebrew, npm)."
+);
 s("WHISPER_CPP_MODELS_DIR", "WhisperCpp", "Additional directory containing local ggml whisper.cpp and VAD model files. The Hugging Face hub cache is always scanned.");
 s("WHISPER_CPP_GPU_BACKEND", "WhisperCpp", "Backend for in-process whisper.cpp inference. 'auto' uses Metal on macOS, and on Windows and Linux tries the CUDA build, then the Vulkan build, then the default CPU build. Restart the backend after changing this setting.", ["auto", "metal", "cuda", "vulkan", "cpu"]);
 s(

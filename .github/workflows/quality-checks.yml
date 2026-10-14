@@ -190,15 +190,10 @@ jobs:
   #   moves between shards must not lose its driver on the way.
   #
   # `test-packages-nodes`:
-  #   This shard also runs the Blender integration suites
-  #   (`packages/blender-nodes/tests/*`), which skip without a Blender
-  #   binary. The X11/GL libraries below are what the Blender tarball
-  #   links against for a headless (`-b`) run — EEVEE in `-b` on a
-  #   display-less runner needs a GL/EGL context (`libegl1`), and older
-  #   tarballs also dlopen `libsm6`; the Install Blender
-  #   step further down puts 5.2 on PATH and sets
-  #   NODETOOL_REQUIRE_BLENDER=1, so a missing Blender fails the
-  #   suite instead of skipping it.
+  #   CI installs no Blender, so the Blender integration suites
+  #   (`packages/blender-nodes/tests/*`) skip here. EEVEE on the
+  #   GPU-less runner took about 20 s a frame and the render suites
+  #   timed out. Run them locally with BLENDER_PATH set.
   #
   # `bundle`:
   #   The packaged-backend release gate: `npm run backend:smoke` stages
@@ -650,44 +645,6 @@ jobs:
         with:
           name: reliability-harness-dist
           path: reliability/harness/dist
-
-      # Blender 5.2 for the nodes shard only (the blender-nodes integration
-      # suites skip without a binary). Ubuntu's archive ships a Blender far
-      # below the 5.2 floor, so the leg downloads the release tarball from
-      # download.blender.org once and caches the extracted tree — the same
-      # cache-restore shape as the Playwright browsers in test.yml's
-      # workflow-runner job. The version lives in one place (BLENDER_VERSION
-      # below); bump it and the cache key together with the floor in
-      # `blender-binary.ts`.
-      # Only when the plan asks for Blender: a diff touching blender-nodes,
-      # or a full run. Without the binary the render suites skip, which keeps
-      # the leg's longest files off every other PR (see `BLENDER_FILES` in
-      # scripts/ci-plan.mjs).
-      - name: Cache Blender
-        if: matrix.check == 'test-packages-nodes' && matrix.blender == 'true'
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
-        with:
-          path: ~/blender
-          key: ${{ runner.os }}-blender-5.2.1
-
-      - name: Install Blender
-        if: matrix.check == 'test-packages-nodes' && matrix.blender == 'true'
-        env:
-          BLENDER_VERSION: 5.2.1
-        run: |
-          if [ ! -x "$HOME/blender/blender" ]; then
-            rm -rf "$HOME/blender"
-            mkdir -p "$HOME/blender"
-            BLENDER_RELEASE="Blender$(echo "$BLENDER_VERSION" | cut -d. -f1,2)"
-            curl -fsSL "https://download.blender.org/release/${BLENDER_RELEASE}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" -o /tmp/blender.tar.xz
-            tar -xJ -f /tmp/blender.tar.xz -C "$HOME/blender" --strip-components=1
-            rm /tmp/blender.tar.xz
-          fi
-          "$HOME/blender/blender" --version
-          # Fail the blender-nodes suites instead of skipping them when the
-          # binary above did not land (see `failWhenBlenderRequired`).
-          echo "BLENDER_PATH=$HOME/blender/blender" >> "$GITHUB_ENV"
-          echo "NODETOOL_REQUIRE_BLENDER=1" >> "$GITHUB_ENV"
 
       # mobile is NOT a root workspace (separate dependency tree), so its
       # node_modules is cached on its own lockfile and `npm ci` is skipped on hit.

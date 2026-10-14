@@ -79,7 +79,7 @@ const META_SECTION_GROUPS: ReadonlyArray<{
   {
     key: "provider-options",
     label: "Provider Options",
-    groups: ["ZAI", "KIE"]
+    groups: ["ClaudeAgent", "ZAI", "KIE"]
   },
   {
     key: "observability",
