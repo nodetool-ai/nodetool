@@ -3,7 +3,9 @@ import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 import { importPack } from "../src/import-pack.js";
 
-const CHILD_TIMEOUT_MS = 30_000;
+// The child loads every core pack while `test:affected` runs other suites in
+// parallel. On CI it spent 8.7s loading metadata alone and timed out at 30s.
+const CHILD_TIMEOUT_MS = 120_000;
 // Actual pack roots and subprocesses load built media dependencies under CI load.
 const PACK_IMPORT_TEST_TIMEOUT_MS = CHILD_TIMEOUT_MS + 5_000;
 
