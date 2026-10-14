@@ -10,6 +10,7 @@ import {
   humanize,
 } from "@/data/showcase";
 import { ShowcaseGrid } from "./_components";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -19,6 +20,7 @@ export const metadata: Metadata = {
     "A gallery of images and video generated with NodeTool workflows. Browse by model or by workflow to see what each one produces.",
   alternates: { canonical: "/showcase" },
   openGraph: {
+    images: DEFAULT_OG_IMAGES,
     title: "Showcase — AI images & video made with NodeTool",
     description:
       "Browse images and video generated with NodeTool workflows, by model and by workflow.",
