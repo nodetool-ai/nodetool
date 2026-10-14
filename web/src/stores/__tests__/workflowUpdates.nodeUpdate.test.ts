@@ -221,7 +221,7 @@ describe("handleUpdate — node_update properties write-back", () => {
     }
   });
 
-  it("refreshes an existing dynamic slot on an ordinary node", () => {
+  it("keeps a dynamic slot edited during the run on an ordinary node", () => {
     const updateNodeData = jest.fn();
 
     handleUpdate(
@@ -238,7 +238,7 @@ describe("handleUpdate — node_update properties write-back", () => {
       "n1",
       {
         properties: {},
-        dynamic_properties: { prompt: "from the run" }
+        dynamic_properties: { prompt: "user typed" }
       },
       { quiet: true }
     );

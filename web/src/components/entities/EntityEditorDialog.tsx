@@ -13,7 +13,7 @@ import {
   Dialog,
   EditorButton,
   FlexRow,
-  Label,
+  FormField,
   TextInput,
   ToggleGroup,
   ToggleOption,
@@ -130,15 +130,15 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
       open={open}
       onClose={onClose}
       title={entity ? "Edit entity" : "New entity"}
-      showActions
+      maxWidth="xs"
+      fullWidth
       onConfirm={handleConfirm}
       confirmText={entity ? "Save" : "Create"}
       confirmDisabled={!canSave}
       isLoading={saveEntity.isPending}
     >
-      <FlexColumn gap={SPACING.md} sx={{ pt: 1, minWidth: 360 }}>
-        <FlexColumn gap={SPACING.xs}>
-          <Label>Image</Label>
+      <FlexColumn gap={SPACING.lg}>
+        <FormField label="Image">
           <FlexRow gap={SPACING.md} align="center">
             <div
               style={{
@@ -154,14 +154,16 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
                 value={mediaRefFromAsset({ id: referenceAssetId }, "image")}
               />
             </div>
-            <EditorButton variant="outlined" onClick={() => setPickerOpen(true)}>
+            <EditorButton
+              variant="outlined"
+              onClick={() => setPickerOpen(true)}
+            >
               Change image
             </EditorButton>
           </FlexRow>
-        </FlexColumn>
+        </FormField>
 
-        <FlexColumn gap={SPACING.xs}>
-          <Label>Kind</Label>
+        <FormField label="Kind">
           <ToggleGroup
             value={kind}
             exclusive
@@ -175,7 +177,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
               </ToggleOption>
             ))}
           </ToggleGroup>
-        </FlexColumn>
+        </FormField>
 
         <TextInput
           label="Name"

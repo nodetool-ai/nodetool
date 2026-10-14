@@ -66,6 +66,26 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "add_workflow_link",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "4d0ce00d0c90",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-links.test.ts",
+    ],
+  },
+  {
+    name: "remove_workflow_link",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "490c7dd1e6a6",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-links.test.ts",
+    ],
+  },
+  {
     name: "delete_workflow",
     module: "workflows",
     impl: "packages/agents/src/capabilities/workflows.ts",
@@ -368,7 +388,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "generate_image",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "036370ef51e7",
+    contract: "f500c24bccdb",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
@@ -389,7 +409,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_image",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "1b88ce3a0385",
+    contract: "0ba76865f4a4",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
@@ -724,7 +744,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_node_info",
     module: "nodes",
     impl: "packages/agents/src/capabilities/nodes.ts",
-    contract: "15eadde2f065",
+    contract: "ee61a4038c57",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-nodes.test.ts",
@@ -1217,7 +1237,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "debug_app",
     module: "apps",
     impl: "packages/agents/src/capabilities/apps.ts",
-    contract: "32879e98374d",
+    contract: "5a5c4836f062",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-apps.test.ts",
@@ -1551,7 +1571,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "browser",
     module: "web",
     impl: "packages/agents/src/capabilities/web.ts",
-    contract: "f462e9c43b8e",
+    contract: "0ac8eba370a2",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
@@ -1638,7 +1658,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-files.test.ts",
-      "packages/agents/tests/capabilities-files-virtual.test.ts",
+      "packages/agents/tests/capabilities-files-token-counter.test.ts",
     ],
   },
   {
@@ -1700,7 +1720,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "todo_write",
     module: "files",
     impl: "packages/agents/src/capabilities/files.ts",
-    contract: "46879814ae61",
+    contract: "f042b9d36772",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-files.test.ts",
@@ -2233,7 +2253,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "a9cd2bd72bb8",
+    contract: "747859c2756e",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
@@ -2727,7 +2747,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "build_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "5cd873c47684",
+    contract: "69951ebf126e",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
@@ -2738,7 +2758,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "05fd985c6b97",
+    contract: "9ac735b3ddd5",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
@@ -3079,10 +3099,20 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "derive_shot_from_clip",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "62268429cf19",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-derive-shot.test.ts",
+    ],
+  },
+  {
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "f38becbcfd51",
+    contract: "f8a51c6734fd",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",

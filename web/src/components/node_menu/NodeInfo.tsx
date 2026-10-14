@@ -7,7 +7,6 @@ import { Tooltip, Text, Divider, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, ge
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
@@ -263,7 +262,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
 
       {nodeMetadata.fal_unit_pricing && (
         <Tooltip
-          delay={TOOLTIP_ENTER_DELAY}
           placement="top-start"
           title={
             <Text sx={{ whiteSpace: "pre-line" }}>
@@ -288,7 +286,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
 
       {isKieNodeMetadata(nodeMetadata) && nodeMetadata.kie_unit_pricing && (
         <Tooltip
-          delay={TOOLTIP_ENTER_DELAY}
           placement="top-start"
           title={
             <Text sx={{ whiteSpace: "pre-line" }}>
@@ -322,7 +319,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
             {nodeMetadata.properties.map((property) => (
               <div key={property.name} className="item">
                 <Tooltip
-                  delay={TOOLTIP_ENTER_DELAY}
                   placement="top-start"
                   title={property.description}
                 >
@@ -335,7 +331,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
                   </Text>
                 </Tooltip>
                 <Tooltip
-                  delay={TOOLTIP_ENTER_DELAY}
                   placement="top-end"
                   title={descriptionForType(property.type.type || "")}
                 >
@@ -357,7 +352,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
               <div key={property.name} className="item">
                 <Text className="property">{property.name}</Text>
                 <Tooltip
-                  delay={TOOLTIP_ENTER_DELAY}
                   placement="top-end"
                   title={descriptionForType(property.type.type || "")}
                 >

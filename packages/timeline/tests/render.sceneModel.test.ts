@@ -12,6 +12,7 @@ import {
   resolveCaptionAtTime,
   CAPTION_CUE_MAX_WORDS,
   resolveAnimatedLayerProps,
+  hasActiveAnimation,
   trackZ,
   LAYER_Z_BASE,
   MAX_VIDEO_LAYERS
@@ -321,6 +322,38 @@ describe("computeActiveLayers", () => {
       100
     );
     expect(under[0].opacity).toBe(0);
+  });
+
+  it("fades a visual clip's opacity along its fadeInMs/fadeOutMs", () => {
+    // A muted video or a still has no audio to fade: its fades are the picture.
+    const tracks = [track({ id: "v", index: 0 })];
+    const clips = [
+      clip({
+        id: "ghost",
+        trackId: "v",
+        startMs: 1000,
+        durationMs: 6000,
+        opacity: 0.4,
+        fadeInMs: 1200,
+        fadeOutMs: 1200
+      })
+    ];
+    const at = (ms: number) => computeActiveLayers(tracks, clips, ms)[0].opacity;
+    expect(at(1000)).toBe(0);
+    expect(at(1600)).toBeCloseTo(0.2);
+    expect(at(4000)).toBeCloseTo(0.4);
+    expect(at(6400)).toBeCloseTo(0.2);
+  });
+
+  it("keeps the preview redrawing through a fade, even on a still image", () => {
+    const tracks = [track({ id: "v", index: 0 })];
+    const clips = [
+      clip({ id: "still", trackId: "v", mediaType: "image", startMs: 0, durationMs: 4000, fadeOutMs: 1000 })
+    ];
+    const canvas = { width: 1920, height: 1080 };
+    const layersAt = (ms: number) => computeActiveLayers(tracks, clips, ms);
+    expect(hasActiveAnimation(layersAt(1000), 1000, canvas, undefined, clips)).toBe(false);
+    expect(hasActiveAnimation(layersAt(3500), 3500, canvas, undefined, clips)).toBe(true);
   });
 
   it("does not cap image layers", () => {

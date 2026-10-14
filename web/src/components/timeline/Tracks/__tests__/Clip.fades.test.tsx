@@ -5,56 +5,41 @@
  * default timeline store, as the other gesture suites are.
  */
 
-import { installGlobal } from "../../../../test-utils/doubles";
+import { installPointerEvent } from "../../../../test-utils/pointerEvent";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 
-if (typeof window !== "undefined" && !window.PointerEvent) {
-  installGlobal(
-    "PointerEvent",
-    class PointerEvent extends MouseEvent {
-      readonly pointerId: number;
-      readonly pointerType: string;
-      readonly isPrimary: boolean;
-
-      constructor(type: string, params: PointerEventInit & MouseEventInit = {}) {
-        super(type, params);
-        this.pointerId = params.pointerId ?? 0;
-        this.pointerType = params.pointerType ?? "";
-        this.isPrimary = params.isPrimary ?? false;
-      }
-    }
-  );
-}
-
-jest.mock("../useClipThumbnails", () => ({
-  useClipThumbnails: () => null
-}));
-jest.mock("../useAudioPeaks", () => ({
-  useAudioPeaks: () => ({ peaks: null, durationMs: null })
-}));
-jest.mock("../../../../stores/AssetStore", () => ({
-  useAssetStore: <T,>(sel: (s: { get: () => Promise<null> }) => T) =>
-    sel({ get: () => Promise.resolve(null) })
-}));
-jest.mock("../../../../stores/WorkflowRunsStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { focusedJob: Record<string, string> }) => T) =>
-    sel({ focusedJob: {} })
-}));
-jest.mock("../../../../stores/ErrorStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { errors: Record<string, unknown> }) => T) =>
-    sel({ errors: {} }),
-  hasNodeError: () => false,
-  nodeErrorToDisplayString: () => ""
-}));
-jest.mock("../../../../stores/timeline/TimelineGenerationStore", () => ({
-  useTimelineGenerationStore: <T,>(
-    sel: (s: { clipJobs: Record<string, unknown> }) => T
-  ) => sel({ clipJobs: {} })
-}));
+jest.mock("../useClipThumbnails", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .clipThumbnailsMock()
+);
+jest.mock("../useAudioPeaks", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .audioPeaksMock()
+);
+jest.mock("../../../../stores/AssetStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .assetStoreMock()
+);
+jest.mock("../../../../stores/WorkflowRunsStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .workflowRunsStoreMock()
+);
+jest.mock("../../../../stores/ErrorStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .errorStoreMock()
+);
+jest.mock("../../../../stores/timeline/TimelineGenerationStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .timelineGenerationStoreMock()
+);
 
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import { TrackLane } from "../TrackLane";
@@ -65,10 +50,7 @@ import {
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../../stores/timeline/TimelinePlaybackStore";
 
-beforeAll(() => {
-  HTMLElement.prototype.setPointerCapture = jest.fn();
-  HTMLElement.prototype.releasePointerCapture = jest.fn();
-});
+beforeAll(installPointerEvent);
 
 const MS_PER_PX = 10;
 
@@ -96,7 +78,11 @@ const makeClip = (overrides: Partial<TimelineClip> = {}): TimelineClip => ({
 });
 
 const seed = (clip: TimelineClip = makeClip()) => {
-  useTimelineStore.setState({ tracks: [track], clips: [clip], durationMs: 8000 });
+  useTimelineStore.setState({
+    tracks: [track],
+    clips: [clip],
+    durationMs: 8000
+  });
   useTimelineUIStore.setState({
     msPerPx: MS_PER_PX,
     scrollLeftPx: 0,
@@ -124,7 +110,12 @@ const clipState = (): TimelineClip => {
 
 const dragFade = (edge: "in" | "out", fromX: number, toX: number) => {
   const el = screen.getByTestId(`clip-fade-handle-${edge}-a1`);
-  fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: fromX, pointerId: 1 });
+  fireEvent.pointerDown(el, {
+    button: 0,
+    buttons: 1,
+    clientX: fromX,
+    pointerId: 1
+  });
   fireEvent.pointerMove(el, { buttons: 1, clientX: toX, pointerId: 1 });
   fireEvent.pointerUp(el, { pointerId: 1 });
 };
@@ -171,7 +162,12 @@ describe("fade handles", () => {
   it("records the whole drag as one undo entry", () => {
     renderLanes();
     const el = screen.getByTestId("clip-fade-handle-in-a1");
-    fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: 0, pointerId: 1 });
+    fireEvent.pointerDown(el, {
+      button: 0,
+      buttons: 1,
+      clientX: 0,
+      pointerId: 1
+    });
     fireEvent.pointerMove(el, { buttons: 1, clientX: 20, pointerId: 1 });
     fireEvent.pointerMove(el, { buttons: 1, clientX: 50, pointerId: 1 });
     fireEvent.pointerUp(el, { pointerId: 1 });

@@ -43,6 +43,8 @@ const mocks = vi.hoisted(() => ({
   paginate: vi.fn(),
   // extension router deps
   isBridgeAvailable: vi.fn(),
+  isNativeHostInstalled: vi.fn(),
+  installNativeHost: vi.fn(),
   resolveExtensionDist: vi.fn()
 }));
 
@@ -83,7 +85,9 @@ vi.mock("@nodetool-ai/models", () => ({
   Workflow: { paginate: mocks.paginate }
 }));
 vi.mock("@nodetool-ai/browser", () => ({
-  isBridgeAvailable: mocks.isBridgeAvailable
+  isBridgeAvailable: mocks.isBridgeAvailable,
+  isNativeHostInstalled: mocks.isNativeHostInstalled,
+  installNativeHost: mocks.installNativeHost
 }));
 vi.mock("../src/lib/extension-dist.js", () => ({
   resolveExtensionDist: mocks.resolveExtensionDist
@@ -415,14 +419,16 @@ describe("extension tRPC router", () => {
 
   it("reports connection status and dist info", async () => {
     mocks.isBridgeAvailable.mockResolvedValue(true);
+    mocks.isNativeHostInstalled.mockReturnValue(true);
     mocks.resolveExtensionDist.mockReturnValue({
       path: "/build/ext",
       exists: true
     });
-    const caller = createCaller({} as never);
+    const caller = createCaller({ userId: "u1" } as never);
     const res = await caller.status();
     expect(res).toEqual({
       connected: true,
+      hostInstalled: true,
       distPath: "/build/ext",
       distExists: true
     });
@@ -430,13 +436,50 @@ describe("extension tRPC router", () => {
 
   it("reflects a disconnected extension and missing build", async () => {
     mocks.isBridgeAvailable.mockResolvedValue(false);
+    mocks.isNativeHostInstalled.mockReturnValue(false);
     mocks.resolveExtensionDist.mockReturnValue({ path: "", exists: false });
-    const caller = createCaller({} as never);
+    const caller = createCaller({ userId: "u1" } as never);
     const res = await caller.status();
     expect(res).toEqual({
       connected: false,
+      hostInstalled: false,
       distPath: "",
       distExists: false
     });
+  });
+
+  it("refuses an unauthenticated caller", async () => {
+    const caller = createCaller({} as never);
+    await expect(caller.status()).rejects.toThrow("Authentication required");
+  });
+
+  it("registers the native host and counts the browsers it reached", async () => {
+    mocks.installNativeHost.mockReturnValue({
+      wrapperPath: "/home/u/.nodetool/browser-bridge/native-host",
+      manifests: ["/a.json", "/b.json"]
+    });
+    const caller = createCaller({ userId: "u1" } as never);
+    await expect(caller.installHost()).resolves.toEqual({ browsers: 2 });
+  });
+
+  it("passes the installer's reason through when registration fails", async () => {
+    mocks.installNativeHost.mockImplementation(() => {
+      throw new Error("No supported browser profile directory found");
+    });
+    const caller = createCaller({ userId: "u1" } as never);
+    await expect(caller.installHost()).rejects.toThrow(
+      "No supported browser profile directory found"
+    );
+  });
+
+  it("refuses to register the host on the cloud profile", async () => {
+    vi.stubEnv("NODETOOL_NODE_PROFILE", "cloud");
+    try {
+      const caller = createCaller({ userId: "u1" } as never);
+      await expect(caller.installHost()).rejects.toThrow("your own computer");
+      expect(mocks.installNativeHost).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

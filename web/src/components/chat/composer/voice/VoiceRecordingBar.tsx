@@ -96,7 +96,7 @@ export const VoiceRecordingBar = memo(function VoiceRecordingBar({
         aria-label="Transcribing recording"
       >
         <FlexRow className="wave-slot" gap={1} align="center">
-          <LoadingSpinner variant="circular" size={16} />
+          <LoadingSpinner inline size={16} />
           <Text size="small" color="secondary">
             Transcribing…
           </Text>

@@ -7,6 +7,7 @@
  */
 
 import { describe, expect, it, beforeEach } from "vitest";
+import { capabilitySpec } from "../src/capabilities/index.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { initTestDb } from "@nodetool-ai/models";
@@ -217,5 +218,13 @@ describe("apps capabilities against the run", () => {
     })) as Record<string, unknown>;
     // Past the registry gate: the service now answers about the missing app.
     expect(String(result.error)).toContain("No application found");
+  });
+});
+
+describe("spec text the shipped skills rely on", () => {
+  it("debug_app does not send an agent to poll an HTTP route", () => {
+    const description = capabilitySpec("debug_app")?.description ?? "";
+    expect(description).not.toMatch(/read GET \/api\/debug\/sessions\/<id> until/);
+    expect(description).toContain("`timeout_ms`");
   });
 });

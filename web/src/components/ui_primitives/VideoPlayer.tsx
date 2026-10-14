@@ -82,6 +82,11 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall
     },
+    // A control that holds keyboard focus never fades out under it.
+    "&:focus-within .controls": {
+      opacity: 1,
+      pointerEvents: "auto"
+    },
     ".play-button, .fullscreen-button": {
       width: 28,
       height: 28,
@@ -186,6 +191,12 @@ export interface VideoPlayerProps {
   label?: string;
   /** Keep a large play action visible over an idle preview. */
   prominentPlay?: boolean;
+  /**
+   * Hide every control, the large play action included, until the pointer
+   * enters the player or focus moves into it. For players laid out in a grid,
+   * where a play button on every tile is noise.
+   */
+  hoverControls?: boolean;
   className?: string;
 }
 
@@ -199,6 +210,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   onDurationChange,
   label = "Video player",
   prominentPlay = false,
+  hoverControls = false,
   className
 }) => {
   const theme = useTheme();
@@ -210,7 +222,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
-  const [controlsVisible, setControlsVisible] = useState(true);
+  const [controlsVisible, setControlsVisible] = useState(!hoverControls);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const scheduleHide = useCallback(() => {
@@ -331,6 +343,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
       onMouseMove={showControls}
       onMouseEnter={showControls}
       onMouseLeave={() => setControlsVisible(false)}
+      onFocus={showControls}
       // Touch has no hover, so without this the controls never come back once
       // they auto-hide.
       onTouchStart={showControls}
@@ -355,17 +368,27 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
         <IconButton
           aria-label="Play clip"
           onClick={handleTogglePlay}
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            p: SPACING.md,
-            color: theme.vars.palette.common.white,
-            bgcolor: theme.vars.palette.common.black,
-            borderRadius: BORDER_RADIUS.circle,
-            "& svg": { fontSize: "2em" }
-          }}
+          sx={[
+            {
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              p: SPACING.md,
+              color: theme.vars.palette.common.white,
+              bgcolor: theme.vars.palette.common.black,
+              borderRadius: BORDER_RADIUS.circle,
+              "& svg": { fontSize: "2em" }
+            },
+            hoverControls && {
+              opacity: controlsVisible ? 1 : 0,
+              transition: MOTION.opacity,
+              ...reducedMotion({ transition: MOTION.none }),
+              "&:focus-visible": { opacity: 1 },
+              // Touch devices cannot hover; keep the play action reachable.
+              "@media (pointer: coarse)": { opacity: 1 }
+            }
+          ]}
         >
           <PlayArrowIcon />
         </IconButton>

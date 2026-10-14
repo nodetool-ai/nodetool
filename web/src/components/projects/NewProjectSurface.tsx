@@ -48,8 +48,8 @@ import {
   Label,
   InspectorSelect,
   MenuItemPrimitive,
+  ContextMenu,
   MOTION,
-  Popover,
   ResponsiveImage,
   ScrollArea,
   CONTROL,
@@ -102,13 +102,17 @@ import {
   useExampleStoryboards
 } from "../../hooks/storyboard/useStoryboards";
 import { useLanguageProviderReadiness } from "../../hooks/useHasConfiguredProvider";
-import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
+import {
+  openProviderOnboarding,
+  useProviderOnboardingStore
+} from "../../stores/ProviderOnboardingStore";
 import useOnboardingStore, {
   isOnboardingFinished
 } from "../../stores/OnboardingStore";
 import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
 import StartExamples from "./StartExamples";
 import CurrentProjectDocuments from "./CurrentProjectDocuments";
+import RecentChats from "./RecentChats";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import ReportBugButton from "../support/ReportBugButton";
 import { openPageTab } from "../workspace/openPageTab";
@@ -185,20 +189,6 @@ const SUBMENU_WIDTH = 320;
 const SUBMENU_MAX_WIDTH = 340;
 
 /** A starter pill at rest: outlined, quiet, the project's colour on hover. */
-const starterPillSx = {
-  borderRadius: BORDER_RADIUS.pill,
-  color: "text.secondary",
-  "&:hover": { borderColor: PROJECT_COLOR, color: "text.primary" }
-} as const;
-
-/** The picked starter: drawn in the project colour on a tint of it. */
-const activeStarterPillSx = {
-  color: PROJECT_COLOR,
-  borderColor: PROJECT_COLOR,
-  backgroundColor: "rgba(var(--palette-info-lightChannel) / 0.12)",
-  "&:hover": { backgroundColor: "rgba(var(--palette-info-lightChannel) / 0.2)" }
-} as const;
-
 /** A context control in the composer's toolbar: quiet until pointed at. */
 const composerToolSx = {
   color: "text.secondary",
@@ -224,6 +214,9 @@ interface SubmenuAnchor {
  * filed into the open project, which stays where it is.
  */
 type SetupTarget = GuidedFlowTarget;
+
+/** The notice asking for a model; dismissed once the model is picked. */
+const PICK_MODEL_NOTICE_KEY = "new-project-pick-model";
 
 const SETUP_TARGET_STORAGE_KEY = "nodetool-guided-setup-target";
 const SETUP_TARGET_KINDS: ReadonlySet<string> = new Set([
@@ -476,9 +469,20 @@ const NewProjectSurface = ({
   // the handlers read this rather than the render's copy of the state.
   const setupTargetRef = useRef<SetupTarget | null>(setupTarget);
   // Whether this guided tab is the one on screen. The New Project tab itself
-  // (no `flowRef`) only finishes from a click, so it always is.
+  // (no `flowRef`) only finishes from a click, so it always is. The workflow
+  // build opens the flow's own document to reach its canvas, and a creator
+  // looking at that document is looking at the flow too.
   const guidedTabActive = useWorkspaceTabsStore(
-    (state) => !flowRef || state.activeTabId === tabId("guided-flow", flowRef)
+    (state) =>
+      !flowRef ||
+      state.activeTabId === tabId("guided-flow", flowRef) ||
+      (setupTarget !== null &&
+        setupTarget.kind in SETUP_TAB_TYPE &&
+        state.activeTabId ===
+          tabId(
+            SETUP_TAB_TYPE[setupTarget.kind as keyof typeof SETUP_TAB_TYPE],
+            setupTarget.id
+          ))
   );
   const guidedTabActiveRef = useRef(guidedTabActive);
   guidedTabActiveRef.current = guidedTabActive;
@@ -533,6 +537,9 @@ const NewProjectSurface = ({
   );
   const addNotification = useNotificationStore(
     (state) => state.addNotification
+  );
+  const removeNotificationsByKey = useNotificationStore(
+    (state) => state.removeNotificationsByKey
   );
   const providerReadiness = useLanguageProviderReadiness();
   const hasConfiguredProvider = providerReadiness.ready;
@@ -702,13 +709,26 @@ const NewProjectSurface = ({
   const handleRefImages = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(event.target.files ?? []);
-      if (files.length > 0) {
-        uploadFiles(files);
+      // The picker's image filter is a default a person can switch off, and a
+      // text file taken as a reference showed as a broken picture.
+      const images = files.filter((file) => file.type.startsWith("image/"));
+      const skipped = files.filter((file) => !file.type.startsWith("image/"));
+      if (skipped.length > 0) {
+        addNotification({
+          type: "warning",
+          alert: true,
+          content: `Reference images take pictures only. ${skipped
+            .map((file) => file.name)
+            .join(", ")} ${skipped.length === 1 ? "was" : "were"} not added.`
+        });
+      }
+      if (images.length > 0) {
+        uploadFiles(images);
       }
       // Clear the input so picking the same file twice still registers.
       event.target.value = "";
     },
-    [uploadFiles]
+    [addNotification, uploadFiles]
   );
 
   const handleStart = useCallback(async () => {
@@ -744,7 +764,8 @@ const NewProjectSurface = ({
       addNotification({
         type: "info",
         alert: true,
-        content: "Pick a language model and the chat starts."
+        content: "Pick a language model and the chat starts.",
+        dedupeKey: PICK_MODEL_NOTICE_KEY
       });
       return;
     }
@@ -771,6 +792,7 @@ const NewProjectSurface = ({
         title: "New chat",
         projectId
       });
+      useOnboardingStore.getState().markIdeaDescribed();
       closeTab(
         tabId(flowRef ? "guided-flow" : "project-new", flowRef ?? PROJECT_NEW_REF)
       );
@@ -1754,7 +1776,9 @@ const NewProjectSurface = ({
   );
 
   // A start that was parked on provider onboarding resumes on its own once a
-  // provider is connected, so the user finishes the thing they asked for.
+  // provider is connected, so the user finishes the thing they asked for. The
+  // dialog has done its job then: left open, it covered the model menu the
+  // resumed start opens and then the chat that start opened.
   const resumeProject = useRef(handleStart);
   resumeProject.current = handleStart;
   useEffect(() => {
@@ -1762,6 +1786,7 @@ const NewProjectSurface = ({
       return;
     }
     setPendingStart(false);
+    useProviderOnboardingStore.getState().dismiss();
     void resumeProject.current();
   }, [pendingStart, hasConfiguredProvider]);
 
@@ -1770,8 +1795,9 @@ const NewProjectSurface = ({
       return;
     }
     setPendingModelStart(false);
+    removeNotificationsByKey(PICK_MODEL_NOTICE_KEY);
     void resumeProject.current();
-  }, [pendingModelStart, selectedModel]);
+  }, [pendingModelStart, selectedModel, removeNotificationsByKey]);
 
   // The handler rides the field wrapper, where MUI puts unknown props, and the
   // keydown reaches it by bubbling from the textarea. Both pickers only read
@@ -2169,25 +2195,19 @@ const NewProjectSurface = ({
                         describeChild
                       >
                         <Chip
-                          clickable
                           compact
-                          variant="outlined"
                           label={starterLabel(entry.name)}
-                          aria-pressed={active}
+                          active={active}
+                          // The picked starter is drawn in the project colour.
+                          accent={active ? PROJECT_COLOR : undefined}
                           onClick={() => handleToggleStarter(entry.name)}
-                          sx={{
-                            ...starterPillSx,
-                            ...(active && activeStarterPillSx)
-                          }}
                         />
                       </Tooltip>
                     );
                   })}
                   {(hiddenStarterCount > 0 || showAllStarters) && (
                     <Chip
-                      clickable
                       compact
-                      variant="outlined"
                       aria-expanded={showAllStarters}
                       label={
                         showAllStarters
@@ -2195,7 +2215,7 @@ const NewProjectSurface = ({
                           : `${hiddenStarterCount} more`
                       }
                       onClick={() => setShowAllStarters((shown) => !shown)}
-                      sx={{ ...starterPillSx, borderStyle: "dashed" }}
+                      sx={{ borderStyle: "dashed" }}
                     />
                   )}
                 </FlexRow>
@@ -2215,7 +2235,12 @@ const NewProjectSurface = ({
             )}
           </FlexColumn>
 
-          <CurrentProjectDocuments />
+          {/* One project's work: its documents, then its latest chats, both
+              scoped by the project picker in the documents header. */}
+          <FlexColumn gap={SPACING.xl}>
+            <CurrentProjectDocuments />
+            <RecentChats />
+          </FlexColumn>
 
           <FlexColumn
             component="section"
@@ -2413,57 +2438,52 @@ const NewProjectSurface = ({
         requireToolSupport
       />
 
-      <Popover
+      <ContextMenu
         open={submenu !== null}
         anchorEl={submenu?.element ?? null}
         onClose={() => setSubmenu(null)}
-        placement="top-left"
-        maxWidth={SUBMENU_MAX_WIDTH}
+        anchorOrigin={{ vertical: "top", horizontal: "left" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "left" }}
         maxHeight="50vh"
+        paperSx={{ width: SUBMENU_WIDTH, maxWidth: SUBMENU_MAX_WIDTH }}
       >
-        <FlexColumn sx={{ width: SUBMENU_WIDTH, py: SPACING.micro }}>
-          {submenu?.kind === "texts" &&
-            TEXT_FILE_TEMPLATES.map((template) => (
-              <MenuItemPrimitive
-                key={template.filename}
-                label={template.label}
-                compact
-                disabled={creating !== null}
-                onClick={() => {
-                  void createTextFile(template);
-                }}
-              />
-            ))}
-          {submenu?.kind === "storyboards" && (
-            <>
-              <MenuItemPrimitive
-                label="Blank storyboard"
-                compact
-                dividerAfter
-                disabled={creating !== null}
-                onClick={() => {
-                  void createBlankStoryboard();
-                }}
-              />
-              {!examplesLoading &&
-                (exampleData ?? []).map((example) => (
-                  <MenuItemPrimitive
-                    key={example.slug}
-                    label={example.name}
-                    secondary={`${example.shotCount} shot${
-                      example.shotCount === 1 ? "" : "s"
-                    }, already rendered`}
-                    compact
-                    disabled={creating !== null}
-                    onClick={() => {
-                      void installStoryboardExample(example.slug, example.name);
-                    }}
-                  />
-                ))}
-            </>
-          )}
-        </FlexColumn>
-      </Popover>
+        {submenu?.kind === "texts" &&
+          TEXT_FILE_TEMPLATES.map((template) => (
+            <MenuItemPrimitive
+              key={template.filename}
+              label={template.label}
+              disabled={creating !== null}
+              onClick={() => {
+                void createTextFile(template);
+              }}
+            />
+          ))}
+        {submenu?.kind === "storyboards" && (
+          <MenuItemPrimitive
+            label="Blank storyboard"
+            dividerAfter
+            disabled={creating !== null}
+            onClick={() => {
+              void createBlankStoryboard();
+            }}
+          />
+        )}
+        {submenu?.kind === "storyboards" &&
+          !examplesLoading &&
+          (exampleData ?? []).map((example) => (
+            <MenuItemPrimitive
+              key={example.slug}
+              label={example.name}
+              secondary={`${example.shotCount} shot${
+                example.shotCount === 1 ? "" : "s"
+              }, already rendered`}
+              disabled={creating !== null}
+              onClick={() => {
+                void installStoryboardExample(example.slug, example.name);
+              }}
+            />
+          ))}
+      </ContextMenu>
     </ScrollArea>
   );
 };

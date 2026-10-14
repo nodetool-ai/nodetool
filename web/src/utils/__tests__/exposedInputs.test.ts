@@ -7,6 +7,7 @@ import {
   getEffectiveExposedPlacement,
   isModelPropertyType,
   nextExposedInputPlacement,
+  canPlaceOnTopHandle,
   resolveExposedInputLabeledNames,
   resolveExposedInputNames,
   resolveInlineFieldNames,
@@ -192,6 +193,17 @@ describe("exposedInputs utility", () => {
       expect(nextExposedInputPlacement(null)).toBe("handle");
       expect(nextExposedInputPlacement("handle")).toBe("labeled");
       expect(nextExposedInputPlacement("labeled")).toBeNull();
+    });
+
+    it("skips the top handle when the body cannot draw it", () => {
+      expect(nextExposedInputPlacement(null, false)).toBe("labeled");
+    });
+
+    it("keeps the top handle for metadata input_fields", () => {
+      const meta = baseMetadata({ input_fields: ["image"] });
+      expect(canPlaceOnTopHandle(meta, "image", false)).toBe(true);
+      expect(canPlaceOnTopHandle(meta, "size", false)).toBe(false);
+      expect(canPlaceOnTopHandle(meta, "size", true)).toBe(true);
     });
   });
 

@@ -19,19 +19,11 @@ import {
   type WorkspaceTab,
   type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
-import { useWorkflowManager, useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
-import { useAssetStore } from "../../stores/AssetStore";
-import { useJsScriptStore } from "../../stores/jsScript/JsScriptStore";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import { trpc, trpcClient } from "../../trpc/client";
-import { getActiveSketchInstance } from "../../stores/sketch/SketchInstance";
-import { renameSketchDocument } from "../../stores/sketch/SketchSessionStore";
-import { readSketchDocumentId } from "../../hooks/sketch/ensureSketchDocumentForAsset";
-import { tabCanRename, renameStrategy } from "./tabRename";
-import { renameTitledDocument } from "./renameTitledDocument";
+import { tabCanRename } from "./tabRename";
+import { useRenameDocument } from "../../hooks/useRenameDocument";
 import { useWorkspaceDocumentClose } from "../../hooks/useWorkspaceDocumentClose";
-import { useNotificationStore } from "../../stores/NotificationStore";
-import { useUpdateApplication } from "../../hooks/useApplications";
 import { TOOLBAR_WIDTH } from "../../config/constants";
 import {
   BORDER_RADIUS,
@@ -44,6 +36,7 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import NotificationButton from "../panels/NotificationButton";
+import SettingsHeaderButton from "../panels/SettingsHeaderButton";
 import OpenMenu from "./OpenMenu";
 import WorkspaceTabItem from "./WorkspaceTabItem";
 import MobileDocumentSelector from "./MobileDocumentSelector";
@@ -397,21 +390,14 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     closeAllDocuments: handleCloseAll
   } = useWorkspaceDocumentClose();
   const setMode = useWorkspaceTabsStore((state) => state.setMode);
-  const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
   const moveTab = useWorkspaceTabsStore((state) => state.moveTab);
-  const updateApplication = useUpdateApplication();
   const trpcUtils = trpc.useUtils();
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
+  const renameDocument = useRenameDocument();
   const headerActions = useWorkspaceHeaderActions()?.actions;
   const openHome = useOpenNewProjectTab();
   const { data: projects } = useProjects();
 
   const workflowManagerStore = useWorkflowManagerStore();
-  const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
-  const updateWorkflow = useWorkflowManager((state) => state.updateWorkflow);
-  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
 
   const activeProjectId = useWorkspaceTabsStore(
     (state) => state.activeProjectId
@@ -542,160 +528,13 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
 
   const commitRename = useCallback(
     async (tab: WorkspaceTab, newName: string) => {
-      const trimmed = newName.trim();
       setEditingTabId(null);
-      if (trimmed.length === 0 || trimmed === tab.title) {
-        return;
-      }
-
-      const strategy = renameStrategy(tab.type);
-      if (strategy === null) return;
-
-      // Workflows carry their name in the workflow store; the tab title is
-      // synced from there by WorkspaceShell, so update + save the workflow.
-      if (strategy === "workflow") {
-        const workflow = getWorkflow(tab.ref);
-        if (!workflow || workflow.name === trimmed) {
-          return;
-        }
-        const updatedWorkflow = { ...workflow, name: trimmed };
-        updateWorkflow(updatedWorkflow);
-        try {
-          await saveWorkflow(updatedWorkflow);
-        } catch (error) {
-          updateWorkflow(workflow);
-          addNotification({
-            type: "error",
-            alert: true,
-            content: `Failed to rename workflow: ${error instanceof Error ? error.message : "Unknown error"}`
-          });
-        }
-        return;
-      }
-
-      // Other document types own no store→tab sync: update the tab title
-      // optimistically, persist the rename to the backing document keyed by
-      // ref, and roll the title back if the server write fails.
-      const previousTitle = tab.title;
-      setTitle(tab.ref, tab.type, trimmed);
-      try {
-        switch (strategy) {
-          case "sketch":
-            await renameSketchDocument(getActiveSketchInstance(), trimmed);
-            break;
-          case "image": {
-            const asset = await useAssetStore.getState().update({
-              id: tab.ref,
-              name: trimmed
-            });
-            const sketchId = readSketchDocumentId(asset);
-            if (sketchId) {
-              const instance = getActiveSketchInstance();
-              if (instance.session.getState().documentId === sketchId) {
-                await renameSketchDocument(instance, trimmed);
-              } else {
-                await trpcClient.sketch.update.mutate({
-                  id: sketchId,
-                  name: trimmed
-                });
-              }
-            }
-            break;
-          }
-          case "timeline":
-            await trpcClient.timeline.update.mutate({
-              id: tab.ref,
-              name: trimmed
-            });
-            break;
-          case "asset":
-            await useAssetStore
-              .getState()
-              .update({ id: tab.ref, name: trimmed });
-            break;
-          case "storyboard":
-            await renameTitledDocument(strategy, tab.ref, trimmed);
-            void trpcUtils.storyboards.list.invalidate();
-            break;
-          case "script":
-            await renameTitledDocument(strategy, tab.ref, trimmed);
-            void trpcUtils.scripts.list.invalidate();
-            break;
-          case "jsscript": {
-            const store = useJsScriptStore.getState();
-            if (store.scripts[tab.ref]) {
-              store.setName(tab.ref, trimmed);
-            } else {
-              await trpcClient.jsScripts.update.mutate({
-                id: tab.ref,
-                name: trimmed
-              });
-            }
-            break;
-          }
-          case "skill": {
-            const currentSkill = trpcUtils.skills.get.getData({ id: tab.ref });
-            if (!currentSkill) {
-              throw new Error(
-                "Skill must finish loading before it can be renamed"
-              );
-            }
-            const updated = await trpcClient.skills.update.mutate({
-              id: tab.ref,
-              name: trimmed,
-              baseUpdatedAt: currentSkill.updatedAt
-            });
-            trpcUtils.skills.get.setData({ id: tab.ref }, updated);
-            void trpcUtils.skills.list.invalidate();
-            break;
-          }
-          case "chat":
-            await useGlobalChatStore
-              .getState()
-              .updateThreadTitle(tab.ref, trimmed);
-            break;
-          case "application":
-            await updateApplication.mutateAsync({
-              id: tab.ref,
-              name: trimmed
-            });
-            break;
-          case "project":
-            await trpcClient.projects.update.mutate({
-              id: tab.ref,
-              name: trimmed
-            });
-            void trpcUtils.projects.list.invalidate();
-            void trpcUtils.projects.summaries.invalidate();
-            break;
-          default: {
-            const unhandled: never = strategy;
-            throw new Error(`Unsupported rename strategy: ${unhandled}`);
-          }
-        }
-      } catch (error) {
-        setTitle(tab.ref, tab.type, previousTitle);
-        addNotification({
-          type: "error",
-          alert: true,
-          content: `Failed to rename document: ${error instanceof Error ? error.message : "Unknown error"}`
-        });
-      }
+      await renameDocument(
+        { type: tab.type, ref: tab.ref, currentName: tab.title },
+        newName
+      );
     },
-    [
-      getWorkflow,
-      updateWorkflow,
-      saveWorkflow,
-      setTitle,
-      updateApplication,
-      trpcUtils.skills.get,
-      trpcUtils.skills.list,
-      trpcUtils.projects.list,
-      trpcUtils.projects.summaries,
-      trpcUtils.storyboards.list,
-      trpcUtils.scripts.list,
-      addNotification
-    ]
+    [renameDocument]
   );
 
   const handleBeginRename = useCallback(
@@ -741,10 +580,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
       activeProject,
       activeProjectId,
       trpcUtils.projects.list,
-      trpcUtils.projects.summaries,
-      trpcUtils.storyboards.list,
-      trpcUtils.scripts.list,
-      addNotification
+      trpcUtils.projects.summaries
     ]
   );
 
@@ -794,11 +630,9 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         open={homeMenuPosition !== null}
         position={homeMenuPosition}
         onClose={() => setHomeMenuPosition(null)}
-        compact
       >
         <MenuItemPrimitive
           label="Rename"
-          compact
           onClick={() => {
             setHomeMenuPosition(null);
             setEditingHome(true);
@@ -893,6 +727,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
           {headerActions}
           <ActivityIndicator />
           <NotificationButton />
+          <SettingsHeaderButton />
         </div>
       </div>
     </div>

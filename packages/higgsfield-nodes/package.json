@@ -1,9 +1,9 @@
 {
   "name": "@nodetool-ai/higgsfield-nodes",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "type": "module",
   "engines": {
-    "node": "24.18.0"
+    "node": ">=22.0.0"
   },
   "description": "Curated Higgsfield image and video generation nodes for NodeTool",
   "main": "dist/index.js",
@@ -36,5 +36,10 @@
     "dist",
     "README.md"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/higgsfield-nodes"
+  }
 }

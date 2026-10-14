@@ -38,6 +38,10 @@ interface RunInnerGraphOptions {
   failureLabel: string;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 /**
  * Normalize a web-UI node to the kernel shape: the web UI stores properties
  * under `data` (kernel expects `properties`), and nests actual node properties
@@ -49,13 +53,10 @@ export function normalizeNodes(
   return nodes.map((n) => {
     if (n.properties === undefined && n.data !== undefined) {
       const { data, ...rest } = n;
-      const dataObj = data as Record<string, unknown>;
-      const props =
-        dataObj.properties &&
-        typeof dataObj.properties === "object" &&
-        !Array.isArray(dataObj.properties)
-          ? dataObj.properties
-          : dataObj;
+      if (!isPlainObject(data)) {
+        return { ...rest, properties: {} };
+      }
+      const props = isPlainObject(data.properties) ? data.properties : data;
       return { ...rest, properties: props };
     }
     return { ...n };

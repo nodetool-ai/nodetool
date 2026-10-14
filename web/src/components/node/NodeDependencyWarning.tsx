@@ -3,16 +3,16 @@ import { memo, useCallback, useEffect, useMemo, useState, type FC } from "react"
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { BORDER_RADIUS, SPACING, getSpacingPx, EditorButton } from "../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import isEqual from "../../utils/isEqual";
 import { getIsElectronDetails } from "../../utils/browser";
 import { useOpenPackageManager } from "../../hooks/useOpenPackageManager";
+import useRuntimeStatusStore from "../../stores/RuntimeStatusStore";
 import {
   RUNTIME_LABELS,
   RUNTIME_TO_PACKAGE_ID,
-  ensureRuntimeStatuses,
-  getCachedRuntimeStatuses
+  ensureRuntimeStatuses
 } from "./NodeDependencyWarning.helpers";
 
 const warningStyles = (theme: Theme) =>
@@ -57,24 +57,6 @@ const warningStyles = (theme: Theme) =>
       },
     },
 
-    ".install-btn": {
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.common.white,
-      backgroundColor: theme.vars.palette.primary.main,
-      border: "none",
-      borderRadius: BORDER_RADIUS.sm,
-      padding: `${theme.spacing(1)} ${theme.spacing(3)}`,
-      cursor: "pointer",
-      marginTop: getSpacingPx(SPACING.micro),
-      "&:hover": {
-        backgroundColor: theme.vars.palette.primary.dark,
-      },
-      "&:disabled": {
-        opacity: 0.6,
-        cursor: "default",
-      },
-    },
   });
 
 interface NodeDependencyWarningProps {
@@ -86,44 +68,35 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
 }) => {
   const theme = useTheme();
   const memoizedWarningStyles = useMemo(() => warningStyles(theme), [theme]);
-  const [missingRuntimes, setMissingRuntimes] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const statuses = useRuntimeStatusStore((s) => s.statuses);
+  const loaded = useRuntimeStatusStore((s) => s.loaded);
   const [installing, setInstalling] = useState(false);
   const { isElectron } = getIsElectronDetails();
   const openPackageManager = useOpenPackageManager();
 
-  const checkRuntimes = useCallback(async (forceRefresh = false) => {
-    // Only refresh statuses when cache is empty or explicitly forced.
-    await ensureRuntimeStatuses(forceRefresh);
-
-    const statuses = getCachedRuntimeStatuses();
-    const missing = requiredRuntimes.filter((rt) => {
-      const pkgId = RUNTIME_TO_PACKAGE_ID[rt] ?? rt;
-      return statuses ? !statuses[pkgId] : true;
-    });
-    setMissingRuntimes(missing);
-    setLoading(false);
-  }, [requiredRuntimes]);
+  const missingRuntimes = useMemo(
+    () =>
+      requiredRuntimes.filter((rt) => {
+        const pkgId = RUNTIME_TO_PACKAGE_ID[rt] ?? rt;
+        return statuses ? !statuses[pkgId] : true;
+      }),
+    [requiredRuntimes, statuses]
+  );
 
   useEffect(() => {
-    let cancelled = false;
-    checkRuntimes().then(() => {
-      if (cancelled) {return;}
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [checkRuntimes]);
+    void ensureRuntimeStatuses();
+  }, []);
 
-  // Re-check when window regains focus (e.g. after installing a runtime).
+  // Re-check when window regains focus (e.g. after installing a runtime
+  // outside the app).
   useEffect(() => {
     if (missingRuntimes.length === 0) {return;}
     const onFocus = () => {
-      checkRuntimes(true);
+      void ensureRuntimeStatuses(true);
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [missingRuntimes.length, checkRuntimes]);
+  }, [missingRuntimes.length]);
 
   const handleInstall = useCallback(async () => {
     const api = window.api;
@@ -134,16 +107,16 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
         const pkgId = RUNTIME_TO_PACKAGE_ID[rt] ?? rt;
         await api.packages.installRuntime(pkgId);
       }
-      await checkRuntimes(true);
+      await ensureRuntimeStatuses(true);
     } catch {
       // fall back to the package manager on error
       openPackageManager();
     } finally {
       setInstalling(false);
     }
-  }, [missingRuntimes, checkRuntimes, openPackageManager]);
+  }, [missingRuntimes, openPackageManager]);
 
-  if (loading || missingRuntimes.length === 0) {
+  if (!loaded || missingRuntimes.length === 0) {
     return null;
   }
 
@@ -161,14 +134,14 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
         Requires {runtimeNames}
       </div>
       {isElectron ? (
-        <button
-          type="button"
-          className="install-btn"
+        <EditorButton
+          variant="contained"
           onClick={handleInstall}
           disabled={installing}
+          sx={{ alignSelf: "flex-start", mt: SPACING.micro }}
         >
-          {installing ? "Installing..." : `Install ${runtimeNames}`}
-        </button>
+          {installing ? "Installing…" : `Install ${runtimeNames}`}
+        </EditorButton>
       ) : (
         <div className="warning-text">
           Install it on the machine running the NodeTool server to use this

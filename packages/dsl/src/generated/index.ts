@@ -49,6 +49,7 @@ export * as game from "./nodetool.game.js";
 export * as generators from "./nodetool.generators.js";
 export * as image from "./nodetool.image.js";
 export * as input from "./nodetool.input.js";
+export * as manimgx from "./nodetool.manimgx.js";
 export * as model3d from "./nodetool.model3d.js";
 export * as output from "./nodetool.output.js";
 export * as script from "./nodetool.script.js";

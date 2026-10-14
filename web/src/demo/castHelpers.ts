@@ -234,3 +234,22 @@ export function castMessages(workflowId: string, jobId: string) {
 
   return { jobUpdate, nodeUpdate, chunk, edgeUpdate, output, stream, progress };
 }
+
+/**
+ * Models the tutorial graphs show as selected. Without one, every model
+ * property renders its "Select Model" placeholder, which reads as an
+ * unconfigured node.
+ */
+export const DEMO_LANGUAGE_MODEL = {
+  type: "language_model",
+  provider: "openai",
+  id: "gpt-5.4",
+  name: "GPT-5.4",
+} as const;
+
+export const DEMO_IMAGE_MODEL = {
+  type: "image_model",
+  provider: "openai",
+  id: "gpt-image-2",
+  name: "GPT Image 2",
+} as const;

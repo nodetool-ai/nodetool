@@ -4,33 +4,36 @@
  * loop stops when the pointer leaves the zone or the gesture ends.
  */
 
-jest.mock("../useClipThumbnails", () => ({
-  useClipThumbnails: () => null
-}));
-jest.mock("../useAudioPeaks", () => ({
-  useAudioPeaks: () => ({ peaks: null, durationMs: null })
-}));
-jest.mock("../../../../stores/AssetStore", () => ({
-  useAssetStore: <T,>(sel: (s: { get: () => Promise<null> }) => T) =>
-    sel({ get: () => Promise.resolve(null) })
-}));
-jest.mock("../../../../stores/WorkflowRunsStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { focusedJob: Record<string, string> }) => T) =>
-    sel({ focusedJob: {} })
-}));
-jest.mock("../../../../stores/ErrorStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { errors: Record<string, unknown> }) => T) =>
-    sel({ errors: {} }),
-  hasNodeError: () => false,
-  nodeErrorToDisplayString: () => ""
-}));
-jest.mock("../../../../stores/timeline/TimelineGenerationStore", () => ({
-  useTimelineGenerationStore: <T,>(
-    sel: (s: { clipJobs: Record<string, unknown> }) => T
-  ) => sel({ clipJobs: {} })
-}));
+jest.mock("../useClipThumbnails", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .clipThumbnailsMock()
+);
+jest.mock("../useAudioPeaks", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .audioPeaksMock()
+);
+jest.mock("../../../../stores/AssetStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .assetStoreMock()
+);
+jest.mock("../../../../stores/WorkflowRunsStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .workflowRunsStoreMock()
+);
+jest.mock("../../../../stores/ErrorStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .errorStoreMock()
+);
+jest.mock("../../../../stores/timeline/TimelineGenerationStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .timelineGenerationStoreMock()
+);
 
 import { act, screen } from "@testing-library/react";
 import {
@@ -120,14 +123,27 @@ describe("edge auto-scroll while dragging", () => {
 
   /** A 400 px viewport over 2000 px of content, scrolled to `scrollLeft`. */
   const renderInScrollArea = (scrollLeft = 0) => {
-    renderLanes((lanes) => (
-      <div data-testid="tracks-scroll-area">{lanes}</div>
-    ));
+    renderLanes((lanes) => <div data-testid="tracks-scroll-area">{lanes}</div>);
     const area = screen.getByTestId("tracks-scroll-area");
     area.getBoundingClientRect = () =>
-      ({ ...VIEWPORT, top: 0, bottom: 100, width: 400, height: 100, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
-    Object.defineProperty(area, "scrollWidth", { value: 2000, configurable: true });
-    Object.defineProperty(area, "clientWidth", { value: 400, configurable: true });
+      ({
+        ...VIEWPORT,
+        top: 0,
+        bottom: 100,
+        width: 400,
+        height: 100,
+        x: 0,
+        y: 0,
+        toJSON: () => ({})
+      }) as DOMRect;
+    Object.defineProperty(area, "scrollWidth", {
+      value: 2000,
+      configurable: true
+    });
+    Object.defineProperty(area, "clientWidth", {
+      value: 400,
+      configurable: true
+    });
     area.scrollLeft = scrollLeft;
     return area;
   };

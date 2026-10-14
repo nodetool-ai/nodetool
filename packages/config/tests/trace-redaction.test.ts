@@ -18,6 +18,11 @@ describe("redactTraceText", () => {
       .toBe("before [REDACTED:private-key] after");
   });
 
+  it("masks a key that starts the text and keeps what follows it", () => {
+    expect(redactTraceText("-----BEGIN PRIVATE KEY-----bytes-----END PRIVATE KEY----- after"))
+      .toBe("[REDACTED:private-key] after");
+  });
+
   it("keeps ordinary diagnostics and unmatched closing markers", () => {
     const text = "Input is missing -----END PRIVATE KEY-----";
     expect(redactTraceText(text)).toBe(text);
@@ -37,6 +42,29 @@ describe("redactTraceText", () => {
 
 describe("createTraceTextRedactor", () => {
   afterEach(() => { vi.unstubAllEnvs(); });
+
+  it("reads secret-named variables of at least eight characters", () => {
+    vi.stubEnv("TRACE_TEST_TOKEN", "8chars!!");
+    vi.stubEnv("TRACE_TEST_SHORT_KEY", "7chars!");
+    vi.stubEnv("TRACE_TEST_PLAIN", "visible-config-value");
+    const redact = createTraceTextRedactor();
+    expect(redact("a 8chars!! b")).toBe("a [REDACTED:secret] b");
+    expect(redact("a 7chars! b")).toBe("a 7chars! b");
+    expect(redact("a visible-config-value b")).toBe("a visible-config-value b");
+  });
+
+  it("ignores an empty secret and redacts a one-character secret", () => {
+    expect(createTraceTextRedactor(new Set([""]))("plain text")).toBe("plain text");
+    expect(createTraceTextRedactor(new Set(["Q"]))("aQb")).toBe("a[REDACTED:secret]b");
+  });
+
+  it.each([
+    ["shorter first", ["abcdefgh", "abcdefgh-longer"]],
+    ["longer first", ["abcdefgh-longer", "abcdefgh"]]
+  ])("replaces the longest overlapping secret first (%s)", (_label, secrets) => {
+    expect(createTraceTextRedactor(new Set(secrets))("x abcdefgh-longer y"))
+      .toBe("x [REDACTED:secret] y");
+  });
 
   it("redacts every string like redactTraceText while reading the environment once", () => {
     vi.stubEnv("TRACE_TEST_API_KEY", "env-secret-value-123");

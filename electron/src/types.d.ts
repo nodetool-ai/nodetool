@@ -918,6 +918,8 @@ export type RuntimePackageId =
   | "pandoc"
   | "pdftotext"
   | "yt-dlp"
+  | "rust"
+  | "manimgx"
   | "transformers-js"
   | "tensorflow-js"
   | "node-llama-cpp"
@@ -928,7 +930,8 @@ export type RuntimePackageId =
   | "office-documents"
   | "tesseract-ocr"
   | "fabric"
-  | "email-imap";
+  | "email-imap"
+  | "tokenizer";
 
 export interface RuntimePackageStatus {
   id: RuntimePackageId;

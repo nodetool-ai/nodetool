@@ -4,7 +4,7 @@ import { projectGameplayHud } from "../gameplay/lifecycle.js";
 import { evaluateVisual } from "../visual-animation.js";
 import type { GameSystemContext2D } from "./context2d.js";
 type PresentationContext2D = Readonly<
-  Pick<GameSystemContext2D, "tick" | "events" | "frameFor" | "document" | "scene" | "states" | "score" | "won" | "hud" | "ui" | "scriptStats" | "queues">
+  Pick<GameSystemContext2D, "tick" | "events" | "frameFor" | "document" | "scene" | "states" | "score" | "won" | "hud" | "ui" | "scriptStats" | "scriptLogs" | "scriptSaves" | "queues">
 > &
   Pick<GameSystemContext2D, "presentationEvents" | "result">;
 export function stepPresentation2D(context: PresentationContext2D): void {
@@ -16,6 +16,12 @@ export function stepPresentation2D(context: PresentationContext2D): void {
   };
   if (context.scriptStats) {
     context.result = { ...context.result, scriptStats: context.scriptStats };
+  }
+  if (context.scriptLogs) {
+    context.result = { ...context.result, scriptLogs: context.scriptLogs };
+  }
+  if (context.scriptSaves) {
+    context.result = { ...context.result, saveRequests: context.scriptSaves };
   }
 }
 export function readStepResult2D(context: GameSystemContext2D): NonNullable<GameSystemContext2D["result"]> {

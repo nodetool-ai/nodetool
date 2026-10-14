@@ -34,7 +34,7 @@ jobs:
       has_changes: ${{ steps.check.outputs.has_changes }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -79,7 +79,7 @@ jobs:
       update_linux_manifest: ${{ steps.meta.outputs.update_linux_manifest }}
       ref: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - id: meta
         name: Resolve release metadata
@@ -87,6 +87,7 @@ jobs:
         env:
           INPUT_CHANNEL: ${{ github.event.inputs.channel }}
           INPUT_VERSION: ${{ github.event.inputs.version }}
+          RUN_STARTED_AT: ${{ github.run_started_at }}
         run: |
           set -euo pipefail
           # A dispatched run signs and publishes, so it must build main or a tag.
@@ -95,7 +96,7 @@ jobs:
             exit 1
           fi
           if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${INPUT_CHANNEL}" == "nightly" ) ]]; then
-            nightly_date="$(date -u -d "${{ github.run_started_at }}" +%Y%m%d)"
+            nightly_date="$(date -u -d "$RUN_STARTED_AT" +%Y%m%d)"
             node scripts/resolve-nightly-release.mjs \
               --date "$nightly_date" \
               --run-number "${{ github.run_number }}" \
@@ -163,7 +164,7 @@ jobs:
       UPDATE_LINUX_MANIFEST: ${{ needs.preflight.outputs.update_linux_manifest }}
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.preflight.outputs.ref }}
 
@@ -171,10 +172,12 @@ jobs:
         run: echo "Using VERSION=$VERSION channel=$RELEASE_CHANNEL tag=$RELEASE_TAG"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: ".nvmrc"
-          cache: "npm"
+          # Signed release artifacts build from a clean install, never from a
+          # cache another job on main could have written.
+          package-manager-cache: false
 
       - name: Sync package versions to release tag
         shell: bash
@@ -224,7 +227,7 @@ jobs:
             --password "$APPLE_APP_SPECIFIC_PASSWORD"
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
 
@@ -825,7 +828,7 @@ jobs:
       # ── Workflow artifacts (downloadable from the Actions run page) ────
       - name: Upload web build artifact
         if: matrix.os == 'ubuntu-latest' && always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nodetool-web
           retention-days: 7
@@ -834,7 +837,7 @@ jobs:
 
       - name: Upload MCP bundle artifact
         if: matrix.os == 'ubuntu-latest' && always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nodetool-mcpb
           retention-days: 7
@@ -843,7 +846,7 @@ jobs:
 
       - name: Upload SDK contract bundle artifact
         if: matrix.os == 'ubuntu-latest' && always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nodetool-sdk-contract
           retention-days: 7
@@ -852,7 +855,7 @@ jobs:
 
       - name: Upload build artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: electron-${{ matrix.os }}
           retention-days: 7
@@ -934,12 +937,12 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.preflight.outputs.ref }}
 
       - name: Download release artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: '*'
           merge-multiple: true
@@ -972,7 +975,7 @@ jobs:
           echo "Removed ${removed} debug-only file(s)."
 
       - name: Publish release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ needs.preflight.outputs.tag }}
           target_commitish: ${{ needs.preflight.outputs.ref }}

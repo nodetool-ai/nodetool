@@ -21,10 +21,7 @@ import { IconForType } from "../../config/IconForType";
 import { HighlightText } from "../ui_primitives";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import {
-  TOOLTIP_ENTER_DELAY,
-  NOTIFICATION_TIMEOUT_SHORT
-} from "../../config/constants";
+import { NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { findSnippetByNodeType } from "../../config/snippetMetadata";
 
@@ -364,7 +361,6 @@ const NodeItem = memo(function NodeItem({
           <Tooltip
             title={tooltipContent}
             placement="right"
-            delay={TOOLTIP_ENTER_DELAY}
             slotProps={descriptionTooltipSlotProps}
           >
             <div style={iconContainerStyle}>{iconWithText}</div>
@@ -376,7 +372,6 @@ const NodeItem = memo(function NodeItem({
           <Tooltip
             title={`Requires: ${node.required_runtimes!.join(", ")}`}
             placement="top"
-            delay={TOOLTIP_ENTER_DELAY}
             slotProps={runtimeTooltipSlotProps}
           >
             <Box

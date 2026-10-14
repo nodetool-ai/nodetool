@@ -47,6 +47,7 @@ import {
 } from "../assistant/AssistantDock";
 import { resolveAssetUrlsIn } from "../assetSubstitution";
 import { seedDemoAuth, seedDemoSecrets } from "../demoEngine";
+import { installDemoAppInstances } from "./demoAppInstances";
 import { useMediaReadiness, type PendingMediaHandler } from "../mediaReadiness";
 import { useVideoPlayhead } from "../videoPlayhead";
 import type { AppCastDoc, DocDemoCast, SketchDocCast, ScriptCastDoc, StoryboardCastDoc } from "./docCastTypes";
@@ -135,6 +136,9 @@ export function DocDemoPlayer({
   useState(() => {
     seedDemoAuth();
     seedDemoSecrets();
+    if (cast.surface === "app") {
+      installDemoAppInstances();
+    }
   });
 
   const doc = useMemo(

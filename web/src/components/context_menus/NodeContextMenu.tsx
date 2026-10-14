@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from "react";
-import { Divider, ContextMenu, BORDER_RADIUS } from "../ui_primitives";
+import { Divider, ContextMenu } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
@@ -36,18 +36,17 @@ const NodeContextMenu: React.FC = () => {
   const removeFromGroup = useRemoveFromGroup();
   const handleRemoveFromGroup = useCallback(() => {
     removeFromGroup([node as Node<NodeData>]);
-  }, [removeFromGroup, node]);
+    closeContextMenu();
+  }, [removeFromGroup, node, closeContextMenu]);
 
   const groupIntoSubgraph = useGroupIntoSubgraph();
   const getSelectedNodes = useNodes((s) => s.getSelectedNodes);
   const handleGroupIntoSubgraph = useCallback(() => {
+    if (!node) return;
     const selected = getSelectedNodes();
-    const ids =
-      selected.length > 0
-        ? selected.map((n) => n.id)
-        : node
-        ? [node.id]
-        : [];
+    const ids = selected.some((n) => n.id === node.id)
+      ? selected.map((n) => n.id)
+      : [node.id];
     if (ids.length === 0) return;
     groupIntoSubgraph(ids);
     closeContextMenu();
@@ -58,7 +57,7 @@ const NodeContextMenu: React.FC = () => {
       <ContextMenuItem
         key="remove-from-group"
         onClick={handleRemoveFromGroup}
-        label="Remove from Group"
+        label="Remove from group"
         IconComponent={<GroupRemoveIcon />}
         tooltip="Remove this node from the group"
       />
@@ -94,7 +93,7 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="copy-nodedata"
       onClick={handlers.handleCopyMetadataToClipboard}
-      label="Copy Node as JSON"
+      label="Copy node as JSON"
       IconComponent={<DataArrayIcon />}
       tooltip="Copy this node's data as JSON to the clipboard"
     />,
@@ -115,11 +114,11 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="duplicate-vertical"
       onClick={handlers.handleDuplicateVertical}
-      label="Duplicate Vertical"
+      label="Duplicate vertically"
       IconComponent={<SouthIcon />}
       tooltip={
         <div className="tooltip-span">
-          <div className="tooltip-title">Duplicate Vertical</div>
+          <div className="tooltip-title">Duplicate vertically</div>
           <div className="tooltip-key">
             <kbd>CTRL</kbd>+<kbd>SHIFT</kbd>+<kbd>D</kbd> / <kbd>⌘</kbd>+<kbd>SHIFT</kbd>+<kbd>D</kbd>
           </div>
@@ -129,20 +128,20 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="run-from-here"
       onClick={handlers.handleRunFromHere}
-      label={conditions.isWorkflowRunning ? "Running..." : "Run Node"}
+      label={conditions.isWorkflowRunning ? "Running…" : "Run node"}
       IconComponent={<PlayArrowIcon />}
       tooltip="Run this node as its own job, using previous results as inputs"
-      addButtonClassName={conditions.isWorkflowRunning ? "disabled" : ""}
+      disabled={conditions.isWorkflowRunning}
     />,
     <ContextMenuItem
       key="toggle-bypass"
       onClick={handlers.handleToggleBypass}
-      label={conditions.isBypassed ? "Enable Node" : "Disable Node"}
+      label={conditions.isBypassed ? "Enable node" : "Disable node"}
       IconComponent={conditions.isBypassed ? <PowerSettingsNewIcon /> : <BlockIcon />}
       tooltip={
         <div className="tooltip-span">
           <div className="tooltip-title">
-            {conditions.isBypassed ? "Enable Node" : "Disable Node"}
+            {conditions.isBypassed ? "Enable node" : "Disable node"}
           </div>
           <div className="tooltip-key">
             <kbd>B</kbd>
@@ -153,14 +152,14 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="toggle-collapsed"
       onClick={handlers.handleToggleCollapsed}
-      label={conditions.isCollapsed ? "Expand Node" : "Collapse Node"}
+      label={conditions.isCollapsed ? "Expand node" : "Collapse node"}
       IconComponent={
         conditions.isCollapsed ? <UnfoldMoreIcon /> : <UnfoldLessIcon />
       }
       tooltip={
         <div className="tooltip-span">
           <div className="tooltip-title">
-            {conditions.isCollapsed ? "Expand Node" : "Collapse Node"}
+            {conditions.isCollapsed ? "Expand node" : "Collapse node"}
           </div>
           <div className="tooltip-key">
             <kbd>C</kbd>
@@ -171,7 +170,7 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="toggle-comment"
       onClick={handlers.handleToggleComment}
-      label={conditions.hasCommentTitle ? "Remove Comment" : "Add Comment"}
+      label={conditions.hasCommentTitle ? "Remove comment" : "Add comment"}
       IconComponent={<EditIcon />}
       tooltip={
         conditions.hasCommentTitle
@@ -182,7 +181,7 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="group-into-subgraph"
       onClick={handleGroupIntoSubgraph}
-      label="Group into Subgraph"
+      label="Group into subgraph"
       IconComponent={<AccountTreeIcon />}
       tooltip="Move the selected nodes into a new subgraph node"
     />,
@@ -190,7 +189,7 @@ const NodeContextMenu: React.FC = () => {
       <ContextMenuItem
         key="convert-to-input"
         onClick={handlers.handleConvertToInput}
-        label="Convert to Input Node"
+        label="Convert to input node"
         IconComponent={<SwapHorizIcon />}
         tooltip="Convert this constant node to an input node"
       />
@@ -199,7 +198,7 @@ const NodeContextMenu: React.FC = () => {
       <ContextMenuItem
         key="convert-to-constant"
         onClick={handlers.handleConvertToConstant}
-        label="Convert to Constant Node"
+        label="Convert to constant node"
         IconComponent={<SwapHorizIcon />}
         tooltip="Convert this input node to a constant node"
       />
@@ -207,9 +206,9 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="show-templates"
       onClick={handlers.handleFindTemplates}
-      label="Show Templates"
+      label="Show templates"
       IconComponent={<SearchIcon />}
-      tooltip="Find Templates using this node"
+      tooltip="Find templates using this node"
     />,
     <ContextMenuItem
       key="select-all"
@@ -226,7 +225,8 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="delete-node"
       onClick={handlers.handleDeleteNode}
-      label="Delete Node"
+      label="Delete node"
+      destructive
       IconComponent={<DeleteIcon />}
       tooltip="Delete this node"
     />
@@ -239,7 +239,6 @@ const NodeContextMenu: React.FC = () => {
       onClose={closeContextMenu}
       onContextMenu={(event) => event.preventDefault()}
       position={menuPosition}
-      paperSx={{ borderRadius: BORDER_RADIUS.lg }}
     >
       {menuItems.filter(Boolean)}
     </ContextMenu>

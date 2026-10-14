@@ -41,6 +41,7 @@ import {
 import { setCredentialCheckOverride } from "@nodetool-ai/runtime";
 import { createTestUiServer } from "./test-ui-server.js";
 import { seedProjects } from "./screenshot-projects.js";
+import { seedDocsExtras } from "./screenshot-docs-seed.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   createFakeExecutorResolver,
@@ -291,6 +292,71 @@ const STORY_GRAPH = {
   ]
 };
 
+/**
+ * The graph docs/first-workflow.md builds, step by step: String Input → Agent
+ * → Text To Image → Preview, with the idea and System text the page uses.
+ */
+const FIRST_WORKFLOW_GRAPH = {
+  nodes: [
+    {
+      id: "fw-idea",
+      type: "nodetool.input.StringInput",
+      data: { name: "idea", value: "a lighthouse on a cliff at dusk" },
+      ui_properties: { position: { x: 40, y: 150 }, width: 240 }
+    },
+    {
+      id: "fw-agent",
+      type: "nodetool.agents.Agent",
+      data: {
+        model: {
+          type: "language_model",
+          provider: "anthropic",
+          id: "claude-sonnet-5",
+          name: "Claude Sonnet 5"
+        },
+        system:
+          "Rewrite the user's idea as one detailed image prompt. Describe subject, light, and style. Reply with the prompt only."
+      },
+      ui_properties: { position: { x: 330, y: 110 }, width: 300 }
+    },
+    {
+      id: "fw-image",
+      type: "nodetool.image.TextToImage",
+      data: {},
+      ui_properties: { position: { x: 680, y: 110 }, width: 260 }
+    },
+    {
+      id: "fw-preview",
+      type: "nodetool.workflows.base_node.Preview",
+      data: {},
+      ui_properties: { position: { x: 990, y: 110 }, width: 300 }
+    }
+  ],
+  edges: [
+    {
+      id: "fw-edge-idea",
+      source: "fw-idea",
+      sourceHandle: "output",
+      target: "fw-agent",
+      targetHandle: "prompt"
+    },
+    {
+      id: "fw-edge-prompt",
+      source: "fw-agent",
+      sourceHandle: "text",
+      target: "fw-image",
+      targetHandle: "prompt"
+    },
+    {
+      id: "fw-edge-preview",
+      source: "fw-image",
+      sourceHandle: "output",
+      target: "fw-preview",
+      targetHandle: "value"
+    }
+  ]
+};
+
 const MOCK_WORKFLOWS = [
   makeWorkflow(
     "wf-story-generator",
@@ -300,6 +366,24 @@ const MOCK_WORKFLOWS = [
     "2024-12-15T11:30:00Z",
     "private",
     STORY_GRAPH
+  ),
+  // docs/first-workflow.md: the empty canvas of step 1 and the finished graph.
+  // Old dates keep both at the end of the recent-workflow lists.
+  makeWorkflow(
+    "wf-first-empty",
+    "New Workflow",
+    "",
+    [],
+    "2024-09-02T09:00:00Z"
+  ),
+  makeWorkflow(
+    "wf-first-workflow",
+    "Lighthouse at Dusk",
+    "Turns a short idea into a detailed image prompt and a picture",
+    ["image", "agent"],
+    "2024-09-03T09:00:00Z",
+    "private",
+    FIRST_WORKFLOW_GRAPH
   ),
   makeWorkflow(
     "wf-mini-app",
@@ -678,6 +762,34 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-09T08:47:30Z",
     model: "claude-3-5-sonnet-20241022",
     provider: "anthropic"
+  },
+  // The agentic-qa chat-find journey continues this thread, so it needs an
+  // earlier exchange to continue.
+  {
+    id: "msg-research-1",
+    user_id: USER_ID,
+    thread_id: "thread-research",
+    role: "user",
+    content:
+      "Which vector database should we use for the search feature in our docs site?",
+    created_at: "2024-12-06T13:05:00Z",
+    model: null,
+    provider: null
+  },
+  {
+    id: "msg-research-2",
+    user_id: USER_ID,
+    thread_id: "thread-research",
+    role: "assistant",
+    content: [
+      {
+        type: "text",
+        text: "For a docs site under a million chunks, start with **pgvector** if you already run Postgres: one database, transactional updates, and good enough recall with an HNSW index. Pick **Qdrant** if you want filtering and payloads as a first-class feature, or **SQLite-vec** for a single-binary deploy. Move to a managed service only when the index outgrows one machine."
+      }
+    ],
+    created_at: "2024-12-06T13:06:10Z",
+    model: "claude-3-5-sonnet-20241022",
+    provider: "anthropic"
   }
 ];
 
@@ -738,7 +850,7 @@ const MOCK_ASSETS = [
   ),
   makeAsset(
     "asset-photo4",
-    "team_offsite_group.jpg",
+    "interview_room.jpg",
     "image/jpeg",
     USER_ID,
     3456712
@@ -772,6 +884,14 @@ const MOCK_ASSETS = [
     "image/png",
     "folder-images",
     7892341
+  ),
+  // The picture the first-workflow docs run produces (docs/first-workflow.md).
+  makeAsset(
+    "asset-first-workflow-image",
+    "lighthouse_at_dusk.jpg",
+    "image/jpeg",
+    "folder-images",
+    412876
   ),
   makeAsset(
     "asset-audio-folder-1",
@@ -831,7 +951,7 @@ const MOCK_ASSETS = [
       kind: "character",
       name: "Marta",
       descriptor:
-        "red-haired detective in a beige trench coat, mid-30s, sharp green eyes, weathered expression",
+        "detective in her sixties, silver bob, dark wool coat, a patient stare that waits people out",
       voice_id: "voice-marta-01",
       tags: ["protagonist", "detective"]
     }
@@ -847,7 +967,7 @@ const MOCK_ASSETS = [
         kind: "location",
         name: "Harbor District",
         descriptor:
-          "foggy industrial harbor at night, rusted cranes, wet cobblestones reflecting sodium lights",
+          "rain-wet street by the docks at night, one streetlight, a parked car, shuttered shops",
         tags: ["exterior", "night"]
       }
     }
@@ -863,22 +983,22 @@ const MOCK_ASSETS = [
         kind: "style",
         name: "Neon Noir",
         descriptor:
-          "high-contrast neon noir, teal and magenta rim lighting, anamorphic lens flares, 35mm film grain",
+          "wet asphalt under neon signs, teal and magenta reflections, steam from the drains, 35mm film grain",
         tags: ["look"]
       }
     }
   ),
   makeAsset(
     "entity-umbrella",
-    "red_umbrella.png",
+    "courier_helmet.png",
     "image/png",
     USER_ID,
     412009,
     {
       nodetool_entity: {
         kind: "prop",
-        name: "Red Umbrella",
-        descriptor: "a battered red umbrella with a bent brass handle",
+        name: "Courier Helmet",
+        descriptor: "black full-face motorcycle helmet with a mirrored visor",
         tags: ["macguffin"]
       }
     }
@@ -1358,8 +1478,8 @@ const STORYBOARD_DOCUMENT = {
       "shot-2",
       1,
       "The find",
-      "A Red Umbrella lies abandoned against a mooring post, its brass handle catching the light",
-      "rack focus from rain to the umbrella",
+      "A Courier Helmet lies abandoned against a mooring post, its visor catching the light",
+      "rack focus from rain to the helmet",
       "close-up"
     ),
     storyboardShot(
@@ -1380,7 +1500,7 @@ const STORYBOARD_DOCUMENT = {
     )
   ],
   brief:
-    "A detective follows a stolen shipment into the harbor at night and finds only a red umbrella where the courier should be.",
+    "A detective follows a stolen shipment into the harbor at night and finds only a helmet where the courier should be.",
   style: "neon noir thriller, rain-slick surfaces, volumetric fog",
   entityIds: [
     "entity-marta",
@@ -1410,6 +1530,19 @@ process.env.ASSET_FOLDER = ASSET_ROOT;
 if (ownsAssetRoot) {
   process.on("exit", () => {
     rmSync(ASSET_ROOT, { recursive: true, force: true });
+  });
+}
+
+// The seeded vector collections go to a scratch database for the same reason:
+// the default path is the user's real store.
+const ownsVectorDb = process.env.VECTORSTORE_DB_PATH === undefined;
+const VECTOR_DIR = ownsVectorDb
+  ? mkdtempSync(join(tmpdir(), "nodetool-screenshot-vectors-"))
+  : null;
+if (VECTOR_DIR) {
+  process.env.VECTORSTORE_DB_PATH = join(VECTOR_DIR, "vectorstore.db");
+  process.on("exit", () => {
+    rmSync(VECTOR_DIR, { recursive: true, force: true });
   });
 }
 
@@ -1572,17 +1705,81 @@ async function seedDatabase(): Promise<void> {
   }
 
   const projectCount = await seedProjects(USER_ID);
+  await seedDocsExtras(USER_ID);
 
   console.log(
     `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_APPLICATIONS.length} applications, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 1 sketch document, 3 timeline sequences, ${projectCount} projects, ${demoSecrets.length} secrets (asset bytes in ${ASSET_ROOT})`
   );
 }
 
+/**
+ * The one document of the `failing-run` state: its Agent step has no model
+ * picked, so a run stops at pre-flight validation until the user connects a
+ * provider and picks one. Agentic QA's `run-failure` journey starts here.
+ */
+const FAILING_RUN_WORKFLOW = makeWorkflow(
+  "wf-trip-summary",
+  "Trip summary",
+  "Turns trip notes into a short summary",
+  [],
+  "2026-01-05T09:00:00Z",
+  "private",
+  {
+    nodes: [
+      {
+        id: "input-notes",
+        type: "nodetool.input.StringInput",
+        data: {
+          name: "notes",
+          label: "Trip notes",
+          value: "Lisbon, 14 to 21 May. Hotel near Alfama. Tram 28 and Belem tower."
+        },
+        ui_properties: { position: { x: 0, y: 0 }, width: 320 }
+      },
+      {
+        id: "agent-summary",
+        type: "nodetool.agents.Agent",
+        data: {},
+        ui_properties: { position: { x: 420, y: 0 }, width: 360 }
+      },
+      {
+        id: "output-summary",
+        type: "nodetool.output.Output",
+        data: { name: "summary", description: "The summary" },
+        ui_properties: { position: { x: 860, y: 0 }, width: 280 }
+      }
+    ],
+    edges: [
+      {
+        id: "edge-notes",
+        source: "input-notes",
+        sourceHandle: "output",
+        target: "agent-summary",
+        targetHandle: "prompt"
+      },
+      {
+        id: "edge-summary",
+        source: "agent-summary",
+        sourceHandle: "text",
+        target: "output-summary",
+        targetHandle: "value"
+      }
+    ]
+  }
+);
+
 // `NODETOOL_QA_STATE=empty` starts with no workflows, threads, assets, or
 // secrets, as a new account does. First-time-user QA (agentic-qa) uses it.
-const EMPTY_ACCOUNT = process.env.NODETOOL_QA_STATE === "empty";
+// `failing-run` is that account plus one workflow that fails until fixed.
+const QA_STATE = process.env.NODETOOL_QA_STATE;
+const EMPTY_ACCOUNT = QA_STATE === "empty" || QA_STATE === "failing-run";
 
 async function seedForState(): Promise<void> {
+  if (QA_STATE === "failing-run") {
+    await Workflow.create(FAILING_RUN_WORKFLOW);
+    console.log("[screenshot-server] Empty account with one failing workflow");
+    return;
+  }
   if (EMPTY_ACCOUNT) {
     console.log("[screenshot-server] Empty account: nothing seeded");
     return;
@@ -1645,7 +1842,10 @@ if (HERMETIC) {
 const serverOptions: Parameters<typeof createTestUiServer>[0] = {
   port: PORT,
   host: HOST,
-  resetDatabase: resetSeededDatabase
+  resetDatabase: resetSeededDatabase,
+  // screenshot-docs-seed.ts stores real pictures for the mock photos and
+  // entities, so the server must not answer with its stand-in swatches.
+  seededMediaFromStore: true
 };
 if (existsSync(EXAMPLES_DIR)) {
   serverOptions.examplesDir = EXAMPLES_DIR;

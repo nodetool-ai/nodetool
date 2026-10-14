@@ -22,6 +22,7 @@ import {
   tabId,
   useWorkspaceTabsStore
 } from "./WorkspaceTabsStore";
+import { wasWorkflowCreatedHere } from "./workflowsCreatedHere";
 
 type WorkflowResourceReloader = (
   workflowId: string,
@@ -152,15 +153,25 @@ function invalidateTrpcProcedure(router: string, procedure: string): void {
 /**
  * A workflow created outside the editor (bundle import, API, agent) has no tab
  * and no editor store until something opens it. Opening the tab mounts the
- * editor, which is what makes the workflow editable.
+ * editor, which is what makes the workflow editable. A workflow this page
+ * created already has its surface: the guided Workflow flow keeps its draft in
+ * a guided flow tab, and a second editor tab beside it was a stray "Untitled".
  */
 async function openCreatedWorkflowTab(id: string): Promise<void> {
-  const tabs = useWorkspaceTabsStore.getState();
-  if (tabs.tabs.some((tab) => tab.id === tabId("workflow", id))) {
+  const hasSurface = (): boolean =>
+    wasWorkflowCreatedHere(id) ||
+    useWorkspaceTabsStore
+      .getState()
+      .tabs.some((tab) => tab.id === tabId("workflow", id));
+  if (hasSurface()) {
     return;
   }
   try {
     const document = await resolveDocumentProject("workflow", id);
+    // The event can arrive before this page's own create call returns.
+    if (hasSurface()) {
+      return;
+    }
     useWorkspaceTabsStore.getState().openTab({
       type: "workflow",
       ref: document.id,
@@ -290,6 +301,9 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
   }
 
   if (resource_type === "workflow") {
+    // The Home documents strip reads projects.documentPage. Without this a
+    // saved workflow was missing from it until a reload.
+    invalidateProjectViews();
     invalidateDocumentIndex();
   }
 
@@ -320,6 +334,9 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
       });
       queryClient.invalidateQueries({
         queryKey: ["textAsset", resource.id]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["spreadsheetAsset", resource.id]
       });
     }
 

@@ -6,6 +6,7 @@ import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import MarketingClosingAction from "../../components/MarketingClosingAction";
 import MarketingPageShell from "../../components/MarketingPageShell";
 import ProductImage from "../../components/ProductImage";
+import SubscriptionSection from "../../components/SubscriptionSection";
 import AgentRunHero from "../../components/agents/AgentRunHero";
 import AgentSurfaceGrid from "../../components/agents/AgentSurfaceGrid";
 import McpInstallCommand from "../../components/agents/McpInstallCommand";
@@ -122,20 +123,20 @@ export default function AgentsPage() {
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-12 lg:gap-14 lg:px-8">
           <div className="min-w-0 lg:col-span-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
-              NodeTool Agents
+              Open-source creative harness
             </p>
             <h1
               id="agents-hero-title"
               className="mt-4 text-balance text-4xl font-semibold leading-[1.08] tracking-tight text-slate-50 sm:text-5xl xl:text-[3.5rem]"
             >
-              Your agent builds the workflow. You keep it.
+              The open-source creative harness for your agent.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-300">
-              Tell NodeTool&apos;s built-in agent, or a coding agent such as
-              Claude Code, what you want made. It builds a workflow, a chain of
-              AI steps, runs it on your own provider accounts, and fixes any
-              step that fails. The workflow stays saved, so you can change it
-              and run it again.
+              A harness is everything an agent works inside: tools, editors,
+              models, keys, and a record of each step. NodeTool is that harness
+              for creative work. Give a brief to the built-in agent or to Claude
+              Code. It generates images, video, and audio, builds the workflow,
+              and leaves every piece open to change.
             </p>
             <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <AgentsPrimaryAction />
@@ -147,7 +148,8 @@ export default function AgentsPage() {
               </a>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-slate-400">
-              Open source · Your models and keys · MCP, CLI, and API
+              Open source under AGPL-3.0 · Your models and keys · MCP, CLI, and
+              API
             </p>
           </div>
           <div className="relative min-w-0 lg:col-span-7">
@@ -160,6 +162,8 @@ export default function AgentsPage() {
         </div>
       </section>
 
+      <SubscriptionSection className="rhythm-section" />
+
       <section
         id="agent-loop"
         aria-labelledby="agent-loop-title"
@@ -168,9 +172,9 @@ export default function AgentsPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <SectionHeader
             id="agent-loop-title"
-            eyebrow="The loop"
+            eyebrow="Inside the harness"
             title="Build. Run. Inspect. Repair."
-            body="A chat assistant answers once and stops. An agent in NodeTool works on a saved workflow, so it can see which step failed and fix that step."
+            body="A chat assistant answers once and stops. Inside the harness, the agent works on a saved workflow, so it can see which step failed and fix that step."
           />
           <div className="mt-12 grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
             <div className="lg:col-span-7">
@@ -222,8 +226,8 @@ export default function AgentsPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <SectionHeader
             id="agent-surfaces-title"
-            eyebrow="Every editor"
-            title="One agent. Seven editors. No export step."
+            eyebrow="What the harness gives the agent"
+            title="Seven editors the agent can work in. No export step."
             body="The agent edits the same documents you open in Studio. When it stops, the work is already in the editor."
           />
           <div className="mt-12">
@@ -240,9 +244,9 @@ export default function AgentsPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <SectionHeader
             id="agent-control-title"
-            eyebrow="Control"
-            title="You set the models. You hold the keys."
-            body="The agent works inside the limits you give it, and you can read everything it did."
+            eyebrow="Your limits"
+            title="The harness runs on your models and your keys."
+            body="You decide what the agent may use, and you can read everything it did."
           />
           <ul className="mt-12 grid overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40 sm:grid-cols-2">
             {controls.map(({ icon: Icon, title, body }) => (
@@ -277,7 +281,7 @@ export default function AgentsPage() {
               id="connect-agent-title"
               className="mt-3 text-balance text-3xl font-semibold tracking-tight text-white md:text-5xl"
             >
-              Bring the agent you already use.
+              Put the agent you already use in the harness.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-300">
               MCP is the standard way AI agents connect to outside tools. One
@@ -360,7 +364,7 @@ export default function AgentsPage() {
 
       <MarketingClosingAction
         headingId="agents-closing-title"
-        title="Give your first brief to an agent."
+        title="Run your first brief through the harness."
         body="Download Studio and watch the agent build a workflow you can open, change, and run again."
         primaryAction={<AgentsPrimaryAction />}
         secondaryAction={{

@@ -71,7 +71,7 @@ These primitives exist but are barely adopted:
 `CopyButton` | `CloseButton` | `DeleteButton` | `DownloadButton` | `UploadButton` | `EditButton` | `SettingsButton` | `FavoriteButton` | `HelpButton` | `DocsHelpLink` | `UndoRedoButtons`
 
 ### Feedback & Status (replace raw CircularProgress/Alert)
-`LoadingSpinner` | `ProgressBar` | `Skeleton` | `StatusIndicator` | `StatusPill` | `EmptyState` | `AlertBanner` | `WarningBanner` | `Toast` | `NotificationBadge` | `ConflictBanner`
+`LoadingSpinner` | `ProgressBar` | `Skeleton` | `StatusIndicator` | `StatusPill` | `EmptyState` | `AlertBanner` | `WarningBanner` | `NotificationBadge` | `ConflictBanner`
 
 Media that is being generated shows `MagicGenerationFill` over its host: the sketch canvas and layer thumbnails, timeline clips and preview, storyboard shots, chat's pending media tiles and the contact sheet. Do not build a separate generating animation.
 
@@ -86,6 +86,9 @@ Media that is being generated shows `MagicGenerationFill` over its host: the ske
 
 ### Media (the media-locator rendering boundary)
 `ResponsiveImage` | `VideoPlayer` | `AudioPlayback`
+
+### Docking
+`DockTabStrip` (the tab strip on a docked panel group: tabs name the panels, report drag past a 4 px threshold, close by button, middle click or Delete, and open a menu on right click or Shift+F10) | `DockDropOverlay` with `dockZoneAt` (the drop preview over a group: center adds a tab, an edge splits). The host owns the layout; these primitives only report gestures and draw previews. The game editor's dock is the reference host (`components/game/shell/`).
 
 ### Keyframe editors
 `CurveEditor` (piecewise-linear `{ t, value }` keys) | `GradientEditor` (`{ t, color }` stops). Both edit the particle `*OverLifetime` shapes, keep keys sorted, and are keyboard operable.
@@ -172,10 +175,15 @@ A properties panel (an inspector beside a canvas or timeline) builds from one se
 
 See [Properties panels](../../../../docs/DESIGN.md#11-properties-panels).
 
+A list row or grid tile takes its hover, selected and focus states from
+`selectableRowStyles` / `selectableTileStyles` and `focusRing`, and a grid lays
+out with `AutoGrid`. See [Lists and grids](../../../../docs/DESIGN.md#12-lists-and-grids).
+
 Need a container/surface?
 ├── Content card → Card
 ├── Panel with header/footer → Panel
 ├── Title strip of a docked or floating panel → PanelHeader
+├── Tabs of a docked panel group → DockTabStrip (+ DockDropOverlay while dragging)
 ├── Generic surface → Surface
 ├── Modal → Dialog
 ├── Backdrop → Overlay
@@ -184,12 +192,14 @@ Need a container/surface?
 Need feedback?
 ├── Loading → LoadingSpinner
 ├── Progress → ProgressBar
+├── Waiting on a model → ThinkingIndicator
 ├── Placeholder → Skeleton
 ├── Media being generated → MagicGenerationFill
 ├── Nothing to show → EmptyState
 ├── Warning/error → AlertBanner / WarningBanner
-├── Temporary message → Toast
+├── Temporary message → useNotificationStore().addNotification (or useAlertNotifier)
 ├── Status dot/badge → StatusIndicator / NotificationBadge
+├── Tag, count or filter pill → Chip (`active` for a selected filter)
 └── Render state on a thumbnail or card → StatusPill
 
 Need a menu/nav?

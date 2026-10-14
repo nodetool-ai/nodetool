@@ -1,9 +1,14 @@
 ---
 name: nodetool-custom-node-developer
-description: "Create or update TypeScript NodeTool nodes, decorated properties, process methods, and node packages."
+description: "Create or update TypeScript NodeTool nodes and node packs in a NodeTool checkout or an npm package: decorated properties, process methods, streaming, registration. Needs a shell. For custom logic inside the product, use nodetool-js-scripting."
 ---
 
 You are a NodeTool node developer. You create TypeScript nodes that extend `BaseNode` from `@nodetool-ai/node-sdk`.
+
+This is shell work: writing TypeScript, building and installing an npm pack,
+and restarting the server. The in-product agent cannot do it. Inside the
+product, custom logic is a Code node or a saved JS script in the QuickJS
+sandbox (`nodetool-js-scripting`).
 
 # Package Layout
 
@@ -86,34 +91,70 @@ async process(): Promise<Record<string, unknown>> {
 }
 ```
 
-## Streaming Node (genProcess)
+## Streaming Output (genProcess)
+
+Streaming is structural. Overriding `genProcess` makes the node emit many
+values, and `outputCorrelation` says how each output relates to the run:
+`iteration` for one value per yield, `single` for one final value. There is no
+streaming flag.
+
 ```typescript
-static readonly isStreamingOutput = true;
-static readonly metadataOutputTypes = { output: "str" };
+import type { OutputCorrelation } from "@nodetool-ai/protocol";
+
+static readonly metadataOutputTypes = { output: "any", index: "int" };
+static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  output: { kind: "iteration", source: "__execution__", group: "items" },
+  index: { kind: "iteration", source: "__execution__", group: "items" }
+};
+
+@prop({ type: "list[any]", default: [], title: "Input List" })
+declare input_list: unknown[];
+
+async process(): Promise<Record<string, unknown>> {
+  return {};
+}
 
 async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-  for (const item of items) {
-    yield { output: item };
+  const items = this.input_list ?? [];
+  for (let i = 0; i < items.length; i++) {
+    yield { output: items[i], index: i };
   }
 }
 ```
 
-## Stateful Collector
+A `chunk` output must come from `genProcess` with an `iteration` correlation,
+or it stays empty.
+
+## Streaming Input (collector)
+
+A node that consumes a stream sets `isStreamingInput` and implements `run()`,
+which reads the input stream and emits when it ends. `process()` alone fires
+once with buffered inputs and collects nothing across a stream.
+
 ```typescript
-static readonly syncMode = "on_any"; // fires on each incoming value
+import type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
-@prop({ type: "any", title: "Item" })
-declare item: unknown;
+static readonly metadataOutputTypes = { output: "list[any]" };
+static readonly isStreamingInput = true;
+static readonly inputMode: InputMode = "stream";
+static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+  output: { kind: "aggregate", source: "input_item", collapse: "innermost" }
+};
 
-private collected: unknown[] = [];
-
-async initialize(): Promise<void> {
-  this.collected = []; // reset per run
-}
+@prop({ type: "any", default: [], title: "Input Item" })
+declare input_item: unknown;
 
 async process(): Promise<Record<string, unknown>> {
-  this.collected.push(this.item);
-  return { output: this.collected };
+  return { output: [] };
+}
+
+async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
+  const items: unknown[] = [];
+  for await (const item of inputs.stream("input_item")) {
+    items.push(item);
+  }
+  await outputs.emit("output", items);
 }
 ```
 
@@ -136,16 +177,24 @@ async process(): Promise<Record<string, unknown>> {
 ```
 
 ## Media Refs (Image/Audio/Video)
-```typescript
-@prop({ type: "image", title: "Input Image" })
-declare image: { uri?: string; data?: string } | undefined;
 
-async process(): Promise<Record<string, unknown>> {
-  const img = this.image;
-  if (!img) throw new Error("No image provided");
-  // img.data is base64, img.uri is a URL
-  const resultData = await processImage(img);
-  return { output: { type: "image", data: resultData } }; // return base64
+A ref may carry inline `data`, or only a `uri` (`asset://`, `file://`, storage,
+`http`). Read bytes with `loadMediaRefBytes`, which resolves every form. Return
+a ref with its `type` discriminator and raw bytes or raw base64 in `data`,
+never a `data:` URI.
+
+```typescript
+import { loadMediaRefBytes, type ProcessingContext } from "@nodetool-ai/runtime";
+
+@prop({ type: "image", title: "Input Image" })
+declare image: { uri?: string; data?: string | Uint8Array; asset_id?: string } | undefined;
+
+async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  if (!this.image) throw new Error("No image provided");
+  const bytes = await loadMediaRefBytes(this.image, context);
+  if (!bytes) throw new Error("Image has no readable bytes");
+  const result: Uint8Array = await processImage(bytes);
+  return { output: { type: "image", data: result, content_type: "image/png" } };
 }
 ```
 
@@ -159,11 +208,13 @@ async finalize(): Promise<void> { }     // after all processing
 # Optional Static Properties
 
 ```typescript
-static readonly isDynamic = true;            // dynamic schema
-static readonly supportsDynamicOutputs = true;
-static readonly isStreamingInput = true;
-static readonly basicFields = ["prompt", "model"]; // shown first in UI
+static readonly supportsDynamicInputs = true;   // user can add input slots
+static readonly supportsDynamicOutputs = true;  // user can add output slots
+static readonly inputFields = ["prompt"];       // shown as handles on the node body
+static readonly inlineFields = ["model"];       // edited inline on the node
 ```
+
+Props in neither list appear only in the Inspector.
 
 # Scaffold a Pack
 
@@ -210,9 +261,11 @@ for local dev) and restart. The export may be sync or `async`.
 
 **Trust model.** Custom nodes run in-process as the server user (full
 filesystem/network/secret access, no sandbox), so loading is gated. In
-development unlisted packs load automatically; in production
-(`NODETOOL_ENV=production`) only packs on the allowlist
-(`NODETOOL_PACKS_ALLOWLIST` or `~/.config/nodetool/packs.json`) load. Packs also
+development unlisted packs load automatically. A production server
+(`NODETOOL_ENV=production`) and the desktop app
+(`NODETOOL_PACKS_REQUIRE_ALLOWLIST=1`) load only packs on the allowlist
+(`NODETOOL_PACKS_ALLOWLIST` or `~/.config/nodetool/packs.json`). An unlisted
+pack is skipped, so on Desktop add it to the allowlist before restarting. Packs also
 cannot register under reserved namespaces (`nodetool.`, `lib.`, provider names)
 or shadow an existing node type. Only install packs you trust.
 

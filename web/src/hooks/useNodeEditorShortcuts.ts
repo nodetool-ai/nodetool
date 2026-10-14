@@ -16,9 +16,13 @@ import { useSelectConnected } from "./useSelectConnected";
 import { useShallow } from "zustand/react/shallow";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
-import { useWorkspaceTabsStore } from "../stores/WorkspaceTabsStore";
+import {
+  creationProjectId,
+  isTabInScope,
+  useWorkspaceTabsStore,
+  type WorkspaceTab
+} from "../stores/WorkspaceTabsStore";
 import { useWorkspaceDocumentClose } from "./useWorkspaceDocumentClose";
-import { useNavigate } from "react-router-dom";
 import { openSettingsTab } from "../components/workspace/openPageTab";
 import { useFitView } from "./useFitView";
 import { useMenuHandler } from "./useIpcRenderer";
@@ -101,7 +105,6 @@ export const useNodeEditorShortcuts = (
   const reactFlow = useReactFlow();
   const { closeDocument } = useWorkspaceDocumentClose();
   const getCurrentWorkflow = useWorkflowManager((state) => state.getCurrentWorkflow);
-  const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
   const copyPaste = useCopyPaste();
@@ -122,7 +125,6 @@ export const useNodeEditorShortcuts = (
     }))
   );
   const handleFitView = useFitView();
-  const navigate = useNavigate();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -269,38 +271,57 @@ export const useNodeEditorShortcuts = (
   }, [closeDocument]);
 
   const handleNewWorkflow = useCallback(async () => {
-    const newWorkflow = await createNewWorkflow();
-    navigate(`/editor/${newWorkflow.id}`);
-  }, [createNewWorkflow, navigate]);
+    // The new workflow exists only in memory until its first save, so it is
+    // opened as a tab directly. The /editor/:id redirect looks ids up on the
+    // server and would report it missing.
+    const projectId = creationProjectId();
+    const newWorkflow = await createNewWorkflow(projectId);
+    useWorkspaceTabsStore.getState().openForegroundTab({
+      type: "workflow",
+      ref: newWorkflow.id,
+      title: newWorkflow.name,
+      mode: "edit",
+      projectId
+    });
+  }, [createNewWorkflow]);
+
+  // Tab shortcuts walk the tabs the tab bar shows, in its order.
+  const visibleTabs = useCallback((): WorkspaceTab[] => {
+    const { tabs, activeProjectId } = useWorkspaceTabsStore.getState();
+    return tabs.filter(
+      (tab) => tab.type !== "project-new" && isTabInScope(tab, activeProjectId)
+    );
+  }, []);
 
   const handleSwitchTab = useCallback(
     (direction: "prev" | "next") => {
-      const workflow = getCurrentWorkflow();
-      if (workflow) {
-        const currentIndex = openWorkflows.findIndex(
-          (w) => w.id === workflow.id
-        );
-        let newIndex;
-        if (direction === "prev") {
-          newIndex =
-            currentIndex <= 0 ? openWorkflows.length - 1 : currentIndex - 1;
-        } else {
-          newIndex =
-            currentIndex >= openWorkflows.length - 1 ? 0 : currentIndex + 1;
-        }
-        navigate(`/editor/${openWorkflows[newIndex].id}`);
+      const tabs = visibleTabs();
+      if (tabs.length === 0) {
+        return;
       }
+      const { activeTabId, setActiveTab } = useWorkspaceTabsStore.getState();
+      const currentIndex = tabs.findIndex((tab) => tab.id === activeTabId);
+      const newIndex =
+        direction === "prev"
+          ? currentIndex <= 0
+            ? tabs.length - 1
+            : currentIndex - 1
+          : currentIndex >= tabs.length - 1
+            ? 0
+            : currentIndex + 1;
+      setActiveTab(tabs[newIndex].id);
     },
-    [getCurrentWorkflow, openWorkflows, navigate]
+    [visibleTabs]
   );
 
   const handleSwitchToTab = useCallback(
     (index: number) => {
-      if (index < openWorkflows.length) {
-        navigate(`/editor/${openWorkflows[index].id}`);
+      const tab = visibleTabs()[index];
+      if (tab) {
+        useWorkspaceTabsStore.getState().setActiveTab(tab.id);
       }
     },
-    [openWorkflows, navigate]
+    [visibleTabs]
   );
 
   const handleSave = useCallback(async () => {
@@ -309,7 +330,7 @@ export const useNodeEditorShortcuts = (
       try {
         await saveWorkflow(workflow);
         addNotification({
-          content: `Workflow ${workflow.name} saved`,
+          content: `Workflow "${workflow.name}" saved`,
           type: "success",
           alert: true
         });
@@ -522,9 +543,11 @@ export const useNodeEditorShortcuts = (
     > = {
       copy: { callback: handleCopy, preventDefault: false },
       cut: { callback: handleCut },
-      paste: { callback: handlePaste, preventDefault: false },
-      undo: { callback: undoHistory },
-      redo: { callback: redoHistory },
+      paste: { callback: () => handlePaste(), preventDefault: false },
+      // The combo passes its KeyboardEvent, which undo/redo would read as a
+      // step count and unwind the whole history.
+      undo: { callback: () => undoHistory() },
+      redo: { callback: () => redoHistory() },
       selectAll: { callback: selectAllNodes },
       align: { callback: handleAlign, active: selectedNodeCount > 0 },
       alignWithSpacing: {

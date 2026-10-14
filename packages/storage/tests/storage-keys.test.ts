@@ -143,6 +143,10 @@ describe("assetKeyOwner", () => {
     expect(assetKeyOwner("user-1/nested/abc.png")).toBe("user-1");
   });
 
+  it("reads a one-character owner", () => {
+    expect(assetKeyOwner("u/abc.png")).toBe("u");
+  });
+
   it("returns null for a legacy flat key", () => {
     expect(assetKeyOwner("abc.png")).toBeNull();
   });

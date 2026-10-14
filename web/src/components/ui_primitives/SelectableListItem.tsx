@@ -10,6 +10,8 @@
 import React, { memo, forwardRef, useCallback } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { focusRing } from "./selectionStyles";
+import { MOTION, reducedMotion } from "./tokens";
 
 export interface SelectableListItemProps extends Omit<BoxProps, "onClick"> {
   /** Whether the row is currently selected (solid primary border + tint). */
@@ -120,20 +122,15 @@ export const SelectableListItem = memo(
           opacity: disabled ? 0.6 : 1,
           borderLeft: `${BORDER_WIDTH}px ${borderStyle} ${borderColor}`,
           backgroundColor: background,
-          transition:
-            "background-color 120ms ease, border-color 120ms ease",
+          transition: `${MOTION.background}, ${MOTION.border}`,
+          ...reducedMotion({ transition: MOTION.none }),
           "&:hover":
             interactive && !selected && !secondary
               ? {
                   backgroundColor: theme.vars.palette.action.hover
                 }
               : undefined,
-          "&:focus-visible": interactive
-            ? {
-                outline: `2px solid ${theme.vars.palette.primary.main}`,
-                outlineOffset: -2
-              }
-            : undefined,
+          "&:focus-visible": interactive ? focusRing(theme) : undefined,
           ...sx
         }}
         {...props}

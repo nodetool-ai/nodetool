@@ -55,6 +55,7 @@ const createMockNode = (
 describe("useFitView", () => {
   let fitView: jest.Mock;
   let fitBounds: jest.Mock;
+  let getInternalNode: jest.Mock;
   const mockUseReactFlow = jest.mocked(useReactFlow);
   const mockUseNodeStoreRef = jest.mocked(useNodeStoreRef);
 
@@ -74,9 +75,11 @@ describe("useFitView", () => {
   beforeEach(() => {
     fitView = jest.fn();
     fitBounds = jest.fn();
+    getInternalNode = jest.fn(() => undefined);
     mockUseReactFlow.mockReturnValue({
       fitView,
       fitBounds,
+      getInternalNode,
       getViewport: jest.fn(() => ({ x: 0, y: 0, zoom: 1 }))
     } as any);
     jest.useFakeTimers();
@@ -200,6 +203,59 @@ describe("useFitView", () => {
       expect.objectContaining({
         x: expect.any(Number)
       }),
+      expect.any(Object)
+    );
+  });
+
+  it("frames a single grouped node at its absolute position", () => {
+    const child = createMockNode("child", 10, 20, 200, 100, "group");
+    setStoreState({
+      nodes: [createMockNode("group", 1000, 2000, 600, 400), child],
+      getSelectedNodes: () => [child]
+    });
+    getInternalNode.mockImplementation((id: string) =>
+      id === "child"
+        ? { internals: { positionAbsolute: { x: 1010, y: 2020 } } }
+        : undefined
+    );
+
+    const { result } = renderHook(() => useFitView());
+    act(() => {
+      result.current();
+    });
+
+    // 1000 x 800 minimum bounds centred on the 200 x 100 node.
+    expect(fitBounds).toHaveBeenCalledWith(
+      { x: 1010 - 400, y: 2020 - 350, width: 1000, height: 800 },
+      expect.any(Object)
+    );
+  });
+
+  it("frames several grouped nodes at their absolute positions", () => {
+    const a = createMockNode("a", 10, 20, 100, 50, "group");
+    const b = createMockNode("b", 210, 20, 100, 50, "group");
+    setStoreState({
+      nodes: [createMockNode("group", 1000, 2000, 600, 400), a, b],
+      getSelectedNodes: () => [a, b]
+    });
+    const absolute: Record<string, XYPosition> = {
+      a: { x: 1010, y: 2020 },
+      b: { x: 1210, y: 2020 }
+    };
+    getInternalNode.mockImplementation((id: string) =>
+      absolute[id] ? { internals: { positionAbsolute: absolute[id] } } : undefined
+    );
+
+    const { result } = renderHook(() => useFitView());
+    act(() => {
+      result.current();
+    });
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    expect(fitBounds).toHaveBeenCalledWith(
+      { x: 1010 - 100, y: 2020, width: 300 + 100, height: 50 + 50 },
       expect.any(Object)
     );
   });

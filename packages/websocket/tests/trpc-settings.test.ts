@@ -140,6 +140,72 @@ describe("settings router", () => {
     });
   });
 
+  // ── cloud profile ────────────────────────────────────────────────
+  describe("under the cloud profile", () => {
+    const saved: Record<string, string | undefined> = {};
+    const KEYS = ["NODETOOL_NODE_PROFILE", "NODETOOL_ENV", "FONT_PATH"];
+
+    beforeEach(() => {
+      for (const key of KEYS) saved[key] = process.env[key];
+      delete process.env["NODETOOL_ENV"];
+      process.env["NODETOOL_NODE_PROFILE"] = "cloud";
+      process.env["FONT_PATH"] = "/srv/operator/fonts";
+      (Setting.listForUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (Secret.listForUser as ReturnType<typeof vi.fn>).mockResolvedValue([[]]);
+      (Setting.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({});
+    });
+
+    afterEach(() => {
+      for (const key of KEYS) {
+        if (saved[key] === undefined) delete process.env[key];
+        else process.env[key] = saved[key];
+      }
+    });
+
+    it("lists no host settings and no operator environment values", async () => {
+      const caller = createCaller(makeCtx());
+      const settings = (await caller.settings.list())
+        .settings as SettingWithValue[];
+      const keys = settings.map((s) => s.env_var);
+      expect(keys).toContain("AUTOSAVE_ENABLED");
+      for (const hidden of ["FONT_PATH", "OLLAMA_API_URL", "SERVER_AUTH_TOKEN"]) {
+        expect(keys).not.toContain(hidden);
+      }
+      process.env["AUTOSAVE_ENABLED"] = "false";
+      try {
+        const again = (await caller.settings.list())
+          .settings as SettingWithValue[];
+        expect(again.find((s) => s.env_var === "AUTOSAVE_ENABLED")?.value).toBeNull();
+      } finally {
+        delete process.env["AUTOSAVE_ENABLED"];
+      }
+    });
+
+    it("refuses to write a host setting", async () => {
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.settings.update({ settings: { FONT_PATH: "/etc" } })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(Setting.upsert).not.toHaveBeenCalled();
+    });
+
+    it("still writes account settings", async () => {
+      const caller = createCaller(makeCtx());
+      await caller.settings.update({ settings: { AUTOSAVE_ENABLED: "false" } });
+      expect(Setting.upsert).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps everything for a self-hosted full profile", async () => {
+      process.env["NODETOOL_NODE_PROFILE"] = "full";
+      const caller = createCaller(makeCtx());
+      const settings = (await caller.settings.list())
+        .settings as SettingWithValue[];
+      expect(settings.find((s) => s.env_var === "FONT_PATH")?.value).toBe(
+        "/srv/operator/fonts"
+      );
+    });
+  });
+
   // ── settings.update ──────────────────────────────────────────────
   describe("update", () => {
     it("upserts non-secret settings to Setting model", async () => {
@@ -228,8 +294,14 @@ describe("settings router", () => {
         ""
       ]);
 
+      const previous = process.env.ANTHROPIC_API_KEY;
+      delete process.env.ANTHROPIC_API_KEY;
       const caller = createCaller(makeCtx());
-      const result = await caller.settings.secrets.list();
+      const result = await caller.settings.secrets.list().finally(() => {
+        if (previous !== undefined) {
+          process.env.ANTHROPIC_API_KEY = previous;
+        }
+      });
       expect(result.secrets.length).toBeGreaterThan(0);
       const secrets = result.secrets as SecretResponse[];
 
@@ -245,6 +317,30 @@ describe("settings router", () => {
       expect(unconfigured).toBeDefined();
 
       expect(result.next_key).toBeNull();
+    });
+
+    it("marks a registry secret set only in the environment as configured", async () => {
+      (Secret.listForUser as ReturnType<typeof vi.fn>).mockResolvedValue([
+        [],
+        ""
+      ]);
+      const previous = process.env.ANTHROPIC_API_KEY;
+      process.env.ANTHROPIC_API_KEY = "env-key";
+      try {
+        const caller = createCaller(makeCtx());
+        const result = await caller.settings.secrets.list();
+        const anthropic = (result.secrets as SecretResponse[]).find(
+          (s) => s.key === "ANTHROPIC_API_KEY"
+        );
+        expect(anthropic?.is_configured).toBe(true);
+        expect(anthropic?.id).toBeUndefined();
+      } finally {
+        if (previous === undefined) {
+          delete process.env.ANTHROPIC_API_KEY;
+        } else {
+          process.env.ANTHROPIC_API_KEY = previous;
+        }
+      }
     });
 
     it("includes DB-only secrets not in the registry", async () => {

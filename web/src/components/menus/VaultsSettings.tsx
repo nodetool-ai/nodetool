@@ -1,6 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useState } from "react";
-import { Text, TextInput, EditorButton, FlexColumn, FlexRow } from "../ui_primitives";
+import {
+  Text,
+  TextInput,
+  EditorButton,
+  FlexColumn,
+  FlexRow,
+  Dialog,
+  ConfirmDialog,
+  AlertBanner,
+  SPACING
+} from "../ui_primitives";
 
 const DEFAULT_VAULT_ID = "default";
 
@@ -29,6 +39,9 @@ const VaultsSettings: React.FC = () => {
   const [newName, setNewName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [renameTarget, setRenameTarget] = useState<VaultInfo | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<VaultInfo | null>(null);
 
   const apply = useCallback((result: VaultListResult) => {
     setVaults(result.vaults);
@@ -75,19 +88,25 @@ const VaultsSettings: React.FC = () => {
     void run(() => vaultsApi.switch(id));
   };
 
-  const handleRename = (id: string, currentName: string) => {
-    const next = window.prompt("Rename vault", currentName);
-    if (next === null) return;
-    const name = next.trim();
+  const handleRename = (vault: VaultInfo) => {
+    setRenameValue(vault.name);
+    setRenameTarget(vault);
+  };
+
+  const closeRename = () => setRenameTarget(null);
+
+  const confirmRename = () => {
+    if (!renameTarget) return;
+    const name = renameValue.trim();
+    const { id, name: currentName } = renameTarget;
+    setRenameTarget(null);
     if (!name || name === currentName) return;
     void run(() => vaultsApi.rename(id, name));
   };
 
-  const handleDelete = (id: string, name: string) => {
-    const confirmed = window.confirm(
-      `Remove the vault "${name}" from the list?\n\nIts database files are left on disk and can be re-added or deleted manually.`
-    );
-    if (!confirmed) return;
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    const { id } = deleteTarget;
     void run(() => vaultsApi.delete(id));
   };
 
@@ -96,91 +115,126 @@ const VaultsSettings: React.FC = () => {
       <Text size="big" id="vaults" className="settings-heading">
         Vaults
       </Text>
-      <Text className="description">
-        A vault is a separate, isolated data store with its own database,
-        assets, and RAG collections. Switch vaults to keep different sets of
-        workflows and data apart. Switching restarts the backend and reloads the
-        app.
-      </Text>
+      <FlexColumn gap={SPACING.lg}>
+        <Text className="description">
+          A vault is a separate, isolated data store with its own database,
+          assets, and RAG collections. Switch vaults to keep different sets of
+          workflows and data apart. Switching restarts the backend and reloads the
+          app.
+        </Text>
 
-      <FlexColumn gap={1} style={{ marginTop: 8 }}>
-        {vaults.map((vault) => {
-          const isActive = vault.id === activeVaultId;
-          const isDefault = vault.id === DEFAULT_VAULT_ID;
-          return (
-            <FlexRow
-              key={vault.id}
-              align="center"
-              justify="space-between"
-              gap={1}
-              style={{ flexWrap: "wrap" }}
-            >
-              <Text>
-                {vault.name}
-                {isActive ? " — active" : ""}
-              </Text>
-              <FlexRow gap={1} align="center">
-                {!isActive && (
+        <FlexColumn gap={1}>
+          {vaults.map((vault) => {
+            const isActive = vault.id === activeVaultId;
+            const isDefault = vault.id === DEFAULT_VAULT_ID;
+            return (
+              <FlexRow
+                key={vault.id}
+                align="center"
+                justify="space-between"
+                gap={1}
+                style={{ flexWrap: "wrap" }}
+              >
+                <Text>
+                  {vault.name}
+                  {isActive ? " — active" : ""}
+                </Text>
+                <FlexRow gap={1} align="center">
+                  {!isActive && (
+                    <EditorButton
+                      variant="contained"
+                      size="small"
+                      disabled={busy}
+                      onClick={() => handleSwitch(vault.id)}
+                    >
+                      Switch
+                    </EditorButton>
+                  )}
                   <EditorButton
-                    variant="contained"
+                    variant="outlined"
                     size="small"
-                    disabled={busy}
-                    onClick={() => handleSwitch(vault.id)}
+                    disabled={busy || isDefault}
+                    onClick={() => handleRename(vault)}
                   >
-                    Switch
+                    Rename
                   </EditorButton>
-                )}
-                <EditorButton
-                  variant="outlined"
-                  size="small"
-                  disabled={busy || isDefault}
-                  onClick={() => handleRename(vault.id, vault.name)}
-                >
-                  Rename
-                </EditorButton>
-                <EditorButton
-                  variant="outlined"
-                  size="small"
-                  color="error"
-                  disabled={busy || isDefault || isActive}
-                  onClick={() => handleDelete(vault.id, vault.name)}
-                >
-                  Delete
-                </EditorButton>
+                  <EditorButton
+                    variant="outlined"
+                    size="small"
+                    color="error"
+                    disabled={busy || isDefault || isActive}
+                    onClick={() => setDeleteTarget(vault)}
+                  >
+                    Delete
+                  </EditorButton>
+                </FlexRow>
               </FlexRow>
-            </FlexRow>
-          );
-        })}
+            );
+          })}
+        </FlexColumn>
+
+        <FlexRow gap={1} align="flex-end">
+          <TextInput
+            label="New vault name"
+            value={newName}
+            autoComplete="off"
+            disabled={busy}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleCreate();
+              }
+            }}
+          />
+          <EditorButton
+            variant="contained"
+            size="small"
+            disabled={busy || newName.trim().length === 0}
+            onClick={handleCreate}
+          >
+            Create
+          </EditorButton>
+        </FlexRow>
+
+        {error && <AlertBanner severity="error">{error}</AlertBanner>}
       </FlexColumn>
 
-      <FlexRow gap={1} align="flex-end" style={{ marginTop: 12 }}>
+      <Dialog
+        open={renameTarget !== null}
+        onClose={closeRename}
+        title="Rename vault"
+        onConfirm={confirmRename}
+        confirmText="Rename"
+        confirmDisabled={renameValue.trim().length === 0}
+        maxWidth="xs"
+        fullWidth
+      >
         <TextInput
-          label="New vault name"
-          value={newName}
+          label="Vault name"
+          value={renameValue}
           autoComplete="off"
-          disabled={busy}
-          onChange={(e) => setNewName(e.target.value)}
+          autoFocus
+          fullWidth
+          onChange={(e) => setRenameValue(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
-              handleCreate();
+              e.preventDefault();
+              confirmRename();
             }
           }}
         />
-        <EditorButton
-          variant="contained"
-          size="small"
-          disabled={busy || newName.trim().length === 0}
-          onClick={handleCreate}
-        >
-          Create
-        </EditorButton>
-      </FlexRow>
+      </Dialog>
 
-      {error && (
-        <Text color="error" style={{ marginTop: 8 }}>
-          {error}
-        </Text>
-      )}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Remove vault?"
+        content={`"${deleteTarget?.name ?? ""}" is removed from the list. Its database files stay on disk and can be re-added or deleted manually.`}
+        confirmText="Remove"
+        cancelText="Cancel"
+        destructive
+      />
     </div>
   );
 };

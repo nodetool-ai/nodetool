@@ -15,6 +15,7 @@ import {
   type SetStateAction
 } from "react";
 import type { Asset } from "../../../stores/ApiTypes";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useSketchInstance } from "../../../stores/sketch/SketchInstance";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import {
@@ -40,6 +41,9 @@ import {
   writeImageCanvasToSystemClipboardPng
 } from "../sketchClipboard";
 import { notifyMutationError } from "../../../utils/notifyMutationError";
+import { decodePsd } from "../psd/psdDecoder";
+import { isPsdFile, pixelsToPngDataUrl } from "../psd/psdFile";
+import { importPsdIntoSketch } from "../psd/sketchPsd";
 import { resolveAssetUri } from "../../node/output/hooks";
 
 // ── Module-level helpers ────────────────────────────────────────────
@@ -246,6 +250,8 @@ export interface UseCanvasGeometryActionsReturn {
   ) => Promise<string | null>;
   handleDropImage: (file: File) => Promise<void>;
   handleDropAsset: (asset: Asset) => Promise<void>;
+  /** Import a Photoshop file's layers; see `importPsdIntoSketch`. */
+  handleImportPsd: (file: File) => Promise<void>;
   adjBrightness: number;
   adjContrast: number;
   adjSaturation: number;
@@ -987,10 +993,57 @@ export function useCanvasGeometryActions({
     [editor, canvasRef, pushHistory, syncPixelLayerFromCanvas]
   );
 
+  const handleImportPsd = useCallback(
+    async (file: File) => {
+      let next: SketchDocument;
+      let unsupportedBlendKeys: string[];
+      try {
+        const psd = decodePsd(new Uint8Array(await file.arrayBuffer()));
+        unsupportedBlendKeys = psd.unsupportedBlendKeys;
+        // Decoding can take a while. Build on the document as it is now.
+        editor.getState().commitPendingEdit();
+        next = importPsdIntoSketch(
+          editor.getState().document,
+          psd,
+          file.name.replace(/\.psd$/i, ""),
+          pixelsToPngDataUrl
+        );
+      } catch (error) {
+        notifyMutationError("import the PSD", error);
+        return;
+      }
+      pushHistory("import PSD", undefined, { timing: "before" });
+      const { document: current, replaceDocument } = editor.getState();
+      const resized =
+        next.canvas.width !== current.canvas.width ||
+        next.canvas.height !== current.canvas.height;
+      if (resized) {
+        resizeCanvas(next.canvas.width, next.canvas.height);
+      }
+      replaceDocument(next);
+      if (resized) {
+        handleZoomFit();
+      }
+      if (unsupportedBlendKeys.length > 0) {
+        useNotificationStore.getState().addNotification({
+          type: "warning",
+          content: `Imported as Normal: Photoshop blend modes ${unsupportedBlendKeys
+            .map((key) => `"${key.trim()}"`)
+            .join(", ")} have no sketch equivalent.`
+        });
+      }
+    },
+    [editor, pushHistory, resizeCanvas, handleZoomFit]
+  );
+
   /** Import a dropped or externally-provided image file into the active layer. */
   const handleDropImage = useCallback(
     async (file: File) => {
       if (!canvasRef.current) {
+        return;
+      }
+      if (isPsdFile(file)) {
+        await handleImportPsd(file);
         return;
       }
       const layerId = document.activeLayerId;
@@ -1039,7 +1092,14 @@ export function useCanvasGeometryActions({
       syncPixelLayerFromCanvas(layerId);
       canvasRef.current.redrawDisplay();
     },
-    [editor, canvasRef, document.activeLayerId, pushHistory, syncPixelLayerFromCanvas]
+    [
+      editor,
+      canvasRef,
+      document.activeLayerId,
+      pushHistory,
+      syncPixelLayerFromCanvas,
+      handleImportPsd
+    ]
   );
 
   const handleDropAsset = useCallback(
@@ -1240,6 +1300,7 @@ export function useCanvasGeometryActions({
     handlePasteAsNewLayer,
     handleDropImage,
     handleDropAsset,
+    handleImportPsd,
     adjBrightness,
     adjContrast,
     adjSaturation,

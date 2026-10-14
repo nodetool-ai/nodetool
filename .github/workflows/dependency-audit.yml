@@ -1,0 +1,50 @@
+name: Dependency Audit
+
+# High and critical npm advisories in production dependencies
+# (scripts/check-npm-audit.mjs). On a pull request that changes a manifest or a
+# lockfile it fails when the change adds an advisory that
+# .github/npm-audit-allowlist.json does not explain. The nightly run fails when
+# any unexplained advisory exists, which is how a newly published one surfaces:
+# it is the same at base and head, so no pull request reports it.
+#
+# It needs the npm registry, so it stays out of the hermetic Ring 0 gate.
+
+on:
+  pull_request:
+    paths:
+      - "package-lock.json"
+      - "mobile/package-lock.json"
+      - "**/package.json"
+      - ".github/npm-audit-allowlist.json"
+      - "scripts/check-npm-audit.mjs"
+      - ".github/workflows/dependency-audit.yml"
+  schedule:
+    - cron: "40 4 * * *" # Daily at 04:40 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Advisories this change adds
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/check-npm-audit.mjs --base "$BASE_SHA"
+
+      - name: Advisories the allowlist does not explain
+        if: github.event_name != 'pull_request'
+        run: node scripts/check-npm-audit.mjs

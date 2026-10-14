@@ -442,7 +442,6 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
               ))}
             </div>
           }
-          arrow
           slotProps={{
             popper: {
               style: {

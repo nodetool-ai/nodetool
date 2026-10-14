@@ -104,7 +104,8 @@ describe("handleUpdate", () => {
 
     const error = useErrorStore.getState().getError("workflow-1", "job-1", "n1");
     expect(error).toBe("something failed");
-    expect(mockRunnerStore.setState).toHaveBeenCalledWith({ state: "error" });
+    // The run ends with its job_update, not with the first node error.
+    expect(mockRunnerStore.setState).not.toHaveBeenCalledWith({ state: "error" });
   });
 
   it("stores provider_cost on completed node_update", () => {

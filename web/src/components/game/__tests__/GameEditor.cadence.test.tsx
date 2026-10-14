@@ -45,6 +45,7 @@ jest.mock("three/addons/controls/TransformControls.js", () => ({
     attach() {}
     detach() {}
     setMode() {}
+    setSpace() {}
     setTranslationSnap() {}
     setRotationSnap() {}
     setScaleSnap() {}
@@ -69,7 +70,7 @@ jest.mock("@nodetool-ai/game-renderer/browser3d", () => ({
   })
 }), { virtual: true });
 jest.mock("@nodetool-ai/game-renderer/audio", () => ({ gameAudioSpatialView2D: jest.fn(() => ({})), gameAudioSpatialView3D: jest.fn(() => ({})),
-  GameAudioPlayer: jest.fn().mockImplementation(() => ({ updateAssets: jest.fn(), updateMixer: jest.fn(), preload: jest.fn(), sync: jest.fn(),
+  GameAudioPlayer: jest.fn().mockImplementation(() => ({ updateScenes: jest.fn(), updateAssets: jest.fn(), updateMixer: jest.fn(), preload: jest.fn(), sync: jest.fn(),
     resume: jest.fn(), pause: jest.fn(), reset: jest.fn(), handle: jest.fn(), updateSpatial: jest.fn(), dispose: jest.fn() }))
 }));
 jest.mock("../../../utils/resolveMediaUri", () => ({

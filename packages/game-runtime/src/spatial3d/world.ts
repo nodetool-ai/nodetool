@@ -54,6 +54,7 @@ export class SpatialWorld3D {
   private readonly colliderEntities = new Map<number, string>();
   private readonly prepared: ReadonlyMap<string, PreparedCollider3D>;
   private disposed = false;
+  private readonly loadedBodies = new Set<string>();
 
   constructor(rapier: Rapier, scene: GameScene3D, states: readonly EntityState3D[], prepared: ReadonlyMap<string, PreparedCollider3D>, snapshot?: GameSnapshot3D["physics"]) {
     this.rapier = rapier;
@@ -118,6 +119,11 @@ export class SpatialWorld3D {
       }
     }
     if (!description) throw new Error("Prepared convex collider is degenerate");
+    // An unset rule keeps Rapier's default, average, so colliders without one build exactly as before.
+    const rules = this.rapier.CoefficientCombineRule;
+    const rule = { average: rules.Average, min: rules.Min, multiply: rules.Multiply, max: rules.Max } as const;
+    if (definition.frictionCombine) description.setFrictionCombineRule(rule[definition.frictionCombine]);
+    if (definition.restitutionCombine) description.setRestitutionCombineRule(rule[definition.restitutionCombine]);
     return description.setTranslation(definition.offset.x, definition.offset.y, definition.offset.z)
       .setRotation(quaternionObject(definition.rotation)).setSensor(definition.sensor).setCollisionGroups(collisionGroups(definition))
       .setActiveCollisionTypes(this.rapier.ActiveCollisionTypes.DEFAULT | this.rapier.ActiveCollisionTypes.KINEMATIC_FIXED | this.rapier.ActiveCollisionTypes.KINEMATIC_KINEMATIC)
@@ -147,6 +153,7 @@ export class SpatialWorld3D {
   }
 
   remove(entityId: string): void {
+    this.loadedBodies.delete(entityId);
     const record = this.records.get(entityId);
     if (!record) return;
     if (record.collider) this.colliderEntities.delete(record.collider.handle);
@@ -191,6 +198,36 @@ export class SpatialWorld3D {
   impulse(state: EntityState3D, impulse: GameVector3): void {
     if (state.definition.body3d?.type !== "dynamic") throw new Error(`Impulse requires a dynamic body (${state.definition.id})`);
     this.records.get(state.definition.id)?.body?.applyImpulse(impulse, true);
+  }
+
+  private forceBody(state: EntityState3D): RigidBody {
+    if (!state.active || state.definition.body3d?.type !== "dynamic") {
+      throw new Error(`Force requires an active dynamic body (${state.definition.id})`);
+    }
+    const body = this.records.get(state.definition.id)?.body;
+    if (!body) { throw new Error(`Force body missing (${state.definition.id})`); }
+    return body;
+  }
+
+  addForce(state: EntityState3D, force: GameVector3): void {
+    const body = this.forceBody(state);
+    if (force.x === 0 && force.y === 0 && force.z === 0) { return; }
+    body.addForce(force, true);
+    this.loadedBodies.add(state.definition.id);
+  }
+
+  addTorque(state: EntityState3D, torque: GameVector3): void {
+    const body = this.forceBody(state);
+    if (torque.x === 0 && torque.y === 0 && torque.z === 0) { return; }
+    body.addTorque(torque, true);
+    this.loadedBodies.add(state.definition.id);
+  }
+
+  addForceAtPoint(state: EntityState3D, force: GameVector3, point: GameVector3): void {
+    const body = this.forceBody(state);
+    if (force.x === 0 && force.y === 0 && force.z === 0) { return; }
+    body.addForceAtPoint(force, point, true);
+    this.loadedBodies.add(state.definition.id);
   }
 
   setKinematicPose(state: EntityState3D, command: Extract<GameScriptCommand3D, { kind: "setKinematicPose" }>): void {
@@ -336,6 +373,13 @@ export class SpatialWorld3D {
 
   stepPhysics(): void {
     this.world.step();
+    // Rapier retains user loads. Clear only this tick's loaded bodies before snapshotting.
+    for (const id of this.loadedBodies) {
+      const body = this.records.get(id)?.body;
+      body?.resetForces(false);
+      body?.resetTorques(false);
+    }
+    this.loadedBodies.clear();
   }
 
   collectContacts(states: readonly EntityState3D[], step: SpatialStep3D): Contact3D[] {
@@ -426,6 +470,7 @@ export class SpatialWorld3D {
     this.disposed = true;
     this.world.free();
     this.records.clear();
+    this.loadedBodies.clear();
     this.colliderEntities.clear();
   }
 }

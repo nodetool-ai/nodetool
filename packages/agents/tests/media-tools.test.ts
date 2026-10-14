@@ -186,6 +186,7 @@ describe("GenerateImageTool", () => {
         negative_prompt: "blurry",
         width: 512,
         height: 512,
+        aspectRatio: "16:9",
         quality: "high"
       }
     )) as { type?: string; asset_id?: string; asset_uri?: string };
@@ -197,6 +198,7 @@ describe("GenerateImageTool", () => {
     expect(call.params.prompt).toBe("a fox");
     expect(call.params.negative_prompt).toBe("blurry");
     expect(call.params.width).toBe(512);
+    expect(call.params.aspect_ratio).toBe("16:9");
   });
 
   it("wraps provider errors into a text_to_image error", async () => {
@@ -283,7 +285,9 @@ describe("EditImageTool", () => {
         model: "m",
         input_file: "in.png",
         prompt: "make it blue",
-        strength: 0.6
+        strength: 0.6,
+        aspect_ratio: "3:2",
+        resolution: "2k"
       }
     )) as { type?: string; asset_id?: string };
     expect(r.type).toBe("image");
@@ -292,6 +296,8 @@ describe("EditImageTool", () => {
     expect(call.capability).toBe("image_to_image");
     expect(call.params.images).toEqual([src]);
     expect(call.params.strength).toBe(0.6);
+    expect(call.params.aspect_ratio).toBe("3:2");
+    expect(call.params.resolution).toBe("2k");
   });
 
   it("errors when workspace storage is not configured", async () => {

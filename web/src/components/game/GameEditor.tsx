@@ -15,7 +15,7 @@ import { useGamePanelLayoutStore } from "../../stores/game/useGamePanelLayoutSto
 import { diffAnyGameDocuments as diffGameDocuments } from "../../stores/game/diffAnyGameDocuments";
 import { anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
-import { Caption, CollapsibleSection, ConflictBanner, Dialog, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, LoadingSpinner, MobileBottomSheet, SPACING, Text, TextInput } from "../ui_primitives";
+import { Caption, ConflictBanner, Dialog, EmptyState, FlexColumn, FlexRow, LoadingSpinner, MobileBottomSheet, SPACING, Text, TextInput } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./panels/agent/GameAgentPanel";
 import GameRevisions from "./panels/revisions/GameRevisions";
@@ -34,6 +34,7 @@ import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
 import GameConsolePanel from "./panels/console/GameConsolePanel";
 import { gameValidationConsoleEntries } from "./panels/console/gameConsoleModel";
 import { useGameConsoleFeed } from "./panels/console/useGameConsoleFeed";
+import GameProfilerPanel from "./panels/profiler/GameProfilerPanel";
 import { gamePlaytestPrompt, gameScriptErrorPrompt, gameSelectionPrompt } from "./gameAssistantPrompt";
 import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnostics";
 import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnostics";
@@ -70,12 +71,12 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const activeSceneId = document?.scenes.some((scene) => scene.id === editorSceneId)
     ? editorSceneId : document?.entrySceneId ?? null;
   const { canvasRef, inputRef, playing, playDocument, playState, backend, error, setError,
-    scriptError: hostScriptError, frame, onViewportAspect, onCamera, resetCamera, step, beginPlay, stop,
-    save, load, replayBeforeError, runtimeEntities } = useGamePlaySession({ refId, active, document,
+    scriptError: hostScriptError, frame, onViewportAspect, onCamera, resetCamera, step, beginPlay, restart, stop,
+    save, load, replayBeforeError, runtimeEntities, scriptLogs, profiler } = useGamePlaySession({ refId, active, document,
       editorSceneId: activeSceneId ?? undefined, name: data?.game.name });
   const diagnostics = useGameScriptDiagnostics(document, openGameDiagnosticSession2D);
   const scriptError = diagnostics.error ?? hostScriptError;
-  useGameConsoleFeed(refId, { runtimeError: error, scriptError: hostScriptError, diagnosticError: diagnostics.error, tick: playState.tick });
+  useGameConsoleFeed(refId, { runtimeError: error, scriptError: hostScriptError, diagnosticError: diagnostics.error, tick: playState.tick, scriptLogs });
   const layoutStore = useGamePanelLayoutStore();
   const assistant = useGameAssistantDraft(layoutStore);
   const canUndo = useStore(getGameDraftStore(refId), (state) => state.canUndo);
@@ -399,6 +400,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   }
 
   return <GameEditorShell layoutStore={layoutStore} dimension="2d" active={active}
+    exportGame={{ id: refId, name: data.game.name }}
     toolbar={{
         name: data.game.name,
         playing: playing,
@@ -411,6 +413,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
         inspectorOpen: inspectorOpen,
         playHref: `/game/${encodeURIComponent(refId)}`,
         onPlay: beginPlay,
+        onRestart: restart,
         onStop: stop,
         onStep: () => { if (playDocument) step(); },
         onSave: save,
@@ -443,13 +446,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
             onSelect={selectEntity} onSelectScene={selectScene} onOps={onOps} />
         </> },
       { id: "revisions", visible: !isMobile,
-        node: <>
-          <CollapsibleSection title={<Label component="span" sx={{ mb: 0 }}>Revisions</Label>} compact defaultOpen={false}
-            sx={{ flexShrink: 0, maxHeight: "30%", overflowY: "auto", px: SPACING.md,
-              "& > [role='button'] > svg": { fontSize: FONT_SIZE_SANS.body } }}>
-          <GameRevisions revisions={revisions ?? []} busy={saving} onRestore={restoreRevision} />
-          </CollapsibleSection>
-        </> },
+        node: <GameRevisions revisions={revisions ?? []} busy={saving} onRestore={restoreRevision} /> },
       { id: "viewport", keyboardScope: true, node: <>
           <GameViewport canvasRef={canvasRef} frame={frame} document={document}
             sceneId={playDocument ? playState.sceneId || playDocument.entrySceneId : activeSceneId ?? document.entrySceneId}
@@ -481,6 +478,9 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       { id: "console", visible: !isMobile,
         node: <GameConsolePanel gameId={refId} document={document} liveEntries={consoleValidation}
           onSelectEntity={(_sceneId, entityId) => selectEntity(entityId, false)} onAskAssistant={assistant.draft} /> },
+      { id: "profiler", visible: !isMobile,
+        node: <GameProfilerPanel profiler={profiler} document={document}
+          source={{ gameId: refId, name: data.game.name, dimension: "2d", tickRate: document.tickRate }} /> },
       { id: "inspector", visible: !isMobile,
         node: <>
           {playDocument && !playing && <GameRuntimeInspector tick={playState.tick} entity={runtimeEntity} />}

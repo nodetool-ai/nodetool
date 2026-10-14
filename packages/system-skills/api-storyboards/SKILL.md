@@ -17,26 +17,29 @@ contract is `storyboard-core`. The brief shapes are the board skills
 | :--- | :--- | :--- |
 | `list({limit})` | Lists boards, newest first, with shot, still and clip counts. | Board rows |
 | `create(name, {brief, style, aspect_ratio, project_id, id})` | Creates a blank board. `aspect_ratio` defaults to `"16:9"`. `style` is added to every shot prompt. | `{id, storyboard_id, …}` |
-| `get(id)` | Reads the brief, style, aspect ratio, models, and every shot with its id, index, slug, action, camera, motion, duration, status, `has_still`, `has_clip` and `covered_by`. | The board |
-| `edit(id, ops)` | Applies ops in order and saves. It spends nothing. | The result of each op |
+| `get(id)` | Reads the brief, style, aspect ratio, models, `revision`, and every shot with its id, index, slug, action, camera, motion, duration, status, `has_still`, `has_clip` and `covered_by`. | The board |
+| `edit(id, ops, {expected_revision})` | Applies ops in order and saves. It spends nothing. `expected_revision` refuses the edit when the board changed after you read it. | The result of each op |
 | `renderStills(id, {targets, provider, model, style, stale_only, concurrency})` | Makes keyframe stills with the image model. | The stills it made |
 | `renderClips(id, {targets, provider, model, resolution, mode, stale_only, concurrency})` | Makes clips with the video model. This is the expensive step. | The clips it made, and the shots it skipped |
 | `reviseClip(id, target, instruction, {provider, model})` | Changes one clip with a video-to-video edit: "make it darker, add rain". | The new take |
 | `assembleTimeline(id, {name, fps})` | Lays the rendered clips end to end into a timeline. | The timeline id, and what it skipped |
+| `previewDesign({storyboardId, expectedStoryboardRevision})` | Reads the board's design as an inline editable timeline preview. No generation and no save. | The preview |
+| `finish({storyboardId, expectedStoryboardRevision, strategy, model, timelineId, expectedTimelineRevision})` | Turns the board's graphics into editable timeline layers with no media generation. `strategy` is `deterministic` (default, no provider, an unreviewed draft) or `agentic` (a model composes and reviews rendered frames). | The status, the timeline and the new revisions |
 
 `targets` and `target` take a shot id, a 0-based index or a slug. Omit
-`targets` to render every shot that needs the step.
+`targets` to render every shot that needs the step. `previewDesign` and
+`finish` take one argument object with camelCase keys.
 
 ## Ops
 
 | Op | Arguments |
 | :--- | :--- |
-| `add_shot` | `action`, `slug?`, `camera?`, `motion?`, `dialogue?`, `narration?`, `duration_seconds?`, `duration_source?`, `render_mode?`, `entity_ids?`, `location_id?`, `covered_by?`, `notes?`, `index?` |
+| `add_shot` | `action`, `slug?`, `camera?`, `motion?`, `dialogue?`, `narration?`, `duration_seconds?`, `duration_source?`, `render_mode?`, `entity_ids?`, `location_id?`, `covered_by?`, `notes?`, `end_state?`, `sound?`, `index?` |
 | `update_shot` | `target` and the same fields |
 | `remove_shot`, `duplicate_shot` | `target` |
 | `reorder_shot` | `target`, `index` |
 | `move_shot` | `target`, `scene_id?`, `position` (0-based inside the scene) |
-| `set_board` | `brief?`, `style?`, `aspect_ratio?`, `entity_ids?`, `image_model?`, `video_model?` |
+| `set_board` | `brief?`, `style?`, `aspect_ratio?`, `entity_ids?`, `image_model?`, `video_model?`, `narration?`, `music_prompt?`, `motion_design?` |
 | `set_setup` | `brief?`, `genre?`, `stage?` |
 | `set_style` | `entity_id` (a style entity becomes the board preset) or `style` (the descriptor alone) |
 | `create_scene`, `update_scene`, `merge_scene` | `after_scene_id?`; `scene_id`, `slugline?`, `lighting?`; `scene_id` |
@@ -49,6 +52,9 @@ contract is `storyboard-core`. The brief shapes are the board skills
   picture is a window into another shot's clip, for one generation whose
   length covers several beats. The covered shot counts as rendered. Pass
   `null` to undo it.
+- `set_board` `narration` and `music_prompt` are board-level voiceover and
+  score direction. An empty string clears one. `motion_design` is
+  `{direction?, transitions?, continuities?}`, and `null` clears it.
 
 ## Render modes
 
@@ -78,7 +84,8 @@ await nodetool.storyboards.edit(id, [
 ]);
 await nodetool.storyboards.renderStills(id);   // cheap: look at them first
 // … view the stills, fix shots with update_shot, render again with stale_only …
-await nodetool.storyboards.renderClips(id);    // expensive
+// Confirm the shot count and the clip cost with the user before this call.
+await nodetool.storyboards.renderClips(id);    // expensive: every shot that needs a clip
 const cut = await nodetool.storyboards.assembleTimeline(id);
 ```
 

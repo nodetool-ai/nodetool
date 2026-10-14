@@ -5,6 +5,8 @@
  * and Stryker's mutation score over the parser files is stable between runs.
  */
 
+import type { SandboxModuleStatus } from "@nodetool-ai/protocol";
+import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 import type { NodeMetadata } from "../../src/metadata.js";
 import type { GraphValidationRegistry } from "../../src/graph-validation.js";
 import { validateNodeProperties } from "../../src/validation.js";
@@ -321,7 +323,7 @@ export function seedRegistry(): GraphValidationRegistry {
     }
     return "str";
   };
-  const REQUIRED = new Set(["value", "prompt", "code", "a", "model"]);
+  const REQUIRED = new Set(["value", "prompt", "code", "a", "model", "image"]);
 
   const metas = new Map<string, NodeMetadata>();
   const declaredOf = new Map<string, DeclaredPropertyMetadata[]>();
@@ -374,4 +376,39 @@ export function seedRegistry(): GraphValidationRegistry {
     listProviderIds: () => ["openai", "anthropic"],
     listModelIds: (provider) => (provider === "openai" ? ["gpt-5"] : undefined)
   };
+}
+
+/**
+ * A catalog that answers by specifier name, so a seed body picks the status
+ * each import resolves to: `left-pad` is not found, `fsx` has moved, `ready-pack`
+ * and `skipped-pack` raise nothing, and the NodeTool packs fail for another reason.
+ */
+export function seedCatalog(): SandboxModuleCatalog {
+  const outcome = (specifier: string): SandboxModuleStatus => {
+    const base = { packName: `pack-of-${specifier}`, specifier };
+    const message = `resolved ${specifier}`;
+    switch (specifier) {
+      case "fsx":
+        return { ...base, status: "warning", code: "version-moved", message };
+      case "ready-pack":
+        return { ...base, status: "ready", code: "ready", message };
+      case "skipped-pack":
+        return { ...base, status: "skipped", code: "skipped", message };
+      case "@nodetool-ai/sandbox-dates":
+        return { ...base, status: "error", code: "load-failed", message };
+      default:
+        return { ...base, status: "error", code: "module-not-found", message };
+    }
+  };
+  return {
+    summaries: () => [],
+    diagnostics: () => [],
+    authorizeDelivery: () => Promise.reject(new Error("not used")),
+    resolveForExecution: (declarations) => ({
+      modules: [],
+      statuses: declarations.map((declaration) =>
+        outcome(declaration.specifier)
+      )
+    })
+  } as unknown as SandboxModuleCatalog;
 }

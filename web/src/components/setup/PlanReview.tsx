@@ -31,7 +31,6 @@ import {
 } from "../ui_primitives";
 import type { SelectOption } from "../ui_primitives";
 import {
-  EDITABLE_FIELD,
   REVIEW_BLOCK,
   REVIEW_COMPACT_MAX_WIDTH,
   REVIEW_COMPACT_WIDTH,
@@ -248,17 +247,13 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
       </EditorButton>
     );
   }
-  const hint = row.hint ? (
-    <Caption color="muted" component="p">
-      {row.hint}
-    </Caption>
-  ) : null;
   const control = row.options ? (
     <SelectField
       label={row.label}
       hideLabel={row.hideLabel}
       value={row.value}
       options={row.options}
+      description={row.hint}
       disabled={row.readOnly}
       onChange={(value) => {
         const before = row.value;
@@ -275,6 +270,7 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
       value={row.value}
       multiline={row.multiline}
       placeholder={row.placeholder}
+      helperText={row.hint}
       onChange={(event) => row.onChange(event.target.value)}
       onFocus={() => {
         committed.current = row.value;
@@ -297,12 +293,7 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
       slotProps={{ input: { readOnly: row.readOnly } }}
     />
   );
-  return (
-    <FlexColumn ref={holder} gap={GAP.tight}>
-      {control}
-      {hint}
-    </FlexColumn>
-  );
+  return <FlexColumn ref={holder}>{control}</FlexColumn>;
 };
 
 /**
@@ -313,7 +304,7 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
  * column is sized for the shortest value and clips every longer one.
  */
 const fieldSx = (row: PlanReviewField, packed: boolean): SxProps<Theme> => {
-  const box: Record<string, unknown> = { ...EDITABLE_FIELD };
+  const box: Record<string, unknown> = {};
   if (row.compact) {
     // It keeps its narrow column while the line holds, and takes the full
     // width once the line has wrapped.
@@ -362,7 +353,7 @@ export const advancedSummary = (rows: readonly PlanReviewField[]): string =>
 const PackedLines: React.FC<{ rows: readonly PlanReviewField[] }> = ({
   rows
 }) => (
-  <FlexColumn gap={GAP.compact}>
+  <FlexColumn gap={GAP.comfortable}>
     {toLines(rows).map((line) => {
       const packed = line.length > 1 && line.every((row) => row.compact);
       return (
@@ -399,7 +390,7 @@ const PlanReviewLines: React.FC<{ rows: readonly PlanReviewField[] }> = ({
   }
   const summary = open ? "" : advancedSummary(advanced);
   return (
-    <FlexColumn gap={GAP.compact}>
+    <FlexColumn gap={GAP.comfortable}>
       {basic.length > 0 ? <PackedLines rows={basic} /> : null}
       <FlexRow gap={GAP.normal} align="center" wrap>
         <EditorButton
@@ -409,7 +400,6 @@ const PlanReviewLines: React.FC<{ rows: readonly PlanReviewField[] }> = ({
           onClick={() => setOpen((value) => !value)}
           endIcon={
             <ExpandMoreIcon
-              fontSize="small"
               sx={{ transform: open ? "rotate(180deg)" : "none" }}
             />
           }

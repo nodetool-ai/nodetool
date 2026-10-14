@@ -16,7 +16,9 @@ import {
   EmptyState,
   LoadingSpinner,
   Text,
+  TextLink,
   BORDER_RADIUS,
+  EYEBROW,
   SPACING,
   getSpacingPx,
   Z_INDEX
@@ -452,13 +454,21 @@ const ModelListIndex: React.FC = () => {
           "While this worker is attached, any model you download lands on its volume."
       };
     }
+    if ((allModels?.length ?? 0) === 0) {
+      return {
+        searchOff: false,
+        title: "No models installed yet",
+        description:
+          "Download one from Recommended or the Hub, or open Get Started."
+      };
+    }
     return {
       searchOff: true,
       title: "No models available",
       description:
         "Try adjusting the size filter or selecting a different category."
     };
-  }, [modelSearchTerm, source, scope]);
+  }, [modelSearchTerm, source, scope, allModels]);
 
   if (isLoading) {
     return (
@@ -499,33 +509,27 @@ const ModelListIndex: React.FC = () => {
         justify="center"
         fullHeight
         padding={4}
-        sx={{ textAlign: "center" }}
       >
-        <Text size="big" color="error">
-          Could not load models
-        </Text>
-        <Text size="normal" color="secondary" sx={{ maxWidth: 600 }}>
-          {errorMessage}
-        </Text>
-        {isOllamaError && (
-          <FlexColumn gap={1} sx={{ mt: 1 }}>
-            <Text size="small" color="secondary">
-              Ollama is a separate app. Install it from ollama.com and start
-              it, then reopen this list.
-            </Text>
-            <Text
-              size="small"
-              component="a"
-              href="https://ollama.com/download"
-              target="_blank"
-              rel="noopener noreferrer"
-              sx={{ textDecoration: "underline" }}
-              color="primary"
-            >
-              Download Ollama →
-            </Text>
-          </FlexColumn>
-        )}
+        <EmptyState
+          variant="error"
+          title="Could not load models"
+          description={
+            <FlexColumn gap={1} align="center" sx={{ maxWidth: 600 }}>
+              <span>{errorMessage}</span>
+              {isOllamaError && (
+                <>
+                  <span>
+                    Ollama is a separate app. Install it from ollama.com and
+                    start it, then reopen this list.
+                  </span>
+                  <TextLink href="https://ollama.com/download" external>
+                    Download Ollama →
+                  </TextLink>
+                </>
+              )}
+            </FlexColumn>
+          }
+        />
       </FlexColumn>
     );
   }
@@ -588,7 +592,7 @@ const ModelListIndex: React.FC = () => {
                         height: 32,
                         borderRadius: BORDER_RADIUS.md,
                         background:
-                          "rgba(var(--palette-primary-main-channel) / 0.12)",
+                          "rgba(var(--palette-primary-mainChannel) / 0.12)",
                         flexShrink: 0
                       }}
                     >
@@ -653,9 +657,16 @@ const ModelListIndex: React.FC = () => {
                             style={itemStyle}
                             sx={{ pt: SPACING.lg, pb: SPACING.md }}
                           >
-                            <Text size="big" weight={600}>
+                            <Box
+                              component="h3"
+                              sx={{
+                                ...EYEBROW,
+                                color: "text.secondary",
+                                m: 0
+                              }}
+                            >
                               {prettifyModelType(item.modelType)}
-                            </Text>
+                            </Box>
                           </Box>
                         );
                       }

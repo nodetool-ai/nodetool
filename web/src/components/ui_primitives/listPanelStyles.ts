@@ -1,7 +1,8 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
-import { MOTION } from "./tokens";
+import { EYEBROW, TYPOGRAPHY } from "./tokens";
+import { selectableRowStyles, selectedRowStyles } from "./selectionStyles";
 import { SPACING, getSpacingPx } from "./spacing";
 
 // Sidebar document list panels. Apply to the panel root, then use the class
@@ -22,23 +23,12 @@ export const listPanelStyles = (theme: Theme) =>
     ".list-panel-item": {
       width: "100%",
       border: 0,
-      borderRadius: theme.rounded.md,
-      backgroundColor: "transparent",
       color: theme.vars.palette.text.primary,
       cursor: "pointer",
       padding: theme.spacing(1),
       textAlign: "left",
-      transition: `background-color ${MOTION.fast}, color ${MOTION.fast}`,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover
-      },
-      "&:focus-visible": {
-        outline: `2px solid ${theme.vars.palette.primary.main}`,
-        outlineOffset: -2
-      },
-      "&.active": {
-        backgroundColor: theme.vars.palette.action.selected
-      }
+      ...selectableRowStyles(theme),
+      "&.active": selectedRowStyles(theme)
     },
     ".list-panel-icon": {
       flexShrink: 0,
@@ -52,26 +42,18 @@ export const listPanelStyles = (theme: Theme) =>
       borderRadius: theme.rounded.sm,
       color: "inherit",
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
-      fontSize: "var(--fontSizeSmall)",
-      fontWeight: 600,
+      ...TYPOGRAPHY.sans.label,
       outline: "none"
     },
+    // Date groups ("Today", "Last week") use the panel group title (DESIGN.md
+    // §10): caption type, uppercase, muted, left-aligned with the rows.
     ".date-header-row": {
       width: "100%",
-      padding: `0 ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xs)} 0`,
-      display: "flex",
-      alignItems: "flex-end",
-      borderBottom: "1px solid var(--palette-divider)"
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}`
     },
     ".date-header": {
-      fontSize: theme.fontSizeSmaller,
-      flexShrink: 0,
-      padding: 0,
-      lineHeight: 1.1,
-      width: "100%",
-      textAlign: "right",
-      letterSpacing: "0.02em",
-      textTransform: "uppercase",
+      ...EYEBROW,
+      color: theme.vars.palette.text.secondary,
       whiteSpace: "nowrap"
     }
   });

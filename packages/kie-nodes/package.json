@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Kie.ai model nodes for the TS workflow runner",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,7 +16,8 @@
   "dependencies": {
     "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
-    "@nodetool-ai/runtime": "*"
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/model-pricing": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

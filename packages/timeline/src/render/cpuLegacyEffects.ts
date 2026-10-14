@@ -120,15 +120,53 @@ function gaussian(input: Uint8ClampedArray, width: number, height: number, radiu
 }
 
 // Match the float32 arithmetic of filters.grain@1, including hash rounding.
-function grain(x: number, y: number, seed: number, channel: number): number {
-  const f = Math.fround;
-  const fract = (n: number): number => f(n - Math.floor(n));
-  let px = fract(f(f(x) * f(0.1031)));
-  let py = fract(f(f(y) * f(0.1031)));
-  let pz = fract(f(f(f(seed) + f(channel * f(19.19))) * f(0.1031)));
-  const dot = f(f(f(px * f(py + f(33.33))) + f(py * f(pz + f(33.33)))) + f(pz * f(px + f(33.33))));
-  px = f(px + dot); py = f(py + dot); pz = f(pz + dot);
-  return fract(f(f(px + py) * pz)) * 2 - 1;
+const f32 = Math.fround;
+const fract32 = (n: number): number => f32(n - Math.floor(n));
+
+function hash31(x: number, y: number, z: number): number {
+  let px = fract32(f32(f32(x) * f32(0.1031)));
+  let py = fract32(f32(f32(y) * f32(0.1031)));
+  let pz = fract32(f32(f32(z) * f32(0.1031)));
+  const dot = f32(f32(f32(px * f32(py + f32(33.33))) + f32(py * f32(pz + f32(33.33)))) + f32(pz * f32(px + f32(33.33))));
+  px = f32(px + dot); py = f32(py + dot); pz = f32(pz + dot);
+  return fract32(f32(f32(px + py) * pz));
+}
+
+function gaussAt(cx: number, cy: number, seed: number): number {
+  const a = hash31(cx, cy, seed);
+  const b = hash31(f32(cx + 57), f32(cy + 57), seed);
+  const c = hash31(f32(cx + 113), f32(cy + 113), seed);
+  return f32(f32(f32(f32(a + b) + c) - 1.5) * 2);
+}
+
+function valueNoise(px: number, py: number, seed: number): number {
+  const ix = Math.floor(px), iy = Math.floor(py);
+  const fx = f32(px - ix), fy = f32(py - iy);
+  const ux = f32(fx * fx * (3 - 2 * fx)), uy = f32(fy * fy * (3 - 2 * fy));
+  const n00 = gaussAt(ix, iy, seed);
+  const n10 = gaussAt(f32(ix + 1), iy, seed);
+  const n01 = gaussAt(ix, f32(iy + 1), seed);
+  const n11 = gaussAt(f32(ix + 1), f32(iy + 1), seed);
+  const top = n00 + (n10 - n00) * ux;
+  const bottom = n01 + (n11 - n01) * ux;
+  return f32(top + (bottom - top) * uy);
+}
+
+function grainAt(px: number, py: number, seed: number, channel: number): number {
+  const s = f32(seed + f32(channel * f32(19.19)));
+  const coarse = valueNoise(px, py, s);
+  const fine = valueNoise(f32(f32(px * 2) + 17), f32(f32(py * 2) + 29), f32(s + 7));
+  return (coarse + 0.5 * fine) * 0.8944;
+}
+
+/** Grain lattice position and folded seed for one pixel, exactly as the shader derives them. */
+function grainLattice(x: number, y: number, size: number, seed: number): { px: number; py: number; folded: number } {
+  const s = f32(seed);
+  const folded = f32(s - f32(8192 * Math.floor(s / 8192)));
+  const shiftX = Math.floor(f32(hash31(folded, f32(1.7), f32(9.2)) * 512));
+  const shiftY = Math.floor(f32(hash31(folded, f32(4.1), f32(3.3)) * 512));
+  const cell = f32(Math.max(f32(size), 1));
+  return { px: f32(f32(x / cell) + shiftX), py: f32(f32(y / cell) + shiftY), folded };
 }
 
 /** CPU counterparts of the persisted GPU color, keying and texture effects. */
@@ -188,6 +226,19 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
           if (luma >= (effect.threshold ?? 0)) {
             for (let c = 0; c < 3; c++) rgb[c] = clamp(rgb[c]! + diff[c]! * effect.amount);
           }
+        } else if (isClipGrainEffect(effect)) {
+          if (a > 0) {
+            const { px, py, folded } = grainLattice(x, y, effect.size ?? 1, effect.seed ?? 0);
+            const mono = grainAt(px, py, folded, 0);
+            const colorAmount = clamp(effect.colorAmount ?? 0);
+            const luma = rgb[0]! * 0.2126 + rgb[1]! * 0.7152 + rgb[2]! * 0.0722;
+            const response = clamp(luma * 6) * (1 - 0.65 * luma * luma);
+            const sigma = clamp(effect.amount) * 0.15 * response;
+            for (let c = 0; c < 3; c++) {
+              const n = colorAmount > 0 ? mono + (grainAt(px, py, folded, c + 1) - mono) * colorAmount : mono;
+              rgb[c] = clamp(rgb[c]! + n * sigma);
+            }
+          }
         } else {
           for (let c = 0; c < 3; c++) {
             let v = rgb[c]!;
@@ -207,12 +258,6 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
               const inner = Math.max(0, radius - effect.softness);
               const distance = Math.hypot((x + 0.5) / width * 2 - 1, (y + 0.5) / height * 2 - 1);
               v *= 1 - effect.amount * smooth((distance - inner) / (Math.max(inner + 0.001, radius) - inner));
-            } else if (isClipGrainEffect(effect)) {
-              const gx = Math.floor(x / Math.max(1, effect.size ?? 1));
-              const gy = Math.floor(y / Math.max(1, effect.size ?? 1));
-              const mono = grain(gx, gy, effect.seed ?? 0, 0);
-              const colored = grain(gx, gy, effect.seed ?? 0, c + 1);
-              v *= 1 + (mono + (colored - mono) * clamp(effect.colorAmount ?? 0)) * clamp(effect.amount);
             }
             rgb[c] = clamp(v);
           }

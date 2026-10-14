@@ -5,7 +5,7 @@ import type { Command } from "commander";
 import { z } from "zod";
 import { gameEvent, gameInputFrame, type GameEvent, type GameInputFrame, type GameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { gameEvent3D, gameInputFrame3D, type GameDocument3D, type GameEvent3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
-import { createScriptedGameSession, createGameSession3D, decodePreparedGameCollider3D, hashGameSnapshot3D, validateGame, validateAnyGame } from "@nodetool-ai/game-runtime";
+import { createMemoryGameSaveStorage, createScriptedGameSession, createGameSession3D, decodePreparedGameCollider3D, GamePlayerSaves, hashGameSnapshot3D, validateGame, validateAnyGame } from "@nodetool-ai/game-runtime";
 import { benchmarkNativeGame } from "./game-benchmark.js";
 import { printCommandError } from "../command-errors.js";
 import { registerGameSmokeCommand } from "./game-smoke.js";
@@ -19,6 +19,7 @@ interface SimulateOptions {
   expectWin?: boolean;
   assertions?: string;
   verifyReplay?: boolean;
+  saves?: string;
   json?: boolean;
 }
 
@@ -65,6 +66,12 @@ interface CaptureOptions {
 interface BuildOptions {
   out: string;
   assetsDir?: string;
+  target: string;
+  name?: string;
+  identifier?: string;
+  appVersion?: string;
+  icon?: string;
+  compile?: boolean;
   json?: boolean;
 }
 
@@ -122,6 +129,39 @@ async function readInputs<Schema extends z.ZodType>(path: string | undefined, sc
     }
     return parsed.data;
   });
+}
+
+const savesFile = z.strictObject({ progress: z.record(z.string(), z.unknown()).optional(), settings: z.record(z.string(), z.unknown()).optional() });
+
+/**
+ * In-memory saves for a headless run, seeded from `--saves`. Script loads read this storage only, so a run is
+ * repeatable. The report lists each slot's data after the run.
+ */
+async function headlessSaves(path: string | undefined) {
+  const storage = createMemoryGameSaveStorage();
+  const errors: string[] = [];
+  const saves = new GamePlayerSaves(storage, { onError: (error, request) => errors.push(`Tick ${request.tick} ${request.kind} ${request.scope}/${request.slot}: ${error.message}`) });
+  const seeded = path ? savesFile.parse(await readDocument(path)) : {};
+  for (const scope of ["progress", "settings"] as const) {
+    for (const [slot, data] of Object.entries(seeded[scope] ?? {})) { await saves.save(scope, slot, data); }
+  }
+  let used = path !== undefined;
+  return {
+    saves,
+    /** Performs a step's requests before the next tick. */
+    async after(requests: Parameters<GamePlayerSaves["handle"]>[0], snapshot: () => unknown): Promise<void> {
+      if (!requests) { return; }
+      used = true;
+      saves.handle(requests, snapshot);
+      await saves.idle();
+    },
+    report() {
+      if (!used) { return undefined; }
+      const entries = storage.entries();
+      const data = (scope: "progress" | "settings") => Object.fromEntries(Object.entries(entries[scope]).map(([slot, record]) => [slot, record.data]));
+      return { progress: data("progress"), settings: data("settings"), errors };
+    }
+  };
 }
 
 async function readAssertions(path: string | undefined, ticks: number): Promise<{ byTick: Map<number, TickAssertion>; tolerance: number } | undefined> {
@@ -218,7 +258,8 @@ function validateCliDocument(value: unknown) {
   if (legacyVersion.success) { return validateGame(value); }
   const result = validateAnyGame(value);
   return { valid: result.valid, document: result.valid ? result.document : undefined, issues: result.diagnostics,
-    diagnostics: result.diagnostics, errors: result.diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`) };
+    diagnostics: result.diagnostics, errors: result.diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`),
+    warnings: result.valid ? result.warnings : [] };
 }
 
 /** Register native game validation and deterministic simulation commands. */
@@ -241,6 +282,7 @@ export function registerGameCommands(program: Command): void {
               ? "Game document is valid\n"
               : `${report.errors.join("\n")}\n`
           );
+          for (const warning of report.warnings ?? []) { process.stdout.write(`Warning ${warning.path.join(".")}: ${warning.message}\n`); }
         }
         if (!report.valid) process.exitCode = 1;
       } catch (error) {
@@ -275,6 +317,7 @@ export function registerGameCommands(program: Command): void {
     .option("--expect-win", "Fail unless the win condition is reached")
     .option("--assertions <file>", "JSON assertions for scene, entities, and ordered events at selected ticks")
     .option("--verify-replay", "Resume at the midpoint and compare snapshots and events tick by tick")
+    .option("--saves <file>", "JSON {progress?, settings?} of slot data that script loads read. Saves stay in memory")
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: SimulateOptions) => {
       try {
@@ -291,6 +334,7 @@ export function registerGameCommands(program: Command): void {
           : nonnegativeInteger(options.expectScore, "expect-score");
         const inputs = await readInputs(options.inputs, gameInputFrame);
         const contract = await readAssertions(options.assertions, ticks);
+        const storage = await headlessSaves(options.saves);
         const session = await createScriptedGameSession(document, seed);
         let resumed: Awaited<ReturnType<typeof createScriptedGameSession>> | undefined;
         try {
@@ -312,8 +356,10 @@ export function registerGameCommands(program: Command): void {
             await startReplay(session.snapshot());
           }
           for (let tick = 0; tick < ticks; tick += 1) {
-            const input = inputs[tick] ?? EMPTY_INPUT;
+            // The replay session steps the same frame, so a delivered load reaches both without storage.
+            const input = storage.saves.withLoaded(inputs[tick] ?? EMPTY_INPUT);
             const result = session.step(input);
+            await storage.after(result.saveRequests, () => session.snapshot());
             events.push(...result.events);
             const assertion = contract?.byTick.get(result.tick);
             const snapshot = assertion || (options.verifyReplay && result.tick >= resumeTick)
@@ -347,6 +393,7 @@ export function registerGameCommands(program: Command): void {
           const report = {
             ticks, seed, snapshot, events, assertions, failures,
             replay,
+            saves: storage.report(),
             ok: Object.values(assertions).every(Boolean)
           };
           if (options.json) {
@@ -447,15 +494,43 @@ export function registerGameCommands(program: Command): void {
 
   game
     .command("build <game_file>")
-    .description("Build a standalone web player with local, content-addressed assets")
+    .description("Build a standalone web player, or a Tauri desktop app project, with local, content-addressed assets")
     .requiredOption("--out <directory>", "Build output directory")
     .option("--assets-dir <directory>", "Local media files named <full-asset-id>.<extension>")
+    .option("--target <target>", "web for a static web player, tauri for a desktop app project", "web")
+    .option("--name <name>", "Desktop app name (tauri target)")
+    .option("--identifier <identifier>", "Reverse-DNS desktop app identifier (tauri target)")
+    .option("--app-version <version>", "Desktop app version MAJOR.MINOR.PATCH (tauri target)")
+    .option("--icon <file>", "PNG, JPEG or WebP image for the desktop app icon (tauri target)")
+    .option("--compile", "Also compile a release executable with cargo (tauri target)")
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: BuildOptions) => {
       try {
         const validated = validateCliDocument(await readDocument(path));
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
+        }
+        if (options.target !== "web" && options.target !== "tauri") {
+          throw new Error("--target must be web or tauri");
+        }
+        if (options.target === "web" && (options.name || options.identifier || options.appVersion || options.icon || options.compile)) {
+          throw new Error("--name, --identifier, --app-version, --icon and --compile apply to --target tauri");
+        }
+        if (options.target === "tauri") {
+          const { buildTauriGameProject, compileTauriGameProject } = await import("@nodetool-ai/game-renderer/build-tauri");
+          const project = await buildTauriGameProject({
+            document: validated.document, outputDir: resolve(options.out), resolveAsset: (assetId) => readBuildAsset(options.assetsDir, assetId),
+            app: { name: options.name, identifier: options.identifier, version: options.appVersion,
+              icon: options.icon ? await readFile(options.icon) : undefined }
+          });
+          const compiled = options.compile
+            ? await compileTauriGameProject(project, { onOutput: options.json ? undefined : (chunk) => process.stderr.write(chunk) })
+            : undefined;
+          const report: Record<string, unknown> = { ...project };
+          if (compiled) { report.binaryPath = compiled.binaryPath; }
+          process.stdout.write(options.json ? `${JSON.stringify(report)}\n`
+            : `Built desktop app project in ${project.outputDir}\n${compiled ? `Compiled ${compiled.binaryPath}\n` : "Run npm install && npm run build there to make installers.\n"}`);
+          return;
         }
         const result = validated.document.schemaVersion === 3 ? await (await import("@nodetool-ai/game-renderer/build3d")).buildStandaloneGame3D({
           document: validated.document, outputDir: resolve(options.out), resolveAsset: (assetId) => readBuildAsset(options.assetsDir, assetId)
@@ -531,6 +606,7 @@ async function simulateGame3D(document: GameDocument3D, options: SimulateOptions
   const expectedScore = options.expectScore === undefined ? undefined : nonnegativeInteger(options.expectScore, "expect-score");
   const inputs = await readInputs(options.inputs, gameInputFrame3D);
   const contract = await readAssertions3D(options.assertions, ticks);
+  const storage = await headlessSaves(options.saves);
   const sessionOptions = sessionAssetOptions3D(options.assetsDir);
   const session = await createGameSession3D(document, seed, undefined, sessionOptions);
   let resumed: Awaited<ReturnType<typeof createGameSession3D>> | undefined;
@@ -548,8 +624,9 @@ async function simulateGame3D(document: GameDocument3D, options: SimulateOptions
     if (options.verifyReplay && resumeTick === 0) { await startReplay(session.snapshot()); }
     for (let tick = 0; tick < ticks; tick++) {
       if (tick % 240 === 0) { await new Promise<void>((resolveTick) => setTimeout(resolveTick, 0)); }
-      const input = inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] });
+      const input = storage.saves.withLoaded(inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] }));
       const result = session.step(input);
+      await storage.after(result.saveRequests, () => session.snapshot());
       events.push(...result.events);
       const assertion = contract?.byTick.get(result.tick);
       const snapshot = assertion || options.verifyReplay && result.tick >= resumeTick ? session.snapshot() : undefined;
@@ -566,7 +643,7 @@ async function simulateGame3D(document: GameDocument3D, options: SimulateOptions
       ticks: failures.length === 0, replay: !replayDivergence };
     const report = { dimension: "3d", ticks, seed, snapshot, state_hash: await hashGameSnapshot3D(snapshot), events, assertions, failures,
       replay: options.verifyReplay ? { resumeTick, verified: !replayDivergence, divergence: replayDivergence } : undefined,
-      ok: Object.values(assertions).every(Boolean) };
+      saves: storage.report(), ok: Object.values(assertions).every(Boolean) };
     if (options.json) { process.stdout.write(`${JSON.stringify(report)}\n`); }
     else {
       process.stdout.write(`Tick ${snapshot.tick}: score ${snapshot.score}, won ${snapshot.won}\n`);
@@ -587,11 +664,16 @@ async function captureGame3D(document: GameDocument3D, options: CaptureOptions):
   const inputs = await readInputs(options.inputs, gameInputFrame3D);
   const session = await createGameSession3D(document, seed, undefined, sessionAssetOptions3D(options.assetsDir));
   try {
-    for (let tick = 0; tick < ticks; tick++) { session.step(inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] })); }
+    const { GameParticles3D } = await import("@nodetool-ai/game-renderer");
+    const particles = new GameParticles3D(document.tickRate);
+    for (let tick = 0; tick < ticks; tick++) {
+      const step = session.step(inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] }));
+      particles.tick(step.frame, session.takePresentationEvents());
+    }
     const frame = session.frame();
     const stateHash = await hashGameSnapshot3D(session.snapshot());
     const { captureGameFrame3D } = await import("@nodetool-ai/game-renderer/node3d");
-    const captured = await captureGameFrame3D(frame, { stateHash, interpolation: 1,
+    const captured = await captureGameFrame3D(frame, { stateHash, interpolation: 1, particles,
       width: Math.round(document.presentation.hudWidth * scale), height: Math.round(document.presentation.hudHeight * scale),
       resolveAsset: async (slot) => {
         const binding = document.assets[slot];
@@ -602,7 +684,7 @@ async function captureGame3D(document: GameDocument3D, options: CaptureOptions):
     await writeFile(path, captured.png);
     const { formatGameFrameBudgetOverrun, gameFrameBudgetOverruns, resolveGameFrameBudgets } = await import("@nodetool-ai/game-renderer");
     const limits = resolveGameFrameBudgets(document.performance?.budgets);
-    const overruns = gameFrameBudgetOverruns({ drawCalls: captured.stats.drawCalls, triangles: captured.stats.triangles }, limits);
+    const overruns = gameFrameBudgetOverruns({ drawCalls: captured.stats.drawCalls, triangles: captured.stats.triangles, particles: particles.count }, limits);
     const report = { dimension: "3d", path, tick: frame.tick, bytes: captured.png.byteLength, state_hash: stateHash,
       capabilities: captured.capabilities, stats: captured.stats, budget: { limits, overruns }, projected_bounds: captured.projectedBounds, diagnostics: [] };
     process.stdout.write(options.json ? `${JSON.stringify(report)}\n` : `Captured tick ${report.tick} to ${report.path}\n`);

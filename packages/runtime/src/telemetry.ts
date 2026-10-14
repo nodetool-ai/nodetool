@@ -14,7 +14,7 @@
  *                                    is appended)
  *     OTEL_EXPORTER_OTLP_TRACES_ENDPOINT — Full traces URL, used as given;
  *                                    wins over OTEL_EXPORTER_OTLP_ENDPOINT
- *     OTEL_EXPORTER_OTLP_HEADERS   — Extra exporter headers (read by the SDK)
+ *     OTEL_EXPORTER_OTLP_HEADERS   — Extra exporter headers (comma-separated key=value)
  *     OTEL_SERVICE_NAME            — Service name tag (default: "nodetool")
  *     OTEL_TRACES_EXPORTER=console — Print spans to stdout via OTel SDK
  *     TRACELOOP_DISABLE_BATCH=true — Flush spans immediately (dev mode)
@@ -33,12 +33,17 @@ import type { StdoutFormat } from "./trace-exporters.js";
 import { ContentFilteringSpanExporter, RunTraceSpanProcessor, installRunTraceLogHook } from "./run-trace-processor.js";
 import { getRunTraceScope } from "./run-trace-context.js";
 import { TRACE_SPAN_EVENT_LIMIT } from "@nodetool-ai/protocol";
+import { ATTR_SERVICE_NAME } from "./trace-semantic-conventions.js";
+import { NodeTraceContextManager } from "./trace-context-manager.js";
+import { httpClientTracer, installHttpClientSpans } from "./http-client-spans.js";
 
 const log = createLogger("nodetool.runtime.telemetry");
 
 let _tracer: Tracer | null = null;
 let _initialized = false;
 let _sdk: { shutdown: () => Promise<void> } | null = null;
+/** Stops the outbound fetch spans that `initTelemetry` started. */
+let _uninstallHttpClientSpans: (() => void) | null = null;
 let _processors: import("@opentelemetry/sdk-trace-base").SpanProcessor[] = [];
 
 export interface TelemetryOptions {
@@ -93,13 +98,8 @@ export async function initTelemetry(
   const traceFilePath = options.traceFile ?? process.env["NODETOOL_TRACE_FILE"];
 
   const hasOtlp = !!(traceloopKey || otlpEndpoint || otlpTracesEndpoint);
-  const { NodeSDK } = await import("@opentelemetry/sdk-node");
   const { resourceFromAttributes } = await import("@opentelemetry/resources");
-  const { ATTR_SERVICE_NAME } = await import(
-    "@opentelemetry/semantic-conventions"
-  );
-  const otelApi = await import("@opentelemetry/api");
-  const { BatchSpanProcessor, SimpleSpanProcessor, ConsoleSpanExporter, RandomIdGenerator, AlwaysOnSampler } =
+  const { BasicTracerProvider, BatchSpanProcessor, SimpleSpanProcessor, ConsoleSpanExporter, RandomIdGenerator, AlwaysOnSampler } =
     await import("@opentelemetry/sdk-trace-base");
 
   const serviceName =
@@ -114,21 +114,15 @@ export async function initTelemetry(
   const destinations: string[] = ["run-store"];
 
   if (hasOtlp) {
-    const { OTLPTraceExporter } = await import(
-      "@opentelemetry/exporter-trace-otlp-proto"
+    const { OtlpJsonTraceExporter, otlpExporterConfigFromEnv } = await import(
+      "./otlp-json-trace-exporter.js"
     );
-    const url = otlpTracesEndpoint
-      ? otlpTracesEndpoint
-      : otlpEndpoint
-        ? `${otlpEndpoint.replace(/\/+$/, "")}/v1/traces`
-        : "https://api.traceloop.com/v1/traces";
-    const headers: Record<string, string> = traceloopKey
-      ? { Authorization: `Bearer ${traceloopKey}` }
-      : {};
-    const exporter = new OTLPTraceExporter({ url, headers });
+    const config = otlpExporterConfigFromEnv(process.env);
+    if (!config) { throw new Error("OTLP endpoint configuration is missing"); }
+    const exporter = new OtlpJsonTraceExporter(config);
     const Proc = disableBatch ? SimpleSpanProcessor : BatchSpanProcessor;
     processors.push(new Proc(new ContentFilteringSpanExporter(exporter)));
-    destinations.push(traceloopKey ? "traceloop" : `otlp:${url}`);
+    destinations.push(traceloopKey ? "traceloop" : `otlp:${config.url}`);
   }
 
   if (consoleMode) {
@@ -154,32 +148,25 @@ export async function initTelemetry(
     destinations.push(`file:${traceFilePath}`);
   }
 
-  // Outbound `fetch` (provider APIs, S3, Supabase, safeFetch) becomes
-  // `HTTP <method>` client spans. undici publishes on diagnostics_channel, so
-  // this works in ESM and in the bundled backend without a loader hook. The
-  // OTLP exporter sends over `node:http`, so it never traces itself.
-  const { UndiciInstrumentation } = await import(
-    "@opentelemetry/instrumentation-undici"
-  );
-
   const ids = new RandomIdGenerator();
-  const sdk = new NodeSDK({
+  const sdk = new BasicTracerProvider({
     resource: resourceFromAttributes({ [ATTR_SERVICE_NAME]: serviceName }),
-    autoDetectResources: false,
     spanProcessors: processors,
     sampler: new AlwaysOnSampler(),
     spanLimits: { eventCountLimit: TRACE_SPAN_EVENT_LIMIT },
-    idGenerator: { generateTraceId: () => getRunTraceScope()?.traceId ?? ids.generateTraceId(), generateSpanId: () => ids.generateSpanId() },
-    instrumentations: [new UndiciInstrumentation()]
+    idGenerator: { generateTraceId: () => getRunTraceScope()?.traceId ?? ids.generateTraceId(), generateSpanId: () => ids.generateSpanId() }
   });
 
-  // sdk.start() is typed as void in current SDK versions, but historically
-  // returned a Promise — `await` is a no-op on non-thenable values, so this
-  // is safe across versions and avoids racing the first spans on any
-  // version that does init asynchronously.
-  await sdk.start();
+  const { CompositePropagator, W3CTraceContextPropagator, W3CBaggagePropagator } =
+    await import("@opentelemetry/core");
+  context.setGlobalContextManager(new NodeTraceContextManager());
+  propagation.setGlobalPropagator(new CompositePropagator({
+    propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()]
+  }));
+  trace.setGlobalTracerProvider(sdk);
+  _uninstallHttpClientSpans = installHttpClientSpans(httpClientTracer());
   _sdk = sdk;
-  _tracer = otelApi.trace.getTracer("nodetool", "0.1.0");
+  _tracer = trace.getTracer("nodetool", "0.1.0");
   _initialized = true;
   installRunTraceLogHook();
 
@@ -206,6 +193,8 @@ export function getTracer(): Tracer | null {
 export async function shutdownTelemetry(): Promise<void> {
   const sdk = _sdk;
   _sdk = null;
+  _uninstallHttpClientSpans?.();
+  _uninstallHttpClientSpans = null;
   _tracer = null;
   _initialized = false;
   _processors = [];

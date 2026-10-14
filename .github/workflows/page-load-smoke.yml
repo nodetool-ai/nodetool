@@ -2,7 +2,11 @@ name: Page Load Smoke
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    # Only the `browser-suites` label starts a pull-request run. Triggering
+    # on opened/synchronize as well started a run on every PR push whose
+    # jobs all skipped. To test later commits, re-add the label or dispatch
+    # this workflow on the PR branch.
+    types: [labeled]
     paths:
       # The web UI it loads, the suite/config itself, and any backend package
       # (the seeded screenshot backend serves every route's data).
@@ -17,20 +21,11 @@ on:
       - "web/package.json"
       - "packages/**"
       - ".github/workflows/page-load-smoke.yml"
-  push:
-    branches: [main]
-    paths:
-      - "web/src/**"
-      - "web/tests/smoke/**"
-      - "web/tests/globalSetup.ts"
-      - "web/tests/benchmarks/helpers/**"
-      - "web/playwright.smoke.config.ts"
-      - "web/tsconfig.smoke.json"
-      - "web/tsconfig.playwright.json"
-      - "web/tsconfig.e2e.json"
-      - "web/package.json"
-      - "packages/**"
-      - ".github/workflows/page-load-smoke.yml"
+  # Nightly instead of on every push to main: the suite is advisory and gates
+  # no deploy, and per-push runs held a runner for each merge.
+  schedule:
+    # 03:15 UTC daily, before the user-journeys.yml nightly.
+    - cron: "15 3 * * *"
   workflow_dispatch:
 
 permissions:
@@ -46,20 +41,16 @@ concurrency:
 jobs:
   smoke:
     name: Load every route without errors
-    # Advisory on pull requests and opt-in there: a PR runs this suite only
-    # with the `browser-suites` label, which saves its runner time on the
-    # many PRs that do not need it. Pushes to main, nightly and manual runs
-    # always run it.
-    if: >-
-      ${{ github.event_name != 'pull_request'
-      || (contains(github.event.pull_request.labels.*.name, 'browser-suites')
-      && (github.event.action != 'labeled' || github.event.label.name == 'browser-suites')) }}
+    # Advisory on pull requests and opt-in there: a PR runs this suite when
+    # the `browser-suites` label is added. Nightly and manual runs always run
+    # it.
+    if: ${{ github.event_name != 'pull_request' || github.event.label.name == 'browser-suites' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # setup-build restores node_modules and the Turbo build cache, so a
       # warm run skips the cold `npm ci` and most of the package build.
@@ -92,7 +83,7 @@ jobs:
 
       - name: Upload smoke report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: page-load-smoke-report
           path: |

@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { EditorButton, FlexRow, Text, SearchInput, ListGroup, getSpacingPx, SPACING } from "../ui_primitives";
+import { EditorButton, FlexRow, Text, SearchInput, ListGroup, getSpacingPx, SPACING, LoadingSpinner } from "../ui_primitives";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelListItem from "./model_list/ModelListItem";
 import { useTheme } from "@mui/material/styles";
@@ -93,7 +93,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
   }, [displayModels, handleDownload]);
 
   if (!recommendedModels) {
-    return <div>Loading…</div>;
+    return <LoadingSpinner size="small" />;
   }
 
   return (

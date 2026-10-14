@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
@@ -7,6 +8,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PauseIcon from "@mui/icons-material/Pause";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import RedoIcon from "@mui/icons-material/Redo";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import SkipNextIcon from "@mui/icons-material/SkipNext";
 import StopIcon from "@mui/icons-material/Stop";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
@@ -15,6 +17,8 @@ import VideogameAssetOutlinedIcon from "@mui/icons-material/VideogameAssetOutlin
 
 import { BORDER_RADIUS, Box, Caption, CONTROL, EditorButton, FlexRow, SPACING, Text, ToolbarIconButton } from "../../ui_primitives";
 import { useGameCommandShortcut } from "./useGameCommands";
+import GameExportButton from "./GameExportButton";
+import type { GameExportTarget } from "../../../utils/gameExportZip";
 
 interface GameToolbarProps {
   name: string;
@@ -34,16 +38,24 @@ interface GameToolbarProps {
   onPlay: () => void;
   onStop: () => void;
   onStep: () => void;
+  onRestart?: () => void;
   onSave: () => void;
   onLoad: () => void;
   onPublish: () => void;
+  /** Downloads the published revision. The export control is hidden without it. */
+  onExport?: (target: GameExportTarget) => void;
+  exporting?: boolean;
+  /** Compiles a desktop executable on this computer. */
+  onBuildExecutable?: () => void;
   onAssistant: () => void;
   onSceneTree: () => void;
   onInspector: () => void;
   onCommandPalette?: () => void;
+  /** The Layout menu, placed with the panel toggles. */
+  layoutMenu?: ReactNode;
 }
 
-const DIVIDER_SX = { width: "1px", alignSelf: "stretch", my: SPACING.sm, bgcolor: "divider", flexShrink: 0 } as const;
+const DIVIDER_SX = { borderLeft: 1, borderColor: "divider", alignSelf: "stretch", my: SPACING.sm, flexShrink: 0 } as const;
 
 function SaveState({ saveStatus }: { saveStatus: string }) {
   const color = saveStatus === "saved" ? "success.main" : saveStatus === "saving" ? "info.main" : saveStatus === "error" ? "error.main" : "warning.main";
@@ -59,7 +71,7 @@ function SaveState({ saveStatus }: { saveStatus: string }) {
 /** Editor title bar: document identity, history, transport controls and panel toggles. */
 export default function GameToolbar({ name, playing, playSession, loading, saving, saveStatus,
   assistantOpen, sceneTreeOpen, inspectorOpen, playHref, canUndo = false, canRedo = false, onUndo, onRedo,
-  onPlay, onStop, onStep, onSave, onLoad, onPublish, onAssistant, onSceneTree, onInspector, onCommandPalette }: GameToolbarProps) {
+  onPlay, onStop, onStep, onRestart, onSave, onLoad, onPublish, onExport, exporting = false, onBuildExecutable, onAssistant, onSceneTree, onInspector, onCommandPalette, layoutMenu }: GameToolbarProps) {
   const undoShortcut = useGameCommandShortcut("edit.undo");
   const redoShortcut = useGameCommandShortcut("edit.redo");
   const paletteShortcut = useGameCommandShortcut("editor.commandPalette");
@@ -87,6 +99,7 @@ export default function GameToolbar({ name, playing, playSession, loading, savin
         sx={playSession ? { bgcolor: "primary.main", color: "primary.contrastText", "&:hover": { bgcolor: "primary.dark", color: "primary.contrastText" } } : undefined} />
       <ToolbarIconButton icon={<SkipNextIcon fontSize="small" />} tooltip="Step" onClick={onStep} disabled={playing || loading || !playSession} />
       <ToolbarIconButton icon={<StopIcon fontSize="small" />} tooltip="Stop" onClick={onStop} disabled={loading || !playSession} />
+      {onRestart && <ToolbarIconButton icon={<RestartAltIcon fontSize="small" />} tooltip="Restart from tick 0" onClick={onRestart} disabled={loading || !playSession} />}
     </FlexRow>
 
     <FlexRow gap={SPACING.xs} align="center" justify="flex-end" sx={{ minWidth: 0 }}>
@@ -103,7 +116,9 @@ export default function GameToolbar({ name, playing, playSession, loading, savin
         aria-pressed={assistantOpen} active={assistantOpen} onClick={onAssistant} />
       {onCommandPalette && <ToolbarIconButton icon={<KeyboardCommandKeyIcon fontSize="small" />} tooltip="Commands"
         shortcut={paletteShortcut} onClick={onCommandPalette} />}
+      {layoutMenu}
       <Box sx={DIVIDER_SX} />
+      {onExport && <GameExportButton exporting={exporting} onExport={onExport} onBuildExecutable={onBuildExecutable} />}
       <EditorButton variant="contained" disableElevation density="normal" onClick={onPublish} disabled={saving || saveStatus === "saving"}>Publish</EditorButton>
     </FlexRow>
   </Box>;

@@ -13,9 +13,12 @@ import type {
   GameSnapshot3D,
   GameStepResult3D,
   GameTransform3D,
+  GameUiOverride,
   GameVector3
 } from "@nodetool-ai/protocol";
 import type { GameplayQueues } from "../gameplay/lifecycle.js";
+import type { GameScriptLogEntry } from "../script-log.js";
+import type { GameSaveRequest } from "../script-saves.js";
 import type { GameScriptStats } from "../scripts.js";
 import type { GameScriptCall3D, GameScriptRunner3D } from "../scripts3d.js";
 import type { Contact3D, EntityState3D } from "../spatial3d/state.js";
@@ -48,6 +51,7 @@ export interface GameSystemContext3D {
   previousEvents: GameEvent3D[];
   queries: GameQueryResult3D[];
   hud: Map<string, GameHudLabel>;
+  ui: Map<string, GameUiOverride>;
   instances: GameSnapshot3D["prefabInstances"];
   music: GameSnapshot3D["music"];
   activeContacts: Map<string, Contact3D>;
@@ -78,11 +82,15 @@ export interface GameSystemContext3D {
   events: GameEvent3D[];
   emit: (event: GameEvent3D) => void;
   scriptStats: GameScriptStats | undefined;
+  scriptLogs: readonly GameScriptLogEntry[] | undefined;
+  scriptSaves: readonly GameSaveRequest[] | undefined;
   spatialStep: SpatialStep3D | undefined;
   contacts: Contact3D[];
   result:
     | (GameStepResult3D & {
         scriptStats?: GameScriptStats;
+        scriptLogs?: readonly GameScriptLogEntry[];
+        saveRequests?: readonly GameSaveRequest[];
       })
     | undefined;
   currentScene(): GameScene3D;

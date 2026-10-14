@@ -11,6 +11,8 @@ import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import WorkflowIcon from "@mui/icons-material/AccountTreeOutlined";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { colorForType } from "../../config/data_types";
@@ -21,7 +23,9 @@ import {
   type DocumentTreeLeafType
 } from "../../hooks/useDocumentTreeData";
 import { useDeleteDocument } from "../../serverState/useDeleteDocument";
+import { useDuplicateWorkflowDocument } from "../../hooks/useDuplicateWorkflowDocument";
 import { useOpenApplication } from "../../hooks/useOpenApplication";
+import { useRenameDocument } from "../../hooks/useRenameDocument";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { usePanelStore } from "../../stores/PanelStore";
 import type { BugReportContext } from "../../utils/bugReportBundle";
@@ -32,23 +36,31 @@ import {
 import { EntityEditorDialog } from "../entities/EntityEditorDialog";
 import ReportBugButton from "../support/ReportBugButton";
 import { TYPE_COLOR } from "../workspace/tabTypeIdentity";
+import { tabCanRename } from "../workspace/tabRename";
 import {
   BORDER_RADIUS,
   Box,
   ConfirmDialog,
+  ContextMenu,
   DeleteButton,
   EmptyState,
   ExpandCollapseButton,
   FlexColumn,
   FlexRow,
+  InlineEditableText,
   LoadingSpinner,
+  MenuItemPrimitive,
   PADDING,
   ScrollArea,
   SearchInput,
   SPACING,
   Text,
   TruncatedText,
-  PanelHeader
+  TYPOGRAPHY,
+  PanelHeader,
+  ToolbarIconButton,
+  focusRing,
+  selectableRowStyles
 } from "../ui_primitives";
 
 const DOCUMENT_TAB_TYPES = {
@@ -62,6 +74,19 @@ const DOCUMENT_TAB_TYPES = {
   Exclude<DocumentTreeLeafType, "application" | "entity">,
   WorkspaceTabType
 >;
+
+/** The tab type that opens a leaf, or null for a kind no tab opens. */
+const leafTabType = (type: DocumentTreeLeafType): WorkspaceTabType | null => {
+  if (type === "entity") {
+    return null;
+  }
+  return type === "application" ? "application" : DOCUMENT_TAB_TYPES[type];
+};
+
+const leafCanRename = (type: DocumentTreeLeafType): boolean => {
+  const tabType = leafTabType(type);
+  return tabType !== null && tabCanRename(tabType);
+};
 
 const GROUP_ICONS: Record<DocumentTreeGroup["id"], SvgIconComponent> = {
   workflows: WorkflowIcon,
@@ -102,17 +127,63 @@ interface DocumentTreeRowProps {
   readonly active: boolean;
   readonly onOpen: (document: DocumentTreeLeaf) => void;
   readonly onDelete: (document: DocumentTreeLeaf) => void;
+  /** Present only for kinds that can be copied from the tree. */
+  readonly onDuplicate?: (document: DocumentTreeLeaf) => void;
+  /** Present only for kinds that can be renamed. */
+  readonly onRename?: (document: DocumentTreeLeaf, name: string) => void;
 }
+
+const ROW_ACTION_CLASSES = [
+  ".documents-tree-delete",
+  ".documents-tree-duplicate",
+  ".documents-tree-rename"
+];
 
 const DocumentTreeRow = ({
   leaf,
   active,
   onOpen,
-  onDelete
+  onDelete,
+  onDuplicate,
+  onRename
 }: DocumentTreeRowProps) => {
   const Icon = LEAF_ICONS[leaf.type];
+  const [editing, setEditing] = useState(false);
   const handleClick = useCallback(() => onOpen(leaf), [leaf, onOpen]);
   const handleDelete = useCallback(() => onDelete(leaf), [leaf, onDelete]);
+  const handleDuplicate = useCallback(
+    () => onDuplicate?.(leaf),
+    [leaf, onDuplicate]
+  );
+  const [menuPosition, setMenuPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const handleBeginRename = useCallback(() => {
+    setMenuPosition(null);
+    setEditing(true);
+  }, []);
+  const handleCloseMenu = useCallback(() => setMenuPosition(null), []);
+  const handleContextMenu = useCallback(
+    (event: MouseEvent<HTMLElement>) => {
+      if (!onRename || editing) {
+        return;
+      }
+      event.preventDefault();
+      // Shift+F10 and the context-menu key report no pointer position.
+      if (event.clientX === 0 && event.clientY === 0) {
+        const rect = event.currentTarget.getBoundingClientRect();
+        setMenuPosition({ x: rect.left, y: rect.bottom });
+        return;
+      }
+      setMenuPosition({ x: event.clientX, y: event.clientY });
+    },
+    [editing, onRename]
+  );
+  const handleCommitRename = useCallback(
+    (name: string) => onRename?.(leaf, name),
+    [leaf, onRename]
+  );
 
   return (
     <FlexRow
@@ -120,19 +191,24 @@ const DocumentTreeRow = ({
       fullWidth
       className="documents-tree-row"
       sx={{
-        "& .documents-tree-delete": { opacity: 0 },
-        "&:hover .documents-tree-delete, &:focus-within .documents-tree-delete":
-          { opacity: 1 }
+        [ROW_ACTION_CLASSES.map((name) => `& ${name}`).join(", ")]: {
+          opacity: 0
+        },
+        [ROW_ACTION_CLASSES.flatMap((name) => [
+          `&:hover ${name}`,
+          `&:focus-within ${name}`
+        ]).join(", ")]: { opacity: 1 }
       }}
     >
       <Box
-        component="button"
-        type="button"
+        component={editing ? "div" : "button"}
+        type={editing ? undefined : "button"}
         role="treeitem"
         aria-level={2}
         aria-selected={active}
         aria-current={active ? "page" : undefined}
-        onClick={handleClick}
+        onClick={editing ? undefined : handleClick}
+        onContextMenu={handleContextMenu}
         className="documents-tree-leaf"
         sx={{
           width: "100%",
@@ -151,22 +227,17 @@ const DocumentTreeRow = ({
             minHeight: theme.spacing(8),
             padding: `${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.sm)}`,
             paddingLeft: theme.spacing(SPACING.xxl),
-            borderRadius: BORDER_RADIUS.md,
             color: active
               ? theme.vars.palette.text.primary
               : theme.vars.palette.text.secondary,
-            backgroundColor: active
-              ? theme.vars.palette.action.selected
-              : "transparent",
             textAlign: "left",
             cursor: "pointer",
+            ...selectableRowStyles(theme, { selected: active }),
             "&:hover": {
-              backgroundColor: theme.vars.palette.action.hover,
+              backgroundColor: active
+                ? theme.vars.palette.action.selected
+                : theme.vars.palette.action.hover,
               color: theme.vars.palette.text.primary
-            },
-            "&:focus-visible": {
-              outline: `2px solid ${theme.vars.palette.primary.main}`,
-              outlineOffset: -2
             }
           })}
         >
@@ -177,18 +248,57 @@ const DocumentTreeRow = ({
               fontSize: "var(--fontSizeBig)"
             })}
           />
-          <TruncatedText
-            component="span"
-            showTooltip
-            sx={{ minWidth: 0, flex: 1 }}
-          >
-            {leaf.name}
-          </TruncatedText>
+          {editing ? (
+            <InlineEditableText
+              ariaLabel={`Rename ${leaf.name}`}
+              value={leaf.name}
+              editing
+              onEditingChange={setEditing}
+              onCommit={handleCommitRename}
+              sx={{
+                ...TYPOGRAPHY.sans.label,
+                minWidth: 0,
+                flex: 1,
+                color: "text.primary",
+                bgcolor: "background.default",
+                border: 1,
+                borderColor: "primary.main"
+              }}
+            />
+          ) : (
+            <TruncatedText
+              component="span"
+              showTooltip
+              sx={{ ...TYPOGRAPHY.sans.label, minWidth: 0, flex: 1 }}
+            >
+              {leaf.name}
+            </TruncatedText>
+          )}
           <Text size="smaller" color="secondary" sx={{ flexShrink: 0 }}>
             {leaf.typeLabel}
           </Text>
         </FlexRow>
       </Box>
+      {onRename && !editing && (
+        <ToolbarIconButton
+          icon={<DriveFileRenameOutlineIcon fontSize="small" />}
+          tooltip={`Rename ${leaf.name}`}
+          aria-label={`Rename ${leaf.name}`}
+          onClick={handleBeginRename}
+          size="small"
+          className="documents-tree-rename"
+        />
+      )}
+      {onDuplicate && (
+        <ToolbarIconButton
+          icon={<ContentCopyIcon fontSize="small" />}
+          tooltip={`Duplicate ${leaf.name}`}
+          aria-label={`Duplicate ${leaf.name}`}
+          onClick={handleDuplicate}
+          size="small"
+          className="documents-tree-duplicate"
+        />
+      )}
       <DeleteButton
         onClick={handleDelete}
         tooltip={`Delete ${leaf.name}`}
@@ -196,6 +306,15 @@ const DocumentTreeRow = ({
         iconVariant="outline"
         className="documents-tree-delete"
       />
+      {onRename && (
+        <ContextMenu
+          open={menuPosition !== null}
+          position={menuPosition}
+          onClose={handleCloseMenu}
+        >
+          <MenuItemPrimitive label="Rename" onClick={handleBeginRename} />
+        </ContextMenu>
+      )}
     </FlexRow>
   );
 };
@@ -207,6 +326,8 @@ interface DocumentTreeGroupRowProps {
   readonly activeTabId: string | null;
   readonly onOpen: (document: DocumentTreeLeaf) => void;
   readonly onDelete: (document: DocumentTreeLeaf) => void;
+  readonly onDuplicate: (document: DocumentTreeLeaf) => void;
+  readonly onRename: (document: DocumentTreeLeaf, name: string) => void;
 }
 
 const DocumentTreeGroupRow = ({
@@ -215,7 +336,9 @@ const DocumentTreeGroupRow = ({
   onToggle,
   activeTabId,
   onOpen,
-  onDelete
+  onDelete,
+  onDuplicate,
+  onRename
 }: DocumentTreeGroupRowProps) => {
   const theme = useTheme();
   const Icon = GROUP_ICONS[group.id];
@@ -279,9 +402,9 @@ const DocumentTreeGroupRow = ({
           tabIndex={-1}
         />
         <Icon aria-hidden="true" sx={{ fontSize: "var(--fontSizeBig)" }} />
-        <Text size="small" truncate>
+        <TruncatedText component="span" sx={TYPOGRAPHY.sans.label}>
           {group.label}
-        </Text>
+        </TruncatedText>
         <Text size="smaller" color="secondary" sx={{ marginLeft: "auto" }}>
           {group.children.length}
         </Text>
@@ -295,6 +418,10 @@ const DocumentTreeGroupRow = ({
               active={activeTabId === `${document.type}:${document.id}`}
               onOpen={onOpen}
               onDelete={onDelete}
+              onDuplicate={
+                document.type === "workflow" ? onDuplicate : undefined
+              }
+              onRename={leafCanRename(document.type) ? onRename : undefined}
             />
           ))}
         </FlexColumn>
@@ -382,6 +509,48 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
       setVisibility(false);
     },
     [location.pathname, navigate, openApplication, openTab, setVisibility]
+  );
+
+  const duplicateWorkflow = useDuplicateWorkflowDocument();
+  const handleDuplicate = useCallback(
+    (document: DocumentTreeLeaf) => {
+      const siblingNames =
+        groups
+          .find((group) => group.id === "workflows")
+          ?.children.map((child) => child.name) ?? [];
+      duplicateWorkflow(document.id, siblingNames)
+        .then(() => {
+          if (!location.pathname.startsWith("/workspace")) {
+            navigate("/workspace");
+          }
+        })
+        .catch((duplicateError: unknown) =>
+          addNotification({
+            type: "error",
+            content: `Could not duplicate ${document.name}: ${
+              duplicateError instanceof Error
+                ? duplicateError.message
+                : "Unknown error"
+            }`
+          })
+        );
+    },
+    [addNotification, duplicateWorkflow, groups, location.pathname, navigate]
+  );
+
+  const renameDocument = useRenameDocument();
+  const handleRename = useCallback(
+    (document: DocumentTreeLeaf, name: string) => {
+      const type = leafTabType(document.type);
+      if (type === null) {
+        return;
+      }
+      void renameDocument(
+        { type, ref: document.id, currentName: document.name },
+        name
+      );
+    },
+    [renameDocument]
   );
 
   const handleConfirmDelete = useCallback(() => {
@@ -487,6 +656,8 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
                 activeTabId={activeTabId}
                 onOpen={handleOpen}
                 onDelete={setDocumentToDelete}
+                onDuplicate={handleDuplicate}
+                onRename={handleRename}
               />
             ))}
           </FlexColumn>

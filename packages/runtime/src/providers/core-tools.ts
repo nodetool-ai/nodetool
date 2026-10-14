@@ -79,7 +79,7 @@ export const DIRECT_TOOL_NAMES: ReadonlySet<string> = new Set([
 
 /**
  * NodeTool tool name → the Claude Agent SDK built-in that replaces it. Only
- * true replacements are listed. Three members of {@link CORE_TOOL_NAMES} are
+ * true replacements are listed. Four members of {@link CORE_TOOL_NAMES} are
  * deliberately absent:
  *
  * - `list_directory` — `Glob` matches a pattern; it does not list a directory.
@@ -87,6 +87,9 @@ export const DIRECT_TOOL_NAMES: ReadonlySet<string> = new Set([
  *   that writes nothing, so it covers none of the three in full.
  * - `run_subtask` — `Task` spawns an SDK agent holding SDK tools. The child
  *   would lose the NodeTool toolbelt the parent passed it.
+ * - `todo_write` — `TodoWrite` keeps its list inside the SDK session. NodeTool's
+ *   version posts a `todo_update` message, which is how the chat UI renders the
+ *   task list. With the built-in in its place the list never reached the user.
  */
 export const SDK_NATIVE_TOOL_REPLACEMENTS: ReadonlyMap<string, string> = new Map(
   [
@@ -95,8 +98,7 @@ export const SDK_NATIVE_TOOL_REPLACEMENTS: ReadonlyMap<string, string> = new Map
     ["edit_file", "Edit"],
     ["glob", "Glob"],
     ["grep", "Grep"],
-    ["web_search", "WebSearch"],
-    ["todo_write", "TodoWrite"]
+    ["web_search", "WebSearch"]
   ]
 );
 

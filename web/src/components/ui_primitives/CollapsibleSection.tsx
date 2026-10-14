@@ -27,6 +27,11 @@ export interface CollapsibleSectionProps extends Omit<BoxProps, "title" | "onTog
   /** Compact mode with less padding */
   compact?: boolean;
   /**
+   * Where the fold chevron sits. `end` keeps the title on the content edge,
+   * so it lines up with the labels below it in a dense panel.
+   */
+  iconPosition?: "start" | "end";
+  /**
    * Unmount children while collapsed instead of keeping them in the DOM
    * (forwarded to MUI `Collapse`). Defaults to false so existing consumers
    * that rely on folded content staying mounted are unaffected.
@@ -67,6 +72,7 @@ const CollapsibleSectionInternal: React.FC<CollapsibleSectionProps> = ({
   timeout = 200,
   hideIcon = false,
   compact = false,
+  iconPosition = "start",
   unmountOnExit = false,
   sx,
   children,
@@ -84,6 +90,17 @@ const CollapsibleSectionInternal: React.FC<CollapsibleSectionProps> = ({
     }
     onToggle?.(next);
   }, [isOpen, isControlled, onToggle]);
+
+  const icon = (
+    <ExpandMoreIcon
+      sx={{
+        fontSize: compact ? 18 : 22,
+        transition: MOTION.transform,
+        transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
+        color: theme.vars.palette.text.secondary
+      }}
+    />
+  );
 
   return (
     <Box sx={sx} {...props}>
@@ -114,17 +131,9 @@ const CollapsibleSectionInternal: React.FC<CollapsibleSectionProps> = ({
           }
         }}
       >
-        {!hideIcon && (
-          <ExpandMoreIcon
-            sx={{
-              fontSize: compact ? 18 : 22,
-              transition: MOTION.transform,
-              transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
-              color: theme.vars.palette.text.secondary
-            }}
-          />
-        )}
+        {!hideIcon && iconPosition === "start" && icon}
         <Box sx={{ flex: 1 }}>{title}</Box>
+        {!hideIcon && iconPosition === "end" && icon}
       </Box>
       <Collapse in={isOpen} timeout={timeout} unmountOnExit={unmountOnExit}>
         {children}

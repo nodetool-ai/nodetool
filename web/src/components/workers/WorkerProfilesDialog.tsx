@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useState } from "react";
 import {
+  Button,
   FlexColumn,
   FlexRow,
   Card,
@@ -8,10 +9,14 @@ import {
   Chip,
   Dialog,
   EditorButton,
+  FormSection,
+  SectionHeader,
+  SPACING,
   TextInput,
   SelectField,
   CollapsibleSection,
   AlertBanner,
+  InspectorSectionTitle,
   WarningBanner
 } from "../ui_primitives";
 import type {
@@ -301,24 +306,24 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
       open={open}
       onClose={onClose}
       title="Manage worker profiles"
-      minWidth={480}
+      maxWidth="sm"
+      fullWidth
       actions={
-        <FlexRow gap={2}>
-          <EditorButton variant="text" onClick={onClose}>
+        <>
+          <Button variant="text" color="inherit" onClick={onClose}>
             Close
-          </EditorButton>
-          <EditorButton
-            variant="outlined"
+          </Button>
+          <Button
+            variant="contained"
             onClick={handleCreate}
             disabled={!canCreate}
-            aria-label="Create profile"
           >
-            Create Profile
-          </EditorButton>
-        </FlexRow>
+            Create profile
+          </Button>
+        </>
       }
     >
-      <FlexColumn gap={3} sx={{ pt: 1 }}>
+      <FlexColumn gap={SPACING.lg}>
         {error && (
           <AlertBanner
             severity="error"
@@ -329,10 +334,8 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
           </AlertBanner>
         )}
 
-        <FlexColumn gap={1}>
-          <Text size="small" weight={600}>
-            Existing profiles
-          </Text>
+        <FlexColumn gap={SPACING.xs}>
+          <SectionHeader size="small" title="Existing profiles" />
           {profiles.length === 0 ? (
             <Caption size="small">
               No profiles yet. Create one below.
@@ -340,9 +343,9 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
           ) : (
             profiles.map((profile) => (
               <Card key={profile.id} variant="outlined" padding="compact">
-                <FlexRow align="center" justify="space-between" gap={2}>
-                  <FlexColumn gap={0.5}>
-                    <FlexRow gap={1.5} align="center">
+                <FlexRow align="center" justify="space-between" gap={SPACING.md}>
+                  <FlexColumn gap={SPACING.micro}>
+                    <FlexRow gap={SPACING.sm} align="center">
                       <Text size="normal" weight={600}>
                         {profile.name}
                       </Text>
@@ -365,16 +368,11 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
           )}
         </FlexColumn>
 
-        <FlexColumn gap={2}>
-          <FlexColumn gap={0.5}>
-            <Text size="small" weight={600}>
-              Create a profile
-            </Text>
-            <Caption size="small">
-              A profile is a saved template. Provisioning it rents one GPU box
-              and connects this app to it.
-            </Caption>
-          </FlexColumn>
+        <FormSection label="Create a profile">
+          <Caption size="small">
+            A profile is a saved template. Provisioning it rents one GPU box
+            and connects this app to it.
+          </Caption>
 
           <TextInput
             label="Name"
@@ -469,14 +467,10 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
           />
 
           <CollapsibleSection
-            title={
-              <Text size="small" weight={600}>
-                Advanced
-              </Text>
-            }
+            title={<InspectorSectionTitle title="Advanced" />}
             defaultOpen={false}
           >
-            <FlexColumn gap={2} sx={{ pt: 1 }}>
+            <FlexColumn gap={SPACING.lg} sx={{ pt: SPACING.xs }}>
               <SelectField
                 label="Worker image preset"
                 value={
@@ -520,7 +514,7 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
               />
             </FlexColumn>
           </CollapsibleSection>
-        </FlexColumn>
+        </FormSection>
       </FlexColumn>
     </Dialog>
   );

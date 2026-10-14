@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, memo, useState, useMemo } from "react";
-import { ToolbarIconButton, DeleteButton, Chip, Box, EditorMenu, EditorMenuItem, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { ToolbarIconButton, DeleteButton, Chip, Box, EditorMenu, MenuItemPrimitive, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -114,21 +114,6 @@ const styles = (theme: Theme) =>
       alignItems: "center"
     },
 
-    ".tools .active-tag-chip": {
-      height: "20px",
-      fontSize: "var(--fontSizeSmaller)",
-      backgroundColor: theme.vars.palette.action.selected,
-      color: theme.vars.palette.text.primary,
-      border: "none",
-      "& .MuiChip-deleteIcon": {
-        color: theme.vars.palette.text.secondary,
-        fontSize: "var(--fontSizeSmall)",
-        "&:hover": {
-          color: theme.vars.palette.text.primary
-        }
-      }
-    },
-
     ".tools .clear-tags-button": {
       height: "20px",
       fontSize: "var(--fontSizeSmaller)",
@@ -139,20 +124,6 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.primary
       }
     },
-
-    ".tag-menu-item": {
-      display: "flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.md),
-      minWidth: "120px"
-    },
-    ".tag-menu-item .check-icon": {
-      width: "16px",
-      color: theme.vars.palette.primary.main
-    },
-    ".tag-menu-item .empty-icon": {
-      width: "16px"
-    }
   });
 
 const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
@@ -249,18 +220,23 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 }}
               >
                 {availableTags.map((tag) => (
-                  <EditorMenuItem
+                  <MenuItemPrimitive
                     key={tag}
+                    label={tag}
                     onClick={tagHandlers[tag]}
                     className="tag-menu-item"
-                  >
-                    {selectedTagsSet.has(tag) ? (
-                      <CheckIcon className="check-icon" fontSize="small" />
-                    ) : (
-                      <span className="empty-icon" />
-                    )}
-                    {tag}
-                  </EditorMenuItem>
+                    selected={selectedTagsSet.has(tag)}
+                    icon={
+                      <CheckIcon
+                        fontSize="small"
+                        sx={{
+                          visibility: selectedTagsSet.has(tag)
+                            ? "visible"
+                            : "hidden"
+                        }}
+                      />
+                    }
+                  />
                 ))}
               </EditorMenu>
             </>
@@ -326,18 +302,16 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
               horizontal: "left",
             }}
           >
-            <EditorMenuItem
+            <MenuItemPrimitive
+              label="Sort by date"
               onClick={handleSortByDate}
               selected={sortBy === "date"}
-            >
-              Sort by Date
-            </EditorMenuItem>
-            <EditorMenuItem
+            />
+            <MenuItemPrimitive
+              label="Sort by name"
               onClick={handleSortByName}
               selected={sortBy === "name"}
-            >
-              Sort by Name
-            </EditorMenuItem>
+            />
           </EditorMenu>
 
         </div>
@@ -348,7 +322,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
               <Chip
                 key={tag}
                 label={tag}
-                size="small"
+                compact
                 className="active-tag-chip"
                 onDelete={tagHandlers[tag]}
               />

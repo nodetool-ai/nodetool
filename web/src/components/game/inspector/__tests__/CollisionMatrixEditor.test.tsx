@@ -29,6 +29,17 @@ function latest(received: GameDocumentOp3D[][]): GameDocument3D {
   return received.reduce((document, ops) => applyGameOps3D(document, ops), initial);
 }
 
+/** Opens each "Add property" menu until one lists the item, as a collider's optional fields share one menu. */
+async function openAddMenuItem(user: ReturnType<typeof userEvent.setup>, item: string): Promise<HTMLElement> {
+  for (const button of screen.getAllByRole("button", { name: "Add property" })) {
+    await user.click(button);
+    const found = screen.queryByRole("menuitem", { name: item });
+    if (found) { return found; }
+    await user.keyboard("{Escape}");
+  }
+  throw new Error(`No add menu lists ${item}`);
+}
+
 describe("collision layer matrix editor", () => {
   it("shows the lower triangle of layer pairs with ignored pairs unchecked", () => {
     render(<Fixture received={[]} />);
@@ -77,17 +88,18 @@ describe("collision layer matrix editor", () => {
     expect(latest(received).scenes[0].entities[1].collider3d?.layer).toBe("enemy");
   });
 
-  it("keeps the raw bit grid for colliders without a layer", () => {
+  it("keeps the raw bit grid for colliders without a layer", async () => {
+    const user = userEvent.setup();
     render(<Fixture entityId="wall" received={[]} />);
     expect(screen.getByText("Category")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Add Layer" })).toBeTruthy();
+    expect(await openAddMenuItem(user, "Layer")).toBeTruthy();
   });
 
   it("resets non-default raw bits when a layer is added so the edit is accepted", async () => {
     const user = userEvent.setup();
     const received: GameDocumentOp3D[][] = [];
     render(<Fixture entityId="crate" received={received} />);
-    await user.click(screen.getByRole("button", { name: "Add Layer" }));
+    await user.click(await openAddMenuItem(user, "Layer"));
     expect(latest(received).scenes[0].entities[3].collider3d).toMatchObject({ layer: "world", category: 1, mask: 0xffff });
     expect(screen.queryByText("Category")).toBeNull();
   });

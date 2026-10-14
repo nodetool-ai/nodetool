@@ -9,7 +9,15 @@
  * it is routed to a program holding only that command, and its commands import
  * built packages lazily (capabilities) or not at all. Every other command goes
  * to the full tree unchanged.
+ *
+ * Before either, the optional-node root that `nodetool runtime add` fills is
+ * put on NODETOOL_OPTIONAL_NODE_MODULES, so every optional import and every
+ * child process can find what was installed there.
  */
+import { applyOptionalNodeModules } from "./optional-node-root.js";
+
+applyOptionalNodeModules();
+
 if (process.argv[2] === "harness") {
   const { program } = await import("commander");
   const { registerHarnessCommands } = await import("./commands/harness.js");

@@ -157,6 +157,30 @@ describe("particles component authoring", () => {
     expect(validateGame(updated).errors).toEqual([]);
   });
 
+  it("warns, without failing, about draw fields the dimension ignores", () => {
+    const component = { emitters: [
+      { id: "mesh", render: { kind: "mesh", shape: "box" }, softness: 1 },
+      { id: "streak", render: { kind: "stretched" }, softness: 0.5 },
+      { id: "plain" }
+    ] };
+    const in2D = applyGameOps(document2D(false), [{ op: "update_entity", entity_id: "torch", set: { particles: component } }]);
+    const flat = validateGame(in2D);
+    expect(flat.valid).toBe(true);
+    expect(flat.warnings?.map((warning) => [warning.path.slice(-2).join("."), warning.message])).toEqual([
+      ["0.render", "2D particles ignore render, which only sets how 3D particles draw"],
+      ["0.softness", "2D particles ignore softness, which only fades 3D billboards"],
+      ["1.render", "2D particles ignore render, which only sets how 3D particles draw"],
+      ["1.softness", "2D particles ignore softness, which only fades 3D billboards"]
+    ]);
+    const in3D = applyGameOps3D(document3D(false), [{ op: "update_entity", entity_id: "torch", set: { particles: component } }]);
+    const deep = validateGame3D(in3D);
+    expect(deep.valid).toBe(true);
+    expect(deep.warnings).toEqual([{ code: "ignored_particle_field", path: expect.arrayContaining(["particles", "emitters", 0, "softness"]),
+      message: "Mesh particles ignore softness, which only fades billboards" }]);
+    expect(validateGame3D(document3D(true)).warnings).toEqual([]);
+    expect(validateGame(document2D(true)).warnings).toEqual([]);
+  });
+
   it("requires 2D schema version 2", () => {
     expect(validateGame({ ...document2D(true), schemaVersion: 1 }).errors).toEqual(expect.arrayContaining([expect.stringContaining("particles: requires schema version 2")]));
   });

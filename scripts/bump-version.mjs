@@ -7,6 +7,7 @@
  *   - electron/package.json
  *   - mobile/package.json
  *   - web/src/config/constants.ts  (VERSION constant)
+ *   - packages/node-catalog/data/index.json  (cohort versions and release pins)
  *
  * Usage:
  *   npm run bump-version 0.6.4
@@ -15,10 +16,11 @@
  *   npm run bump-version 0.6.4 --dry-run
  */
 
-import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync, realpathSync } from "node:fs";
 import { resolve, relative } from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { parseArgs } from "node:util";
+import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
@@ -56,6 +58,7 @@ const PACKAGE_JSONS = [
 ];
 
 const CONSTANTS_TS = resolve(ROOT, "web/src/config/constants.ts");
+const CATALOG_INDEX = resolve(ROOT, "packages/node-catalog/data/index.json");
 
 function rel(p) {
   return relative(ROOT, p);
@@ -96,33 +99,69 @@ function updateConstantsTs(version) {
   return true;
 }
 
-function git(args) {
-  execSync(`git ${args}`, { cwd: ROOT, stdio: "inherit" });
+/** Update the cohort pins without mutating the input catalog. */
+export function bumpCatalogVersion(index, version) {
+  const cohortChanged = index.coreVersion !== version;
+  return {
+    ...index,
+    coreVersion: version,
+    packs: index.packs.map((pack) => {
+      if (!cohortChanged && pack.npm.version === version) {
+        return pack;
+      }
+      return {
+        ...pack,
+        npm: { ...pack.npm, version, integrity: "" },
+        installBytes: 0,
+        scriptAllowlist: []
+      };
+    })
+  };
+}
+
+function updateCatalogIndex(version) {
+  if (!existsSync(CATALOG_INDEX)) {
+    return false;
+  }
+  const text = readFileSync(CATALOG_INDEX, "utf8");
+  const updated = JSON.stringify(bumpCatalogVersion(JSON.parse(text), version), null, 2) + "\n";
+  if (updated === text) {
+    return false;
+  }
+  writeFileSync(CATALOG_INDEX, updated);
+  console.log(`  updated: ${rel(CATALOG_INDEX)}`);
+  return true;
+}
+
+// Arguments go to git as an argv array, never through a shell, so a path or a
+// version string cannot inject shell syntax.
+function git(...args) {
+  execFileSync("git", args, { cwd: ROOT, stdio: "inherit" });
 }
 
 function gitCommitAndTag(version, tag, push) {
-  const files = [...PACKAGE_JSONS, CONSTANTS_TS].filter(existsSync);
-  for (const f of files) git(`add ${rel(f)}`);
+  const files = [...PACKAGE_JSONS, CONSTANTS_TS, CATALOG_INDEX].filter(existsSync);
+  for (const f of files) git("add", rel(f));
 
   try {
-    execSync("git diff --cached --quiet", { cwd: ROOT });
+    execFileSync("git", ["diff", "--cached", "--quiet"], { cwd: ROOT });
     console.log("\nNo changes staged — nothing to commit.");
     return;
   } catch {
     // Non-zero exit means there are staged changes — continue
   }
 
-  git(`commit -m "Bump version to ${version}"`);
+  git("commit", "-m", `Bump version to ${version}`);
   console.log(`\nCommitted version bump to ${version}`);
 
   if (tag) {
     const tagName = `v${version}`;
-    git(`tag -a ${tagName} -m "Release ${tagName}"`);
+    git("tag", "-a", tagName, "-m", `Release ${tagName}`);
     console.log(`Created tag ${tagName}`);
 
     if (push) {
-      git("push origin HEAD");
-      git(`push origin ${tagName}`);
+      git("push", "origin", "HEAD");
+      git("push", "origin", tagName);
       console.log(`Pushed commit and tag ${tagName}`);
     }
   }
@@ -130,6 +169,10 @@ function gitCommitAndTag(version, tag, push) {
 
 function dryRun(version) {
   console.log("Dry run — no files will be modified.\n");
+  if (existsSync(CATALOG_INDEX)) {
+    const index = JSON.parse(readFileSync(CATALOG_INDEX, "utf8"));
+    console.log(`  ${rel(CATALOG_INDEX)}: ${index.coreVersion} -> ${version}`);
+  }
   for (const p of PACKAGE_JSONS) {
     if (existsSync(p)) {
       const data = JSON.parse(readFileSync(p, "utf8"));
@@ -145,48 +188,55 @@ function dryRun(version) {
   }
 }
 
-const { values, positionals } = parseArgs({
-  allowPositionals: true,
-  options: {
-    tag: { type: "boolean", default: false },
-    push: { type: "boolean", default: false },
-    "no-commit": { type: "boolean", default: false },
-    "dry-run": { type: "boolean", default: false },
-    help: { type: "boolean", short: "h", default: false },
-  },
-});
+function main() {
+  const { values, positionals } = parseArgs({
+    allowPositionals: true,
+    options: {
+      tag: { type: "boolean", default: false },
+      push: { type: "boolean", default: false },
+      "no-commit": { type: "boolean", default: false },
+      "dry-run": { type: "boolean", default: false },
+      help: { type: "boolean", short: "h", default: false },
+    },
+  });
 
-if (values.help || positionals.length === 0) {
-  console.log(`Usage: npm run bump-version <version> [--tag] [--push] [--no-commit] [--dry-run]
+  if (values.help || positionals.length === 0) {
+    console.log(`Usage: npm run bump-version <version> [--tag] [--push] [--no-commit] [--dry-run]
 
-  version      New version (e.g. 0.6.4, 0.7.0-rc.1)
-  --tag        Create a git tag (v<version>)
-  --push       Push commit and tag to origin (implies --tag)
-  --no-commit  Write the files only — no git commit or tag (for CI)
-  --dry-run    Show what would change without modifying files`);
-  process.exit(values.help ? 0 : 1);
+    version      New version (e.g. 0.6.4, 0.7.0-rc.1)
+    --tag        Create a git tag (v<version>)
+    --push       Push commit and tag to origin (implies --tag)
+    --no-commit  Write the files only — no git commit or tag (for CI)
+    --dry-run    Show what would change without modifying files`);
+    process.exit(values.help ? 0 : 1);
+  }
+
+  const version = positionals[0].replace(/^v/, "");
+  if (values.push) values.tag = true;
+
+  console.log(`Bumping version to ${version}\n`);
+
+  if (values["dry-run"]) {
+    dryRun(version);
+  } else {
+    let changed = false;
+    for (const p of PACKAGE_JSONS) {
+      if (updatePackageJson(p, version)) changed = true;
+    }
+    if (updateConstantsTs(version)) changed = true;
+    if (updateCatalogIndex(version)) changed = true;
+
+    if (!changed) {
+      console.log("\nAll files already at the target version.");
+    } else {
+      if (!values["no-commit"]) {
+        gitCommitAndTag(version, values.tag, values.push);
+      }
+      console.log(`\nDone — version is now ${version}`);
+    }
+  }
 }
 
-const version = positionals[0].replace(/^v/, "");
-if (values.push) values.tag = true;
-
-console.log(`Bumping version to ${version}\n`);
-
-if (values["dry-run"]) {
-  dryRun(version);
-} else {
-  let changed = false;
-  for (const p of PACKAGE_JSONS) {
-    if (updatePackageJson(p, version)) changed = true;
-  }
-  if (updateConstantsTs(version)) changed = true;
-
-  if (!changed) {
-    console.log("\nAll files already at the target version.");
-  } else {
-    if (!values["no-commit"]) {
-      gitCommitAndTag(version, values.tag, values.push);
-    }
-    console.log(`\nDone — version is now ${version}`);
-  }
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
 }

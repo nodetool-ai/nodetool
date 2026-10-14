@@ -75,8 +75,8 @@ jest.mock("../viewport3d/GameViewport3D", () => ({ __esModule: true, default: (p
 } }));
 jest.mock("../panels/hierarchy/GameHierarchy3D", () => ({
   __esModule: true, default: ({ onSelect }: ComponentProps<typeof GameHierarchy3D>) => <>
-    <button onClick={() => onSelect("player")}>Select player</button>
-    <button onClick={() => onSelect("player-visual")}>Select visual</button>
+    <button onClick={() => onSelect("player", false)}>Select player</button>
+    <button onClick={() => onSelect("player-visual", false)}>Select visual</button>
   </>
 }));
 jest.mock("../panels/inspector/GameInspector3D", () => ({
@@ -114,6 +114,26 @@ beforeEach(() => {
     entity.behaviors = [{ kind: "script", source: "original", maxCommands: 16, maxTickMs: 8 }];
   }
   getGameDraftStore(mockDocument.id).getState().load(mockDocument, mockToken);
+});
+
+it("keeps the draft warning hidden after an accepted source reload changes only the runtime revision", () => {
+  mockPlayDocument = { ...mockDocument, revision: "accepted-runtime-revision" };
+  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  expect(screen.queryByText("The draft changed. Stop and play again to apply it.")).not.toBeInTheDocument();
+});
+
+it.each(["source", "name"])("warns when a %s draft change has not reached the play session", (field) => {
+  mockPlayDocument = structuredClone(mockDocument);
+  mockPlayDocument.revision = "accepted-runtime-revision";
+  const player = mockPlayDocument.scenes[0].entities.find((entity) => entity.id === "player");
+  if (!player) { throw new Error("Fixture player missing"); }
+  if (field === "source") {
+    player.behaviors = [{ kind: "script", source: "previous source", maxCommands: 16, maxTickMs: 8 }];
+  } else {
+    player.name = "Previous player name";
+  }
+  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  expect(screen.getByText("The draft changed. Stop and play again to apply it.")).toBeInTheDocument();
 });
 
 it.each(["host", "diagnostic"])("offers 3D host replay only for host failures: %s", async (provenance) => {
@@ -298,7 +318,6 @@ it("confirms restore, flushes edits and uses the acknowledged token before reset
   const store = getGameDraftStore(mockDocument.id);
   expect(store.getState().commandHistory.past.length).toBeGreaterThan(0);
   await user.click(screen.getByRole("tab", { name: /^Revisions$/ }));
-  await user.click(screen.getByRole("button", { name: "Revisions" }));
   await user.click(screen.getByRole("button", { name: "Restore to draft" }));
   expect(mockRestore).not.toHaveBeenCalled();
   await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Restore to draft" }));
@@ -428,6 +447,20 @@ it("uses the selected entity ID in a viewport command label when its stored name
     expect(store.getState().commandHistory.past).toHaveLength(1);
     expect(store.getState().commandHistory.past[0].label).toBe("Move player");
   } finally { player.name = originalName; }
+});
+
+it("labels a viewport edit of several entities and Align to ground by count", async () => {
+  const store = getGameDraftStore(mockDocument.id);
+  store.getState().load(mockDocument, mockToken);
+  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  const viewport = mockViewportProps;
+  if (!viewport?.onOps) { throw new Error("Viewport callbacks missing"); }
+  const [first, second] = mockDocument.scenes[0].entities;
+  const moves = (offset: number) => [first, second].map((entity) => ({ op: "update_entity" as const, scene_id: mockDocument.entrySceneId,
+    entity_id: entity.id, set: { transform3d: { position: { ...entity.transform3d.position, y: entity.transform3d.position.y + offset } } } }));
+  act(() => viewport.onOps?.(moves(1), undefined, "Move"));
+  act(() => viewport.onOps?.(moves(2), undefined, "Ground"));
+  expect(store.getState().commandHistory.past.map((command) => command.label)).toEqual(["Move 2 entities", "Align 2 entities to ground"]);
 });
 
 it("retries only the submitted movement after undo during a rejected save and then saves its inverse", async () => {

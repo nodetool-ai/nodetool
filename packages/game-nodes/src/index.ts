@@ -1,3 +1,6 @@
+import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
+import { GAME_TEMPLATE_NODES } from "./nodes/game.js";
+
 export {
   LoadGameTemplateNode,
   SlotPromptNode,
@@ -17,3 +20,13 @@ export {
   type StagedGameCandidateKind
 } from "./staged-candidates.js";
 export { gameTemplateSlot } from "./templates.js";
+
+export const ALL_GAME_NODES: readonly NodeClass[] = [
+  ...GAME_TEMPLATE_NODES,
+];
+
+export function registerGameNodes(registry: NodeRegistry): void {
+  for (const nodeClass of ALL_GAME_NODES) {
+    registry.register(nodeClass);
+  }
+}

@@ -65,4 +65,18 @@ describe("3D capture frame budgets", () => {
     await capture(base, false);
     expect(stderr).toBe("");
   });
+
+  it("ticks 3D particles up to the captured tick, hands them to the renderer and counts them against the budget", async () => {
+    const base = createNative3DGame("capture-particles");
+    const particles = { emitters: [{ id: "burst", rate: 0, bursts: [{ count: 12 }], loop: false, lifetime: 10, speed: 0, render: { kind: "stretched" } }] };
+    const document = gameDocument3D.parse({ ...base, performance: { budgets: { particles: 5 } },
+      scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "crate" ? { ...entity, particles } : entity) })) });
+    await capture(document, true);
+    const options = captureGameFrame3D.mock.calls[0]?.[1] as { particles?: { forEachParticle(visit: (particle: { entityId: string; emitterId: string }) => void): void } };
+    const seen: string[] = [];
+    options.particles?.forEachParticle((particle) => seen.push(`${particle.entityId}/${particle.emitterId}`));
+    expect(seen).toEqual(Array.from({ length: 12 }, () => "crate/burst"));
+    const report = JSON.parse(stdout.trim()) as { budget: { overruns: unknown[] } };
+    expect(report.budget.overruns).toContainEqual({ metric: "particles", value: 12, budget: 5 });
+  });
 });

@@ -1,5 +1,5 @@
 import { isModelSelected } from "@nodetool-ai/protocol";
-import { Box, FlexColumn, GAP, Label } from "../../ui_primitives";
+import { FormField } from "../../ui_primitives";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { SetupFooterField } from "../SetupFooterField";
@@ -29,11 +29,11 @@ export function BriefModelFooterField({ readOnly }: { readOnly?: boolean }) {
 
 export default function BriefModelSelect() {
   return (
-    <FlexColumn gap={GAP.normal}>
-      <Label>Language model for the brief</Label>
-      <Box sx={{ width: "100%", maxWidth: 320 }}>
-        <BriefModelPicker />
-      </Box>
-    </FlexColumn>
+    <FormField
+      label="Language model for the brief"
+      sx={{ width: "100%", maxWidth: 320 }}
+    >
+      <BriefModelPicker />
+    </FormField>
   );
 }

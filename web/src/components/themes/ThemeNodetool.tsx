@@ -1,9 +1,27 @@
-import { createTheme } from "@mui/material/styles";
+import { createTheme, type ThemeOptions } from "@mui/material/styles";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
 import { editorControlsComponents } from "./components/editorControls";
-import { CONTROL } from "../ui_primitives";
+import {
+  DEFAULT_TEXT_SIZE,
+  TEXT_SIZE_SCALES,
+  type TextSize
+} from "./textSizes";
+import { CONTROL, MOTION } from "../ui_primitives";
+import {
+  TOOLTIP_ENTER_DELAY,
+  TOOLTIP_ENTER_NEXT_DELAY
+} from "../../config/constants";
+
+const CHIP_TONES = [
+  "primary",
+  "secondary",
+  "success",
+  "warning",
+  "error",
+  "info"
+] as const;
 
 // Latin subsets only. The unsuffixed `@fontsource/<font>/<weight>.css` files
 // declare every subset the family ships (cyrillic, cyrillic-ext, greek,
@@ -24,7 +42,7 @@ import "@fontsource/jetbrains-mono/latin-600.css";
 
 // Theme augmentation moved to a single global file `theme.d.ts` to avoid duplication
 
-const ThemeNodetool = createTheme({
+const nodetoolThemeOptions: ThemeOptions = {
   cssVariables: {
     cssVarPrefix: "",
     colorSchemeSelector: "class"
@@ -43,6 +61,8 @@ const ThemeNodetool = createTheme({
   // references via `var(--fontSize*)`. Change a size HERE and it propagates
   // everywhere. See ui_primitives/tokens.ts (TYPOGRAPHY) for the size+weight
   // combinations.
+  // The default sizes; createNodetoolTheme swaps in the user's text size
+  // from TEXT_SIZE_SCALES.
   fontSizeGiant: "22px", // → display
   fontSizeBig: "18px", // → title
   fontSizeNormal: "15px", // → body
@@ -78,9 +98,6 @@ const ThemeNodetool = createTheme({
     padXInspector: "10px",
     padYInspector: "6px",
     controlRadius: CONTROL.radius,
-    menuRadius: "8px",
-    menuShadow:
-      "0 10px 30px rgba(0 0 0 / calc(0.5 * var(--palette-c_shadow_alpha, 1)))"
   },
   // TanStack Virtual overscan — extra item/row count rendered outside the viewport.
   virtualScroll: {
@@ -252,7 +269,20 @@ const ThemeNodetool = createTheme({
           "&:hover": {
             boxShadow: "none"
           }
-        })
+        }),
+        // MUI's small size is 0.8125rem at a 1.75 line height: text between
+        // the 13px and 15px tokens in a 31px box. Small buttons sit beside
+        // small controls, so they take the same text size and height.
+        sizeSmall: ({ theme }) => ({
+          fontSize: theme.fontSizeSmall, // 13px — label
+          lineHeight: 1.35,
+          minHeight: CONTROL.height.sm
+        }),
+        // One icon size per button size, so call sites never size the icon
+        // they pass as startIcon or endIcon.
+        iconSizeSmall: { "& > *:nth-of-type(1)": { fontSize: 16 } },
+        iconSizeMedium: { "& > *:nth-of-type(1)": { fontSize: 18 } },
+        iconSizeLarge: { "& > *:nth-of-type(1)": { fontSize: 20 } }
       }
     },
     MuiFormLabel: {
@@ -301,11 +331,20 @@ const ThemeNodetool = createTheme({
           fontFamily: theme.fontFamily1,
           fontSize: theme.fontSizeBig, // 18px — title
           fontWeight: 600,
-          letterSpacing: "-0.01em"
+          letterSpacing: "-0.01em",
+          // DialogTitle renders the h6 variant, which is an uppercase eyebrow;
+          // dialog titles are sentence case.
+          textTransform: "none"
         })
       }
     },
     MuiTooltip: {
+      // One hover delay everywhere, including the primitives that wrap the
+      // MUI Tooltip themselves (ToolbarIconButton, CopyButton, ...).
+      defaultProps: {
+        enterDelay: TOOLTIP_ENTER_DELAY,
+        enterNextDelay: TOOLTIP_ENTER_NEXT_DELAY
+      },
       styleOverrides: {
         tooltip: ({ theme }) => ({
           backgroundColor: "var(--palette-c_scrim_strong)",
@@ -331,6 +370,59 @@ const ThemeNodetool = createTheme({
             color: theme.vars.palette.background.paper
           })
         })
+      }
+    },
+    MuiChip: {
+      // One chip look for every tag, filter and count. Callers pick `size`,
+      // `variant` and `color`; they do not restyle height, radius or text.
+      styleOverrides: {
+        root: ({ theme }) => ({
+          height: CONTROL.height.sm,
+          borderRadius: theme.rounded.pill,
+          fontSize: theme.fontSizeSmall,
+          fontWeight: 400,
+          transition: `${MOTION.border}, ${MOTION.background}, color ${MOTION.normal}`,
+          "&.Mui-focusVisible": {
+            outline: `2px solid ${theme.vars.palette.primary.main}`,
+            outlineOffset: 1
+          },
+          variants: CHIP_TONES.map((tone) => ({
+            props: { variant: "outlined", color: tone },
+            style: {
+              color: theme.vars.palette[tone].main,
+              borderColor: `rgba(${theme.vars.palette[tone].mainChannel} / 0.5)`,
+              backgroundColor: `rgba(${theme.vars.palette[tone].mainChannel} / 0.12)`
+            }
+          }))
+        }),
+        sizeSmall: ({ theme }) => ({
+          height: CONTROL.height.xs,
+          fontSize: theme.fontSizeSmaller
+        }),
+        label: { paddingLeft: CONTROL.paddingX.normal, paddingRight: CONTROL.paddingX.normal },
+        labelSmall: { paddingLeft: CONTROL.paddingX.compact, paddingRight: CONTROL.paddingX.compact },
+        outlined: ({ theme, ownerState }) =>
+          ownerState.color === "default"
+            ? {
+                borderColor: theme.vars.palette.divider,
+                color: theme.vars.palette.text.secondary
+              }
+            : {},
+        clickable: ({ theme }) => ({
+          // Mouse only. iOS Safari reads a tap on an element whose :hover
+          // style changes as the hover and drops the click.
+          "@media (hover: hover)": {
+            "&.MuiChip-outlined.MuiChip-colorDefault:hover": {
+              borderColor: theme.vars.palette.text.secondary,
+              color: theme.vars.palette.text.primary,
+              backgroundColor: theme.vars.palette.action.hover
+            }
+          }
+        }),
+        icon: { fontSize: 16 },
+        iconSmall: { fontSize: 14 },
+        deleteIcon: { fontSize: 16 },
+        deleteIconSmall: { fontSize: 14 }
       }
     },
     MuiDivider: {
@@ -408,6 +500,27 @@ const ThemeNodetool = createTheme({
     },
     ...editorControlsComponents
   }
-});
+};
+
+/**
+ * Build the app theme at one text size. Only the type scale changes between
+ * sizes: the `--fontSize*` variables, the JS `theme.fontSize*` values and
+ * MUI's own typography all read the same table, so text grows without any
+ * CSS zoom or transform that would skew canvas or popover coordinates.
+ */
+export const createNodetoolTheme = (textSize: TextSize = DEFAULT_TEXT_SIZE) => {
+  const sizes = TEXT_SIZE_SCALES[textSize];
+  return createTheme({
+    ...nodetoolThemeOptions,
+    fontSizeGiant: `${sizes.giant}px`,
+    fontSizeBig: `${sizes.big}px`,
+    fontSizeNormal: `${sizes.normal}px`,
+    fontSizeSmall: `${sizes.small}px`,
+    fontSizeSmaller: `${sizes.smaller}px`,
+    typography: { ...nodetoolThemeOptions.typography, fontSize: sizes.normal }
+  });
+};
+
+const ThemeNodetool = createNodetoolTheme();
 
 export default ThemeNodetool;

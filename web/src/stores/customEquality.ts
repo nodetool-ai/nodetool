@@ -29,6 +29,10 @@ function compareNode(a: Node<NodeData>, b: Node<NodeData>): boolean {
     shallow(a.data.exposedInputsHidden, b.data.exposedInputsHidden) &&
     a.position.x === b.position.x &&
     a.position.y === b.position.y &&
+    // Top-level width/height change only on a user resize or an explicit
+    // update; React Flow's measurement writes `measured`, which is ignored.
+    a.width === b.width &&
+    a.height === b.height &&
     a.parentId === b.parentId
   );
 }
@@ -62,6 +66,15 @@ export function customEquality(
     if (!compareEdge(previous.edges[i], current.edges[i])) {
       return false;
     }
+  }
+
+  const previousLinks = previous.links ?? [];
+  const currentLinks = current.links ?? [];
+  if (
+    previousLinks.length !== currentLinks.length ||
+    previousLinks.some((link, i) => link.id !== currentLinks[i].id)
+  ) {
+    return false;
   }
 
   return shallow(previous.workflow, current.workflow);

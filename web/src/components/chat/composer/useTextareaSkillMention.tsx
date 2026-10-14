@@ -11,11 +11,13 @@ import { createPortal } from "react-dom";
 
 import type { RouterOutputs } from "../../../trpc/client";
 import { useSkills } from "../../../hooks/skills/useSkills";
+import { useTheme } from "@mui/material/styles";
 import {
-  BORDER_RADIUS,
-  SelectableListItem,
-  Surface,
-  Text
+  SPACING,
+  Text,
+  menuItemStyles,
+  menuListStyles,
+  menuPaperStyles
 } from "../../ui_primitives";
 import {
   MENTION_MENU_MAX_HEIGHT,
@@ -69,68 +71,65 @@ interface SkillMentionMenuProps {
   onHighlight: (index: number) => void;
 }
 
+/**
+ * The slash-command list under the composer. Focus stays in the textarea, so
+ * this is a listbox rather than an MUI Menu; it borrows the shared menu
+ * surface and row styles so it reads as one with every other menu.
+ */
 const SkillMentionMenu: React.FC<SkillMentionMenuProps> = ({
   skills,
   selectedIndex,
   onSelect,
   onHighlight
-}) => (
-  <Surface
-    role="listbox"
-    aria-label="Skills"
-    elevation={2}
-    rounded="medium"
-    padding={1}
-    sx={{
-      minWidth: 280,
-      maxWidth: 420,
-      maxHeight: MENTION_MENU_MAX_HEIGHT,
-      overflowY: "auto",
-      border: "1px solid",
-      borderColor: "divider"
-    }}
-  >
-    {skills.map((skill, index) => (
-      <SelectableListItem
-        key={skill.id}
-        role="option"
-        selected={index === selectedIndex}
-        aria-selected={index === selectedIndex}
-        data-testid={`skill-option-${skill.name}`}
-        onMouseDown={(event) => event.preventDefault()}
-        onMouseEnter={() => onHighlight(index)}
-        onClick={() => onSelect(index)}
-        paddingX={1}
-        paddingY={0.5}
-        gap={0}
-        sx={{
-          display: "block",
-          borderRadius: BORDER_RADIUS.sm
-        }}
-      >
-        <Text size="small" weight={500} component="div">
-          /{skill.name}
+}) => {
+  const theme = useTheme();
+  return (
+    <div
+      role="listbox"
+      aria-label="Skills"
+      css={[
+        menuPaperStyles(theme),
+        menuListStyles(theme),
+        {
+          minWidth: 280,
+          maxWidth: 420,
+          maxHeight: MENTION_MENU_MAX_HEIGHT,
+          overflowY: "auto"
+        }
+      ]}
+    >
+      {skills.map((skill, index) => (
+        <div
+          key={skill.id}
+          role="option"
+          className={index === selectedIndex ? "Mui-selected" : undefined}
+          aria-selected={index === selectedIndex}
+          data-testid={`skill-option-${skill.name}`}
+          onMouseDown={(event) => event.preventDefault()}
+          onMouseEnter={() => onHighlight(index)}
+          onClick={() => onSelect(index)}
+          css={[menuItemStyles(theme), { display: "block", cursor: "pointer" }]}
+        >
+          <div>/{skill.name}</div>
+          {skill.description && (
+            <Text size="smaller" color="secondary" truncate component="div">
+              {skill.description}
+            </Text>
+          )}
+        </div>
+      ))}
+      {skills.length === 0 && (
+        <Text
+          size="small"
+          color="secondary"
+          sx={{ px: SPACING.lg, py: SPACING.xs }}
+        >
+          No matching skills
         </Text>
-        {skill.description && (
-          <Text
-            size="smaller"
-            color="secondary"
-            truncate
-            component="div"
-            sx={{ mt: 0.5 }}
-          >
-            {skill.description}
-          </Text>
-        )}
-      </SelectableListItem>
-    ))}
-    {skills.length === 0 && (
-      <Text size="small" color="secondary" sx={{ px: 1, py: 0.5 }}>
-        No matching skills
-      </Text>
-    )}
-  </Surface>
-);
+      )}
+    </div>
+  );
+};
 
 interface UseTextareaSkillMentionOptions {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;

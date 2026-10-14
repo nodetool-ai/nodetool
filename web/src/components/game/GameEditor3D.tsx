@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import { useStore } from "zustand";
 import { gameEntity3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import { validateGame3D, type AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
@@ -13,7 +12,7 @@ import { mergeByUnits } from "../../stores/documentMerge";
 import { useConflictStore } from "../../stores/ConflictStore";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
-import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, LoadingSpinner, SPACING, Text, TextInput } from "../ui_primitives";
+import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, EmptyState, FlexColumn, FlexRow, Label, LoadingSpinner, SPACING, Text, TextInput } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./panels/agent/GameAgentPanel";
 import { publishGameDraft } from "./gamePublish";
@@ -21,7 +20,6 @@ import GameChanges from "./panels/changes/GameChanges";
 import GameAuthoringPreview from "./panels/authoring/GameAuthoringPreview";
 import GameHierarchy3D from "./panels/hierarchy/GameHierarchy3D";
 import GameInspector3D from "./panels/inspector/GameInspector3D";
-import GamePanelHeader from "./GamePanelHeader";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
 import GameAssetBrowser from "./panels/assets/GameAssetBrowser";
 import GameEditorShell from "./shell/GameEditorShell";
@@ -32,10 +30,12 @@ import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnosti
 import { openGameDiagnosticSession3D } from "./viewport3d/gameSessionAssets3D";
 import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
 import GameConsolePanel from "./panels/console/GameConsolePanel";
+import AnimationGraphPanel from "./panels/animation/AnimationGraphPanel";
 import { gameValidationConsoleEntries } from "./panels/console/gameConsoleModel";
 import { useGameConsoleFeed } from "./panels/console/useGameConsoleFeed";
+import GameProfilerPanel from "./panels/profiler/GameProfilerPanel";
 import { gamePlaytestPrompt, gameScriptErrorPrompt, gameSelectionPrompt } from "./gameAssistantPrompt";
-import GameViewport3D from "./viewport3d/GameViewport3D";
+import GameViewport3D, { type GameViewportAction3D } from "./viewport3d/GameViewport3D";
 import { scriptFailure } from "./useGamePlaySession";
 import { EMPTY_INPUT_3D, useGamePlaySession3D } from "./useGamePlaySession3D";
 
@@ -77,8 +77,10 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const diagnostics = useGameScriptDiagnostics(document, openDiagnosticSession);
   const hostScriptError = host.error?.includes("Game script") ? scriptFailure(host.error, (host.inspection?.tick ?? 0) + 1) : null;
   const scriptError = diagnostics.error ?? hostScriptError;
-  useGameConsoleFeed(refId, { runtimeError: host.error, scriptError: hostScriptError, diagnosticError: diagnostics.error, tick: host.inspection?.tick ?? 0 });
-  const consoleValidation = useMemo(() => gameValidationConsoleEntries(validateGame3D(document).diagnostics, document), [document]);
+  useGameConsoleFeed(refId, { runtimeError: host.error, scriptError: hostScriptError, diagnosticError: diagnostics.error, tick: host.inspection?.tick ?? 0,
+    scriptLogs: host.scriptLogs });
+  const diagnostics3D = useMemo(() => validateGame3D(document).diagnostics, [document]);
+  const consoleValidation = useMemo(() => gameValidationConsoleEntries(diagnostics3D, document), [diagnostics3D, document]);
   const conflicts = useDocumentConflicts("game", refId);
   const queries = trpc.useUtils();
   const { data: revisions } = trpc.games.revisions.useQuery({ id: refId }, { staleTime: 15_000 });
@@ -87,19 +89,23 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const onOps = useCallback((ops: AnyGameDocumentOp[], label?: string): void => {
     getGameDraftStore(refId).getState().apply(ops, label === undefined ? undefined : { label });
   }, [refId]);
-  const onViewportOps = useCallback((ops: AnyGameDocumentOp[], gestureId?: number): void => {
-    const set = ops.find((op) => op.op === "update_entity")?.set;
+  const onViewportOps = useCallback((ops: AnyGameDocumentOp[], gestureId?: number, action?: GameViewportAction3D): void => {
+    const updates = ops.flatMap((op) => op.op === "update_entity" ? [op] : []);
+    const entity = scene?.entities.find((candidate) => candidate.id === updates[0]?.entity_id);
+    const set = updates[0]?.set;
     const transform = set && "transform3d" in set ? set.transform3d : undefined;
-    const rotated = transform?.rotation?.some((value, index) => value !== selected?.transform3d.rotation[index]);
-    const scaled = transform?.scale && (transform.scale.x !== selected?.transform3d.scale.x
-      || transform.scale.y !== selected?.transform3d.scale.y || transform.scale.z !== selected?.transform3d.scale.z);
-    const action = rotated ? "Rotate" : scaled ? "Scale" : "Move";
-    getGameDraftStore(refId).getState().apply(ops,
-      { label: `${action} ${selected?.name || selected?.id || "Entity"}`, mergeKey: "transform-selection", gestureId });
-  }, [refId, selected?.id, selected?.name, selected?.transform3d]);
+    const rotated = transform?.rotation?.some((value, index) => value !== entity?.transform3d.rotation[index]);
+    const scaled = transform?.scale && (transform.scale.x !== entity?.transform3d.scale.x
+      || transform.scale.y !== entity?.transform3d.scale.y || transform.scale.z !== entity?.transform3d.scale.z);
+    const subject = updates.length > 1 ? `${updates.length} entities` : entity?.name || entity?.id || "Entity";
+    const verb = action ?? (rotated ? "Rotate" : scaled ? "Scale" : "Move");
+    getGameDraftStore(refId).getState().apply(ops, { label: verb === "Ground" ? `Align ${subject} to ground` : `${verb} ${subject}`,
+      mergeKey: "transform-selection", gestureId });
+  }, [refId, scene]);
   const beginGesture = (): number => getGameDraftStore(refId).getState().beginGesture();
   const endGesture = (id: number): void => getGameDraftStore(refId).getState().endGesture(id);
-  const select = useCallback((id: string): void => { getGameDraftStore(refId).getState().select(id); }, [refId]);
+  const select = useCallback((id: string, additive = false): void => { getGameDraftStore(refId).getState().select(id, additive); }, [refId]);
+  const selectMany = useCallback((ids: string[]): void => { getGameDraftStore(refId).getState().selectMany(ids); }, [refId]);
 
   const pullFromServer = useCallback(async (): Promise<void> => {
     const server = await trpcClient.games.getDraft.query({ id: refId });
@@ -254,10 +260,11 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
     });
     await queries.games.draftChanges.invalidate({ id: refId });
   };
-  const restart = useMemo(() => host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document),
+  const restart = useMemo(() => host.playDocument && JSON.stringify({ ...host.playDocument, revision: document.revision }) !== JSON.stringify(document),
     [host.playDocument, document]);
   const notice = host.error || draftError || operationError || restart;
   return <GameEditorShell layoutStore={layoutStore} dimension="3d" active={active}
+    exportGame={{ id: refId, name: name }}
     toolbar={{ name: name,
         playing: host.playing,
         playSession: Boolean(host.playDocument),
@@ -273,6 +280,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
         onUndo: () => getGameDraftStore(refId).getState().undo(),
         onRedo: () => getGameDraftStore(refId).getState().redo(),
         onPlay: host.beginPlay,
+        onRestart: host.restart,
         onStop: host.stop,
         onStep: () => host.step(),
         onSave: host.save,
@@ -319,12 +327,9 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
             </FlexColumn>
           </CollapsibleSection>} />        </> },
       { id: "revisions",
-        node: <CollapsibleSection title={<Label component="span" sx={{ mb: 0 }}>Revisions</Label>} compact defaultOpen={false}
-          sx={{ flexShrink: 0, maxHeight: "30%", overflowY: "auto", px: SPACING.md }}>
-          <GameRevisions revisions={revisions ?? []} busy={restoring || saveStatus === "saving"} onRestore={restoreRevision} />
-        </CollapsibleSection> },
+        node: <GameRevisions revisions={revisions ?? []} busy={restoring || saveStatus === "saving"} onRestore={restoreRevision} /> },
       { id: "viewport", keyboardScope: true, node: <>
-        <GameViewport3D document={document} host={host} selectedId={selected?.id} highlightedIds={highlightedIds} sceneId={activeSceneId} onSelect={select} onOps={onViewportOps} onGestureStart={beginGesture} onGestureEnd={endGesture} />
+        <GameViewport3D document={document} host={host} selectedIds={selectedIds} highlightedIds={highlightedIds} sceneId={activeSceneId} onSelect={select} onSelectMany={selectMany} onOps={onViewportOps} onGestureStart={beginGesture} onGestureEnd={endGesture} />
       </> },
       { id: "scripts", visible: Boolean(scriptKey && activeScript && behavior?.kind === "script"),
         node: scriptKey && activeScript && behavior?.kind === "script" ? <GameScriptPane
@@ -342,9 +347,14 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
       { id: "console",
         node: <GameConsolePanel gameId={refId} document={document} liveEntries={consoleValidation}
           onSelectEntity={(entitySceneId, entityId) => { setSceneId(entitySceneId); select(entityId); }} onAskAssistant={assistant.draft} /> },
+      { id: "profiler",
+        node: <GameProfilerPanel profiler={host.profiler} document={document}
+          source={{ gameId: refId, name, dimension: "3d", tickRate: document.tickRate }} /> },
+      { id: "animation-graph",
+        node: <AnimationGraphPanel document={document} diagnostics={diagnostics3D} sceneId={activeSceneId} selectedEntityId={selected?.id}
+          inspection={host.playDocument ? host.inspection : null} onOps={onOps} /> },
       { id: "inspector",
         node: <>
-        <GamePanelHeader title="Inspector" icon={<TuneOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.body }} />} />
         <FlexColumn sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           <GameInspector3D document={document} sceneId={activeSceneId} entityId={selected?.id} onOps={onOps} onOperationError={(message) => getGameDraftStore(refId).getState().reportOperationError(message)} onScript={(index) => { if (selected) { setScriptKey({ sceneId: activeSceneId, entityId: selected.id, index }); layoutStore.getState().dispatch({ type: "reveal", panelId: "scripts" }); } }} />
           {host.playDocument && !host.playing && <CollapsibleSection title="Runtime state" compact sx={{ px: SPACING.md }}><Caption>{JSON.stringify(host.inspection?.entities.find((entity) => entity.id === selected?.id))}</Caption></CollapsibleSection>}

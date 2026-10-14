@@ -1,3 +1,4 @@
+import { createGameScriptReloader, type GameScriptReloadResult } from "./script-reload.js";
 import { frameFor } from "./systems/presentation2d.js";
 import { contactKey } from "./systems/collision2d.js";
 import type { GameSystemContext2D } from "./systems/context2d.js";
@@ -19,27 +20,46 @@ import type {
   GameSnapshot,
   GameStepTimings
 } from "@nodetool-ai/protocol";
-import { gameSnapshot } from "@nodetool-ai/protocol";
+import { gameSaveLoadedFrame, gameSnapshot } from "@nodetool-ai/protocol";
 import {
   initialGameplayState,
   runGameplayTick
 } from "./gameplay/lifecycle.js";
 import { validateGame } from "./validate.js";
+import { withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
+import type { GameSaveRequest } from "./script-saves.js";
 import { hasGameScripts, prepareGameScripts, type GameScriptRunner, type GameScriptStats } from "./scripts.js";
 
 import { statefulGameSystem } from "./systems/pipeline.js";
 import { create2DSystemPipeline } from "./systems/tick2d.js";
 
 export interface GameSessionOptions {
-  readonly recordTimings?: boolean;
+  /**
+   * Reports system timings and physics counts on step results. A function is read before each step, so a
+   * profiler can turn reporting on and off without a new session. Reporting never changes simulation results.
+   */
+  readonly recordTimings?: boolean | (() => boolean);
+}
+
+/** Physics counts for one tick, reported only with `recordTimings`. They never enter snapshots, events or replay state. */
+export interface GameStepPhysicsStats {
+  /** Active entities with a physics body or collider. */
+  readonly bodies: number;
+  /** Touching collider pairs after the contact stage. */
+  readonly contacts: number;
 }
 
 export interface GameStepResult {
   readonly timings?: GameStepTimings;
+  readonly physics?: GameStepPhysicsStats;
   readonly tick: number;
   readonly events: readonly GameEvent[];
   readonly frame: GameRenderFrame;
   readonly scriptStats?: GameScriptStats;
+  /** Lines from script `log` commands this tick. They never enter snapshots, events or replay state. */
+  readonly scriptLogs?: readonly GameScriptLogEntry[];
+  /** Script `save` and `load` requests this tick, for the host to perform after the step. Never simulation state. */
+  readonly saveRequests?: readonly GameSaveRequest[];
 }
 
 export interface GameInspection {
@@ -56,6 +76,8 @@ export interface GameSession {
   frame(): GameRenderFrame;
   inspect(query?: { entityId?: string }): GameInspection;
   snapshot(): GameSnapshot;
+  /** Replaces existing script sources atomically, preserving tick and state and returning the document for saves. */
+  reloadScripts(candidate: GameDocument, signal?: AbortSignal): Promise<GameScriptReloadResult<GameDocument>>;
   dispose(): void;
 }
 
@@ -145,7 +167,7 @@ function createGameSessionWithRunner(
   if (!validation.valid || !validation.document) {
     throw new Error(`Invalid game: ${validation.errors.join("; ")}`);
   }
-  const document = validation.document;
+  let document = validation.document;
   if (!Number.isSafeInteger(seed) || seed < 0) {
     throw new Error("Game seed must be a nonnegative safe integer");
   }
@@ -399,6 +421,8 @@ function createGameSessionWithRunner(
     scriptCalls: [],
     queues: { despawns: new Set(), spawns: [] },
     scriptStats: undefined,
+    scriptLogs: undefined,
+    scriptSaves: undefined,
     observations: new Map(),
     queuedDespawns: new Set(),
     queuedSpawns: [],
@@ -444,7 +468,7 @@ function createGameSessionWithRunner(
     set rngState(value) {
       rngState = value;
     },
-    document,
+    get document() { return document; },
     isSpawnedId,
     get hud() {
       return hud;
@@ -525,22 +549,36 @@ function createGameSessionWithRunner(
         throw new Error(`Unknown input action ${action}`);
       }
     }
+    // Loaded save data enters the simulation only through the frame, so a replay of recorded frames reproduces it.
+    const frame = input.loaded === undefined ? input : { ...input, loaded: gameSaveLoadedFrame.parse(input.loaded) };
     return runGameplayTick(
       ({ events, emit }) => {
-        systemContext.input = input;
+        systemContext.input = frame;
         systemContext.pressed = pressed;
         systemContext.queuedDespawns = new Set();
         systemContext.queuedSpawns = [];
         systemContext.queues = { despawns: systemContext.queuedDespawns, spawns: systemContext.queuedSpawns };
         systemContext.scriptCalls = [];
         systemContext.scriptStats = undefined;
+        systemContext.scriptLogs = undefined;
+        systemContext.scriptSaves = undefined;
         systemContext.result = undefined;
         systemContext.events = events;
         systemContext.emit = emit;
-        const timings = options.recordTimings ? pipeline.stepTimed(systemContext) : undefined;
-      if (!options.recordTimings) { pipeline.step(systemContext); }
+        let timings: GameStepTimings | undefined;
+        // A tick that fails after its scripts ran still reports what they logged.
+        try {
+          const timed = typeof options.recordTimings === "function" ? options.recordTimings() : options.recordTimings === true;
+          timings = timed ? pipeline.stepTimed(systemContext) : undefined;
+          if (!timed) { pipeline.step(systemContext); }
+        } catch (error) { throw withGameScriptLogs(error, systemContext.scriptLogs); }
         const result = readStepResult2D(systemContext);
-        return timings ? { ...result, timings } : result;
+        if (!timings) { return result; }
+        let bodies = 0;
+        for (const state of systemContext.states) {
+          if (state.active && (state.definition.body2d || state.definition.collider2d)) { bodies += 1; }
+        }
+        return { ...result, timings, physics: { bodies, contacts: systemContext.observations.size } };
       },
       () => {
         failed = true;
@@ -550,6 +588,24 @@ function createGameSessionWithRunner(
     );
   }
 
+  const reloadScripts = createGameScriptReloader({
+    initialRevision: document.revision,
+    current: () => document,
+    parse: (candidate: GameDocument) => {
+      const checked = validateGame(candidate);
+      if (!checked.valid || !checked.document) { throw new Error(`Invalid game: ${checked.errors.join("; ")}`); }
+      return checked.document;
+    },
+    assertAvailable: () => {
+      if (disposed) { throw new Error("Game session is disposed"); }
+      if (failed) { throw new Error("Game session stopped after a failed step"); }
+    },
+    commit: (candidate, updates) => {
+      if (!scriptRunner) { throw new Error("Game session has no scripts to reload"); }
+      scriptRunner.reloadSources(updates);
+      document = candidate;
+    }
+  });
   return {
     takePresentationEvents(): readonly (GameEvent | GameParticleEmission)[] {
       const pending = presentationEvents;
@@ -577,6 +633,7 @@ function createGameSessionWithRunner(
       };
     },
     snapshot,
+    reloadScripts,
     dispose(): void {
       disposed = true;
       states = [];

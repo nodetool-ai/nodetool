@@ -1,6 +1,6 @@
 ---
 name: gpt-image-2-prompting
-description: Prompt OpenAI's GPT Image 2 — the five-slot Scene/Subject/Details/Use case/Constraints template it responds to, the change-versus-preserve shape for edits, labelled multi-image compositing, and how to get text on an image to render verbatim. Use whenever the model id contains gpt-image-2 (openai/gpt-image-2, openai/gpt-image-2/edit, openai/gpt-image-2/text-to-image, kie's gpt-image-2-text-to-image and gpt-image-2-image-to-image) on generate_image, edit_image or a TextToImage node. Not for GPT Image 1, 1-mini or 1.5.
+description: Prompt OpenAI's GPT Image 2 — the five-slot Scene/Subject/Details/Use case/Constraints template it responds to, the change-versus-preserve shape for edits, labelled multi-image compositing, and how to get text on an image to render verbatim. Use whenever the model id contains gpt-image-2 (openai/gpt-image-2, openai/gpt-image-2/edit, openai/gpt-image-2/text-to-image, kie's gpt-image-2-text-to-image and gpt-image-2-image-to-image) on generate_image, edit_image or a TextToImage node. Not for GPT Image 1, 1-mini, 1.5 or 2.5.
 ---
 
 # GPT Image 2 → five slots, in order
@@ -11,7 +11,12 @@ the prompt runs past a short paragraph. Everything else sits on top of that
 spine.
 
 Reach it with `find_model` for `text_to_image` or `image_to_image`, then
-`generate_image` / `edit_image`.
+`generate_image` / `edit_image`. `generate_image` forwards only the prompt, a
+negative prompt, the size and a quality string, and `edit_image` only the
+images, the prompt, a negative prompt, a target size and a strength. Output
+format and `background` exist only on the route's own node: find it with
+`search_nodes`, read its fields with `get_node_info`, and run it with
+`run_node`.
 
 ## The template
 
@@ -103,7 +108,8 @@ facade, mullions, reflections, sidewalk, every person on it — and the edit
 stays in scope.
 
 **Combine multiple images** — label every input by role and reference the
-labels in the instruction. The family takes up to 16 reference images.
+labels in the instruction. fal's edit route and kie's image-to-image route take
+up to 16 reference images; the other routes state no cap.
 
 ```
 Image 1: base scene to preserve.
@@ -143,8 +149,10 @@ reference, and it guesses wrong.
 - **Character consistency.** First prompt establishes the anchor. Second prompt
   repeats the anchor details verbatim and adds "do not redesign the character".
 
-Transparency works on PNG and WebP output when the background is set
-transparent; JPEG silently falls back to opaque.
+Transparency needs a route with a `background` field set to `transparent`:
+kie's (only at 1K resolution, per its field note) or Replicate's
+`openai/gpt-image-2`, with PNG or WebP output. The fal and AtlasCloud routes
+have no `background` field.
 
 Check the render rather than assuming it: `critique_image`, or
 `score_image_adherence` when the prompt has copy or a layout to hold.

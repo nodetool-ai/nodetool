@@ -42,7 +42,7 @@ export function extractJSON(text: string): JsonValue | null {
   // strategy 3 (balanced braces) recovers any fenced object/array, and the
   // captured group is .trim()'d before JSON.parse, so whitespace-class tweaks
   // cannot change the parsed value.
-  const fenceMatch = trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  const fenceMatch = trimmed.match(/```(?:json)?([\s\S]*?)```/);
   // Stryker disable next-line ConditionalExpression: the `true` mutant only
   // forces a JSON.parse on a missing/empty capture, which throws and is caught
   // below — identical to skipping the fence path.

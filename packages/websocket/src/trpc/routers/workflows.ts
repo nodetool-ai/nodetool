@@ -11,6 +11,7 @@
  *   - recipes (shipped chains of examples)
  *   - public (list + get) — publicProcedure (no auth required)
  *   - versions (list, create, restore, delete)
+ *   - exportScript (workflow → sandbox or Node.js script)
  *
  * Auth note:
  *   - `public.*` endpoints use publicProcedure — no auth required, matches
@@ -32,7 +33,9 @@ import type {
   Workflow as WorkflowModel,
   WorkflowVersion as WorkflowVersionModel
 } from "@nodetool-ai/models";
-import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
+import { loadPythonPackageMetadata, type NodeRegistry } from "@nodetool-ai/node-sdk";
+import { scanExampleNeeds } from "@nodetool-ai/protocol";
+import { workflowToScript } from "@nodetool-ai/dsl";
 import { createLogger } from "@nodetool-ai/config";
 import {
   deriveExampleAssetsDir
@@ -74,6 +77,8 @@ import {
   versionDeleteOutput,
   terminalOutputsInput,
   terminalOutputsOutput,
+  exportScriptInput,
+  exportScriptOutput,
   workflowResponse,
   graph as graphSchema,
   sharingGetInput,
@@ -95,7 +100,10 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { isString } from "../../lib/wire-values.js";
 import { getStorageRetentionSettings } from "../../storage-retention.js";
-import { loadPublicShareWorkflow } from "../../lib/public-workflow-share.js";
+import {
+  loadPublicShareWorkflow,
+  parseSharedGraph
+} from "../../lib/public-workflow-share.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
 
@@ -324,7 +332,8 @@ interface ExampleMetadata {
 
 function buildExamplesFromDir(
   examplesDir: string,
-  examplesAssetsFallbackDir?: string
+  examplesAssetsFallbackDir?: string,
+  registry?: NodeRegistry
 ): unknown[] {
   if (!existsSync(examplesDir)) return [];
   const assetsDir = deriveExampleAssetsDir(
@@ -383,6 +392,10 @@ function buildExamplesFromDir(
         workspace_id: null,
         required_providers: null,
         required_models: null,
+        needs: scanExampleNeeds(
+          parsed.graph,
+          (nodeType) => registry?.getMetadata(nodeType)?.required_settings
+        ),
         html_app: null,
         app_doc: null,
         etag: null
@@ -397,13 +410,15 @@ function buildExamplesFromDir(
 function buildExampleWorkflows(apiOptions: {
   examplesDir?: string;
   examplesAssetsFallbackDir?: string;
+  registry?: NodeRegistry;
   metadataRoots?: string[];
   metadataMaxDepth?: number;
 }): unknown[] {
   if (apiOptions.examplesDir) {
     return buildExamplesFromDir(
       apiOptions.examplesDir,
-      apiOptions.examplesAssetsFallbackDir
+      apiOptions.examplesAssetsFallbackDir,
+      apiOptions.registry
     );
   }
   const loaded = loadPythonPackageMetadata({
@@ -712,6 +727,45 @@ export const workflowsRouter = router({
       return { outputs };
     }),
 
+  // ── exportScript ──────────────────────────────────────────────────────────
+  // The editor's graph when sent (unsaved edits included), else the saved one.
+  exportScript: protectedProcedure
+    .input(exportScriptInput)
+    .output(exportScriptOutput)
+    .mutation(async ({ ctx, input }) => {
+      const { workflow } = await requireWorkflowRole(
+        input.id,
+        ctx.userId,
+        "viewer"
+      );
+      const graph = input.graph ?? workflow.graph;
+      if (!graph) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Workflow has no graph");
+      }
+      try {
+        const script = workflowToScript(
+          graph as Parameters<typeof workflowToScript>[0],
+          {
+            target: input.target,
+            workflowName: workflow.name,
+            getMetadata: (nodeType) => ctx.registry.getMetadata(nodeType)
+          }
+        );
+        const base =
+          (workflow.name ?? "").replace(/[^A-Za-z0-9._-]+/g, "_") ||
+          "workflow";
+        return {
+          ...script,
+          filename: `${base}.${input.target === "node" ? "mjs" : "js"}`
+        };
+      } catch (error) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+    }),
+
   // ── versions ──────────────────────────────────────────────────────────────
   versions: router({
     // GET /api/workflows/:id/versions
@@ -942,7 +996,7 @@ export const workflowsRouter = router({
             description: source.description,
             tags: source.tags,
             access: "private",
-            graph: safeGraph(source.id, source.graph),
+            graph: parseSharedGraph(source.graph),
             settings: source.settings,
             run_mode: source.run_mode
           })

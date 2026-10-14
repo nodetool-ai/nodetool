@@ -1,12 +1,22 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useId, useState, type ReactNode } from "react";
 import type { StoreApi } from "zustand";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import CloseIcon from "@mui/icons-material/Close";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import VerticalSplitOutlinedIcon from "@mui/icons-material/VerticalSplitOutlined";
+import AddIcon from "@mui/icons-material/Add";
+import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 
-import { useGlobalCombo } from "../../../stores/KeyPressedStore";
 import type { GamePanelLayoutState } from "../../../stores/game/GamePanelLayoutStore";
 import { GAME_PANEL_REGIONS, type GamePanelGroup } from "../../../stores/game/GamePanelLayout";
-import { Box, EditorButton, FlexColumn, FlexRow, SelectField, SPACING, TabGroup } from "../../ui_primitives";
+import { Box, ContextMenu, DockDropOverlay, DockTabStrip, FlexColumn, MenuItemPrimitive, ToolbarIconButton, dockTabElementId } from "../../ui_primitives";
 import type { GamePanelRegion } from "./panelRegistry";
 import type { GameDockPresentation } from "./useGameDockPresentation";
+import type { GameDockDrag } from "./GameDockCanvas";
+import { GAME_REGION_AXIS, GAME_REGION_LABELS, gameDockDropAction, gameDockMoveToRegion } from "./gameDockTargets";
 
 interface GameDockGroupProps {
   readonly group: GamePanelGroup;
@@ -14,85 +24,94 @@ interface GameDockGroupProps {
   readonly presentation: GameDockPresentation;
   readonly store: StoreApi<GamePanelLayoutState>;
   readonly setSlot: (id: string, slot: HTMLElement | null) => void;
+  readonly drag?: GameDockDrag | null;
+  readonly onDragStart?: (panelId: string, event: PointerEvent) => void;
+  readonly maximized?: boolean;
+  readonly onToggleMaximize?: () => void;
 }
 
-export function GameDockGroup({ group, region, presentation, store, setSlot }: GameDockGroupProps): ReactNode {
+type MenuState = { readonly panelId: string; readonly position: { x: number; y: number } } | null;
+
+export function GameDockGroup({ group, region, presentation, store, setSlot, drag = null, onDragStart, maximized = false,
+  onToggleMaximize }: GameDockGroupProps): ReactNode {
   const { metadata } = presentation;
-  const eligible = group.panels.filter((id) => metadata.availableIds.includes(id) && !metadata.layout.hidden.includes(id));
+  const idPrefix = `game-dock-${useId().replace(/:/g, "")}`;
+  const visible = (id: string): boolean => metadata.availableIds.includes(id) && !metadata.layout.hidden.includes(id);
+  const eligible = group.panels.filter(visible);
   const active = eligible.includes(group.activePanelId) ? group.activePanelId : eligible[0];
-  const drag = useRef<{ panelId: string; pointerId: number } | null>(null);
-  const dragButton = useRef<HTMLButtonElement | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const [moveTarget, setMoveTarget] = useState("");
-  const [movePosition, setMovePosition] = useState("end");
+  const [menu, setMenu] = useState<MenuState>(null);
+  const [focused, setFocused] = useState(false);
   const slotRef = useCallback((slot: HTMLElement | null) => setSlot(group.id, slot), [group.id, setSlot]);
-  const cancel = useCallback((): void => { drag.current = null; setDragging(false); }, []);
-  const shortcutTarget = useCallback(() => dragButton.current, []);
-  useGlobalCombo("escape", cancel, { active: dragging, allowInInputs: true, scope: "global", target: shortcutTarget });
-  useEffect(() => { cancel(); return cancel; }, [cancel, store]);
-  useEffect(() => {
-    window.addEventListener("blur", cancel);
-    return () => window.removeEventListener("blur", cancel);
-  }, [cancel]);
   if (!active) { return null; }
-  const targets = GAME_PANEL_REGIONS.flatMap((targetRegion) => [
-    { value: JSON.stringify([targetRegion, null]), region: targetRegion, groupId: null, label: `New ${targetRegion} group` },
-    ...metadata.layout.regions[targetRegion].map((entry) => ({ value: JSON.stringify([targetRegion, entry.id]), region: targetRegion, groupId: entry.id, label: `${targetRegion}: ${entry.panels.join(", ")}` }))
-  ]);
-  const uniqueGroupId = (targetRegion: GamePanelRegion): string => {
-    const ids = new Set(GAME_PANEL_REGIONS.flatMap((entry) => store.getState().layout.regions[entry].map((item) => item.id)));
-    let index = 0;
-    while (ids.has(`${targetRegion}-dock-${index}`)) { index += 1; }
-    return `${targetRegion}-dock-${index}`;
+  const title = (id: string): string => metadata.registry.find((entry) => entry.id === id)?.title ?? id;
+  const icon = (id: string): ReactNode => metadata.registry.find((entry) => entry.id === id)?.icon;
+  const dispatch = store.getState().dispatch;
+  const target = drag?.target && drag.target.kind !== "region" && drag.target.groupId === group.id ? drag.target : null;
+  // The strip shows the dragged tab too, so map the caret from "among the other tabs" to the drawn tabs.
+  const dropIndex = target?.kind === "tab" ? (() => {
+    const others = eligible.filter((id) => id !== drag?.panelId);
+    const before = others[target.index];
+    return before === undefined ? eligible.length : eligible.indexOf(before);
+  })() : null;
+  const hiddenPanels = metadata.registry.filter((entry) => metadata.availableIds.includes(entry.id) && metadata.layout.hidden.includes(entry.id));
+  const closeMenu = (): void => setMenu(null);
+  const menuPanel = menu?.panelId ?? active;
+  const menuIndex = eligible.indexOf(menuPanel);
+  const axis = GAME_REGION_AXIS[region];
+  const run = (action: () => void): void => { closeMenu(); action(); };
+  const reorder = (offset: -1 | 1): void => {
+    const action = gameDockDropAction(store.getState().layout, menuPanel,
+      { kind: "tab", region, groupId: group.id, index: menuIndex + offset }, visible);
+    if (action) { dispatch(action); }
   };
-  const selectedTarget = targets.find((entry) => entry.value === moveTarget);
-  const targetPanels = selectedTarget?.groupId
-    ? metadata.layout.regions[selectedTarget.region].find((entry) => entry.id === selectedTarget.groupId)?.panels.filter((id) => id !== active) ?? [] : [];
-  const move = (panelId: string, targetRegion: GamePanelRegion, groupId: string, beforeId?: string): void => {
-    const target = store.getState().layout.regions[targetRegion].find((entry) => entry.id === groupId);
-    const panels = target?.panels.filter((id) => id !== panelId) ?? [];
-    const position = beforeId ? panels.indexOf(beforeId) : -1;
-    const index = position < 0 ? panels.length : position;
-    store.getState().dispatch({ type: "move", panelId, region: targetRegion, groupId, index });
-  };
+
   return <FlexColumn data-game-dock-region={region} data-game-dock-group={group.id}
-    sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: "hidden" }}>
-    <TabGroup size="small" value={active} aria-label={`${region} game panel tabs`}
-      tabs={eligible.map((id) => ({ value: id, label: metadata.registry.find((entry) => entry.id === id)?.title ?? id }))}
-      onChange={(panelId) => store.getState().dispatch({ type: "activate", panelId })} />
-    <FlexRow gap={SPACING.xs}>
-      <EditorButton ref={dragButton} aria-label={`Drag ${active} panel`} size="small"
-        onPointerDown={(event) => {
-          if (event.button !== 0) { return; }
-          event.preventDefault();
-          drag.current = { panelId: active, pointerId: event.pointerId };
-          setDragging(true);
-          event.currentTarget.setPointerCapture(event.pointerId);
-        }}
-        onPointerUp={(event) => {
-          const current = drag.current;
-          cancel();
-          if (!current || current.pointerId !== event.pointerId) { return; }
-          const target = window.document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-game-dock-region]");
-          const targetRegion = GAME_PANEL_REGIONS.find((entry) => entry === target?.dataset.gameDockRegion);
-          if (targetRegion) { move(current.panelId, targetRegion, target?.dataset.gameDockGroup ?? uniqueGroupId(targetRegion)); }
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) { event.currentTarget.releasePointerCapture(event.pointerId); }
-        }}
-        onPointerCancel={cancel} onLostPointerCapture={cancel} onBlur={cancel}
-        onKeyDown={(event) => { if (event.key === "Escape") { cancel(); event.preventDefault(); } }}
-        sx={{ touchAction: "none" }}>Drag</EditorButton>
-      <SelectField label={`Move ${active} panel`} value={moveTarget} options={targets} onChange={(value) => { setMoveTarget(value); setMovePosition("end"); }} />
-      <SelectField label={`Position ${active} panel`} value={movePosition}
-        options={[{ value: "end", label: "At end" }, ...targetPanels.map((id) => ({ value: JSON.stringify(id), label: `Before ${id}` }))]}
-        onChange={setMovePosition} />
-      <EditorButton size="small" disabled={!moveTarget} onClick={() => {
-        const selected = targets.find((entry) => entry.value === moveTarget);
-        if (!selected) { return; }
-        move(active, selected.region, selected.groupId ?? uniqueGroupId(selected.region), targetPanels.find((id) => JSON.stringify(id) === movePosition));
-      }}>Move</EditorButton>
-      {active !== "viewport" && <EditorButton size="small" onClick={() => store.getState().dispatch({ type: "hide", panelId: active })}>Hide</EditorButton>}
-    </FlexRow>
-    <Box ref={slotRef} data-game-dock-slot={group.id} role="tabpanel" aria-label={`${active} panel`}
-      sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: "hidden" }} />
+    onFocusCapture={() => setFocused(true)}
+    onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) { setFocused(false); } }}
+    sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: "hidden", bgcolor: "background.paper" }}>
+    <DockTabStrip ariaLabel={`${region} game panel tabs`} panelIdPrefix={idPrefix} focused={focused}
+      tabs={eligible.map((id) => ({ id, label: title(id), icon: icon(id), closable: id !== "viewport" }))}
+      activeId={active} dropIndex={dropIndex}
+      onActivate={(panelId) => { if (panelId !== active) { dispatch({ type: "activate", panelId }); } }}
+      onClose={(panelId) => dispatch({ type: "hide", panelId })}
+      onTabDragStart={onDragStart}
+      onTabContextMenu={(panelId, position) => setMenu({ panelId, position })}
+      actions={<ToolbarIconButton icon={<MoreVertIcon fontSize="small" />} tooltip={`${title(active)} panel options`}
+        ariaLabel={`${title(active)} panel options`} aria-haspopup="menu"
+        onClick={(event: React.MouseEvent<HTMLElement>) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          setMenu({ panelId: active, position: { x: rect.left, y: rect.bottom } });
+        }} />} />
+    <Box data-game-dock-body sx={{ position: "relative", flex: 1, minHeight: 0, minWidth: 0 }}>
+      <Box ref={slotRef} data-game-dock-slot={group.id} role="tabpanel" id={`${idPrefix}-panel`}
+        aria-labelledby={dockTabElementId(idPrefix, active)}
+        sx={{ position: "absolute", inset: 0, overflow: "hidden" }} />
+      <DockDropOverlay zone={target?.kind === "zone" ? target.zone : null} />
+    </Box>
+    <ContextMenu open={menu !== null} position={menu?.position ?? null} onClose={closeMenu}>
+      <MenuItemPrimitive label={`Close ${title(menuPanel)}`} icon={<CloseIcon />} disabled={menuPanel === "viewport"}
+        tooltip={menuPanel === "viewport" ? "The viewport always stays open" : undefined}
+        onClick={() => run(() => dispatch({ type: "hide", panelId: menuPanel }))} />
+      <MenuItemPrimitive label={maximized ? "Restore layout" : "Maximize group"} shortcut="Shift+Space"
+        icon={maximized ? <CloseFullscreenIcon /> : <OpenInFullIcon />} onClick={() => run(() => onToggleMaximize?.())} />
+      {eligible.length > 1 && <MenuItemPrimitive label={axis === "row" ? "Split to the right" : "Split below"} icon={<VerticalSplitOutlinedIcon />}
+        onClick={() => run(() => {
+          const action = gameDockDropAction(store.getState().layout, menuPanel,
+            { kind: "zone", region, groupId: group.id, zone: axis === "row" ? "right" : "bottom" }, visible);
+          if (action) { dispatch(action); }
+        })} />}
+      {menuIndex > 0 && <MenuItemPrimitive label="Move tab left" icon={<ChevronLeftIcon />} onClick={() => run(() => reorder(-1))} />}
+      {menuIndex >= 0 && menuIndex < eligible.length - 1 && <MenuItemPrimitive label="Move tab right" icon={<ChevronRightIcon />}
+        onClick={() => run(() => reorder(1))} />}
+      {GAME_PANEL_REGIONS.filter((entry) => entry !== region).map((entry, index) => <MenuItemPrimitive key={entry} dividerBefore={index === 0}
+        label={`Move to ${GAME_REGION_LABELS[entry]}`} icon={<LoginOutlinedIcon />}
+        onClick={() => run(() => dispatch(gameDockMoveToRegion(store.getState().layout, menuPanel, entry)))} />)}
+      {hiddenPanels.map((entry, index) => <MenuItemPrimitive key={entry.id} dividerBefore={index === 0} label={`Add ${entry.title} tab`} icon={<AddIcon />}
+        onClick={() => run(() => {
+          dispatch(gameDockDropAction(store.getState().layout, entry.id, { kind: "tab", region, groupId: group.id, index: eligible.length }, visible)
+            ?? { type: "reveal", panelId: entry.id });
+          dispatch({ type: "reveal", panelId: entry.id });
+        })} />)}
+    </ContextMenu>
   </FlexColumn>;
 }

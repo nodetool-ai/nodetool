@@ -1,6 +1,6 @@
 {
   "name": "nodetool",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -16,6 +16,7 @@
     "@lexical/rich-text": "^0.46.0",
     "@lexical/selection": "^0.46.0",
     "@lexical/utils": "^0.46.0",
+    "@mediabunny/mp3-encoder": "^1.59.0",
     "@monaco-editor/react": "^4.7.0",
     "@mui/icons-material": "^7.3.11",
     "@mui/material": "^7.3.11",
@@ -47,6 +48,7 @@
     "cmdk": "^1.1.1",
     "dompurify": "^3.4.16",
     "elkjs": "^0.9.3",
+    "exceljs": "^4.4.0",
     "fflate": "^0.8.2",
     "katex": "^0.16.47",
     "lexical": "^0.46.0",

@@ -38,13 +38,13 @@ import { formatUsd } from "@nodetool-ai/model-pricing";
 
 import {
   Box,
+  Button,
   Card,
   Caption,
   CollapsibleSection,
   Dialog,
   EditorButton,
   EditorMenu,
-  EditorMenuItem,
   FlexColumn,
   FlexRow,
   Label,
@@ -210,7 +210,7 @@ const DRAFT_LABELS: Record<ShotDraftKey, string> = {
   lighting: "Scene lighting",
   action: "Description",
   dialogue: "Dialogue",
-  durationSeconds: "Estimated running time",
+  durationSeconds: "Duration",
   durationSource: "Duration source",
   framing: "Size",
   angle: "Perspective",
@@ -722,7 +722,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
       <Box sx={headerSx}>
         <EditorButton
           onClick={handleClose}
-          startIcon={<ArrowBackIcon fontSize="small" />}
+          startIcon={<ArrowBackIcon />}
           sx={{ justifySelf: "start" }}
         >
           Back to storyboard
@@ -773,7 +773,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
               <EditorButton
                 onClick={handleRegenerate}
                 disabled={generating || durationInvalid}
-                title={
+                tooltip={
                   generating ? "This shot is already rendering" : undefined
                 }
               >
@@ -896,7 +896,6 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         onClose={() => setMenuAnchor(null)}
       >
         <MenuItemPrimitive
-          compact
           label={`${shot.clip ? "Re-render clip" : "Render clip"}${stepCost("Clip")}`}
           secondary={
             generating
@@ -908,18 +907,16 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
           disabled={generating || clipNeedsStill}
           onClick={handleRenderClip}
         />
-        <EditorMenuItem
+        <MenuItemPrimitive
+          label="Move earlier in scene"
           onClick={() => handleNudge("up")}
           disabled={numbering.shot <= 1}
-        >
-          Move earlier in scene
-        </EditorMenuItem>
-        <EditorMenuItem
+        />
+        <MenuItemPrimitive
+          label="Move later in scene"
           onClick={() => handleNudge("down")}
           disabled={numbering.shot >= shotsInScene}
-        >
-          Move later in scene
-        </EditorMenuItem>
+        />
       </EditorMenu>
 
       {stillRenderShot && (
@@ -936,19 +933,21 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         onClose={keepEditing}
         title="Discard changes?"
         actions={
-          <FlexRow align="center" gap={SPACING.sm}>
-            <EditorButton onClick={keepEditing}>Keep editing</EditorButton>
-            <EditorButton onClick={() => runPending(false)}>
-              Discard
-            </EditorButton>
-            <EditorButton
-              variant="contained"
-              color="primary"
-              onClick={() => runPending(true)}
+          <>
+            <Button variant="text" color="inherit" onClick={keepEditing}>
+              Keep editing
+            </Button>
+            <Button
+              variant="text"
+              color="error"
+              onClick={() => runPending(false)}
             >
+              Discard
+            </Button>
+            <Button variant="contained" onClick={() => runPending(true)}>
               Save
-            </EditorButton>
-          </FlexRow>
+            </Button>
+          </>
         }
       >
         <Text>This shot has edits that have not been saved.</Text>
@@ -962,21 +961,28 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         onClose={() => setSaveConflicts([])}
         title="This shot changed elsewhere"
         actions={
-          <FlexRow align="center" gap={SPACING.sm} wrap>
-            <EditorButton onClick={() => setSaveConflicts([])}>
+          <>
+            <Button
+              variant="text"
+              color="inherit"
+              onClick={() => setSaveConflicts([])}
+            >
               Keep editing
-            </EditorButton>
-            <EditorButton onClick={() => resolveSaveConflicts("current")}>
+            </Button>
+            <Button
+              variant="text"
+              color="inherit"
+              onClick={() => resolveSaveConflicts("current")}
+            >
               Use current values
-            </EditorButton>
-            <EditorButton
+            </Button>
+            <Button
               variant="contained"
-              color="primary"
               onClick={() => resolveSaveConflicts("mine")}
             >
               Keep my changes
-            </EditorButton>
-          </FlexRow>
+            </Button>
+          </>
         }
       >
         <FlexColumn gap={SPACING.md}>

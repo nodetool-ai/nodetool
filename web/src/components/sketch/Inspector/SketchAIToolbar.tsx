@@ -11,13 +11,12 @@ import {
   EditorButton,
   FlexRow,
   Text,
-  Toast,
   Tooltip
 } from "../../ui_primitives";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useRegenerateStaleLayers } from "../../../hooks/sketch/useRegenerateStaleLayers";
 import { CreateGeneratedLayerDialog } from "./CreateGeneratedLayerDialog";
+import { useAlertNotifier } from "../../../hooks/useAlertNotifier";
 
 const SketchAIToolbarInner: React.FC = () => {
   const theme = useTheme();
@@ -39,7 +38,7 @@ const SketchAIToolbarInner: React.FC = () => {
   const { regenerateStaleLayers, isBusy: regenBusy } =
     useRegenerateStaleLayers();
 
-  const [error, setError] = useState<string | null>(null);
+  const reportError = useAlertNotifier("warning");
   const [confirmRegenOpen, setConfirmRegenOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
 
@@ -47,7 +46,7 @@ const SketchAIToolbarInner: React.FC = () => {
     setConfirmRegenOpen(false);
     const summary = await regenerateStaleLayers();
     if (summary.failed > 0) {
-      setError(
+      reportError(
         `Regenerated ${summary.started}, failed at ${summary.failed} layer(s).`
       );
     }
@@ -65,15 +64,14 @@ const SketchAIToolbarInner: React.FC = () => {
         }}
       >
         <Tooltip
-          title="Generate Layer — bind a new layer to any workflow with an image output."
-          delay={TOOLTIP_ENTER_DELAY}
+          title="Generate a layer from any workflow with an image output"
           placement="bottom"
         >
           <span>
             <EditorButton
               onClick={() => setGenerateDialogOpen(true)}
               size="small"
-              startIcon={<AddPhotoAlternateIcon fontSize="small" />}
+              startIcon={<AddPhotoAlternateIcon />}
               data-testid="sketch-action-generate-layer"
             >
               Generate Layer
@@ -87,7 +85,6 @@ const SketchAIToolbarInner: React.FC = () => {
               ? "No stale layers."
               : `Re-generate ${staleCount} stale layer${staleCount === 1 ? "" : "s"} in dependency order.`
           }
-          delay={TOOLTIP_ENTER_DELAY}
           placement="bottom"
         >
           <span>
@@ -95,7 +92,7 @@ const SketchAIToolbarInner: React.FC = () => {
               onClick={() => setConfirmRegenOpen(true)}
               disabled={staleCount === 0 || regenBusy}
               size="small"
-              startIcon={<RefreshIcon fontSize="small" />}
+              startIcon={<RefreshIcon />}
               data-testid="sketch-action-regenerate-stale"
             >
               Re-generate Stale ({staleCount})
@@ -114,12 +111,9 @@ const SketchAIToolbarInner: React.FC = () => {
         onClose={() => setConfirmRegenOpen(false)}
         title="Re-generate stale layers?"
         onConfirm={() => void handleConfirmRegen()}
-        onCancel={() => setConfirmRegenOpen(false)}
         confirmText="Re-generate"
-        cancelText="Cancel"
-        showActions
       >
-        <Text size="small" sx={{ mb: 1 }}>
+        <Text size="small">
           {staleCount} stale layer{staleCount === 1 ? " is" : "s are"} ready to
           run.
           {lockedCount > 0 && (
@@ -133,15 +127,6 @@ const SketchAIToolbarInner: React.FC = () => {
           can address it before continuing.
         </Text>
       </Dialog>
-
-      <Toast
-        open={error !== null}
-        message={error ?? ""}
-        severity="warning"
-        onClose={() => setError(null)}
-        vertical="top"
-        horizontal="center"
-      />
     </>
   );
 };

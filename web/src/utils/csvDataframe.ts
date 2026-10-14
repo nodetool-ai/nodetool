@@ -41,3 +41,17 @@ export const dataframeToCsv = (df: DataframeRef, delimiter: string): string => {
   const data = df.data ?? [];
   return Papa.unparse({ fields, data }, { delimiter });
 };
+
+/**
+ * Remove the column at `index` from both the column list and every row.
+ * Rows are positional, so dropping only the column def shifts every later
+ * value into the wrong column.
+ */
+export const removeDataframeColumn = (
+  df: DataframeRef,
+  index: number
+): DataframeRef => ({
+  ...df,
+  columns: (df.columns ?? []).filter((_, i) => i !== index),
+  data: df.data ? df.data.map((row) => row.filter((_, i) => i !== index)) : df.data
+});

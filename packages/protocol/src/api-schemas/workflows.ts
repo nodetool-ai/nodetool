@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isRecord } from "../predicates.js";
+import { exampleNeeds } from "../example-needs.js";
 
 // ── WorkflowRunMode ──────────────────────────────────────────────────────────
 
@@ -105,9 +106,20 @@ export const graphEdge = z
   })
   .passthrough();
 
+/** Lineage link: no value, no execution order. Kept beside `edges`. */
+export const graphLink = z.object({
+  id: z.string().min(1),
+  source: z.string(),
+  target: z.string(),
+  label: z.string().nullable().optional(),
+  kind: z.string().nullable().optional()
+});
+export type GraphLink = z.infer<typeof graphLink>;
+
 export const graph = z.object({
   nodes: z.array(graphNode),
-  edges: z.array(graphEdge)
+  edges: z.array(graphEdge),
+  links: z.array(graphLink).optional()
 });
 export type Graph = z.infer<typeof graph>;
 
@@ -137,6 +149,8 @@ export const workflowResponse = z.object({
   workspace_id: z.string().nullable(),
   required_providers: z.unknown().nullable(),
   required_models: z.unknown().nullable(),
+  /** Set on shipped examples: the models and keys the graph asks for. */
+  needs: exampleNeeds.nullable().optional(),
   html_app: z.string().nullable(),
   app_doc: z.record(z.string(), z.unknown()).nullable().optional(),
   etag: z.string().nullable()
@@ -292,7 +306,8 @@ export const workflowBody = z.object({
   graph: z
     .object({
       nodes: z.array(graphNode),
-      edges: z.array(graphEdge)
+      edges: z.array(graphEdge),
+      links: z.array(graphLink).optional()
     })
     .nullable()
     .optional(),
@@ -358,7 +373,8 @@ export const autosaveInput = z.object({
   id: z.string().min(1),
   graph: z.object({
     nodes: z.array(graphNode),
-    edges: z.array(graphEdge)
+    edges: z.array(graphEdge),
+    links: z.array(graphLink).optional()
   }),
   name: z.string().optional(),
   description: z.string().optional(),
@@ -549,6 +565,38 @@ export const terminalOutputsOutput = z.object({
   outputs: z.array(terminalOutputItem)
 });
 export type TerminalOutputsOutput = z.infer<typeof terminalOutputsOutput>;
+
+// ── exportScript ─────────────────────────────────────────────────────────────
+// Convert a workflow into a JavaScript script that calls each node in order.
+// `graph` is the editor's current graph; without it the saved graph is used.
+
+export const exportScriptTarget = z.enum(["sandbox", "node"]);
+export type ExportScriptTarget = z.infer<typeof exportScriptTarget>;
+
+export const exportScriptInput = z.object({
+  id: z.string().min(1),
+  target: exportScriptTarget,
+  graph: graph.optional()
+});
+export type ExportScriptInput = z.infer<typeof exportScriptInput>;
+
+export const exportScriptPort = z.object({
+  name: z.string(),
+  type: z.string()
+});
+
+export const exportScriptOutput = z.object({
+  code: z.string(),
+  /** Suggested file name: `<workflow>.js` for sandbox, `.mjs` for Node.js. */
+  filename: z.string(),
+  inputs: z.array(exportScriptPort),
+  outputs: z.array(exportScriptPort),
+  /** Nodes the script refuses to run. Non-empty means the script throws. */
+  unsupported: z.array(
+    z.object({ node_id: z.string(), node_type: z.string(), message: z.string() })
+  )
+});
+export type ExportScriptOutput = z.infer<typeof exportScriptOutput>;
 
 // ── sharing ──────────────────────────────────────────────────────────────────
 // Private sharing: the owner mints role-scoped share links; any authenticated

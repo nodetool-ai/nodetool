@@ -59,6 +59,7 @@ Generate, edit and assemble video, timelines and scripts.
 | [gemini.video](gemini/video/) | Gemini text to video and image to video. | 2 |
 | [lib.video.download](lib/video/download/) | Download a video from YouTube. | 1 |
 | [nodetool.creative](nodetool/creative/) | Storyboard helpers such as director, screenplay shots, shot batches and entity application. | 5 |
+| [nodetool.manimgx](nodetool/manimgx/) | Write, inspect and render ManimGX math and 3D animation scenes in Python. | 3 |
 | [nodetool.script](nodetool/script/) | Load voiceover scripts and convert them to subtitles, timelines and voiced audio. | 4 |
 | [nodetool.timeline](nodetool/timeline/) | Add clips to a timeline, render it and read its transcript. | 3 |
 | [nodetool.video](nodetool/video/) | Load, trim, concatenate, filter and subtitle video, plus text to video, image to video and lip sync. | 33 |

@@ -17,7 +17,8 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { SxProps, Theme } from "@mui/material";
-import { isNumber } from "../../utils/typePredicates";
+import { focusRing, selectableRowStyles, selectedRowStyles } from "./selectionStyles";
+import { TYPOGRAPHY } from "./tokens";
 
 // --- ListGroup ---
 
@@ -118,16 +119,24 @@ const ListItemRowInternal: React.FC<ListItemRowProps> = ({
 }) => {
   const theme = useTheme();
 
-  // Compute border radius with type guard since borderRadius can be string | number
-  const borderRadiusValue = isNumber(theme.shape.borderRadius)
-    ? theme.shape.borderRadius / 8
-    : undefined;
-
   const content = (
     <>
       {icon && <ListItemIcon sx={{ minWidth: 36 }}>{icon}</ListItemIcon>}
       {(primary || secondary) && (
-        <ListItemText primary={primary} secondary={secondary} sx={textSx} />
+        <ListItemText
+          primary={primary}
+          secondary={secondary}
+          sx={textSx}
+          slotProps={{
+            primary: { sx: TYPOGRAPHY.sans.label },
+            secondary: {
+              sx: {
+                ...TYPOGRAPHY.sans.caption,
+                color: theme.vars.palette.text.secondary
+              }
+            }
+          }}
+        />
       )}
       {children}
     </>
@@ -139,7 +148,11 @@ const ListItemRowInternal: React.FC<ListItemRowProps> = ({
         <ListItemButton
           onClick={onClick}
           selected={selected}
-          sx={{ borderRadius: borderRadiusValue }}
+          sx={{
+            ...selectableRowStyles(theme, { selected }),
+            "&.Mui-selected": selectedRowStyles(theme),
+            "&.Mui-focusVisible": focusRing(theme)
+          }}
         >
           {content}
         </ListItemButton>

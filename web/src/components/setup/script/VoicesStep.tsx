@@ -264,7 +264,15 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
               : "No voice chosen"}
           </Text>
         ) : (
-          <FormField label={`TTS model for ${speaker.name}`}>
+          <FormField
+            label={`TTS model for ${speaker.name}`}
+            helperText={paceNote ?? undefined}
+            error={
+              noPresetVoice
+                ? "This model has no preset voices. Pick another model."
+                : undefined
+            }
+          >
             <TTSModelSelect
               value={modelValue}
               onChange={selectModel}
@@ -302,11 +310,6 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
           </EditorButton>
         ) : null}
       </FlexRow>
-      {noPresetVoice ? (
-        <Caption color="secondary" role="status">
-          This model has no preset voices. Pick another model.
-        </Caption>
-      ) : null}
       {sample?.error && sampleErrorContext ? (
         <AlertBanner
           severity="error"
@@ -315,7 +318,7 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
           {sample.error}
         </AlertBanner>
       ) : null}
-      {paceNote ? (
+      {readOnly && paceNote ? (
         <Caption color="secondary" role="status">
           {paceNote}
         </Caption>
@@ -386,13 +389,17 @@ const VoicesStepInternal: React.FC<VoicesStepProps> = ({
         component="section"
         aria-label="Read settings"
       >
-        <FlexRow gap={GAP.comfortable} wrap align="flex-end">
+        {/* Each control says what it reaches. Pace was reaching nothing at
+            all, and language belongs to the writer, not to the speech call
+            this step's button makes (F12). */}
+        <FlexRow gap={GAP.comfortable} wrap align="flex-start">
           <SelectField
             label="Language"
             value={language}
             options={LANGUAGES.map((name) => ({ value: name, label: name }))}
             disabled={readOnly}
             onChange={setLanguage}
+            description="What the script is written in. Change it, then rewrite on the Format step to apply it."
           />
           <SelectField
             label="Pace"
@@ -400,16 +407,9 @@ const VoicesStepInternal: React.FC<VoicesStepProps> = ({
             options={PACES}
             disabled={readOnly}
             onChange={setPace}
+            description="Sent with every sample and every take."
           />
         </FlexRow>
-        {/* Each control says what it reaches. Pace was reaching nothing at
-            all, and language belongs to the writer, not to the speech call
-            this step's button makes (F12). */}
-        <Caption color="secondary" component="p">
-          Pace is sent with every sample and every take. Language is what the
-          script is written in: change it, then rewrite on the Format step to
-          apply it.
-        </Caption>
       </FlexColumn>
 
       {cast.length === 0 ? (

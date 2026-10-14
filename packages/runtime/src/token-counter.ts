@@ -1,24 +1,71 @@
 /**
- * Accurate token counting via js-tiktoken.
- *
- * All token counting in the codebase routes through this module so estimates
- * match the BPE tokenization real models use instead of char- or word-based
- * approximations. Uses the `cl100k_base` encoding (GPT-3.5/4 family), a good
- * general-purpose proxy across providers for budgeting, packing and eviction.
- *
- * The encoder is built once and cached — `getEncoding` bundles the BPE ranks,
- * so there is no I/O after the first call.
+ * Synchronous token budgeting with a calibrated estimate until the optional
+ * cl100k_base encoder is ready. Long BPE runs remain bounded below.
  */
+import { importOptionalModule } from "@nodetool-ai/config";
 
-import { getEncoding, type Tiktoken } from "js-tiktoken";
+interface Encoder {
+  encode(text: string, allowedSpecial: string[], disallowedSpecial: string[]): number[];
+  decode(tokens: number[]): string;
+}
 
-let cachedEncoder: Tiktoken | null = null;
+let cachedEncoder: Encoder | null = null;
+let initialization: Promise<void> | undefined;
 
-function getEncoder(): Tiktoken {
-  if (cachedEncoder === null) {
-    cachedEncoder = getEncoding("cl100k_base");
+/** Start one optional load. Async callers can await exact counting readiness. */
+export function initializeTokenCounter(): Promise<void> {
+  // Start inside the chain: this runs on module load, so a loader that throws
+  // synchronously must reject here instead of failing every importer.
+  initialization ??= Promise.resolve()
+    .then(() =>
+      importOptionalModule<{
+        getEncoding(name: "cl100k_base"): Encoder;
+      }>("js-tiktoken")
+    )
+    .then((library) => {
+      cachedEncoder = library.getEncoding("cl100k_base");
+    })
+    .catch(() => {
+      // Token budgeting remains available when the optional encoder cannot load.
+    });
+  return initialization;
+}
+
+// Do not block synchronous callers or startup on loading the encoding tables.
+void initializeTokenCounter();
+
+/**
+ * ASCII letters and whitespace use 4.5 chars/token, digits use 3, punctuation uses
+ * 2 chars/token. CJK needs separate weights: Han 1, kana 0.8, Hangul 1.25
+ * tokens/character. Calibration fixtures stay between exact and 35% over.
+ * These are budgeting estimates, not universal BPE upper bounds.
+ * Integer units avoid rounding drift in long inputs. No splitting is needed.
+ */
+function characterUnits(code: number): number {
+  if (code < 128) {
+    if (code >= 48 && code <= 57) {
+      return 60;
+    }
+    const letter =
+      (code >= 65 && code <= 90) ||
+      (code >= 97 && code <= 122);
+    return letter || code === 32 || (code >= 9 && code <= 13) ? 40 : 90;
   }
-  return cachedEncoder;
+  if (code >= 0x3040 && code <= 0x30ff) {
+    return 144;
+  }
+  if (code >= 0xac00 && code <= 0xd7af) {
+    return 225;
+  }
+  return code > 0xffff ? 540 : 180;
+}
+
+function estimateTokens(text: string): number {
+  let units = 0;
+  for (const character of text) {
+    units += characterUnits(character.codePointAt(0) ?? 0);
+  }
+  return Math.ceil(units / 180);
 }
 
 /**
@@ -85,11 +132,14 @@ function* encodingPieces(text: string): Generator<string> {
 }
 
 /**
- * Count BPE tokens in a string. Returns 0 for empty/nullish input.
+ * Count tokens exactly when ready, otherwise estimate. Empty/nullish input is 0.
  */
 export function countTokens(text: string | null | undefined): number {
   if (!text) return 0;
-  const encoder = getEncoder();
+  const encoder = cachedEncoder;
+  if (encoder === null) {
+    return estimateTokens(text);
+  }
   let total = 0;
   for (const piece of encodingPieces(text)) {
     total += encoder.encode(piece, [], []).length;
@@ -98,7 +148,7 @@ export function countTokens(text: string | null | undefined): number {
 }
 
 /**
- * Truncate text to at most `maxTokens` BPE tokens, decoding the kept prefix
+ * Truncate text to at most `maxTokens` counted tokens, decoding the exact prefix
  * back to a string. Returns "" when `maxTokens <= 0`.
  *
  * Encodes piece-by-piece (same splitting as {@link countTokens}) and stops once
@@ -112,7 +162,19 @@ export function countTokens(text: string | null | undefined): number {
  */
 export function truncateToTokens(text: string, maxTokens: number): string {
   if (maxTokens <= 0) return "";
-  const encoder = getEncoder();
+  const encoder = cachedEncoder;
+  if (encoder === null) {
+    let units = 0;
+    let end = 0;
+    for (const character of text) {
+      units += characterUnits(character.codePointAt(0) ?? 0);
+      if (Math.ceil(units / 180) > maxTokens) {
+        break;
+      }
+      end += character.length;
+    }
+    return stripTrailingPartialChar(text.slice(0, end));
+  }
   const kept: number[] = [];
   let truncated = false;
   for (const piece of encodingPieces(text)) {

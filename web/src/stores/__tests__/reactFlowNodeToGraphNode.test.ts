@@ -4,6 +4,7 @@ jest.mock("../NodeStore", () => ({
 }));
 
 import { reactFlowNodeToGraphNode } from "../reactFlowNodeToGraphNode";
+import { graphNodeToReactFlowNode } from "../graphNodeToReactFlowNode";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../NodeData";
 import { Node as GraphNode } from "../ApiTypes";
@@ -715,5 +716,38 @@ describe("reactFlowNodeToGraphNode", () => {
 
       expect(result.dynamic_inputs).toBeUndefined();
     });
+  });
+
+  it("round-trips input placement overrides through save and load", () => {
+    const node = createMockReactFlowNode({
+      data: createMockNodeData({
+        exposedInputs: ["seed"],
+        exposedInputsLabeled: ["width"],
+        exposedInputsHidden: ["prompt"]
+      })
+    });
+
+    const saved = reactFlowNodeToGraphNode(node);
+    expect(getUiProperties(saved)).toMatchObject({
+      exposed_inputs: ["seed"],
+      exposed_inputs_labeled: ["width"],
+      exposed_inputs_hidden: ["prompt"]
+    });
+
+    const loaded = graphNodeToReactFlowNode({ id: "workflow-123" }, saved);
+    expect(loaded.data.exposedInputs).toEqual(["seed"]);
+    expect(loaded.data.exposedInputsLabeled).toEqual(["width"]);
+    expect(loaded.data.exposedInputsHidden).toEqual(["prompt"]);
+  });
+
+  it("omits empty input placement lists", () => {
+    const saved = reactFlowNodeToGraphNode(
+      createMockReactFlowNode({
+        data: createMockNodeData({ exposedInputs: [] })
+      })
+    );
+    expect(getUiProperties(saved)).not.toHaveProperty("exposed_inputs");
+    expect(getUiProperties(saved)).not.toHaveProperty("exposed_inputs_labeled");
+    expect(getUiProperties(saved)).not.toHaveProperty("exposed_inputs_hidden");
   });
 });

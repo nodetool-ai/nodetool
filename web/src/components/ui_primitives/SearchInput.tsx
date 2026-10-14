@@ -4,7 +4,9 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { CONTROL, MOTION } from "./tokens";
-import { IconButton, Tooltip, InputAdornment, TextField } from "@mui/material";
+import { useFieldDensity } from "./fieldDensity";
+import { IconButton, InputAdornment, TextField } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -47,7 +49,7 @@ export interface SearchInputProps {
   sx?: SxProps<Theme>;
 }
 
-const styles = (theme: Theme) => css`
+const styles = (theme: Theme, dense: boolean) => css`
   .search-input {
     .MuiInputBase-root {
       border-radius: ${CONTROL.radius};
@@ -83,7 +85,7 @@ const styles = (theme: Theme) => css`
     /* Shared form-control sizing: value at the 15px body token, placeholder
        softened to read as a muted hint rather than entered text. */
     .MuiInputBase-input {
-      font-size: var(--fontSizeNormal);
+      font-size: ${dense ? "var(--fontSizeSmall)" : "var(--fontSizeNormal)"};
     }
     .MuiInputBase-input::placeholder {
       opacity: 0.6;
@@ -142,6 +144,7 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
   sx
 }, ref) => {
   const theme = useTheme();
+  const dense = useFieldDensity() === "compact";
   const autoFocusEnabled = useAutoFocusEnabled();
   const [localValue, setLocalValue] = useState(value);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -199,7 +202,7 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
   }, []);
   
   return (
-    <div className={`search-input-wrapper nodrag ${className || ""}`} css={styles(theme)}>
+    <div className={`search-input-wrapper nodrag ${className || ""}`} css={styles(theme, dense)}>
       <TextField
         className="search-input"
         value={localValue}

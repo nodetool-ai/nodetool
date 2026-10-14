@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { type Intervention } from "@nodetool-ai/protocol";
-import { workflowToDsl } from "@nodetool-ai/dsl";
+import { workflowToDsl, workflowToScript } from "@nodetool-ai/dsl";
 import {
   initDb,
   migrateSqliteDb,
@@ -60,6 +60,7 @@ import {
 } from "./supervisor.js";
 import { registerPackageCommands } from "./commands/package.js";
 import { registerPackCommands } from "./commands/packs.js";
+import { registerRuntimeCommands } from "./commands/runtime.js";
 import { registerDeployCommands } from "./commands/deploy.js";
 import { registerHfCommands } from "./commands/models-hf.js";
 import { registerWorkerCommands } from "./commands/worker.js";
@@ -89,6 +90,7 @@ import { registerCostsCommands } from "./commands/costs.js";
 import { registerErrorsCommands } from "./commands/errors.js";
 import { registerGenerationsCommands } from "./commands/generations.js";
 import { registerRunsCommands } from "./commands/runs.js";
+import { registerProjectCommands } from "./commands/projects.js";
 import { registerGameCommands } from "./commands/game.js";
 import { registerAuthCommands } from "./commands/auth.js";
 import { registerTelegramCommands } from "./commands/telegram.js";
@@ -581,14 +583,8 @@ addSupervisorOptions(
           params?: Record<string, unknown>;
         };
         if (idOrFile.endsWith(".ts") || idOrFile.endsWith(".tsx")) {
-          // Execute DSL file via tsx and capture JSON output
-          const { execFileSync } = await import("node:child_process");
-          const output = execFileSync("npx", ["tsx", resolve(idOrFile)], {
-            encoding: "utf8",
-            cwd: dirname(resolve(idOrFile)),
-            timeout: 30000
-          });
-          raw = JSON.parse(output.trim());
+          const { readFileTarget } = await import("./debug/target.js");
+          raw = (await readFileTarget(idOrFile)).raw as typeof raw;
         } else {
           const { readFileSync } = await import("node:fs");
           raw = JSON.parse(readFileSync(idOrFile, "utf8"));
@@ -766,6 +762,72 @@ addSupervisorOptions(
     }
   }
 );
+
+workflows
+  .command("export-script <workflow_id_or_file>")
+  .description(
+    "Convert a workflow into a JavaScript script that calls each node in order (local DB by id, or a JSON file)"
+  )
+  .option(
+    "-t, --target <target>",
+    "sandbox (a JS script document or Code node body) or node (a standalone Node.js .mjs)",
+    "sandbox"
+  )
+  .option("-o, --output <file>", "Write the script to a file")
+  .action(
+    async (idOrFile: string, opts: { target: string; output?: string }) => {
+      try {
+        if (opts.target !== "sandbox" && opts.target !== "node") {
+          throw new Error(
+            `Unknown target "${opts.target}": use "sandbox" or "node"`
+          );
+        }
+        let graph: Parameters<typeof workflowToScript>[0];
+        let name: string | null;
+        if (
+          idOrFile.endsWith(".json") ||
+          idOrFile.includes("/") ||
+          idOrFile.includes("\\")
+        ) {
+          const { readFileSync } = await import("node:fs");
+          const raw = JSON.parse(readFileSync(idOrFile, "utf8")) as Record<
+            string,
+            unknown
+          >;
+          graph = (raw.graph ?? raw) as typeof graph;
+          name = isString(raw.name) ? raw.name : null;
+        } else {
+          ensureDb();
+          const wf = await Workflow.find(LOCAL_USER_ID, idOrFile);
+          if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
+          graph = wf.getGraph();
+          name = isString(wf.name) ? wf.name : null;
+        }
+
+        const script = workflowToScript(graph, {
+          target: opts.target,
+          workflowName: name
+        });
+        for (const issue of script.unsupported) {
+          console.error(
+            `warning: ${issue.node_type} (${issue.node_id}) ${issue.message}`
+          );
+        }
+
+        if (opts.output) {
+          const { writeFile } = await import("node:fs/promises");
+          await writeFile(opts.output, script.code, "utf8");
+          console.log(opts.output);
+          return;
+        }
+
+        console.log(script.code);
+      } catch (e) {
+        printCommandError(e);
+        process.exit(1);
+      }
+    }
+  );
 
 workflows
   .command("export-dsl <workflow_id_or_file>")
@@ -1666,8 +1728,10 @@ mcp
 // package
 // ---------------------------------------------------------------------------
 
+registerProjectCommands(program);
 registerPackageCommands(program);
 registerPackCommands(program);
+registerRuntimeCommands(program);
 registerWorkerCommands(program);
 
 // Any command that opens a remote Python bridge keeps the attached worker's

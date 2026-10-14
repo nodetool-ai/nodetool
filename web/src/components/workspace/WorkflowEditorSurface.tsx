@@ -619,7 +619,11 @@ const WorkflowEditorSurface = ({
                     mounted underneath so returning to it keeps its viewport. */}
                 {activeSubgraph && !showChain && (
                   <div style={{ position: "absolute", inset: 0 }}>
-                    <SubgraphTabContent tab={activeSubgraph} active={active} />
+                    <SubgraphTabContent
+                      key={activeSubgraph.key}
+                      tab={activeSubgraph}
+                      active={active}
+                    />
                   </div>
                 )}
                 {showChain && (

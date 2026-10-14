@@ -74,7 +74,7 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
               <Chip label="Popular" compact color="primary" variant="outlined" />
             )}
             {engine && (
-              <Tooltip title={engine.description} delay={400}>
+              <Tooltip title={engine.description}>
                 <Chip label={engine.name} compact variant="outlined" />
               </Tooltip>
             )}
@@ -102,7 +102,6 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
             label={FIT_LABELS[fit]}
             compact
             color={FIT_COLOR[fit]}
-            variant={fit === "unknown" ? "outlined" : "filled"}
           />
           {downloaded ? (
             <FlexRow gap={SPACING.micro} align="center">
@@ -119,7 +118,7 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
               variant={fit === "over" ? "outlined" : "contained"}
               density="compact"
               size="small"
-              startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
+              startIcon={<DownloadIcon />}
               onClick={handleDownload}
             >
               Download

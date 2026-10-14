@@ -29,6 +29,18 @@ import type {
 import type { StoryboardDocument } from "../document.js";
 import type { ShotRenderPlan } from "../render-plan.js";
 
+/** The generation request body the renderer builds for one shot. */
+type RenderParams = {
+  prompt: string;
+  entities: ShotRenderPlan["entities"];
+  aspect_ratio: string;
+  resolution: string;
+  duration_seconds?: number;
+  image?: Uint8Array;
+  images?: Uint8Array[];
+  reference_images?: Array<Uint8Array | null | undefined>;
+};
+
 /** The provider call a plan turns into. */
 export interface RenderGenerationRequest {
   /** Minted by the caller of `runGeneration`, so a background caller has it early. */
@@ -41,7 +53,7 @@ export interface RenderGenerationRequest {
     | "reference_to_video"
     | "text_to_video";
   model: string;
-  params: Record<string, unknown>;
+  params: RenderParams;
   /** Save the result as an asset: the board can only reference persisted media. */
   persist: { name: string; mime?: string };
   /** Server-side destination retained if the caller disappears before attach. */
@@ -123,18 +135,6 @@ export interface ShotRenderOutcome {
   status?: string;
   error?: string;
 }
-
-/** The generation request body the renderer builds for one shot. */
-type RenderParams = {
-  prompt: string;
-  entities: ShotRenderPlan["entities"];
-  aspect_ratio: string;
-  resolution: string;
-  duration_seconds?: number;
-  image?: Uint8Array;
-  images?: Uint8Array[];
-  reference_images?: Array<Uint8Array | null | undefined>;
-};
 
 interface PatchError {
   error: string;

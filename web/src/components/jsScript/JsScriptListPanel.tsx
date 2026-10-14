@@ -1,8 +1,6 @@
-/** @jsxImportSource @emotion/react */
-import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useCreateJsScript, useJsScripts } from "../../hooks/jsScript/useJsScripts";
@@ -12,18 +10,11 @@ import {
   creationProjectId
 } from "../../stores/WorkspaceTabsStore";
 import { notifyMutationError } from "../../utils/notifyMutationError";
-import CategorySearchBar from "../node_menu/CategorySearchBar";
 import {
-  EmptyState,
-  FlexColumn,
-  FlexRow,
-  LoadingSpinner,
-  Text,
+  DocumentListPanel,
+  ListPanelItem,
   ToolbarIconButton,
-  Tooltip,
-  TruncatedText,
-  SPACING,
-  listPanelStyles
+  Tooltip
 } from "../ui_primitives";
 
 const DEFAULT_NAME = "Untitled JS script";
@@ -70,18 +61,25 @@ export const CreateJsScriptButton = memo(function CreateJsScriptButton() {
   );
 });
 
+interface JsScriptListPanelProps {
+  readonly projectId: string;
+}
+
+type JsScriptSummary = NonNullable<
+  ReturnType<typeof useJsScripts>["data"]
+>[number];
+
+const noop = () => {};
+
+const matchesDescription = (script: JsScriptSummary, needle: string) =>
+  script.description.toLowerCase().includes(needle);
+
 /**
  * The left-panel browser for JS script documents: filter, then open one as a
  * workspace tab. Deliberately thinner than ScriptListPanel — rename, duplicate
  * and delete arrive with the versions UI in a later pass.
  */
-interface JsScriptListPanelProps {
-  readonly projectId: string;
-}
-
 const JsScriptListPanel = ({ projectId }: JsScriptListPanelProps) => {
-  const theme = useTheme();
-  const [filterValue, setFilterValue] = useState("");
   const { data, isLoading, isError, error } = useJsScripts(projectId);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
@@ -92,21 +90,6 @@ const JsScriptListPanel = ({ projectId }: JsScriptListPanelProps) => {
   const activeScriptId = activeTabId?.startsWith("jsscript:")
     ? activeTabId.slice("jsscript:".length)
     : null;
-
-  const scripts = useMemo(() => {
-    const all = data ?? [];
-    const needle = filterValue.trim().toLowerCase();
-    const filtered = needle
-      ? all.filter(
-          (script) =>
-            script.name.toLowerCase().includes(needle) ||
-            script.description.toLowerCase().includes(needle)
-        )
-      : all;
-    return [...filtered].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
-  }, [data, filterValue]);
 
   const handleOpen = useCallback(
     (id: string, name: string) => {
@@ -126,81 +109,30 @@ const JsScriptListPanel = ({ projectId }: JsScriptListPanelProps) => {
   );
 
   return (
-    <FlexColumn fullHeight fullWidth gap={0} css={listPanelStyles(theme)}>
-      <div className="list-panel-search">
-        <CategorySearchBar
-          value={filterValue}
-          onChange={setFilterValue}
-          placeholder="Search JS scripts..."
+    <DocumentListPanel
+      singular="JS script"
+      plural="JS scripts"
+      documents={data}
+      isLoading={isLoading}
+      isError={isError}
+      errorMessage={error?.message}
+      emptyDescription="Create a new JS script with the + button above."
+      deleteTarget={null}
+      onCancelDelete={noop}
+      onConfirmDelete={noop}
+      matches={matchesDescription}
+      renderItem={(script) => (
+        <ListPanelItem
+          id={script.id}
+          name={script.name}
+          fallbackName={DEFAULT_NAME}
+          icon={DataObjectOutlinedIcon}
+          active={script.id === activeScriptId}
+          secondary={script.description || undefined}
+          onOpen={handleOpen}
         />
-      </div>
-
-      {isLoading ? (
-        <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1 }}>
-          <LoadingSpinner size="large" text="Loading JS scripts" />
-        </FlexColumn>
-      ) : isError ? (
-        <FlexColumn
-          gap={2}
-          justify="center"
-          align="center"
-          sx={{ flex: 1, px: 2 }}
-        >
-          <EmptyState
-            variant="error"
-            title="Could not load JS scripts"
-            description={error?.message ?? "Try again later."}
-          />
-        </FlexColumn>
-      ) : scripts.length === 0 ? (
-        <FlexColumn
-          gap={2}
-          justify="center"
-          align="center"
-          sx={{ flex: 1, px: 2 }}
-        >
-          <EmptyState
-            title={filterValue ? "No matching JS scripts" : "No JS scripts yet"}
-            description={
-              filterValue
-                ? "Try a different search term."
-                : "Create a new JS script with the + button above."
-            }
-          />
-        </FlexColumn>
-      ) : (
-        <FlexColumn className="list-panel-list" gap={SPACING.xs}>
-          {scripts.map((script) => (
-            <button
-              key={script.id}
-              type="button"
-              className={`list-panel-item ${
-                script.id === activeScriptId ? "active" : ""
-              }`}
-              onClick={() => handleOpen(script.id, script.name)}
-              aria-current={script.id === activeScriptId ? "page" : undefined}
-            >
-              <FlexRow align="center" gap={1} fullWidth>
-                <DataObjectOutlinedIcon className="list-panel-icon" />
-                <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
-                  <TruncatedText
-                    component="span"
-                    sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}
-                  >
-                    {script.name || DEFAULT_NAME}
-                  </TruncatedText>
-                  {script.description && (
-                    <Text size="small" color="secondary" truncate>
-                      {script.description}
-                    </Text>
-                  )}
-                </FlexColumn>
-              </FlexRow>
-            </button>
-          ))}
-        </FlexColumn>
       )}
-    </FlexColumn>
+    />
   );
 };
 

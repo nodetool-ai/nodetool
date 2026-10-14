@@ -414,7 +414,7 @@ import { BORDER_RADIUS } from "../ui_primitives";
 | `BORDER_RADIUS.xs` | `var(--rounded-xs)` | 2px | Tight insets, dense list items |
 | `BORDER_RADIUS.sm` | `var(--rounded-sm)` | 4px | Input fields, small cards |
 | `BORDER_RADIUS.md` | `var(--rounded-md)` | 6px | Buttons, controls (`controlRadius`) |
-| `BORDER_RADIUS.lg` | `var(--rounded-lg)` | 8px | Panels, menus (`menuRadius`) |
+| `BORDER_RADIUS.lg` | `var(--rounded-lg)` | 8px | Panels, menus (`menuPaperStyles`) |
 | `BORDER_RADIUS.xl` | `var(--rounded-xl)` | 12px | Cards, modals |
 | `BORDER_RADIUS.xxl` | `var(--rounded-xxl)` | 16px | Large surfaces |
 | `BORDER_RADIUS.circle` | `var(--rounded-circle)` | 50% | Avatars, circular icons |
@@ -490,7 +490,7 @@ iteration.
 
 | Token | Value | Use |
 |---|---|---|
-| `MOTION.spin` | `1s linear` | Continuous rotation (loading spinners) |
+| `MOTION.spin` | `1s linear` | Continuous rotation (flowing edges). Loading uses `LoadingSpinner` |
 | `MOTION.pulse` | `2s ease-in-out` | Breathing / pulsing status indicators |
 
 {% raw %}
@@ -700,8 +700,6 @@ const { editor } = useTheme();
 | `editor.padXInspector` | `10px` | Inspector horizontal control padding |
 | `editor.padYInspector` | `6px` | Inspector vertical control padding |
 | `editor.controlRadius` | `6px` | Border radius for controls inside the editor (`BORDER_RADIUS.md`) |
-| `editor.menuRadius` | `8px` | Border radius for menus inside the editor (`BORDER_RADIUS.lg`) |
-| `editor.menuShadow` | `0 10px 30px rgba(0,0,0,0.5)` | Node context menu drop-shadow |
 
 The `EditorUiProvider` with `scope="node"` applies `heightNode` density; `scope="inspector"` applies `heightInspector` density. Components that are density-aware read these via the provider context.
 
@@ -778,8 +776,120 @@ uppercase, `text.secondary`. A properties panel uses `InspectorSection`, which
 draws the same title (see [Properties panels](#11-properties-panels)). Omit `title` only when a tab strip above already
 names the panel, as in the agent panels.
 
-Dialogs are not panels. A dialog title uses `TYPOGRAPHY.sans.title`
-(18px / 600), which the `Dialog` primitive applies.
+### Docked panel groups
+
+An editor whose panels the user rearranges (the game editor) docks them in
+groups. Each group draws a `DockTabStrip` and its body. The tab names the
+panel, so the panel draws no title strip of its own: its first row is a
+toolbar of controls, or its content.
+
+| Part | Rule |
+|---|---|
+| Tab strip | `DOCK_TAB_HEIGHT` (`CONTROL.height.sm`, 28px), `background.default`, 1px `divider` below |
+| Tab | Icon and sentence-case title in `TYPOGRAPHY.sans.label`. The active tab sits on the panel surface (`background.paper`) with a 2px top accent, `primary.main` while focus is inside the group |
+| Close | Shown on the active, hovered or focused tab. Middle click and Delete close too. A panel that must stay open passes `closable: false` |
+| Group menu | One `ToolbarIconButton` at the end of the strip and the same menu on right click or Shift+F10: close, maximize, split, reorder, move to another dock, add a hidden panel |
+| Drag | A tab drags after 4px of travel. `DockDropOverlay` previews the drop: the center adds a tab, an edge splits the group. Escape cancels |
+| Panel toolbar | `CONTROL.height.md` (32px), `SPACING.sm` inset, controls right-aligned, 1px `divider` below. Omit it when the panel has no controls |
+
+### Dialogs
+
+Dialogs are not panels. Every modal dialog uses the `Dialog` primitive. It
+owns the shell, so a dialog only supplies a title, a body and its actions.
+
+```tsx
+import { Dialog, Text } from "../ui_primitives";
+
+<Dialog
+  open={open}
+  onClose={close}
+  title="Delete model?"
+  maxWidth="xs"
+  fullWidth
+  onConfirm={remove}
+  confirmText="Delete"
+  destructive
+  isLoading={removing}
+>
+  <Text size="small">Nodes that use this model stop working.</Text>
+</Dialog>
+```
+
+| Part | Rule |
+|---|---|
+| Shell | Paper background, 1px `divider` border, `theme.rounded.dialog` radius, glass backdrop. Do not restyle it through `slotProps`, `PaperProps` or `css`. Caller slot props merge onto the shell |
+| Width | `maxWidth="xs"`, `"sm"`, `"md"` or `"lg"` with `fullWidth`. No pixel `minWidth` |
+| Title | A sentence-case string in `title`, `TYPOGRAPHY.sans.title` (18px / 600). The close button appears when `onClose` is set. Header extras go in `titleActions` |
+| Body | Children render inside the padded content area. Never pass `DialogTitle`, `DialogContent` or `DialogActions` as children |
+| Footer | `onConfirm` with a verb in `confirmText`, plus `destructive`, `isLoading`, `confirmDisabled`. Other footers go in `actions` as a fragment of `Button`s: secondary `variant="text" color="inherit"`, the primary last with `variant="contained"` |
+| Destructive | Delete, remove, revoke and discard pass `destructive`. Their title is a question and the body states the consequence |
+| Feedback | Errors and warnings inside a dialog use `AlertBanner` |
+| Confirm only | `ConfirmDialog` for a title, a sentence and two buttons. Never `window.confirm` or `window.prompt` |
+| Fullscreen | Media viewers and reading views pass `variant="fullscreen"` |
+
+Full-screen editors with their own resize and history (the text, dataframe,
+sketch and compositor editors) are workspaces, not dialogs, and keep their own
+shells.
+
+### Menus
+
+Context menus, dropdown menus, the list under a select and popover menus share
+one surface and one row style. The theme applies them to every MUI `Menu` and
+`MenuItem` from
+[`menuStyles.ts`](../web/src/components/ui_primitives/menuStyles.ts), so a menu
+only supplies its rows.
+
+```tsx
+import { ContextMenu, MenuItemPrimitive } from "../ui_primitives";
+
+<ContextMenu open={open} position={position} onClose={close}>
+  <MenuItemPrimitive label="Rename" icon={<EditIcon />} shortcut="F2" onClick={rename} />
+  <MenuItemPrimitive label="Duplicate" icon={<ContentCopyIcon />} onClick={duplicate} />
+  <MenuItemPrimitive label="Delete" icon={<DeleteIcon />} color="error" dividerBefore onClick={remove} />
+</ContextMenu>
+```
+
+| Part | Rule |
+|---|---|
+| Menu | `ContextMenu` with `position` for a right-click menu or `anchorEl` for a dropdown. `EditorMenu` in node and editor UI. A select uses `SelectField`, `NodeSelect` or `InspectorSelect`, never a custom list |
+| Surface | `menuPaperStyles`: `Paper.overlay` background, 1px `divider` frame, `BORDER_RADIUS.lg`, `SHADOW(theme).lg`, 4px list padding. Do not restyle it through `paperSx`, `slotProps` or `PaperProps`. Those set size and overflow only |
+| Width | At least `MENU_MIN_WIDTH` (180px), which `ContextMenu` sets |
+| Row | `MenuItemPrimitive`: `TYPOGRAPHY.sans.label` (13px / 500), 28px tall, inset 4px from the frame with `BORDER_RADIUS.sm`. One density. There is no compact or dense row |
+| States | Hover and keyboard focus `action.hover`. A picked option `action.selected`, not primary text |
+| Label | Sentence case, a verb or the option name: "Delete node", "Add input node". An ellipsis only when the row opens a dialog that asks for more |
+| Icon | Optional, 16px, `text.secondary`, 8px before the label. If one row in a group has an icon, give the others one too |
+| Secondary line | `secondary`, in caption type and `text.secondary` |
+| Shortcut | `shortcut`, right-aligned in `TYPOGRAPHY.mono.caption` and `text.secondary` |
+| Submenu | `hasSubmenu` draws the chevron at the end of the row |
+| Choices | `checkable="radio"` for one option of a group: the picked row is `selected` and shows a check at the end. `checkable="checkbox"` for a toggle: a check shows when `checked`. Both set `role` and `aria-checked` |
+| Destructive | `color="error"` for delete and remove, last in the menu after a divider |
+| Groups | `Divider` between groups (4px above and below). A titled group uses `ListSubheader`, which the menu renders as `EYEBROW` in `text.secondary` on the label edge |
+| Disabled | `disabled`. Say why in `tooltip` when it is not obvious |
+| Popover menus | A popover that lists actions or options is a menu: build it with `ContextMenu` and `MenuItemPrimitive`. Keep `Popover` for content that is not a list of choices, such as a color picker or a form |
+
+Do not wrap a row in a `div` (it breaks arrow-key navigation), build a row
+from a button inside a `MenuItem`, or tint the hover with a raw color.
+
+### Panel composition
+
+Tokens fix the parts. These rules fix how a panel puts them together. The
+`Patterns/Panels` stories in Storybook (`web/src/stories/Panels.stories.tsx`)
+render each rule at a docked width of 360px. Check a new panel against them.
+
+| Rule | How |
+|---|---|
+| One field density per panel | A dense panel provides `FieldDensityContext` `"compact"` once at its root. Every `TextInput` and `SelectField` below it then shares one look: 13px control text, `CONTROL.height.sm`, the inspector field surface. Do not mix compact and normal fields in one panel. |
+| Words in sans, numbers in mono | Selects and text fields show words in sans. Only numeric and timecode values (`InspectorValueInput`) use mono. |
+| The subject outranks the sections | The name of the selected item is the strongest text in the panel. Section and group headers are muted: `text.secondary`, uppercase. |
+| Frequent before rare | Properties of the selection come first. Generative and destructive actions come after them, and a long generative section starts collapsed. |
+| An action shows its state | A disabled action says why below the button ("Write an instruction"). The cost of a paid action sits on the same line, with two decimals. |
+| Text areas start short | A multiline input starts at one row (`minRows={1}`) and grows with its content. |
+| Description stays with its label | A setting row puts the label and its description in one column beside the control (`LabeledSwitch`). |
+| Three text sizes | A dense panel uses `title` (18px) for the subject, `label` (13px) for labels, values and buttons, and `caption` (11px) for metadata, hints and group headers. `SearchInput` follows the field density too. |
+| One control height | Fields, selects, one-row text areas and actions are all `CONTROL.height.sm` (28px). Use `size="small"` buttons in a compact panel. |
+| One left edge | Labels, values, section titles and actions start on the content edge. A `CollapsibleSection` in a dense panel uses `iconPosition="end"`. |
+| Field rhythm | A label sits 4px above its field. Fields in a form are 12px apart (`gap={3}`), so each label reads with its own field. |
+| Tabs fit the panel | Small `TabGroup` tabs must all fit at 360px. Shorten the labels or drop the icons before the strip has to scroll. |
 
 ---
 
@@ -820,7 +930,261 @@ Do not restyle a `CollapsibleSection` header into a filled bar, a bright
 
 ---
 
-## 12. Migration Checklist
+## 12. Lists and grids
+
+A list shows rows: sidebar documents, workflows, assets, models, versions,
+threads. A grid shows tiles: assets, templates, examples, projects, setup
+choices, generated takes. Each shares one set of interaction states, from
+[`selectionStyles.ts`](../web/src/components/ui_primitives/selectionStyles.ts),
+so hover, selection and keyboard focus look the same everywhere.
+
+```tsx
+import { AutoGrid, selectableRowStyles, selectableTileStyles } from "../ui_primitives";
+
+<Box sx={(theme) => selectableRowStyles(theme, { selected })} />
+<AutoGrid minItemWidth={160}>
+  {items.map((item) => (
+    <Box key={item.id} component="button"
+      sx={(theme) => selectableTileStyles(theme, { selected: item.id === id })} />
+  ))}
+</AutoGrid>
+```
+
+| Part | Rule |
+|---|---|
+| Row states | `selectableRowStyles`: `action.hover` on hover, `action.selected` when picked, `BORDER_RADIUS.md` |
+| Tile states | `selectableTileStyles`: 1px `divider` frame, `BORDER_RADIUS.md`. Picked: `primary.main` frame plus a 1px ring. Hover: `action.hover` |
+| Focus | `focusRing`: 2px `primary.main`. Rows draw it inside (offset -2), because a scrolling list clips it. Tiles draw it outside (offset 2) |
+| Row title | `TYPOGRAPHY.sans.label` (13px / 500). A row's secondary line is `Caption` |
+| Tile title | `TYPOGRAPHY.sans.label`. Metadata under it is `Caption` |
+| Group headers | `EYEBROW` in `text.secondary`, left-aligned with the rows: date groups, providers, asset types, namespaces. `SectionHeader size="small"` renders it |
+| Grid | `AutoGrid`. It caps the minimum column at the container width, so one tile fits a narrow panel |
+| Long lists | `VirtualList` |
+| Media | `ResponsiveImage` with `preferThumbnail`, and `loading="lazy"` in a long list |
+| Empty, error, loading | `EmptyState` (with `variant="error"`) and `LoadingSpinner` |
+| Hover actions | `HoverActionGroup`, which also shows on keyboard focus |
+
+Do not use a raw `rgba(255, 255, 255, a)` hover, a primary-tinted selected row,
+a shadow or lift as the only hover cue, or a second selected treatment. The
+one exception is `SelectableListItem`, whose left bar marks a second,
+dashed state such as a comparison target in version history.
+
+---
+
+## 13. Forms
+
+A form collects input: the settings pages, workflow settings, collection and
+profile forms, and the fields inside dialogs and setup steps. Every field is
+built from `TextInput`, `SelectField` or `FormField`, so a label, a hint and an
+error look the same in every form.
+
+```tsx
+import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from "../ui_primitives";
+
+<FormSection label="Execution">
+  <SelectField label="Run mode" value={mode} onChange={setMode} options={MODES}
+    description="How the workflow starts" />
+  <TextInput label="Tool name" value={toolName} onChange={onToolName}
+    helperText="Letters, numbers and underscores" errorMessage={toolNameError} />
+  <FormField label="Workspace" helperText="Folder the agent can read">
+    <WorkspacePicker value={workspace} onChange={setWorkspace} />
+  </FormField>
+  <LabeledSwitch label="Autosave" description="Save after every change"
+    checked={autosave} onChange={setAutosave} />
+</FormSection>
+```
+
+| Part | Rule |
+|---|---|
+| Label | The `label` prop of `TextInput` or `SelectField`: `TYPOGRAPHY.sans.label` in `text.secondary`, 4px above the control. Any other control (a picker, slider, chip set) goes inside `FormField label`. Never a `Text`, `Caption` or `Label` placed beside the field. A field without a visible label still passes `label` with `hideLabel` |
+| One label | A labeled `FormField` already names its child. Do not also pass `label` to the `SelectField` or `TextInput` inside it, and do not wrap a `hideLabel` select in a `FormField` when the select can carry the label |
+| Hint | `helperText` on `TextInput` and `FormField`, `description` on `SelectField` and `LabeledSwitch`. Not a sibling `Caption` |
+| Error | A field error goes in `errorMessage` (`TextInput`) or `error` (`FormField`). An error about the whole form is an `AlertBanner` |
+| Rhythm | Fields are 12px apart: `FormSection`, or a column with `gap={SPACING.lg}` |
+| Groups | `FormSection label`: the `EYEBROW` style in `text.secondary`. `Label` names a field, never a group. No tinted or bordered box around a group of fields |
+| Booleans | `LabeledSwitch` with the explanation in `description`, not a bare `Switch` or `Checkbox` beside text |
+| Field chrome | Fields keep their primitive look. Do not override `.MuiOutlinedInput-*`, `.MuiInputBase-*`, `.MuiSelect-*` or `.MuiInputLabel-*` from a form's `css` or `sx`. A form may set a field's width only |
+| Variant | Outlined fields everywhere. A dense panel sets `FieldDensityContext` once (see [Panel composition](#panel-composition)) |
+| Text | Labels and options are sentence case ("Tool name", "Ask every time"). Acronyms keep their case ("API key", "ID") |
+
+---
+
+## 14. Controls
+
+Buttons, tooltips, notifications, chips, empty and loading states, tabs and the other small controls every surface shares.
+
+### Tooltips
+
+A tooltip names an icon button or explains a control. Every tooltip uses the
+`Tooltip` primitive or the `tooltip` prop of a button primitive
+(`ToolbarIconButton`, `EditorButton`, `CloseButton`), so it waits, looks and
+reads the same everywhere.
+
+```tsx
+import { EditorButton, Tooltip, ToolbarIconButton } from "../ui_primitives";
+
+<ToolbarIconButton icon={<UndoIcon />} tooltip="Undo" shortcut={["Ctrl", "Z"]} onClick={undo} />
+<EditorButton tooltip="Render a new still and pick its model" onClick={regenerate}>
+  New still
+</EditorButton>
+<Tooltip title="Previous match" shortcut={["Shift", "Enter"]} describeChild>
+  <button type="button" aria-label="Previous match" onClick={previous} />
+</Tooltip>
+```
+
+| Part | Rule |
+|---|---|
+| Delay | `TOOLTIP_ENTER_DELAY` (500ms) to open and `TOOLTIP_ENTER_NEXT_DELAY` (100ms) when another tooltip just closed. The theme sets both on every MUI Tooltip, so pass no delay. A long description that would get in the way of a pointer passing over passes `TOOLTIP_DESCRIPTION_DELAY` (1s) |
+| Surface | The theme's: scrim background, 1px `divider` frame, `TYPOGRAPHY.sans.label`, 300px wide at most, no arrow. Do not restyle it through `slotProps`. A rich preview (an image card under a mention chip) may clear the padding and background |
+| Text | Sentence case, no closing period: "Reload schema", "Toggle panel". A verb for an action, a noun for a value |
+| Shortcut | Pass `shortcut` and the tooltip draws the keys as a `ShortcutHint` below the title. Do not write "(Ctrl+Z)", "\| Esc" or "(X)" into the text |
+| Native `title` | Not on a button or other control. A native title ignores the delay and the theme and never shows on keyboard focus. Use `tooltip` on `EditorButton` or wrap the element in `Tooltip` |
+| Label or description | An icon-only button takes its name from its `aria-label` or the tooltip. A button with a visible label passes `describeChild` (built into `EditorButton tooltip`), so the tooltip describes the button instead of renaming it |
+| Disabled | A disabled button shows no tooltip unless it sits in a wrapper. `EditorButton tooltip` adds the wrapper. Say why the button is disabled when the reason is not obvious |
+| One per control | Never nest a `Tooltip` around a primitive that already has `tooltip` or `title` |
+
+### Notifications
+
+Transient feedback, such as a saved file, a failed render or a refused run,
+goes to one notification stack in the top right corner of the workspace. Post
+to it through the notification store. Never mount a `Snackbar` of your own.
+
+```tsx
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { useAlertNotifier } from "../../hooks/useAlertNotifier";
+
+const addNotification = useNotificationStore((s) => s.addNotification);
+addNotification({ type: "success", alert: true, content: "Imported Launch film" });
+
+// A failure from an action, in place of a local error state and its toast
+const reportError = useAlertNotifier("error");
+reportError(err instanceof Error ? err.message : "Failed to generate");
+```
+
+| Part | Rule |
+|---|---|
+| Surface | The stack that `node_editor/Alert` renders: `AlertBanner` rows, newest last, 440px wide at most, full width between gutters on a phone. An error carries a Copy control |
+| Type | `success` for a finished action, `info` for news, `warning` when the action ran but something is missing, `error` when it failed. Pass `alert: true` so the notification pops up and is not only added to the bell's list |
+| Text | One sentence, sentence case, saying what happened: "Imported Launch film", "Unlock a video track first." Name the thing, not the component |
+| Timeout | Leave `timeout` out. The store sizes it from the message length (3s to 12s). `0` keeps a notification until it is dismissed, and job completions use `NOTIFICATION_TIMEOUT_JOB_COMPLETED` |
+| Repeats | Pass a `dedupeKey` (with `replaceExisting` for a value that changes, such as progress) instead of stacking the same message |
+| Inline errors | An error about a form or a dialog stays inline as an `AlertBanner` in that surface, not in the stack |
+
+### Chips and pills
+
+A chip is a short tag, count or filter. Draw it with the `Chip` primitive. The
+theme's `MuiChip` override sets its height, radius, text and tone tints, so a
+call site picks props and adds only layout through `sx`, such as a margin or
+`flexShrink`.
+
+```tsx
+import { Chip } from "../ui_primitives";
+
+<Chip label="Installed" compact color="success" />
+<Chip label="Images" compact active={format === "image"} onClick={pickImages} />
+<Chip label={shot.slug} compact accent={BOARD_COLOR} onClick={openShot} />
+```
+
+| Part | Rule |
+|---|---|
+| Shape | Outlined pill, 28px tall, 24px with `compact`. Never set `height`, `borderRadius`, `fontSize` or label padding on a chip |
+| Tone | `color` picks a palette tone: text in the main colour, border at 50%, fill at 12%, as `StatusPill` draws it. A neutral chip is `text.secondary` on a `divider` border. A surface's own colour (a storyboard link, an entity kind, a type) goes in `accent`, never in `sx` |
+| Selected | A filter or toggle chip passes `active`. Selected takes its tone (primary when none is given) and unselected stays neutral. A clickable chip gets `aria-pressed` from it, so do not pass one |
+| Text | Sentence case, a few words. Values such as a type name or a hex colour may use `TYPOGRAPHY.mono.caption` |
+| Not a chip | A count or a value with no border is `Text`. A render state on a thumbnail is `StatusPill`. A command is a button, even when it is pill-shaped |
+| Hand-built | Do not build a pill from a `Box`, `span` or `button` with `BORDER_RADIUS.pill`. Use `Chip` with `icon` for a leading dot, spinner or icon |
+
+### Buttons
+
+A command is a button. Draw a text command with `EditorButton`, an icon-only
+command with `ToolbarIconButton`, and a close, delete, copy or similar action
+with its semantic button (`CloseButton`, `DeleteButton`, `CopyButton`). The
+theme's `MuiButton` override sets text size and icon size per button size, so
+a call site picks props and adds only layout through `sx`.
+
+```tsx
+import { CloseButton, EditorButton } from "../ui_primitives";
+
+<EditorButton variant="contained" onClick={install}>Install</EditorButton>
+<EditorButton variant="outlined" startIcon={<AddIcon />} onClick={add}>Add</EditorButton>
+<EditorButton variant="text" color="inherit" onClick={dismiss}>Dismiss</EditorButton>
+<CloseButton onClick={onClose} tooltip="Close documentation" />
+```
+
+| Part | Rule |
+|---|---|
+| Emphasis | `contained` for the one primary action in a view, `outlined` for secondary actions, `text` for tertiary ones such as Dismiss or Back. A muted tertiary action adds `color="inherit"` |
+| Size | `density` (24px compact, 28px normal) or `size` (28, 32, 36px). Never set `height`, `padding`, `borderRadius` or `fontSize` on a button |
+| Icons | `startIcon` and `endIcon` take a bare icon. The theme sizes it at 16, 18 or 20px for small, medium and large, so never pass `fontSize` to the icon |
+| Tooltip | Pass `tooltip` to the button instead of wrapping it in `Tooltip` |
+| Native button | Only for a tile, card or swatch whose whole surface is the hit target. It keeps a visible focus ring and `type="button"` |
+| Not a button | A tag or filter is a `Chip`. A command stays a button even when it is pill-shaped |
+
+### Empty, loading and tabs
+
+A panel or list with nothing to show draws `EmptyState`. A section that is
+still fetching draws `LoadingSpinner`. A row of views over one surface is
+`TabGroup` with a `TabPanel` per view.
+
+```tsx
+import { EmptyState, LoadingSpinner, TabGroup, TabPanel } from "../ui_primitives";
+
+<EmptyState size="small" title="No layers yet" description="Add one below." />
+<EmptyState size="small" variant="no-results" title="No matching nodes" />
+{isLoading && <LoadingSpinner size="small" />}
+<TabGroup tabs={tabs} value={view} onChange={setView} aria-label="Help sections" />
+```
+
+| Part | Rule |
+|---|---|
+| Size | `small` inside a list, menu panel or sidebar. `medium` fills a panel. `large` fills a page |
+| Text | The title says what is missing in a few words ("No runs yet"). A description says what to do next and is optional. A custom title shows no default description |
+| Icon | The variant picks a default. A passed `icon` takes the same size, so do not size it |
+| Search | A search or filter with no matches uses `variant="no-results"` |
+| Loading | Never bare "Loading…" text. A dropdown option may keep a disabled "Loading…" item |
+| Tabs | `TabGroup`, not raw `Tabs` and `Tab`. Workspace document tabs and the inspector's counted tabs are their own components |
+
+### Progress and generation status
+
+A wait shows one of five marks, picked by what the user is waiting on. Never
+draw a spinner, bar, sweep or rotating icon of your own.
+
+```tsx
+import {
+  LoadingSpinner, MagicGenerationFill, ProgressBar, StatusPill, ThinkingIndicator
+} from "../ui_primitives";
+
+<LoadingSpinner size="small" text="Loading versions" />
+<EditorButton startIcon={busy ? <LoadingSpinner inline size={16} color="inherit" /> : <SaveIcon />}>
+  {busy ? "Saving…" : "Save"}
+</EditorButton>
+<ProgressBar value={percent} label={file.name} size="small" />
+<ProgressBar value={0} progressVariant="indeterminate" showValue={false} size="small" accent={CLIP_COLOR} aria-label="Rendering clip" />
+<ThinkingIndicator label="Editing video" announce />
+{generating && <MagicGenerationFill borderRadius={BORDER_RADIUS.md} />}
+<StatusPill tone="rendering" accent={CLIP_COLOR}>rendering clip</StatusPill>
+```
+
+| Waiting on | Mark |
+|---|---|
+| A fetch, a save or a step with no measure | `LoadingSpinner`. `small` in a list, row or sidebar, `medium` to fill a panel, `large` to fill a page |
+| Work that reports progress, or a running job under its card | `ProgressBar`, determinate when a value exists and `progressVariant="indeterminate"` until then |
+| A model composing text, a plan or an edit | `ThinkingIndicator` with a label |
+| Media being generated | `MagicGenerationFill` over the media's frame, which needs `position: relative` |
+| The state of a render or a run, after or during it | `StatusPill` on a thumbnail or card, `StatusIndicator` (dot and label) in a list row |
+
+| Part | Rule |
+|---|---|
+| Inline spinner | A spinner that stands in for an icon passes `inline` and that icon's size: 14 beside caption text, in a chip or a step badge, 16 in a button. Inside a button or chip it passes `color="inherit"`. Never set `thickness` or restyle `.MuiCircularProgress-root` |
+| Step in progress | A running step in a plan, todo or timeline shows an inline `LoadingSpinner`, not a rotating `Autorenew` icon |
+| Bar size | `ProgressBar` is 6px on its own line and `size="small"` (4px) on a card edge or in a dense row. Never set its `height`, track colour or bar colour through `sx` |
+| Bar colour | Primary by default. A surface's own colour (a clip, a node namespace) goes in `accent`. A stalled transfer passes `color="warning"`. One colour per bar, no gradients |
+| Accessible name | A labelled `ProgressBar` takes its name from `label`. A bar with no visible label passes `aria-label`. A `ThinkingIndicator` that is the only sign of the wait passes `announce` |
+| Text | Sentence case. The `text` of `LoadingSpinner` and the `label` of `ThinkingIndicator` carry no ellipsis, because the mark already moves: "Loading models". A busy label written as text, on a button or in a caption, ends with one "…" character, never three dots: "Saving…", "Generating…" |
+
+---
+
+## 15. Migration Checklist
 
 When editing any UI file, scan for these violations and fix them in the same PR.
 
@@ -856,6 +1220,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 | `boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"` | `SHADOW(theme).lg` |
 | Raw `#hex` / `rgb()` color in sx | `theme.vars.palette.*` token |
 | `<Typography>` | `<Text>`, `<Label>`, or `<Caption>` |
+| `title=` on a button, `delay={...}` on a tooltip, "(Ctrl+Z)" in tooltip text | `tooltip` / `Tooltip` with `shortcut` and the default delay |
 | `display: "flex"` in sx | `<FlexRow>` or `<FlexColumn>` |
 | `overflow: "auto"` container | `<ScrollArea>` |
 | `textOverflow: "ellipsis"` | `<TruncatedText>` |
@@ -863,7 +1228,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 13. Adding New Tokens
+## 16. Adding New Tokens
 
 1. **Spacing**: Only add a new `SPACING.*` step if the existing nine steps genuinely cannot express the design intent. Justify in the PR. Update `spacing.ts`.
 2. **Typography**: Do not add a ninth type style. Any new text hierarchy must collapse onto one of the eight existing combinations.
@@ -875,7 +1240,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 14. Design Decisions and Tradeoffs
+## 17. Design Decisions and Tradeoffs
 
 Documented rationale for choices that differ from common defaults.
 

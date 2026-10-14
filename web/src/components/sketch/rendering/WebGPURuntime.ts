@@ -33,6 +33,7 @@ import {
   isLayerCompositeVisible,
   type Layer,
   type LayerContentBounds,
+  type LayerImageObjectFit,
   type Selection,
   type SketchDocument
 } from "../types";
@@ -1634,6 +1635,17 @@ export class WebGPURuntime implements SketchRuntime {
     return this.cpuRuntime.flattenVisible(doc);
   }
 
+  flattenToCanvas(doc: SketchDocument): HTMLCanvasElement | null {
+    return this.cpuRuntime.flattenToCanvas(doc);
+  }
+
+  renderLayerToCanvas(
+    doc: SketchDocument,
+    layerId: string
+  ): HTMLCanvasElement | null {
+    return this.cpuRuntime.renderLayerToCanvas(doc, layerId);
+  }
+
   // ─── SketchRuntime: Layer operations ─────────────────────────────────
   // All mutations go through the CPU runtime; we mark the layer dirty so
   // the next compositeToDisplay will re-upload.
@@ -1642,12 +1654,19 @@ export class WebGPURuntime implements SketchRuntime {
     layerId: string,
     data: string | null,
     bounds: LayerContentBounds,
-    onComplete?: () => void
+    onComplete?: () => void,
+    imageFit?: LayerImageObjectFit
   ): void {
-    this.cpuRuntime.setLayerData(layerId, data, bounds, () => {
-      this.markLayerDirty(layerId);
-      onComplete?.();
-    });
+    this.cpuRuntime.setLayerData(
+      layerId,
+      data,
+      bounds,
+      () => {
+        this.markLayerDirty(layerId);
+        onComplete?.();
+      },
+      imageFit
+    );
   }
 
   restoreLayerCanvas(layerId: string, source: HTMLCanvasElement): void {

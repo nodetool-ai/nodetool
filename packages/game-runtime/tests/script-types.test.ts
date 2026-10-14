@@ -3,12 +3,16 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import ts from "typescript";
+import { gameLoadCommand, gameSaveCommand } from "@nodetool-ai/protocol";
 import { GAME_SCRIPT_TYPES } from "../src/script-types.js";
+import { gameScriptLogCommand } from "../src/script-log.js";
 import { gameScriptCommand } from "../src/scripts.js";
 
 describe("game script editor types", () => {
   it("declares every runtime command kind", () => {
-    const runtime = gameScriptCommand.options.map((option) => option.shape.kind.value).sort();
+    // `log`, `save` and `load` are declared for authors but removed by the runner before commands reach the simulation.
+    const runtime = [...gameScriptCommand.options.map((option) => option.shape.kind.value), gameScriptLogCommand.shape.kind.value,
+      gameSaveCommand.shape.kind.value, gameLoadCommand.shape.kind.value].sort();
     const declared = [...GAME_SCRIPT_TYPES.matchAll(/kind: "([A-Za-z]+)"/g)].map((match) => match[1]).sort();
     expect(declared).toEqual(runtime);
   });
@@ -32,7 +36,8 @@ describe("schema-derived 3D script declarations", () => {
   it("includes every 3D command kind and checks shape command fields", async () => {
     const { gameScriptCommand3D } = await import("@nodetool-ai/protocol");
     const { GAME_SCRIPT_TYPES_3D } = await import("../src/script-types3d.js");
-    const runtime = gameScriptCommand3D.options.map((option) => option.shape.kind.value).sort();
+    const runtime = [...gameScriptCommand3D.options.map((option) => option.shape.kind.value), gameScriptLogCommand.shape.kind.value,
+      gameSaveCommand.shape.kind.value, gameLoadCommand.shape.kind.value].sort();
     const declared = [...GAME_SCRIPT_TYPES_3D.matchAll(/kind: "([A-Za-z]+)"/g)].map((match) => match[1]).filter((kind) => !["box", "sphere", "capsule"].includes(kind)).sort();
     expect(declared).toEqual(runtime);
     const directory = await mkdtemp(join(tmpdir(), "game-script-types3d-"));
@@ -49,6 +54,31 @@ describe("schema-derived 3D script declarations", () => {
       expect(diagnostics.some((diagnostic) => diagnostic.file?.fileName === invalid)).toBe(true);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
+});
+
+it("types 3D force commands and rejects incomplete or scalar vectors", async () => {
+  const { GAME_SCRIPT_TYPES_3D } = await import("../src/script-types3d.js");
+  const directory = await mkdtemp(join(tmpdir(), "game-force-editor-types-"));
+  try {
+    const types = join(directory, "game.d.ts");
+    const valid = join(directory, "valid.js");
+    const missingPoint = join(directory, "missing-point.js");
+    const scalarTorque = join(directory, "scalar-torque.js");
+    const wrongVector = join(directory, "wrong-vector.js");
+    await writeFile(types, GAME_SCRIPT_TYPES_3D);
+    await writeFile(valid, '/** @type {GameScript3D} */\ninput => ({state:input.state,commands:[{kind:"addForce",force:{x:1,y:2,z:3}},{kind:"addTorque",torque:{x:0,y:1,z:0}},{kind:"addForceAtPoint",force:{x:1,y:0,z:0},point:{x:0,y:1,z:0}}]})');
+    await writeFile(missingPoint, '/** @type {GameScript3D} */\ninput => ({state:input.state,commands:[{kind:"addForceAtPoint",force:{x:1,y:0,z:0}}]})');
+    await writeFile(scalarTorque, '/** @type {GameScript3D} */\ninput => ({state:input.state,commands:[{kind:"addTorque",torque:1}]})');
+    await writeFile(wrongVector, '/** @type {GameScript3D} */\ninput => ({state:input.state,commands:[{kind:"addForce",force:{x:1,y:0}}]})');
+    const program = ts.createProgram([types, valid, missingPoint, scalarTorque, wrongVector], {
+      allowJs: true, checkJs: true, noEmit: true, strict: true, skipLibCheck: true, target: ts.ScriptTarget.ES2020
+    });
+    const diagnostics = ts.getPreEmitDiagnostics(program);
+    expect(diagnostics.filter((diagnostic) => diagnostic.file?.fileName === valid)).toEqual([]);
+    for (const invalid of [missingPoint, scalarTorque, wrongVector]) {
+      expect(diagnostics.some((diagnostic) => diagnostic.file?.fileName === invalid)).toBe(true);
+    }
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
 it("requires setProp values in both dimension editor contracts", async () => {

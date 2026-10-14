@@ -32,17 +32,14 @@ const VideoProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {(props.nodeType === "nodetool.constant.Video" ||
-        props.nodeType === "nodetool.input.VideoInput") && (
-        <PropertyDropzone
-          asset={asset}
-          uri={uri}
-          onChange={props.onChange}
-          contentType="video"
-          props={props}
-          showRecorder={showRecorder}
-        />
-      )}
+      <PropertyDropzone
+        asset={asset}
+        uri={uri}
+        onChange={props.onChange}
+        contentType="video"
+        props={props}
+        showRecorder={showRecorder}
+      />
     </div>
   );
 };

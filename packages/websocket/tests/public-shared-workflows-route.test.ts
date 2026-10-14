@@ -81,6 +81,38 @@ describe("GET /api/shared-workflows/:token", () => {
     expect(body).not.toHaveProperty("id");
   });
 
+  it("blanks credential properties and keeps look-alike keys", async () => {
+    asMock(WorkflowShare.findByToken).mockResolvedValue(share("public"));
+    asMock(Workflow.get).mockResolvedValue({
+      id: "wf-1",
+      user_id: "owner-1",
+      name: "Bot",
+      description: null,
+      tags: [],
+      access: "private",
+      graph: {
+        nodes: [
+          {
+            id: "bot",
+            type: "messaging.telegram.TelegramBotTrigger",
+            data: { token: "123:secret", max_tokens: 512, author: "me" },
+            dynamic_properties: { worker_token: "wt", prompt: "hi" }
+          }
+        ],
+        edges: []
+      }
+    });
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/shared-workflows/tok_abc"
+    });
+
+    const node = res.json().graph.nodes[0];
+    expect(node.data).toEqual({ token: "", max_tokens: 512, author: "me" });
+    expect(node.dynamic_properties).toEqual({ worker_token: "", prompt: "hi" });
+  });
+
   it.each([
     ["a viewer token", share("viewer")],
     ["an editor token", share("editor")],

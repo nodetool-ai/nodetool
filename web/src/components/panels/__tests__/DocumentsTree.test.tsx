@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -19,6 +19,16 @@ jest.mock("../../../hooks/useDocumentTreeData", () => ({
 const mockDeleteMutate = jest.fn();
 jest.mock("../../../serverState/useDeleteDocument", () => ({
   useDeleteDocument: () => ({ mutate: mockDeleteMutate })
+}));
+
+const mockDuplicateWorkflow = jest.fn(() => Promise.resolve());
+jest.mock("../../../hooks/useDuplicateWorkflowDocument", () => ({
+  useDuplicateWorkflowDocument: () => mockDuplicateWorkflow
+}));
+
+const mockRenameDocument = jest.fn(() => Promise.resolve());
+jest.mock("../../../hooks/useRenameDocument", () => ({
+  useRenameDocument: () => mockRenameDocument
 }));
 
 jest.mock("../../../hooks/useOpenApplication", () => ({
@@ -259,4 +269,133 @@ it("points an empty project at the Library, where text files are listed", () => 
 
   expect(screen.getByText("No documents yet")).toBeInTheDocument();
   expect(screen.getByText(/Text files and uploads are in the Library/)).toBeInTheDocument();
+});
+
+it("duplicates a workflow from its row and offers no duplicate for other kinds", async () => {
+  const user = userEvent.setup();
+  renderTree();
+
+  await user.click(
+    screen.getByRole("button", { name: "Duplicate Campaign Generator" })
+  );
+
+  expect(mockDuplicateWorkflow).toHaveBeenCalledWith("workflow-1", [
+    "Campaign Generator"
+  ]);
+  expect(
+    screen.queryByRole("button", { name: "Duplicate Normalize Brief" })
+  ).not.toBeInTheDocument();
+});
+
+it("renames a workflow inline from its row with Enter", async () => {
+  const user = userEvent.setup();
+  renderTree();
+
+  await user.click(
+    screen.getByRole("button", { name: "Rename Campaign Generator" })
+  );
+  const input = screen.getByRole("textbox", {
+    name: "Rename Campaign Generator"
+  });
+  await waitFor(() => expect(input).toHaveFocus());
+  await user.clear(input);
+  await user.type(input, "Launch Generator{Enter}");
+
+  expect(mockRenameDocument).toHaveBeenCalledWith(
+    {
+      type: "workflow",
+      ref: "workflow-1",
+      currentName: "Campaign Generator"
+    },
+    "Launch Generator"
+  );
+  expect(mockOpenTab).not.toHaveBeenCalled();
+});
+
+it("renames a JS script and cancels a rename with Escape", async () => {
+  const user = userEvent.setup();
+  renderTree();
+
+  await user.click(screen.getByRole("button", { name: "Rename Normalize Brief" }));
+  let input = screen.getByRole("textbox", { name: "Rename Normalize Brief" });
+  await waitFor(() => expect(input).toHaveFocus());
+  await user.type(input, " v2{Escape}");
+  expect(mockRenameDocument).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("treeitem", { name: /^Normalize Brief JS script$/ })
+  ).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Rename Normalize Brief" }));
+  input = screen.getByRole("textbox", { name: "Rename Normalize Brief" });
+  await waitFor(() => expect(input).toHaveFocus());
+  await user.type(input, "{End} v2{Enter}");
+  expect(mockRenameDocument).toHaveBeenCalledWith(
+    { type: "jsscript", ref: "js-1", currentName: "Normalize Brief" },
+    "Normalize Brief v2"
+  );
+});
+
+it("offers no rename for an entity", () => {
+  mockUseDocumentTreeData.mockReturnValue({
+    ...data,
+    groups: [
+      {
+        id: "creative",
+        label: "Creative documents",
+        children: [
+          {
+            id: "entity-1",
+            name: "Mara",
+            type: "entity",
+            typeLabel: "Entity",
+            projectId: "project-a"
+          }
+        ]
+      }
+    ]
+  });
+  renderTree();
+  expect(screen.getByRole("button", { name: "Delete Mara" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Rename Mara" })).toBeNull();
+  fireEvent.contextMenu(
+    screen.getByRole("treeitem", { name: /^Mara Entity$/ })
+  );
+  expect(screen.queryByRole("menuitem", { name: "Rename" })).toBeNull();
+});
+
+it("renames a row from its right-click menu", async () => {
+  const user = userEvent.setup();
+  renderTree();
+
+  fireEvent.contextMenu(
+    screen.getByRole("treeitem", { name: /^Campaign Generator Workflow$/ }),
+    { clientX: 20, clientY: 20 }
+  );
+  await user.click(await screen.findByRole("menuitem", { name: "Rename" }));
+  const input = await screen.findByRole("textbox", {
+    name: "Rename Campaign Generator"
+  });
+  await waitFor(() => expect(input).toHaveFocus());
+  await user.clear(input);
+  await user.type(input, "Menu name{Enter}");
+
+  expect(mockRenameDocument).toHaveBeenCalledWith(
+    {
+      type: "workflow",
+      ref: "workflow-1",
+      currentName: "Campaign Generator"
+    },
+    "Menu name"
+  );
+  expect(mockOpenTab).not.toHaveBeenCalled();
+});
+
+it("opens the row menu without a pointer position, as Shift+F10 does", async () => {
+  renderTree();
+  fireEvent.contextMenu(
+    screen.getByRole("treeitem", { name: /^Normalize Brief JS script$/ })
+  );
+  expect(
+    await screen.findByRole("menuitem", { name: "Rename" })
+  ).toBeInTheDocument();
 });

@@ -7,6 +7,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, MOTION, Z_INDEX } from "../ui_primitives";
 import { memo, useMemo } from "react";
+import { useUndoGroup } from "../../hooks/useUndoGroup";
 import MediaAspectResizeControl, {
   type ResizeCorner
 } from "./MediaAspectResizeControl";
@@ -86,6 +87,7 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = memo(function NodeResi
 }) {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
+  const resizeUndoGroup = useUndoGroup();
 
   if (contentAware && nodeId) {
     return (
@@ -110,6 +112,8 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = memo(function NodeResi
         minWidth={minWidth}
         minHeight={minHeight}
         onResize={onResize}
+        onResizeStart={resizeUndoGroup.begin}
+        onResizeEnd={resizeUndoGroup.end}
         keepAspectRatio={keepAspectRatio}
         // The handle box clips the control, so inverse-zoom scaling only crops
         // a larger arrow, yet it re-renders every node's handle per zoom step.

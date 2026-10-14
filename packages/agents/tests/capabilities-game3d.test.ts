@@ -108,6 +108,24 @@ describe("native game tools in 3D", () => {
     expect(JSON.stringify(outline)).toContain("\"collisionMatrix\":[[\"debris\",\"world\"]]");
   });
 
+  it("declares physics materials and points colliders at them through edit_native_game", async () => {
+    const { run } = await agent();
+    const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Materials", dimension: "3d" }));
+    const missing = readRecord(await run.invoke("edit_native_game", { game_id: created.document.id,
+      ops: [{ op: "update_entity", entity_id: "crate", set: { collider3d: { physicsMaterial: "rubber" } } }] }));
+    expect(JSON.stringify(missing)).toContain("Physics material rubber is not declared");
+    const edited = replyDocument(await run.invoke("edit_native_game", { game_id: created.document.id, ops: [
+      { op: "set_game", physics_materials: { rubber: { restitution: 0.85, restitutionCombine: "max" } } },
+      { op: "update_entity", entity_id: "crate", set: { collider3d: { physicsMaterial: "rubber" } } }
+    ] }));
+    if (edited.document.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
+    expect(edited.document.physicsMaterials).toEqual({ rubber: { friction: 0.5, restitution: 0.85, frictionCombine: "average", restitutionCombine: "max" } });
+    expect(edited.document.scenes[0].entities.find((entity) => entity.id === "crate")?.collider3d).toMatchObject({ physicsMaterial: "rubber", friction: 0.5, restitution: 0 });
+    const outline = JSON.stringify(readRecord(await run.invoke("get_native_game", { game_id: created.document.id })));
+    expect(outline).toContain("\"physicsMaterials\":{\"rubber\"");
+    expect(outline).toContain("\"physicsMaterial\":\"rubber\"");
+  });
+
   it("stores and removes a document animation graph through edit_native_game", async () => {
     const { run } = await agent();
     const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Locomotion", dimension: "3d" }));
@@ -123,6 +141,25 @@ describe("native game tools in 3D", () => {
       ops: [{ op: "remove_animation_graph", graph_id: "locomotion" }] }));
     if (removed.document.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
     expect(removed.document.animationGraphs).toBeUndefined();
+  });
+
+  it("sets and clears a 3D HUD widget tree through edit_native_game", async () => {
+    const { run } = await agent();
+    const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "HUD", dimension: "3d" }));
+    const ui = { nodes: [
+      { kind: "panel", id: "scorePanel", anchor: { x: 1, y: 0 }, width: 140, height: 40 },
+      { kind: "text", id: "score", parent: "scorePanel", anchor: { x: 0.5, y: 0.5 }, text: "Score 0" },
+      { kind: "button", id: "jumpButton", anchor: { x: 0.5, y: 1 }, width: 112, height: 40, action: "jump", text: "Jump" }
+    ] };
+    const edited = replyDocument(await run.invoke("edit_native_game", { game_id: created.document.id, ops: [{ op: "set_ui", ui }] }));
+    if (edited.document.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
+    expect(edited.document.ui).toEqual(ui);
+    expect(JSON.stringify(await run.invoke("edit_native_game", { game_id: created.document.id,
+      ops: [{ op: "set_ui", scene_id: edited.document.scenes[0].id, ui: { nodes: [{ kind: "button", id: "fly", action: "fly", width: 4, height: 4 }] } }] })))
+      .toContain("HUD button fly presses undeclared input action fly");
+    const cleared = replyDocument(await run.invoke("edit_native_game", { game_id: created.document.id, ops: [{ op: "set_ui", ui: null }] }));
+    if (cleared.document.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
+    expect(cleared.document.ui).toBeUndefined();
   });
 
   it("consumes analog input and restores the same physics/script snapshot hash", async () => {

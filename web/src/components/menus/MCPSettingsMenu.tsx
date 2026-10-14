@@ -15,7 +15,8 @@ import {
   FlexColumn,
   NavButton,
   getSpacingPx,
-  SPACING
+  SPACING,
+  LoadingSpinner
 } from "../ui_primitives";
 import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -198,7 +199,7 @@ const MCPSettingsMenu = () => {
           workflows, media generation, assets, nodes, and collections as tools.
         </Text>
 
-        {isLoading && <Text sx={{ padding: getSpacingPx(SPACING.xl) }}>Loading…</Text>}
+        {isLoading && <LoadingSpinner size="small" />}
 
         {data && (
           <>

@@ -21,6 +21,7 @@ import { useAssetMentionSearch } from "../../node_types/editing/promptComposer/u
 import EntityPicker from "../../entities/EntityPicker";
 import { TYPE_COLOR, TYPE_GLYPH } from "../../workspace/tabTypeIdentity";
 import {
+  AlertBanner,
   Box,
   Caption,
   Card,
@@ -157,7 +158,7 @@ const DocumentsTab: React.FC<{
     return <LoadingSpinner size="small" text="Loading documents" />;
   }
   if (error) {
-    return <Caption color="error">{error.message}</Caption>;
+    return <AlertBanner severity="error">{error.message}</AlertBanner>;
   }
   if (documents.length === 0) {
     return (

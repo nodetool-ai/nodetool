@@ -20,16 +20,20 @@ import {
   getCategoryForWorkflow
 } from "../../utils/templateCategories";
 import {
+  AutoGrid,
   EmptyState,
   LoadingSpinner,
-  MOTION,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  TYPOGRAPHY,
+  getSpacingPx,
+  selectableTileStyles,
+  Tooltip,
+  Chip
 } from "../ui_primitives";
 import {
   useSectionWrap,
-  SectionHeader,
+  DashboardSectionHeader,
   DashboardSearchBox,
   SectionLink
 } from "./dashboardChrome";
@@ -37,6 +41,7 @@ import {
   CompatibilityDetails,
   getWorkflowCompatibility
 } from "./entryCompatibility";
+import ExampleNeedsPill from "./ExampleNeedsPill";
 
 /** Rows shown on the dashboard before the user searches or opens the Examples tab. */
 const MAX_VISIBLE = 18;
@@ -53,27 +58,6 @@ const styles = (theme: Theme) =>
       gap: getSpacingPx(SPACING.micro),
       paddingBottom: getSpacingPx(SPACING.sm)
     },
-    ".cat": {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.xs),
-      height: 26,
-      padding: `0 ${getSpacingPx(SPACING.sm)}`,
-      background: theme.vars.palette.c_node_bg,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.pill,
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeSmaller)",
-      cursor: "pointer",
-      transition: `background ${MOTION.fast}, color ${MOTION.fast}, border-color ${MOTION.fast}`,
-      "&:hover": { color: theme.vars.palette.text.primary },
-      // Neutral "All" active state; category pills override colours inline.
-      "&.on": {
-        background: theme.vars.palette.c_node_bg_group,
-        borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
-        color: theme.vars.palette.text.primary
-      }
-    },
     ".cat-dot": {
       width: 7,
       height: 7,
@@ -81,12 +65,10 @@ const styles = (theme: Theme) =>
       flexShrink: 0
     },
     ".tpl-list": {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))",
-      gap: getSpacingPx(SPACING.md),
       paddingBottom: getSpacingPx(SPACING.sm)
     },
     ".tpl-row": {
+      ...selectableTileStyles(theme),
       display: "flex",
       flexDirection: "column",
       alignItems: "stretch",
@@ -94,15 +76,9 @@ const styles = (theme: Theme) =>
       textAlign: "left",
       padding: 0,
       background: theme.vars.palette.c_node_bg,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.lg,
+      color: "inherit",
       cursor: "pointer",
       overflow: "hidden",
-      transition: `border-color ${MOTION.fast}, background ${MOTION.fast}`,
-      "&:hover": {
-        borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
-        background: theme.vars.palette.action.hover
-      },
       "&.loading": { cursor: "wait", pointerEvents: "none" }
     },
     ".tpl-icon": {
@@ -122,14 +98,14 @@ const styles = (theme: Theme) =>
     },
     ".tpl-title": {
       display: "block",
-      fontSize: "var(--fontSizeNormal)",
+      ...TYPOGRAPHY.sans.label,
       color: theme.vars.palette.text.primary,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
     ".tpl-desc": {
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.sans.caption,
       color: theme.vars.palette.text.secondary,
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -151,9 +127,7 @@ const styles = (theme: Theme) =>
       display: "grid",
       gap: getSpacingPx(SPACING.micro),
       paddingTop: getSpacingPx(SPACING.xs),
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
-      lineHeight: 1.4,
+      ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.text.disabled,
       "& .entry-compat": {
         display: "grid",
@@ -166,16 +140,14 @@ const styles = (theme: Theme) =>
       alignSelf: "flex-start",
       alignItems: "center",
       gap: getSpacingPx(SPACING.xs),
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.text.disabled
     },
     ".tpl-loading, .tpl-empty": {
       display: "flex",
       justifyContent: "center",
       padding: `${getSpacingPx(SPACING.xxl)} 0`,
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeNormal)"
+      color: theme.vars.palette.text.secondary
     }
   });
 
@@ -251,52 +223,54 @@ const TemplateRow = memo(function TemplateRow({
   );
 
   return (
-    <button
-      type="button"
-      className={isLoading ? "tpl-row loading" : "tpl-row"}
-      title={workflow.description || workflow.name}
-      onClick={() => onClick(workflow)}
-    >
-      <span
-        className="tpl-icon"
-        aria-hidden
-        style={
-          category && (!thumbUrl || thumbFailed)
-            ? { background: `${category.color}24`, color: category.color }
-            : undefined
-        }
+    <Tooltip title={workflow.description || workflow.name} describeChild>
+      <button
+        type="button"
+        className={isLoading ? "tpl-row loading" : "tpl-row"}
+        onClick={() => onClick(workflow)}
       >
-        {isLoading ? (
-          <LoadingSpinner size="small" />
-        ) : !thumbUrl || thumbFailed ? (
-          <span className="tpl-glyph">{templateGlyph}</span>
-        ) : (
-          <img
-            className="tpl-thumb"
-            src={thumbUrl}
-            alt=""
-            loading="lazy"
-            onError={() => setThumbFailed(true)}
-          />
-        )}
-      </span>
-      <span className="tpl-copy">
-        <span className="tpl-title">{workflow.name}</span>
-        <span className="tpl-desc">{workflow.description}</span>
-        <span className="tpl-compat">
-          <CompatibilityDetails compatibility={compatibility} />
-          {workflow.graph.nodes.length > 0 && (
-            <span>{formatTemplateCost(costEstimate)}</span>
+        <span
+          className="tpl-icon"
+          aria-hidden
+          style={
+            category && (!thumbUrl || thumbFailed)
+              ? { background: `${category.color}24`, color: category.color }
+              : undefined
+          }
+        >
+          {isLoading ? (
+            <LoadingSpinner size="small" />
+          ) : !thumbUrl || thumbFailed ? (
+            <span className="tpl-glyph">{templateGlyph}</span>
+          ) : (
+            <img
+              className="tpl-thumb"
+              src={thumbUrl}
+              alt=""
+              loading="lazy"
+              onError={() => setThumbFailed(true)}
+            />
           )}
         </span>
-        {category && (
-          <span className="tpl-cat">
-            <span className="cat-dot" style={{ background: category.color }} />
-            {category.label}
+        <span className="tpl-copy">
+          <span className="tpl-title">{workflow.name}</span>
+          <span className="tpl-desc">{workflow.description}</span>
+          <ExampleNeedsPill needs={workflow.needs} />
+          <span className="tpl-compat">
+            <CompatibilityDetails compatibility={compatibility} />
+            {workflow.graph.nodes.length > 0 && (
+              <span>{formatTemplateCost(costEstimate)}</span>
+            )}
           </span>
-        )}
-      </span>
-    </button>
+          {category && (
+            <span className="tpl-cat">
+              <span className="cat-dot" style={{ background: category.color }} />
+              {category.label}
+            </span>
+          )}
+        </span>
+      </button>
+    </Tooltip>
   );
 });
 
@@ -376,7 +350,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
       css={fullPage ? [styles(theme), fullPageStyles] : styles(theme)}
     >
       <div css={sectionWrap}>
-        <SectionHeader title="Start from a template" count={countLabel}>
+        <DashboardSectionHeader title="Start from a template" count={countLabel}>
           <DashboardSearchBox
             ref={searchRef}
             value={query}
@@ -390,39 +364,29 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
               Browse all
             </SectionLink>
           )}
-        </SectionHeader>
+        </DashboardSectionHeader>
 
         <div className="cats" role="group" aria-label="Filter by category">
-          <button
-            type="button"
-            className={`cat${category === "all" ? " on" : ""}`}
-            aria-pressed={category === "all"}
+          <Chip
+            compact
+            label="All"
+            active={category === "all"}
             onClick={() => setCategory("all")}
-          >
-            All
-          </button>
+          />
           {TOP_CATEGORIES.map((cat) => {
             const active = category === cat.id;
             return (
-              <button
+              <Chip
                 key={cat.id}
-                type="button"
-                className={`cat${active ? " on" : ""}`}
-                aria-pressed={active}
-                onClick={() => setCategory(cat.id)}
-                style={
-                  active
-                    ? {
-                        background: `${cat.color}24`,
-                        borderColor: `${cat.color}73`,
-                        color: cat.color
-                      }
-                    : undefined
+                compact
+                label={cat.label}
+                icon={
+                  <span className="cat-dot" style={{ background: cat.color }} />
                 }
-              >
-                <span className="cat-dot" style={{ background: cat.color }} />
-                {cat.label}
-              </button>
+                active={active}
+                accent={active ? cat.color : undefined}
+                onClick={() => setCategory(cat.id)}
+              />
             );
           })}
         </div>
@@ -467,7 +431,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
             )}
           </div>
         ) : (
-          <div className="tpl-list">
+          <AutoGrid minItemWidth={220} className="tpl-list">
             {visible.map((workflow: Workflow) => (
               <TemplateRow
                 key={workflow.id}
@@ -477,7 +441,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
                 onClick={handleExampleClick}
               />
             ))}
-          </div>
+          </AutoGrid>
         )}
       </div>
     </section>

@@ -21,6 +21,7 @@
  *   <out>/package.json        — { "type": "module" }
  *   <out>/js-sandbox-worker/worker-entry.js
  *                             — QuickJS sandbox worker thread entry
+ *   <out>/native-host-bin.js  — Chrome extension native messaging host
  *   <out>/db-migrate.mjs      — bundled migration runner (--with-migrate only)
  */
 
@@ -44,6 +45,14 @@ const ENTRY_POINT = path.join(
   "websocket",
   "dist",
   "server.js"
+);
+const NATIVE_HOST_ENTRY_POINT = path.join(
+  ROOT_DIR,
+  "packages",
+  "browser",
+  "dist",
+  "extension",
+  "native-host-bin.js"
 );
 const MIGRATE_ENTRY_POINT = path.join(__dirname, "db-migrate.mjs");
 const SANDBOX_WORKER_ENTRY_POINT = path.join(
@@ -175,7 +184,10 @@ const COMMON_EXTERNAL_PACKAGES = [
   // esbuild cannot see, so nothing stages it implicitly.
   "@huggingface/inference",
 
-  // Telemetry (conditionally loaded)
+  // Telemetry (conditionally loaded). `api` is a peer dependency of the staged
+  // OpenTelemetry packages, so the walk over `dependencies` never reaches it;
+  // staging it also keeps one copy shared by server.mjs and those packages.
+  "@opentelemetry/api",
   "@opentelemetry/sdk-node",
   "@opentelemetry/resources",
   "@opentelemetry/sdk-trace-base",
@@ -230,6 +242,12 @@ const SERVER_OPTIONAL_PACKAGES = [
   // email-imap
   "imapflow",
   "mailparser",
+  // tokenizer
+  "js-tiktoken",
+  // headless Chromium driver: RenderTimeline (packages/video-nodes
+  // browserRender.ts) and 3D game capture (packages/game-renderer node3d.ts).
+  // The image's Chromium is /usr/bin/chromium, through CHROME_PATH.
+  "playwright",
 ];
 
 const EXTERNAL_PACKAGES =
@@ -246,10 +264,8 @@ const ESBUILD_ONLY_EXTERNAL_PACKAGES = [
   // unzipper requires this only inside its optional S3 source adapter but
   // does not declare it. Keep the optional branch unresolved unless used.
   "@aws-sdk/client-s3",
-  // 3D game capture (packages/game-renderer/src/node3d.ts). The desktop app
-  // installs it through the Package Manager, and the Docker image ships no
-  // browser automation runtime.
-  "playwright",
+  // Playwright's engine. `playwright` itself is an optional runtime package
+  // (below), and its own install brings this one.
   "playwright-core",
   // Optional runtime packages, installed on demand (see above). pdf-parse
   // must never be inlined: it hoisted `pdfjs-dist/legacy/build/pdf.mjs` into
@@ -1068,6 +1084,36 @@ async function buildSandboxWorkerBundle() {
 }
 
 /**
+ * Bundle the Chrome extension's native messaging host into
+ * <out>/native-host-bin.js.
+ *
+ * Chrome launches the host as its own process, so it cannot live inside
+ * server.mjs. `installNativeHost` looks for it next to its own
+ * import.meta.url, which in the packaged app is server.mjs, so the file name
+ * and location are part of the contract. The host uses only Node built-ins.
+ */
+async function buildNativeHostBundle() {
+  console.log("\nBundling native messaging host (native-host-bin.js)...");
+  if (!fs.existsSync(NATIVE_HOST_ENTRY_POINT)) {
+    throw new Error(
+      `Native host entry point not found: ${NATIVE_HOST_ENTRY_POINT}\n` +
+        "Run 'npm run build:packages' first."
+    );
+  }
+  await esbuild.build({
+    entryPoints: [NATIVE_HOST_ENTRY_POINT],
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node20",
+    outfile: path.join(BUNDLE_DIR, "native-host-bin.js"),
+    sourcemap: "external",
+    logLevel: "warning",
+  });
+  console.log("  Wrote native-host-bin.js");
+}
+
+/**
  * Install the optional runtime packages into `<out>/optional-node` for the
  * server profile, at the versions the workspace resolved. npm lays them out
  * nested, so each keeps the transitive versions it was published against.
@@ -1499,6 +1545,7 @@ async function main() {
   // --- Sandbox worker entry (always: the sandbox falls back to running
   //     in-process without it, which blocks the event loop for a whole run) ---
   await buildSandboxWorkerBundle();
+  await buildNativeHostBundle();
 
   // --- Migration runner entry (opt-in) ---
   if (OPTIONS.withMigrate) {

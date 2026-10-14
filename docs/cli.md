@@ -154,6 +154,32 @@ nodetool workflows export-dsl workflow_abc123 -o workflow.ts
 nodetool workflows export-dsl ./my_workflow.json
 ```
 
+### `nodetool workflows export-script <workflow_id_or_file>`
+
+Converts a workflow into a JavaScript script that calls each node in
+dependency order, one awaited call per node. The editor's workflow menu and
+the `workflows.exportScript` tRPC call produce the same script.
+
+**Options:**
+
+- `-t, --target <target>` — `sandbox` (default) writes a body for a JS script
+  document or a Code node, calling nodes through
+  `@nodetool-ai/sandbox-nodetool/flow`. `node` writes a standalone `.mjs` that
+  calls nodes in process through `@nodetool-ai/dsl/flow`, takes the workflow
+  inputs as a JSON argument, reads provider keys from the environment, and
+  prints the outputs as JSON.
+- `-o, --output <file>` — write to file instead of stdout.
+
+A node a script cannot express (a node that runs once per streamed item, a
+control edge, a live input stream) is listed on stderr, and the script throws
+before running any node. A graph with a cycle, such as a `Loop`, is refused.
+
+```bash
+nodetool workflows export-script workflow_abc123 --target node -o flow.mjs
+npm install @nodetool-ai/dsl
+node flow.mjs '{"prompt": "a red fox"}'
+```
+
 ### `nodetool run <dsl-file>`
 
 Shorthand for running a TypeScript DSL workflow file directly.
@@ -342,7 +368,7 @@ nodetool chat --url ws://localhost:7777/ws
 
 Manage workflows. Reads the local database by default; `--api-url` targets a remote server.
 
-**Subcommands:** `list` and `get` (both take `--api-url <url>` and `--json`, and `list` takes `--limit <n>`, default 100), `run`, `export-dsl`, `export-example`, `export-bundle`, `import-bundle`,
+**Subcommands:** `list` and `get` (both take `--api-url <url>` and `--json`, and `list` takes `--limit <n>`, default 100), `run`, `export-dsl`, `export-script`, `export-example`, `export-bundle`, `import-bundle`,
 `migrate-code-inputs`
 
 ```bash
@@ -568,7 +594,7 @@ Emitted 1 record(s):
 
 Move mini apps between installs. Reads and writes the local database directly — no running server.
 
-**Subcommands:** `list`, `export-bundle`, `import-bundle`
+**Subcommands:** `list`, `export-bundle`, `export-project`, `import-bundle`
 
 ```bash
 # List applications with their operation count
@@ -596,6 +622,30 @@ warning.
 ```bash
 nodetool apps export-bundle <application_id>
 nodetool apps export-bundle <application_id> -o my.app.json --released
+```
+
+#### `nodetool apps export-project <application_id|bundle_file>`
+
+Export an application as a standalone JavaScript project that runs without NodeTool: a Vite + React UI and a Node
+server that runs the app's workflows and JS scripts in process, with no database. Takes an application id from the local
+database or an exported `.app.json` bundle. See [`@nodetool-ai/app-export`](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-export/README.md) for what
+the project contains.
+
+**Options:**
+
+- `-o, --output <dir>` — output folder (default `./<app-name>`).
+- `--released` — export the released snapshot and the graphs it pinned, not the draft.
+- `--force` — write into an output folder that is not empty.
+
+`.env.example` lists the credentials the graphs and scripts need. When a graph leaves a model for the person to pick, it also lists
+every provider key, commented out. Sample inputs referenced as `package://` are copied under `assets/`. What the
+exported app cannot do (resource documents, editor-only widgets) is printed as warnings and listed
+in the project's README.
+
+```bash
+nodetool apps export-project <application_id> -o ./my-app
+nodetool apps export-project my.app.json
+cd my-app && npm install && cp .env.example .env && npm run dev
 ```
 
 #### `nodetool apps import-bundle <bundle_file>`
@@ -1143,15 +1193,16 @@ nodetool game simulate game.json --ticks 120 --inputs inputs.json --assertions a
 nodetool game capture game.json --ticks 120 --inputs inputs.json --out frame.png
 nodetool game capture game.json --ticks 120 --out frame.png --backend webgpu
 nodetool game build game.json --out game-build --assets-dir game-assets
+nodetool game build game.json --out game-desktop --assets-dir game-assets --target tauri --name "Cave Run" --compile
 nodetool game smoke game-build --json
 ```
 
 **Subcommands and options:**
 
 - `game validate <game_file>` — `--json`.
-- `game simulate <game_file>` — `--ticks <count>` (required), `--seed <integer>` (default `1`), `--inputs <file>`, `--assets-dir <directory>` (prepared 3D collider files named `<full-asset-id>.json`), `--expect-score <score>`, `--expect-win`, `--assertions <file>`, `--verify-replay`, `--json`.
+- `game simulate <game_file>` — `--ticks <count>` (required), `--seed <integer>` (default `1`), `--inputs <file>`, `--assets-dir <directory>` (prepared 3D collider files named `<full-asset-id>.json`), `--expect-score <score>`, `--expect-win`, `--assertions <file>`, `--verify-replay`, `--saves <file>`, `--json`.
 - `game capture <game_file>` — `--ticks <count>` and `--out <file>` (both required), `--seed <integer>`, `--inputs <file>`, `--scale <factor>` (default `1`), `--backend <canvas2d|webgpu|webgl2>`, `--assets-dir <directory>`, `--json`. A schema version 3 (3D) document defaults to `webgl2`. A 2D document accepts `canvas2d` (default) or `webgpu`.
-- `game build <game_file>` — `--out <directory>` (required), `--assets-dir <directory>`, `--json`.
+- `game build <game_file>` — `--out <directory>` (required), `--assets-dir <directory>`, `--target <web|tauri>` (default `web`), `--json`. `--target tauri` writes a [Tauri](https://tauri.app) desktop app project: the web player in `dist/` and a native shell in `src-tauri/`. It accepts `--name <name>`, `--identifier <reverse-dns>`, `--app-version <MAJOR.MINOR.PATCH>`, `--icon <png|jpeg|webp>`, and `--compile`, which runs `cargo build --release` and reports the executable path. Run `npm install && npm run build` in the project for installers.
 - `game smoke <directory>` — `--json`. Serves an exported build in headless Chromium with outside network access blocked, renders 300 scripted frames, and checks tick progress. Console errors, page errors, failed requests, and stalled ticks return a nonzero exit status. Install Chromium with `npx playwright install chromium`.
 
 Schema version 2 adds sprite `visualAnimation` tracks and scene `backgrounds`.
@@ -1204,6 +1255,13 @@ and compares snapshots and ordered events after each remaining tick. The JSON
 report includes `replay.resumeTick`, `replay.verified`, and the first divergent
 tick and path when it fails. This check excludes script execution timing.
 
+Script `save` and `load` commands use in-memory storage during `simulate`.
+`--saves <file>` seeds it from `{progress?, settings?}`, each mapping a slot name
+to its data object. A load result reaches scripts on the next tick's input frame,
+and the replay session steps the same frame, so `--verify-replay` covers loads.
+When a script saved or loaded, the JSON report lists each slot's data under
+`saves` with any storage errors.
+
 `--assets-dir` supplies media files named `<full-asset-id>.<extension>` for
 capture and export. The build copies media into a content-addressed folder and
 includes a standalone browser player. Built-in sample art needs no media files.
@@ -1229,6 +1287,44 @@ and triggered effects can overlap up to the browser player's 32-voice cap.
 Music position is saved as a scene start tick; loading seeks within the decoded
 loop. Audio starts after a browser gesture. The CLI simulation and image capture
 record logical audio events and state without producing audio samples.
+
+## Project Files
+
+### `nodetool projects`
+
+List projects and move whole projects between installs as `.nodetool-project`
+files. Runs against the local database, asset store, and workspaces. The
+server serves the same format at `GET /api/projects/:id/export` and
+`POST /api/projects/import`, so a file from either side imports on the other.
+
+**Subcommands:**
+
+- `list [--archived] [--json]` — projects, newest first.
+- `export <project_id> [-o <file>] [--json]` — write the project to a file.
+  The default name is `<project name>.nodetool-project`.
+- `import <file> [--name <name>] [--json]` — create a new project from a file
+  and print its id.
+
+A project file holds every row filed under the project: workflows and their
+versions, storyboards, scripts, timelines, sketches, mini apps, JavaScript
+scripts, and games, each with its version history. It also holds chats with
+their messages, assets with their stored bytes, and every file in the
+project's workspaces. Jobs, run traces, and spend records stay behind.
+
+Import never overwrites. It creates a new project and gives every row a new
+id, then rewrites each reference to an exported id: id columns, document JSON,
+`asset://` locators, workspace file paths, and JSON files in workspaces.
+Imported workflows are private. Workspaces become managed folders, because the
+exporting machine's paths mean nothing on another one. The Personal project
+imports as an ordinary named project.
+
+**Examples:**
+
+```bash
+nodetool projects list
+nodetool projects export 6f1c2e... -o launch-spot.nodetool-project
+nodetool projects import launch-spot.nodetool-project --name "Launch spot (copy)"
+```
 
 ## Job Management
 
@@ -2573,7 +2669,7 @@ nodetool reliability list --json
 
 ```
 linear-text-pipeline
-  Journey #1 (docs/RELIABILITY_ARCHITECTURE.md §5): input -> transform -> output.
+  Journey #1: input -> transform -> output.
   The baseline — if this diverges across surfaces, everything is suspect.
   surfaces: kernel, ws-server
   invariants: lifecycle-pairing, terminal-uniqueness

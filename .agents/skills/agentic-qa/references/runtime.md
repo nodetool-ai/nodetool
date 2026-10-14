@@ -106,8 +106,12 @@ cd web
 npx tsx tests/agentic-qa/runParticipant.ts \
   --packet agentic-qa-runs/<run>/packets/<session>.json \
   --out agentic-qa-runs/<run>/<session> \
-  [--model sonnet] [--headed]
+  [--model sonnet] [--headed] [--protocol <participant.md>]
 ```
+
+`--protocol` replaces the participant protocol. The
+[ux-research](../../ux-research/SKILL.md) skill passes its think-aloud
+protocol this way. The default is this skill's [participant.md](participant.md).
 
 The runner authenticates through `CLAUDE_CODE_OAUTH_TOKEN` or
 `ANTHROPIC_API_KEY` when set, and otherwise through the machine's Claude login.
@@ -142,7 +146,7 @@ overhead, not human think time.
 
 ```bash
 cd web
-npx tsx tests/agentic-qa/serveApp.ts [--state empty|seeded-demo] \
+npx tsx tests/agentic-qa/serveApp.ts [--state empty|failing-run|seeded-demo] \
   [--backend-port 7790] [--web-port 3010]
 ```
 
@@ -164,6 +168,7 @@ Choose the data state per campaign and label it in the report:
 | `--state` | Data | Providers | Use for |
 |---|---|---|---|
 | `empty` | Nothing: no workflows, threads, assets, or keys | Unconnected until the participant pastes a key from `credentials` | First-time-user sessions (`empty-new-account`) |
+| `failing-run` | The empty account plus one workflow, "Trip summary", whose Agent node has no model, so a run stops on validation | As `empty` | The `run-failure` journey |
 | `seeded-demo` (default) | Example workflows, threads, assets, and seven provider keys | Every provider connected | Returning-user or feature sessions |
 
 Nothing seeds the browser in either state, so onboarding, the model picker,
@@ -215,6 +220,9 @@ goal completable, with placeholder content:
 - Generated images, and edits of an uploaded image, are a 256 × 256 colour
   gradient. "Test Image Model" is listed for both text-to-image and
   image-to-image.
+- "Test Voice Model" (voices `alloy` and `verse`) reads text as silence,
+  a quarter second per word and at least one second, so a voiced line shows
+  a clip with a duration.
 - Any key passes the onboarding key check without a network call, and the
   Settings "Test" button answers "The key was accepted.", as a real check
   that passes does. Text that a participant can see must read like the real
@@ -232,6 +240,11 @@ fixture gaps:
 - Execution bypasses the provider check. With `--state empty`, a request runs
   through a fake even before a key is stored, while the pickers and the image
   step still say no provider is connected.
+- The image flow's brief arrives with "fake" in all five fields. In round 6
+  both `image-reuse` participants retyped every field and used about 15 of
+  their 50 actions on it, so neither reached the reload check. Give a goal
+  that passes through the image flow more actions, or count the retyping
+  when you judge the outcome.
 
 ## Brokered fallback
 

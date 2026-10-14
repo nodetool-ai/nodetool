@@ -58,7 +58,7 @@ const TimelinePlayerBody: React.FC<Omit<TimelinePlayerProps, "active">> = memo(
     return (
       <FlexColumn fullWidth fullHeight css={containerStyles(theme)}>
         {isLoading ? (
-          <LoadingSpinner text="Loading sequence…" />
+          <LoadingSpinner text="Loading sequence" />
         ) : unavailable ? (
           <EmptyState
             variant="error"

@@ -1,4 +1,3 @@
-import { root, type Root } from "@openclaw/fs-safe";
 import { mkdirSync, realpathSync } from "node:fs";
 import {
   lstat,
@@ -10,6 +9,7 @@ import {
 } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { openSafeRoot, type SafeRoot } from "./safe-root.js";
 import type {
   StorageAdapter,
   StorageEntry,
@@ -74,13 +74,13 @@ export interface FileStorageAdapterOptions {
  * URI scheme: `file:///abs/path`. Also accepts `/api/storage/<key>` paths
  * and `https?://host/api/storage/<key>` URLs for round-trip retrieval.
  *
- * All filesystem I/O goes through `@openclaw/fs-safe` so symlink and
- * hardlink aliases pointing outside the base directory are rejected at
+ * Reads and writes of stored objects go through {@link SafeRoot}, so symlink
+ * and hardlink aliases pointing outside the base directory are rejected at
  * read/write time, not just at path-resolution time.
  */
 export class FileStorageAdapter implements StorageAdapter {
   readonly rootDir: string;
-  private readonly rootPromise: Promise<Root>;
+  private readonly rootPromise: Promise<SafeRoot>;
   private readonly externalPathLookup: ExternalPathLookup | null;
 
   constructor(rootDir: string, options: FileStorageAdapterOptions = {}) {
@@ -88,11 +88,7 @@ export class FileStorageAdapter implements StorageAdapter {
     const resolvedRoot = resolve(rootDir);
     mkdirSync(resolvedRoot, { recursive: true });
     this.rootDir = realpathSync(resolvedRoot);
-    this.rootPromise = root(this.rootDir, {
-      hardlinks: "reject",
-      symlinks: "reject",
-      mkdir: true
-    });
+    this.rootPromise = openSafeRoot(this.rootDir);
     // Prevent unhandled rejection when no method is ever called on this
     // adapter (e.g. tests that construct it but only inspect tool schemas).
     // Real callers still receive the error via their own `await`.
@@ -171,12 +167,8 @@ export class FileStorageAdapter implements StorageAdapter {
     }
     const r = await this.rootPromise;
     const rel = normalizeStorageKey(key);
-    await r.write(rel, Buffer.from(data.buffer, data.byteOffset, data.byteLength), {
-      mkdir: true,
-      overwrite: true
-    });
-    const absolutePath = await r.resolve(rel);
-    return pathToFileURL(absolutePath).toString();
+    await r.write(rel, data);
+    return this.uriForKey(rel);
   }
 
   async retrieve(uri: string): Promise<Uint8Array | null> {
@@ -208,11 +200,7 @@ export class FileStorageAdapter implements StorageAdapter {
   async storeFile(key: string, sourcePath: string): Promise<string> {
     const r = await this.rootPromise;
     const rel = normalizeStorageKey(key);
-    await r.copyIn(rel, sourcePath, {
-      maxBytes: getMaxLocalUploadBytes(),
-      mkdir: true,
-      sourceHardlinks: "reject"
-    });
+    await r.copyIn(rel, sourcePath, { maxBytes: getMaxLocalUploadBytes() });
     return this.uriForKey(rel);
   }
 
@@ -227,20 +215,7 @@ export class FileStorageAdapter implements StorageAdapter {
       return false;
     }
     try {
-      // @openclaw/fs-safe's pinned stat helper is not available on Windows.
-      // Keep the same boundary, symlink, and hardlink checks for that platform
-      // instead of making local storage unusable there.
-      if (process.platform === "win32") {
-        const absolute = resolve(this.rootDir, rel);
-        if (!isWithinRoot(this.rootDir, absolute)) return false;
-        const info = await lstat(absolute);
-        if (info.isSymbolicLink() || (info.isFile() && info.nlink > 1)) {
-          return false;
-        }
-        if (isWithinRoot(this.rootDir, await realpath(absolute))) return true;
-      } else if (await r.exists(rel)) {
-        return true;
-      }
+      if (await r.exists(rel)) return true;
     } catch {
       // Fall through to the in-place lookup.
     }

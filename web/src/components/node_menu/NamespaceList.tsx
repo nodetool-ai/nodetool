@@ -3,7 +3,19 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo } from "react";
-import { Text, EditorButton, BORDER_RADIUS, Box, ListGroup, MOTION, SPACING, getSpacingPx, SHADOW } from "../ui_primitives";
+import {
+  Text,
+  EditorButton,
+  BORDER_RADIUS,
+  Box,
+  ListGroup,
+  MOTION,
+  SPACING,
+  TYPOGRAPHY,
+  getSpacingPx,
+  selectedRowStyles,
+  thinScrollbarStyles
+} from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
 import RenderNodes from "./RenderNodes";
@@ -18,6 +30,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import AddCircleOutline from "@mui/icons-material/AddCircleOutline";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
 import { useOpenPackageManager } from "../../hooks/useOpenPackageManager";
+import { isCloudProfile } from "../../lib/runtimeConfig";
 
 interface NamespaceListProps {
   namespaceTree: NamespaceTree;
@@ -74,20 +87,12 @@ const namespaceStyles = (theme: Theme) =>
       transition: `max-width ${MOTION.slow}, width ${MOTION.slow}`,
       overflowX: "hidden",
       overflowY: "auto",
-      padding: `0 ${getSpacingPx(SPACING.sm)}`
+      padding: `0 ${getSpacingPx(SPACING.sm)}`,
+      ...thinScrollbarStyles(theme)
     },
     ".node-list.expanded": {
       width: "100%",
       maxWidth: "none"
-    },
-    ".node-list::-webkit-scrollbar": { width: "6px" },
-    ".node-list::-webkit-scrollbar-track": { background: "transparent" },
-    ".node-list::-webkit-scrollbar-thumb": {
-      backgroundColor: theme.vars.palette.action.disabledBackground,
-      borderRadius: BORDER_RADIUS.lg
-    },
-    ".node-list::-webkit-scrollbar-thumb:hover": {
-      backgroundColor: theme.vars.palette.action.disabled
     },
     ".no-selection": {
       maxWidth: "200px",
@@ -168,8 +173,7 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".result-label": {
       color: `${theme.vars.palette.text.secondary} !important`,
-      fontSize: "0.8em",
-      fontWeight: 400,
+      ...TYPOGRAPHY.sans.caption,
       marginLeft: getSpacingPx(SPACING.md),
       userSelect: "none"
     },
@@ -180,8 +184,8 @@ const namespaceStyles = (theme: Theme) =>
     ".no-results": {
       padding: `0 0 0 ${getSpacingPx(SPACING.xxxl)}`,
       margin: "0",
-      fontSize: "0.8em",
-      color: theme.vars.palette.grey[200]
+      ...TYPOGRAPHY.sans.caption,
+      color: theme.vars.palette.text.secondary
     },
     h6: {
       color: theme.vars.palette.grey[400]
@@ -236,13 +240,7 @@ const namespaceStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`
     },
-    ".node.focused": {
-      color: "var(--palette-primary-main)",
-      backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.1)",
-      borderRadius: BORDER_RADIUS.lg,
-      border: "1px solid rgba(var(--palette-primary-mainChannel) / 0.2)",
-      boxShadow: SHADOW(theme).sm
-    },
+    ".node.focused": selectedRowStyles(theme),
     ".namespace-text": {
       color: "var(--palette-grey-500)",
       fontWeight: 400,
@@ -356,23 +354,25 @@ const NoSelectionContent = memo(function NoSelectionContent({
           </ul>
         </>
       ) : null}
-      <div className="node-packs-info">
-        <EditorButton
-          startIcon={<AddCircleOutline />}
-          size="small"
-          variant="outlined"
-          onClick={openPacksPanel}
-          style={{
-            marginTop: getSpacingPx(SPACING.md),
-            marginBottom: getSpacingPx(SPACING.md),
-            textTransform: "none",
-            lineHeight: "1.5",
-            padding: getSpacingPx(SPACING.xl)
-          }}
-        >
-          Install additional node packs
-        </EditorButton>
-      </div>
+      {!isCloudProfile() && (
+        <div className="node-packs-info">
+          <EditorButton
+            startIcon={<AddCircleOutline />}
+            size="small"
+            variant="outlined"
+            onClick={openPacksPanel}
+            style={{
+              marginTop: getSpacingPx(SPACING.md),
+              marginBottom: getSpacingPx(SPACING.md),
+              textTransform: "none",
+              lineHeight: "1.5",
+              padding: getSpacingPx(SPACING.xl)
+            }}
+          >
+            Install additional node packs
+          </EditorButton>
+        </div>
+      )}
     </div>
   );
 });
@@ -432,16 +432,18 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedInputType,
     selectedOutputType,
     selectedProviderType
-  } = useNodeMenuStore(useShallow((state) => ({
-    searchTerm: state.searchTerm,
-    selectedPath: state.selectedPath,
-    searchResults: state.searchResults,
-    allSearchMatches: state.allSearchMatches,
-    hoveredNode: state.hoveredNode,
-    selectedInputType: state.selectedInputType,
-    selectedOutputType: state.selectedOutputType,
-    selectedProviderType: state.selectedProviderType
-  })));
+  } = useNodeMenuStore(
+    useShallow((state) => ({
+      searchTerm: state.searchTerm,
+      selectedPath: state.selectedPath,
+      searchResults: state.searchResults,
+      allSearchMatches: state.allSearchMatches,
+      hoveredNode: state.hoveredNode,
+      selectedInputType: state.selectedInputType,
+      selectedOutputType: state.selectedOutputType,
+      selectedProviderType: state.selectedProviderType
+    }))
+  );
 
   const allMetadata = useMetadataStore((state) => state.metadata);
 

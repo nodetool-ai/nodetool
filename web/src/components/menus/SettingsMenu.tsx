@@ -4,7 +4,7 @@ import React, { memo, useMemo } from "react";
 import {
   useMediaQuery
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { useColorScheme, useTheme } from "@mui/material/styles";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useAuth from "../../stores/useAuth";
@@ -26,6 +26,7 @@ import {
 import type { DocsTopic } from "../../config/docsLinks";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isElectron } from "../../lib/env";
+import { isCloudProfile } from "../../lib/runtimeConfig";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
@@ -56,6 +57,12 @@ import {
 } from "../../stores/SettingsPageStore";
 import { isFunction } from "../../utils/typePredicates";
 import { NumberSetting } from "./NumberSetting";
+import {
+  DEFAULT_TEXT_SIZE,
+  TEXT_SIZES,
+  TEXT_SIZE_LABELS,
+  isTextSize
+} from "../themes/textSizes";
 import StorageHistorySettings from "../settings/StorageHistorySettings";
 import {
   SETTINGS_TAB_ITEMS,
@@ -89,9 +96,9 @@ const UPDATE_CHANNEL_OPTIONS = [
 ] as const;
 
 const CLOSE_BEHAVIOR_OPTIONS = [
-  { value: "ask", label: "Ask Every Time" },
-  { value: "quit", label: "Quit Application" },
-  { value: "background", label: "Keep Running in Background" }
+  { value: "ask", label: "Ask every time" },
+  { value: "quit", label: "Quit application" },
+  { value: "background", label: "Keep running in background" }
 ] as const;
 
 const PAN_CONTROLS_OPTIONS = [
@@ -112,6 +119,16 @@ const AUTOSAVE_INTERVAL_OPTIONS = [
   { value: 30, label: "30 minutes" },
   { value: 60, label: "60 minutes" }
 ] as const;
+
+const THEME_MODE_OPTIONS = [
+  { value: "dark", label: "Dark" },
+  { value: "light", label: "Light" }
+] as const;
+
+const TEXT_SIZE_OPTIONS = TEXT_SIZES.map((size) => ({
+  value: size,
+  label: TEXT_SIZE_LABELS[size]
+}));
 
 const TIME_FORMAT_OPTIONS = [
   { value: "12h", label: "12h" },
@@ -186,6 +203,7 @@ function SettingsPage() {
   const setPanControls = useSettingsStore((state) => state.setPanControls);
   const setSelectionMode = useSettingsStore((state) => state.setSelectionMode);
   const setTimeFormat = useSettingsStore((state) => state.setTimeFormat);
+  const setTextSize = useSettingsStore((state) => state.setTextSize);
   const setSelectNodesOnDrag = useSettingsStore(
     (state) => state.setSelectNodesOnDrag
   );
@@ -394,6 +412,24 @@ function SettingsPage() {
     [setSelectionMode]
   );
 
+  const {
+    mode: themeMode,
+    systemMode,
+    setMode: setThemeMode
+  } = useColorScheme();
+  const resolvedThemeMode = themeMode === "system" ? systemMode : themeMode;
+  const handleThemeModeChange = useCallback(
+    (value: string) => {
+      setThemeMode(value === "light" ? "light" : "dark");
+    },
+    [setThemeMode]
+  );
+  const handleTextSizeChange = useCallback(
+    (value: string) => {
+      setTextSize(isTextSize(value) ? value : DEFAULT_TEXT_SIZE);
+    },
+    [setTextSize]
+  );
   const handleTimeFormatChange = useCallback(
     (value: string) => {
       setTimeFormat(value === "12h" ? "12h" : "24h");
@@ -491,9 +527,10 @@ function SettingsPage() {
   // Provider, …) then Folders; Servers (localhost) and the Nodetool API token
   // (hosted) follow.
   const integrationsSidebarSections = useMemo(() => {
+    // Folders are host paths, which the cloud neither shows nor accepts.
     const configItems = [
       ...getDisplayedSettingGroups(remoteSettings ?? []),
-      { id: "folders", label: "Folders" }
+      ...(isCloudProfile() ? [] : [{ id: "folders", label: "Folders" }])
     ];
     return [
       { category: "Configuration", items: configItems },
@@ -699,17 +736,11 @@ function SettingsPage() {
                         keywords="editor workspace select nodes on drag selection"
                       >
                         <LabeledSwitch
-                          label="Select Nodes On Drag"
+                          label="Select nodes on drag"
                           checked={!!settings.selectNodesOnDrag}
                           onChange={handleSelectNodesOnDragChange}
+                          description="Mark nodes as selected after changing a node's position. If disabled, nodes can still be selected by clicking on them."
                         />
-                        <Text className="description">
-                          Mark nodes as selected after changing a node&apos;s
-                          position.
-                          <br />
-                          If disabled, nodes can still be selected by clicking on
-                          them.
-                        </Text>
                       </SearchItem>
 
                       {isElectron && (
@@ -718,7 +749,7 @@ function SettingsPage() {
                           keywords="editor workspace sound notifications beep"
                         >
                           <LabeledSwitch
-                            label="Sound Notifications"
+                            label="Sound notifications"
                             checked={!!settings.soundNotifications}
                             onChange={handleSoundNotificationsChange}
                             description="Play a system beep sound when workflows complete, exports finish, or other important events occur."
@@ -739,7 +770,7 @@ function SettingsPage() {
                             keywords="editor workspace updates automatic desktop"
                           >
                             <LabeledSwitch
-                              label="Automatic Updates"
+                              label="Automatic updates"
                               checked={autoUpdatesEnabled}
                               onChange={handleAutoUpdatesChange}
                               description="Check for and download desktop app updates from the selected release channel."
@@ -752,15 +783,12 @@ function SettingsPage() {
                             keywords="editor workspace update channel stable nightly"
                           >
                             <SelectField
-                              label="Update Channel"
+                              label="Update channel"
                               value={updateChannel}
                               onChange={handleUpdateChannelChange}
                               options={UPDATE_CHANNEL_OPTIONS}
+                              description="Stable follows full releases. Nightly follows prerelease nightly builds. Nightly builds default to the Nightly channel."
                             />
-                            <Text className="description">
-                              Stable follows full releases. Nightly follows prerelease nightly builds.
-                              Nightly builds default to the Nightly channel.
-                            </Text>
                           </SearchItem>
                         )}
                         <SearchItem
@@ -768,7 +796,7 @@ function SettingsPage() {
                           keywords="editor workspace on close behavior quit background tray"
                         >
                           <SelectField
-                            label="On Close Behavior"
+                            label="On close behavior"
                             value={closeBehavior}
                             onChange={(v) =>
                               handleCloseBehaviorChange(
@@ -776,18 +804,8 @@ function SettingsPage() {
                               )
                             }
                             options={CLOSE_BEHAVIOR_OPTIONS}
+                            description="What happens when you close the main window. Ask every time shows a dialog with options, Quit application closes the app completely, and Keep running in background keeps it running in the system tray."
                           />
-                          <Text className="description">
-                            Choose what happens when you close the main window.
-                            <br />
-                            <b>Ask Every Time:</b> Shows a dialog with options.
-                            <br />
-                            <b>Quit Application:</b> Closes the application
-                            completely.
-                            <br />
-                            <b>Keep Running in Background:</b> Keeps the app
-                            running in the system tray.
-                          </Text>
                         </SearchItem>
                       </div>
                     )}
@@ -805,12 +823,38 @@ function SettingsPage() {
                       >
                         Appearance
                       </Text>
+                      {resolvedThemeMode && (
+                        <SearchItem
+                          search={search}
+                          keywords="appearance theme dark light mode colors contrast readability"
+                        >
+                          <SelectField
+                            label="Theme"
+                            value={resolvedThemeMode}
+                            onChange={handleThemeModeChange}
+                            options={THEME_MODE_OPTIONS}
+                            description="Dark or light colors for the whole app. The sun and moon button in the sidebar switches it too."
+                          />
+                        </SearchItem>
+                      )}
+                      <SearchItem
+                        search={search}
+                        keywords="appearance text size font size zoom larger smaller bigger readability accessibility"
+                      >
+                        <SelectField
+                          label="Text size"
+                          value={settings.textSize}
+                          onChange={handleTextSizeChange}
+                          options={TEXT_SIZE_OPTIONS}
+                          description="Size of text across the whole app, including menus and nodes."
+                        />
+                      </SearchItem>
                       <SearchItem
                         search={search}
                         keywords="appearance time format 12h 24h"
                       >
                         <SelectField
-                          label="Time Format"
+                          label="Time format"
                           value={settings.timeFormat}
                           onChange={handleTimeFormatChange}
                           options={TIME_FORMAT_OPTIONS}
@@ -832,7 +876,7 @@ function SettingsPage() {
                         keywords="execution warn before large runs confirmation"
                       >
                         <LabeledSwitch
-                          label="Warn Before Large Runs"
+                          label="Warn before large runs"
                           checked={settings.confirmLargeRun ?? true}
                           onChange={(checked) =>
                             updateSettings({ confirmLargeRun: checked })
@@ -847,7 +891,7 @@ function SettingsPage() {
                       >
                         <NumberSetting
                           id="large-run-threshold-input"
-                          label="Large-Run Threshold"
+                          label="Large-run threshold"
                           value={settings.largeRunThreshold ?? 5}
                           onCommit={handleLargeRunThresholdChange}
                           min={1}
@@ -864,7 +908,7 @@ function SettingsPage() {
                       >
                         <NumberSetting
                           id="audio-buffer-ms-input"
-                          label="Audio Buffer (ms)"
+                          label="Audio buffer (ms)"
                           value={settings.audioBufferMs ?? 100}
                           onCommit={handleAudioBufferMsChange}
                           min={20}
@@ -877,11 +921,25 @@ function SettingsPage() {
 
                       <SearchItem
                         search={search}
+                        keywords="timeline preview video decoder webcodecs frame exact"
+                      >
+                        <LabeledSwitch
+                          label="Decode timeline preview with WebCodecs"
+                          checked={settings.timelinePreviewDecoder === "webcodecs"}
+                          onChange={(checked) =>
+                            updateSettings({ timelinePreviewDecoder: checked ? "webcodecs" : "element" })
+                          }
+                          description="Draw the exact frame for the playhead in the timeline preview. Clips that WebCodecs cannot decode keep using the browser video player."
+                        />
+                      </SearchItem>
+
+                      <SearchItem
+                        search={search}
                         keywords="execution max concurrent jobs runs queue concurrency parallel"
                       >
                         <ServerNumberSetting
                           envVar="MAX_CONCURRENT_JOBS"
-                          label="Max Concurrent Runs"
+                          label="Max concurrent runs"
                           defaultValue={4}
                           min={1}
                           max={64}
@@ -895,7 +953,7 @@ function SettingsPage() {
                       >
                         <ServerNumberSetting
                           envVar="MAX_CONCURRENT_RUNS_PER_WORKFLOW"
-                          label="Max Concurrent Runs per Workflow"
+                          label="Max concurrent runs per workflow"
                           defaultValue={4}
                           min={1}
                           max={64}
@@ -917,24 +975,12 @@ function SettingsPage() {
                         keywords="canvas navigation pan controls mouse select left click drag"
                       >
                         <SelectField
-                          label="Left-Click Drag"
+                          label="Left-click drag"
                           value={settings.panControls}
                           onChange={handlePanControlsChange}
                           options={PAN_CONTROLS_OPTIONS}
+                          description="What dragging with the left mouse button does on empty canvas. Pan canvas moves the view. Select nodes draws a selection box; pan with the right or middle mouse button (and two-finger scroll on a trackpad)."
                         />
-                        <div className="description">
-                          <Text>
-                            What dragging with the left mouse button does on
-                            empty canvas.
-                          </Text>
-                          <Text>
-                            <b>Pan canvas:</b> left-drag moves the view.
-                            <br />
-                            <b>Select nodes:</b> left-drag draws a selection box;
-                            pan with the right or middle mouse button (and
-                            two-finger scroll on a trackpad).
-                          </Text>
-                        </div>
                       </SearchItem>
 
                       <SearchItem
@@ -942,18 +988,12 @@ function SettingsPage() {
                         keywords="canvas navigation node selection mode full partial"
                       >
                         <SelectField
-                          label="Node Selection Mode"
+                          label="Node selection mode"
                           value={settings.selectionMode}
                           onChange={handleSelectionModeChange}
                           options={SELECTION_MODE_OPTIONS}
+                          description="When drawing a selection box: Full selects only nodes that are fully enclosed, Partial also selects intersecting nodes."
                         />
-                        <Text className="description">
-                          When drawing a selection box for node selections:
-                          <br />
-                          <b>Full:</b> nodes have to be fully enclosed.
-                          <br />
-                          <b>Partial:</b> intersecting nodes will be selected.
-                        </Text>
                       </SearchItem>
 
                       <SearchItem
@@ -961,7 +1001,7 @@ function SettingsPage() {
                         keywords="canvas navigation grid snap align nodes"
                       >
                         <LabeledSwitch
-                          label="Snap to Grid"
+                          label="Snap to grid"
                           checked={!!settings.snapToGrid}
                           onChange={handleSnapToGridChange}
                           description="Align nodes to the canvas grid while dragging. Also in the View menu of the desktop app."
@@ -974,14 +1014,14 @@ function SettingsPage() {
                       >
                         <NumberSetting
                           id="grid-snap-input"
-                          label="Grid Snap Precision"
+                          label="Grid snap precision"
                           value={settings.gridSnap}
                           onCommit={setGridSnap}
                           min={1}
                           max={100}
                           fallback={25}
                           disabled={!settings.snapToGrid}
-                          description="Grid size used when Snap to Grid is on. The canvas grid is drawn every 25 units."
+                          description="Grid size used when Snap to grid is on. The canvas grid is drawn every 25 units."
                         />
                       </SearchItem>
 
@@ -991,7 +1031,7 @@ function SettingsPage() {
                       >
                         <NumberSetting
                           id="connection-snap-input"
-                          label="Connection Snap Range"
+                          label="Connection snap range"
                           value={settings.connectionSnap}
                           onCommit={setConnectionSnap}
                           min={5}
@@ -1019,7 +1059,7 @@ function SettingsPage() {
                         keywords="autosave version history enable"
                       >
                         <LabeledSwitch
-                          label="Enable Autosave"
+                          label="Enable autosave"
                           checked={settings.autosave?.enabled ?? true}
                           onChange={(checked) =>
                             updateAutosaveSettings({ enabled: checked })
@@ -1033,7 +1073,7 @@ function SettingsPage() {
                         keywords="autosave version history interval minutes"
                       >
                         <SelectField
-                          label="Autosave Interval (minutes)"
+                          label="Autosave interval (minutes)"
                           value={settings.autosave?.intervalMinutes ?? 10}
                           onChange={(v) =>
                             updateAutosaveSettings({
@@ -1051,7 +1091,7 @@ function SettingsPage() {
                         keywords="autosave version history save before running checkpoint"
                       >
                         <LabeledSwitch
-                          label="Save Before Running"
+                          label="Save before running"
                           checked={settings.autosave?.saveBeforeRun ?? true}
                           onChange={(checked) =>
                             updateAutosaveSettings({
@@ -1067,7 +1107,7 @@ function SettingsPage() {
                         keywords="autosave version history save on window close"
                       >
                         <LabeledSwitch
-                          label="Save on Window Close"
+                          label="Save on window close"
                           checked={settings.autosave?.saveOnClose ?? true}
                           onChange={(checked) =>
                             updateAutosaveSettings({
@@ -1096,7 +1136,8 @@ function SettingsPage() {
                   <div className="integrations-settings">
                   <RemoteSettingsMenuComponent search={searchTerm} />
 
-                  {matchesSearch(
+                  {!isCloudProfile() &&
+                    matchesSearch(
                     "folders assets workspace directory storage",
                     search
                   ) && (

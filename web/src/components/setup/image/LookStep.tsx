@@ -30,6 +30,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  FormField,
   GAP,
   LoadingSpinner,
   Text
@@ -470,10 +471,7 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
         Choose the look
       </Text>
 
-      <FlexColumn gap={GAP.normal}>
-        <Text size="small" component="h3">
-          Size
-        </Text>
+      <FormField label="Size">
         <OptionCardGrid
           label="Size"
           options={sizeOptions}
@@ -481,12 +479,9 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
           onSelect={handleSize}
           minColumnWidth={160}
         />
-      </FlexColumn>
+      </FormField>
 
-      <FlexColumn gap={GAP.normal}>
-        <Text size="small" component="h3">
-          Style
-        </Text>
+      <FormField label="Style">
         <PresetTileGrid
           label="Style"
           presets={styleTiles}
@@ -497,7 +492,7 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
           addOwnLabel="No style"
           addOwnDescription="Render exactly what the brief says"
         />
-      </FlexColumn>
+      </FormField>
 
       {/* A ready list is picked from the shell's footer; what is wrong with
           the list or the pick is said here, where there is room for it. */}
@@ -508,15 +503,12 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
           </AlertBanner>
         ) : null
       ) : (
-        <FlexColumn gap={GAP.normal}>
-          <Text size="small" component="h3">
-            Image model
-          </Text>
+        <FormField label="Image model">
           <ModelListState
             availability={availability}
             onRetry={look.refetchModels}
           />
-        </FlexColumn>
+        </FormField>
       )}
     </FlexColumn>
   );

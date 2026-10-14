@@ -1,7 +1,6 @@
 ---
 name: color-motion
 description: Choose and animate colour on a NodeTool timeline, including shape and text gradients, colour grades, 3D LUTs, and dither. Use when building a look, matching shots, animating colour, or fixing muddy, washed-out, or banded frames.
-featured: true
 ---
 
 # Colour in Motion → palettes, grades and what can move
@@ -10,7 +9,7 @@ Choose colours for shapes and type, then grade the picture around them. Authored
 colours, gradient stops, and effect fields can move through animation style
 tracks as well as the preset grade channels.
 
-`motion-graphics` carries the op contract for the calls named here.
+`timeline-edit-ops` carries the op contract for the calls named here.
 `motion-direction` decides whether colour is one of the channels this piece
 moves at all.
 
@@ -79,7 +78,7 @@ For a document with a text gradient, this animation moves its first stop:
 `edit_timeline`'s `animate_clip` input does not accept `styleTracks`; it
 discards that field. Author these animations in the whole document through
 `set_timeline_document`, which validates before writing and snapshots the
-previous document. See `motion-graphics` for that call's contract. For a
+previous document. See `timeline-edit-ops` for that call's contract. For a
 targeted edit through `animate_clip`, use numeric grade presets or custom
 curves. Three useful approaches:
 
@@ -156,7 +155,7 @@ draws on top.
 ## Banding and muddy midpoints
 
 A wide gradient across a dark frame can band. Add
-`{"type":"stylize","mode":"dither","enabled":true,"amount":1,"seed":4}`
+`{"type":"stylize","mode":"dither","amount":1,"seed":4}`
 after the gradient, with a fixed seed for repeatable frames. Dither reduces
 visible 8-bit steps; it cannot recover precision already lost in source media
 or guarantee that a video encoder keeps the noise. You can also shorten the

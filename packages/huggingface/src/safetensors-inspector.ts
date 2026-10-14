@@ -440,7 +440,7 @@ function classifyDiffusion(
       if (
         hasRegex(
           keys,
-          "(^|\\.)(text_model)\\.encoder\\.layers\\.0\\.self_attn\\.q_proj\\.weight$"
+          "(^|\\.)(?<!transformer\\.)(text_model)\\.encoder\\.layers\\.0\\.self_attn\\.q_proj\\.weight$"
         )
       ) {
         if (family === "unknown") {
@@ -524,10 +524,12 @@ function classifyDiffusion(
   }
 
   if (component === "text_encoder") {
+    // OpenAI CLIP nests the same path under `transformer.`, so the OpenCLIP
+    // pattern excludes that prefix.
     if (
       hasRegex(
         keys,
-        "(^|\\.)(text_model)\\.encoder\\.layers\\.0\\.self_attn\\.q_proj\\.weight$"
+        "(^|\\.)(?<!transformer\\.)(text_model)\\.encoder\\.layers\\.0\\.self_attn\\.q_proj\\.weight$"
       )
     ) {
       return {

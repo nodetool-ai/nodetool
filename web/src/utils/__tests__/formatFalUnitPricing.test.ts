@@ -138,3 +138,27 @@ describe("formatFalPerRunEstimate", () => {
     expect(line).toContain("historical");
   });
 });
+
+describe("formatFalUnitPricingShort units", () => {
+  const pricing = (billing_unit: string, unit_price = 0.07) => ({
+    endpoint_id: "fal-ai/kling-video/v2.6/pro",
+    unit_price,
+    billing_unit,
+    currency: "USD"
+  });
+
+  it.each([
+    ["seconds", "$0.07 / s"],
+    ["compute seconds", "$0.07 / compute s"],
+    ["megapixels", "$0.07 / MP"],
+    ["images", "$0.07 / image"],
+    ["minutes", "$0.07 / min"],
+    ["5 seconds", "$0.07 / 5 s"],
+    ["1000 characters", "$0.07 / 1K chars"],
+    ["1m tokens", "$0.07 / 1M tokens"],
+    ["", "$0.07"],
+    ["1", "$0.07"]
+  ])("formats billing unit %p as %p", (unit, expected) => {
+    expect(formatFalUnitPricingShort(pricing(unit))).toBe(expected);
+  });
+});

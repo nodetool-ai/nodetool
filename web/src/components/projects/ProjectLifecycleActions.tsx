@@ -1,16 +1,17 @@
 import { useCallback, useState, type MouseEvent } from "react";
 
 import {
-  Caption,
   Dialog,
   EditorButton,
   FlexColumn,
   FlexRow,
-  SPACING
+  SPACING,
+  Text
 } from "../ui_primitives";
 import {
   useArchiveProject,
   useDeleteProject,
+  useExportProject,
   useRestoreProject
 } from "../../hooks/useProjects";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -28,12 +29,13 @@ interface ProjectLifecycleActionsProps {
   };
 }
 
-/** Archive or permanently delete a named project from its management surface. */
+/** Export, archive, or permanently delete a named project from its management surface. */
 const ProjectLifecycleActions = ({ project }: ProjectLifecycleActionsProps) => {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const archive = useArchiveProject();
   const restore = useRestoreProject();
   const remove = useDeleteProject();
+  const exportProject = useExportProject();
   const addNotification = useNotificationStore((state) => state.addNotification);
 
   const stop = (event: MouseEvent<HTMLButtonElement>) => event.stopPropagation();
@@ -45,6 +47,16 @@ const ProjectLifecycleActions = ({ project }: ProjectLifecycleActionsProps) => {
         content: `Could not ${action} ${project.name}: ${error.message}`
       }),
     [addNotification, project.name]
+  );
+  const handleExport = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      stop(event);
+      exportProject.mutate(
+        { id: project.id, name: project.name },
+        { onError: (error) => reportError("export", error) }
+      );
+    },
+    [exportProject, project.id, project.name, reportError]
   );
   const handleArchive = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
@@ -82,6 +94,14 @@ const ProjectLifecycleActions = ({ project }: ProjectLifecycleActionsProps) => {
   return (
     <>
       <FlexRow gap={SPACING.sm}>
+        <EditorButton
+          density="compact"
+          variant="text"
+          onClick={handleExport}
+          disabled={exportProject.isPending}
+        >
+          {exportProject.isPending ? "Exporting…" : "Export"}
+        </EditorButton>
         {project.archivedAt ? (
           <EditorButton density="compact" variant="text" onClick={handleRestore}>
             Restore
@@ -101,16 +121,17 @@ const ProjectLifecycleActions = ({ project }: ProjectLifecycleActionsProps) => {
         title={`Delete ${project.name}?`}
         onConfirm={confirmDelete}
         confirmText="Delete project"
-        cancelText="Cancel"
         destructive
         isLoading={remove.isPending}
       >
         <FlexColumn gap={SPACING.md}>
-          <Caption>
+          <Text size="small">
             Delete {project.name} and all of its documents, conversations,
             generated outputs, assets, jobs, and project files.
-          </Caption>
-          <Caption color="error">This cannot be undone.</Caption>
+          </Text>
+          <Text size="small" color="error">
+            This cannot be undone.
+          </Text>
         </FlexColumn>
       </Dialog>
     </>

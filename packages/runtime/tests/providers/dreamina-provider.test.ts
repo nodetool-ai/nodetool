@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
-import { DreaminaProvider, setDreaminaPageRunner } from "../../src/providers/dreamina-provider.js";
+import { DreaminaProvider, setDreaminaPageRunner, setDreaminaPendingStore } from "../../src/providers/dreamina-provider.js";
+import { memoryPendingStore } from "../../src/providers/dreamina-pending.js";
 import type { ImageModel, MusicModel, VideoModel } from "../../src/providers/types.js";
 
 interface CapturedCall { url: URL; headers: Record<string, string>; body: Record<string, any> }
@@ -88,11 +89,14 @@ function fakeRunner(history: unknown[]): { calls: CapturedCall[] } {
 beforeEach(() => {
   // The default runner reaches a real browser; point it at a socket nobody serves.
   vi.stubEnv("NODETOOL_BROWSER_BRIDGE_SOCKET", "/nonexistent/nodetool-test.sock");
+  // The default store writes to the user's data directory.
+  setDreaminaPendingStore(memoryPendingStore());
 });
 
 afterEach(() => {
   vi.unstubAllEnvs();
   setDreaminaPageRunner(null);
+  setDreaminaPendingStore(null);
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
@@ -128,6 +132,54 @@ describe("DreaminaProvider", () => {
     expect(core.large_image_info).toMatchObject({ width: 2560, height: 1440, resolution_type: "2k" });
     expect(generate.body.extend.root_model).toBe("high_aes_general_v40");
     expect(calls.filter((c) => c.url.pathname.endsWith("get_history_by_ids"))).toHaveLength(2);
+  });
+
+  it("survives a status request that never answers", async () => {
+    vi.useFakeTimers();
+    const done = { task: { status: 50 }, item_list: [{ image: { large_images: [{ image_url: "https://example.com/a.png" }] } }] };
+    let polls = 0;
+    setDreaminaPageRunner({
+      async evaluate(expression: string) {
+        const request = JSON.parse(/const a = (\{.*?\});\n/s.exec(expression)![1]);
+        const url = new URL(request.url);
+        if (url.pathname.endsWith("get_common_config")) return { ret: "0", data: CONFIG };
+        if (url.pathname.endsWith("aigc_draft/generate")) return { ret: "0", data: {} };
+        // The first poll hangs forever, as a stalled request in the tab did.
+        if (polls++ === 0) return new Promise(() => undefined);
+        return { ret: "0", data: { [JSON.parse(request.body).submit_ids[0]]: done } };
+      }
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([4, 5]))));
+    const pending = new DreaminaProvider().textToImage({ model: IMAGE_MODEL, prompt: "x" });
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(Array.from(await pending)).toEqual([4, 5]);
+    expect(polls).toBe(2);
+  });
+
+  it("downloads through the tab when the direct download keeps failing", async () => {
+    vi.useFakeTimers();
+    const done = { task: { status: 50 }, item_list: [{ image: { large_images: [{ image_url: "https://example.com/a.png" }] } }] };
+    let tabDownloads = 0;
+    setDreaminaPageRunner({
+      async evaluate(expression: string) {
+        if (expression.includes("btoa(")) {
+          tabDownloads++;
+          return Buffer.from([7, 8, 9]).toString("base64");
+        }
+        const request = JSON.parse(/const a = (\{.*?\});\n/s.exec(expression)![1]);
+        const url = new URL(request.url);
+        if (url.pathname.endsWith("get_common_config")) return { ret: "0", data: CONFIG };
+        if (url.pathname.endsWith("aigc_draft/generate")) return { ret: "0", data: {} };
+        return { ret: "0", data: { [JSON.parse(request.body).submit_ids[0]]: done } };
+      }
+    });
+    const fetchMock = vi.fn(async () => { throw new TypeError("terminated"); });
+    vi.stubGlobal("fetch", fetchMock);
+    const pending = new DreaminaProvider().textToImage({ model: IMAGE_MODEL, prompt: "x" });
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(Array.from(await pending)).toEqual([7, 8, 9]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(tabDownloads).toBe(1);
   });
 
   it("reports a failed task", async () => {
@@ -243,6 +295,86 @@ describe("DreaminaProvider", () => {
       const pending = provider.textToVideo({ model, prompt: "x" });
       await vi.advanceTimersByTimeAsync(10_000);
       expect(Array.from(await pending)).toEqual([5]);
+    });
+
+    describe("when nobody collects a job", () => {
+      /** A tab whose jobs stay queued until `finished` is set, counting the submits. */
+      function queuedRunner(state: { finished: boolean; submits: string[] }): void {
+        setDreaminaPageRunner({
+          async evaluate(expression: string) {
+            const request = JSON.parse(/const a = (\{.*?\});\n/s.exec(expression)![1]);
+            const path = new URL(request.url).pathname;
+            if (path.includes("video_generate")) return { ret: "0", data: VIDEO_CONFIG };
+            if (path.endsWith("aigc_draft/generate")) {
+              state.submits.push(JSON.parse(request.body).submit_id);
+              return { ret: "0", data: {} };
+            }
+            const submitId = JSON.parse(request.body).submit_ids[0];
+            return { ret: "0", data: { [submitId]: state.finished ? videoRecord : { task: { status: 20 } } } };
+          }
+        });
+      }
+
+      it("picks up the timed-out job on the next identical request instead of paying again", async () => {
+        vi.useFakeTimers();
+        const state = { finished: false, submits: [] as string[] };
+        queuedRunner(state);
+        vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([7]))));
+        const provider = new DreaminaProvider();
+        const model = videoModel("dreamina_seedance_40_mini");
+        const first = provider.textToVideo({ model, prompt: "a lake at night", timeoutSeconds: 60 });
+        const timedOut = expect(first).rejects.toThrow("keeps running on Dreamina");
+        await vi.advanceTimersByTimeAsync(70_000);
+        await timedOut;
+
+        state.finished = true;
+        const second = provider.textToVideo({ model, prompt: "a lake at night", timeoutSeconds: 60 });
+        await vi.advanceTimersByTimeAsync(5_000);
+        expect(Array.from(await second)).toEqual([7]);
+        expect(state.submits).toHaveLength(1);
+
+        // Collected, so the next request is a new job.
+        const third = provider.textToVideo({ model, prompt: "a lake at night", timeoutSeconds: 60 });
+        await vi.advanceTimersByTimeAsync(5_000);
+        await third;
+        expect(state.submits).toHaveLength(2);
+      });
+
+      it("submits again when the request differs", async () => {
+        vi.useFakeTimers();
+        const state = { finished: false, submits: [] as string[] };
+        queuedRunner(state);
+        vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([7]))));
+        const provider = new DreaminaProvider();
+        const model = videoModel("dreamina_seedance_40_mini");
+        const first = provider.textToVideo({ model, prompt: "a lake at night", timeoutSeconds: 60 });
+        const timedOut = expect(first).rejects.toThrow("timed out");
+        await vi.advanceTimersByTimeAsync(70_000);
+        await timedOut;
+        state.finished = true;
+        const other = provider.textToVideo({ model, prompt: "a lake at dawn", timeoutSeconds: 60 });
+        await vi.advanceTimersByTimeAsync(5_000);
+        await other;
+        expect(state.submits).toHaveLength(2);
+      });
+
+      it("forgets a job that Dreamina rejected", async () => {
+        vi.useFakeTimers();
+        const store = memoryPendingStore();
+        setDreaminaPendingStore(store);
+        fakeRunner([{ task: { status: 30 }, fail_code: "2052", fail_msg: "OutputAudioCopyright" }]);
+        const pending = new DreaminaProvider().textToVideo({ model: videoModel("dreamina_seedance_40_mini"), prompt: "x" });
+        const settled = expect(pending).rejects.toThrow("OutputAudioCopyright");
+        await vi.advanceTimersByTimeAsync(5_000);
+        await settled;
+        const remove = vi.spyOn(store, "find");
+        fakeRunner([videoRecord]);
+        vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([1]))));
+        const again = new DreaminaProvider().textToVideo({ model: videoModel("dreamina_seedance_40_mini"), prompt: "x" });
+        await vi.advanceTimersByTimeAsync(5_000);
+        await again;
+        expect(remove).toHaveReturnedWith(null);
+      });
     });
 
     describe("when the Dreamina tab detaches", () => {

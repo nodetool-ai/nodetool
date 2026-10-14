@@ -8,7 +8,7 @@
  * React handlers on the handle itself.
  */
 
-import { installGlobal } from "../../../../test-utils/doubles";
+import { installPointerEvent } from "../../../../test-utils/pointerEvent";
 import {
   act,
   createEvent,
@@ -19,55 +19,39 @@ import {
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 
-// Polyfill PointerEvent for jsdom (which doesn't support it natively).
-if (typeof window !== "undefined" && !window.PointerEvent) {
-  installGlobal(
-    "PointerEvent",
-    class PointerEvent extends MouseEvent {
-      readonly pointerId: number;
-      readonly pointerType: string;
-      readonly isPrimary: boolean;
-
-      constructor(type: string, params: PointerEventInit & MouseEventInit = {}) {
-        super(type, params);
-        this.pointerId = params.pointerId ?? 0;
-        this.pointerType = params.pointerType ?? "";
-        this.isPrimary = params.isPrimary ?? false;
-      }
-    }
-  );
-}
-
-jest.mock("../useClipThumbnails", () => ({
-  useClipThumbnails: () => null
-}));
-jest.mock("../useAudioPeaks", () => ({
-  useAudioPeaks: () => ({ peaks: null, durationMs: null })
-}));
+jest.mock("../useClipThumbnails", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .clipThumbnailsMock()
+);
+jest.mock("../useAudioPeaks", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .audioPeaksMock()
+);
 jest.mock("../useAssetUrl", () => ({
   useAssetUrl: () => undefined
 }));
-jest.mock("../../../../stores/AssetStore", () => ({
-  useAssetStore: <T,>(sel: (s: { get: () => Promise<null> }) => T) =>
-    sel({ get: () => Promise.resolve(null) })
-}));
-jest.mock("../../../../stores/WorkflowRunsStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { focusedJob: Record<string, string> }) => T) =>
-    sel({ focusedJob: {} })
-}));
-jest.mock("../../../../stores/ErrorStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { errors: Record<string, unknown> }) => T) =>
-    sel({ errors: {} }),
-  hasNodeError: () => false,
-  nodeErrorToDisplayString: () => ""
-}));
-jest.mock("../../../../stores/timeline/TimelineGenerationStore", () => ({
-  useTimelineGenerationStore: <T,>(
-    sel: (s: { clipJobs: Record<string, unknown> }) => T
-  ) => sel({ clipJobs: {} })
-}));
+jest.mock("../../../../stores/AssetStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .assetStoreMock()
+);
+jest.mock("../../../../stores/WorkflowRunsStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .workflowRunsStoreMock()
+);
+jest.mock("../../../../stores/ErrorStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .errorStoreMock()
+);
+jest.mock("../../../../stores/timeline/TimelineGenerationStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .timelineGenerationStoreMock()
+);
 
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import { TrackLane } from "../TrackLane";
@@ -76,11 +60,7 @@ import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore"
 import { useTimelinePlaybackStore } from "../../../../stores/timeline/TimelinePlaybackStore";
 import { getTimelineTemporal } from "../../../../stores/timeline/TimelineInstance";
 
-// jsdom does not implement pointer capture.
-beforeAll(() => {
-  HTMLElement.prototype.setPointerCapture = jest.fn();
-  HTMLElement.prototype.releasePointerCapture = jest.fn();
-});
+beforeAll(installPointerEvent);
 
 const makeTrack = (
   id: string,
@@ -125,7 +105,11 @@ const clipState = (id: string) => {
   if (!clip) {
     throw new Error(`clip ${id} missing`);
   }
-  return { trackId: clip.trackId, startMs: clip.startMs, durationMs: clip.durationMs };
+  return {
+    trackId: clip.trackId,
+    startMs: clip.startMs,
+    durationMs: clip.durationMs
+  };
 };
 
 const seed = ({ lockTrackB = false } = {}) => {
@@ -164,8 +148,19 @@ const renderLanes = () => {
 
 const dragClip = (clipId: string, fromX: number, toX: number) => {
   const el = screen.getByTestId(`clip-${clipId}`);
-  fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: fromX, clientY: 20, pointerId: 1 });
-  fireEvent.pointerMove(window, { buttons: 1, clientX: toX, clientY: 20, pointerId: 1 });
+  fireEvent.pointerDown(el, {
+    button: 0,
+    buttons: 1,
+    clientX: fromX,
+    clientY: 20,
+    pointerId: 1
+  });
+  fireEvent.pointerMove(window, {
+    buttons: 1,
+    clientX: toX,
+    clientY: 20,
+    pointerId: 1
+  });
   fireEvent.pointerUp(window, { pointerId: 1, clientX: toX, clientY: 20 });
 };
 
@@ -176,7 +171,12 @@ const dragHandle = (
   toX: number
 ) => {
   const el = screen.getByTestId(`clip-trim-${edge}-${clipId}`);
-  fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: fromX, pointerId: 1 });
+  fireEvent.pointerDown(el, {
+    button: 0,
+    buttons: 1,
+    clientX: fromX,
+    pointerId: 1
+  });
   fireEvent.pointerMove(el, { buttons: 1, clientX: toX, pointerId: 1 });
   fireEvent.pointerUp(el, { pointerId: 1 });
 };
@@ -190,7 +190,11 @@ describe("Clip drag", () => {
   it("moves startMs by the pointer travel", () => {
     renderLanes();
     dragClip("a1", 100, 100 + DRAG_PX);
-    expect(clipState("a1")).toEqual({ trackId: "t1", startMs: 2000 + DRAG_MS, durationMs: 1000 });
+    expect(clipState("a1")).toEqual({
+      trackId: "t1",
+      startMs: 2000 + DRAG_MS,
+      durationMs: 1000
+    });
   });
 
   it("ignores travel below the drag threshold", () => {
@@ -236,17 +240,30 @@ describe("Clip drag across tracks", () => {
     renderLanes();
     pointerOverLane("t2");
     dragClip("a1", 100, 100 + DRAG_PX);
-    expect(clipState("a1")).toEqual({ trackId: "t2", startMs: 2000 + DRAG_MS, durationMs: 1000 });
+    expect(clipState("a1")).toEqual({
+      trackId: "t2",
+      startMs: 2000 + DRAG_MS,
+      durationMs: 1000
+    });
   });
 
   it("moves vertically into another lane without changing start time", () => {
     renderLanes();
     pointerOverLane("t2");
     const el = screen.getByTestId("clip-a1");
-    fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: 100, clientY: 20 });
+    fireEvent.pointerDown(el, {
+      button: 0,
+      buttons: 1,
+      clientX: 100,
+      clientY: 20
+    });
     fireEvent.pointerMove(window, { buttons: 1, clientX: 100, clientY: 90 });
     fireEvent.pointerUp(window, { clientX: 100, clientY: 90 });
-    expect(clipState("a1")).toEqual({ trackId: "t2", startMs: 2000, durationMs: 1000 });
+    expect(clipState("a1")).toEqual({
+      trackId: "t2",
+      startMs: 2000,
+      durationMs: 1000
+    });
   });
 
   it("uses the release lane when the final hit test has not painted yet", () => {
@@ -262,8 +279,16 @@ describe("Clip drag across tracks", () => {
     renderLanes();
     pointerOverLane("t2");
     dragClip("a1", 100, 100 + DRAG_PX);
-    expect(clipState("a1")).toEqual({ trackId: "t2", startMs: 2000 + DRAG_MS, durationMs: 1000 });
-    expect(clipState("a3")).toEqual({ trackId: "t1", startMs: 8500 + DRAG_MS, durationMs: 1000 });
+    expect(clipState("a1")).toEqual({
+      trackId: "t2",
+      startMs: 2000 + DRAG_MS,
+      durationMs: 1000
+    });
+    expect(clipState("a3")).toEqual({
+      trackId: "t1",
+      startMs: 8500 + DRAG_MS,
+      durationMs: 1000
+    });
   });
 
   it("refuses a locked target lane and keeps moving on the source lane", () => {
@@ -271,7 +296,11 @@ describe("Clip drag across tracks", () => {
     renderLanes();
     pointerOverLane("t2");
     dragClip("a1", 100, 100 + DRAG_PX);
-    expect(clipState("a1")).toEqual({ trackId: "t1", startMs: 2000 + DRAG_MS, durationMs: 1000 });
+    expect(clipState("a1")).toEqual({
+      trackId: "t1",
+      startMs: 2000 + DRAG_MS,
+      durationMs: 1000
+    });
   });
 });
 
@@ -297,9 +326,20 @@ describe("Clip drag history and zoom", () => {
     document.elementsFromPoint = () => [lane];
     getTimelineTemporal().clear();
     const el = screen.getByTestId("clip-a1");
-    fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: 100, clientY: 20, pointerId: 1 });
+    fireEvent.pointerDown(el, {
+      button: 0,
+      buttons: 1,
+      clientX: 100,
+      clientY: 20,
+      pointerId: 1
+    });
     for (let i = 1; i <= 6; i++) {
-      fireEvent.pointerMove(window, { buttons: 1, clientX: 100 + i * 10, clientY: 20, pointerId: 1 });
+      fireEvent.pointerMove(window, {
+        buttons: 1,
+        clientX: 100 + i * 10,
+        clientY: 20,
+        pointerId: 1
+      });
     }
     fireEvent.pointerUp(window, { pointerId: 1, clientX: 160, clientY: 20 });
     expect(clipState("a1").trackId).toBe("t2");
@@ -308,23 +348,48 @@ describe("Clip drag history and zoom", () => {
     act(() => {
       getTimelineTemporal().undo();
     });
-    expect(clipState("a1")).toEqual({ trackId: "t1", startMs: 2000, durationMs: 1000 });
+    expect(clipState("a1")).toEqual({
+      trackId: "t1",
+      startMs: 2000,
+      durationMs: 1000
+    });
   });
 
   it("zooming mid-drag does not make the clip jump (F22)", () => {
     renderLanes();
     const el = screen.getByTestId("clip-a1");
-    fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: 100, clientY: 20, pointerId: 1 });
-    fireEvent.pointerMove(window, { buttons: 1, clientX: 130, clientY: 20, pointerId: 1 });
+    fireEvent.pointerDown(el, {
+      button: 0,
+      buttons: 1,
+      clientX: 100,
+      clientY: 20,
+      pointerId: 1
+    });
+    fireEvent.pointerMove(window, {
+      buttons: 1,
+      clientX: 130,
+      clientY: 20,
+      pointerId: 1
+    });
     expect(clipState("a1").startMs).toBe(2300);
     act(() => {
       useTimelineUIStore.setState({ msPerPx: 20 });
     });
     // Same pointer position after the zoom: the clip stays where it was.
-    fireEvent.pointerMove(window, { buttons: 1, clientX: 130, clientY: 20, pointerId: 1 });
+    fireEvent.pointerMove(window, {
+      buttons: 1,
+      clientX: 130,
+      clientY: 20,
+      pointerId: 1
+    });
     expect(clipState("a1").startMs).toBe(2300);
     // 10 px more at the new scale is 200 ms.
-    fireEvent.pointerMove(window, { buttons: 1, clientX: 140, clientY: 20, pointerId: 1 });
+    fireEvent.pointerMove(window, {
+      buttons: 1,
+      clientX: 140,
+      clientY: 20,
+      pointerId: 1
+    });
     expect(clipState("a1").startMs).toBe(2500);
     fireEvent.pointerUp(window, { pointerId: 1, clientX: 140, clientY: 20 });
   });
@@ -378,13 +443,21 @@ describe("Clip trim", () => {
   it("trim-end changes durationMs only", () => {
     renderLanes();
     dragHandle("a1", "end", 200, 200 + DRAG_PX);
-    expect(clipState("a1")).toEqual({ trackId: "t1", startMs: 2000, durationMs: 1000 + DRAG_MS });
+    expect(clipState("a1")).toEqual({
+      trackId: "t1",
+      startMs: 2000,
+      durationMs: 1000 + DRAG_MS
+    });
   });
 
   it("trim-start moves startMs and shrinks durationMs together", () => {
     renderLanes();
     dragHandle("a1", "start", 100, 100 + DRAG_PX);
-    expect(clipState("a1")).toEqual({ trackId: "t1", startMs: 2000 + DRAG_MS, durationMs: 1000 - DRAG_MS });
+    expect(clipState("a1")).toEqual({
+      trackId: "t1",
+      startMs: 2000 + DRAG_MS,
+      durationMs: 1000 - DRAG_MS
+    });
   });
 });
 
@@ -401,8 +474,9 @@ describe("Clip source slip", () => {
     act(() => clip.dispatchEvent(event));
     expect(event.defaultPrevented).toBe(false);
     expect(
-      useTimelineStore.getState().clips.find((candidate) => candidate.id === "a1")
-        ?.inPointMs
+      useTimelineStore
+        .getState()
+        .clips.find((candidate) => candidate.id === "a1")?.inPointMs
     ).toBeUndefined();
   });
 
@@ -436,14 +510,16 @@ describe("Clip source slip", () => {
     fireEvent.wheel(clip, { deltaX: DRAG_PX, deltaY: 1, altKey: true });
     act(() => jest.advanceTimersByTime(151));
     expect(
-      useTimelineStore.getState().clips.find((candidate) => candidate.id === "a1")
-        ?.inPointMs
+      useTimelineStore
+        .getState()
+        .clips.find((candidate) => candidate.id === "a1")?.inPointMs
     ).toBe(DRAG_MS * 2);
 
     act(() => getTimelineTemporal().undo());
     expect(
-      useTimelineStore.getState().clips.find((candidate) => candidate.id === "a1")
-        ?.inPointMs
+      useTimelineStore
+        .getState()
+        .clips.find((candidate) => candidate.id === "a1")?.inPointMs
     ).toBeUndefined();
     jest.useRealTimers();
   });
@@ -453,8 +529,9 @@ describe("Clip source slip", () => {
     const clip = screen.getByTestId("clip-a1");
     fireEvent.wheel(clip, { deltaX: 1, deltaY: DRAG_PX });
     expect(
-      useTimelineStore.getState().clips.find((candidate) => candidate.id === "a1")
-        ?.inPointMs
+      useTimelineStore
+        .getState()
+        .clips.find((candidate) => candidate.id === "a1")?.inPointMs
     ).toBeUndefined();
   });
 });
@@ -485,10 +562,27 @@ describe("Clip lock", () => {
     renderLanes();
     const el = screen.getByTestId("clip-b1");
     el.getBoundingClientRect = () =>
-      ({ left: 200, right: 300, top: 0, bottom: 64, width: 100, height: 64, x: 200, y: 0, toJSON: () => ({}) }) as DOMRect;
+      ({
+        left: 200,
+        right: 300,
+        top: 0,
+        bottom: 64,
+        width: 100,
+        height: 64,
+        x: 200,
+        y: 0,
+        toJSON: () => ({})
+      }) as DOMRect;
     act(() => {
-      fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: 250, pointerId: 1 });
+      fireEvent.pointerDown(el, {
+        button: 0,
+        buttons: 1,
+        clientX: 250,
+        pointerId: 1
+      });
     });
-    expect(useTimelineStore.getState().clips.filter((c) => c.trackId === "t2")).toHaveLength(1);
+    expect(
+      useTimelineStore.getState().clips.filter((c) => c.trackId === "t2")
+    ).toHaveLength(1);
   });
 });

@@ -1,9 +1,11 @@
 /**
- * Forwards ProcessingContext `prediction` events onto a chat socket.
+ * Forwards ProcessingContext `prediction` and `todo_update` events onto a chat
+ * socket.
  *
  * The chat turn's context already emits provider/model/capability on every
- * `runProviderPrediction` call. Without this listener those events stay in
- * the context queue and never reach ChatUI.
+ * `runProviderPrediction` call, and `todo_write` posts the agent's task list.
+ * Without this listener those events stay in the context queue and never
+ * reach ChatUI.
  */
 
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
@@ -16,7 +18,7 @@ export function attachChatPredictionForwarder(
   ids: { threadId: string | null; workflowId?: string | null }
 ): () => void {
   return addMessageListener((msg) => {
-    if (msg.type !== "prediction") {
+    if (msg.type !== "prediction" && msg.type !== "todo_update") {
       return;
     }
     const forwarded = {

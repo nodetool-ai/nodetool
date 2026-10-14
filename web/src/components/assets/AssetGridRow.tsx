@@ -8,12 +8,12 @@ import AssetItem from "./AssetItem";
 import { colorForType } from "../../config/data_types";
 import { IconForType } from "../../config/IconForType";
 import { Asset } from "../../stores/ApiTypes";
-import { Text, Tooltip, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
+import { Text, Tooltip, BORDER_RADIUS, EYEBROW, SPACING, getSpacingPx } from "../ui_primitives";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
 import {
-  TOOLTIP_ENTER_DELAY,
-  TOOLTIP_ENTER_NEXT_DELAY
+  TOOLTIP_ENTER_NEXT_DELAY,
+  TOOLTIP_DESCRIPTION_DELAY
 } from "../../config/constants";
 import { ExpandCollapseButton } from "../ui_primitives";
 import { assetTypeLabel } from "./assetTypeLabels";
@@ -122,7 +122,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
       <Tooltip
         title={`${isExpanded ? "Collapse" : "Expand"} ${typeLabel.toLowerCase()}`}
         placement="bottom"
-        delay={TOOLTIP_ENTER_DELAY * 2}
+        delay={TOOLTIP_DESCRIPTION_DELAY}
         nextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
       >
         <div
@@ -171,12 +171,9 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             showTooltip={false}
           />
           <Text
-            size="small"
-            weight={FONT_WEIGHT.semibold}
             style={{
-              color: theme.vars.palette.grey[100],
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
+              ...EYEBROW,
+              color: theme.vars.palette.text.secondary,
               lineHeight: 1,
               whiteSpace: "nowrap"
             }}

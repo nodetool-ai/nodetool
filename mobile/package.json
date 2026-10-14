@@ -1,6 +1,6 @@
 {
   "name": "nodetool-mobile",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "React Native mobile app for NodeTool Mini Apps",
   "main": "index.ts",
   "scripts": {
@@ -24,7 +24,6 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
-    "@nodetool-ai/protocol": "*",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/netinfo": "12.0.1",
     "@react-native-google-signin/google-signin": "^16.1.5",
@@ -66,6 +65,7 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-syntax-highlighter": "^16.1.1",
     "uuid": "14.0.2",
+    "zod": "^4.4.3",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

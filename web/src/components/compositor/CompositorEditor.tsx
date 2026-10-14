@@ -24,7 +24,7 @@ import {
   FlexColumn,
   FlexRow,
   StateIconButton,
-  Text, BORDER_RADIUS } from "../ui_primitives";
+  Text, BORDER_RADIUS, EmptyState } from "../ui_primitives";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import NumberInput from "../inputs/NumberInput";
 import LayerRow from "../node_types/editing/LayerRow";
@@ -115,13 +115,6 @@ const styles = (theme: Theme) =>
       "&.selected": {
         borderColor: theme.vars.palette.primary.main
       }
-    },
-    ".empty": {
-      color: theme.vars.palette.text.secondary,
-      fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmaller,
-      textAlign: "center",
-      padding: theme.spacing(1)
     }
   });
 
@@ -355,7 +348,11 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
         <FlexColumn gap={0.5}>
           <Caption>Layers</Caption>
           {layers.length === 0 ? (
-            <div className="empty">No layers yet - add one below.</div>
+            <EmptyState
+              size="small"
+              title="No layers yet"
+              description="Add one below."
+            />
           ) : (
             <div className="layer-stack">
               {stack.map(({ layer, index, state, image }) => (

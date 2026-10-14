@@ -1,34 +1,27 @@
 name: CodeQL
 
-# Advanced setup replaces GitHub's default setup, which analysed three
-# languages on every PR push and every push to main. On main the TypeScript
-# analysis scans the whole tree on every push, and the account-wide
-# job cap makes every minute of it queue time for other PRs. Here:
-#
-#   - pull requests analyse TypeScript and the workflow files, diff-informed;
-#   - the nightly run analyses all three languages on main, which is the
-#     baseline new PR alerts are compared against;
-#   - Python, a few scripts beside the TypeScript tree, is analysed nightly
-#     only.
-#
-# Default setup must be switched off in Settings → Code security, or GitHub
-# rejects this workflow's uploads.
+# Static analysis for injection, XSS, path traversal and similar flows in the
+# TypeScript code, and for unsafe patterns in these workflow files. Results
+# land in the Security tab and annotate pull requests. Advisory: not a required
+# check.
+
 on:
-  pull_request:
+  push:
     branches: [main]
+  pull_request:
     paths-ignore:
-      - "docs/**"
       - "**/*.md"
+      - "docs/**"
   schedule:
-    - cron: "41 1 * * *"
+    - cron: "25 3 * * 0" # Sundays at 03:25 UTC
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: codeql-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
@@ -37,26 +30,31 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: read
-      security-events: write
       actions: read
+      security-events: write
     strategy:
       fail-fast: false
       matrix:
-        language: >-
-          ${{ fromJSON(github.event_name == 'pull_request'
-          && '["javascript-typescript","actions"]'
-          || '["javascript-typescript","actions","python"]') }}
+        language: [javascript-typescript, actions]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+      - uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           languages: ${{ matrix.language }}
           build-mode: none
+          config: |
+            paths-ignore:
+              - "**/node_modules/**"
+              - "**/dist/**"
+              - "**/generated/**"
+              - "**/*.test.ts"
+              - "**/*.test.tsx"
+              - "**/__tests__/**"
+              - "**/tests/**"
 
-      - name: Analyze
-        uses: github/codeql-action/analyze@v4
+      - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           category: "/language:${{ matrix.language }}"

@@ -295,6 +295,51 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "A user's own MCP server URL. Under the cloud profile the MCP transport is handed safeFetch and the URL is checked on save and probe; a local install may reach its own loopback servers and uses the global fetch."
   },
 
+  {
+    file: "packages/runtime/src/providers/custom-openai-provider.ts",
+    owner: "custom OpenAI-compatible provider",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope:
+      "The API key the user stored for that provider; safeFetch strips Authorization on a cross-origin hop.",
+    redirects: "checked-per-hop",
+    dnsRebinding: "deployment-egress",
+    policy: "guarded",
+    guardedBy: ["safeFetch", "assertSafePublicHttpsUrl"],
+    note: "A user's own provider base URL. Under the cloud profile the constructor refuses a non-public or non-https base URL and every request goes through safeFetch; a local install may reach its own loopback servers and uses the global fetch."
+  },
+  {
+    file: "packages/runtime/src/providers/azure-openai-provider.ts",
+    owner: "Azure OpenAI provider",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope:
+      "The user's Azure OpenAI key; safeFetch strips the api-key and Authorization headers on a cross-origin hop.",
+    redirects: "checked-per-hop",
+    dnsRebinding: "deployment-egress",
+    policy: "guarded",
+    guardedBy: ["safeFetch"],
+    note: "The user's own Azure resource endpoint. Under the cloud profile every request goes through safeFetch; a local install may reach a private (Private Link) endpoint and uses the global fetch."
+  },
+  guardedSafeFetch(
+    "packages/runtime/src/providers/bedrock-provider.ts",
+    "Amazon Bedrock chat image and document URLs",
+    "chat-client",
+    "An https URL on a chat image or document part is fetched through safeFetch; Converse and InvokeModel calls go to the fixed bedrock-runtime.<region>.amazonaws.com host, with the region checked against the AWS region format."
+  ),
+  {
+    file: "packages/websocket/src/custom-providers.ts",
+    owner: "custom provider save",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope: "None. Saving a provider fetches nothing; it only checks the URL.",
+    redirects: "none",
+    dnsRebinding: "deployment-egress",
+    policy: "guarded",
+    guardedBy: ["isSafePublicHttpsUrl"],
+    note: "Under the cloud profile a base URL that is not https to a public host is refused on save, before the provider ever runs."
+  },
+
   // -------------------------------------------- guarded (provider result URLs)
   guardedSafeFetch(
     "packages/kie-nodes/src/kie-base.ts",
@@ -373,6 +418,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "useapi.net Google Flow and Dreamina result downloads",
     "provider-response",
     "Generated media URLs are screened; submit, upload and poll use the fixed API host."
+  ),
+  guardedSafeFetch(
+    "packages/runtime/src/providers/vgenv-provider.ts",
+    "vgenv MiniMax H3 result downloads",
+    "provider-response",
+    "Signed result URLs are screened; create, poll and cancel use the fixed API host."
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",
@@ -553,6 +604,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "Runs on the operator's own machine against their own API URL, which is loopback by default."
   },
   {
+    file: "packages/websocket/src/mcp-server.ts",
+    owner: "stdio MCP forwarder",
+    inputSource: "operator",
+    schemes: ["http"],
+    authScope: "local session",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "`nodetool mcp serve` forwards stdio to the local server's /mcp mount. The URL comes from PORT, and the forwarder refuses any host other than 127.0.0.1 or localhost."
+  },
+  {
     file: "packages/deploy/src/admin-client.ts",
     owner: "deploy admin client",
     inputSource: "operator",
@@ -578,6 +641,30 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     policy: "browser",
     guardedBy: ["fetchExternalMedia"],
     note: "API and upload fetches execute in the user's Dreamina tab. Server-side result downloads delegate to fetchExternalMedia, which checks each redirect hop."
+  },
+  {
+    file: "packages/runtime/src/providers/chatgpt-provider.ts",
+    owner: "ChatGPT browser chat and image generation",
+    inputSource: "caller-provided",
+    schemes: ["https", "http"],
+    authScope: "the browser tab's chatgpt.com cookies; none on input image fetches",
+    redirects: "runtime-follows",
+    dnsRebinding: "deployment-egress",
+    policy: "browser",
+    guardedBy: ["fetchExternalMedia"],
+    note: "Every chatgpt.com request, image downloads included, executes in the user's ChatGPT tab. An input image given as a URL is fetched server-side through fetchExternalMedia, which checks each redirect hop."
+  },
+  {
+    file: "packages/runtime/src/providers/gemini-web-provider.ts",
+    owner: "Gemini web chat, image and video generation",
+    inputSource: "chat-client",
+    schemes: ["https", "http"],
+    authScope: "the browser's Google cookies for generated media; none on input image fetches",
+    redirects: "runtime-follows",
+    dnsRebinding: "deployment-egress",
+    policy: "browser",
+    guardedBy: ["fetchExternalMedia"],
+    note: "Every gemini.google.com request runs in the user's Gemini tab, and the browser itself loads generated images (lh3.googleusercontent.com/gg-dl) and videos (contribution.usercontent.google.com) that the Gemini response named. A chat input image given as a URL is fetched server-side through fetchExternalMedia, which checks each redirect hop."
   },
   {
     file: "packages/game-renderer/src/standalone-player.ts",

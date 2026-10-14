@@ -166,10 +166,11 @@ export function stepGameplay3D(context: GameSystemContext3D): void {
     context.instances = [];
     context.scriptState = {};
     context.hud = new Map();
+    context.ui = new Map();
     context.queries = [];
     context.music = context.scene.music
       ? {
-          ...context.scene.music,
+          assetId: context.scene.music.assetId, volume: context.scene.music.volume, fadeInTicks: context.scene.music.fadeInTicks, fadeOutTicks: context.scene.music.fadeOutTicks,
           voiceId: `scene:${context.scene.id}:music`,
           startTick: context.tick + 1
         }

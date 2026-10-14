@@ -14,7 +14,6 @@ import {
   BORDER_RADIUS,
   Caption,
   Card,
-  Checkbox,
   Chip,
   ConfirmDialog,
   Dialog,
@@ -22,6 +21,7 @@ import {
   EmptyState,
   FlexColumn,
   FlexRow,
+  LabeledSwitch,
   MOTION,
   SPACING,
   SelectField,
@@ -279,7 +279,7 @@ const ServerRow = memo(function ServerRow({
           variant="text"
           size="small"
           color="error"
-          startIcon={<DeleteIcon sx={{ fontSize: 14 }} />}
+          startIcon={<DeleteIcon />}
           onClick={handleDelete}
         >
           Remove
@@ -410,13 +410,9 @@ export const ExternalMcpServersSection = memo(
       setDraft((prev) => ({ ...prev, type: value === "http" ? "http" : "stdio" }));
     }, []);
 
-    const handleEnabledChange = useCallback(
-      (e: ChangeEvent<HTMLInputElement>) => {
-        const enabled = e.target.checked;
-        setDraft((prev) => ({ ...prev, enabled }));
-      },
-      []
-    );
+    const handleEnabledChange = useCallback((enabled: boolean) => {
+      setDraft((prev) => ({ ...prev, enabled }));
+    }, []);
 
     const servers = data?.servers ?? [];
     const stdioEnabled = data?.stdio_enabled ?? true;
@@ -460,7 +456,7 @@ export const ExternalMcpServersSection = memo(
             density="compact"
             variant="outlined"
             size="small"
-            startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+            startIcon={<AddIcon />}
             onClick={handleAdd}
           >
             Add server
@@ -494,22 +490,14 @@ export const ExternalMcpServersSection = memo(
           open={dialogOpen}
           onClose={handleClose}
           fullWidth
-          title={
-            <Text size="big">
-              {editingId ? "Edit MCP server" : "Add MCP server"}
-            </Text>
-          }
+          title={editingId ? "Edit MCP server" : "Add MCP server"}
           onConfirm={handleSave}
-          onCancel={handleClose}
           confirmText={editingId ? "Save" : "Add"}
-          cancelText="Cancel"
           confirmDisabled={
             Boolean(draftIdError) || Boolean(transportError) || duplicateId
           }
         >
-          <FlexColumn
-            sx={{ marginTop: theme.spacing(4), gap: theme.spacing(3) }}
-          >
+          <FlexColumn gap={SPACING.lg}>
             <TextInput
               label="Name"
               value={draft.name}
@@ -521,7 +509,7 @@ export const ExternalMcpServersSection = memo(
               size="small"
             />
             <TextInput
-              label="Id"
+              label="ID"
               value={draft.id}
               onChange={field("id")}
               fullWidth
@@ -622,7 +610,7 @@ export const ExternalMcpServersSection = memo(
                 />
               </>
             )}
-            <Checkbox
+            <LabeledSwitch
               label="Enabled"
               checked={draft.enabled}
               onChange={handleEnabledChange}
@@ -633,10 +621,11 @@ export const ExternalMcpServersSection = memo(
 
         <ConfirmDialog
           open={Boolean(pendingDelete)}
-          title="Remove server"
+          title="Remove server?"
           content={`Remove ${pendingDelete?.name ?? ""}? Its tools leave the agent's toolbelt.`}
           confirmText="Remove"
           cancelText="Cancel"
+          destructive
           onConfirm={confirmDelete}
           onClose={handleCancelDelete}
         />

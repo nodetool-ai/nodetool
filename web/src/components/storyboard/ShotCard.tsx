@@ -75,6 +75,7 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
 import { captureLastFrame } from "./lastFrame";
+import { formatDuration } from "../../utils/formatUtils";
 
 interface ShotCardProps {
   boardId: string;
@@ -85,6 +86,11 @@ interface ShotCardProps {
    * rather than counting shots it cannot see.
    */
   caption?: string;
+  /**
+   * The length this shot's clip renders at, in seconds. The board resolves it
+   * from the linked script's takes or the shot's own value.
+   */
+  durationSeconds?: number;
   /**
    * This shot's part of a scene clip, as `Clip 2/3 · 4-9s`. The board
    * resolves scene clips, so the card is told its part.
@@ -150,8 +156,6 @@ const isFileDrag = (event: React.DragEvent): boolean =>
   Array.from(event.dataTransfer?.types ?? []).includes("Files");
 
 
-/** The render bar sits on the thumbnail's bottom edge, 3px per the design. */
-const RENDER_BAR_HEIGHT = 3;
 const STILL_RENDER_COLORS = [
   colorForType("image"),
   colorForType("video"),
@@ -164,6 +168,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   boardId,
   shot,
   caption,
+  durationSeconds,
   sceneClipTag,
   renderContext,
   selected,
@@ -505,6 +510,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       >
         {shot.graphics && shot.graphics.mode !== "none" ? (
           <ShotDesignFrame
+            hoverControls
             boardId={boardId}
             shot={
               previewClip && previewClip !== shot.clip
@@ -519,6 +525,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
               poster={keyframeThumbUri ?? undefined}
               label={`${shotName} clip`}
               prominentPlay
+              hoverControls
             />
           </Box>
         ) : hasKeyframe ? (
@@ -647,11 +654,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
                 progress == null ? "indeterminate" : "determinate"
               }
               showValue={false}
-              sx={{
-                height: RENDER_BAR_HEIGHT,
-                backgroundColor: "c_overlay_subtle",
-                "& .MuiLinearProgress-bar": { backgroundColor: CLIP_COLOR }
-              }}
+              size="small"
+              accent={CLIP_COLOR}
+              aria-label="Rendering clip"
             />
           </Box>
         )}
@@ -662,6 +667,15 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           <Caption color="secondary">
             {caption ?? `Shot ${shot.index + 1}`}
           </Caption>
+          {durationSeconds != null && (
+            <Caption
+              color="secondary"
+              data-testid="shot-card-duration"
+              aria-label={`${durationSeconds} seconds`}
+            >
+              {formatDuration(durationSeconds * 1000)}
+            </Caption>
+          )}
           {sceneClipTag && (
             <StatusPill
               tone="neutral"

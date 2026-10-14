@@ -235,12 +235,12 @@ const ToolsListProperty = (props: PropertyProps<Tool[]>) => {
               onClick={handleToolClick}
               data-tool={entry.id}
             >
-              <ListItemIcon sx={{ minWidth: 24 }}>{entry.icon}</ListItemIcon>
+              <ListItemIcon>{entry.icon}</ListItemIcon>
               <ListItemText>{entry.description}</ListItemText>
               <Checkbox
                 checked={selected}
                 size="small"
-                sx={{ p: 0, ml: 1 }}
+                sx={{ p: 0 }}
                 disableRipple
               />
             </EditorMenuItem>

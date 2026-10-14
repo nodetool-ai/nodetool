@@ -21,6 +21,7 @@ interface SelectionActionsReturn {
   duplicateSelected: () => void;
   groupSelected: () => void;
   bypassSelected: () => void;
+  linkSelected: () => void;
 }
 
 const NODE_WIDTH = 280;
@@ -50,6 +51,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
   const deleteNodes = useNodes((state) => state.deleteNodes);
   const deleteEdges = useNodes((state) => state.deleteEdges);
   const toggleBypassSelected = useNodes((state) => state.toggleBypassSelected);
+  const addLink = useNodes((state) => state.addLink);
   const store = useNodeStoreRef();
   const surroundWithGroup = useSurroundWithGroup();
 
@@ -293,11 +295,11 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     const selectedNodes = getSelectedNodes();
     deleteNodes(selectedNodes.map((node) => node.id));
 
-    const { edges } = store.getState();
+    const { edges, selectedLinkIds } = store.getState();
     const selectedEdgeIds = edges
       .filter((edge) => edge.selected)
       .map((edge) => edge.id);
-    deleteEdges(selectedEdgeIds);
+    deleteEdges([...selectedEdgeIds, ...selectedLinkIds]);
   }, [getSelectedNodes, deleteNodes, store, deleteEdges]);
 
   const duplicateSelected = useCallback(() => {
@@ -335,7 +337,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       };
     });
 
-    const { nodes, edges } = store.getState();
+    const { nodes, edges, links, setLinks } = store.getState();
 
     // Only duplicate edges where both endpoints are among the duplicated nodes.
     const selectedNodeIds = selectedNodes.map((n) => n.id);
@@ -359,8 +361,24 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       selected: false
     }));
 
+    const newLinks = links
+      .filter(
+        (link) =>
+          selectedNodeIdsSet.has(link.source) &&
+          selectedNodeIdsSet.has(link.target)
+      )
+      .map((link) => ({
+        ...link,
+        id: crypto.randomUUID().replace(/-/g, ""),
+        source: nodeIdMap[link.source],
+        target: nodeIdMap[link.target]
+      }));
+
     setNodes([...updatedNodes, ...newNodes]);
     setEdges([...edges, ...newEdges]);
+    if (newLinks.length > 0) {
+      setLinks([...links, ...newLinks]);
+    }
   }, [getSelectedNodes, setNodes, setEdges, store]);
 
   const groupSelected = useCallback(() => {
@@ -376,6 +394,24 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     toggleBypassSelected();
   }, [toggleBypassSelected]);
 
+  // A lineage link between exactly two selected nodes, drawn from the one on
+  // the left (or above, when they share a column) to the other.
+  const linkSelected = useCallback(() => {
+    // Every selected node counts here, a group and its child included; the
+    // toolbar enables Link for any two.
+    const selected = getSelectedNodes();
+    if (selected.length !== 2) {
+      return;
+    }
+    const [source, target] = [...selected].sort(
+      (a, b) =>
+        a.position.x - b.position.x ||
+        a.position.y - b.position.y ||
+        a.id.localeCompare(b.id)
+    );
+    addLink(source.id, target.id);
+  }, [addLink, getSelectedNodes]);
+
   return {
     alignLeft,
     alignCenter,
@@ -390,7 +426,8 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     deleteSelected,
     duplicateSelected,
     groupSelected,
-    bypassSelected
+    bypassSelected,
+    linkSelected
   };
 };
 

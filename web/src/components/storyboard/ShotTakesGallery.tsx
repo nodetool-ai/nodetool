@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import type { Theme } from "@mui/material/styles";
 import type { ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
@@ -20,14 +21,13 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import {
   Box,
   Caption,
-  Chip,
   EditorButton,
   FlexColumn,
   FlexRow,
   ToolbarIconButton,
-  BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  selectableTileStyles
 } from "../ui_primitives";
 import OutputRenderer from "../node/OutputRenderer";
 import ShotMediaViewer from "./ShotMediaViewer";
@@ -50,15 +50,12 @@ interface ShotTakesGalleryProps {
   readOnly?: boolean;
 }
 
-const takeThumbSx = {
+const takeThumbSx = (selected: boolean) => (theme: Theme) => ({
   width: getSpacingPx(28),
   aspectRatio: "16 / 9",
   p: 0,
   overflow: "hidden",
   cursor: "pointer",
-  borderRadius: BORDER_RADIUS.sm,
-  border: "1px solid",
-  borderColor: "divider",
   bgcolor: "c_overlay_subtle",
   display: "grid",
   placeItems: "center",
@@ -69,18 +66,11 @@ const takeThumbSx = {
     objectFit: "cover",
     display: "block"
   },
-  // Unselected takes sit back; the selected one is the only lit thumbnail,
-  // marked by a border rather than a glow.
-  opacity: 0.6,
-  "&:hover": { opacity: 1 },
-  "&[aria-current='true']": {
-    opacity: 1,
-    borderColor: "primary.main"
-  },
+  ...selectableTileStyles(theme, { selected }),
   "&:disabled": {
     cursor: "default"
   }
-} as const;
+});
 
 // On a touch screen the take actions are always shown, and two buttons on a
 // thumbnail this size cover most of it and each other. They move under the
@@ -118,8 +108,8 @@ const takeActionSx = {
 const viewButtonSx = {
   ...takeActionSx,
   position: "absolute",
-  bottom: SPACING.micro,
-  right: SPACING.micro,
+  bottom: getSpacingPx(SPACING.micro),
+  right: getSpacingPx(SPACING.micro),
   bgcolor: "c_scrim_soft",
   ...coarseStaticSx
 } as const;
@@ -127,8 +117,8 @@ const viewButtonSx = {
 const removeButtonSx = {
   ...takeActionSx,
   position: "absolute",
-  top: SPACING.micro,
-  right: SPACING.micro,
+  top: getSpacingPx(SPACING.micro),
+  right: getSpacingPx(SPACING.micro),
   bgcolor: "c_scrim_soft",
   ...coarseStaticSx
 } as const;
@@ -303,7 +293,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                         ? setViewerMedia(still)
                         : handleAcceptStill(i)
                     }
-                    sx={takeThumbSx}
+                    sx={takeThumbSx(isCurrent)}
                   >
                     {stillThumbSrcs[i] ? (
                       <ResponsiveImage
@@ -378,7 +368,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                         ? handlePreviewClip(i)
                         : handleUseClip(i)
                     }
-                    sx={takeThumbSx}
+                    sx={takeThumbSx(isCurrent)}
                   >
                     <ClipTakeThumb clip={clip} index={i} />
                   </Box>

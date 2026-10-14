@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo, useState } from "react";
-import type { DragEvent } from "react";
+import type { DragEvent, ReactNode } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 import { useMediaQuery } from "@mui/material";
@@ -11,7 +11,10 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import MovieIcon from "@mui/icons-material/Movie";
 import SubtitlesIcon from "@mui/icons-material/Subtitles";
+import AudioFileIcon from "@mui/icons-material/AudioFile";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import MicNoneIcon from "@mui/icons-material/MicNone";
 import {
   FlexColumn,
   FlexRow,
@@ -31,7 +34,11 @@ import {
   SPACING,
   BORDER_RADIUS,
   TYPOGRAPHY,
+  EYEBROW,
+  CONTROL,
+  TruncatedText,
   MOTION,
+  SPACING_PX,
   Z_INDEX
 } from "../ui_primitives";
 import { formatDuration } from "../../utils/formatUtils";
@@ -39,6 +46,7 @@ import { useInStudio } from "../../studio/StudioContext";
 import {
   useScript,
   useScriptCast,
+  useScriptTitle,
   useScriptSetup,
   useScriptStore,
   useScriptStoryboardLink,
@@ -65,6 +73,10 @@ import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useScriptWriting } from "../../hooks/script/scriptWrites";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
+import {
+  scriptFileBase,
+  useScriptAudioExport
+} from "../../hooks/script/useScriptAudioExport";
 import ScriptLineRow, { TEXT_INSET, type LineKeyNav } from "./ScriptLineRow";
 import { useScriptLineShotLink } from "../../hooks/script/useScriptShotLinks";
 import { useScriptLineFocus } from "../../hooks/script/useScriptLineFocus";
@@ -99,8 +111,9 @@ interface LineDnd {
 }
 
 /**
- * A hover-revealed gap between lines: a hairline with a centered "+" that
- * inserts a new line at this position. Also acts as a drop target so a line can
+ * A hover-revealed seam between lines: a hairline with a "+" that inserts a
+ * new line at this position. It overlays the divider between two rows, so the
+ * script keeps its printed rhythm, and doubles as a drop target so a line can
  * be dropped precisely between two others.
  */
 const InsertLineGap = ({
@@ -108,28 +121,37 @@ const InsertLineGap = ({
   onDragOver,
   onDrop,
   active,
-  inset
+  inset,
+  edge
 }: {
   onInsert: () => void;
   onDragOver: (e: DragEvent<HTMLElement>) => void;
   onDrop: (e: DragEvent<HTMLElement>) => void;
   active: boolean;
   inset: number;
+  /** Where the seam sits: on the row's top border, or inside its bottom edge. */
+  edge: "top" | "first" | "bottom";
 }) => (
-  <Box
+  <FlexRow
+    align="center"
     onDragOver={onDragOver}
     onDrop={onDrop}
     sx={{
-      marginLeft: `${inset}px`,
-      height: 12,
-      display: "flex",
-      alignItems: "center",
+      position: "absolute",
+      left: `${inset}px`,
+      right: 0,
+      ...(edge === "bottom" ? { bottom: 0 } : { top: 0 }),
+      transform: edge === "top" ? "translateY(-50%)" : undefined,
+      height: SPACING_PX.lg,
+      zIndex: Z_INDEX.raised,
       cursor: "pointer",
       "& .insert-line-rule": {
         opacity: active ? 1 : 0,
         transition: MOTION.opacity
       },
-      "&:hover .insert-line-rule": { opacity: 1 }
+      "&:hover .insert-line-rule, &:focus-within .insert-line-rule": {
+        opacity: 1
+      }
     }}
   >
     <Box
@@ -150,7 +172,7 @@ const InsertLineGap = ({
         color: "primary.main"
       }}
     >
-      <AddIcon sx={{ fontSize: 14 }} />
+      <AddIcon sx={{ fontSize: "var(--fontSizeSmall)" }} />
       <Box
         sx={{
           flex: 1,
@@ -160,7 +182,7 @@ const InsertLineGap = ({
         }}
       />
     </Box>
-  </Box>
+  </FlexRow>
 );
 
 /**
@@ -254,7 +276,14 @@ const SectionLine = memo(function SectionLine({
   const { shotLink, orphaned } = useScriptLineShotLink(scriptId, line.id);
 
   return (
-    <div data-focus-id={`script-line-${line.id}`}>
+    <Box
+      data-focus-id={`script-line-${line.id}`}
+      sx={{
+        position: "relative",
+        borderTop: index === 0 ? "none" : "1px solid",
+        borderColor: "divider"
+      }}
+    >
       {!readOnly && (
         <InsertLineGap
           onInsert={handleInsert}
@@ -262,6 +291,7 @@ const SectionLine = memo(function SectionLine({
           onDrop={handleDrop}
           active={gapActive}
           inset={inset}
+          edge={index === 0 ? "first" : "top"}
         />
       )}
       <ScriptLineRow
@@ -280,7 +310,7 @@ const SectionLine = memo(function SectionLine({
         onDragOver={handleRowDragOver}
         onDrop={handleDrop}
       />
-    </div>
+    </Box>
   );
 });
 
@@ -353,17 +383,7 @@ const SectionBlockInner = ({
         }
       }}
     >
-      <FlexRow
-        align="center"
-        gap={SPACING.sm}
-        fullWidth
-        sx={{
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          paddingBottom: SPACING.xs,
-          marginBottom: SPACING.sm
-        }}
-      >
+      <FlexRow align="center" gap={SPACING.sm} fullWidth>
         <TextInput
           value={section.title ?? ""}
           onChange={(e) =>
@@ -376,12 +396,17 @@ const SectionBlockInner = ({
           fullWidth
           disabled={readOnly}
           sx={{
-            "& .MuiOutlinedInput-root": { backgroundColor: "transparent" },
+            "& .MuiOutlinedInput-root.MuiInputBase-root": {
+              backgroundColor: "transparent"
+            },
             "& .MuiOutlinedInput-notchedOutline": { border: "none" },
             "& .MuiOutlinedInput-input": {
               paddingLeft: SPACING.none,
-              ...TYPOGRAPHY.sans.title,
-              letterSpacing: "0.02em"
+              ...EYEBROW,
+              color: "text.secondary"
+            },
+            "& .MuiOutlinedInput-input.Mui-disabled": {
+              WebkitTextFillColor: "inherit"
             }
           }}
         />
@@ -395,37 +420,54 @@ const SectionBlockInner = ({
           </Box>
         )}
       </FlexRow>
-      {section.lines.map((line, index) => (
-        <SectionLine
-          key={line.id}
-          scriptId={scriptId}
-          line={line}
-          index={index}
-          nextLineId={section.lines[index + 1]?.id ?? null}
-          cast={cast}
-          highlighted={line.id === highlightedLineId}
-          readOnly={readOnly}
-          mobile={mobile}
-          inset={inset}
-          gapActive={isTarget(line.id)}
-          isDragging={dnd.draggingLineId === line.id}
-          dragActive={dragActive}
-          onKeyNav={onKeyNav}
-          onInsert={onInsertAt}
-          onDragStart={onLineDragStart}
-          onDragEnd={onLineDragEnd}
-          onDropTarget={onDropTarget}
-          onDrop={onLineDrop}
-        />
-      ))}
-      {!readOnly && (
-        <InsertLineGap
-          onInsert={() => insertLine(scriptId, section.id, section.lines.length)}
-          onDragOver={onGapDragOver(null)}
-          onDrop={onGapDrop}
-          active={isTarget(null)}
-          inset={inset}
-        />
+      {/* The section's lines read as one sheet, a hairline between rows. */}
+      {section.lines.length > 0 && (
+      <Box
+        sx={{
+          position: "relative",
+          borderRadius: BORDER_RADIUS.lg,
+          border: "1px solid",
+          borderColor: "divider",
+          backgroundColor: "background.paper",
+          overflow: "hidden"
+        }}
+      >
+        {section.lines.map((line, index) => (
+          <SectionLine
+            key={line.id}
+            scriptId={scriptId}
+            line={line}
+            index={index}
+            nextLineId={section.lines[index + 1]?.id ?? null}
+            cast={cast}
+            highlighted={line.id === highlightedLineId}
+            readOnly={readOnly}
+            mobile={mobile}
+            inset={inset}
+            gapActive={isTarget(line.id)}
+            isDragging={dnd.draggingLineId === line.id}
+            dragActive={dragActive}
+            onKeyNav={onKeyNav}
+            onInsert={onInsertAt}
+            onDragStart={onLineDragStart}
+            onDragEnd={onLineDragEnd}
+            onDropTarget={onDropTarget}
+            onDrop={onLineDrop}
+          />
+        ))}
+        {!readOnly && (
+          <InsertLineGap
+            onInsert={() =>
+              insertLine(scriptId, section.id, section.lines.length)
+            }
+            onDragOver={onGapDragOver(null)}
+            onDrop={onGapDrop}
+            active={isTarget(null)}
+            inset={inset}
+            edge="bottom"
+          />
+        )}
+      </Box>
       )}
       {!readOnly && (
         <FlexRow sx={{ marginLeft: `${inset}px` }}>
@@ -446,6 +488,36 @@ const SectionBlockInner = ({
 /** `mapLine` keeps unedited sections referentially stable, so a keystroke only
  *  re-renders the section being edited. */
 const SectionBlock = memo(SectionBlockInner);
+
+/** A quiet pill of document facts in the header ("4 lines", "2 voices"). */
+const MetaChip = ({
+  icon,
+  children
+}: {
+  icon?: ReactNode;
+  children: ReactNode;
+}) => (
+  <FlexRow
+    component="span"
+    align="center"
+    gap={SPACING.xs}
+    sx={{
+      flexShrink: 0,
+      height: CONTROL.height.sm,
+      paddingX: SPACING.lg,
+      borderRadius: BORDER_RADIUS.pill,
+      border: "1px solid",
+      borderColor: "divider",
+      backgroundColor: "action.hover",
+      color: "text.secondary",
+      whiteSpace: "nowrap",
+      ...TYPOGRAPHY.sans.label
+    }}
+  >
+    {icon}
+    {children}
+  </FlexRow>
+);
 
 /**
  * *Voice all* with what the click costs on it.
@@ -599,7 +671,7 @@ const VoicingStrip = ({
     return (
       <AlertBanner severity="info" compact sx={{ marginX: SPACING.md }}>
         <FlexRow align="center" gap={SPACING.xs}>
-          <LoadingSpinner size={16} />
+          <LoadingSpinner inline size={16} />
           <Text size="smaller">
             {`Voicing ${run.voiced + run.failed.length} of ${run.total} ${
               run.total === 1 ? "line" : "lines"
@@ -704,6 +776,8 @@ const ScriptDocumentPane = ({
   // A linked board means the cut carries picture as well as voice, so the
   // button stops promising a voiceover track and offers the whole video.
   const storyboardId = useScriptStoryboardLink(scriptId);
+  const title = useScriptTitle(scriptId);
+  const castCount = useScriptCast(scriptId).length;
   const addLine = useScriptStore((s) => s.addLine);
   const addSection = useScriptStore((s) => s.addSection);
   const moveLine = useScriptStore((s) => s.moveLine);
@@ -732,6 +806,8 @@ const ScriptDocumentPane = ({
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const { assemble, assembling, error: assembleError } =
     useAssembleScriptTimeline();
+  const { exportAudio, exporting: exportingAudio } =
+    useScriptAudioExport(scriptId);
 
   const [draggingLineId, setDraggingLineId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
@@ -854,9 +930,7 @@ const ScriptDocumentPane = ({
     if (!script) return;
     const result = exportScriptSubtitles(script, { format: "srt" });
     if (!result) return;
-    const base =
-      script.title.trim().replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^[._]+/, "") ||
-      "script";
+    const base = scriptFileBase(script.title);
     const blob = new Blob([result.text], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -919,6 +993,20 @@ const ScriptDocumentPane = ({
       label: "Export Subtitles (SRT)",
       run: onExportSubtitles
     });
+    if (!exportingAudio) {
+      commands.push(
+        {
+          id: "export-audio-wav",
+          label: "Export Audio (WAV)",
+          run: () => void exportAudio("wav")
+        },
+        {
+          id: "export-audio-mp3",
+          label: "Export Audio (MP3)",
+          run: () => void exportAudio("mp3")
+        }
+      );
+    }
     return commands;
   }, [
     hasVoicedLine,
@@ -927,7 +1015,9 @@ const ScriptDocumentPane = ({
     storyboardId,
     timelineId,
     onSendToTimeline,
-    onExportSubtitles
+    onExportSubtitles,
+    exportingAudio,
+    exportAudio
   ]);
   useContextCommands("Script", menuCommands, active);
 
@@ -937,19 +1027,65 @@ const ScriptDocumentPane = ({
       gap={SPACING.md}
       sx={{ flex: 1, minWidth: 0, height: "100%", overflowY: "auto" }}
     >
-      <FlexRow
-        align="center"
-        gap={SPACING.sm}
-        wrap={isMobile}
+      <FlexColumn
+        gap={SPACING.none}
         sx={{
-          paddingY: SPACING.sm,
-          paddingX: isMobile ? SPACING.sm : SPACING.md,
-          borderBottom: "1px solid",
-          borderColor: "divider",
           position: "sticky",
           top: 0,
           backgroundColor: "background.paper",
+          borderBottom: "1px solid",
+          borderColor: "divider",
           zIndex: Z_INDEX.sticky
+        }}
+      >
+      <FlexRow
+        align="center"
+        gap={SPACING.md}
+        wrap
+        sx={{
+          paddingTop: SPACING.lg,
+          paddingBottom: SPACING.sm,
+          paddingX: isMobile ? SPACING.md : SPACING.xl
+        }}
+      >
+        <DescriptionOutlinedIcon
+          fontSize="small"
+          sx={{ color: "warning.main", flexShrink: 0 }}
+        />
+        <TruncatedText
+          component="h2"
+          sx={{
+            ...TYPOGRAPHY.sans.title,
+            margin: SPACING.none,
+            minWidth: 0,
+            flex: "1 1 auto",
+            color: "text.primary"
+          }}
+        >
+          {title ? `${title} — Script` : "Untitled script"}
+        </TruncatedText>
+        {!isEmpty && (
+          <MetaChip>
+            {lineCount} {lineCount === 1 ? "line" : "lines"} · {wordCount}{" "}
+            {wordCount === 1 ? "word" : "words"}
+            {durationLabel ? ` · ${durationLabel}` : ""}
+          </MetaChip>
+        )}
+        {castCount > 0 && (
+          <MetaChip icon={<MicNoneIcon sx={{ fontSize: "inherit" }} />}>
+            {castCount} {castCount === 1 ? "voice" : "voices"}
+          </MetaChip>
+        )}
+        {!readOnly && <ScriptSaveIndicator scriptId={scriptId} />}
+      </FlexRow>
+      <FlexRow
+        align="center"
+        gap={SPACING.sm}
+        wrap
+        sx={{
+          paddingBottom: SPACING.sm,
+          paddingX: isMobile ? SPACING.sm : SPACING.lg,
+          "& .MuiButton-root": { whiteSpace: "nowrap", flexShrink: 0 }
         }}
       >
         {!readOnly && (
@@ -965,7 +1101,7 @@ const ScriptDocumentPane = ({
         {!readOnly &&
           (voicingAll || voicingLive || writing ? (
             <FlexRow align="center" gap={SPACING.xs}>
-              <LoadingSpinner size={18} />
+              <LoadingSpinner inline size={16} />
               <Text size="smaller">
                 {voicingAll || voicingLive ? "Voicing…" : "Writing…"}
               </Text>
@@ -1007,14 +1143,14 @@ const ScriptDocumentPane = ({
           </Tooltip>
         )}
         <Box sx={{ flex: 1 }} />
-        {!isEmpty && (
-          <Text size="smaller" sx={{ color: "text.secondary" }}>
-            {lineCount} {lineCount === 1 ? "line" : "lines"} · {wordCount}{" "}
-            {wordCount === 1 ? "word" : "words"}
-            {durationLabel ? ` · ${durationLabel}` : ""}
-          </Text>
+        {exportingAudio && (
+          <FlexRow align="center" gap={SPACING.xs}>
+            <LoadingSpinner inline size={16} />
+            <Text size="smaller">
+              Exporting {exportingAudio.toUpperCase()}…
+            </Text>
+          </FlexRow>
         )}
-        {!readOnly && <ScriptSaveIndicator scriptId={scriptId} />}
         {showAssemble && (
           <EditorButton
             size="small"
@@ -1060,7 +1196,6 @@ const ScriptDocumentPane = ({
               onClose={() => setMoreAnchor(null)}
             >
               <MenuItemPrimitive
-                compact
                 icon={<SubtitlesIcon fontSize="small" />}
                 label="Export SRT"
                 disabled={!hasVoicedLine}
@@ -1074,10 +1209,28 @@ const ScriptDocumentPane = ({
                   onExportSubtitles();
                 }}
               />
+              {(["wav", "mp3"] as const).map((format) => (
+                <MenuItemPrimitive
+                  key={format}
+                  icon={<AudioFileIcon fontSize="small" />}
+                  label={`Export ${format.toUpperCase()}`}
+                  disabled={!hasVoicedLine || exportingAudio !== null}
+                  tooltip={
+                    hasVoicedLine
+                      ? undefined
+                      : "Voice at least one line to export audio"
+                  }
+                  onClick={() => {
+                    setMoreAnchor(null);
+                    void exportAudio(format);
+                  }}
+                />
+              ))}
             </EditorMenu>
           </>
         )}
       </FlexRow>
+      </FlexColumn>
 
       <VoicingStrip scriptId={scriptId} readOnly={readOnly} />
 
@@ -1093,10 +1246,14 @@ const ScriptDocumentPane = ({
 
       <FlexColumn
         gap={SPACING.xxl}
-        style={{ maxWidth: 780, width: "100%", margin: "0 auto" }}
+        style={{ maxWidth: 1180, width: "100%", margin: "0 auto" }}
         sx={{
           paddingX: isMobile ? SPACING.sm : SPACING.xl,
-          paddingY: isMobile ? SPACING.md : SPACING.xl
+          paddingY: isMobile ? SPACING.md : SPACING.xl,
+          // Rows reflow on the column's own width, not the viewport's:
+          // the cast rail and the assistant dock both take from it.
+          containerType: "inline-size",
+          containerName: "script-lines"
         }}
       >
         {isEmpty && (

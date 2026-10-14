@@ -6,13 +6,16 @@ import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { shallow } from "zustand/shallow";
 import { Tooltip, Text, EditorButton, PanelHeader, Box, MOTION, BORDER_RADIUS, SHADOW, SPACING, getSpacingPx } from "../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { useReactFlow, useViewport } from "@xyflow/react";
+import { useReactFlow, useViewport, type Node } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
+import { nodeErrorToDisplayString } from "../../stores/ErrorStore";
+import { useNodeError } from "../../hooks/nodes/useNodeExecState";
+import type { NodeData } from "../../stores/NodeData";
+import { absoluteNodePosition } from "../../utils/absoluteNodePosition";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -50,9 +53,7 @@ interface NodeInfo {
   namespace: string;
   description: string | undefined;
   position: { x: number; y: number };
-  hasError: boolean;
-  errorMessage: string | undefined;
-  executionStatus: "pending" | "running" | "completed" | "error" | undefined;
+  errorMessage: string;
 }
 
 const PANEL_WIDTH = 320;
@@ -197,10 +198,28 @@ const styles = (theme: Theme) =>
  * reposition the panel while panning/zooming) doesn't re-render anything
  * when the panel is hidden.
  */
+/** A node's canvas position, adding the offsets of its ancestor groups. */
+const canvasPosition = (
+  node: Node<NodeData>,
+  findNode: (id: string) => Node<NodeData> | undefined
+): { x: number; y: number } => {
+  const lookup = new Map<string, Node<NodeData>>();
+  let parentId = node.parentId;
+  while (parentId && !lookup.has(parentId)) {
+    const parent = findNode(parentId);
+    if (!parent) {
+      break;
+    }
+    lookup.set(parentId, parent);
+    parentId = parent.parentId;
+  }
+  return absoluteNodePosition(node, lookup);
+};
+
 const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
   ({ inspectedNodeId }) => {
   const theme = useTheme();
-  const { getNode, setCenter, flowToScreenPosition } = useReactFlow();
+  const { setCenter, flowToScreenPosition } = useReactFlow();
   const { x: viewportX, y: viewportY, zoom } = useViewport();
   const setInspectedNodeId = useInspectedNodeStore((state) => state.setInspectedNodeId);
   const panelStyles = useMemo(() => styles(theme), [theme]);
@@ -214,9 +233,10 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
     if (!node) {
       return null;
     }
+    const position = canvasPosition(node, state.findNode);
     return {
-      x: node.position.x,
-      y: node.position.y,
+      x: position.x,
+      y: position.y,
       width: node.measured?.width ?? node.width ?? 200,
       height: node.measured?.height ?? node.height ?? 100
     };
@@ -274,30 +294,47 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
     windowSize
   ]);
 
-  const nodeInfo = useMemo((): NodeInfo | null => {
-    if (!inspectedNodeId) {
-      return null;
-    }
-    const node = getNode(inspectedNodeId);
+  // Subscribed, so a move, a type change or a deletion reaches the panel.
+  const inspectedNode = useNodes((state) => {
+    const node = state.findNode(inspectedNodeId);
     if (!node) {
       return null;
     }
-
-    const nodeType = node.type || "unknown";
-    const metadata = getMetadata(nodeType);
-
+    const position = canvasPosition(node, state.findNode);
     return {
       id: node.id,
+      type: node.type || "unknown",
+      workflowId: node.data.workflow_id,
+      x: position.x,
+      y: position.y
+    };
+  }, shallow);
+  const nodeError = useNodeError(
+    inspectedNode?.workflowId ?? "",
+    inspectedNodeId
+  );
+
+  useEffect(() => {
+    if (!inspectedNode) {
+      setInspectedNodeId(null);
+    }
+  }, [inspectedNode, setInspectedNodeId]);
+
+  const nodeInfo = useMemo((): NodeInfo | null => {
+    if (!inspectedNode) {
+      return null;
+    }
+    const metadata = getMetadata(inspectedNode.type);
+    return {
+      id: inspectedNode.id,
       label: metadata?.title || "",
-      type: nodeType,
+      type: inspectedNode.type,
       namespace: metadata?.namespace || "",
       description: metadata?.description || undefined,
-      position: node.position,
-      hasError: (node.data.hasError as boolean) || false,
-      errorMessage: node.data.errorMessage as string | undefined,
-      executionStatus: node.data.executionStatus as "pending" | "running" | "completed" | "error" | undefined
+      position: { x: inspectedNode.x, y: inspectedNode.y },
+      errorMessage: nodeErrorToDisplayString(nodeError)
     };
-  }, [getNode, inspectedNodeId, getMetadata]);
+  }, [inspectedNode, getMetadata, nodeError]);
 
   const parsedDescription = useMemo(() => {
     if (!nodeInfo?.description) {
@@ -365,7 +402,6 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
             </span>
           }
           placement="bottom-start"
-          delay={TOOLTIP_ENTER_DELAY}
         >
           <EditorButton
             tabIndex={0}
@@ -419,7 +455,7 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
           </>
         )}
 
-        {nodeInfo.hasError && (
+        {nodeInfo.errorMessage && (
           <Box className="error-message">
             <Text className="error-text">{nodeInfo.errorMessage}</Text>
           </Box>
@@ -428,7 +464,7 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
         <EditorButton
           className="action-button"
           size="small"
-          startIcon={<OpenInNewIcon fontSize="small" />}
+          startIcon={<OpenInNewIcon />}
           onClick={handleFocusClick}
         >
           Focus

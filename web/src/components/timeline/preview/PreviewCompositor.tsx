@@ -28,11 +28,13 @@ import {
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { useSettingsStore } from "../../../stores/SettingsStore";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useAssetRevisionStore } from "../../../stores/AssetRevisionStore";
 import {
   getAssetPreviewUrl,
+  isAssetPreviewProxyUrl,
   isVideoProxyPending
 } from "../../../utils/assetHelpers";
 import {
@@ -60,6 +62,7 @@ import {
   clampVideoRate,
   decideVideoDrift,
   isClockAdvancing,
+  SeekLatencyTracker,
   videoRateMode
 } from "./playbackSync";
 import { ClipTrackingOverlay } from "./ClipTrackingOverlay";
@@ -123,6 +126,11 @@ import { textMeasurer } from "./textMeasure";
 import { PreviewRecovery } from "./PreviewRecovery";
 import { watchVideoHealth } from "./videoHealth";
 import { watchVideoProxy } from "./videoProxyWatch";
+import {
+  DecodedFrameSourcePool,
+  type DecodedSourceRequest
+} from "./decodedFrameSourcePool";
+import { shouldCompositeScene } from "./gpu/source";
 import { type PreviewFailureHandler } from "./previewFailure";
 import { packageClipMediaUrl } from "../packageClipMedia";
 
@@ -138,6 +146,13 @@ const COLD_POOL_SIZE = 4;
 const TOTAL_POOL_SIZE = HOT_POOL_SIZE + COLD_POOL_SIZE;
 /** Preload upcoming clips within this lookahead window (ms). */
 const PRELOAD_LOOKAHEAD_MS = 30_000;
+/**
+ * Open a clip's WebCodecs decoder this long before it starts (D6). The pool
+ * effect re-runs every `PRELOAD_TICK_MS` while playing, so the window adds one
+ * tick to see each clip at least this early.
+ */
+const DECODER_LOOKAHEAD_MS = 2_000;
+const PRELOAD_TICK_MS = 2_000;
 /** LRU cap on cached decoded <img> elements. Keeps memory bounded in long
  *  sessions that touch many unique image assets. */
 const IMAGE_CACHE_MAX = 64;
@@ -200,6 +215,9 @@ export function sceneRequiresPerFrameResolution(
   return animatedLayout || precomposites.some((group) => group.transition !== undefined) || layers.some(
     (layer) =>
       layer.transition !== undefined || layer.clip.reframe !== undefined ||
+      // A clip fade is folded into the layer's opacity by the scene model, so
+      // the layer set from the clip's first frame (opacity 0) cannot be reused.
+      (layer.clip.fadeInMs ?? 0) > 0 || (layer.clip.fadeOutMs ?? 0) > 0 ||
       layer.camera2d?.keyframes !== undefined ||
       isRunningModel3DLayer(layer) ||
       hasAnimatedAncestorGroup(layer, clips) ||
@@ -309,12 +327,37 @@ interface ActiveVideoSlot {
    * clip-local time rather than by the clip's source mapping (§D6).
    */
   baked?: boolean;
+  /** Set when `assetUrl` is the asset's preview proxy. */
+  proxy?: boolean;
+}
+
+/**
+ * Whether a slot wants the WebCodecs path. A proxy always does (D11), and
+ * a bake never does (D12). Whether WebCodecs can decode the asset is the
+ * pool's answer, not this one.
+ */
+function wantsDecodedVideo(
+  slot: { baked?: boolean; proxy?: boolean },
+  decoder: "element" | "webcodecs"
+): boolean {
+  if (slot.baked) return false;
+  return slot.proxy === true || decoder === "webcodecs";
 }
 
 type AssetUrlEntry =
   | { status: "pending" }
-  | { status: "resolved"; url: string }
+  /** `proxy` marks the server's all-intra preview proxy (D11). */
+  | { status: "resolved"; url: string; proxy: boolean }
   | { status: "failed" };
+
+/** The assets an upcoming video clip decodes: its picture and a ready matte. */
+function upcomingVideoAssetIds(clip: TimelineClip): Array<string | undefined> {
+  const matte = clip.generatedMatte;
+  return [
+    effectiveAssetId(clip),
+    matte && (matte.status ?? "ready") === "ready" ? matte.assetId : undefined
+  ];
+}
 
 function isClipUpcoming(clip: TimelineClip, currentTimeMs: number): boolean {
   return (
@@ -495,6 +538,11 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     },
     []
   );
+  const isProxyAsset = useCallback((assetId: string | undefined): boolean => {
+    if (!assetId) return false;
+    const cached = assetUrlCache.current.get(assetId);
+    return cached?.status === "resolved" && cached.proxy;
+  }, []);
 
   const loadAsset = useCallback(
     (assetId: string | undefined): void => {
@@ -523,7 +571,11 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             });
           }
           if (url) {
-            assetUrlCache.current.set(assetId, { status: "resolved", url });
+            assetUrlCache.current.set(assetId, {
+              status: "resolved",
+              url,
+              proxy: isAssetPreviewProxyUrl(asset, url)
+            });
             setUrlCacheVersion((version) => version + 1);
           } else {
             assetUrlCache.current.set(assetId, { status: "failed" });
@@ -597,6 +649,33 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
    *  ends), and gives a matted clip's picture and its mask a slot each. */
   const clipSlotMap = useRef<Map<string, VideoSlotBinding>>(new Map());
   const preparedSlotMap = useRef<Map<string, number>>(new Map());
+
+  // WebCodecs decoders for the clips that do not use the element pool (D11).
+  // Created in the effect, not in a memo, so a StrictMode remount gets a live
+  // pool instead of the one its first cleanup disposed.
+  const previewDecoder = useSettingsStore(
+    (s) => s.settings.timelinePreviewDecoder
+  );
+  const decodedPoolRef = useRef<DecodedFrameSourcePool | null>(null);
+  /** Decoded layers the last `buildLayers` left out for want of a frame. */
+  const pendingDecodedLayersRef = useRef(0);
+  /** Bumped when a decoder opens, falls back, or closes. */
+  const [decoderVersion, setDecoderVersion] = useState(0);
+  const onFailureRef = useRef(onFailure);
+  onFailureRef.current = onFailure;
+  useEffect(() => {
+    const pool = new DecodedFrameSourcePool({
+      onChange: () => setDecoderVersion((v) => v + 1),
+      onFailure: (key, error) =>
+        onFailureRef.current({ stage: "video-decode", resourceId: key, error })
+    });
+    decodedPoolRef.current = pool;
+    setDecoderVersion((v) => v + 1);
+    return () => {
+      pool.dispose();
+      if (decodedPoolRef.current === pool) decodedPoolRef.current = null;
+    };
+  }, []);
   const [poolReady, setPoolReady] = useState(false);
   const poolContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1080,6 +1159,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             assetUrl: url
           };
           if (layer.bakeSourceTimeSec !== undefined) slot.baked = true;
+          if (isProxyAsset(layer.assetId)) slot.proxy = true;
           videoSlots.push(slot);
           return;
         }
@@ -1142,6 +1222,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       sequenceFps,
       previewBlur,
       resolveUrl,
+      isProxyAsset,
       urlCacheVersion,
       sceneCanvas,
       model3dSource,
@@ -1149,6 +1230,28 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       matteViewEnabled,
       selectedClipId
     ]);
+
+  // Each active video decodes on one path for its whole life (D2). A slot
+  // wants WebCodecs by setting or because it plays a proxy; it moves to the
+  // element pool only when the pool reports that WebCodecs cannot open it.
+  const { elementVideoSlots, decodedVideoSlots } = useMemo(() => {
+    const pool = decodedPoolRef.current;
+    const element: ActiveVideoSlot[] = [];
+    const decoded: ActiveVideoSlot[] = [];
+    for (const slot of activeVideoSlots) {
+      const useDecoder =
+        wantsDecodedVideo(slot, previewDecoder) && !pool?.isFallback(slot.assetUrl);
+      (useDecoder ? decoded : element).push(slot);
+    }
+    return { elementVideoSlots: element, decodedVideoSlots: decoded };
+    // `decoderVersion` re-reads the pool's fallback set.
+  }, [activeVideoSlots, previewDecoder, decoderVersion]);
+  const decodedSlotKeys = useMemo(
+    () => new Set(decodedVideoSlots.map((slot) => videoSlotKey(slot.clipId, slot.assetUrl))),
+    [decodedVideoSlots]
+  );
+  const decodedVideoSlotsRef = useRef(decodedVideoSlots);
+  decodedVideoSlotsRef.current = decodedVideoSlots;
 
   // Source selection belongs to the scene model, including shutter samples and mattes.
   useEffect(() => {
@@ -1191,12 +1294,19 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     );
     const imageUrl = imageLayer ? resolveUrl(imageLayer.assetId) : undefined;
     if (videoUrl) {
-      const binding = clipSlotMap.current.get(
-        videoSlotKey(selectedClipId, videoUrl)
-      );
-      const el = binding ? videoRefs.current[binding.index] : undefined;
-      w = el?.videoWidth ?? 0;
-      h = el?.videoHeight ?? 0;
+      const key = videoSlotKey(selectedClipId, videoUrl);
+      const decoded = decodedSlotKeys.has(key)
+        ? decodedPoolRef.current?.state(key, videoUrl)
+        : undefined;
+      if (decoded?.status === "ready") {
+        w = decoded.source.width;
+        h = decoded.source.height;
+      } else {
+        const binding = clipSlotMap.current.get(key);
+        const el = binding ? videoRefs.current[binding.index] : undefined;
+        w = el?.videoWidth ?? 0;
+        h = el?.videoHeight ?? 0;
+      }
     } else if (imageUrl) {
       const img = imageElementCache.current.get(imageUrl);
       w = img?.naturalWidth ?? 0;
@@ -1234,6 +1344,8 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     resolveUrl,
     urlCacheVersion,
     videoMetaVersion,
+    decodedSlotKeys,
+    decoderVersion,
     currentTimeMs,
     sceneCanvas,
     mediaTracks,
@@ -1300,7 +1412,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   const [preloadTick, setPreloadTick] = useState(0);
   useEffect(() => {
     if (!isPlaying) return;
-    const id = window.setInterval(() => setPreloadTick((t) => t + 1), 2000);
+    const id = window.setInterval(() => setPreloadTick((t) => t + 1), PRELOAD_TICK_MS);
     return () => window.clearInterval(id);
   }, [isPlaying]);
 
@@ -1329,13 +1441,13 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       // then fill empty slots for newly-active pairs. Slots whose pair is no
       // longer active become free for reuse.
       const usedSlots = bindVideoSlots(
-        activeVideoSlots,
+        elementVideoSlots,
         clipSlotMap.current,
         HOT_POOL_SIZE
       );
       const promotedKeys = new Set<string>();
 
-      for (const slot of activeVideoSlots) {
+      for (const slot of elementVideoSlots) {
         const key = videoSlotKey(slot.clipId, slot.assetUrl);
         const binding = clipSlotMap.current.get(key);
         if (binding) {
@@ -1356,7 +1468,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         }
       }
 
-      activeVideoSlots.forEach((slot) => {
+      elementVideoSlots.forEach((slot) => {
         const key = videoSlotKey(slot.clipId, slot.assetUrl);
         const binding = clipSlotMap.current.get(key);
         if (binding === undefined || binding.index >= pool.length) return;
@@ -1517,10 +1629,17 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         .sort((a, b) => a.startMs - b.startMs);
       const upcoming: ActiveVideoSlot[] = [];
       for (const clip of upcomingVideoClips) {
-        for (const assetId of [effectiveAssetId(clip), clip.generatedMatte && (clip.generatedMatte.status ?? "ready") === "ready" ? clip.generatedMatte.assetId : undefined]) {
+        for (const assetId of upcomingVideoAssetIds(clip)) {
           loadAsset(assetId);
           const url = resolveUrl(assetId);
           if (!url) continue;
+          // A clip on the WebCodecs path prepares its decoder instead.
+          if (
+            wantsDecodedVideo({ proxy: isProxyAsset(assetId) }, previewDecoder) &&
+            !decodedPoolRef.current?.isFallback(url)
+          ) {
+            continue;
+          }
           upcoming.push({ clip, clipId: clip.id, assetUrl: url });
         }
       }
@@ -1576,7 +1695,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   }, [
     onFailure,
     poolReady,
-    activeVideoSlots,
+    elementVideoSlots,
     currentTimeMs,
     isPlaying,
     getTimeMs,
@@ -1584,10 +1703,78 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     sequenceFps,
     resolveUrl,
     loadAsset,
+    isProxyAsset,
+    previewDecoder,
+    decoderVersion,
     // Not read directly — bumped every 2s during playback purely to
     // re-evaluate cold-pool preloads mid-clip (see the effect above).
     preloadTick,
     globalRate
+  ]);
+
+  // Hold WebCodecs decoders for the active decoded clips and for the ones
+  // that start within the lookahead, and decode each upcoming clip's first
+  // frame before its cut (D6). Paused, each active source decodes the exact
+  // frame for the playhead and the preview redraws when it lands (D4).
+  useEffect(() => {
+    const pool = decodedPoolRef.current;
+    if (!pool) return;
+    const nowMs = isPlaying ? getTimeMs() : currentTimeMs;
+    const requests: DecodedSourceRequest[] = decodedVideoSlots.map((slot) => ({
+      key: videoSlotKey(slot.clipId, slot.assetUrl),
+      url: slot.assetUrl,
+      distanceMs: 0
+    }));
+    const upcoming: Array<{ key: string; url: string; clip: TimelineClip }> = [];
+    const windowMs =
+      (DECODER_LOOKAHEAD_MS + PRELOAD_TICK_MS) * Math.max(1, Math.abs(globalRate));
+    for (const clip of previewClips) {
+      if (clip.mediaType !== "video" && clip.mediaType !== "overlay") continue;
+      const distanceMs = clip.startMs - nowMs;
+      if (distanceMs <= 0 || distanceMs > windowMs) continue;
+      for (const assetId of upcomingVideoAssetIds(clip)) {
+        loadAsset(assetId);
+        const url = resolveUrl(assetId);
+        if (
+          !url ||
+          !wantsDecodedVideo({ proxy: isProxyAsset(assetId) }, previewDecoder) ||
+          pool.isFallback(url)
+        ) {
+          continue;
+        }
+        const key = videoSlotKey(clip.id, url);
+        requests.push({ key, url, distanceMs });
+        upcoming.push({ key, url, clip });
+      }
+    }
+    pool.retain(requests);
+    for (const { key, url, clip } of upcoming) {
+      const state = pool.state(key, url);
+      if (state?.status === "ready" && !state.source.hasFrame()) {
+        void state.source.seek(clipSourceTimeSec(clip, clip.startMs), "exact");
+      }
+    }
+    if (isPlaying) return;
+    for (const slot of decodedVideoSlots) {
+      const state = pool.state(videoSlotKey(slot.clipId, slot.assetUrl), slot.assetUrl);
+      if (state?.status !== "ready") continue;
+      void state.source
+        .seek(clipSourceTimeSec(slot.clip, currentTimeMs), "exact")
+        .then(() => renderFrameRef.current());
+    }
+  }, [
+    decodedVideoSlots,
+    previewClips,
+    currentTimeMs,
+    isPlaying,
+    getTimeMs,
+    globalRate,
+    resolveUrl,
+    loadAsset,
+    isProxyAsset,
+    previewDecoder,
+    decoderVersion,
+    preloadTick
   ]);
 
   // Resolve / preload image elements for image layers.
@@ -1648,6 +1835,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   const buildLayers = useCallback(
     (atMs: number, frameTimeMs = atMs, sampleIndex = 0, sampleCount = 1): CompositeLayer[] => {
       const bitmapFrame = new BitmapFrameScope();
+      pendingDecodedLayersRef.current = 0;
       pendingBitmapFramesRef.current.push(bitmapFrame);
       const pool = videoRefs.current;
       const cache = animCacheRef.current;
@@ -1768,9 +1956,24 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           const img = ensureImageElement(url);
           return img ? { source: img } : null;
         }
-        const binding = clipSlotMap.current.get(
-          videoSlotKey(layer.clipId, url)
-        );
+        const key = videoSlotKey(layer.clipId, url);
+        if (decodedSlotKeys.has(key)) {
+          // The clock never waits for a decoded frame: no frame yet leaves
+          // the layer out and the compositor holds its last texture (D4).
+          const state = decodedPoolRef.current?.state(key, url);
+          const frame =
+            state?.status === "ready"
+              ? state.source.frameAt(
+                  layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, layerTime(layer))
+                )
+              : null;
+          if (!frame) {
+            pendingDecodedLayersRef.current += 1;
+            return null;
+          }
+          return { source: frame };
+        }
+        const binding = clipSlotMap.current.get(key);
         if (binding === undefined) return null;
         const el = pool[binding.index];
         // Keep the layer in the list even if the video momentarily drops below
@@ -1813,7 +2016,9 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       sequenceHeight,
       sequenceFps,
       matteViewEnabled,
-      selectedClipId
+      selectedClipId,
+      decodedSlotKeys,
+      decoderVersion
     ]
   );
 
@@ -1869,6 +2074,12 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             const key = videoSlotKey(layer.clipId, url);
             if (sought.has(key)) continue;
             sought.add(key);
+            const decoded = decodedPoolRef.current?.state(key, url);
+            if (decoded?.status === "ready") {
+              const layerTimeMs = layerShutterTime(layer.clip, frameTimeMs, index, samples.length, frameMs, undefined);
+              await decoded.source.seek(clipSourceTimeSec(layer.clip, layerTimeMs), "exact");
+              continue;
+            }
             const binding = clipSlotMap.current.get(key);
             const video = binding === undefined ? undefined : videoRefs.current[binding.index];
             if (!video || video.readyState < 1) continue;
@@ -1899,8 +2110,12 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       return;
     }
     try {
+      const layers = buildLayersRef.current(currentTimeMsRef.current);
+      if (!shouldCompositeScene(layers.length, pendingDecodedLayersRef.current)) {
+        return;
+      }
       compositor.setLayers(
-        buildLayersRef.current(currentTimeMsRef.current),
+        layers,
         framePrecompositesRef.current,
         buildAdjustmentsRef.current(currentTimeMsRef.current)
       );
@@ -1912,6 +2127,13 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         [...clipSlotMap.current.values()].every((binding) => {
           const video = videoRefs.current[binding.index];
           return video && video.readyState >= 2 && !video.seeking;
+        }) &&
+        decodedVideoSlotsRef.current.every((slot) => {
+          const state = decodedPoolRef.current?.state(
+            videoSlotKey(slot.clipId, slot.assetUrl),
+            slot.assetUrl
+          );
+          return state?.status === "fallback" || (state?.status === "ready" && state.source.hasFrame());
         }) &&
         [...assetUrlCache.current.values()].every(
           (entry) => entry.status === "resolved"
@@ -2072,7 +2294,10 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     let forceRender = true;
     let lastTickLiveMs = seedMs;
     let lastClockMoveMs = Number.NEGATIVE_INFINITY;
+    const seekLatency = new SeekLatencyTracker();
     const presentedGenerations = new Map<HTMLVideoElement, number>();
+    /** The frame timestamp each decoded source drew last. */
+    const presentedDecoded = new Map<string, number | null>();
 
     const tick = () => {
       try {
@@ -2142,15 +2367,18 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             }
             continue;
           }
+          const seekLeadSec = seekLatency.observe(el, performance.now(), el.currentTime);
           const decision = decideVideoDrift({
             elementSec: el.currentTime,
             targetSec,
             fps: sequenceFps,
-            baseRate: clampVideoRate(rateMode.rate)
+            baseRate: clampVideoRate(rateMode.rate),
+            seekLeadSec: clockAdvancing ? seekLeadSec : 0
           });
           if (decision.action === "seek") {
-            expectPreviewVideoFrame(el, targetSec);
-            el.currentTime = targetSec;
+            expectPreviewVideoFrame(el, decision.toSec);
+            el.currentTime = decision.toSec;
+            seekLatency.begin(el, performance.now(), decision.toSec);
             if (previewVideoFrameGeneration(el) === undefined) remapSeeked = true;
           }
           if (el.playbackRate !== decision.rate) el.playbackRate = decision.rate;
@@ -2169,12 +2397,34 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           }
         }
 
+        // Decoded sources follow the clock without seeks of their own: a
+        // forward clip decodes ahead of it, and a remapped, reversed or
+        // extreme-rate clip decodes the one frame its curve names (D5, D7).
+        let decodedDirty = false;
+        const decodedPool = decodedPoolRef.current;
+        for (const slot of decodedVideoSlotsRef.current) {
+          const key = videoSlotKey(slot.clipId, slot.assetUrl);
+          const state = decodedPool?.state(key, slot.assetUrl);
+          if (state?.status !== "ready") continue;
+          const clip = slot.clip;
+          const baseRate = sourceRate(clip);
+          const targetSec = clipSourceTimeSec(clip, liveMs);
+          const rateMode = hasTimeRemap(clip)
+            ? ({ mode: "scrub" } as const)
+            : videoRateMode(baseRate, globalRateRef.current);
+          if (rateMode.mode === "scrub") void state.source.seek(targetSec, "play");
+          else state.source.advance(targetSec, rateMode.rate);
+          if (presentedDecoded.get(key) !== state.source.peekFrameSec(targetSec)) {
+            decodedDirty = true;
+          }
+        }
+
         // A frame needs re-compositing when the active set just changed, or when
         // any active video is decoding new pixels (i.e. actually playing). Pure
         // image/caption scenes are static between boundary changes, so skip the
         // redundant clear+blit — UNLESS a motion-design animation is in flight,
         // which changes transform/opacity every tick even with a cached layer set.
-        let dirty = setChanged || forceRender || remapSeeked;
+        let dirty = setChanged || forceRender || remapSeeked || decodedDirty;
         forceRender = false;
         if (!dirty) {
           const pool = videoRefs.current;
@@ -2218,16 +2468,29 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             const generation = previewVideoFrameGeneration(el);
             if (generation !== undefined) presentedGenerations.set(el, generation);
           }
+          for (const slot of decodedVideoSlotsRef.current) {
+            const key = videoSlotKey(slot.clipId, slot.assetUrl);
+            const state = decodedPool?.state(key, slot.assetUrl);
+            if (state?.status === "ready") {
+              presentedDecoded.set(
+                key,
+                state.source.peekFrameSec(clipSourceTimeSec(slot.clip, liveMs))
+              );
+            }
+          }
           currentTimeMsRef.current = liveMs;
           if (previewBlur.samplesPerFrame > 1) {
             renderFrame();
           } else {
-            compositor.setLayers(
-              buildLayersRef.current(liveMs),
-              framePrecompositesRef.current,
-              buildAdjustmentsRef.current(liveMs)
-            );
-            compositor.render();
+            const layers = buildLayersRef.current(liveMs);
+            if (shouldCompositeScene(layers.length, pendingDecodedLayersRef.current)) {
+              compositor.setLayers(
+                layers,
+                framePrecompositesRef.current,
+                buildAdjustmentsRef.current(liveMs)
+              );
+              compositor.render();
+            }
             releaseBitmapFrames();
           }
         }

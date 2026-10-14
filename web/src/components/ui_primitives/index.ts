@@ -85,7 +85,7 @@ export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps, EmptyStateVariant } from "./EmptyState";
 
 export { LoadingSpinner } from "./LoadingSpinner";
-export type { LoadingSpinnerProps, LoadingVariant } from "./LoadingSpinner";
+export type { LoadingSpinnerProps } from "./LoadingSpinner";
 
 export { default as MagicGenerationFill } from "./MagicGenerationFill";
 export {
@@ -280,6 +280,23 @@ export {
 
 // Shared styles for the sidebar document list panels
 export { listPanelStyles } from "./listPanelStyles";
+export {
+  focusRing,
+  selectableRowStyles,
+  selectedRowStyles,
+  selectableTileStyles,
+  selectedTileStyles
+} from "./selectionStyles";
+export {
+  MENU_ICON_SIZE,
+  MENU_MIN_WIDTH,
+  menuPaperStyles,
+  menuListStyles,
+  menuGroupHeaderStyles,
+  menuItemStyles,
+  menuItemDestructiveStyles,
+  menuShortcutStyles
+} from "./menuStyles";
 export { ListPanelItem } from "./ListPanelItem";
 export type { ListPanelItemProps } from "./ListPanelItem";
 export { DocumentListPanel } from "./DocumentListPanel";
@@ -361,9 +378,6 @@ export type { CollapseProps } from "./Collapse";
 export { ListGroup, ListItemRow } from "./ListGroup";
 export type { ListGroupProps, ListItemRowProps } from "./ListGroup";
 
-export { Toast } from "./Toast";
-export type { ToastProps } from "./Toast";
-
 export { TextLink } from "./TextLink";
 export type { TextLinkProps } from "./TextLink";
 
@@ -404,7 +418,9 @@ export type { AutocompleteProps, AutocompleteOption } from "./Autocomplete";
 export { LabeledSwitch } from "./LabeledSwitch";
 export type { LabeledSwitchProps } from "./LabeledSwitch";
 
-export { SelectField, SelectFieldDensityContext } from "./SelectField";
+export { SelectField } from "./SelectField";
+export { FieldDensityContext, useFieldDensity } from "./fieldDensity";
+export type { FieldDensity } from "./fieldDensity";
 export type { SelectFieldProps, SelectOption } from "./SelectField";
 
 // Accessibility
@@ -554,6 +570,10 @@ export type { InlineEditableTextProps } from "./InlineEditableText";
 // Resize primitives
 export { ResizeHandle } from "./ResizeHandle";
 export type { ResizeHandleProps } from "./ResizeHandle";
+export { DockTabStrip, DOCK_TAB_HEIGHT, DOCK_TAB_DRAG_THRESHOLD, dockTabElementId } from "./DockTabStrip";
+export type { DockTab, DockTabStripProps } from "./DockTabStrip";
+export { DockDropOverlay, dockZoneAt, DOCK_EDGE_FRACTION } from "./DockDropOverlay";
+export type { DockDropOverlayProps, DockRect, DockZone } from "./DockDropOverlay";
 export { ResizableDock } from "./ResizableDock";
 export type { ResizableDockProps } from "./ResizableDock";
 

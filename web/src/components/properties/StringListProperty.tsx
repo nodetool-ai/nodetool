@@ -50,24 +50,6 @@ const StringListProperty = (props: PropertyProps<string[]>) => {
     }
   }), [theme.vars.palette.background.defaultChannel]);
 
-  const chipSx = useMemo(() => ({
-    height: "22px",
-    backgroundColor: "var(--palette-grey-700)",
-    color: "var(--palette-grey-100)",
-    border: "1px solid var(--palette-grey-600)",
-    "& .MuiChip-label": {
-      fontSize: "var(--fontSizeSmall)",
-      padding: `0 ${getSpacingPx(SPACING.md)}`
-    },
-    "& .MuiChip-deleteIcon": {
-      color: "var(--palette-grey-400)",
-      fontSize: "var(--fontSizeNormal)",
-      "&:hover": {
-        color: "var(--palette-grey-200)"
-      }
-    }
-  }), []);
-
   const textFieldSx = useMemo(() => ({
     "& .MuiInputBase-input": {
       padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)} !important`,
@@ -91,6 +73,7 @@ const StringListProperty = (props: PropertyProps<string[]>) => {
         id={id}
         multiple
         freeSolo
+        autoSelect
         size="small"
         options={[]}
         value={strings}
@@ -99,12 +82,10 @@ const StringListProperty = (props: PropertyProps<string[]>) => {
         renderTags={(value: readonly string[], getTagProps) =>
           value.map((option: string, index: number) => (
             <Chip
-              variant="filled"
-              size="small"
+              compact
               label={option}
               {...getTagProps({ index })}
               key={option}
-              sx={chipSx}
             />
           ))
         }

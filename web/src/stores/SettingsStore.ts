@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { isMac } from "../utils/platform";
+import {
+  DEFAULT_TEXT_SIZE,
+  isTextSize,
+  type TextSize
+} from "../components/themes/textSizes";
 
 interface AutosaveSettings {
   enabled: boolean;
@@ -34,6 +39,8 @@ export interface Settings {
   assetsOrder: "name" | "date" | "size";
   assetItemSize: number;
   timeFormat: "12h" | "24h";
+  /** App-wide text size, picked under Settings > General > Appearance. */
+  textSize: TextSize;
   alertBeforeTabClose: boolean;
   selectNodesOnDrag: boolean;
   soundNotifications: boolean;
@@ -67,6 +74,12 @@ export interface Settings {
   audioBufferMs: number;
   /** Which editor's keyboard layout the timeline follows. */
   timelineKeyboardPreset: "nodetool" | "premiere" | "fcp";
+  /**
+   * Where the timeline preview gets its video frames. `"element"` plays
+   * `<video>` elements, `"webcodecs"` decodes with WebCodecs. A clip with a
+   * ready proxy decodes with WebCodecs under both values.
+   */
+  timelinePreviewDecoder: "element" | "webcodecs";
   autosave: AutosaveSettings;
 }
 
@@ -83,6 +96,7 @@ interface SettingsStore {
   setAssetsOrder: (value: "name" | "date" | "size") => void;
   setAssetItemSize: (value: number) => void;
   setTimeFormat: (value: "12h" | "24h") => void;
+  setTextSize: (value: TextSize) => void;
   setAlertBeforeTabClose: (value: boolean) => void;
   setSelectNodesOnDrag: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
@@ -106,6 +120,7 @@ export const defaultSettings: Settings = {
   assetsOrder: "name",
   assetItemSize: 2,
   timeFormat: "12h",
+  textSize: DEFAULT_TEXT_SIZE,
   alertBeforeTabClose: true,
   selectNodesOnDrag: false,
   soundNotifications: true,
@@ -116,6 +131,7 @@ export const defaultSettings: Settings = {
   largeRunThreshold: 5,
   audioBufferMs: 100,
   timelineKeyboardPreset: "nodetool",
+  timelinePreviewDecoder: "element",
   autosave: { ...defaultAutosaveSettings }
 };
 
@@ -181,6 +197,14 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             timeFormat: value || defaultSettings.timeFormat
+          }
+        })),
+
+      setTextSize: (value: TextSize) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            textSize: isTextSize(value) ? value : DEFAULT_TEXT_SIZE
           }
         })),
 
@@ -270,6 +294,9 @@ export const useSettingsStore = create<SettingsStore>()(
         };
         if (legacyGridSnap) {
           settings.gridSnap = defaultSettings.gridSnap;
+        }
+        if (!isTextSize(settings.textSize)) {
+          settings.textSize = DEFAULT_TEXT_SIZE;
         }
         return { ...currentState, settings };
       }

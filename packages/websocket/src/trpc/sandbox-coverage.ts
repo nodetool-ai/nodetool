@@ -381,6 +381,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "name secrets. `save`/`probe` spawn or connect to one, so the whole " +
       "router is credential and host-process surface."
   },
+  "extension.installHost": {
+    withheld:
+      "Writes a native messaging host into the user's browser profiles " +
+      "and an executable wrapper into their home directory. Host setup the " +
+      "user asks for in the app, never something sandboxed code may do."
+  },
   "extension.status": {
     gap:
       "Browser-extension liveness; nothing a headless run acts on."
@@ -768,6 +774,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "control."
   },
   "projects.delete": { capability: "delete_project" },
+  "projects.documentPage": {
+    gap:
+      "Same grouping surface as `projects.get`. One page of its document " +
+      "cards, for the start page."
+  },
   "projects.documents": {
     gap:
       "Lists the documents in a project. A run enumerates each kind " +
@@ -1219,6 +1230,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "workflows.create": { capability: "create_workflow" },
   "workflows.delete": { capability: "delete_workflow" },
   "workflows.examples": { capability: "get_example_workflow" },
+  "workflows.exportScript": {
+    gap:
+      "No capability converts a workflow into a script yet. Sandboxed code " +
+      "can read the graph with get_workflow and call its nodes through " +
+      "@nodetool-ai/sandbox-flow itself."
+  },
   "workflows.get": { capability: "get_workflow" },
   "workflows.list": { capability: "list_workflows" },
   "workflows.recipes": {

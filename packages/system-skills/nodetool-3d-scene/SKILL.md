@@ -1,6 +1,6 @@
 ---
 name: nodetool-3d-scene
-description: "Build, edit, validate or render a NodeTool 3D model: glTF objects, transforms, lights, materials, and headless Blender renders."
+description: "Build, edit, validate or render a NodeTool 3D model: glTF primitives, transforms, lights, material colors, generated meshes, and headless Blender renders. For a playable 3D game, use native-game."
 featured: true
 ---
 
@@ -10,8 +10,8 @@ A 3D model is a `.glb` or `.gltf` **asset**, addressed by its asset id. The
 capabilities edit the stored glTF in place and save it back over the same asset,
 so the id stays valid and an open editor reloads it.
 
-For a 2D game, use `native-game`. The built-in game engine will add 3D scene
-support later. For a 3D clip inside a cut, build the model here and place it
+For a playable game, 2D or 3D, use `native-game`: it authors 3D games with
+`dimension: "3d"`. For a 3D clip inside a cut, build the model here and place it
 on a timeline.
 
 ## The loop
@@ -26,9 +26,24 @@ on a timeline.
    Anything they do not name — meshes, textures, skins, animations — is kept, so
    an imported model survives an edit.
 4. **Validate.** `validate_model3d {model_id | document}`.
-5. **Render**, when a picture is asked for. `render_model3d` goes through
-   headless Blender (EEVEE or Cycles), honors scene cameras and lights, and
-   stores a PNG asset. It needs Blender on the server.
+5. **Render**, when a picture is asked for. `render_model3d {model_id}` goes
+   through headless Blender, honors scene cameras and lights, and stores a PNG
+   asset. It needs Blender on the server and is not offered on the cloud
+   profile. `engine` is `eevee` (default, fast) or `cycles` (slower);
+   `camera_mode` is `auto`, `scene` or `orbit`. A Cycles render blocks the call,
+   so pass `background: true` to get a `generation_id` at once and collect the
+   PNG with `await_generation`.
+
+## A real mesh
+
+The ops add primitives only. For an object with real geometry, generate one:
+`run_node` with `nodetool.model3d.TextTo3D {model, prompt}` or
+`nodetool.model3d.ImageTo3D {model, image}` returns a `model_3d` output. Read
+`get_node_info` first for the `model` field's shape. These call a paid
+provider, so confirm with the user before generating. The other
+`nodetool.model3d.*` nodes (`Decimate`, `RepairMesh`, `FormatConverter`,
+`Transform3D`, …) and the `nodetool.blender.*` nodes process a mesh inside a
+workflow.
 
 ## `edit_model3d` ops
 
@@ -54,7 +69,10 @@ or mesh it shares with another object first.
 
 These are the `ui_3d_*` verbs with no editor open. The operations, the units and
 the addressing live in `@nodetool-ai/model3d`, shared with the browser editor, so
-a model built headlessly opens there unchanged.
+a model built headlessly opens there unchanged. Headlessly, a light is a
+`directionalLight` or `pointLight` and a material can only be recolored.
+Light settings, other material fields and parenting need the open editor:
+`ui_3d_set_light`, `ui_3d_set_material`, `ui_3d_set_parent`.
 
 ## No camera headlessly
 

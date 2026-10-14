@@ -6,7 +6,7 @@ import { createNodeStore } from "../../../stores/NodeStore";
 let mockTabType: string | null = "chat";
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({ useWorkspaceTabsStore: (select: (s: unknown) => unknown) => select({ tabs: mockTabType ? [{ id: "active", type: mockTabType, ref: "visible-workflow" }] : [], activeTabId: "active" }) }));
 let mockNodeStores: Record<string, unknown> = {};
-jest.mock("../../../contexts/WorkflowManagerContext", () => ({ useWorkflowManager: (select: (s: unknown) => unknown) => select({ currentWorkflowId: "previous-workflow", nodeStores: mockNodeStores }) }));
+jest.mock("../../../contexts/WorkflowManagerContext", () => ({ useWorkflowManager: (select: (s: unknown) => unknown) => select({ currentWorkflowId: "previous-workflow", nodeStores: mockNodeStores }), useWorkflowManagerStore: () => ({ setState: jest.fn() }) }));
 jest.mock("../../version/VersionHistoryPanel", () => ({
   VersionHistoryPanel: ({
     workflowId,

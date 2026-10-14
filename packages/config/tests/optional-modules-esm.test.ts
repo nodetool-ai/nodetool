@@ -54,6 +54,29 @@ describe("esmExportPath", () => {
     ).toBe("./dist/x.js");
   });
 
+  it("strips a pattern's suffix before substituting the match", () => {
+    expect(
+      esmExportPath(
+        { exports: { "./features/*.js": { import: "./src/features/*.mjs" } } },
+        "./features/a/b.js"
+      )
+    ).toBe("./src/features/a/b.mjs");
+  });
+
+  it("matches a pattern only when the subpath has both its prefix and suffix", () => {
+    const manifest = { exports: { "./lib/*": "./dist/*.js", "./x*x": "./t*" } };
+    expect(esmExportPath(manifest, "./other/x")).toBeNull();
+    // "./x" starts with "./x" and ends with "x", but the two overlap.
+    expect(esmExportPath(manifest, "./x")).toBeNull();
+    expect(esmExportPath(manifest, "./xx")).toBe("./t");
+  });
+
+  it("skips keys without a star when matching patterns", () => {
+    expect(
+      esmExportPath({ exports: { "./a": "./a.js", "./*": "./dist/*.js" } }, "./x./a")
+    ).toBe("./dist/x./a.js");
+  });
+
   it("answers null for a subpath the package does not export", () => {
     expect(esmExportPath({ exports: { ".": "./a.js" } }, "./hidden")).toBeNull();
     expect(esmExportPath({ exports: { ".": { require: "./a.cjs" } } }, ".")).toBeNull();
@@ -82,6 +105,15 @@ describe("importOptionalModule from the optional node_modules", () => {
       })
     );
     await writeFile(join(pkg, "dist", "lib.js"), "export const marker = 42;\n");
+    // A second copy of a package the normal module graph also has (config
+    // depends on zod), so a test can tell which tree a load came from.
+    const shadow = join(root, "node_modules", "zod");
+    await mkdir(shadow, { recursive: true });
+    await writeFile(
+      join(shadow, "package.json"),
+      JSON.stringify({ name: "zod", type: "module", exports: { ".": "./index.js" } })
+    );
+    await writeFile(join(shadow, "index.js"), "export const marker = \"optional\";\n");
     process.env["NODETOOL_OPTIONAL_NODE_MODULES"] = join(root, "node_modules");
   });
 
@@ -103,5 +135,11 @@ describe("importOptionalModule from the optional node_modules", () => {
 
   it("still rejects a package that is not installed", async () => {
     await expect(importOptionalModule("@nt-test/absent")).rejects.toThrow();
+  });
+
+  it("prefers the normal module graph over the optional root", async () => {
+    const mod = await importOptionalModule<{ marker?: string; z?: unknown }>("zod");
+    expect(mod.marker).toBeUndefined();
+    expect(mod.z).toBeDefined();
   });
 });

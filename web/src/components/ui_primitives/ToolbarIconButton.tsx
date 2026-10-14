@@ -15,14 +15,11 @@
  */
 
 import React, { forwardRef, memo, useMemo } from "react";
-import { IconButton, IconButtonProps, Tooltip, Box } from "@mui/material";
+import { IconButton, IconButtonProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import {
-  TOOLTIP_ENTER_DELAY,
-  TOOLTIP_ENTER_NEXT_DELAY
-} from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
-import { ShortcutHint } from "./ShortcutHint";
+import { Tooltip, tooltipWithShortcut } from "./Tooltip";
 import { isString } from "../../utils/typePredicates";
 
 export interface ToolbarIconButtonProps
@@ -164,19 +161,7 @@ export const ToolbarIconButton = memo(
         }
       }, [variant, theme]);
 
-      const tooltipContent = shortcut ? (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 0.5,
-          }}
-        >
-          <Box>{resolvedTooltip}</Box>
-          <ShortcutHint shortcut={shortcut} size="small" />
-        </Box>
-      ) : resolvedTooltip;
+      const tooltipContent = tooltipWithShortcut(resolvedTooltip, shortcut);
 
       const label = ariaLabel || (isString(resolvedTooltip) ? resolvedTooltip : undefined);
 
@@ -186,7 +171,6 @@ export const ToolbarIconButton = memo(
           // A node title would otherwise rename the button to "Undo Ctrl + Z" while the tooltip is open.
           describeChild={Boolean(label) && !isString(tooltipContent)}
           enterDelay={delay ?? TOOLTIP_ENTER_DELAY}
-          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
         >
           <IconButton

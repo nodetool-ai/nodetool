@@ -296,7 +296,7 @@ const JobItem = ({ job }: { job: Job }) => {
     [cancelling, job.id, job.workflow_id, queryClient]
   );
 
-  const workflowName = job.name || workflow?.name || "Loading...";
+  const workflowName = job.name || workflow?.name || "Loading…";
   const shortId = `#${job.id.slice(0, 4)}`;
   const isActive =
     job.status === "running" ||

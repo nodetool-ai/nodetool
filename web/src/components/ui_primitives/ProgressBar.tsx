@@ -4,6 +4,12 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, LinearProgress, Typography, LinearProgressProps } from "@mui/material";
+import { SPACING } from "./spacing";
+import { TYPOGRAPHY } from "./tokens";
+import { hexToRgba } from "../../utils/ColorUtils";
+
+/** Track height in px. `small` sits on a card edge or in a dense row. */
+const BAR_HEIGHT = { small: 4, medium: 6 } as const;
 
 const styles = (theme: Theme) =>
   css({
@@ -12,42 +18,42 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: theme.spacing(0.5)
+      gap: theme.spacing(SPACING.md),
+      marginBottom: theme.spacing(SPACING.xs)
     },
     ".progress-label": {
-      fontSize: 12,
+      ...TYPOGRAPHY.sans.caption,
       color: theme.vars.palette.text.secondary,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
     ".progress-value": {
-      fontSize: 12,
+      ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.text.secondary,
-      fontFamily: "var(--fontFamily2)",
-      minWidth: 40,
+      flexShrink: 0,
       textAlign: "right"
-    },
-    ".progress-bar": {
-      borderRadius: theme.rounded.sm,
-      height: 6,
-      backgroundColor: theme.vars.palette.action.hover
     }
   });
 
-export interface ProgressBarProps extends Omit<LinearProgressProps, "variant"> {
+export interface ProgressBarProps
+  extends Omit<LinearProgressProps, "variant" | "value"> {
   /** Progress value (0-100) */
   value: number;
-  /** Optional label text */
+  /** What is progressing, shown above the bar and used as its accessible name */
   label?: string;
-  /** Show percentage value */
+  /** Show the value above the bar */
   showValue?: boolean;
   /** Custom format for value display */
   formatValue?: (value: number) => string;
-  /** Progress variant */
+  /** Determinate when the work reports progress, indeterminate otherwise */
   progressVariant?: "determinate" | "indeterminate" | "buffer";
-  /** Bar height */
-  barHeight?: number;
+  /** `medium` (6px) on its own line, `small` (4px) on a card edge or in a
+   * dense row. */
+  size?: "small" | "medium";
+  /** A surface's own colour (a clip, a node namespace) for the bar. The track
+   * takes the same colour at low strength. Overrides `color`. */
+  accent?: string;
   /** Custom class name */
   className?: string;
 }
@@ -58,9 +64,11 @@ export const ProgressBar: React.FC<ProgressBarProps> = memo(({
   showValue = true,
   formatValue,
   progressVariant = "determinate",
-  barHeight = 6,
+  size = "medium",
+  accent,
   className,
   color = "primary",
+  sx,
   ...rest
 }) => {
   const theme = useTheme();
@@ -71,11 +79,6 @@ export const ProgressBar: React.FC<ProgressBarProps> = memo(({
     <Box
       css={styles(theme)}
       className={`progress-bar-container ${className || ""}`}
-      role="progressbar"
-      aria-label={label || "Progress"}
-      aria-valuenow={progressVariant === "determinate" || progressVariant === "buffer" ? Math.round(value) : undefined}
-      aria-valuemin={0}
-      aria-valuemax={100}
     >
       {(label || showValue) && (
         <Box className="progress-header">
@@ -96,7 +99,17 @@ export const ProgressBar: React.FC<ProgressBarProps> = memo(({
         variant={progressVariant}
         value={value}
         color={color}
-        sx={{ height: barHeight }}
+        aria-label={label || "Progress"}
+        sx={[
+          { height: BAR_HEIGHT[size] },
+          accent
+            ? {
+                backgroundColor: hexToRgba(accent, 0.16),
+                "& .MuiLinearProgress-bar": { backgroundColor: accent }
+              }
+            : {},
+          ...(Array.isArray(sx) ? sx : [sx])
+        ]}
         {...rest}
       />
     </Box>

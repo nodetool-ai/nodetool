@@ -32,11 +32,28 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   if (node.data.collapsed) {
     ui_properties.collapsed = true;
   }
+  if (node.data.exposedInputs?.length) {
+    ui_properties.exposed_inputs = node.data.exposedInputs;
+  }
+  if (node.data.exposedInputsLabeled?.length) {
+    ui_properties.exposed_inputs_labeled = node.data.exposedInputsLabeled;
+  }
+  if (node.data.exposedInputsHidden?.length) {
+    ui_properties.exposed_inputs_hidden = node.data.exposedInputsHidden;
+  }
 
   // Persist explicit user resize dimensions
   // ReactFlow's applyNodeChanges sets node.width/height (top-level) when user resizes via NodeResizeControl
   // Also check node.style.width/height for initial load values from graphNodeToReactFlowNode
-  if (node.width != null) {
+  // A collapsed node keeps its expanded width in `data.expandedWidthPx`; the
+  // strip's own width is not the one to restore on expand.
+  if (
+    node.data.collapsed &&
+    node.data.expandedWidthPx != null &&
+    node.data.expandedWidthPx > 0
+  ) {
+    ui_properties.width = node.data.expandedWidthPx;
+  } else if (node.width != null) {
     ui_properties.width = node.width;
   } else if (
     node.style &&

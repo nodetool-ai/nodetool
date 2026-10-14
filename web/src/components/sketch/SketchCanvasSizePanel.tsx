@@ -14,7 +14,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import ResolutionIcon from "@mui/icons-material/Tv";
 import { CANVAS_PRESETS } from "./types";
-import { sketchFieldSx, SKETCH_COLORS, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
+import { sketchFieldSx, SKETCH_COLORS } from "./sketchStyles";
 import {
   FlexColumn,
   FlexRow,
@@ -216,8 +216,6 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
               : "Show resize handles on canvas"
           }
           placement="left"
-          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
         >
           <Switch
             size="small"
@@ -269,11 +267,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
         }}
       >
         {CANVAS_PRESETS.map((preset) => (
-          <MenuItem
-            key={preset.label}
-            value={preset.label}
-            sx={{ fontSize: FONT_SIZE_SANS.label }}
-          >
+          <MenuItem key={preset.label} value={preset.label}>
             {preset.label} - {preset.width}×{preset.height}
           </MenuItem>
         ))}

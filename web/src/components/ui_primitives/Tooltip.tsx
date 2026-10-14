@@ -5,13 +5,40 @@
  * Provides consistent tooltip behavior across the application.
  */
 
-import React, { memo } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import MuiTooltip, {
   TooltipProps as MuiTooltipProps
 } from "@mui/material/Tooltip";
+import { FlexColumn } from "./FlexColumn";
+import { ShortcutHint } from "./ShortcutHint";
+import {
+  canOpenTooltip,
+  closeTooltipOnPointerDown
+} from "./tooltipPointerGate";
+import {
+  TOOLTIP_ENTER_DELAY,
+  TOOLTIP_ENTER_NEXT_DELAY
+} from "../../config/constants";
+
+/**
+ * A tooltip label with its keyboard shortcut drawn as a key hint below it,
+ * instead of "Undo (Ctrl+Z)" in the text.
+ */
+export const tooltipWithShortcut = (
+  title: React.ReactNode,
+  shortcut?: string[]
+): React.ReactNode =>
+  shortcut && shortcut.length > 0 ? (
+    <FlexColumn align="center" gap={0.5}>
+      <span>{title}</span>
+      <ShortcutHint shortcut={shortcut} size="small" />
+    </FlexColumn>
+  ) : (
+    title
+  );
 
 export interface TooltipProps extends Omit<MuiTooltipProps, "enterDelay" | "enterNextDelay"> {
-  /** Delay before showing (ms). Defaults to 400 for a snappy but non-intrusive feel. */
+  /** Delay before showing (ms). Defaults to TOOLTIP_ENTER_DELAY. Pass one only to wait longer. */
   delay?: number;
   /** Delay before showing when another tooltip was recently open (ms) */
   nextDelay?: number;
@@ -23,6 +50,8 @@ export interface TooltipProps extends Omit<MuiTooltipProps, "enterDelay" | "ente
   arrow?: boolean;
   /** Disable the tooltip entirely (useful for conditional tooltips) */
   disabled?: boolean;
+  /** Keyboard shortcut shown as a key hint below the title, e.g. ["Ctrl", "Z"] */
+  shortcut?: string[];
 }
 
 /**
@@ -53,11 +82,49 @@ const TooltipInternal: React.FC<TooltipProps> = ({
   enterNextDelay,
   arrow = false,
   disabled = false,
+  shortcut,
+  title,
   children,
+  open: openProp,
+  onOpen,
+  onClose,
   ...props
 }) => {
-  const resolvedDelay = delay ?? enterDelay ?? 400;
-  const resolvedNextDelay = nextDelay ?? enterNextDelay ?? 100;
+  const resolvedDelay = delay ?? enterDelay ?? TOOLTIP_ENTER_DELAY;
+  const resolvedNextDelay =
+    nextDelay ?? enterNextDelay ?? TOOLTIP_ENTER_NEXT_DELAY;
+  const [openState, setOpenState] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? openProp : openState;
+
+  const handleOpen = useCallback(
+    (event: React.SyntheticEvent) => {
+      if (!controlled && !canOpenTooltip(event)) {
+        return;
+      }
+      setOpenState(true);
+      onOpen?.(event);
+    },
+    [controlled, onOpen]
+  );
+
+  const handleClose = useCallback(
+    (event: React.SyntheticEvent | Event) => {
+      setOpenState(false);
+      onClose?.(event);
+    },
+    [onClose]
+  );
+
+  // A press anywhere closes a hover tooltip, so it cannot outlive a click on
+  // its trigger, a closing menu or a hidden panel row.
+  useEffect(() => {
+    if (controlled || !openState) {
+      return undefined;
+    }
+    return closeTooltipOnPointerDown(() => setOpenState(false));
+  }, [controlled, openState]);
+
   if (disabled) {
     return <>{children}</>;
   }
@@ -67,7 +134,11 @@ const TooltipInternal: React.FC<TooltipProps> = ({
       enterDelay={resolvedDelay}
       enterNextDelay={resolvedNextDelay}
       arrow={arrow}
+      title={tooltipWithShortcut(title, shortcut)}
       {...props}
+      open={open}
+      onOpen={handleOpen}
+      onClose={handleClose}
     >
       {children}
     </MuiTooltip>

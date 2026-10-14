@@ -38,7 +38,7 @@ lists other providers.
 Use **+ New → New workflow**. A workflow tab opens with an empty canvas. You
 can also press `Ctrl/⌘ + K` and pick **New Workflow** from the Command Menu.
 
-![An empty workflow canvas](assets/screenshots/editor-empty-state.png)
+![An empty workflow canvas](assets/screenshots/first-workflow-empty.png)
 
 ## 2. Add the String Input node
 
@@ -46,14 +46,17 @@ can also press `Ctrl/⌘ + K` and pick **New Workflow** from the Command Menu.
 2. Type `string input` in **Search for nodes...**.
 3. Click **String Input**. The node appears on the canvas.
 
-![The node menu](assets/screenshots/editor-node-menu.png)
+![The node menu searching for String Input](assets/screenshots/first-workflow-node-menu.png)
 
 Type your idea into the node's **Value** field, for example:
 
 > a lighthouse on a cliff at dusk
 
-The node's **Name** property labels this value when the workflow runs as an app
-or over the API. Leave it empty for now.
+Then give the node a name. Select it and set **Name** to `idea` in the
+Inspector on the right. An input node needs a name before the workflow can run,
+and the node shows **Name required** until it has one. The name becomes the
+node's title and labels this value when the workflow runs as an app or over the
+API.
 
 ## 3. Add the Agent node
 
@@ -63,7 +66,7 @@ String Input.
 Select the node. The **Inspector** opens on the right with three tabs:
 **Params**, **I/O**, and **Help**.
 
-![The Inspector](assets/screenshots/editor-right-panel.png)
+![The Agent selected, with its Params tab open in the Inspector](assets/screenshots/first-workflow-inspector.png)
 
 On the **Params** tab:
 
@@ -111,6 +114,8 @@ You can add Preview from the node menu, but a shortcut is faster:
 1. Drag from Text To Image's **output** circle and release on empty space.
 2. In the connection menu that appears, pick **Preview**.
 
+![The connection menu after a drag from Text To Image's output](assets/screenshots/first-workflow-connection-menu.png)
+
 NodeTool adds a **Preview** node already connected to the image. Preview has one
 input, **Value**, and shows whatever reaches it. Text To Image also shows its
 own result inside its node, and Preview gives you a separate, larger place to
@@ -124,8 +129,6 @@ Then you see the written prompt next to the picture.
 Press `Ctrl/⌘ + S` to save. Then click **Run entire workflow** in the bottom
 toolbar, or press `Ctrl/⌘ + Enter`.
 
-![The floating toolbar with the run control](assets/screenshots/editor-floating-toolbar.png)
-
 If a model is not selected, NodeTool stops the run and marks the unset model
 field in the Inspector. Pick a model and run again.
 
@@ -136,14 +139,19 @@ While it runs:
 - The run control reads **Starting**, **Queued**, or **Running**.
 - **Completed in** badges show how long each node took.
 
+![The Agent writing its prompt while the run control reads Running](assets/screenshots/first-workflow-running.png)
+
 When the run finishes, the picture appears in **Text To Image** and in
 **Preview**. Generated images are saved as assets automatically.
 
-If a node fails, open the bottom panel. **Logs** shows the error and **Queue**
-shows the jobs. See [Workflow Debugging](workflow-debugging.md) and
+![The finished run with the picture in Text To Image and Preview](assets/screenshots/first-workflow-result.png)
+
+If a node fails, it gets a red **Failed in** badge and shows the error inside
+the node. **View logs** opens that run's logs in the bottom panel, where
+**Queue** shows the jobs. See [Workflow Debugging](workflow-debugging.md) and
 [Troubleshooting](troubleshooting.md).
 
-![The bottom panel](assets/screenshots/editor-bottom-panel-logs.png)
+![Text To Image failed because no FAL key is set](assets/screenshots/first-workflow-error.png)
 
 ## 8. Change something and run again
 

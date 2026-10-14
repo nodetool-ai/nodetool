@@ -4,11 +4,13 @@
 
 export * from "./messages.js";
 export * from "./missing-runtime-package.js";
+export * from "./runtime-npm-packages.js";
 export type { DocumentOp } from "./document-ops.js";
 export * from "./supervisor.js";
 export * from "./ws-commands.js";
 export * from "./bridge-frames.js";
 export * from "./graph.js";
+export * from "./graph-links.js";
 export * from "./loop.js";
 export * from "./api-types.js";
 export * from "./custom-providers.js";
@@ -16,6 +18,7 @@ export * from "./asset-file-name.js";
 export * from "./package-assets.js";
 export * from "./resource-uri.js";
 export * from "./model-selection.js";
+export * from "./example-needs.js";
 export {
   TypeMetadata,
   areTypeNamesCompatible
@@ -60,6 +63,7 @@ export * from "./game3d.js";
 export * from "./game-script-params.js";
 export * from "./game-particles.js";
 export * from "./game-script-events.js";
+export * from "./game-saves.js";
 export * from "./game-migration.js";
 export * from "./game-slot-prompt.js";
 export * from "./game-asset-catalog.js";

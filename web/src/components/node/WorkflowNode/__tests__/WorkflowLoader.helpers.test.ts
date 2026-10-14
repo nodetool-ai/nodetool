@@ -4,7 +4,8 @@ import {
   OUTPUT_TYPE_MAP
 } from "../WorkflowLoader.helpers";
 import { stub } from "../../../../test-utils/doubles";
-import type { Workflow } from "../../../../stores/ApiTypes";
+import type { NodeMetadata, Workflow } from "../../../../stores/ApiTypes";
+import useMetadataStore from "../../../../stores/MetadataStore";
 
 function makeWorkflow(
   nodes: Array<{ type: string; data?: Record<string, unknown> }>
@@ -113,6 +114,54 @@ describe("extractDynamicIO", () => {
     ]);
     const result = extractDynamicIO(wf);
     expect(result.dynamic_outputs.generic_out.type).toBe("any");
+  });
+});
+
+describe("extractDynamicIO input ports beyond the fallback map", () => {
+  afterEach(() => {
+    useMetadataStore.getState().setMetadata({});
+  });
+
+  it("types a named input node from its metadata output", () => {
+    useMetadataStore.getState().setMetadata({
+      "nodetool.input.DocumentInput": stub<NodeMetadata>({
+        node_type: "nodetool.input.DocumentInput",
+        outputs: [
+          {
+            name: "output",
+            type: { type: "document", optional: false, type_args: [] },
+            stream: false
+          }
+        ]
+      })
+    });
+    const result = extractDynamicIO(
+      makeWorkflow([
+        { type: "nodetool.input.DocumentInput", data: { name: "doc" } }
+      ])
+    );
+    expect(result.dynamic_inputs.doc.type.type).toBe("document");
+    expect(result.dynamic_inputs.doc.type.optional).toBe(true);
+  });
+
+  it("gives a named input without loaded metadata an any port", () => {
+    const result = extractDynamicIO(
+      makeWorkflow([
+        { type: "nodetool.input.SelectInput", data: { name: "mode" } },
+        { type: "nodetool.input.ColorInput", data: { name: "tint" } }
+      ])
+    );
+    expect(Object.keys(result.dynamic_inputs)).toEqual(["mode", "tint"]);
+    expect(result.dynamic_inputs.mode.type.type).toBe("any");
+  });
+
+  it("skips nodetool.input nodes that have no name", () => {
+    const result = extractDynamicIO(
+      makeWorkflow([
+        { type: "nodetool.input.MessageDeconstructor", data: { value: null } }
+      ])
+    );
+    expect(result.dynamic_inputs).toEqual({});
   });
 });
 

@@ -16,7 +16,11 @@ import {
   ListItemText,
   SectionHeader,
   SPACING,
-  getSpacingPx
+  TYPOGRAPHY,
+  focusRing,
+  getSpacingPx,
+  selectableRowStyles,
+  selectedRowStyles
 } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
@@ -26,7 +30,16 @@ const styles = (theme: Theme) =>
       minHeight: CONTROL.height.xl,
       gap: getSpacingPx(SPACING.md),
       paddingLeft: getSpacingPx(SPACING.xl),
-      paddingRight: getSpacingPx(SPACING.xl)
+      paddingRight: getSpacingPx(SPACING.xl),
+      ...selectableRowStyles(theme),
+      "&.Mui-selected": selectedRowStyles(theme),
+      // MUI tints a keyboard-focused button with action.focus; the shared
+      // ring replaces that tint.
+      "&.Mui-focusVisible": {
+        backgroundColor: "transparent",
+        ...focusRing(theme)
+      },
+      "& .MuiListItemText-primary": TYPOGRAPHY.sans.label
     },
     "& .row-icon": {
       display: "flex",
@@ -70,7 +83,7 @@ const AppPagesList: React.FC<AppPagesListProps> = ({
   const normalizedQuery = query.trim().toLowerCase();
   const filteredActions = actions.filter(
     (action) =>
-      (scope === "all" || action.placement === "sidebar") &&
+      (scope === "all" || action.placement !== "logo") &&
       `${action.label} ${action.secondary ?? ""}`
         .toLowerCase()
         .includes(normalizedQuery)

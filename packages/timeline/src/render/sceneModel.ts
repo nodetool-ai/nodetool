@@ -55,9 +55,20 @@ import { resolveClipLayoutsWithDiagnostics, type ClipLayoutResolution } from "./
 import { resolveCamera2D, sampleCamera2D } from "./spatial.js";
 import { expandTemporalClips, clipSteppedTime } from "./temporal.js";
 import { resolveTransition, type ResolvedTransition } from "./transition.js";
+import { clipFadeGain, resolveClipFades } from "../audioFade.js";
 
 /** Clamp a resolved opacity into the range both compositors agree on. */
 const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+/**
+ * A visual clip's `fadeInMs`/`fadeOutMs` as an opacity gain at `currentTimeMs`.
+ * It is the envelope that ramps the clip's audio, so a clip with sound fades
+ * picture and sound together, along the same shape.
+ */
+function clipFadeOpacity(clip: TimelineClip, currentTimeMs: number): number {
+  if (!clip.fadeInMs && !clip.fadeOutMs) return 1;
+  return clipFadeGain(clip, clip.durationMs, currentTimeMs - clip.startMs);
+}
 
 /** Blend mode a layer composites with. */
 export type CompositorBlendMode = NonNullable<TimelineClip["blendMode"]>;
@@ -623,9 +634,9 @@ export interface ActiveLayer {
   /** Bottom-to-top order among clips and group surfaces on this track. */
   stackOrder?: number;
   blendMode: CompositorBlendMode;
-  /** Final opacity including the clip base opacity and any transition ramp. */
+  /** Final opacity including the clip base opacity, its fades and any transition ramp. */
   opacity: number;
-  /** Parent and transition coverage retained when an opacity link replaces the clip's own opacity. */
+  /** Parent, fade and transition coverage retained when an opacity link replaces the clip's own opacity. */
   opacityCoverage?: number;
   /** Asset to draw, or undefined when the clip has no usable render yet. */
   assetId: string | undefined;
@@ -1300,13 +1311,14 @@ function computeActiveLayersWithHorizonBase(
       if (precomposeGroupId) usedSurfaces.add(precomposeGroupId);
 
       const transition = transitions.get(clip.id);
+      const fade = clipFadeOpacity(clip, currentTimeMs);
       const baseOpacity = (clip.opacity ?? 1) * (parent?.opacity ?? 1);
       // Clamped here and nowhere else: the GPU compositor multiplies this into
       // the shader raw while Canvas 2D clamps it, so an out-of-range clip or
       // group opacity drew a different picture on each host. Animations still
       // multiply on top afterwards (I3) — `clampSample` settles those.
-      const opacity = clamp01(baseOpacity * (transition?.opacity ?? 1));
-      const opacityCoverage = clamp01((parent?.opacity ?? 1) * (transition?.opacity ?? 1));
+      const opacity = clamp01(baseOpacity * (transition?.opacity ?? 1) * fade);
+      const opacityCoverage = clamp01((parent?.opacity ?? 1) * (transition?.opacity ?? 1) * fade);
 
       // Captions ride on their media clip and always render on top.
       const caption = resolveCaptionAtTime(clip, currentTimeMs);
@@ -1605,10 +1617,11 @@ function resolveAdjustment(
   options: ComputeActiveLayersOptions,
   clips: TimelineClip[]
 ): AdjustmentLayer | null {
-  const base = (clip.opacity ?? 1) * (parent?.opacity ?? 1);
+  const fade = clipFadeOpacity(clip, currentTimeMs);
+  const base = (clip.opacity ?? 1) * (parent?.opacity ?? 1) * fade;
   const animated = options.canvas
     ? resolveAnimatedLayerProps(
-        { clip, opacity: base, opacityCoverage: parent?.opacity ?? 1 },
+        { clip, opacity: base, opacityCoverage: (parent?.opacity ?? 1) * fade },
         currentTimeMs,
         options.canvas,
         options.animationCache,
@@ -2347,6 +2360,7 @@ export function hasActiveAnimation(
   };
   for (const layer of layers) {
     if (layer.camera2d?.keyframes?.length) return true;
+    if (isClipFading(layer.clip, currentTimeMs)) return true;
     if (chainAnimating(layer.clip)) return true;
     if (layer.matte && chainAnimating(layer.matte.layer.clip)) return true;
   }
@@ -2355,3 +2369,21 @@ export function hasActiveAnimation(
 
 /** Longest parent chain the motion check follows before giving up. */
 const MAX_PARENT_HOPS = 64;
+
+/**
+ * How long past a fade-in's end the preview keeps redrawing. The last frame
+ * inside the ramp can land a whole frame short of full opacity; on a still
+ * image nothing else redraws, so that frame would otherwise stay on screen.
+ */
+const FADE_SETTLE_MS = 100;
+
+/** True while a clip's fade-in or fade-out ramps its opacity at `currentTimeMs`. */
+function isClipFading(clip: TimelineClip, currentTimeMs: number): boolean {
+  if (!clip.fadeInMs && !clip.fadeOutMs) return false;
+  const fades = resolveClipFades(clip, clip.durationMs);
+  const ms = currentTimeMs - clip.startMs;
+  return (
+    (fades.fadeInMs > 0 && ms < fades.fadeInMs + FADE_SETTLE_MS) ||
+    (fades.fadeOutMs > 0 && ms > clip.durationMs - fades.fadeOutMs)
+  );
+}

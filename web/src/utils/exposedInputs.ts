@@ -8,12 +8,16 @@ type ExposedInputPlacementData = Pick<
   "exposedInputs" | "exposedInputsLabeled" | "exposedInputsHidden"
 >;
 
-/** Inspector toggle cycle: off → top handle → bottom labeled → off. */
+/**
+ * Inspector toggle cycle: off → top handle → bottom labeled → off. Without
+ * `allowHandle` the top step is skipped, for bodies that cannot draw it.
+ */
 export const nextExposedInputPlacement = (
-  current: ExposedInputPlacement | null
+  current: ExposedInputPlacement | null,
+  allowHandle = true
 ): ExposedInputPlacement | null => {
   if (current === null) {
-    return "handle";
+    return allowHandle ? "handle" : "labeled";
   }
   if (current === "handle") {
     return "labeled";
@@ -39,6 +43,19 @@ const getDefaultExposedPlacement = (
   }
   return null;
 };
+
+/**
+ * Whether the top-handle step is offered for a property. A body that draws only
+ * its own handles (`rendersExposedHandles` false) still shows metadata
+ * `input_fields`, so the step stays for those.
+ */
+export const canPlaceOnTopHandle = (
+  metadata: ExposedPlacementMetadata,
+  propertyName: string,
+  rendersExposedHandles: boolean
+): boolean =>
+  rendersExposedHandles ||
+  getDefaultExposedPlacement(metadata, propertyName) === "handle";
 
 /** Effective placement including metadata defaults and per-node overrides. */
 export const getEffectiveExposedPlacement = (
@@ -177,9 +194,11 @@ type ExposedInputListsPatch = {
 /**
  * Apply target placement for any property (including metadata input_fields /
  * inline_fields). Uses override lists only when target differs from default.
+ * Hiding a model property always records it, since its unplaced default is a
+ * model chip rather than nothing.
  */
 export const applyExposedPlacementTarget = (
-  metadata: ExposedPlacementMetadata,
+  metadata: ExposedPlacementMetadata & Partial<Pick<NodeMetadata, "properties">>,
   data: ExposedInputPlacementData,
   propertyName: string,
   target: ExposedInputPlacement | null
@@ -195,7 +214,10 @@ export const applyExposedPlacementTarget = (
   exposedInputsHidden = removeFromList(exposedInputsHidden, propertyName);
 
   if (target === null) {
-    if (defaultPlacement !== null) {
+    const isModelProperty = (metadata.properties ?? []).some(
+      (p) => p.name === propertyName && isModelPropertyType(p.type.type)
+    );
+    if (defaultPlacement !== null || isModelProperty) {
       exposedInputsHidden = addToList(exposedInputsHidden, propertyName);
     }
   } else if (target === "handle") {

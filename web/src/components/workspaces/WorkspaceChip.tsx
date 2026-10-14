@@ -1,23 +1,14 @@
-/** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
-import { css } from "@emotion/react";
+import React, { memo, useCallback, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { useMutation } from "@tanstack/react-query";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import FolderIcon from "@mui/icons-material/Folder";
 import AddIcon from "@mui/icons-material/Add";
-import CheckIcon from "@mui/icons-material/Check";
 
 import {
-  Caption,
-  FlexRow,
-  Popover,
-  Text,
-  MOTION,
-  BORDER_RADIUS,
-  SPACING,
-  getSpacingPx
+  ContextMenu,
+  ListSubheader,
+  MenuItemPrimitive
 } from "../ui_primitives";
 import MediaControlChip from "../chat/composer/MediaControlChip";
 import { trpcClient } from "../../trpc/client";
@@ -36,46 +27,6 @@ function nameFromPath(path: string): string {
   const parts = normalized.split("/").filter(Boolean);
   return parts[parts.length - 1] ?? path;
 }
-
-const styles = (theme: Theme) =>
-  css({
-    padding: `${getSpacingPx(SPACING.md)} 0`,
-    minWidth: 260,
-    maxWidth: 420,
-    ".workspace-menu-header": {
-      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xs)}`,
-      color: theme.vars.palette.grey[400],
-      textTransform: "uppercase",
-      letterSpacing: 1
-    },
-    ".workspace-menu-item": {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      padding: theme.spacing(3, 4),
-      cursor: "pointer",
-      color: theme.vars.palette.grey[100],
-      transition: MOTION.background,
-      "&:hover": { backgroundColor: theme.vars.palette.c_overlay },
-      "&.selected": { backgroundColor: theme.vars.palette.c_overlay }
-    },
-    ".workspace-menu-icon": {
-      color: theme.vars.palette.grey[300],
-      display: "inline-flex"
-    },
-    ".workspace-menu-check": {
-      marginLeft: "auto",
-      color: theme.vars.palette.primary.main,
-      display: "inline-flex"
-    },
-    ".workspace-menu-path": {
-      color: theme.vars.palette.grey[400],
-      fontFamily: "var(--fontFamily2)",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    }
-  });
 
 /**
  * Workspace picker for the composer footer, next to the model chip.
@@ -96,7 +47,6 @@ interface WorkspaceChipProps {
 
 const WorkspaceChip: React.FC<WorkspaceChipProps> = ({ compact = false }) => {
   const theme = useTheme();
-  const cssStyles = useMemo(() => styles(theme), [theme]);
   const anchorRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
 
@@ -152,81 +102,43 @@ const WorkspaceChip: React.FC<WorkspaceChipProps> = ({ compact = false }) => {
         maxWidth={140}
         onClick={() => setOpen(true)}
       />
-      <Popover
+      <ContextMenu
         open={open}
         anchorEl={anchorRef.current}
         onClose={() => setOpen(false)}
-        placement="top-left"
-        paperSx={{
-          backgroundColor: theme.vars.palette.grey[900],
-          border: `1px solid ${theme.vars.palette.grey[800]}`,
-          borderRadius: BORDER_RADIUS.sm,
-          boxShadow: `0 12px 40px ${theme.vars.palette.c_scrim}`
-        }}
+        anchorOrigin={{ vertical: "top", horizontal: "left" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "left" }}
+        minWidth={260}
+        paperSx={{ maxWidth: 420 }}
+        slotProps={{ list: { "aria-label": "Workspace" } }}
       >
-        <div css={cssStyles} role="menu" aria-label="Workspace">
-          <Caption className="workspace-menu-header" size="small">
-            Workspace
-          </Caption>
-          {workspaces.map((workspace) => {
-            const isSelected = workspace.id === workspaceId;
-            return (
-              <div
-                key={workspace.id}
-                role="menuitemradio"
-                aria-checked={isSelected}
-                tabIndex={0}
-                className={`workspace-menu-item${isSelected ? " selected" : ""}`}
-                onClick={() => {
-                  void setWorkspaceId(workspace.id);
-                  setOpen(false);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    void setWorkspaceId(workspace.id);
-                    setOpen(false);
-                  }
-                }}
-              >
-                <span className="workspace-menu-icon">
-                  <FolderIcon fontSize="small" />
-                </span>
-                <FlexRow gap={0.5} sx={{ minWidth: 0, flexDirection: "column" }}>
-                  <Text size="small">{workspace.name}</Text>
-                  <Caption className="workspace-menu-path" size="small">
-                    {workspace.path}
-                  </Caption>
-                </FlexRow>
-                {isSelected && (
-                  <span className="workspace-menu-check">
-                    <CheckIcon fontSize="small" />
-                  </span>
-                )}
-              </div>
-            );
-          })}
-          {canManage && (
-            <div
-              role="menuitem"
-              tabIndex={0}
-              className="workspace-menu-item"
-              onClick={handleAdd}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  void handleAdd();
-                }
+        <ListSubheader>Workspace</ListSubheader>
+        {workspaces.map((workspace) => {
+          const isSelected = workspace.id === workspaceId;
+          return (
+            <MenuItemPrimitive
+              key={workspace.id}
+              label={workspace.name}
+              secondary={workspace.path}
+              icon={<FolderIcon fontSize="small" />}
+              checkable="radio"
+              checked={isSelected}
+              onClick={() => {
+                void setWorkspaceId(workspace.id);
+                setOpen(false);
               }}
-            >
-              <span className="workspace-menu-icon">
-                <AddIcon fontSize="small" />
-              </span>
-              <Text size="small">Add workspace…</Text>
-            </div>
-          )}
-        </div>
-      </Popover>
+            />
+          );
+        })}
+        {canManage && (
+          <MenuItemPrimitive
+            label="Add workspace…"
+            icon={<AddIcon fontSize="small" />}
+            dividerBefore={workspaces.length > 0}
+            onClick={() => void handleAdd()}
+          />
+        )}
+      </ContextMenu>
       {folderPickerDialog}
     </>
   );

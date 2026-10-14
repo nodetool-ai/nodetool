@@ -405,7 +405,11 @@ export const autoLayout = async (
 
   // root group is processed last to ensure all group nodes are processed
   for (const groupId of groupOrder) {
-    const groupNodes = nodeGroups[groupId] || [];
+    // Read through `nodesById` so a group resized in an earlier pass is laid
+    // out at its new size.
+    const groupNodes = (nodeGroups[groupId] || []).map(
+      (node) => nodesById.get(node.id) ?? node
+    );
     const groupEdges = edgesByGroup.get(groupId) ?? [];
 
     const graph = createElkGraph(groupNodes, groupEdges, groupId === "root");
@@ -430,12 +434,15 @@ export const autoLayout = async (
               (n) => n.position.y + (n.measured?.height ?? 100)
             )
           );
-          parentNode.width = xExtent + 50;
-          parentNode.height = yExtent + 50;
-          parentNode.measured = {
-            width: parentNode.width,
-            height: parentNode.height
-          };
+          // A copy: the caller's nodes are store state that undo snapshots share.
+          const width = xExtent + 50;
+          const height = yExtent + 50;
+          nodesById.set(groupId, {
+            ...parentNode,
+            width,
+            height,
+            measured: { width, height }
+          });
         }
       }
 
@@ -446,7 +453,21 @@ export const autoLayout = async (
   }
 
   // Combine updated non-comment nodes with original comment nodes
-  const updatedNonCommentNodes = Object.values(processedGroups).flat();
+  // A nested group may have been placed before its own children were laid
+  // out, so take each group's final size from `nodesById`.
+  const updatedNonCommentNodes = Object.values(processedGroups)
+    .flat()
+    .map((node) => {
+      const latest = nodesById.get(node.id);
+      return latest && processedGroups[node.id]
+        ? {
+            ...node,
+            width: latest.width,
+            height: latest.height,
+            measured: latest.measured
+          }
+        : node;
+    });
   const commentNodes = nodes.filter(
     (node) => node.type === COMMENT_NODE_TYPE
   );

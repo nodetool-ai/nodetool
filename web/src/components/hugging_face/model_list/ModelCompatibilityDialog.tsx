@@ -3,16 +3,15 @@ import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
   Dialog,
-  CloseButton,
   Text,
   Caption,
   Chip,
   FlexRow,
   FlexColumn,
-  EditorButton,
   CopyButton,
   MOTION,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING
 } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
@@ -24,7 +23,6 @@ import type { UnifiedModel } from "../../../stores/ApiTypes";
 import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import TerminalRoundedIcon from "@mui/icons-material/TerminalRounded";
-import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(8px); }
@@ -71,7 +69,8 @@ const styles = (theme: Theme) =>
     },
     "& .recommended-item": {
       borderLeft: `3px solid ${theme.vars.palette.primary.main}`,
-      background: `linear-gradient(90deg, ${theme.vars.palette.primary.main}11 0%, transparent 100%)`
+      background:
+        "linear-gradient(90deg, rgba(var(--palette-primary-mainChannel) / 0.07) 0%, transparent 100%)"
     },
     "& .node-row": {
       width: "100%",
@@ -130,7 +129,6 @@ const NodeList: React.FC<{
   label: string;
   isRecommended?: boolean;
 }> = ({ items, label, isRecommended }) => {
-  const theme = useTheme();
   if (items.length === 0) {
     return (
       <Text size="small" className="empty-state">
@@ -147,7 +145,12 @@ const NodeList: React.FC<{
           className={`node-list-item ${isRecommended ? "recommended-item" : ""}`}
           sx={{ animationDelay: `${index * 0.05}s` }}
         >
-          <FlexRow justify="space-between" align="center" fullWidth className="node-row">
+          <FlexRow
+            justify="space-between"
+            align="center"
+            fullWidth
+            className="node-row"
+          >
             <FlexColumn className="node-info">
               <FlexRow align="center" className="node-title-row">
                 <Text className="node-title" title={node.title}>
@@ -155,24 +158,15 @@ const NodeList: React.FC<{
                 </Text>
                 {isRecommended && (
                   <Chip
-                    label="Best Match"
-                    size="small"
+                    label="Best match"
+                    compact
                     color="primary"
                     variant="outlined"
-                    sx={{
-                      height: 16,
-                      fontSize: "var(--fontSizeSmaller)",
-                      fontWeight: 600,
-                      px: 0.5,
-                      borderRadius: BORDER_RADIUS.xs,
-                      background: theme.vars.palette.primary.main + "22",
-                      borderColor: theme.vars.palette.primary.main + "44"
-                    }}
                   />
                 )}
               </FlexRow>
               <FlexRow align="center" className="node-type">
-                <TerminalRoundedIcon sx={{ fontSize: 12 }} />
+                <TerminalRoundedIcon fontSize="inherit" />
                 {node.nodeType}
               </FlexRow>
               {node.propertyNames.length > 0 && (
@@ -224,86 +218,79 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      title={
-        <FlexRow justify="space-between" align="flex-start" fullWidth>
-          <FlexColumn gap={0.5}>
-            <FlexRow gap={1} align="center">
-              <AutoAwesomeRoundedIcon sx={{ color: "primary.main", fontSize: 20 }} />
-              <Text size="normal" weight={600} component="span" sx={{ letterSpacing: -0.2 }}>
-                Node Compatibility
-              </Text>
-            </FlexRow>
-            <Caption
-              sx={{
-                fontFamily: "var(--fontFamilyMono)",
-                color: "text.secondary",
-                background: theme.vars.palette.action.hover,
-                px: 1,
-                py: 0.5,
-                borderRadius: BORDER_RADIUS.xs,
-                border: `1px solid ${theme.vars.palette.divider}`
-              }}
-            >
-              {model.repo_id || model.name}
-            </Caption>
-          </FlexColumn>
-          <CloseButton onClick={onClose} sx={{ color: "text.disabled", "&:hover": { color: "text.primary" } }} />
-        </FlexRow>
-      }
-      slotProps={{
-        backdrop: {
-          sx: {
-            backdropFilter: theme.vars.palette.glass.blur,
-            backgroundColor: theme.vars.palette.glass.backgroundDialog
-          }
-        },
-        paper: {
-          sx: {
-            borderRadius: BORDER_RADIUS.lg,
-            background: theme.vars.palette.background.paper,
-            border: `1px solid ${theme.vars.palette.divider}`,
-            backgroundImage: "none"
-          }
-        }
-      }}
+      title="Node compatibility"
     >
       <div css={styles(theme)}>
-        <FlexColumn gap={3} sx={{ p: 3, pt: 0 }}>
-          <FlexColumn className="compatibility-section" gap={1}>
-            <FlexRow justify="space-between" align="center" className="section-header" fullWidth>
-              <FlexRow gap={1} align="center">
-                <VerifiedRoundedIcon sx={{ color: "primary.main", fontSize: 18 }} />
+        <FlexColumn gap={SPACING.lg}>
+          <Caption
+            className="model-id"
+            sx={{
+              alignSelf: "flex-start",
+              fontFamily: "var(--fontFamilyMono)",
+              color: "text.secondary",
+              background: theme.vars.palette.action.hover,
+              px: SPACING.xs,
+              py: SPACING.micro,
+              borderRadius: BORDER_RADIUS.xs,
+              border: `1px solid ${theme.vars.palette.divider}`
+            }}
+          >
+            {model.repo_id || model.name}
+          </Caption>
+
+          <FlexColumn className="compatibility-section" gap={SPACING.xs}>
+            <FlexRow
+              justify="space-between"
+              align="center"
+              className="section-header"
+              fullWidth
+            >
+              <FlexRow gap={SPACING.xs} align="center">
+                <VerifiedRoundedIcon
+                  fontSize="small"
+                  sx={{ color: "primary.main" }}
+                />
                 <Text size="small" weight={600} sx={{ color: "primary.main" }}>
-                  Recommended Nodes
+                  Recommended nodes
                 </Text>
               </FlexRow>
-              <Caption sx={{ color: "text.disabled", fontWeight: 500 }}>
+              <Caption color="secondary">
                 {compatibility.recommended.length} matches
               </Caption>
             </FlexRow>
-            <NodeList items={compatibility.recommended} label="recommended" isRecommended />
+            <NodeList
+              items={compatibility.recommended}
+              label="recommended"
+              isRecommended
+            />
           </FlexColumn>
 
-          <FlexColumn className="compatibility-section" gap={1} sx={{ mb: 0 }}>
-            <FlexRow justify="space-between" align="center" className="section-header" fullWidth>
-              <FlexRow gap={1} align="center">
-                <CheckCircleOutlineRoundedIcon sx={{ color: "text.secondary", fontSize: 18 }} />
+          <FlexColumn
+            className="compatibility-section"
+            gap={SPACING.xs}
+            sx={{ mb: SPACING.none }}
+          >
+            <FlexRow
+              justify="space-between"
+              align="center"
+              className="section-header"
+              fullWidth
+            >
+              <FlexRow gap={SPACING.xs} align="center">
+                <CheckCircleOutlineRoundedIcon
+                  fontSize="small"
+                  sx={{ color: "text.secondary" }}
+                />
                 <Text size="small" weight={600}>
-                  Compatible Nodes
+                  Compatible nodes
                 </Text>
               </FlexRow>
-              <Caption sx={{ color: "text.disabled", fontWeight: 500 }}>
+              <Caption color="secondary">
                 {compatibility.compatible.length} matches
               </Caption>
             </FlexRow>
             <NodeList items={compatibility.compatible} label="compatible" />
           </FlexColumn>
-
-          <FlexRow justify="flex-end" sx={{ pt: 1.5, borderTop: `1px solid ${theme.vars.palette.grey[900]}` }}>
-            <EditorButton onClick={onClose} variant="contained" density="compact" sx={{ borderRadius: BORDER_RADIUS.sm, fontWeight: 600, px: 3 }}>
-              Got it
-            </EditorButton>
-          </FlexRow>
         </FlexColumn>
       </div>
     </Dialog>

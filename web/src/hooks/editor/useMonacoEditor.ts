@@ -17,10 +17,12 @@ async function configureMonacoLoader() {
   if (loaderConfigured) {
     return;
   }
-  const [loader, monaco] = await Promise.all([
+  const [loader, monaco, workers] = await Promise.all([
     import("@monaco-editor/loader"),
-    import("monaco-editor")
+    import("monaco-editor"),
+    import("./monacoWorkers")
   ]);
+  workers.installMonacoWorkers();
   loader.default.config({ monaco });
   // Monaco handles Cmd/Ctrl+K itself and stops the event, so the app's
   // dispatcher never sees it. Every editor binds it to the command menu instead.

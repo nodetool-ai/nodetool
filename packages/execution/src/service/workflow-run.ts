@@ -55,6 +55,7 @@ import {
   collectInterventionWarnings
 } from "../debug/verdict.js";
 import { rewriteOutputNames } from "../output-names.js";
+import { registerActiveRun } from "./active-runs.js";
 import {
   debugSessions,
   DebugSession,
@@ -297,11 +298,14 @@ export function boundedRunOption(
   return Math.min(value, max);
 }
 
-/** Mark a job failed and persist it, best effort. */
+/**
+ * Mark a job failed and persist it, best effort. A row that already settled,
+ * a cancel above all, keeps its status.
+ */
 async function markJobFailed(job: Job, message: string): Promise<void> {
   try {
     job.markFailed(message);
-    await job.save();
+    await job.saveIfActive();
   } catch (saveError) {
     log.warn("failed to persist failed job status", {
       jobId: job.id,
@@ -461,7 +465,9 @@ async function finalizeWorkflowRunJob(
     outputs: persistableOutputs(withoutInlineAssetBytes(result.outputs ?? {}))
   };
   job.logs = persistableLogs(collectExecutionSummary(result.messages));
-  await job.save();
+  // Conditional: a run cancelled through `jobs.cancel` or `cancel_job` may
+  // still finish on its own, and its outcome must not replace the cancel.
+  await job.saveIfActive();
 }
 
 export function buildWorkflowRunPayload(
@@ -920,6 +926,12 @@ export async function runWorkflow(
     supervisorHandle?.close();
     throw error instanceof Error ? error : new Error(message);
   }
+
+  // Reachable by `jobs.cancel` and `cancel_job` until the run settles.
+  const unregister = registerActiveRun(job.id, userId, () =>
+    execution.cancel("cancelled")
+  );
+  execution.result.then(unregister, unregister);
 
   if (!interactive && (options.background ?? false)) {
     // Detached: the payload is the receipt, not the result. Awaiting the run

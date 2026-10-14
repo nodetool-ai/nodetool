@@ -1,14 +1,14 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 
 import {
-  Popover,
+  ContextMenu,
   MenuItemPrimitive,
-  FlexColumn,
   FlexRow,
   Caption,
   Divider,
+  ListSubheader,
   LoadingSpinner,
   SPACING
 } from "../ui_primitives";
@@ -28,19 +28,23 @@ interface OpenMenuProps {
 
 type MenuView = "root" | NewDocumentSubmenu;
 
-/** The menu's column width, and the popover's room around it, in px. */
+/** The menu's width, and its room at most, in px. */
 const MENU_WIDTH = 320;
 const MENU_MAX_WIDTH = 340;
+// Space kept between the menu and the bottom of the window.
+const MENU_VIEWPORT_GAP = 16;
 
-/** A section header inside the menu: quiet, uppercase-adjacent, padded. */
-const MenuSectionLabel = ({ children }: { children: string }) => (
-  <Caption
-    color="muted"
-    sx={{ px: SPACING.md, pt: SPACING.sm, pb: SPACING.micro }}
-  >
-    {children}
-  </Caption>
-);
+/**
+ * The menu may grow down to the bottom of the window. A fixed share of the
+ * viewport hid most blank documents on short windows with no cue to scroll.
+ */
+const menuMaxHeight = (anchorEl: HTMLElement | null): string => {
+  if (!anchorEl) {
+    return "70vh";
+  }
+  const top = Math.ceil(anchorEl.getBoundingClientRect().bottom);
+  return `calc(100vh - ${top + MENU_VIEWPORT_GAP}px)`;
+};
 
 /**
  * The `[+]` menu for the workspace tab bar. Two sections: the guided
@@ -71,128 +75,127 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
     useExampleStoryboards(open && view === "storyboards");
   const exampleStoryboards = useMemo(() => exampleData ?? [], [exampleData]);
 
+  // Switching views swaps the rows under the focused one. Put focus back on
+  // the first enabled row so arrow keys keep working.
+  const listRef = useRef<HTMLUListElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const first = listRef.current?.querySelector<HTMLElement>(
+      '[role="menuitem"]:not(.Mui-disabled)'
+    );
+    first?.focus();
+  }, [open, view]);
+
+  const backRow = (
+    <MenuItemPrimitive
+      key="back"
+      label="Back"
+      icon={<ArrowBackRoundedIcon fontSize="small" />}
+      onClick={() => setView("root")}
+      dividerAfter
+    />
+  );
+
   return (
-    <Popover
+    <ContextMenu
       open={open}
       anchorEl={anchorEl}
       onClose={close}
-      placement="bottom-left"
-      maxWidth={MENU_MAX_WIDTH}
-      maxHeight="70vh"
+      anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      transformOrigin={{ vertical: "top", horizontal: "left" }}
+      maxHeight={menuMaxHeight(anchorEl)}
+      paperSx={{ width: MENU_WIDTH, maxWidth: MENU_MAX_WIDTH }}
+      slotProps={{ list: { ref: listRef } }}
     >
-      <FlexColumn
-        sx={{
-          width: MENU_WIDTH,
-          py: SPACING.micro,
-          // One icon size for every row: 16px beats the default MUI small
-          // (20px), which crowded the label at this menu's density.
-          "& .MuiSvgIcon-root": { fontSize: 16 }
-        }}
-      >
-        {view === "root" && (
-          <>
-            <MenuSectionLabel>Guided flows</MenuSectionLabel>
-            {/* The item being started says so, as the New Project cards do,
-                so the disabled menu does not read as a dead click. */}
-            {starters.map((starter) => (
-              <MenuItemPrimitive
-                key={starter.id}
-                label={starter.title}
-                icon={
-                  starting === starter.id ? (
-                    <LoadingSpinner size="small" />
-                  ) : (
-                    starter.icon
-                  )
-                }
-                secondary={
-                  starting === starter.id ? "Creating…" : starter.description
-                }
-                onClick={() => void starter.start()}
-                disabled={busy}
-              />
-            ))}
+      {view === "root" && [
+        <ListSubheader key="guided-label">Guided flows</ListSubheader>,
+        // The item being started says so, as the New Project cards do, so
+        // the disabled menu does not read as a dead click.
+        ...starters.map((starter) => (
+          <MenuItemPrimitive
+            key={starter.id}
+            label={starter.title}
+            icon={
+              starting === starter.id ? (
+                <LoadingSpinner size="small" />
+              ) : (
+                starter.icon
+              )
+            }
+            secondary={
+              starting === starter.id ? "Creating…" : starter.description
+            }
+            onClick={() => void starter.start()}
+            disabled={busy}
+          />
+        )),
+        <Divider key="blank-divider" />,
+        <ListSubheader key="blank-label">Blank documents</ListSubheader>,
+        ...entries.map((entry) => (
+          <MenuItemPrimitive
+            key={entry.key}
+            label={entry.menuLabel}
+            icon={entry.icon}
+            hasSubmenu={entry.submenu !== undefined}
+            onClick={() =>
+              entry.submenu ? setView(entry.submenu) : void entry.create?.()
+            }
+            disabled={busy}
+          />
+        ))
+      ]}
 
-            <Divider sx={{ my: SPACING.xs }} />
-            <MenuSectionLabel>Blank documents</MenuSectionLabel>
-            {entries.map((entry) => (
-              <MenuItemPrimitive
-                key={entry.key}
-                label={entry.menuLabel}
-                icon={entry.icon}
-                hasSubmenu={entry.submenu !== undefined}
-                onClick={() =>
-                  entry.submenu
-                    ? setView(entry.submenu)
-                    : void entry.create?.()
-                }
-                disabled={busy}
-              />
-            ))}
-          </>
-        )}
+      {view === "texts" && [
+        backRow,
+        ...TEXT_FILE_TEMPLATES.map((template) => (
+          <MenuItemPrimitive
+            key={template.filename}
+            label={template.label}
+            onClick={() => void createTextFile(template)}
+            disabled={busy}
+          />
+        ))
+      ]}
 
-        {view === "texts" && (
-          <>
-            <MenuItemPrimitive
-              label="Back"
-              icon={<ArrowBackRoundedIcon fontSize="small" />}
-              onClick={() => setView("root")}
-              dividerAfter
-            />
-            {TEXT_FILE_TEMPLATES.map((template) => (
-              <MenuItemPrimitive
-                key={template.filename}
-                label={template.label}
-                onClick={() => void createTextFile(template)}
-                disabled={busy}
-              />
-            ))}
-          </>
-        )}
-
-        {view === "storyboards" && (
-          <>
-            <MenuItemPrimitive
-              label="Back"
-              icon={<ArrowBackRoundedIcon fontSize="small" />}
-              onClick={() => setView("root")}
-              dividerAfter
-            />
-            <MenuItemPrimitive
-              label="Blank storyboard"
-              icon={<AddRoundedIcon fontSize="small" />}
-              onClick={() => void createBlankStoryboard()}
-              disabled={busy}
-              dividerAfter
-            />
-            {examplesLoading && (
-              <FlexRow justify="center" sx={{ py: SPACING.md }}>
-                <LoadingSpinner />
-              </FlexRow>
-            )}
-            {!examplesLoading && exampleStoryboards.length === 0 && (
-              <Caption color="secondary" sx={{ px: SPACING.md, py: SPACING.sm }}>
-                No example storyboards are available.
-              </Caption>
-            )}
-            {exampleStoryboards.map((example) => (
-              <MenuItemPrimitive
-                key={example.slug}
-                label={example.name}
-                secondary={`${example.shotCount} shot${
-                  example.shotCount === 1 ? "" : "s"
-                }, stills included`}
-                onClick={() =>
-                  void installStoryboardExample(example.slug, example.name)
-                }
-                disabled={busy}
-              />
-            ))}
-          </>
-        )}
-      </FlexColumn>
-    </Popover>
+      {view === "storyboards" && [
+        backRow,
+        <MenuItemPrimitive
+          key="blank-storyboard"
+          label="Blank storyboard"
+          icon={<AddRoundedIcon fontSize="small" />}
+          onClick={() => void createBlankStoryboard()}
+          disabled={busy}
+          dividerAfter
+        />,
+        examplesLoading && (
+          <FlexRow key="loading" justify="center" sx={{ py: SPACING.md }}>
+            <LoadingSpinner />
+          </FlexRow>
+        ),
+        !examplesLoading && exampleStoryboards.length === 0 && (
+          <Caption
+            key="empty"
+            color="secondary"
+            sx={{ px: SPACING.lg, py: SPACING.sm }}
+          >
+            No example storyboards are available.
+          </Caption>
+        ),
+        ...exampleStoryboards.map((example) => (
+          <MenuItemPrimitive
+            key={example.slug}
+            label={example.name}
+            secondary={`${example.shotCount} shot${
+              example.shotCount === 1 ? "" : "s"
+            }, stills included`}
+            onClick={() =>
+              void installStoryboardExample(example.slug, example.name)
+            }
+            disabled={busy}
+          />
+        ))
+      ]}
+    </ContextMenu>
   );
 };
 

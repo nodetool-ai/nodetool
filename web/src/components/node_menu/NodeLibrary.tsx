@@ -16,7 +16,8 @@ import {
   SPACING,
   getSpacingPx,
   reducedMotion,
-  PanelHeader
+  PanelHeader,
+  EmptyState
 } from "../ui_primitives";
 import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
@@ -252,16 +253,6 @@ const styles = (theme: Theme, isMobile: boolean) =>
       ),
       ...thinScrollbarStyles(theme)
     },
-    ".nl-empty": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      height: "100%",
-      padding: theme.spacing(2),
-      textAlign: "center",
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeNormal)"
-    },
 
     ".nl-footer": {
       display: "flex",
@@ -318,8 +309,10 @@ const NodeLibrary = memo<NodeLibraryProps>(
       }
     }, [autoFocusEnabled]);
 
+    // Hidden nodes stay runnable but never appear in the palette, so the
+    // rail counts must leave them out to match the listed rows.
     const allNodes = useMemo(
-      () => Object.values(metadataRecord),
+      () => Object.values(metadataRecord).filter((node) => !node.hidden),
       [metadataRecord]
     );
 
@@ -458,7 +451,11 @@ const NodeLibrary = memo<NodeLibraryProps>(
 
             {nodes.length === 0 ? (
               <div className="nl-list">
-                <div className="nl-empty">No matching nodes</div>
+                <EmptyState
+                  size="small"
+                  variant="no-results"
+                  title="No matching nodes"
+                />
               </div>
             ) : (
               <div

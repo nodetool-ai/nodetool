@@ -201,7 +201,7 @@ describe("input nodes — full coverage", () => {
       verify: (value: any) =>
         expect(value).toMatchObject({ type: "color", value: null })
     },
-    { Cls: ImageSizeInputNode, expected: {} },
+    { Cls: ImageSizeInputNode, expected: { width: 1024, height: 1024 } },
     {
       Cls: LanguageModelInputNode,
       verify: (value: any) =>
@@ -777,7 +777,7 @@ describe("constant nodes — full coverage", () => {
   it("ConstantImageSizeNode defaults and process", async () => {
     const node = new ConstantImageSizeNode();
     const d = node.serialize();
-    expect(d).toEqual({ value: null });
+    expect(d).toEqual({ value: { width: 1024, height: 1024 } });
     const result = await node.process();
     expect(result).toEqual({
       image_size: { width: 1024, height: 1024 },

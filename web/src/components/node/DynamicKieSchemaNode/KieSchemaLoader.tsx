@@ -1,13 +1,13 @@
 import React, { useCallback, useState, memo } from "react";
-import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton, Box, SPACING, getSpacingPx } from "../../ui_primitives";
+import { Caption, LoadingSpinner, ToolbarIconButton, Box, SPACING, getSpacingPx } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import { useNodes } from "../../../contexts/NodeContext";
+import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { TypeMetadata } from "../../../stores/ApiTypes";
 import { resolveKieSchemaClient } from "../../../utils/kieDynamicSchema";
 import { normalizeDynamicSlots } from "../../../utils/dynamicSlots";
+import { replaceDynamicSlots } from "../../../utils/replaceDynamicSlots";
 import { NodeData } from "../../../stores/NodeData";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 export { DYNAMIC_KIE_NODE_TYPE } from "../../../constants/nodeTypes";
 
@@ -22,7 +22,7 @@ interface KieSchemaLoaderProps {
  */
 export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
   ({ nodeId, data }) => {
-    const updateNodeData = useNodes((state) => state.updateNodeData);
+    const nodeStore = useNodeStoreRef();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -105,7 +105,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
         const dynamic_properties = force
           ? resolved.dynamic_properties
           : { ...resolved.dynamic_properties, ...(existingDynamicPropsRef.current ?? {}) };
-        updateNodeData(nodeId, {
+        replaceDynamicSlots(nodeStore, nodeId, {
           dynamic_properties,
           dynamic_inputs:
             Object.keys(dynamic_inputs).length > 0
@@ -123,7 +123,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
       } finally {
         setLoading(false);
       }
-    }, [nodeId, modelInfo, updateNodeData]);
+    }, [nodeId, modelInfo, nodeStore]);
 
     React.useEffect(() => {
       if (!modelInfo) {
@@ -164,28 +164,26 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
 
     return (
       <Box sx={{ display: "inline-flex", alignItems: "center" }}>
-        <Tooltip title="Reload Schema" arrow delay={TOOLTIP_ENTER_DELAY}>
-          <ToolbarIconButton
-            title="Reload Schema"
-            size="small"
-            disabled={loading}
-            onClick={() => void handleLoad(true)}
-            sx={{
-              padding: getSpacingPx(SPACING.xs),
-              color: "var(--palette-text-secondary)",
-              "&:hover": {
-                color: "var(--palette-text-primary)",
-                backgroundColor: "var(--palette-c_overlay)"
-              }
-            }}
-          >
-            {loading ? (
-              <LoadingSpinner size="small" />
-            ) : (
-              <RefreshIcon sx={{ fontSize: 16 }} />
-            )}
-          </ToolbarIconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          title="Reload schema"
+          size="small"
+          disabled={loading}
+          onClick={() => void handleLoad(true)}
+          sx={{
+            padding: getSpacingPx(SPACING.xs),
+            color: "var(--palette-text-secondary)",
+            "&:hover": {
+              color: "var(--palette-text-primary)",
+              backgroundColor: "var(--palette-c_overlay)"
+            }
+          }}
+        >
+          {loading ? (
+            <LoadingSpinner size="small" />
+          ) : (
+            <RefreshIcon sx={{ fontSize: 16 }} />
+          )}
+        </ToolbarIconButton>
         {error && (
           <Caption
             color="error"

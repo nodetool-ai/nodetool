@@ -23,12 +23,16 @@ export type { CompositorBlendMode };
  * `drawImage` on the Canvas 2D one — so a 3D frame never round-trips through
  * an `ImageBitmap`. It is also the one member whose pixels change while its
  * size does not, which is what {@link isCanvasSource} exists for.
+ *
+ * `VideoFrame` is a frame from the WebCodecs preview decoder. Both backends
+ * take it directly, so a decoded frame is never copied to an `ImageBitmap`.
  */
 export type CompositeSource =
   | HTMLVideoElement
   | HTMLImageElement
   | ImageBitmap
-  | OffscreenCanvas;
+  | OffscreenCanvas
+  | VideoFrame;
 
 export interface CompositeLayer {
   id: string;

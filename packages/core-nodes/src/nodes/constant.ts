@@ -25,6 +25,7 @@ import {
   documentRefDefault,
   entityDefault,
   imageRefDefault,
+  imageSizeDefault,
   jsonRefDefault,
   model3DRefDefault,
   scriptRefDefault,
@@ -759,13 +760,18 @@ export class ConstantImageSizeNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({ type: "image_size", default: null, title: "Value", required: true })
+  @prop({
+    type: "image_size",
+    default: imageSizeDefault,
+    title: "Value",
+    required: true
+  })
   declare value: ImageSizeValue | null;
 
   async process(): Promise<ConstantImageSizeNodeOutputs> {
-    const value = this.value ?? { width: 1024, height: 1024 };
-    const width = Number(value.width ?? 1024);
-    const height = Number(value.height ?? 1024);
+    const value = this.value ?? imageSizeDefault;
+    const width = Number(value.width ?? imageSizeDefault.width);
+    const height = Number(value.height ?? imageSizeDefault.height);
     return { image_size: value, width, height };
   }
 }

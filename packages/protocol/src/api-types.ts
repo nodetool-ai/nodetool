@@ -6,8 +6,14 @@
  * Used by both the backend HTTP handlers and the frontend stores.
  */
 
-import type { Edge, InputMode, OutputCorrelation } from "./graph.js";
+import type {
+  Edge,
+  GraphLink,
+  InputMode,
+  OutputCorrelation
+} from "./graph.js";
 import type { NodeEffect } from "./platform.js";
+import type { ExampleNeeds } from "./example-needs.js";
 
 // ---------------------------------------------------------------------------
 // Media Refs
@@ -443,6 +449,8 @@ export interface AssetUpdateRequest {
 export interface WorkflowGraph {
   nodes: Node[];
   edges: Edge[];
+  /** Lineage links: no value, no execution order. See `GraphLink`. */
+  links?: GraphLink[];
 }
 
 export interface Workflow {
@@ -470,6 +478,8 @@ export interface Workflow {
   workspace_id?: string | null;
   required_providers?: string[] | null;
   required_models?: string[] | null;
+  /** Set on shipped examples: the models and keys the graph asks for. */
+  needs?: ExampleNeeds | null;
   html_app?: string | null;
   /** App-builder document (Puck layout + bindings): `{ version, data }`. */
   app_doc?: Record<string, unknown> | null;
@@ -986,6 +996,7 @@ export interface Node {
 export interface Graph {
   nodes: Node[];
   edges: Edge[];
+  links?: GraphLink[];
 }
 
 // ---------------------------------------------------------------------------
@@ -1139,6 +1150,12 @@ export const PROVIDER_IDS = {
   // Dreamina (CapCut) driven through the NodeTool Chrome extension in the
   // user's own logged-in Chrome tab (no API key, local installs only).
   DREAMINA: "dreamina",
+  // ChatGPT driven through the NodeTool Chrome extension in the user's own
+  // logged-in chatgpt.com tab (no API key, local installs only).
+  CHATGPT: "chatgpt",
+  // Gemini driven through the NodeTool Chrome extension in the user's own
+  // logged-in gemini.google.com tab (no API key, local installs only).
+  GEMINI_WEB: "gemini_web",
   GEMINI: "gemini",
   GROQ: "groq",
   MISTRAL: "mistral",
@@ -1157,6 +1174,10 @@ export const PROVIDER_IDS = {
   EVOLINK: "evolink",
   GMI: "gmi",
   META: "meta",
+  // Cloud marketplaces: Azure OpenAI / Microsoft Foundry deployments and
+  // Amazon Bedrock models, reached with the user's own cloud credentials.
+  AZURE_OPENAI: "azure_openai",
+  BEDROCK: "bedrock",
   // NodeTool's own managed models: curated delegates run on platform keys and
   // metered against the user's credit balance (BYOK providers stay unmetered).
   NODETOOL: "nodetool",
@@ -1174,6 +1195,7 @@ export const PROVIDER_IDS = {
   ATLASCLOUD: "atlascloud",
   HIGGSFIELD: "higgsfield",
   USEAPI: "useapi",
+  VGENV: "vgenv",
   AKI: "aki",
   MESHY: "meshy",
   RODIN: "rodin",

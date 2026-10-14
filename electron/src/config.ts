@@ -6,6 +6,7 @@ import { logMessage } from "./logger";
 import * as fs from "fs";
 import { readSettings, updateSetting } from "./settings";
 import { getSystemDataPath } from "./systemPaths";
+import { uvToolDirs } from "./runtime/packages/uvToolDirs";
 import { isString } from "./typePredicates";
 
 // Base paths
@@ -275,6 +276,9 @@ const getProcessEnv = (): ProcessEnv => {
   const bundledNodeDir = bundledNode ? path.dirname(bundledNode) : "";
   const npmLauncherDir = ensureBundledNpmLaunchers() ?? "";
 
+  // Tools the Package Manager installs with uv (see UvToolRuntimePackage).
+  const uvToolBin = uvToolDirs(app.getPath("userData")).bin;
+
   const pathSegmentsWin = [
     bundledNodeDir,
     npmLauncherDir,
@@ -284,6 +288,7 @@ const getProcessEnv = (): ProcessEnv => {
     path.join(condaPath, "Library", "bin"),
     path.join(condaPath, "Scripts"),
     optionalNodeBin,
+    uvToolBin,
     baseEnv.PATH || "",
   ];
   const pathSegmentsUnix = [
@@ -292,6 +297,7 @@ const getProcessEnv = (): ProcessEnv => {
     path.join(condaPath, "bin"),
     path.join(condaPath, "lib"),
     optionalNodeBin,
+    uvToolBin,
     baseEnv.PATH || "",
   ];
 

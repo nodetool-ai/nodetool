@@ -31,7 +31,12 @@ import {
   parseCodeBody
 } from "../../src/code-analysis.js";
 import { validateCodeNodeBody } from "../../src/code-node-validation.js";
-import { codeCorpus, graphCorpus, seedRegistry } from "./corpus.js";
+import {
+  codeCorpus,
+  graphCorpus,
+  seedCatalog,
+  seedRegistry
+} from "./corpus.js";
 import { SEED_CODE_BODIES, SEED_GRAPHS } from "./seeds.js";
 
 /** The corpus the mutation run scores against, and the one the snapshots pin. */
@@ -146,7 +151,8 @@ it(`${GRAPH} reports the same issues, messages included, for every seed graph`, 
     validateGraph(seed.graph, registry, {
       sandboxModuleCatalog: null
     }).issues.map(
-      (issue) => `${seed.id} ${issue.severity} ${issue.code} ${issue.message}`
+      (issue) =>
+        `${seed.id} ${issue.nodeId ?? "-"} ${issue.severity} ${issue.code} ${issue.message}`
     )
   );
   expect(lines.length).toBeGreaterThan(0);
@@ -230,17 +236,20 @@ it.runIf(pinned)(
       return `${mutant.id} ${mutant.mutation} ${codesOf(issues).join(",")}`;
     });
     await expectPinned(signature.join("\n"), "code-issue-codes.txt");
-  }
+  },
+  // Validates every corpus mutant; takes 5-7 s on loaded CI runners.
+  30_000
 );
 
 it(`${CODE} reports the same issues, messages included, for every seed body`, async () => {
   const lines = SEED_CODE_BODIES.flatMap((seed) =>
     validateCodeNodeBody({
       code: seed.code,
-      availableInputs: ["a", "text", "flag", "items"],
-      connectedInputs: ["items"],
-      declaredOutputs: ["n", "out", "doc"],
-      sandboxModuleCatalog: null
+      availableInputs: seed.availableInputs ?? ["a", "text", "flag", "items"],
+      connectedInputs: seed.connectedInputs ?? ["items"],
+      declaredOutputs: seed.declaredOutputs ?? ["n", "out", "doc"],
+      connectedOutputs: seed.connectedOutputs,
+      sandboxModuleCatalog: seed.catalog ? seedCatalog() : null
     }).map(
       (issue) => `${seed.id} ${issue.severity} ${issue.code} ${issue.message}`
     )

@@ -162,7 +162,7 @@ const InferenceProviderModelSelect = ({
                         onChange={handleChangeModel}
                         placeholder={
                             isLoadingModels
-                                ? "Loading models..."
+                                ? "Loading models…"
                                 : modelsError
                                     ? "Error loading models"
                                     : "Select a model"

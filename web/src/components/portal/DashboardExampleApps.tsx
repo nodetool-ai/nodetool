@@ -1,26 +1,30 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { alpha, type Theme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import useOnboardingStore from "../../stores/OnboardingStore";
 import { BASE_URL } from "../../stores/BASE_URL";
 import {
   listExampleApps,
   type ExampleAppSummary
 } from "../../utils/exampleApps";
 import {
-  BORDER_RADIUS,
+  AutoGrid,
   EditorButton,
   EmptyState,
   GAP,
   LoadingSpinner,
-  MOTION,
   SPACING,
-  getSpacingPx
+  TYPOGRAPHY,
+  getSpacingPx,
+  selectableTileStyles,
+  Tooltip
 } from "../ui_primitives";
-import { useSectionWrap, SectionHeader } from "./dashboardChrome";
+import { useSectionWrap, DashboardSectionHeader } from "./dashboardChrome";
+import ExampleNeedsPill from "./ExampleNeedsPill";
 
 /** Query key for the shipped example apps, shared with any invalidation. */
 export const EXAMPLE_APPS_QUERY_KEY = ["applications", "examples"] as const;
@@ -28,38 +32,27 @@ export const EXAMPLE_APPS_QUERY_KEY = ["applications", "examples"] as const;
 const styles = (theme: Theme, compact: boolean) =>
   css({
     paddingTop: compact ? 0 : getSpacingPx(SPACING.xxl),
-    ".sec-title h2": compact ? { fontSize: "var(--fontSizeNormal)" } : {},
+    ".sec-title h2": compact ? TYPOGRAPHY.sans.body : {},
     ".apps-lede": {
       margin: `0 0 ${getSpacingPx(compact ? SPACING.sm : SPACING.xl)}`,
-      fontSize: "var(--fontSizeSmall)",
+      ...TYPOGRAPHY.sans.caption,
       color: theme.vars.palette.text.secondary
     },
     ".apps-strip": {
-      display: "grid",
-      gridTemplateColumns: compact
-        ? "repeat(auto-fill, minmax(min(100%, 190px), 1fr))"
-        : "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
-      gap: getSpacingPx(compact ? GAP.comfortable : SPACING.xl),
       paddingBottom: getSpacingPx(compact ? SPACING.sm : SPACING.xxl)
     },
     ".app-card": {
+      ...selectableTileStyles(theme),
       display: "flex",
       flexDirection: "column",
       textAlign: "left",
       padding: 0,
       background: theme.vars.palette.c_node_bg,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.lg,
       color: theme.vars.palette.text.primary,
       cursor: "pointer",
       overflow: "hidden",
       minWidth: 0,
-      ...(compact && { position: "relative", aspectRatio: "16 / 9" }),
-      transition: `border-color ${MOTION.fast}, background ${MOTION.fast}`,
-      "&:hover": {
-        borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
-        background: theme.vars.palette.action.hover
-      }
+      ...(compact && { position: "relative", aspectRatio: "16 / 9" })
     },
     ".app-thumb": {
       position: "relative",
@@ -88,18 +81,18 @@ const styles = (theme: Theme, compact: boolean) =>
         right: 0,
         bottom: 0,
         color: theme.vars.palette.common.white,
-        background: `linear-gradient(to top, ${alpha(theme.palette.common.black, 0.82)}, ${alpha(theme.palette.common.black, 0)})`
+        background: `linear-gradient(to top, ${theme.vars.palette.c_scrim_strong}, transparent)`
       })
     },
     ".app-name": {
-      fontSize: "var(--fontSizeNormal)",
+      ...TYPOGRAPHY.sans.label,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
       ...(compact && { color: "inherit" })
     },
     ".app-desc": {
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.sans.caption,
       color: compact ? "inherit" : theme.vars.palette.text.secondary,
       display: "-webkit-box",
       WebkitLineClamp: compact ? 1 : 2,
@@ -107,8 +100,7 @@ const styles = (theme: Theme, compact: boolean) =>
       overflow: "hidden"
     },
     ".app-meta": {
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.text.disabled,
       ...(compact && { display: "none" })
     },
@@ -116,8 +108,7 @@ const styles = (theme: Theme, compact: boolean) =>
       display: "flex",
       justifyContent: "center",
       padding: `${getSpacingPx(SPACING.xl)} 0`,
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeNormal)"
+      color: theme.vars.palette.text.secondary
     }
   });
 
@@ -154,32 +145,34 @@ const ExampleAppCard = memo(function ExampleAppCard({
   const src = thumbSrc(app.thumbnailUrl);
   const workflows = app.workflows.length;
   return (
-    <button
-      type="button"
-      className="app-card"
-      title={`Use ${app.name}`}
-      onClick={() => onUse(app)}
-    >
-      <span className="app-thumb" aria-hidden>
-        {src && !thumbFailed ? (
-          <img
-            src={src}
-            alt=""
-            loading="lazy"
-            onError={() => setThumbFailed(true)}
-          />
-        ) : (
-          appGlyph
-        )}
-      </span>
-      <span className="app-body">
-        <span className="app-name">{app.name}</span>
-        <span className="app-desc">{app.description}</span>
-        <span className="app-meta">
-          {workflows} workflow{workflows === 1 ? "" : "s"}
+    <Tooltip title={`Use ${app.name}`} describeChild>
+      <button
+        type="button"
+        className="app-card"
+        onClick={() => onUse(app)}
+      >
+        <span className="app-thumb" aria-hidden>
+          {src && !thumbFailed ? (
+            <img
+              src={src}
+              alt=""
+              loading="lazy"
+              onError={() => setThumbFailed(true)}
+            />
+          ) : (
+            appGlyph
+          )}
         </span>
-      </span>
-    </button>
+        <span className="app-body">
+          <span className="app-name">{app.name}</span>
+          <span className="app-desc">{app.description}</span>
+          <ExampleNeedsPill needs={app.needs} />
+          <span className="app-meta">
+            {workflows} workflow{workflows === 1 ? "" : "s"}
+          </span>
+        </span>
+      </button>
+    </Tooltip>
   );
 });
 
@@ -201,13 +194,15 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
   const sectionWrap = useSectionWrap();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const handleUse = useCallback(
-    (app: ExampleAppSummary) =>
+    (app: ExampleAppSummary) => {
       openTab({
         type: "example-app",
         ref: app.slug,
         mode: "view",
         title: app.name
-      }),
+      });
+      useOnboardingStore.getState().markStep("keep-creating");
+    },
     [openTab]
   );
 
@@ -227,7 +222,7 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
       aria-labelledby="dashboard-example-apps-title"
     >
       <div css={compact ? css({ maxWidth: "none", padding: 0 }) : sectionWrap}>
-        <SectionHeader title="Start from an app" count={countLabel}>
+        <DashboardSectionHeader title="Start from an app" count={countLabel}>
           {compact && onBrowseAll && apps.length > visibleApps.length && (
             <EditorButton
               variant="text"
@@ -237,7 +232,7 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
               See all apps
             </EditorButton>
           )}
-        </SectionHeader>
+        </DashboardSectionHeader>
         <p className="apps-lede">
           Open an app to use it, or edit a copy to customize its workflows.
         </p>
@@ -264,7 +259,11 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
             />
           </div>
         ) : (
-          <div className="apps-strip">
+          <AutoGrid
+            className="apps-strip"
+            minItemWidth={compact ? 190 : 300}
+            gap={compact ? GAP.comfortable : SPACING.xl}
+          >
             {visibleApps.map((app) => (
               <ExampleAppCard
                 key={app.slug}
@@ -272,7 +271,7 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
                 onUse={handleUse}
               />
             ))}
-          </div>
+          </AutoGrid>
         )}
       </div>
     </section>

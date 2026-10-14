@@ -1,7 +1,9 @@
 import { createServer } from "node:http";
 import { readFile, realpath } from "node:fs/promises";
 import { extname, join, sep } from "node:path";
-import { chromium, type Browser, type LaunchOptions } from "playwright";
+import type { Browser, BrowserType, LaunchOptions } from "playwright";
+import { importOptionalModule } from "@nodetool-ai/config";
+import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 import { z } from "zod";
 import type { GameInputFrame3D } from "@nodetool-ai/protocol";
 
@@ -64,7 +66,11 @@ export async function smokeStandaloneGame(directory: string, options: GameSmokeO
     const launchOptions: LaunchOptions = { headless: true, chromiumSandbox: true,
       args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] };
     if (options.executablePath) { launchOptions.executablePath = options.executablePath; }
-    browser = await chromium.launch(launchOptions);
+    // Playwright may live in the optional-node root (`nodetool runtime add playwright`).
+    let playwright: { readonly chromium: BrowserType };
+    try { playwright = await importOptionalModule<{ readonly chromium: BrowserType }>("playwright", { commonJs: true }); }
+    catch (error) { throw missingRuntimePackageError("playwright", "playwright", error); }
+    browser = await playwright.chromium.launch(launchOptions);
     controller.signal.throwIfAborted();
     const context = await browser.newContext({ serviceWorkers: "block" });
     await context.route("**/*", route => {
@@ -87,7 +93,8 @@ export async function smokeStandaloneGame(directory: string, options: GameSmokeO
     });
     for (let frame = 0; frame < frames; frame += 1) {
       controller.signal.throwIfAborted();
-      const input: GameInputFrame3D = document.schemaVersion === 3
+      // Smoke frames never carry save loads. Leaving the recursive JSON type out keeps page.evaluate typeable.
+      const input: Omit<GameInputFrame3D, "loaded"> = document.schemaVersion === 3
         ? { pressed: frame % 60 === 0 ? ["jump"] : [], justPressed: frame % 60 === 0 ? ["jump"] : [],
           axes: { moveX: Math.floor(frame / 75) % 2 ? -0.5 : 0.5, moveZ: -0.5 }, look: { x: 0, y: 0 } }
         : { pressed: document.inputActions.filter(action => [Math.floor(frame / 75) % 2 ? "left" : "right", Math.floor(frame / 75) % 2 ? "a" : "d"].includes(action)), justPressed: [], axes: {}, look: { x: 0, y: 0 } };

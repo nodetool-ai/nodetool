@@ -47,6 +47,7 @@ import {
   ResponsiveImage,
   ScrollArea,
   SearchInput,
+  SectionHeader,
   SPACING,
   SPACING_PX,
   Text,
@@ -500,7 +501,12 @@ export const EntitiesStep = ({
             gap={SPACING.xs}
             sx={{ flexGrow: 1, flexShrink: 1, flexBasis: SETUP_MEDIA_WIDTH }}
           >
-            <Label component="h2">Suggested from your story</Label>
+            <SectionHeader
+              size="small"
+              title="Suggested from your story"
+              role="heading"
+              aria-level={2}
+            />
             <Caption>
               Find recurring references in your screenplay. Create only the ones
               you want to use.
@@ -683,7 +689,12 @@ export const EntitiesStep = ({
 
       <FlexRow gap={SPACING.xl} wrap align="center">
         <FlexRow gap={SPACING.md} wrap align="baseline">
-          <Label component="h2">Your entity library</Label>
+          <SectionHeader
+            size="small"
+            title="Your entity library"
+            role="heading"
+            aria-level={2}
+          />
           <Caption role="status">
             {selectedEntities.length} selected for this storyboard
           </Caption>
@@ -797,7 +808,12 @@ export const EntitiesStep = ({
                       aria-label={label}
                     >
                       <FlexRow gap={SPACING.md} align="baseline">
-                        <Label component="h3">{label}</Label>
+                        <SectionHeader
+                          size="small"
+                          title={label}
+                          role="heading"
+                          aria-level={3}
+                        />
                         <Caption>{group.length}</Caption>
                       </FlexRow>
                       <FlexColumn

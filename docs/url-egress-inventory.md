@@ -105,6 +105,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | AtlasCloud prediction downloads | `packages/runtime/src/providers/atlascloud-transport.ts` | provider response |
 | Higgsfield uploads and prediction downloads | `packages/runtime/src/providers/higgsfield-transport.ts` | provider response |
 | useapi.net Google Flow and Dreamina result downloads | `packages/runtime/src/providers/useapi-provider.ts` | provider response |
+| vgenv MiniMax H3 result downloads | `packages/runtime/src/providers/vgenv-provider.ts` | provider response |
 | KIE result downloads | `packages/kie-nodes/src/kie-base.ts` | provider response |
 | Topaz result downloads | `packages/topaz-nodes/src/topaz-base.ts` | provider response |
 | MiniMax audio / file downloads | `packages/minimax-nodes/src/minimax-base.ts` | provider response |
@@ -114,6 +115,9 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | durable FAL output recovery | `packages/websocket/src/generation-recovery.ts` | provider response |
 | MCP OAuth Client ID Metadata Document fetch | `packages/websocket/src/oauth/cimd.ts` | model/client (an MCP client's self-hosted `client_id` URL) |
 | external MCP server (HTTP transport) | `packages/websocket/src/external-mcp.ts` | operator (a user's own MCP server URL; guarded under the cloud profile, loopback allowed on a local install) |
+| custom OpenAI-compatible provider | `packages/runtime/src/providers/custom-openai-provider.ts`, checked on save in `packages/websocket/src/custom-providers.ts` | operator (a user's own base URL; guarded under the cloud profile, loopback allowed on a local install) |
+| Azure OpenAI provider | `packages/runtime/src/providers/azure-openai-provider.ts` | operator (a user's own Azure resource endpoint; guarded under the cloud profile, private endpoints allowed on a local install) |
+| Amazon Bedrock chat media | `packages/runtime/src/providers/bedrock-provider.ts` | chat client (https URLs on image and document parts; API calls use the fixed regional AWS host) |
 
 The provider row is eleven files, each downloading a URL a provider's response
 named — plus one reading a URL the caller's own message named
@@ -144,6 +148,23 @@ The guest bridge is `packages/agents/src/js-sandbox.ts`.
 requests inside the user's logged-in Dreamina browser tab. Cookies stay in
 that tab. Server-side result downloads use `fetchExternalMedia`, which checks
 each redirect hop and sends no Dreamina credentials.
+
+**ChatGPT browser requests.**
+`packages/runtime/src/providers/chatgpt-provider.ts` runs every chatgpt.com
+request inside the user's logged-in ChatGPT tab, including generated-image
+downloads. Cookies and the session token stay in that tab. An input image given
+as a URL is fetched server-side with `fetchExternalMedia`, which checks each
+redirect hop and sends no credentials.
+
+**Gemini web browser requests.**
+`packages/runtime/src/providers/gemini-web-provider.ts` runs every
+gemini.google.com request inside the user's logged-in Gemini tab. The browser
+itself loads generated media with the user's Google cookies, through
+`ExtensionTab.download`. It loads only URLs that the Gemini response named: a
+`https://lh3.googleusercontent.com/gg-dl/` image or a
+`https://contribution.usercontent.google.com/download` video. A chat input
+image given as a URL is fetched server-side with `fetchExternalMedia`, which
+checks each redirect hop and sends no credentials.
 
 **Fixed provider hosts.** The URL is a constant in this repo, at most
 with a path or query interpolated — `api.elevenlabs.io`, `fal.run`,
@@ -206,6 +227,9 @@ at 24 hours.
   the app on `localhost` is the reason to take one there.
 - `packages/cli/src/nodetool-main.ts` — runs on the operator's machine against their
   own API URL, loopback by default.
+- `packages/websocket/src/mcp-server.ts` — the `nodetool mcp serve` forwarder
+  reaches the local server's `/mcp` mount and refuses any host other than
+  `127.0.0.1` or `localhost`.
 - `packages/deploy/src/admin-client.ts` — the server being deployed.
 
 **Browser-side.** The socket belongs to the viewer's browser, not the server:

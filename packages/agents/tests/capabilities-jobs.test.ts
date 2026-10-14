@@ -8,9 +8,10 @@
  * that it type-checks.
  */
 
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Job, initTestDb } from "@nodetool-ai/models";
+import { registerActiveRun } from "@nodetool-ai/execution/service";
 import {
   JOB_CAPABILITIES,
   module as jobsModule
@@ -177,6 +178,24 @@ describe("jobs capabilities against the database", () => {
       job_id: job.id
     })) as Record<string, unknown>;
     expect(again.cancelled).toBe(false);
+  });
+
+  it("stops a background run executing in this process", async () => {
+    const job = (await Job.create({
+      user_id: USER,
+      workflow_id: "wf-1",
+      status: "running",
+      params: {},
+      graph: { nodes: [], edges: [] }
+    })) as Job;
+    const stop = vi.fn();
+    const unregister = registerActiveRun(job.id, USER, stop);
+    try {
+      await asTool("cancel_job").process(ctx, { job_id: job.id });
+      expect(stop).toHaveBeenCalledTimes(1);
+    } finally {
+      unregister();
+    }
   });
 
   it("refuses to cancel another user's running job", async () => {

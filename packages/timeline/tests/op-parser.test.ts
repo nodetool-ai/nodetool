@@ -1,5 +1,10 @@
 import { expect, it } from "vitest";
-import { timelineOpFromToolArgs } from "../src/ops/index.js";
+import { ZodError } from "zod";
+import {
+  TIMELINE_OP_NAMES,
+  timelineOpFromToolArgs,
+  type TimelineOp
+} from "../src/ops/index.js";
 
 it("preserves strict contract finalizers at the engine boundary", () => {
   expect(() =>
@@ -23,4 +28,17 @@ it("keeps a partial style patch and gives explicit fields precedence over wrappe
     target: "Title",
     patch: { opacity: 0.5, textStyle: { color: "#ffffff" } }
   });
+});
+
+it("tags each op with its own name or rejects bad arguments through Zod", () => {
+  for (const name of TIMELINE_OP_NAMES) {
+    let op: TimelineOp;
+    try {
+      op = timelineOpFromToolArgs(name, {});
+    } catch (error) {
+      expect(error, name).toBeInstanceOf(ZodError);
+      continue;
+    }
+    expect(op.op).toBe(name);
+  }
 });

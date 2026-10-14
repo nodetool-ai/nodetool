@@ -257,7 +257,8 @@ export const todoWriteSpec: CapabilitySpec = {
     "step tasks, track progress, and surface what's done vs. pending to the " +
     "user — the list is rendered as a live sidebar in the chat UI. Keep items " +
     "concise (one short sentence each). Mark exactly one item as `in_progress` " +
-    "at a time; move it to `completed` before starting the next.",
+    "at a time; move it to `completed` before starting the next. The final " +
+    "answer is not an item: mark every item `completed` before writing it.",
   inputSchema: TODO_WRITE_SCHEMA,
   category: "read",
   userMessage: (params) => {

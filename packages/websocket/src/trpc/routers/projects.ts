@@ -10,6 +10,7 @@
  *   list           (query)    — ProjectResponse[]
  *   summaries      (query)    — ProjectDetail[] (every project, for the list)
  *   get            (query)    — ProjectDetail (project + documents + spend)
+ *   documentPage   (query)    — ProjectDocumentPage (one page of cards)
  *   documents      (query)    — ProjectDocumentRef[]
  *   unassigned     (query)    — ProjectDocumentRef[] in the loose bucket
  *   thread         (mutation) — { threadId } (the project's agent thread)
@@ -37,7 +38,8 @@ import {
   hasProjectDocumentDependents,
   listProjectDocuments,
   moveDocumentToProject,
-  summarizeProject
+  summarizeProject,
+  summarizeProjectDocumentPage
 } from "@nodetool-ai/models";
 import {
   assignDocumentInput,
@@ -46,6 +48,8 @@ import {
   createProjectInput,
   patchProjectInput,
   projectDetail,
+  projectDocumentPage,
+  projectDocumentPageInput,
   projectDocumentRef,
   projectResponse
 } from "@nodetool-ai/protocol/api-schemas/projects.js";
@@ -220,6 +224,23 @@ export const projectsRouter = router({
         documentsPartial: summary.documentsPartial,
         entities: summary.entities,
         spend: summary.spend
+      });
+    }),
+
+  /**
+   * The cards on one page of a project's documents. `get` reads every
+   * document whole plus the ledger and entities, which a strip of a few cards
+   * does not draw; this reads whole only the documents on the page.
+   */
+  documentPage: protectedProcedure
+    .input(projectDocumentPageInput)
+    .output(projectDocumentPage)
+    .query(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      const project = await loadOwned(ctx.userId, input.id);
+      return summarizeProjectDocumentPage(ctx.userId, project.id, {
+        offset: input.offset,
+        limit: input.limit
       });
     }),
 

@@ -108,7 +108,7 @@ describe("document surfaces during the initial load", () => {
     storyboardLoadState = "loading";
     withTheme(<StoryboardSurface refId="board-1" mode="edit" active />);
 
-    expect(screen.getByText("Loading storyboard…")).toBeInTheDocument();
+    expect(screen.getByText("Loading storyboard")).toBeInTheDocument();
     expect(screen.queryByText("storyboard board")).not.toBeInTheDocument();
   });
 
@@ -117,7 +117,7 @@ describe("document surfaces during the initial load", () => {
     withTheme(<StoryboardSurface refId="board-1" mode="edit" active />);
 
     expect(screen.getByText("storyboard board")).toBeInTheDocument();
-    expect(screen.queryByText("Loading storyboard…")).not.toBeInTheDocument();
+    expect(screen.queryByText("Loading storyboard")).not.toBeInTheDocument();
   });
 
   it("says so when a storyboard cannot be loaded", () => {
@@ -133,7 +133,7 @@ describe("document surfaces during the initial load", () => {
     scriptLoadState = "loading";
     withTheme(<ScriptSurface refId="script-1" mode="edit" active />);
 
-    expect(screen.getByText("Loading script…")).toBeInTheDocument();
+    expect(screen.getByText("Loading script")).toBeInTheDocument();
     expect(screen.queryByText("script document")).not.toBeInTheDocument();
   });
 

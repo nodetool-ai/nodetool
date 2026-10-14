@@ -286,7 +286,7 @@ export const TimelineVersionHistoryPanel: React.FC<
       <ScrollArea css={listStyles(theme)} sx={{ flex: 1, minHeight: 0 }}>
         {isLoading ? (
           <FlexColumn align="center" justify="center" sx={{ py: 4 }}>
-            <LoadingSpinner size="small" text="Loading versions…" />
+            <LoadingSpinner size="small" text="Loading versions" />
           </FlexColumn>
         ) : error ? (
           <FlexColumn gap={0.5} sx={{ p: 2 }}>
@@ -320,10 +320,9 @@ export const TimelineVersionHistoryPanel: React.FC<
         onClose={closeSaveDialog}
         title="Save a version"
         onConfirm={handleConfirmSave}
-        onCancel={closeSaveDialog}
         confirmText="Save version"
       >
-        <FlexColumn gap={1} sx={{ py: 1 }}>
+        <FlexColumn gap={SPACING.xs}>
           <TextInput
             label="Name (optional)"
             value={saveName}
@@ -344,10 +343,10 @@ export const TimelineVersionHistoryPanel: React.FC<
           restoreTarget ? `Restore v${restoreTarget.version}?` : "Restore?"
         }
         onConfirm={handleConfirmRestore}
-        onCancel={clearRestoreTarget}
         confirmText="Restore"
+        maxWidth="xs"
       >
-        <FlexColumn gap={1} sx={{ maxWidth: 420 }}>
+        <FlexColumn gap={SPACING.xs}>
           <Text color="secondary">
             This replaces the current tracks, clips, and markers with that
             snapshot.
@@ -364,7 +363,6 @@ export const TimelineVersionHistoryPanel: React.FC<
         onClose={clearDeleteTarget}
         title={deleteTarget ? `Delete v${deleteTarget.version}?` : "Delete?"}
         onConfirm={handleConfirmDelete}
-        onCancel={clearDeleteTarget}
         confirmText="Delete"
         destructive
       >

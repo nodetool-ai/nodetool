@@ -15,6 +15,11 @@ jest.mock("../CurrentProjectDocuments", () => ({
   default: () => <div data-testid="current-project-documents" />
 }));
 
+jest.mock("../RecentChats", () => ({
+  __esModule: true,
+  default: () => <div data-testid="recent-chats" />
+}));
+
 jest.mock("../../portal/DashboardTemplates", () => ({
   __esModule: true,
   default: () => <div>Workflow examples</div>
@@ -306,6 +311,9 @@ jest.mock("../../setup/workflow/WorkflowSetupHost", () => ({
       >
         Copy the example
       </button>
+      <button type="button" onClick={() => onFinish(null)}>
+        Build
+      </button>
     </div>
   )
 }));
@@ -358,10 +366,14 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
 }));
 
 const addNotification = jest.fn();
+const removeNotificationsByKey = jest.fn();
 jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: <T,>(
-    selector: (s: { addNotification: jest.Mock }) => T
-  ) => selector({ addNotification })
+    selector: (s: {
+      addNotification: jest.Mock;
+      removeNotificationsByKey: jest.Mock;
+    }) => T
+  ) => selector({ addNotification, removeNotificationsByKey })
 }));
 
 // The surface reads the chat's model selection to decide whether the project
@@ -522,7 +534,11 @@ beforeEach(() => {
   selectedModel = { provider: "anthropic", id: "claude-sonnet-5" };
   actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: null, personalProjectId: null });
   clearChatTurn("chat-1");
-  useOnboardingStore.setState({ completedSteps: [], dismissed: false });
+  useOnboardingStore.setState({
+    completedSteps: [],
+    dismissed: false,
+    ideaDescribed: false
+  });
   skills = [
     {
       id: "system:launch-commercial",
@@ -750,6 +766,35 @@ describe("NewProjectSurface", () => {
     });
   });
 
+  it("keeps a non-image out of the reference images and says so", async () => {
+    createAsset.mockResolvedValue({
+      id: "reference-asset",
+      name: "lamp.png",
+      content_type: "image/png",
+      thumb_url: "https://example.test/lamp-thumb.png",
+      get_url: "https://example.test/lamp.png"
+    });
+    renderSurface();
+    // A person can switch the file picker's image filter off.
+    const user = userEvent.setup({ applyAccept: false });
+    await user.upload(screen.getByLabelText("Reference images"), [
+      new File(["notes"], "trip-notes.txt", { type: "text/plain" }),
+      new File(["image bytes"], "lamp.png", { type: "image/png" })
+    ]);
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Ref images · 1" })).toBeInTheDocument()
+    );
+    expect(createAsset).toHaveBeenCalledTimes(1);
+    expect(createAsset.mock.calls[0]?.[0]).toMatchObject({ name: "lamp.png" });
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "warning",
+        content: "Reference images take pictures only. trip-notes.txt was not added."
+      })
+    );
+  });
+
   // A card started mid-upload would take only the images already uploaded,
   // and say it took them all.
   it("holds the entry cards while reference images upload", async () => {
@@ -890,6 +935,8 @@ describe("NewProjectSurface", () => {
     expect(useOnboardingStore.getState().completedSteps).not.toContain(
       "describe-idea"
     );
+    // The finished run that follows completes it (see workflowUpdates).
+    expect(useOnboardingStore.getState().ideaDescribed).toBe(true);
   });
 
   it("does not complete a guided flow when an entry card starts", async () => {
@@ -995,6 +1042,27 @@ describe("NewProjectSurface", () => {
     await waitFor(() => expect(createNewThread).toHaveBeenCalled());
   });
 
+  // QA round 7: once the key verified, the model menu opened over the still
+  // open provider dialog, and the dialog stayed over the started chat.
+  it("closes the provider dialog when the parked start resumes", async () => {
+    hasConfiguredProvider = false;
+    selectedModel = { provider: "empty", id: "gpt-4o" };
+    const { refresh } = renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
+    expect(useProviderOnboardingStore.getState().open).toBe(true);
+
+    hasConfiguredProvider = true;
+    refresh();
+    expect(
+      await screen.findByRole("button", { name: "Pick Claude" })
+    ).toBeInTheDocument();
+    expect(useProviderOnboardingStore.getState().open).toBe(false);
+  });
+
   // A configured provider does not mean a model was picked.
   it("refuses to start with no model selected, and stages nothing", async () => {
     selectedModel = { provider: "empty", id: "gpt-4o" };
@@ -1034,6 +1102,12 @@ describe("NewProjectSurface", () => {
     selectedModel = { provider: "anthropic", id: "claude-sonnet-5" };
     refresh();
     await waitFor(() => expect(createNewThread).toHaveBeenCalled());
+    // Round 6 F2: the "pick a model" notice stayed over the started chat.
+    const notice = addNotification.mock.calls
+      .map(([n]) => n)
+      .find((n) => n.content === "Pick a language model and the chat starts.");
+    expect(notice?.dedupeKey).toBeDefined();
+    expect(removeNotificationsByKey).toHaveBeenCalledWith(notice.dedupeKey);
   });
 
   // BUG F1: the refusal was a dead end — no picker on this screen, and a
@@ -1704,6 +1778,29 @@ describe("NewProjectSurface", () => {
         openTab.mock.calls.some(([input]) => input.type === "workflow")
       ).toBe(true)
     );
+  });
+
+  // The build opens the flow's own workflow so its node tools can reach the
+  // canvas. The creator is then looking at the document the flow made, so the
+  // hand-off goes ahead and the guided tab closes instead of staying beside it.
+  it("finishes while the flow's own workflow tab is in front", async () => {
+    const user = userEvent.setup();
+    const view = renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await screen.findByTestId("setup-flow");
+    const guidedTab = mockActiveTabId;
+    mockActiveTabId = "workflow:wf-new";
+    view.refresh();
+
+    await user.click(screen.getByRole("button", { name: "Build" }));
+
+    await waitFor(() => expect(closeTab).toHaveBeenCalledWith(guidedTab));
+    expect(
+      openTab.mock.calls.some(([input]) => input.type === "workflow")
+    ).toBe(true);
   });
 
   // The document is done, so the flow has no step left: a failed project

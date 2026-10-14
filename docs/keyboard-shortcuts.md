@@ -277,6 +277,12 @@ The 3D viewport has its own tool keys:
 | `E` | Rotate tool |
 | `R` | Scale tool |
 | `F` | Frame the selection |
+| `X` | Switch the gizmo between local and world space |
+| `.` | Next pivot mode: selection centre, active entity, individual origins |
+| `Ctrl/⌘ + A` / `Esc` | Select every entity in the scene, or clear the selection |
+| `End` | Align the selection to the ground |
+| `Numpad 1` / `3` / `7` | Front, right or top view. Add `Ctrl/⌘` for back, left or bottom |
+| `Numpad 5` | Switch between perspective and orthographic views |
 | `W` `A` `S` `D`, `R` / `F` | Fly the camera, with `R` and `F` rising and descending (when Fly camera is on) |
 
 While a game is playing, `W`, `A`, `S`, `D`, the arrow keys, and `Space` go to the game. Which keys do what depends on the game's input actions. See the [Game Editor](game-editor.md) guide.

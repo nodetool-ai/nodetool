@@ -1,19 +1,14 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
 
 import {
-  BORDER_RADIUS,
   Chip,
-  MOTION,
+  ContextMenu,
   MenuItemPrimitive,
-  Popover,
-  SPACING,
   TYPOGRAPHY,
-  Tooltip,
-  getSpacingPx
+  Tooltip
 } from "../ui_primitives";
 import type { NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 import { colorForType } from "../../config/data_types";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   allowedSlotTypes,
   slotTypeKey,
@@ -71,46 +66,39 @@ const DynamicSlotTypePickerImpl: React.FC<DynamicSlotTypePickerProps> = ({
 
   return (
     <>
-      <Tooltip
-        title={`Slot type for "${propertyName}"`}
-        delay={TOOLTIP_ENTER_DELAY}
-      >
+      <Tooltip title={`Slot type for "${propertyName}"`}>
         <Chip
           className="dynamic-slot-type-chip"
           compact
           clickable
           label={slotTypeLabel(value)}
           aria-label={`Slot type for ${propertyName}`}
-          aria-haspopup="listbox"
+          aria-haspopup="menu"
           onClick={handleOpen}
-          sx={{
-            borderRadius: BORDER_RADIUS.sm,
-            ...TYPOGRAPHY.mono.caption,
-            borderLeft: `2px solid ${color}`,
-            transition: `opacity ${MOTION.fast}`
-          }}
+          accent={color}
+          sx={TYPOGRAPHY.mono.caption}
         />
       </Tooltip>
-      <Popover
+      <ContextMenu
         open={anchorEl !== null}
         anchorEl={anchorEl}
         onClose={handleClose}
-        placement="bottom-left"
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
         maxHeight={320}
-        paperSx={{ padding: getSpacingPx(SPACING.xs) }}
+        slotProps={{
+          list: { "aria-label": `Slot type options for ${propertyName}` }
+        }}
       >
-        <div role="listbox" aria-label={`Slot type options for ${propertyName}`}>
-          {options.map((option) => (
-            <MenuItemPrimitive
-              key={slotTypeKey(option)}
-              compact
-              label={slotTypeLabel(option)}
-              selected={slotTypeKey(option) === currentKey}
-              onClick={() => handleSelect(option)}
-            />
-          ))}
-        </div>
-      </Popover>
+        {options.map((option) => (
+          <MenuItemPrimitive
+            key={slotTypeKey(option)}
+            label={slotTypeLabel(option)}
+            selected={slotTypeKey(option) === currentKey}
+            onClick={() => handleSelect(option)}
+          />
+        ))}
+      </ContextMenu>
     </>
   );
 };

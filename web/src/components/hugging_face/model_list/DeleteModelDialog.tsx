@@ -1,16 +1,5 @@
 import React, { useCallback } from "react";
-import { useTheme } from "@mui/material/styles";
-import {
-  Dialog,
-  EditorButton,
-  FlexRow,
-  LoadingSpinner,
-  BORDER_RADIUS,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle
-} from "../../ui_primitives";
+import { Button, Dialog, LoadingSpinner, Text } from "../../ui_primitives";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   isFileExplorerAvailable,
@@ -33,7 +22,6 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   onClose,
   scope = "local"
 }) => {
-  const theme = useTheme();
   const { allModels } = useModels(scope);
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore(
@@ -79,26 +67,33 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     }
   });
 
-  const handleShowInExplorer = useCallback(async (modelId: string) => {
-    if (!modelId) { return; }
+  const handleShowInExplorer = useCallback(
+    async (modelId: string) => {
+      if (!modelId) {
+        return;
+      }
 
-    const model = allModels?.find((m) => m.id === modelId);
-    if (!model) { return; }
+      const model = allModels?.find((m) => m.id === modelId);
+      if (!model) {
+        return;
+      }
 
-    const isOllama = model?.type === "llama_model";
+      const isOllama = model?.type === "llama_model";
 
-    if (isOllama) {
-      await openOllamaPath();
-    } else if (model?.path) {
-      await openInExplorer(model.path);
-    } else {
-      addNotification({
-        type: "warning",
-        content: `Could not determine path for model ${modelId}`,
-        dismissable: true
-      });
-    }
-  }, [allModels, addNotification]);
+      if (isOllama) {
+        await openOllamaPath();
+      } else if (model?.path) {
+        await openInExplorer(model.path);
+      } else {
+        addNotification({
+          type: "warning",
+          content: `Could not determine path for model ${modelId}`,
+          dismissable: true
+        });
+      }
+    },
+    [allModels, addNotification]
+  );
 
   const modelForExplorer = modelId
     ? allModels?.find((m) => m.id === modelId)
@@ -123,7 +118,8 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
       } catch (error: unknown) {
         console.error("Deletion error:", error);
 
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
 
         const isNotFound =
           errorMessage.includes("Not Found") || errorMessage.includes("404");
@@ -165,50 +161,43 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     <Dialog
       open={!!modelId}
       onClose={onClose}
-      aria-labelledby="alert-dialog-title"
-      aria-describedby="alert-dialog-description"
-      slotProps={{
-        backdrop: {
-          sx: {
-            backdropFilter: "blur(4px)",
-            backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.4)`
-          }
-        },
-        paper: {
-          sx: {
-            borderRadius: BORDER_RADIUS.xxl,
-            backgroundImage: "none"
-          }
-        }
-      }}
+      title="Delete model?"
+      actions={
+        <>
+          <Button
+            variant="text"
+            color="inherit"
+            onClick={handleShowInExplorerClick}
+            disabled={isExplorerDisabled || isDeleting}
+            sx={{ mr: "auto" }}
+          >
+            Show in Explorer
+          </Button>
+          <Button
+            variant="text"
+            color="inherit"
+            onClick={onClose}
+            disabled={isDeleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleConfirmDelete}
+            disabled={isDeleting}
+            aria-label="Delete"
+          >
+            {isDeleting ? (
+              <LoadingSpinner inline size="small" color="inherit" />
+            ) : (
+              "Delete"
+            )}
+          </Button>
+        </>
+      }
     >
-      <DialogTitle id="alert-dialog-title">{"Confirm Deletion"}</DialogTitle>
-      <DialogContent>
-        <DialogContentText id="alert-dialog-description">
-          Delete {modelId}?
-        </DialogContentText>
-        {isDeleting && (
-          <FlexRow justify="center" sx={{ mt: 2 }}>
-            <LoadingSpinner size="medium" />
-          </FlexRow>
-        )}
-      </DialogContent>
-      <DialogActions>
-        <EditorButton
-          density="compact"
-          variant="text"
-          onClick={handleShowInExplorerClick}
-          disabled={isExplorerDisabled || isDeleting}
-        >
-          Show in Explorer
-        </EditorButton>
-        <EditorButton density="compact" variant="text" onClick={onClose} disabled={isDeleting}>
-          Cancel
-        </EditorButton>
-        <EditorButton density="compact" variant="text" onClick={handleConfirmDelete} disabled={isDeleting}>
-          Delete
-        </EditorButton>
-      </DialogActions>
+      <Text>This will delete {modelId}.</Text>
     </Dialog>
   );
 };

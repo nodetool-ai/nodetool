@@ -290,6 +290,18 @@ describe("NotificationStore", () => {
     });
   });
 
+  describe("removeNotificationsByKey", () => {
+    it("removes only the notifications added with that key", () => {
+      const store = useNotificationStore.getState();
+      store.addNotification({ type: "info", content: "Pick a model", dedupeKey: "pick" });
+      store.addNotification({ type: "info", content: "Saved" });
+      useNotificationStore.getState().removeNotificationsByKey("pick");
+      expect(
+        useNotificationStore.getState().notifications.map((n) => n.content)
+      ).toEqual(["Saved"]);
+    });
+  });
+
   describe("removeNotification", () => {
     it("removes a notification by id", () => {
       act(() => {

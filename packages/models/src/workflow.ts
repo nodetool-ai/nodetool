@@ -19,6 +19,7 @@ import { workflows } from "./schema/workflows.js";
 import { WorkflowCollaborator } from "./workflow-collaborator.js";
 import { WorkflowShare } from "./workflow-share.js";
 import { TriggerRegistration } from "./trigger-registration.js";
+import type { GraphLink } from "@nodetool-ai/protocol";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 export type AccessLevel = "private" | "public";
@@ -27,6 +28,8 @@ export type { WorkflowRunMode };
 export interface WorkflowGraph {
   nodes: Record<string, unknown>[];
   edges: Record<string, unknown>[];
+  /** Lineage links: no value, no execution order. */
+  links?: GraphLink[];
 }
 
 export interface WorkflowSummary {
@@ -212,10 +215,15 @@ export class Workflow extends DBModel {
   }
 
   getGraph(): WorkflowGraph {
-    return {
+    const graph: WorkflowGraph = {
       nodes: this.graph?.nodes ?? [],
       edges: this.graph?.edges ?? []
     };
+    // Exports and validation read the graph through here; links ride along.
+    if (this.graph?.links?.length) {
+      graph.links = this.graph.links;
+    }
+    return graph;
   }
 
   getApiGraph(): WorkflowGraph {

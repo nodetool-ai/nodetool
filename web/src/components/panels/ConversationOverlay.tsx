@@ -40,7 +40,6 @@ import type { ThreadInfo } from "../chat/types/thread.types";
 import { threadPreview } from "../chat/utils/threadUtils";
 import type { Message } from "../../stores/ApiTypes";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 type ThreadStatus = React.ComponentProps<typeof ChatThreadView>["status"];
 
@@ -459,7 +458,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
           {title || "Conversation"}
         </Text>
         <FlexRow gap={0.5} align="center" sx={{ ml: "auto" }}>
-          <Tooltip title="Show threads" delay={TOOLTIP_ENTER_DELAY}>
+          <Tooltip title="Show threads">
             <button
               type="button"
               className={`convo-icon-btn${threadsOpen ? " active" : ""}`}
@@ -470,7 +469,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
               <FormatListBulletedIcon />
             </button>
           </Tooltip>
-          <Tooltip title="Open in a workspace tab" delay={TOOLTIP_ENTER_DELAY}>
+          <Tooltip title="Open in a workspace tab">
             <button
               type="button"
               className="convo-icon-btn"
@@ -480,7 +479,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
               <OpenInNewIcon />
             </button>
           </Tooltip>
-          <Tooltip title="New conversation" delay={TOOLTIP_ENTER_DELAY}>
+          <Tooltip title="New conversation">
             <button
               type="button"
               className="convo-icon-btn"
@@ -490,7 +489,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
               <AddCommentOutlinedIcon />
             </button>
           </Tooltip>
-          <Tooltip title="Hide conversation" delay={TOOLTIP_ENTER_DELAY}>
+          <Tooltip title="Hide conversation">
             <button
               type="button"
               className="convo-icon-btn"
@@ -541,7 +540,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
                 fullWidth
                 showClear={false}
               />
-              <Tooltip title="Close threads" delay={TOOLTIP_ENTER_DELAY}>
+              <Tooltip title="Close threads">
                 <button
                   type="button"
                   className="convo-icon-btn"

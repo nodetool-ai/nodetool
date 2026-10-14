@@ -150,6 +150,12 @@ defaults:
     values: *noindex
   - scope: { path: "code-node-input-streaming-design.md" }
     values: *noindex
+  - scope: { path: "cli-pack-system-design.md" }
+    values: *noindex
+  - scope: { path: "cli-pack-system-plan.md" }
+    values: *noindex
+  - scope: { path: "runtime-install-design.md" }
+    values: *noindex
   - scope: { path: "custom-node-library-design.md" }
     values: *noindex
   - scope: { path: "document-sync-plan.md" }
@@ -266,6 +272,7 @@ exclude:
   - workflow-loops.md
   # Internal implementation plans & specs (agentic-worker instructions).
   - app-runs-implementation-plan.md
+  - timeline-preview-frame-source-design.md
   - COMPONENT_STREAMLINE_PLAN.md
   - plans/directed-campaign-kit-mini-app.md
   - plans/external-asset-refs.md

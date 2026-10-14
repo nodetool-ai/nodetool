@@ -758,6 +758,39 @@ describe("workflows router", () => {
       expect(result.next).toBeNull();
     });
 
+    it("says which models and keys each shipped example asks for", async () => {
+      const examplesDir = new URL(
+        "../../base-nodes/nodetool/examples/nodetool-base",
+        import.meta.url
+      ).pathname;
+      const registry = {
+        getMetadata: (nodeType: string) =>
+          nodeType.startsWith("openai.")
+            ? { required_settings: ["OPENAI_API_KEY"] }
+            : undefined
+      };
+      const caller = createCaller(
+        makeCtx({ apiOptions: { examplesDir, registry } as never })
+      );
+      const result = await caller.workflows.examples({});
+      const needsOf = (name: string): unknown =>
+        (
+          result.workflows as Array<{ name: string; needs?: unknown }>
+        ).find((workflow) => workflow.name === name)?.needs;
+      expect(needsOf("Blur an Image")).toEqual({
+        modelKinds: [],
+        requiredSettings: []
+      });
+      expect(needsOf("A Poster in Portrait")).toEqual({
+        modelKinds: ["image_model"],
+        requiredSettings: []
+      });
+      expect(needsOf("Brand a UGC Product Video")).toEqual({
+        modelKinds: [],
+        requiredSettings: ["OPENAI_API_KEY"]
+      });
+    });
+
     it("rejects unauthenticated callers", async () => {
       const caller = createCaller(makeCtx({ userId: null }));
       await expect(caller.workflows.examples({})).rejects.toMatchObject({
@@ -870,6 +903,85 @@ describe("workflows router", () => {
       const caller = createCaller(makeCtx());
       const result = await caller.workflows.terminalOutputs({ id: "wf-proto" });
       expect(result.outputs).toEqual([]);
+    });
+  });
+
+  describe("exportScript", () => {
+    const savedGraph = {
+      nodes: [
+        { id: "s", type: "nodetool.constant.String", data: { value: "saved" } },
+        { id: "o", type: "nodetool.output.Output", data: { name: "result" } }
+      ],
+      edges: [
+        { source: "s", sourceHandle: "output", target: "o", targetHandle: "value" }
+      ]
+    };
+
+    it("converts the saved graph to a Node.js script named after the workflow", async () => {
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeWorkflow({ name: "My Flow", graph: savedGraph })
+      );
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.exportScript({
+        id: "wf-1",
+        target: "node"
+      });
+      expect(result.filename).toBe("My_Flow.mjs");
+      expect(result.code).toContain('"saved"');
+      expect(result.code).toContain('from "@nodetool-ai/dsl/flow"');
+      expect(result.outputs).toEqual([{ name: "result", type: "any" }]);
+      expect(result.unsupported).toEqual([]);
+    });
+
+    it("converts the editor's graph when one is sent", async () => {
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeWorkflow({ graph: savedGraph })
+      );
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.exportScript({
+        id: "wf-1",
+        target: "sandbox",
+        graph: {
+          nodes: [
+            { id: "s", type: "nodetool.constant.String", data: { value: "unsaved" } }
+          ],
+          edges: []
+        }
+      });
+      expect(result.filename).toBe("Test_Workflow.js");
+      expect(result.code).toContain('"unsaved"');
+      expect(result.code).not.toContain('"saved"');
+    });
+
+    it("refuses another user's private workflow", async () => {
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeWorkflow({ user_id: "someone-else", graph: savedGraph })
+      );
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.exportScript({ id: "wf-1", target: "node" })
+      ).rejects.toThrow(/not found/i);
+    });
+
+    it("reports a graph a script cannot express as invalid input", async () => {
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeWorkflow({
+          graph: {
+            nodes: [
+              { id: "a", type: "nodetool.text.Concat", data: {} },
+              { id: "b", type: "nodetool.text.Concat", data: {} }
+            ],
+            edges: [
+              { source: "a", sourceHandle: "output", target: "b", targetHandle: "a" },
+              { source: "b", sourceHandle: "output", target: "a", targetHandle: "a" }
+            ]
+          }
+        })
+      );
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.exportScript({ id: "wf-1", target: "node" })
+      ).rejects.toThrow(/cycle/);
     });
   });
 

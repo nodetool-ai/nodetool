@@ -389,7 +389,7 @@ export const TUTORIALS: Tutorial[] = [
     description:
       "Watch the opening clip shorten, the next shot meet its edge, and a caption appear on its track. Then preview the finished cut.",
     level: "Beginner",
-    durationLabel: "0:33",
+    durationLabel: "0:28",
     video: tutorialVideo("timeline-trim-arrange.mp4"),
     poster: tutorialPoster("timeline-trim-arrange.jpg"),
     accent: "#8b5cf6",

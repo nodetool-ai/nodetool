@@ -24,6 +24,8 @@ Only a character has the optional **Voice id** field, which holds a provider-spe
 
 There are two places to manage entities.
 
+![Entity library with character, location and product cards](assets/screenshots/entity-library.png)
+
 - **Sidebar panel.** Open **Entities** in the left sidebar. It lists the entities for the active project as a grid of cards. The **Open in full page** button in the panel header opens the full library as a workspace tab.
 - **Full-page library.** The page titled **Entities** shows every entity you have, with the caption "Reusable characters, locations, styles, and props". It has an **Add entity** button. With no entities it shows "No entities yet".
 

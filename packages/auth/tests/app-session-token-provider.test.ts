@@ -103,6 +103,19 @@ describe("AppSessionTokenProvider.verifyToken", () => {
     });
   });
 
+  it("treats the expiry second itself as expired", async () => {
+    const at = Date.parse("2026-01-01T00:00:00.000Z");
+    const { token } = mintAppSessionToken(KEY, SCOPE, 60, () => at);
+
+    expect(await provider(() => at + 59_999).verifyToken(token)).toMatchObject({
+      ok: true
+    });
+    expect(await provider(() => at + 60_000).verifyToken(token)).toEqual({
+      ok: false,
+      error: "App session token expired"
+    });
+  });
+
   it("never returns an unscoped identity", async () => {
     const { token } = mintAppSessionToken(KEY, SCOPE, 3600);
     const result = await provider().verifyToken(token);

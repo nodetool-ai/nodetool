@@ -14,6 +14,7 @@ import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 
 import { isProduction } from "../../lib/env";
+import { isCloudProfile } from "../../lib/runtimeConfig";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { openPageTab } from "../workspace/openPageTab";
@@ -24,7 +25,11 @@ export interface AppMenuAction {
   label: string;
   icon: React.ReactNode;
   onClick: () => void;
-  placement: "logo" | "sidebar";
+  /**
+   * Where the entry shows on desktop: the logo menu, the rail's More panel,
+   * or both. Mobile and the command palette show every entry once.
+   */
+  placement: "logo" | "sidebar" | "both";
   /** Trailing text, e.g. live download progress. */
   secondary?: string;
   /** Group separator after this entry. */
@@ -91,15 +96,22 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
         placement: "sidebar",
         onClick: () => openPage("costs"),
         dividerAfter: true
-      },
-      {
+      }
+    ];
+
+    // The Model Manager and Downloads fill the server's model caches, which
+    // the cloud does not offer (see LOCAL_ONLY_PAGES in PageSurface).
+    const cloud = isCloudProfile();
+
+    if (!cloud) {
+      actions.push({
         key: "models",
         label: "Model Manager",
         icon: <ViewInArOutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("models")
-      }
-    ];
+      });
+    }
 
     if (!isProduction) {
       actions.push({
@@ -145,20 +157,23 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
         key: "settings",
         label: "Settings",
         icon: <SettingsIcon />,
-        placement: "logo",
+        placement: "both",
         onClick: () => openPage("settings")
       },
       {
         key: "help",
         label: "Help",
         icon: <HelpOutlineIcon />,
-        placement: "logo",
+        placement: "both",
         onClick: () => {
           handleOpenHelp();
           finish();
         }
-      },
-      {
+      }
+    );
+
+    if (!cloud) {
+      actions.push({
         key: "downloads",
         label: "Downloads",
         icon: <DownloadIcon />,
@@ -168,15 +183,9 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
           finish();
         },
         secondary: downloadProgress != null ? `${downloadProgress}%` : undefined
-      }
-    );
+      });
+    }
 
     return actions;
-  }, [
-    openPage,
-    finish,
-    handleOpenHelp,
-    openDownloadsDialog,
-    downloadProgress
-  ]);
+  }, [openPage, finish, handleOpenHelp, openDownloadsDialog, downloadProgress]);
 };

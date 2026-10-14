@@ -501,8 +501,9 @@ describe("Computed caching — end-to-end activation (dispatch → stamp → reu
     );
     clearRunSignatures(jobId);
 
-    // The echo-back really mutated the live node's edge-fed property.
-    expect(byId.get("u")!.data.properties.x).toBe("inlined-from-c");
+    // The echo-back no longer writes properties the node does not declare,
+    // so the edge-fed value stays out of the live node.
+    expect(byId.get("u")!.data.properties.x).toBeUndefined();
 
     // REUSE still hits: u's signature is unchanged (edge-fed "x" excluded).
     const sub = build("target", nodes, edges);

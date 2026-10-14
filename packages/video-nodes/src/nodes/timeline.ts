@@ -2,21 +2,22 @@
  * Timeline nodes — operate on persisted timeline sequences (the video
  * editor's documents) referenced by the `timeline` type.
  *
- * RenderTimeline composites the sequence frame by frame through the same GPU
- * compositor and scene model the editor's preview and its in-browser export
- * use (`@nodetool-ai/timeline/render`), so a workflow render is the picture
- * the user previewed: clip placement, transforms, opacity, blend modes,
- * transitions, animations, effects, captions, text and shapes, across every
- * visual track. ffmpeg decodes clip media into RGBA and encodes the result.
+ * RenderTimeline runs the editor's own exporter in headless Chromium
+ * (`timeline/browserRender.ts`): the compositor, scene model, WebCodecs decode
+ * and mux the Export button uses, so a workflow render is the picture the user
+ * previewed — clip placement, transforms, opacity, blend modes, transitions,
+ * animations, effects, captions, text and shapes, across every visual track —
+ * and variable-frame-rate clips decode at their own timestamps.
  *
- * Compositing needs a WebGPU device, which means the optional `webgpu` (Dawn)
- * package and a working driver. Both profiles ship Dawn (D9,
- * docs/plans/motion-graphics.md), and the Docker image installs lavapipe as its
- * Vulkan driver, so a server render is composited too. A host that still has no
- * adapter falls back to the older ffmpeg rough cut — video/image clips
- * normalized and concatenated in start order — which ignores everything above.
- * The fallback is a `warning` on the job and `metadata.render_mode` on the
- * output says which path ran: "composited" or "rough_cut".
+ * Where no Chromium can be launched, the Node compositor renders instead
+ * (`timeline/compositeRender.ts`): the same scene model and compositor through
+ * Dawn, with ffmpeg decoding clip media into RGBA and encoding the result. It
+ * needs a WebGPU device; a host with no adapter falls back further, to the
+ * ffmpeg rough cut — video/image clips normalized and concatenated in start
+ * order — which ignores everything above. Each fallback is a `warning` on the
+ * job, and `metadata.render_mode` on the output says which path ran:
+ * "browser", "composited" or "rough_cut". `NODETOOL_TIMELINE_RENDERER=node`
+ * skips the browser.
  *
  * `format` picks the container and `alpha` decides whether the frames keep a
  * transparency channel: `webm` (VP9, `yuva420p`), `mov` (ProRes 4444,
@@ -54,6 +55,8 @@ import {
   timeRemapAudioSegments,
   type TimeRemapAudioSegment,
   type TimelineClip,
+  clipAudioTailSec,
+  type ClipAudioEffect,
   type TrackCompressorEffect,
   type TrackEffect,
   type TimelineSequence,
@@ -77,6 +80,10 @@ import {
   CompositorUnavailableError,
   renderTimelineComposited
 } from "./timeline/compositeRender.js";
+import {
+  BrowserRenderUnavailableError,
+  renderTimelineInBrowser
+} from "./timeline/browserRender.js";
 import {
   ALPHA_OUTPUT_FORMATS,
   MissingEncoderError,
@@ -390,6 +397,7 @@ function audioClipFilter(
     steps.push(`volume=${clip.volumeDb}dB`);
   }
   steps.push(...clipFadeSteps(clip, 0));
+  steps.push(...clipEffectChainSteps(clip));
   const delay = Math.max(0, Math.round(clip.startMs));
   steps.push(`adelay=${delay}|${delay}`);
   return `[${inputIndex}:a]${steps.join(",")}[${label}]`;
@@ -499,6 +507,92 @@ function audioEffectSteps(effect: TrackEffect): string[] {
     default:
       return [];
   }
+}
+
+/** Most taps an `aecho` is given, so a long feedback echo stays cheap. */
+const MAX_ECHO_TAPS = 32;
+/** A tap quieter than this (-60 dB) is left out. */
+const SILENT_TAP_GAIN = 0.001;
+/** Taps the reverb approximation spreads over its decay. */
+const REVERB_TAPS = 24;
+
+/** An `aecho` from a dry gain and taps of `[delayMs, gain]`. */
+function aechoStep(dryGain: number, taps: Array<[number, number]>): string {
+  const delays = taps.map(([ms]) => clampTo(Math.round(ms), 1, 90000));
+  const decays = taps.map(([, gain]) => clampTo(gain, 0.0001, 1).toFixed(5));
+  return `aecho=${clampTo(dryGain, 0.001, 1).toFixed(5)}:1:${delays.join("|")}:${decays.join("|")}`;
+}
+
+/**
+ * ffmpeg steps for one clip effect, matching `audioEffectNodes.ts` in the
+ * browser. The track DSP types reuse {@link audioEffectSteps}.
+ *
+ * An echo is a delay line feeding itself; unrolled, it is a tap at every
+ * multiple of the delay, each `feedback` times the one before, which is what
+ * `aecho` plays. A reverb in the browser convolves with decaying noise, and
+ * ffmpeg has no convolver without a second input stream, so here it is a
+ * spread of taps on the same -60 dB envelope: the same decay and level, with
+ * a grainier tail.
+ */
+function clipAudioEffectSteps(effect: ClipAudioEffect): string[] {
+  switch (effect.type) {
+    case "echo": {
+      const mix = clampTo(effect.mix, 0, 1);
+      const feedback = clampTo(effect.feedback, 0, 0.95);
+      const taps: Array<[number, number]> = [];
+      for (let k = 1; k <= MAX_ECHO_TAPS; k += 1) {
+        const gain = mix * Math.pow(feedback, k - 1);
+        if (k > 1 && gain < SILENT_TAP_GAIN) break;
+        taps.push([effect.delayMs * k, gain]);
+      }
+      return [aechoStep(1 - mix, taps)];
+    }
+    case "reverb": {
+      const mix = clampTo(effect.mix, 0, 1);
+      const decayMs = Math.max(50, effect.decaySec * 1000);
+      const times = Array.from(
+        { length: REVERB_TAPS },
+        (_, i) => 10 + decayMs * 0.8 * Math.pow((i + 1) / REVERB_TAPS, 1.6)
+      );
+      // ln(1000): -60 dB at the end of the decay.
+      const raw = times.map((ms) => Math.exp((-Math.log(1000) * ms) / decayMs));
+      const norm = Math.sqrt(raw.reduce((sum, g) => sum + g * g, 0));
+      return [
+        aechoStep(
+          1 - mix,
+          times.map((ms, i) => [ms, (mix * raw[i]) / norm])
+        )
+      ];
+    }
+    case "distortion": {
+      // tanh(k·x) / tanh(k), as the browser's wave shaper curve.
+      const drive = Math.pow(10, Math.max(0, effect.driveDb) / 20);
+      const normDb = -20 * Math.log10(Math.tanh(drive));
+      return [
+        `volume=${Math.max(0, effect.driveDb)}dB`,
+        "asoftclip=type=tanh",
+        `volume=${(effect.outputDb + normDb).toFixed(3)}dB`
+      ];
+    }
+    default:
+      return audioEffectSteps(effect);
+  }
+}
+
+/**
+ * A clip's real-time effects, after its gain and fades. The stream is padded
+ * by the effects' tail first, so an echo or reverb rings on past the clip's
+ * last sample instead of stopping with it.
+ */
+function clipEffectChainSteps(clip: TimelineClip): string[] {
+  const effects = (clip.audioEffects ?? []).filter((effect) => effect.enabled);
+  if (effects.length === 0) return [];
+  const tailSec = clipAudioTailSec(effects);
+  return [
+    `aresample=${EFFECT_SAMPLE_RATE}`,
+    ...(tailSec > 0 ? [`apad=pad_dur=${tailSec.toFixed(3)}`] : []),
+    ...effects.flatMap(clipAudioEffectSteps)
+  ];
 }
 
 /**
@@ -837,15 +931,21 @@ async function mixAudioInto(opts: {
     // So a faded remapped clip is mixed back into one stream first, at its
     // timeline offsets, and faded there. `normalize=0` keeps the level: the
     // stretches abut rather than overlap, so nothing is summed.
-    if (segmentLabels.length > 0 && hasClipFade(clip)) {
+    // Clip effects likewise run on the whole clip, after its fades.
+    const effectSteps = clipEffectChainSteps(clip);
+    if (
+      segmentLabels.length > 0 &&
+      (hasClipFade(clip) || effectSteps.length > 0)
+    ) {
       const faded = `a${i}_fade`;
+      const clipSteps = [...clipFadeSteps(clip, clip.startMs), ...effectSteps];
       const steps =
         segmentLabels.length > 1
           ? [
               `amix=inputs=${segmentLabels.length}:duration=longest:normalize=0`,
-              ...clipFadeSteps(clip, clip.startMs)
+              ...clipSteps
             ]
-          : clipFadeSteps(clip, clip.startMs);
+          : clipSteps;
       filters.push(`${segmentLabels.join("")}${steps.join(",")}[${faded}]`);
       labelsOf(clip).push(`[${faded}]`);
       continue;
@@ -926,6 +1026,14 @@ export async function mixCompositedTimelineAudio(opts: {
     extension: output.extension,
     audioCodec: output.audioCodec ?? "aac"
   });
+}
+
+/**
+ * Whether `RenderTimeline` tries headless Chromium first. On unless
+ * `NODETOOL_TIMELINE_RENDERER=node` asks for the Node compositor.
+ */
+function browserRendererEnabled(): boolean {
+  return process.env["NODETOOL_TIMELINE_RENDERER"]?.trim().toLowerCase() !== "node";
 }
 
 /** Shortest gap between two `node_progress` posts — four a second. */
@@ -1160,9 +1268,33 @@ export class RenderTimelineNode extends BaseNode {
       let basePath: string;
       let baseHasAudio: boolean;
       let audioToMix: TimelineClip[];
-      let renderMode: "composited" | "rough_cut";
+      let renderMode: "browser" | "composited" | "rough_cut";
 
-      try {
+      const browserPath = path.join(workDir, `rendered.${output.extension}`);
+      const renderedInBrowser = browserRendererEnabled()
+        ? await this.renderInBrowser(ctx, {
+            sequence: seq,
+            width,
+            height,
+            fps,
+            durationMs,
+            output,
+            bitrate: Math.max(0, Number(this.bitrate) || 0),
+            resolveAssetPath: (assetId) => assets.path(assetId),
+            outPath: browserPath,
+            workDir
+          })
+        : false;
+      if (renderedInBrowser) {
+        basePath = browserPath;
+        renderMode = "browser";
+        // The browser writes picture only: every audible clip is mixed in
+        // below, exactly as for a Node composite.
+        baseHasAudio = false;
+        audioToMix = includeAudio
+          ? [...embeddedAudioClips(seq), ...audioClips]
+          : [];
+      } else try {
         basePath = path.join(workDir, `composited.${output.extension}`);
         const result = await renderTimelineComposited({
           sequence: seq,
@@ -1331,6 +1463,72 @@ export class RenderTimelineNode extends BaseNode {
     if (!encoder || output.format === "mp4") return;
     if (await ffmpegHasEncoder(encoder)) return;
     throw new MissingEncoderError(encoder, output.format);
+  }
+
+  /**
+   * Render in headless Chromium. False when no browser could be launched,
+   * after a warning that the Node compositor renders instead.
+   */
+  private async renderInBrowser(
+    ctx: ProcessingContext,
+    options: Omit<Parameters<typeof renderTimelineInBrowser>[0], "onProgress" | "signal">
+  ): Promise<boolean> {
+    try {
+      const result = await renderTimelineInBrowser({
+        ...options,
+        onProgress: this.progressReporter(ctx),
+        signal: ctx.signal
+      });
+      const compositor =
+        result.backend === "webgpu"
+          ? `the WebGPU compositor (${result.adapter ?? "unknown adapter"})`
+          : result.webgpuUnusable
+            ? `the Canvas 2D compositor (WebGPU could not be read back: ${result.webgpuUnusable})`
+            : "the Canvas 2D compositor (no WebGPU adapter)";
+      const encoding =
+        result.encoding.kind === "png"
+          ? "PNG frames"
+          : `${result.encoding.codec} in ${result.encoding.container}`;
+      this.log(
+        ctx,
+        `Rendered ${result.frames} frames in headless Chromium (${result.browser}) ` +
+          `with ${compositor}, encoded as ${encoding}` +
+          `${result.transcoded ? " and transcoded with ffmpeg" : ""}.`,
+        "info"
+      );
+      for (const family of result.fontsUnavailable) {
+        this.log(
+          ctx,
+          `Font "${family}" could not be resolved from Google Fonts — drawn in the fallback face`,
+          "warning"
+        );
+      }
+      if (result.convertedSources > 0) {
+        this.log(
+          ctx,
+          `This browser cannot decode ${result.convertedSources} of the clips, so they were ` +
+            "converted to VP9 before rendering. Google Chrome decodes them directly.",
+          "warning"
+        );
+      }
+      if (result.degradedBakes > 0) {
+        this.log(
+          ctx,
+          `${result.degradedBakes} baked 3D clip(s) could not be decoded and were drawn from the live 3D layer instead.`,
+          "warning"
+        );
+      }
+      return true;
+    } catch (error) {
+      if (!(error instanceof BrowserRenderUnavailableError)) throw error;
+      this.log(
+        ctx,
+        `${error.message} Rendering with the Node compositor instead, which can ` +
+          "differ from the editor preview and decodes variable-frame-rate clips more slowly.",
+        "warning"
+      );
+      return false;
+    }
   }
 
   /** Post on the node's log channel, where the run has one. */

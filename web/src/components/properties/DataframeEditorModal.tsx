@@ -20,9 +20,9 @@ import {
   InputAdornment
 } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
+import { removeDataframeColumn } from "../../utils/csvDataframe";
 import Markdown from "react-markdown";
 
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -481,6 +481,13 @@ const DataframeEditorModal = ({
     [localValue, handleDataframeChange]
   );
 
+  const onDeleteColumn = useCallback(
+    (index: number) => {
+      handleDataframeChange(removeDataframeColumn(localValue, index));
+    },
+    [localValue, handleDataframeChange]
+  );
+
   const addColumn = useCallback(() => {
     const columns = localValue.columns || [];
     const existingNames = new Set(columns.map((col) => col.name));
@@ -549,7 +556,6 @@ const DataframeEditorModal = ({
             <div className="actions">
               <div className="toolbar-group">
                 <Tooltip
-                  delay={TOOLTIP_ENTER_DELAY}
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
                   <button
@@ -562,14 +568,14 @@ const DataframeEditorModal = ({
                   </button>
                 </Tooltip>
                 <Tooltip
-                  delay={TOOLTIP_ENTER_DELAY}
-                  title="Close Editor | Esc"
+                  title="Close editor"
+                  shortcut={["Esc"]}
                 >
                   <button
                     type="button"
                     className="button button-close"
                     onClick={onClose}
-                    aria-label="Close Editor"
+                    aria-label="Close editor"
                   >
                     <CloseIcon />
                   </button>
@@ -593,6 +599,7 @@ const DataframeEditorModal = ({
                   <ColumnsManager
                     columns={localValue.columns || []}
                     onChange={onChangeColumns}
+                    onDeleteColumn={onDeleteColumn}
                                       />
                 </div>
               )}

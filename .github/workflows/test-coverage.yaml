@@ -2,11 +2,33 @@ name: Test Coverage Improvement
 
 on:
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "0 3 * * 2" # Tuesdays at 03:00 UTC
   workflow_dispatch:
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    outputs:
+      skip: ${{ steps.preflight.outputs.skip }}
+      recent-files: ${{ steps.preflight.outputs.recent-files }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - id: preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE_PATTERN: '^test: add coverage'
+        run: node .github/scripts/agent-preflight.mjs --name test-coverage --title "$TITLE_PATTERN"
+
   test-coverage:
+    needs: preflight
+    if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -16,20 +38,20 @@ jobs:
       actions: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Node and install dependencies
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
+          cache: "read-only"
+          build-packages: "false"
 
-      - name: Install all workspace dependencies
-        run: npm ci
+      - name: List files this routine changed recently
         env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+          RECENT_FILES: ${{ needs.preflight.outputs.recent-files }}
+        run: printf '%s\n' "$RECENT_FILES" > "$RUNNER_TEMP/agent-recent-files.txt"
 
       - name: Install mobile dependencies
         run: cd mobile && npm ci
@@ -50,20 +72,8 @@ jobs:
           tail -20 coverage.log >> $GITHUB_STEP_SUMMARY || true
           cd ..
 
-      - name: Run quality checks baseline
-        id: pre-check
-        continue-on-error: true
-        run: |
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
-          npm run lint 2>&1 || LINT_EXIT=1
-          npm run test 2>&1 || TEST_EXIT=1
-          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
-          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
-          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
-
       - name: Run Claude Code
-        uses: anthropics/claude-code-action@v1.0.241
+        uses: anthropics/claude-code-action@cab360f6565aa35a51d6ce9e43f1f4287c0a32ea # v1.0.241
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
@@ -71,7 +81,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing."
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing. Open the PR with the label agent:test-coverage (gh pr create --label agent:test-coverage). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Improve Test Coverage
 
@@ -121,21 +131,3 @@ jobs:
 
             ## Submit
             Create a PR titled "test: add coverage for <area>" listing each new test file and what it covers.
-
-      - name: Post-change verification
-        if: always()
-        run: |
-          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
-          npm run lint 2>&1 || LINT_EXIT=1
-          npm run test 2>&1 || TEST_EXIT=1
-
-          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
-            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
-          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
-            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi
-          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
-            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
-          fi

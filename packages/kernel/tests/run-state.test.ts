@@ -29,6 +29,18 @@ describe("lineageRelated", () => {
     expect(lineageRelated(["items=3"], ["items=7"])).toBe(false);
   });
 
+  it("refuses a recorded pair without a separator", () => {
+    expect(lineageRelated(["items"], ["items=7"])).toBe(false);
+    // Read as a pair, "ab" would match root "a" with index "ab".
+    expect(lineageRelated(["ab"], ["a=ab"])).toBe(false);
+  });
+
+  it("ignores a lineage entry without a separator", () => {
+    expect(lineageRelated(["items=7"], ["garbage", "items=7"])).toBe(true);
+    // Read as a pair, "items" would put root "item" in scope with index "items".
+    expect(lineageRelated(["item=items"], ["items"])).toBe(false);
+  });
+
   it("refuses a branch the failing invocation never entered", () => {
     expect(lineageRelated(["other=1"], ["items=7"])).toBe(false);
   });

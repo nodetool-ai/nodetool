@@ -291,6 +291,7 @@ const CLIP_PARAM_KEYS = [
   "fadeOutMs",
   "fadeInShape",
   "fadeOutShape",
+  "audioEffects",
   "blendMode",
   "borderRadius",
   "crop",
@@ -677,7 +678,10 @@ class OpScope {
         if (target.caption) {
           target.caption = retimeCaption(target.caption, -slipMs);
         }
-        this.mediaTracks = resliceTracksForTrimmedClip(this.mediaTracks, target);
+        this.mediaTracks = resliceTracksForTrimmedClip(
+          this.mediaTracks,
+          target
+        );
         this.touch(target.id);
       }
       return clip;
@@ -1102,1692 +1106,1819 @@ async function buildCustomAnimation(
   };
 }
 
-/** Dispatch one op against `scope`. Throws on refusal; the caller maps it. */
-async function runOp(
+/** Runs one op of type `N`. Throws on refusal; the caller maps it. */
+type OpHandler<N extends TimelineOp["op"]> = (
   scope: OpScope,
-  op: TimelineOp
-): Promise<TimelineOpResult> {
-  const state = scope.state;
-  switch (op.op) {
-    case "get_state": {
-      const durationMs = scope.clips.reduce(
-        (m, c) => Math.max(m, c.startMs + c.durationMs),
-        0
+  op: Extract<TimelineOp, { op: N }>
+) => TimelineOpResult | Promise<TimelineOpResult>;
+
+function runMidiNoteEdit(
+  scope: OpScope,
+  op: Extract<
+    TimelineOp,
+    { op: "transpose_clip" | "quantize_notes" | "scale_velocity" }
+  >
+): TimelineOpResult {
+  const clip = scope.resolveMidiClip(op.clip);
+  scope.assertWritable([clip]);
+  const before = clip.notes ?? [];
+  const notes =
+    op.op === "transpose_clip"
+      ? transposeNotes(before, op.semitones)
+      : op.op === "scale_velocity"
+        ? scaleVelocity(before, op.factor)
+        : quantizeNotes(before, {
+            division: op.division,
+            strength: op.strength,
+            target: op.target,
+            // The grid is anchored at `tempo.offsetMs`, as the editor draws it.
+            phaseTick: msToTicks(
+              resolveTempo(scope.state).offsetMs -
+                clip.startMs +
+                (clip.inPointMs ?? 0),
+              resolveTempo(scope.state).bpm
+            )
+          });
+  clip.notes = notes;
+  scope.touch(clip.id);
+  const result: TimelineOpResult = {
+    ok: true,
+    clip: scope.clipOut(clip),
+    noteCount: notes.length
+  };
+  if (op.op === "quantize_notes") {
+    result.movedNoteCount = notes.filter(
+      (note, i) =>
+        note.startTick !== before[i]?.startTick ||
+        note.durationTick !== before[i]?.durationTick
+    ).length;
+  }
+  return result;
+}
+
+function runBeatEdit(
+  scope: OpScope,
+  op: Extract<TimelineOp, { op: "update_beat" | "remove_beat" }>
+): TimelineOpResult {
+  const beats = scope.state.setup?.beats ?? [];
+  const found = resolveBeatTarget(beats, op.beat);
+  const next = { ...found };
+  if (op.op === "update_beat") {
+    if (op.prompt !== undefined) {
+      next.prompt = op.prompt;
+    }
+    if (op.durationMs !== undefined) {
+      next.duration_ms = Math.max(1, Math.round(op.durationMs));
+    }
+    if (op.transition !== undefined) {
+      next.transition = op.transition ?? undefined;
+    }
+    if (op.voiceover !== undefined) {
+      next.voiceover = op.voiceover;
+    }
+    if (op.music !== undefined) {
+      next.music = op.music;
+    }
+  }
+  const previous = scope.state.setup;
+  scope.state.setup = {
+    ...previous,
+    stage: previous?.stage ?? "review",
+    brief: previous?.brief ?? "",
+    format: previous?.format,
+    voiceover: previous?.voiceover,
+    beats:
+      op.op === "remove_beat"
+        ? beats.filter((b) => b.id !== found.id)
+        : beats.map((b) => (b.id === found.id ? next : b))
+  };
+  return op.op === "remove_beat"
+    ? { ok: true, removed: { ...found } }
+    : { ok: true, beat: { ...next } };
+}
+
+/** One handler per op, so each is checked against its own op type. */
+const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
+  get_state: (scope) => {
+    const state = scope.state;
+    const durationMs = scope.clips.reduce(
+      (m, c) => Math.max(m, c.startMs + c.durationMs),
+      0
+    );
+    return {
+      ok: true,
+      fps: state.fps,
+      width: state.width,
+      height: state.height,
+      durationMs,
+      playheadMs: state.playheadMs,
+      selectedClipIds: [...state.selectedClipIds],
+      tempo: state.tempo,
+      tracks: scope.tracks.map((t) => scope.trackOut(t)),
+      clips: scope.clips.map((c) => scope.clipOut(c)),
+      mediaTracks: scope.mediaTracks.map(serializeMediaTrack),
+      markers: state.markers.map((m) => ({ ...m }))
+    };
+  },
+
+  add_track: runTrackOp,
+  move_track: runTrackOp,
+  delete_track: runTrackOp,
+  add_text_clip: (scope, op) => {
+    const state = scope.state;
+    const track = op.trackId
+      ? scope.resolveTrack(op.trackId)
+      : scope.findOrCreateTrack("overlay", "Text");
+    // `style` wins over a top-level twin: a caller that sent both meant the
+    // bag it named.
+    scope.assertPictureTrack(track);
+    scope.assertWritable([], track.id);
+    const s = { ...(op.loose ?? {}), ...(op.style ?? {}) };
+    const clip = makeClip({
+      id: scope.ctx.newId("clip"),
+      trackId: track.id,
+      name: op.name ?? op.text,
+      startMs: op.startMs ?? scope.trackEndMs(track.id),
+      durationMs: op.durationMs ?? DEFAULT_TEXT_CLIP_DURATION_MS,
+      mediaType: "text",
+      sourceType: "imported",
+      status: "generated",
+      textStyle: textStyleWithDefaults(op.text, s)
+    });
+    if (op.opacity !== undefined) {
+      clip.opacity = op.opacity;
+    }
+    if (op.transform) {
+      clip.transform = mergeClipTransform(clip.transform, op.transform);
+    }
+    scope.clips.push(clip);
+    state.selectedClipIds = [clip.id];
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  add_media_clip: async (scope, op) => {
+    const state = scope.state;
+    const resolveAsset = scope.ctx.resolveAsset;
+    if (!resolveAsset) {
+      throw new Error(
+        "This timeline surface cannot look up assets, so an existing asset cannot be placed here."
       );
-      return {
-        ok: true,
-        fps: state.fps,
-        width: state.width,
-        height: state.height,
-        durationMs,
-        playheadMs: state.playheadMs,
-        selectedClipIds: [...state.selectedClipIds],
-        tempo: state.tempo,
-        tracks: scope.tracks.map((t) => scope.trackOut(t)),
-        clips: scope.clips.map((c) => scope.clipOut(c)),
-        mediaTracks: scope.mediaTracks.map(serializeMediaTrack),
-        markers: state.markers.map((m) => ({ ...m }))
-      };
     }
-
-    case "add_track":
-    case "move_track":
-    case "delete_track":
-      return runTrackOp(scope, op);
-
-    case "add_text_clip": {
-      const track = op.trackId
-        ? scope.resolveTrack(op.trackId)
-        : scope.findOrCreateTrack("overlay", "Text");
-      // `style` wins over a top-level twin: a caller that sent both meant the
-      // bag it named.
-      scope.assertPictureTrack(track);
-      scope.assertWritable([], track.id);
-      const s = { ...(op.loose ?? {}), ...(op.style ?? {}) };
-      const clip = makeClip({
-        id: scope.ctx.newId("clip"),
-        trackId: track.id,
-        name: op.name ?? op.text,
-        startMs: op.startMs ?? scope.trackEndMs(track.id),
-        durationMs: op.durationMs ?? DEFAULT_TEXT_CLIP_DURATION_MS,
-        mediaType: "text",
-        sourceType: "imported",
-        status: "generated",
-        textStyle: textStyleWithDefaults(op.text, s)
-      });
-      if (op.opacity !== undefined) {
-        clip.opacity = op.opacity;
-      }
-      if (op.transform) {
-        clip.transform = mergeClipTransform(clip.transform, op.transform);
-      }
-      scope.clips.push(clip);
-      state.selectedClipIds = [clip.id];
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-
-    case "add_media_clip": {
-      const resolveAsset = scope.ctx.resolveAsset;
-      if (!resolveAsset) {
-        throw new Error(
-          "This timeline surface cannot look up assets, so an existing asset cannot be placed here."
-        );
-      }
-      const found = await resolveAsset(op.asset);
-      if (!found) {
-        throw new Error(
-          `No asset found for "${op.asset}". Pass an asset id or an asset:// URI from list_assets.`
-        );
-      }
-      const mediaType =
-        found.contentType.toLowerCase().startsWith("model/") ||
-        /\.(glb|gltf)$/i.test(found.name)
-          ? "model3d"
-          : mediaTypeForContentType(found.contentType);
-      if (!mediaType) {
-        throw new Error(
-          `Asset "${found.name}" is ${found.contentType}, which is not video, image, or audio and cannot go on a timeline.`
-        );
-      }
-      if (
-        mediaType !== "image" &&
-        mediaType !== "model3d" &&
-        op.durationMs === undefined &&
-        !found.durationMs &&
-        !scope.ctx.allowUnknownMediaDuration
-      ) {
-        throw new Error(
-          `Asset "${found.name}" has no known duration. Supply durationMs or import media that can be probed.`
-        );
-      }
-      const track = op.trackId
-        ? scope.resolveTrack(op.trackId)
-        : scope.findOrCreateTrack(
-            mediaType === "model3d" ? "video" : trackTypeForMediaType(mediaType)
-          );
-      if (!clipFitsTrack(mediaType, track.type)) {
-        throw new Error(
-          `Asset "${found.name}" is not compatible with ${track.type} track "${track.name}".`
-        );
-      }
-      scope.assertWritable([], track.id);
-      const init: Parameters<typeof makeClip>[0] = {
-        id: scope.ctx.newId("clip"),
-        trackId: track.id,
-        name: op.name ?? found.name,
-        startMs: op.startMs ?? scope.trackEndMs(track.id),
-        durationMs:
-          op.durationMs ?? found.durationMs ?? DEFAULT_MEDIA_CLIP_DURATION_MS,
-        mediaType,
-        sourceType: "imported",
-        status: "generated",
-        currentAssetId: found.id
-      };
-      if (mediaType === "model3d") {
-        init.model3dStyle = model3dStyleWithPatch(undefined, undefined);
-      }
-      if (found.thumbnailAssetId) {
-        init.thumbnailAssetId = found.thumbnailAssetId;
-      }
-      const clip = makeClip(init);
-      if (op.transform) {
-        clip.transform = mergeClipTransform(clip.transform, op.transform);
-      }
-      scope.clips.push(clip);
-      state.selectedClipIds = [clip.id];
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-
-    case "add_shape_clip": {
-      const track = op.trackId
-        ? scope.resolveTrack(op.trackId)
-        : scope.findOrCreateTrack("overlay", "Shapes");
-      scope.assertPictureTrack(track);
-      scope.assertWritable([], track.id);
-      const shapeArg = resolveShapeArg(op.shape, op.shapeStyle, op.loose ?? {});
-      const clip = makeClip({
-        id: scope.ctx.newId("clip"),
-        trackId: track.id,
-        name: op.name ?? capitalize(shapeArg.kind),
-        startMs: op.startMs ?? scope.trackEndMs(track.id),
-        durationMs: op.durationMs ?? DEFAULT_TEXT_CLIP_DURATION_MS,
-        mediaType: "shape",
-        sourceType: "imported",
-        status: "generated",
-        shapeStyle: shapeStyleWithDefaults(shapeArg)
-      });
-      if (op.opacity !== undefined) {
-        clip.opacity = op.opacity;
-      }
-      if (op.transform) {
-        clip.transform = mergeClipTransform(clip.transform, op.transform);
-      }
-      scope.clips.push(clip);
-      state.selectedClipIds = [clip.id];
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-
-    case "add_model3d_clip": {
-      const assetId = op.assetId.trim();
-      if (!assetId) {
-        throw new Error(
-          "add_model3d_clip needs the glTF's asset id — a 3D clip draws its " +
-            "asset the way an image clip draws its image. list_assets prints " +
-            "the ids."
-        );
-      }
-      // 3D is picture (D1), so it lands where a title lands: the first overlay
-      // track, or one made for it.
-      const track = op.trackId
-        ? scope.resolveTrack(op.trackId)
-        : scope.findOrCreateTrack("overlay", "3D");
-      scope.assertPictureTrack(track);
-      scope.assertWritable([], track.id);
-      // The id is stored on the clip and read back by every renderer, so a
-      // short or `asset://` form resolves to the asset's full id here. A
-      // 12-character prefix nothing resolves would store a dangling id.
-      const found = await scope.ctx.resolveAsset?.(assetId);
-      if (!found && isShortResourceId(assetId)) {
-        throw new Error(
-          `No asset found for "${assetId}". Pass the glTF's asset id from list_assets.`
-        );
-      }
-      const currentAssetId = found?.id ?? assetId;
-      const clip = makeClip({
-        id: scope.ctx.newId("clip"),
-        trackId: track.id,
-        name: DEFAULT_MODEL3D_CLIP_NAME,
-        startMs: op.startMs ?? scope.trackEndMs(track.id),
-        durationMs: op.durationMs ?? DEFAULT_MODEL3D_CLIP_DURATION_MS,
-        mediaType: "model3d",
-        sourceType: "imported",
-        status: "generated",
-        currentAssetId,
-        model3dStyle: model3dStyleWithPatch(undefined, op.style)
-      });
-      if (op.transform) {
-        clip.transform = mergeClipTransform(clip.transform, op.transform);
-      }
-      scope.clips.push(clip);
-      state.selectedClipIds = [clip.id];
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-
-    case "set_model3d_style": {
-      const clip = scope.resolveClip(op.target);
-      if (clip.mediaType !== "model3d") {
-        throw new Error(
-          `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip — ` +
-            "model3dStyle names a camera, an animation and lighting for a " +
-            "glTF, and nothing else reads it."
-        );
-      }
-      clip.model3dStyle = model3dStyleWithPatch(clip.model3dStyle, op.patch);
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-
-    case "bake_model3d_clip": {
-      const clip = scope.resolveClip(op.target);
-      if (clip.mediaType !== "model3d") {
-        throw new Error(
-          `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip — ` +
-            "only a 3D clip has a camera, lighting and a glTF to render."
-        );
-      }
-      const style = clip.model3dStyle;
-      if (!style) {
-        throw new Error(
-          `Clip "${clip.name}" has no model3dStyle, so nothing names the ` +
-            "camera, lighting or animation a bake would render."
-        );
-      }
-      if (!clip.currentAssetId) {
-        throw new Error(
-          `Clip "${clip.name}" has no glTF asset to bake — a 3D clip draws ` +
-            "its asset the way an image clip draws its image."
-        );
-      }
-      const sequence = {
-        fps: state.fps,
-        width: state.width,
-        height: state.height
-      };
-      const dependencyHash = computeModel3DBakeHash(clip, sequence);
-      if (!scope.ctx.bakeModel3DClip) {
-        return {
-          ok: true,
-          clip: scope.clipOut(clip),
-          bakeStarted: false,
-          note: "This surface has no Blender renderer, so nothing was baked."
-        };
-      }
-      const baked = await scope.ctx.bakeModel3DClip({
-        clip,
-        sequence,
-        dependencyHash
-      });
-      const now = (scope.ctx.now ?? (() => new Date().toISOString()))();
-      clip.model3dStyle = {
-        ...style,
-        bake: { assetId: baked.assetId, dependencyHash }
-      };
-      // The bake joins the clip's own version history, so an earlier one can
-      // be restored the way an earlier generation can.
-      clip.versions = [
-        ...(clip.versions ?? []),
-        makeClipVersion({
-          id: scope.ctx.newId("version"),
-          createdAt: now,
-          workflowUpdatedAt: now,
-          jobId: baked.jobId ?? "",
-          assetId: baked.assetId,
-          dependencyHash
-        })
-      ];
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip), bakeStarted: true };
-    }
-
-    case "add_group": {
-      // Resolve every child before anything is written: a half-applied group
-      // leaves the caller with an empty group and no idea which of its clips
-      // moved.
-      const targets = (op.children ?? []).map((ref) => scope.resolveClip(ref));
-      const track = op.trackId
-        ? scope.resolveTrack(op.trackId)
-        : scope.findOrCreateTrack("overlay", "Groups");
-      scope.assertWritable(targets, track.id);
-      const group = makeClip({
-        id: scope.ctx.newId("clip"),
-        trackId: track.id,
-        name: op.name,
-        startMs: op.startMs,
-        durationMs: op.durationMs,
-        mediaType: "group",
-        sourceType: "imported",
-        status: "generated"
-      });
-      if (op.transform) {
-        group.transform = mergeClipTransform(group.transform, op.transform);
-      }
-      scope.clips.push(group);
-      for (const child of targets) {
-        child.parentId = group.id;
-        scope.touch(child.id);
-      }
-      state.selectedClipIds = [group.id];
-      scope.touch(group.id);
-      return {
-        ok: true,
-        clip: scope.clipOut(group),
-        children: targets.map((c) => c.id)
-      };
-    }
-
-    case "generate_clip": {
-      const mediaType: TimelineClip["mediaType"] =
-        op.kind === "text-to-video"
-          ? "video"
-          : op.kind === "text-to-image"
-            ? "image"
-            : "audio";
-
-      const track = op.trackId
-        ? scope.resolveTrack(op.trackId)
-        : op.kind === "text-to-audio"
-          ? scope.findOrCreateTrack("audio")
-          : scope.findOrCreateTrack("video");
-      if (!clipFitsTrack(mediaType, track.type)) {
-        throw new Error(
-          `A ${op.kind} clip is ${mediaType} and cannot go on ${track.type} track "${track.name}".`
-        );
-      }
-      scope.assertWritable([], track.id);
-
-      const generationStarted = op.autoGenerate !== false;
-      const clip = makeClip({
-        id: scope.ctx.newId("clip"),
-        trackId: track.id,
-        name: op.prompt,
-        startMs: op.startMs ?? scope.trackEndMs(track.id),
-        durationMs:
-          op.durationMs ?? (op.kind === "text-to-audio" ? 3000 : 5000),
-        mediaType,
-        sourceType: "generated",
-        bindingKind: op.kind as TimelineClip["bindingKind"],
-        status: generationStarted ? "generating" : "draft",
-        prompt: op.prompt,
-        provider: op.provider,
-        model: op.model,
-        voice: op.voice,
-        width: op.width,
-        height: op.height,
-        aspectRatio: op.aspectRatio,
-        resolution: op.resolution
-      });
-      scope.clips.push(clip);
-      state.selectedClipIds = [clip.id];
-      scope.touch(clip.id);
-      const result: {
-        ok: true;
-        clip: ReturnType<OpScope["clipOut"]>;
-        generationStarted: boolean;
-        note?: string;
-      } = { ok: true, clip: scope.clipOut(clip), generationStarted };
-      if (!generationStarted) {
-        result.note = "Generation not started (autoGenerate=false).";
-      }
-      return result;
-    }
-
-    case "split_clip": {
-      const clip = scope.resolveClip(op.target);
-      const at = op.atMs ?? state.playheadMs;
-      if (at <= clip.startMs || at >= clip.startMs + clip.durationMs) {
-        throw new Error(`Split time ${at}ms is outside clip "${clip.name}".`);
-      }
-      const targets = scope
-        .editTargets(clip)
-        .filter(
-          (target) =>
-            at > target.startMs && at < target.startMs + target.durationMs
-        );
-      const leftLink = targets.length > 1 ? scope.ctx.newId("link") : undefined;
-      const rightLink =
-        targets.length > 1 ? scope.ctx.newId("link") : undefined;
-      const halves: TimelineClip[] = [];
-      for (const target of targets) {
-        const [cutLeft, cutRight] = splitClip(target, at);
-        cutLeft.id = scope.ctx.newId("clip");
-        cutRight.id = scope.ctx.newId("clip");
-        if (targets.length > 1) {
-          cutLeft.linkId = leftLink;
-          cutRight.linkId = rightLink;
-        }
-        const split = splitClipMediaTracks(
-          scope.mediaTracks,
-          target.id,
-          cutLeft,
-          cutRight,
-          () => scope.ctx.newId("track")
-        );
-        const { left, right } = split;
-        scope.mediaTracks = split.mediaTracks;
-        const idx = scope.clips.findIndex((c) => c.id === target.id);
-        scope.clips.splice(idx, 1, left, right);
-        state.selectedClipIds = state.selectedClipIds.filter(
-          (id) => id !== target.id
-        );
-        scope.touch(target.id, left.id, right.id);
-        halves.push(left, right);
-      }
-      return { ok: true, clips: halves.map((half) => scope.clipOut(half)) };
-    }
-
-    case "trim_clip": {
-      const clip = scope.resolveClip(op.target);
-      const trimmed = scope.applyTrim(
-        clip,
-        {
-          durationMs: op.durationMs,
-          inPointMs: op.inPointMs,
-          outPointMs: op.outPointMs
-        },
-        await scope.sourceLimitMs(clip)
+    const found = await resolveAsset(op.asset);
+    if (!found) {
+      throw new Error(
+        `No asset found for "${op.asset}". Pass an asset id or an asset:// URI from list_assets.`
       );
-      scope.mediaTracks = resliceTracksForTrimmedClip(
-        scope.mediaTracks,
-        trimmed
+    }
+    const mediaType =
+      found.contentType.toLowerCase().startsWith("model/") ||
+      /\.(glb|gltf)$/i.test(found.name)
+        ? "model3d"
+        : mediaTypeForContentType(found.contentType);
+    if (!mediaType) {
+      throw new Error(
+        `Asset "${found.name}" is ${found.contentType}, which is not video, image, or audio and cannot go on a timeline.`
       );
-      return { ok: true, clip: scope.clipOut(trimmed) };
     }
-
-    case "move_clip": {
-      const moved = scope.applyMove(scope.resolveClip(op.target), {
-        startMs: op.startMs,
-        trackId: op.trackId
-      });
-      return { ok: true, clip: scope.clipOut(moved) };
-    }
-
-    case "delete_clip": {
-      const clip = scope.resolveClip(op.target);
-      scope.editTargets(clip);
-      // Deleting a group deletes the parent, not the picture: its children stay
-      // where they are and stop inheriting (D4). Leaving them with a `parentId`
-      // nothing answers is what the validator calls a dangling parent.
-      const wasChild = scope.clips
-        .filter((c) => c.parentId === clip.id)
-        .map((c) => c.id);
-      const remaining = isGroupClip(clip)
-        ? ungroup(scope.clips, clip.id)
-        : scope.clips;
-      const out = scope.clipOut(clip);
-      scope.clips = remaining.filter((c) => c.id !== clip.id);
-      if (clip.linkId) {
-        const remainingLinked = scope.clips.filter(
-          (candidate) => candidate.linkId === clip.linkId
-        );
-        if (remainingLinked.length === 1) {
-          delete remainingLinked[0].linkId;
-          scope.touch(remainingLinked[0].id);
-        }
-      }
-      state.selectedClipIds = state.selectedClipIds.filter(
-        (id) => id !== clip.id
+    if (
+      mediaType !== "image" &&
+      mediaType !== "model3d" &&
+      op.durationMs === undefined &&
+      !found.durationMs &&
+      !scope.ctx.allowUnknownMediaDuration
+    ) {
+      throw new Error(
+        `Asset "${found.name}" has no known duration. Supply durationMs or import media that can be probed.`
       );
-      scope.touch(clip.id, ...wasChild);
-      return { ok: true, deleted: out };
     }
-
-    case "duplicate_clip": {
-      const src = scope.resolveClip(op.target);
-      const offsetMs = src.durationMs + (op.gapMs ?? 0);
-      if (!Number.isFinite(offsetMs) || src.startMs + offsetMs < 0) {
-        throw new Error(
-          `gapMs ${op.gapMs} would place the copy of "${src.name}" before zero.`
+    const track = op.trackId
+      ? scope.resolveTrack(op.trackId)
+      : scope.findOrCreateTrack(
+          mediaType === "model3d" ? "video" : trackTypeForMediaType(mediaType)
         );
-      }
-      // A group's copy carries copies of what it holds, at the same offset, so
-      // the duplicate draws what the original draws.
-      const descendants = isGroupClip(src)
-        ? groupDescendantIds(scope.clips, src.id)
-        : new Set<string>();
-      const sources = [
-        src,
-        ...scope.clips.filter((clip) => descendants.has(clip.id))
-      ];
-      for (const clip of sources) {
-        scope.assertWritable([], clip.trackId);
-      }
-      const freshIds = new Map(
-        sources.map((clip) => [clip.id, scope.ctx.newId("clip")])
+    if (!clipFitsTrack(mediaType, track.type)) {
+      throw new Error(
+        `Asset "${found.name}" is not compatible with ${track.type} track "${track.name}".`
       );
-      // A link whose members are all copied stays a link among the copies,
-      // under a fresh id; a lone half is copied unlinked.
-      const linkCounts = new Map<string, number>();
-      for (const clip of sources) {
-        if (clip.linkId !== undefined && clip.id !== src.id) {
-          linkCounts.set(clip.linkId, (linkCounts.get(clip.linkId) ?? 0) + 1);
-        }
-      }
-      const freshLinks = new Map<string, string>();
-      const copies = sources.map((clip) => {
-        const copy = structuredClone(clip);
-        copy.id = freshIds.get(clip.id)!;
-        copy.startMs += offsetMs;
-        copy.locked = false;
-        if (copy.parentId !== undefined && clip.id !== src.id) {
-          copy.parentId = freshIds.get(copy.parentId) ?? copy.parentId;
-        }
-        const linkId = clip.linkId;
-        if (
-          linkId !== undefined &&
-          clip.id !== src.id &&
-          (linkCounts.get(linkId) ?? 0) >= 2
-        ) {
-          let fresh = freshLinks.get(linkId);
-          if (fresh === undefined) {
-            fresh = scope.ctx.newId("link");
-            freshLinks.set(linkId, fresh);
-          }
-          copy.linkId = fresh;
-        } else {
-          delete copy.linkId;
-        }
-        // A generated clip's copy is a variation to regenerate, so it starts
-        // as a draft. Imported media keeps its asset and draws the same frames.
-        if (clip.sourceType === "generated") {
-          copy.status = "draft";
-          copy.versions = [];
-          delete copy.currentAssetId;
-          delete copy.lastGeneratedHash;
-          delete copy.activeTakeId;
-        }
-        copy.animations = copy.animations?.map((animation) => ({
-          ...animation,
-          id: scope.ctx.newId("anim")
-        }));
-        return copy;
-      });
-      scope.clips.push(...copies);
-      scope.touch(...copies.map((copy) => copy.id));
-      const result: TimelineOpResult = {
-        ok: true,
-        clip: scope.clipOut(copies[0]!)
-      };
-      if (copies.length > 1) {
-        result.children = copies.slice(1).map((copy) => copy.id);
-      }
-      return result;
     }
+    scope.assertWritable([], track.id);
+    const init: Parameters<typeof makeClip>[0] = {
+      id: scope.ctx.newId("clip"),
+      trackId: track.id,
+      name: op.name ?? found.name,
+      startMs: op.startMs ?? scope.trackEndMs(track.id),
+      durationMs:
+        op.durationMs ?? found.durationMs ?? DEFAULT_MEDIA_CLIP_DURATION_MS,
+      mediaType,
+      sourceType: "imported",
+      status: "generated",
+      currentAssetId: found.id
+    };
+    if (mediaType === "model3d") {
+      init.model3dStyle = model3dStyleWithPatch(undefined, undefined);
+    }
+    if (found.thumbnailAssetId) {
+      init.thumbnailAssetId = found.thumbnailAssetId;
+    }
+    const clip = makeClip(init);
+    if (op.transform) {
+      clip.transform = mergeClipTransform(clip.transform, op.transform);
+    }
+    scope.clips.push(clip);
+    state.selectedClipIds = [clip.id];
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
 
-    case "set_clip_params": {
-      let clip = scope.resolveClip(op.target);
-      const patch = { ...op.patch };
-      rejectUnknownClipParams(patch);
-      // Timing belongs to move_clip and trim_clip, but a caller sending it here
-      // means one edit either way — so apply it through the same code rather
-      // than dropping it or making them call twice.
-      clip = scope.applyTrim(
-        clip,
-        {
-          durationMs: patch.durationMs,
-          inPointMs: patch.inPointMs,
-          outPointMs: patch.outPointMs
-        },
-        patch.durationMs === undefined && patch.outPointMs === undefined
-          ? undefined
-          : await scope.sourceLimitMs(clip)
+  add_shape_clip: (scope, op) => {
+    const state = scope.state;
+    const track = op.trackId
+      ? scope.resolveTrack(op.trackId)
+      : scope.findOrCreateTrack("overlay", "Shapes");
+    scope.assertPictureTrack(track);
+    scope.assertWritable([], track.id);
+    const shapeArg = resolveShapeArg(op.shape, op.shapeStyle, op.loose ?? {});
+    const clip = makeClip({
+      id: scope.ctx.newId("clip"),
+      trackId: track.id,
+      name: op.name ?? capitalize(shapeArg.kind),
+      startMs: op.startMs ?? scope.trackEndMs(track.id),
+      durationMs: op.durationMs ?? DEFAULT_TEXT_CLIP_DURATION_MS,
+      mediaType: "shape",
+      sourceType: "imported",
+      status: "generated",
+      shapeStyle: shapeStyleWithDefaults(shapeArg)
+    });
+    if (op.opacity !== undefined) {
+      clip.opacity = op.opacity;
+    }
+    if (op.transform) {
+      clip.transform = mergeClipTransform(clip.transform, op.transform);
+    }
+    scope.clips.push(clip);
+    state.selectedClipIds = [clip.id];
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  add_model3d_clip: async (scope, op) => {
+    const state = scope.state;
+    const assetId = op.assetId.trim();
+    if (!assetId) {
+      throw new Error(
+        "add_model3d_clip needs the glTF's asset id — a 3D clip draws its " +
+          "asset the way an image clip draws its image. list_assets prints " +
+          "the ids."
       );
-      clip = scope.applyMove(clip, {
-        startMs: patch.startMs,
-        trackId: patch.trackId
-      });
-      if (patch.fontSizePx !== undefined) {
-        // Shorthand for the one text field callers reach for by name.
-        const style = patch.textStyle ?? clip.textStyle;
-        if (!style) {
-          throw new Error(
-            `Clip "${clip.name}" carries no text to size; fontSizePx applies to a text clip's textStyle.`
-          );
-        }
-        patch.textStyle = { ...style, fontSizePx: patch.fontSizePx };
-      }
-      if (patch.name !== undefined) {
-        clip.name = patch.name;
-      }
-      if (patch.opacity !== undefined) {
-        clip.opacity = patch.opacity;
-      }
-      if (patch.transform !== undefined) {
-        clip.transform = mergeClipTransform(clip.transform, patch.transform);
-      }
-      if (patch.speedMultiplier !== undefined) {
-        // The editor's rule: the source window stays, the duration scales, and
-        // linked partners change speed with the clip.
-        const unit = scope.editTargets(clip);
-        scope.clips = retimeClipSpeed(
-          scope.clips,
-          new Set(unit.map((member) => member.id)),
-          patch.speedMultiplier
-        );
-        for (const member of unit) {
-          scope.touch(member.id);
-        }
-        clip = scope.resolveClip(clip.id);
-      }
-      if (patch.volumeDb !== undefined) {
-        clip.volumeDb = patch.volumeDb;
-      }
-      if (patch.fadeInMs !== undefined) {
-        clip.fadeInMs = patch.fadeInMs;
-      }
-      if (patch.fadeOutMs !== undefined) {
-        clip.fadeOutMs = patch.fadeOutMs;
-      }
-      if (patch.fadeInShape !== undefined) {
-        clip.fadeInShape = patch.fadeInShape;
-      }
-      if (patch.fadeOutShape !== undefined) {
-        clip.fadeOutShape = patch.fadeOutShape;
-      }
-      if (patch.blendMode !== undefined) {
-        clip.blendMode = patch.blendMode as TimelineClip["blendMode"];
-      }
-      if (patch.borderRadius !== undefined) {
-        clip.borderRadius = patch.borderRadius;
-      }
-      if (patch.crop !== undefined) {
-        // Null is how a caller puts the whole source back; leaving the field
-        // with all-zero insets would store a crop that means nothing.
-        if (patch.crop === null) {
-          delete clip.crop;
-        } else {
-          if (!isCropUsable(patch.crop)) {
-            throw new Error(
-              `Crop on clip "${clip.name}" keeps no picture: left + right and ` +
-                "top + bottom must each stay below 1."
-            );
-          }
-          clip.crop = patch.crop;
-        }
-      }
-      if (patch.hidden !== undefined) {
-        clip.hidden = patch.hidden;
-      }
-      if (patch.muted !== undefined) {
-        clip.muted = patch.muted;
-      }
-      if (patch.locked !== undefined) {
-        clip.locked = patch.locked;
-      }
-      if (patch.textStyle !== undefined) {
-        const parsed = textStyleParams.safeParse({
-          color: DEFAULT_TEXT_CLIP_COLOR,
-          ...clip.textStyle,
-          ...patch.textStyle
-        });
-        if (!parsed.success) {
-          throw new Error(
-            `Clip "${clip.name}" has no text style yet, so this patch still needs ${parsed.error.issues.map((issue) => issue.path.join(".")).join(", ")}.`
-          );
-        }
-        assertAuthorableFontFamily(parsed.data.fontFamily);
-        clip.textStyle = parsed.data;
-      }
-      if (patch.shapeStyle !== undefined) {
-        clip.shapeStyle = shapeStyleWithDefaults(patch.shapeStyle);
-      }
-      if (patch.captionStyle !== undefined) {
-        // The style rides on the clip's caption, so a clip with no words to
-        // draw has nowhere to put it. Say so rather than storing a look nothing
-        // renders.
-        if (!clip.caption) {
-          throw new Error(`Clip "${clip.name}" carries no caption to style.`);
-        }
-        clip.caption = { ...clip.caption, style: patch.captionStyle };
-      }
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
     }
-
-    case "set_parent": {
-      const clip = scope.resolveClip(op.target);
-      scope.assertWritable([clip]);
-      scope.touch(clip.id);
-      if (op.parentId === null) {
-        delete clip.parentId;
-        return { ok: true, clip: scope.clipOut(clip) };
-      }
-      const parent = scope.resolveClip(op.parentId);
-      if (parent.mediaType !== "group") {
-        throw new Error(
-          `"${parent.name}" is a ${parent.mediaType} clip, not a group — parent to a clip created with add_group. ${scope.validUnits(
-            scope.clips.filter((c) => c.mediaType === "group"),
-            "group"
-          )}`
-        );
-      }
-      // A cycle renders unparented and warns, so refusing it here is the only
-      // place it can still be fixed.
-      let cursor: TimelineClip | undefined = parent;
-      while (cursor) {
-        if (cursor.id === clip.id) {
-          throw new Error(
-            `"${parent.name}" is inside "${clip.name}" — parenting them would make a cycle.`
-          );
-        }
-        const next: string | undefined = cursor.parentId;
-        cursor = next ? scope.clips.find((c) => c.id === next) : undefined;
-      }
-      clip.parentId = parent.id;
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-
-    case "set_transition": {
-      const clip = scope.resolveClip(op.target);
-      scope.assertWritable([clip]);
-      if (op.transition === null) {
-        delete clip.transitionIn;
-      } else {
-        clip.transitionIn = buildTransition(op.transition);
-      }
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-
-    case "apply_transition_at_cut": {
-      const outgoing = scope.resolveClip(op.outgoingClipId);
-      const incoming = scope.resolveClip(op.incomingClipId);
-      const planned = planTransitionAtCut(scope.clips, {
-        ...op,
-        outgoingClipId: outgoing.id,
-        incomingClipId: incoming.id
-      });
-      if (!planned.ok) {
-        throw new Error(planned.error);
-      }
-      scope.assertWritable([incoming]);
-      // The outgoing clip grows under the transition with the partners that
-      // end with it, so each is a write the lock refuses. Like the editor, it
-      // is capped at a source length the host knows and free otherwise.
-      const growth = transitionGrowthMs(
-        outgoing,
-        incoming,
-        transitionLengthAtCut(outgoing, incoming, planned.candidate.durationMs)
+    // 3D is picture (D1), so it lands where a title lands: the first overlay
+    // track, or one made for it.
+    const track = op.trackId
+      ? scope.resolveTrack(op.trackId)
+      : scope.findOrCreateTrack("overlay", "3D");
+    scope.assertPictureTrack(track);
+    scope.assertWritable([], track.id);
+    // The id is stored on the clip and read back by every renderer, so a
+    // short or `asset://` form resolves to the asset's full id here. A
+    // 12-character prefix nothing resolves would store a dangling id.
+    const found = await scope.ctx.resolveAsset?.(assetId);
+    if (!found && isShortResourceId(assetId)) {
+      throw new Error(
+        `No asset found for "${assetId}". Pass the glTF's asset id from list_assets.`
       );
-      const unit =
-        growth > 0 ? transitionGrowthUnit(scope.clips, outgoing) : [];
-      scope.assertWritable(unit);
-      const limits = new Map<string, number | undefined>();
-      for (const member of unit) {
-        limits.set(member.id, await scope.knownSourceMs(member));
-      }
-      const applied = applyTransitionAtCutCandidate(
-        scope.clips,
-        planned.candidate,
-        { sourceDurationMs: (clip) => limits.get(clip.id) }
+    }
+    const currentAssetId = found?.id ?? assetId;
+    const clip = makeClip({
+      id: scope.ctx.newId("clip"),
+      trackId: track.id,
+      name: DEFAULT_MODEL3D_CLIP_NAME,
+      startMs: op.startMs ?? scope.trackEndMs(track.id),
+      durationMs: op.durationMs ?? DEFAULT_MODEL3D_CLIP_DURATION_MS,
+      mediaType: "model3d",
+      sourceType: "imported",
+      status: "generated",
+      currentAssetId,
+      model3dStyle: model3dStyleWithPatch(undefined, op.style)
+    });
+    if (op.transform) {
+      clip.transform = mergeClipTransform(clip.transform, op.transform);
+    }
+    scope.clips.push(clip);
+    state.selectedClipIds = [clip.id];
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  set_model3d_style: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    if (clip.mediaType !== "model3d") {
+      throw new Error(
+        `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip — ` +
+          "model3dStyle names a camera, an animation and lighting for a " +
+          "glTF, and nothing else reads it."
       );
-      if (!applied.ok) {
-        throw new Error(applied.error);
-      }
-      const before = new Map(scope.clips.map((clip) => [clip.id, clip]));
-      scope.clips = applied.clips;
-      for (const clip of scope.clips) {
-        if (before.get(clip.id) !== clip) {
-          scope.mediaTracks = resliceTracksForTrimmedClip(
-            scope.mediaTracks,
-            clip
-          );
-          scope.touch(clip.id);
-        }
-      }
-      return {
-        ok: true,
-        candidate: planned.candidate,
-        operation: planned.candidate.operation,
-        description: applied.description
-      };
     }
+    clip.model3dStyle = model3dStyleWithPatch(clip.model3dStyle, op.patch);
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
 
-    case "set_mask": {
-      const clip = scope.resolveClip(op.target);
-      if (op.mask === null) {
-        delete clip.mask;
-      } else {
-        if (op.mask.kind === "path" && !op.mask.d?.trim()) {
-          throw new Error("A path mask needs `d` with SVG path data.");
-        }
-        clip.mask = buildMask(op.mask, scope.ctx.parseSvgPath);
-      }
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-
-    case "set_matte": {
-      const clip = scope.resolveClip(op.target);
-      scope.touch(clip.id);
-      if (op.matte === null) {
-        delete clip.matte;
-        return { ok: true, clip: scope.clipOut(clip) };
-      }
-      const source = scope.resolveClip(op.matte.source);
-      if (source.id === clip.id) {
-        throw new Error(
-          `"${clip.name}" cannot be its own matte source — name another clip.`
-        );
-      }
-      const matteOut: NonNullable<TimelineClip["matte"]> = {
-        sourceClipId: source.id,
-        mode: op.matte.mode
-      };
-      if (op.matte.invert !== undefined) {
-        matteOut.invert = op.matte.invert;
-      }
-      clip.matte = matteOut;
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-
-    case "set_generated_matte": {
-      const clip = scope.resolveClip(op.target);
-      scope.touch(clip.id);
-      if (op.clear === true) {
-        delete clip.generatedMatte;
-        return { ok: true, clip: scope.clipOut(clip), generatedMatte: null };
-      }
-      if (!clip.generatedMatte) {
-        throw new Error(
-          `"${clip.name}" carries no generated matte. Run isolate_subject on ` +
-            "it first; this op only adjusts one that exists."
-        );
-      }
-      if (op.selectVersionAssetId !== undefined) {
-        clip.generatedMatte = selectGeneratedMatteVersion(
-          clip,
-          op.selectVersionAssetId
-        ).generatedMatte;
-      }
-      // The knobs are the user's, so an absent field leaves the stored value
-      // alone rather than resetting it to a default the caller did not name.
-      const matte = clip.generatedMatte!;
-      if (op.invert !== undefined) {
-        matte.invert = op.invert;
-      }
-      if (op.strength !== undefined) {
-        matte.strength = Math.min(1, Math.max(0, op.strength));
-      }
-      if (op.featherPx !== undefined) {
-        matte.featherPx = Math.max(0, op.featherPx);
-      }
-      return { ok: true, clip: scope.clipOut(clip), generatedMatte: matte };
-    }
-
-    case "set_time_remap": {
-      const clip = scope.resolveClip(op.target);
-      scope.assertWritable([clip]);
-      if (op.timeRemap === null) {
-        delete clip.timeRemap;
-      } else {
-        clip.timeRemap = buildTimeRemap(op.timeRemap);
-      }
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-
-    case "set_effects": {
-      const clip = scope.resolveClip(op.target);
-      const list = op.effects.map(buildEffect);
-      if (list.length === 0) {
-        delete clip.effects;
-      } else {
-        clip.effects = list;
-      }
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-
-    case "set_clip_binding": {
-      const clip = scope.resolveClip(op.target);
-      if (clip.sourceType !== "generated") {
-        throw new Error(
-          `"${clip.name}" is not a generated clip — ui_timeline_set_clip_binding only applies to clips created with ui_timeline_generate_clip.`
-        );
-      }
-      if (op.prompt !== undefined) {
-        clip.prompt = op.prompt;
-      }
-      if (op.negativePrompt !== undefined) {
-        clip.negativePrompt = op.negativePrompt;
-      }
-      if (op.provider !== undefined) {
-        clip.provider = op.provider;
-      }
-      if (op.model !== undefined) {
-        clip.model = op.model;
-      }
-      if (op.voice !== undefined) {
-        clip.voice = op.voice;
-      }
-      if (op.width !== undefined) {
-        clip.width = op.width;
-      }
-      if (op.height !== undefined) {
-        clip.height = op.height;
-      }
-      if (op.aspectRatio !== undefined) {
-        clip.aspectRatio = op.aspectRatio;
-      }
-      if (op.resolution !== undefined) {
-        clip.resolution = op.resolution;
-      }
-      if (op.strength !== undefined) {
-        clip.strength = op.strength;
-      }
-      if (op.numInferenceSteps !== undefined) {
-        clip.numInferenceSteps = op.numInferenceSteps;
-      }
-      if (op.seed !== undefined) {
-        clip.seed = op.seed;
-      }
-      const bindingChanged = Object.keys(op).some(
-        (key) =>
-          key !== "op" &&
-          key !== "target" &&
-          key !== "regenerate" &&
-          op[key as keyof typeof op] !== undefined
+  bake_model3d_clip: async (scope, op) => {
+    const state = scope.state;
+    const clip = scope.resolveClip(op.target);
+    if (clip.mediaType !== "model3d") {
+      throw new Error(
+        `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip — ` +
+          "only a 3D clip has a camera, lighting and a glTF to render."
       );
-      if (bindingChanged && (clip.lastGeneratedHash || clip.currentAssetId)) {
-        clip.status = "stale";
-      }
-      scope.touch(clip.id);
-      // No op starts a generation job: the browser runs one itself after this
-      // edit lands. Marking the clip queued here would promise a job that no
-      // runner on this surface will ever start.
-      if (op.regenerate) {
-        return {
-          ok: true,
-          clip: scope.clipOut(clip),
-          regenerationStarted: false,
-          note: "The binding was saved, but this surface cannot run generation jobs. Regenerate the clip from the timeline editor."
-        };
-      }
-      return { ok: true, clip: scope.clipOut(clip) };
     }
-
-    case "animate_clip": {
-      const clip = scope.resolveClip(op.target);
-      if (
-        clip.mediaType !== "text" &&
-        op.animations.some((input) => input.stagger !== undefined)
-      ) {
-        throw new Error(
-          `Stagger applies only to text clips; "${clip.name}" is ${clip.mediaType}.`
-        );
-      }
-      const built: ClipAnimation[] = [];
-      for (const input of op.animations) {
-        if (input.preset === CUSTOM_ANIMATION_PRESET_ID) {
-          // `{preset: "custom", custom: {curves}}` reads as naturally as the
-          // flat form, so lift it rather than refusing it.
-          built.push(
-            await buildCustomAnimation(scope, clip, liftCustom(input))
-          );
-          continue;
-        }
-        const preset = ANIMATION_PRESETS.find((p) => p.id === input.preset);
-        if (!preset) {
-          const ids = ANIMATION_PRESETS.map((p) => p.id).join(", ");
-          throw new Error(
-            `Unknown animation preset "${input.preset}". Valid presets: ${ids}, ${CUSTOM_ANIMATION_PRESET_ID}.`
-          );
-        }
-        if (!preset.roles.includes(input.role)) {
-          throw new Error(
-            `Preset "${input.preset}" does not support role "${input.role}". Valid roles for "${input.preset}": ${preset.roles.join(", ")}.`
-          );
-        }
-        if (input.preset === "typewriter" && clip.mediaType !== "text") {
-          throw new Error('Preset "typewriter" requires a text clip.');
-        }
-        const timing =
-          input.preset === "typewriter"
-            ? typewriterTiming(
-                clip.textStyle?.text ?? "",
-                clip.durationMs - (input.delayMs ?? 0),
-                input.durationMs,
-                input.stagger
-              )
-            : null;
-        built.push({
-          id: scope.ctx.newId("anim"),
-          role: input.role,
-          enabled: input.enabled,
-          preset: input.preset,
-          durationMs:
-            timing?.durationMs ?? input.durationMs ?? preset.defaultDurationMs,
-          delayMs: input.delayMs,
-          easing: input.easing,
-          params: input.params,
-          stagger: timing?.stagger ?? input.stagger,
-          caret: input.preset === "typewriter" ? input.caret : undefined
-        });
-      }
-      clip.animations =
-        op.mode === "add" ? [...(clip.animations ?? []), ...built] : built;
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-
-    case "set_baked_animation": {
-      const clip = scope.resolveClip(op.target);
-      const outcome = buildBakedAnimation(clip, op.animation, () =>
-        scope.ctx.newId("anim")
+    const style = clip.model3dStyle;
+    if (!style) {
+      throw new Error(
+        `Clip "${clip.name}" has no model3dStyle, so nothing names the ` +
+          "camera, lighting or animation a bake would render."
       );
-      clip.animations = outcome.animations;
-      scope.touch(clip.id);
+    }
+    if (!clip.currentAssetId) {
+      throw new Error(
+        `Clip "${clip.name}" has no glTF asset to bake — a 3D clip draws ` +
+          "its asset the way an image clip draws its image."
+      );
+    }
+    const sequence = {
+      fps: state.fps,
+      width: state.width,
+      height: state.height
+    };
+    const dependencyHash = computeModel3DBakeHash(clip, sequence);
+    if (!scope.ctx.bakeModel3DClip) {
       return {
         ok: true,
         clip: scope.clipOut(clip),
-        animationId: outcome.animationId,
-        keyframeCount:
-          outcome.animation.custom?.curves[0]?.keyframes.length ?? 0,
-        replaced: outcome.replaced
+        bakeStarted: false,
+        note: "This surface has no Blender renderer, so nothing was baked."
       };
     }
+    const baked = await scope.ctx.bakeModel3DClip({
+      clip,
+      sequence,
+      dependencyHash
+    });
+    const now = (scope.ctx.now ?? (() => new Date().toISOString()))();
+    clip.model3dStyle = {
+      ...style,
+      bake: { assetId: baked.assetId, dependencyHash }
+    };
+    // The bake joins the clip's own version history, so an earlier one can
+    // be restored the way an earlier generation can.
+    clip.versions = [
+      ...(clip.versions ?? []),
+      makeClipVersion({
+        id: scope.ctx.newId("version"),
+        createdAt: now,
+        workflowUpdatedAt: now,
+        jobId: baked.jobId ?? "",
+        assetId: baked.assetId,
+        dependencyHash
+      })
+    ];
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip), bakeStarted: true };
+  },
 
-    case "clear_animations": {
-      const clip = scope.resolveClip(op.target);
-      clip.animations = op.role
-        ? (clip.animations ?? []).filter((a) => a.role !== op.role)
-        : [];
-      scope.touch(clip.id);
+  add_group: (scope, op) => {
+    const state = scope.state;
+    // Resolve every child before anything is written: a half-applied group
+    // leaves the caller with an empty group and no idea which of its clips
+    // moved.
+    const targets = (op.children ?? []).map((ref) => scope.resolveClip(ref));
+    const track = op.trackId
+      ? scope.resolveTrack(op.trackId)
+      : scope.findOrCreateTrack("overlay", "Groups");
+    scope.assertWritable(targets, track.id);
+    const group = makeClip({
+      id: scope.ctx.newId("clip"),
+      trackId: track.id,
+      name: op.name,
+      startMs: op.startMs,
+      durationMs: op.durationMs,
+      mediaType: "group",
+      sourceType: "imported",
+      status: "generated"
+    });
+    if (op.transform) {
+      group.transform = mergeClipTransform(group.transform, op.transform);
+    }
+    scope.clips.push(group);
+    for (const child of targets) {
+      child.parentId = group.id;
+      scope.touch(child.id);
+    }
+    state.selectedClipIds = [group.id];
+    scope.touch(group.id);
+    return {
+      ok: true,
+      clip: scope.clipOut(group),
+      children: targets.map((c) => c.id)
+    };
+  },
+
+  generate_clip: (scope, op) => {
+    const state = scope.state;
+    const mediaType: TimelineClip["mediaType"] =
+      op.kind === "text-to-video"
+        ? "video"
+        : op.kind === "text-to-image"
+          ? "image"
+          : "audio";
+
+    const track = op.trackId
+      ? scope.resolveTrack(op.trackId)
+      : op.kind === "text-to-audio"
+        ? scope.findOrCreateTrack("audio")
+        : scope.findOrCreateTrack("video");
+    if (!clipFitsTrack(mediaType, track.type)) {
+      throw new Error(
+        `A ${op.kind} clip is ${mediaType} and cannot go on ${track.type} track "${track.name}".`
+      );
+    }
+    scope.assertWritable([], track.id);
+
+    const generationStarted = op.autoGenerate !== false;
+    const clip = makeClip({
+      id: scope.ctx.newId("clip"),
+      trackId: track.id,
+      name: op.prompt,
+      startMs: op.startMs ?? scope.trackEndMs(track.id),
+      durationMs: op.durationMs ?? (op.kind === "text-to-audio" ? 3000 : 5000),
+      mediaType,
+      sourceType: "generated",
+      bindingKind: op.kind as TimelineClip["bindingKind"],
+      status: generationStarted ? "generating" : "draft",
+      prompt: op.prompt,
+      provider: op.provider,
+      model: op.model,
+      voice: op.voice,
+      width: op.width,
+      height: op.height,
+      aspectRatio: op.aspectRatio,
+      resolution: op.resolution
+    });
+    scope.clips.push(clip);
+    state.selectedClipIds = [clip.id];
+    scope.touch(clip.id);
+    const result: {
+      ok: true;
+      clip: ReturnType<OpScope["clipOut"]>;
+      generationStarted: boolean;
+      note?: string;
+    } = { ok: true, clip: scope.clipOut(clip), generationStarted };
+    if (!generationStarted) {
+      result.note = "Generation not started (autoGenerate=false).";
+    }
+    return result;
+  },
+
+  split_clip: (scope, op) => {
+    const state = scope.state;
+    const clip = scope.resolveClip(op.target);
+    const at = op.atMs ?? state.playheadMs;
+    if (at <= clip.startMs || at >= clip.startMs + clip.durationMs) {
+      throw new Error(`Split time ${at}ms is outside clip "${clip.name}".`);
+    }
+    const targets = scope
+      .editTargets(clip)
+      .filter(
+        (target) =>
+          at > target.startMs && at < target.startMs + target.durationMs
+      );
+    const leftLink = targets.length > 1 ? scope.ctx.newId("link") : undefined;
+    const rightLink = targets.length > 1 ? scope.ctx.newId("link") : undefined;
+    const halves: TimelineClip[] = [];
+    for (const target of targets) {
+      const [cutLeft, cutRight] = splitClip(target, at);
+      cutLeft.id = scope.ctx.newId("clip");
+      cutRight.id = scope.ctx.newId("clip");
+      if (targets.length > 1) {
+        cutLeft.linkId = leftLink;
+        cutRight.linkId = rightLink;
+      }
+      const split = splitClipMediaTracks(
+        scope.mediaTracks,
+        target.id,
+        cutLeft,
+        cutRight,
+        () => scope.ctx.newId("track")
+      );
+      const { left, right } = split;
+      scope.mediaTracks = split.mediaTracks;
+      const idx = scope.clips.findIndex((c) => c.id === target.id);
+      scope.clips.splice(idx, 1, left, right);
+      state.selectedClipIds = state.selectedClipIds.filter(
+        (id) => id !== target.id
+      );
+      scope.touch(target.id, left.id, right.id);
+      halves.push(left, right);
+    }
+    return { ok: true, clips: halves.map((half) => scope.clipOut(half)) };
+  },
+
+  trim_clip: async (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    const trimmed = scope.applyTrim(
+      clip,
+      {
+        durationMs: op.durationMs,
+        inPointMs: op.inPointMs,
+        outPointMs: op.outPointMs
+      },
+      await scope.sourceLimitMs(clip)
+    );
+    scope.mediaTracks = resliceTracksForTrimmedClip(scope.mediaTracks, trimmed);
+    return { ok: true, clip: scope.clipOut(trimmed) };
+  },
+
+  move_clip: (scope, op) => {
+    const moved = scope.applyMove(scope.resolveClip(op.target), {
+      startMs: op.startMs,
+      trackId: op.trackId
+    });
+    return { ok: true, clip: scope.clipOut(moved) };
+  },
+
+  delete_clip: (scope, op) => {
+    const state = scope.state;
+    const clip = scope.resolveClip(op.target);
+    scope.editTargets(clip);
+    // Deleting a group deletes the parent, not the picture: its children stay
+    // where they are and stop inheriting (D4). Leaving them with a `parentId`
+    // nothing answers is what the validator calls a dangling parent.
+    const wasChild = scope.clips
+      .filter((c) => c.parentId === clip.id)
+      .map((c) => c.id);
+    const remaining = isGroupClip(clip)
+      ? ungroup(scope.clips, clip.id)
+      : scope.clips;
+    const out = scope.clipOut(clip);
+    scope.clips = remaining.filter((c) => c.id !== clip.id);
+    if (clip.linkId) {
+      const remainingLinked = scope.clips.filter(
+        (candidate) => candidate.linkId === clip.linkId
+      );
+      if (remainingLinked.length === 1) {
+        delete remainingLinked[0].linkId;
+        scope.touch(remainingLinked[0].id);
+      }
+    }
+    state.selectedClipIds = state.selectedClipIds.filter(
+      (id) => id !== clip.id
+    );
+    scope.touch(clip.id, ...wasChild);
+    return { ok: true, deleted: out };
+  },
+
+  duplicate_clip: (scope, op) => {
+    const src = scope.resolveClip(op.target);
+    const offsetMs = src.durationMs + (op.gapMs ?? 0);
+    if (!Number.isFinite(offsetMs) || src.startMs + offsetMs < 0) {
+      throw new Error(
+        `gapMs ${op.gapMs} would place the copy of "${src.name}" before zero.`
+      );
+    }
+    // A group's copy carries copies of what it holds, at the same offset, so
+    // the duplicate draws what the original draws.
+    const descendants = isGroupClip(src)
+      ? groupDescendantIds(scope.clips, src.id)
+      : new Set<string>();
+    const sources = [
+      src,
+      ...scope.clips.filter((clip) => descendants.has(clip.id))
+    ];
+    for (const clip of sources) {
+      scope.assertWritable([], clip.trackId);
+    }
+    const freshIds = new Map(
+      sources.map((clip) => [clip.id, scope.ctx.newId("clip")])
+    );
+    // A link whose members are all copied stays a link among the copies,
+    // under a fresh id; a lone half is copied unlinked.
+    const linkCounts = new Map<string, number>();
+    for (const clip of sources) {
+      if (clip.linkId !== undefined && clip.id !== src.id) {
+        linkCounts.set(clip.linkId, (linkCounts.get(clip.linkId) ?? 0) + 1);
+      }
+    }
+    const freshLinks = new Map<string, string>();
+    const copies = sources.map((clip) => {
+      const copy = structuredClone(clip);
+      copy.id = freshIds.get(clip.id)!;
+      copy.startMs += offsetMs;
+      copy.locked = false;
+      if (copy.parentId !== undefined && clip.id !== src.id) {
+        copy.parentId = freshIds.get(copy.parentId) ?? copy.parentId;
+      }
+      const linkId = clip.linkId;
+      if (
+        linkId !== undefined &&
+        clip.id !== src.id &&
+        (linkCounts.get(linkId) ?? 0) >= 2
+      ) {
+        let fresh = freshLinks.get(linkId);
+        if (fresh === undefined) {
+          fresh = scope.ctx.newId("link");
+          freshLinks.set(linkId, fresh);
+        }
+        copy.linkId = fresh;
+      } else {
+        delete copy.linkId;
+      }
+      // A generated clip's copy is a variation to regenerate, so it starts
+      // as a draft. Imported media keeps its asset and draws the same frames.
+      if (clip.sourceType === "generated") {
+        copy.status = "draft";
+        copy.versions = [];
+        delete copy.currentAssetId;
+        delete copy.lastGeneratedHash;
+        delete copy.activeTakeId;
+      }
+      copy.animations = copy.animations?.map((animation) => ({
+        ...animation,
+        id: scope.ctx.newId("anim")
+      }));
+      return copy;
+    });
+    scope.clips.push(...copies);
+    scope.touch(...copies.map((copy) => copy.id));
+    const result: TimelineOpResult = {
+      ok: true,
+      clip: scope.clipOut(copies[0]!)
+    };
+    if (copies.length > 1) {
+      result.children = copies.slice(1).map((copy) => copy.id);
+    }
+    return result;
+  },
+
+  set_clip_params: async (scope, op) => {
+    let clip = scope.resolveClip(op.target);
+    const patch = { ...op.patch };
+    rejectUnknownClipParams(patch);
+    // Timing belongs to move_clip and trim_clip, but a caller sending it here
+    // means one edit either way — so apply it through the same code rather
+    // than dropping it or making them call twice.
+    clip = scope.applyTrim(
+      clip,
+      {
+        durationMs: patch.durationMs,
+        inPointMs: patch.inPointMs,
+        outPointMs: patch.outPointMs
+      },
+      patch.durationMs === undefined && patch.outPointMs === undefined
+        ? undefined
+        : await scope.sourceLimitMs(clip)
+    );
+    clip = scope.applyMove(clip, {
+      startMs: patch.startMs,
+      trackId: patch.trackId
+    });
+    if (patch.fontSizePx !== undefined) {
+      // Shorthand for the one text field callers reach for by name.
+      const style = patch.textStyle ?? clip.textStyle;
+      if (!style) {
+        throw new Error(
+          `Clip "${clip.name}" carries no text to size; fontSizePx applies to a text clip's textStyle.`
+        );
+      }
+      patch.textStyle = { ...style, fontSizePx: patch.fontSizePx };
+    }
+    if (patch.name !== undefined) {
+      clip.name = patch.name;
+    }
+    if (patch.opacity !== undefined) {
+      clip.opacity = patch.opacity;
+    }
+    if (patch.transform !== undefined) {
+      clip.transform = mergeClipTransform(clip.transform, patch.transform);
+    }
+    if (patch.speedMultiplier !== undefined) {
+      // The editor's rule: the source window stays, the duration scales, and
+      // linked partners change speed with the clip.
+      const unit = scope.editTargets(clip);
+      scope.clips = retimeClipSpeed(
+        scope.clips,
+        new Set(unit.map((member) => member.id)),
+        patch.speedMultiplier
+      );
+      for (const member of unit) {
+        scope.touch(member.id);
+      }
+      clip = scope.resolveClip(clip.id);
+    }
+    if (patch.volumeDb !== undefined) {
+      clip.volumeDb = patch.volumeDb;
+    }
+    if (patch.fadeInMs !== undefined) {
+      clip.fadeInMs = patch.fadeInMs;
+    }
+    if (patch.fadeOutMs !== undefined) {
+      clip.fadeOutMs = patch.fadeOutMs;
+    }
+    if (patch.fadeInShape !== undefined) {
+      clip.fadeInShape = patch.fadeInShape;
+    }
+    if (patch.fadeOutShape !== undefined) {
+      clip.fadeOutShape = patch.fadeOutShape;
+    }
+    if (patch.audioEffects !== undefined) {
+      clip.audioEffects = patch.audioEffects;
+    }
+    if (patch.blendMode !== undefined) {
+      clip.blendMode = patch.blendMode as TimelineClip["blendMode"];
+    }
+    if (patch.borderRadius !== undefined) {
+      clip.borderRadius = patch.borderRadius;
+    }
+    if (patch.crop !== undefined) {
+      // Null is how a caller puts the whole source back; leaving the field
+      // with all-zero insets would store a crop that means nothing.
+      if (patch.crop === null) {
+        delete clip.crop;
+      } else {
+        if (!isCropUsable(patch.crop)) {
+          throw new Error(
+            `Crop on clip "${clip.name}" keeps no picture: left + right and ` +
+              "top + bottom must each stay below 1."
+          );
+        }
+        clip.crop = patch.crop;
+      }
+    }
+    if (patch.hidden !== undefined) {
+      clip.hidden = patch.hidden;
+    }
+    if (patch.muted !== undefined) {
+      clip.muted = patch.muted;
+    }
+    if (patch.locked !== undefined) {
+      clip.locked = patch.locked;
+    }
+    if (patch.textStyle !== undefined) {
+      const parsed = textStyleParams.safeParse({
+        color: DEFAULT_TEXT_CLIP_COLOR,
+        ...clip.textStyle,
+        ...patch.textStyle
+      });
+      if (!parsed.success) {
+        throw new Error(
+          `Clip "${clip.name}" has no text style yet, so this patch still needs ${parsed.error.issues.map((issue) => issue.path.join(".")).join(", ")}.`
+        );
+      }
+      assertAuthorableFontFamily(parsed.data.fontFamily);
+      clip.textStyle = parsed.data;
+    }
+    if (patch.shapeStyle !== undefined) {
+      clip.shapeStyle = shapeStyleWithDefaults(patch.shapeStyle);
+    }
+    if (patch.captionStyle !== undefined) {
+      // The style rides on the clip's caption, so a clip with no words to
+      // draw has nowhere to put it. Say so rather than storing a look nothing
+      // renders.
+      if (!clip.caption) {
+        throw new Error(`Clip "${clip.name}" carries no caption to style.`);
+      }
+      clip.caption = { ...clip.caption, style: patch.captionStyle };
+    }
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  set_parent: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    scope.assertWritable([clip]);
+    scope.touch(clip.id);
+    if (op.parentId === null) {
+      delete clip.parentId;
       return { ok: true, clip: scope.clipOut(clip) };
     }
+    const parent = scope.resolveClip(op.parentId);
+    if (parent.mediaType !== "group") {
+      throw new Error(
+        `"${parent.name}" is a ${parent.mediaType} clip, not a group — parent to a clip created with add_group. ${scope.validUnits(
+          scope.clips.filter((c) => c.mediaType === "group"),
+          "group"
+        )}`
+      );
+    }
+    // A cycle renders unparented and warns, so refusing it here is the only
+    // place it can still be fixed.
+    let cursor: TimelineClip | undefined = parent;
+    while (cursor) {
+      if (cursor.id === clip.id) {
+        throw new Error(
+          `"${parent.name}" is inside "${clip.name}" — parenting them would make a cycle.`
+        );
+      }
+      const next: string | undefined = cursor.parentId;
+      cursor = next ? scope.clips.find((c) => c.id === next) : undefined;
+    }
+    clip.parentId = parent.id;
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
 
-    case "list_animation_presets": {
-      const presets = ANIMATION_PRESETS.map((p) => ({
-        id: p.id,
-        roles: p.roles,
-        defaultDurationMs: p.defaultDurationMs,
-        defaultEasing: p.defaultEasing,
-        params: p.params,
-        describe: p.describe
-      }));
+  set_transition: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    scope.assertWritable([clip]);
+    if (op.transition === null) {
+      delete clip.transitionIn;
+    } else {
+      clip.transitionIn = buildTransition(op.transition);
+    }
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  apply_transition_at_cut: async (scope, op) => {
+    const outgoing = scope.resolveClip(op.outgoingClipId);
+    const incoming = scope.resolveClip(op.incomingClipId);
+    const planned = planTransitionAtCut(scope.clips, {
+      ...op,
+      outgoingClipId: outgoing.id,
+      incomingClipId: incoming.id
+    });
+    if (!planned.ok) {
+      throw new Error(planned.error);
+    }
+    scope.assertWritable([incoming]);
+    // The outgoing clip grows under the transition with the partners that
+    // end with it, so each is a write the lock refuses. Like the editor, it
+    // is capped at a source length the host knows and free otherwise.
+    const growth = transitionGrowthMs(
+      outgoing,
+      incoming,
+      transitionLengthAtCut(outgoing, incoming, planned.candidate.durationMs)
+    );
+    const unit = growth > 0 ? transitionGrowthUnit(scope.clips, outgoing) : [];
+    scope.assertWritable(unit);
+    const limits = new Map<string, number | undefined>();
+    for (const member of unit) {
+      limits.set(member.id, await scope.knownSourceMs(member));
+    }
+    const applied = applyTransitionAtCutCandidate(
+      scope.clips,
+      planned.candidate,
+      { sourceDurationMs: (clip) => limits.get(clip.id) }
+    );
+    if (!applied.ok) {
+      throw new Error(applied.error);
+    }
+    const before = new Map(scope.clips.map((clip) => [clip.id, clip]));
+    scope.clips = applied.clips;
+    for (const clip of scope.clips) {
+      if (before.get(clip.id) !== clip) {
+        scope.mediaTracks = resliceTracksForTrimmedClip(
+          scope.mediaTracks,
+          clip
+        );
+        scope.touch(clip.id);
+      }
+    }
+    return {
+      ok: true,
+      candidate: planned.candidate,
+      operation: planned.candidate.operation,
+      description: applied.description
+    };
+  },
+
+  set_mask: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    if (op.mask === null) {
+      delete clip.mask;
+    } else {
+      if (op.mask.kind === "path" && !op.mask.d?.trim()) {
+        throw new Error("A path mask needs `d` with SVG path data.");
+      }
+      clip.mask = buildMask(op.mask, scope.ctx.parseSvgPath);
+    }
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  set_matte: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    scope.touch(clip.id);
+    if (op.matte === null) {
+      delete clip.matte;
+      return { ok: true, clip: scope.clipOut(clip) };
+    }
+    const source = scope.resolveClip(op.matte.source);
+    if (source.id === clip.id) {
+      throw new Error(
+        `"${clip.name}" cannot be its own matte source — name another clip.`
+      );
+    }
+    const matteOut: NonNullable<TimelineClip["matte"]> = {
+      sourceClipId: source.id,
+      mode: op.matte.mode
+    };
+    if (op.matte.invert !== undefined) {
+      matteOut.invert = op.matte.invert;
+    }
+    clip.matte = matteOut;
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  set_generated_matte: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    scope.touch(clip.id);
+    if (op.clear === true) {
+      delete clip.generatedMatte;
+      return { ok: true, clip: scope.clipOut(clip), generatedMatte: null };
+    }
+    if (!clip.generatedMatte) {
+      throw new Error(
+        `"${clip.name}" carries no generated matte. Run isolate_subject on ` +
+          "it first; this op only adjusts one that exists."
+      );
+    }
+    if (op.selectVersionAssetId !== undefined) {
+      clip.generatedMatte = selectGeneratedMatteVersion(
+        clip,
+        op.selectVersionAssetId
+      ).generatedMatte;
+    }
+    // The knobs are the user's, so an absent field leaves the stored value
+    // alone rather than resetting it to a default the caller did not name.
+    const matte = clip.generatedMatte!;
+    if (op.invert !== undefined) {
+      matte.invert = op.invert;
+    }
+    if (op.strength !== undefined) {
+      matte.strength = Math.min(1, Math.max(0, op.strength));
+    }
+    if (op.featherPx !== undefined) {
+      matte.featherPx = Math.max(0, op.featherPx);
+    }
+    return { ok: true, clip: scope.clipOut(clip), generatedMatte: matte };
+  },
+
+  set_time_remap: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    scope.assertWritable([clip]);
+    if (op.timeRemap === null) {
+      delete clip.timeRemap;
+    } else {
+      clip.timeRemap = buildTimeRemap(op.timeRemap);
+    }
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  set_effects: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    const list = op.effects.map(buildEffect);
+    if (list.length === 0) {
+      delete clip.effects;
+    } else {
+      clip.effects = list;
+    }
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  set_clip_binding: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    if (clip.sourceType !== "generated") {
+      throw new Error(
+        `"${clip.name}" is not a generated clip — ui_timeline_set_clip_binding only applies to clips created with ui_timeline_generate_clip.`
+      );
+    }
+    if (op.prompt !== undefined) {
+      clip.prompt = op.prompt;
+    }
+    if (op.negativePrompt !== undefined) {
+      clip.negativePrompt = op.negativePrompt;
+    }
+    if (op.provider !== undefined) {
+      clip.provider = op.provider;
+    }
+    if (op.model !== undefined) {
+      clip.model = op.model;
+    }
+    if (op.voice !== undefined) {
+      clip.voice = op.voice;
+    }
+    if (op.width !== undefined) {
+      clip.width = op.width;
+    }
+    if (op.height !== undefined) {
+      clip.height = op.height;
+    }
+    if (op.aspectRatio !== undefined) {
+      clip.aspectRatio = op.aspectRatio;
+    }
+    if (op.resolution !== undefined) {
+      clip.resolution = op.resolution;
+    }
+    if (op.strength !== undefined) {
+      clip.strength = op.strength;
+    }
+    if (op.numInferenceSteps !== undefined) {
+      clip.numInferenceSteps = op.numInferenceSteps;
+    }
+    if (op.seed !== undefined) {
+      clip.seed = op.seed;
+    }
+    const bindingChanged = Object.keys(op).some(
+      (key) =>
+        key !== "op" &&
+        key !== "target" &&
+        key !== "regenerate" &&
+        op[key as keyof typeof op] !== undefined
+    );
+    if (bindingChanged && (clip.lastGeneratedHash || clip.currentAssetId)) {
+      clip.status = "stale";
+    }
+    scope.touch(clip.id);
+    // No op starts a generation job: the browser runs one itself after this
+    // edit lands. Marking the clip queued here would promise a job that no
+    // runner on this surface will ever start.
+    if (op.regenerate) {
       return {
         ok: true,
-        presets,
-        custom: CUSTOM_ANIMATION_CONTRACT,
-        properties: CUSTOM_ANIMATION_CONTRACT.properties
+        clip: scope.clipOut(clip),
+        regenerationStarted: false,
+        note: "The binding was saved, but this surface cannot run generation jobs. Regenerate the clip from the timeline editor."
       };
     }
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
 
-    case "select_clip": {
-      if (!op.target) {
-        state.selectedClipIds = [];
-        return { ok: true, selected: null };
+  animate_clip: async (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    if (
+      clip.mediaType !== "text" &&
+      op.animations.some((input) => input.stagger !== undefined)
+    ) {
+      throw new Error(
+        `Stagger applies only to text clips; "${clip.name}" is ${clip.mediaType}.`
+      );
+    }
+    const built: ClipAnimation[] = [];
+    for (const input of op.animations) {
+      if (input.preset === CUSTOM_ANIMATION_PRESET_ID) {
+        // `{preset: "custom", custom: {curves}}` reads as naturally as the
+        // flat form, so lift it rather than refusing it.
+        built.push(await buildCustomAnimation(scope, clip, liftCustom(input)));
+        continue;
       }
-      const clip = scope.resolveClip(op.target);
-      state.selectedClipIds = [clip.id];
-      return { ok: true, selected: scope.clipOut(clip) };
+      const preset = ANIMATION_PRESETS.find((p) => p.id === input.preset);
+      if (!preset) {
+        const ids = ANIMATION_PRESETS.map((p) => p.id).join(", ");
+        throw new Error(
+          `Unknown animation preset "${input.preset}". Valid presets: ${ids}, ${CUSTOM_ANIMATION_PRESET_ID}.`
+        );
+      }
+      if (!preset.roles.includes(input.role)) {
+        throw new Error(
+          `Preset "${input.preset}" does not support role "${input.role}". Valid roles for "${input.preset}": ${preset.roles.join(", ")}.`
+        );
+      }
+      if (input.preset === "typewriter" && clip.mediaType !== "text") {
+        throw new Error('Preset "typewriter" requires a text clip.');
+      }
+      const timing =
+        input.preset === "typewriter"
+          ? typewriterTiming(
+              clip.textStyle?.text ?? "",
+              clip.durationMs - (input.delayMs ?? 0),
+              input.durationMs,
+              input.stagger
+            )
+          : null;
+      built.push({
+        id: scope.ctx.newId("anim"),
+        role: input.role,
+        enabled: input.enabled,
+        preset: input.preset,
+        durationMs:
+          timing?.durationMs ?? input.durationMs ?? preset.defaultDurationMs,
+        delayMs: input.delayMs,
+        easing: input.easing,
+        params: input.params,
+        stagger: timing?.stagger ?? input.stagger,
+        caret: input.preset === "typewriter" ? input.caret : undefined
+      });
     }
+    clip.animations =
+      op.mode === "add" ? [...(clip.animations ?? []), ...built] : built;
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
 
-    case "seek": {
-      state.playheadMs = Math.max(0, op.timeMs);
-      return { ok: true, playheadMs: state.playheadMs };
+  set_baked_animation: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    const outcome = buildBakedAnimation(clip, op.animation, () =>
+      scope.ctx.newId("anim")
+    );
+    clip.animations = outcome.animations;
+    scope.touch(clip.id);
+    return {
+      ok: true,
+      clip: scope.clipOut(clip),
+      animationId: outcome.animationId,
+      keyframeCount: outcome.animation.custom?.curves[0]?.keyframes.length ?? 0,
+      replaced: outcome.replaced
+    };
+  },
+
+  clear_animations: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    clip.animations = op.role
+      ? (clip.animations ?? []).filter((a) => a.role !== op.role)
+      : [];
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  list_animation_presets: (_scope) => {
+    const presets = ANIMATION_PRESETS.map((p) => ({
+      id: p.id,
+      roles: p.roles,
+      defaultDurationMs: p.defaultDurationMs,
+      defaultEasing: p.defaultEasing,
+      params: p.params,
+      describe: p.describe
+    }));
+    return {
+      ok: true,
+      presets,
+      custom: CUSTOM_ANIMATION_CONTRACT,
+      properties: CUSTOM_ANIMATION_CONTRACT.properties
+    };
+  },
+
+  select_clip: (scope, op) => {
+    const state = scope.state;
+    if (!op.target) {
+      state.selectedClipIds = [];
+      return { ok: true, selected: null };
     }
+    const clip = scope.resolveClip(op.target);
+    state.selectedClipIds = [clip.id];
+    return { ok: true, selected: scope.clipOut(clip) };
+  },
 
-    case "add_marker": {
-      if (op.timeMs < 0) {
-        throw new Error(`A marker cannot sit before zero; got ${op.timeMs}ms.`);
+  seek: (scope, op) => {
+    const state = scope.state;
+    state.playheadMs = Math.max(0, op.timeMs);
+    return { ok: true, playheadMs: state.playheadMs };
+  },
+
+  add_marker: (scope, op) => {
+    const state = scope.state;
+    if (op.timeMs < 0) {
+      throw new Error(`A marker cannot sit before zero; got ${op.timeMs}ms.`);
+    }
+    const marker: TimelineMarker = {
+      id: scope.ctx.newId("marker"),
+      timeMs: Math.round(op.timeMs),
+      label: op.label ?? ""
+    };
+    if (op.color !== undefined) {
+      marker.color = op.color;
+    }
+    if (op.note !== undefined) {
+      marker.note = op.note;
+    }
+    state.markers.push(marker);
+    return { ok: true, marker: { ...marker } };
+  },
+
+  delete_marker: (scope, op) => {
+    const state = scope.state;
+    const marker = scope.resolveMarker(op.target);
+    state.markers = state.markers.filter((m) => m.id !== marker.id);
+    return { ok: true, deleted: { ...marker } };
+  },
+
+  set_markers_from_beats: (scope, op) => {
+    const state = scope.state;
+    const grid = buildBeatGrid({
+      onsetsMs: op.onsets_ms,
+      bpm: op.bpm,
+      offsetMs: op.offset_ms,
+      count: op.count
+    });
+    const stem = (op.label ?? "Beat").trim() || "Beat";
+    const taken = new Set(state.markers.map((m) => m.timeMs));
+    const added: TimelineMarker[] = [];
+    const skipped: number[] = [];
+    for (const [index, timeMs] of grid.entries()) {
+      if (taken.has(timeMs)) {
+        skipped.push(timeMs);
+        continue;
       }
       const marker: TimelineMarker = {
         id: scope.ctx.newId("marker"),
-        timeMs: Math.round(op.timeMs),
-        label: op.label ?? ""
+        timeMs,
+        label: `${stem} ${index + 1}`
       };
-      if (op.color !== undefined) {
-        marker.color = op.color;
-      }
-      if (op.note !== undefined) {
-        marker.note = op.note;
-      }
       state.markers.push(marker);
-      return { ok: true, marker: { ...marker } };
+      taken.add(timeMs);
+      added.push(marker);
     }
+    return {
+      ok: true,
+      grid: {
+        count: grid.length,
+        firstMs: grid[0],
+        lastMs: grid[grid.length - 1]
+      },
+      added: added.map((m) => ({ ...m })),
+      skipped_times_ms: skipped,
+      markers: state.markers.length
+    };
+  },
 
-    case "delete_marker": {
-      const marker = scope.resolveMarker(op.target);
-      state.markers = state.markers.filter((m) => m.id !== marker.id);
-      return { ok: true, deleted: { ...marker } };
-    }
-
-    case "set_markers_from_beats": {
-      const grid = buildBeatGrid({
-        onsetsMs: op.onsets_ms,
-        bpm: op.bpm,
-        offsetMs: op.offset_ms,
-        count: op.count
-      });
-      const stem = (op.label ?? "Beat").trim() || "Beat";
-      const taken = new Set(state.markers.map((m) => m.timeMs));
-      const added: TimelineMarker[] = [];
-      const skipped: number[] = [];
-      for (const [index, timeMs] of grid.entries()) {
-        if (taken.has(timeMs)) {
-          skipped.push(timeMs);
-          continue;
+  snap_to_beats: (scope, op) => {
+    const named =
+      op.targets === undefined || op.targets === "all" ? undefined : op.targets;
+    const resolved = scope.resolveSnapTargets(named);
+    const missing = resolved.missing;
+    // Each clip is snapped through move/trim, which carry a group's children
+    // and a link's partners. Snapping those as well would move them again,
+    // so one root per group and per link is snapped and the rest follow it.
+    const targetedIds = new Set(resolved.clips.map((clip) => clip.id));
+    const parentOf = new Map(
+      scope.clips.map((clip) => [clip.id, clip.parentId])
+    );
+    const followLinks = scope.ctx.followLinks !== false;
+    const seenLinks = new Set<string>();
+    const targeted = resolved.clips.filter((clip) => {
+      const visited = new Set<string>();
+      let parentId = clip.parentId;
+      while (parentId !== undefined && !visited.has(parentId)) {
+        if (targetedIds.has(parentId)) {
+          return false;
         }
-        const marker: TimelineMarker = {
-          id: scope.ctx.newId("marker"),
-          timeMs,
-          label: `${stem} ${index + 1}`
-        };
-        state.markers.push(marker);
-        taken.add(timeMs);
-        added.push(marker);
+        visited.add(parentId);
+        parentId = parentOf.get(parentId);
       }
-      return {
-        ok: true,
-        grid: {
-          count: grid.length,
-          firstMs: grid[0],
-          lastMs: grid[grid.length - 1]
-        },
-        added: added.map((m) => ({ ...m })),
-        skipped_times_ms: skipped,
-        markers: state.markers.length
-      };
-    }
+      if (followLinks && clip.linkId !== undefined) {
+        if (seenLinks.has(clip.linkId)) {
+          return false;
+        }
+        seenLinks.add(clip.linkId);
+      }
+      return true;
+    });
 
-    case "snap_to_beats": {
-      const named =
-        op.targets === undefined || op.targets === "all"
+    const offsetMs = op.offset_ms ?? 0;
+    // A tempo grid has to reach the last boundary being snapped, so its
+    // length comes from the targets rather than from the caller.
+    const reachMs = targeted.reduce(
+      (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
+      0
+    );
+    const grid = buildBeatGrid({
+      onsetsMs: op.onsets_ms,
+      bpm: op.bpm,
+      offsetMs: op.offset_ms,
+      count:
+        op.bpm === undefined
           ? undefined
-          : op.targets;
-      const resolved = scope.resolveSnapTargets(named);
-      const missing = resolved.missing;
-      // Each clip is snapped through move/trim, which carry a group's children
-      // and a link's partners. Snapping those as well would move them again,
-      // so one root per group and per link is snapped and the rest follow it.
-      const targetedIds = new Set(resolved.clips.map((clip) => clip.id));
-      const parentOf = new Map(
-        scope.clips.map((clip) => [clip.id, clip.parentId])
-      );
-      const followLinks = scope.ctx.followLinks !== false;
-      const seenLinks = new Set<string>();
-      const targeted = resolved.clips.filter((clip) => {
-        const visited = new Set<string>();
-        let parentId = clip.parentId;
-        while (parentId !== undefined && !visited.has(parentId)) {
-          if (targetedIds.has(parentId)) {
-            return false;
-          }
-          visited.add(parentId);
-          parentId = parentOf.get(parentId);
-        }
-        if (followLinks && clip.linkId !== undefined) {
-          if (seenLinks.has(clip.linkId)) {
-            return false;
-          }
-          seenLinks.add(clip.linkId);
-        }
-        return true;
-      });
+          : beatCountToCover(op.bpm, offsetMs, reachMs)
+    });
 
-      const offsetMs = op.offset_ms ?? 0;
-      // A tempo grid has to reach the last boundary being snapped, so its
-      // length comes from the targets rather than from the caller.
-      const reachMs = targeted.reduce(
-        (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
-        0
-      );
-      const grid = buildBeatGrid({
-        onsetsMs: op.onsets_ms,
-        bpm: op.bpm,
-        offsetMs: op.offset_ms,
-        count:
-          op.bpm === undefined
-            ? undefined
-            : beatCountToCover(op.bpm, offsetMs, reachMs)
-      });
+    const options: {
+      toleranceMs?: number;
+      mode?: SnapBoundaryMode;
+      action?: SnapAction;
+    } = {};
+    if (op.tolerance_ms !== undefined) {
+      options.toleranceMs = op.tolerance_ms;
+    }
+    if (op.mode !== undefined) {
+      options.mode = op.mode;
+    }
+    if (op.action !== undefined) {
+      options.action = op.action;
+    }
 
-      const options: {
-        toleranceMs?: number;
-        mode?: SnapBoundaryMode;
-        action?: SnapAction;
-      } = {};
-      if (op.tolerance_ms !== undefined) {
-        options.toleranceMs = op.tolerance_ms;
-      }
-      if (op.mode !== undefined) {
-        options.mode = op.mode;
-      }
-      if (op.action !== undefined) {
-        options.action = op.action;
-      }
+    const result = snapClipsToGrid(
+      targeted.map((clip) => ({
+        id: clip.id,
+        startMs: clip.startMs,
+        durationMs: clip.durationMs
+      })),
+      grid,
+      options
+    );
 
-      const result = snapClipsToGrid(
-        targeted.map((clip) => ({
-          id: clip.id,
-          startMs: clip.startMs,
-          durationMs: clip.durationMs
-        })),
-        grid,
-        options
-      );
-
-      const byId = new Map(targeted.map((clip) => [clip.id, clip]));
-      const reported = result.clips.map((entry) => {
-        const clip = byId.get(entry.clipId);
-        if (entry.snapped && clip) {
-          // Through the same ops the caller would use: a group carries its
-          // children (D4) and a trim carries the source points, neither of
-          // which a raw startMs/durationMs write does.
-          try {
-            if (entry.after.durationMs === entry.before.durationMs) {
-              scope.applyMove(clip, { startMs: entry.after.startMs });
-            } else {
-              // A trim moves only the edge that snapped: a snapped start is a
-              // head trim, so the in-point follows it and the out-point stays.
-              let trimmed = clip;
-              const headDelta = entry.before.startMs - entry.after.startMs;
-              if (headDelta !== 0) {
-                trimmed = scope.applyHeadTrim(trimmed, headDelta);
-              }
-              const tailDelta = entry.after.endMs - entry.before.endMs;
-              if (tailDelta !== 0) {
-                scope.applyTrim(trimmed, {
-                  durationMs: trimmed.durationMs + tailDelta
-                });
-              }
+    const byId = new Map(targeted.map((clip) => [clip.id, clip]));
+    const reported = result.clips.map((entry) => {
+      const clip = byId.get(entry.clipId);
+      if (entry.snapped && clip) {
+        // Through the same ops the caller would use: a group carries its
+        // children (D4) and a trim carries the source points, neither of
+        // which a raw startMs/durationMs write does.
+        try {
+          if (entry.after.durationMs === entry.before.durationMs) {
+            scope.applyMove(clip, { startMs: entry.after.startMs });
+          } else {
+            // A trim moves only the edge that snapped: a snapped start is a
+            // head trim, so the in-point follows it and the out-point stays.
+            let trimmed = clip;
+            const headDelta = entry.before.startMs - entry.after.startMs;
+            if (headDelta !== 0) {
+              trimmed = scope.applyHeadTrim(trimmed, headDelta);
             }
-          } catch (error) {
-            return {
-              ...entry,
-              snapped: false,
-              after: entry.before,
-              delta: { startMs: 0, endMs: 0 },
-              reason: error instanceof Error ? error.message : String(error),
-              clipName: clip.name
-            };
-          }
-        }
-        return { ...entry, clipName: clip?.name ?? null };
-      });
-
-      // A name nothing matched is a skip like any other: the caller has to see
-      // it in the same list, not infer it from a shorter one.
-      for (const target of missing) {
-        reported.push({
-          clipId: target,
-          clipName: null,
-          snapped: false,
-          before: { startMs: 0, endMs: 0, durationMs: 0 },
-          after: { startMs: 0, endMs: 0, durationMs: 0 },
-          delta: { startMs: 0, endMs: 0 },
-          reason: `no clip matches "${target}"`
-        });
-      }
-
-      return {
-        ok: true,
-        grid: {
-          count: grid.length,
-          firstMs: grid[0],
-          lastMs: grid[grid.length - 1]
-        },
-        toleranceMs: result.toleranceMs,
-        mode: result.mode,
-        action: result.action,
-        snapped: reported.filter((entry) => entry.snapped).length,
-        skipped: reported.filter((entry) => !entry.snapped).length,
-        clips: reported
-      };
-    }
-
-    case "insert_composition": {
-      const loader = scope.ctx.loadComposition;
-      if (!loader) {
-        throw new Error(
-          "This surface has no composition library, so insert_composition cannot resolve a template."
-        );
-      }
-      const composition = await loader.get(op.composition_id);
-      if (!composition) {
-        const available = await loader.listIds();
-        throw new Error(
-          `No composition with id "${op.composition_id}". ` +
-            (available.length > 0
-              ? `Available: ${available.join(", ")}.`
-              : "This install has none — save one with save_composition.")
-        );
-      }
-
-      const minted = instantiateComposition(composition, {
-        startMs: op.startMs,
-        params: op.params,
-        newId: () => scope.ctx.newId("clip")
-      });
-
-      // Template track ids are names, not document ids. Two clips overlapping
-      // on one track auto-dissolve into each other, so each template track
-      // becomes a track of its own — created front-most first, because the
-      // lowest track index draws on top (I9).
-      const templateTracks: string[] = [];
-      for (const child of composition.children) {
-        if (!templateTracks.includes(child.trackId)) {
-          templateTracks.push(child.trackId);
-        }
-      }
-      const mapped = new Map<string, string>();
-      for (const name of [...templateTracks].reverse()) {
-        const existing = scope.tracks.find(
-          (t) => t.type === "overlay" && t.name === name && !t.locked
-        );
-        mapped.set(name, (existing ?? scope.addTrack("overlay", name)).id);
-      }
-
-      // The group draws nothing, but it still occupies its track's timeline,
-      // and a group sharing a track with one of its children reads as an
-      // overlap. It gets a track named after the composition instead.
-      const groupTrack = op.trackId
-        ? scope.resolveTrack(op.trackId)
-        : (scope.tracks.find(
-            (t) =>
-              t.type === "overlay" && t.name === composition.name && !t.locked
-          ) ?? scope.addTrack("overlay", composition.name));
-      scope.assertWritable([], groupTrack.id);
-      const [group, ...children] = minted as [TimelineClip, ...TimelineClip[]];
-      group.trackId = groupTrack.id;
-      for (const [index, child] of children.entries()) {
-        child.trackId =
-          mapped.get(composition.children[index]!.trackId) ?? groupTrack.id;
-      }
-      scope.clips.push(group, ...children);
-      state.selectedClipIds = [group.id];
-      scope.touch(group.id, ...children.map((c) => c.id));
-
-      return {
-        ok: true,
-        compositionId: composition.id,
-        clip: scope.clipOut(group),
-        children: children.map((child) => scope.clipOut(child)),
-        params: group.compositionParams ?? {}
-      };
-    }
-
-    case "list_takes": {
-      const clip = scope.resolveClip(op.target);
-      const versions = clip.versions ?? [];
-      const activeId = activeTakeIdOf(clip);
-      return {
-        ok: true,
-        takes: versions.map((v) => ({
-          id: v.id,
-          label: v.label,
-          source: v.source,
-          provider: v.provider,
-          model: v.model,
-          createdAt: v.createdAt,
-          costCredits: v.costCredits,
-          durationMs: v.durationMs,
-          status: v.status,
-          favorite: v.favorite,
-          active: v.id === activeId
-        })),
-        activeTakeId: activeId ?? null
-      };
-    }
-
-    case "select_take": {
-      const clip = scope.resolveClip(op.target);
-      scope.assertWritable([clip]);
-      if (clip.mediaType === "model3d") {
-        throw new Error(
-          `Clip "${clip.name}" is a 3D clip — its version history includes ` +
-            "bake renders that must not replace the glTF source. Take " +
-            "selection is not available for model3d clips yet."
-        );
-      }
-      const version = findByIdOrShortId(clip.versions ?? [], op.takeId, "take");
-      if (!version) {
-        throw new Error(
-          `No take "${op.takeId}" on "${clip.name}". ${scope.validUnits(
-            (clip.versions ?? []).map((v) => ({
-              id: v.id,
-              name: v.label ?? v.id
-            })),
-            "take"
-          )}`
-        );
-      }
-      if (version.status !== "success") {
-        throw new Error(
-          `Take "${op.takeId}" on "${clip.name}" did not finish successfully ` +
-            `(status: ${version.status}) — only a successful take can be selected.`
-        );
-      }
-      const next = selectTake(clip, version.id);
-      scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(next) };
-    }
-
-    case "rename_take": {
-      const clip = scope.resolveClip(op.target);
-      scope.assertWritable([clip]);
-      const take = findByIdOrShortId(clip.versions ?? [], op.takeId, "take");
-      if (!take) {
-        throw new Error(
-          `No take "${op.takeId}" on "${clip.name}". ${scope.validUnits(
-            (clip.versions ?? []).map((v) => ({
-              id: v.id,
-              name: v.label ?? v.id
-            })),
-            "take"
-          )}`
-        );
-      }
-      const next = renameTakeOnClip(clip, take.id, op.label);
-      scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(next) };
-    }
-
-    case "delete_take": {
-      const clip = scope.resolveClip(op.target);
-      scope.assertWritable([clip]);
-      const take = findByIdOrShortId(clip.versions ?? [], op.takeId, "take");
-      const { clip: next, error } = deleteTakeOnClip(
-        clip,
-        take?.id ?? op.takeId
-      );
-      if (error) {
-        throw new Error(error);
-      }
-      scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(next) };
-    }
-
-    // Subject/object tracks (P0 AI Video, Phase 2). The async provider call
-    // that fills a track's samples is the `track_object` capability, not an
-    // op — these four are the structural/synchronous surface over it.
-    case "list_tracks": {
-      const clipId = op.target ? scope.resolveClip(op.target).id : undefined;
-      const tracks = scope.mediaTracks.filter(
-        (t) => clipId === undefined || t.clipId === clipId
-      );
-      return {
-        ok: true,
-        tracks: tracks.map((t) => ({
-          id: t.id,
-          clipId: t.clipId,
-          name: t.name,
-          kind: t.kind,
-          status: t.status,
-          sourceStartMs: t.sourceStartMs,
-          sourceEndMs: t.sourceEndMs,
-          sampleCount: t.samples.length,
-          confidence: t.confidence
-        }))
-      };
-    }
-
-    case "delete_track_object": {
-      const track = findByIdOrShortId(scope.mediaTracks, op.trackId, "track");
-      if (!track) {
-        throw new Error(
-          `No track "${op.trackId}". ${scope.validUnits(
-            scope.mediaTracks.map((t) => ({ id: t.id, name: t.name })),
-            "track"
-          )}`
-        );
-      }
-      scope.mediaTracks = scope.mediaTracks.filter((t) => t.id !== track.id);
-      const unboundClipIds: string[] = [];
-      scope.clips = scope.clips.map((c) => {
-        if (c.trackBinding?.trackId !== track.id) {
-          return c;
-        }
-        unboundClipIds.push(c.id);
-        const { trackBinding: _dropped, ...rest } = c;
-        return rest;
-      });
-      scope.touch(...unboundClipIds);
-      return { ok: true, deleted: { id: track.id, name: track.name } };
-    }
-
-    case "bind_to_track": {
-      const clip = scope.resolveClip(op.target);
-      const track = findByIdOrShortId(scope.mediaTracks, op.trackId, "track");
-      if (!track) {
-        throw new Error(
-          `No track "${op.trackId}". ${scope.validUnits(
-            scope.mediaTracks.map((t) => ({ id: t.id, name: t.name })),
-            "track"
-          )}`
-        );
-      }
-      if (op.mode !== "position" && op.mode !== "position_scale") {
-        throw new Error(
-          `bind_to_track mode "${op.mode}" is not implemented yet — only ` +
-            `"position" and "position_scale" affect rendering in this build. ` +
-            "The field accepts the other modes so a document can name the " +
-            "intent without a schema migration later, but binding to one " +
-            "today would be a no-op, so the call is refused instead."
-        );
-      }
-      const binding: TrackBinding = { trackId: track.id, mode: op.mode };
-      if (op.offset !== undefined) {
-        binding.offset = op.offset;
-      }
-      if (op.scale !== undefined) {
-        binding.scale = op.scale;
-      }
-      if (op.rotationOffset !== undefined) {
-        binding.rotationOffset = op.rotationOffset;
-      }
-      if (op.smoothing !== undefined) {
-        binding.smoothing = op.smoothing;
-      }
-      const next: TimelineClip = { ...clip, trackBinding: binding };
-      scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(next) };
-    }
-
-    case "unbind_track": {
-      const clip = scope.resolveClip(op.target);
-      if (!clip.trackBinding) {
-        return { ok: true, clip: scope.clipOut(clip) };
-      }
-      const { trackBinding: _dropped, ...next } = clip;
-      scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(next) };
-    }
-
-    case "add_midi_clip": {
-      const track = op.track
-        ? scope.resolveMidiTrack(op.track)
-        : scope.findOrCreateTrack("midi");
-      scope.assertWritable([], track.id);
-      const name = op.name ?? "Phrase";
-      const clip = makeClip({
-        id: scope.ctx.newId("clip"),
-        trackId: track.id,
-        name,
-        startMs: op.start_ms ?? scope.trackEndMs(track.id),
-        durationMs: op.duration_ms,
-        mediaType: "midi",
-        sourceType: "imported",
-        status: "generated",
-        notes: scope.buildNotes(op.notes, name)
-      });
-      scope.clips.push(clip);
-      scope.state.selectedClipIds = [clip.id];
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-    case "set_notes": {
-      const clip = scope.resolveMidiClip(op.clip);
-      scope.assertWritable([clip]);
-      clip.notes = scope.buildNotes(op.notes, clip.name);
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
-    }
-    case "set_tempo": {
-      const previous = resolveTempo(scope.state);
-      const tempo = {
-        bpm: op.bpm,
-        offsetMs: op.offset_ms ?? previous.offsetMs,
-        timeSignature: {
-          beatsPerBar: op.beats_per_bar ?? previous.timeSignature.beatsPerBar,
-          beatUnit: op.beat_unit ?? previous.timeSignature.beatUnit
-        }
-      };
-      scope.clips = rescaleClipsForTempo(
-        scope.clips,
-        scope.tracks,
-        previous,
-        tempo
-      );
-      scope.state.tempo = tempo;
-      const rescaledClipIds = scope.clips
-        .filter((c) => c.mediaType === "midi")
-        .map((c) => c.id);
-      scope.touch(...rescaledClipIds);
-      return { ok: true, tempo, previousTempo: previous, rescaledClipIds };
-    }
-    case "set_track_instrument": {
-      const track = scope.resolveMidiTrack(op.track);
-      scope.assertWritable([], track.id);
-      let instrument: MidiInstrument;
-      if ("preset" in op.instrument) {
-        const preset = findInstrumentPreset(op.instrument.preset);
-        if (!preset) {
-          throw new Error(
-            `No instrument preset named "${op.instrument.preset}". Valid presets: ${MIDI_INSTRUMENT_PRESETS.map((p) => `${p.id} ("${p.name}")`).join(", ")}.`
-          );
-        }
-        instrument = structuredClone(preset.instrument);
-      } else {
-        instrument = structuredClone(op.instrument);
-      }
-      if (instrument.type === "sampler" && instrument.zones.length) {
-        const resolveAsset = scope.ctx.resolveAsset;
-        if (!resolveAsset) {
-          throw new Error("Sample assets cannot be resolved on this host");
-        }
-        instrument.zones = await Promise.all(
-          instrument.zones.map(async (zone) => {
-            const asset = await resolveAsset(zone.assetId);
-            if (!asset || !asset.contentType.startsWith("audio/")) {
-              throw new Error(`Audio sample unavailable: ${zone.name}`);
-            }
-            return { ...zone, assetId: asset.id };
-          })
-        );
-      }
-      track.instrument = instrument;
-      return { ok: true, track: scope.trackOut(track) };
-    }
-    case "transpose_clip":
-    case "quantize_notes":
-    case "scale_velocity": {
-      const clip = scope.resolveMidiClip(op.clip);
-      scope.assertWritable([clip]);
-      const before = clip.notes ?? [];
-      const notes =
-        op.op === "transpose_clip"
-          ? transposeNotes(before, op.semitones)
-          : op.op === "scale_velocity"
-            ? scaleVelocity(before, op.factor)
-            : quantizeNotes(before, {
-                division: op.division,
-                strength: op.strength,
-                target: op.target,
-                // The grid is anchored at `tempo.offsetMs`, as the editor draws it.
-                phaseTick: msToTicks(
-                  resolveTempo(scope.state).offsetMs -
-                    clip.startMs +
-                    (clip.inPointMs ?? 0),
-                  resolveTempo(scope.state).bpm
-                )
+            const tailDelta = entry.after.endMs - entry.before.endMs;
+            if (tailDelta !== 0) {
+              scope.applyTrim(trimmed, {
+                durationMs: trimmed.durationMs + tailDelta
               });
-      clip.notes = notes;
-      scope.touch(clip.id);
-      const result: TimelineOpResult = {
-        ok: true,
-        clip: scope.clipOut(clip),
-        noteCount: notes.length
-      };
-      if (op.op === "quantize_notes") {
-        result.movedNoteCount = notes.filter(
-          (note, i) =>
-            note.startTick !== before[i]?.startTick ||
-            note.durationTick !== before[i]?.durationTick
-        ).length;
+            }
+          }
+        } catch (error) {
+          return {
+            ...entry,
+            snapped: false,
+            after: entry.before,
+            delta: { startMs: 0, endMs: 0 },
+            reason: error instanceof Error ? error.message : String(error),
+            clipName: clip.name
+          };
+        }
       }
-      return result;
+      return { ...entry, clipName: clip?.name ?? null };
+    });
+
+    // A name nothing matched is a skip like any other: the caller has to see
+    // it in the same list, not infer it from a shorter one.
+    for (const target of missing) {
+      reported.push({
+        clipId: target,
+        clipName: null,
+        snapped: false,
+        before: { startMs: 0, endMs: 0, durationMs: 0 },
+        after: { startMs: 0, endMs: 0, durationMs: 0 },
+        delta: { startMs: 0, endMs: 0 },
+        reason: `no clip matches "${target}"`
+      });
     }
-    case "set_reframe_subject": {
-      const clip = scope.resolveClip(op.clip_id);
+
+    return {
+      ok: true,
+      grid: {
+        count: grid.length,
+        firstMs: grid[0],
+        lastMs: grid[grid.length - 1]
+      },
+      toleranceMs: result.toleranceMs,
+      mode: result.mode,
+      action: result.action,
+      snapped: reported.filter((entry) => entry.snapped).length,
+      skipped: reported.filter((entry) => !entry.snapped).length,
+      clips: reported
+    };
+  },
+
+  insert_composition: async (scope, op) => {
+    const state = scope.state;
+    const loader = scope.ctx.loadComposition;
+    if (!loader) {
+      throw new Error(
+        "This surface has no composition library, so insert_composition cannot resolve a template."
+      );
+    }
+    const composition = await loader.get(op.composition_id);
+    if (!composition) {
+      const available = await loader.listIds();
+      throw new Error(
+        `No composition with id "${op.composition_id}". ` +
+          (available.length > 0
+            ? `Available: ${available.join(", ")}.`
+            : "This install has none — save one with save_composition.")
+      );
+    }
+
+    const minted = instantiateComposition(composition, {
+      startMs: op.startMs,
+      params: op.params,
+      newId: () => scope.ctx.newId("clip")
+    });
+
+    // Template track ids are names, not document ids. Two clips overlapping
+    // on one track auto-dissolve into each other, so each template track
+    // becomes a track of its own — created front-most first, because the
+    // lowest track index draws on top (I9).
+    const templateTracks: string[] = [];
+    for (const child of composition.children) {
+      if (!templateTracks.includes(child.trackId)) {
+        templateTracks.push(child.trackId);
+      }
+    }
+    const mapped = new Map<string, string>();
+    for (const name of [...templateTracks].reverse()) {
+      const existing = scope.tracks.find(
+        (t) => t.type === "overlay" && t.name === name && !t.locked
+      );
+      mapped.set(name, (existing ?? scope.addTrack("overlay", name)).id);
+    }
+
+    // The group draws nothing, but it still occupies its track's timeline,
+    // and a group sharing a track with one of its children reads as an
+    // overlap. It gets a track named after the composition instead.
+    const groupTrack = op.trackId
+      ? scope.resolveTrack(op.trackId)
+      : (scope.tracks.find(
+          (t) =>
+            t.type === "overlay" && t.name === composition.name && !t.locked
+        ) ?? scope.addTrack("overlay", composition.name));
+    scope.assertWritable([], groupTrack.id);
+    const [group, ...children] = minted as [TimelineClip, ...TimelineClip[]];
+    group.trackId = groupTrack.id;
+    for (const [index, child] of children.entries()) {
+      child.trackId =
+        mapped.get(composition.children[index]!.trackId) ?? groupTrack.id;
+    }
+    scope.clips.push(group, ...children);
+    state.selectedClipIds = [group.id];
+    scope.touch(group.id, ...children.map((c) => c.id));
+
+    return {
+      ok: true,
+      compositionId: composition.id,
+      clip: scope.clipOut(group),
+      children: children.map((child) => scope.clipOut(child)),
+      params: group.compositionParams ?? {}
+    };
+  },
+
+  list_takes: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    const versions = clip.versions ?? [];
+    const activeId = activeTakeIdOf(clip);
+    return {
+      ok: true,
+      takes: versions.map((v) => ({
+        id: v.id,
+        label: v.label,
+        source: v.source,
+        provider: v.provider,
+        model: v.model,
+        createdAt: v.createdAt,
+        costCredits: v.costCredits,
+        durationMs: v.durationMs,
+        status: v.status,
+        favorite: v.favorite,
+        active: v.id === activeId
+      })),
+      activeTakeId: activeId ?? null
+    };
+  },
+
+  select_take: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    scope.assertWritable([clip]);
+    if (clip.mediaType === "model3d") {
+      throw new Error(
+        `Clip "${clip.name}" is a 3D clip — its version history includes ` +
+          "bake renders that must not replace the glTF source. Take " +
+          "selection is not available for model3d clips yet."
+      );
+    }
+    const version = findByIdOrShortId(clip.versions ?? [], op.takeId, "take");
+    if (!version) {
+      throw new Error(
+        `No take "${op.takeId}" on "${clip.name}". ${scope.validUnits(
+          (clip.versions ?? []).map((v) => ({
+            id: v.id,
+            name: v.label ?? v.id
+          })),
+          "take"
+        )}`
+      );
+    }
+    if (version.status !== "success") {
+      throw new Error(
+        `Take "${op.takeId}" on "${clip.name}" did not finish successfully ` +
+          `(status: ${version.status}) — only a successful take can be selected.`
+      );
+    }
+    const next = selectTake(clip, version.id);
+    scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(next) };
+  },
+
+  rename_take: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    scope.assertWritable([clip]);
+    const take = findByIdOrShortId(clip.versions ?? [], op.takeId, "take");
+    if (!take) {
+      throw new Error(
+        `No take "${op.takeId}" on "${clip.name}". ${scope.validUnits(
+          (clip.versions ?? []).map((v) => ({
+            id: v.id,
+            name: v.label ?? v.id
+          })),
+          "take"
+        )}`
+      );
+    }
+    const next = renameTakeOnClip(clip, take.id, op.label);
+    scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(next) };
+  },
+
+  delete_take: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    scope.assertWritable([clip]);
+    const take = findByIdOrShortId(clip.versions ?? [], op.takeId, "take");
+    const { clip: next, error } = deleteTakeOnClip(clip, take?.id ?? op.takeId);
+    if (error) {
+      throw new Error(error);
+    }
+    scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(next) };
+  },
+
+  // Subject/object tracks (P0 AI Video, Phase 2). The async provider call
+  // that fills a track's samples is the `track_object` capability, not an
+  // op — these four are the structural/synchronous surface over it.
+  list_tracks: (scope, op) => {
+    const clipId = op.target ? scope.resolveClip(op.target).id : undefined;
+    const tracks = scope.mediaTracks.filter(
+      (t) => clipId === undefined || t.clipId === clipId
+    );
+    return {
+      ok: true,
+      tracks: tracks.map((t) => ({
+        id: t.id,
+        clipId: t.clipId,
+        name: t.name,
+        kind: t.kind,
+        status: t.status,
+        sourceStartMs: t.sourceStartMs,
+        sourceEndMs: t.sourceEndMs,
+        sampleCount: t.samples.length,
+        confidence: t.confidence
+      }))
+    };
+  },
+
+  delete_track_object: (scope, op) => {
+    const track = findByIdOrShortId(scope.mediaTracks, op.trackId, "track");
+    if (!track) {
+      throw new Error(
+        `No track "${op.trackId}". ${scope.validUnits(
+          scope.mediaTracks.map((t) => ({ id: t.id, name: t.name })),
+          "track"
+        )}`
+      );
+    }
+    scope.mediaTracks = scope.mediaTracks.filter((t) => t.id !== track.id);
+    const unboundClipIds: string[] = [];
+    scope.clips = scope.clips.map((c) => {
+      if (c.trackBinding?.trackId !== track.id) {
+        return c;
+      }
+      unboundClipIds.push(c.id);
+      const { trackBinding: _dropped, ...rest } = c;
+      return rest;
+    });
+    scope.touch(...unboundClipIds);
+    return { ok: true, deleted: { id: track.id, name: track.name } };
+  },
+
+  bind_to_track: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    const track = findByIdOrShortId(scope.mediaTracks, op.trackId, "track");
+    if (!track) {
+      throw new Error(
+        `No track "${op.trackId}". ${scope.validUnits(
+          scope.mediaTracks.map((t) => ({ id: t.id, name: t.name })),
+          "track"
+        )}`
+      );
+    }
+    if (op.mode !== "position" && op.mode !== "position_scale") {
+      throw new Error(
+        `bind_to_track mode "${op.mode}" is not implemented yet — only ` +
+          `"position" and "position_scale" affect rendering in this build. ` +
+          "The field accepts the other modes so a document can name the " +
+          "intent without a schema migration later, but binding to one " +
+          "today would be a no-op, so the call is refused instead."
+      );
+    }
+    const binding: TrackBinding = { trackId: track.id, mode: op.mode };
+    if (op.offset !== undefined) {
+      binding.offset = op.offset;
+    }
+    if (op.scale !== undefined) {
+      binding.scale = op.scale;
+    }
+    if (op.rotationOffset !== undefined) {
+      binding.rotationOffset = op.rotationOffset;
+    }
+    if (op.smoothing !== undefined) {
+      binding.smoothing = op.smoothing;
+    }
+    const next: TimelineClip = { ...clip, trackBinding: binding };
+    scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(next) };
+  },
+
+  unbind_track: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    if (!clip.trackBinding) {
+      return { ok: true, clip: scope.clipOut(clip) };
+    }
+    const { trackBinding: _dropped, ...next } = clip;
+    scope.clips = scope.clips.map((c) => (c.id === clip.id ? next : c));
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(next) };
+  },
+
+  add_midi_clip: (scope, op) => {
+    const track = op.track
+      ? scope.resolveMidiTrack(op.track)
+      : scope.findOrCreateTrack("midi");
+    scope.assertWritable([], track.id);
+    const name = op.name ?? "Phrase";
+    const clip = makeClip({
+      id: scope.ctx.newId("clip"),
+      trackId: track.id,
+      name,
+      startMs: op.start_ms ?? scope.trackEndMs(track.id),
+      durationMs: op.duration_ms,
+      mediaType: "midi",
+      sourceType: "imported",
+      status: "generated",
+      notes: scope.buildNotes(op.notes, name)
+    });
+    scope.clips.push(clip);
+    scope.state.selectedClipIds = [clip.id];
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  set_notes: (scope, op) => {
+    const clip = scope.resolveMidiClip(op.clip);
+    scope.assertWritable([clip]);
+    clip.notes = scope.buildNotes(op.notes, clip.name);
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  set_tempo: (scope, op) => {
+    const previous = resolveTempo(scope.state);
+    const tempo = {
+      bpm: op.bpm,
+      offsetMs: op.offset_ms ?? previous.offsetMs,
+      timeSignature: {
+        beatsPerBar: op.beats_per_bar ?? previous.timeSignature.beatsPerBar,
+        beatUnit: op.beat_unit ?? previous.timeSignature.beatUnit
+      }
+    };
+    scope.clips = rescaleClipsForTempo(
+      scope.clips,
+      scope.tracks,
+      previous,
+      tempo
+    );
+    scope.state.tempo = tempo;
+    const rescaledClipIds = scope.clips
+      .filter((c) => c.mediaType === "midi")
+      .map((c) => c.id);
+    scope.touch(...rescaledClipIds);
+    return { ok: true, tempo, previousTempo: previous, rescaledClipIds };
+  },
+
+  set_track_instrument: async (scope, op) => {
+    const track = scope.resolveMidiTrack(op.track);
+    scope.assertWritable([], track.id);
+    let instrument: MidiInstrument;
+    if ("preset" in op.instrument) {
+      const preset = findInstrumentPreset(op.instrument.preset);
+      if (!preset) {
+        throw new Error(
+          `No instrument preset named "${op.instrument.preset}". Valid presets: ${MIDI_INSTRUMENT_PRESETS.map((p) => `${p.id} ("${p.name}")`).join(", ")}.`
+        );
+      }
+      instrument = structuredClone(preset.instrument);
+    } else {
+      instrument = structuredClone(op.instrument);
+    }
+    if (instrument.type === "sampler" && instrument.zones.length) {
+      const resolveAsset = scope.ctx.resolveAsset;
+      if (!resolveAsset) {
+        throw new Error("Sample assets cannot be resolved on this host");
+      }
+      instrument.zones = await Promise.all(
+        instrument.zones.map(async (zone) => {
+          const asset = await resolveAsset(zone.assetId);
+          if (!asset || !asset.contentType.startsWith("audio/")) {
+            throw new Error(`Audio sample unavailable: ${zone.name}`);
+          }
+          return { ...zone, assetId: asset.id };
+        })
+      );
+    }
+    track.instrument = instrument;
+    return { ok: true, track: scope.trackOut(track) };
+  },
+
+  transpose_clip: runMidiNoteEdit,
+  quantize_notes: runMidiNoteEdit,
+  scale_velocity: runMidiNoteEdit,
+  set_reframe_subject: (scope, op) => {
+    const clip = scope.resolveClip(op.clip_id);
+    const track = findByIdOrShortId(
+      scope.mediaTracks.filter((t) => t.clipId === clip.id),
+      op.track_id,
+      "track"
+    );
+    if (!track) {
+      throw new Error(
+        `No track "${op.track_id}" belongs to clip "${clip.name}". ${scope.validUnits(
+          scope.mediaTracks.filter((t) => t.clipId === clip.id),
+          "track"
+        )}`
+      );
+    }
+    if (track.status !== "ready") {
+      throw new Error(
+        `Track "${track.name}" is ${track.status}; Smart Reframe can only follow a ready track.`
+      );
+    }
+    if (!mediaTrackCanDriveReframe(track) || isMediaTrackStale(track, clip)) {
+      throw new Error(
+        `Track "${track.name}" has no current analysis for clip "${clip.name}".`
+      );
+    }
+    const previous = clip.reframe ?? {
+      mode: "track"
+    };
+    clip.reframe = {
+      ...previous,
+      mode: "track",
+      trackId: track.id,
+      sourceAssetId: clip.currentAssetId,
+      safeMargin: op.safe_margin ?? previous.safeMargin,
+      smoothing: op.smoothing ?? previous.smoothing
+    };
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  add_reframe_keyframe: (scope, op) => {
+    const clip = scope.resolveClip(op.clip_id);
+    clip.reframe ??= { mode: "auto" };
+    const keyframe = {
+      sourceMs: op.source_ms,
+      x: op.x,
+      y: op.y,
+      zoom: op.zoom
+    };
+    clip.reframe = addReframeKeyframe(clip.reframe, keyframe);
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip), keyframe };
+  },
+
+  clear_reframe: (scope, op) => {
+    const clip = scope.resolveClip(op.clip_id);
+    const next = clearReframe(clip);
+    scope.replaceClip(clip, next);
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(next) };
+  },
+
+  retarget_format: async (scope, op) => {
+    // Keys and values may be short ids; the adaptation reads full ones.
+    const trackIdByClipId: Record<string, string> = {};
+    for (const [clipId, trackId] of Object.entries(op.track_ids ?? {})) {
+      const clip = findByIdOrShortId(scope.clips, clipId, "clip");
+      if (!clip) {
+        throw new Error(
+          `track_ids names unknown clip "${clipId}". ${scope.validUnits(scope.clips, "clip")}`
+        );
+      }
       const track = findByIdOrShortId(
         scope.mediaTracks.filter((t) => t.clipId === clip.id),
-        op.track_id,
+        trackId,
         "track"
       );
       if (!track) {
         throw new Error(
-          `No track "${op.track_id}" belongs to clip "${clip.name}". ${scope.validUnits(
+          `Track "${trackId}" does not belong to clip "${clip.name}". ${scope.validUnits(
             scope.mediaTracks.filter((t) => t.clipId === clip.id),
             "track"
           )}`
@@ -2795,237 +2926,145 @@ async function runOp(
       }
       if (track.status !== "ready") {
         throw new Error(
-          `Track "${track.name}" is ${track.status}; Smart Reframe can only follow a ready track.`
+          `Track "${track.name}" is ${track.status}; a format adaptation can only follow a ready track.`
         );
       }
-      if (!mediaTrackCanDriveReframe(track) || isMediaTrackStale(track, clip)) {
-        throw new Error(
-          `Track "${track.name}" has no current analysis for clip "${clip.name}".`
-        );
+      trackIdByClipId[clip.id] = track.id;
+    }
+    const now = scope.ctx.now?.() ?? new Date().toISOString();
+    const {
+      selectedClipIds: _selected,
+      playheadMs: _playhead,
+      setup: _setup,
+      ...document
+    } = scope.state;
+    const source: TimelineSequence = {
+      ...document,
+      id: scope.ctx.sequence?.id ?? "seq_eval",
+      projectId: scope.ctx.sequence?.projectId ?? "",
+      name: scope.ctx.sequence?.name ?? "Sequence",
+      durationMs: scope.clips.reduce(
+        (end, c) => Math.max(end, c.startMs + c.durationMs),
+        0
+      ),
+      createdAt: now,
+      updatedAt: now,
+      camera2d: scope.state.camera2d ?? null
+    };
+    if (scope.state.setup) {
+      source.setup = scope.state.setup;
+    }
+    const adapted = adaptSequenceFormat(source, op.aspect_ratio, {
+      strategy: op.strategy,
+      safeMargin: op.safe_margin,
+      trackIdByClipId: op.track_ids ? trackIdByClipId : undefined
+    });
+    const stored = scope.ctx.retargetFormat
+      ? await scope.ctx.retargetFormat(adapted.sequence)
+      : { sequenceId: adapted.sequence.id, name: adapted.sequence.name };
+    return {
+      ok: true,
+      sourceSequenceId: source.id,
+      sequenceId: stored.sequenceId,
+      name: stored.name ?? adapted.sequence.name,
+      width: adapted.sequence.width,
+      height: adapted.sequence.height,
+      strategy: op.strategy,
+      croppedClipIds: adapted.croppedClipIds
+    };
+  },
+
+  stagger_animations: (scope, op) => {
+    const clips = op.clip_ids.map((id) => scope.resolveClip(id));
+    const ids = clips.map((c) => c.id);
+    if (new Set(ids).size !== ids.length) {
+      throw new Error("clip_ids must contain distinct clip IDs.");
+    }
+    for (const clip of clips) {
+      if (!clip.animations?.length) {
+        throw new Error(`Clip "${clip.name}" has no animations to stagger.`);
       }
-      const previous = clip.reframe ?? {
-        mode: "track"
-      };
-      clip.reframe = {
-        ...previous,
-        mode: "track",
-        trackId: track.id,
-        sourceAssetId: clip.currentAssetId,
-        safeMargin: op.safe_margin ?? previous.safeMargin,
-        smoothing: op.smoothing ?? previous.smoothing
-      };
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip) };
     }
-    case "add_reframe_keyframe": {
-      const clip = scope.resolveClip(op.clip_id);
-      clip.reframe ??= { mode: "auto" };
-      const keyframe = {
-        sourceMs: op.source_ms,
-        x: op.x,
-        y: op.y,
-        zoom: op.zoom
-      };
-      clip.reframe = addReframeKeyframe(clip.reframe, keyframe);
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(clip), keyframe };
+    scope.clips = staggerClipAnimations(scope.clips, ids, op.offset_ms);
+    scope.touch(...ids);
+    return {
+      ok: true,
+      clips: ids.map((id) => scope.clipOut(scope.resolveClip(id)))
+    };
+  },
+
+  set_setup: (scope, op) => {
+    const previous = scope.state.setup;
+    scope.state.setup = {
+      ...previous,
+      stage: op.stage ?? previous?.stage ?? "idea",
+      brief: op.brief ?? previous?.brief ?? "",
+      format: op.format ?? previous?.format,
+      voiceover: op.voiceover ?? previous?.voiceover,
+      beats: previous?.beats
+    };
+    return { ok: true, setup: structuredClone(scope.state.setup) };
+  },
+
+  plan_beats: (scope, op) => {
+    if (!op.beats?.length) {
+      throw new Error(
+        "This surface has no Director: pass `beats` with the plan you want. Each beat needs a prompt and a durationMs."
+      );
     }
-    case "clear_reframe": {
-      const clip = scope.resolveClip(op.clip_id);
-      const next = clearReframe(clip);
-      scope.replaceClip(clip, next);
-      scope.touch(clip.id);
-      return { ok: true, clip: scope.clipOut(next) };
+    const beats = op.beats.map((beat) => ({
+      id: scope.ctx.newId("beat"),
+      prompt: beat.prompt,
+      duration_ms: Math.max(1, Math.round(beat.durationMs)),
+      transition: beat.transition,
+      voiceover: beat.voiceover,
+      music: beat.music
+    }));
+    const previous = scope.state.setup;
+    scope.state.setup = {
+      ...previous,
+      stage: "review",
+      brief: previous?.brief ?? "",
+      format: previous?.format,
+      voiceover: previous?.voiceover,
+      beats
+    };
+    return {
+      ok: true,
+      beats: structuredClone(beats),
+      clipsCreated: 0,
+      jobsStarted: 0
+    };
+  },
+
+  update_beat: runBeatEdit,
+  remove_beat: runBeatEdit,
+  generate_from_beats: async (scope, op) => {
+    if (!scope.ctx.generateFromBeats) {
+      throw new Error(
+        "This surface cannot generate from beats: no generation host is wired."
+      );
     }
-    case "retarget_format": {
-      // Keys and values may be short ids; the adaptation reads full ones.
-      const trackIdByClipId: Record<string, string> = {};
-      for (const [clipId, trackId] of Object.entries(op.track_ids ?? {})) {
-        const clip = findByIdOrShortId(scope.clips, clipId, "clip");
-        if (!clip) {
-          throw new Error(
-            `track_ids names unknown clip "${clipId}". ${scope.validUnits(scope.clips, "clip")}`
-          );
-        }
-        const track = findByIdOrShortId(
-          scope.mediaTracks.filter((t) => t.clipId === clip.id),
-          trackId,
-          "track"
-        );
-        if (!track) {
-          throw new Error(
-            `Track "${trackId}" does not belong to clip "${clip.name}". ${scope.validUnits(
-              scope.mediaTracks.filter((t) => t.clipId === clip.id),
-              "track"
-            )}`
-          );
-        }
-        if (track.status !== "ready") {
-          throw new Error(
-            `Track "${track.name}" is ${track.status}; a format adaptation can only follow a ready track.`
-          );
-        }
-        trackIdByClipId[clip.id] = track.id;
-      }
-      const now = scope.ctx.now?.() ?? new Date().toISOString();
-      const {
-        selectedClipIds: _selected,
-        playheadMs: _playhead,
-        setup: _setup,
-        ...document
-      } = scope.state;
-      const source: TimelineSequence = {
-        ...document,
-        id: scope.ctx.sequence?.id ?? "seq_eval",
-        projectId: scope.ctx.sequence?.projectId ?? "",
-        name: scope.ctx.sequence?.name ?? "Sequence",
-        durationMs: scope.clips.reduce(
-          (end, c) => Math.max(end, c.startMs + c.durationMs),
-          0
-        ),
-        createdAt: now,
-        updatedAt: now,
-        camera2d: scope.state.camera2d ?? null
-      };
-      if (scope.state.setup) {
-        source.setup = scope.state.setup;
-      }
-      const adapted = adaptSequenceFormat(source, op.aspect_ratio, {
-        strategy: op.strategy,
-        safeMargin: op.safe_margin,
-        trackIdByClipId: op.track_ids ? trackIdByClipId : undefined
-      });
-      const stored = scope.ctx.retargetFormat
-        ? await scope.ctx.retargetFormat(adapted.sequence)
-        : { sequenceId: adapted.sequence.id, name: adapted.sequence.name };
-      return {
-        ok: true,
-        sourceSequenceId: source.id,
-        sequenceId: stored.sequenceId,
-        name: stored.name ?? adapted.sequence.name,
-        width: adapted.sequence.width,
-        height: adapted.sequence.height,
-        strategy: op.strategy,
-        croppedClipIds: adapted.croppedClipIds
-      };
+    const outcome = await scope.ctx.generateFromBeats(scope.state, op);
+    if (outcome.error) {
+      throw new Error(outcome.error);
     }
-    case "stagger_animations": {
-      const clips = op.clip_ids.map((id) => scope.resolveClip(id));
-      const ids = clips.map((c) => c.id);
-      if (new Set(ids).size !== ids.length) {
-        throw new Error("clip_ids must contain distinct clip IDs.");
-      }
-      for (const clip of clips) {
-        if (!clip.animations?.length) {
-          throw new Error(`Clip "${clip.name}" has no animations to stagger.`);
-        }
-      }
-      scope.clips = staggerClipAnimations(scope.clips, ids, op.offset_ms);
-      scope.touch(...ids);
-      return {
-        ok: true,
-        clips: ids.map((id) => scope.clipOut(scope.resolveClip(id)))
-      };
-    }
-    case "set_setup": {
-      const previous = scope.state.setup;
-      scope.state.setup = {
-        ...previous,
-        stage: op.stage ?? previous?.stage ?? "idea",
-        brief: op.brief ?? previous?.brief ?? "",
-        format: op.format ?? previous?.format,
-        voiceover: op.voiceover ?? previous?.voiceover,
-        beats: previous?.beats
-      };
-      return { ok: true, setup: structuredClone(scope.state.setup) };
-    }
-    case "plan_beats": {
-      if (!op.beats?.length) {
-        throw new Error(
-          "This surface has no Director: pass `beats` with the plan you want. Each beat needs a prompt and a durationMs."
-        );
-      }
-      const beats = op.beats.map((beat) => ({
-        id: scope.ctx.newId("beat"),
-        prompt: beat.prompt,
-        duration_ms: Math.max(1, Math.round(beat.durationMs)),
-        transition: beat.transition,
-        voiceover: beat.voiceover,
-        music: beat.music
-      }));
-      const previous = scope.state.setup;
-      scope.state.setup = {
-        ...previous,
-        stage: "review",
-        brief: previous?.brief ?? "",
-        format: previous?.format,
-        voiceover: previous?.voiceover,
-        beats
-      };
-      return {
-        ok: true,
-        beats: structuredClone(beats),
-        clipsCreated: 0,
-        jobsStarted: 0
-      };
-    }
-    case "update_beat":
-    case "remove_beat": {
-      const beats = scope.state.setup?.beats ?? [];
-      const found = resolveBeatTarget(beats, op.beat);
-      const next = { ...found };
-      if (op.op === "update_beat") {
-        if (op.prompt !== undefined) {
-          next.prompt = op.prompt;
-        }
-        if (op.durationMs !== undefined) {
-          next.duration_ms = Math.max(1, Math.round(op.durationMs));
-        }
-        if (op.transition !== undefined) {
-          next.transition = op.transition ?? undefined;
-        }
-        if (op.voiceover !== undefined) {
-          next.voiceover = op.voiceover;
-        }
-        if (op.music !== undefined) {
-          next.music = op.music;
-        }
-      }
-      const previous = scope.state.setup;
-      scope.state.setup = {
-        ...previous,
-        stage: previous?.stage ?? "review",
-        brief: previous?.brief ?? "",
-        format: previous?.format,
-        voiceover: previous?.voiceover,
-        beats:
-          op.op === "remove_beat"
-            ? beats.filter((b) => b.id !== found.id)
-            : beats.map((b) => (b.id === found.id ? next : b))
-      };
-      return op.op === "remove_beat"
-        ? { ok: true, removed: { ...found } }
-        : { ok: true, beat: { ...next } };
-    }
-    case "generate_from_beats": {
-      if (!scope.ctx.generateFromBeats) {
-        throw new Error(
-          "This surface cannot generate from beats: no generation host is wired."
-        );
-      }
-      const outcome = await scope.ctx.generateFromBeats(scope.state, op);
-      if (outcome.error) {
-        throw new Error(outcome.error);
-      }
-      Object.assign(scope.state, outcome.state);
-      scope.touch(...outcome.changedClipIds);
-      return outcome.result;
-    }
-    default: {
-      const unknown = op as { op: string };
-      throw new Error(`Unknown timeline op "${unknown.op}".`);
-    }
+    Object.assign(scope.state, outcome.state);
+    scope.touch(...outcome.changedClipIds);
+    return outcome.result;
   }
+};
+
+/** Dispatch one op against `scope`. Throws on refusal; the caller maps it. */
+async function runOp(
+  scope: OpScope,
+  op: TimelineOp
+): Promise<TimelineOpResult> {
+  if (!Object.hasOwn(OP_HANDLERS, op.op)) {
+    throw new Error(`Unknown timeline op "${op.op}".`);
+  }
+  const handler = OP_HANDLERS[op.op] as OpHandler<TimelineOp["op"]>;
+  return handler(scope, op);
 }
 
 /** Deep copy of the document, so a failed op leaves the caller's state alone. */
@@ -3143,8 +3182,7 @@ function runTrackOp(scope: OpScope, op: TimelineTrackOp): TimelineOpResult {
       const onIt = scope.clips.filter((c) => c.trackId === track.id);
       if (deleteClips) {
         scope.assertWritable(onIt);
-      }
-      if (onIt.length > 0 && !deleteClips) {
+      } else if (onIt.length > 0) {
         throw new Error(
           `Track "${track.name}" still holds ${onIt.length} clip(s): ` +
             `${onIt.map((c) => c.id).join(", ")}. Move them first, or pass ` +
@@ -3172,8 +3210,9 @@ function runTrackOp(scope: OpScope, op: TimelineTrackOp): TimelineOpResult {
       for (const linkId of removedLinks) {
         const remainingLinked = scope.clips.filter((c) => c.linkId === linkId);
         if (remainingLinked.length === 1) {
-          delete remainingLinked[0]!.linkId;
-          scope.touch(remainingLinked[0]!.id);
+          const [orphan] = remainingLinked;
+          delete orphan!.linkId;
+          scope.touch(orphan!.id);
         }
       }
       // Subject tracks belong to a clip; they go with it, and a clip bound to
@@ -3185,14 +3224,14 @@ function runTrackOp(scope: OpScope, op: TimelineTrackOp): TimelineOpResult {
         scope.mediaTracks = scope.mediaTracks.filter(
           (t) => !droppedMediaTracks.has(t.id)
         );
-        for (const clip of scope.clips) {
-          if (
-            clip.trackBinding &&
-            droppedMediaTracks.has(clip.trackBinding.trackId)
-          ) {
-            delete clip.trackBinding;
-            scope.touch(clip.id);
-          }
+      }
+      for (const clip of scope.clips) {
+        if (
+          clip.trackBinding &&
+          droppedMediaTracks.has(clip.trackBinding.trackId)
+        ) {
+          delete clip.trackBinding;
+          scope.touch(clip.id);
         }
       }
       scope.touch(...removedClipIds);

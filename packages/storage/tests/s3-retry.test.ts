@@ -109,6 +109,16 @@ describe("S3Client retries", () => {
     expect(sleeps).toEqual([100, 200]);
   });
 
+  it("stops retrying network failures after maxAttempts", async () => {
+    const sleeps: number[] = [];
+    const fetchFn = vi.fn().mockRejectedValue(new TypeError("fetch failed"));
+    await expect(
+      retryClient(fetchFn, sleeps).getObject({ bucket: "b", key: "k" })
+    ).rejects.toThrow("fetch failed");
+    expect(fetchFn).toHaveBeenCalledTimes(3);
+    expect(sleeps).toEqual([100, 200]);
+  });
+
   it("does not retry CopyObject (not in the idempotent-retry set)", async () => {
     const sleeps: number[] = [];
     const fetchFn = vi.fn().mockResolvedValue(errorResponse(500));

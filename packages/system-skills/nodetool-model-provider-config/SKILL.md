@@ -1,23 +1,51 @@
 ---
 name: nodetool-model-provider-config
-description: "Configure NodeTool model providers, credentials, and model selection, including local Ollama and Hugging Face models."
+description: "Configure NodeTool model providers and API keys (list_secrets, request_secret), pick a model with find_model, or set up local Ollama, llama.cpp and Hugging Face models."
 featured: true
 ---
 
 You help users configure AI model providers and select the right models for their tasks.
 
+# In the product
+
+The agent has no shell. Configure keys and pick models with these tools:
+
+1. `list_secrets` shows which credentials are configured. It never returns a
+   value.
+2. `request_secret {key, reason, help_url}` opens a dialog where the user types
+   a missing key. The value is saved from the dialog and never passes through
+   the agent. Never ask the user to paste a key into chat. When the run has no
+   interactive client, name the missing key and point the user to
+   Settings > Secrets.
+3. `find_model {capability}` returns a real `{provider, model_id}` and a `ref`
+   to assign verbatim to a node's model property. Call it before adding any
+   generic AI node. Never write a model id from memory, including the examples
+   below.
+4. `list_provider_models {provider}` lists one provider's language models.
+
+Inside a code action the same calls are `nodetool.secrets` /
+`nodetool.settings` (load `api-settings`) and `nodetool.models` (load
+`api-models`).
+
+The `nodetool` provider is NodeTool's managed service. Its models run on
+platform keys and draw from the user's credit balance, so it needs no key of
+the user's own. Every other provider bills the user's own account.
+
 # Provider Overview
 
 | Provider | Type | Key Env Var | Models |
 |----------|------|-------------|--------|
-| **OpenAI** | Cloud | `OPENAI_API_KEY` | GPT-5.4 / GPT-5.4-mini, GPT-Image, TTS, Whisper |
-| **Anthropic** | Cloud | `ANTHROPIC_API_KEY` | Claude Sonnet 4.6, Haiku |
-| **Gemini (Google)** | Cloud | `GEMINI_API_KEY` | Gemini 2.5, Veo, Nano Banana |
-| **xAI** | Cloud | `XAI_API_KEY` | Grok 4 |
+| **OpenAI** | Cloud | `OPENAI_API_KEY` | GPT, GPT-Image, TTS, Whisper |
+| **Anthropic** | Cloud | `ANTHROPIC_API_KEY` | Claude Opus, Sonnet, Haiku |
+| **Gemini (Google)** | Cloud | `GEMINI_API_KEY` | Gemini, Veo, Nano Banana |
+| **xAI** | Cloud | `XAI_API_KEY` | Grok |
 | **Ollama** | Local | `OLLAMA_API_URL` | Qwen, Llama 3, Mistral, any GGUF. Separate install, must be running |
 | **HuggingFace** | Cloud | `HF_TOKEN` | Hosted Inference Providers |
 | **HuggingFace local** (`huggingface-local`) | Local | — | Diffusers/Transformers models via the HuggingFace Python pack |
-| **FAL** | Cloud | `FAL_API_KEY` | Fast image/video generation |
+| **NodeTool** (`nodetool`) | Cloud, managed | — (credits) | Curated models |
+| **FAL** (`fal_ai`) | Cloud | `FAL_API_KEY` | Fast image/video generation |
+| **KIE** (`kie`) | Cloud | `KIE_API_KEY` | Image, video and music models from many vendors |
+| **ElevenLabs** (`elevenlabs`) | Cloud | `ELEVENLABS_API_KEY` | TTS, voice, sound effects |
 | **Replicate** | Cloud | `REPLICATE_API_TOKEN` | Community models |
 | **Comfy Cloud** | Cloud | `COMFY_API_KEY` | No model list; runs a ComfyUI workflow on Comfy's GPUs via `lib.comfy.RunWorkflowOnCloud` |
 | **vLLM** | Local | `VLLM_BASE_URL` (required) | Self-hosted, OpenAI-compatible |
@@ -26,14 +54,19 @@ You help users configure AI model providers and select the right models for thei
 | **llama.cpp local** (`node_llama_cpp`) | Local | — | GGUF files in-process; runtime from Package Manager → Software |
 | **MLX** | Local | — | MLX Python pack, Apple Silicon only |
 
-Other registered chat providers (any of these is valid for `-p/--provider`):
+Other registered chat providers (any of these is valid for the CLI's `-p/--provider`):
 `groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `cerebras`, `alibaba`
 (`DASHSCOPE_API_KEY`, Qwen via Alibaba Cloud Model Studio), `together`,
-`openrouter`, `requesty`, `opper`, `api_route`, `codex`, `claude_agent_sdk`, `lmstudio`. Run `nodetool models
-providers` to see configured providers and `nodetool models recommended` for the
-curated model list.
+`openrouter`, `requesty`, `opper`, `api_route`, `codex`, `claude_agent_sdk`, `lmstudio`,
+`azure_openai` (`AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, models from
+`AZURE_OPENAI_DEPLOYMENTS`), `bedrock` (`BEDROCK_ACCESS_KEY_ID`,
+`BEDROCK_SECRET_ACCESS_KEY`, `BEDROCK_REGION`).
 
-# API Key Setup
+# From a shell (self-host)
+
+These run in the user's terminal, not in the product. `nodetool models
+providers` shows configured providers, `nodetool models recommended` the curated
+list, and `nodetool models by-provider <provider>` one provider's ids.
 
 ```bash
 # Via CLI (encrypted storage)
@@ -57,6 +90,9 @@ export OLLAMA_API_URL=http://localhost:11434
 ```
 
 # Model Selection by Task
+
+The tables name model families as starting points. `find_model` ranks what is
+actually available on this install and returns the exact id.
 
 ## whisper.cpp speech recognition
 
@@ -82,13 +118,13 @@ the model loaded by that server. It requires no native runtime package.
 
 ## Language / Chat
 
-| Need | Model | Provider | Notes |
-|------|-------|----------|-------|
-| Best quality | gpt-5.4, claude-sonnet-4-6 | OpenAI, Anthropic | Highest capability |
-| Good balance | gpt-5.4-mini, gemini-2.5-flash | OpenAI, Gemini | Fast + cheap |
-| Local/private | Llama 3.3 70B, Qwen 3.5 | Ollama | No data leaves machine |
-| Lightweight local | Llama 3 8B, Mistral 7B | Ollama | Low memory |
-| Code | claude-sonnet-4-6, gpt-5.4 | Anthropic, OpenAI | Best for coding |
+| Need | Family | Provider | Notes |
+|------|--------|----------|-------|
+| Best quality | GPT flagship, Claude Opus or Sonnet | OpenAI, Anthropic | Highest capability |
+| Good balance | GPT mini, Gemini Flash | OpenAI, Gemini | Fast + cheap |
+| Local/private | Llama, Qwen | Ollama | No data leaves machine |
+| Lightweight local | Small Llama, Mistral 7B | Ollama | Low memory |
+| Code | Claude Sonnet, GPT flagship | Anthropic, OpenAI | Best for coding |
 
 ## Image Generation
 
@@ -230,9 +266,35 @@ These nodes work with any provider — just select the model:
 | `nodetool.audio.TextToSpeech` | Any TTS model |
 | `nodetool.text.AutomaticSpeechRecognition` | Any ASR model |
 
-# Custom Provider Development
+# Provider Capabilities
 
-Providers extend `BaseProvider` from `@nodetool-ai/runtime` (not `@nodetool-ai/core`).
+| Capability | OpenAI | Anthropic | Google | Ollama | HF |
+|-----------|--------|-----------|--------|--------|-----|
+| Chat/Text | yes | yes | yes | yes | yes |
+| Vision | yes | yes | yes | some | yes |
+| Image Gen | yes (GPT-Image) | no | no | no | yes |
+| Video Gen | no | no | yes (Veo) | no | some |
+| TTS | yes | no | no | no | yes |
+| ASR | yes (Whisper) | no | no | no | yes |
+| Embeddings | yes | no | yes | yes | yes |
+| Tool Calling | yes | yes | yes | some | no |
+
+# Common Pitfalls
+
+- **Wrong key env var name**: Each provider has a specific name (see table above)
+- **Ollama not running**: NodeTool does not start it. Start the Ollama app or `ollama serve`
+- **Gated HF models**: Must accept terms on huggingface.co first
+- **GPU memory**: Large models need 8-24GB VRAM; use quantized versions
+- **PyTorch on the CPU despite a GPU**: the desktop app installs CUDA 12.8 for Turing (RTX 20xx) and newer (driver 570+), CUDA 12.6 for Maxwell to Volta, and CPU for Kepler, pre-RDNA 2 AMD and AMD on Windows. It also falls back to CPU, with a warning, when no GPU build resolves. A manual `pip install torch` on Linux gets CUDA 13.0, which needs driver 580+ and Turing or newer, as does the Docker worker image
+- **No local provider in the model menu**: the Python pack is missing, or `NODETOOL_PYTHON_ON_DEMAND=true` and no workflow has started the worker yet
+- **Rate limits**: Cloud providers have rate limits; implement retries or use local
+- **Model ID mismatch**: Take ids from `find_model` or `list_provider_models`, never from memory. From a shell, `nodetool models by-provider <provider>` lists them
+- **Key pasted into chat**: Use `request_secret`. A key in a chat message is stored in the thread
+
+# Repository only: custom provider
+
+This is TypeScript for contributors working in a NodeTool checkout. The
+in-product agent cannot add a provider. Providers extend `BaseProvider` from `@nodetool-ai/runtime` (not `@nodetool-ai/core`).
 Both `generateMessage` and `generateMessages` take a single **args object**.
 
 ```typescript
@@ -284,27 +346,3 @@ export class MyProvider extends BaseProvider {
 
 Register it with `registerProvider("my_provider", MyProvider)` from
 `@nodetool-ai/runtime`.
-
-# Provider Capabilities
-
-| Capability | OpenAI | Anthropic | Google | Ollama | HF |
-|-----------|--------|-----------|--------|--------|-----|
-| Chat/Text | yes | yes | yes | yes | yes |
-| Vision | yes | yes | yes | some | yes |
-| Image Gen | yes (GPT-Image) | no | no | no | yes |
-| Video Gen | no | no | yes (Veo) | no | some |
-| TTS | yes | no | no | no | yes |
-| ASR | yes (Whisper) | no | no | no | yes |
-| Embeddings | yes | no | yes | yes | yes |
-| Tool Calling | yes | yes | yes | some | no |
-
-# Common Pitfalls
-
-- **Wrong key env var name**: Each provider has a specific name (see table above)
-- **Ollama not running**: NodeTool does not start it. Start the Ollama app or `ollama serve`
-- **Gated HF models**: Must accept terms on huggingface.co first
-- **GPU memory**: Large models need 8-24GB VRAM; use quantized versions
-- **PyTorch on the CPU despite a GPU**: the desktop app installs CUDA 12.8 for Turing (RTX 20xx) and newer (driver 570+), CUDA 12.6 for Maxwell to Volta, and CPU for Kepler, pre-RDNA 2 AMD and AMD on Windows. It also falls back to CPU, with a warning, when no GPU build resolves. A manual `pip install torch` on Linux gets CUDA 13.0, which needs driver 580+ and Turing or newer, as does the Docker worker image
-- **No local provider in the model menu**: the Python pack is missing, or `NODETOOL_PYTHON_ON_DEMAND=true` and no workflow has started the worker yet
-- **Rate limits**: Cloud providers have rate limits; implement retries or use local
-- **Model ID mismatch**: Use the exact model ID from the provider (e.g., `gpt-5.4`, `claude-sonnet-4-6`) — `nodetool models by-provider <provider>` lists them

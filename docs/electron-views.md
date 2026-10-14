@@ -14,8 +14,6 @@ This page catalogs every desktop-only view with screenshots. Everything inside t
 
 A splash appears in the main window while the backend and web app come online.
 
-![Boot Message](assets/screenshots/screenshot-placeholder.svg)
-
 It shows the NodeTool logo and the latest boot message from the backend, for example "Setting up Python runtime (one-time, ~1-2 min)...", "Installing Nodetool Python packages...", or "Updating 2 package(s)...". During setup it also shows a progress bar and a carousel of supported providers with a **Get API Key** link for each. A **Show Log** toggle expands the live startup log, and a folder button opens the raw log file.
 
 If the backend fails to start, the splash shows "Backend failed to start" with the error and three buttons: **Retry start**, **Open logs**, and **Reinstall environment**.
@@ -35,7 +33,7 @@ The left rail switches between two tabs:
 
 Each list is searchable (press `/`) and has status filters such as Installed, Not installed, Updates, Enabled, and Disabled. The page remembers the last tab and category.
 
-![Package Manager](assets/screenshots/screenshot-placeholder.svg)
+![Package Manager on the Node Packs tab](assets/screenshots/packages-manager.png)
 
 When a registry pack has a newer version, a notice reading "New Nodetool packs available" appears at the bottom right with the installed and latest versions. The notice points to the Package Manager for updating.
 
@@ -47,8 +45,6 @@ See [Node Packs]({{ '/node-packs' | relative_url }}) for where packs come from a
 
 A separate window (1200×800) that shows the backend log. Open it from **Tools → Log Viewer** or the tray.
 
-![Log Viewer](assets/screenshots/screenshot-placeholder.svg)
-
 Each row is color-coded as info, warning, or error. The toolbar has a **Search logs...** box, a level filter (All, Info, Warning, Error), an auto-scroll toggle, **Copy** for the filtered rows, and **Clear**. Click a row to select it, Shift+click for a range, Ctrl/⌘+click to toggle. Selected rows are copied to the clipboard.
 
 ---
@@ -56,8 +52,6 @@ Each row is color-coded as info, warning, or error. The toolbar has a **Search l
 ## Update Notification
 
 Auto-updates are opt-in and run only in packaged builds. Turn them on in Settings. When a newer release exists, the app downloads it in the background and shows a card at the top right of the main window: "Version X is available. Downloading in the background..." with a **View Release Notes** link. Once the download finishes the card reads "Version X has been downloaded and will be installed on restart." with a **Restart to Update** button. A system notification also appears for both events.
-
-![Update Notification](assets/screenshots/screenshot-placeholder.svg)
 
 The update channel (stable or nightly) comes from the `updateChannel` setting.
 
@@ -69,13 +63,11 @@ The update channel (stable or nightly) comes from the `updateChannel` setting.
 
 A frameless, transparent, always-on-top window that loads the workflow as an app (`apps/index.html?workflow_id=...`). It opens when you run a workflow from a global workflow shortcut and the workflow's run mode is not `headless`. Headless workflows run without a window and write the last output to the clipboard.
 
-![Workflow Execution Window](assets/screenshots/screenshot-placeholder.svg)
-
 ### Mini-App Window
 
 A standard window for one workflow's mini app, opened from **Mini Apps** in the tray. It is 80% of the primary display up to 1200×900, with a minimum of 800×600, and the title is "<workflow name> - NodeTool". Closing it doesn't quit NodeTool.
 
-![Mini-App Window](assets/screenshots/screenshot-placeholder.svg)
+![A mini app in its own window](assets/screenshots/standalone-mini-app.png)
 
 ### Chat Window
 
@@ -90,8 +82,6 @@ A small window (700×420) opened from **Tools → Performance Monitor**. It show
 ## System Tray
 
 The tray icon stays running while NodeTool is active. Click or right-click it to open the menu.
-
-![Tray Menu](assets/screenshots/screenshot-placeholder.svg)
 
 From the top, the menu has:
 
@@ -117,8 +107,6 @@ On Windows, double-clicking the icon also shows the main window.
 ## Native Menu Bar
 
 The main window has a native menu bar built in `menu.ts`.
-
-![Menu Bar](assets/screenshots/screenshot-placeholder.svg)
 
 On macOS the app menu (**NodeTool**) holds the standard About, Services, Hide, Hide Others, Unhide, and **Quit** items. **Quit** uses the platform default and has no explicit accelerator.
 

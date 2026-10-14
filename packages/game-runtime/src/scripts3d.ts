@@ -30,6 +30,7 @@ export function prepareGameScripts3D(document: GameDocument3D): Promise<GameScri
     entity: { id: data.call.entityId, source: data.call.source, position: data.call.position,
       velocity: data.call.velocity, grounded: data.call.grounded,
       tags: data.call.tags, props: data.call.props, rotation: data.call.rotation, active: data.call.active },
+    ...(data.input.loaded === undefined ? undefined : { loaded: data.input.loaded }),
     ...(data.params === undefined ? undefined : { params: data.params })
   }`);
 }

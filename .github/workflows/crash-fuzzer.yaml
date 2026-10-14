@@ -44,7 +44,29 @@ on:
         default: false
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    outputs:
+      skip: ${{ steps.preflight.outputs.skip }}
+      recent-files: ${{ steps.preflight.outputs.recent-files }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - id: preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE_PATTERN: 'crash'
+        run: node .github/scripts/agent-preflight.mjs --name crash-fuzzer --title "$TITLE_PATTERN"
+
   crash-fuzzer:
+    needs: preflight
+    if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -58,21 +80,15 @@ jobs:
         working-directory: packages/node-sdk
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Node and install dependencies
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-
-      - name: Install workspace dependencies
-        working-directory: .
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+          cache: "read-only"
+          build-packages: "false"
 
       # The corpus is hermetic — it builds its own registry from seed
       # documents and resolves every workspace package from source through
@@ -141,7 +157,7 @@ jobs:
 
       - name: Upload the crash corpus report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: crash-fuzz-report
           path: |
@@ -153,21 +169,9 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      - name: Run quality checks baseline
-        if: env.FUZZ_CRASHED == '1' || env.FUZZ_SURVIVORS != '0'
-        id: pre-check
-        continue-on-error: true
-        working-directory: .
-        run: |
-          LINT_EXIT=0; TEST_EXIT=0
-          npm run lint 2>&1 || LINT_EXIT=1
-          npm run test:packages 2>&1 || TEST_EXIT=1
-          echo "LINT_PRE_EXIT=$LINT_EXIT" >> "$GITHUB_ENV"
-          echo "TEST_PRE_EXIT=$TEST_EXIT" >> "$GITHUB_ENV"
-
       - name: Run Claude Code
         if: env.FUZZ_CRASHED == '1' || env.FUZZ_SURVIVORS != '0'
-        uses: anthropics/claude-code-action@v1.0.241
+        uses: anthropics/claude-code-action@cab360f6565aa35a51d6ce9e43f1f4287c0a32ea # v1.0.241
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
@@ -175,7 +179,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing."
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing. Open the PR with the label agent:crash-fuzzer (gh pr create --label agent:crash-fuzzer). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Crash Fuzzer Follow-up
 
@@ -254,18 +258,3 @@ jobs:
             or "test: close crash-corpus gaps in <file>" (Priority 2). List each
             crash or survivor, the stack frame or branch behind it, and what now
             covers it.
-
-      - name: Post-change verification
-        if: always() && (env.FUZZ_CRASHED == '1' || env.FUZZ_SURVIVORS != '0')
-        working-directory: .
-        run: |
-          LINT_EXIT=0; TEST_EXIT=0
-          npm run lint 2>&1 || LINT_EXIT=1
-          npm run test:packages 2>&1 || TEST_EXIT=1
-
-          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
-            echo "New lint errors introduced" >> "$GITHUB_STEP_SUMMARY"; exit 1
-          fi
-          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
-            echo "New test failures introduced" >> "$GITHUB_STEP_SUMMARY"; exit 1
-          fi

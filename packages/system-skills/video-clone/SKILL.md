@@ -59,14 +59,16 @@ and nothing else, and carry on with the rest.
 ## Rebuild
 
 Map each extracted shot to one `add_shot`, keeping its duration as
-`duration_seconds` and its framing in `camera.framing` — and repeat the framing and
-camera height in the `action` text, since only `framing` reaches the still prompt.
+`duration_seconds`, its framing in `camera.framing`, its camera height in
+`camera.angle` and its move in `camera.movement`. The still prompt reads framing,
+angle and lens, and the clip prompt reads the movement, so none of them needs
+repeating in `action`.
 
 Cast before rendering: a character entity from a generated reference you show the user
 first, and a prop entity from their pack shot. Slug the shots `1a`, `2a`, … so the
 user can name one against the reference's own numbering.
 
-Then run the core loop: stills, take selection, clips.
+Then run the core loop: stills, take selection (`select_version` when the user names a take), clips.
 
 ## Brief
 

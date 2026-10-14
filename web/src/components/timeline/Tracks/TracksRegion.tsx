@@ -136,6 +136,7 @@ import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { getSourceCapMs } from "./useClipSourceDuration";
 import { buildTypedIndexMap } from "./trackVisuals";
 import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
+import { followScrollLeft } from "./followPlayhead";
 import {
   pinchMsPerPx,
   supportsWebKitGestures,
@@ -367,6 +368,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const scrollableRef = useRef<HTMLDivElement>(null);
     const headerColumnRef = useRef<HTMLDivElement>(null);
+    // The whole region, so a pinch over the ruler, a track header or the
+    // playhead zooms the timeline instead of the page.
+    const regionRef = useRef<HTMLDivElement>(null);
     const [verticalScrollTop, setVerticalScrollTop] = useState(0);
     const toolbarRef = useRef<HTMLDivElement>(null);
     const [toolbarNarrow, setToolbarNarrow] = useState(false);
@@ -508,6 +512,27 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       }
     }, [revealRequest, uiStoreApi]);
 
+    // Follow playhead: while playing, page the lanes when the playhead nears
+    // the right edge. Reads the transient time channel, so playback never
+    // re-renders the region; only a page jump moves the scroll.
+    const followPlayhead = useTimelineUIStore((s) => s.followPlayhead);
+    useEffect(() => {
+      if (!followPlayhead) return;
+      return playbackStore.getState().subscribeTime((timeMs) => {
+        const el = scrollableRef.current;
+        if (!el || !playbackStore.getState().isPlaying) return;
+        const next = followScrollLeft(
+          timeMs,
+          uiStoreApi.getState().msPerPx,
+          el.scrollLeft,
+          el.clientWidth
+        );
+        if (next !== null) {
+          el.scrollLeft = next;
+        }
+      });
+    }, [followPlayhead, playbackStore, uiStoreApi]);
+
     const handleScroll = useCallback(
       (e: React.UIEvent<HTMLDivElement>) => {
         setScrollLeftPx(e.currentTarget.scrollLeft);
@@ -574,7 +599,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     useEffect(() => {
       const el = scrollableRef.current;
-      if (!el) return;
+      const region = regionRef.current;
+      if (!el || !region) return;
 
       const flushZoom = () => {
         zoomRafIdRef.current = null;
@@ -593,9 +619,13 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         if (next === current) return;
 
         // The container rect is read at most once per flushed frame, not
-        // once per wheel event.
+        // once per wheel event. A pinch over the headers or past the lanes
+        // anchors at the nearer lanes edge.
         const rect = el.getBoundingClientRect();
-        const cursorPx = pendingZoomClientXRef.current - rect.left;
+        const cursorPx = Math.min(
+          el.clientWidth,
+          Math.max(0, pendingZoomClientXRef.current - rect.left)
+        );
         zoomAnchorRef.current = {
           timeMs: (el.scrollLeft + cursorPx) * current,
           cursorPx
@@ -603,20 +633,24 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         uiStoreApi.getState().setZoom(next);
       };
 
-      const onWheel = (e: WheelEvent) => {
-        const { zoomDelta, scrollDelta } = partitionTimelineWheel(e);
-
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          if (webkitGestureActiveRef.current) return;
-          pendingZoomFactorRef.current *= 1 + zoomDelta * ZOOM_SENSITIVITY;
-          pendingZoomClientXRef.current = e.clientX;
-          if (zoomRafIdRef.current === null) {
-            zoomRafIdRef.current = requestAnimationFrame(flushZoom);
-          }
-          return;
+      const onZoomWheel = (e: WheelEvent) => {
+        if (!e.ctrlKey && !e.metaKey) return;
+        e.preventDefault();
+        if (webkitGestureActiveRef.current) return;
+        const { zoomDelta } = partitionTimelineWheel(e);
+        // Exponential, so a large delta (a fast mouse wheel, a hard flick)
+        // zooms by a bounded factor instead of crossing zero and pinning the
+        // zoom to its limit, and equal opposite deltas cancel exactly.
+        pendingZoomFactorRef.current *= Math.exp(zoomDelta * ZOOM_SENSITIVITY);
+        pendingZoomClientXRef.current = e.clientX;
+        if (zoomRafIdRef.current === null) {
+          zoomRafIdRef.current = requestAnimationFrame(flushZoom);
         }
+      };
 
+      const onWheel = (e: WheelEvent) => {
+        if (e.ctrlKey || e.metaKey) return;
+        const { scrollDelta } = partitionTimelineWheel(e);
         if (scrollDelta !== 0) {
           // Take the gesture over so a horizontal swipe past the edge can't
           // trigger the browser's back/forward navigation.
@@ -640,8 +674,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       // the store inside flushZoom, never from this closure, so events landing
       // between renders always compute from the current scale.
       el.addEventListener("wheel", onWheel, { passive: false });
+      region.addEventListener("wheel", onZoomWheel, { passive: false });
       return () => {
         el.removeEventListener("wheel", onWheel);
+        region.removeEventListener("wheel", onZoomWheel);
         if (zoomRafIdRef.current !== null) {
           cancelAnimationFrame(zoomRafIdRef.current);
           zoomRafIdRef.current = null;
@@ -656,7 +692,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     // setZoom + `zoomAnchorRef` path, so the time under the fingers stays put.
     useEffect(() => {
       const el = scrollableRef.current;
-      if (!el || !supportsWebKitGestures(window)) return;
+      const region = regionRef.current;
+      if (!el || !region || !supportsWebKitGestures(window)) return;
 
       let startMsPerPx = 0;
       let pendingScale = 1;
@@ -676,7 +713,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         if (next === current) return;
 
         const rect = el.getBoundingClientRect();
-        const cursorPx = pendingClientX - rect.left;
+        const cursorPx = Math.min(
+          el.clientWidth,
+          Math.max(0, pendingClientX - rect.left)
+        );
         zoomAnchorRef.current = {
           timeMs: (el.scrollLeft + cursorPx) * current,
           cursorPx
@@ -717,13 +757,13 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
       // Non-passive so preventDefault() actually suppresses Safari's own page
       // zoom.
-      el.addEventListener("gesturestart", onGestureStart, { passive: false });
-      el.addEventListener("gesturechange", onGestureChange, { passive: false });
-      el.addEventListener("gestureend", endGesture, { passive: false });
+      region.addEventListener("gesturestart", onGestureStart, { passive: false });
+      region.addEventListener("gesturechange", onGestureChange, { passive: false });
+      region.addEventListener("gestureend", endGesture, { passive: false });
       return () => {
-        el.removeEventListener("gesturestart", onGestureStart);
-        el.removeEventListener("gesturechange", onGestureChange);
-        el.removeEventListener("gestureend", endGesture);
+        region.removeEventListener("gesturestart", onGestureStart);
+        region.removeEventListener("gesturechange", onGestureChange);
+        region.removeEventListener("gestureend", endGesture);
         webkitGestureActiveRef.current = false;
         if (rafId !== null) cancelAnimationFrame(rafId);
       };
@@ -853,16 +893,21 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       if (anchor) {
         zoomAnchorRef.current = null;
         el.scrollLeft = Math.max(0, anchor.timeMs / msPerPx - anchor.cursorPx);
+      } else if (prevMsPerPx !== msPerPx) {
+        // A button/slider zoom: keep the playhead at the same viewport x while
+        // the lanes rescale ("zoom into the playhead").
+        const playMs = playbackStore.getState().currentTimeMs;
+        const playheadViewportPx = playMs / prevMsPerPx - el.scrollLeft;
+        el.scrollLeft = Math.max(0, playMs / msPerPx - playheadViewportPx);
+      } else {
         return;
       }
-
-      // Otherwise this is a button/slider zoom: keep the playhead at the same
-      // viewport x while the lanes rescale ("zoom into the playhead").
-      if (prevMsPerPx === msPerPx) return;
-      const playMs = playbackStore.getState().currentTimeMs;
-      const playheadViewportPx = playMs / prevMsPerPx - el.scrollLeft;
-      el.scrollLeft = Math.max(0, playMs / msPerPx - playheadViewportPx);
-    }, [msPerPx, playbackStore]);
+      // The scroll event that normally syncs the store fires a frame later.
+      // Until then the ruler, the playhead and clip virtualization would draw
+      // the new scale at the old offset, so every pinch step jittered. Sync
+      // now, before paint, from the offset the browser actually clamped to.
+      uiStoreApi.getState().setScrollLeftPx(el.scrollLeft);
+    }, [msPerPx, playbackStore, uiStoreApi]);
 
     // Keyboard shortcuts.
     // Attached at window level so the shortcuts work regardless of which
@@ -1514,6 +1559,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             [TRACK_HEADER_WIDTH_VAR]: `${headerWidthPx}px`
           } as React.CSSProperties
         }
+        ref={regionRef}
         data-testid="tracks-region"
         aria-label="Tracks region"
       >
@@ -1554,7 +1600,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             <EditorButton
               variant="contained"
               size="small"
-              startIcon={<AutoAwesomeIcon fontSize="small" />}
+              startIcon={<AutoAwesomeIcon />}
               onClick={onGenerate}
               aria-label="Generate"
               data-testid="timeline-generate"
@@ -1793,6 +1839,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         >
           <Playhead
             heightPx={RULER_HEIGHT + lanesHeight}
+            grabTopPx={RULER_HEIGHT}
             trackAreaOffsetPx={0}
             endMs={contentEndMs}
           />

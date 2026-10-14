@@ -1,11 +1,6 @@
 import React, { useCallback, useMemo, memo } from "react";
 
-import {
-  Text,
-  Divider,
-  ContextMenu,
-  MenuItem, getSpacingPx, SPACING
-} from "../ui_primitives";
+import { Divider, ContextMenu, ListSubheader } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -101,7 +96,8 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
 
   const handleDuplicateNodes = useCallback(() => {
     duplicateNodes();
-  }, [duplicateNodes]);
+    closeContextMenu();
+  }, [duplicateNodes, closeContextMenu]);
 
   const handleDelete = useCallback(() => {
     if (selectedNodes?.length) {
@@ -129,17 +125,20 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const handleAlignNodes = useCallback(
     (arrangeSpacing: boolean) => {
       alignNodes({ arrangeSpacing });
+      closeContextMenu();
     },
-    [alignNodes]
+    [alignNodes, closeContextMenu]
   );
 
   const handleSurroundWithGroup = useCallback(() => {
     surroundWithGroup({ selectedNodes });
-  }, [surroundWithGroup, selectedNodes]);
+    closeContextMenu();
+  }, [surroundWithGroup, selectedNodes, closeContextMenu]);
 
   const handleRemoveFromGroup = useCallback(() => {
     removeFromGroup(selectedNodes);
-  }, [removeFromGroup, selectedNodes]);
+    closeContextMenu();
+  }, [removeFromGroup, selectedNodes, closeContextMenu]);
 
   const handleCopyNodes = useCallback(() => {
     handleCopy();
@@ -190,16 +189,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       onClick={(e) => e.stopPropagation()}
       position={menuPosition}
     >
-      <MenuItem disabled>
-        <Text
-          style={{
-            margin: `${getSpacingPx(SPACING.micro)} 0`,
-            padding: "0"
-          }}
-        >
-          SELECTION
-        </Text>
-      </MenuItem>
+      <ListSubheader>Selection</ListSubheader>
 
       <ContextMenuItem
         onClick={handleDuplicateNodes}
@@ -242,7 +232,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       />
       <ContextMenuItem
         onClick={handleRunSelected}
-        label="Run Selected"
+        label="Run selected"
         IconComponent={<PlayArrowIcon />}
         tooltip="Run the selected nodes as their own job"
       />
@@ -279,12 +269,12 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
 
       <ContextMenuItem
         onClick={handleToggleBypass}
-        label={majorityBypassed ? "Enable All" : "Disable All"}
+        label={majorityBypassed ? "Enable all" : "Disable all"}
         IconComponent={<BlockIcon />}
         tooltip={
           <div className="tooltip-span">
             <div className="tooltip-title">
-              {majorityBypassed ? "Enable Nodes" : "Disable Nodes"}
+              {majorityBypassed ? "Enable nodes" : "Disable nodes"}
             </div>
             <div className="tooltip-key">
               <kbd>B</kbd>
@@ -295,11 +285,11 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
 
       <ContextMenuItem
         onClick={handleToggleCollapsed}
-        label="Collapse / Expand"
+        label="Collapse / expand"
         IconComponent={<UnfoldLessIcon />}
         tooltip={
           <div className="tooltip-span">
-            <div className="tooltip-title">Collapse / Expand</div>
+            <div className="tooltip-title">Collapse / expand</div>
             <div className="tooltip-key">
               <kbd>C</kbd>
             </div>
@@ -310,111 +300,90 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       {!anyHasParent && (
         <ContextMenuItem
           onClick={handleSurroundWithGroup}
-          label="Surround With Group"
+          label="Surround with group"
           IconComponent={<GroupWorkIcon />}
           tooltip={
             <div className="tooltip-span">
-              <div className="tooltip-title">Surround With Group</div>
+              <div className="tooltip-title">Surround with group</div>
               <div className="tooltip-key">
                 <kbd>CTRL</kbd>/<kbd>⌘</kbd>+<kbd>G</kbd>
               </div>
             </div>
           }
-          addButtonClassName={`action ${
-            selectedNodes.length < 1 ? "disabled" : ""
-          }`}
+          disabled={selectedNodes.length < 1}
         />
       )}
 
       <ContextMenuItem
         onClick={handleGroupIntoSubgraph}
-        label="Group into Subgraph"
+        label="Group into subgraph"
         IconComponent={<AccountTreeIcon />}
         tooltip="Move the selected nodes into a new subgraph node"
-        addButtonClassName={`action ${
-          selectedNodes.length < 1 ? "disabled" : ""
-        }`}
+        disabled={selectedNodes.length < 1}
       />
 
       {anyHasParent && (
         <ContextMenuItem
           onClick={handleRemoveFromGroup}
-          label="Remove from Group"
+          label="Remove from group"
           IconComponent={<GroupWorkIcon />}
           tooltip={
             <div className="tooltip-span">
-              <div className="tooltip-title">Remove from Group</div>
+              <div className="tooltip-title">Remove from group</div>
               <div className="tooltip-key">
                 <kbd>Right-Click</kbd>
               </div>
             </div>
           }
-          addButtonClassName={`action ${
-            selectedNodes.length < 1 ? "disabled" : ""
-          }`}
+          disabled={selectedNodes.length < 1}
         />
       )}
 
       <Divider />
 
-      <MenuItem disabled>
-        <Text
-          style={{
-            margin: `${getSpacingPx(SPACING.micro)} 0`,
-            padding: "0"
-          }}
-        >
-          CONNECTED
-        </Text>
-      </MenuItem>
+      <ListSubheader>Connected</ListSubheader>
 
       <ContextMenuItem
         onClick={handleSelectConnectedAll}
-        label="Select All Connected"
+        label="Select all connected"
         IconComponent={<CallSplitIcon />}
         tooltip={
           <div className="tooltip-span">
-            <div className="tooltip-title">Select All Connected</div>
+            <div className="tooltip-title">Select all connected</div>
             <div className="tooltip-key">
               <kbd>SHIFT</kbd>+<kbd>C</kbd>
             </div>
           </div>
         }
-        addButtonClassName={`action ${
-          selectedNodes.length < 1 ? "disabled" : ""
-        }`}
+        disabled={selectedNodes.length < 1}
       />
       <ContextMenuItem
         onClick={handleSelectConnectedInputs}
-        label="Select Inputs"
+        label="Select inputs"
         IconComponent={<ArrowBackIcon />}
         tooltip={
           <div className="tooltip-span">
-            <div className="tooltip-title">Select Inputs</div>
+            <div className="tooltip-title">Select inputs</div>
             <div className="tooltip-key">
               <kbd>SHIFT</kbd>+<kbd>I</kbd>
             </div>
           </div>
         }
-        addButtonClassName={`action ${
-          selectedNodes.length < 1 ? "disabled" : ""
-        }`}
+        disabled={selectedNodes.length < 1}
       />
       <ContextMenuItem
         onClick={handleSelectConnectedOutputs}
-        label="Select Outputs"
+        label="Select outputs"
         IconComponent={<ArrowForwardIcon />}
         tooltip={
           <div className="tooltip-span">
-            <div className="tooltip-title">Select Outputs</div>
+            <div className="tooltip-title">Select outputs</div>
             <div className="tooltip-key">
               <kbd>SHIFT</kbd>+<kbd>O</kbd>
             </div>
           </div>
         }
-        addButtonClassName={`action ${
-          selectedNodes.length < 1 ? "disabled" : ""
-        }`}
+        disabled={selectedNodes.length < 1}
       />
 
       <Divider />
@@ -430,7 +399,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
             </div>
           </div>
         }
-        addButtonClassName="delete"
+        destructive
       />
     </ContextMenu>
   );

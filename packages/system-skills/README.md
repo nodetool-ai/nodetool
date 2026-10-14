@@ -31,10 +31,11 @@ skills whose frontmatter says `featured: true`. The others are named by count
 and found with `list_skills({query})`, which matches a query word by word. The
 catalog is rendered by `formatSkillCatalogForPrompt` in
 `packages/agents/src/skill-prompt.ts`. Feature the entry point of each
-surface and the motion craft skills beside `motion-graphics`, because a
-timeline piece needs them before the first call. The model guides are reached
-through `find_model`, and the brief shapes and `api-*` references through the
-skills and prompt lines that point at them.
+surface. Of the motion skills, only `motion-graphics`, `caption-titles` and
+`video-audio-continuity` are featured: `motion-graphics` loads the craft skills
+it needs, so their catalog lines would buy no routing. The model guides are
+reached through `find_model`, and the brief shapes, `api-*` references and
+`native-game-reference` through the skills and prompt lines that point at them.
 
 ## The object-model references
 
@@ -61,6 +62,7 @@ namespace to its skill.
 | `api-scripts` | `scripts` |
 | `api-storyboards` | `storyboards` |
 | `api-games` | `games` |
+| `nodetool-troubleshooter` | `runs` |
 
 ## The surfaces
 
@@ -73,6 +75,7 @@ one working on this repository alike.
 | `nodetool-app-builder` | Mini apps: operations, widgets, bindings, variables, resources |
 | `nodetool-sketch` | Sketches (image documents): layers, blend modes, placed images, briefs, versions |
 | `nodetool-3d-scene` | glTF models: objects, transforms, lights, materials, headless Blender renders |
+| `manimgx` | ManimGX scenes: math and 3D animations in Python, inspected and rendered by the `nodetool.manimgx` nodes |
 | `nodetool-js-scripting` | The QuickJS sandbox: Code node bodies, JS script documents, packs, calling nodes from code |
 | `nodetool-video-post` | Repairs on delivered footage, and the candidate review protocol they return |
 | `nodetool-rag-indexing` | Ingestion, vector collections, retrieval, the RAG loop |
@@ -84,15 +87,19 @@ one working on this repository alike.
 | `nodetool-deployment` | Servers and workers: Docker, SSH, Runpod, cloud |
 | `nodetool-troubleshooter` | A failing run, routed to the surface it belongs to, and stuck generations |
 | `nodetool-skill-author` | Writing a user skill row or a shipped one |
-| `storyboard-core` | Storyboards, entity casting, rendering, timeline assembly — the contract the job skills quote |
+| `storyboard-core` | Storyboards, entity casting, rendering, timeline assembly — the contract the job and board skills quote |
 | `native-game` | Built-in games, generated asset installation, and playtests |
+| `native-game-reference` | The game document in detail: schema versions, scripts, visuals, physics, audio, input, HUD |
 | `game-direction` | Game feel, teaching beats, layered art, and completion evidence |
 
 The job skills that sit on `storyboard-core`, each one a brief shape rather
 than a tool contract: `ugc-video`, `product-commercial`, `script-video`,
 `short-film`, `video-clone`, `launch-kit`, `video-workflow`, `motion-ad`.
 `motion-ad` is the one that renders nothing by default: its board holds the
-real product images as stills and its motion is built on the timeline.
+real product images as stills and its motion is built on the timeline. Each
+job skill pairs with a board skill for structure: `ugc-video` and
+`product-commercial` with `commercial-beat-sheet`, `script-video` with
+`explainer-storyboard`, `short-film` with `trailer-template`.
 
 ## The craft and the model lines
 
@@ -118,19 +125,20 @@ real product images as stills and its motion is built on the timeline.
 | `seedance-2-prompting` | Seedance 2: subject and motion first, quoted dialogue, the sound brief, cuts in one take |
 | `veo-3-prompting` | Veo 3: the five-element structure, cinematography vocabulary, duration and audio economics |
 | `minimax-h3-prompting` | MiniMax H3: which endpoint, a job per reference, timed shot lists, native audio direction |
-| `wan-2-6-prompting` | Wan 2.6: the three modes and the prompt shape each one wants |
+| `wan-2-6-prompting` | Wan 2.6: text-to-video and image-to-video, and the prompt shape each one wants |
 | `kling-video-prompting` | Kling 2.5-turbo and later: the shot list, tagged elements, the labelled dialogue format |
 | `hailuo-prompting` | MiniMax Hailuo: beats in order, the Director bracket commands, no negative prompt |
 | `seedream-prompting` | Seedream 4 and 5: the six-layer brief, quoted copy, pinning what an edit must not change |
-| `qwen-image-prompting` | Qwen-Image: typography — exact copy, relative layout, twelve scripts, expansion off |
+| `qwen-image-prompting` | Qwen-Image: typography — exact copy, relative layout, non-Latin scripts, expansion off |
 | `elevenlabs-audio-prompting` | ElevenLabs: audio tags and stability, the dialogue list, sound-effect briefs, composition plans |
 | `stable-audio-prompting` | Stable Audio: genre/instruments/mood/BPM, the TrackType tags, which dials the distilled checkpoints ignore |
 
-The `*-prompting` skills are the model-line guides. Each one is triggered
-twice: its description names the model ids across every provider that serves the
-line, and `find_model` attaches `prompting_skill` to a matching route so the
-guide surfaces at the step before the prompt is written. The table behind the
-second path is `MODEL_PROMPTING_SKILLS` in
+The `*-prompting` skills are the model-line guides. None is featured, so the
+catalog does not list them. `find_model` attaches `prompting_skill` to a
+matching route so the guide surfaces at the step before the prompt is written,
+and each description names the model ids across every provider that serves the
+line, so `list_skills` finds the guide by model id. The table behind
+`prompting_skill` is `MODEL_PROMPTING_SKILLS` in
 `packages/agents/src/model-prompting-skills.ts`, and
 `packages/agents/tests/model-prompting-skills.test.ts` checks it against the
 skills on disk, the model ids the shipped provider manifests actually name, and
@@ -145,11 +153,12 @@ directory is covered with no entry to add.
 
 It checks at two strengths. The motion skills its `SKILL_NAMES` lists are
 matched exactly against the capability specs and `edit_timeline`'s op list, and
-`motion-graphics` additionally has to name every shipped preset and stagger
-unit. Every other skill is matched against the wider vocabulary the registry
-writes about itself, because `edit_sketch`, `edit_model3d` and
-`edit_storyboard` declare their ops in prose rather than an enum — there is no
-list to compare against. A call that is neither is exempted by name in
+`motion-graphics` together with `timeline-edit-ops` has to name every shipped
+preset and stagger unit. Every other skill is matched against the vocabulary
+the registry declares in structured form: tool names, schema keys and enums,
+the op lists that `edit_sketch`, `edit_model3d` and `edit_storyboard` write
+into their `ops` fields, and the WebSocket commands. Free prose in a spec does
+not count, so a stale name that a spec merely mentions still fails. A call that is neither is exempted by name in
 `NOT_A_BACKEND_CALL`, with the reason it is not a rename waiting to happen.
 
 ## How the set routes
@@ -163,10 +172,11 @@ the same seams:
    with `create_storyboard` / `edit_storyboard`. A job skill on
    `storyboard-core` decides what the picture looks like over the same board,
    and the two compose: structure from one, look from the other. The storyboard and entity call
-   shapes — return fields, the five ops, what `set_board` accepts, which
-   entities a shot's prompt receives, what text the generator actually reads —
-   live once, in `commercial-beat-sheet` § Tool contract, and the other four
-   point there.
+   shapes — return fields, all fifteen `edit_storyboard` ops, every key
+   `set_board` accepts, which fields and entities each shot's prompt receives —
+   live once, in `storyboard-core` § Tool contract. The job skills and the five
+   board skills point there, and `commercial-beat-sheet` § Tool contract is only
+   a pointer.
 2. **Board → model.** Before the shot text is written, `find_model` picks the
    image and video lines, `set_board {image_model, video_model}` makes them the
    render defaults, and the `prompting_skill` on each result names the

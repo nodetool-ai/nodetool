@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/storage",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Uniform storage interface for NodeTool over local files, memory, Amazon S3, and Supabase Storage",
   "type": "module",
   "engines": {
@@ -23,8 +23,7 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/config": "*",
-    "@openclaw/fs-safe": "^0.5.6"
+    "@nodetool-ai/config": "*"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",

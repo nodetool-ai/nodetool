@@ -18,6 +18,8 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | OpenAI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Anthropic | ✅ | | | | | | |
+| Azure OpenAI | ✅ | ✅ | | ✅ | ✅ | ✅ | |
+| Amazon Bedrock | ✅ | ✅ | | | | | |
 | Google Gemini | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | xAI (Grok) | ✅ | ✅ | ✅ | | | | |
 | DeepSeek | ✅ | | | | | | |
@@ -32,7 +34,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | API Route | ✅ | | | | | | |
 | Together AI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Moonshot (Kimi) | ✅ | | | | | | |
-| Meta AI | ✅ | | | | | | |
+| Meta AI | ✅ | ✅ | | | ✅ | | |
 | MiniMax | ✅ | ✅ | ✅ | ✅ | | | |
 | Codex (OpenAI OAuth) | ✅ | ✅ | | | | | |
 | Claude Agent SDK | ✅ | | | | | | |
@@ -41,6 +43,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | AKI | ✅ | ✅ | | | | | |
 | Higgsfield | | ✅ | ✅ | | | | |
 | UseAPI | | ✅ | ✅ | | | | |
+| vgenv | | | ✅ | | | | |
 | Replicate | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | FAL | ✅ | ✅ | ✅ | ✅ | | | |
 | Comfy Cloud | | ⁵ | ⁵ | | | | |
@@ -78,6 +81,18 @@ OpenAI covers chat (GPT), image generation (GPT-Image), Sora 2 Pro video, TTS, W
 ## Anthropic
 
 Anthropic runs Claude chat models with tool calling and image input for vision tasks. It doesn't generate images, video, or audio. Cloud only, keyed by `ANTHROPIC_API_KEY`; models are fetched live from the Anthropic API. See the [Anthropic provider guide](developer/providers/anthropic.md).
+
+## Azure OpenAI
+
+Azure OpenAI runs OpenAI models deployed in your own Azure OpenAI or Microsoft Foundry resource: chat, GPT Image generation and editing, TTS, Whisper transcription, and embeddings. Requests use OpenAI's wire format, so each call behaves like the OpenAI provider with the deployment name as the model. Cloud only, keyed by `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` (for example `https://<resource>.openai.azure.com`, with or without a trailing `/openai`).
+
+Azure does not report what a deployment serves, so the models are the names in `AZURE_OPENAI_DEPLOYMENTS`, separated by commas. A name containing `image` or `dall-e` is an image model, `tts` a speech model, `whisper` or `transcribe` a transcription model, and `embedding` an embedding model. Any other name is a chat model. Add `:chat`, `:image`, `:tts`, `:asr`, or `:embedding` to a name to set its kind, for example `my-painter:image`. Without `AZURE_OPENAI_API_VERSION` the provider calls the v1 API at `<endpoint>/openai/v1`. Set a dated version such as `2025-04-01-preview` to use the `/openai/deployments/<name>` routes. Under the cloud profile the endpoint must be a public https host. A deployment named after its model, such as `gpt-5.5`, is priced from the Azure rates in `@pydantic/genai-prices`.
+
+## Amazon Bedrock
+
+Amazon Bedrock runs chat through the Converse API, which covers every Bedrock chat model: Claude, Llama, Mistral, Amazon Nova, and others. It streams text and tool calls, accepts images and documents, and passes Claude extended thinking through. Image generation runs Amazon Nova Canvas, Titan Image, and Stability models. Cloud only, keyed by an IAM access key in `BEDROCK_ACCESS_KEY_ID` and `BEDROCK_SECRET_ACCESS_KEY`, with `BEDROCK_SESSION_TOKEN` for temporary credentials. The keys are separate from the `AWS_*` variables so an S3 storage key is never used for Bedrock.
+
+`BEDROCK_REGION` picks the region (default `us-east-1`). Models are listed from that region: on-demand foundation models plus the system-defined cross-region inference profiles such as `eu.anthropic.claude-sonnet-4-6`, which Claude needs in most regions. The IAM user needs `bedrock:ListFoundationModels`, `bedrock:ListInferenceProfiles`, `bedrock:InvokeModel`, and `bedrock:InvokeModelWithResponseStream`. Set `BEDROCK_MODEL_IDS` to a comma-separated list of model or inference profile IDs to offer only those and skip the listing calls. Costs are priced from the AWS rates in `@pydantic/genai-prices`.
 
 ## Google Gemini
 
@@ -141,7 +156,12 @@ MiniMax covers chat, image (Image-01), video (Hailuo 2.3), TTS, and music genera
 
 ## Meta AI
 
-Meta AI serves the Muse Spark chat models through an OpenAI-compatible endpoint (`https://api.meta.ai/v1`) with tool calling. If the model list cannot be fetched, the picker falls back to three built-in Muse Spark ids. Text only. Cloud only, keyed by `META_API_KEY`.
+Meta AI serves the Muse family at `https://api.meta.ai/v1`. Cloud only, keyed by `META_API_KEY`.
+
+- **Chat.** Muse Spark runs on Meta's Responses API with tool calling. A `web_search` tool is answered by Meta's hosted search grounding, and tools marked `deferLoading` are loaded on demand by Meta's hosted tool search. Messages can carry images, video and audio, which Muse Spark reads natively. If the model list cannot be fetched, the picker falls back to four built-in Muse Spark ids.
+- **Images.** Muse Image (`muse-image-1.0`) generates and edits images, with up to 10 source images per edit.
+- **Speech to text.** Muse Voice Transcribe (`muse-voice-transcribe-1.0`) returns the transcript and timed turns. Audio that is not mono 16-bit WAV at 16 or 24 kHz is converted with ffmpeg first. It has no word-level timestamps.
+- **Segmentation.** SAM 3.1 (`sam-3.1`) segments an image from a short noun phrase, a box, or points, and returns one full-frame mask per object.
 
 ## Codex (OpenAI OAuth)
 
@@ -170,6 +190,10 @@ Higgsfield generates image and video from a manifest of models (text-to-image, i
 ## UseAPI
 
 UseAPI generates image and video through your own Google Flow and Dreamina accounts on useapi.net: Nano Banana and Veo models through Google Flow, Seedream, Seedance, and Sora 2 through Dreamina. No chat. Cloud only, keyed by `USEAPI_API_TOKEN`. Set `USEAPI_GOOGLE_FLOW_EMAIL` (Google Flow account email) and `USEAPI_DREAMINA_ACCOUNT` (`region:email`) so reference image uploads use the right account.
+
+## vgenv
+
+vgenv is an independent API for MiniMax H3 video, not affiliated with MiniMax. It runs text-to-video, image-to-video with a first and optional last frame, and reference-to-video with up to nine ordered images. Models are the Fast, Standard, Enhanced, and Quality tiers at 480p or 768p, 4 to 15 seconds. Prompts are sent as written, with vgenv's prompt rewriting turned off. No chat. Cloud only, keyed by `VGENV_API_KEY`. vgenv bills each video from a prepaid balance at creation and releases the hold when a preparing or queued job is cancelled or the platform fails it. NodeTool cancels the job when a run is stopped or times out.
 
 ## Replicate
 

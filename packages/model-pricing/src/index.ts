@@ -43,8 +43,8 @@ import {
   priceGenspendEntry,
   type ModelParamPrice
 } from "./genspend-calc.js";
-import falUnitPricingCatalog from "@nodetool-ai/fal-nodes/unit-pricing-catalog";
-import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
+import falUnitPricingCatalog from "./fal-unit-pricing-catalog.js";
+import kieUnitPricingCatalog from "./kie-unit-pricing-catalog.js";
 import {
   getGenspendPrice,
   getGenspendPricesByModelId,

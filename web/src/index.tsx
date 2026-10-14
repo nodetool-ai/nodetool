@@ -29,8 +29,8 @@ import {
 
 import ErrorBoundary from "./ErrorBoundary";
 
-import { LoadingSpinner, ThemeRoot } from "./components/ui_primitives";
-import ThemeNodetool from "./components/themes/ThemeNodetool";
+import { LoadingSpinner } from "./components/ui_primitives";
+import AppThemeRoot from "./components/themes/AppThemeRoot";
 
 import "@xyflow/react/dist/style.css";
 import "@xyflow/react/dist/base.css";
@@ -44,6 +44,7 @@ import { queryClient } from "./queryClient";
 import { TRPCProvider } from "./trpc/Provider";
 import { useAssetStore } from "./stores/AssetStore";
 import Login from "./components/Login";
+import { consumePostLoginReturn } from "./utils/postLoginReturn";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
 import { isLocalhost } from "./lib/env";
@@ -69,6 +70,9 @@ const SearchProviderSetupDialog = React.lazy(
 );
 const ProviderOnboardingDialog = React.lazy(
   () => import("./components/provider_onboarding/ProviderOnboardingDialog")
+);
+const SubscriptionOnboardingDialog = React.lazy(
+  () => import("./components/provider_onboarding/SubscriptionOnboardingDialog")
 );
 const ProviderSignInDialog = React.lazy(
   () => import("./components/provider_onboarding/ProviderSignInDialog")
@@ -200,7 +204,9 @@ const NavigateToStart = () => {
       return;
     }
     if (!isAuthRequired() || state === "logged_in") {
-      navigate("/workspace", { replace: true });
+      // A public share page that sent the user to sign in gets them back.
+      const returnTo = state === "logged_in" ? consumePostLoginReturn() : null;
+      navigate(returnTo ?? "/workspace", { replace: true });
     } else if (state === "logged_out" || state === "error") {
       navigate("/login", { replace: true });
     }
@@ -687,7 +693,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
   return (
     <React.StrictMode>
       <TRPCProvider>
-        <ThemeRoot theme={ThemeNodetool}>
+        <AppThemeRoot>
           <MobileClassProvider>
             <MenuProvider>
               <MenuNavigationBridge />
@@ -800,6 +806,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       <RunWarningDialog />
                       <SearchProviderSetupDialog />
                       <ProviderOnboardingDialog />
+                      <SubscriptionOnboardingDialog />
                       <ProviderSignInDialog />
                       <InstallRuntimePackageDialog />
                       <FirstRunProviderSignIn />
@@ -815,7 +822,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
               </WorkflowManagerProvider>
             </MenuProvider>
           </MobileClassProvider>
-        </ThemeRoot>
+        </AppThemeRoot>
       </TRPCProvider>
     </React.StrictMode>
   );

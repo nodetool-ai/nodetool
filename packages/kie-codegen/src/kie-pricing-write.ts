@@ -1,5 +1,5 @@
 /**
- * KIE pricing bundle writer — writes extended catalog metadata for the web UI.
+ * Writes node prices to the pack and model prices to the core catalog.
  */
 
 import { mkdir, writeFile } from "node:fs/promises";
@@ -9,7 +9,7 @@ import type { PricingOutputPaths } from "@nodetool-ai/node-sdk";
 import {
   resolveKiePricing,
   type KieModelPricingSummary,
-} from "@nodetool-ai/kie-nodes/kie-pricing-api";
+} from "@nodetool-ai/model-pricing/kie-pricing-api";
 
 interface KieManifestPricingEntry {
   className: string;
@@ -90,7 +90,7 @@ export function pricingPaths(manifestPath: string): PricingOutputPaths {
   const generatedDir = join(dirname(manifestPath), "generated");
   return {
     byNodeTypePath: join(generatedDir, "kie-node-type-pricing.json"),
-    catalogPath: join(generatedDir, "kie-unit-pricing.json"),
+    catalogPath: join(dirname(manifestPath), "..", "..", "model-pricing", "src", "generated", "kie-unit-pricing.json"),
   };
 }
 
@@ -98,7 +98,10 @@ export async function writeKiePricingBundles(
   bundles: KiePricingBundles,
   paths: PricingOutputPaths,
 ): Promise<void> {
-  await mkdir(dirname(paths.byNodeTypePath), { recursive: true });
+  await Promise.all([
+    mkdir(dirname(paths.byNodeTypePath), { recursive: true }),
+    mkdir(dirname(paths.catalogPath), { recursive: true })
+  ]);
   await Promise.all([
     writeFile(
       paths.byNodeTypePath,

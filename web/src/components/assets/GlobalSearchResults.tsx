@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
-import { EditorButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
+import { EditorButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS, getSpacingPx, SPACING, EmptyState, LoadingSpinner } from "../ui_primitives";
 import FolderIcon from "@mui/icons-material/Folder";
 import NavigateIcon from "@mui/icons-material/NavigateNext";
 import { AssetWithPath } from "../../stores/ApiTypes";
@@ -185,10 +185,6 @@ const styles = (theme: Theme) =>
       height: "200px",
       color: theme.vars.palette.grey[400],
       fontSize: theme.fontSizeNormal
-    },
-    "@keyframes spin": {
-      "0%": { transform: "rotate(0deg)" },
-      "100%": { transform: "rotate(360deg)" }
     }
   });
 
@@ -234,15 +230,6 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     };
   }, []);
 
-  const flexCenterStyle = useMemo(() => ({ display: "flex", alignItems: "center", gap: getSpacingPx(SPACING.md) }), []);
-  const spinnerStyle = useMemo(() => ({
-    width: "20px",
-    height: "20px",
-    border: "2px solid " + "var(--palette-grey-500)",
-    borderTop: "2px solid var(--palette-grey-100)",
-    borderRadius: BORDER_RADIUS.circle,
-    animation: `spin ${MOTION.spin} infinite`
-  }), []);
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent, assetId?: string) => {
@@ -397,17 +384,13 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
             data-testid="global-search-no-results"
           >
             {isSearching ? (
-              <div
-                style={flexCenterStyle}
-              >
-                <div
-                  className="search-spinner"
-                  style={spinnerStyle}
-                ></div>
-                <Text>Searching…</Text>
-              </div>
+              <LoadingSpinner size="small" text="Searching" />
             ) : (
-              <Text>No assets found matching your search.</Text>
+              <EmptyState
+                size="small"
+                variant="no-results"
+                title="No assets found matching your search"
+              />
             )}
           </div>
         </div>
@@ -539,7 +522,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                           className="global-search-navigate-btn folder-navigate-btn"
                           density="compact"
                           variant="text"
-                          startIcon={<NavigateIcon fontSize="small" />}
+                          startIcon={<NavigateIcon />}
                           onClick={(e) => {
                             e.stopPropagation();
                             onNavigateToFolder(

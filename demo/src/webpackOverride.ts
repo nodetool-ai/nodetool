@@ -34,9 +34,9 @@ const WEB_DEMO_ENTRY = path.resolve(DEMO_ROOT, "../web/src/demo/index.ts");
  */
 const GENERATED_JSON: Record<string, string> = {
   "@nodetool/fal-node-type-pricing": "fal-nodes/src/generated/fal-node-type-pricing.json",
-  "@nodetool/fal-unit-pricing-catalog": "fal-nodes/src/generated/fal-unit-pricing.json",
+  "@nodetool/fal-unit-pricing-catalog": "model-pricing/src/generated/fal-unit-pricing.json",
   "@nodetool/kie-node-type-pricing": "kie-nodes/src/generated/kie-node-type-pricing.json",
-  "@nodetool/kie-unit-pricing-catalog": "kie-nodes/src/generated/kie-unit-pricing.json",
+  "@nodetool/kie-unit-pricing-catalog": "model-pricing/src/generated/kie-unit-pricing.json",
 };
 
 /** Built-in → stub file (browser-safe partial implementations). */
@@ -84,7 +84,13 @@ const EMPTIED = [
   "constants",
   "tty",
   "readline",
+  // Pulled in by @opentelemetry/instrumentation-undici, which the browser
+  // render never starts.
+  "diagnostics_channel",
 ];
+
+/** Replaces Vite `?worker` imports, which webpack cannot build. */
+const VITE_WORKER_STUB = path.join(DEMO_STUBS, "vite-worker-stub.js");
 
 /** Server-only specifiers to resolve to an empty module if they appear. */
 const IGNORE = [
@@ -101,8 +107,6 @@ function buildAlias(): Record<string, string> {
   const alias: Record<string, string> = {
     // Route the typed facade to the real web source at bundle time.
     "@web-demo$": WEB_DEMO_ENTRY,
-    // The browser demo never constructs storage's native filesystem adapter.
-    "@openclaw/fs-safe$": path.join(STUBS, "fs-safe-stub.js"),
   };
 
   for (const [name, file] of Object.entries(STUBBED)) {
@@ -197,6 +201,11 @@ export const webpackOverride: WebpackOverrideFn = (config) => {
       // resolve `node:fs` → `fs` → stub, etc.
       new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
         resource.request = resource.request.replace(/^node:/, "");
+      }),
+      // Monaco's language workers load through Vite's `?worker` query (see
+      // webpack-stubs/vite-worker-stub.js).
+      new webpack.NormalModuleReplacementPlugin(/\?worker$/, (resource) => {
+        resource.request = VITE_WORKER_STUB;
       }),
     ],
     module: {

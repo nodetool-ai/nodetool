@@ -17,6 +17,7 @@ import {
   bundleFromApplication,
   parseApplicationBundle,
   serializeApplicationBundle,
+  type ApplicationBundle,
   type BundleWorkflowSource
 } from "@nodetool-ai/app-runtime";
 import {
@@ -46,6 +47,87 @@ async function loadApp(id: string): Promise<Application> {
 /** Keep a bundle's default filename from escaping the working directory. */
 function safeFileName(name: string): string {
   return name.replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^[._]+/, "") || "app";
+}
+
+/**
+ * Bundle an app with the graph of every workflow its operations bind: the
+ * draft and the current graphs, or the released snapshot and the graphs it
+ * pinned.
+ */
+async function collectAppBundle(
+  app: Application,
+  released: boolean
+): Promise<ApplicationBundle> {
+  const release = released ? await releasedApplicationRelease(app.id) : null;
+  if (released && !release) {
+    throw new Error(`Application ${app.id} has no released version`);
+  }
+  const document = release ? release.document : app.toDocument();
+  const pinned = new Map(
+    (release?.workflows ?? []).map((entry) => [entry.workflowId, entry])
+  );
+
+  const sources: BundleWorkflowSource[] = [];
+  const seen = new Set<string>();
+  for (const operation of document.operations) {
+    if (seen.has(operation.workflowId)) continue;
+    seen.add(operation.workflowId);
+    const pin = pinned.get(operation.workflowId);
+    const workflow = await Workflow.find(
+      LOCAL_USER_ID,
+      operation.workflowId
+    );
+    const graph = pin?.graph ?? workflow?.getGraph();
+    if (!graph) {
+      console.error(
+        `  warning: operation '${operation.id}' binds missing workflow ` +
+          `${operation.workflowId} (left unresolved in the bundle)`
+      );
+      continue;
+    }
+    sources.push({
+      workflowId: operation.workflowId,
+      name: workflow?.name ?? operation.name,
+      description: workflow?.description ?? "",
+      graph,
+      version: pin?.version ?? null,
+      graphHash: pin?.graphHash ?? null
+    });
+  }
+
+  return bundleFromApplication(
+    { name: app.name, description: app.description, document },
+    sources
+  );
+}
+
+/**
+ * Where `package://<package>/<path>` sample files live: the configured
+ * directory, then `nodetool/assets` of the installed base-nodes package.
+ */
+async function packageAssetRoots(): Promise<string[]> {
+  const { existsSync } = await import("node:fs");
+  const { dirname, join } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const roots: string[] = [];
+  const configured = process.env["NODETOOL_PACKAGE_ASSETS_DIR"];
+  if (configured) roots.push(configured);
+  try {
+    let dir = dirname(
+      fileURLToPath(import.meta.resolve("@nodetool-ai/base-nodes"))
+    );
+    for (let depth = 0; depth < 4; depth += 1) {
+      const candidate = join(dir, "nodetool", "assets");
+      if (existsSync(candidate)) {
+        roots.push(candidate);
+        break;
+      }
+      dir = dirname(dir);
+    }
+  } catch {
+    // base-nodes is not resolvable from here; samples stay unresolved.
+  }
+  return roots;
 }
 
 export function registerAppsCommands(program: Command): void {
@@ -93,49 +175,7 @@ export function registerAppsCommands(program: Command): void {
         await setupLocalDb();
         const app = await loadApp(id);
 
-        const release = opts.released
-          ? await releasedApplicationRelease(id)
-          : null;
-        if (opts.released && !release) {
-          throw new Error(`Application ${id} has no released version`);
-        }
-        const document = release ? release.document : app.toDocument();
-        const pinned = new Map(
-          (release?.workflows ?? []).map((entry) => [entry.workflowId, entry])
-        );
-
-        const sources: BundleWorkflowSource[] = [];
-        const seen = new Set<string>();
-        for (const operation of document.operations) {
-          if (seen.has(operation.workflowId)) continue;
-          seen.add(operation.workflowId);
-          const pin = pinned.get(operation.workflowId);
-          const workflow = await Workflow.find(
-            LOCAL_USER_ID,
-            operation.workflowId
-          );
-          const graph = pin?.graph ?? workflow?.getGraph();
-          if (!graph) {
-            console.error(
-              `  warning: operation '${operation.id}' binds missing workflow ` +
-                `${operation.workflowId} (left unresolved in the bundle)`
-            );
-            continue;
-          }
-          sources.push({
-            workflowId: operation.workflowId,
-            name: workflow?.name ?? operation.name,
-            description: workflow?.description ?? "",
-            graph,
-            version: pin?.version ?? null,
-            graphHash: pin?.graphHash ?? null
-          });
-        }
-
-        const bundle = bundleFromApplication(
-          { name: app.name, description: app.description, document },
-          sources
-        );
+        const bundle = await collectAppBundle(app, opts.released === true);
         const outPath =
           opts.output ?? `${safeFileName(app.name)}.app.json`;
         await writeFile(outPath, serializeApplicationBundle(bundle), "utf8");
@@ -147,6 +187,104 @@ export function registerAppsCommands(program: Command): void {
         fail(e);
       }
     });
+
+  apps
+    .command("export-project <application_id_or_bundle_file>")
+    .description(
+      "Export an application as a standalone JavaScript project: a Vite UI " +
+        "and a local Node server that runs its workflows, with no NodeTool " +
+        "server. Takes an application id or an exported .app.json bundle"
+    )
+    .option("-o, --output <dir>", "Output folder (default: ./<app-name>)")
+    .option(
+      "--released",
+      "Export the released snapshot and the graphs it pinned, not the draft"
+    )
+    .option("--force", "Write into an output folder that is not empty")
+    .action(
+      async (
+        source: string,
+        opts: { output?: string; released?: boolean; force?: boolean }
+      ) => {
+        try {
+          const { mkdir, readFile, readdir, writeFile } = await import(
+            "node:fs/promises"
+          );
+          const { existsSync } = await import("node:fs");
+          const { dirname, join, relative, resolve } = await import("node:path");
+          const {
+            buildStandaloneProject,
+            packageAssetUris,
+            readPackageAssets,
+            requiredSecretNames
+          } = await import("@nodetool-ai/app-export");
+          const { getProviderSecretKey, listRegisteredProviderIds } =
+            await import("@nodetool-ai/runtime");
+          const { buildFullRegistry } = await import("../node-registry.js");
+
+          let bundle: ApplicationBundle | null;
+          if (existsSync(source)) {
+            bundle = parseApplicationBundle(
+              JSON.parse(await readFile(source, "utf8"))
+            );
+            if (!bundle) {
+              throw new Error(`Not a valid application bundle: ${source}`);
+            }
+          } else {
+            await setupLocalDb();
+            bundle = await collectAppBundle(
+              await loadApp(source),
+              opts.released === true
+            );
+          }
+
+          const secrets = requiredSecretNames(
+            bundle,
+            buildFullRegistry(),
+            getProviderSecretKey
+          );
+          const providerSecrets = listRegisteredProviderIds()
+            .map(getProviderSecretKey)
+            .filter((key): key is string => Boolean(key));
+          const project = buildStandaloneProject(bundle, {
+            secrets,
+            providerSecrets,
+            packageAssets: readPackageAssets(
+              packageAssetUris(bundle),
+              await packageAssetRoots()
+            )
+          });
+          const outDir = resolve(opts.output ?? project.name);
+          if (
+            existsSync(outDir) &&
+            (await readdir(outDir)).length > 0 &&
+            !opts.force
+          ) {
+            throw new Error(
+              `${outDir} is not empty (pass --force to write into it)`
+            );
+          }
+          for (const file of project.files) {
+            const target = join(outDir, file.path);
+            await mkdir(dirname(target), { recursive: true });
+            await writeFile(target, file.content);
+          }
+
+          for (const warning of project.warnings) {
+            console.error(`  warning: ${warning}`);
+          }
+          const shown = relative(process.cwd(), outDir) || ".";
+          console.error(
+            `  wrote ${project.files.length} files with ` +
+              `${bundle.workflows.length} workflow(s) of '${bundle.name}'\n` +
+              `  next: cd ${shown} && npm install && cp .env.example .env && npm run dev`
+          );
+          console.log(outDir);
+        } catch (e) {
+          fail(e);
+        }
+      }
+    );
 
   apps
     .command("import-bundle <bundle_file>")

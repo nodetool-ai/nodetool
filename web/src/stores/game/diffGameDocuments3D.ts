@@ -29,13 +29,14 @@ export function diffGameDocuments3D(from: GameDocument3D, to: GameDocument3D): G
   }
   if (changed(from.presentation, to.presentation) || changed(from.inputActions, to.inputActions)
     || changed(from.inputAxes, to.inputAxes) || changed(from.entrySceneId, to.entrySceneId)
-    || changed(from.collisionLayers, to.collisionLayers) || changed(from.collisionMatrix, to.collisionMatrix) || changed(from.inputBindings, to.inputBindings)) {
+    || changed(from.collisionLayers, to.collisionLayers) || changed(from.collisionMatrix, to.collisionMatrix) || changed(from.physicsMaterials, to.physicsMaterials) || changed(from.inputBindings, to.inputBindings)) {
     ops.push({ op: "set_game", presentation: to.presentation, input_actions: to.inputActions,
       input_axes: to.inputAxes, input_bindings: to.inputBindings ?? null, entry_scene_id: to.entrySceneId, collision_layers: to.collisionLayers ?? null,
-      collision_matrix: to.collisionMatrix ?? null });
+      collision_matrix: to.collisionMatrix ?? null, physics_materials: to.physicsMaterials ?? null });
   }
   if (changed(from.audio?.mixer, to.audio?.mixer)) { ops.push({ op: "set_audio", mixer: to.audio?.mixer ?? null }); }
   if (changed(from.performance, to.performance)) { ops.push({ op: "set_performance", performance: to.performance ?? null }); }
+  if (changed(from.ui, to.ui)) { ops.push({ op: "set_ui", ui: to.ui ?? null }); }
   // There is no scene move operation. Reinsert reordered scenes at their requested indices.
   const retainedSceneIds = from.scenes.filter((scene) => to.scenes.some((entry) => entry.id === scene.id)).map((scene) => scene.id);
   const desiredRetainedSceneIds = to.scenes.filter((scene) => from.scenes.some((entry) => entry.id === scene.id)).map((scene) => scene.id);
@@ -52,9 +53,10 @@ export function diffGameDocuments3D(from: GameDocument3D, to: GameDocument3D): G
       ops.push({ op: "add_scene", scene_id: scene.id, scene, index: to.scenes.indexOf(scene) });
       continue;
     }
-    const { id: _sceneId, entities: _entities, ...settings } = scene;
-    const { id: _previousSceneId, entities: _previousEntities, ...previousSettings } = previous;
+    const { id: _sceneId, entities: _entities, ui: sceneUi, ...settings } = scene;
+    const { id: _previousSceneId, entities: _previousEntities, ui: previousUi, ...previousSettings } = previous;
     if (changed(previousSettings, settings)) { ops.push({ op: "update_scene", scene_id: scene.id, set: { ...settings, music: scene.music ?? null } }); }
+    if (changed(previousUi, sceneUi)) { ops.push({ op: "set_ui", scene_id: scene.id, ui: sceneUi ?? null }); }
     const entities = new Map(previous.entities.map((entity) => [entity.id, entity]));
     for (const entity of scene.entities) {
       const before = entities.get(entity.id);

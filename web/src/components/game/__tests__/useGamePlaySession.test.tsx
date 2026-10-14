@@ -2,8 +2,10 @@ import { Profiler } from "react";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createTopDownRoomGame, createScriptedGameSession, type GameSession } from "@nodetool-ai/game-runtime";
+import { createTopDownRoomGame, createScriptedGameSession, withGameScriptLogs, type GameSession } from "@nodetool-ai/game-runtime";
 import { useGamePlaySession } from "../useGamePlaySession";
+import { useGameConsoleFeed } from "../panels/console/useGameConsoleFeed";
+import { getGameConsoleStore } from "../../../stores/game/GameConsoleStore";
 import { gameAuthoring, gameAssetBinding, gameDocument, type GameDocument } from "@nodetool-ai/protocol";
 import { loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { resolveMediaUri } from "../../../utils/resolveMediaUri";
@@ -24,12 +26,13 @@ const mockAudioInstances: Array<{
   sync: jest.Mock;
   reset: jest.Mock;
   preload: jest.Mock;
+  updateScenes: jest.Mock;
   dispose: jest.Mock;
 }> = [];
 
 jest.mock("@nodetool-ai/game-renderer/audio", () => ({ gameAudioSpatialView2D: jest.fn(() => ({})), gameAudioSpatialView3D: jest.fn(() => ({})),
   GameAudioPlayer: jest.fn().mockImplementation(() => {
-    const audio = { reset: jest.fn(), pause: jest.fn(), resume: jest.fn(), sync: jest.fn(), updateAssets: jest.fn(), updateMixer: jest.fn(), preload: jest.fn(), updateSpatial: jest.fn(), dispose: jest.fn() };
+    const audio = { reset: jest.fn(), pause: jest.fn(), resume: jest.fn(), sync: jest.fn(), updateScenes: jest.fn(), updateAssets: jest.fn(), updateMixer: jest.fn(), preload: jest.fn(), updateSpatial: jest.fn(), dispose: jest.fn() };
     mockAudioInstances.push(audio);
     return audio;
   })
@@ -75,6 +78,34 @@ it("publishes the last successful presentation when a script failure pauses play
     await user.click(screen.getByRole("button", { name: "Step" }));
     expect(screen.getByLabelText("Session error")).toHaveTextContent("pause failure");
     expect(screen.getByTestId("tick").textContent).toBe("0");
+  } finally { view.unmount(); animation.mockRestore(); }
+});
+
+function ConsoleFailureHarness({ gameDocument }: { gameDocument: GameDocument }) {
+  const session = useGamePlaySession({ refId: "log-before-failure", active: true, document: gameDocument });
+  useGameConsoleFeed("log-before-failure", { runtimeError: session.error, scriptError: session.scriptError, diagnosticError: null,
+    tick: session.playState.tick, scriptLogs: session.scriptLogs });
+  return <><canvas ref={session.canvasRef} /><button onClick={session.beginPlay}>Play</button><button onClick={() => session.step()}>Step</button>
+    <output data-testid="backend">{session.backend}</output></>;
+}
+
+it("writes the lines a script logged before failing to the console ahead of the failure", async () => {
+  const animation = jest.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+  const user = userEvent.setup();
+  const candidate = await createScriptedGameSession(document, 1);
+  const failure = withGameScriptLogs(new Error(`Game script ${JSON.stringify([document.entrySceneId, "logger", 0])} for logger at tick 0 failed: bad command`),
+    [{ tick: 0, entityId: "logger", level: "log", message: "about to fail" }]);
+  jest.spyOn(candidate, "step").mockImplementation(() => { throw failure; });
+  const view = render(<ConsoleFailureHarness gameDocument={document} />);
+  try {
+    await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("Canvas 2D"));
+    jest.mocked(createScriptedGameSession).mockResolvedValueOnce(candidate);
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    await waitFor(() => expect(getGameConsoleStore("log-before-failure").getState().groups).toHaveLength(2));
+    const [log, error] = getGameConsoleStore("log-before-failure").getState().groups;
+    expect(log).toMatchObject({ level: "log", source: "script", message: "about to fail", tick: 0, entityId: "logger" });
+    expect(error).toMatchObject({ level: "error", source: "script", message: (failure as Error).message, entityId: "logger" });
   } finally { view.unmount(); animation.mockRestore(); }
 });
 
@@ -419,4 +450,148 @@ it("draws 2D particles in the play view and clears them when the session is repl
     await waitFor(() => expect(mockRenderers[0].render.mock.calls.length).toBeGreaterThan(rendersBeforeReset));
     expect(renderedParticles()).toBe(0);
   } finally { view.unmount(); animation.mockRestore(); localStorage.removeItem("nodetool.game.save.play-particles"); }
+});
+
+
+it("performs a session's save requests in scoped localStorage without snapshots and delivers a load on a later frame", async () => {
+  const animation = jest.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+  const user = userEvent.setup();
+  const progressKey = `nodetool.game.saves/${document.id}/progress/main`;
+  const settingsKey = `nodetool.game.saves/${document.id}/settings/main`;
+  const checkpointKey = `nodetool.game.saves/${document.id}/progress/checkpoint`;
+  localStorage.setItem(progressKey, JSON.stringify({ version: 1, data: { best: 7 } }));
+  const candidate = await createScriptedGameSession(document, 1);
+  const original = candidate.step.bind(candidate);
+  // Scripts cannot run under Jest, so the first step reports the requests a script would have issued.
+  const step = jest.spyOn(candidate, "step").mockImplementation((frame) => step.mock.calls.length > 1 ? original(frame) : { ...original(frame), saveRequests: [
+    { kind: "load", tick: 0, entityId: "player", scope: "progress", slot: "main" },
+    { kind: "save", tick: 0, entityId: "player", scope: "settings", slot: "main", data: { volume: 0.3 }, snapshot: false },
+    { kind: "save", tick: 0, entityId: "player", scope: "progress", slot: "checkpoint", data: { room: 2 }, snapshot: true }
+  ] });
+  const view = render(<GameHarness />);
+  try {
+    await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("Canvas 2D"));
+    jest.mocked(createScriptedGameSession).mockResolvedValueOnce(candidate);
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    // The saves run after the load in request order, so the last write means the load has finished.
+    await waitFor(() => expect(localStorage.getItem(checkpointKey)).toBe(JSON.stringify({ version: 1, data: { room: 2 } })));
+    expect(localStorage.getItem(settingsKey)).toBe(JSON.stringify({ version: 1, data: { volume: 0.3 } }));
+    expect(JSON.parse(localStorage.getItem(progressKey) ?? "null")).toEqual({ version: 1, data: { best: 7 } });
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(step.mock.calls.map(([frame]) => frame.loaded)).toEqual([undefined, [{ scope: "progress", slot: "main", data: { best: 7 } }]]);
+  } finally { view.unmount(); animation.mockRestore(); localStorage.removeItem(progressKey); localStorage.removeItem(settingsKey); localStorage.removeItem(checkpointKey); }
+});
+
+it("delivers edited scene audio settings to the retained audio player", async () => {
+  mockAudioInstances.length = 0;
+  const view = render(<GameHarness />);
+  try {
+    await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("Canvas 2D"));
+    const audio = mockAudioInstances[0];
+    expect(audio.updateScenes).toHaveBeenCalledWith(document.scenes);
+    const edited = { ...document, scenes: document.scenes.map(scene => ({ ...scene, music: { assetId: "sfx.collect", volume: 0.5, fadeInTicks: 0, fadeOutTicks: 0 } })) };
+    view.rerender(<GameHarness gameDocument={edited} />);
+    await waitFor(() => expect(audio.updateScenes).toHaveBeenLastCalledWith(edited.scenes));
+    expect(mockAudioInstances).toHaveLength(1);
+  } finally { view.unmount(); }
+});
+
+function hotReloadDocument(source: string): GameDocument {
+  return gameDocument.parse({ ...document, scenes: document.scenes.map((scene) => ({ ...scene, entities: [
+    ...scene.entities, { id: "reload-logger", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source, maxTickMs: 50 }] }
+  ] })) });
+}
+
+function HotReloadHarness({ gameDocument }: { gameDocument: GameDocument }) {
+  const session = useGamePlaySession({ refId: "hot-reload-2d", active: true, document: gameDocument });
+  useGameConsoleFeed("hot-reload-2d", { runtimeError: session.error, scriptError: session.scriptError, diagnosticError: null,
+    tick: session.playState.tick, scriptLogs: session.scriptLogs });
+  return <><canvas ref={session.canvasRef} /><button onClick={session.beginPlay}>{session.playing ? "Pause" : "Play"}</button>
+    <button onClick={() => session.step()}>Step</button><button onClick={session.save}>Save</button>
+    <button onClick={() => void session.load()}>Load</button><button onClick={session.restart}>Restart</button><button onClick={() => void session.replayBeforeError({ message: "Test diagnostic", tick: 4, entityId: null })}>Replay</button><output aria-label="Reload tick">{session.playState.tick}</output>
+    <output aria-label="Reload error">{session.error}</output><output aria-label="Reload backend">{session.backend}</output></>;
+}
+
+it("hot reloads source during play, retains state, and keeps the last compiled source after an invalid edit", async () => {
+  const animation = jest.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+  const user = userEvent.setup();
+  const source = (speed: number) => `(input) => ({ state: (input.state ?? 0) + 1, commands: [{ kind: "log", message: "speed ${speed} state " + (input.state ?? 0) }] })`;
+  const store = getGameConsoleStore("hot-reload-2d");
+  store.getState().clear();
+  const actual = jest.requireActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
+  jest.mocked(createScriptedGameSession).mockImplementation(async (candidate, seed, snapshot, runner, options) => {
+    const session = await actual.createScriptedGameSession({ ...candidate, scenes: candidate.scenes.map((scene) => ({ ...scene,
+      entities: scene.entities.filter((entity) => entity.id !== "reload-logger") })) }, seed, snapshot, runner, options);
+    let effective = candidate;
+    let count = snapshot?.tick ?? 0;
+    return { ...session, snapshot: () => ({ ...session.snapshot(), gameRevision: effective.revision }), reloadScripts: jest.fn(async (edited) => {
+      const code = edited.scenes[0].entities.find((entity) => entity.id === "reload-logger")?.behaviors[0];
+      if (code?.kind === "script" && code.source === "(input) => {") { return { ok: false as const, error: "Game script compilation failed" }; }
+      effective = { ...edited, revision: `script:test-speed-${code?.kind === "script" ? code.source.match(/speed (\d+)/)?.[1] : "unknown"}` };
+      return { ok: true as const, changed: true, document: effective };
+    }), step: (input) => {
+      const result = session.step(input);
+      const code = effective.scenes[0].entities.find((entity) => entity.id === "reload-logger")?.behaviors[0];
+      const speed = code?.kind === "script" ? code.source.match(/speed (\d+)/)?.[1] : undefined;
+      return { ...result, scriptLogs: [{ level: "log" as const, message: `speed ${speed} state ${count++}`, tick: result.tick }] };
+    } };
+  });
+  const view = render(<HotReloadHarness gameDocument={hotReloadDocument(source(1))} />);
+  try {
+    await waitFor(() => expect(screen.getByLabelText("Reload backend")).toHaveTextContent("Canvas 2D"));
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    const creations = jest.mocked(createScriptedGameSession).mock.calls.length;
+    view.rerender(<HotReloadHarness gameDocument={hotReloadDocument(source(3))} />);
+    await act(async () => { await Promise.resolve(); });
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(screen.getByLabelText("Reload tick")).toHaveTextContent("2");
+    expect(store.getState().groups.at(-1)?.message).toBe("speed 3 state 1");
+    expect(jest.mocked(createScriptedGameSession)).toHaveBeenCalledTimes(creations);
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    view.rerender(<HotReloadHarness gameDocument={hotReloadDocument("(input) => {")} />);
+    await waitFor(() => expect(store.getState().groups.some((entry) => entry.level === "error")).toBe(true));
+    expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(store.getState().groups.at(-1)?.message).toBe("speed 3 state 2");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    await user.click(screen.getByRole("button", { name: "Load" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(store.getState().groups.at(-1)?.message).toBe("speed 3 state 3");
+    const loaded = jest.mocked(createScriptedGameSession).mock.calls.at(-1)?.[0];
+    expect(loaded?.scenes[0].entities.find((entity) => entity.id === "reload-logger")?.behaviors[0]).toMatchObject({ source: source(3) });
+    expect(loaded?.revision).toBe("script:test-speed-3");
+    expect(loaded?.revision).not.toBe(hotReloadDocument(source(1)).revision);
+    expect(jest.mocked(createScriptedGameSession).mock.calls.at(-1)?.[2]?.gameRevision).toBe(loaded?.revision);
+    await user.click(screen.getByRole("button", { name: "Replay" }));
+    expect(jest.mocked(createScriptedGameSession).mock.calls.at(-1)?.[0].revision).toBe("script:test-speed-3");
+    expect(jest.mocked(createScriptedGameSession).mock.calls.at(-1)?.[2]?.gameRevision).toBe("script:test-speed-3");
+    const latestCreation = jest.mocked(createScriptedGameSession).mock.results.at(-1);
+    if (!latestCreation || latestCreation.type !== "return") { throw new Error("Restored session is unavailable"); }
+    const activeSession = await latestCreation.value;
+    let pendingSignal: AbortSignal | undefined;
+    jest.spyOn(activeSession, "reloadScripts").mockImplementationOnce((_candidate, signal) => new Promise((resolve) => {
+      pendingSignal = signal;
+      signal?.addEventListener("abort", () => resolve({ ok: false, error: "Canceled compilation" }), { once: true });
+    }));
+    view.rerender(<HotReloadHarness gameDocument={hotReloadDocument(source(5))} />);
+    await act(async () => { await Promise.resolve(); });
+    await user.click(screen.getByRole("button", { name: "Load" }));
+    expect(pendingSignal?.aborted).toBe(true);
+    expect(jest.mocked(createScriptedGameSession).mock.calls.at(-1)?.[0].scenes[0].entities.find((entity) => entity.id === "reload-logger")?.behaviors[0]).toMatchObject({ source: source(3) });
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(store.getState().groups.at(-1)?.message).toBe("speed 5 state 3");
+    expect(store.getState().groups.some((entry) => entry.message === "Canceled compilation")).toBe(false);
+    view.rerender(<HotReloadHarness gameDocument={hotReloadDocument(source(9))} />);
+    await act(async () => { await Promise.resolve(); });
+    await user.click(screen.getByRole("button", { name: "Restart" }));
+    await waitFor(() => expect(screen.getByLabelText("Reload tick")).toHaveTextContent("0"));
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(store.getState().groups.at(-1)?.message).toBe("speed 9 state 0");
+  } finally { view.unmount(); animation.mockRestore(); jest.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession); }
 });

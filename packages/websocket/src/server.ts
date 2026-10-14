@@ -204,7 +204,9 @@ import timelineAudioBakeRoutes from "./routes/timeline-audio-bake.js";
 import timelineIsolateSubjectRoutes from "./routes/timeline-isolate-subject.js";
 import timelineTrackObjectRoutes from "./routes/timeline-track-object.js";
 import storyboardsRoutes from "./routes/storyboards.js";
+import gamesRoutes from "./routes/games.js";
 import timelinesRoutes from "./routes/timelines.js";
+import projectArchiveRoutes from "./routes/project-archive.js";
 import documentsRoutes from "./routes/documents.js";
 import sandboxModulesRoutes from "./routes/sandbox-modules.js";
 import falCreditsRoute from "./routes/fal-credits.js";
@@ -384,7 +386,22 @@ try {
   // that need provider credentials bind their own `(key) => getSecret(key,
   // userId)` closure when invoking provider APIs — there is no shared
   // global resolver.
-  await initMasterKey();
+  //
+  // A machine with no keychain (a container, CI, a server without a D-Bus
+  // session) cannot unlock the store. The server still starts, the way the
+  // CLI commands do: provider keys from the environment keep working, and
+  // only reading or writing a stored secret fails. Exiting here made
+  // `npx @nodetool-ai/cli serve` unusable on every headless machine.
+  try {
+    await initMasterKey();
+  } catch (err) {
+    log.warn(
+      "Secret store is locked: stored secrets are unavailable, and provider " +
+        "keys are read from the environment. Set SECRETS_MASTER_KEY to a " +
+        "base64-encoded 32-byte key to enable the store.",
+      { error: err instanceof Error ? err.message : String(err) }
+    );
+  }
 
   // Transformers.js fixes its cache directory on first import, which happens
   // after this point, so a directory saved in Settings must be applied now.
@@ -1670,7 +1687,9 @@ await app.register(timelineAudioBakeRoutes, routeOpts);
 await app.register(timelineIsolateSubjectRoutes, routeOpts);
 await app.register(timelineTrackObjectRoutes, routeOpts);
 await app.register(storyboardsRoutes, routeOpts);
+await app.register(gamesRoutes, routeOpts);
 await app.register(timelinesRoutes, routeOpts);
+await app.register(projectArchiveRoutes, routeOpts);
 // PDF/DOCX text extraction for script and screenplay imports. Stores
 // nothing and needs no apiOptions.
 await app.register(documentsRoutes);

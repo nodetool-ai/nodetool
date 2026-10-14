@@ -33,7 +33,7 @@
  * </Dialog>
  */
 
-import { forwardRef, memo, ReactNode, useId } from "react";
+import { CSSProperties, forwardRef, memo, ReactNode, useId } from "react";
 import {
   Dialog as MuiDialog,
   DialogProps as MuiDialogProps,
@@ -129,6 +129,12 @@ export interface DialogProps extends Omit<MuiDialogProps, "title" | "content"> {
    * Extra content rendered in the title bar next to the close button.
    */
   titleActions?: ReactNode;
+  /**
+   * `fullscreen` fills the viewport edge to edge with no radius, border or
+   * minimum width, for media viewers and reading views.
+   * @default "default"
+   */
+  variant?: "default" | "fullscreen";
 }
 
 /**
@@ -159,6 +165,8 @@ export const Dialog = memo(
         className,
         showCloseButton,
         titleActions,
+        slotProps,
+        variant = "default",
         ...dialogProps
       },
       ref
@@ -204,7 +212,15 @@ export const Dialog = memo(
         blur: "blur(12px)",
         backgroundDialog: theme.vars.palette.action.disabledBackground
       };
-      const borderRadius = theme.rounded?.xxl ?? theme.shape.borderRadius;
+      // Caller slot props merge onto the shell instead of replacing it, so a
+      // paper `sx` or a backdrop handler keeps the glass, border and radius.
+      const callerPaper = isSlotObject(slotProps?.paper) ? slotProps.paper : {};
+      const callerBackdrop = isSlotObject(slotProps?.backdrop)
+        ? slotProps.backdrop
+        : {};
+      const isFullscreen =
+        variant === "fullscreen" || dialogProps.fullScreen === true;
+      const callerRoot = isSlotObject(slotProps?.root) ? slotProps.root : {};
 
       return (
         <MuiDialog
@@ -212,54 +228,72 @@ export const Dialog = memo(
           open={open}
           onClose={onClose}
           css={dialogStyles(theme)}
-          className={`dialog ${className ?? ""}`}
+          className={`dialog${isFullscreen ? " dialog--fullscreen" : ""} ${className ?? ""}`}
           aria-labelledby={title ? titleId : undefined}
           slotProps={{
-            root:
-              nestedZIndex === undefined
-                ? undefined
-                : { style: { zIndex: nestedZIndex } },
+            ...slotProps,
+            root: {
+              ...callerRoot,
+              style: {
+                zIndex: nestedZIndex,
+                ...callerRoot.style
+              }
+            },
             backdrop: {
+              ...callerBackdrop,
               style: {
                 backdropFilter: glass.blur,
-                backgroundColor: glass.backgroundDialog
+                backgroundColor: glass.backgroundDialog,
+                ...callerBackdrop.style
               }
             },
             paper: {
+              ...callerPaper,
               style: {
-                borderRadius,
                 background: theme.vars.palette.background.paper,
-                backdropFilter: `${glass.blur} saturate(180%)`,
-                border: `1px solid ${theme.vars.palette.divider}`,
-                minWidth: minWidth ?? "min(400px, 100vw - 32px)"
+                ...(isFullscreen
+                  ? { borderRadius: 0, border: "none", margin: 0 }
+                  : {
+                      borderRadius:
+                        theme.rounded?.dialog ?? theme.shape.borderRadius,
+                      backdropFilter: `${glass.blur} saturate(180%)`,
+                      border: `1px solid ${theme.vars.palette.divider}`,
+                      minWidth: minWidth ?? "min(400px, 100vw - 32px)"
+                    }),
+                ...callerPaper.style
               }
             }
           }}
+          fullScreen={isFullscreen}
           {...dialogProps}
         >
           <OverlayLayerProvider value={nestedZIndex}>
             {title && (
               <DialogTitle className="dialog-title" id={titleId}>
-                {titleIsString ? (
-                  <FlexRow
-                    className="dialog-title-row"
-                    align="center"
-                    justify="space-between"
-                    gap={SPACING.md}
-                    fullWidth
-                  >
-                    <Text size="big" component="span" className="dialog-title-text">
+                <FlexRow
+                  className="dialog-title-row"
+                  align="center"
+                  justify="space-between"
+                  gap={SPACING.md}
+                  fullWidth
+                >
+                  {titleIsString ? (
+                    <Text
+                      size="big"
+                      component="span"
+                      className="dialog-title-text"
+                    >
                       {title}
                     </Text>
-                    {headerActions && (
-                      <FlexRow align="center" gap={SPACING.micro}>
-                        {headerActions}
-                      </FlexRow>
-                    )}
-                  </FlexRow>
-                ) : (
-                  title
-                )}
+                  ) : (
+                    title
+                  )}
+                  {headerActions && (
+                    <FlexRow align="center" gap={SPACING.micro}>
+                      {headerActions}
+                    </FlexRow>
+                  )}
+                </FlexRow>
               </DialogTitle>
             )}
             {dialogContent && (
@@ -267,7 +301,11 @@ export const Dialog = memo(
                 {dialogContent}
               </DialogContent>
             )}
-            {actions && <MuiDialogActions>{actions}</MuiDialogActions>}
+            {actions && (
+              <MuiDialogActions className="dialog-actions">
+                {actions}
+              </MuiDialogActions>
+            )}
             {!actions && shouldShowActions && onConfirm && (
               <DialogActionButtons
                 onConfirm={onConfirm}
@@ -289,3 +327,9 @@ export const Dialog = memo(
 );
 
 Dialog.displayName = "Dialog";
+
+type SlotStyle = { style?: CSSProperties } & Record<string, unknown>;
+
+function isSlotObject(slot: unknown): slot is SlotStyle {
+  return typeof slot === "object" && slot !== null;
+}

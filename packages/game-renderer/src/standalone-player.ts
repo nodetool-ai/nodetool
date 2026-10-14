@@ -1,13 +1,15 @@
-import { createScriptedGameSession, validateGame } from "@nodetool-ai/game-runtime";
+import { createScriptedGameSession, GamePlayerSaves, validateGame } from "@nodetool-ai/game-runtime";
 import { gameSnapshot, type GameInputFrame, type GameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "./audio.js";
 import { mountTouchControls, touchLayout } from "./touch-controls.js";
 import { browserGamepads, GameInput } from "./input-bindings.js";
-import { attachGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController, gameUiViewport2D } from "./ui/index.js";
+import { attachGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
+import { gameUiViewport2D } from "./ui/hud2d.js";
 import { resolveGameInputBindings } from "@nodetool-ai/protocol";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
 import { GameParticles2D } from "./particles/render2d.js";
+import { createIndexedDbGameSaveStorage, loadQuickSave } from "./save-storage.js";
 
 declare global {
   interface Window {
@@ -16,6 +18,8 @@ declare global {
       readonly reset: () => Promise<void>;
       readonly step: (input: GameInputFrame) => Promise<void>;
       readonly snapshot: () => GameSnapshot;
+      /** Progress and settings saves of this game in IndexedDB. */
+      readonly saves: Pick<GamePlayerSaves, "save" | "load" | "remove" | "slots">;
     };
   }
 }
@@ -65,6 +69,7 @@ async function start(): Promise<void> {
   }
   const audio = new GameAudioPlayer({
     assets: game.assets,
+    scenes: game.scenes,
     tickRate: game.tickRate,
     resolveAsset: async (binding) => binding.assetId.startsWith("./assets/") ? binding.assetId : null,
     status: showStatus,
@@ -148,7 +153,16 @@ async function start(): Promise<void> {
   let lastTime = performance.now();
   let animationFrame = 0;
   const tickMs = 1000 / game.tickRate;
-  const saveKey = `nodetool-game:${game.id}:${game.revision}:save`;
+  // Script saves and the Save button share per-game IndexedDB storage. Loaded data reaches scripts on the next frame.
+  const saves = new GamePlayerSaves(createIndexedDbGameSaveStorage(game.id), { onError: (error) => showStatus(error.message) });
+  const QUICK_SAVE = "quicksave";
+  // Quick saves from before IndexedDB storage, moved into the quicksave slot on the first load.
+  const legacyQuickSave = { storage: localStorage, key: `nodetool-game:${game.id}:${game.revision}:save` };
+  function stepSession(frame: GameInputFrame) {
+    const result = session.step(saves.withLoaded(frame));
+    saves.handle(result.saveRequests, () => session.snapshot());
+    return result;
+  }
 
   function render(interpolation: number): void {
     if (rendering) {
@@ -170,7 +184,7 @@ async function start(): Promise<void> {
   function step(): boolean {
     try {
       input.pollGamepads(hud.pollGamepads(browserGamepads()));
-      const result = session.step(input.sample2D(game));
+      const result = stepSession(input.sample2D(game));
       latest = result.frame;
       particles.tick(result.frame, session.takePresentationEvents());
       result.events.forEach((event) => audio.handle(event));
@@ -238,6 +252,7 @@ async function start(): Promise<void> {
     void createScriptedGameSession(game, 1).then((restored) => {
       session.dispose();
       session = restored;
+      saves.clear();
       audio.reset(session.snapshot());
       latest = session.frame();
       particles.clear();
@@ -248,33 +263,27 @@ async function start(): Promise<void> {
     }).catch((error) => showStatus(error instanceof Error ? error.message : "Game could not reset"));
   });
   element("save").addEventListener("click", () => {
-    try {
-      localStorage.setItem(saveKey, JSON.stringify(session.snapshot()));
-      showStatus("Game saved");
-    } catch (error) {
-      showStatus(error instanceof Error ? error.message : "Game could not be saved");
-    }
+    void saves.save("progress", QUICK_SAVE, {}, session.snapshot())
+      .then(() => showStatus("Game saved"))
+      .catch((error) => showStatus(error instanceof Error ? error.message : "Game could not be saved"));
   });
   element("load").addEventListener("click", () => {
-    try {
-      const saved = localStorage.getItem(saveKey);
-      if (!saved) {
+    void loadQuickSave(saves, QUICK_SAVE, legacyQuickSave).then(async (record) => {
+      if (record?.snapshot === undefined) {
         showStatus("No saved game");
         return;
       }
-      void createScriptedGameSession(game, 1, gameSnapshot.parse(JSON.parse(saved))).then((restored) => {
-        session.dispose();
-        session = restored;
-        audio.reset(session.snapshot());
-        latest = session.frame();
-        particles.clear();
-        accumulator = 0;
-        showStatus("Game loaded");
-        render(1);
-      }).catch((error) => showStatus(error instanceof Error ? error.message : "Save could not be loaded"));
-    } catch (error) {
-      showStatus(error instanceof Error ? error.message : "Save could not be loaded");
-    }
+      const restored = await createScriptedGameSession(game, 1, gameSnapshot.parse(record.snapshot));
+      session.dispose();
+      session = restored;
+      saves.clear();
+      audio.reset(session.snapshot());
+      latest = session.frame();
+      particles.clear();
+      accumulator = 0;
+      showStatus("Game loaded");
+      render(1);
+    }).catch((error) => showStatus(error instanceof Error ? error.message : "Save could not be loaded"));
   });
   window.addEventListener("beforeunload", () => {
     cancelAnimationFrame(animationFrame);
@@ -288,14 +297,14 @@ async function start(): Promise<void> {
     reset: async () => {
       paused = true;
       const replacement = await createScriptedGameSession(game, 1);
-      session.dispose(); session = replacement;
+      session.dispose(); session = replacement; saves.clear();
       audio.reset(session.snapshot()); latest = session.frame(); particles.clear(); releaseAll(); accumulator = 0;
       await rendering;
       await renderer.render(latest, 1, particles);
     },
     step: async (input: GameInputFrame) => {
       paused = true;
-      const result = session.step(input);
+      const result = stepSession(input);
       latest = result.frame;
       particles.tick(result.frame, session.takePresentationEvents());
       result.events.forEach(event => audio.handle(event));
@@ -303,7 +312,10 @@ async function start(): Promise<void> {
       await rendering;
       await renderer.render(latest, 1, particles);
     },
-    snapshot: () => session.snapshot()
+    snapshot: () => session.snapshot(),
+    saves: Object.freeze({
+      save: saves.save.bind(saves), load: saves.load.bind(saves), remove: saves.remove.bind(saves), slots: saves.slots.bind(saves)
+    })
   });
   showStatus(`Ready (${renderer.backend})${effectNotice ? ` · ${effectNotice}` : ""}${fonts.diagnostics.length ? ` · ${fonts.diagnostics.join("; ")}` : ""}`);
   render(1);

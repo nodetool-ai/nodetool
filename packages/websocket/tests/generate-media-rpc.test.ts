@@ -846,6 +846,73 @@ describe("generate_media RPC (parameter passthrough)", () => {
     await runner.disconnect();
   });
 
+  it("image_edit: sends reference images after the source, in order", async () => {
+    configureAssets(["scene-capture", "style-b", "style-a"]);
+    const runner = await makeRunner(ws, makeProvider);
+    const out = await runOne(ws, runner, {
+      command: "generate_media",
+      request_id: "p-refs",
+      data: {
+        mode: "image_edit",
+        provider: "fake",
+        model: "m",
+        prompt: "render this view in the style of image 2",
+        source_asset_id: "scene-capture",
+        reference_images: [
+          { type: "image", asset_id: "style-b" },
+          { type: "image", uri: "asset://style-a.png" }
+        ]
+      }
+    });
+    expect(out.error).toBeUndefined();
+    expect(captured.imageToImages).toHaveLength(1);
+    expect(captured.imageToImages[0].images).toEqual([
+      REF_BYTES["scene-capture"],
+      REF_BYTES["style-b"],
+      REF_BYTES["style-a"]
+    ]);
+    await runner.disconnect();
+  });
+
+  it("image_edit: refuses a missing reference image before submitting", async () => {
+    configureAssets(["scene-capture"]);
+    const runner = await makeRunner(ws, makeProvider);
+    const out = await runOne(ws, runner, {
+      command: "generate_media",
+      request_id: "p-refs-missing",
+      data: {
+        mode: "image_edit",
+        provider: "fake",
+        model: "m",
+        prompt: "restyle",
+        source_asset_id: "scene-capture",
+        reference_images: [{ asset_id: "gone" }]
+      }
+    });
+    expect(out.error).toBeDefined();
+    expect(captured.imageToImages).toHaveLength(0);
+    await runner.disconnect();
+  });
+
+  it("image: still refuses reference images outside image_edit", async () => {
+    configureAssets(["style-a"]);
+    const runner = await makeRunner(ws, makeProvider);
+    const out = await runOne(ws, runner, {
+      command: "generate_media",
+      request_id: "p-refs-t2i",
+      data: {
+        mode: "image",
+        provider: "fake",
+        model: "m",
+        prompt: "a cat",
+        reference_images: [{ asset_id: "style-a" }]
+      }
+    });
+    expect(out.error).toBeDefined();
+    expect(captured.textToImages).toHaveLength(0);
+    await runner.disconnect();
+  });
+
   it("inpaint: forwards source and mask bytes plus strength and steps", async () => {
     configureAssets(["src-p3", "mask-p3"]);
     const runner = await makeRunner(ws, makeProvider);

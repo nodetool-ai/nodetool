@@ -100,4 +100,56 @@ describe("getSharedEditableProperties", () => {
       )
     ).toEqual([]);
   });
+
+  it("drops fields whose bounds or choices differ", () => {
+    const steps = (max: number): Property => ({
+      name: "steps",
+      type: { type: "int", optional: false, type_args: [] },
+      min: 1,
+      max,
+      required: false
+    });
+    const mode = (values: string[]): Property => ({
+      name: "mode",
+      type: { type: "enum", optional: false, type_args: [] },
+      values,
+      required: false
+    });
+
+    expect(
+      getSharedEditableProperties(
+        [
+          entry("a", [steps(50), mode(["x", "y"])]),
+          entry("b", [steps(12), mode(["x"])])
+        ],
+        []
+      )
+    ).toEqual([]);
+    expect(
+      getSharedEditableProperties(
+        [entry("a", [steps(50)]), entry("b", [steps(50)])],
+        []
+      ).map((p) => p.name)
+    ).toEqual(["steps"]);
+  });
+
+  it("drops model fields across different node types", () => {
+    const model: Property = {
+      name: "model",
+      type: { type: "image_model", optional: false, type_args: [] },
+      required: false
+    };
+    const other = entry("b", [model]);
+    other.node = { ...other.node, type: "test.Other" };
+
+    expect(
+      getSharedEditableProperties([entry("a", [model]), other], [])
+    ).toEqual([]);
+    expect(
+      getSharedEditableProperties(
+        [entry("a", [model]), entry("b", [model])],
+        []
+      ).map((p) => p.name)
+    ).toEqual(["model"]);
+  });
 });

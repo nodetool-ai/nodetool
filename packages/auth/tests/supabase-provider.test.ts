@@ -166,6 +166,18 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
     expect(getUser).toHaveBeenCalledTimes(2);
   });
 
+  it("does not cache when cacheMax is 0", async () => {
+    const getUser = vi.fn(async () => ({
+      data: { user: { id: "no-room-user" } },
+      error: null
+    }));
+    const provider = makeProvider({ getUser, cacheTtl: 60, cacheMax: 0 });
+
+    await provider.verifyToken("tok-3");
+    await provider.verifyToken("tok-3");
+    expect(getUser).toHaveBeenCalledTimes(2);
+  });
+
   it("evicts oldest entry when cache exceeds max size", async () => {
     const getUser = vi.fn(async (_jwt?: string) => ({
       data: { user: { id: "user-x" } },

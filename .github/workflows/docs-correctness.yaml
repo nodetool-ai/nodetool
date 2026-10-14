@@ -17,7 +17,29 @@ on:
   workflow_dispatch:
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    outputs:
+      skip: ${{ steps.preflight.outputs.skip }}
+      recent-files: ${{ steps.preflight.outputs.recent-files }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - id: preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE_PATTERN: '^docs: fix stale'
+        run: node .github/scripts/agent-preflight.mjs --name docs-correctness --title "$TITLE_PATTERN"
+
   docs-correctness:
+    needs: preflight
+    if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -27,25 +49,15 @@ jobs:
       actions: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Node and install dependencies
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-
-      - name: Install all workspace dependencies
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
-
-      # The CLI loads the node registry from dist/ (decorator packages), so its
-      # help output is only complete after a build.
-      - name: Build packages
-        run: npm run build:packages
+          cache: "read-only"
+          build-packages: "true"
 
       - name: Collect ground truth
         id: facts
@@ -91,7 +103,7 @@ jobs:
         run: echo "BASE_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
       - name: Run Claude Code
-        uses: anthropics/claude-code-action@v1.0.241
+        uses: anthropics/claude-code-action@cab360f6565aa35a51d6ce9e43f1f4287c0a32ea # v1.0.241
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
@@ -99,7 +111,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "All prose you write follows docs/WRITING_STYLE.md: concise, concrete, no AI slop (leverage, seamless, robust, comprehensive, it's worth noting, rule-of-three padding). Fix slop you pass in paragraphs you are already editing."
+            --append-system-prompt "All prose you write follows docs/WRITING_STYLE.md: concise, concrete, no AI slop (leverage, seamless, robust, comprehensive, it's worth noting, rule-of-three padding). Fix slop you pass in paragraphs you are already editing. Open the PR with the label agent:docs-correctness (gh pr create --label agent:docs-correctness). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Documentation Correctness
 

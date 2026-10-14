@@ -26,7 +26,7 @@ import {
 // hand-lists providers — `listRegisteredProviderIds()` below is the single
 // source of truth this suite enumerates.
 import "../src/providers/index.js";
-import { CLOUD_ONLY_PROVIDER_IDS } from "@nodetool-ai/protocol";
+import { CLOUD_ONLY_PROVIDER_IDS, NON_CLOUD_PROVIDER_IDS } from "@nodetool-ai/protocol";
 import {
   CassetteProvider,
   CassetteStore
@@ -39,7 +39,8 @@ import {
   CONTRACT_MODEL,
   CONTRACT_MODEL_RATE_LIMIT,
   CONTRACT_MODEL_AUTH_ERROR,
-  MEDIA_ONLY_EXEMPTIONS
+  MEDIA_ONLY_EXEMPTIONS,
+  BROWSER_TAB_EXEMPTIONS
 } from "./providers/provider-contract.fixtures.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -93,7 +94,7 @@ async function loadContractCassette(id: string): Promise<Cassette> {
 
 const registeredIds = listRegisteredProviderIds();
 const chatProviderIds = registeredIds.filter(
-  (id) => !(id in MEDIA_ONLY_EXEMPTIONS)
+  (id) => !(id in MEDIA_ONLY_EXEMPTIONS) && !(id in BROWSER_TAB_EXEMPTIONS)
 );
 const mediaOnlyIds = registeredIds.filter((id) => id in MEDIA_ONLY_EXEMPTIONS);
 
@@ -129,6 +130,15 @@ describe("provider registry enumeration", () => {
     for (const id of CLOUD_ONLY_PROVIDER_IDS) {
       expect(registeredIds).not.toContain(id);
     }
+  });
+});
+
+describe.each(Object.keys(BROWSER_TAB_EXEMPTIONS))("browser-tab provider: %s", (id) => {
+  it(`is a registered, credential-free, local-only provider (exemption: ${BROWSER_TAB_EXEMPTIONS[id]})`, async () => {
+    expect(registeredIds).toContain(id);
+    const provider = await getProvider(id, dummySecret);
+    expect((provider.constructor as { requiredSecrets(): string[] }).requiredSecrets()).toEqual([]);
+    expect(NON_CLOUD_PROVIDER_IDS).toContain(id);
   });
 });
 

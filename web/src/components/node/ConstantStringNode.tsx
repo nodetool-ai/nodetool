@@ -27,7 +27,7 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { CopyButton, ToolbarIconButton, Container, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX, SHADOW } from "../ui_primitives";
 import TextEditorModal from "../properties/TextEditorModal";
 import useMetadataStore from "../../stores/MetadataStore";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodeStoreRef, useNodes } from "../../contexts/NodeContext";
 import { isHandleConnected } from "../../hooks/nodes/edgeIndex";
 import { colorForType } from "../../config/data_types";
 import { NodeTextPreview, editorClassNames, cn } from "../editor_ui";
@@ -178,6 +178,8 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     )
   );
 
+  const nodeStore = useNodeStoreRef();
+
   const metadata = useMetadataStore((state) => state.getMetadata(type));
   if (!metadata) {
     throw new Error("Metadata not loaded for " + type);
@@ -258,9 +260,20 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
     if (Math.abs(desiredNodeH - currentNodeH) > 2) {
       lastEmittedHeight.current = desiredNodeH;
-      updateNode(id, { height: desiredNodeH });
+      // Auto-grow follows the text, so it records no undo step of its own:
+      // undoing it would only re-run this effect and clear the redo stack.
+      const history = nodeStore.temporal.getState();
+      const wasTracking = history.isTracking;
+      history.pause();
+      try {
+        updateNode(id, { height: desiredNodeH });
+      } finally {
+        if (wasTracking) {
+          history.resume();
+        }
+      }
     }
-  }, [localValue, id, updateNode, data.collapsed, isEditing]);
+  }, [localValue, id, updateNode, nodeStore, data.collapsed, isEditing]);
 
   const startEditing = useCallback((caretOffset: number | null) => {
     caretRef.current = caretOffset;

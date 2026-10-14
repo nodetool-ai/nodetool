@@ -2,10 +2,16 @@ import { useState } from "react";
 import { gameAssetBinding, gameBehavior, gameDocument, gameEntity, gameRenderEffect, gameScene, type GameDocument, type GameEntity, type GameRenderEffect } from "@nodetool-ai/protocol/game.js";
 import { validateGame, type GameDocumentOp, type GameValidationIssue } from "@nodetool-ai/game-runtime";
 
-import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
-import { Caption, Divider, EditorButton, FlexColumn, FlexRow, FONT_SIZE_SANS, InspectorFieldRow, InspectorSection, InspectorSelect, Label, SectionHeader, SPACING, TabGroup, Text, TextInput } from "../../../ui_primitives";
-import GamePanelHeader from "../../GamePanelHeader";
+import AddIcon from "@mui/icons-material/Add";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import CloseIcon from "@mui/icons-material/Close";
+import CodeIcon from "@mui/icons-material/Code";
+
+import { Caption, Divider, FieldDensityContext, FlexColumn, InspectorFieldRow, InspectorSection, InspectorSelect, SPACING, TabGroup, Text, TextInput } from "../../../ui_primitives";
 import SchemaFields from "../../inspector/SchemaFields";
+import InspectorAddMenu from "../../inspector/InspectorAddMenu";
+import { AddButton, FieldGroup, RowAction } from "../../inspector/InspectorParts";
 import GameOverrideFields from "../../GameOverrideFields";
 import ScriptParamsEditor from "../../inspector/editors/ScriptParamsEditor";
 import { gameSchemaFields, schemaVariant } from "../../inspector/schemaForm";
@@ -36,7 +42,7 @@ const DEFAULT_GAME_LIGHT_COLOR = "#ffffff";
 type ComponentKind = typeof COMPONENTS[number];
 
 function displayKind(kind: string): string {
-  return kind.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/2d\b/i, "2D")
+  return kind.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([a-z])2d\b/i, "$1 2D").replace(/^lut$/, "LUT")
     .replace(/^./, (letter) => letter.toUpperCase());
 }
 
@@ -95,11 +101,17 @@ function newEffect(kind: typeof EFFECTS[number], document: GameDocument): GameRe
 }
 
 
+/** Up, down and remove actions for one entry of an ordered list. */
+function OrderActions({ index, count, removeLabel, onMove, onRemove }: { index: number; count: number; removeLabel: string; onMove: (to: number) => void; onRemove: () => void }) {
+  return <>
+    <RowAction icon={<ArrowUpwardIcon />} label="Move up" disabled={index === 0} onClick={() => onMove(index - 1)} />
+    <RowAction icon={<ArrowDownwardIcon />} label="Move down" disabled={index === count - 1} onClick={() => onMove(index + 1)} />
+    <RowAction icon={<CloseIcon />} label={removeLabel} onClick={onRemove} />
+  </>;
+}
+
 export default function GameInspector({ document, activeSceneId, selectedIds, issues = [], onOps, onSceneChange, onEditScript }: GameInspectorProps) {
   const [tab, setTab] = useState<"selection" | "game">("selection");
-  const [componentToAdd, setComponentToAdd] = useState("");
-  const [behaviorToAdd, setBehaviorToAdd] = useState("");
-  const [effectToAdd, setEffectToAdd] = useState("");
   const [localEffectIssues, setLocalEffectIssues] = useState<readonly GameValidationIssue[]>([]);
   const [newSlot, setNewSlot] = useState("");
   const selectedId = selectedIds[0];
@@ -122,21 +134,28 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
     setLocalEffectIssues(effectIssues);
     if (effectIssues.length === 0) onOps([{ op: "set_effects", effects: next, hud_effect_order: order }]);
   };
+  const lutReady = Object.values(document.assets).some((binding) => binding.mediaKind === "image" && binding.width === binding.height * binding.height);
+  const slotName = newSlot.trim();
+  const addBinding = (): void => {
+    const binding = Object.values(document.assets)[0];
+    if (binding && slotName && !document.assets[slotName]) {
+      onOps([{ op: "bind_asset", slot: slotName, binding: { ...binding } }]);
+      setNewSlot("");
+    }
+  };
 
   const inspectedName = tab === "game" ? "Game settings" : entity?.name || entity?.id || scene?.name || "Scene";
   const inspectedId = tab === "game" ? undefined : entity?.id ?? scene?.id;
 
   return <FlexColumn sx={{ minHeight: 0, height: "100%" }}>
-    <GamePanelHeader title="Inspector" icon={<TuneOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.body }} />} />
-    <FlexColumn gap={SPACING.micro} sx={{ px: SPACING.lg, pt: SPACING.md, pb: SPACING.md }}>
+    <FlexColumn gap={SPACING.micro} sx={{ px: SPACING.lg, py: SPACING.sm }}>
       <Text weight={500} truncate>{inspectedName}</Text>
-      {inspectedId && <Caption sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={inspectedId}>ID: {inspectedId}</Caption>}
+      {inspectedId && <Caption title={inspectedId} sx={{ overflowWrap: "anywhere" }}>ID: {inspectedId}</Caption>}
     </FlexColumn>
     <TabGroup aria-label="Inspector" size="small" fullWidth value={tab} onChange={(value) => setTab(value === "game" ? "game" : "selection")}
       tabs={[{ value: "selection", label: entity ? "Entity" : "Scene" }, { value: "game", label: "Game" }]} />
     <Divider />
-    <FlexColumn gap={SPACING.xs} sx={{ minHeight: 0, overflowY: "auto", px: SPACING.lg, py: SPACING.md,
-      "& button": { alignSelf: "flex-start" } }}>
+    <FlexColumn gap={SPACING.xs} sx={{ minHeight: 0, overflowY: "auto", px: SPACING.lg, py: SPACING.sm }}>
     {tab === "game" ? <>
       <SchemaFields schema={DOCUMENT_SCHEMA.properties?.pixelsPerUnit ?? { type: "number" }} value={document.pixelsPerUnit} path="pixelsPerUnit"
         issuePath={["pixelsPerUnit"]} issues={issues} onChange={(value) => onOps([{ op: "set_game", pixels_per_unit: Number(value) }])} />
@@ -154,27 +173,23 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
           onChange={(value) => onOps([{ op: "set_game", collision_layers: value as string[] }])} />
       </InspectorSection>
       <InspectorSection title="Effects">
-        {effects.map((effect, index) => <FlexColumn key={`${effect.kind}:${index}`} gap={SPACING.xs}>
-          <Label component="span" sx={{ mb: 0 }}>{index + 1}. {displayKind(effect.kind)}</Label>
+        {effects.map((effect, index) => <FieldGroup key={`${effect.kind}:${index}`} title={`${index + 1}. ${displayKind(effect.kind)}`} actions={<OrderActions index={index} count={effects.length} removeLabel="Remove effect"
+          onMove={(to) => { const next = [...effects]; [next[to], next[index]] = [next[index], next[to]]; setEffects(next); }}
+          onRemove={() => setEffects(effects.filter((_, position) => position !== index))} />}>
           <SchemaFields schema={schemaVariant(EFFECT_SCHEMA, effect)} value={effect} path={`renderEffects.${index}`}
             issuePath={["renderEffects", index]} issues={visibleIssues} assets={document.assets}
             onChange={(value) => setEffects(effects.map((entry, position) => position === index ? value as GameRenderEffect : entry))} />
-          <FlexRow gap={SPACING.xs}>
-            <EditorButton disabled={index === 0} onClick={() => { const next = [...effects]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; setEffects(next); }}>Move up</EditorButton>
-            <EditorButton disabled={index === effects.length - 1} onClick={() => { const next = [...effects]; [next[index + 1], next[index]] = [next[index], next[index + 1]]; setEffects(next); }}>Move down</EditorButton>
-            <EditorButton onClick={() => setEffects(effects.filter((_, position) => position !== index))}>Remove effect</EditorButton>
-          </FlexRow>
-        </FlexColumn>)}
-        <InspectorFieldRow label="Add effect"><InspectorSelect grow label="Add effect" value={effectToAdd} options={[{ value: "", label: "Choose effect" }, ...EFFECTS.map((kind) => ({ value: kind, label: displayKind(kind) }))]}
-          onChange={setEffectToAdd} /></InspectorFieldRow>
-        <EditorButton disabled={!effectToAdd || effects.length >= 8 || effectToAdd === "lut" && !Object.values(document.assets).some((binding) => binding.mediaKind === "image" && binding.width === binding.height * binding.height)}
-          onClick={() => { const effect = newEffect(effectToAdd as typeof EFFECTS[number], document); if (effect) setEffects([...effects, effect]); setEffectToAdd(""); }}>Add effect</EditorButton>
+        </FieldGroup>)}
         <InspectorFieldRow label="HUD effect order"><InspectorSelect grow label="HUD effect order" value={document.hudEffectOrder ?? "beforeEffects"}
           options={[{ value: "beforeEffects", label: "Before effects" }, { value: "afterEffects", label: "After effects" }]}
           onChange={(value) => setEffects(effects, value as GameDocument["hudEffectOrder"])} /></InspectorFieldRow>
+        <InspectorAddMenu label="Add effect" disabled={effects.length >= 8}
+          options={EFFECTS.map((kind) => ({ value: kind, label: displayKind(kind), disabled: kind === "lut" && !lutReady }))}
+          onSelect={(kind) => { const effect = newEffect(kind as typeof EFFECTS[number], document); if (effect) setEffects([...effects, effect]); }} />
       </InspectorSection>
       <InspectorSection title="Asset bindings">
-        {Object.entries(document.assets).map(([slot, binding]) => <InspectorSection key={slot} title={slot}>
+        {Object.entries(document.assets).map(([slot, binding]) => <FieldGroup key={slot} title={slot}
+          actions={<RowAction icon={<CloseIcon />} label={`Unbind ${slot}`} onClick={() => onOps([{ op: "unbind_asset", slot }])} />}>
           <SchemaFields schema={ASSET_SCHEMA} value={binding} path={`assets.${slot}`} issuePath={["assets", slot]} issues={issues}
             onChange={(value) => {
               const next = value as typeof binding;
@@ -183,16 +198,14 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
               else delete adjusted.fontFormat;
               onOps([{ op: "bind_asset", slot, binding: adjusted }]);
             }} />
-          <EditorButton onClick={() => onOps([{ op: "unbind_asset", slot }])}>Unbind {slot}</EditorButton>
-        </InspectorSection>)}
-        <InspectorFieldRow label="New asset slot"><TextInput label="New asset slot" hideLabel compact value={newSlot} onChange={(event) => setNewSlot(event.target.value)} /></InspectorFieldRow>
-        <EditorButton disabled={!newSlot.trim() || Boolean(document.assets[newSlot.trim()]) || Object.keys(document.assets).length === 0} onClick={() => {
-          const binding = Object.values(document.assets)[0];
-          if (binding) {
-            onOps([{ op: "bind_asset", slot: newSlot.trim(), binding: { ...binding } }]);
-            setNewSlot("");
-          }
-        }}>Add binding</EditorButton>
+        </FieldGroup>)}
+        <InspectorFieldRow label="New asset slot">
+          <FieldDensityContext.Provider value="compact">
+            <TextInput label="New asset slot" hideLabel compact value={newSlot} sx={{ flex: 1, minWidth: 0 }} onChange={(event) => setNewSlot(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") addBinding(); }} />
+          </FieldDensityContext.Provider>
+          <RowAction icon={<AddIcon />} label="Add binding" disabled={!slotName || Boolean(document.assets[slotName]) || Object.keys(document.assets).length === 0} onClick={addBinding} />
+        </InspectorFieldRow>
       </InspectorSection>
     </> : entity && target ? <>
       <GameOverrideFields document={document} sceneId={scene.id} entityId={entity.id} onOps={onOps} />
@@ -208,93 +221,90 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
         <SchemaFields schema={ENTITY_SCHEMA.properties?.transform2d ?? { type: "object" }} value={entity.transform2d} path="transform2d"
           issuePath={[...entityPath, "transform2d"]} issues={issues} onChange={(value) => update({ transform2d: value as GameEntity["transform2d"] })} />
       </InspectorSection>
-      {COMPONENTS.map((component) => entity[component] && <InspectorSection key={component} title={displayKind(component)}>
+      {COMPONENTS.map((component) => entity[component] && <InspectorSection key={component} title={displayKind(component)}
+        action={{ icon: <CloseIcon />, label: `Remove ${displayKind(component)}`, onClick: () => update({ [component]: null } as Extract<GameDocumentOp, { op: "update_entity" }>["set"]) }}>
         <SchemaFields schema={ENTITY_SCHEMA.properties?.[component] ?? { type: "object" }} value={entity[component]} path={component}
           issuePath={[...entityPath, component]} issues={issues} assets={document.assets} collisionLayers={document.collisionLayers}
           onChange={(value) => update({ [component]: value } as Extract<GameDocumentOp, { op: "update_entity" }>["set"])} />
-        <EditorButton onClick={() => update({ [component]: null } as Extract<GameDocumentOp, { op: "update_entity" }>["set"])}>Remove component</EditorButton>
       </InspectorSection>)}
-      <InspectorFieldRow label="Add component"><InspectorSelect grow label="Add component" value={componentToAdd} options={[{ value: "", label: "Choose component" },
-        ...COMPONENTS.filter((component) => !entity[component]).map((component) => ({ value: component, label: displayKind(component) }))]}
-        onChange={setComponentToAdd} /></InspectorFieldRow>
-      <EditorButton disabled={!componentToAdd || ((componentToAdd === "sprite" || componentToAdd === "tilemap") && !firstSlot(document, "image")) || componentToAdd === "audioSource" && !firstSlot(document, "audio")}
-        onClick={() => { update({ [componentToAdd]: newComponent(componentToAdd as ComponentKind, document) } as Extract<GameDocumentOp, { op: "update_entity" }>["set"]); setComponentToAdd(""); }}>Add component</EditorButton>
-      <SectionHeader title="Behaviors" size="small" sx={{ mt: SPACING.md, borderTop: 1, borderColor: "divider" }} />
-      {entity.behaviors.map((behavior, index) => <InspectorSection key={`${behavior.kind}:${index}`} title={`${index + 1}. ${displayKind(behavior.kind)}`}>
-        {behavior.kind === "script" ? <>
-          <Caption>Script source: {new TextEncoder().encode(behavior.source).length} bytes</Caption>
-          <EditorButton onClick={() => onEditScript(scene.id, entity.id, index)}>Edit script</EditorButton>
-          <SchemaFields schema={BEHAVIOR_SCHEMA.oneOf?.find((variant) => variant.properties?.kind?.const === "script")?.properties?.maxCommands ?? { type: "integer" }}
-            value={behavior.maxCommands} path="maxCommands" issuePath={[...entityPath, "behaviors", index, "maxCommands"]} issues={issues}
-            onChange={(value) => onOps([{ op: "update_behavior", ...target, index, behavior: { maxCommands: value } }])} />
-          <SchemaFields schema={BEHAVIOR_SCHEMA.oneOf?.find((variant) => variant.properties?.kind?.const === "script")?.properties?.maxTickMs ?? { type: "integer" }}
-            value={behavior.maxTickMs} path="maxTickMs" issuePath={[...entityPath, "behaviors", index, "maxTickMs"]} issues={issues}
-            onChange={(value) => onOps([{ op: "update_behavior", ...target, index, behavior: { maxTickMs: value } }])} />
-          {behavior.params && <ScriptParamsEditor params={behavior.params} values={behavior.values} assets={document.assets} entities={scene.entities}
-            issuePath={[...entityPath, "behaviors", index]} issues={issues} onValues={(values) => onOps([{ op: "set_script_params", ...target, index, values }])} />}
-        </> : <SchemaFields schema={schemaVariant(BEHAVIOR_SCHEMA, behavior)} value={behavior} path={`behaviors.${index}`}
-          issuePath={[...entityPath, "behaviors", index]} issues={issues} assets={document.assets}
-          onChange={(value) => onOps([{ op: "update_behavior", ...target, index, behavior: value as Record<string, unknown> }])} />}
-        <FlexRow gap={SPACING.xs}>
-          <EditorButton disabled={index === 0} onClick={() => onOps([{ op: "move_behavior", ...target, index, to_index: index - 1 }])}>Move up</EditorButton>
-          <EditorButton disabled={index === entity.behaviors.length - 1} onClick={() => onOps([{ op: "move_behavior", ...target, index, to_index: index + 1 }])}>Move down</EditorButton>
-          <EditorButton onClick={() => onOps([{ op: "remove_behavior", ...target, index }])}>Remove behavior</EditorButton>
-        </FlexRow>
-      </InspectorSection>)}
-      <InspectorFieldRow label="Add behavior"><InspectorSelect grow label="Add behavior" value={behaviorToAdd} options={[{ value: "", label: "Choose behavior" }, ...BEHAVIORS.map((kind) => ({ value: kind, label: displayKind(kind) }))]}
-        onChange={setBehaviorToAdd} /></InspectorFieldRow>
-      <EditorButton disabled={!behaviorToAdd || behaviorToAdd === "spawn" && !document.scenes.some((entry) => entry.entities.some((item) => item.templateOnly))}
-        onClick={() => { const behavior = newBehavior(behaviorToAdd, document); if (behavior) onOps([{ op: "add_behavior", ...target, behavior }]); setBehaviorToAdd(""); }}>Add behavior</EditorButton>
+      <FlexColumn sx={{ pt: SPACING.xs, pb: SPACING.sm, borderTop: 1, borderColor: "divider" }}>
+        <InspectorAddMenu label="Add component" options={COMPONENTS.filter((component) => !entity[component]).map((component) => ({ value: component, label: displayKind(component),
+          disabled: ((component === "sprite" || component === "tilemap") && !firstSlot(document, "image")) || (component === "audioSource" && !firstSlot(document, "audio")) }))}
+          onSelect={(component) => update({ [component]: newComponent(component as ComponentKind, document) } as Extract<GameDocumentOp, { op: "update_entity" }>["set"])} />
+      </FlexColumn>
+      <InspectorSection title="Behaviors">
+        {entity.behaviors.length === 0 && <Caption>No behaviors yet.</Caption>}
+        {entity.behaviors.map((behavior, index) => <FieldGroup key={`${behavior.kind}:${index}`} title={`${index + 1}. ${displayKind(behavior.kind)}`}
+          actions={<>
+            {behavior.kind === "script" && <RowAction icon={<CodeIcon />} label="Edit script" onClick={() => onEditScript(scene.id, entity.id, index)} />}
+            <OrderActions index={index} count={entity.behaviors.length} removeLabel="Remove behavior"
+              onMove={(to) => onOps([{ op: "move_behavior", ...target, index, to_index: to }])} onRemove={() => onOps([{ op: "remove_behavior", ...target, index }])} />
+          </>}>
+          {behavior.kind === "script" ? <>
+            <InspectorFieldRow label="Source"><Caption>{new TextEncoder().encode(behavior.source).length} bytes</Caption></InspectorFieldRow>
+            <SchemaFields schema={BEHAVIOR_SCHEMA.oneOf?.find((variant) => variant.properties?.kind?.const === "script")?.properties?.maxCommands ?? { type: "integer" }}
+              value={behavior.maxCommands} path="maxCommands" issuePath={[...entityPath, "behaviors", index, "maxCommands"]} issues={issues}
+              onChange={(value) => onOps([{ op: "update_behavior", ...target, index, behavior: { maxCommands: value } }])} />
+            <SchemaFields schema={BEHAVIOR_SCHEMA.oneOf?.find((variant) => variant.properties?.kind?.const === "script")?.properties?.maxTickMs ?? { type: "integer" }}
+              value={behavior.maxTickMs} path="maxTickMs" issuePath={[...entityPath, "behaviors", index, "maxTickMs"]} issues={issues}
+              onChange={(value) => onOps([{ op: "update_behavior", ...target, index, behavior: { maxTickMs: value } }])} />
+            {behavior.params && <ScriptParamsEditor params={behavior.params} values={behavior.values} assets={document.assets} entities={scene.entities}
+              issuePath={[...entityPath, "behaviors", index]} issues={issues} onValues={(values) => onOps([{ op: "set_script_params", ...target, index, values }])} />}
+          </> : <SchemaFields schema={schemaVariant(BEHAVIOR_SCHEMA, behavior)} value={behavior} path={`behaviors.${index}`}
+            issuePath={[...entityPath, "behaviors", index]} issues={issues} assets={document.assets}
+            onChange={(value) => onOps([{ op: "update_behavior", ...target, index, behavior: value as Record<string, unknown> }])} />}
+        </FieldGroup>)}
+        <InspectorAddMenu label="Add behavior" options={BEHAVIORS.map((kind) => ({ value: kind, label: displayKind(kind),
+          disabled: kind === "spawn" && !document.scenes.some((entry) => entry.entities.some((item) => item.templateOnly)) }))}
+          onSelect={(kind) => { const behavior = newBehavior(kind, document); if (behavior) onOps([{ op: "add_behavior", ...target, behavior }]); }} />
+      </InspectorSection>
     </> : scene ? <>
       <InspectorFieldRow label="Scene"><InspectorSelect grow label="Scene" value={scene.id} options={document.scenes.map((entry) => ({ value: entry.id, label: entry.name }))} onChange={onSceneChange} /></InspectorFieldRow>
       <SchemaFields schema={SCENE_SCHEMA.properties?.name ?? { type: "string" }} value={scene.name} path="Name"
         issuePath={[...scenePath, "name"]} issues={issues}
         onChange={(value) => onOps([{ op: "update_scene", scene_id: scene.id, set: { name: String(value) } }])} />
-      <InspectorSection title="Music">
-        {scene.music ? <>
-          <SchemaFields schema={SCENE_SCHEMA.properties?.music ?? { type: "object" }} value={scene.music} path="music" issuePath={[...scenePath, "music"]}
-            issues={issues} assets={document.assets} onChange={(value) => onOps([{ op: "update_scene", scene_id: scene.id, set: { music: value as typeof scene.music } }])} />
-          <EditorButton onClick={() => onOps([{ op: "update_scene", scene_id: scene.id, set: { music: null } }])}>Remove music</EditorButton>
-        </> : <EditorButton disabled={!firstSlot(document, "audio") || document.schemaVersion < 2} onClick={() => {
-          const assetId = firstSlot(document, "audio");
-          if (assetId) onOps([{ op: "update_scene", scene_id: scene.id, set: { music: { assetId, volume: 1, fadeInTicks: 0, fadeOutTicks: 0 } } }]);
-        }}>Add music</EditorButton>}
+      <InspectorSection title="Music" action={scene.music ? { icon: <CloseIcon />, label: "Remove music",
+        onClick: () => onOps([{ op: "update_scene", scene_id: scene.id, set: { music: null } }]) } : undefined}>
+        {scene.music ? <SchemaFields schema={SCENE_SCHEMA.properties?.music ?? { type: "object" }} value={scene.music} path="music" issuePath={[...scenePath, "music"]}
+          issues={issues} assets={document.assets} onChange={(value) => onOps([{ op: "update_scene", scene_id: scene.id, set: { music: value as typeof scene.music } }])} />
+          : <AddButton disabled={!firstSlot(document, "audio") || document.schemaVersion < 2} onClick={() => {
+            const assetId = firstSlot(document, "audio");
+            if (assetId) onOps([{ op: "update_scene", scene_id: scene.id, set: { music: { assetId, volume: 1, fadeInTicks: 0, fadeOutTicks: 0 } } }]);
+          }}>Add music</AddButton>}
       </InspectorSection>
-      <InspectorSection title="Lighting">
+      <InspectorSection title="Lighting" action={scene.lighting ? { icon: <CloseIcon />, label: "Remove lighting",
+        onClick: () => onOps([{ op: "set_lighting", scene_id: scene.id, lighting: null }]) } : undefined}>
         {scene.lighting ? <>
           <SchemaFields schema={SCENE_SCHEMA.properties?.lighting?.properties?.ambient ?? { type: "object" }} value={scene.lighting.ambient} path="lighting.ambient"
             issuePath={[...scenePath, "lighting", "ambient"]} issues={issues} onChange={(value) => onOps([{ op: "set_lighting", scene_id: scene.id,
               lighting: { required: scene.lighting?.required, points: scene.lighting?.points ?? [], ambient: value as typeof scene.lighting.ambient } }])} />
-          {scene.lighting.points.map((light, index) => <InspectorSection key={index} title={`Light ${index + 1}`}>
+          {scene.lighting.points.map((light, index) => <FieldGroup key={index} title={`Light ${index + 1}`}
+            actions={<RowAction icon={<CloseIcon />} label="Remove light" onClick={() => onOps([{ op: "remove_light", scene_id: scene.id, index }])} />}>
             <SchemaFields schema={SCENE_SCHEMA.properties?.lighting?.properties?.points?.items ?? { type: "object" }} value={light} path={`lighting.points.${index}`}
               issuePath={[...scenePath, "lighting", "points", index]} issues={issues}
               onChange={(value) => onOps([{ op: "update_light", scene_id: scene.id, index, set: value as typeof light }])} />
-            <EditorButton onClick={() => onOps([{ op: "remove_light", scene_id: scene.id, index }])}>Remove light</EditorButton>
-          </InspectorSection>)}
-          <EditorButton disabled={scene.lighting.points.length >= 32} onClick={() => onOps([{ op: "add_light", scene_id: scene.id,
-            light: { x: 0, y: 0, color: DEFAULT_GAME_LIGHT_COLOR, intensity: 1, radius: 4, falloff: 1 } }])}>Add light</EditorButton>
-          <EditorButton onClick={() => onOps([{ op: "set_lighting", scene_id: scene.id, lighting: null }])}>Remove lighting</EditorButton>
-        </> : <EditorButton disabled={document.schemaVersion < 2} onClick={() => onOps([{ op: "set_lighting", scene_id: scene.id,
-          lighting: { ambient: { color: DEFAULT_GAME_LIGHT_COLOR, intensity: 1 }, points: [] } }])}>Add lighting</EditorButton>}
+          </FieldGroup>)}
+          <AddButton disabled={scene.lighting.points.length >= 32} onClick={() => onOps([{ op: "add_light", scene_id: scene.id,
+            light: { x: 0, y: 0, color: DEFAULT_GAME_LIGHT_COLOR, intensity: 1, radius: 4, falloff: 1 } }])}>Add light</AddButton>
+        </> : <AddButton disabled={document.schemaVersion < 2} onClick={() => onOps([{ op: "set_lighting", scene_id: scene.id,
+          lighting: { ambient: { color: DEFAULT_GAME_LIGHT_COLOR, intensity: 1 }, points: [] } }])}>Add lighting</AddButton>}
       </InspectorSection>
       <InspectorSection title="Backgrounds">
-        {(scene.backgrounds ?? []).map((background, index) => <InspectorSection key={background.id} title={background.id}>
+        {(scene.backgrounds ?? []).map((background, index) => <FieldGroup key={background.id} title={background.id}
+          actions={<OrderActions index={index} count={scene.backgrounds?.length ?? 0} removeLabel="Remove background"
+            onMove={(to) => onOps([{ op: "move_background", scene_id: scene.id, id: background.id, to_index: to }])}
+            onRemove={() => onOps([{ op: "remove_background", scene_id: scene.id, id: background.id }])} />}>
           <SchemaFields schema={SCENE_SCHEMA.properties?.backgrounds?.items ?? { type: "object" }} value={background} path={`backgrounds.${index}`}
             issuePath={[...scenePath, "backgrounds", index]} issues={issues} assets={document.assets}
             onChange={(value) => onOps([{ op: "update_background", scene_id: scene.id, id: background.id, set: value as typeof background }])} />
-          <FlexRow gap={SPACING.xs}>
-            <EditorButton disabled={index === 0} onClick={() => onOps([{ op: "move_background", scene_id: scene.id, id: background.id, to_index: index - 1 }])}>Move up</EditorButton>
-            <EditorButton disabled={index === (scene.backgrounds?.length ?? 0) - 1} onClick={() => onOps([{ op: "move_background", scene_id: scene.id, id: background.id, to_index: index + 1 }])}>Move down</EditorButton>
-            <EditorButton onClick={() => onOps([{ op: "remove_background", scene_id: scene.id, id: background.id }])}>Remove background</EditorButton>
-          </FlexRow>
-        </InspectorSection>)}
-        <EditorButton disabled={!firstSlot(document, "image") || document.schemaVersion < 2 || (scene.backgrounds?.length ?? 0) >= 32} onClick={() => {
+        </FieldGroup>)}
+        <AddButton disabled={!firstSlot(document, "image") || document.schemaVersion < 2 || (scene.backgrounds?.length ?? 0) >= 32} onClick={() => {
           const assetId = firstSlot(document, "image");
           if (!assetId) return;
           const id = `background-${Math.max(1, ...((scene.backgrounds ?? []).map((background) => Number(background.id.match(/^background-(\d+)$/)?.[1] ?? 0)))) + 1}`;
           onOps([{ op: "add_background", scene_id: scene.id, background: { id, assetId, width: 16, height: 9, layer: -100, origin: { x: 0, y: 0 },
             parallax: { x: 1, y: 1 }, scrollRate: { x: 0, y: 0 }, mode: "repeat" } }]);
-        }}>Add background</EditorButton>
+        }}>Add background</AddButton>
       </InspectorSection>
     </> : null}
     </FlexColumn>

@@ -304,6 +304,23 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "manimgx",
+    title: "ManimGX scene inspection and render (nodetool.manimgx.* nodes)",
+    command:
+      "npm run test:real --workspace=packages/manimgx-nodes",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "packages/manimgx-nodes/README.md",
+    selfcheck: {
+      // Renders and inspects real scenes through the nodes, with an image
+      // input. It needs manimgx installed (Python 3.13+, GPU or lavapipe),
+      // so the default gate skips it without --expensive.
+      command:
+        "npm run test:real --workspace=packages/manimgx-nodes",
+      cost: "expensive"
+    }
+  },
+  {
     id: "dsl-native-flow",
     title:
       "Native flow (call a node as a function, host backend + guest surface)",
@@ -941,6 +958,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "node-catalog",
+    title: "Node catalog ownership and metadata drift",
+    command: "npm run check:node-catalog",
+    kind: "static",
+    capabilities: ["no-db", "gated:pr"],
+    docs: "docs/cli-pack-system-plan.md § A1. The node catalog",
+    selfcheck: {
+      command: "npm run check:node-catalog && node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/node-catalog.test.mjs scripts/__tests__/bump-version.test.mjs",
+      cost: "cheap"
+    }
+  },
+  {
     id: "mutator",
     title: "Mutation testing (nodetool-mutator)",
     command: "npm run mutate -- --base origin/main packages/<name>/src",
@@ -985,6 +1014,22 @@ export const HARNESSES: HarnessEntry[] = [
     capabilities: ["json", "no-db"],
     docs: "AGENTS.md § Build, Lint & Test Commands",
     selfcheck: { command: "npm run test:scripts", cost: "cheap" }
+  },
+  {
+    id: "workflow-contracts",
+    title: "GitHub workflow contracts (release gates, scheduled agent routines)",
+    // Parses the workflow YAML and pins the shape the release and agent
+    // routines depend on, and unit-tests the scripts they call.
+    command:
+      "node --test .github/tests/docker-deploy.test.mjs .github/tests/agent-workflows.test.mjs",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: ".github/workflows/README.md § Scheduled agent workflows",
+    selfcheck: {
+      command:
+        "node --test .github/tests/docker-deploy.test.mjs .github/tests/agent-workflows.test.mjs",
+      cost: "cheap"
+    }
   },
   {
     id: "tutorial-rendering",
@@ -1422,6 +1467,7 @@ export const SURFACES: SurfaceEntry[] = [
     harnesses: ["app-debug", "app-build", "eval"],
     paths: [
       "packages/app-runtime/",
+      "packages/app-export/",
       "packages/agents/src/app-build/",
       "packages/execution/src/app-debug/",
       "packages/base-nodes/nodetool/examples/apps/",
@@ -1695,6 +1741,12 @@ export const SURFACES: SurfaceEntry[] = [
     paths: ["packages/blender-nodes/"]
   },
   {
+    id: "manimgx",
+    title: "ManimGX scenes (runner, nodes, authoring skill)",
+    harnesses: ["manimgx"],
+    paths: ["packages/manimgx-nodes/"]
+  },
+  {
     id: "entities",
     title: "Entity library (ingredients, prompt injection, ui_entity_* tools)",
     harnesses: ["capability-suites"],
@@ -1774,7 +1826,9 @@ export const SURFACES: SurfaceEntry[] = [
       "demo/scripts/render-tutorials.ts",
       "demo/scripts/render-marketing.ts",
       "demo/scripts/encode-hero.mjs",
-      "demo/scripts/vibe-track.ts"
+      "demo/scripts/vibe-track.ts",
+      "demo/scripts/build-pattern-cast-media.mjs",
+      "demo/webpack-stubs/"
     ]
   },
   {
@@ -1785,6 +1839,47 @@ export const SURFACES: SurfaceEntry[] = [
       "scripts/bundle-backend.mjs",
       "scripts/verify-backend-bundle.mjs",
       "packages/config/src/package-asset-registry.ts"
+    ]
+  },
+  {
+    id: "node-catalog",
+    title: "Exact node pack ownership and catalog metadata",
+    harnesses: ["node-catalog"],
+    paths: [
+      "packages/node-catalog/",
+      "packages/node-sdk/src/",
+      "scripts/node-catalog/",
+      "scripts/generate-node-catalog.mjs",
+      "scripts/__tests__/node-catalog.test.mjs",
+      "scripts/bump-version.mjs",
+      "scripts/__tests__/bump-version.test.mjs",
+      "packages/atlascloud-nodes/",
+      "packages/audio-nodes/",
+      "packages/automation-nodes/",
+      "packages/blender-nodes/",
+      "packages/code-nodes/",
+      "packages/core-nodes/",
+      "packages/data-nodes/",
+      "packages/document-nodes/",
+      "packages/elevenlabs-nodes/",
+      "packages/fal-nodes/",
+      "packages/game-nodes/",
+      "packages/higgsfield-nodes/",
+      "packages/huggingface-nodes/",
+      "packages/image-nodes/",
+      "packages/integration-nodes/",
+      "packages/kie-nodes/",
+      "packages/llm-nodes/",
+      "packages/manimgx-nodes/",
+      "packages/minimax-nodes/",
+      "packages/replicate-nodes/",
+      "packages/reve-nodes/",
+      "packages/text-nodes/",
+      "packages/together-nodes/",
+      "packages/topaz-nodes/",
+      "packages/transformers-js-nodes/",
+      "packages/video-nodes/",
+      "packages/whisper-cpp/"
     ]
   },
   {
@@ -1942,6 +2037,12 @@ export const SURFACES: SurfaceEntry[] = [
     // Overlaps with the surfaces that claim individual scripts (bundle
     // staging, codegen drift, docker smoke); a diff there runs both.
     paths: ["scripts/"]
+  },
+  {
+    id: "workflow-contracts",
+    title: "GitHub workflow scripts and contract tests (.github/)",
+    harnesses: ["workflow-contracts"],
+    paths: [".github/scripts/", ".github/tests/"]
   },
   {
     id: "recipes",

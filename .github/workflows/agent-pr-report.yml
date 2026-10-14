@@ -1,0 +1,31 @@
+name: Agent PR Report
+
+# Merge rate and net lines per scheduled agent workflow, from the
+# `agent:<workflow>` label each one puts on its PRs. Read it before adding a
+# routine, changing its cadence, or deciding one has stopped paying for itself.
+
+on:
+  schedule:
+    - cron: "15 6 1 * *" # 06:15 UTC on the 1st of each month
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Window in days"
+        required: false
+        default: "30"
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          DAYS: ${{ github.event.inputs.days || '30' }}
+        run: node .github/scripts/agent-pr-report.mjs --days "$DAYS"

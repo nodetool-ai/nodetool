@@ -220,3 +220,22 @@ it("finds runs and spans by typing and labels repeated span names by position", 
   await user.click(spanOptions[0]);
   expect(useTraceStore.getState().focusedSpanId).toBe(makeRecord(2).span_id);
 });
+
+it("lists only the active workflow's runs and ignores a run picked in another workflow", async () => {
+  const workflowId = "e".repeat(32);
+  useTraceStore.getState().selectRun(c, "f".repeat(32));
+  render(<QueryClientProvider client={client}><ThemeProvider theme={mockTheme}><TracePanel workflowId={workflowId} /></ThemeProvider></QueryClientProvider>);
+  await screen.findByRole("list", { name: "Server spans" });
+  expect(jest.mocked(trpcClient.runs.list.query).mock.calls[0]?.[0]).toMatchObject({ workflow_id: workflowId });
+  expect(jest.mocked(trpcClient.runs.get.query).mock.calls.some(([input]) => input.id === c)).toBe(false);
+  expect(jest.mocked(trpcClient.runs.get.query).mock.calls.some(([input]) => input.id === a)).toBe(true);
+});
+
+it("focuses the span of the node that View logs named", async () => {
+  const nodeSpan = { record: { ...makeRecord(2, makeRecord().span_id), attributes: { "node.id": "node-1" } }, depth: 1 };
+  trace = { ...trace, nodes: [...trace.nodes.slice(0, 2), nodeSpan] };
+  useTraceStore.getState().openInspection({ runId: b, view: "logs", workflowId: "e".repeat(32), nodeId: "node-1" });
+  render(<QueryClientProvider client={client}><ThemeProvider theme={mockTheme}><TracePanel view="logs" workflowId={"e".repeat(32)} /></ThemeProvider></QueryClientProvider>);
+  await waitFor(() => expect(useTraceStore.getState().focusedSpanId).toBe(makeRecord(2).span_id));
+  expect(useTraceStore.getState().pendingNodeId).toBeNull();
+});

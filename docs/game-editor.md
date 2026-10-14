@@ -6,7 +6,7 @@ description: "Build, play, publish, and export 2D and 3D games in NodeTool's bui
 
 Build a game in a workspace tab, play it without leaving the editor, and ask the agent to change it.
 
-![Game Editor with the Kindle example open: the scene tree, the level in the viewport with the hero selected, and the inspector](assets/screenshots/game-editor.png)
+![Game Editor with the Kindle example open: the scene tree, the title scene in the viewport, the asset browser, and the inspector](assets/screenshots/game-editor.png)
 
 > **Quick access:** Click **+ New** in the workspace tab bar and choose **Game** under **Guided flows**. The new game opens as a tab and is playable at once.
 
@@ -139,7 +139,11 @@ replaces the local draft and clears its undo history.
 
 **Model assets.** The collapsed **Model assets** section binds a 3D model. Enter an owned model asset ID and a slot name, then choose **Prepare and install model**. Each model slot has **Edit model**, which opens the model in a model editor tab. After you save changes to the model, prepare and install it again. The engine does not pick up edits on its own.
 
-**Viewport.** The toolbar above the canvas has a **Transform mode** selector (**Move**, **Rotate**, **Scale**), **Snap**, **Fly camera**, **Overlays**, and **Frame selection**.
+**Viewport.** The toolbar above the canvas has a **Transform mode** selector (**Move**, **Rotate**, **Scale**), **Local space**, **Snap**, **Gizmo settings**, **Align to ground**, **Overlays**, **Fly camera**, and **Frame selection**. The orientation gizmo in the top-right corner shows the world axes. Click an axis end to look along that axis, and use the button below it to switch between perspective and orthographic views.
+
+Click an entity to select it. Shift-click, Ctrl-click or Cmd-click adds it to the selection or removes it, and a click on empty space clears the selection. The scene tree uses the same modifiers. A multi-selection shares one gizmo and outlines every selected entity. A child whose parent is also selected moves with the parent. Each gizmo drag and each **Align to ground** is one undo step for the whole selection.
+
+**Gizmo settings** holds the pivot, the snap increments and two switches. The pivot is **Selection centre** (the mean of the selected origins), **Active entity** (the last one selected) or **Individual origins**, where each entity rotates and scales around its own origin. Snap increments default to 0.25 meters for move, 15 degrees for rotate and 0.25 for scale. **Surface snap** makes move drags rest the selection on the surface under the pointer. **Orbit around selection** moves the orbit centre to the selection whenever it changes. **Align to ground** drops each selected entity onto the surface below it, or onto the ground plane at height zero. These settings are editor preferences kept in this browser, not part of the game.
 
 | Action | Control |
 |---|---|
@@ -148,8 +152,14 @@ replaces the local draft and clears its undo history.
 | Zoom | Scroll |
 | Fly camera | Turn on **Fly camera**, then W, A, S, D to move, R and F to rise and descend, drag to look |
 | Frame the selection | F |
+| Switch local and world space | X |
+| Next pivot mode | . (period) |
+| Select all, clear the selection | Ctrl or Cmd with A, Esc |
+| Align to ground | End |
+| Front, right, top view | Numpad 1, 3, 7. Add Ctrl or Cmd for back, left and bottom |
+| Orthographic view | Numpad 5 |
 
-Snap steps are 0.25 meters for move and scale and 15 degrees for rotate. The 3D editor has **Undo** and **Redo** buttons, and Ctrl or Cmd with Z works inside the dock area.
+The 3D editor has **Undo** and **Redo** buttons, and Ctrl or Cmd with Z works inside the dock area.
 
 **Inspector.** With nothing selected it shows scene settings and any validation errors. With an entity selected it shows **Position (meters)**, **Rotation (degrees)**, **Scale**, and the entity's components, such as primitive, body, collider, camera, light, and character. A **Behaviors** section lists behaviors, with **Add script**, **Edit script**, and **Remove**. **Delete entity** removes the entity.
 
@@ -248,7 +258,7 @@ The agent follows the `native-game` skill and edits the draft through tools:
 | `generate_game_asset` | Generate or import an image, speech, music, sound effect, font, or 3D model, and bind it to a slot |
 | `install_native_game_asset` | Install a staged candidate asset |
 | `publish_native_game` | Publish, only when you ask |
-| `build_native_game` | Write a standalone web build |
+| `build_native_game` | Write a standalone web build or a Tauri desktop app project |
 | `list_example_games`, `get_example_game`, `install_example_game` | Study or copy a shipped game |
 
 For a new game or an art overhaul the agent also loads `game-direction`. It fixes a player promise, a style string, a layer plan, feel parameters, and a pacing sheet first, then keeps asset prompts consistent with that spec.
@@ -295,7 +305,7 @@ Publishing does not make the game public. The game belongs to your account and i
 
 **Play in new tab** opens `/game/<game ID>`. That route is protected and loads the game through your own account, so only the owner can open it. It loads the **saved draft**, not the last published revision, and shows the game name, **Play**, **Stop**, a score, and a status. The button is disabled until the draft is saved. A 3D game loads the 3D player in the same route.
 
-To give someone a game that runs without NodeTool, publish and then [build a standalone web player](#build-a-standalone-web-build).
+To give someone a game that runs without NodeTool, publish and then [build a standalone web player](#build-a-standalone-web-build) or a [desktop app](#build-a-desktop-app).
 
 ---
 
@@ -303,8 +313,9 @@ To give someone a game that runs without NodeTool, publish and then [build a sta
 
 A standalone build is a folder of static files for one revision. It plays without a NodeTool server.
 
-The editor has no export button. Use one of these:
+Use one of these:
 
+- **The editor.** Choose **Export build** in the toolbar, then **Web player**. The download is a zip of the last published revision, not the draft.
 - **The agent.** Ask it to build the game. It calls `build_native_game` for an owned revision and writes the folder under the project workspace, then returns the path.
 - **The CLI.** `nodetool game build game.json --out game-build` builds from a game file. See [`nodetool game`](cli.md#nodetool-game) for flags, and for `validate`, `simulate`, and `capture`, which check a game without the editor.
 
@@ -314,6 +325,28 @@ The folder holds `index.html`, `game.json`, a player script, and an `assets/` fo
 - Installed media must still exist, match its recorded digest, and use a supported format, or the build fails.
 - On a touch screen the 2D player adds a floating stick for `left`, `right`, `up`, and `down`, and one button per other input action.
 - The first 3D release targets desktop web and Electron.
+
+---
+
+## Build a desktop app
+
+A desktop build wraps the standalone web player in a [Tauri](https://tauri.app) project. It compiles to a native app for Windows, macOS, and Linux that plays the published revision offline.
+
+- **The editor.** Choose **Export build**, then **Desktop app**. The zip holds a `desktop/` folder. To compile it right away, see [Build the executable in the editor](#build-the-executable-in-the-editor).
+- **The agent.** Ask it for a desktop build. It calls `build_native_game` with `target: "tauri"`.
+- **The CLI.** `nodetool game build game.json --out game-desktop --target tauri --name "Cave Run"`. Add `--compile` to build the executable right away.
+
+### Build the executable in the editor
+
+The desktop app and a local server can compile the executable without leaving the editor. Choose **Export build**, then **Desktop executable**. Cargo runs on this computer and its output streams into the **Console** panel, warnings and errors included. When it finishes, the status row shows the executable's path, and the desktop app offers **Show in folder**. The executable lands in `bin/` inside the build's project folder under the project workspace. **Cancel** stops cargo. A hosted server refuses the build, because it would run a compiler on the server.
+
+Cargo comes from the **Rust** package in the Package Manager, or from a [rustup](https://rustup.rs) install. If neither is found, the editor offers to install Rust. The first build compiles Tauri itself and takes several minutes. Later builds share that work and finish much faster. The compiler also needs the platform toolchain: the Visual Studio C++ Build Tools on Windows, the Xcode Command Line Tools on macOS, and the WebKitGTK development packages on Linux.
+
+The project holds `dist/` (the web player), `src-tauri/` (the native shell, icons, and `tauri.conf.json`), `package.json`, and a README. The app takes the game's name, and its identifier defaults to `ai.nodetool.game.<name>`.
+
+To make installers, install Rust and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your platform, then run `npm install && npm run build` in the project. Installers land in `src-tauri/target/release/bundle/`. Each platform builds its own installers, so build the Windows app on Windows and the macOS app on a Mac. `cargo build --release` in `src-tauri/` makes the executable alone.
+
+WebGPU effects depend on the system web view. Where it has no WebGPU, as in WebKitGTK on Linux, the 2D player skips them and says so in its status line.
 
 ---
 

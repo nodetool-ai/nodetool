@@ -43,7 +43,6 @@ import type { Theme } from "@mui/material/styles";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
 import {
-  Chip,
   CollapsibleSection,
   ColorSwatch,
   Container,
@@ -53,7 +52,7 @@ import {
   InspectorSectionTitle,
   MobileBottomSheet,
   Tooltip,
-  TYPOGRAPHY,
+  Text,
   Z_INDEX
 } from "../ui_primitives";
 import TransformContextMenu from "./TransformContextMenu";
@@ -105,6 +104,10 @@ export interface SketchEditorHandle {
   redo: () => void;
   clearLayer: () => void;
   exportPng: () => void;
+  /** Download the document as a layered PSD. */
+  exportPsd: () => void;
+  /** Pick a PSD file and import its layers. */
+  importPsd: () => void;
   flipHorizontal: () => void;
   flipVertical: () => void;
   mergeDown: () => void;
@@ -152,11 +155,9 @@ const ColorSectionHeader = memo(function ColorSectionHeader() {
       sx={{ width: "100%", pr: 1 }}
     >
       <InspectorSectionTitle title="Color" />
-      <Chip
-        compact
-        label={colorToHex6(foregroundColor)}
-        sx={{ fontFamily: TYPOGRAPHY.mono.code.fontFamily, border: "none", backgroundColor: "transparent", color: "text.secondary" }}
-      />
+      <Text size="smaller" family="secondary" color="secondary">
+        {colorToHex6(foregroundColor)}
+      </Text>
     </FlexRow>
   );
 });

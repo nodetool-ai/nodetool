@@ -21,6 +21,7 @@ import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import LinkOffOutlinedIcon from "@mui/icons-material/LinkOffOutlined";
 import GridGoldenratioOutlinedIcon from "@mui/icons-material/GridGoldenratioOutlined";
 import StraightenOutlinedIcon from "@mui/icons-material/StraightenOutlined";
+import MyLocationOutlinedIcon from "@mui/icons-material/MyLocationOutlined";
 import type { TempoGridDivision } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 
@@ -113,7 +114,7 @@ const tooltipDescriptionStyles = css({
 
 /**
  * The phone toolbar is one 44px row on a 390px viewport, and this strip now
- * carries eight toggles plus the grid select — more than fits. Scroll it
+ * carries nine toggles plus the grid select — more than fits. Scroll it
  * rather than clip it, the way the track header's control row does: a control
  * pushed past the edge of a `overflow: hidden` toolbar cannot be reached at all.
  */
@@ -210,6 +211,10 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
   const setDropMode = useTimelineUIStore((s) => s.setDropMode);
   const snapEnabled = useTimelineUIStore((s) => s.snapEnabled);
   const toggleSnap = useTimelineUIStore((s) => s.toggleSnap);
+  const followPlayhead = useTimelineUIStore((s) => s.followPlayhead);
+  const toggleFollowPlayhead = useTimelineUIStore(
+    (s) => s.toggleFollowPlayhead
+  );
   const rulerMode = useTimelineUIStore((s) => s.rulerMode);
   const toggleRulerMode = useTimelineUIStore((s) => s.toggleRulerMode);
   const gridDivision = useTimelineUIStore((s) => s.gridDivision);
@@ -356,6 +361,15 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         onClick={() => setLinkedSelection(!linkedSelection)}
       >
         {linkedSelection ? <LinkOutlinedIcon /> : <LinkOffOutlinedIcon />}
+      </ToolButton>
+      <ToolButton
+        label="Follow"
+        description="The tracks scroll to keep the playhead in view during playback"
+        active={followPlayhead}
+        compact={compact}
+        onClick={toggleFollowPlayhead}
+      >
+        <MyLocationOutlinedIcon />
       </ToolButton>
     </FlexRow>
   );

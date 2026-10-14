@@ -14,14 +14,16 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import {
   BORDER_RADIUS,
+  Box,
   FlexColumn,
   FlexRow,
+  LoadingSpinner,
   MOTION,
+  ProgressBar,
   reducedMotion,
   SPACING,
   Z_INDEX
@@ -49,11 +51,6 @@ const treeStyles = (theme: Theme) =>
     lineHeight: 1.5,
     userSelect: "text",
 
-    "@keyframes tlSpin": {
-      from: { transform: "rotate(0deg)" },
-      to: { transform: "rotate(360deg)" }
-    },
-
     "@keyframes tlPulse": {
       "0%, 100%": { opacity: 1 },
       "50%": { opacity: 0.4 }
@@ -79,22 +76,6 @@ const treeStyles = (theme: Theme) =>
       fontWeight: 500,
       color: theme.vars.palette.text.primary,
       whiteSpace: "nowrap"
-    },
-
-    ".plan-progress-track": {
-      flex: 1,
-      height: 6,
-      borderRadius: BORDER_RADIUS.pill,
-      background: theme.vars.palette.action.hover,
-      overflow: "hidden"
-    },
-
-    ".plan-progress-fill": {
-      height: "100%",
-      borderRadius: BORDER_RADIUS.pill,
-      background: theme.vars.palette.text.primary,
-      transition: `width ${MOTION.slow}`,
-      ...reducedMotion({ transition: MOTION.none })
     },
 
     ".plan-count": {
@@ -179,11 +160,7 @@ const treeStyles = (theme: Theme) =>
     ".tl-badge.running": {
       background: theme.vars.palette.info.main,
       color: theme.vars.palette.info.contrastText,
-      boxShadow: `0 0 0 4px rgb(${theme.vars.palette.info.mainChannel} / 0.2)`,
-      "& svg": {
-        animation: `tlSpin ${MOTION.spin} infinite`,
-        ...reducedMotion({ animation: "none" })
-      }
+      boxShadow: `0 0 0 4px rgb(${theme.vars.palette.info.mainChannel} / 0.2)`
     },
 
     ".tl-badge.waiting": {
@@ -458,7 +435,7 @@ const StatusBadge: React.FC<{ status: NodeStatus }> = memo(({ status }) => (
   <div className={`tl-badge ${status}`} aria-hidden>
     {status === "completed" && <CheckRoundedIcon />}
     {status === "failed" && <CloseRoundedIcon />}
-    {status === "running" && <AutorenewRoundedIcon />}
+    {status === "running" && <LoadingSpinner inline size={14} color="inherit" />}
   </div>
 ));
 
@@ -838,19 +815,13 @@ const ExecutionTree: React.FC<ExecutionTreeProps> = ({ state, onToggleTask }) =>
         <div className="plan-card">
           <FlexRow className="plan-header" align="center" gap={2}>
             <span className="plan-title">Execution plan</span>
-            <div
-              className="plan-progress-track"
-              role="progressbar"
-              aria-valuenow={counts.completed}
-              aria-valuemin={0}
-              aria-valuemax={total}
-              aria-label="Completed tasks"
-            >
-              <div
-                className="plan-progress-fill"
-                style={{ width: `${progressPct}%` }}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <ProgressBar
+                value={progressPct}
+                showValue={false}
+                aria-label="Completed tasks"
               />
-            </div>
+            </Box>
             <span className="plan-count">
               {counts.completed}/{total}
             </span>

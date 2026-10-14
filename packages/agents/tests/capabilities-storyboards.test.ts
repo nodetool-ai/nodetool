@@ -12,6 +12,7 @@ import { productionRequirement } from "@nodetool-ai/protocol";
 import { storyboardResponse } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import { withGenerationSeam } from "./_helpers/generation-seam.js";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { capabilitySpec } from "../src/capabilities/index.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   Asset,
@@ -228,6 +229,7 @@ describe("storyboards capability module", () => {
       "render_storyboard_clips",
       "revise_storyboard_clip",
       "assemble_storyboard_timeline",
+      "derive_shot_from_clip",
       "edit_storyboard",
       "direct_storyboard",
       "extract_script_from_storyboard",
@@ -1525,5 +1527,14 @@ describe("storyboards capability behaviour", () => {
         directClipPrompt(target, { scene, style: STYLE })
       );
     });
+  });
+});
+
+describe("spec text the shipped skills rely on", () => {
+  it("edit_storyboard lists every shot and board field the ops accept", () => {
+    const schema = JSON.stringify(capabilitySpec("edit_storyboard")?.inputSchema);
+    for (const field of ["graphics?", "production?", "scene_id?", "after_shot_id?", "motion_design?"]) {
+      expect(schema, field).toContain(field);
+    }
   });
 });

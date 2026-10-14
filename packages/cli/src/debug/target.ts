@@ -6,7 +6,7 @@
  * debug harness executes the exact same graph the runner would.
  */
 import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { importWorkflowFile } from "../workflow-file.js";
 import type { DebugGraph, DebugTargetInfo } from "./types.js";
 
 export interface ResolvedTarget {
@@ -42,16 +42,7 @@ export async function readFileTarget(
   ref: string
 ): Promise<{ raw: unknown; source: "json" | "dsl" }> {
   if (looksLikeDsl(ref)) {
-    // DSL file: execute via tsx and capture the emitted JSON workflow.
-    // execFileSync, not execSync: the path goes through argv, so quotes or
-    // `$(...)` in a file name stay a file name instead of becoming shell.
-    const { execFileSync } = await import("node:child_process");
-    const output = execFileSync("npx", ["tsx", resolve(ref)], {
-      encoding: "utf8",
-      cwd: dirname(resolve(ref)),
-      timeout: 30000
-    });
-    return { raw: JSON.parse(output.trim()), source: "dsl" };
+    return { raw: await importWorkflowFile(ref), source: "dsl" };
   }
   return { raw: JSON.parse(readFileSync(ref, "utf8")), source: "json" };
 }

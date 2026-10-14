@@ -3,12 +3,16 @@
  * source; clips with no source length (image) are not capped.
  */
 
-jest.mock("../useClipThumbnails", () => ({
-  useClipThumbnails: () => null
-}));
-jest.mock("../useAudioPeaks", () => ({
-  useAudioPeaks: () => ({ peaks: null, durationMs: null })
-}));
+jest.mock("../useClipThumbnails", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .clipThumbnailsMock()
+);
+jest.mock("../useAudioPeaks", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .audioPeaksMock()
+);
 jest.mock("../useAssetUrl", () => ({
   useAssetUrl: (assetId: string | undefined) =>
     assetId ? `blob:${assetId}` : undefined
@@ -16,23 +20,21 @@ jest.mock("../useAssetUrl", () => ({
 jest.mock("../../../../utils/probeMediaDuration", () => ({
   probeMediaDurationMs: jest.fn()
 }));
-jest.mock("../../../../stores/WorkflowRunsStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { focusedJob: Record<string, string> }) => T) =>
-    sel({ focusedJob: {} })
-}));
-jest.mock("../../../../stores/ErrorStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { errors: Record<string, unknown> }) => T) =>
-    sel({ errors: {} }),
-  hasNodeError: () => false,
-  nodeErrorToDisplayString: () => ""
-}));
-jest.mock("../../../../stores/timeline/TimelineGenerationStore", () => ({
-  useTimelineGenerationStore: <T,>(
-    sel: (s: { clipJobs: Record<string, unknown> }) => T
-  ) => sel({ clipJobs: {} })
-}));
+jest.mock("../../../../stores/WorkflowRunsStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .workflowRunsStoreMock()
+);
+jest.mock("../../../../stores/ErrorStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .errorStoreMock()
+);
+jest.mock("../../../../stores/timeline/TimelineGenerationStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .timelineGenerationStoreMock()
+);
 
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import {
@@ -76,7 +78,9 @@ describe("trim-end source cap", () => {
       [makeClip("v1", "t1", 2000, 1000, { currentAssetId: "vid" })]
     );
     renderLanes();
-    await waitFor(() => expect(probe).toHaveBeenCalledWith("blob:vid", "video"));
+    await waitFor(() =>
+      expect(probe).toHaveBeenCalledWith("blob:vid", "video")
+    );
     await flushProbe();
 
     dragHandle("v1", "end", 200, 200 + GROW_PX);

@@ -134,3 +134,77 @@ describe("composited timeline audio clip status", () => {
     expect(await toneRms({ status: "generated" })).not.toBeNull();
   }, 30_000);
 });
+
+/**
+ * Mix a 1 s tone at the head of a 3 s timeline, with `audioEffects` on the
+ * clip, and return the mono PCM.
+ */
+async function clipEffectPcm(opts: {
+  audioEffects?: unknown[];
+  volume?: number;
+}): Promise<Float32Array> {
+  const workDir = await mkdtemp(path.join(os.tmpdir(), "timeline-clipfx-"));
+  dirs.push(workDir);
+  const basePath = path.join(workDir, "base.mp4");
+  const audioPath = path.join(workDir, "tone.wav");
+  execFileSync("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=32x32:r=10", "-t", "3", "-an", "-c:v", "libx264", basePath]);
+  execFileSync("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", `sine=frequency=440:sample_rate=48000:duration=1`, "-af", `volume=${opts.volume ?? 1}`, audioPath]);
+  const sequence = {
+    id: "seq", projectId: "test", name: "Audio", width: 32, height: 32,
+    fps: 10, durationMs: 3000, createdAt: "", updatedAt: "", transcript: [],
+    tracks: [{ id: "audio", type: "audio", index: 0, visible: true }],
+    clips: [{
+      id: "tone", trackId: "audio", name: "Tone", mediaType: "audio",
+      currentAssetId: "tone", status: "generated", startMs: 0, durationMs: 1000,
+      audioEffects: opts.audioEffects
+    }]
+  };
+  const mixed = await mixCompositedTimelineAudio({
+    sequence: sequence as never,
+    basePath, workDir, output: resolveTimelineOutput({ format: "mp4" }),
+    resolveAssetPath: async (id) => id === "tone" ? audioPath : null
+  });
+  const pcm = execFileSync("ffmpeg", ["-v", "error", "-i", mixed, "-map", "0:a:0", "-f", "f32le", "-ac", "1", "-ar", "48000", "pipe:1"]);
+  return new Float32Array(pcm.buffer, pcm.byteOffset, pcm.byteLength / 4);
+}
+
+function rmsOf(samples: Float32Array, fromSec: number, toSec: number): number {
+  let power = 0;
+  const from = Math.round(fromSec * 48000);
+  const to = Math.round(toSec * 48000);
+  for (let i = from; i < to; i++) power += samples[i] * samples[i];
+  return Math.sqrt(power / (to - from));
+}
+
+describe("composited timeline audio clip effects", () => {
+  it("rings an echo past the clip's end and ignores a disabled one", async () => {
+    const echo = { id: "e", type: "echo", delayMs: 500, feedback: 0.5, mix: 0.5 };
+    const wet = await clipEffectPcm({ audioEffects: [{ ...echo, enabled: true }] });
+    const bypassed = await clipEffectPcm({ audioEffects: [{ ...echo, enabled: false }] });
+    // The first repeat of the tone's second half lands at 1.0-1.5 s.
+    expect(rmsOf(wet, 1.1, 1.4)).toBeGreaterThan(0.05);
+    expect(rmsOf(bypassed, 1.1, 1.4)).toBeLessThan(0.001);
+    // Inside the clip the dry level drops to 1 - mix until the repeats arrive.
+    expect(rmsOf(wet, 0.2, 0.45) / rmsOf(bypassed, 0.2, 0.45)).toBeCloseTo(0.5, 1);
+  }, 30_000);
+
+  it("leaves a decaying reverb tail", async () => {
+    const pcm = await clipEffectPcm({
+      audioEffects: [{ id: "r", type: "reverb", enabled: true, decaySec: 1.5, mix: 0.5 }]
+    });
+    const early = rmsOf(pcm, 1.05, 1.35);
+    const late = rmsOf(pcm, 2.2, 2.5);
+    expect(early).toBeGreaterThan(0.005);
+    expect(late).toBeLessThan(early);
+  }, 30_000);
+
+  it("drives a quiet tone into soft clipping", async () => {
+    const dry = await clipEffectPcm({ volume: 0.1 });
+    const driven = await clipEffectPcm({
+      volume: 0.1,
+      audioEffects: [{ id: "d", type: "distortion", enabled: true, driveDb: 20, outputDb: 0 }]
+    });
+    // tanh(10·x)/tanh(10) lifts a 0.1 peak to about 0.76.
+    expect(rmsOf(driven, 0.2, 0.8) / rmsOf(dry, 0.2, 0.8)).toBeGreaterThan(5);
+  }, 30_000);
+});

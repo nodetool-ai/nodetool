@@ -7,6 +7,8 @@ import { importOptionalModule, resolvePackageAssetPath } from "@nodetool-ai/conf
 import { gameRenderFrame3D, type GameRenderFrame3D } from "@nodetool-ai/protocol";
 import type { GameModelSource3D } from "./renderer3d/index.js";
 import type { GameCapturePageInput3D, GameCapturePageReport3D } from "./renderer3d/capture-page.js";
+import { gameParticleSamples3D } from "./particles/particles3d.js";
+import type { GameParticleField } from "./particles/render2d.js";
 
 export class GameRendererUnavailableError3D extends Error {
   readonly code = "renderer_unavailable";
@@ -25,6 +27,8 @@ export interface CaptureGameFrame3DOptions {
   readonly benchmarkFrames?: number;
   readonly timeoutMs?: number;
   readonly executablePath?: string;
+  /** Particles to draw, such as a `GameParticles3D` ticked beside the session up to the captured tick. */
+  readonly particles?: GameParticleField;
 }
 export interface CapturedGameFrame3D extends GameCapturePageReport3D {
   readonly png: Uint8Array;
@@ -119,6 +123,7 @@ export async function captureGameFrame3D(value: GameRenderFrame3D, options: Capt
       if (options.camera) { input.camera = options.camera; }
       if (options.benchmarkFrames) { input.benchmarkFrames = options.benchmarkFrames; }
       if (options.boundsOverlay) { input.boundsOverlay = true; }
+      if (options.particles) { input.particles = gameParticleSamples3D(options.particles); }
       const report = await page.evaluate(async (request) => window.captureNativeGame3D(request), input);
       const png = await page.locator("canvas").screenshot({ type: "png" });
       return { ...report, png: new Uint8Array(png), tick: frame.tick, stateHash: options.stateHash ?? null };

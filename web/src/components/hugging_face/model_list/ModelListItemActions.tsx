@@ -1,17 +1,13 @@
 import React, { memo, useCallback } from "react";
 import Check from "@mui/icons-material/Check";
 import {
-  BORDER_RADIUS,
   Chip,
   CopyButton,
   DeleteButton,
   EditorButton,
   FlexRow,
   LoadingSpinner,
-  Tooltip,
-  Box,
-  SPACING,
-  getSpacingPx
+  Tooltip
 } from "../../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 
@@ -21,12 +17,9 @@ import {
   OllamaLink
 } from "../ModelActionsCommon";
 import { UnifiedModel } from "../../../stores/ApiTypes";
-import {
-  TOOLTIP_ENTER_DELAY,
-  TOOLTIP_ENTER_NEXT_DELAY
-} from "../../../config/constants";
 import { isProduction } from "../../../lib/env";
 import { isElectron } from "../../../utils/browser";
+import { TOOLTIP_DESCRIPTION_DELAY } from "../../../config/constants";
 
 interface ModelListItemActionsProps {
   model: UnifiedModel;
@@ -86,29 +79,17 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
   return (
     <FlexRow align="center" gap={1} onClick={(e) => e.stopPropagation()}>
       {isCheckingCache && !downloaded && (
-        <Box
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: getSpacingPx(SPACING.md),
-            padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
-            borderRadius: BORDER_RADIUS.pill,
-            border: "1px solid",
-            borderColor: "divider",
-            color: "text.secondary",
-            fontSize: "var(--fontSizeSmall)"
-          }}
-        >
-          <LoadingSpinner inline size={12} thickness={5} color="inherit" />
-          Checking cache…
-        </Box>
+        <Chip
+          icon={<LoadingSpinner inline size={14} color="inherit" />}
+          label="Checking cache…"
+        />
       )}
       {onDownload && canDownload && !downloaded && !isCheckingCache && (
         <EditorButton
           className="model-download-button"
           onClick={onDownload}
           variant="outlined"
-          startIcon={<DownloadIcon sx={{ fontSize: "1.25em" }} />}
+          startIcon={<DownloadIcon />}
         >
           Download
         </EditorButton>
@@ -118,7 +99,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           className="model-select-button"
           onClick={handleSelectClick}
           variant="contained"
-          startIcon={<Check sx={{ fontSize: "1.25em" }} />}
+          startIcon={<Check />}
         >
           Use
         </EditorButton>
@@ -130,8 +111,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
               ? "Show in Explorer"
               : "Downloaded"
           }
-          delay={TOOLTIP_ENTER_DELAY * 2}
-          nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+          delay={TOOLTIP_DESCRIPTION_DELAY}
         >
           <Chip
             label="Downloaded"

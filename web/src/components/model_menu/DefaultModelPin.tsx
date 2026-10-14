@@ -16,6 +16,8 @@ interface DefaultModelPinProps {
   provider?: string;
   id?: string;
   name?: string;
+  /** The model's declared tasks, stored with the pin for the task check. */
+  supportedTasks?: string[];
   size?: "small" | "medium";
 }
 
@@ -37,6 +39,7 @@ const DefaultModelPin: React.FC<DefaultModelPinProps> = memo(
     provider = "",
     id = "",
     name = "",
+    supportedTasks,
     size = "small"
   }) {
     const current = useModelPreferencesStore((s) =>
@@ -55,9 +58,23 @@ const DefaultModelPin: React.FC<DefaultModelPinProps> = memo(
       if (isDefault) {
         clearDefault(modelType);
       } else {
-        setDefault(modelType, { provider, id, name });
+        setDefault(
+          modelType,
+          supportedTasks
+            ? { provider, id, name, supported_tasks: supportedTasks }
+            : { provider, id, name }
+        );
       }
-    }, [modelType, isDefault, clearDefault, setDefault, provider, id, name]);
+    }, [
+      modelType,
+      isDefault,
+      clearDefault,
+      setDefault,
+      provider,
+      id,
+      name,
+      supportedTasks
+    ]);
 
     if (!modelType) {
       return null;

@@ -180,29 +180,17 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                 <Chip
                   key={tag}
                   label={tag}
-                  size="small"
-                  sx={{
-                    backgroundColor: "var(--palette-grey-800)",
-                    color: "var(--palette-grey-200)"
-                  }}
+                  compact
                 />
               ))}
               <Chip
                 label={`${pack.models.length} model${pack.models.length > 1 ? "s" : ""}`}
-                size="small"
-                sx={{
-                  backgroundColor: "var(--palette-grey-700)",
-                  color: "var(--palette-grey-100)"
-                }}
+                compact
               />
               {pack.total_size && (
                 <Chip
                   label={formatBytes(pack.total_size)}
-                  size="small"
-                  sx={{
-                    backgroundColor: "var(--palette-grey-700)",
-                    color: "var(--palette-grey-100)"
-                  }}
+                  compact
                 />
               )}
             </FlexRow>
@@ -214,10 +202,6 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
             <ProgressBar
               value={downloadProgress}
               showValue={false}
-              sx={{
-                borderRadius: BORDER_RADIUS.lg,
-                backgroundColor: "var(--palette-grey-700)"
-              }}
             />
             <Caption color="secondary">
               Downloading {activeDownloads.length} of {pack.models.length} models…

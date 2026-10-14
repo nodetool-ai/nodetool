@@ -3,7 +3,8 @@
  * tree against the default timeline store instance.
  *
  * Each suite still declares its own `jest.mock` calls (they are hoisted per
- * test file); this module only holds the pure builders and pointer drivers.
+ * test file, factories in `timelineClipMocks`); this module only holds the
+ * pure builders and pointer drivers.
  */
 
 import React from "react";
@@ -12,38 +13,13 @@ import { ThemeProvider } from "@mui/material/styles";
 
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import mockTheme from "../__mocks__/themeMock";
-import { installGlobal } from "./doubles";
+import { installPointerEvent } from "./pointerEvent";
 import { TrackLane } from "../components/timeline/Tracks/TrackLane";
 import { useTimelineStore } from "../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../stores/timeline/TimelinePlaybackStore";
 
-/** Polyfill PointerEvent for jsdom, which does not implement it. */
-export function installPointerEvent(): void {
-  if (typeof window !== "undefined" && !window.PointerEvent) {
-    installGlobal(
-      "PointerEvent",
-      class PointerEvent extends MouseEvent {
-        readonly pointerId: number;
-        readonly pointerType: string;
-        readonly isPrimary: boolean;
-
-        constructor(
-          type: string,
-          params: PointerEventInit & MouseEventInit = {}
-        ) {
-          super(type, params);
-          this.pointerId = params.pointerId ?? 0;
-          this.pointerType = params.pointerType ?? "";
-          this.isPrimary = params.isPrimary ?? false;
-        }
-      }
-    );
-  }
-  // jsdom does not implement pointer capture.
-  HTMLElement.prototype.setPointerCapture = jest.fn();
-  HTMLElement.prototype.releasePointerCapture = jest.fn();
-}
+export { installPointerEvent };
 
 export const makeTrack = (
   id: string,
@@ -147,7 +123,10 @@ export const pressClip = (clipId: string, x: number) => {
   });
 };
 
-export const moveClipPointer = (x: number, { altKey = false }: PointerOptions = {}) => {
+export const moveClipPointer = (
+  x: number,
+  { altKey = false }: PointerOptions = {}
+) => {
   fireEvent.pointerMove(window, {
     buttons: 1,
     clientX: x,
@@ -179,7 +158,12 @@ export const pressHandle = (
   x: number
 ) => {
   const el = screen.getByTestId(`clip-trim-${edge}-${clipId}`);
-  fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: x, pointerId: 1 });
+  fireEvent.pointerDown(el, {
+    button: 0,
+    buttons: 1,
+    clientX: x,
+    pointerId: 1
+  });
   return el;
 };
 

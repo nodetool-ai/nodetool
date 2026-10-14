@@ -12,7 +12,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  Label,
+  SectionHeader,
   Text,
   TextInput,
   SPACING
@@ -45,18 +45,21 @@ const JsScriptSecretsEditor = ({
 
   return (
     <FlexColumn gap={SPACING.sm}>
-      <FlexRow align="center" justify="space-between">
-        <Label>Secrets</Label>
-        {!readOnly && (
-          <EditorButton
-            density="compact"
-            startIcon={<AddIcon fontSize="small" />}
-            onClick={() => onChange([...secrets, ""])}
-          >
-            Add
-          </EditorButton>
-        )}
-      </FlexRow>
+      <SectionHeader
+        size="small"
+        title="Secrets"
+        action={
+          readOnly ? undefined : (
+            <EditorButton
+              density="compact"
+              startIcon={<AddIcon />}
+              onClick={() => onChange([...secrets, ""])}
+            >
+              Add
+            </EditorButton>
+          )
+        }
+      />
       {secrets.length === 0 ? (
         <Text size="small" color="secondary">
           The body reads no secrets.

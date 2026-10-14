@@ -8,6 +8,7 @@ import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 
 import {
+  AutoGrid,
   BORDER_RADIUS,
   Box,
   Caption,
@@ -15,7 +16,8 @@ import {
   GAP,
   PADDING,
   ResponsiveImage,
-  Text
+  Text,
+  TYPOGRAPHY
 } from "../ui_primitives";
 import type { MediaLocator } from "../../hooks/useResolvedMediaUri";
 import { SetupCardButton, useRovingRadioGroup } from "./SetupCardButton";
@@ -77,7 +79,7 @@ const CardText: React.FC<{ option: OptionCardItem; onImage: boolean }> = ({
   const inherit = onImage ? { color: "inherit" } : undefined;
   return (
     <FlexColumn gap={GAP.tight}>
-      <Text size="normal" component="span" sx={inherit}>
+      <Text component="span" sx={{ ...TYPOGRAPHY.sans.label, ...inherit }}>
         {option.title}
       </Text>
       {option.description ? (
@@ -114,6 +116,7 @@ const MediaCard: React.FC<{ option: OptionCardItem; image: MediaLocator }> = ({
         locator={image}
         alt=""
         aspectRatio="16/9"
+        preferThumbnail
         sx={{ display: "block" }}
       />
       {/* The still decides the contrast under the title, so the text brings its
@@ -149,14 +152,11 @@ const OptionCardGridInternal: React.FC<OptionCardGridProps> = ({
   const single = mode === "single-select";
   const radioProps = useRovingRadioGroup(options, selectedId, onSelect);
   return (
-    <Box
+    <AutoGrid
       role={single ? "radiogroup" : "group"}
       aria-label={label}
-      sx={{
-        display: "grid",
-        gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${minColumnWidth}px), 1fr))`,
-        gap: GAP.comfortable
-      }}
+      minItemWidth={minColumnWidth}
+      gap={GAP.comfortable}
     >
       {options.map((option) => {
         const filled = variant === "media" && option.image !== undefined;
@@ -186,6 +186,7 @@ const OptionCardGridInternal: React.FC<OptionCardGridProps> = ({
                     alt=""
                     aspectRatio="16/9"
                     borderRadius={BORDER_RADIUS.sm}
+                    preferThumbnail
                   />
                 ) : null}
                 <CardText option={option} onImage={false} />
@@ -213,7 +214,7 @@ const OptionCardGridInternal: React.FC<OptionCardGridProps> = ({
           </Box>
         );
       })}
-    </Box>
+    </AutoGrid>
   );
 };
 

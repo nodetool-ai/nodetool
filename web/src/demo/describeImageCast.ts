@@ -19,7 +19,7 @@
  */
 import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { CAST_VERSION, type CastEvent, type DemoCast } from "./castTypes";
-import { castMessages, edge, meta, node, out, prop } from "./castHelpers";
+import { castMessages, edge, meta, node, out, prop, DEMO_LANGUAGE_MODEL } from "./castHelpers";
 import { EXAMPLE_IMAGE_DATA_URI } from "./assets/exampleImage";
 import type { Workflow } from "../stores/ApiTypes";
 
@@ -60,7 +60,7 @@ const workflow: Workflow = {
   graph: {
     nodes: [
       node("image", IMAGE_INPUT_TYPE, 0, 150, 300, "Image", { name: "image", value: image }),
-      node("describe", AGENT_TYPE, 460, 150, 320, "Describe", { prompt: INSTRUCTION }),
+      node("describe", AGENT_TYPE, 460, 150, 320, "Describe", { prompt: INSTRUCTION, model: DEMO_LANGUAGE_MODEL }),
       node("preview", PREVIEW_NODE_TYPE, 900, 150, 340, "Preview", {}),
     ],
     edges: [

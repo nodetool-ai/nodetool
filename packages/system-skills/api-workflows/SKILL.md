@@ -20,9 +20,9 @@ method throws when its backing tool is not on this belt.
 | `get(id)` | Reads one workflow with its graph. | The workflow record |
 | `create(name, graph, {description, tags, access, project_id})` | Saves a new workflow. `graph` is a DSL result, `{nodes, edges}`, or a workflow record. `create({name, graph})` also works. | The saved workflow with its `id` |
 | `validate(idOrGraph)` | Checks a graph against the node registry without a run. | `{ok, issues}`. Throws when the graph has errors, so a broken graph cannot reach a paid run. |
-| `run(id, params, {interactive})` | Runs and blocks until the run settles. | The run result. With `interactive: true`, a failed node returns `status: "escalated"`. |
-| `start(id, params)` | Starts a run and returns at once. | A receipt `{job_id, id, status: "running"}` |
-| `debug(id, params, {interactive, include_graph, log_limit})` | Runs and reports. | `{workflow_id, run, job, workflow}` |
+| `run(id, params, {interactive, node_ids, reuse_results})` | Runs and blocks until the run settles. | The run result. With `interactive: true`, a failed node returns `status: "escalated"`. |
+| `start(id, params, {node_ids, reuse_results})` | Starts a run and returns at once. | A receipt `{job_id, id, status: "running"}` |
+| `debug(id, params, {interactive, node_ids, reuse_results, include_graph, log_limit})` | Runs and reports. | `{workflow_id, run, job, workflow}`. An escalated debug answers `{workflow_id, run}` with the escalation under `run`. |
 | `resolve(sessionId, escalationId, action, {outputs, reason, apply_to})` | Answers an escalation. | The next escalation, or the final report |
 | `example("<package>/<name>")` | Loads a shipped example with its graph. A bare name reads from `nodetool-base`. | The example workflow |
 | `versions(id, {limit})`, `getVersion(id, n)` | Lists and reads snapshots. | Version rows, newest first |
@@ -30,6 +30,12 @@ method throws when its backing tool is not on this belt.
 | `restore(id, n)` | Rolls the graph back. The graph it replaces is snapshotted first, so a restore can be undone. | — |
 | `deleteVersion(id, n)` | Deletes one snapshot. This cannot be undone. | — |
 | `open(id?)` | Opens the editable object model of a graph that is open in the editor. Throws when no editor tools are on the belt. | A workflow object: `addNode`, `connect`, `commit()` |
+
+`node_ids` runs only those nodes and what they need upstream. Unrelated
+branches and downstream nodes are not executed or billed. An upstream
+generator that already produced output in this workflow is fed that output
+instead of running again, unless `reuse_results: false`. This is the cheapest
+way to re-run one repaired node.
 
 ### The debug report
 
@@ -44,20 +50,23 @@ method throws when its backing tool is not on this belt.
 ### Escalations
 
 An interactive run parks on a failed node and answers `status: "escalated"`
-with a `session_id`, an `escalation_id` and the `allowedActions`. The actions
+with a `session_id`, an `escalation_id` and `escalation.allowedActions`. The actions
 are `retry`, `substitute` (with `{outputs}`, only when the escalation has a
 `candidateOutput`), `skip`, `end_stream` and `fail` (with `{reason}`).
 `apply_to: "signature"` also answers later failures with the same signature.
-Write the whole loop in one action:
+`run` answers the escalation at the top level. `debug` nests it under `run`,
+so drive the loop with `run`. `resolve` answers the next escalation or the
+final report, both at the top level. Write the whole loop in one action:
 
 ```js
-let report = await nodetool.workflows.debug(id, params, { interactive: true });
+let report = await nodetool.workflows.run(id, params, { interactive: true });
 while (report.status === "escalated") {
-  const e = report;
-  report = await nodetool.workflows.resolve(e.session_id, e.escalation_id, "skip");
+  report = await nodetool.workflows.resolve(report.session_id, report.escalation_id, "skip");
 }
-return { status: report.run?.status, issues: report.run?.verdict?.issues };
+return { status: report.status, error: report.error, issues: report.verdict?.issues };
 ```
+
+An unanswered escalation fails the run when its decision timeout expires.
 
 ### Rules
 
@@ -78,7 +87,7 @@ A job is one execution of a workflow, and a render of a timeline is a job too.
 | `list({workflow_id, limit})` | Job rows with status, timing, error and the names of the outputs. The values are not in the list. |
 | `get(idOrReceipt)` | One job, with the outputs once it has settled |
 | `logs(idOrReceipt, {limit})` | The log tail. It answers for a failed job too, with the failure under `job_error`. |
-| `wait(idOrReceipt, {timeoutMs, pollMs})` | Polls until the status is `completed`, `failed`, `cancelled` or `error`, then answers the job. The default timeout is 600000 ms. On a timeout it throws with the last status. |
+| `wait(idOrReceipt, {timeoutMs, pollMs})` | Polls until the status is `completed`, `failed`, `cancelled` or `error`, then answers the job. On a timeout it throws with the last status. |
 
 Every call takes the id string or the receipt that `start()` answered.
 Start, do other work, then wait, all in one action:
@@ -90,7 +99,9 @@ const settled = await nodetool.jobs.wait(receipt, { timeoutMs: 300000 });
 return { status: settled.status, outputs: settled.outputs };
 ```
 
-Do not write one `get()` per action. `wait` is the polling loop.
+Do not write one `get()` per action. `wait` is the polling loop. A code
+action stops after 600 s, so keep `timeoutMs` well under 600000 and call
+`wait` again in the next action when the job is still running.
 
 ## nodetool.nodes
 

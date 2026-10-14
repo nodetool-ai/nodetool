@@ -8,11 +8,12 @@
  * onboarding dismissal, no selected model, no preference storage.
  *
  * `--state seeded-demo` (default) seeds example workflows, threads, assets, and
- * provider keys. `--state empty` seeds nothing, as a new account starts. Reset
- * either between sessions with `POST /api/test/reset` on the backend port.
+ * provider keys. `--state empty` seeds nothing, as a new account starts.
+ * `--state failing-run` is the empty account plus one workflow whose run fails
+ * until the user fixes it. Reset any of them between sessions with `POST /api/test/reset` on the backend port.
  *
  * Usage (from web/):
- *   npx tsx tests/agentic-qa/serveApp.ts [--state empty|seeded-demo]
+ *   npx tsx tests/agentic-qa/serveApp.ts [--state empty|failing-run|seeded-demo]
  *     [--backend-port 7790] [--web-port 3010]
  * Stop with Ctrl+C.
  */
@@ -74,8 +75,8 @@ async function main(): Promise<void> {
     }
   });
   const state = values.state ?? "seeded-demo";
-  if (state !== "seeded-demo" && state !== "empty") {
-    throw new Error(`Unknown --state ${state}. Use empty or seeded-demo.`);
+  if (!["seeded-demo", "empty", "failing-run"].includes(state)) {
+    throw new Error(`Unknown --state ${state}. Use empty, failing-run, or seeded-demo.`);
   }
   const backendPort = Number(values["backend-port"]);
   const webPort = Number(values["web-port"]);

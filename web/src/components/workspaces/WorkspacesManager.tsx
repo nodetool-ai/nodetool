@@ -19,7 +19,7 @@ import {
   WORKSPACES_QUERY_KEY
 } from "../../hooks/useWorkspaces";
 import { useFolderPicker } from "./useFolderPicker";
-import { ConfirmDialog } from "../ui_primitives";
+import { ConfirmDialog, EmptyState } from "../ui_primitives";
 import {
   Box,
   Chip,
@@ -226,7 +226,7 @@ const WorkspacesManager: React.FC = () => {
         <div className="workspaces-manager">
           {isLoading ? (
             <FlexRow justify="center" align="center" sx={{ py: 4 }}>
-              <LoadingSpinner size={30} />
+              <LoadingSpinner size="medium" />
             </FlexRow>
           ) : error ? (
             <Box className="empty-state">
@@ -296,15 +296,15 @@ const WorkspacesManager: React.FC = () => {
               ))}
             </List>
           ) : (
-            <Box className="empty-state">
-              <FolderIcon sx={{ fontSize: 48, mb: 1, opacity: 0.5 }} />
-              <Text>No workspaces configured</Text>
-              <Text size="small">
-                {canManage
+            <EmptyState
+              icon={<FolderIcon />}
+              title="No workspaces configured"
+              description={
+                canManage
                   ? "Add a workspace to allow agents to access local folders"
-                  : "This deployment manages your workspace for you"}
-              </Text>
-            </Box>
+                  : "This deployment manages your workspace for you"
+              }
+            />
           )}
 
           {canManage && (

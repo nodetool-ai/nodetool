@@ -4,6 +4,7 @@ import {
   type UseQueryResult
 } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { isElectron, isLocalhost } from "../lib/env";
 import { trpcClient, type RouterOutputs } from "../trpc/client";
 
 /**
@@ -83,6 +84,13 @@ const workerQueryKeys = {
   health: (id: string) => ["workers", "health", id] as const
 };
 
+/**
+ * Workers are a desktop feature: the server refuses them in production, so the
+ * hosted app never asks. Without this gate every page polled three worker reads
+ * the cloud API answers with 403.
+ */
+const WORKERS_AVAILABLE = isLocalhost || isElectron;
+
 const INSTANCES_REFETCH_INTERVAL_MS = 10_000;
 /** Poll a booting worker's readiness this often until it answers. */
 const HEALTH_REFETCH_INTERVAL_MS = 4_000;
@@ -102,7 +110,7 @@ export const useWorkerHealth = (
   useQuery<WorkerHealth, Error>({
     queryKey: workerQueryKeys.health(id),
     queryFn: () => trpcClient.worker.health.query({ id }),
-    enabled,
+    enabled: WORKERS_AVAILABLE && enabled,
     refetchInterval: enabled ? HEALTH_REFETCH_INTERVAL_MS : false,
     refetchOnWindowFocus: false,
     // A failed probe (worker still booting) is an expected state, not an error
@@ -114,6 +122,7 @@ const instancesQueryOptions = {
   queryKey: workerQueryKeys.instances,
   queryFn: () =>
     trpcClient.worker.instances.list.query() as Promise<WorkerInstance[]>,
+  enabled: WORKERS_AVAILABLE,
   refetchInterval: INSTANCES_REFETCH_INTERVAL_MS
 };
 
@@ -161,7 +170,8 @@ export const useWorkers = (): UseWorkersResult => {
   const profilesQuery = useQuery<WorkerProfile[], Error>({
     queryKey: workerQueryKeys.profiles,
     queryFn: () =>
-      trpcClient.worker.profiles.list.query() as Promise<WorkerProfile[]>
+      trpcClient.worker.profiles.list.query() as Promise<WorkerProfile[]>,
+    enabled: WORKERS_AVAILABLE
   });
 
   const instancesQuery = useQuery<WorkerInstance[], Error>(
@@ -170,7 +180,8 @@ export const useWorkers = (): UseWorkersResult => {
 
   const apiKeyStatusQuery = useQuery<Record<WorkerTarget, boolean>, Error>({
     queryKey: workerQueryKeys.apiKeyStatus,
-    queryFn: () => trpcClient.worker.apiKeyStatus.query()
+    queryFn: () => trpcClient.worker.apiKeyStatus.query(),
+    enabled: WORKERS_AVAILABLE
   });
 
   const invalidateInstances = useCallback(

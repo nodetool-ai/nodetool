@@ -10,9 +10,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { CopyButton, Dialog, ToolbarIconButton, Box, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../components/ui_primitives";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
-import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
-import { TOOLTIP_ENTER_DELAY } from "../config/constants";
-import { getShortcutTooltip } from "../config/shortcuts";
 import "../styles/markdown/github-markdown.css";
 import "../styles/markdown/nodetool-markdown.css";
 
@@ -230,7 +227,6 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             <ToolbarIconButton
               className="fullscreen-button"
               tooltip="Enter fullscreen"
-              delay={TOOLTIP_ENTER_DELAY}
               onClick={handleEnterFullscreen}
               size="small"
               icon={<FullscreenIcon fontSize="small" />}
@@ -252,19 +248,17 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
       </div>
 
       <Dialog
-        fullScreen
+        variant="fullscreen"
         open={isFullscreen}
         onClose={handleExitFullscreen}
-        slotProps={{
-          paper: {
-            sx: {
-              p: getSpacingPx(SPACING.xl),
-              bgcolor: theme.vars.palette.background.default,
-              backgroundImage: "none",
-              opacity: 1
-            }
-          }
-        }}
+        title="Markdown"
+        titleActions={
+          <CopyButton
+            value={content ?? ""}
+            buttonSize="small"
+            tooltipPlacement="bottom"
+          />
+        }
       >
         <Box
           className="output markdown markdown-body"
@@ -273,30 +267,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             position: "relative",
             width: "100%",
             height: "100%",
-            overflow: "auto",
-            marginBottom: getSpacingPx(SPACING.xxxl)
+            overflow: "auto"
           }}
         >
-          <div className="markdown-output-actions">
-            <CopyButton
-              value={content ?? ""}
-              buttonSize="small"
-              tooltipPlacement="bottom"
-            />
-            <ToolbarIconButton
-              className="fullscreen-exit-button"
-              tooltip={getShortcutTooltip("exitFullscreen")}
-              delay={TOOLTIP_ENTER_DELAY}
-              onClick={handleExitFullscreen}
-              size="small"
-              icon={<FullscreenExitIcon fontSize="small" />}
-              sx={{
-                bgcolor: (t) => t.palette.action.hover,
-                "&:hover": { bgcolor: (t) => t.palette.action.selected }
-              }}
-              nodrag={false}
-            />
-          </div>
           <MarkdownBody
             content={content}
             rehypePlugins={rehypePlugins}

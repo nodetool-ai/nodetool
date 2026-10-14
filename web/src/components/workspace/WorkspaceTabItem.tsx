@@ -153,6 +153,15 @@ const WorkspaceTabItem = ({
     [onActivate, tab.id]
   );
 
+  const [titleTruncated, setTitleTruncated] = useState(false);
+  const handleNameMouseOver = useCallback(
+    (event: MouseEvent<HTMLSpanElement>) => {
+      const name = event.currentTarget;
+      setTitleTruncated(name.scrollWidth > name.clientWidth);
+    },
+    []
+  );
+
   return (
     <>
       <div
@@ -191,19 +200,23 @@ const WorkspaceTabItem = ({
             {isRunning && !instantUpdate && (
               <LoadingSpinner
                 inline
-                variant="circular"
-                size={12}
-                thickness={4}
+                size={14}
                 color="primary"
               />
             )}
+            {/* Only a cut-off name needs its full text. The tooltip drops
+                below the tab onto the page's own tabs, so it never takes the
+                pointer either. */}
             <Tooltip
-              title={displayTitle}
+              title={titleTruncated ? displayTitle : ""}
               placement="bottom"
               delay={TAB_TITLE_TOOLTIP_DELAY}
               nextDelay={TAB_TITLE_TOOLTIP_NEXT_DELAY}
+              disableInteractive
             >
-              <span className="tab-name">{displayTitle}</span>
+              <span className="tab-name" onMouseOver={handleNameMouseOver}>
+                {displayTitle}
+              </span>
             </Tooltip>
             {isWorkflowDirty && (
               <span
@@ -229,12 +242,10 @@ const WorkspaceTabItem = ({
         open={contextMenuPosition !== null}
         position={contextMenuPosition}
         onClose={closeContextMenu}
-        compact
       >
         {canRename && (
           <MenuItemPrimitive
             label="Rename"
-            compact
             onClick={() => {
               closeContextMenu();
               onBeginRename(tab);
@@ -242,24 +253,21 @@ const WorkspaceTabItem = ({
           />
         )}
         <MenuItemPrimitive
-          label="Close Tab"
-          compact
+          label="Close tab"
           onClick={() => {
             closeContextMenu();
             onClose(tab);
           }}
         />
         <MenuItemPrimitive
-          label="Close Other Tabs"
-          compact
+          label="Close other tabs"
           onClick={() => {
             closeContextMenu();
             onCloseOthers(tab);
           }}
         />
         <MenuItemPrimitive
-          label="Close All Tabs"
-          compact
+          label="Close all tabs"
           onClick={() => {
             closeContextMenu();
             onCloseAll();

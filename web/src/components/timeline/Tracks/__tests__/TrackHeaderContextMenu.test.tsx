@@ -55,8 +55,8 @@ const MENU_LABELS = [
   "Rename",
   "Duplicate track",
   "New folder with this track",
-  "Insert Video track above",
-  "Insert Video track below",
+  "Insert video track above",
+  "Insert video track below",
   "Remove track"
 ];
 
@@ -101,8 +101,8 @@ describe("TrackHeader context menu", () => {
 
     openMenu(audio);
 
-    expect(screen.getByText("Insert Audio track above")).toBeInTheDocument();
-    expect(screen.getByText("Insert Audio track below")).toBeInTheDocument();
+    expect(screen.getByText("Insert audio track above")).toBeInTheDocument();
+    expect(screen.getByText("Insert audio track below")).toBeInTheDocument();
   });
 
   it("Insert Video track above inserts a track before this one", async () => {
@@ -110,7 +110,7 @@ describe("TrackHeader context menu", () => {
     const [v1, v2, audio] = seedTracks();
 
     openMenu(v2);
-    await userEvent.click(screen.getByText("Insert Video track above"));
+    await userEvent.click(screen.getByText("Insert video track above"));
 
     const ids = trackIds();
     expect(ids).toHaveLength(4);
@@ -129,7 +129,7 @@ describe("TrackHeader context menu", () => {
     const [v1, v2] = seedTracks();
 
     openMenu(v1);
-    await userEvent.click(screen.getByText("Insert Video track below"));
+    await userEvent.click(screen.getByText("Insert video track below"));
 
     const ids = trackIds();
     expect(ids[0]).toBe(v1);
@@ -190,7 +190,7 @@ describe("TrackHeader context menu", () => {
     await userEvent.click(screen.getByText("Remove track"));
 
     expect(
-      screen.getByText('Remove track "Video 2" and all its clips?')
+      screen.getByText('Track "Video 2" and all its clips are removed.')
     ).toBeInTheDocument();
     expect(trackIds()).toHaveLength(3);
   });

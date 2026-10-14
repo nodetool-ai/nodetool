@@ -11,23 +11,22 @@ import {
 } from "../../utils/ColorUtils";
 
 import {
+  Caption,
+  ContextMenu,
+  EYEBROW,
   Text,
   ToolbarIconButton,
+  FlexColumn,
   FlexRow,
+  MenuItemPrimitive,
   Popover,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  ListItemIcon,
   Z_INDEX
 } from "../ui_primitives";
 import PaletteIcon from "@mui/icons-material/Palette";
 import LegendToggleIcon from "@mui/icons-material/LegendToggle";
-import CheckIcon from "@mui/icons-material/Check";
 
 const minimapStyle = {
   position: "absolute" as const,
@@ -225,135 +224,51 @@ const MiniMapNavigator: React.FC = () => {
         </div>
       </div>
 
-      <Popover
+      <ContextMenu
         open={Boolean(settingsAnchor)}
         anchorEl={settingsAnchor}
         onClose={handleCloseSettings}
-        placement="bottom-right"
-        paperSx={{
-          minWidth: 180,
-          borderRadius: BORDER_RADIUS.lg
-        }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <List dense disablePadding>
-          <ListItem disablePadding>
-            <ListItemButton
-              onClick={handleSetDefaultMode}
-              selected={colorMode === "default"}
-              sx={{
-                "&.Mui-selected": {
-                  backgroundColor: theme.vars.palette.action.selected
-                }
-              }}
-            >
-              <ListItemIcon>
-                {colorMode === "default" ? (
-                  <CheckIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
-                ) : (
-                  <span style={{ width: "1rem", display: "inline-block" }} />
-                )}
-              </ListItemIcon>
-              <ListItemText
-                primary="Default Colors"
-                primaryTypographyProps={{
-                  fontSize: "var(--fontSizeNormal)"
-                }}
-              />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding>
-            <ListItemButton
-              onClick={handleSetTypeMode}
-              selected={colorMode === "type"}
-              sx={{
-                "&.Mui-selected": {
-                  backgroundColor: theme.vars.palette.action.selected
-                }
-              }}
-            >
-              <ListItemIcon>
-                {colorMode === "type" ? (
-                  <CheckIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
-                ) : (
-                  <span style={{ width: "1rem", display: "inline-block" }} />
-                )}
-              </ListItemIcon>
-              <ListItemText
-                primary="Color by Type"
-                primaryTypographyProps={{
-                  fontSize: "var(--fontSizeNormal)"
-                }}
-              />
-            </ListItemButton>
-          </ListItem>
-        </List>
-      </Popover>
+        <MenuItemPrimitive
+          label="Default colors"
+          selected={colorMode === "default"}
+          onClick={handleSetDefaultMode}
+        />
+        <MenuItemPrimitive
+          label="Color by type"
+          selected={colorMode === "type"}
+          onClick={handleSetTypeMode}
+        />
+      </ContextMenu>
 
       <Popover
         open={Boolean(legendAnchor)}
         anchorEl={legendAnchor}
         onClose={handleCloseLegend}
         placement="bottom-right"
-        paperSx={{
-          minWidth: 180,
-          borderRadius: BORDER_RADIUS.lg
-        }}
+        paperSx={{ minWidth: 180 }}
       >
-        <div style={{ padding: 8 }}>
-          <Text
-            size="small"
-            weight={600}
-            color="secondary"
-            sx={{
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              mb: 0.5,
-              px: 1
-            }}
-          >
-            Node Types
-          </Text>
-          <List dense disablePadding>
-            {legendItems.map((item) => (
-              <ListItem
-                key={item.category}
-                disablePadding
-                sx={{ py: 0.5, px: 0 }}
-              >
-                <FlexRow
-                  align="center"
-                  fullWidth
-                  sx={{
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: BORDER_RADIUS.sm,
-                    "&:hover": {
-                      backgroundColor: theme.vars.palette.action.hover
-                    }
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "12px",
-                      height: "12px",
-                      backgroundColor: item.color,
-                      borderRadius: BORDER_RADIUS.xs,
-                      marginRight: 8,
-                      flexShrink: 0
-                    }}
-                  />
-                  <ListItemText
-                    primary={item.label}
-                    primaryTypographyProps={{
-                      fontSize: "var(--fontSizeSmall)",
-                      color: theme.vars.palette.text.primary
-                    }}
-                  />
-                </FlexRow>
-              </ListItem>
-            ))}
-          </List>
-        </div>
+        <FlexColumn gap={SPACING.xs} sx={{ padding: getSpacingPx(SPACING.md) }}>
+          <Caption component="div" color="secondary" sx={{ ...EYEBROW }}>
+            Node types
+          </Caption>
+          {legendItems.map((item) => (
+            <FlexRow key={item.category} align="center" gap={SPACING.md}>
+              <span
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  backgroundColor: item.color,
+                  borderRadius: BORDER_RADIUS.xs,
+                  flexShrink: 0
+                }}
+              />
+              <Text size="small">{item.label}</Text>
+            </FlexRow>
+          ))}
+        </FlexColumn>
       </Popover>
     </>
   );

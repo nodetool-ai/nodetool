@@ -469,10 +469,12 @@ We follow the **OWASP Top 10** as the baseline. See [OWASP Top 10:2021](https://
 
 ### Supply-chain security
 
-- **`npm audit`** runs in CI on every PR. High and critical advisories block merge unless explicitly waived with rationale.
+- **No new high or critical advisories.** `npm run check:npm-audit` audits the production dependencies of the root tree and `mobile/`. On a pull request that changes a manifest or lockfile, `dependency-audit.yml` fails when the change adds an advisory. An advisory that stays must be in `.github/npm-audit-allowlist.json` with the reason it is unreachable or what fixing it takes. The nightly run fails on any unexplained advisory.
 - **`npm ci`** in CI (not `npm install`) so the lockfile is authoritative.
 - **Lockfile is committed.** Never delete `package-lock.json`.
 - **Dependabot** (or equivalent) opens PRs for updates weekly.
+- **Workflows pin actions to a commit SHA** with the version in a comment, which Dependabot updates. zizmor (`.github/zizmor.yml`) fails the lint leg on template injection, an unpinned action, cache poisoning, or over-broad permissions.
+- **Model-driven and publishing jobs never write a cache another job restores.** Agent workflows call `setup-build` with `cache: read-only`. Release, publish, and deploy jobs use `cache: off`.
 - **No `postinstall` scripts in untrusted deps.** Audit any new transitive dep that has a postinstall.
 - **Pin direct dependency majors.** Use `^x.y.z` for direct deps; allow patch/minor updates via dependabot.
 
@@ -597,7 +599,8 @@ The mechanisms that make the above stick:
 | Primitives-first | Manual review + **target** custom ESLint rule |
 | Tests required | CI workflow `test.yml` |
 | Coverage targets | `npm run test:coverage` + **target** Codecov gate |
-| Security advisories | `npm audit` in `security-audit.yaml` |
+| Security advisories | `scripts/check-npm-audit.mjs` in `dependency-audit.yml` |
+| Code and workflow security | `codeql.yml`, zizmor in `quality-checks.yml`, `security-audit.yaml` |
 | Type safety | `anti-slop/no-hand-written-any` + `no-implicit-return-type` in `npm run lint`; `anti-slop-ratchet.yaml` works the backlog |
 | Quality | `quality-checks.yml`, `quality-guard.yml`, `quality-assurance.yaml` |
 | Dead code | `dead-code-cleanup.yaml` |

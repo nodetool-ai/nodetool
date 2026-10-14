@@ -6,14 +6,13 @@
  * shot's selected take, and the Shot tab works on that shot.
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import type { Shot } from "@nodetool-ai/protocol";
 
 import {
   Caption,
   Dialog,
   FlexColumn,
-  FormField,
   SelectField,
   SPACING
 } from "../../ui_primitives";
@@ -123,31 +122,25 @@ const LinkShotDialogInner = ({ clipId, onClose }: LinkShotDialogProps) => {
       confirmText="Link"
       confirmDisabled={!boardId || !shotId}
     >
-      <FlexColumn gap={SPACING.md}>
+      <FlexColumn gap={SPACING.lg}>
         <Caption color="secondary">
           The clip keeps its footage. When the shot&apos;s selected take
           changes, the clip plays the new one.
         </Caption>
-        <FormField label="Storyboard">
-          <SelectField
-            label="Storyboard"
-            hideLabel
-            value={boardId}
-            onChange={handleBoardChange}
-            options={boardOptions}
-            disabled={boardsLoading}
-          />
-        </FormField>
-        <FormField label="Shot">
-          <SelectField
-            label="Shot"
-            hideLabel
-            value={shotId}
-            onChange={setShotId}
-            options={shotOptions}
-            disabled={!boardId || boardLoading}
-          />
-        </FormField>
+        <SelectField
+          label="Storyboard"
+          value={boardId}
+          onChange={handleBoardChange}
+          options={boardOptions}
+          disabled={boardsLoading}
+        />
+        <SelectField
+          label="Shot"
+          value={shotId}
+          onChange={setShotId}
+          options={shotOptions}
+          disabled={!boardId || boardLoading}
+        />
       </FlexColumn>
     </Dialog>
   );

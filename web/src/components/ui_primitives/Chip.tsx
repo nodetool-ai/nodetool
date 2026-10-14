@@ -1,22 +1,29 @@
 /**
  * Chip Component
  *
- * A themed chip/tag for displaying labels, categories, or status.
- * Wraps MUI Chip with consistent styling and semantic variants.
+ * A tag, count or filter. Wraps MUI Chip; the theme's MuiChip override draws
+ * every chip as an outlined pill, tinted by its `color` tone.
  */
 
 import React from "react";
 import { Chip as MuiChip, ChipProps as MuiChipProps } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import { CONTROL } from "./tokens";
 
 export interface ChipProps extends Omit<MuiChipProps, 'color'> {
   /** Semantic color variant */
   color?: "default" | "primary" | "secondary" | "success" | "warning" | "error" | "info";
-  /** Whether the chip is in a selected/active state */
+  /**
+   * Selected state of a filter or toggle chip. A selected chip takes its
+   * `color` tone (primary when none is given), an unselected one stays
+   * neutral, and a clickable chip announces the state as `aria-pressed`.
+   */
   active?: boolean;
   /** Compact size for dense layouts */
   compact?: boolean;
+  /**
+   * A surface's own colour (a storyboard or script link) in place of a
+   * palette `color`. Tints text, border and fill the way the palette tones do.
+   */
+  accent?: string;
 }
 
 /**
@@ -44,32 +51,43 @@ export interface ChipProps extends Omit<MuiChipProps, 'color'> {
  */
 export const Chip: React.FC<ChipProps> = ({
   color = "default",
-  active = false,
+  active,
   compact = false,
-  variant,
+  accent,
+  variant = "outlined",
+  size,
   sx,
   ...props
 }) => {
-  const theme = useTheme();
+  const tone =
+    active === undefined
+      ? color
+      : active
+        ? color === "default"
+          ? "primary"
+          : color
+        : "default";
+  const pressed =
+    active !== undefined && props.onClick !== undefined ? active : undefined;
 
-  const chipVariant = variant || (active ? "filled" : "outlined");
-
+  // Height, radius, text and tone tints come from the theme's MuiChip
+  // override (DESIGN.md "Chips and pills"), so compact only picks the size.
   return (
     <MuiChip
-      color={color === "default" ? "default" : color}
-      variant={chipVariant}
-      size={compact ? "small" : props.size}
-      sx={{
-        fontWeight: active ? 600 : 400,
-        ...(compact && {
-          height: `${CONTROL.height.xs}px`,
-          fontSize: theme.fontSizeSmaller,
-          "& .MuiChip-label": {
-            px: 1,
-          },
-        }),
-        ...sx,
-      }}
+      color={tone}
+      variant={variant}
+      size={compact ? "small" : size}
+      aria-pressed={pressed}
+      sx={[
+        active === true && { fontWeight: 500 },
+        accent !== undefined && {
+          color: accent,
+          // color-mix takes any CSS colour, including the palette vars.
+          borderColor: `color-mix(in srgb, ${accent} 50%, transparent)`,
+          backgroundColor: `color-mix(in srgb, ${accent} 12%, transparent)`
+        },
+        ...(Array.isArray(sx) ? sx : [sx])
+      ]}
       {...props}
     />
   );

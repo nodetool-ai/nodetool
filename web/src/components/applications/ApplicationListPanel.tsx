@@ -3,7 +3,9 @@ import { css } from "@emotion/react";
 import AddIcon from "@mui/icons-material/Add";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
-import { memo, useCallback, useState } from "react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+import { memo, useCallback, useMemo, useState } from "react";
 
 import {
   isConcurrencyConflict,
@@ -35,25 +37,21 @@ import {
   ToolbarIconButton,
   TruncatedText,
   Tooltip,
-  BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  selectableRowStyles
 } from "../ui_primitives";
 
-const pickerStyles = () =>
+const pickerStyles = (theme: Theme) =>
   css({
     ".workflow-option": {
       width: "100%",
       border: 0,
-      background: "transparent",
       color: "inherit",
       cursor: "pointer",
       textAlign: "left",
       padding: getSpacingPx(SPACING.md),
-      borderRadius: BORDER_RADIUS.md,
-      "&:hover": {
-        backgroundColor: "var(--palette-action-hover)"
-      }
+      ...selectableRowStyles(theme)
     },
     ".workflow-options": {
       maxHeight: "50vh",
@@ -104,6 +102,8 @@ export const CreateApplicationFromWorkflowButton = memo(
   function CreateApplicationFromWorkflowButton({
     projectId
   }: CreateApplicationFromWorkflowButtonProps) {
+    const theme = useTheme();
+    const pickerCss = useMemo(() => pickerStyles(theme), [theme]);
     const [open, setOpen] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
     const createApplication = useCreateApplication();
@@ -157,7 +157,7 @@ export const CreateApplicationFromWorkflowButton = memo(
           }}
           title="Create app from workflow"
         >
-          <div css={pickerStyles()}>
+          <div css={pickerCss}>
             {createError ? (
               <AlertBanner severity="error" title="Could not create app">
                 {createError} Select the workflow again to retry.
@@ -171,7 +171,7 @@ export const CreateApplicationFromWorkflowButton = memo(
                 description="Create a workflow first, then build an app on top of it."
               />
             ) : (
-              <FlexColumn className="workflow-options" gap={0.5}>
+              <FlexColumn className="workflow-options" gap={SPACING.micro}>
                 {workflows.map((workflow) => (
                   <button
                     key={workflow.id}

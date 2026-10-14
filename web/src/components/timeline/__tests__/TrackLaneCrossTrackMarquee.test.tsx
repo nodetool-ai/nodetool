@@ -7,61 +7,40 @@
  * reports as all-zero.
  */
 
-import { installGlobal } from "../../../test-utils/doubles";
+import { installPointerEvent } from "../../../test-utils/pointerEvent";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
-// Polyfill PointerEvent for jsdom (which doesn't support it natively).
-if (typeof window !== "undefined" && !window.PointerEvent) {
-  installGlobal(
-    "PointerEvent",
-    class PointerEvent extends MouseEvent {
-      readonly pointerId: number;
-      readonly pointerType: string;
-      readonly isPrimary: boolean;
-
-      constructor(type: string, params: PointerEventInit & MouseEventInit = {}) {
-        super(type, params);
-        this.pointerId = params.pointerId ?? 0;
-        this.pointerType = params.pointerType ?? "";
-        this.isPrimary = params.isPrimary ?? false;
-      }
-    });
-}
-
 // ── Heavy media hooks → no-op mocks ─────────────────────────────────────────
 
-jest.mock("../Tracks/useClipThumbnails", () => ({
-  useClipThumbnails: () => null
-}));
-jest.mock("../Tracks/useAudioPeaks", () => ({
-  useAudioPeaks: () => ({ peaks: null, durationMs: null })
-}));
+jest.mock("../Tracks/useClipThumbnails", () =>
+  jest
+    .requireActual("../../../test-utils/timelineClipMocks")
+    .clipThumbnailsMock()
+);
+jest.mock("../Tracks/useAudioPeaks", () =>
+  jest.requireActual("../../../test-utils/timelineClipMocks").audioPeaksMock()
+);
 
 // ── Stores that pull in network/api dependencies → light mocks ─────────────
 
-jest.mock("../../../stores/AssetStore", () => ({
-  useAssetStore: <T,>(sel: (s: { get: () => Promise<null> }) => T) =>
-    sel({ get: () => Promise.resolve(null) })
-}));
-jest.mock("../../../stores/WorkflowRunsStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { focusedJob: Record<string, string> }) => T) =>
-    sel({ focusedJob: {} })
-}));
-jest.mock("../../../stores/ErrorStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { errors: Record<string, unknown> }) => T) =>
-    sel({ errors: {} }),
-  hasNodeError: () => false,
-  nodeErrorToDisplayString: () => ""
-}));
-jest.mock("../../../stores/timeline/TimelineGenerationStore", () => ({
-  useTimelineGenerationStore: <T,>(
-    sel: (s: { clipJobs: Record<string, unknown> }) => T
-  ) => sel({ clipJobs: {} })
-}));
+jest.mock("../../../stores/AssetStore", () =>
+  jest.requireActual("../../../test-utils/timelineClipMocks").assetStoreMock()
+);
+jest.mock("../../../stores/WorkflowRunsStore", () =>
+  jest
+    .requireActual("../../../test-utils/timelineClipMocks")
+    .workflowRunsStoreMock()
+);
+jest.mock("../../../stores/ErrorStore", () =>
+  jest.requireActual("../../../test-utils/timelineClipMocks").errorStoreMock()
+);
+jest.mock("../../../stores/timeline/TimelineGenerationStore", () =>
+  jest
+    .requireActual("../../../test-utils/timelineClipMocks")
+    .timelineGenerationStoreMock()
+);
 
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import { TrackLane } from "../Tracks/TrackLane";
@@ -69,11 +48,7 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 
-// jsdom does not implement pointer capture.
-beforeAll(() => {
-  HTMLElement.prototype.setPointerCapture = jest.fn();
-  HTMLElement.prototype.releasePointerCapture = jest.fn();
-});
+beforeAll(installPointerEvent);
 
 const trackA: TimelineTrack = {
   id: "t1",

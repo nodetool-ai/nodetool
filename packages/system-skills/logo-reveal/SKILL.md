@@ -1,7 +1,6 @@
 ---
 name: logo-reveal
 description: Animate a brand mark on a NodeTool timeline — stroke draw-on, mask wipe, staggered build, wordmark type, an idle loop, and landing the settle on a sound logo. Use for an intro sting, a sign-off, an end card, a splash, or a loader loop. Not for designing the mark itself.
-featured: true
 ---
 
 # Logo Reveal → the sting
@@ -49,7 +48,7 @@ that still keeps its lockup spacing.
 | Technique | Best for | How, on the timeline |
 |---|---|---|
 | Stroke draw-on | Line marks, monograms, signatures | A `path` shape clip, `trimStart`/`trimEnd` animated |
-| Mask wipe | Filled shapes, gradient marks | `wipe` preset, or a `set_mask` rect animated |
+| Mask wipe | Filled shapes, gradient marks | `wipe` preset, or a `set_mask` rect whose `mask.width` (or `x`) a document `styleTracks` entry animates |
 | Build-on | Multi-part marks, grids | One clip per part, in a group, `delayMs` staggered |
 | Wordmark | Logotypes | A text clip with a per-character or per-word `stagger` |
 | Idle loop | Loaders, ambient splash | `breathe` or `rotate` as a `loop` |
@@ -79,12 +78,14 @@ overlapping in time means the later wins and the earlier is discarded, reported
 as `replace_curves_overlap`. Draw with `trimEnd` alone; use `trimStart` chasing
 it only for a stroke that draws and erases, and put the two in separate windows.
 
-Stagger several strokes by giving each path clip's animation a `delayMs`
-100–200ms apart, in the order a hand would draw them.
+Stagger several strokes by stepping each path clip's `delayMs` by the
+clip-to-clip stagger in `motion-principles`, in the order a hand would draw
+them.
 
-A `d` the renderer cannot parse is refused at the call rather than stored, and an
-unknown `kind` reports `unknown_shape_kind` and draws nothing — a mark that
-vanished is usually one of those two.
+`add_shape_clip` stores a path's `d` without parsing it. A `d` the renderer
+cannot parse reports `shape_path_invalid` (an error) from `validate_timeline`,
+and an unknown `kind` reports `unknown_shape_kind`. Either draws nothing — a
+mark that vanished is usually one of those two.
 
 ## Mask wipe
 
@@ -106,16 +107,17 @@ the eye lands on the name.
 
 ```json
 {"op": "animate_clip", "target": "Mark part 2", "animations": [
-  {"role": "in", "preset": "pop", "durationMs": 500, "delayMs": 160,
+  {"role": "in", "preset": "pop", "durationMs": 500, "delayMs": 80,
    "params": {"overshoot": 1.12}}]}
 ```
 
-Steps of 80–120ms. Then animate the **group** for anything that moves the whole
+Step by the clip-to-clip stagger in `motion-principles`, as the 80ms
+`delayMs` on the second part does. Then animate the **group** for anything that moves the whole
 assembly — one `fade` out on the group beats three chances for the parts to
 drift apart. The group's opacity multiplies into each child.
 
 When the parts already have animations, `{"op": "stagger_animations",
-"clip_ids": ["mark-id", "wordmark-id", "tagline-id"], "offset_ms": 100}`
+"clip_ids": ["mark-id", "wordmark-id", "tagline-id"], "offset_ms": 80}`
 adds delay in that order without moving their media. Use clip IDs, with at
 least two, and give every selected clip an animation first. The first keeps
 its delay. For a repeating field of identical marks, the document's
@@ -197,8 +199,9 @@ Never loop a wordmark somebody is reading.
 
 ## Hold the end frame
 
-The last thing on screen is the static mark. Leave at least 800ms after the
-reveal completes with nothing animating — an end card that cuts the instant it
+The last thing on screen is the static mark. Leave the end hold
+`motion-principles` sets (at least 1000ms) after the reveal completes with
+nothing animating — an end card that cuts the instant it
 settles reads as a mistake. On a 2500ms clip with a 1100ms draw and a 220ms
 accent, that is satisfied; check it rather than assuming.
 
@@ -214,7 +217,7 @@ starting documents rather than tool presets.
 
 - `validate_timeline`: `replace_curves_overlap` on the trims, `stagger_compressed`
   on the wordmark, `animation_exceeds_clip` on a reveal longer than its clip,
-  `unknown_shape_kind` on a mark that draws nothing.
+  `shape_path_invalid` or `unknown_shape_kind` on a mark that draws nothing.
 - `preview_timeline_frame` at the midpoint of the draw, a held moment, and the
   last frame. The midpoint is where a half-drawn path or a stroke that never
   closes shows up; the last frame is where you confirm the mark is clean and

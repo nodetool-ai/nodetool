@@ -19,6 +19,8 @@ There are seven flows.
 | [Script](#storyboard-video-and-script) | Voiced lines ready to place | See [AI Video Production](ai-video-production.md) |
 | [Game](#game) | A playable game in the built-in engine | See [Game Editor](game-editor.md) |
 
+![The Image guided flow at its first step, with an example idea filled in](assets/screenshots/guided-flow.png)
+
 ## Start a flow
 
 **From the new-project screen.** The screen has a **Start with a guided flow** section. It shows the **Storyboard**, **Image**, and **Workflow** cards. Choose **More formats** to also show **Entity**, **Video**, **Script**, and **Game**. **Fewer formats** hides them again. Text typed in the prompt box is not sent to a flow unless you click its card, and the Image card uses it as the first brief.

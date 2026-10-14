@@ -1,5 +1,5 @@
 // APP
-export const VERSION = "0.8.2";
+export const VERSION = "0.8.3";
 
 // Build provenance injected by Vite at build time (see web/vite.config.ts).
 // In non-Vite contexts (e.g. Jest), the defines are absent — fall back to a
@@ -12,8 +12,12 @@ export const BUILD_NUMBER =
   typeof __BUILD_NUMBER__ !== "undefined" ? __BUILD_NUMBER__ : "0";
 
 // TOOLTIPS
-export const TOOLTIP_ENTER_DELAY = 700;
-export const TOOLTIP_ENTER_NEXT_DELAY = 350;
+// One hover delay for every tooltip in the app. The theme applies it to every
+// MUI Tooltip (see ThemeNodetool), so a tooltip passes a delay only to wait
+// longer, as a long description does (TOOLTIP_DESCRIPTION_DELAY).
+export const TOOLTIP_ENTER_DELAY = 500;
+export const TOOLTIP_ENTER_NEXT_DELAY = 100;
+export const TOOLTIP_DESCRIPTION_DELAY = 1000;
 
 // NOTIFICATIONS
 export const NOTIFICATION_TIMEOUT_DEFAULT = 3000; // 3 seconds - default notification timeout

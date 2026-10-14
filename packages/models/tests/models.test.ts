@@ -553,6 +553,23 @@ describe("Workflow model", () => {
     expect(wf.getApiGraph()).toEqual(graph);
   });
 
+  it("getGraph keeps lineage links so exports carry them", async () => {
+    const graph = {
+      nodes: [
+        { type: "text.output", id: "1" },
+        { type: "text.output", id: "2" }
+      ],
+      edges: [],
+      links: [{ id: "l1", source: "1", target: "2" }]
+    };
+    const wf = await Workflow.create<Workflow>({
+      user_id: "u1",
+      name: "Linked WF",
+      graph
+    });
+    expect(wf.getGraph().links).toEqual(graph.links);
+  });
+
   it("paginateTools filters by run_mode=tool and tool_name", async () => {
     await Workflow.create<Workflow>({
       user_id: "u1",

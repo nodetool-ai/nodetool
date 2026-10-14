@@ -34,6 +34,8 @@ import { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { DreaminaProvider } from "./dreamina-provider.js";
+import { ChatGPTProvider } from "./chatgpt-provider.js";
+import { GeminiWebProvider } from "./gemini-web-provider.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
 import { NodeLlamaCppProvider } from "./node-llama-cpp-provider.js";
@@ -58,6 +60,8 @@ import { EvolinkProvider } from "./evolink-provider.js";
 import { GMIProvider } from "./gmi-provider.js";
 import { MetaProvider } from "./meta-provider.js";
 import { DeepSeekProvider } from "./deepseek-provider.js";
+import { AzureOpenAIProvider } from "./azure-openai-provider.js";
+import { BedrockProvider } from "./bedrock-provider.js";
 import { XAIProvider } from "./xai-provider.js";
 import { LMStudioProvider } from "./lmstudio-provider.js";
 import { VLLMProvider } from "./vllm-provider.js";
@@ -82,6 +86,7 @@ import { JinaProvider } from "./jina-provider.js";
 import { FakeProvider } from "./fake-provider.js";
 import { HiggsfieldProvider } from "./higgsfield-provider.js";
 import { UseapiProvider } from "./useapi-provider.js";
+import { VgenvProvider } from "./vgenv-provider.js";
 export { BaseProvider, estimatePromptTokens } from "./base-provider.js";
 export {
   FAL_PROVIDER_ID,
@@ -227,8 +232,12 @@ export type {
 export { AnthropicProvider };
 export { HiggsfieldProvider };
 export { UseapiProvider };
+export { VgenvProvider };
 export { ClaudeAgentProvider };
 export { DreaminaProvider, setDreaminaPageRunner, type DreaminaPageRunner } from "./dreamina-provider.js";
+export { ChatGPTProvider, setChatGPTTab } from "./chatgpt-provider.js";
+export { GeminiWebProvider, setGeminiWebTab } from "./gemini-web-provider.js";
+export type { ExtensionTab } from "./extension-tab.js";
 export { GeminiProvider };
 export { LlamaProvider };
 export { NodeLlamaCppProvider };
@@ -251,6 +260,17 @@ export { EvolinkProvider };
 export { GMIProvider };
 export { MetaProvider };
 export { DeepSeekProvider };
+export {
+  AzureOpenAIProvider,
+  azureOpenAIResourceRoot,
+  inferAzureDeploymentKind,
+  parseAzureDeployments
+} from "./azure-openai-provider.js";
+export type {
+  AzureDeployment,
+  AzureDeploymentKind
+} from "./azure-openai-provider.js";
+export { BedrockProvider };
 export { XAIProvider };
 export { LMStudioProvider };
 export { VLLMProvider };
@@ -515,6 +535,14 @@ registerBuiltinProvider(PROVIDER_IDS.CLAUDE_AGENT_SDK, ClaudeAgentProvider, {});
 // by the NodeTool Chrome extension. No credentials; it lists no models until an
 // extension is attached. Pruned from the cloud profile (NON_CLOUD_PROVIDER_IDS).
 registerBuiltinProvider(PROVIDER_IDS.DREAMINA, DreaminaProvider, {});
+// ChatGPT: chat and image generation through the user's logged-in chatgpt.com
+// tab, driven by the NodeTool Chrome extension. No credentials. Pruned from the
+// cloud profile (NON_CLOUD_PROVIDER_IDS).
+registerBuiltinProvider(PROVIDER_IDS.CHATGPT, ChatGPTProvider, {});
+// Gemini web: image generation through the user's logged-in gemini.google.com
+// tab, driven by the NodeTool Chrome extension. No credentials. Pruned from the
+// cloud profile (NON_CLOUD_PROVIDER_IDS).
+registerBuiltinProvider(PROVIDER_IDS.GEMINI_WEB, GeminiWebProvider, {});
 registerBuiltinProvider(PROVIDER_IDS.GEMINI, GeminiProvider, {
   GEMINI_API_KEY: ""
 });
@@ -571,6 +599,9 @@ registerBuiltinProvider(PROVIDER_IDS.USEAPI, UseapiProvider, {
   USEAPI_GOOGLE_FLOW_EMAIL: "",
   USEAPI_DREAMINA_ACCOUNT: ""
 });
+registerBuiltinProvider(PROVIDER_IDS.VGENV, VgenvProvider, {
+  VGENV_API_KEY: ""
+});
 registerBuiltinProvider(PROVIDER_IDS.AKI, AkiProvider, { AKI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, {
   MESHY_API_KEY: ""
@@ -618,6 +649,22 @@ registerBuiltinProvider(PROVIDER_IDS.DEEPSEEK, DeepSeekProvider, {
   DEEPSEEK_API_KEY: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.XAI, XAIProvider, { XAI_API_KEY: "" });
+// Azure OpenAI / Microsoft Foundry: models are the user's deployment names.
+// The API version is optional; without it requests use the v1 API.
+registerBuiltinProvider(
+  PROVIDER_IDS.AZURE_OPENAI,
+  AzureOpenAIProvider,
+  { AZURE_OPENAI_API_KEY: "", AZURE_OPENAI_ENDPOINT: "" },
+  { AZURE_OPENAI_DEPLOYMENTS: "", AZURE_OPENAI_API_VERSION: "" }
+);
+// Amazon Bedrock: SigV4-signed with an IAM access key. Models are listed from
+// the region unless BEDROCK_MODEL_IDS pins them.
+registerBuiltinProvider(
+  PROVIDER_IDS.BEDROCK,
+  BedrockProvider,
+  { BEDROCK_ACCESS_KEY_ID: "", BEDROCK_SECRET_ACCESS_KEY: "" },
+  { BEDROCK_SESSION_TOKEN: "", BEDROCK_REGION: "", BEDROCK_MODEL_IDS: "" }
+);
 registerBuiltinProvider(PROVIDER_IDS.HUGGINGFACE, HuggingFaceProvider, {
   HF_TOKEN: ""
 });

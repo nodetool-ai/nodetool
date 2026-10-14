@@ -112,6 +112,15 @@ const seeds: FaqSeed[] = [
     surfaces: ["agents", "cloud", "comparison", "developers", "models", "pricing", "studio"],
   },
   {
+    slug: "use-chatgpt-claude-gemini-subscription",
+    question: "Can I use my ChatGPT, Claude, or Gemini subscription?",
+    answerMd:
+      "Yes, in Studio. Sign in with ChatGPT or Claude, and the agent runs on that subscription instead of an API key. With the [NodeTool Chrome extension](https://docs.nodetool.ai/chrome-extension), NodeTool also uses the ChatGPT or Gemini tab you are signed in to: ChatGPT generates images, and Gemini runs chat, images, and video. Those runs count against your plan's limits, so you get no pay-per-call bill for them. Every run shows up in your ChatGPT or Gemini history.",
+    category: "byok",
+    relatedRoute: "/pricing",
+    surfaces: ["landing", "agents", "pricing", "studio"],
+  },
+  {
     slug: "how-much-does-nodetool-cost",
     question: "How much does NodeTool cost?",
     answerMd:
@@ -247,6 +256,15 @@ const seeds: FaqSeed[] = [
     category: "general",
     relatedRoute: "/agents",
     surfaces: ["agents", "developers"],
+  },
+  {
+    slug: "what-is-a-creative-harness",
+    question: "What is a creative harness?",
+    answerMd:
+      "A harness is what an AI agent works inside: the tools it can call, the documents it can change, the models and keys it may use, and the record of what it did. NodeTool is a creative harness. It gives the built-in agent, or a coding agent such as Claude Code over **MCP**, image, video, and audio generation and the same editors you use. The agent runs on your provider accounts, every tool call is logged, and the work stays as editable workflows and projects. NodeTool is open source under AGPL-3.0.",
+    category: "general",
+    relatedRoute: "/agents",
+    surfaces: ["agents"],
   },
   {
     slug: "what-is-a-planning-agent",

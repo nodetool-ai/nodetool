@@ -314,14 +314,20 @@ export function scaffoldDocumentFromWorkflow(
   return document;
 }
 
+const ALL_APPS_LIMIT = 10_000;
+
 export async function listApplications(
   userId: string,
   projectId?: string,
   workflowId?: string
 ): Promise<ApplicationListItem[]> {
+  // The workflow filter runs in memory, so it must see every app, not only
+  // the 50 most recently updated; otherwise "Make app" misses an older app
+  // and creates a second one.
+  const limit = workflowId ? ALL_APPS_LIMIT : undefined;
   const apps = projectId
-    ? await Application.listByProject(projectId, userId)
-    : await Application.listByUser(userId);
+    ? await Application.listByProject(projectId, userId, limit)
+    : await Application.listByUser(userId, limit);
   const matching = workflowId
     ? apps.filter((app) =>
         app

@@ -17,7 +17,11 @@ import {
   MOTION,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  focusRing,
+  selectableRowStyles,
+  selectedRowStyles,
+  EmptyState
 } from "../ui_primitives";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -55,6 +59,7 @@ const styles = (theme: Theme) =>
     ".root-row:hover": {
       backgroundColor: theme.vars.palette.action.hover
     },
+    ".root-row:focus-visible": focusRing(theme),
     ".root-row .root-icon": {
       width: ICON_SLOT,
       height: ICON_SLOT,
@@ -90,11 +95,7 @@ const styles = (theme: Theme) =>
       paddingLeft: getSpacingPx(SPACING.lg),
       paddingRight: getSpacingPx(SPACING.xs),
       cursor: "pointer",
-      borderRadius: BORDER_RADIUS.md,
-      transition: `${MOTION.background}, color ${MOTION.fast}`
-    },
-    ".workflow-leaf:hover": {
-      backgroundColor: theme.vars.palette.action.hover
+      ...selectableRowStyles(theme)
     },
     ".workflow-leaf .leaf-icon-slot": {
       display: "flex",
@@ -117,21 +118,10 @@ const styles = (theme: Theme) =>
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
-    ".workflow-leaf.selected": {
-      backgroundColor: "rgba(var(--palette-primary-main-channel) / 0.12)"
-    },
-    ".workflow-leaf.selected .leaf-icon": {
-      color: theme.vars.palette.primary.main
-    },
+    ".workflow-leaf.selected": selectedRowStyles(theme),
     ".workflow-leaf.selected .leaf-name": {
-      color: theme.vars.palette.primary.main,
-      fontWeight: 600
+      color: theme.vars.palette.text.primary
     },
-    ".empty-row": {
-      paddingLeft: getSpacingPx(SPACING.xxl),
-      color: theme.vars.palette.grey[500],
-      fontSize: theme.fontSizeSmaller
-    }
   });
 
 // Compact the shared SearchInput so it sits as a tree control, not a hero field.
@@ -220,7 +210,7 @@ const WorkflowTree: React.FC = () => {
         {isLoading ? (
           <LoadingSpinner size="small" />
         ) : workflows.length === 0 ? (
-          <div className="empty-row">No workflows</div>
+          <EmptyState size="small" title="No workflows" />
         ) : (
           workflows.map((workflow) => (
             <div

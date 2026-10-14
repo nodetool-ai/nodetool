@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
+import userEvent from "@testing-library/user-event";
 import mockTheme from "../../../__mocks__/themeMock";
 import GameToolbar from "../shell/GameToolbar";
 
@@ -34,4 +35,30 @@ it("toggles the scene tree and inspector panels", () => {
 it("reports a failed draft save instead of pending changes", () => {
   render(<ThemeProvider theme={mockTheme}><GameToolbar {...props} saveStatus="error" /></ThemeProvider>);
   expect(screen.getByText("Draft not saved")).toBeInTheDocument();
+});
+
+it("hides restart when the play host does not provide it", () => {
+  render(<ThemeProvider theme={mockTheme}><GameToolbar {...props} playSession /></ThemeProvider>);
+  expect(screen.queryByRole("button", { name: "Restart from tick 0" })).not.toBeInTheDocument();
+});
+
+it("restarts a running or paused play session from tick zero", async () => {
+  const user = userEvent.setup();
+  const onRestart = jest.fn();
+  const view = render(<ThemeProvider theme={mockTheme}><GameToolbar {...props} playSession onRestart={onRestart} /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "Restart from tick 0" }));
+  view.rerender(<ThemeProvider theme={mockTheme}><GameToolbar {...props} playSession playing onRestart={onRestart} /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "Restart from tick 0" }));
+  expect(onRestart).toHaveBeenCalledTimes(2);
+});
+
+it.each([
+  { playSession: false, loading: false },
+  { playSession: true, loading: true }
+])("disables restart without an available session: %j", (state) => {
+  const onRestart = jest.fn();
+  render(<ThemeProvider theme={mockTheme}><GameToolbar {...props} {...state} onRestart={onRestart} /></ThemeProvider>);
+  const restart = screen.getByRole("button", { name: "Restart from tick 0" });
+  expect(restart).toBeDisabled();
+  expect(onRestart).not.toHaveBeenCalled();
 });

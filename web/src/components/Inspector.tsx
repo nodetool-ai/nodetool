@@ -26,12 +26,10 @@ import {
   TYPOGRAPHY,
   reducedMotion,
   ScrollArea,
-  Text,
   Tooltip,
   Box
 } from "./ui_primitives";
 import useNodeMenuStore from "../stores/NodeMenuStore";
-import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import FalPricingFooter from "./node/FalPricingFooter";
 import KieCreditsFooter from "./node/KieCreditsFooter";
 import { isKieNodeMetadata } from "../utils/isKieNode";
@@ -756,33 +754,6 @@ const Inspector: React.FC = () => {
   }
 
   if (isMultiSelect) {
-    if (!metadataCoverageMatches) {
-      return (
-        <Box className="inspector" css={inspectorStyles}>
-          <div className="inspector-head">
-            <div className="inspector-head-text">
-              <div className="inspector-title">
-                {selectedNodes.length} nodes selected
-              </div>
-              <div className="inspector-namespace">
-                <span className="inspector-namespace-text">
-                  Metadata unavailable for some nodes
-                </span>
-              </div>
-            </div>
-            <div className="inspector-head-close">
-              <CloseButton
-                onClick={handleInspectorClose}
-                tooltip="Close inspector"
-                buttonSize="small"
-                nodrag={false}
-              />
-            </div>
-          </div>
-        </Box>
-      );
-    }
-
     return (
       <EditorUiProvider scope="inspector">
         <Box className="inspector" css={inspectorStyles}>
@@ -793,7 +764,9 @@ const Inspector: React.FC = () => {
               </div>
               <div className="inspector-namespace">
                 <span className="inspector-namespace-text">
-                  Editing shared properties · Changes {selectedNodes.length} nodes
+                  Editing shared properties · Changes {multiNodeIds.length}
+                  {metadataCoverageMatches ? "" : ` of ${selectedNodes.length}`}{" "}
+                  nodes
                 </span>
               </div>
             </div>
@@ -832,7 +805,6 @@ const Inspector: React.FC = () => {
                       <Tooltip
                         title="Mixed values across the selected nodes"
                         placement="top-start"
-                        delay={200}
                       >
                         <span className="mixed-indicator">
                           <WarningAmberOutlinedIcon fontSize="small" />
@@ -862,7 +834,30 @@ const Inspector: React.FC = () => {
   }
 
   if (!metadata) {
-    return <Text size="small" color="secondary">No metadata available for this node</Text>;
+    return (
+      <Box className="inspector" css={inspectorStyles}>
+        <div className="inspector-head">
+          <div className="inspector-head-text">
+            <div className="inspector-title">
+              {selectedNode.data.title || selectedNode.type}
+            </div>
+            <div className="inspector-namespace">
+              <span className="inspector-namespace-text">
+                No editable properties for this node
+              </span>
+            </div>
+          </div>
+          <div className="inspector-head-close">
+            <CloseButton
+              onClick={handleInspectorClose}
+              tooltip="Close inspector"
+              buttonSize="small"
+              nodrag={false}
+            />
+          </div>
+        </div>
+      </Box>
+    );
   }
 
   return (
@@ -884,7 +879,6 @@ const Inspector: React.FC = () => {
             {metadata.namespace ? (
               <div className="inspector-namespace">
                 <Tooltip
-                  delay={TOOLTIP_ENTER_DELAY}
                   title="Browse this namespace in the node menu"
                   placement="bottom-start"
                 >

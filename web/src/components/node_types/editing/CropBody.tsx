@@ -33,9 +33,10 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { SPACING,
   CheckerDropzone,
   BORDER_RADIUS,
-  MenuItem,
-  Select,
-  type SelectChangeEvent
+  NodeSelect,
+  NodeMenuItem,
+  type SelectChangeEvent,
+  Tooltip
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -171,11 +172,7 @@ const styles = (theme: Theme) =>
     },
     ".aspect-select": {
       gridColumn: "2 / span 2",
-      width: "100%",
-      fontSize: theme.fontSizeSmaller,
-      ".MuiSelect-select": {
-        padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.micro)} 0`
-      }
+      width: "100%"
     },
     ".dims-cluster": {
       display: "flex",
@@ -529,8 +526,8 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
 
   // ── Aspect / W / H / Reset handlers ───────────────────────────────
   const handleAspectChange = useCallback(
-    (event: SelectChangeEvent<AspectKey>) => {
-      const key = event.target.value;
+    (event: SelectChangeEvent<unknown>) => {
+      const key = event.target.value as AspectKey;
       setAspect(key);
       const ratio = parseAspect(key);
       if (!ratio || !imgDims) return;
@@ -702,21 +699,18 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
 
       <div className="controls">
         <span className="ctrl-label">Aspect</span>
-        <Select
-          className="aspect-select nodrag"
-          size="small"
-          variant="standard"
+        <NodeSelect
+          className="aspect-select"
           value={aspect}
           onChange={handleAspectChange}
           aria-label="Aspect ratio"
-          disableUnderline
         >
           {ASPECT_OPTIONS.map((o) => (
-            <MenuItem key={o.value} value={o.value} dense>
+            <NodeMenuItem key={o.value} value={o.value}>
               {o.label}
-            </MenuItem>
+            </NodeMenuItem>
           ))}
-        </Select>
+        </NodeSelect>
 
         <span className="ctrl-label">Size</span>
         <div className="dims-cluster">
@@ -758,15 +752,16 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
             />
           </div>
         </div>
-        <button
-          type="button"
-          className="reset-btn"
-          onClick={handleReset}
-          aria-label="Reset crop"
-          title="Reset crop"
-        >
-          <RestartAltIcon fontSize="small" />
-        </button>
+        <Tooltip title="Reset crop" describeChild>
+          <button
+            type="button"
+            className="reset-btn"
+            onClick={handleReset}
+            aria-label="Reset crop"
+          >
+            <RestartAltIcon fontSize="small" />
+          </button>
+        </Tooltip>
       </div>
 
       {!isOutputNode && (

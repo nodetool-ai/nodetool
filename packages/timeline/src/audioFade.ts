@@ -1,8 +1,10 @@
 /**
  * Clip fade envelopes.
  *
- * A clip's `fadeInMs`/`fadeOutMs` ramp its audio up from silence and back down
- * again, and `fadeInShape`/`fadeOutShape` say along which curve. The four
+ * A clip's `fadeInMs`/`fadeOutMs` ramp it up from nothing and back down again,
+ * and `fadeInShape`/`fadeOutShape` say along which curve. The gain scales the
+ * clip's audio and, on a visual clip, its opacity (`render/sceneModel.ts`), so
+ * picture and sound fade together. The four
  * shapes are Final Cut's, and each one is exactly an ffmpeg `afade` curve, so
  * the browser preview and the rendered export hold the same gain at the same
  * millisecond rather than agreeing only in spirit.

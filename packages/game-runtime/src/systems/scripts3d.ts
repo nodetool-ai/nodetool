@@ -1,4 +1,5 @@
-import { gameParticleEmissionOf, type GameEntityProps } from "@nodetool-ai/protocol";
+import { applyGameUiCommand, gameParticleEmissionOf, gameUiCommandTarget, type GameEntityProps, type GameUiScriptCommand } from "@nodetool-ai/protocol";
+import { applySpatialScriptCommand3D } from "../spatial3d/script-commands.js";
 import type { EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { applyGameplayCommand, queueGameplayBehavior, type GameplayCommand } from "../gameplay/lifecycle.js";
@@ -77,6 +78,13 @@ function destroyCalls3D(context: GameSystemContext3D, hookSources: ReadonlySet<s
   return calls;
 }
 
+/** Checks that a `ui` command names a node of the document or scene HUD tree that takes its fields, then applies it. */
+function applyUiCommand3D(context: GameSystemContext3D, command: GameUiScriptCommand): void {
+  const target = gameUiCommandTarget([...(context.document.ui?.nodes ?? []), ...(context.currentScene().ui?.nodes ?? [])], command);
+  if (typeof target === "string") { throw new Error(target); }
+  applyGameUiCommand(context.ui, command);
+}
+
 export function stepScripts3D(context: GameSystemContext3D): void {
   const hookSources = context.runner?.hookSources;
   const eventSources = context.runner?.eventSources;
@@ -148,6 +156,8 @@ export function stepScripts3D(context: GameSystemContext3D): void {
       },
       context.rngState
     );
+    context.scriptLogs = batch.logs;
+    context.scriptSaves = batch.saves;
     const byId = new Map(context.states.map((state) => [state.definition.id, state]));
     for (const [index, result] of batch.results.entries()) {
       if (context.calls[index].lifecycle?.destroy) { assertDestroyCommands(result.commands, result.entityId, context.tick); }
@@ -161,7 +171,8 @@ export function stepScripts3D(context: GameSystemContext3D): void {
         if (!byId.has(result.entityId)) { delete context.scriptState[call.stateKey]; }
         else { context.scriptState[call.stateKey] = result.state; }
         for (const command of result.commands) {
-          applyGameplayCommand(command as GameplayCommand, result.entityId, context.queues, context.hud, context.emit);
+          if (command.kind === "ui") { applyUiCommand3D(context, command); }
+          else { applyGameplayCommand(command as GameplayCommand, result.entityId, context.queues, context.hud, context.emit); }
         }
         continue;
       }
@@ -171,6 +182,9 @@ export function stepScripts3D(context: GameSystemContext3D): void {
         throw new Error(`Script target missing: ${result.entityId}`);
       }
       for (const command of result.commands) {
+        if (applySpatialScriptCommand3D(context.currentSpatial(), state, command)) {
+          continue;
+        }
         switch (command.kind) {
           case "setProp":
           case "removeProp":
@@ -190,9 +204,6 @@ export function stepScripts3D(context: GameSystemContext3D): void {
               throw new Error(`Velocity requires a dynamic body or platform (${result.entityId})`);
             }
             context.currentSpatial().setVelocity(state, command.velocity);
-            break;
-          case "impulse":
-            context.currentSpatial().impulse(state, command.impulse);
             break;
           case "teleport":
             if (!state.definition.body3d || state.definition.body3d.type === "static") {
@@ -258,6 +269,9 @@ export function stepScripts3D(context: GameSystemContext3D): void {
             break;
           case "emitParticles":
             (context.queues.particles ??= []).push(gameParticleEmissionOf(command, result.entityId));
+            break;
+          case "ui":
+            applyUiCommand3D(context, command);
             break;
           default:
             applyGameplayCommand(command, result.entityId, context.queues, context.hud, context.emit);

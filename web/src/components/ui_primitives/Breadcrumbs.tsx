@@ -6,9 +6,9 @@ import type { Theme } from "@mui/material/styles";
 import {
   Breadcrumbs as MuiBreadcrumbs,
   Link,
-  Typography,
-  Tooltip
+  Typography
 } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HomeIcon from "@mui/icons-material/Home";

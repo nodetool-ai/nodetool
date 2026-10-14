@@ -1280,7 +1280,9 @@ renderer and standalone builds include the runtime and verified media.
 `create_native_game {project_id, name, dimension: "3d"}` starts an exploration
 blockout. The editor provides orbit and fly cameras, picking, transform gizmos,
 snapping, diagnostic overlays, script editing and draft undo. Play pins a cloned
-draft. Later edits require restarting play. `playtest_native_game` accepts
+draft. Existing script source edits compile during play, preserving tick and
+script state. Invalid edits retain the previous source and report a Console
+error. Other edits require **Restart from tick 0**. `playtest_native_game` accepts
 recorded analog `axes` and `look`, spatial and grounded assertions, and snapshot
 replay checks. `autoplay_native_game` returns an unsupported diagnostic for 3D.
 Use a recorded route to verify its completion.
@@ -1996,12 +1998,20 @@ npm run crap -- --lcov packages/kernel/coverage/lcov.info --json packages/kernel
   `Card`), top-level object-literal members, and every class member. A route
   callback (`app.get("/users", handler)`) is its own entry, `GET /users`.
   Other nested callbacks count toward their enclosing function, so a store
-  built inside `create((set) => …)` is one entry.
+  built inside `create((set) => …)` is one entry, and its score is the sum of
+  every action. A component's score likewise includes its inline handlers.
+  Move an action or handler to a module-level function to score it alone.
 - **Coverage** is LCOV. A function with `BRDA` branch records is scored by
   branches, otherwise by line hits. A function the report leaves out scores
   0%. By default the tool reads `coverage/lcov.info` in each workspace that
   owns an analyzed file. `--run-coverage` first runs that workspace's related
-  tests (`vitest related` or `jest --findRelatedTests`) with LCOV output.
+  tests (`vitest related` or `jest --findRelatedTests`) with LCOV output, and
+  Vitest writes the report even when a test fails. When several reports cover
+  one file, a line or branch counts as covered if any report hit it.
+- Coverage lands on `src/` only when tests load the source. A test that
+  imports its own package by name resolves to `dist/` and records nothing for
+  `src/`. A package whose tests import it by name aliases that name to
+  `src/index.ts` in its `vitest.config.ts`.
 - Test files, declaration files, and `tests/`, `__tests__/`, `dist/`, and
   `node_modules/` are skipped. Rules are pinned by
   `scripts/__tests__/crap-score.test.mjs`.
@@ -2199,6 +2209,11 @@ npm run dev:nodetool -- jobs list --workflow-id <id>             # Filter by wor
 npm run dev:nodetool -- jobs get <job_id>                        # Job details
 npm run dev:nodetool -- jobs get <job_id> --json
 ```
+
+Agents and MCP clients cancel a job with `cancel_job` (`nodetool.jobs.cancel(id)`
+in an action), and the web uses the `jobs.cancel` procedure. Both mark the row
+cancelled and stop a run executing in the server process, so a cancelled job
+is never overwritten as completed.
 
 ### nodetool assets
 
@@ -2487,7 +2502,9 @@ message events emitted by `BaseProvider`.
 
 #### Sinks
 
-Multiple sinks can run simultaneously (each gets its own span processor):
+Multiple sinks can run simultaneously (each gets its own span processor).
+The network sink sends OTLP/HTTP JSON. Configure a collector that accepts JSON
+on its HTTP traces endpoint.
 
 ```bash
 # JSONL log file (analyzer-friendly — one span per line)

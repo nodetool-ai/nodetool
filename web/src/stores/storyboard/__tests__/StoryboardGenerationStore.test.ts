@@ -129,7 +129,7 @@ describe("direct generation responses (generate_media rpc)", () => {
     expect(shot?.clip_versions?.[0]?.asset_id).toBe("ast-clip");
   });
 
-  it("keeps accepted media current when a new direct result arrives", () => {
+  it("makes a new direct still current and keeps the earlier still", () => {
     const store = useStoryboardStore.getState();
     store.ensureBoard(BOARD);
     store.upsertShot(BOARD, {
@@ -162,7 +162,7 @@ describe("direct generation responses (generate_media rpc)", () => {
       .getState()
       .getBoard(BOARD)
       ?.shots.find((value) => value.id === "s-regen-preserve");
-    expect(shot?.keyframe?.asset_id).toBe("accepted");
+    expect(shot?.keyframe?.asset_id).toBe("candidate");
     expect(shot?.keyframe_versions?.map((version) => version.asset_id)).toEqual(
       ["accepted", "candidate"]
     );

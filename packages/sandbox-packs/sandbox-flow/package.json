@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-flow",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Call NodeTool nodes as typed async functions inside the sandbox, one importable module per node namespace",
   "license": "MIT",
   "nodetool": {
@@ -256,6 +256,11 @@
         "name": "nodetool.input",
         "kind": "js",
         "file": "sandbox/generated/nodetool.input.js"
+      },
+      {
+        "name": "nodetool.manimgx",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.manimgx.js"
       },
       {
         "name": "nodetool.model3d",

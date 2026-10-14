@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import ProjectDocumentCard from "../ProjectDocumentCard";
@@ -36,4 +37,78 @@ it("keeps the full title accessible while truncating its compact label", () => {
     textOverflow: "ellipsis",
     whiteSpace: "nowrap"
   });
+});
+
+it("says when the document was last edited", () => {
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <ProjectDocumentCard
+        document={{ ...document, updatedAt: twoHoursAgo }}
+        sourceProjectId="p1"
+        onOpen={jest.fn()}
+        compact
+      />
+    </ThemeProvider>
+  );
+
+  expect(screen.getByText(/Edited 2 hours ago/)).toBeInTheDocument();
+});
+
+const renderCard = (
+  overrides: Partial<ProjectDocument> = {},
+  onRename: jest.Mock | undefined = jest.fn(),
+  onOpen = jest.fn()
+) => {
+  const card = { ...document, name: "Board", ...overrides };
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <ProjectDocumentCard
+        document={card}
+        sourceProjectId="p1"
+        onOpen={onOpen}
+        onRename={onRename}
+        compact
+      />
+    </ThemeProvider>
+  );
+  return { card, onRename, onOpen };
+};
+
+it("renames the document from the card's context menu", async () => {
+  const user = userEvent.setup();
+  const { card, onRename, onOpen } = renderCard();
+
+  fireEvent.contextMenu(screen.getByRole("button", { name: "Board" }), {
+    clientX: 40,
+    clientY: 40
+  });
+  await user.click(await screen.findByRole("menuitem", { name: "Rename" }));
+  const input = await screen.findByRole("textbox", { name: "Document name" });
+  await waitFor(() => expect(input).toHaveFocus());
+  await user.clear(input);
+  await user.type(input, "Launch board{Enter}");
+
+  expect(onRename).toHaveBeenCalledWith(card, "Launch board");
+  expect(onOpen).not.toHaveBeenCalled();
+});
+
+it("keeps the name when Escape cancels a card rename", async () => {
+  const user = userEvent.setup();
+  const { onRename } = renderCard();
+
+  fireEvent.contextMenu(screen.getByRole("button", { name: "Board" }));
+  await user.click(await screen.findByRole("menuitem", { name: "Rename" }));
+  const input = await screen.findByRole("textbox", { name: "Document name" });
+  await waitFor(() => expect(input).toHaveFocus());
+  await user.type(input, "x{Escape}");
+
+  expect(onRename).not.toHaveBeenCalled();
+  expect(screen.getByRole("button", { name: "Board" })).toBeInTheDocument();
+});
+
+it("offers no rename menu for a kind that cannot be renamed", () => {
+  renderCard({ type: "game" });
+  fireEvent.contextMenu(screen.getByRole("button", { name: "Board" }));
+  expect(screen.queryByRole("menuitem", { name: "Rename" })).toBeNull();
 });

@@ -10,7 +10,10 @@ import { GameSkyRenderer3D, type GameSkySources3D } from "./environment/sky.js";
 import { paintGameHud } from "./hud/paint.js";
 import { applyDistanceCulling3D } from "./culling.js";
 import { GamePostProcessor3D } from "./passes/post-processing.js";
+import type { GameEditorPasses3D, GameEditorPassesFactory3D, GameEditorView3D } from "./passes/editor.js";
 import { GameShadows3D } from "./shadows/index.js";
+import { GameParticlePass3D } from "../particles/pass3d.js";
+import type { GameParticleField } from "../particles/render2d.js";
 export { interpolateGameTransform3D } from "./scene-sync.js";
 export { sampleGameAnimation3D, sampleGameAnimationPose3D } from "./animation/index.js";
 import * as THREE from "three";
@@ -19,6 +22,9 @@ import type { GameRenderFrame3D } from "@nodetool-ai/protocol";
 export { prepareGameModel, GAME_MODEL_BUDGETS } from "./preparation.js";
 export type { GameModelBudgets, GameModelDiagnostic, PreparedGameModel, PrepareGameModelResult } from "./preparation.js";
 export type { DecodeGameHdri3D, PreparedGameHdri3D } from "./assets/hdri-contract.js";
+export { createGameEditorPasses3D, GAME_EDITOR_VIEW_MODES_3D } from "./passes/editor.js";
+export type { GameEditorPassesFactory3D, GameEditorView3D, GameEditorViewMode3D } from "./passes/editor.js";
+export { GAME_PARTICLE_PASS_3D } from "../particles/pass3d.js";
 
 export interface GameRendererCapabilities3D {
   readonly backend: "webgl2";
@@ -60,6 +66,8 @@ export interface CreateGameRenderer3DOptions extends GameSkySources3D {
   readonly signal?: AbortSignal;
   readonly preserveDrawingBuffer?: boolean;
   readonly onContextState?: (state: "lost" | "ready") => void;
+  /** Installs the editor overlay passes. Players and capture pages leave it out. */
+  readonly editorPasses?: GameEditorPassesFactory3D;
 }
 export interface GameProjectedBounds3D {
   readonly entityId: string;
@@ -72,7 +80,8 @@ export interface GameRenderer3D {
   readonly backend: "webgl2";
   readonly canvas: HTMLCanvasElement;
   readonly capabilities: GameRendererCapabilities3D;
-  render(frame: GameRenderFrame3D, interpolation?: number): Promise<GameRendererStats3D>;
+  /** Draws the frame, with `particles` (such as a `GameParticles3D` run beside the session) when given. */
+  render(frame: GameRenderFrame3D, interpolation?: number, particles?: GameParticleField): Promise<GameRendererStats3D>;
   resize(width: number, height: number): void;
   invalidateAsset(slot: string): void;
   pick(normalizedX: number, normalizedY: number): string | null;
@@ -82,6 +91,8 @@ export interface GameRenderer3D {
   getEntityObject(entityId: string): THREE.Object3D | null;
   projectedBounds(): readonly GameProjectedBounds3D[];
   setEditorCamera(camera: THREE.PerspectiveCamera | THREE.OrthographicCamera | null): void;
+  /** Sets the debug view mode, selection outline and light helpers. Throws when the renderer was created without `editorPasses`. */
+  setEditorView(view: GameEditorView3D | null): void;
   dispose(): void;
 }
 
@@ -100,6 +111,10 @@ class ThreeGameRenderer implements GameRenderer3D {
   private readonly controller = new AbortController();
   private readonly sky: GameSkyRenderer3D;
   private readonly postProcessor: GamePostProcessor3D;
+  private readonly editorPasses: GameEditorPasses3D | null;
+  private readonly particlePass: GameParticlePass3D;
+  private renderingFrame: GameRenderFrame3D | null = null;
+  private renderingParticles: GameParticleField | null = null;
   private readonly hudCanvas = document.createElement("canvas");
   private readonly hudScene = new THREE.Scene();
   private readonly hudCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 2);
@@ -135,6 +150,11 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.fonts = new GameFonts3D(options, this.controller, this.diagnostics);
     this.sky = new GameSkyRenderer3D(renderer, options, this.controller.signal, this.diagnostics);
     this.postProcessor = new GamePostProcessor3D(renderer);
+    this.particlePass = new GameParticlePass3D(this.pipeline, { scene: this.scene, particles: () => this.renderingParticles });
+    this.editorPasses = options.editorPasses?.(this.pipeline, { scene: this.scene, frame: () => this.renderingFrame,
+      entityObject: (entityId) => this.getEntityObject(entityId),
+      entityObjects: () => [...this.instances.values()].map((instance) => instance.object),
+      setDirectRender: (direct) => { this.postProcessor.direct = direct; } }) ?? null;
     this.scene.add(this.ambient);
     this.hudCamera.position.z = 1;
     this.hudTexture.colorSpace = THREE.SRGBColorSpace;
@@ -185,6 +205,10 @@ class ThreeGameRenderer implements GameRenderer3D {
   getCamera(): THREE.Camera { return this.editorCamera ?? this.camera; }
   getEntityObject(entityId: string): THREE.Object3D | null { return this.instances.get(entityId)?.object ?? null; }
   setEditorCamera(camera: THREE.PerspectiveCamera | THREE.OrthographicCamera | null): void { this.editorCamera = camera; }
+  setEditorView(view: GameEditorView3D | null): void {
+    if (!this.editorPasses) { throw new Error("This 3D renderer was created without editor passes"); }
+    this.editorPasses.setView(view);
+  }
   projectedBounds(): readonly GameProjectedBounds3D[] {
     const camera = this.getCamera();
     const result: GameProjectedBounds3D[] = [];
@@ -221,8 +245,8 @@ class ThreeGameRenderer implements GameRenderer3D {
     }
     return null;
   }
-  render(frame: GameRenderFrame3D, interpolation = 1): Promise<GameRendererStats3D> {
-    const promise = this.renderTail.then(() => this.renderFrame(frame, interpolation));
+  render(frame: GameRenderFrame3D, interpolation = 1, particles?: GameParticleField): Promise<GameRendererStats3D> {
+    const promise = this.renderTail.then(() => this.renderFrame(frame, interpolation, particles ?? null));
     this.renderTail = promise.then(() => undefined, () => undefined);
     return promise;
   }
@@ -252,7 +276,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.camera.updateProjectionMatrix();
     this.camera.updateMatrixWorld(true);
   }
-  private async renderFrame(frame: GameRenderFrame3D, interpolation: number): Promise<GameRendererStats3D> {
+  private async renderFrame(frame: GameRenderFrame3D, interpolation: number, particles: GameParticleField | null): Promise<GameRendererStats3D> {
     const started = performance.now();
     for (const slot of this.invalidatedAssets) {
       for (const [id, instance] of this.instances) {
@@ -287,6 +311,8 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.renderer.info.reset();
     this.renderer.compile(this.scene, activeCamera);
     this.controller.signal.throwIfAborted();
+    this.renderingFrame = frame;
+    this.renderingParticles = particles;
     await this.pipeline.render({ renderer: this.renderer, scene: this.scene, camera: activeCamera,
       hudScene: this.hudScene, hudCamera: this.hudCamera, postProcessor: this.postProcessor });
     if (this.renderer.getContext().isContextLost()) { throw new Error("WebGL2 context was lost during render"); }
@@ -306,7 +332,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     for (const model of this.modelCache.loadedModels) { geometryBytes += model.prepared.geometryBytes; textureBytes += model.prepared.textureBytes; }
     return { backend: this.backend, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles,
       geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures, geometryBytes, textureBytes,
-      modelLoadMs: this.modelCache.modelLoadMs, targetBytes: this.canvas.width * this.canvas.height * 8 + this.postProcessor.targetBytes, diagnostics: [...this.diagnostics], renderMs: performance.now() - started, culledEntities };
+      modelLoadMs: this.modelCache.modelLoadMs, targetBytes: this.canvas.width * this.canvas.height * 8 + this.postProcessor.targetBytes + this.particlePass.targetBytes, diagnostics: [...this.diagnostics], renderMs: performance.now() - started, culledEntities };
   }
   dispose(): void {
     if (this.status === "disposed") { return; }
@@ -321,6 +347,8 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.fonts.dispose();
     this.sky.dispose();
     this.postProcessor.dispose();
+    this.editorPasses?.dispose();
+    this.particlePass.dispose();
     this.lights.forEach((light) => removeGameLight(light));
     this.lights.clear();
     this.shadows.dispose();

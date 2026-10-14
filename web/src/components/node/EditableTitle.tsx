@@ -10,7 +10,8 @@ import {
   reducedMotion,
   SPACING,
   getSpacingPx,
-  Z_INDEX
+  Z_INDEX,
+  Tooltip
 } from "../ui_primitives";
 
 interface EditableTitleProps {
@@ -219,13 +220,15 @@ const EditableTitle = memo(function EditableTitle({
       e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
 
       if (e.key === "Enter" && !e.shiftKey) {
-        updateNodeData(nodeId, { title: e.currentTarget.value });
+        if (e.currentTarget.value !== title) {
+          updateNodeData(nodeId, { title: e.currentTarget.value });
+        }
         setIsEditing(false);
       } else if (e.key === "Escape") {
         setIsEditing(false);
       }
     },
-    [nodeId, updateNodeData]
+    [nodeId, title, updateNodeData]
   );
 
   const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => {
@@ -240,10 +243,12 @@ const EditableTitle = memo(function EditableTitle({
 
   const handleBlur = useCallback(
     (e: React.FocusEvent<HTMLTextAreaElement>) => {
-      updateNodeData(nodeId, { title: e.currentTarget.value });
+      if (e.currentTarget.value !== title) {
+        updateNodeData(nodeId, { title: e.currentTarget.value });
+      }
       setIsEditing(false);
     },
-    [nodeId, updateNodeData]
+    [nodeId, title, updateNodeData]
   );
 
   return (
@@ -266,15 +271,16 @@ const EditableTitle = memo(function EditableTitle({
       ) : (
         <>
           <div className="title">{renderTitleText(title)}</div>
-          <button
-            type="button"
-            className="remove-title"
-            onClick={handleRemoveTitle}
-            title="Remove note"
-            aria-label="Remove note"
-          >
-            <CloseIcon className="icon" />
-          </button>
+          <Tooltip title="Remove note" describeChild>
+            <button
+              type="button"
+              className="remove-title"
+              onClick={handleRemoveTitle}
+              aria-label="Remove note"
+            >
+              <CloseIcon className="icon" />
+            </button>
+          </Tooltip>
         </>
       )}
     </div>

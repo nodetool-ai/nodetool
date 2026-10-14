@@ -43,6 +43,7 @@ import SketchCanvasPresentation from "./SketchCanvasPresentation";
 import GeneratingLayerOverlay from "./GeneratingLayerOverlay";
 import { getToolHandler } from "./tools";
 import { TransformTool } from "./tools/TransformTool";
+import { isPsdFile } from "./psd/psdFile";
 
 // ─── Canvas Ref Interface ────────────────────────────────────────────────────
 
@@ -60,6 +61,8 @@ export interface SketchCanvasRef {
   snapshotLayerCanvas: (layerId: string) => HTMLCanvasElement | null;
   restoreLayerCanvas: (layerId: string, source: HTMLCanvasElement) => void;
   flattenToDataUrl: () => string;
+  /** Encode the document as a layered PSD file, or null when it cannot render. */
+  exportPsd: () => Uint8Array<ArrayBuffer> | null;
   getMaskDataUrl: () => string | null;
   clearLayer: (layerId: string) => void;
   clearLayerRect: (
@@ -367,8 +370,8 @@ function SketchCanvas({ ref, ...props }: SketchCanvasProps) {
         onDropAsset(draggedAsset);
         return;
       }
-      const file = Array.from(e.dataTransfer.files).find((f) =>
-        f.type.startsWith("image/")
+      const file = Array.from(e.dataTransfer.files).find(
+        (f) => f.type.startsWith("image/") || isPsdFile(f)
       );
       if (file && onDropImage) {
         onDropImage(file);

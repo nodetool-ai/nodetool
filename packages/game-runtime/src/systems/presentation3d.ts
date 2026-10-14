@@ -1,17 +1,19 @@
 import {
+  resolveGameUiFrame,
   type GameCameraState3D,
   type GameDocument3D,
   type GameEntity3D,
   type GameHudLabel,
   type GameRenderFrame3D,
   type GameScene3D,
-  type GameTransform3D
+  type GameTransform3D,
+  type GameUiOverride
 } from "@nodetool-ai/protocol";
 import { projectGameplayHud } from "../gameplay/lifecycle.js";
 import { type EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { animationPose3D } from "./animation-graph3d.js";
-type PresentationContext3D = Readonly<Pick<GameSystemContext3D, "tick" | "events" | "frame" | "scriptStats" | "queues">> &
+type PresentationContext3D = Readonly<Pick<GameSystemContext3D, "tick" | "events" | "frame" | "scriptStats" | "scriptLogs" | "scriptSaves" | "queues">> &
   Pick<GameSystemContext3D, "presentationEvents" | "result">;
 export function stepPresentation3D(context: PresentationContext3D): void {
   context.presentationEvents = [...structuredClone(context.events), ...(context.queues.particles ?? [])];
@@ -22,6 +24,12 @@ export function stepPresentation3D(context: PresentationContext3D): void {
   };
   if (context.scriptStats) {
     context.result.scriptStats = context.scriptStats;
+  }
+  if (context.scriptLogs) {
+    context.result.scriptLogs = context.scriptLogs;
+  }
+  if (context.scriptSaves) {
+    context.result.saveRequests = context.scriptSaves;
   }
 }
 export function readStepResult3D(context: GameSystemContext3D): NonNullable<GameSystemContext3D["result"]> {
@@ -57,14 +65,15 @@ export function frame3D(
   tick: number,
   score: number,
   won: boolean,
-  hud: ReadonlyMap<string, GameHudLabel>
+  hud: ReadonlyMap<string, GameHudLabel>,
+  ui: ReadonlyMap<string, GameUiOverride>
 ): GameRenderFrame3D {
   const cameraDefinition = states.find((state) => state.definition.id === camera.entityId)?.definition.camera3d;
   const cullDistanceOf = states.some((state) => state.definition.renderCulling) ? cullDistanceResolver3D(document, states) : undefined;
   if (!cameraDefinition) {
     throw new Error(`Missing active camera ${camera.entityId}`);
   }
-  return {
+  const frame: GameRenderFrame3D = {
     dimension: "3d",
     gameId: document.id,
     sceneId: scene.id,
@@ -146,4 +155,14 @@ export function frame3D(
       hud
     )
   };
+  const uiFrame = resolveGameUiFrame(document.ui, scene.ui, ui, (entityId) => {
+    const state = states.find((candidate) => candidate.definition.id === entityId);
+    const health = state?.definition.behaviors.find((behavior) => behavior.kind === "health");
+    return state && health?.kind === "health" ? { value: state.health ?? 0, max: health.maximum } : undefined;
+  });
+  // Left out without a HUD tree, so frames of games without one keep their bytes.
+  if (uiFrame) {
+    frame.ui = uiFrame;
+  }
+  return frame;
 }

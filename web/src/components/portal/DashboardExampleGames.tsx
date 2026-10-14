@@ -13,7 +13,9 @@ import {
   creationProjectId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
+import useOnboardingStore from "../../stores/OnboardingStore";
 import {
+  AutoGrid,
   Box,
   FlexRow,
   BORDER_RADIUS,
@@ -26,9 +28,12 @@ import {
   ResponsiveImage,
   SPACING,
   Text,
+  TYPOGRAPHY,
   getSpacingPx
 } from "../ui_primitives";
-import { SectionHeader, useSectionWrap } from "./dashboardChrome";
+import { NO_EXAMPLE_NEEDS } from "../../utils/exampleNeeds";
+import { DashboardSectionHeader, useSectionWrap } from "./dashboardChrome";
+import ExampleNeedsPill from "./ExampleNeedsPill";
 
 const ExampleGamePlayView = lazy(() => import("./ExampleGamePlayView"));
 
@@ -36,16 +41,11 @@ const styles = (theme: Theme) =>
   css({
     paddingTop: getSpacingPx(SPACING.xxl),
     paddingBottom: getSpacingPx(SPACING.xxxl),
-    ".game-grid": {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))",
-      gap: getSpacingPx(SPACING.md)
-    },
     ".game-card": {
       minWidth: 0,
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.lg,
+      borderRadius: BORDER_RADIUS.md,
       background: theme.vars.palette.c_node_bg
     },
     ".game-poster": { background: theme.vars.palette.common.black }
@@ -73,12 +73,14 @@ const GameCard = memo(function GameCard({
         alt={`${game.name} gameplay`}
         aspectRatio="16/9"
         loading="lazy"
+        preferThumbnail
       />
       <FlexColumn gap={SPACING.xs} padding={PADDING.normal}>
-        <Text size="normal">{game.name}</Text>
+        <Text sx={TYPOGRAPHY.sans.label}>{game.name}</Text>
         <Caption size="smaller" color="secondary">
           {game.description}
         </Caption>
+        <ExampleNeedsPill needs={NO_EXAMPLE_NEEDS} />
         <Caption size="smaller" color="muted">
           {game.controls}
         </Caption>
@@ -110,7 +112,10 @@ const DashboardExampleGames = () => {
     null
   );
   const handlePlay = useCallback(
-    (game: ExampleGameSummary) => setPlayingGame(game),
+    (game: ExampleGameSummary) => {
+      setPlayingGame(game);
+      useOnboardingStore.getState().markStep("keep-creating");
+    },
     []
   );
   const theme = useTheme();
@@ -138,6 +143,7 @@ const DashboardExampleGames = () => {
               projectId: created.game.projectId
             });
             navigate("/workspace");
+            useOnboardingStore.getState().markStep("keep-creating");
           },
           onError: (error) => {
             addNotification({
@@ -156,12 +162,11 @@ const DashboardExampleGames = () => {
   return (
     <section css={styles(theme)} aria-label="Example games">
       <div css={sectionWrap}>
-        <SectionHeader
+        <DashboardSectionHeader
           title="Start from a game"
           count={`${games.length} games`}
         />
         <Caption
-          size="small"
           color="secondary"
           sx={{ marginBottom: getSpacingPx(SPACING.sm) }}
         >
@@ -207,7 +212,7 @@ const DashboardExampleGames = () => {
             description="Example games will appear here when this install ships them."
           />
         ) : (
-          <div className="game-grid">
+          <AutoGrid minItemWidth={360} fill="fit">
             {games.map((game) => (
               <GameCard
                 key={game.slug}
@@ -219,7 +224,7 @@ const DashboardExampleGames = () => {
                 onPlay={handlePlay}
               />
             ))}
-          </div>
+          </AutoGrid>
         )}
       </div>
     </section>

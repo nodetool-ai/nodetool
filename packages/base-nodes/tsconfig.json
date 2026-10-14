@@ -23,6 +23,7 @@
     { "path": "../automation-nodes" },
     { "path": "../atlascloud-nodes" },
     { "path": "../blender-nodes" },
+    { "path": "../manimgx-nodes" },
     { "path": "../elevenlabs-nodes" },
     { "path": "../fal-nodes" },
     { "path": "../higgsfield-nodes" },

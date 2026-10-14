@@ -9,13 +9,19 @@
  * - `density`: Controls compact vs normal sizing
  */
 
-import { memo, type Ref } from "react";
+import { memo, type ReactNode, type Ref } from "react";
 import { Button, ButtonProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
 import { editorClassNames, cn } from "./editorUtils";
 
-import { BORDER_RADIUS, CONTROL } from "../ui_primitives";
+import {
+  BORDER_RADIUS,
+  CONTROL,
+  getSpacingPx,
+  SPACING,
+  Tooltip
+} from "../ui_primitives";
 export interface EditorButtonProps extends Omit<ButtonProps, "size"> {
   /**
    * Density variant
@@ -34,6 +40,14 @@ export interface EditorButtonProps extends Omit<ButtonProps, "size"> {
   /** Saves the href instead of navigating to it; "" keeps the server's name. */
   download?: string;
   ref?: Ref<HTMLButtonElement>;
+  /**
+   * Explains the button on hover and keyboard focus. Use it instead of a
+   * native `title`. It describes the button and leaves its label alone, and
+   * it still shows while the button is disabled.
+   */
+  tooltip?: ReactNode;
+  /** Keyboard shortcut shown in the tooltip, e.g. ["Ctrl", "Enter"] */
+  shortcut?: string[];
 }
 
 /**
@@ -57,6 +71,8 @@ export function EditorButton({
   sx,
   className,
   ref,
+  tooltip,
+  shortcut,
   ...props
 }: EditorButtonProps) {
   const theme = useTheme();
@@ -75,23 +91,45 @@ export function EditorButton({
   const paddingX =
     density === "compact" ? CONTROL.paddingX.compact : CONTROL.paddingX.normal;
 
-  return (
+  const button = (
     <Button
       ref={ref}
       size={size ?? "small"}
       className={cn(editorClassNames.nodrag, className)}
       {...(href ? { href, target, rel, component: "a" as const } : {})}
-      sx={{
-        fontSize,
-        height,
-        minWidth: "auto",
-        padding: `4px ${paddingX}px`,
-        borderRadius: BORDER_RADIUS.md,
-        textTransform: "none",
-        ...sx
-      }}
+      sx={[
+        {
+          fontSize,
+          height,
+          minWidth: "auto",
+          padding: `${getSpacingPx(SPACING.xs)} ${paddingX}px`,
+          borderRadius: BORDER_RADIUS.md,
+          textTransform: "none"
+        },
+        ...(Array.isArray(sx) ? sx : [sx])
+      ]}
       {...props}
     />
+  );
+
+  if (!tooltip) {
+    return button;
+  }
+  // The wrapper stays mounted whether or not the button is disabled: a
+  // disabled button fires no hover events, and swapping the wrapper in and
+  // out would remount the button and drop its focus.
+  return (
+    <Tooltip title={tooltip} shortcut={shortcut} describeChild>
+      <span
+        style={
+          props.fullWidth
+            ? { display: "flex", width: "100%" }
+            : { display: "inline-flex" }
+        }
+      >
+        {button}
+      </span>
+    </Tooltip>
   );
 }
 

@@ -1,94 +1,124 @@
-import { act, render, screen } from "@testing-library/react";
+import { useRef, type ReactNode } from "react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
+import { useStore, type StoreApi } from "zustand";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { initKeyListeners } from "../../../../stores/KeyPressedStore";
-import { createGamePanelLayoutStore } from "../../../../stores/game/GamePanelLayoutStore";
+import { createGamePanelLayoutStore, type GamePanelLayoutState } from "../../../../stores/game/GamePanelLayoutStore";
 import { GameLayoutMenu } from "../GameLayoutMenu";
-import { GameDockGroup } from "../GameDockGroup";
-import type { GameDockPresentation } from "../useGameDockPresentation";
+import { GameDockCanvas } from "../GameDockCanvas";
+import { useGameDockPresentation } from "../useGameDockPresentation";
+import type { GamePanelView } from "../GameEditorShell";
+import type { GamePanelRegistration } from "../panelRegistry";
 
-function makeStore() {
+function makeStore(): StoreApi<GamePanelLayoutState> {
   return createGamePanelLayoutStore({ anonymous: true }, { getItem: () => null, setItem: () => undefined, removeItem: () => undefined });
+}
+
+const registry: readonly GamePanelRegistration[] = ["viewport", "scripts", "inspector", "assistant"].map((id) => ({
+  id, title: id[0].toUpperCase() + id.slice(1), icon: null, dimensions: ["2d"], defaultRegion: "bottom"
+}));
+
+function Dock({ store }: { store: StoreApi<GamePanelLayoutState> }): ReactNode {
+  const root = useRef<HTMLDivElement | null>(null);
+  const layout = useStore(store, (state) => state.layout);
+  const views: readonly GamePanelView[] = registry.map((entry) => ({ id: entry.id, node: <span>{entry.title} body</span> }));
+  const presentation = useGameDockPresentation({ root, store, layout, registry, dimension: "2d", availableIds: views.map((view) => view.id), views });
+  return <section ref={root}><GameDockCanvas presentation={presentation} store={store} /></section>;
 }
 
 it("saves, selects, renames and deletes a named copy without replacing built-in layouts", async () => {
   const user = userEvent.setup();
   const store = makeStore();
   render(<ThemeProvider theme={mockTheme}><GameLayoutMenu store={store} panels={[]} /></ThemeProvider>);
-  const name = screen.getByRole("textbox", { name: "Layout name" });
-  await user.type(name, "My game layout");
-  await user.click(screen.getByRole("button", { name: "Save layout" }));
+  await user.click(screen.getByRole("button", { name: "Default" }));
+  await user.click(screen.getByRole("menuitem", { name: "Save layout as…" }));
+  await user.type(screen.getByRole("textbox", { name: "Layout name" }), "My game layout");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   const saved = store.getState().layout;
-  await act(async () => store.getState().selectLayout("Wide"));
-  await user.click(screen.getByRole("button", { name: "Apply layout" }));
+  await user.click(screen.getByRole("button", { name: "My game layout" }));
+  await user.click(screen.getByRole("menuitem", { name: "Wide" }));
+  expect(store.getState().layout).not.toEqual(saved);
+  await user.click(screen.getByRole("button", { name: "Wide" }));
+  expect(screen.getByRole("menuitem", { name: "Rename layout…" })).toHaveAttribute("aria-disabled", "true");
+  await user.click(screen.getByRole("menuitem", { name: "My game layout" }));
   expect(store.getState().layout).toEqual(saved);
+  await user.click(screen.getByRole("button", { name: "My game layout" }));
+  await user.click(screen.getByRole("menuitem", { name: "Rename layout…" }));
+  const name = screen.getByRole("textbox", { name: "Layout name" });
   await user.clear(name);
-  await user.type(name, "Renamed layout");
-  await user.click(screen.getByRole("button", { name: "Rename layout" }));
+  await user.type(name, "Renamed layout{Enter}");
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   expect(store.getState().customLayouts.map((entry) => entry.name)).toEqual(["Renamed layout"]);
-  await user.click(screen.getByRole("button", { name: "Delete layout" }));
+  await user.click(screen.getByRole("button", { name: "Renamed layout" }));
+  await user.click(screen.getByRole("menuitem", { name: "Delete layout" }));
   expect(store.getState().customLayouts).toEqual([]);
-  expect(screen.getByRole("button", { name: "Rename layout" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Default" })).toBeInTheDocument();
 });
 
-it("offers keyboard panel movement and ordering when a panel ID matches the append sentinel", async () => {
+it("moves, reorders and closes panels from the tab menu by keyboard", async () => {
   const user = userEvent.setup();
   const store = makeStore();
-  store.getState().registerPanels([{ id: "end", title: "End extension", icon: null, dimensions: ["2d"], defaultRegion: "right" }]);
-  const layout = store.getState().layout;
-  const presentation: GameDockPresentation = {
-    metadata: { store, layout, registry: [], dimension: "2d", availableIds: ["scripts", "inspector", "assistant", "end"] },
-    views: [], transitioning: false, focusSnapshot: { current: null }
-  };
-  render(<ThemeProvider theme={mockTheme}><GameDockGroup group={layout.regions.bottom[0]} region="bottom"
-    presentation={presentation} store={store} setSlot={() => undefined} /></ThemeProvider>);
-  await user.click(screen.getByRole("combobox", { name: "Move scripts panel" }));
-  await user.click(screen.getByRole("option", { name: "right: inspector, assistant, end" }));
-  await user.click(screen.getByRole("combobox", { name: "Position scripts panel" }));
-  await user.click(screen.getByRole("option", { name: "Before end" }));
-  await user.click(screen.getByRole("button", { name: "Move" }));
-  expect(store.getState().layout.regions.right[0].panels).toEqual(["inspector", "assistant", "scripts", "end"]);
-  expect(store.getState().layout.regions.bottom).toEqual([]);
+  store.getState().registerPanels(registry);
+  render(<ThemeProvider theme={mockTheme}><Dock store={store} /></ThemeProvider>);
+  const bottom = store.getState().layout.regions.bottom[0];
+  const tab = screen.getByRole("tab", { name: "Scripts" });
+  tab.focus();
+  await user.keyboard("{Shift>}{F10}{/Shift}");
+  await user.click(screen.getByRole("menuitem", { name: "Move to right dock" }));
+  expect(store.getState().layout.regions.right[0].panels.at(-1)).toBe("scripts");
+  expect(store.getState().layout.regions.bottom.some((group) => group.panels.includes("scripts"))).toBe(false);
+  const rightTabs = within(screen.getByRole("tablist", { name: "right game panel tabs" }));
+  rightTabs.getByRole("tab", { name: "Scripts" }).focus();
+  await user.keyboard("{Shift>}{F10}{/Shift}");
+  await user.click(screen.getByRole("menuitem", { name: "Move tab left" }));
+  // The assistant starts hidden, so the only shown tab left of Scripts is Inspector.
+  expect(store.getState().layout.regions.right[0].panels).toEqual(["scripts", "inspector", "assistant"]);
+  rightTabs.getByRole("tab", { name: "Scripts" }).focus();
+  await user.keyboard("{Delete}");
+  expect(store.getState().layout.hidden).toContain("scripts");
+  expect(bottom).toBeDefined();
 });
 
-it("docks a captured pointer release and cancels the pending move when Escape or window blur interrupts it", async () => {
+it("docks a dragged tab onto a group edge and cancels the drag on Escape or window blur", async () => {
   const user = userEvent.setup();
   const stopKeyboard = initKeyListeners();
   const store = makeStore();
+  store.getState().registerPanels(registry);
+  const rendered = render(<ThemeProvider theme={mockTheme}><Dock store={store} /></ThemeProvider>);
   const layout = store.getState().layout;
-  const presentation: GameDockPresentation = {
-    metadata: { store, layout, registry: [], dimension: "2d", availableIds: ["scripts"] },
-    views: [], transitioning: false, focusSnapshot: { current: null }
-  };
-  const drop = document.createElement("section");
-  drop.dataset.gameDockRegion = "right";
-  drop.dataset.gameDockGroup = "right-main";
-  document.body.appendChild(drop);
+  const rightGroup = layout.regions.right[0];
+  const body = document.querySelector<HTMLElement>(`[data-game-dock-group='${rightGroup.id}'] [data-game-dock-body]`);
+  if (!body) { throw new Error("right group body missing"); }
   // JSDOM has no geometry. Only browser hit testing is adapted, the gesture and store are real.
   const previousHitTest = Object.getOwnPropertyDescriptor(document, "elementFromPoint");
-  Object.defineProperty(document, "elementFromPoint", { configurable: true, value: () => drop });
-  const rendered = render(<ThemeProvider theme={mockTheme}><GameDockGroup group={layout.regions.bottom[0]} region="bottom"
-    presentation={presentation} store={store} setSlot={() => undefined} /></ThemeProvider>);
+  Object.defineProperty(document, "elementFromPoint", { configurable: true, value: () => body });
+  body.getBoundingClientRect = () => ({ left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100, x: 0, y: 0, toJSON: () => ({}) });
+  const tab = screen.getByRole("tab", { name: "Scripts" });
   try {
-    const drag = screen.getByRole("button", { name: "Drag scripts panel" });
-    await user.pointer({ keys: "[MouseLeft>]", target: drag });
+    await user.pointer({ keys: "[MouseLeft>]", target: tab, coords: { clientX: 10, clientY: 10 } });
+    await user.pointer({ target: tab, coords: { clientX: 50, clientY: 95 } });
     await user.keyboard("{Escape}");
-    await user.pointer({ keys: "[/MouseLeft]", target: drag });
+    await user.pointer({ keys: "[/MouseLeft]", target: tab });
     expect(store.getState().layout).toBe(layout);
-    await user.pointer({ keys: "[MouseLeft>]", target: drag });
+    await user.pointer({ keys: "[MouseLeft>]", target: tab, coords: { clientX: 10, clientY: 10 } });
+    await user.pointer({ target: tab, coords: { clientX: 50, clientY: 95 } });
     await act(async () => { window.dispatchEvent(new Event("blur")); });
-    await user.pointer({ keys: "[/MouseLeft]", target: drag });
+    await user.pointer({ keys: "[/MouseLeft]", target: tab });
     expect(store.getState().layout).toBe(layout);
-    await user.pointer({ keys: "[MouseLeft>]", target: drag });
-    await user.pointer({ keys: "[/MouseLeft]", target: drag });
-    expect(store.getState().layout.regions.right[0].panels).toEqual(["inspector", "assistant", "scripts"]);
-    expect(store.getState().layout.regions.bottom).toEqual([]);
+    await user.pointer({ keys: "[MouseLeft>]", target: tab, coords: { clientX: 10, clientY: 10 } });
+    await user.pointer({ target: tab, coords: { clientX: 50, clientY: 95 } });
+    await user.pointer({ keys: "[/MouseLeft]", target: tab, coords: { clientX: 50, clientY: 95 } });
+    const right = store.getState().layout.regions.right;
+    expect(right).toHaveLength(2);
+    expect(right[0].id).toBe(rightGroup.id);
+    expect(right[1].panels).toEqual(["scripts"]);
   } finally {
     stopKeyboard();
     await act(async () => rendered.unmount());
-    drop.remove();
     if (previousHitTest) { Object.defineProperty(document, "elementFromPoint", previousHitTest); }
     else { Reflect.deleteProperty(document, "elementFromPoint"); }
   }

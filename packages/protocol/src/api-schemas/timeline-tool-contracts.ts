@@ -23,7 +23,7 @@
  */
 
 import { z } from "zod";
-import { clipFadeShapeEnum } from "./timeline.js";
+import { clipAudioEffect, clipFadeShapeEnum } from "./timeline.js";
 import {
   ADD_MODEL3D_CLIP_DESCRIPTION,
   ADD_SHAPE_CLIP_DESCRIPTION,
@@ -224,6 +224,7 @@ export const CLIP_PARAM_KEYS = [
   "fadeOutMs",
   "fadeInShape",
   "fadeOutShape",
+  "audioEffects",
   "blendMode",
   "borderRadius",
   "crop",
@@ -467,7 +468,7 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
 
     ui_timeline_set_clip_params: {
       description:
-        "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `fadeInShape`/`fadeOutShape` (`linear`, `sCurve`, `plus3dB`, `minus3dB`), `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. `fontSizePx` is shorthand for `textStyle.fontSizePx`. Timing is accepted too and applied as trim_clip/move_clip would: `durationMs`, `inPointMs`, `outPointMs`, `startMs`, `trackId`. A key this tool does not know is refused by name rather than ignored. Omit a field to leave it unchanged.",
+        "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs` (fade the audio and, on a visual clip, the picture), `fadeInShape`/`fadeOutShape` (`linear`, `sCurve`, `plus3dB`, `minus3dB`), `audioEffects` (the clip's whole real-time audio chain, in order: `gain`, `eq3`, `filter`, `compressor`, `echo`, `reverb`, `distortion`; `[]` removes them), `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. `fontSizePx` is shorthand for `textStyle.fontSizePx`. Timing is accepted too and applied as trim_clip/move_clip would: `durationMs`, `inPointMs`, `outPointMs`, `startMs`, `trackId`. A key this tool does not know is refused by name rather than ignored. Omit a field to leave it unchanged.",
       shape: {
         target: targetParam,
         startMs: z.number().optional(),
@@ -485,6 +486,7 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         fadeOutMs: z.number().optional(),
         fadeInShape: clipFadeShapeEnum.optional(),
         fadeOutShape: clipFadeShapeEnum.optional(),
+        audioEffects: z.array(clipAudioEffect).optional(),
         blendMode: z.string().optional(),
         borderRadius: z.number().optional(),
         hidden: z.boolean().optional(),

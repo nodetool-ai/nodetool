@@ -187,8 +187,8 @@ describe("AIEditClipPanel", () => {
     renderPanel(clip);
 
     expect(
-      screen.getByRole("status", { name: "Editing video…" })
-    ).toHaveClass("loading-spinner");
+      screen.getByRole("status")
+    ).toHaveTextContent("Editing video");
     expect(screen.getByTestId("ai-edit-submit")).toHaveTextContent("Cancel");
   });
 
@@ -239,8 +239,8 @@ describe("AIEditClipPanel", () => {
     expect(screen.queryByText(/provider failed this edit/i)).toBeNull();
     expect(screen.queryByText(/edit failed.*retry/i)).toBeNull();
     expect(
-      screen.getByRole("status", { name: "Editing video…" })
-    ).toBeTruthy();
+      screen.getByRole("status")
+    ).toHaveTextContent("Editing video");
   });
 
   it("shows captured terminal settlement details and keeps retry actionable", async () => {

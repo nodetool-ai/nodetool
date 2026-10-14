@@ -111,6 +111,9 @@ export const threadsRouter = router({
     .input(listInput)
     .output(listOutput)
     .query(async ({ ctx, input }) => {
+      // The chat list filters by project, and nothing asks for the loose
+      // bucket. Claim loose threads for Personal first, as documents.index does.
+      await Project.migrateToPersonal(ctx.userId);
       const page: Parameters<typeof Thread.paginate>[1] = {
         limit: input.limit,
         startKey: input.cursor,

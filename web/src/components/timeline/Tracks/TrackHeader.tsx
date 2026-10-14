@@ -53,6 +53,7 @@ import {
   type TrackDropPosition
 } from "./trackReorder";
 import {
+  ConfirmDialog,
   ContextMenu,
   MenuItemPrimitive,
   SelectField,
@@ -74,7 +75,6 @@ import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import { DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX } from "./trackHeight";
 import { trackTypeMeta, trackTypeAccent } from "./trackVisuals";
-import ConfirmDialog from "../../dialogs/ConfirmDialog";
 export const TRACK_HEADER_WIDTH_PX = DEFAULT_TRACK_HEADER_WIDTH_PX;
 /**
  * Phone header width. 192px is half a 390px viewport — the lanes get less room
@@ -389,6 +389,11 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
     const authoredHeightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
     const heightPx = authoredHeightPx * verticalZoom;
     const meta = trackTypeMeta(track.type);
+    // Sentence case in menu labels; acronyms such as MIDI stay upper case.
+    const menuTypeLabel =
+      meta.label === meta.label.toUpperCase()
+        ? meta.label
+        : meta.label.toLowerCase();
     const accent = trackTypeAccent(theme, track.type);
     const TypeIcon = meta.Icon;
 
@@ -953,20 +958,17 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
           position={contextMenuPos}
           onClose={closeContextMenu}
           disableRestoreFocus
-          compact
           data-testid={`track-context-menu-${track.id}`}
         >
           <MenuItemPrimitive
             label="Rename"
             icon={<DriveFileRenameOutlineIcon fontSize="small" />}
             onClick={handleMenuRename}
-            compact
           />
           <MenuItemPrimitive
             label="Duplicate track"
             icon={<ContentCopyIcon fontSize="small" />}
             onClick={handleMenuDuplicate}
-            compact
           />
           <MenuItemPrimitive
             label="New folder with this track"
@@ -975,7 +977,6 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               createTrackFolderForTrack(track.id);
               closeContextMenu();
             }}
-            compact
           />
           {track.folderId && (
             <MenuItemPrimitive
@@ -985,7 +986,6 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                 setTrackFolder(track.id, null);
                 closeContextMenu();
               }}
-              compact
             />
           )}
           {trackFolders.filter((folder) => folder.id !== track.folderId).map((folder) => (
@@ -997,20 +997,17 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                 setTrackFolder(track.id, folder.id);
                 closeContextMenu();
               }}
-              compact
             />
           ))}
           <MenuItemPrimitive
-            label={`Insert ${meta.label} track above`}
+            label={`Insert ${menuTypeLabel} track above`}
             icon={<VerticalAlignTopIcon fontSize="small" />}
             onClick={handleMenuInsertAbove}
-            compact
           />
           <MenuItemPrimitive
-            label={`Insert ${meta.label} track below`}
+            label={`Insert ${menuTypeLabel} track below`}
             icon={<VerticalAlignBottomIcon fontSize="small" />}
             onClick={handleMenuInsertBelow}
-            compact
           />
           <MenuItemPrimitive
             label="Remove track"
@@ -1018,7 +1015,6 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
             onClick={handleMenuRemove}
             color="error"
             dividerBefore
-            compact
           />
         </ContextMenu>
         <ConfirmDialog
@@ -1033,10 +1029,11 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               });
             }
           }}
-          title="Remove track"
-          content={`Remove track "${track.name}" and all its clips?`}
+          title="Remove track?"
+          content={`Track "${track.name}" and all its clips are removed.`}
           confirmText="Remove"
           cancelText="Cancel"
+          destructive
         />
       </>
     );

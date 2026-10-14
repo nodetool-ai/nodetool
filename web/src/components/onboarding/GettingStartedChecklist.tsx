@@ -12,7 +12,8 @@ import {
   CONTROL,
   MOTION,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  EditorButton
 } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
@@ -57,6 +58,11 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.disabled,
         textDecoration: "line-through",
         "&:hover": { borderColor: theme.vars.palette.divider }
+      },
+      // A finished step that still opens its place, such as the provider
+      // dialog where a key is replaced.
+      "&.reopens": {
+        color: theme.vars.palette.text.disabled
       }
     },
     ".checklist-check": {
@@ -76,18 +82,9 @@ const styles = (theme: Theme) =>
     },
     ".checklist-dismiss": {
       marginLeft: 0,
-      background: "none",
-      border: "none",
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
-      borderRadius: BORDER_RADIUS.md,
-      fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.text.disabled,
-      cursor: "pointer",
-      "&:hover": {
-        color: theme.vars.palette.text.primary,
-        background: theme.vars.palette.action.hover
-      }
+      color: theme.vars.palette.text.disabled
     },
+
 
     // Phones: the pills wrapped into a ragged centered cloud. Stack the open
     // steps as full-width rows under a label/dismiss header, and drop the
@@ -112,7 +109,7 @@ const styles = (theme: Theme) =>
         height: CONTROL.height.xl,
         padding: `0 ${getSpacingPx(SPACING.lg)}`,
         borderRadius: BORDER_RADIUS.lg,
-        "&:disabled": { display: "none" }
+        "&:disabled, &.reopens": { display: "none" }
       }
     }
   });
@@ -121,6 +118,8 @@ interface ChecklistStep {
   id: OnboardingStepId | "connect-provider";
   label: string;
   done: boolean;
+  /** Stays clickable once done, under this label. */
+  doneLabel?: string;
   onClick: () => void;
 }
 
@@ -162,6 +161,9 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
       id: "connect-provider",
       label: "Connect an AI provider",
       done: hasConfiguredProvider,
+      // The dialog is where a key is replaced or another provider added, and
+      // a disabled pill left people hunting for another way back to it.
+      doneLabel: "AI provider connected",
       onClick: onConnectProvider
     },
     {
@@ -204,9 +206,11 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
             <button
               key={step.id}
               type="button"
-              className="checklist-step"
+              className={`checklist-step${
+                step.done && step.doneLabel ? " reopens" : ""
+              }`}
               onClick={step.onClick}
-              disabled={step.done}
+              disabled={step.done && !step.doneLabel}
             >
               <span className={`checklist-check${step.done ? " done" : ""}`}>
                 {step.done && (
@@ -222,17 +226,18 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
                   </svg>
                 )}
               </span>
-              {step.label}
+              {step.done && step.doneLabel ? step.doneLabel : step.label}
             </button>
           ))}
-          <button
-            type="button"
+          <EditorButton
+            variant="text"
+            color="inherit"
             className="checklist-dismiss"
             onClick={dismiss}
             aria-label="Dismiss getting started checklist"
           >
             Dismiss
-          </button>
+          </EditorButton>
         </div>
       </div>
     </section>

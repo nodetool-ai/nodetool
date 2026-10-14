@@ -48,12 +48,17 @@ export const useAutoAddGeneratedMediaToCanvas = (): void => {
     const wasBusy = wasBusyRef.current;
     wasBusyRef.current = busy;
 
-    // Only act on the busy → idle edge (a generation just finished).
+    // Only act on the busy → idle edge (a generation just finished). Stop
+    // and errors end the turn without a reply of their own.
     if (busy || !wasBusy) return;
+    if (status === "stopping" || status === "error") return;
     if (!isCanvasAvailable || !messages || messages.length === 0) return;
 
     for (let i = messages.length - 1; i >= 0; i--) {
       const message = messages[i];
+      // A user message before any reply means this turn produced none; the
+      // reply before it belongs to an earlier turn.
+      if (message.role === "user") return;
       if (message.role !== "assistant") continue;
       // The most recent assistant reply decides the turn: add its media, or
       // bail if it wasn't a media generation.

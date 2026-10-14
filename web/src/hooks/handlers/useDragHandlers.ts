@@ -81,8 +81,11 @@ export default function useDragHandlers() {
 
   /* NODE DRAG */
   const onNodeDrag = useCallback(
-    (event: NodeDragEvent, node: Node<NodeData>) => {
+    (event: NodeDragEvent, node: Node<NodeData>, nodes?: Node<NodeData>[]) => {
       pause();
+      // React Flow passes the whole dragged selection; the grabbed node is
+      // only one of them.
+      const dragged = nodes && nodes.length > 0 ? nodes : [node];
       const position = getNodeDragClientPosition(event);
       if (position) {
         addWiggleMovement(position.x, position.y);
@@ -90,13 +93,13 @@ export default function useDragHandlers() {
 
       // Wiggle ungrouping (works for both single nodes and selections)
       if (node.parentId && isWiggling()) {
-        removeFromGroup([node]);
+        removeFromGroup(dragged.filter((n) => n.parentId));
       }
 
       let wasUngroupedByControlKey = false;
       // Control-key or Meta-key based ungrouping
       if (node.parentId && (controlKeyPressed || metaKeyPressed)) {
-        removeFromGroup([node]);
+        removeFromGroup(dragged.filter((n) => n.parentId));
         wasUngroupedByControlKey = true;
       }
 
@@ -149,11 +152,15 @@ export default function useDragHandlers() {
 
   /* NODE DRAG STOP */
   const onNodeDragStop = useCallback(
-    (_event: NodeDragEvent, node: Node<NodeData>) => {
-      // Only add to group if a valid parent was intersected during drag
-      // and the node isn't already in that group
-      if (lastParentNode && node.parentId !== lastParentNode.id) {
-        addToGroup([node], lastParentNode);
+    (_event: NodeDragEvent, node: Node<NodeData>, nodes?: Node<NodeData>[]) => {
+      // Only add to group if a valid parent was intersected during drag.
+      // addToGroup skips nodes that already have a parent.
+      const dragged = nodes && nodes.length > 0 ? nodes : [node];
+      if (lastParentNode) {
+        addToGroup(
+          dragged.filter((n) => n.id !== lastParentNode.id),
+          lastParentNode
+        );
       }
       resume(); // Resume history
       draggedNodesRef.current = new Set();
@@ -270,12 +277,13 @@ export default function useDragHandlers() {
       const rfContainer = (event.target as Element)?.closest(".react-flow");
       rfContainer?.classList.remove("nodesselection-dragging");
 
-      if (
-        lastParentNode &&
-        nodes.length > 0 &&
-        nodes[0].parentId !== lastParentNode.id
-      ) {
-        addToGroup(nodes, lastParentNode);
+      // addToGroup skips nodes that already have a parent, so a mixed
+      // selection still adds the loose ones.
+      if (lastParentNode && nodes.length > 0) {
+        addToGroup(
+          nodes.filter((n) => n.id !== lastParentNode.id),
+          lastParentNode
+        );
       }
 
       resume(); // Resume history

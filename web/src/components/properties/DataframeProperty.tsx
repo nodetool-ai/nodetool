@@ -13,6 +13,7 @@ import TableRowsIcon from "@mui/icons-material/TableRows";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import isEqual from "../../utils/isEqual";
+import { removeDataframeColumn } from "../../utils/csvDataframe";
 import {
   parseDataframeFile,
   isSupportedDataframeFile
@@ -171,6 +172,13 @@ const DataframeProperty = ({
     [value, onChange]
   );
 
+  const onDeleteColumn = useCallback(
+    (index: number) => {
+      onChange(removeDataframeColumn(value, index));
+    },
+    [value, onChange]
+  );
+
   const addColumn = useCallback(() => {
     const columns: ColumnDef[] = value.columns || [];
     const existingNames = new Set(columns.map((col) => col.name));
@@ -273,7 +281,7 @@ const DataframeProperty = ({
         <div className="dropzone-content">
           <UploadFileIcon />
           <span className="dropzone-text">
-            {isLoading ? "Loading..." : "Drop CSV or Excel file"}
+            {isLoading ? "Loading…" : "Drop CSV or Excel file"}
           </span>
           <span className="dropzone-subtext">Supported: CSV, XLSX, XLS</span>
         </div>
@@ -284,6 +292,7 @@ const DataframeProperty = ({
           <ColumnsManager
             columns={value.columns || []}
             onChange={onChangeColumns}
+            onDeleteColumn={onDeleteColumn}
                       />
           <DataTable
             dataframe={value}

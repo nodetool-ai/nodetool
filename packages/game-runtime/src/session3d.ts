@@ -1,3 +1,4 @@
+import { createGameScriptReloader, type GameScriptReloadResult } from "./script-reload.js";
 import { frame3D } from "./systems/presentation3d.js";
 import {
   gameSnapshot3D,
@@ -13,10 +14,14 @@ import {
   type GameRenderFrame3D,
   type GameScene3D,
   type GameSnapshot3D,
-  type GameStepResult3D
+  type GameStepResult3D,
+  type GameUiOverride
 } from "@nodetool-ai/protocol";
 import { initialGameplayState, runGameplayTick } from "./gameplay/lifecycle.js";
+import { withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
+import type { GameSaveRequest } from "./script-saves.js";
 import type { GameScriptStats } from "./scripts.js";
+import type { GameStepPhysicsStats } from "./session.js";
 import { prepareGameScripts3D, type GameScriptRunner3D } from "./scripts3d.js";
 import { validateGame3D } from "./validate3d.js";
 import { initialCamera3D, resolveCamera3D } from "./spatial3d/camera.js";
@@ -24,6 +29,7 @@ import { digestGame3D } from "./spatial3d/digest.js";
 import { ZERO3 } from "./spatial3d/math.js";
 import { pairKey3D, type Contact3D, type EntityState3D } from "./spatial3d/state.js";
 import { resolveCollisionLayers3D } from "./spatial3d/layers.js";
+import { resolvePhysicsMaterials3D } from "./spatial3d/materials.js";
 import { GAME_PHYSICS_BUILD_3D, prepareRapier3D, SpatialWorld3D, type PreparedCollider3D } from "./spatial3d/world.js";
 
 import { statefulGameSystem } from "./systems/pipeline.js";
@@ -39,7 +45,11 @@ import { stepAnimation3D } from "./systems/animation3d.js";
 import { stepPresentation3D, readStepResult3D } from "./systems/presentation3d.js";
 
 export interface GameSession3DOptions {
-  readonly recordTimings?: boolean;
+  /**
+   * Reports system timings and physics counts on step results. A function is read before each step, so a
+   * profiler can turn reporting on and off without a new session. Reporting never changes simulation results.
+   */
+  readonly recordTimings?: boolean | (() => boolean);
   readonly signal?: AbortSignal;
   readonly eventSink?: (event: GameEvent3D) => void;
   readonly resolveCollider?: (
@@ -48,12 +58,21 @@ export interface GameSession3DOptions {
   ) => Promise<PreparedCollider3D & { readonly digest: string }>;
 }
 
+/** A 3D step result with the script stats and the lines from script `log` commands, which never enter snapshots or replay state. */
+export type GameSessionStepResult3D = GameStepResult3D & { readonly scriptStats?: GameScriptStats; readonly scriptLogs?: readonly GameScriptLogEntry[];
+  /** Physics counts, reported only with `recordTimings`. */
+  readonly physics?: GameStepPhysicsStats;
+  /** Script `save` and `load` requests this tick, for the host to perform after the step. Never simulation state. */
+  readonly saveRequests?: readonly GameSaveRequest[] };
+
 export interface GameSession3D {
-  step(input: GameInputFrame3D): GameStepResult3D & { readonly scriptStats?: GameScriptStats };
+  step(input: GameInputFrame3D): GameSessionStepResult3D;
   takePresentationEvents(): readonly (GameEvent3D | GameParticleEmission)[];
   frame(): GameRenderFrame3D;
   inspect(query?: GameInspectionQuery3D): GameInspection3D;
   snapshot(): GameSnapshot3D;
+  /** Replaces existing script sources atomically, preserving tick and state and returning the document for saves. */
+  reloadScripts(candidate: GameDocument3D, signal?: AbortSignal): Promise<GameScriptReloadResult<GameDocument3D>>;
   dispose(): void;
 }
 
@@ -164,8 +183,9 @@ export async function createGameSession3D(
   const validation = validateGame3D(value);
   if (!validation.valid || !validation.document) throw new Error(`Invalid 3D game: ${validation.errors.join("; ")}`);
   if (!Number.isSafeInteger(seed) || seed < 0) throw new Error("Game seed must be a nonnegative safe integer");
-  const document = resolveCollisionLayers3D(validation.document);
-  const contentDigest = await digestGame3D(document);
+  let authoredDocument = validation.document;
+  let document = resolvePhysicsMaterials3D(resolveCollisionLayers3D(authoredDocument));
+  let contentDigest = await digestGame3D(document);
   const saved = savedSnapshot ? gameSnapshot3D.parse(savedSnapshot) : undefined;
   if (
     saved &&
@@ -237,12 +257,13 @@ export async function createGameSession3D(
     let previousEvents = structuredClone(saved?.pendingEvents ?? []);
     let queries = structuredClone(saved?.queryResults ?? []);
     let hud = new Map((saved?.hud ?? []).map((label) => [label.id, structuredClone(label)]));
+    let ui = new Map<string, GameUiOverride>(Object.entries(structuredClone(saved?.ui ?? {})));
     let instances = structuredClone(saved?.prefabInstances ?? []);
     let music =
       saved?.music ??
       (scene.music
         ? {
-            ...scene.music,
+            assetId: scene.music.assetId, volume: scene.music.volume, fadeInTicks: scene.music.fadeInTicks, fadeOutTicks: scene.music.fadeOutTicks,
             voiceId: `scene:${scene.id}:music`,
             startTick: tick
           }
@@ -277,7 +298,7 @@ export async function createGameSession3D(
     };
     const frame = (): GameRenderFrame3D => {
       assertAvailable();
-      return frame3D(document, currentScene(), states, camera, previousCamera, tick, score, won, hud);
+      return frame3D(document, currentScene(), states, camera, previousCamera, tick, score, won, hud, ui);
     };
     const snapshot = (): GameSnapshot3D => {
       assertAvailable();
@@ -286,7 +307,7 @@ export async function createGameSession3D(
       const contactsState = captureContacts();
       const animationState = captureAnimation();
       const physicsState = capturePhysics();
-      return {
+      const result: GameSnapshot3D = {
         dimension: "3d",
         schemaVersion: 3,
         engineVersion: "2",
@@ -311,6 +332,9 @@ export async function createGameSession3D(
         prefabInstances: gameplayState.prefabInstances,
         physics: physicsState.physics
       };
+      // Left out until a script changes the HUD tree, so snapshots of games without one keep their bytes.
+      if (gameplayState.ui) { result.ui = gameplayState.ui; }
+      return result;
     };
     let presentationEvents: (GameEvent3D | GameParticleEmission)[] = [];
     const captureScripts = () => ({
@@ -331,6 +355,7 @@ export async function createGameSession3D(
       spawnSequence,
       entities: states.map(snapshotEntity3D),
       hud: [...hud.values()].map((label) => ({ ...label })),
+      ...(ui.size > 0 ? { ui: structuredClone(Object.fromEntries(ui)) } : undefined),
       music: structuredClone(music),
       prefabInstances: structuredClone(instances)
     });
@@ -398,8 +423,9 @@ export async function createGameSession3D(
         won = state.won;
         spawnSequence = state.spawnSequence;
         hud = new Map(state.hud.map((label) => [label.id, structuredClone(label)]));
+        ui = new Map(Object.entries(structuredClone(state.ui ?? {})));
         music = structuredClone(state.music ?? (restoredScene.music
-          ? { ...restoredScene.music, voiceId: `scene:${restoredScene.id}:music`, startTick: state.tick }
+          ? { assetId: restoredScene.music.assetId, volume: restoredScene.music.volume, fadeInTicks: restoredScene.music.fadeInTicks, fadeOutTicks: restoredScene.music.fadeOutTicks, voiceId: `scene:${restoredScene.id}:music`, startTick: state.tick }
           : null));
         instances = structuredClone(state.prefabInstances);
         states = restoreEntityStates3D(document, restoredScene, state.entities);
@@ -458,10 +484,12 @@ export async function createGameSession3D(
       events: [],
       emit: () => {},
       scriptStats: undefined,
+      scriptLogs: undefined,
+      scriptSaves: undefined,
       spatialStep: undefined,
       contacts: [],
       result: undefined,
-      document,
+      get document() { return document; },
       get states() {
         return states;
       },
@@ -550,6 +578,12 @@ export async function createGameSession3D(
       set hud(value) {
         hud = value;
       },
+      get ui() {
+        return ui;
+      },
+      set ui(value) {
+        ui = value;
+      },
       rapier,
       prepared,
       get spatial() {
@@ -587,15 +621,34 @@ export async function createGameSession3D(
       },
       frame
     };
+    const reloadScripts = createGameScriptReloader({
+      initialRevision: document.revision,
+      current: () => authoredDocument,
+      parse: (candidate: GameDocument3D) => {
+        const checked = validateGame3D(candidate);
+        if (!checked.valid || !checked.document) { throw new Error(`Invalid 3D game: ${checked.errors.join("; ")}`); }
+        return checked.document;
+      },
+      assertAvailable,
+      snapshotDigest: candidate => digestGame3D(resolvePhysicsMaterials3D(resolveCollisionLayers3D(candidate))),
+      commit: (candidate, updates, digest) => {
+        if (!runner) { throw new Error("Game session has no scripts to reload"); }
+        const resolved = resolvePhysicsMaterials3D(resolveCollisionLayers3D(candidate));
+        runner.reloadSources(updates);
+        authoredDocument = candidate;
+        document = resolved;
+        contentDigest = digest;
+      }
+    });
     return {
       takePresentationEvents(): readonly (GameEvent3D | GameParticleEmission)[] {
         const pending = presentationEvents;
         presentationEvents = [];
         return pending;
       },
-      step(value): GameStepResult3D & { readonly scriptStats?: GameScriptStats } {
+      step(value): GameSessionStepResult3D {
         assertAvailable();
-        return runGameplayTick<GameStepResult3D & { readonly scriptStats?: GameScriptStats }, GameEvent3D>(
+        return runGameplayTick<GameSessionStepResult3D, GameEvent3D>(
           ({ events, emit }) => {
             systemContext.input = value;
             systemContext.queues = { despawns: new Set(), spawns: [] };
@@ -606,12 +659,24 @@ export async function createGameSession3D(
             systemContext.events = events;
             systemContext.emit = emit;
             systemContext.scriptStats = undefined;
+            systemContext.scriptLogs = undefined;
+            systemContext.scriptSaves = undefined;
             systemContext.spatialStep = undefined;
             systemContext.result = undefined;
-            const timings = options.recordTimings ? pipeline.stepTimed(systemContext) : undefined;
-            if (!options.recordTimings) { pipeline.step(systemContext); }
+            let timings: ReturnType<typeof pipeline.stepTimed> | undefined;
+            // A tick that fails after its scripts ran still reports what they logged.
+            try {
+              const timed = typeof options.recordTimings === "function" ? options.recordTimings() : options.recordTimings === true;
+              timings = timed ? pipeline.stepTimed(systemContext) : undefined;
+              if (!timed) { pipeline.step(systemContext); }
+            } catch (error) { throw withGameScriptLogs(error, systemContext.scriptLogs); }
             const result = readStepResult3D(systemContext);
-            return timings ? { ...result, timings } : result;
+            if (!timings) { return result; }
+            let bodies = 0;
+            for (const state of systemContext.states) {
+              if (state.active && (state.definition.body3d || state.definition.collider3d)) { bodies += 1; }
+            }
+            return { ...result, timings, physics: { bodies, contacts: systemContext.contacts.length } };
           },
           () => {
             failed = true;
@@ -634,6 +699,7 @@ export async function createGameSession3D(
         };
       },
       snapshot,
+      reloadScripts,
       dispose(): void {
         if (disposed) return;
         disposed = true;

@@ -191,7 +191,8 @@ it("installs, plans, deterministically finishes, renders and reopens the exact e
     }
   } as unknown as ProcessingContext);
   expect(rendered.output.asset_id).toBe(outputId);
-  expect(rendered.output.metadata?.render_mode).toBe("composited");
+  // The headless browser, or the Node compositor where no browser launches.
+  expect(["browser", "composited"]).toContain(rendered.output.metadata?.render_mode);
   const sampledFrame = `${temporary}/sample.png`;
   await promisify(execFile)("ffmpeg", ["-y", "-ss", "1.5", "-i", outputPath, "-frames:v", "1", sampledFrame]);
   const pixel = await sharp(sampledFrame).extract({left: 5, top: 5, width: 1, height: 1}).removeAlpha().raw().toBuffer();

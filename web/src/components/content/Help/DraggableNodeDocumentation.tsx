@@ -8,7 +8,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  SHADOW
+  SHADOW,
+  CloseButton
 } from "../../ui_primitives";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
@@ -62,13 +63,8 @@ const styles = (theme: Theme) => css`
 
   .close-button {
     position: absolute;
-    top: 5px;
-    right: 5px;
-    background: none;
-    border: none;
-    font-size: var(--fontSizeBig);
-    cursor: pointer;
-    color: ${theme.vars.palette.text.secondary};
+    top: ${getSpacingPx(SPACING.xs)};
+    right: ${getSpacingPx(SPACING.xs)};
   }
 
   .open-node-menu-button {
@@ -172,9 +168,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   return (
     <div css={cssStyles} ref={nodeRef}>
       <div className="handle"></div>
-      <button type="button" className="close-button" onClick={onClose}>
-        ×
-      </button>
+      <CloseButton className="close-button" onClick={onClose} tooltip="Close documentation" />
       <div className="content">{content}</div>
     </div>
   );

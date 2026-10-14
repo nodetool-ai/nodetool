@@ -37,9 +37,11 @@ export function fakePythonInterpreterPath(): string {
 }
 
 /** Journeys never wait on a real Python install, so a misbehaving (or
- * deliberately never-ready) fake should fail fast instead of eating a
- * journey's `timeoutMs` budget. */
-export const FAKE_BRIDGE_STARTUP_TIMEOUT_MS = 3000;
+ * deliberately never-ready) fake should fail well inside a journey's
+ * `timeoutMs` budget. The fake starts two Node processes and transpiles its
+ * fixture through tsx, which takes up to 2s locally and longer on a loaded
+ * CI runner, so the limit leaves room for that. */
+export const FAKE_BRIDGE_STARTUP_TIMEOUT_MS = 10_000;
 
 /**
  * `BridgeFactory` (`@nodetool-ai/execution`'s facade hook) that spawns the

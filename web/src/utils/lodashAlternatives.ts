@@ -12,36 +12,44 @@ type AnyVoidFn = (...args: never[]) => void;
 interface DebouncedFunction<T extends AnyVoidFn> {
   (...args: Parameters<T>): void;
   cancel(): void;
+  flush(): void;
 }
 
 /**
  * Creates a debounced version of `fn` that delays invocation until after `ms`
  * milliseconds have elapsed since the last call.  Calling `.cancel()` on the
- * returned function clears any pending timeout.
+ * returned function clears any pending timeout; `.flush()` runs the pending
+ * call immediately.
  */
 export function debounce<T extends AnyVoidFn>(
   fn: T,
   ms: number
 ): DebouncedFunction<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let pendingArgs: Parameters<T> | undefined;
+  const cancel = () => {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
+    pendingArgs = undefined;
+  };
+  const flush = () => {
+    const args = pendingArgs;
+    cancel();
+    if (args !== undefined) {
+      fn(...args);
+    }
+  };
   const debounced: DebouncedFunction<T> = Object.assign(
     (...args: Parameters<T>) => {
       if (timer !== undefined) {
         clearTimeout(timer);
       }
-      timer = setTimeout(() => {
-        timer = undefined;
-        fn(...args);
-      }, ms);
+      pendingArgs = args;
+      timer = setTimeout(flush, ms);
     },
-    {
-      cancel: () => {
-        if (timer !== undefined) {
-          clearTimeout(timer);
-          timer = undefined;
-        }
-      }
-    }
+    { cancel, flush }
   );
   return debounced;
 }

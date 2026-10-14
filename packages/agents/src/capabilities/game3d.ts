@@ -6,7 +6,7 @@ import {
   gameAssetBinding3D, gameInputFrame3D, gameModelImportSettings3D, gamePreparedCollider3D, gameRenderFrame3D, gameSnapshot3D, gameVector3,
   shortResourceId, type GameAssetBinding3D, type GameDocument3D, type GameInputFrame3D, type GameInspection3D,
 } from "@nodetool-ai/protocol";
-import { createGameSession3D, decodePreparedGameCollider3D, hashGameSnapshot3D } from "@nodetool-ai/game-runtime";
+import { createGameSession3D, createMemoryGameSaveStorage, decodePreparedGameCollider3D, GamePlayerSaves, hashGameSnapshot3D } from "@nodetool-ai/game-runtime";
 import { assetKeyCandidates } from "@nodetool-ai/storage";
 import type { Workspace } from "@nodetool-ai/runtime";
 import type { CapabilityRun } from "./types.js";
@@ -22,11 +22,11 @@ const EXTENSIONS: Readonly<Record<string, string>> = {
 export function gameOutline3D(document: GameDocument3D): Record<string, unknown> {
   return { settings: { dimension: document.dimension, schemaVersion: document.schemaVersion, engineVersion: document.engineVersion,
     entrySceneId: document.entrySceneId, presentation: document.presentation, inputActions: document.inputActions,
-    inputAxes: document.inputAxes, collisionLayers: document.collisionLayers, collisionMatrix: document.collisionMatrix, audio: document.audio },
+    inputAxes: document.inputAxes, collisionLayers: document.collisionLayers, collisionMatrix: document.collisionMatrix, physicsMaterials: document.physicsMaterials, audio: document.audio },
   scenes: document.scenes.map((scene) => ({ id: scene.id, name: scene.name, activeCameraId: scene.activeCameraId, gravity: scene.gravity,
     environment: scene.environment, entities: scene.entities.map((entity) => ({ id: entity.id, name: entity.name, parentId: entity.parentId,
       position: entity.transform3d.position, modelSlot: entity.model?.assetId, primitive: entity.primitive?.kind, body: entity.body3d?.type,
-      collider: entity.collider3d?.kind, collisionLayer: entity.collider3d?.layer, character: entity.character3d !== undefined, camera: entity.camera3d?.behavior.kind,
+      collider: entity.collider3d?.kind, collisionLayer: entity.collider3d?.layer, physicsMaterial: entity.collider3d?.physicsMaterial, character: entity.character3d !== undefined, camera: entity.camera3d?.behavior.kind,
       interactions: entity.interactionActor, behaviorKinds: entity.behaviors.map((behavior) => behavior.kind) })) })),
   prefabs: Object.fromEntries(Object.entries(document.prefabs).map(([id, prefab]) => [id, { rootId: prefab.rootId, entities: prefab.entities.length }])),
   assets: Object.fromEntries(Object.entries(document.assets).map(([slot, binding]) => {
@@ -93,6 +93,8 @@ function sessionOptions3D(run: CapabilityRun, user: string, document: GameDocume
 
 export async function captureFrames3D(run: CapabilityRun, user: string, document: GameDocument3D, ticks: readonly number[], inputs: readonly GameInputFrame3D[], seed: number, options: Record<string, unknown>): Promise<unknown> {
   const { captureGameFrame3D } = await import("@nodetool-ai/game-renderer/node3d");
+  const { GameParticles3D } = await import("@nodetool-ai/game-renderer");
+  const particles = new GameParticles3D(document.tickRate);
   const resolveAsset = ownedAssetResolver3D(run, user, document);
   const snapshotInput = options.snapshot === undefined ? undefined : gameSnapshot3D.safeParse(options.snapshot);
   if (snapshotInput && !snapshotInput.success) { return { error: "Invalid 3D capture snapshot" }; }
@@ -108,7 +110,9 @@ export async function captureFrames3D(run: CapabilityRun, user: string, document
         if (completedTick % 240 === 0) { await new Promise<void>((resolve) => setTimeout(resolve, 0)); }
         run.context.signal?.throwIfAborted();
         if (Date.now() >= deadline) { return { error: "3D capture time limit exceeded", frames }; }
-        completedTick = session.step(inputs[completedTick - initialTick] ?? gameInputFrame3D.parse({ pressed: [] })).tick;
+        const step = session.step(inputs[completedTick - initialTick] ?? gameInputFrame3D.parse({ pressed: [] }));
+        particles.tick(step.frame, session.takePresentationEvents());
+        completedTick = step.tick;
       }
       let frame = session.frame();
       if (options.camera !== undefined) {
@@ -120,7 +124,7 @@ export async function captureFrames3D(run: CapabilityRun, user: string, document
       const captureOptions: Parameters<typeof captureGameFrame3D>[1] = { resolveAsset: async (slot, signal) => {
         const bytes = await resolveAsset(slot, signal);
         return bytes ? { bytes, digest: document.assets[slot]?.digest } : null;
-      }, signal: run.context.signal, stateHash, interpolation: 1,
+      }, signal: run.context.signal, stateHash, interpolation: 1, particles,
       boundsOverlay: Array.isArray(options.overlays) && options.overlays.includes("bounds"), timeoutMs: Math.max(1, deadline - Date.now()) };
       const scale = z.number().positive().max(4).safeParse(options.scale);
       const size: { width?: number; height?: number } = {};
@@ -176,6 +180,8 @@ export async function playtestGame3D(run: CapabilityRun, user: string, document:
   let replayMatches: boolean | undefined;
   let wallTimeLimited = false;
   let cancelled = false;
+  // Script saves stay in memory for the playtest. The restored session steps the same frame, so it sees the same loads.
+  const saves = new GamePlayerSaves(createMemoryGameSaveStorage());
   try {
     for (const input of inputs) {
       if (state.tick % 240 === 0) { await new Promise<void>((resolve) => setTimeout(resolve, 0)); }
@@ -183,8 +189,10 @@ export async function playtestGame3D(run: CapabilityRun, user: string, document:
       if (Date.now() - started > 15_000) { wallTimeLimited = true; break; }
       if (restoreTick === state.tick) { restored = await createGameSession3D(document, seed, session.snapshot(), options); }
       try {
-        const result = session.step(input);
-        restored?.step(input);
+        const frame = saves.withLoaded(input);
+        const result = session.step(frame);
+        restored?.step(frame);
+        if (result.saveRequests) { saves.handle(result.saveRequests, () => session.snapshot()); await saves.idle(); }
         state = session.inspect();
         if (assertions.some((assertion) => assertion.at_tick === result.tick)) { inspections.set(result.tick, state); }
         for (const event of result.events) {

@@ -15,8 +15,7 @@ You help users integrate with NodeTool's HTTP + WebSocket server (default `http:
 | **WebSocket** | `/ws` | Run/cancel/stream jobs, live chat, live editor tools |
 | **MCP** | `/mcp` | Agent tools over streamable HTTP, for Claude Desktop and CLI agents |
 
-The server mode (`desktop` / `private` / `public`) and auth are controlled by
-environment variables (`NODETOOL_SERVER_MODE`, `AUTH_PROVIDER`), not CLI flags.
+Auth is controlled by environment variables, not CLI flags (§ Authentication).
 
 **Pick the right surface.** REST covers workflows, assets and the portable
 bundles. Everything that is a *document* someone edits (a timeline sequence, a
@@ -27,18 +26,18 @@ capability of the same name over `/mcp`.
 
 # Authentication
 
-Authenticated endpoints use a Bearer token:
-```
-Authorization: Bearer <TOKEN>
-```
+The server picks its auth mode from `SUPABASE_URL` and `SUPABASE_KEY` alone. It
+reads neither `AUTH_PROVIDER` nor `NODETOOL_SERVER_MODE`.
 
-The server picks its mode from the Supabase credentials:
-- Supabase mode (`SUPABASE_URL` and `SUPABASE_KEY` both set): send a Supabase
-  JWT. Every non-public endpoint requires it.
-- Local mode (default): loopback requests need no token and run as user
-  `"1"`. Other sources get `401`.
+| Mode | Enabled by | Accepted credentials |
+|------|------------|----------------------|
+| Local | Default, with the Supabase variables unset | Loopback connections run as user `"1"` with no token. `NODETOOL_TRUST_LOCALHOST=false` turns that off. Sources in `NODETOOL_TRUST_LOCAL_NETWORKS` (comma-separated CIDRs) also run as user `"1"` with no token. A bearer equal to `SERVER_AUTH_TOKEN` runs as user `"1"`. A token minted by `nodetool deploy users-add` runs as that API user. Anything else gets `401`. |
+| Supabase | `SUPABASE_URL` and `SUPABASE_KEY` both set | Every non-public request needs a valid Supabase JWT. `SERVER_AUTH_TOKEN`, `NODETOOL_TRUST_LOCAL_NETWORKS` and API-user tokens are ignored. Loopback is trusted only with `NODETOOL_TRUST_LOCALHOST=true`. |
 
-The server does not accept `SERVER_AUTH_TOKEN` as a bearer token.
+In both modes, an access token (`ntk_…`) created in **Settings → MCP → Connect
+an agent remotely** authenticates as the person who created it. Send any token
+as `Authorization: Bearer <token>`. A WebSocket client that cannot set headers
+passes `?api_key=<token>` on the `/ws` URL.
 
 # REST Endpoints
 
@@ -58,18 +57,31 @@ curl http://localhost:7777/api/workflows/<id>/dsl-export      # TypeScript DSL
 curl http://localhost:7777/api/workflows/<id>/export-bundle   # .nodetool bundle (zip)
 ```
 
-> **Running a workflow is done over WebSocket** (`/ws`, see below), not via a REST
-> `/run` endpoint. From a terminal you can also run with the CLI:
-> `nodetool workflows run <id> --params '{"key":"value"}'`.
+Run a saved workflow over REST. This is the route `run_workflow`,
+`debug_workflow` and `nodetool debug` use. The editor runs over WebSocket
+instead (§ WebSocket API).
+
+```bash
+curl -X POST http://localhost:7777/api/workflows/<id>/run \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"params": {"prompt": "a red fox"}}'
+# Same body, returns the full debug report (summary and verdict) instead of the run row
+curl -X POST http://localhost:7777/api/workflows/<id>/debug ...
+```
+
+The body also takes `background: true` to return a job id at once, and
+`interactive: true` to park on escalations as a debug session (below).
 
 ## Documents (tRPC)
 
 The routers under `/trpc`, one per document kind:
 `timeline`, `storyboards`, `sketch`, `scripts`, `applications`, `jsScripts`,
-`workflows`, `projects`, `assets`, `collections`, `jobs`, `models`, `nodes`,
+`documents`, `workflows`, `projects`, `assets`, `collections`, `jobs`, `runs`,
+`appRuns`, `appInstances`, `resources`, `models`, `customProviders`, `nodes`,
 `memories`, `messages`, `threads`, `settings`, `skills`, `storage`, `packs`,
 `costs`, `credits`, `files`, `fonts`, `games`, `integrations`, `triggers`,
-`users`, `worker`, `workspace`.
+`externalMcp`, `agentAccess`, `users`, `worker`, `workspace`.
 
 Each follows the same shape: `list`, `get`, `create`, `update` (compare-and-swap
 on `updated_at`), `delete`, plus sub-routers. Whole-document snapshots are
@@ -104,6 +116,11 @@ curl -X POST http://localhost:7777/api/timelines/import-zip
 curl http://localhost:7777/api/storyboards/:id/export-zip
 curl -X POST http://localhost:7777/api/timelines/:id/isolate-subject
 
+# Native games: the published revision as a zip (target=web or tauri)
+curl -o game.zip 'http://localhost:7777/api/games/:id/export-zip?target=tauri'
+# Compile the desktop executable on this machine; streams cargo output as NDJSON (refused on hosted servers)
+curl -N -X POST http://localhost:7777/api/games/:id/build-executable
+
 # JS scripts
 curl -X POST http://localhost:7777/api/js-scripts/:id/run
 ```
@@ -116,12 +133,15 @@ A build or an interactive debug runs for minutes, so those routes accept
 ## Collections (RAG)
 
 ```bash
-# Index a file into a collection
+# Upload a text file into a collection (multipart, field name "file")
 curl -X POST http://localhost:7777/api/collections/<name>/index \
   -H "Authorization: Bearer TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"file_path": "/path/to/document.pdf"}'
+  -F "file=@notes.md"
 ```
+
+The route indexes text only: plain text, Markdown, HTML, CSV and JSON. It
+returns `415` for PDFs, Office files and images, which need an indexing
+workflow. The collection must have an embedding model.
 
 ## Models
 
@@ -216,26 +236,28 @@ console.log(data.choices[0].message.content);
 # WebSocket API — Running Jobs
 
 **Endpoint**: `ws(s)://<host>/ws`. Messages are an envelope `{ command, data }`.
-(In the editor, MsgPack is used; JSON also works for simple clients.)
+The server replies in MsgPack until the client sends `set_mode` with
+`"text"`. A JSON client sends that first, or `JSON.parse` fails on every reply.
+Identity comes from the connection's credential (§ Authentication), not from
+fields in the request body.
 
 ```typescript
-const socket = new WebSocket("ws://localhost:7777/ws");
+const socket = new WebSocket("ws://localhost:7777/ws?api_key=<token>");
 
-// Start a workflow run
-socket.send(JSON.stringify({
-  command: "run_job",
-  data: {
-    type: "run_job_request",
-    api_url: "http://localhost:7777/api",
-    workflow_id: "<uuid>",
-    job_type: "workflow",
-    auth_token: "<token>",
-    params: { input_name: "value" },
-    job_id: "<uuid>",
-    user_id: "1",
-    execution_strategy: "threaded",
-  },
-}));
+socket.onopen = () => {
+  socket.send(JSON.stringify({ command: "set_mode", data: { mode: "text" } }));
+  // Start a workflow run
+  socket.send(JSON.stringify({
+    command: "run_job",
+    data: {
+      type: "run_job_request",
+      workflow_id: "<id>",
+      job_type: "workflow",
+      params: { input_name: "value" },
+      job_id: "<id>",
+    },
+  }));
+};
 
 socket.onmessage = (event) => {
   const msg = JSON.parse(event.data);
@@ -267,13 +289,15 @@ socket.onmessage = (event) => {
 
 ```typescript
 socket.send(JSON.stringify({ command: "cancel_job",  data: { job_id: "...", workflow_id: "..." } }));
-socket.send(JSON.stringify({ command: "pause_job",   data: { job_id: "...", workflow_id: "..." } }));
-socket.send(JSON.stringify({ command: "resume_job",  data: { job_id: "...", workflow_id: "..." } }));
+socket.send(JSON.stringify({ command: "get_status",  data: { job_id: "..." } }));
+socket.send(JSON.stringify({ command: "reconnect_job", data: { job_id: "...", workflow_id: "..." } }));
 
 // Stream input into a running node, then close the stream
-socket.send(JSON.stringify({ command: "stream_input",     data: { input: "name", value: "data", handle: "..." } }));
-socket.send(JSON.stringify({ command: "end_input_stream", data: { input: "name", handle: "..." } }));
+socket.send(JSON.stringify({ command: "stream_input",     data: { job_id: "...", input: "name", value: "data", handle: "..." } }));
+socket.send(JSON.stringify({ command: "end_input_stream", data: { job_id: "...", input: "name", handle: "..." } }));
 ```
+
+There is no pause or resume. An unknown command returns `Unknown command`.
 
 # Server Message Types
 

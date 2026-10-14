@@ -1,9 +1,13 @@
+import { gameLoadCommand, gameSaveCommand } from "@nodetool-ai/protocol";
+import { z } from "zod";
+
+import { gameScriptLogCommand } from "./script-log.js";
 import { gameScriptCommand } from "./scripts.js";
 import { gameScriptLifecycleDeclaration, gameScriptSchemaDeclaration, gameScriptWorldDeclaration } from "./script-declarations.js";
 
 /** Monaco declarations for the native game function-expression contract. */
 export const GAME_SCRIPT_TYPES = `
-${gameScriptSchemaDeclaration("GameScriptCommand", gameScriptCommand)}
+${gameScriptSchemaDeclaration("GameScriptCommand", z.union([gameScriptCommand, gameScriptLogCommand, gameSaveCommand, gameLoadCommand]))}
 
 type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue };
 type GameScriptParamValue = number | boolean | string | { x: number; y: number; z?: number } | null;
@@ -20,6 +24,8 @@ type GameScriptInput = {
   random: () => number;
   /** Present when the behavior declares params. Entity and asset params are IDs or null. */
   params?: Readonly<Record<string, GameScriptParamValue>>;
+  /** Finished \`load\` commands from earlier ticks. data is null for an empty slot. */
+  loaded?: readonly { scope: "progress" | "settings"; slot: string; data: Record<string, JSONValue> | null }[];
 };
 
 type GameScriptResult = { state: unknown; commands: GameScriptCommand[] };

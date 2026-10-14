@@ -6,7 +6,15 @@ import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetActions } from "./useAssetActions";
-import { DeleteButton, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  DeleteButton,
+  Text,
+  MOTION,
+  SPACING,
+  getSpacingPx,
+  selectableRowStyles,
+  selectedRowStyles
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -23,20 +31,12 @@ const styles = (theme: Theme) =>
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       cursor: "pointer",
       boxSizing: "border-box",
-      backgroundColor: "transparent",
-      borderRadius: BORDER_RADIUS.md,
-      transition: `${MOTION.background}, color ${MOTION.fast}`
-    },
-    "&:hover": {
-      backgroundColor: theme.vars.palette.action.hover
+      ...selectableRowStyles(theme)
     },
     "&:hover p": {
-      color: theme.vars.palette.grey[100]
+      color: theme.vars.palette.text.primary
     },
-    "&.selected": {
-      backgroundColor:
-        "rgba(var(--palette-primary-main-channel) / 0.12)"
-    },
+    "&.selected": selectedRowStyles(theme),
     ".folder-icon": {
       width: "20px",
       height: "20px",
@@ -47,9 +47,6 @@ const styles = (theme: Theme) =>
     },
     ".folder-icon:hover": {
       color: theme.vars.palette.grey[400]
-    },
-    "&.selected .folder-icon": {
-      color: theme.vars.palette.primary.main
     },
     ".parent-icon": {
       position: "absolute",
@@ -74,8 +71,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     "&.selected .name, &.selected .folder-name": {
-      color: theme.vars.palette.primary.main,
-      fontWeight: 600
+      color: theme.vars.palette.text.primary
     },
     "&:hover .delete-button": {
       pointerEvents: "all",
@@ -99,7 +95,7 @@ const styles = (theme: Theme) =>
       width: "20px",
       minWidth: "20px",
       height: "20px",
-      right: ".5em",
+      right: getSpacingPx(SPACING.md),
       top: 1,
       border: "none",
       color: theme.vars.palette.grey[400],

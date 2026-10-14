@@ -3,6 +3,9 @@ export * from "./session.js";
 export * from "./sample.js";
 export * from "./document-ops.js";
 export * from "./script-types.js";
+export * from "./script-log.js";
+export * from "./script-saves.js";
+export * from "./player-saves.js";
 export * from "./autoplay.js";
 export * from "./validate3d.js";
 export * from "./document-ops3d.js";
@@ -11,8 +14,11 @@ export * from "./sample3d.js";
 export * from "./script-types3d.js";
 export * from "./prepared-collider3d.js";
 export * from "./spatial3d/layers.js";
+export * from "./spatial3d/materials.js";
 
 export * from "./authoring-identity.js";
 export * from "./authoring-reconcile.js";
 
 export * from "./systems/pipeline.js";
+
+export type { GameScriptReloadResult } from "./script-reload.js";

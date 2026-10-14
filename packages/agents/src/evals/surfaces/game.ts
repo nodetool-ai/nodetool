@@ -1,8 +1,10 @@
 import * as acorn from "acorn";
 import { z } from "zod";
-import { gameDocument, gameDocument3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
-import { applyGameOps, applyGameOps3D, collisionLayerBits3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
+import { gameDocument, gameDocument3D, gameEntity, gameEntity3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
+import { applyGameOps, applyGameOps3D, collisionLayerBits3D, resolvePhysicsMaterials3D, validateGame3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
 import type { HeadlessSurfaceBridge, ToolLoopEvalCase } from "../tool-loop-eval.js";
+
+const FORCE_SCRIPT_EVAL_SOURCE = "input => ({ state: input.state, commands: input.tick === 0 ? [{ kind: 'addForce', force: { x: 120, y: 0, z: 0 } }, { kind: 'addTorque', torque: { x: 0, y: 60, z: 0 } }, { kind: 'addForceAtPoint', force: { x: 0, y: 0, z: 120 }, point: { x: 20, y: 11, z: 20 } }] : [] })";
 
 const SCRIPT_PARAMS_EVAL_SOURCE = "(input) => ({ state: input.params, commands: [] })";
 
@@ -165,6 +167,30 @@ function readsEventPoints(source: string): boolean {
       : node.type === "MemberExpression" ? [String(constantValue(node.property))]
       : node.type === "Property" ? [propertyName(node) ?? ""] : []);
   return names.includes("payload") && names.includes("points");
+}
+
+/**
+ * onStart loads progress slot main (scope omitted or progress) and writes settings slot audio with {volume: 0.8}
+ * and no snapshot, and onUpdate reads input.loaded.
+ */
+function savesAndLoads(source: string): boolean {
+  const object = lifecycleObject(source);
+  if (!object) { return false; }
+  const commands = scriptNodes(hookFunction(object, "onStart")).flatMap((node) => {
+    const command = objectProperties(node);
+    return command ? [command] : [];
+  });
+  const loads = commands.some((command) => constantValue(command.get("kind")) === "load" && constantValue(command.get("slot")) === "main"
+    && (!command.has("scope") || constantValue(command.get("scope")) === "progress"));
+  const saves = commands.some((command) => {
+    const data = objectProperties(command.get("data"));
+    return constantValue(command.get("kind")) === "save" && constantValue(command.get("slot")) === "audio"
+      && constantValue(command.get("scope")) === "settings" && data?.size === 1 && constantValue(data.get("volume")) === 0.8
+      && (command.get("snapshot") as ScriptNode | undefined)?.value !== true;
+  });
+  const readsLoaded = scriptNodes(hookFunction(object, "onUpdate")).some((node) => node.type === "MemberExpression"
+    && (node.computed !== true ? (node.property as ScriptNode).name : constantValue(node.property)) === "loaded");
+  return loads && saves && readsLoaded;
 }
 
 export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] = [{
@@ -420,6 +446,162 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         const source = (id: string) => behaviors(id).find(behavior => behavior.kind === "script")?.source ?? "";
         return behaviors("player").some(behavior => behavior.kind === "movement") && behaviors("gem").some(behavior => behavior.kind === "collectible")
           && emitsTargetedBonus(source("player")) && readsEventPoints(source("gem"));
+      } }]
+  }
+}, {
+  id: "physics-materials",
+  description: "Author named 3D physics materials with combine rules and point colliders at them instead of inline friction and restitution.",
+  objective: "Create a physics material ice with friction 0.02 whose friction combines by min, and a material rubber with restitution 0.85 whose restitution combines by max. Put the floor on ice and the crate on rubber.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("physics-materials-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_game {physics_materials: {name: {friction, restitution, frictionCombine, restitutionCombine}}} declares the 3D physics materials, where a combine rule is average, min, multiply or max. update_entity sets collider3d.physicsMaterial to a declared name.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "physicsMaterials", detail: "The floor does not resolve to slippery ice, the crate does not resolve to bouncy rubber, or the document fails validation.",
+      test: document => {
+        if (document.schemaVersion !== 3 || !validateGame3D(document).valid) { return false; }
+        const resolved = resolvePhysicsMaterials3D(document);
+        const collider = (id: string) => resolved.scenes[0].entities.find(entity => entity.id === id)?.collider3d;
+        const floor = collider("floor");
+        const crate = collider("crate");
+        return floor?.physicsMaterial === "ice" && floor.friction === 0.02 && floor.frictionCombine === "min" &&
+          crate?.physicsMaterial === "rubber" && crate.restitution === 0.85 && crate.restitutionCombine === "max";
+      } }]
+  }
+}, {
+  id: "hud-widget-tree-3d",
+  description: "Author a 3D HUD with a health bar bound to the player and a button that presses a 3D input action, through set_ui.",
+  objective: "Give the player a health behavior with maximum 5. Then give the 3D game a HUD with a bar with id health anchored to the top-left corner that shows the player's health, and a button with id jumpButton anchored to the bottom centre that presses the jump action.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("hud-3d-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole behaviors array, so keep existing behaviors. A health behavior is {kind: \"health\", maximum}. set_ui {ui: {nodes}} replaces the document HUD tree in 2D and 3D. Nodes are {kind: panel|text|bar|button|stack|grid, id, parent?, anchor?: {x, y} in 0..1, pivot?, offset?: {x, y} pixels, width?, height?}. A bar is {kind: \"bar\", id, width, height, source?: {kind: \"health\", entityId}}. A button is {kind: \"button\", id, action, text?, width, height} and presses its input action.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "hudTree3D", detail: "The 3D HUD lacks a top-left bar showing the player's health, or a bottom-centre button jumpButton that presses jump.",
+      test: document => {
+        if (!("dimension" in document)) { return false; }
+        const nodes = document.ui?.nodes ?? [];
+        const health = nodes.find(node => node.id === "health");
+        const button = nodes.find(node => node.id === "jumpButton");
+        const player = document.scenes[0].entities.find(entity => entity.id === "player");
+        return health?.kind === "bar" && health.source?.kind === "health" && health.source.entityId === "player"
+          && (health.anchor?.x ?? 0) === 0 && (health.anchor?.y ?? 0) === 0
+          && button?.kind === "button" && button.action === "jump" && button.anchor?.x === 0.5 && button.anchor.y === 1
+          && player?.behaviors.some(behavior => behavior.kind === "health" && behavior.maximum === 5) === true
+          && player.behaviors.some(behavior => behavior.kind === "script");
+      } }]
+  }
+}, {
+  id: "player-saves-script",
+  description: "Author a lifecycle script that loads a progress save, writes a separate settings save and reads the load result through public edit ops.",
+  objective: "Add a script behavior to the player written as a lifecycle object. Its onStart hook loads the progress save slot main and writes the settings save slot audio with the data {volume: 0.8}. Its onUpdate hook keeps the data of a finished load from input.loaded in its state. Keep the player's other behaviors.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("saves-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole behaviors array. A script behavior is {kind: \"script\", source}. The source may be an object of hooks such as onStart and onUpdate, each returning {state?, commands?}. The save command is {kind: \"save\", slot, data, scope?: progress|settings, snapshot?} and the load command is {kind: \"load\", slot, scope?}; scope defaults to progress. A load result arrives on a later tick as input.loaded, a list of {scope, slot, data}.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "playerSaves", detail: "The player has no lifecycle script that loads progress slot main, saves settings slot audio with volume 0.8 and reads input.loaded, or lost a behavior.",
+      test: document => {
+        const behaviors = document.scenes[0].entities.find(entity => entity.id === "player")?.behaviors ?? [];
+        const source = behaviors.find(behavior => behavior.kind === "script")?.source ?? "";
+        return behaviors.some(behavior => behavior.kind === "movement") && behaviors.some(behavior => behavior.kind === "winWhenCollected")
+          && savesAndLoads(source);
+      } }]
+  }
+}, {
+  id: "particle-rendering-3d",
+  description: "Author 3D particle draw styles: an additive stretched-billboard emitter with soft depth fade and a velocity-aligned mesh emitter.",
+  objective: "Give the crate a particles component with two emitters. sparks blends additively, draws as stretched billboards 2 times their size long, and fades out over 0.5 units near geometry. debris draws small boxes that point along their velocity.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("particle-render-3d-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole particles component as { emitters: [...] }. A 3D emitter takes blend (normal or additive), softness (world units) and render: { kind: \"billboard\" }, { kind: \"stretched\", length, speedScale } or { kind: \"mesh\", shape: box | sphere | tetrahedron | octahedron, align: world | velocity }.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "crateParticles3D", detail: "The crate lacks an additive stretched sparks emitter 2 sizes long with softness 0.5, or a velocity-aligned box debris emitter, or the document fails validation.",
+      test: document => {
+        if (document.schemaVersion !== 3 || !validateGame3D(document).valid) { return false; }
+        const emitters = document.scenes[0].entities.find(entity => entity.id === "crate")?.particles?.emitters ?? [];
+        const sparks = emitters.find(emitter => emitter.id === "sparks");
+        const debris = emitters.find(emitter => emitter.id === "debris");
+        return sparks?.blend === "additive" && sparks.render?.kind === "stretched" && sparks.render.length === 2 && sparks.softness === 0.5 &&
+          debris?.render?.kind === "mesh" && debris.render.shape === "box" && debris.render.align === "velocity";
+      } }]
+  }
+}, ...([false, true] as const).map((is3D): ToolLoopEvalCase<AnyGameDocument> => ({
+  id: is3D ? "streaming-music-3d" : "streaming-music",
+  description: "Author streamed scene music with loop points and a scene crossfade through public edit ops.",
+  objective: "Play the music.theme audio slot as streamed music in the entry scene. Loop from 12 to 90 seconds, at volume 0.6, with a 30-tick fade in and a 45-tick fade out.",
+  createBridge: () => {
+    if (is3D) {
+      const document = createNative3DGame("streaming-music-3d-eval");
+      document.assets["music.theme"] = { assetId: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", digest: "music-theme-fixture", mediaKind: "audio", required: false };
+      return createGameToolBridge3D(document);
+    }
+    const document = { ...createTopDownRoomGame("streaming-music-eval"), schemaVersion: 2 as const };
+    document.assets["music.theme"] = { assetId: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", digest: "music-theme-fixture", mediaKind: "audio", width: 1, height: 1, pivot: { x: 0.5, y: 0.5 }, sampling: "nearest" };
+    return createGameToolBridge(document);
+  },
+  systemPrompt: "Use get_native_game and edit_native_game. update_scene set music replaces scene music with {assetId, volume, fadeInTicks, fadeOutTicks, streaming?: {loopStartSeconds, loopEndSeconds?}}. Streaming routes long tracks through the music bus without decoding the whole asset. Loop end must exceed loop start. Omit streaming to retain decoded playback.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "streamingMusic", detail: "The entry scene lacks streamed music with the requested loop, volume and fades.",
+      test: document => {
+        const music = document.scenes.find(scene => scene.id === document.entrySceneId)?.music;
+        return music?.assetId === "music.theme" && music.volume === 0.6 && music.fadeInTicks === 30 && music.fadeOutTicks === 45
+          && music.streaming?.loopStartSeconds === 12 && music.streaming.loopEndSeconds === 90;
+      } }]
+  }
+})), ...([false, true] as const).map((is3D): ToolLoopEvalCase<AnyGameDocument> => {
+  const source = is3D
+    ? "(input) => ({ state: (input.state ?? 0) + 1, commands: [{ kind: 'setVelocity', velocity: { x: 4, y: 0, z: 0 } }] })"
+    : "(input) => ({ state: (input.state ?? 0) + 1, commands: [{ kind: 'setVelocity', x: 4, y: 0 }] })";
+  return {
+    id: is3D ? "script-hot-reload-3d" : "script-hot-reload",
+    description: "Edit an existing script source through public ops for hot reload during play.",
+    objective: `Replace mover's existing script source with exactly this function, preserving the behavior's limits: ${source}`,
+    createBridge: () => {
+      const initialSource = source.replace("x: 4", "x: 1");
+      const behavior = { kind: "script" as const, source: initialSource, maxCommands: 4, maxTickMs: 20 };
+      if (is3D) {
+        const document = createNative3DGame("script-hot-reload-3d-eval");
+        document.scenes[0].entities.push(gameEntity3D.parse({ id: "mover", name: "Mover", templateOnly: false,
+          transform3d: { position: { x: 4, y: 1, z: 0 }, rotation: [0, 0, 0, 1], scale: { x: 1, y: 1, z: 1 } },
+          behaviors: [behavior], body3d: { type: "dynamic", gravityScale: 0 },
+          collider3d: { kind: "box", halfExtents: { x: 0.25, y: 0.25, z: 0.25 }, friction: 0 } }));
+        return createGameToolBridge3D(document);
+      }
+      const document = { ...createTopDownRoomGame("script-hot-reload-eval"), schemaVersion: 2 as const };
+      document.scenes[0].entities.push(gameEntity.parse({ id: "mover", name: "Mover",
+        transform2d: { x: -5, y: 2, rotation: 0, scaleX: 1, scaleY: 1 }, behaviors: [behavior],
+        body2d: { type: "kinematic", velocity: { x: 0, y: 0 }, gravityScale: 0 } }));
+      return createGameToolBridge(document);
+    },
+    systemPrompt: "Use get_native_game and edit_native_game. set_script {entity_id, index, source} replaces only a script's source and preserves its limits. An active editor play session applies valid source edits at its current tick, retaining script state. A compile error retains the previous source and appears in the Console. Other draft changes need Restart from tick 0.",
+    expect: {
+      requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+      finalState: [{ name: "updatedScriptSource", detail: "Mover's source or existing script limits do not match the requested edit.",
+        test: document => {
+          const behavior = document.scenes[0].entities.find(entity => entity.id === "mover")?.behaviors[0];
+          return behavior?.kind === "script" && behavior.source === source && behavior.maxCommands === 4 && behavior.maxTickMs === 20;
+        } }]
+    }
+  };
+}), {
+  id: "forces-and-torques-3d",
+  description: "Author all three world-space force commands on a dynamic 3D body through public script edits.",
+  objective: `Add a script behavior to the crate with exactly this source, preserving its other behaviors: ${FORCE_SCRIPT_EVAL_SOURCE}`,
+  createBridge: () => {
+    const document = applyGameOps3D(createNative3DGame("forces-eval"), [{ op: "update_entity", entity_id: "crate", set: {
+      transform3d: { position: { x: 20, y: 10, z: 20 } }, body3d: { gravityScale: 0 }
+    } }]);
+    return createGameToolBridge3D(document);
+  },
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity {entity_id, set: {behaviors}} replaces the behaviors array. A script behavior is {kind: script, source}. addForce {force}, addTorque {torque} and addForceAtPoint {force, point} are 3D script commands. All vectors use world space and act on the issuing entity's active dynamic body for one tick. Return them each tick to maintain a load.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "crateForceScript", detail: "The crate does not have the requested one-tick force and torque script.",
+      test: state => {
+        const parsed = gameDocument3D.safeParse(state);
+        if (!parsed.success) { return false; }
+        const crate = parsed.data.scenes[0].entities.find(entity => entity.id === "crate");
+        return crate?.body3d?.type === "dynamic" && crate.behaviors.length === 1 &&
+          crate.behaviors[0].kind === "script" && crate.behaviors[0].source === FORCE_SCRIPT_EVAL_SOURCE;
       } }]
   }
 }];

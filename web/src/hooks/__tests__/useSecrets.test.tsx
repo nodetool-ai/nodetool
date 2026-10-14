@@ -162,7 +162,7 @@ describe("useSecrets", () => {
       expect(result.current.isApiKeySet("anthropic_api_key")).toBe(true);
     });
 
-    it("returns true even when API key is not configured", async () => {
+    it("returns false when the API key is listed but not configured", async () => {
       const mockFetchSecrets = jest.fn().mockResolvedValue(mockSecrets);
       (useSecretsStore.getState as jest.Mock).mockReturnValue({
         fetchSecrets: mockFetchSecrets
@@ -176,8 +176,7 @@ describe("useSecrets", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // isApiKeySet checks if key exists, not if it's configured
-      expect(result.current.isApiKeySet("huggingface_token")).toBe(true);
+      expect(result.current.isApiKeySet("huggingface_token")).toBe(false);
     });
 
     it("returns false when API key does not exist", async () => {

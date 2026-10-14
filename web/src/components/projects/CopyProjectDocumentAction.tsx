@@ -45,6 +45,7 @@ const CopyProjectDocumentAction = ({
     onSuccess: () => {
       setOpen(false);
       void utils.projects.get.invalidate();
+      void utils.projects.documentPage.invalidate();
       void utils.projects.summaries.invalidate();
     },
     onError: (error) => {
@@ -85,8 +86,8 @@ const CopyProjectDocumentAction = ({
         title={`Copy ${document.name}`}
         onConfirm={confirmCopy}
         confirmText="Copy"
-        cancelText="Cancel"
         confirmDisabled={!destinationProjectId}
+        cancelDisabled={copy.isPending}
         isLoading={copy.isPending}
       >
         <FlexColumn gap={SPACING.lg}>

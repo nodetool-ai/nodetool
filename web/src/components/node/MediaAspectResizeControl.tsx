@@ -8,6 +8,7 @@ import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import type { Node } from "@xyflow/react";
 import { Box, MOTION, Z_INDEX } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
+import { useUndoGroup } from "../../hooks/useUndoGroup";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import type { NodeData } from "../../stores/NodeData";
 import {
@@ -155,6 +156,7 @@ const MediaAspectResizeControl = memo(function MediaAspectResizeControl({
   const cssStyles = useMemo(() => styles(theme, corner), [theme, corner]);
   const reactFlow = useReactFlow();
   const updateNode = useNodes((state: NodeStoreState) => state.updateNode);
+  const { begin: beginResizeUndo, end: endResizeUndo } = useUndoGroup();
 
   const dragRef = useRef<DragState | null>(null);
   const pendingRef = useRef<Partial<Node<NodeData>> | null>(null);
@@ -239,6 +241,7 @@ const MediaAspectResizeControl = memo(function MediaAspectResizeControl({
       event.preventDefault();
 
       dragRef.current = measureDragStart(nodeEl, event.clientX, event.clientY);
+      beginResizeUndo();
       // Moving-corner resizes shift the node origin every frame. React Flow only
       // adds `.dragging` when *it* drags the node, so the `:not(.dragging)`
       // transform transition stays live here and the node lags ~180ms behind,
@@ -248,7 +251,7 @@ const MediaAspectResizeControl = memo(function MediaAspectResizeControl({
       containerRef.current?.classList.add("node-resizing");
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    [measureDragStart]
+    [measureDragStart, beginResizeUndo]
   );
 
   const handlePointerMove = useCallback(
@@ -294,13 +297,14 @@ const MediaAspectResizeControl = memo(function MediaAspectResizeControl({
         updateNode(nodeId, pendingRef.current);
         pendingRef.current = null;
       }
+      endResizeUndo();
       try {
         event.currentTarget.releasePointerCapture(event.pointerId);
       } catch {
         // Pointer was never captured (e.g. cancelled before move) — nothing to release.
       }
     },
-    [nodeId, updateNode]
+    [nodeId, updateNode, endResizeUndo]
   );
 
   // Double-click fits the node to its media: keep the current width and derive

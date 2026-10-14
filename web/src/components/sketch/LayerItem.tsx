@@ -22,7 +22,6 @@ import type { Layer } from "./types";
 import { summarizeLayerImageReference } from "./types";
 import { getLayerDataImageUrl } from "./serialization";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
-import { SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 import {
   FlexColumn,
   FlexRow,
@@ -325,8 +324,6 @@ const LayerItem: React.FC<LayerItemProps> = ({
           <Tooltip
             title={isIsolated ? "Show all layers" : "Solo this layer"}
             placement="top"
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <IconButton
               size="small"
@@ -375,8 +372,6 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 <Tooltip
                   title={summarizeLayerImageReference(layer.imageReference)}
                   placement="left"
-                  enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-                  enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
                 >
                   <LinkIcon
                     sx={{
@@ -392,8 +387,6 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 <Tooltip
                   title="Lock transparency"
                   placement="top"
-                  enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-                  enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
                 >
                   <LockIcon
                     sx={{
@@ -457,8 +450,6 @@ const LayerItem: React.FC<LayerItemProps> = ({
               title={layer.exposedAsInput === false ? "Input hidden" : ""}
               placement="left"
               disableHoverListener={layer.exposedAsInput !== false}
-              enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-              enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
             >
               <Box
                 sx={{
@@ -477,8 +468,6 @@ const LayerItem: React.FC<LayerItemProps> = ({
               title={layer.exposedAsOutput === false ? "Output hidden" : ""}
               placement="left"
               disableHoverListener={layer.exposedAsOutput !== false}
-              enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-              enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
             >
               <Box
                 sx={{

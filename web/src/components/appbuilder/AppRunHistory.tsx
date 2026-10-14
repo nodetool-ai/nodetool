@@ -19,7 +19,8 @@ import {
   ScrollArea,
   SPACING,
   Text,
-  VideoPlayer
+  VideoPlayer,
+  EmptyState
 } from "../ui_primitives";
 import { AskRunAgentButton } from "../runs/AskRunAgentButton";
 import ReportBugButton from "../support/ReportBugButton";
@@ -163,7 +164,7 @@ export default function AppRunHistory({
         </FlexColumn>
       </ScrollArea>
       {!history.isLoading && !records.length ? (
-        <Caption>No runs recorded for this instance.</Caption>
+        <EmptyState size="small" title="No runs recorded for this instance" />
       ) : null}
       <FlexRow gap={SPACING.sm}>
         {pageIndex > 0 ? (

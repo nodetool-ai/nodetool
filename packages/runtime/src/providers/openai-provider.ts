@@ -38,7 +38,8 @@ import {
   responseToolChoice,
   responseTools,
   responseUsage,
-  streamResponsesEvents
+  streamResponsesEvents,
+  type ResponsesInputOptions
 } from "./responses-api.js";
 import {
   PROVIDER_IDS,
@@ -223,6 +224,10 @@ const RESPONSE_WEB_SEARCH_TOOL = {
 
 const RESPONSE_IMAGE_GENERATION_TOOL = {
   type: "image_generation"
+} satisfies Record<string, unknown>;
+
+const RESPONSE_TOOL_SEARCH_TOOL = {
+  type: "tool_search"
 } satisfies Record<string, unknown>;
 
 const RESPONSE_HOSTED_TOOL_CHOICES: Readonly<Record<string, string>> = {
@@ -1361,24 +1366,60 @@ export class OpenAIProvider extends BaseProvider {
   // Responses API path (used for OpenAI models matched by isOpenAIResponsesModel)
   // ---------------------------------------------------------------------------
 
+  /**
+   * Media parts beyond text and images that this endpoint's Responses input
+   * accepts. OpenAI's accepts neither video nor audio.
+   */
+  protected responsesInputOptions(): ResponsesInputOptions {
+    return {};
+  }
+
+  /**
+   * Whether this endpoint's Responses API hosts `tool_search`: a function
+   * marked `deferLoading` is sent with `defer_loading: true`, so its schema
+   * stays out of the prompt until the server's search loads it. Off for
+   * OpenAI, which sends every schema up front.
+   */
+  protected get supportsNativeToolSearch(): boolean {
+    return false;
+  }
+
   /** Responses uses native equivalents by default, caller dispatch when restricted. */
   private formatResponsesTools(
     tools: ProviderTool[],
     providedToolsOnly = false
   ): Array<Record<string, unknown>> {
     const formatted: Array<Record<string, unknown>> = [];
+    const deferLoading = !providedToolsOnly && this.supportsNativeToolSearch;
+    let deferred = false;
     for (const tool of tools) {
-      if (!providedToolsOnly && tool.name === WEB_SEARCH_TOOL_NAME) {
+      if (
+        !providedToolsOnly &&
+        this.supportsNativeWebSearch &&
+        tool.name === WEB_SEARCH_TOOL_NAME
+      ) {
         formatted.push(RESPONSE_WEB_SEARCH_TOOL);
         continue;
       }
-      if (!providedToolsOnly && tool.name === IMAGE_GENERATION_TOOL_NAME) {
+      if (
+        !providedToolsOnly &&
+        this.supportsNativeImageGeneration &&
+        tool.name === IMAGE_GENERATION_TOOL_NAME
+      ) {
         formatted.push(RESPONSE_IMAGE_GENERATION_TOOL);
         continue;
       }
       const [functionTool] = responseTools([tool]);
-      if (functionTool) formatted.push(functionTool);
+      if (!functionTool) continue;
+      if (deferLoading && tool.deferLoading) {
+        functionTool.defer_loading = true;
+        deferred = true;
+      }
+      formatted.push(functionTool);
     }
+    // The server rejects a deferred function without a `tool_search` tool to
+    // load it, and a `tool_search` tool with nothing deferred.
+    if (deferred) formatted.push(RESPONSE_TOOL_SEARCH_TOOL);
     return formatted;
   }
 
@@ -1386,8 +1427,10 @@ export class OpenAIProvider extends BaseProvider {
     args: Parameters<BaseProvider["generateMessage"]>[0]
   ): Promise<Message> {
     const request = await this.buildResponsesRequest(args, {
-      input: await messagesToResponsesInput(args.messages, (uri) =>
-        this.resolveUri(uri)
+      input: await messagesToResponsesInput(
+        args.messages,
+        (uri) => this.resolveUri(uri),
+        this.responsesInputOptions()
       ),
       stream: false,
       store: false
@@ -1428,8 +1471,10 @@ export class OpenAIProvider extends BaseProvider {
   private async *generateMessagesResponses(
     args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
-    const input = await messagesToResponsesInput(args.messages, (uri) =>
-      this.resolveUri(uri)
+    const input = await messagesToResponsesInput(
+      args.messages,
+      (uri) => this.resolveUri(uri),
+      this.responsesInputOptions()
     );
     const request = await this.buildResponsesRequest(args, {
       input,
@@ -1664,7 +1709,8 @@ export class OpenAIProvider extends BaseProvider {
     ): Promise<Array<Record<string, unknown>>> =>
       messagesToResponsesInput(
         config.resolveMedia ? await config.resolveMedia(messages) : messages,
-        (uri) => this.resolveUri(uri)
+        (uri) => this.resolveUri(uri),
+        this.responsesInputOptions()
       );
     let input = await toInput(config.firstMessages);
     let state = config.firstTurnState;

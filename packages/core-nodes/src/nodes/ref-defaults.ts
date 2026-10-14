@@ -14,6 +14,8 @@ export const INPUT_DESCRIPTION_PROP: PropOptions = {
   description: "The description of the input for the workflow."
 };
 
+export const imageSizeDefault = { width: 1024, height: 1024 };
+
 export const imageRefDefault = {
   type: "image",
   uri: "",

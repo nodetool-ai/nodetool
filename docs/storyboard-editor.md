@@ -96,7 +96,7 @@ Select a card to open the shot inspector under the grid. It repeats **Edit**, **
 | Dialogue | "What is said in shot". Edit it in place, or jump to the linked script |
 | In this shot | The entities that appear. Pick a character, location, style, or prop to keep it consistent. See [Entities](entities.md) |
 | Size, Focal length, Perspective, Movement, Equipment | Camera setup, chosen from lists |
-| ERT | Estimated running time in seconds. With a linked script, the chip reads **from takes** or **pinned**. Click it to switch between the two |
+| Duration (seconds) | The length of the clip. With a linked script, the chip reads **From voice takes** or **Set by hand**. Click it to switch between the two. The shot card shows the duration next to the shot number |
 | Shot title | Optional, placeholder "Untitled shot" |
 | Render mode | **Keyframe** (still first, then animate it), **Direct** (clip straight from the prompt), or **Reference** |
 | Notes | Text the render should not read as direction |
@@ -109,6 +109,8 @@ Title, render mode, notes, and graphics sit under **Advanced**. **Prompts** show
 ## Render stills and clips
 
 Render one shot or the whole board.
+
+![A storyboard with a rendered still or clip on every shot](assets/screenshots/storyboard-shots.png)
 
 | Action | Where | What happens |
 |---|---|---|
@@ -128,7 +130,7 @@ The queue overlay lists running renders with progress. You can expand or collaps
 
 ## Takes
 
-Every render adds a take. Nothing replaces your current still or clip until you choose.
+Every render adds a take. A new still becomes the current still, and the earlier stills stay as takes. A new clip does not replace your current clip until you choose.
 
 1. Open the shot editor. The takes list has a **View takes** button that expands the stills and clips.
 2. Pick a **Preview** chip to play a clip take without changing the current one.
@@ -141,7 +143,7 @@ The current still is what **Regenerate** edits and what the timeline uses. If yo
 
 ## Change a still
 
-In the shot editor, the **Change still** tab beside **Takes** edits the current still. Each result is saved as a new take.
+In the shot editor, the **Change still** tab beside **Takes** edits the current still. Each result is saved as a new take and becomes the current still.
 
 | Tab | What it does |
 |---|---|

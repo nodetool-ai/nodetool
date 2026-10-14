@@ -23,13 +23,12 @@ export const useSecrets = (): UseSecretsResult => {
   });
 
   /**
-   * Returns true if the user has this key in their secrets list (regardless of
-   * whether it has been configured with a value). Use the `is_configured` field
-   * on the returned secret object if you need to check for an actual value.
+   * Returns true if the key has a value: stored for the user, or set in the
+   * server's environment. The list also holds unconfigured catalog rows.
    */
   const isApiKeySet = useCallback(
     (key: string) => {
-      return secrets.some((s) => s.key === key);
+      return secrets.some((s) => s.key === key && s.is_configured);
     },
     [secrets]
   );

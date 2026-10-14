@@ -110,7 +110,7 @@ const ModelSetupCallout: React.FC<ModelSetupCalloutProps> = ({ onDismiss }) => {
           variant="contained"
           color="primary"
           size="small"
-          startIcon={<KeyRoundedIcon sx={{ fontSize: 14 }} />}
+          startIcon={<KeyRoundedIcon />}
           onClick={handleAddKeys}
           sx={{ alignSelf: "flex-start" }}
         >

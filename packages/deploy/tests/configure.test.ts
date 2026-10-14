@@ -3,7 +3,6 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import {
-  detectHfCacheDefault,
   configureDocker,
   type DockerConfigParams
 } from "../src/configure.js";
@@ -21,44 +20,6 @@ describe("configure", () => {
 
   afterEach(() => {
     process.env = originalEnv;
-  });
-
-  // =========================================================================
-  // detectHfCacheDefault
-  // =========================================================================
-
-  describe("detectHfCacheDefault", () => {
-    it("should return HF_HUB_CACHE when set", () => {
-      process.env["HF_HUB_CACHE"] = "/custom/hf-cache";
-      expect(detectHfCacheDefault()).toBe("/custom/hf-cache");
-    });
-
-    it("should return HF_HOME/hub when HF_HOME is set", () => {
-      process.env["HF_HOME"] = "/custom/hf";
-      expect(detectHfCacheDefault()).toBe(join("/custom/hf", "hub"));
-    });
-
-    it("should prioritize HF_HUB_CACHE over HF_HOME", () => {
-      process.env["HF_HUB_CACHE"] = "/cache";
-      process.env["HF_HOME"] = "/home";
-      expect(detectHfCacheDefault()).toBe("/cache");
-    });
-
-    it("should honour the legacy HUGGINGFACE_HUB_CACHE and XDG_CACHE_HOME", () => {
-      delete process.env["HF_HUB_CACHE"];
-      delete process.env["HF_HOME"];
-      process.env["HUGGINGFACE_HUB_CACHE"] = "/legacy";
-      expect(detectHfCacheDefault()).toBe("/legacy");
-      delete process.env["HUGGINGFACE_HUB_CACHE"];
-      process.env["XDG_CACHE_HOME"] = "/xdg";
-      expect(detectHfCacheDefault()).toBe(join("/xdg", "huggingface", "hub"));
-    });
-
-    it("should fallback to ~/.cache/huggingface/hub", () => {
-      expect(detectHfCacheDefault()).toBe(
-        join(homedir(), ".cache", "huggingface", "hub")
-      );
-    });
   });
 
   // =========================================================================

@@ -36,6 +36,7 @@ import {
   shotRenderMode,
   requiredVideoTasksForShots
 } from "@nodetool-ai/protocol";
+import { effectiveShotDuration } from "@nodetool-ai/timeline";
 import type {
   SceneClipDirection,
   Shot,
@@ -62,6 +63,7 @@ import {
 import RenderCostSummary from "./RenderCostSummary";
 
 import {
+  AlertBanner,
   Box,
   Card,
   Caption,
@@ -79,6 +81,7 @@ import {
   LoadingSpinner,
   Panel,
   ScrollArea,
+  SearchInput,
   SectionHeader,
   SelectField,
   Skeleton,
@@ -122,6 +125,7 @@ import {
   useRenderBatchCostEstimate,
   type RenderBatchCostEstimate
 } from "../../hooks/storyboard/useRenderBatchCostEstimate";
+import { useBoardScriptLines } from "../../hooks/storyboard/useShotDuration";
 import { sceneOrder, type SceneGroup } from "../../lib/storyboard/sceneOrder";
 import BoardGenreChip from "./BoardGenreChip";
 import BoardLineageChip from "./BoardLineageChip";
@@ -147,6 +151,8 @@ import ShotEditPanel from "./ShotEditPanel";
 import OneTakePanel from "./OneTakePanel";
 const SceneClipDialog = React.lazy(() => import("./SceneClipDialog"));
 import ShotInsertPoint, { SHOT_INSERT_POINT_CLASS } from "./ShotInsertPoint";
+import { searchSceneGroups } from "./shotSearch";
+import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import ShotInspector from "./ShotInspector";
 import StoryboardEntitiesField from "./StoryboardEntitiesField";
 import { sceneDropTarget } from "./sceneDrop";
@@ -507,6 +513,35 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const scenes = screenplay?.scenes;
   const sceneGroups = useMemo(() => sceneOrder(shots, scenes), [shots, scenes]);
   const captions = useMemo(() => captionsByShotId(sceneGroups), [sceneGroups]);
+  // Each card shows the length its clip renders at: the takes of a linked
+  // script when they time the shot, the shot's own seconds otherwise.
+  const scriptLines = useBoardScriptLines(boardId);
+  const durations = useMemo(() => {
+    const seconds = new Map<string, number>();
+    for (const shot of shots) {
+      const duration = effectiveShotDuration(shot, scriptLines).seconds;
+      if (duration != null && duration > 0) {
+        seconds.set(shot.id, duration);
+      }
+    }
+    return seconds;
+  }, [shots, scriptLines]);
+  // Quick search narrows the cards shown. Reordering and inserting act on the
+  // full board, so both are off while a query hides shots.
+  const [shotQuery, setShotQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const searching = shotQuery.trim() !== "";
+  const visibleGroups = useMemo(
+    () => searchSceneGroups(sceneGroups, shotQuery, captions),
+    [sceneGroups, shotQuery, captions]
+  );
+  const visibleShotIds = useMemo(
+    () => visibleGroups.flatMap((group) => group.shots.map((shot) => shot.id)),
+    [visibleGroups]
+  );
+  useGlobalCombo("/", () => searchRef.current?.focus(), {
+    target: () => searchRef.current
+  });
   const sceneClips =
     useStoryboardStore((state) => state.boards[boardId]?.sceneClips) ??
     NO_SCENE_CLIPS;
@@ -624,11 +659,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       if (!isShotNavigationKey(event.key)) {
         return;
       }
-      const next = navigateShots(
-        shots.map((s) => s.id),
-        activeShotId,
-        event.key
-      );
+      const next = navigateShots(visibleShotIds, activeShotId, event.key);
       if (!next) {
         return;
       }
@@ -640,8 +671,22 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
         ?.querySelector<HTMLElement>(`[data-shot-id="${next}"]`)
         ?.focus();
     },
-    [shots, activeShotId, selectShot, boardId]
+    [visibleShotIds, activeShotId, selectShot, boardId]
   );
+
+  // Enter in the search field opens the first match: it is selected and
+  // focused, so the arrow keys continue from there.
+  const handleSearchSubmit = useCallback(() => {
+    const first = visibleShotIds[0];
+    if (!first || !searching) {
+      return;
+    }
+    selectShot(boardId, first);
+    // Focus also scrolls the card into view.
+    gridRef.current
+      ?.querySelector<HTMLElement>(`[data-shot-id="${first}"]`)
+      ?.focus();
+  }, [visibleShotIds, searching, selectShot, boardId]);
 
   // Drag one card onto another: the dragged shot takes the target's slot.
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -1092,7 +1137,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   );
   const downloadingStatus = downloading && (
     <FlexRow align="center" gap={SPACING.xs} role="status">
-      <LoadingSpinner size={16} />
+      <LoadingSpinner inline size={16} />
       <Caption color="secondary">Preparing ZIP…</Caption>
     </FlexRow>
   );
@@ -1170,7 +1215,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     {undoRedo}
                     <EditorButton
                       variant="outlined"
-                      startIcon={<AddIcon fontSize="small" />}
+                      startIcon={<AddIcon />}
                       onClick={handleAddShot}
                       disabled={directing}
                     >
@@ -1185,7 +1230,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     </EditorButton>
                     <EditorButton
                       variant={settingsVisible ? "contained" : "outlined"}
-                      startIcon={<TuneIcon fontSize="small" />}
+                      startIcon={<TuneIcon />}
                       onClick={toggleSettings}
                       aria-expanded={settingsVisible}
                       aria-controls={settingsPanelId}
@@ -1194,7 +1239,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     </EditorButton>
                     <EditorButton
                       variant={oneTakeOpen ? "contained" : "outlined"}
-                      startIcon={<MovieOutlinedIcon fontSize="small" />}
+                      startIcon={<MovieOutlinedIcon />}
                       onClick={toggleOneTake}
                       aria-expanded={oneTakeOpen}
                       aria-controls={oneTakePanelId}
@@ -1204,7 +1249,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     {onToggleAssistant && (
                       <EditorButton
                         variant={assistantOpen ? "contained" : "outlined"}
-                        startIcon={<AutoAwesomeIcon fontSize="small" />}
+                        startIcon={<AutoAwesomeIcon />}
                         onClick={onToggleAssistant}
                         aria-pressed={assistantOpen}
                       >
@@ -1317,29 +1362,26 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                   />
                   <FormGrid stackBelow={FORM_STACK_BELOW}>
                     <FormSection label="Screenplay">
-                      <FormField label="Title">
-                        <TextInput
-                          value={title}
-                          placeholder="Untitled film"
-                          onChange={(e) => setTitle(boardId, e.target.value)}
-                        />
-                      </FormField>
-                      <FormField label="Brief">
-                        <TextInput
-                          value={brief}
-                          placeholder="Your film in one or two sentences"
-                          onChange={(e) => setBrief(boardId, e.target.value)}
-                          multiline
-                          rows={3}
-                        />
-                      </FormField>
-                      <FormField label="Style">
-                        <TextInput
-                          value={style}
-                          placeholder="Palette, light, lens, texture"
-                          onChange={(e) => setStyle(boardId, e.target.value)}
-                        />
-                      </FormField>
+                      <TextInput
+                        label="Title"
+                        value={title}
+                        placeholder="Untitled film"
+                        onChange={(e) => setTitle(boardId, e.target.value)}
+                      />
+                      <TextInput
+                        label="Brief"
+                        value={brief}
+                        placeholder="Your film in one or two sentences"
+                        onChange={(e) => setBrief(boardId, e.target.value)}
+                        multiline
+                        minRows={3}
+                      />
+                      <TextInput
+                        label="Style"
+                        value={style}
+                        placeholder="Palette, light, lens, texture"
+                        onChange={(e) => setStyle(boardId, e.target.value)}
+                      />
                       <FormField label="Entities">
                         <StoryboardEntitiesField
                           boardId={boardId}
@@ -1362,22 +1404,18 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                           />
                         </FormField>
                       )}
-                      <FormField label="Aspect ratio">
-                        <SelectField
-                          label="Aspect ratio"
-                          value={aspectRatio}
-                          onChange={(value) => setAspectRatio(boardId, value)}
-                          options={ASPECT_OPTIONS}
-                        />
-                      </FormField>
-                      <FormField label="Shots">
-                        <SelectField
-                          label="Shots"
-                          value={shotCount}
-                          onChange={(value) => setShotCount(Number(value))}
-                          options={SHOT_COUNT_OPTIONS}
-                        />
-                      </FormField>
+                      <SelectField
+                        label="Aspect ratio"
+                        value={aspectRatio}
+                        onChange={(value) => setAspectRatio(boardId, value)}
+                        options={ASPECT_OPTIONS}
+                      />
+                      <SelectField
+                        label="Shots"
+                        value={shotCount}
+                        onChange={(value) => setShotCount(Number(value))}
+                        options={SHOT_COUNT_OPTIONS}
+                      />
                     </FormSection>
                   </FormGrid>
 
@@ -1557,30 +1595,18 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             open={downloadFallbackError !== null}
             onClose={() => setDownloadFallbackError(null)}
             title="Latest changes could not be saved"
-            actions={
-              <FlexRow gap={SPACING.sm} align="center">
-                <EditorButton onClick={() => setDownloadFallbackError(null)}>
-                  Cancel
-                </EditorButton>
-                <EditorButton
-                  variant="contained"
-                  color="primary"
-                  onClick={() => {
-                    setDownloadFallbackError(null);
-                    void downloadZip(false);
-                  }}
-                >
-                  Download last saved version
-                </EditorButton>
-              </FlexRow>
-            }
+            onConfirm={() => {
+              setDownloadFallbackError(null);
+              void downloadZip(false);
+            }}
+            confirmText="Download last saved version"
           >
-            <FlexColumn gap={SPACING.xs}>
+            <FlexColumn gap={SPACING.md}>
               <Text>
                 Downloading now would use the older version currently stored on
                 the server.
               </Text>
-              <Caption color="error">{downloadFallbackError}</Caption>
+              <AlertBanner severity="error">{downloadFallbackError}</AlertBanner>
             </FlexColumn>
           </Dialog>
 
@@ -1625,83 +1651,111 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               }
             />
           ) : (
-            <FlexRow
-              ref={gridRef}
-              role="group"
-              aria-label="Shots"
-              onKeyDown={handleGridKeyDown}
-              align="flex-start"
-              wrap
-              gap={SPACING.xl}
-              sx={{ minWidth: 0 }}
-            >
-              {sceneGroups.map((group, sceneIndex) => (
-                // A legacy board has one group with no scene record; it gets the
-                // implicit header, and no `Scene` is written to get it.
-                <Box
-                  key={group.sceneId ?? "unscened"}
+            <FlexColumn gap={SPACING.lg} sx={{ minWidth: 0 }}>
+              <FlexRow align="center" gap={SPACING.md} wrap>
+                <SearchInput
+                  ref={searchRef}
+                  value={shotQuery}
+                  onChange={setShotQuery}
+                  onSubmit={handleSearchSubmit}
+                  placeholder="Search shots by description, dialogue, scene…"
+                  ariaLabel="Search shots"
+                  size="small"
+                  sx={{ width: "100%", maxWidth: "40ch" }}
+                />
+                {searching && (
+                  <Caption color="secondary" role="status">
+                    {`${visibleShotIds.length} of ${shots.length} shots`}
+                  </Caption>
+                )}
+              </FlexRow>
+              {visibleGroups.length === 0 ? (
+                <EmptyState
+                  variant="empty"
+                  title="No matching shots"
+                  description="Search looks in shot titles, descriptions, dialogue, sound and scene headings."
+                />
+              ) : (
+                <FlexRow
+                  ref={gridRef}
                   role="group"
-                  aria-label={`Scene ${sceneIndex + 1}`}
-                  sx={{
-                    ...shotGridSx(cardSize),
-                    minWidth: 0,
-                    flex:
-                      group.shots.length > 1 ? "1 1 100%" : `1 1 ${cardSize}ch`,
-                    maxWidth:
-                      group.shots.length === 1
-                        ? `${Math.max(80, cardSize)}ch`
-                        : undefined
-                  }}
+                  aria-label="Shots"
+                  onKeyDown={handleGridKeyDown}
+                  align="flex-start"
+                  wrap
+                  gap={SPACING.xl}
+                  sx={{ minWidth: 0 }}
                 >
-                  <SceneHeader
-                    number={sceneIndex + 1}
-                    slugline={group.scene?.slugline || undefined}
-                    actions={
-                      readOnly || directing ? undefined : (
-                        <SceneClipControls
-                          sceneId={group.sceneId}
-                          sceneShots={group.shots}
-                          boardShots={shots}
-                          clips={
-                            sceneClipsByGroup.get(group.sceneId) ??
-                            NO_SCENE_CLIPS
-                          }
-                          onOpen={openSceneClip}
-                        />
-                      )
-                    }
-                  />
-                  {group.shots.map((shot) => (
-                    <Box key={shot.id} sx={shotSlotSx}>
-                      <ShotCard
-                        boardId={boardId}
-                        shot={shot}
-                        caption={captions.get(shot.id)}
-                        sceneClipTag={sceneClipTags.get(shot.id)}
-                        renderContext={renderContext}
-                        selected={shot.id === activeShotId}
-                        onSelect={handleSelectShot}
-                        readOnly={readOnly}
-                        draggable={!readOnly && !directing}
-                        dropTarget={shot.id === dropTargetId}
-                        onDragStart={handleDragStart}
-                        onDragEnter={handleDragEnter}
-                        onDragEnd={handleDragEnd}
-                        onDrop={handleDrop}
-                        onEdit={readOnly ? undefined : handleEditShot}
+                  {visibleGroups.map((group) => (
+                    // A legacy board has one group with no scene record; it gets the
+                    // implicit header, and no `Scene` is written to get it.
+                    <Box
+                      key={group.sceneId ?? "unscened"}
+                      role="group"
+                      aria-label={`Scene ${group.number}`}
+                      sx={{
+                        ...shotGridSx(cardSize),
+                        minWidth: 0,
+                        flex:
+                          group.shots.length > 1 ? "1 1 100%" : `1 1 ${cardSize}ch`,
+                        maxWidth:
+                          group.shots.length === 1
+                            ? `${Math.max(80, cardSize)}ch`
+                            : undefined
+                      }}
+                    >
+                      <SceneHeader
+                        number={group.number}
+                        slugline={group.scene?.slugline || undefined}
+                        actions={
+                          readOnly || directing ? undefined : (
+                            <SceneClipControls
+                              sceneId={group.sceneId}
+                              sceneShots={group.shots}
+                              boardShots={shots}
+                              clips={
+                                sceneClipsByGroup.get(group.sceneId) ??
+                                NO_SCENE_CLIPS
+                              }
+                              onOpen={openSceneClip}
+                            />
+                          )
+                        }
                       />
-                      {!readOnly && !directing && (
-                        <ShotInsertPoint
-                          afterShotId={shot.id}
-                          label={`after ${captions.get(shot.id) ?? ""}`}
-                          onInsert={handleInsertShot}
-                        />
-                      )}
+                      {group.shots.map((shot) => (
+                        <Box key={shot.id} sx={shotSlotSx}>
+                          <ShotCard
+                            boardId={boardId}
+                            shot={shot}
+                            caption={captions.get(shot.id)}
+                            durationSeconds={durations.get(shot.id)}
+                            sceneClipTag={sceneClipTags.get(shot.id)}
+                            renderContext={renderContext}
+                            selected={shot.id === activeShotId}
+                            onSelect={handleSelectShot}
+                            readOnly={readOnly}
+                            draggable={!readOnly && !directing && !searching}
+                            dropTarget={shot.id === dropTargetId}
+                            onDragStart={handleDragStart}
+                            onDragEnter={handleDragEnter}
+                            onDragEnd={handleDragEnd}
+                            onDrop={handleDrop}
+                            onEdit={readOnly ? undefined : handleEditShot}
+                          />
+                          {!readOnly && !directing && !searching && (
+                            <ShotInsertPoint
+                              afterShotId={shot.id}
+                              label={`after ${captions.get(shot.id) ?? ""}`}
+                              onInsert={handleInsertShot}
+                            />
+                          )}
+                        </Box>
+                      ))}
                     </Box>
                   ))}
-                </Box>
-              ))}
-            </FlexRow>
+                </FlexRow>
+              )}
+            </FlexColumn>
           )}
 
           {/* What comes after the board (PRD § 7.4). Both actions already exist

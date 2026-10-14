@@ -8,7 +8,7 @@
 import React from "react";
 import { Tabs, Tab, TabsProps, Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { CONTROL, MOTION, TYPOGRAPHY } from "./tokens";
+import { CONTROL, FONT_SIZE_SANS, MOTION, TYPOGRAPHY } from "./tokens";
 import { SPACING, getSpacingPx } from "./spacing";
 
 export interface TabItem {
@@ -85,6 +85,12 @@ export const TabGroup: React.FC<TabGroupProps> = ({
       scrollButtons="auto"
       sx={{
         minHeight: isSmall ? `${CONTROL.height.lg}px` : "40px",
+        // Small tabs sit in docked panels whose body pads SPACING.lg: this
+        // inset plus the tab padding puts the first icon on that edge.
+        ...(isSmall && {
+          paddingLeft: getSpacingPx(SPACING.xs),
+          paddingRight: getSpacingPx(SPACING.xs),
+        }),
         "& .MuiTabs-indicator": {
           height: "2px",
           backgroundColor: theme.vars.palette.primary.main,
@@ -105,8 +111,17 @@ export const TabGroup: React.FC<TabGroupProps> = ({
             minWidth: "auto",
             minHeight: isSmall ? `${CONTROL.height.lg}px` : "40px",
             padding: isSmall
-              ? `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`
+              ? `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`
               : `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
+            // Small tabs sit in docked panels: an icon at the default 24px
+            // and wide padding pushed a fourth tab out of a 360px panel.
+            // Body size keeps the icon close to the 13px label it marks.
+            ...(isSmall && {
+              "& .MuiTab-iconWrapper": {
+                fontSize: FONT_SIZE_SANS.body,
+                marginRight: getSpacingPx(SPACING.sm),
+              },
+            }),
             // Tabs are controls: the sanctioned label style at both sizes.
             ...TYPOGRAPHY.sans.label,
             textTransform: "none",

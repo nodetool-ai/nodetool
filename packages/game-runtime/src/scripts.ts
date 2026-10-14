@@ -1,7 +1,9 @@
 import type { QuickJSContext, QuickJSHandle, QuickJSRuntime } from "quickjs-emscripten-core";
 import { z } from "zod";
-import { gameNonSpatialScriptCommand, gameUiScriptCommand, resolveGameScriptParams, type GameDocument, type GameEntityProps, type GameScriptParam, type GameScriptParamValue, type GameSnapshot } from "@nodetool-ai/protocol";
+import { gameBehavior, gameNonSpatialScriptCommand, gameUiScriptCommand, resolveGameScriptParams, type GameDocument, type GameEntityProps, type GameInputFrame, type GameScriptParam, type GameScriptParamValue, type GameSnapshot } from "@nodetool-ai/protocol";
 
+import { GameScriptLogCollector, withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
+import { GameScriptSaveCollector, type GameSaveRequest } from "./script-saves.js";
 import { defaultScriptCallClock, startScriptCallTimer, type ScriptCallClock } from "./script-clock.js";
 import { commitScriptHooks, planScriptHooks, scriptHookIssue, SCRIPT_LIFECYCLE_DISPATCH, type GameScriptHookPlan, type GameScriptLifecycle } from "./script-lifecycle.js";
 import { canPersistGameScript } from "./script-persistence.js";
@@ -77,6 +79,10 @@ export interface GameScriptBatch {
   readonly results: readonly GameScriptResult[];
   readonly rngState: number;
   readonly stats: GameScriptStats;
+  /** The tick's `log` command lines, present when a script logged. Never part of simulation state. */
+  readonly logs?: readonly GameScriptLogEntry[];
+  /** The tick's `save` and `load` commands, present when a script issued one. Never part of simulation state. */
+  readonly saves?: readonly GameSaveRequest[];
 }
 
 /** An active entity with a collider or camera, as every script sees it this tick. */
@@ -96,6 +102,8 @@ export interface GameScriptInput {
   readonly justPressed: readonly string[];
   readonly events: readonly unknown[];
   readonly world: readonly GameScriptWorldEntity[];
+  /** Finished save loads from the input frame. Absent on ticks without one. */
+  readonly loaded?: GameInputFrame["loaded"];
   /** Schema 4: non-empty props of the tick's entities, keyed by entity id and sent once. */
   readonly props?: Readonly<Record<string, GameEntityProps>>;
 }
@@ -107,8 +115,12 @@ export interface GameScriptRunner {
   /** Lifecycle source keys whose object defines `onEvent`. */
   readonly eventSources?: ReadonlySet<string>;
   retain?(stateKeys: ReadonlySet<string>): void;
+  /** Compiles every replacement before changing sources or retained realms. */
+  reloadSources(updates: readonly GameScriptSourceUpdate[]): void;
   dispose(): void;
 }
+
+export interface GameScriptSourceUpdate { readonly sourceKey: string; readonly source: string }
 
 export function scriptSourceKey(sceneId: string, entityId: string, behaviorIndex: number): string {
   return JSON.stringify([sceneId, entityId, behaviorIndex]);
@@ -191,12 +203,16 @@ export interface IsolatedScriptRunner<Call extends IsolatedScriptCall, Input ext
     readonly results: readonly { readonly entityId: string; readonly state: GameSnapshot["scriptState"][string]; readonly commands: readonly Command[] }[];
     readonly rngState: number;
     readonly stats: GameScriptStats;
+    readonly logs?: readonly GameScriptLogEntry[];
+    readonly saves?: readonly GameSaveRequest[];
   };
   /** Source keys whose script is a lifecycle object rather than a function. */
   readonly hookSources?: ReadonlySet<string>;
   /** Lifecycle source keys whose object defines `onEvent`. */
   readonly eventSources?: ReadonlySet<string>;
   retain?(stateKeys: ReadonlySet<string>): void;
+  /** Compiles every replacement before changing sources or retained realms. */
+  reloadSources(updates: readonly GameScriptSourceUpdate[]): void;
   dispose(): void;
 }
 
@@ -426,7 +442,8 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       }
     }
     type Batch = ReturnType<IsolatedScriptRunner<Call, Input, Command>["run"]>;
-    const execute = (calls: readonly Call[], input: Input, rngState: number, world: readonly ScriptWorldEntity[] | undefined, batchMs: number): Batch => {
+    const executeBatch = (calls: readonly Call[], input: Input, rngState: number, world: readonly ScriptWorldEntity[] | undefined, batchMs: number,
+      logs: GameScriptLogCollector, saves: GameScriptSaveCollector): Batch => {
       const started = performance.now();
       const batchDeadline = started + batchMs;
       // This limits the logical tick payload, which carries each entity's props once.
@@ -570,6 +587,13 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             throw new Error(`Output exceeds 64 KiB (${rawOutputBytes} bytes in call ${results.length + 1})`);
           }
           const parsed: unknown = JSON.parse(output);
+          // Log, save and load commands leave the output here, so they never reach the command limit, the systems or the snapshot.
+          const guestValue = typeof parsed === "object" && parsed !== null ? (parsed as { value?: unknown }).value : undefined;
+          if (typeof guestValue === "object" && guestValue !== null) {
+            const commands = (guestValue as { commands?: unknown }).commands;
+            const simulated = saves.collect(call.entityId, logs.collect(call.entityId, commands));
+            if (simulated !== commands) { (guestValue as { commands?: unknown }).commands = simulated; }
+          }
           const envelope = envelopeSchema.parse(parsed);
           const value = plan === undefined ? envelope.value
             : { state: commitScriptHooks(envelope.value.state, plan, input.tick) as unknown as z.core.util.JSONType, commands: envelope.value.commands };
@@ -603,7 +627,17 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         byEntity[call.entityId] = { durationMs: previous.durationMs + performance.now() - callStarted, calls: previous.calls + 1 };
       }
       assertBeforeDeadline(batchDeadline, batchBudget);
-      return { results, rngState: nextRngState, stats: { durationMs: performance.now() - started, commands: commandCount, calls: calls.length, byEntity } };
+      const stats = { durationMs: performance.now() - started, commands: commandCount, calls: calls.length, byEntity };
+      const lines = logs.entries();
+      const requests = saves.entries();
+      return { results, rngState: nextRngState, stats, ...(lines.length === 0 ? undefined : { logs: lines }),
+        ...(requests.length === 0 ? undefined : { saves: requests }) };
+    };
+    // A failed batch carries the lines its calls logged before the failure.
+    const execute = (calls: readonly Call[], input: Input, rngState: number, world: readonly ScriptWorldEntity[] | undefined, batchMs: number): Batch => {
+      const logs = new GameScriptLogCollector(input.tick);
+      try { return executeBatch(calls, input, rngState, world, batchMs, logs, new GameScriptSaveCollector(input.tick)); }
+      catch (error) { throw withGameScriptLogs(error, logs.entries()); }
     };
     const warmCalls = !warmedCommandSchemas.has(commandSchema);
     const warmHooks = hookSources.size > 0 && !warmedHookSchemas.has(commandSchema);
@@ -631,6 +665,34 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       }
     }
     return {
+      reloadSources(updates): void {
+        const candidates: { update: GameScriptSourceUpdate; persistent: boolean; onEvent: boolean }[] = [];
+        for (const update of updates) {
+          gameBehavior.options[9].shape.source.parse(update.source);
+          if (!sources.has(update.sourceKey)) { throw new Error(`Unknown game script ${update.sourceKey}`); }
+          const deadline = performance.now() + 100;
+          runtime.setInterruptHandler(() => performance.now() >= deadline);
+          const persistent = canPersistGameScript(update.source);
+          const inspected = inspectSource(update.sourceKey, update.source, persistent);
+          try {
+            if (inspected.hooks !== hookSources.has(update.sourceKey)) {
+              throw new Error("Changing between a function and lifecycle hooks requires restart from tick 0");
+            }
+            candidates.push({ update, persistent, onEvent: inspected.onEvent });
+          } finally { disposeRealm(inspected.realm); }
+        }
+        const changedKeys = new Set(candidates.map(({ update }) => update.sourceKey));
+        for (const { update, persistent, onEvent } of candidates) {
+          sources.set(update.sourceKey, update.source);
+          if (persistent) { persistentSources.add(update.sourceKey); } else { persistentSources.delete(update.sourceKey); }
+          if (onEvent) { eventSources.add(update.sourceKey); } else { eventSources.delete(update.sourceKey); }
+          const realm = prepared.get(update.sourceKey);
+          if (realm) { disposeRealm(realm); prepared.delete(update.sourceKey); }
+        }
+        for (const [stateKey, realm] of realms) {
+          if (changedKeys.has(realm.sourceKey)) { disposeRealm(realm); realms.delete(stateKey); }
+        }
+      },
       hookSources,
       eventSources,
       retain,
@@ -670,6 +732,7 @@ export function prepareGameScripts(document: GameDocument, options?: GameScriptO
       ...(data.call.props === undefined ? undefined
         : { tags: data.call.tags, props: data.call.props, rotation: data.call.rotation, active: data.call.active })
     }, world: data.input.world, state: data.call.state, random: __gameRandom,
+    ...(data.input.loaded === undefined ? undefined : { loaded: data.input.loaded }),
     ...(data.params === undefined ? undefined : { params: data.params })
   }`, options);
 }

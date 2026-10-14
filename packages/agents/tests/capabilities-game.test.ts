@@ -4,6 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync as readSourceSync } from "node:fs";
+import { fileURLToPath as toSourcePath } from "node:url";
+import { capabilitySpec } from "../src/capabilities/index.js";
 import { Asset, Game, ModelObserver, Prediction, Project, Workspace, initTestDb } from "@nodetool-ai/models";
 import { InMemoryStorageAdapter, assetObjectKey } from "@nodetool-ai/storage";
 import { workspaceFromRow } from "@nodetool-ai/execution/service";
@@ -270,6 +273,22 @@ describe("native game capabilities", () => {
     expect(played.state.entities.find((entity) => entity.id === "player")?.x).toBeCloseTo(0.5);
   });
 
+  it("keeps script saves in memory during agent playtests and delivers a load on a later tick", async () => {
+    const agent = run();
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Saving room" }) as GameReply;
+    // Saves {speed: 6} on tick 0, loads it on tick 1 and moves at the loaded speed from tick 2.
+    const source = "({ state, tick, loaded }) => { const next = state ?? { speed: 0 }; for (const result of loaded ?? []) { next.speed = result.data.speed; }"
+      + " return { state: next, commands: [{ kind: 'setVelocity', x: next.speed, y: 0 },"
+      + " ...(tick === 0 ? [{ kind: 'save', slot: 'main', data: { speed: 6 } }] : []), ...(tick === 1 ? [{ kind: 'load', slot: 'main' }] : [])] }; }";
+    const document = { ...created.document, scenes: created.document.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "player"
+      ? { ...entity, behaviors: [{ kind: "script" as const, source, maxCommands: 8, maxTickMs: 30 }] } : entity) })) };
+    const published = await agent.invoke("publish_native_game", { game_id: created.game.id, base_revision: created.game.revision,
+      base_updated_at: (await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as GameReply).draft_updated_at, document }) as GameReply;
+    const played = await agent.invoke("playtest_native_game", { game_id: created.game.id, revision: published.game.revision,
+      inputs: Array.from({ length: 10 }, () => ({ pressed: [] })) }) as { state: { entities: Array<{ id: string; x: number }> } };
+    expect(played.state.entities.find((entity) => entity.id === "player")?.x).toBeCloseTo(0.8);
+  });
+
   it("builds an immutable standalone player in the owned project workspace", async () => {
     const agent = run();
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Room" }) as GameReply;
@@ -288,6 +307,23 @@ describe("native game capabilities", () => {
     expect(builtDocument.revision).toBe(created.game.revision);
     expect(await agent.invoke("build_native_game", { game_id: created.game.id })).toMatchObject({ cached: true });
     expect(await run("stranger").invoke("build_native_game", { game_id: created.game.id })).toEqual({ error: "Game not found" });
+  });
+
+  it("builds a Tauri desktop project named after the game beside the web player", async () => {
+    const agent = run();
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Room: Escape" }) as GameReply;
+    const result = await agent.invoke("build_native_game", { game_id: created.game.id, target: "tauri" }) as
+      { target: string; build_path: string; entry_path: string; cached: boolean };
+    expect(result).toMatchObject({ target: "tauri", cached: false });
+    expect(result.build_path).toMatch(new RegExp(`^game-builds/${created.game.id}/${created.game.revision}-tauri-[a-f0-9]{12}$`));
+    expect(result.entry_path).toBe(`${result.build_path}/src-tauri/tauri.conf.json`);
+    const config = JSON.parse(await readFile(join(directory, result.entry_path), "utf8")) as { productName: string; identifier: string; build: { frontendDist: string } };
+    expect(config).toMatchObject({ productName: "Room Escape", identifier: "ai.nodetool.game.room-escape", build: { frontendDist: "../dist" } });
+    const builtDocument = JSON.parse(await readFile(join(directory, result.build_path, "dist", "game.json"), "utf8")) as GameDocument;
+    expect(builtDocument.revision).toBe(created.game.revision);
+    expect((await readFile(join(directory, result.build_path, "src-tauri", "icons", "icon.ico"))).subarray(0, 4)).toEqual(Buffer.from([0, 0, 1, 0]));
+    expect(await agent.invoke("build_native_game", { game_id: created.game.id, target: "tauri" })).toMatchObject({ cached: true, build_path: result.build_path });
+    expect(await agent.invoke("build_native_game", { game_id: created.game.id, target: "electron" })).toEqual({ error: "target must be web or tauri" });
   });
 
   it("installs a staged asset without replacing scene edits and rejects stale or foreign writes", async () => {
@@ -515,5 +551,32 @@ describe("native game capabilities", () => {
     const packaged = JSON.parse(await readFile(join(directory, built.build_path, "game.json"), "utf8")) as GameDocument;
     expect(packaged.revision).toBe(published.game.revision);
     expect(packaged.assets.player?.assetId).toMatch(/^\.\/assets\/[a-f0-9]{64}\.png$/);
+  });
+});
+
+describe("spec text the shipped skills rely on", () => {
+  it("edit_native_game says which players count particles", () => {
+    const ops = JSON.stringify(capabilitySpec("edit_native_game")?.inputSchema);
+    expect(ops).not.toContain("No player counts particles");
+    const player2d = readSourceSync(
+      toSourcePath(new URL("../../game-renderer/src/standalone-player.ts", import.meta.url)),
+      "utf8"
+    );
+    expect(player2d).toMatch(/budget\.observe\(\{[^}]*particles:/);
+    expect(ops).toContain("The 2D standalone player counts particles");
+    const player3d = readSourceSync(
+      toSourcePath(new URL("../../game-renderer/src/standalone-player3d.ts", import.meta.url)),
+      "utf8"
+    );
+    expect(player3d).toMatch(/budget\.observe\(\{[^}]*particles:/);
+    expect(ops).toContain("The 3D standalone player and 3D capture count live particles");
+    expect(ops).not.toContain("3D players do not count particles");
+  });
+
+  it("edit_native_game names the 3D particle draw style fields", () => {
+    const ops = JSON.stringify(capabilitySpec("edit_native_game")?.inputSchema);
+    for (const text of ["render {kind: billboard}", "{kind: stretched, length?, speedScale?}", "shape: box|sphere|tetrahedron|octahedron", "softness (world units)"]) {
+      expect(ops).toContain(text);
+    }
   });
 });

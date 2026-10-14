@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "ElevenLabs AI nodes for nodetool",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,7 +17,6 @@
   "dependencies": {
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/runtime": "*",
-    "@elevenlabs/elevenlabs-js": "^2.0.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {

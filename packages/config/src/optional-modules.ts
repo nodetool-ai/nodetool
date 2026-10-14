@@ -41,49 +41,58 @@ export async function importOptionalModule<T>(
       throw error;
     }
     try {
-      const modMod =
-        await importNodeBuiltin<typeof import("node:module")>("node:module");
-      const pathMod =
-        await importNodeBuiltin<typeof import("node:path")>("node:path");
-      const urlMod =
-        await importNodeBuiltin<typeof import("node:url")>("node:url");
-      if (!modMod || !pathMod || !urlMod) {
+      const mod = await importFromOptionalRoot<T>(
+        packageName,
+        optionalNodeModules,
+        options
+      );
+      if (mod === null) {
         throw error;
       }
-      const requireFromOptional = modMod.createRequire(
-        pathMod.join(optionalNodeModules, "..", "package.json")
-      );
-      if (options.commonJs) {
-        // SAFETY: The caller supplies the API type for this trusted runtime package.
-        return requireFromOptional(packageName) as T;
-      }
-      let resolved: string;
-      try {
-        resolved = requireFromOptional.resolve(packageName);
-      } catch (resolveError) {
-        // `require.resolve` sees only the `require` export condition, so an
-        // ESM-only package (`"exports": { "import": … }`) is invisible to it.
-        const esmEntry = await resolveEsmEntry(
-          optionalNodeModules,
-          packageName,
-          pathMod
-        );
-        if (esmEntry === null) {
-          throw resolveError;
-        }
-        resolved = esmEntry;
-      }
-      const fileMod = await importHidden<T>(
-        urlMod.pathToFileURL(resolved).href
-      );
-      if (fileMod === null) {
-        throw error;
-      }
-      return fileMod;
+      return mod;
     } catch {
       throw error;
     }
   }
+}
+
+async function importFromOptionalRoot<T>(
+  packageName: string,
+  optionalNodeModules: string,
+  options: { commonJs?: boolean }
+): Promise<T | null> {
+  const modMod =
+    await importNodeBuiltin<typeof import("node:module")>("node:module");
+  const pathMod =
+    await importNodeBuiltin<typeof import("node:path")>("node:path");
+  const urlMod = await importNodeBuiltin<typeof import("node:url")>("node:url");
+  if (!modMod || !pathMod || !urlMod) {
+    return null;
+  }
+  const requireFromOptional = modMod.createRequire(
+    pathMod.join(optionalNodeModules, "..", "package.json")
+  );
+  if (options.commonJs) {
+    // SAFETY: The caller supplies the API type for this trusted runtime package.
+    return requireFromOptional(packageName) as T;
+  }
+  let resolved: string;
+  try {
+    resolved = requireFromOptional.resolve(packageName);
+  } catch (resolveError) {
+    // `require.resolve` sees only the `require` export condition, so an
+    // ESM-only package (`"exports": { "import": … }`) is invisible to it.
+    const esmEntry = await resolveEsmEntry(
+      optionalNodeModules,
+      packageName,
+      pathMod
+    );
+    if (esmEntry === null) {
+      throw resolveError;
+    }
+    resolved = esmEntry;
+  }
+  return importHidden<T>(urlMod.pathToFileURL(resolved).href);
 }
 
 /** The export conditions a Node ESM `import` matches. */

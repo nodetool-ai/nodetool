@@ -86,7 +86,6 @@ import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  TOOLTIP_ENTER_DELAY,
   TOOLBAR_WIDTH,
   PANEL_RESIZE_HANDLE_WIDTH,
   LEFT_PANEL_MIN_DRAWER_WIDTH
@@ -308,7 +307,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       />
       <Divider className="toolbar-divider" sx={{ mx: SPACING.lg }} />
       <ThemeToggle />
-      <Tooltip title="Toggle Panel" placement="right-start">
+      <Tooltip title="Toggle panel" placement="right-start">
         <ToolbarIconButton
           tabIndex={-1}
           ariaLabel="Toggle panel"
@@ -848,7 +847,6 @@ const MobilePanelCategoryButton = ({
     <Tooltip
       title={category.label}
       placement="bottom"
-      delay={TOOLTIP_ENTER_DELAY}
     >
       <ToolbarIconButton
         className="tab-button"

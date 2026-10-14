@@ -2,24 +2,17 @@ name: E2E Workflow Runner
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "web/e2e-runner.html"
-      - "web/src/e2e_runner/**"
-      - "web/tests/e2e-runner/**"
-      - "web/playwright.e2e-runner.config.ts"
-      - "web/tsconfig.playwright.json"
-      - "web/package.json"
-      # The suite exercises the whole backend execution stack, so trigger on any
-      # package change (kernel, runtime, node-sdk, base-nodes, agents, chat,
-      # websocket, …) — not just the harness's own server files.
-      - "packages/**"
-      - "examples/workflows/**"
-      - ".github/workflows/e2e-runner.yml"
+  # Nightly instead of on every push to main: the suite is advisory and gates
+  # no deploy, and per-push runs held a runner for each merge.
+  schedule:
+    # 03:45 UTC daily, after the user-journeys.yml nightly.
+    - cron: "45 3 * * *"
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    # Only the `browser-suites` label starts a pull-request run. Triggering
+    # on opened/synchronize as well started a run on every PR push whose
+    # jobs all skipped. To test later commits, re-add the label or dispatch
+    # this workflow on the PR branch.
+    types: [labeled]
     branches:
       - main
     paths:
@@ -49,20 +42,16 @@ concurrency:
 jobs:
   e2e-workflow-runner:
     name: Run workflow suite in browser
-    # Advisory on pull requests and opt-in there: a PR runs this suite only
-    # with the `browser-suites` label, which saves its runner time on the
-    # many PRs that do not need it. Pushes to main, nightly and manual runs
-    # always run it.
-    if: >-
-      ${{ github.event_name != 'pull_request'
-      || (contains(github.event.pull_request.labels.*.name, 'browser-suites')
-      && (github.event.action != 'labeled' || github.event.label.name == 'browser-suites')) }}
+    # Advisory on pull requests and opt-in there: a PR runs this suite when
+    # the `browser-suites` label is added. Nightly and manual runs always run
+    # it.
+    if: ${{ github.event_name != 'pull_request' || github.event.label.name == 'browser-suites' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Node, install deps, build packages
         # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless
@@ -72,7 +61,7 @@ jobs:
           extra-apt: mesa-vulkan-drivers
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
@@ -100,7 +89,7 @@ jobs:
 
       - name: Upload E2E workflow report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-workflow-report
           path: |

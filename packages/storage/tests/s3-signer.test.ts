@@ -205,6 +205,18 @@ describe("encoding helpers", () => {
     expect(encodeS3Path("a b/c+d/e.txt")).toBe("a%20b/c%2Bd/e.txt");
   });
 
+  it("canonicalQueryString sorts a reversed list by key, then by value", () => {
+    const keys = ["j", "i", "h", "g", "f", "e", "d", "c", "b", "a"];
+    const pairs: Array<[string, string]> = keys.map((k) => [k, "1"]);
+    pairs.push(["a", "z"], ["a", "m"], ["a", "0"]);
+    expect(canonicalQueryString(pairs)).toBe(
+      "a=0&a=1&a=m&a=z&b=1&c=1&d=1&e=1&f=1&g=1&h=1&i=1&j=1"
+    );
+    expect(canonicalQueryString([...pairs].reverse())).toBe(
+      "a=0&a=1&a=m&a=z&b=1&c=1&d=1&e=1&f=1&g=1&h=1&i=1&j=1"
+    );
+  });
+
   it("canonicalQueryString sorts by key then value", () => {
     expect(
       canonicalQueryString([

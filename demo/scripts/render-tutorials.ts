@@ -75,8 +75,19 @@ async function main(): Promise<void> {
           },
         });
       }
-      await renderStill({ composition, serveUrl, puppeteerInstance: browser,
-        output: path.join(outDir, `${entry.slug}.jpg`), frame: posterFrame(entry), imageFormat: "jpeg", jpegQuality: 85 });
+      const posterPath = path.join(outDir, `${entry.slug}.jpg`);
+      if (stillsOnly) {
+        await renderStill({ composition, serveUrl, puppeteerInstance: browser,
+          output: posterPath, frame: posterFrame(entry), imageFormat: "jpeg", jpegQuality: 85 });
+      } else {
+        // Cut the poster from the encoded video. A fresh still renders one frame
+        // in a new page, before lazily loaded editors (Monaco) have mounted.
+        const extracted = spawnSync("ffmpeg", ["-v", "error", "-y", "-i", path.join(outDir, `${entry.slug}.mp4`),
+          "-vf", `select=eq(n\\,${posterFrame(entry)})`, "-frames:v", "1", "-q:v", "3", posterPath], { encoding: "utf8" });
+        if (extracted.status !== 0) {
+          throw new Error(`Cannot extract the poster for ${entry.slug}: ${extracted.stderr}`);
+        }
+      }
       if (!stillsOnly) {
         const result = spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", path.join(outDir, `${entry.slug}.mp4`)], { encoding: "utf8" });
         const duration = Number(result.stdout.trim());

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { finite, positive, id, layerBits } from "./common.js";
+import { gameCombineRule3D } from "./physics-material.js";
 import { gameVector3, gameQuaternion3D } from "./transform.js";
 
 const colliderSettings = {
@@ -8,7 +9,11 @@ const colliderSettings = {
   layer: id.optional().describe("Name from the document's collisionLayers. When set, category and mask are derived from the layer's bit and collisionMatrix, so leave them at their defaults."),
   category: layerBits.default(1).describe("Raw membership bits. An advanced override used only when layer is unset."),
   mask: layerBits.default(0xffff).describe("Raw filter bits. An advanced override used only when layer is unset."),
-  friction: finite.min(0).max(4).default(0.5), restitution: finite.min(0).max(1).default(0)
+  physicsMaterial: id.optional().describe("Name from the document's physicsMaterials. When set, friction, restitution and both combine rules come from the material, so leave the inline values at their defaults."),
+  friction: finite.min(0).max(4).default(0.5).describe("Inline friction, used only when physicsMaterial is unset."),
+  restitution: finite.min(0).max(1).default(0).describe("Inline restitution, used only when physicsMaterial is unset."),
+  frictionCombine: gameCombineRule3D.optional().describe("Inline friction combine rule, used only when physicsMaterial is unset. Unset means average."),
+  restitutionCombine: gameCombineRule3D.optional().describe("Inline restitution combine rule, used only when physicsMaterial is unset. Unset means average.")
 };
 
 export const gameCollider3D = z.discriminatedUnion("kind", [

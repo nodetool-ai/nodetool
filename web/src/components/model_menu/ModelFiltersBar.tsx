@@ -16,6 +16,7 @@ import useModelFiltersStore, {
   SizeBucket,
   TypeTag
 } from "../../stores/ModelFiltersStore";
+import { isProduction } from "../../lib/env";
 
 const barStyles = css({
   display: "flex",
@@ -61,7 +62,7 @@ const ModelFiltersBar: React.FC = () => {
       {/* Type dropdown (multi) */}
       <ToolbarIconButton
         icon={<CategoryIcon fontSize="small" />}
-        tooltip={selectedTypes.length ? `Type: ${selectedTypes.join(", ")}` : "Filter by Type"}
+        tooltip={selectedTypes.length ? `Type: ${selectedTypes.join(", ")}` : "Filter by type"}
         onClick={(e) => setTypeAnchor(e.currentTarget)}
         size="small"
         active={selectedTypes.length > 0 || openType}
@@ -87,43 +88,47 @@ const ModelFiltersBar: React.FC = () => {
         ))}
       </EditorMenu>
 
-      {/* Size dropdown (single) */}
-      <ToolbarIconButton
-        icon={<StraightenIcon fontSize="small" />}
-        tooltip={sizeBucket ? `Size: ${sizeBucket}` : "Filter by Size"}
-        onClick={(e) => setSizeAnchor(e.currentTarget)}
-        size="small"
-        active={!!sizeBucket || openSize}
-        nodrag={false}
-      />
-      <EditorMenu
-        anchorEl={sizeAnchor}
-        open={openSize}
-        onClose={() => setSizeAnchor(null)}
-        keepMounted
-      >
-        <EditorMenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            setSizeBucket(null);
-          }}
-        >
-          <ListItemText primary="Any size" />
-        </EditorMenuItem>
-        {sizeOptions.map((s) => (
-          <EditorMenuItem
-            key={s}
-            onClick={(e) => {
-              e.stopPropagation();
-              setSizeBucket(s);
-            }}
-            selected={sizeBucket === s}
+      {/* Size dropdown (single). Parameter-count buckets only describe local
+          models, so the cloud version has nothing to filter. */}
+      {!isProduction && (
+        <>
+          <ToolbarIconButton
+            icon={<StraightenIcon fontSize="small" />}
+            tooltip={sizeBucket ? `Size: ${sizeBucket}` : "Filter by size"}
+            onClick={(e) => setSizeAnchor(e.currentTarget)}
+            size="small"
+            active={!!sizeBucket || openSize}
+            nodrag={false}
+          />
+          <EditorMenu
+            anchorEl={sizeAnchor}
+            open={openSize}
+            onClose={() => setSizeAnchor(null)}
+            keepMounted
           >
-            <ListItemText primary={s} />
-          </EditorMenuItem>
-        ))}
-      </EditorMenu>
-
+            <EditorMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                setSizeBucket(null);
+              }}
+            >
+              <ListItemText primary="Any size" />
+            </EditorMenuItem>
+            {sizeOptions.map((s) => (
+              <EditorMenuItem
+                key={s}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSizeBucket(s);
+                }}
+                selected={sizeBucket === s}
+              >
+                <ListItemText primary={s} />
+              </EditorMenuItem>
+            ))}
+          </EditorMenu>
+        </>
+      )}
     </Box>
   );
 };

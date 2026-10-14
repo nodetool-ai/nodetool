@@ -18,6 +18,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
 });
 
 import { Job } from "@nodetool-ai/models";
+import { registerActiveRun } from "@nodetool-ai/execution/service";
+import { jobRunRegistry } from "../src/job-run-registry.js";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -340,6 +342,45 @@ describe("jobs router", () => {
         is_running: false,
         is_completed: true // "cancelled" maps to is_completed
       });
+    });
+
+    it("stops the run itself, not just the row", async () => {
+      const j = makeJob({ id: "j-live", status: "running" });
+      (Job.get as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(j)
+        .mockResolvedValueOnce({ ...j, status: "cancelled" });
+      (Job.markCancelledIfActive as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true
+      );
+      // A background run (render_timeline, start_background_job) and a
+      // WebSocket session: both live in this process.
+      const stopBackground = vi.fn();
+      const unregister = registerActiveRun("j-live", "user-1", stopBackground);
+      const sessions = vi.spyOn(jobRunRegistry, "cancelJobs");
+      try {
+        await createCaller(makeCtx()).jobs.cancel({ id: "j-live" });
+        expect(stopBackground).toHaveBeenCalledTimes(1);
+        expect(sessions).toHaveBeenCalledWith("user-1", new Set(["j-live"]));
+      } finally {
+        unregister();
+        sessions.mockRestore();
+      }
+    });
+
+    it("leaves a finished job's run alone", async () => {
+      const j = makeJob({ id: "j-done", status: "completed" });
+      (Job.get as ReturnType<typeof vi.fn>).mockResolvedValue(j);
+      (Job.markCancelledIfActive as ReturnType<typeof vi.fn>).mockResolvedValue(
+        false
+      );
+      const stop = vi.fn();
+      const unregister = registerActiveRun("j-done", "user-1", stop);
+      try {
+        await createCaller(makeCtx()).jobs.cancel({ id: "j-done" });
+        expect(stop).not.toHaveBeenCalled();
+      } finally {
+        unregister();
+      }
     });
 
     it("leaves a job that already finished as it is", async () => {

@@ -1,6 +1,6 @@
 import React from "react";
 import { installGlobal } from "../../../../test-utils/doubles";
-import { act, render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
@@ -15,6 +15,7 @@ jest.mock("../PreviewCompositor", () => ({
 const mockScheduleClips = jest.fn().mockResolvedValue(undefined);
 const mockAddClips = jest.fn().mockResolvedValue(undefined);
 const mockStopClips = jest.fn();
+const mockPlayGrain = jest.fn().mockResolvedValue(undefined);
 
 jest.mock("../AudioGraph", () => {
   return {
@@ -29,6 +30,8 @@ jest.mock("../AudioGraph", () => {
       scheduleClips = mockScheduleClips;
       addClips = mockAddClips;
       stopClips = mockStopClips;
+      playGrain = mockPlayGrain;
+      releaseGrain = jest.fn();
       scheduleClipsAt = jest.fn();
       seek = jest.fn();
       setMasterVolume = jest.fn();
@@ -63,6 +66,21 @@ let mockDurationMs = 60_000;
 let mockClips: unknown[] = [];
 let mockTracks: unknown[] = [];
 const mockTimelineListeners = new Set<() => void>();
+type MockPlaybackSnapshot = { currentTimeMs: number; isPlaying: boolean };
+type MockPlaybackListener = (
+  state: MockPlaybackSnapshot,
+  previous: MockPlaybackSnapshot
+) => void;
+const mockPlaybackListeners = new Set<MockPlaybackListener>();
+
+/** Move the mocked playhead and notify store subscribers, as a scrub does. */
+function movePlayhead(next: Partial<MockPlaybackSnapshot>) {
+  const previous = { currentTimeMs: mockCurrentTimeMs, isPlaying: mockIsPlaying };
+  mockCurrentTimeMs = next.currentTimeMs ?? mockCurrentTimeMs;
+  mockIsPlaying = next.isPlaying ?? mockIsPlaying;
+  const state = { currentTimeMs: mockCurrentTimeMs, isPlaying: mockIsPlaying };
+  for (const listener of mockPlaybackListeners) listener(state, previous);
+}
 
 function setMockClips(clips: unknown[]) {
   mockClips = clips;
@@ -94,7 +112,13 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
   useTimelinePlaybackStore.getState = getState;
   return {
     useTimelinePlaybackStore,
-    useTimelinePlaybackStoreApi: () => ({ getState })
+    useTimelinePlaybackStoreApi: () => ({
+      getState,
+      subscribe: (listener: MockPlaybackListener) => {
+        mockPlaybackListeners.add(listener);
+        return () => mockPlaybackListeners.delete(listener);
+      }
+    })
   };
 });
 
@@ -162,11 +186,15 @@ jest.mock("../../../../stores/timeline/TimelineUIStore", () => {
   return { useTimelineUIStore };
 });
 
+/** Records every asset lookup. Each render still gets a new `get`, as before. */
+const mockGetAsset = jest.fn();
+
 jest.mock("../../../../stores/AssetStore", () => ({
   useAssetStore: <T,>(selector: (s: { get: jest.Mock }) => T) => {
     const state = {
-      get: jest.fn().mockResolvedValue({
-        get_url: "https://cdn.example.com/audio.wav"
+      get: jest.fn((id: string) => {
+        mockGetAsset(id);
+        return Promise.resolve({ get_url: "https://cdn.example.com/audio.wav" });
       })
     };
     return selector ? selector(state) : state;
@@ -201,6 +229,74 @@ describe("PreviewArea", () => {
     mockSelectedClipIds = new Set<string>();
     mockAudition = null;
     mockUIListeners.clear();
+    mockPlaybackListeners.clear();
+    mockPlayGrain.mockResolvedValue(undefined);
+  });
+
+  describe("audio scrub", () => {
+    const audioClip = {
+      id: "a1",
+      trackId: "t1",
+      mediaType: "audio",
+      currentAssetId: "asset-1",
+      sourceType: "imported",
+      status: "generated",
+      startMs: 1000,
+      durationMs: 4000
+    };
+
+    const flushAsync = async () => {
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+    };
+
+    it("plays a grain of the clip under a paused playhead move", async () => {
+      mockClips = [audioClip];
+      renderPreview();
+      act(() => movePlayhead({ currentTimeMs: 2500 }));
+      await flushAsync();
+
+      expect(mockPlayGrain).toHaveBeenCalledTimes(1);
+      const [scheduled, , atMs] = mockPlayGrain.mock.calls[0];
+      expect(atMs).toBe(2500);
+      expect(scheduled.map((c: { clip: { id: string } }) => c.clip.id)).toEqual([
+        "a1"
+      ]);
+    });
+
+    it("looks each asset up once across a drag", async () => {
+      mockClips = [audioClip];
+      renderPreview();
+      for (const atMs of [2000, 2100, 2200]) {
+        act(() => movePlayhead({ currentTimeMs: atMs }));
+        await flushAsync();
+      }
+      await waitFor(() => expect(mockPlayGrain).toHaveBeenCalledTimes(2));
+      expect(
+        mockGetAsset.mock.calls.filter(([id]) => id === "asset-1")
+      ).toHaveLength(1);
+    });
+
+    it("plays nothing where no clip sounds", async () => {
+      mockClips = [audioClip];
+      renderPreview();
+      act(() => movePlayhead({ currentTimeMs: 500 }));
+      await flushAsync();
+      expect(mockPlayGrain).not.toHaveBeenCalled();
+    });
+
+    it("plays nothing for a pause or for moves during playback", async () => {
+      mockClips = [audioClip];
+      mockIsPlaying = true;
+      renderPreview();
+      act(() => movePlayhead({ currentTimeMs: 2000 }));
+      act(() => movePlayhead({ currentTimeMs: 2600, isPlaying: false }));
+      await flushAsync();
+      expect(mockPlayGrain).not.toHaveBeenCalled();
+    });
   });
 
   it("expands without the Fullscreen API and keeps the compositor mounted", async () => {

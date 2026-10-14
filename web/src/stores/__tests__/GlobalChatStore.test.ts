@@ -74,9 +74,11 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
 import { pack } from "msgpackr";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
+import { tabId, useWorkspaceTabsStore } from "../WorkspaceTabsStore";
 import { trpcClient } from "../../trpc/client";
 import useAuth from "../useAuth";
 import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas";
+import { threadRuntimeUpdate } from "../../core/chat/threadRuntime";
 
 jest.mock("../../trpc/client", () => ({
   trpcClient: {
@@ -259,6 +261,54 @@ describe("GlobalChatStore", () => {
     await store.getState().loadMessages("history");
     expect(store.getState().messageCache.history.map((m) => m.id)).toEqual(["1", "2", "3", "4", "5"]);
     expect(store.getState().messageCursors.history).toBeNull();
+  });
+
+  it("replaces a finished reply's stream placeholder with the stored row on reload", async () => {
+    const query = jest.mocked(trpcClient.messages.list.query);
+    const stored = (id: string, role: string, content: string) => ({
+      type: "message" as const, id, thread_id: "done", user_id: "u",
+      role, content, tool_calls: null, name: null, tool_call_id: null,
+      created_at: "2026-01-01", updated_at: "2026-01-01"
+    });
+    // The finalized reply frame carries no id, so the streamed reply keeps
+    // its local placeholder id after the turn ends.
+    store.setState({
+      messageCache: {
+        done: [
+          { type: "message", id: "q1", role: "user", content: "Question?" },
+          { type: "message", id: "local-stream-1-a", role: "assistant", content: "Answer" }
+        ]
+      }
+    });
+    query.mockResolvedValueOnce({
+      messages: [stored("a1", "assistant", "Answer"), stored("q1", "user", "Question?")],
+      next: null
+    });
+    await store.getState().loadMessages("done");
+    expect(store.getState().messageCache.done.map((m) => m.id)).toEqual(["q1", "a1"]);
+  });
+
+  it("keeps a reply that is still streaming when the thread reloads", async () => {
+    const query = jest.mocked(trpcClient.messages.list.query);
+    store.setState({
+      ...threadRuntimeUpdate(store.getState(), "live", { status: "streaming" }),
+      messageCache: {
+        live: [
+          { type: "message", id: "q1", role: "user", content: "Question?" },
+          { type: "message", id: "local-stream-1-b", role: "assistant", content: "Ans" }
+        ]
+      }
+    });
+    query.mockResolvedValueOnce({
+      messages: [{
+        type: "message", id: "q1", thread_id: "live", user_id: "u", role: "user",
+        content: "Question?", tool_calls: null, name: null, tool_call_id: null,
+        created_at: "2026-01-01", updated_at: "2026-01-01"
+      }],
+      next: null
+    });
+    await store.getState().loadMessages("live");
+    expect(store.getState().messageCache.live.map((m) => m.id)).toEqual(["q1", "local-stream-1-b"]);
   });
 
   it("keeps the older cursor and messages after a failed page so it can be retried", async () => {
@@ -575,6 +625,22 @@ describe("GlobalChatStore", () => {
     const state = store.getState();
     expect(state.currentThreadId).toBe("id-1");
     expect(Object.keys(state.threads)).toEqual(["id-1"]);
+  });
+
+  it("deleteThread closes the deleted thread's tab", async () => {
+    const first = await store.getState().createNewThread();
+    useWorkspaceTabsStore
+      .getState()
+      .openTab({ type: "chat", ref: first, title: "Chat" });
+    expect(
+      useWorkspaceTabsStore.getState().tabs.some((tab) => tab.id === tabId("chat", first))
+    ).toBe(true);
+
+    await store.getState().deleteThread(first);
+
+    expect(
+      useWorkspaceTabsStore.getState().tabs.some((tab) => tab.id === tabId("chat", first))
+    ).toBe(false);
   });
 
   describe("WebSocket Connection", () => {
