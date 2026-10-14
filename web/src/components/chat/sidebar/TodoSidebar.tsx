@@ -30,14 +30,18 @@ const styles = (theme: Theme) =>
     width: TODO_SIDEBAR_WIDTH,
     flexShrink: 0,
     height: "100%",
-    borderLeft: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,
+    borderLeft: `1px solid ${theme.vars.palette.divider}`,
     background: `rgb(${theme.vars.palette.common.blackChannel} / 0.20)`,
+    // A 20% black rail reads as a grey slab on the light shell.
+    ...theme.applyStyles("light", {
+      background: theme.vars.palette.c_overlay_subtle
+    }),
     display: "flex",
     flexDirection: "column",
     minHeight: 0,
     ".todo-header": {
       padding: theme.spacing(4, 4, 3),
-      borderBottom: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       display: "flex",
       alignItems: "baseline",
       justifyContent: "space-between",
@@ -66,7 +70,7 @@ const styles = (theme: Theme) =>
       marginTop: theme.spacing(SPACING.micro),
       flexShrink: 0
     },
-    ".todo-icon.pending": { color: `rgb(${theme.vars.palette.common.whiteChannel} / 0.45)` },
+    ".todo-icon.pending": { color: theme.vars.palette.text.disabled },
     // The spinner sits in an icon-sized box so the text column lines up
     // with the pending and completed rows.
     ".todo-icon.in_progress": {
