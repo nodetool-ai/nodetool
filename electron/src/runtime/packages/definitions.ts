@@ -25,6 +25,22 @@ function npmSpecs(id: RuntimeNpmPackageId): {
 
 /** Concrete runtime package definitions. */
 export const RUNTIME_PACKAGES = {
+  imaging: new ElectronRuntimePackage({
+    id: "imaging", name: "Image & Canvas Libraries", category: "library", versionRange: "*",
+    description: RUNTIME_NPM_PACKAGES.imaging.description
+  }),
+  typescript: new ElectronRuntimePackage({
+    id: "typescript", name: "TypeScript", category: "library", versionRange: "*",
+    description: RUNTIME_NPM_PACKAGES.typescript.description
+  }),
+  tracing: new ElectronRuntimePackage({
+    id: "tracing", name: "Execution Tracing", category: "library", versionRange: "*",
+    description: RUNTIME_NPM_PACKAGES.tracing.description
+  }),
+  esbuild: new ElectronRuntimePackage({
+    id: "esbuild", name: "Sandbox Compiler", category: "library", versionRange: "*",
+    description: RUNTIME_NPM_PACKAGES.esbuild.description
+  }),
   python: new CondaRuntimePackage({
     id: "python",
     name: "Python",
@@ -159,17 +175,6 @@ export const RUNTIME_PACKAGES = {
     ...npmSpecs("transformers-js"),
     // The pinned 3.x specs and why they stay on 3.x live in RUNTIME_NPM_PACKAGES.
     versionRange: "3.x",
-  }),
-
-  "claude-agent-sdk": new NpmRuntimePackage({
-    id: "claude-agent-sdk",
-    name: "Claude Agent SDK",
-    description:
-      "Anthropic's Claude Agent SDK. Powers the Claude Agent LLM provider, which talks to Claude through your logged-in Claude subscription (no API key). Bundles its own claude binary.",
-    category: "library",
-    ...npmSpecs("claude-agent-sdk"),
-    versionRange: "0.3.x",
-    approxSizeMB: 211,
   }),
 
   "tensorflow-js": new NpmRuntimePackage({

@@ -3,6 +3,7 @@ import { resolve } from "path";
 export default defineConfig({
   resolve: {
     alias: {
+      "@nodetool-ai/node-catalog": resolve(__dirname, "../node-catalog/src/index.ts"),
       "@nodetool-ai/execution": resolve(__dirname, "../execution/src"),
       "@nodetool-ai/protocol": resolve(__dirname, "../protocol/src"),
       "@nodetool-ai/kernel": resolve(__dirname, "../kernel/src/index.ts"),

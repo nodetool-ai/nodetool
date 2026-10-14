@@ -436,43 +436,57 @@ uses `owners` instead.
 
 ### 10.1 Origin and availability
 
-`NodeMetadataSource` (`packages/node-sdk/src/registry.ts:28-32`) gains the
-value `"catalog"`. `NodeRegistry` gains:
+`NodeMetadataSource` gains `"catalog"`. `NodeRegistry` exposes:
 
 ```ts
 type NodeAvailability = "executable" | "catalog" | "python" | "unknown";
 
-loadCatalog(entries: Iterable<CatalogNode>): void;   // source "catalog", packageId = pack id
+loadCatalog(entries: Iterable<NodeCatalogEntry>, packs?: Iterable<NodeCatalogPackMetadata>): void;
 availability(nodeType: string): NodeAvailability;
-catalogEntry(nodeType: string): CatalogNode | undefined;
+catalogEntry(nodeType: string): NodeCatalogEntry | undefined;
+catalogPack(nodeType: string): NodeCatalogPackMetadata | undefined;
 ```
 
-- `executable`: a class is registered. `has()` keeps its meaning (`:328`).
-- `catalog`: catalog metadata, no class.
-- `python`: metadata from `"python-package"` or `"python-bridge"`, no class.
-- `unknown`: neither.
+The structural entry type lives in `node-sdk`, so `node-catalog` can use it
+without a dependency cycle. It carries the node type, owning pack, final
+metadata and declared properties. Optional pack metadata supplies install sizes
+and install commands to graph diagnostics. Commands are null until installs are
+available (A2).
 
-A registered class always wins over catalog metadata for the same type.
+- `executable`: a class is registered. `has()` keeps its meaning.
+- `catalog`: catalog metadata exists without a class.
+- `python`: metadata comes from `"python-package"` or `"python-bridge"`, without
+  a class.
+- `unknown`: none of these origins applies. Generic `"loaded-metadata"` does
+  not authorize Python execution.
 
-### 10.2 Call sites that must change
+A registered class wins over catalog metadata in either loading order.
+Catalog property validation uses the declared properties that the generator
+captured, including the class validator's dynamic-slot fallback.
 
-| Site | Today | Change |
-|---|---|---|
-| `packages/node-sdk/src/registry.ts:197` `validateNode` | Returns `[]` without a class | For `catalog`, call `validateNodeProperties` (`packages/node-sdk/src/validation.ts:167`) with `catalogEntry().declared` |
-| `packages/node-sdk/src/graph-validation.ts:1398` | `unknown_node` when `!has()` | For `catalog`, emit `pack_not_installed` with pack id, size, and install command |
-| `packages/node-sdk/src/graph-validation.ts:1444`, `:940`, `:1539` | Skip checks when `!has()` | Run property and edge checks for `catalog` from metadata |
-| `packages/execution/src/service/workflow-run.ts:805-812` | `getMetadata && !has` means Python | Use `availability() === "python"` |
-| `packages/websocket/src/plugins/websocket.ts:128`, `:163`, `packages/websocket/src/http-api.ts:381` | Same Python test | Use `availability() === "python"` |
-| `packages/dsl/src/registry.ts:84-89`, `:107-113` | No TS class means Python candidate | Exclude `catalog` |
-| `packages/execution/src/executor-resolver.ts:21-27` | Falls back to the Python executor | Throw `MissingPackError` for `catalog` |
-| `packages/execution/src/session.ts:287` `hasTsExecutor` | `has()` | Unchanged. Catalog types never reach execution (section 12) |
+### 10.2 Call sites that change
 
-No pack overrides `validateProperties` today (no `static validateProperties`
-outside `node-sdk`). A parity test runs fixture property bags through the
-class validator and the catalog validator for every node type in the catalog
-and requires equal issue lists. Another test builds a graph with an unloaded
-TypeScript node with invalid properties. It asserts the property issues and
-asserts that `ensurePythonBridge` is never called.
+| Site | Catalog behavior |
+|---|---|
+| `packages/node-sdk/src/registry.ts` `validateNode` | Validate declared properties without constructing a class. |
+| `packages/node-sdk/src/graph-validation.ts` | Emit `pack_not_installed` with pack id, install size and command. Continue property, choice, credential, edge and fan-in checks from metadata. |
+| `packages/execution/src/service/workflow-run.ts` | Return catalog property and pack errors before creating a job or connecting Python. |
+| `packages/execution/src/session.ts` | Refuse catalog execution before the bridge, including when provider preflight is disabled. `hasTsExecutor` retains its class-based meaning. |
+| `packages/execution/src/executor-resolver.ts` | Throw `MissingPackError` before the Python executor fallback. |
+| `packages/websocket/src/plugins/websocket.ts`, `packages/websocket/src/http-api.ts` | Refuse catalog types before Python executor resolution. Catalog types do not request a bridge. |
+| `packages/dsl/src/registry.ts` | Exclude catalog types from Python candidates and throw `MissingPackError` when no registry has an executable class. |
+| CLI and agent graph-validation adapters | Forward availability and catalog details through registry views. Metadata-only planner relaxation cannot hide a missing pack. |
+
+Metadata-free types under recognized Python namespaces still request a worker.
+The catalog origin takes precedence over that namespace inference.
+
+The parity suite in `packages/base-nodes/tests/catalog-validation-parity.test.ts`
+enumerates every catalog type. It compares class and catalog issue lists for
+empty values, defaults, out-of-range values, invalid choices, unknown fields and
+edge-connected properties. Graph checks run the same bags and require equal
+issues after removing `pack_not_installed`. Execution tests require a graph
+with invalid catalog properties to report those issues without calling
+`ensurePythonBridge` or creating a job.
 
 ## 11. Install layout (D1)
 

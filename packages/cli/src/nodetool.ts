@@ -14,9 +14,9 @@
  * put on NODETOOL_OPTIONAL_NODE_MODULES, so every optional import and every
  * child process can find what was installed there.
  */
-import { applyOptionalNodeModules } from "./optional-node-root.js";
+import { initializeCliRuntime } from "./runtime-env.js";
 
-applyOptionalNodeModules();
+initializeCliRuntime(import.meta.url);
 
 if (process.argv[2] === "harness") {
   const { program } = await import("commander");

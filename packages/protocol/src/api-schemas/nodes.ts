@@ -86,7 +86,8 @@ const nodeMetadataSource = z.enum([
   "typescript",
   "python-package",
   "python-bridge",
-  "loaded-metadata"
+  "loaded-metadata",
+  "catalog"
 ]);
 
 const sourceCounts = z.partialRecord(

@@ -43,7 +43,7 @@
     "@nodetool-ai/timeline": "*",
     "@nodetool-ai/video-nodes": "*",
     "@nodetool-ai/vectorstore": "*",
-    "@sebastianwessel/quickjs": "^3.0.1",
+    "@sebastianwessel/quickjs": "~3.0.1",
     "acorn": "^8.16.0",
     "cheerio": "^1.2.0",
     "chrome-launcher": "^1.2.0",

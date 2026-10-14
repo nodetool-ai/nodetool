@@ -98,8 +98,7 @@ export function registerTimelineCommands(program: Command): void {
           (opts.warningsAsErrors === true && validation.warnings.length > 0);
         process.exit(failed ? 1 : 0);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 
@@ -152,8 +151,7 @@ export function registerTimelineCommands(program: Command): void {
         }
         process.exit(report.verdict.ok ? 0 : 1);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 

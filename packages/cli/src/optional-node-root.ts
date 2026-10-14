@@ -4,13 +4,14 @@
  * package does not ship. `importOptionalModule` falls back to its
  * `node_modules` through NODETOOL_OPTIONAL_NODE_MODULES.
  */
-import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { getNodetoolDataDir } from "@nodetool-ai/config";
+import { applyRuntimeEnv, runtimeLocations } from "@nodetool-ai/config";
 
 /** The directory `npm install --prefix` runs in. */
 export function optionalNodeRoot(): string {
-  return join(getNodetoolDataDir(), "optional-node");
+  const root = runtimeLocations().optionalNodeRoot;
+  if (!root) { throw new Error("This host does not manage npm runtime installs"); }
+  return root;
 }
 
 /** The `node_modules` directory inside the optional-node root. */
@@ -19,16 +20,7 @@ export function optionalNodeModulesDir(): string {
 }
 
 /**
- * Point NODETOOL_OPTIONAL_NODE_MODULES at the CLI's root when it exists. A
- * value the caller already set wins, so the desktop app and tests keep their
- * own root. Child processes such as `serve` inherit the variable.
+ * Compatibility entry for callers that only need runtime path initialization.
+ * Managed paths are set even before installation. Explicit overrides win.
  */
-export function applyOptionalNodeModules(): void {
-  if (process.env["NODETOOL_OPTIONAL_NODE_MODULES"]) {
-    return;
-  }
-  const dir = optionalNodeModulesDir();
-  if (existsSync(dir)) {
-    process.env["NODETOOL_OPTIONAL_NODE_MODULES"] = dir;
-  }
-}
+export function applyOptionalNodeModules(): void { applyRuntimeEnv(); }

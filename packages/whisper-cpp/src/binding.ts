@@ -1,5 +1,5 @@
 import { importOptionalModule } from "@nodetool-ai/config";
-import { MissingRuntimePackageError } from "@nodetool-ai/protocol";
+import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 
 export type LibVariant = "default" | "vulkan" | "cuda";
 export interface Segment {
@@ -64,9 +64,7 @@ export function loadWhisperNode(): Promise<WhisperNodeModule> {
     { commonJs: true }
   ).catch((cause: unknown) => {
     modulePromise = undefined;
-    throw new MissingRuntimePackageError(INSTALL_MESSAGE, "whisper-cpp", {
-      cause
-    });
+    throw missingRuntimePackageError("@fugood/whisper.node", "whisper-cpp", cause);
   });
   return modulePromise;
 }

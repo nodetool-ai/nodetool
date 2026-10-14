@@ -17,6 +17,7 @@ import type {
   SandboxModuleCatalog
 } from "@nodetool-ai/runtime";
 import {
+  Asset,
   initTestDb,
   TimelineSequence,
   TimelineSequenceVersion
@@ -460,6 +461,67 @@ describe("revising a timeline in place", () => {
     const versions = await TimelineSequenceVersion.listForTimeline(timelineId);
     expect(versions.length).toBeGreaterThan(0);
     expect(before!.updated_at).not.toBe(after!.updated_at);
+  });
+
+  it("stores s.image() asset refs as the asset's full id on v.save()", async () => {
+    initTestDb();
+    const context = createMockContext();
+    const run = createCapabilityRun({ context, gate: UNGATED });
+    const asset = (await Asset.create({
+      user_id: context.userId!,
+      name: "shot-1-still.jpg",
+      content_type: "image/jpeg"
+    })) as Asset;
+    const short = asset.id.slice(0, 12);
+    const session = createChatCodeActSession({
+      tools: ["create_timeline", "set_timeline_document", "validate_timeline"].map((name) => ({
+        name,
+        description: name,
+        inputSchema: { type: "object", properties: {} }
+      })),
+      sandboxModuleCatalog: catalog,
+      executeTool: (call) => run.invoke(call.name, call.args)
+    });
+    const refs = [
+      `asset://${short}.jpg`,
+      `asset://${short}`,
+      asset.id,
+      "package://nodetool-base/timelines/voltra/street.jpg"
+    ];
+
+    const observation = JSON.parse(
+      await session.executeAction({
+        code: `
+      import { video } from "@nodetool-ai/sandbox-timeline";
+      const v = video({ width: 1080, height: 1920, fps: 30 });
+      const refs = ${JSON.stringify(refs)};
+      const authored = [];
+      v.series([v.scene("stills", 2, (s) => {
+        for (const ref of refs) authored.push(s.image(ref, { name: ref }).currentAssetId);
+      })]);
+      const saved = await v.save(nodetool.timelines, { name: "Stills" });
+      return { authored, timeline_id: saved.timeline_id };
+    `
+      })
+    );
+
+    expect(observation).toMatchObject({ ok: true });
+    expect(observation.result.authored).toEqual([
+      short,
+      short,
+      asset.id,
+      "package://nodetool-base/timelines/voltra/street.jpg"
+    ]);
+    const stored = await TimelineSequence.findById(observation.result.timeline_id);
+    const images = stored!
+      .toDocument()
+      .clips.filter((c: { mediaType: string }) => c.mediaType === "image");
+    expect(images.map((c: { currentAssetId?: string }) => c.currentAssetId)).toEqual([
+      asset.id,
+      asset.id,
+      asset.id,
+      "package://nodetool-base/timelines/voltra/street.jpg"
+    ]);
   });
 
   it("set_timeline_code then edit_timeline_code updates the same timeline in place", async () => {
@@ -1084,7 +1146,7 @@ return {
       ok: true,
       result: {
         mediaType: "video",
-        currentAssetId: "asset://vid1",
+        currentAssetId: "vid1",
         inPointMs: 5000,
         volumeDb: -6,
         fadeInMs: 300,

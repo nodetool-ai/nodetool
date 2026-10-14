@@ -73,7 +73,7 @@ function spanDetail(attributes: Record<string, unknown>): string {
   const provider = attr(attributes, "llm.provider"); const model = attr(attributes, "llm.model");
   return provider || model ? clip([provider, model].filter(Boolean).join("/"), 48) : "";
 }
-function fail(error: unknown, json?: boolean): void { printCommandError(error, json); process.exitCode = 1; }
+function fail(error: unknown, json?: boolean): void { process.exitCode = printCommandError(error, json); }
 function common(command: Command): Command {
   return command.option("--api-url <url>", "Read a server instead of the local database", process.env["NODETOOL_API_URL"])
     .option("--json", "JSON result; tail emits NDJSON");

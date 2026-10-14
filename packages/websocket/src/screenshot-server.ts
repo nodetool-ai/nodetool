@@ -1867,7 +1867,7 @@ if (HERMETIC) {
   serverOptions.resolveExecutor = createFakeExecutorResolver(() => registry);
   serverOptions.resolveProvider = resolveFakeProvider;
 }
-const srv = createTestUiServer(serverOptions);
+const srv = await createTestUiServer(serverOptions);
 await srv.listen();
 
 console.log(

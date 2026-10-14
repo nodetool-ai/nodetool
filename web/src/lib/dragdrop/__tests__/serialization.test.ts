@@ -264,6 +264,53 @@ describe("serialization", () => {
       expect(result?.payload).toEqual(data.payload);
     });
 
+    it.each([
+      [
+        {
+          type: "example-model",
+          payload: {
+            slug: "chest",
+            name: "Chest",
+            file: "chest.glb",
+            uri: "package://nodetool-base/game-models/dungeon/chest.glb",
+            triangles: 120,
+            clips: [],
+            use: "Loot"
+          }
+        }
+      ],
+      [
+        {
+          type: "example-sketch",
+          payload: { slug: "moonlit-tide", name: "Moonlit Tide" }
+        }
+      ],
+      [
+        {
+          type: "example-timeline",
+          payload: { slug: "launch", name: "Launch" }
+        }
+      ]
+    ] satisfies [DragData][])(
+      "should round-trip $type through the unified format only",
+      (data) => {
+        const store: Record<string, string> = {};
+        const mockDataTransfer = stub<DataTransfer>({
+          setData: jest.fn((key: string, value: string) => {
+            store[key] = value;
+          }),
+          getData: jest.fn((key: string) => store[key] ?? ""),
+          items: [],
+          files: { length: 0 }
+        });
+
+        serializeDragData(data, mockDataTransfer);
+
+        expect(Object.keys(store)).toEqual([DRAG_DATA_MIME]);
+        expect(deserializeDragData(mockDataTransfer)).toEqual(data);
+      }
+    );
+
     it("should return null for invalid JSON", () => {
       const mockDataTransfer = stub<DataTransfer>({
         getData: jest.fn((key: string) => {

@@ -15,6 +15,7 @@ import type {
   NodeDescriptor as GraphNodeDescriptor,
   NodeUpdate
 } from "@nodetool-ai/protocol";
+import { MissingRuntimePackageError } from "@nodetool-ai/protocol";
 
 /** The one node type whose streaming-input mode is decided per instance. */
 const CODE_NODE_TYPE = "nodetool.code.Code";
@@ -675,6 +676,9 @@ export async function run(
   const result = await session.result;
 
   if (result.status === "failed") {
+    if (result.missingRuntime) {
+      throw new MissingRuntimePackageError(result.error ?? "Workflow execution failed", result.missingRuntime.runtimePackage, { details: result.missingRuntime });
+    }
     throw new Error(result.error ?? "Workflow execution failed");
   }
 

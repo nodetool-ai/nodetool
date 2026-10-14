@@ -62,6 +62,9 @@ export async function runValidate(
     const registry = await sharedRegistry();
     registryView = {
       has: (t) => registry.has(t),
+      availability: (t) => registry.availability(t),
+      catalogEntry: (t) => registry.catalogEntry(t),
+      catalogPack: (t) => registry.catalogPack(t),
       getMetadata: (t) => registry.getMetadata(t),
       validateNode: (d, h) => registry.validateNode(d, h),
       listProviderIds: () => listRegisteredProviderIds(),

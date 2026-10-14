@@ -7,6 +7,8 @@
 import type { RuntimePackageId } from "./missing-runtime-package.js";
 
 export interface RuntimeNpmPackage {
+  /** Hosts that include these libraries in their bundled backend. */
+  readonly bundledHosts?: readonly ("desktop" | "docker")[];
   /** Full npm install specs with exact versions. */
   readonly npmPackages: readonly string[];
   /** Bare package names, for status checks and uninstall. */
@@ -16,6 +18,30 @@ export interface RuntimeNpmPackage {
 }
 
 export const RUNTIME_NPM_PACKAGES = {
+  imaging: {
+    npmPackages: ["sharp@0.35.5", "@napi-rs/canvas@0.1.100"],
+    packageNames: ["sharp", "@napi-rs/canvas"],
+    description: "Image codecs and canvas rendering.",
+    bundledHosts: ["desktop", "docker"]
+  },
+  typescript: {
+    npmPackages: ["typescript@npm:@typescript/typescript6@6.0.2"],
+    packageNames: ["typescript"],
+    description: "TypeScript compiler and language-service APIs.",
+    bundledHosts: ["desktop", "docker"]
+  },
+  tracing: {
+    npmPackages: ["@opentelemetry/core@2.12.0", "@opentelemetry/resources@2.12.0", "@opentelemetry/sdk-trace-base@2.12.0"],
+    packageNames: ["@opentelemetry/core", "@opentelemetry/resources", "@opentelemetry/sdk-trace-base"],
+    description: "Workflow and agent execution traces.",
+    bundledHosts: ["desktop", "docker"]
+  },
+  esbuild: {
+    npmPackages: ["esbuild@0.28.1"],
+    packageNames: ["esbuild"],
+    description: "JavaScript and TypeScript sandbox dependency builds.",
+    bundledHosts: ["desktop", "docker"]
+  },
   "transformers-js": {
     // 3.x, not 4.x: kokoro-js 1.2.1 requires @huggingface/transformers
     // ^3.5.1. With 4.x installed npm nested a second 3.x copy under
@@ -24,11 +50,6 @@ export const RUNTIME_NPM_PACKAGES = {
     npmPackages: ["@huggingface/transformers@3.8.1", "kokoro-js@1.2.1"],
     packageNames: ["@huggingface/transformers", "kokoro-js"],
     description: "Local Transformers.js models, including the ONNX Runtime."
-  },
-  "claude-agent-sdk": {
-    npmPackages: ["@anthropic-ai/claude-agent-sdk@0.3.283"],
-    packageNames: ["@anthropic-ai/claude-agent-sdk"],
-    description: "The Claude Agent provider, which uses a Claude subscription."
   },
   "tensorflow-js": {
     npmPackages: [
