@@ -20,82 +20,10 @@ jest.mock("../../../../trpc/client", () => ({
 jest.mock("../../../../hooks/useResolvedMediaUri");
 import { mockAssetUrl } from "../../../../hooks/__mocks__/useResolvedMediaUri";
 
-/**
- * react-markdown is ESM-only; this mock handles markdown images `![](src)`
- * and links `[label](href)` and forwards them to `components.img` / `components.a`.
- */
-jest.mock("react-markdown", () => {
-  const react = jest.requireActual<typeof import("react")>("react");
-  const SAFE_SCHEME = /^(https?|mailto|irc|ircs|xmpp):/i;
-  const defaultUrlTransform = (url: string): string => {
-    const colon = url.indexOf(":");
-    if (colon === -1 || SAFE_SCHEME.test(url)) return url;
-    const questionMark = url.indexOf("?");
-    const hash = url.indexOf("#");
-    const slash = url.indexOf("/");
-    const beforePath =
-      (slash === -1 || colon < slash) &&
-      (questionMark === -1 || colon < questionMark) &&
-      (hash === -1 || colon < hash);
-    return beforePath ? "" : url;
-  };
-  // Match either image `![alt](src)` or link `[label](href)`
-  const TOKEN = /!\[([^\]]*)\]\(([^)]+)\)|\[([^\]]*)\]\(([^)]+)\)/g;
-  const MockMarkdown = ({
-    children,
-    components,
-    urlTransform
-  }: {
-    children?: string;
-    components?: {
-      img?: React.ComponentType<React.ComponentProps<"img">>;
-      a?: React.ComponentType<React.ComponentProps<"a">>;
-    };
-    urlTransform?: (url: string) => string | null | undefined;
-  }) => {
-    const content = children ?? "";
-    const transform = urlTransform ?? defaultUrlTransform;
-    const parts: React.ReactNode[] = [];
-    let cursor = 0;
-    let match: RegExpExecArray | null;
-    TOKEN.lastIndex = 0;
-    while ((match = TOKEN.exec(content)) !== null) {
-      parts.push(content.slice(cursor, match.index));
-      if (match[1] !== undefined && match[2] !== undefined) {
-        // Image
-        const alt = match[1];
-        const rawSrc = match[2];
-        const src = transform(rawSrc) ?? "";
-        if (src && components?.img) {
-          parts.push(
-            react.createElement(components.img, {
-              key: match.index,
-              src,
-              alt
-            })
-          );
-        } else if (src) {
-          parts.push(react.createElement("img", { key: match.index, src, alt }));
-        }
-      } else if (match[3] !== undefined && match[4] !== undefined) {
-        const label = match[3];
-        const rawHref = match[4];
-        const href = transform(rawHref) ?? "";
-        if (href && components?.a) {
-          parts.push(
-            react.createElement(components.a, { key: match.index, href }, label)
-          );
-        } else {
-          parts.push(label);
-        }
-      }
-      cursor = match.index + match[0].length;
-    }
-    parts.push(content.slice(cursor));
-    return react.createElement(react.Fragment, null, ...parts);
-  };
-  return { __esModule: true, default: MockMarkdown, defaultUrlTransform };
-});
+jest.mock("react-markdown", () => ({
+  __esModule: true,
+  ...jest.requireActual("../../../../__mocks__/linkedMarkdownMock")
+}));
 
 jest.mock("../../../../lib/chat/openResource", () => ({
   __esModule: true,
