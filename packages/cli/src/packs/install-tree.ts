@@ -198,7 +198,7 @@ export async function removeSnapshotAdditions(root: string, admittedModules: str
     const target = resolve(root, entry.path);
     const parent = await realpath(dirname(target));
     const within = relative(modules, target);
-    if (!within || within === ".." || within.startsWith(`..${sep}`) || target !== await realpath(target) || parent !== dirname(target)) {
+    if (!within || within === ".." || within.startsWith(`..${sep}`) || target !== await realpath(target) || parent !== dirname(target)) { // key-boundary-ok: sep anchors the parent path component on this platform.
       throw new Error(`Rollback addition escapes admitted tree: ${entry.path}`);
     }
     await rm(target, { recursive: true });

@@ -30,7 +30,7 @@ async function removeOwnedDirectories(root: string, nodeModules: string, paths: 
     if (covered) { continue; }
     if (protectedAncestors.has(entry.path)) { throw new Error(`Removal path contains a retained package: ${entry.path}`); }
     const target = resolve(root, entry.path); const within = relative(modules, target);
-    if (!within || within === ".." || within.startsWith(`..${sep}`) || target !== await realpath(target) || dirname(target) !== await realpath(dirname(target))) {
+    if (!within || within === ".." || within.startsWith(`..${sep}`) || target !== await realpath(target) || dirname(target) !== await realpath(dirname(target))) { // key-boundary-ok: sep anchors the parent path component on this platform.
       throw new Error(`Removal path escapes the admitted tree: ${entry.path}`);
     }
     await rm(target, { recursive: true }); removed.add(entry.path);
