@@ -336,3 +336,18 @@ The local harness exposed two browser game suites loading the untransformed
 Node config barrel. Jest now selects the browser branch while exercising the
 real Rapier import. Both failing suites pass after the test mapping fix. This
 is focused repair evidence, not a passing verdict for the full harness gate.
+
+`6efbf85d9e` fixes npm 10 replay, canonical fixture paths, the live npm
+interruption case and browser game test loading. Both Linux matrix legs and
+the macOS npm 11 leg passed on that checkpoint. Windows exposed a real npm
+launch failure from a long cwd. The corrected launcher starts a fixed Node
+bootstrap from a short ancestor, enters the admitted root, restores npm argv
+and loads npm. Relative project configuration and lifecycle INIT_CWD match
+the normal launch in real npm tests. Astra cleared the corrected source.
+Native Windows long-directory chdir remains a remote acceptance requirement.
+
+The rebuilt isolated backend artifact boots and answers health. Its first
+smoke-copy attempt hit temporary-storage quota. Removing the clean, fully
+pushed temporary parent checkout freed space, and the same artifact passed
+on retry. The temporary parent checkout no longer exists. Build, typecheck
+and lint passed before the final npm-launcher delta.

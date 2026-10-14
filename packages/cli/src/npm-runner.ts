@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { dirname, join, delimiter } from "node:path";
+import { dirname, join, delimiter, win32 } from "node:path";
 
 export type NpmInstallMode = "global" | "local";
 
@@ -65,14 +65,28 @@ function npmCall(cli: string | null, args: readonly string[], root: string,
   if (!cli && process.platform === "win32") {
     throw new Error("Cannot locate npm-cli.js. Install Node.js with npm and run the command again.");
   }
+  let cwd = root;
+  let launchArgs = cli ? [cli, ...args] : [...args];
+  if (process.platform === "win32" && root.length >= 260) {
+    // CreateProcess limits cwd. Enter the project after Node starts so npm's
+    // relative configuration and lifecycle INIT_CWD retain their meaning.
+    while (cwd.length >= 260) {
+      const parent = win32.dirname(cwd);
+      if (parent === cwd) { throw new Error("Cannot launch npm from this Windows install path"); }
+      cwd = parent;
+    }
+    launchArgs = ["-e", "const [root, cli, ...args] = process.argv.slice(1); process.chdir(root); process.argv = [process.execPath, cli, ...args]; require(cli);", root, cli!, ...args];
+  }
   return new Promise((resolve, reject) => {
-    const child = spawn(cli ? process.execPath : "npm", cli ? [cli, ...args] : [...args], {
-      cwd: root, shell: false, stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit", signal
+    const child = spawn(cli ? process.execPath : "npm", launchArgs, {
+      cwd, shell: false, stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit", signal
     });
     let output = "";
     let errors = "";
     child.stdout?.on("data", (chunk: Buffer) => { output += chunk.toString(); });
     child.stderr?.on("data", (chunk: Buffer) => { errors += chunk.toString(); });
+    child.stdout?.on("error", reject);
+    child.stderr?.on("error", reject);
     child.on("error", reject);
     child.on("close", (code) => {
       if (code === 0) {
