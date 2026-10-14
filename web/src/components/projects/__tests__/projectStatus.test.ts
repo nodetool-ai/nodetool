@@ -113,7 +113,7 @@ describe("projectProgress", () => {
     ).toEqual({ label: "clips 8/8", done: true });
   });
 
-  it("falls back to the cut's length, and never claims it was rendered", () => {
+  it("adds no pill for a cut alone, whose length the status line carries", () => {
     expect(
       projectProgress([
         document({
@@ -122,7 +122,7 @@ describe("projectProgress", () => {
           status: { kind: "timeline", clips: 6, durationMs: 102_000 }
         })
       ])
-    ).toEqual({ label: "cut · 1:42", done: false });
+    ).toBeNull();
   });
 
   it("has nothing to say about a project with neither", () => {
