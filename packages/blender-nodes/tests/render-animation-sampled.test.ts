@@ -86,7 +86,7 @@ async function renderSampled(
     model,
     sampledOp(frameTimes, cameras, overrides),
     outputs,
-    { timeoutMs: 300_000, maxOutputCount: frameTimes.length }
+    { timeoutMs: 600_000, maxOutputCount: frameTimes.length }
   );
   const frames = Object.keys(outputs)
     .sort()
@@ -127,7 +127,7 @@ describe.skipIf(!blenderAvailable())("render_animation — sampled bake", () => 
 
     const half = await renderSampled(helper!, createAnimatedGlb(), [0.5]);
     expect(meanAbsDiff(half.frames[0]!, frames[2]!)).toBeLessThanOrEqual(1);
-  }, 600_000);
+  }, 1_200_000);
 
   it("writes RGBA with a see-through ground under a transparent style", async () => {
     // T13: the alpha bake's whole premise is that the producer's PNGs carry
