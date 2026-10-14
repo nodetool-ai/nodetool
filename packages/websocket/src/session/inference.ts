@@ -135,6 +135,30 @@ export interface DirectMediaSourceContext {
   speedMultiplier: number;
 }
 
+/** Source window matches the timeline span at one constant speed (1x unless extending). */
+function isConstantSpeedWindow(
+  context: DirectMediaSourceContext,
+  allowSpeedChange: boolean
+): boolean {
+  const { sourceStartMs, sourceEndMs, timelineDurationMs, speedMultiplier } =
+    context;
+  const finite =
+    Number.isFinite(sourceStartMs) &&
+    Number.isFinite(timelineDurationMs) &&
+    Number.isFinite(speedMultiplier);
+  if (!finite || sourceStartMs < 0 || sourceEndMs <= sourceStartMs) {
+    return false;
+  }
+  if (timelineDurationMs <= 0 || speedMultiplier <= 0) {
+    return false;
+  }
+  if (!allowSpeedChange && speedMultiplier !== 1) {
+    return false;
+  }
+  const expectedEndMs = sourceStartMs + timelineDurationMs * speedMultiplier;
+  return Math.abs(sourceEndMs - expectedEndMs) <= 0.5;
+}
+
 export interface DirectMediaGenerationResult {
   asset_ids: string[];
   media_edit_references?: { referenceAssetIds: string[]; entityIds: string[] };
@@ -812,23 +836,7 @@ export class DirectInferenceHandler {
       if (context && context.sourceAssetId !== req.sourceAssetId) {
         throw new Error("source_context does not match source_asset_id");
       }
-      if (
-        context &&
-        (!Number.isFinite(context.sourceStartMs) ||
-          !Number.isFinite(context.sourceEndMs) ||
-          context.sourceStartMs < 0 ||
-          context.sourceEndMs <= context.sourceStartMs ||
-          !Number.isFinite(context.timelineDurationMs) ||
-          context.timelineDurationMs <= 0 ||
-          !Number.isFinite(context.speedMultiplier) ||
-          context.speedMultiplier <= 0 ||
-          (!extension && context.speedMultiplier !== 1) ||
-          Math.abs(
-            context.sourceEndMs -
-              (context.sourceStartMs +
-                context.timelineDurationMs * context.speedMultiplier)
-          ) > 0.5)
-      ) {
+      if (context && !isConstantSpeedWindow(context, extension)) {
         throw new Error(
           "source_context contains an invalid constant-speed window"
         );
