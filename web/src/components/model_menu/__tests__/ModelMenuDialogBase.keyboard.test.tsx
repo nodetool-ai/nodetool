@@ -107,7 +107,7 @@ it("leaves the Favorites view when a search term is typed", () => {
   const onModelChange = jest.fn();
   renderMenu(onModelChange);
 
-  fireEvent.click(screen.getByLabelText("Favorites"));
+  fireEvent.click(screen.getByRole("button", { name: /^Favorites/ }));
   fireEvent.change(searchField(), { target: { value: "4o" } });
   act(() => {
     fireEvent.keyDown(searchField(), { key: "Enter" });
