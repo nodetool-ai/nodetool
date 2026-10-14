@@ -33,6 +33,7 @@ import { useAssetActions } from "./useAssetActions";
 import { useSetAssetFavorite } from "../../serverState/useAssetFavorite";
 import { useActivateOnKey } from "../../hooks/useActivateOnKey";
 import { useVideoThumbnail } from "../../hooks/useVideoThumbnail";
+import { useImageThumbnail } from "../../hooks/useImageThumbnail";
 import { isCoarsePointer } from "../../utils/isCoarsePointer";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -469,6 +470,14 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     isVideo ? asset?.get_url : null
   );
 
+  // A fresh upload can be listed before its thumbnail is written. The hook
+  // shows the full image until the thumbnail loads, instead of a black tile.
+  const rasterThumbUrl = useImageThumbnail(
+    isImage && !isSvg ? asset?.thumb_url : null,
+    isImage && !isSvg ? asset?.get_url : null
+  );
+  const imageUrl = isSvg ? asset.get_url : rasterThumbUrl;
+
   const handleAudioClick = useCallback(() => {
     onSetCurrentAudioAsset?.(asset);
   }, [asset, onSetCurrentAudioAsset]);
@@ -537,14 +546,14 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
                 <div
                   className="image"
                   style={{
-                    backgroundImage: `url(${isSvg ? asset.get_url : asset.thumb_url || asset.get_url})`
+                    backgroundImage: `url(${imageUrl})`
                   }}
                   aria-label={asset.id}
                 />
                 <div
                   className="image-aspect-ratio"
                   style={{
-                    backgroundImage: `url(${isSvg ? asset.get_url : asset.thumb_url || asset.get_url})`
+                    backgroundImage: `url(${imageUrl})`
                   }}
                   aria-label={asset.id}
                 />

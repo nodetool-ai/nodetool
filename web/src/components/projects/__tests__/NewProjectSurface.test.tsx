@@ -534,7 +534,11 @@ beforeEach(() => {
   selectedModel = { provider: "anthropic", id: "claude-sonnet-5" };
   actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: null, personalProjectId: null });
   clearChatTurn("chat-1");
-  useOnboardingStore.setState({ completedSteps: [], dismissed: false });
+  useOnboardingStore.setState({
+    completedSteps: [],
+    dismissed: false,
+    ideaDescribed: false
+  });
   skills = [
     {
       id: "system:launch-commercial",
@@ -931,6 +935,8 @@ describe("NewProjectSurface", () => {
     expect(useOnboardingStore.getState().completedSteps).not.toContain(
       "describe-idea"
     );
+    // The finished run that follows completes it (see workflowUpdates).
+    expect(useOnboardingStore.getState().ideaDescribed).toBe(true);
   });
 
   it("does not complete a guided flow when an entry card starts", async () => {

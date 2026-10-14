@@ -3,7 +3,7 @@ import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
 import LaunchIcon from "@mui/icons-material/Launch";
