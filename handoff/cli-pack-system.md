@@ -435,3 +435,26 @@ actual packed probes.
 same CI job, using a separate temporary install. It does not publish anything.
 The step's absence fails a retained workflow regression. The aggregate check
 still requires complete verification and packed installation.
+
+## A8 acceptance and A9 size gate
+
+The [packed-install job on `5b2631ab38`](https://github.com/nodetool-ai/nodetool/actions/runs/38496155808/job/115632297199)
+passes both core-only and full bundled smoke. Core-only covers purity, DSL
+imports, CLI help/version, MCP workflow execution, JSON and TypeScript
+workflows, missing-pack/property validation, typed execution failure, real
+Mediabunny audio/video decoding and HTTP health. The core tree measures
+849,616 KiB. The same runner's bundled tree measures 1,075,516 KiB.
+
+A9 enforces 892,097 KiB only for core-only Linux x64, using the measured core
+size plus five percent rounded up. [Design section 8.4](../docs/cli-pack-system-design.md#84-budget)
+records the measurement and limit. Before main integration, a real 16 KiB
+fixture failed a 1 KiB budget and passed at equality. The helper also refuses
+invalid measurements and limits. All 49 helper tests pass and Astra cleared
+the integration. Fresh CI must prove the enforced gate on the packed install.
+
+The broad verification job on that run stopped at the new FAL catalog
+regression's five-second import deadline. Its assertions passed in focused
+runs and in the real packed smoke. Only that integration test now has a
+30-second deadline. The other 456 script tests passed in the failed run.
+Mandatory verification and the required aggregate check still need success.
+A24 remains blocked by its release and verification prerequisites.

@@ -52,6 +52,7 @@ import { CORE_PACKAGES, NODE_PACKS, RUNTIME_LIBRARIES } from "./node-catalog/tie
 const ROOT = resolve(import.meta.dirname, "..");
 const PACKAGE_ROOTS = ["packages", "reliability"];
 const CLI_NAME = "@nodetool-ai/cli";
+const CORE_INSTALL_BUDGET_KIB = 892_097;
 export const REQUIRED_COMMANDS = [
   "run", "info", "serve", "chat", "workflows", "jobs", "assets", "models", "storage",
   "secrets", "settings", "mcp", "projects", "package", "packs", "runtime", "worker",
@@ -112,6 +113,15 @@ export function coreOnlyCliManifest(manifest) {
   result.dependencies ??= {};
   for (const name of CORE_NODE_PACKAGES) { result.dependencies[name] = manifest.version; }
   return result;
+}
+
+export function assertCoreInstallSize(diskUsage, maxKiB) {
+  if (!Number.isSafeInteger(maxKiB) || maxKiB <= 0) { throw new Error("Core install size limit must be a positive safe integer in KiB"); }
+  const match = typeof diskUsage === "string" ? /^([1-9]\d*)\s+node_modules\r?\n?$/.exec(diskUsage) : null;
+  const measuredKiB = match ? Number(match[1]) : NaN;
+  if (!Number.isSafeInteger(measuredKiB) || measuredKiB <= 0) { throw new Error(`Invalid core install disk usage: ${JSON.stringify(diskUsage)}`); }
+  if (measuredKiB > maxKiB) { throw new Error(`Core install uses ${measuredKiB} KiB, exceeding the ${maxKiB} KiB limit`); }
+  return measuredKiB;
 }
 
 export function repackCoreCli(file, dest) {
@@ -526,7 +536,11 @@ empty project, and runs it against an empty HOME.
       console.log("ok  the packed DSL imports without node packs");
     }
     const diskUsage = run("du", ["-sk", "node_modules"], { cwd: appDir }).trim();
-    console.log(`Packed CLI disk usage (KiB, report only): ${diskUsage}`);
+    console.log(`Packed CLI disk usage (KiB): ${diskUsage}`);
+    if (values["core-only"] && process.platform === "linux" && process.arch === "x64") {
+      const measuredKib = assertCoreInstallSize(diskUsage, CORE_INSTALL_BUDGET_KIB);
+      console.log(`ok  core-only size ${measuredKib} KiB <= ${CORE_INSTALL_BUDGET_KIB} KiB`);
+    }
 
     const bin = join(appDir, "node_modules", ".bin", "nodetool");
     const env = { ...cleanEnv(home), SECRETS_MASTER_KEY: randomBytes(32).toString("base64") };

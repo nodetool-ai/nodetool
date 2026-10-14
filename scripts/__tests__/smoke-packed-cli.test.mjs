@@ -9,7 +9,7 @@ import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 
-import { assertCoreOnlyInstall, cleanEnv, codecProbeSource, coreOnlyCliManifest, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, REQUIRED_COMMANDS, repackCoreCli, smokeManifest } from "../smoke-packed-cli.mjs";
+import { assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, coreOnlyCliManifest, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, REQUIRED_COMMANDS, repackCoreCli, smokeManifest } from "../smoke-packed-cli.mjs";
 
 const fixtures = [];
 afterEach(() => { for (const root of fixtures.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
@@ -231,7 +231,7 @@ describe("packed runtime probes", () => {
     registry.loadCatalog([node], readCatalogIndex().packs);
     expect(validateGraph(graph, registry).issues.map(issue => issue.code)).toEqual(expect.arrayContaining(["pack_not_installed", "property"]));
     expect(validateGraph(missingFalGraph({ audio: { type: "audio", data: "AA==" } }), registry).issues.map(issue => issue.code)).toEqual(["pack_not_installed"]);
-  });
+  }, 30_000);
 
   it("generates valid module source for the codec identity decode", () => {
     const source = codecProbeSource("/tmp/fixture.mp4");
@@ -268,4 +268,28 @@ it("reports an unavailable MCP executable without an unhandled spawn error", asy
   const home = appFixture();
   await expect(probeMcp(join(home, "missing-nodetool"), cleanEnv(home), home))
     .rejects.toMatchObject({ code: "ENOENT" });
+});
+
+describe("core install size budget", () => {
+  it("accepts valid measurements through the exact limit", () => {
+    expect(assertCoreInstallSize("123\tnode_modules\n", 124)).toBe(123);
+    expect(assertCoreInstallSize("123 node_modules", 123)).toBe(123);
+    expect(() => assertCoreInstallSize("124\tnode_modules", 123)).toThrow(/124 KiB.*123 KiB/);
+    expect(assertCoreInstallSize(`${Number.MAX_SAFE_INTEGER}\tnode_modules`, Number.MAX_SAFE_INTEGER)).toBe(Number.MAX_SAFE_INTEGER);
+  });
+  it.each([undefined, null, 1, ["1 node_modules"], { toString: () => "1 node_modules" }, "", "0 node_modules", "-1 node_modules", "1.5 node_modules", "9007199254740992 node_modules", "12 other", "12 node_modules extra", "12 node_modules\n13 node_modules"])("rejects invalid measurement %j", measurement => {
+    expect(() => assertCoreInstallSize(measurement, 123)).toThrow(/Invalid core install disk usage/);
+  });
+  it.each([undefined, null, "123", 0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])("rejects invalid KiB budget %j", limit => {
+    expect(() => assertCoreInstallSize("1 node_modules", limit)).toThrow(/positive safe integer/);
+  });
+  it.runIf(process.platform !== "win32")("rejects a real oversized du measurement", () => {
+    const root = appFixture(); const modules = join(root, "node_modules"); mkdirSync(modules);
+    writeFileSync(join(modules, "fixture.bin"), Buffer.alloc(16 * 1024, 1));
+    const measured = spawnSync("du", ["-sk", "node_modules"], { cwd: root, encoding: "utf8" });
+    expect(measured.status, measured.stderr).toBe(0); expect(measured.error).toBeUndefined();
+    expect(() => assertCoreInstallSize(measured.stdout, 1)).toThrow(/exceeding the 1 KiB limit/);
+    const value = Number(measured.stdout.split(/\s+/)[0]);
+    expect(assertCoreInstallSize(measured.stdout, value)).toBe(value);
+  });
 });

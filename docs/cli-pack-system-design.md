@@ -315,7 +315,8 @@ D16 cancels three cuts in the table below (`@hyzyla/pdfium`, `mediabunny`,
 five core additions use about 170 MB of disk: `webgpu` 68 MB, `node-av` with
 its platform package 64 MB, `werift` 11 MB, `mediabunny` 11 MB,
 `@hyzyla/pdfium` 11 MB, `chart.js` 6 MB. `node-web-audio-api` (41 MB) moves
-with the `audio` pack. The projections in 8.3 and the gate in 8.4 predate D16.
+with the `audio` pack. The projections in 8.3 predate D16. The gate in 8.4 uses
+the clean installed core tree with D16 included.
 
 Savings of each cut, measured on top of S1:
 
@@ -352,8 +353,10 @@ declarations).
 D13. The gate measures `du -sk node_modules` after a clean
 `npm install <cli tarball>` in an empty project on linux-x64 in CI.
 
-- Hard gate at the end of step 1: the walker's measurement of the D16 core.
-  The earlier 320 MB figure excludes the D16 libraries.
+- Hard gate: **892,097 KiB** for the core-only Linux x64 install. The
+  [successful packed install](https://github.com/nodetool-ai/nodetool/actions/runs/38496155808)
+  measured **849,616 KiB**. The limit adds five percent, rounded up to the next
+  KiB. The same runner measured the bundled CLI at 1,075,516 KiB.
 - Ratchet target for a later release: 250 MB disk. It needs fewer declaration
   files in runtime-only packages and lazy provider SDKs. The fs-safe dependency
   has already been removed.
