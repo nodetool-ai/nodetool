@@ -28,6 +28,11 @@ const documentPage = jest.fn(
   }
 );
 const prefetch = jest.fn();
+const renameDocument = jest.fn();
+
+jest.mock("../../../hooks/useRenameDocument", () => ({
+  useRenameDocument: () => renameDocument
+}));
 
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   LOOSE_PROJECT_ID: "default",
@@ -57,19 +62,26 @@ jest.mock("../ProjectDocumentCard", () => ({
   default: ({
     document,
     onOpen,
+    onRename,
     compact
   }: {
     document: { name: string };
     onOpen: (document: { name: string }) => void;
+    onRename: (document: { name: string }, name: string) => void;
     compact: boolean;
   }) => (
-    <button
-      type="button"
-      data-compact={compact}
-      onClick={() => onOpen(document)}
-    >
-      {document.name}
-    </button>
+    <>
+      <button
+        type="button"
+        data-compact={compact}
+        onClick={() => onOpen(document)}
+      >
+        {document.name}
+      </button>
+      <button type="button" onClick={() => onRename(document, "Renamed")}>
+        Rename card
+      </button>
+    </>
   )
 }));
 
@@ -107,6 +119,15 @@ it("shows and opens documents from the active project", async () => {
     title: "p1 board",
     projectId: "p1"
   });
+});
+
+it("renames a card's document by type and id", async () => {
+  renderDocuments();
+  await userEvent.click(screen.getByRole("button", { name: "Rename card" }));
+  expect(renameDocument).toHaveBeenCalledWith(
+    { type: "storyboard", ref: "p1-board-1", currentName: "p1 board" },
+    "Renamed"
+  );
 });
 
 it("uses the personal project when no project is selected", () => {

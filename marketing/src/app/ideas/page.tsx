@@ -4,6 +4,7 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
 import { ideaCategories } from "@/data/ideasEntries";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 export const metadata: Metadata = {
   title: "AI workflow ideas — NodeTool",
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
     "Ideas for what to build in NodeTool, grouped by category: image and video generation, audio and voice, agents and research, marketing content, and data workflows.",
   alternates: { canonical: "/ideas" },
   openGraph: {
+    images: DEFAULT_OG_IMAGES,
     title: "AI workflow ideas — NodeTool",
     description:
       "What to build in NodeTool: image, video, audio, agents, marketing, and data workflows.",
