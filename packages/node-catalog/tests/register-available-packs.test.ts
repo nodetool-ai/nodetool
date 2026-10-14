@@ -20,6 +20,9 @@ it("registers one available pack without bootstrapping other packs", async () =>
   await expect(registerCatalogPack(registry, "unknown")).rejects.toThrow("Unknown node pack");
 });
 
+// Registration imports built media packs under CI load.
+const PACK_REGISTRATION_TIMEOUT_MS = 35_000;
+
 it.each([
   ["CLI", CLI_BUILTIN_PACK_POLICY],
   ["local", {}],
@@ -33,4 +36,4 @@ it.each([
   expect(available.listMetadata().sort((a, b) => a.node_type.localeCompare(b.node_type))).toEqual(
     bundled.listMetadata().sort((a, b) => a.node_type.localeCompare(b.node_type))
   );
-});
+}, PACK_REGISTRATION_TIMEOUT_MS);
