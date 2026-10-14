@@ -12,7 +12,7 @@ const gold = gameMaterial3D.parse({ color: "#ffaa00" });
 const silver = gameMaterial3D.parse({ color: "#aabbcc" });
 
 it.each((["preset", "inline", "prefab"] as const).flatMap((mode) =>
-  [false, true].map((banner) => ({ mode, banner }))))("accepts the actual server binding through conflict stores: $mode banner=$banner", ({ mode, banner }) => {
+  [false, true].flatMap((banner) => [false, true].map((rebindImage) => ({ mode, banner, rebindImage })))))("accepts the actual server binding through conflict stores: $mode banner=$banner rebindImage=$rebindImage", ({ mode, banner, rebindImage }) => {
   const base = mode === "preset" ? withTexturedMaterial() : withInlineVisual("primitive", mode === "prefab");
   const assigned = structuredClone(base);
   if (mode === "preset") { assignMaterial(assigned, false); }
@@ -22,6 +22,7 @@ it.each((["preset", "inline", "prefab"] as const).flatMap((mode) =>
     visual.material.normalTexture = { assetId: "paint" };
     if (mode === "prefab") { assigned.prefabs.visual.externalAssets.push("paint"); }
   }
+  if (rebindImage) { assigned.assets.paint = { ...assigned.assets.paint, assetId: "draft-image", digest: "draft-image-digest" }; }
   const replaced = structuredClone(base);
   delete replaced.materials;
   replaced.assets.paint = { mediaKind: "audio", assetId: "server-audio", digest: "audio-digest", required: true };

@@ -42,7 +42,12 @@ function retainReferencedMaterials(doc: GameDocument3D, sources: readonly GameDo
       const slot = material[field]?.assetId;
       if (!slot) { continue; }
       const current = Object.hasOwn(doc.assets, slot) ? doc.assets[slot] : undefined;
-      if (current?.mediaKind === "image") { continue; }
+      if (current?.mediaKind === "image") {
+        const serverAssets = sources[1]?.assets;
+        const external = serverAssets && Object.hasOwn(serverAssets, slot) ? serverAssets[slot] : undefined;
+        if (conflictedAssets.has(slot) && external && external.mediaKind !== "image") { onIncompatibleAsset?.(); }
+        continue;
+      }
       const source = candidates.find((candidate) => Object.hasOwn(candidate.assets, slot) && candidate.assets[slot].mediaKind === "image");
       const binding = source?.assets[slot];
       if (!binding) { continue; }
