@@ -83,6 +83,7 @@ const EVAL_MODULES = [
   ["evals/tool-loop-cases.js", "TOOL_LOOP_EVAL_CASES"],
   ["evals/escalation-cases.js", "WORKFLOW_ESCALATION_TOOL_LOOP_CASES"],
   ["evals/surfaces/app.js", "APP_TOOL_LOOP_CASES"],
+  ["evals/surfaces/game.js", "GAME_TOOL_LOOP_CASES"],
   ["evals/surfaces/creative-pipeline.js", "CREATIVE_PIPELINE_TOOL_LOOP_CASES"],
   ["evals/surfaces/js-script.js", "JS_SCRIPT_TOOL_LOOP_CASES"],
   ["evals/surfaces/model3d.js", "MODEL3D_TOOL_LOOP_CASES"],
