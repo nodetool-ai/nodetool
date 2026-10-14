@@ -6,7 +6,7 @@ import type { Page } from "@playwright/test";
  * exist only while a tab is being dragged.
  */
 export async function dragGameDockTab(page: Page, tabName: string, targetSelector: string): Promise<void> {
-  const tab = await page.getByRole("tab").filter({ has: page.getByText(tabName, { exact: true }) }).boundingBox();
+  const tab = await page.getByRole("tab", { name: tabName, exact: true }).boundingBox();
   if (!tab) { throw new Error(`Dock tab "${tabName}" has no bounds`); }
   const x = tab.x + tab.width / 2, y = tab.y + tab.height / 2;
   await page.mouse.move(x, y);
