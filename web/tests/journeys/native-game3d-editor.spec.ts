@@ -43,11 +43,12 @@ test("edits, undoes, installs a model, plays and publishes the same 3D draft", a
     }, { id: created.game.id, projectId: PROJECT_ID });
     await page.goto("/workspace", { waitUntil: "domcontentloaded" });
     await waitForAppReady(page);
-    await expect(page.getByRole("button", { name: "Add box", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Add entity", exact: true })).toBeEnabled();
     await expect(page.locator('canvas[aria-label="3D game viewport"]')).toBeVisible();
     await expect(page.getByText(/WebGL2/)).toBeVisible();
     const initial = (await client.games.getDraft.query({ id: created.game.id })).document;
-    await page.getByRole("button", { name: "Add box", exact: true }).click();
+    await page.getByRole("button", { name: "Add entity", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Box", exact: true }).click();
     await expect.poll(async () => (await client.games.getDraft.query({ id: created.game.id })).document.scenes[0].entities.length).toBe(initial.scenes[0].entities.length + 1);
     await page.getByRole("button", { name: "Frame selection", exact: true }).click();
     const viewport = page.locator('canvas[aria-label="3D game viewport"]');
@@ -175,7 +176,7 @@ test("releases native 3D pointer lock when its dock tab becomes inactive and pre
   if (!original) { throw new Error("Native 3D canvas did not mount"); }
   await dragGameDockTab(page, "Inspector", '[data-game-dock-group]:has([data-dock-tab="viewport"]) [data-game-dock-body]');
   const viewportTab = page.getByRole("tab", { name: "Viewport", exact: true });
-  const inspectorTab = page.getByRole("tab", { name: "Inspector", exact: true });
+  const inspectorTab = page.getByRole("tab").filter({ has: page.getByText("Inspector", { exact: true }) });
   expect(await inspectorTab.evaluate((node) => node.closest("[data-game-dock-group]")?.getAttribute("data-game-dock-group")))
     .toEqual(await viewportTab.evaluate((node) => node.closest("[data-game-dock-group]")?.getAttribute("data-game-dock-group")));
   await viewportTab.click();
