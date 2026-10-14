@@ -5,6 +5,7 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
 import { taskEntries, tasksHubEntry } from "@/data/taskEntries";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
   description: tasksHubEntry.description,
   alternates: { canonical: `${BASE_URL}/tasks` },
   openGraph: {
+    images: DEFAULT_OG_IMAGES,
     title: tasksHubEntry.title,
     description: tasksHubEntry.description,
     url: `${BASE_URL}/tasks`,

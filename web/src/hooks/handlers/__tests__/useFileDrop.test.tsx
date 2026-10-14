@@ -290,6 +290,40 @@ describe("useFileDrop", () => {
     expect(onChangeAsset).toHaveBeenCalled();
   });
 
+  it("rejects an example instead of pasting its drag data as text", () => {
+    const onChange = jest.fn();
+    mockDeserialize.mockReturnValue({
+      type: "example-sketch",
+      payload: { slug: "moonlit-tide", name: "Moonlit Tide" }
+    });
+
+    const { result } = renderHook(() =>
+      useFileDrop({ type: "image", onChange })
+    );
+
+    act(() => {
+      result.current.onDrop(
+        createMockDragEvent({
+          dataTransfer: {
+            items: [
+              {
+                kind: "string",
+                getAsString: (cb: (s: string) => void) => cb("{}")
+              }
+            ],
+            files: { length: 0 },
+            getData: jest.fn(() => "")
+          }
+        })
+      );
+    });
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "error" })
+    );
+  });
+
   it("passes dropped string items to onChange", () => {
     const onChange = jest.fn();
     mockDeserialize.mockReturnValue(null);

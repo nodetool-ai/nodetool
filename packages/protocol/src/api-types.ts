@@ -13,6 +13,7 @@ import type {
   OutputCorrelation
 } from "./graph.js";
 import type { NodeEffect } from "./platform.js";
+import type { ExampleNeeds } from "./example-needs.js";
 
 // ---------------------------------------------------------------------------
 // Media Refs
@@ -477,6 +478,8 @@ export interface Workflow {
   workspace_id?: string | null;
   required_providers?: string[] | null;
   required_models?: string[] | null;
+  /** Set on shipped examples: the models and keys the graph asks for. */
+  needs?: ExampleNeeds | null;
   html_app?: string | null;
   /** App-builder document (Puck layout + bindings): `{ version, data }`. */
   app_doc?: Record<string, unknown> | null;
@@ -1144,6 +1147,9 @@ export const PROVIDER_IDS = {
   // Claude via the Claude Agent SDK / `claude` CLI (no API key — uses the
   // machine's logged-in Claude subscription, spawning the CLI as a subprocess).
   CLAUDE_AGENT_SDK: "claude_agent_sdk",
+  // Google models via the Antigravity CLI (`agy`) in headless mode (no API
+  // key — uses the machine's signed-in Antigravity account, spawning the CLI).
+  ANTIGRAVITY: "antigravity",
   // Dreamina (CapCut) driven through the NodeTool Chrome extension in the
   // user's own logged-in Chrome tab (no API key, local installs only).
   DREAMINA: "dreamina",
@@ -1244,7 +1250,7 @@ export const CODEX_DEFAULT_ORIGINATOR = "codex_cli_rs";
  * "model not supported" on `/responses`. Must be ≥ the served models'
  * `minimal_client_version`. Override via `CODEX_CLIENT_VERSION`.
  */
-export const CODEX_CLIENT_VERSION = "0.155.0";
+export const CODEX_CLIENT_VERSION = "0.162.1";
 /** Loopback port/path the Codex client's redirect URI is registered against. */
 export const CODEX_CALLBACK_PORT = 1455;
 export const CODEX_CALLBACK_PATH = "/auth/callback";

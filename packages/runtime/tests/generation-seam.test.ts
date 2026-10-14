@@ -325,6 +325,27 @@ describe("runGeneration", () => {
     expect(predictions(ctx)[1].asset_ids).toEqual(["asset-1"]);
   });
 
+  it("gives a bare persist name the extension its uri carries", async () => {
+    const ctx = new ProcessingContext({ jobId: "job-1" });
+    const created: Array<Record<string, unknown>> = [];
+    ctx.setModelInterfaces({
+      createAsset: async (args) => {
+        created.push({ ...args });
+        return { id: "asset-1", content_type: args.contentType };
+      }
+    });
+    ctx.registerProvider("fake", new ImageProvider(async () => PNG));
+    const result = await ctx.runGeneration({
+      provider: "fake",
+      capability: "text_to_image",
+      model: "m",
+      params: { prompt: "x" },
+      persist: { name: "shot-1-still" }
+    });
+    expect(created[0].name).toBe("shot-1-still.png");
+    expect(result.assets[0].uri).toBe("asset://asset-1.png");
+  });
+
   it("keeps the prompt and settings on the asset, without the input bytes", async () => {
     const ctx = new ProcessingContext({ jobId: "job-1" });
     const created: Array<Record<string, unknown>> = [];

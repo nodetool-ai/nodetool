@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import AssetItem from "../AssetItem";
@@ -183,6 +183,38 @@ describe("AssetItem", () => {
     expect(tile.style.backgroundImage).toContain("/api/storage/svg1.svg");
     expect(tile.style.backgroundImage).not.toContain("_thumb.jpg");
     expect(container.querySelector(".asset-item")?.className).toContain("svg");
+  });
+
+  it("paints the full image while a fresh upload's thumbnail is still missing", async () => {
+    // The grid can list an upload before the server has written its
+    // thumbnail, so the first thumbnail request is a 404.
+    const OriginalImage = global.Image;
+    class MissingThumbImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(url: string) {
+        void Promise.resolve().then(() =>
+          url.includes("thumb") ? this.onerror?.() : this.onload?.()
+        );
+      }
+    }
+    global.Image = MissingThumbImage as unknown as typeof Image;
+    try {
+      const { container } = renderWithTheme(
+        <AssetItem
+          asset={baseImageAsset}
+          isSelected={false}
+          showDeleteButton={false}
+        />
+      );
+      const tile = container.querySelector(".asset .image") as HTMLElement;
+      await waitFor(() =>
+        expect(tile.style.backgroundImage).toContain("/img/a1.jpg")
+      );
+      expect(tile.style.backgroundImage).not.toContain("thumb");
+    } finally {
+      global.Image = OriginalImage;
+    }
   });
 
   it("calls onDoubleClick with asset on double click", () => {

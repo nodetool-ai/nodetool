@@ -25,7 +25,10 @@ export const createWriteStream = notInBrowser("createWriteStream");
 export const cpSync = notInBrowser("cpSync");
 export const unlinkSync = notInBrowser("unlinkSync");
 export const rmSync = notInBrowser("rmSync");
+export const renameSync = notInBrowser("renameSync");
 export const mkdtempSync = notInBrowser("mkdtempSync");
+export const watch = notInBrowser("watch");
+export const WriteStream = notInBrowser("WriteStream");
 
 // `constants` is data, not behavior — `accessSync(p, constants.R_OK)` reads it
 // before it ever calls, so a throwing stub would break at the wrong moment.
@@ -51,6 +54,9 @@ export default {
   cpSync,
   unlinkSync,
   rmSync,
+  renameSync,
   mkdtempSync,
+  watch,
+  WriteStream,
   constants
 };

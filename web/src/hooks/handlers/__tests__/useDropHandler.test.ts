@@ -34,6 +34,23 @@ jest.mock("../addNodeFromAsset");
 jest.mock("../../../stores/RecentNodesStore");
 jest.mock("../dropHandlerUtils");
 jest.mock("../../../stores/MetadataStore");
+const mockAddExampleModelAsset = jest.fn();
+jest.mock("../../useAddExampleModelAsset", () => ({
+  useAddExampleModelAsset: () => mockAddExampleModelAsset
+}));
+const mockInstallExampleTimeline = jest.fn();
+jest.mock("../../../trpc/client", () => ({
+  trpcClient: {
+    timeline: {
+      installExample: {
+        mutate: (...args: unknown[]) => mockInstallExampleTimeline(...args)
+      }
+    }
+  }
+}));
+jest.mock("../../../stores/WorkspaceTabsStore", () => ({
+  creationProjectId: () => "personal:test"
+}));
 
 describe("useDropHandler", () => {
   const mockScreenToFlowPosition = jest.fn();
@@ -372,5 +389,82 @@ describe("useDropHandler", () => {
     const [, secondPosition] = mockHandleGenericFile.mock.calls[1];
     expect(firstPosition).toEqual({ x: 0, y: 0 });
     expect(secondPosition).not.toEqual(firstPosition);
+  });
+
+  const exampleDrop = (drag: unknown) =>
+    stub<React.DragEvent<HTMLDivElement>>({
+      preventDefault: jest.fn(),
+      target: paneTarget(true),
+      clientX: 100,
+      clientY: 100,
+      dataTransfer: {
+        getData: jest
+          .fn()
+          .mockImplementation((format) =>
+            format === "application/x-nodetool-drag" ? JSON.stringify(drag) : ""
+          ),
+        types: ["application/x-nodetool-drag"],
+        items: [],
+        files: []
+      }
+    });
+
+  it("copies a dropped example model into the assets and adds its node", async () => {
+    const model = {
+      slug: "chest",
+      name: "Chest",
+      file: "chest.glb",
+      uri: "package://nodetool-base/game-models/dungeon/chest.glb",
+      triangles: 120,
+      clips: [],
+      use: "Loot"
+    };
+    const asset = { id: "a".repeat(32), content_type: "model/gltf-binary" };
+    mockAddExampleModelAsset.mockResolvedValue(asset);
+    const { result } = renderHook(() => useDropHandler());
+
+    await act(async () => {
+      await result.current.onDrop(
+        exampleDrop({ type: "example-model", payload: model })
+      );
+    });
+
+    expect(mockAddExampleModelAsset).toHaveBeenCalledWith(model);
+    expect(mockAddNodeFromAsset).toHaveBeenCalledWith(asset, { x: 0, y: 0 });
+  });
+
+  it("installs a dropped example timeline and adds a node for the copy", async () => {
+    const timelineMetadata = { node_type: "nodetool.constant.Timeline" };
+    const node = {
+      id: "node-1",
+      data: { properties: {} as Record<string, unknown>, title: "" }
+    };
+    mockGetMetadata.mockReturnValue(timelineMetadata);
+    mockCreateNode.mockReturnValue(node);
+    mockInstallExampleTimeline.mockResolvedValue({
+      id: "timeline-copy",
+      name: "Launch Cutdown"
+    });
+    const { result } = renderHook(() => useDropHandler());
+
+    await act(async () => {
+      await result.current.onDrop(
+        exampleDrop({
+          type: "example-timeline",
+          payload: { slug: "launch-cutdown", name: "Launch Cutdown" }
+        })
+      );
+    });
+
+    expect(mockInstallExampleTimeline).toHaveBeenCalledWith({
+      slug: "launch-cutdown",
+      projectId: "personal:test"
+    });
+    expect(node.data.properties.value).toEqual({
+      type: "timeline",
+      id: "timeline-copy"
+    });
+    expect(node.data.title).toBe("Launch Cutdown");
+    expect(mockAddNode).toHaveBeenCalledWith(node);
   });
 });
