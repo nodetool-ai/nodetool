@@ -85,8 +85,8 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
       <ModelSelectButton
         ref={buttonRef}
         active={!!value}
-        label={currentSelectedModelDetails?.name || value || "Select Model"}
-        subLabel="Select Model"
+        label={currentSelectedModelDetails?.name || value || "Select model"}
+        subLabel="Select model"
         onClick={handleClick}
       />
       <EditorMenu

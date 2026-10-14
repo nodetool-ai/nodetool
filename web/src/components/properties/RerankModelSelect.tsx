@@ -4,6 +4,7 @@ import RerankModelMenuDialog from "../model_menu/RerankModelMenuDialog";
 import { useRerankModelsByProvider } from "../../hooks/useRerankModels";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import useModelSelectMenu from "./shared/useModelSelectMenu";
+import { getProviderDisplayName } from "../../utils/providerDisplay";
 
 interface RerankModelSelection {
   type: "rerank_model";
@@ -42,9 +43,9 @@ const RerankModelSelect: React.FC<RerankModelSelectProps> = ({
       <ModelSelectButton
         ref={buttonRef}
         active={!!value}
-        label={selected?.name || value || "Select Model"}
-        secondaryLabel={selected?.provider}
-        subLabel="Select Rerank Model"
+        label={selected?.name || value || "Select model"}
+        secondaryLabel={getProviderDisplayName(selected?.provider)}
+        subLabel="Select rerank model"
         onClick={handleClick}
       />
       <RerankModelMenuDialog

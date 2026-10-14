@@ -19,10 +19,7 @@ const wrapperStyles = css({
   // mouse; on touch the star is always visible.
   "@media (hover: hover)": {
     opacity: 0,
-    "&:hover": {
-      scale: 1.5,
-      transform: "rotate(42deg)"
-    }
+    "&:focus-within": { opacity: 1 }
   }
 });
 
