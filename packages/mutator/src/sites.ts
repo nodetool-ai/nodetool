@@ -87,6 +87,10 @@ function lineOf(file: ts.SourceFile, offset: number): number {
   return file.getLineAndCharacterOfPosition(offset).line + 1;
 }
 
+function hasQuestionDot(node: ts.Node): node is ts.Node & { questionDotToken?: ts.Node } {
+  return "questionDotToken" in node;
+}
+
 function optionalReplacement(node: ts.Node): string | null {
   if (ts.isPropertyAccessExpression(node)) {
     return ".";
@@ -134,7 +138,7 @@ function visitNode(node: ts.Node, file: ts.SourceFile, found: RawSite[]): void {
     }
     return;
   }
-  const questionDot = (node as { questionDotToken?: ts.Node }).questionDotToken;
+  const questionDot = hasQuestionDot(node) ? node.questionDotToken : undefined;
   if (questionDot) {
     const mutant = optionalReplacement(node);
     if (mutant !== null) {

@@ -9,6 +9,7 @@
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { mutationFile } from "./forms.js";
+import { isJsonObject, isText, type JsonValue } from "./json.js";
 import type { FormResult, Outcome } from "./model.js";
 
 export const SNAPSHOT_VERSION = 1;
@@ -72,18 +73,23 @@ function walk(directory: string): string[] {
   return found;
 }
 
-function isOutcome(value: unknown): value is Outcome {
+function isOutcome(value: JsonValue | undefined): value is Outcome {
   return value === "killed" || value === "survived";
+}
+
+function isFormObject(form: SnapshotForm): form is SnapshotForm {
+  return typeof form === "object" && form !== null;
 }
 
 function parseSnapshot(text: string): Snapshot | null {
   try {
-    const data: unknown = JSON.parse(text);
-    if (typeof data !== "object" || data === null || Array.isArray(data)) {
+    const data: JsonValue = JSON.parse(text);
+    if (!isJsonObject(data)) {
       return null;
     }
+    // SAFETY: only the object shape is checked here. Each field is validated individually below.
     const raw = data as Partial<Snapshot>;
-    if (typeof raw.namespace !== "string") {
+    if (!isText(raw.namespace)) {
       return null;
     }
     const outcomes: Record<string, Outcome> = {};
@@ -93,12 +99,12 @@ function parseSnapshot(text: string): Snapshot | null {
       }
     }
     const forms = Array.isArray(raw.forms)
-      ? raw.forms.filter((form): form is SnapshotForm => typeof form === "object" && form !== null)
+      ? raw.forms.filter(isFormObject)
       : [];
     return {
       version: raw.version ?? SNAPSHOT_VERSION,
       "tested-at": raw["tested-at"] ?? "",
-      source: typeof raw.source === "string" ? raw.source : "",
+      source: isText(raw.source) ? raw.source : "",
       namespace: raw.namespace,
       outcomes,
       forms
@@ -109,7 +115,7 @@ function parseSnapshot(text: string): Snapshot | null {
 }
 
 function formFile(form: SnapshotForm, snapshot: Snapshot): string {
-  return typeof form.file === "string" && form.file !== "" ? form.file : snapshot.source;
+  return isText(form.file) && form.file !== "" ? form.file : snapshot.source;
 }
 
 /** Every snapshot under `.metrics/mutate`, loaded once per run. */
@@ -139,7 +145,7 @@ export class SnapshotStore {
     const history: History = { forms: new Map(), outcomes: new Map() };
     for (const snapshot of this.snapshots.values()) {
       for (const form of snapshot.forms) {
-        if (formFile(form, snapshot) === fileKey && typeof form.hash === "string") {
+        if (formFile(form, snapshot) === fileKey && isText(form.hash)) {
           history.forms.set(keyOf(snapshot.namespace, form.id), form.hash);
         }
       }
@@ -218,8 +224,8 @@ export class SnapshotStore {
 
 function parseMutation(mutation: string): { file: string; namespace: string } | null {
   try {
-    const value: unknown = JSON.parse(mutation);
-    if (Array.isArray(value) && typeof value[0] === "string" && typeof value[1] === "string") {
+    const value: JsonValue = JSON.parse(mutation);
+    if (Array.isArray(value) && isText(value[0]) && isText(value[1])) {
       return { file: value[0], namespace: value[1] };
     }
   } catch {
