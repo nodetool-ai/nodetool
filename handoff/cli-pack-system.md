@@ -359,3 +359,11 @@ not bypass their parser stubs. Both email suites pass after the fixture fix.
 The matrix report test now imports Vitest, matching test:scripts. The full
 scripts suite passes with the session-local lsof tool on PATH. These repairs
 still require a fresh complete harness verdict.
+
+Packed Core CLI now runs packed-install independently of verification, so
+the actual Linux install and size report do not wait behind broad suites.
+The existing core-smoke check remains an aggregate requiring both jobs to
+succeed, including failure, skip and cancellation controls. Verification
+retains all mandatory commands and backend smoke. Each build uses read-only
+caches. Astra cleared the job graph, and the guard regression passes.
+Read packed-install logs for A9, and require the aggregate before completion.

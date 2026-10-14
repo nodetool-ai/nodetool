@@ -7,11 +7,33 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import yaml from "js-yaml";
 
 import { assertCoreOnlyInstall, cleanEnv, codecProbeSource, coreOnlyCliManifest, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, probeMcp, REQUIRED_COMMANDS, repackCoreCli, smokeManifest } from "../smoke-packed-cli.mjs";
 
 const fixtures = [];
 afterEach(() => { for (const root of fixtures.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
+
+it("keeps the required core-smoke status dependent on verification and the independent packed install", () => {
+  const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
+  const guard = workflow.jobs["core-smoke"];
+  expect(guard.needs).toEqual(["verification", "packed-install"]);
+  expect(guard.if).toBe("always()");
+  const checks = workflow.jobs.verification.steps.map(step => step.run);
+  for (const command of ["npm run test:affected", "npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base origin/main", "npm run backend:smoke"]) {
+    expect(checks).toContain(command);
+  }
+  expect(workflow.jobs["packed-install"].needs).toBeUndefined();
+  for (const job of ["verification", "packed-install", "release-pins"]) {
+    expect(workflow.jobs[job].steps.find(step => step.uses === "./.github/actions/setup-build").with.cache).toBe("read-only");
+  }
+  for (const [verification, installed, expected] of [["success", "success", 0], ["failure", "success", 1], ["success", "cancelled", 1], ["skipped", "success", 1]]) {
+    const result = spawnSync("bash", ["-c", guard.steps[0].run], {
+      env: { ...process.env, VERIFICATION_RESULT: verification, PACKED_INSTALL_RESULT: installed }
+    });
+    expect(result.status).toBe(expected);
+  }
+});
 
 function releaseTarball(root, filename, name, version) {
   const staging = join(root, "staging");

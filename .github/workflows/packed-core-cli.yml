@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  core-smoke:
+  verification:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -37,6 +37,7 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/setup-build
         with:
+          cache: read-only
           extra-apt: ffmpeg mesa-vulkan-drivers
       - name: Install mobile check dependencies
         run: npm --prefix mobile ci
@@ -50,10 +51,33 @@ jobs:
         run: npm run dev:nodetool -- harness gate --base origin/main
       - name: Verify the packaged backend
         run: npm run backend:smoke
+  packed-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/setup-build
+        with:
+          cache: read-only
       - name: Pin workspace versions in the test tarballs
         run: node scripts/prepare-publish.mjs
       - name: Smoke-test the packed core-only CLI
         run: node scripts/smoke-packed-cli.mjs --core-only
+  core-smoke:
+    needs: [verification, packed-install]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require complete verification and packed installation
+        env:
+          VERIFICATION_RESULT: ${{ needs.verification.result }}
+          PACKED_INSTALL_RESULT: ${{ needs.packed-install.result }}
+        run: |
+          if [ "$VERIFICATION_RESULT" != "success" ] || [ "$PACKED_INSTALL_RESULT" != "success" ]; then
+            echo "Packed CLI verification or installation did not pass."
+            exit 1
+          fi
   release-pins:
     runs-on: ubuntu-latest
     timeout-minutes: 90

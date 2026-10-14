@@ -782,7 +782,7 @@ npm 11 can report a same-identity replay as `change`. Normalize only the
 catalog-owned pack/companion action proven by its known release integrity and
 exact before/after snapshot path for npm 11 JSON. npm 10 text requires a
 complete same-version action and a unique pinned hoisted snapshot identity
-(plan D26). Protected packages and unproven
+([plan D26](cli-pack-system-plan.md#d26-verified-replay-actions-in-npm-plans)). Protected packages and unproven
 actions retain change refusal. Post-install checks confirm package identities
 and original pins before scripts or imports. Running servers retain their
 loaded registry and need the restart notice to see newly installed packs.
