@@ -163,4 +163,46 @@ describe("direct video extension dispatch", () => {
     expect(trim).not.toHaveBeenCalled();
     expect(generation).not.toHaveBeenCalled();
   });
+
+  it("rejects a source context that is not a valid constant-speed window", async () => {
+    const provider = new ExtensionProvider();
+    const base = request("end").sourceContext!;
+    const patches: Array<Partial<typeof base>> = [
+      { sourceStartMs: NaN },
+      { sourceStartMs: -1, sourceEndMs: 7999 },
+      { sourceEndMs: 40000 },
+      { sourceEndMs: Infinity },
+      { timelineDurationMs: NaN },
+      { timelineDurationMs: 0, sourceEndMs: 40000 },
+      { speedMultiplier: NaN },
+      { speedMultiplier: 0 },
+      { sourceEndMs: 48001 },
+      { sourceEndMs: 47999 }
+    ];
+    for (const patch of patches) {
+      await expect(
+        handler(provider).runDirectMediaGeneration({
+          ...request("end"),
+          sourceContext: { ...base, ...patch }
+        })
+      ).rejects.toThrow(/invalid constant-speed window/);
+    }
+    await expect(
+      handler(provider).runDirectMediaGeneration({
+        ...request("end"),
+        sourceContext: { ...base, sourceEndMs: 48000.4 }
+      })
+    ).resolves.toEqual({ asset_ids: ["extended-asset"] });
+    expect(trim).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires source_context to match source_asset_id", async () => {
+    const base = request("end");
+    await expect(
+      handler(new ExtensionProvider()).runDirectMediaGeneration({
+        ...base,
+        sourceContext: { ...base.sourceContext!, sourceAssetId: "other" }
+      })
+    ).rejects.toThrow(/does not match source_asset_id/);
+  });
 });
