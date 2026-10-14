@@ -34,3 +34,26 @@ export function shortResourceId(value: string): string {
     ? value.slice(0, SHORT_RESOURCE_ID_LENGTH)
     : value;
 }
+
+const ASSET_SCHEME = "asset://";
+const HEX_ID_WITH_EXTENSION = /^([0-9a-f]{12,32})\.[A-Za-z0-9]{1,8}$/;
+
+/**
+ * The bare asset id an asset reference names, for every form an agent or a
+ * shipped document hands over: `asset://<id>.<ext>`, `asset://<id>`, a bare
+ * id, or a bare hex id with an extension. The id may still be a 12-character
+ * prefix; resolving it to the full id needs the caller's asset table.
+ *
+ * Any other scheme (`package://`, `http(s)://`, `data:`) is a locator, not an
+ * id, and comes back unchanged.
+ */
+export function assetIdFromRef(ref: string): string {
+  const trimmed = ref.trim();
+  if (trimmed.startsWith(ASSET_SCHEME)) {
+    const rest = trimmed.slice(ASSET_SCHEME.length).split(/[?#]/)[0];
+    const withoutExt = rest.replace(/\.[A-Za-z0-9]{1,8}$/, "");
+    return withoutExt || rest;
+  }
+  const hexWithExt = HEX_ID_WITH_EXTENSION.exec(trimmed);
+  return hexWithExt ? hexWithExt[1] : trimmed;
+}

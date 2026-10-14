@@ -1247,7 +1247,7 @@ export const CODEX_DEFAULT_ORIGINATOR = "codex_cli_rs";
  * "model not supported" on `/responses`. Must be ≥ the served models'
  * `minimal_client_version`. Override via `CODEX_CLIENT_VERSION`.
  */
-export const CODEX_CLIENT_VERSION = "0.155.0";
+export const CODEX_CLIENT_VERSION = "0.162.1";
 /** Loopback port/path the Codex client's redirect URI is registered against. */
 export const CODEX_CALLBACK_PORT = 1455;
 export const CODEX_CALLBACK_PATH = "/auth/callback";
