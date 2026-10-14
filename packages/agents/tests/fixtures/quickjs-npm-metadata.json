@@ -1,0 +1,18 @@
+{
+  "variant": {
+    "name": "@jitl/quickjs-ng-wasmfile-release-sync",
+    "version": "0.31.0"
+  },
+  "wrappers": [
+    {
+      "version": "3.0.1",
+      "quickjsCore": "^0.31.0",
+      "source": "https://registry.npmjs.org/@sebastianwessel/quickjs/3.0.1"
+    },
+    {
+      "version": "3.1.0",
+      "quickjsCore": "^0.32.0",
+      "source": "https://registry.npmjs.org/@sebastianwessel/quickjs/3.1.0"
+    }
+  ]
+}
