@@ -104,7 +104,8 @@ describe("Blender settings", () => {
     expect(other.outputs.image).toBeInstanceOf(Uint8Array);
     await expect(runBlenderJob(first, new Uint8Array([1]), op, { image: "render.png" }, { timeoutMs: 5000 })).rejects.toMatchObject({ code: "import_failed" });
     expect(process.env["BLENDER_PATH"]).toBe(envBefore);
-  }, 20_000);
+    // Five sequential fake Blender processes outrun vitest's 5s default on a loaded runner.
+  }, 30_000);
 
   it("does not read a stored path under the cloud profile", async () => {
     process.env["NODETOOL_NODE_PROFILE"] = "cloud";

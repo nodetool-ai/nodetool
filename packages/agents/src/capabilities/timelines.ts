@@ -100,6 +100,10 @@ import {
 } from "./js-scripts.js";
 import type { TrackObjectInput } from "./timeline-track-object.js";
 import { clipSourceWindowMs } from "./timeline-audio-bake.js";
+import {
+  canonicalizeTimelineAssetIds,
+  userAssetFinder
+} from "./timeline-asset-ids.js";
 import { TIMELINE_NATIVE_MEDIA_CAPABILITIES } from "./timeline-native-media.js";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
 
@@ -994,7 +998,18 @@ const setTimelineDocument: CapabilityExport = {
     // A caller that sends that object back renames the sequence with `name`.
     // The other row fields are owned by the row, so they are dropped rather
     // than reported as stripped document fields.
-    const { document, settings, name } = documentToStore(raw);
+    const stored = documentToStore(raw);
+    const { settings, name } = stored;
+    // Sandbox code holds the `asset://<short id>.<ext>` form the asset tools
+    // print; the stored clip holds the asset row's full id.
+    const canonical = await canonicalizeTimelineAssetIds(
+      stored.document,
+      userAssetFinder(sequence.user_id)
+    );
+    if ("error" in canonical) {
+      return { error: canonical.error, written: false, timeline_id: sequence.id };
+    }
+    const { document } = canonical;
 
     // Document-level fps/width/height are sequence settings, so opts win and a
     // document that carries them configures the sequence instead of having
@@ -2545,12 +2560,20 @@ function normalizeForceOption(
  */
 export async function writeTimelineCodeDocument(
   sequence: TimelineSequence,
-  document: Record<string, unknown>,
+  authored: Record<string, unknown>,
   snapshotName: string
 ): Promise<
   | { written: true; timeline_id: string; errors: string[]; warnings: string[] }
   | { written: false; error: string; errors: string[]; warnings: string[] }
 > {
+  const canonical = await canonicalizeTimelineAssetIds(
+    authored,
+    userAssetFinder(sequence.user_id)
+  );
+  if ("error" in canonical) {
+    return { written: false, error: canonical.error, errors: [], warnings: [] };
+  }
+  const { document } = canonical;
   const { validateTimelineSequence } =
     await import("@nodetool-ai/execution/timeline-debug");
   const before: TimelineValidation = validateTimelineSequence(
