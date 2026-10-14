@@ -78,6 +78,29 @@ describe("game revision pointer", () => {
     expect(await Game.readDraftBeforeChange(USER, PREFIX, changes[0].id, workspace)).toEqual(original);
   });
 
+  it.each([1, 2])("records %i native 3D environment preset edits with their history summary", async (count) => {
+    const game = await insert(`${PREFIX}${"1".repeat(20)}`);
+    const original = { ...createNative3DGame(game.id), revision: game.current_revision };
+    const files = new Map([[`${game.source_root}/revisions/${game.current_revision}/game.json`, JSON.stringify(original)]]);
+    const workspace = {
+      readText: async (path: string) => files.get(path) ?? null,
+      write: async (path: string, data: string) => { files.set(path, data); },
+      delete: async (path: string) => files.delete(path)
+    };
+    const ops = Array.from({ length: count }, () => ({ op: "apply_environment_preset" as const, preset: "night" as const }));
+    const updated = await Game.updateDraft(USER, PREFIX, game.draft_updated_at, ops, workspace, { actor: "agent" });
+    const document = gameDocument3D.parse(updated?.document);
+    expect(document.scenes[0].environment.sky?.kind).toBe("color");
+    expect(document.scenes[0].entities.find((entity) => entity.tags?.includes("environment-preset-sun"))?.light3d)
+      .toMatchObject({ kind: "directional", intensity: 0.35 });
+    expect((await Game.readDraft(USER, PREFIX, workspace))?.document).toEqual(document);
+    const changes = await Game.listDraftChanges(USER, PREFIX);
+    expect(changes).toHaveLength(1);
+    expect(changes[0].summary).toBe(count === 1 ? "Applied environment preset (1)" : "Applied environment presets (2)");
+    expect(changes[0].ops).toEqual(ops);
+    expect(await Game.readDraftBeforeChange(USER, PREFIX, changes[0].id, workspace)).toEqual(original);
+  });
+
   it("applies a rebuild once against the exact preview draft", async () => {
     const game = await insert(`${PREFIX}${"1".repeat(20)}`);
     const original = { ...createTopDownRoomGame(game.id), revision: game.current_revision };
