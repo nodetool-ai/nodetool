@@ -49,7 +49,7 @@ const renderMenu = (modelType?: string, menuModels = models, onClose = jest.fn()
             open
             onClose={onClose}
             modelType={modelType}
-            title="Select Language Model"
+            title="Select language model"
             modelData={{ models: menuModels, isLoading: false, error: null }}
             storeHook={useLanguageModelMenuStore}
           />
@@ -70,7 +70,7 @@ describe("ModelMenuDialogBase responsive layout", () => {
     setViewport(true);
     renderMenu();
 
-    expect(screen.getByText("Select Language Model")).toBeInTheDocument();
+    expect(screen.getByText("Select language model")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /close/i })).toBeInTheDocument();
 
     const paper = document.querySelector(".MuiPopover-paper") as HTMLElement;
@@ -86,10 +86,10 @@ describe("ModelMenuDialogBase responsive layout", () => {
     setViewport(false);
     renderMenu();
 
-    expect(screen.queryByText("Select Language Model")).not.toBeInTheDocument();
+    expect(screen.queryByText("Select language model")).not.toBeInTheDocument();
 
     const paper = document.querySelector(".MuiPopover-paper") as HTMLElement;
-    expect(paper.style.width).toBe("600px");
+    expect(paper.style.width).toBe("640px");
 
     expect(
       document.querySelector(".model-menu__providers-list.is-horizontal")
