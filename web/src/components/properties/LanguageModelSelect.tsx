@@ -9,6 +9,7 @@ import type {
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import useModelSelectMenu from "./shared/useModelSelectMenu";
+import { getProviderDisplayName } from "../../utils/providerDisplay";
 
 interface LanguageModelSelectProps {
   onChange: (value: LanguageModelValue) => void;
@@ -21,7 +22,7 @@ interface LanguageModelSelectProps {
    * contexts that need function calling.
    */
   requireToolSupport?: boolean;
-  /** Button label when nothing is selected. Defaults to "Select Model". */
+  /** Button label when nothing is selected. Defaults to "Select model". */
   placeholder?: string;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
@@ -34,7 +35,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   provider,
   allowedProviders,
   requireToolSupport,
-  placeholder = "Select Model",
+  placeholder = "Select model",
   recommendedModels,
   modelPacks,
   disabled
@@ -61,7 +62,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
         ref={buttonRef}
         active={!!value}
         label={currentSelectedModelDetails?.name || value || placeholder}
-        secondaryLabel={currentSelectedModelDetails?.provider}
+        secondaryLabel={getProviderDisplayName(currentSelectedModelDetails?.provider)}
         subLabel={placeholder}
         onClick={handleClick}
         disabled={disabled}
