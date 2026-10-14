@@ -13,7 +13,12 @@ export const authoringMembershipOp = z.strictObject({ op: z.literal("set_authori
       "Ownership positions must be strictly increasing").optional() });
 type OwnershipOp = z.infer<typeof overrideMembershipOp> | z.infer<typeof authoringMembershipOp>;
 type Membership = "overrides" | "suppressions" | "detached";
+interface OverrideMembershipIndex {
+  readonly positions: Map<string, number>;
+  readonly duplicates: Set<string>;
+}
 export interface GameOwnershipDeltaState {
+  readonly overrideIndexes: WeakMap<GameAuthoringOverride[], OverrideMembershipIndex>;
   readonly overrides: Map<string, GameAuthoringOverride | null>;
   readonly suppressions: Map<string, { readonly target: GameAuthoringTarget; readonly count: number }>;
   readonly detached: Map<string, { readonly target: GameAuthoringTarget; readonly count: number }>;
@@ -22,24 +27,43 @@ export interface GameOwnershipDeltaState {
   lastOpIndex: number;
 }
 export function createGameOwnershipDeltaState(reject: GameOwnershipDeltaState["reject"]): GameOwnershipDeltaState {
-  return { overrides: new Map(), suppressions: new Map(), detached: new Map(), opIndexes: new Map(), reject, lastOpIndex: 0 };
+  return { overrideIndexes: new WeakMap(), overrides: new Map(), suppressions: new Map(), detached: new Map(), opIndexes: new Map(), reject, lastOpIndex: 0 };
 }
 function keyOf(entry: GameAuthoringTarget | GameAuthoringOverride): string {
   return JSON.stringify("path" in entry ? [entry.sceneId, entry.entityId, entry.path] : [entry.sceneId, entry.entityId]);
 }
-function setMembership<Entry extends GameAuthoringTarget>(entries: Entry[], entry: Entry, present: boolean, index: number | undefined,
+function setMembership(entries: GameAuthoringOverride[], entry: GameAuthoringOverride, present: boolean, index: number | undefined,
+  indexes: GameOwnershipDeltaState["overrideIndexes"],
   reject: (message: string) => never): void {
   const key = keyOf(entry);
-  const previous = entries.findIndex((candidate) => keyOf(candidate) === key);
-  if (entries.filter((candidate) => keyOf(candidate) === key).length > 1) {
+  let indexed = indexes.get(entries);
+  if (!indexed) {
+    const created: OverrideMembershipIndex = { positions: new Map(), duplicates: new Set() };
+    entries.forEach((candidate, position) => {
+      const candidateKey = keyOf(candidate);
+      if (created.positions.has(candidateKey)) { created.duplicates.add(candidateKey); }
+      else { created.positions.set(candidateKey, position); }
+    });
+    indexed = created;
+    indexes.set(entries, indexed);
+  }
+  const previous = indexed.positions.get(key) ?? -1;
+  if (indexed.duplicates.has(key)) {
     reject("Ownership delta requires an unambiguous target key");
   }
   if (!present && index !== undefined) { reject("Removed ownership cannot specify an insertion index"); }
   const remainingLength = entries.length - Number(previous >= 0);
   const at = index ?? (previous >= 0 ? previous : remainingLength);
   if (present && (at > remainingLength || remainingLength >= 50_000)) { reject("Ownership insertion index is out of range"); }
+  if (present && previous === at) { entries[at] = entry; return; }
+  if (present && previous < 0 && at === entries.length) {
+    indexed.positions.set(key, entries.length);
+    entries.push(entry);
+    return;
+  }
   if (previous >= 0) { entries.splice(previous, 1); }
   if (present) { entries.splice(at, 0, entry); }
+  indexes.delete(entries);
 }
 function setFlagMembership(entries: GameAuthoringTarget[], target: GameAuthoringTarget, present: boolean,
   positions: readonly number[] | undefined, reject: (message: string) => never): GameAuthoringTarget[] {
@@ -74,7 +98,7 @@ export function applyGameOwnershipOperation(document: AnyGameDocument, op: Owner
   if (op.op === "set_override_membership") {
     const entry: GameAuthoringOverride = { ...target, path: op.path, value: op.override?.value ?? null };
     if (op.override?.remove !== undefined) { entry.remove = op.override.remove; }
-    setMembership(authoring.overrides, entry, op.override !== null, op.index,
+    setMembership(authoring.overrides, entry, op.override !== null, op.index, state.overrideIndexes,
       (message) => state.reject(opIndex, ["authoring", "overrides"], message));
     state.overrides.set(keyOf(entry), op.override === null ? null : entry);
     state.opIndexes.set(`overrides:${keyOf(entry)}`, opIndex);
