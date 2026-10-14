@@ -730,7 +730,7 @@ jobs:
       # 10 GB.
       - name: Restore Jest transform cache
         if: matrix.jest-cache != ''
-        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .jest-cache
           key: ${{ runner.os }}-jest-${{ matrix.jest-cache }}-${{ github.sha }}
@@ -739,7 +739,7 @@ jobs:
 
       - name: Restore backend test results
         if: startsWith(matrix.check, 'test-packages-')
-        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .turbo/test-results
           key: ${{ runner.os }}-test-results-${{ matrix.check }}-${{ github.sha }}
