@@ -413,3 +413,25 @@ directory. External prefixes and prefixes creating siblings remain unchanged.
 The separator regression fails before the fix and passes afterward. Both
 changes are reviewed, but the real Windows cache, lifecycle and M15 checks
 still require native CI success.
+
+The complete [native matrix on `88f87a5a57`](https://github.com/nodetool-ai/nodetool/actions/runs/38494786134)
+passes all six platform/npm legs. Both Windows legs pass all 20 cases,
+including M15. The separate native checks also pass on Node 22/npm 10 and
+Node 24/npm 11 with a 364-character root, relative cache/configuration,
+manifest and lock targets, ignored install scripts, explicit rebuilds and
+lifecycle INIT_CWD. This is A23 acceptance evidence.
+
+The packed install on that commit measures 849,612 KiB and passes the MCP
+workflow, JSON workflow and TypeScript workflow after the QuickJS fix. It
+then fails a smoke-fixture assumption: a numeric Flux prompt does not produce
+a property error because that prompt is optional. The replacement uses
+AudioUnderstanding's required audio property and supplies inline audio for
+the pack-only case. Real shipped catalog validation reproduces the old failure
+and passes the corrected case. All 25 helper tests pass and Astra cleared it.
+Keep the exit 1 versus exit 3 assertions. A8 and A9 still await the remaining
+actual packed probes.
+
+`9ba38b859b` adds the existing full bundled CLI smoke after core-only in the
+same CI job, using a separate temporary install. It does not publish anything.
+The step's absence fails a retained workflow regression. The aggregate check
+still requires complete verification and packed installation.

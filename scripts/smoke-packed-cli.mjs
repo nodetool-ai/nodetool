@@ -316,6 +316,10 @@ if (result.error || result.status === "failed") { throw new Error(JSON.stringify
 return result;`;
 }
 
+export function missingFalGraph(properties = {}) {
+  return { nodes: [{ id: "fal", type: "fal.audio_to_audio.AudioUnderstanding", properties }], edges: [] };
+}
+
 /**
  * Start `nodetool mcp serve`, send initialize and tools/list over stdio, and
  * resolve with the tool count. Stdout is newline-delimited JSON-RPC.
@@ -577,7 +581,7 @@ empty project, and runs it against an empty HOME.
 
     if (values["core-only"]) {
       const falFixture = join(appDir, "missing-fal.json");
-      writeFileSync(falFixture, JSON.stringify({ graph: { nodes: [{ id: "fal", type: "fal.text_to_image.Flux1Dev", properties: { prompt: 42 } }], edges: [] } }));
+      writeFileSync(falFixture, JSON.stringify({ graph: missingFalGraph() }));
       const validated = spawnSync(bin, ["validate", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
       if (validated.status !== 1) { throw new Error(`Missing FAL validation exited ${validated.status}: ${validated.stdout}${validated.stderr}`); }
       const report = JSON.parse(validated.stdout).report;
@@ -589,7 +593,7 @@ empty project, and runs it against an empty HOME.
       if (failed.status !== 3 || missingPack.error !== "missing_pack" || !missingPack.packs.some(pack => pack.id === "fal")) {
         throw new Error(`Missing FAL execution must return missing_pack and exit 3: ${failed.stdout}${failed.stderr}`);
       }
-      writeFileSync(falFixture, JSON.stringify({ graph: { nodes: [{ id: "fal", type: "fal.text_to_image.Flux1Dev", properties: { prompt: "Core-only pack preflight" } }], edges: [] } }));
+      writeFileSync(falFixture, JSON.stringify({ graph: missingFalGraph({ audio: { type: "audio", data: "AA==" } }) }));
       const installOnly = spawnSync(bin, ["validate", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
       const installReport = JSON.parse(installOnly.stdout).report;
       if (installOnly.status !== 3 || !installReport.issues.some(issue => issue.code === "pack_not_installed") || installReport.issues.some(issue => issue.severity === "error" && issue.code !== "pack_not_installed")) {

@@ -9,7 +9,7 @@ import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 
-import { assertCoreOnlyInstall, cleanEnv, codecProbeSource, coreOnlyCliManifest, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, probeMcp, REQUIRED_COMMANDS, repackCoreCli, smokeManifest } from "../smoke-packed-cli.mjs";
+import { assertCoreOnlyInstall, cleanEnv, codecProbeSource, coreOnlyCliManifest, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, REQUIRED_COMMANDS, repackCoreCli, smokeManifest } from "../smoke-packed-cli.mjs";
 
 const fixtures = [];
 afterEach(() => { for (const root of fixtures.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
@@ -221,6 +221,18 @@ describe("core-only contamination guard", () => {
 });
 
 describe("packed runtime probes", () => {
+  it("distinguishes a missing required FAL property from a missing-pack-only graph", async () => {
+    const { NodeRegistry, validateGraph } = await import("@nodetool-ai/node-sdk");
+    const { readCatalogIndex, readCatalogNodes } = await import("@nodetool-ai/node-catalog");
+    const registry = new NodeRegistry();
+    const graph = missingFalGraph();
+    const node = readCatalogNodes().find(node => node.node_type === graph.nodes[0].type);
+    expect(node).toBeDefined();
+    registry.loadCatalog([node], readCatalogIndex().packs);
+    expect(validateGraph(graph, registry).issues.map(issue => issue.code)).toEqual(expect.arrayContaining(["pack_not_installed", "property"]));
+    expect(validateGraph(missingFalGraph({ audio: { type: "audio", data: "AA==" } }), registry).issues.map(issue => issue.code)).toEqual(["pack_not_installed"]);
+  });
+
   it("generates valid module source for the codec identity decode", () => {
     const source = codecProbeSource("/tmp/fixture.mp4");
     const checked = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: source, encoding: "utf8" });
