@@ -8,7 +8,6 @@
  * save after that must send the server's revision again.
  */
 import { QueryClient } from "@tanstack/react-query";
-import { create } from "zustand";
 import type { Workflow } from "../ApiTypes";
 
 jest.mock("../../trpc/client", () => ({
@@ -21,52 +20,25 @@ jest.mock("../../trpc/client", () => ({
   }
 }));
 
-jest.mock("../NodeStore", () => ({
-  createNodeStore: (workflow: Workflow) =>
-    create(
-      (
-        set: (fn: (state: { workflow: Workflow }) => object) => void,
-        get: () => { workflow: Workflow }
-      ) => ({
-        workflow,
-        nodes: [],
-        edges: [],
-        workflowIsDirty: false,
-        getWorkflow: () => get().workflow,
-        setWorkflowDirty: jest.fn(),
-        setWorkflowUpdatedAt: (updatedAt: string, etag?: string | null) =>
-          set((state) => ({
-            workflow: {
-              ...state.workflow,
-              updated_at: updatedAt,
-              etag: etag ?? state.workflow.etag
-            }
-          })),
-        adoptSavedWorkflow: (saved: Workflow) => set(() => ({ workflow: saved })),
-        cleanup: jest.fn()
-      })
-    )
-}));
+jest.mock("../NodeStore", () =>
+  jest.requireActual("../../test-utils/workflowManagerMocks").nodeStoreMock()
+);
 
-jest.mock("../workflowUpdates", () => ({
-  subscribeToWorkflowUpdates: jest.fn(),
-  unsubscribeFromWorkflowUpdates: jest.fn()
-}));
+jest.mock("../workflowUpdates", () =>
+  jest.requireActual("../../test-utils/workflowManagerMocks").workflowUpdatesMock()
+);
 
-jest.mock("../WorkflowRunner", () => ({
-  getWorkflowRunnerStore: jest.fn(() => ({ getState: () => ({}) })),
-  disposeWorkflowRunnerStore: jest.fn()
-}));
+jest.mock("../WorkflowRunner", () =>
+  jest.requireActual("../../test-utils/workflowManagerMocks").workflowRunnerMock()
+);
 
-jest.mock("../runReconciliation", () => ({
-  startRunReconciliation: jest.fn(),
-  stopRunReconciliation: jest.fn()
-}));
+jest.mock("../runReconciliation", () =>
+  jest.requireActual("../../test-utils/workflowManagerMocks").runReconciliationMock()
+);
 
-jest.mock("../../components/appbuilder/runtime/appRuntimeStore", () => ({
-  disposeAppRuntimeStore: jest.fn(),
-  workflowInstanceId: (id: string) => id
-}));
+jest.mock("../../components/appbuilder/runtime/appRuntimeStore", () =>
+  jest.requireActual("../../test-utils/workflowManagerMocks").appRuntimeStoreMock()
+);
 
 import { trpcClient } from "../../trpc/client";
 import { createWorkflowManagerStore } from "../WorkflowManagerStore";

@@ -314,11 +314,10 @@ describe("assets router", () => {
         data: Buffer.from("hello").toString("base64"),
         data_encoding: "base64"
       });
-      // size is set to the byteLength of the decoded buffer.
-      expect(a.size).toBe(5);
       expect(storeAssetWithThumbnail).toHaveBeenCalledWith(
-        "user-1", "a1", "a1.png", new TextEncoder().encode("hello"), "image/png"
+        "user-1", "a1", "a1.png", new Uint8Array(Buffer.from("hello")), "image/png"
       );
+      expect(a.size).toBe(5);
     });
 
     it("throws NOT_FOUND when the asset does not exist", async () => {

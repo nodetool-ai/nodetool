@@ -7,6 +7,7 @@ import TrackedLink from "@/components/TrackedLink";
 import FaqBlock from "@/components/FaqBlock";
 import { breadcrumbSchema, faqPageSchema } from "@/lib/jsonld";
 import { faqByCategory, faqEntries } from "@/data/faqEntries";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 export const metadata: Metadata = {
   title: "NodeTool FAQ — the agent-first creative workspace",
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
     "Answers about NodeTool: how pricing with your own API keys works, Studio compared with Cloud, which models are supported, how it compares with other tools, and a short glossary of common terms.",
   alternates: { canonical: "/faq" },
   openGraph: {
+    images: DEFAULT_OG_IMAGES,
     title: "NodeTool FAQ",
     description:
       "Pricing with your own keys, Studio compared with Cloud, supported models, comparisons, and a short glossary.",

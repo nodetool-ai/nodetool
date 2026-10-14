@@ -956,11 +956,15 @@ const handleJobUpdate = (
 
   switch (job.status) {
     case "completed": {
-      // A run that finished is what the checklist's describe-idea step
-      // waits for once the idea is running: the build executed, whether it
-      // came from the project agent or a workflow canvas. A failed or
-      // cancelled one isn't. Preview runs don't count.
-      if (isRunnerJob && !silentJob) {
+      // The checklist's describe-idea step waits for the first finished run
+      // after the user described an idea in the new-project composer. A run
+      // with no description behind it (an example played as-is) does not
+      // count, nor does a failed, cancelled or preview run.
+      if (
+        isRunnerJob &&
+        !silentJob &&
+        useOnboardingStore.getState().ideaDescribed
+      ) {
         useOnboardingStore.getState().markStep("describe-idea");
       }
       // No toast — completion is reflected in the Queue panel/overlay.

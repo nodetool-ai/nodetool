@@ -6,7 +6,8 @@
  */
 
 import React from "react";
-import { Box, BoxProps, Tooltip } from "@mui/material";
+import { Box, BoxProps } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import { useTheme } from "@mui/material/styles";
 import { MOTION } from "./tokens";
 

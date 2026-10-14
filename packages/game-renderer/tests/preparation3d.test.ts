@@ -3,6 +3,15 @@ import { prepareGameModel, prepareGameModelBinding3D, normalizeGameModel3D, crea
 import { triangleGlb, glb } from "./fixtures/game3d.js";
 
 describe("prepared GLB runtime profile", () => {
+  it.each(["clearcoat", "transmission", "sheen", "specular", "ior", "volume"])("prepares declared KHR_materials_%s content", async (name) => {
+    const extension = `KHR_materials_${name}`;
+    const result = await prepareGameModel(triangleGlb({ extensionsUsed: [extension], extensionsRequired: [extension],
+      materials: [{ extensions: { [extension]: {} } }] }));
+    expect(result.ok).toBe(true);
+    if (result.ok) { expect(result.model.extensions).toEqual([extension]); }
+    const undeclared = await prepareGameModel(triangleGlb({ materials: [{ extensions: { [extension]: {} } }] }));
+    expect(undeclared.ok).toBe(false);
+  });
   it("derives content identity, stable selectors and geometry metadata", async () => {
     const result = await prepareGameModelBinding3D(triangleGlb(), { assetId: "owned-model" });
     expect(result.ok).toBe(true);

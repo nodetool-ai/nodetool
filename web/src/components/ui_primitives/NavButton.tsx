@@ -14,7 +14,8 @@
  */
 
 import React, { forwardRef, memo } from "react";
-import { Button, ButtonProps, IconButton, Tooltip } from "@mui/material";
+import { Button, ButtonProps, IconButton } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import { useTheme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
