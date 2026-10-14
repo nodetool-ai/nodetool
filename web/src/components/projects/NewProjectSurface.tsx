@@ -112,6 +112,7 @@ import useOnboardingStore, {
 import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
 import StartExamples from "./StartExamples";
 import CurrentProjectDocuments from "./CurrentProjectDocuments";
+import RecentChats from "./RecentChats";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import ReportBugButton from "../support/ReportBugButton";
 import { openPageTab } from "../workspace/openPageTab";
@@ -2234,7 +2235,12 @@ const NewProjectSurface = ({
             )}
           </FlexColumn>
 
-          <CurrentProjectDocuments />
+          {/* One project's work: its documents, then its latest chats, both
+              scoped by the project picker in the documents header. */}
+          <FlexColumn gap={SPACING.xl}>
+            <CurrentProjectDocuments />
+            <RecentChats />
+          </FlexColumn>
 
           <FlexColumn
             component="section"
