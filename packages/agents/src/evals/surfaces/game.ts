@@ -1,6 +1,7 @@
+import { isDeepStrictEqual } from "node:util";
 import * as acorn from "acorn";
 import { z } from "zod";
-import { gameDocument, gameDocument3D, gameEntity, gameEntity3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
+import { gameDocument, gameDocument3D, gameEntity, gameEntity3D, getGameEnvironmentPreset3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
 import { applyGameOps, applyGameOps3D, collisionLayerBits3D, resolvePhysicsMaterials3D, validateGame3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
 import type { HeadlessSurfaceBridge, ToolLoopEvalCase } from "../tool-loop-eval.js";
 
@@ -602,6 +603,28 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         const crate = parsed.data.scenes[0].entities.find(entity => entity.id === "crate");
         return crate?.body3d?.type === "dynamic" && crate.behaviors.length === 1 &&
           crate.behaviors[0].kind === "script" && crate.behaviors[0].source === FORCE_SCRIPT_EVAL_SOURCE;
+      } }]
+  }
+}, {
+  id: "environment-preset-3d",
+  description: "Apply a named environment and lighting preset through the public 3D edit operation.",
+  objective: "Apply the sunny-day environment preset to the entry scene. Keep other entities and lights.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("environment-preset-eval")),
+  systemPrompt: "Use edit_native_game with {op: 'apply_environment_preset', preset: 'sunny-day'}. Other names are night, overcast and neon-interior. scene_id is optional and defaults to the entry scene. The operation replaces environment settings and applies sun lighting while keeping other authored entities and lights.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 4,
+    finalState: [{ name: "sunnyDayEnvironment", detail: "The entry scene lacks the sunny-day sky, ambient, fog, post-processing or preset sun.",
+      test: (state) => {
+        const parsed = gameDocument3D.safeParse(state);
+        if (!parsed.success || !validateGame3D(parsed.data).valid) { return false; }
+        const scene = parsed.data.scenes.find((candidate) => candidate.id === parsed.data.entrySceneId);
+        const sun = scene?.entities.find((entity) => entity.tags?.includes("environment-preset-sun"));
+        if (!scene || !sun || sun.light3d?.kind !== "directional") { return false; }
+        const expected = getGameEnvironmentPreset3D("sunny-day");
+        if (expected.environment.sky?.kind === "procedural") { expected.environment.sky.sunEntityId = sun.id; }
+        return isDeepStrictEqual(scene.environment, expected.environment) &&
+          isDeepStrictEqual(sun.transform3d.rotation, expected.sun.rotation) &&
+          sun.light3d.color === expected.sun.light.color && sun.light3d.intensity === expected.sun.light.intensity;
       } }]
   }
 }];
