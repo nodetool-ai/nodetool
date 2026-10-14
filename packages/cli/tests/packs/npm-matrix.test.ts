@@ -5,7 +5,7 @@ import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Command } from "commander";
-import { setupPackRegistry, disposePackRegistryFixtures } from "../_helpers/pack-registry.js";
+import { setupPackRegistry, disposePackRegistryFixtures, parseNpmPidMarker } from "../_helpers/pack-registry.js";
 import { installPacks, type InstallPacksRequest, type InstallerOperations } from "../../src/packs/installer.js";
 import { authorizePackInstallCommand } from "../../src/commands/pack-install-authorization.js";
 import { detectInstallMode, installDetailsForMode } from "../../src/packs/mode.js";
@@ -17,6 +17,12 @@ import { readDesiredState } from "../../src/packs/install-state.js";
 const exec = promisify(execFile);
 type Fixture = Awaited<ReturnType<typeof setupMatrixFixture>>;
 const modulesAt = (prefix: string): string => join(prefix, process.platform === "win32" ? "node_modules" : "lib/node_modules");
+
+function killFixtureNpm(pid: number): void {
+  try { process.kill(pid, "SIGKILL"); } catch (error) {
+    if (!(error instanceof Error && "code" in error && error.code === "ESRCH")) { throw error; }
+  }
+}
 
 async function setupMatrixFixture(conflict = false, options: Parameters<typeof setupPackRegistry>[1] = {}) {
   const fixture = await setupPackRegistry(conflict, options);
@@ -271,35 +277,67 @@ describe.runIf(process.env["NODETOOL_NPM_MATRIX"] === "1")("actual npm matrix", 
     expect((await readDesiredState(request.stateFile))[f.request.mode.installRoot]?.packs).toEqual(["fixture", "fixture2"]);
   });
 
-  it("M13 a killed transaction is reported by doctor and explicitly repaired", async () => {
+  it("M13 a real npm install killed during metadata fetch is reported and explicitly repaired", async () => {
     const f = await setupMatrixFixture(); const request = withSecondPack(f); await install(request, f.operations);
+    const before = await snapshotInstallTree(f.root);
+    const paused = f.pauseRequest("/@nodetool-ai/fixture2-nodes", "nodetool-matrix-interrupted-install");
     const childEntry = join(f.directory, "interrupted-install.mjs");
     const source = (relative: string): string => pathToFileURL(fileURLToPath(new URL(relative, import.meta.url))).href;
     await writeFile(childEntry, `
       import { installPacks } from ${JSON.stringify(source("../../src/packs/installer.ts"))};
       import { authorizePackInstallCommand } from ${JSON.stringify(source("../../src/commands/pack-install-authorization.ts"))};
-      import { runInstallerNpm, installerNpmVersion } from ${JSON.stringify(source("../../src/npm-runner.ts"))};
+      import { spawn } from "node:child_process";
+      import { runInstallerNpm, installerNpmVersion, npmInstallFlags, findNpmCli } from ${JSON.stringify(source("../../src/npm-runner.ts"))};
       const request = ${JSON.stringify({ ...request, packs: ["fixture2"] })};
       const authorization = await authorizePackInstallCommand({request, command:"packs-add"});
       await installPacks(request, authorization, {npmVersion:installerNpmVersion, loadCheck:async()=>{},
         npm:async(root,args,options)=>{
-          const result=await runInstallerNpm(root,[...args,${JSON.stringify(`--registry=${f.registry}`)},${JSON.stringify(`--cache=${join(f.directory, "cache")}`)}],options);
-          if(args[0]==="install"&&!options.dryRun){console.log("MUTATED");await new Promise(()=>setInterval(()=>{},1000));}
-          return result;
+          if(args[0]!=="install"||options.dryRun){
+            return runInstallerNpm(root,[...args,${JSON.stringify(`--registry=${f.registry}`)},${JSON.stringify(`--cache=${join(f.directory, "cache")}`)}],options);
+          }
+          const child=spawn(process.execPath,[findNpmCli(),...args,...npmInstallFlags(options.mode),
+            ${JSON.stringify(`--registry=${f.registry}`)},${JSON.stringify(`--cache=${join(f.directory, "interrupted-cache")}`)},
+            "--user-agent=nodetool-matrix-interrupted-install"],
+            {cwd:root,shell:false,stdio:["ignore","pipe","pipe"]});
+          console.log("NPM_PID="+child.pid);
+          return new Promise((resolve,reject)=>{
+            let output="";let errors="";
+            child.stdout.on("data",chunk=>{output+=chunk.toString();});
+            child.stderr.on("data",chunk=>{errors+=chunk.toString();});
+            child.once("error",reject);
+            child.once("close",code=>{if(code===0){resolve(output);}else{reject(new Error("Interrupted npm: "+errors));}});
+          });
         }});
     `);
     const child = spawn(process.execPath, ["--import", "tsx", childEntry], { cwd: fileURLToPath(new URL("../../../../", import.meta.url)), stdio: ["ignore", "pipe", "pipe"] });
     const closed = new Promise<void>((resolve, reject) => { child.once("error", reject); child.once("close", () => resolve()); });
     let output = "";
+    let npmPid: number | undefined;
+    let npmStarted!: () => void;
+    const started = new Promise<void>(resolve => { npmStarted = resolve; });
     let markerTimeout: ReturnType<typeof setTimeout> | undefined;
     try {
       await new Promise<void>((resolve, reject) => {
-        markerTimeout = setTimeout(() => reject(new Error(`Installer did not reach the mutation checkpoint: ${output}`)), 60_000);
-        child.stdout.on("data", chunk => { output += String(chunk); if (output.includes("MUTATED")) { resolve(); } });
+        markerTimeout = setTimeout(() => reject(new Error(`npm did not reach metadata fetch: ${output}`)), 60_000);
+        child.stdout.on("data", chunk => {
+          output += String(chunk);
+          const pid = parseNpmPidMarker(output);
+          if (pid !== null) { npmPid = pid; npmStarted(); }
+        });
         child.stderr.on("data", chunk => { output += String(chunk); });
-        child.once("close", () => reject(new Error(`Installer exited before mutation: ${output}`)));
+        child.once("close", () => reject(new Error(`Installer exited before interruption: ${output}`)));
+        void Promise.all([paused.reached, started]).then(() => resolve());
       });
-    } finally { clearTimeout(markerTimeout); child.kill("SIGKILL"); await closed; }
+      expect(npmPid).toBeGreaterThan(0);
+      expect(() => process.kill(npmPid!, 0)).not.toThrow();
+      expect(child.exitCode).toBeNull();
+      expect(await snapshotInstallTree(f.root)).toEqual(before);
+    } finally {
+      clearTimeout(markerTimeout);
+      child.kill("SIGKILL");
+      try { if (npmPid) { killFixtureNpm(npmPid); } }
+      finally { paused.release(); await closed; }
+    }
     const lock = join(f.root, "node_modules", ".nodetool-packs.lock");
     const stale = new Date(Date.now() - 120_000); await utimes(lock, stale, stale);
     const { createNodeCommandServices } = await import("../../src/packs/command-service.js");
@@ -307,6 +345,7 @@ describe.runIf(process.env["NODETOOL_NPM_MATRIX"] === "1")("actual npm matrix", 
     const report = await services.doctor({});
     expect(report).toMatchObject({ healthy: false });
     expect(await services.doctor({ repair: true })).toMatchObject({ healthy: true, dirty: false });
+    expect(await snapshotInstallTree(f.root)).toEqual(before);
   }, 120_000);
 
   it("M14 an unwritable global prefix reports access failure without invoking sudo", async () => {

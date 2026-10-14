@@ -185,15 +185,21 @@ pre-existing file contents.
 
 ### D26. Verified replay actions in npm plans
 
-npm 11 can report `change` when replaying an already installed pack at the same
-name, version and path. The matrix requires a second global add to preserve
-the first pack. Normalize this action only for a catalog-owned node pack or
-provided companion whose known initial integrity matches its release pin and
-whose reported before/after identities match the exact snapshot path.
+npm can report `change` when replaying a pack at the same version. The matrix
+requires a second global add to preserve the first pack. Normalize this action
+only for a catalog-owned node pack or provided companion whose known initial
+integrity matches its release pin and whose version matches the core cohort.
+
+For npm 11 JSON, reported before/after names, versions and paths must match the
+exact snapshot identity. npm 10 text must match the complete same-version
+`change <name> <version> => <version>` action. Its name must identify exactly
+one snapshot entry in the expected hoisted package folder, with a matching
+canonical realpath. Nested or ambiguous entries remain refused.
 
 Core, shared, runtime and project packages retain strict change refusal.
-Unproven replay actions are refused. Scripts stay disabled, and post-install
-snapshot and pin checks still precede rebuilds and imports.
+Unproven replay actions are refused. Scripts stay disabled. Post-install checks
+compare every previous path, name, version, integrity and realpath before
+rebuilds and imports.
 
 ## 3. Current seams
 

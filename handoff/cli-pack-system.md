@@ -278,8 +278,11 @@ The six platform/npm execution outcomes remain pending remote CI. The
 concurrent-install fixture now uses independent commands and passes. The old
 authorization remains invalid, while command renewal repeats consent against
 the same displayed selection. Astra cleared the renewal delta with actual
-concurrent npm execution. M13 still needs a genuine in-flight npm interruption
-in addition to its post-mutation checkpoint regression.
+concurrent npm execution. M13 now interrupts a live npm process during metadata fetch and verifies
+stale-lock reporting and explicit repair of the unchanged baseline. A
+fragmented-stdout PID regression failed with the old parser and passes with
+complete-line parsing. Recovery from arbitrary partial extraction is not
+established by this fixture.
 D26 requires a verified same-identity replay normalization for npm global adds,
 so the second-pack and concurrency matrix cases can meet their intended
 behavior. Keep strict refusal for protected packages and unproven changes.
@@ -313,3 +316,23 @@ web/src/index.tsx. It was never included in these commits and is NOT transferred
 by fetching this branch. Its SHA-256 is
 `c6558f4eb05352ed80c315b4c54ffa4f433b4db4ec01d367ee4331c3a6b8dc52`.
 Preserve it on the original machine. No force push or reset was performed.
+
+## Command and matrix checkpoint
+
+`32fa5f97c7` adds the reviewed `nodetool nodes` command surface, removal,
+repair, authorized re-execution and native platform/npm matrix. Independent
+concurrent commands now renew stale authorization without changing the old
+grant. Prompts bind the displayed selection to the resulting token.
+
+The first remote Linux Node 24/npm 11 matrix passed. Linux Node 22/npm 10
+reported an exact same-version replay action in text. D26 now handles that
+case only for a uniquely identified pinned hoisted pack, with protected
+identities and all post-install checks retained. Both macOS legs exposed
+noncanonical fixture paths through the OS temporary-directory symlink. The
+fixture root is now canonical, with a retained ancestor-alias regression.
+Windows separator coverage is retained. Fresh platform acceptance is required.
+
+The local harness exposed two browser game suites loading the untransformed
+Node config barrel. Jest now selects the browser branch while exercising the
+real Rapier import. Both failing suites pass after the test mapping fix. This
+is focused repair evidence, not a passing verdict for the full harness gate.

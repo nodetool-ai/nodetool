@@ -5,7 +5,7 @@ import { createServer, type RequestListener } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
 import type { Server } from "node:net";
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -16,13 +16,17 @@ import type { NodeCatalogIndex } from "@nodetool-ai/node-catalog";
 const exec = promisify(execFile);
 const roots: string[] = [];
 const servers: Server[] = [];
+export function parseNpmPidMarker(output: string): number | null {
+  const marker = /(?:^|\n)NPM_PID=(\d+)\r?\n/.exec(output);
+  return marker ? Number(marker[1]) : null;
+}
 export async function disposePackRegistryFixtures(): Promise<void> {
   await Promise.all(servers.splice(0).map((server) => new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))));
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 }
 
 export async function setupPackRegistry(conflict = false, options: { readonly tls?: boolean; readonly optionalDependency?: boolean; readonly allowScript?: boolean } = {}) {
-  const directory = await mkdtemp(join(tmpdir(), "packs-registry-")); roots.push(directory);
+  const directory = await realpath(await mkdtemp(join(tmpdir(), "packs-registry-"))); roots.push(directory);
   const npm = findNpmCli(); if (!npm) { throw new Error("Local npm-cli.js required for integration fixture"); }
   const tarballs = new Map<string, { name: string; version: string; bytes: Buffer; integrity: string; dependencies: Record<string, string> }>();
   for (const [name, version, dependencies] of [
@@ -46,19 +50,37 @@ export async function setupPackRegistry(conflict = false, options: { readonly tl
   }
   let registry = "";
   const requests: string[] = [];
+  const pausedRequests = new Map<string, { reached: () => void; released: Promise<void>; userAgent?: string }>();
+  function pauseRequest(path: string, userAgent?: string): { reached: Promise<void>; release: () => void } {
+    let reached!: () => void;
+    let release!: () => void;
+    const started = new Promise<void>(resolve => { reached = resolve; });
+    const released = new Promise<void>(resolve => { release = resolve; });
+    pausedRequests.set(path, { reached, released, userAgent });
+    return { reached: started, release };
+  }
   const handler: RequestListener = (request, response) => {
     const url = decodeURIComponent(request.url ?? "");
     requests.push(url);
-    const tar = [...tarballs.values()].find((entry) => url === `/tar/${entry.name.replaceAll("/", "-")}-${entry.version}.tgz`);
-    if (tar) { response.end(tar.bytes); return; }
-    const name = url.slice(1); const versions = [...tarballs.values()].filter((entry) => entry.name === name);
-    if (!versions.length) { response.statusCode = 404; response.end('{}'); return; }
-    response.setHeader("content-type", "application/json");
-    response.end(JSON.stringify({ name, "dist-tags": { latest: versions.at(-1)!.version }, versions: Object.fromEntries(versions.map((entry) => [entry.version, {
-      name, version: entry.version, ...(name.endsWith("-nodes") ? { peerDependencies: entry.dependencies } : { dependencies: entry.dependencies }), scripts: { postinstall: "node -e \"require('fs').writeFileSync('SCRIPT_RAN', 'bad')\"" },
-      ...(options.optionalDependency && name === "@nodetool-ai/fixture-nodes" ? { optionalDependencies: { "fixture-optional": "1.0.0" } } : {}),
-      dist: { tarball: `${registry}/tar/${name.replaceAll("/", "-")}-${entry.version}.tgz`, integrity: entry.integrity }
-    }])) }));
+    const send = () => {
+      if (response.destroyed) { return; }
+      const tar = [...tarballs.values()].find((entry) => url === `/tar/${entry.name.replaceAll("/", "-")}-${entry.version}.tgz`);
+      if (tar) { response.end(tar.bytes); return; }
+      const name = url.slice(1); const versions = [...tarballs.values()].filter((entry) => entry.name === name);
+      if (!versions.length) { response.statusCode = 404; response.end('{}'); return; }
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ name, "dist-tags": { latest: versions.at(-1)!.version }, versions: Object.fromEntries(versions.map((entry) => [entry.version, {
+        name, version: entry.version, ...(name.endsWith("-nodes") ? { peerDependencies: entry.dependencies } : { dependencies: entry.dependencies }), scripts: { postinstall: "node -e \"require('fs').writeFileSync('SCRIPT_RAN', 'bad')\"" },
+        ...(options.optionalDependency && name === "@nodetool-ai/fixture-nodes" ? { optionalDependencies: { "fixture-optional": "1.0.0" } } : {}),
+        dist: { tarball: `${registry}/tar/${name.replaceAll("/", "-")}-${entry.version}.tgz`, integrity: entry.integrity }
+      }])) }));
+    };
+    const paused = pausedRequests.get(url);
+    if (paused && (!paused.userAgent || request.headers["user-agent"] === paused.userAgent)) {
+      pausedRequests.delete(url);
+      paused.reached();
+      void paused.released.then(send);
+    } else { send(); }
   };
   const caFile = new URL("../_fixtures/npm-matrix-ca.pem", import.meta.url);
   const server = options.tls ? createHttpsServer({ cert: await readFile(caFile), key: await readFile(new URL("../_fixtures/npm-matrix-key.pem", import.meta.url)) }, handler) : createServer(handler);
@@ -83,5 +105,5 @@ export async function setupPackRegistry(conflict = false, options: { readonly tl
     packs: ["fixture"], catalog, stateFile: join(directory, "cli-packs.json") };
   const operations: InstallerOperations = { npmVersion: installerNpmVersion, npm: run,
     loadCheck: async () => { await exec(process.execPath, ["-e", "process.exit(0)"]); } };
-  return { root, request, operations, tarballs, registry, directory, npm, requests, caFile };
+  return { root, request, operations, tarballs, registry, directory, npm, requests, caFile, pauseRequest };
 }
