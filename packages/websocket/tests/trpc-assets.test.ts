@@ -30,14 +30,13 @@ vi.mock("@nodetool-ai/config", async (orig) => {
   };
 });
 
-// Mock filesystem writes so update() with `data` doesn't hit disk.
-vi.mock("node:fs/promises", async (orig) => {
-  const actual = await orig<typeof import("node:fs/promises")>();
-  return {
-    ...actual,
-    mkdir: vi.fn().mockResolvedValue(undefined),
-    writeFile: vi.fn().mockResolvedValue(undefined)
-  };
+// Keep update() with `data` off the disk: asset bytes go through the storage
+// adapter, so swap it for an in-memory one.
+vi.mock("../src/lib/storage.js", async (orig) => {
+  const actual = await orig<typeof import("../src/lib/storage.js")>();
+  const { InMemoryStorageAdapter } = await import("@nodetool-ai/storage");
+  const adapter = new InMemoryStorageAdapter();
+  return { ...actual, getAssetAdapter: () => adapter };
 });
 
 import { Asset } from "@nodetool-ai/models";
