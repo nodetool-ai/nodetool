@@ -6,9 +6,54 @@ import { mergeByUnits } from "../../documentMerge";
 import { acceptServerAnyGameUnit, anyGameMergeAdapter } from "../anyMerge";
 import { gameMergeAdapter3D } from "../merge3D";
 import { getGameDraftStore } from "../GameDraftStore";
+import { clearAllConflicts, useConflictStore } from "../../ConflictStore";
 
 const gold = gameMaterial3D.parse({ color: "#ffaa00" });
 const silver = gameMaterial3D.parse({ color: "#aabbcc" });
+
+it.each((["preset", "inline", "prefab"] as const).flatMap((mode) =>
+  [false, true].map((banner) => ({ mode, banner }))))("accepts the actual server binding through conflict stores: $mode banner=$banner", ({ mode, banner }) => {
+  const base = mode === "preset" ? withTexturedMaterial() : withInlineVisual("primitive", mode === "prefab");
+  const assigned = structuredClone(base);
+  if (mode === "preset") { assignMaterial(assigned, false); }
+  else {
+    const visual = inlineVisual(assigned, mode === "prefab").primitive;
+    if (!visual) { throw new Error("Fixture primitive missing"); }
+    visual.material.normalTexture = { assetId: "paint" };
+    if (mode === "prefab") { assigned.prefabs.visual.externalAssets.push("paint"); }
+  }
+  const replaced = structuredClone(base);
+  delete replaced.materials;
+  replaced.assets.paint = { mediaKind: "audio", assetId: "server-audio", digest: "audio-digest", required: true };
+  for (const [draft, remote] of [[assigned, replaced], [replaced, assigned]]) {
+    const server = gameDocument3D.parse(remote);
+    expect(validateGame3D(draft).valid).toBe(true);
+    expect(validateGame3D(server).valid).toBe(true);
+    const merged = mergeByUnits(base, draft, server, anyGameMergeAdapter(base), { mergeWithoutOps: true });
+    expect(merged.conflicts).toHaveLength(1);
+    const offer = merged.conflicts[0];
+    const store = getGameDraftStore(base.id);
+    store.getState().load(base, "before");
+    store.getState().applyMerged(merged.doc, server, "after");
+    const key = `game:${base.id}`;
+    clearAllConflicts();
+    try {
+      if (banner) {
+        useConflictStore.getState().setConflicts(key, merged.conflicts, {
+          onAccept: (id) => store.getState().acceptConflict(server, offer.unit.kind, id),
+          onDiscard: () => {}
+        });
+        expect(useConflictStore.getState().byKey[key].conflicts).toEqual(merged.conflicts);
+        useConflictStore.getState().accept(key, offer.unit.id);
+      } else { store.getState().acceptConflict(server, offer.unit.kind, offer.unit.id); }
+      expect(store.getState().document?.assets.paint).toEqual(server.assets.paint);
+      expect(store.getState().document).toEqual(server);
+      expect(store.getState().pendingOps).toEqual([]);
+      expect(useConflictStore.getState().byKey[key]).toBeUndefined();
+    } finally { clearAllConflicts(); }
+  }
+  expectWholeDocumentChoices(base, assigned, replaced);
+});
 
 function withMaterial(): GameDocument3D {
   return { ...createNative3DGame("material-merge"), materials: { gold } };
@@ -177,7 +222,7 @@ it("keeps compatible server image changes while restoring a referenced preset", 
   expect(merged.doc.assets.paint).toEqual(server.assets.paint);
 });
 
-it.each([false, true])("raises an asset conflict for incompatible bindings in either merge direction (remote: %s)", (remote) => {
+it.each([false, true])("offers complete documents for incompatible bindings in either merge direction (remote: %s)", (remote) => {
   const base = withTexturedMaterial();
   const assigned = structuredClone(base);
   assignMaterial(assigned, false);
@@ -190,15 +235,15 @@ it.each([false, true])("raises an asset conflict for incompatible bindings in ei
   expect(validateGame3D(server).valid).toBe(true);
   const merged = mergeByUnits(base, draft, server, anyGameMergeAdapter(base), { mergeWithoutOps: true });
   expect(validateGame3D(merged.doc).valid).toBe(true);
-  expect(merged.doc.assets.paint).toEqual(base.assets.paint);
+  expect(merged.doc.assets.paint).toEqual(draft.assets.paint);
   expect(merged.conflicts).toContainEqual(expect.objectContaining({
-    unit: { kind: "asset", id: "paint", label: "asset paint" }, reason: "edited",
-    external: { slot: "paint", binding: server.assets.paint }, draft: { slot: "paint", binding: draft.assets.paint }
+    unit: { kind: "document", id: "document", label: "document" }, reason: "replaced",
+    external: server, draft
   }));
-  const accepted = acceptServerAnyGameUnit(merged.doc, server, "asset", "paint");
+  const accepted = acceptServerAnyGameUnit(merged.doc, server, "document", "document");
   if (accepted.schemaVersion !== 3) { throw new Error("Unexpected game dimension"); }
   expect(validateGame3D(accepted).valid).toBe(true);
-  expect(accepted.assets.paint).toEqual(base.assets.paint);
+  expect(accepted.assets.paint).toEqual(server.assets.paint);
   const cleared = structuredClone(accepted);
   delete cleared.materials;
   for (const entity of cleared.scenes[0].entities) {
@@ -348,7 +393,7 @@ it.each(["primitive", "model"] as const)("ignores inline texture dependencies sh
   expect(validateGame3D(merged.doc).valid).toBe(true);
   expect(Object.hasOwn(merged.doc.assets, "paint")).toBe(false);
 });
-it.each(["primitive", "model"] as const)("raises and safely accepts inline %s image conflicts in either direction", (component) => {
+it.each(["primitive", "model"] as const)("offers complete documents for inline %s image conflicts in either direction", (component) => {
   const base = withInlineVisual(component, false);
   const assigned = structuredClone(base);
   const visual = inlineVisual(assigned, false)[component];
@@ -360,13 +405,13 @@ it.each(["primitive", "model"] as const)("raises and safely accepts inline %s im
     const merged = mergeByUnits(base, draft, server, anyGameMergeAdapter(base), { mergeWithoutOps: true });
     expect(validateGame3D(merged.doc).valid).toBe(true);
     expect(merged.conflicts).toContainEqual(expect.objectContaining({
-      unit: { kind: "asset", id: "paint", label: "asset paint" },
-      external: { slot: "paint", binding: server.assets.paint }, draft: { slot: "paint", binding: draft.assets.paint }
+      unit: { kind: "document", id: "document", label: "document" },
+      external: server, draft
     }));
-    const accepted = acceptServerAnyGameUnit(merged.doc, server, "asset", "paint");
+    const accepted = acceptServerAnyGameUnit(merged.doc, server, "document", "document");
     if (accepted.schemaVersion !== 3) { throw new Error("Unexpected game dimension"); }
     expect(validateGame3D(accepted).valid).toBe(true);
-    expect(accepted.assets.paint).toEqual(base.assets.paint);
+    expect(accepted.assets.paint).toEqual(server.assets.paint);
   }
 });
 

@@ -29,7 +29,7 @@ function materialEntities(doc: GameDocument3D): Map<string, GameEntity3D> {
   return entities;
 }
 
-function retainReferencedMaterials(doc: GameDocument3D, sources: readonly GameDocument3D[], conflicts?: MergeConflict[]): GameDocument3D {
+function retainReferencedMaterials(doc: GameDocument3D, sources: readonly GameDocument3D[], conflicts?: MergeConflict[], onIncompatibleAsset?: () => void): GameDocument3D {
   const entities = materialEntities(doc);
   const indexedSources = sources.map((source) => ({ document: source, entities: materialEntities(source) }));
   const referenced = new Set([...Object.keys(doc.materials ?? {}), ...[...entities.values()].flatMap((entity) => [entity.primitive?.materialId, entity.model?.materialId])
@@ -46,6 +46,7 @@ function retainReferencedMaterials(doc: GameDocument3D, sources: readonly GameDo
       const source = candidates.find((candidate) => Object.hasOwn(candidate.assets, slot) && candidate.assets[slot].mediaKind === "image");
       const binding = source?.assets[slot];
       if (!binding) { continue; }
+      if (current) { onIncompatibleAsset?.(); }
       restoredAssets ??= { ...doc.assets };
       Object.defineProperty(restoredAssets, slot, { value: binding, enumerable: true, writable: true, configurable: true });
       if (current && conflicts && !conflictedAssets.has(slot)) {
@@ -89,12 +90,16 @@ function retainReferencedMaterials(doc: GameDocument3D, sources: readonly GameDo
 }
 
 function mergeNative3D(base: GameDocument3D, draft: GameDocument3D, server: GameDocument3D, options?: MergeOptions): MergeResult<GameDocument3D> {
-  const { merge: _merge, ...adapter } = gameMergeAdapter3D;
+  const { merge: _merge, ...fields } = gameMergeAdapter3D;
+  let incompatibleMaterialAsset = false;
+  const adapter: DocumentMergeAdapter<GameDocument3D> = { ...fields,
+    finalizeMergedDocument: (doc, baseDocument, draftDocument, serverDocument, conflicts) =>
+      retainReferencedMaterials(doc, [draftDocument, serverDocument, baseDocument], conflicts, () => { incompatibleMaterialAsset = true; }) };
   let merged: MergeResult<GameDocument3D> | undefined;
   let materialLimitError: z.ZodError | undefined;
   try {
     merged = mergeByUnits(base, draft, server, adapter, options);
-    if (validateGame3D(merged.doc).valid) { return merged; }
+    if (!incompatibleMaterialAsset && validateGame3D(merged.doc).valid) { return merged; }
   } catch (error) {
     if (!(error instanceof z.ZodError) || error.issues.length === 0 || !error.issues.every((issue) =>
       issue.code === "custom" && issue.path.length === 1 && issue.path[0] === "materials" && issue.message === "At most 256 named materials")) {
