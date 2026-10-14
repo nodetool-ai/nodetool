@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import { useSettingsPageStore } from "../../../stores/SettingsPageStore";
+import { useSettingsStore } from "../../../stores/SettingsStore";
 
 jest.mock("../../../lib/env", () => ({
   isLocalhost: true,
@@ -154,6 +155,25 @@ describe("SettingsPage", () => {
     await user.click(theme);
     await user.click(screen.getByRole("option", { name: "Light" }));
     expect(mockSetMode).toHaveBeenCalledWith("light");
+  });
+
+  // UX research study 2: people asked for larger text to read the app.
+  it("lets people pick a text size under Appearance", async () => {
+    const user = userEvent.setup();
+    useSettingsStore.getState().setTextSize("default");
+    renderSettings();
+    const textSize = screen.getByRole("combobox", { name: "Text size" });
+    expect(textSize).toHaveTextContent("Default");
+    await user.click(textSize);
+    await user.click(screen.getByRole("option", { name: "Larger" }));
+    expect(useSettingsStore.getState().settings.textSize).toBe("larger");
+  });
+
+  it("finds the text size setting by searching for font size", async () => {
+    const user = userEvent.setup();
+    renderSettings();
+    await user.type(screen.getByRole("textbox", { name: /search/i }), "font size");
+    expect(screen.getByRole("combobox", { name: "Text size" })).toBeVisible();
   });
 
   it("lists only sections that match the search in the sidebar", async () => {

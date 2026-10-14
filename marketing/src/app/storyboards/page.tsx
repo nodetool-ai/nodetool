@@ -8,6 +8,7 @@ import {
   storyboardEntryPages,
   storyboards
 } from "@/data/storyboards";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 const entry = storyboardEntryPages[0];
 export const metadata: Metadata = {
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
   description: entry.description,
   alternates: { canonical: "https://nodetool.ai/storyboards" },
   openGraph: {
+    images: DEFAULT_OG_IMAGES,
     title: entry.title,
     description: entry.description,
     url: "https://nodetool.ai/storyboards"
