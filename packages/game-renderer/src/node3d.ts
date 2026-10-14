@@ -83,8 +83,22 @@ export async function captureGameFrame3D(value: GameRenderFrame3D, options: Capt
       const bundle = await loadCaptureBundle();
       const assets: Record<string, { readonly base64: string; readonly digest?: string }> = {};
       let totalBytes = 0;
-      for (const logicalId of new Set([...frame.entities.flatMap((entity) => entity.model ? [entity.model.assetId] : []), ...Object.keys(frame.fonts ?? {})])) {
+      const imageIds = new Set<string>();
+      for (const entity of frame.entities) {
+        const component = entity.primitive ?? entity.model;
+        if (!component) { continue; }
+        let material = component.material;
+        if (component.materialId) {
+          if (!frame.materials || !Object.hasOwn(frame.materials, component.materialId)) { throw new Error(`Missing capture material ${component.materialId}`); }
+          material = frame.materials[component.materialId];
+        }
+        for (const slot of [material?.baseColorTexture, material?.normalTexture, material?.ormTexture, material?.emissiveTexture]) {
+          if (slot) { imageIds.add(slot.assetId); }
+        }
+      }
+      for (const logicalId of new Set([...frame.entities.flatMap((entity) => entity.model ? [entity.model.assetId] : []), ...Object.keys(frame.fonts ?? {}), ...imageIds])) {
         controller.signal.throwIfAborted();
+        if (imageIds.has(logicalId) && (!frame.images || !Object.hasOwn(frame.images, logicalId))) { throw new Error(`Missing capture image binding ${logicalId}`); }
         const source = await options.resolveAsset?.(logicalId, controller.signal);
         if (!source) {
           if (frame.fonts?.[logicalId]?.required === false) { continue; }
