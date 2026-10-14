@@ -5,6 +5,7 @@ import type { ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useEmbeddingModelsByProvider } from "../../hooks/useEmbeddingModels";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import useModelSelectMenu from "./shared/useModelSelectMenu";
+import { getProviderDisplayName } from "../../utils/providerDisplay";
 
 interface EmbeddingModelSelection {
   type: "embedding_model";
@@ -49,9 +50,9 @@ const EmbeddingModelSelect: React.FC<EmbeddingModelSelectProps> = ({
       <ModelSelectButton
         ref={buttonRef}
         active={!!value}
-        label={currentSelectedModelDetails?.name || value || "Select Model"}
-        secondaryLabel={currentSelectedModelDetails?.provider}
-        subLabel="Select Embedding Model"
+        label={currentSelectedModelDetails?.name || value || "Select model"}
+        secondaryLabel={getProviderDisplayName(currentSelectedModelDetails?.provider)}
+        subLabel="Select embedding model"
         onClick={handleClick}
       />
       <EmbeddingModelMenuDialog

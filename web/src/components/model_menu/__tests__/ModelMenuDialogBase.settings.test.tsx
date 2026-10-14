@@ -47,7 +47,7 @@ it("closes the picker when its Open Settings opens the Settings tab", () => {
     </QueryClientProvider>
   );
 
-  fireEvent.click(screen.getAllByRole("button", { name: "Open Settings" })[0]);
+  fireEvent.click(screen.getAllByRole("button", { name: "Open settings" })[0]);
 
   expect(openSettingsTab).toHaveBeenCalledWith("providers");
   expect(onClose).toHaveBeenCalled();

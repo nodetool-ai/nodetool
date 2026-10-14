@@ -48,7 +48,7 @@ const TransformersJsModelSelect: React.FC<TransformersJsModelSelectProps> = ({
       };
     }
     return {
-      repoId: "Select Transformers.js Model",
+      repoId: "Select Transformers.js model",
       path: undefined
     };
   }, [currentSelectedModelDetails, value]);
@@ -86,7 +86,7 @@ const TransformersJsModelSelect: React.FC<TransformersJsModelSelectProps> = ({
         active={!!(value?.repo_id || value?.id)}
         label={displayInfo.repoId}
         secondaryLabel={displayInfo.path}
-        subLabel="Select Transformers.js Model"
+        subLabel="Select Transformers.js model"
         onClick={handleClick}
       />
       <TransformersJsModelMenuDialog
