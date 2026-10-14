@@ -41,6 +41,7 @@ import {
   CompatibilityDetails,
   getWorkflowCompatibility
 } from "./entryCompatibility";
+import ExampleNeedsPill from "./ExampleNeedsPill";
 
 /** Rows shown on the dashboard before the user searches or opens the Examples tab. */
 const MAX_VISIBLE = 18;
@@ -254,6 +255,7 @@ const TemplateRow = memo(function TemplateRow({
         <span className="tpl-copy">
           <span className="tpl-title">{workflow.name}</span>
           <span className="tpl-desc">{workflow.description}</span>
+          <ExampleNeedsPill needs={workflow.needs} />
           <span className="tpl-compat">
             <CompatibilityDetails compatibility={compatibility} />
             {workflow.graph.nodes.length > 0 && (

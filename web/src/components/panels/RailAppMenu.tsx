@@ -131,7 +131,7 @@ const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
   }, [onAction]);
 
   const actions = useAppMenuActions(finish).filter(
-    (action) => action.placement === "logo"
+    (action) => action.placement !== "sidebar"
   );
 
   return (

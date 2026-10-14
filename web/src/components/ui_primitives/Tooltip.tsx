@@ -5,12 +5,16 @@
  * Provides consistent tooltip behavior across the application.
  */
 
-import React, { memo } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import MuiTooltip, {
   TooltipProps as MuiTooltipProps
 } from "@mui/material/Tooltip";
 import { FlexColumn } from "./FlexColumn";
 import { ShortcutHint } from "./ShortcutHint";
+import {
+  canOpenTooltip,
+  closeTooltipOnPointerDown
+} from "./tooltipPointerGate";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
@@ -81,11 +85,46 @@ const TooltipInternal: React.FC<TooltipProps> = ({
   shortcut,
   title,
   children,
+  open: openProp,
+  onOpen,
+  onClose,
   ...props
 }) => {
   const resolvedDelay = delay ?? enterDelay ?? TOOLTIP_ENTER_DELAY;
   const resolvedNextDelay =
     nextDelay ?? enterNextDelay ?? TOOLTIP_ENTER_NEXT_DELAY;
+  const [openState, setOpenState] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? openProp : openState;
+
+  const handleOpen = useCallback(
+    (event: React.SyntheticEvent) => {
+      if (!controlled && !canOpenTooltip(event)) {
+        return;
+      }
+      setOpenState(true);
+      onOpen?.(event);
+    },
+    [controlled, onOpen]
+  );
+
+  const handleClose = useCallback(
+    (event: React.SyntheticEvent | Event) => {
+      setOpenState(false);
+      onClose?.(event);
+    },
+    [onClose]
+  );
+
+  // A press anywhere closes a hover tooltip, so it cannot outlive a click on
+  // its trigger, a closing menu or a hidden panel row.
+  useEffect(() => {
+    if (controlled || !openState) {
+      return undefined;
+    }
+    return closeTooltipOnPointerDown(() => setOpenState(false));
+  }, [controlled, openState]);
+
   if (disabled) {
     return <>{children}</>;
   }
@@ -97,6 +136,9 @@ const TooltipInternal: React.FC<TooltipProps> = ({
       arrow={arrow}
       title={tooltipWithShortcut(title, shortcut)}
       {...props}
+      open={open}
+      onOpen={handleOpen}
+      onClose={handleClose}
     >
       {children}
     </MuiTooltip>

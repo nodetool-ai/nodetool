@@ -8,7 +8,8 @@
  */
 
 import React, { memo, forwardRef, useCallback } from "react";
-import { IconButton, Tooltip } from "@mui/material";
+import { IconButton } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import EditIcon from "@mui/icons-material/Edit";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
