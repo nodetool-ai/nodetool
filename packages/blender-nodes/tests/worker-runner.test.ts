@@ -1,12 +1,12 @@
 import { chmodSync, writeFileSync } from "node:fs";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PythonBridge } from "@nodetool-ai/runtime";
-import { HostBinaryMissingError } from "@nodetool-ai/runtime";
+import { executeBlender, HostBinaryMissingError } from "@nodetool-ai/runtime";
 import { resetBlenderBinaryCache } from "../src/blender-binary.js";
 import { BLENDER_JOB_VERSION, type BlenderJob } from "../src/job.js";
 import {
@@ -20,6 +20,11 @@ import {
   __setBlenderRunnerForTesting,
   resolveBlenderRunner
 } from "../src/run-job.js";
+
+vi.mock("@nodetool-ai/runtime", async (importOriginal) => {
+  const runtime = await importOriginal<typeof import("@nodetool-ai/runtime")>();
+  return { ...runtime, executeBlender: vi.fn(runtime.executeBlender) };
+});
 
 const imageJob = (): BlenderJob => ({
   version: BLENDER_JOB_VERSION,
@@ -91,6 +96,7 @@ describe("WorkerBlenderRunner", () => {
   const temporaryDirectories: string[] = [];
 
   beforeEach(() => {
+    vi.clearAllMocks();
     savedBlenderPath = process.env["BLENDER_PATH"];
     savedWorkerUrl = process.env["NODETOOL_WORKER_URL"];
     resetBlenderBinaryCache();
@@ -115,24 +121,52 @@ describe("WorkerBlenderRunner", () => {
   it("sends every blender_ops file by relative path alongside declared inputs", async () => {
     const stub = workerBridge();
     const runner = new WorkerBlenderRunner({ bridge: stub.bridge });
-
-    const result = await runner.run(
+    const execute = vi.mocked(executeBlender);
+    const realExecute = execute.getMockImplementation();
+    if (!realExecute) { throw new Error("Pass-through executor missing"); }
+    let connectedAt = 0;
+    let executedAt = 0;
+    let connectedMonotonic = 0;
+    let executedMonotonic = 0;
+    const supportsBlender = stub.bridge.supportsBlender.bind(stub.bridge);
+    stub.bridge.supportsBlender = () => {
+      connectedAt = Date.now(); connectedMonotonic = performance.now();
+      return supportsBlender();
+    };
+    execute.mockImplementationOnce((bridge, job, inputs, options) => {
+      executedAt = Date.now(); executedMonotonic = performance.now();
+      return realExecute(bridge, job, inputs, options);
+    });
+    const beforeRun = Date.now();
+    const pending = runner.run(
       imageJob(),
       { model: new Uint8Array([1, 2, 3]) },
       { timeoutMs: 6000 }
     );
+    const afterRun = Date.now();
+    const afterRunMonotonic = performance.now();
+    const result = await pending;
 
     expect(result.outputs["image"]).toEqual(new Uint8Array([5, 0x50, 0x4e, 0x47]));
     expect(stub.requests).toHaveLength(1);
     const request = stub.requests[0]!;
     expect(request.inputs).toEqual({ model: "model" });
-    // The worker gets what is left of the 6s budget after the op files are read, in whole seconds.
-    expect(request.timeout).toBeGreaterThanOrEqual(1);
-    expect(request.timeout).toBeLessThanOrEqual(6);
-    expect(Object.keys(request.blobs).sort()).toEqual([
-      "model",
-      ...(await filesBelow(resolveOpScriptDir()))
-    ].sort());
+    expect(execute).toHaveBeenCalledOnce();
+    const remainingMs = execute.mock.calls[0]![3].timeoutMs;
+    expect(remainingMs).toBeGreaterThan(0);
+    expect(remainingMs).toBeLessThanOrEqual(6000);
+    expect(request.timeout).toBe(Math.max(1, Math.ceil(remainingMs / 1000)));
+    expect(connectedMonotonic).toBeGreaterThan(afterRunMonotonic);
+    expect(executedMonotonic).toBeGreaterThanOrEqual(connectedMonotonic);
+    // The real start and budget calculation lie inside these observed clock boundaries.
+    expect(remainingMs).toBeGreaterThanOrEqual(Math.max(1, 6000 - (executedAt - beforeRun)));
+    expect(remainingMs).toBeLessThanOrEqual(Math.max(1, 6000 - (connectedAt - afterRun)));
+    const expectedFiles = await filesBelow(resolveOpScriptDir());
+    expect(Object.keys(request.blobs).sort()).toEqual(["model", ...expectedFiles].sort());
+    expect(request.blobs.model).toEqual(new Uint8Array([1, 2, 3]));
+    await Promise.all(expectedFiles.map(async (file) => {
+      expect(request.blobs[file]).toEqual(new Uint8Array(await readFile(path.join(resolveOpScriptDir(), file))));
+    }));
     expect(new TextDecoder().decode(request.blobs["run_job.py"]!)).toContain(
       "def main()"
     );

@@ -49,6 +49,7 @@ interface ExampleSummary {
   workflows: string[];
   operationCount: number;
   thumbnailUrl: string | null;
+  needs?: { modelKinds: string[]; requiredSettings: string[] };
 }
 
 describe("example apps", () => {
@@ -102,6 +103,28 @@ describe("example apps", () => {
     expect(offerWall?.thumbnailUrl).toMatch(
       /^\/api\/workflows\/examples\/thumbnails\/ad-kinetic-offer-wall\.jpg\?v=[0-9a-f]{8}$/
     );
+  });
+
+  it("says which models and keys each bundle asks for", async () => {
+    await server.close();
+    server = await buildServer({
+      exampleAppsDir: EXAMPLE_APPS_DIR,
+      registry: {
+        getMetadata: (nodeType: string) =>
+          nodeType.startsWith("openai.")
+            ? { required_settings: ["OPENAI_API_KEY"] }
+            : undefined
+      } as unknown as HttpApiOptions["registry"]
+    });
+    const response = await server.inject({ url: "/api/applications/examples" });
+    const apps = response.json() as ExampleSummary[];
+    expect(apps.find((a) => a.slug === "vary-image")?.needs).toEqual({
+      modelKinds: ["image_model"],
+      requiredSettings: []
+    });
+    expect(
+      apps.find((a) => a.slug === "ugc-product-video")?.needs?.requiredSettings
+    ).toEqual(["OPENAI_API_KEY"]);
   });
 
   it("carries no thumbnail when the examples directory is unknown", async () => {

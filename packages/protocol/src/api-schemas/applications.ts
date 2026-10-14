@@ -3,6 +3,7 @@ import { z } from "zod";
 import { graph } from "./workflows.js";
 import { graphicsFrame, graphicsTypography, graphicsLock, graphicsLimits, graphicsShapeStyle, graphicsFallback } from "./storyboards.js";
 import { jsScriptDocument } from "./js-scripts.js";
+import { exampleNeeds } from "../example-needs.js";
 
 // ── Application document ────────────────────────────────────────────────────
 // Mirrors `ApplicationDocument` in `@nodetool-ai/app-runtime`. The UI document
@@ -281,7 +282,9 @@ export const exampleAppSummary = z.object({
   /** Names of the workflows installing this app creates. */
   workflows: z.array(z.string()),
   operationCount: z.number(),
-  thumbnailUrl: z.string().nullable()
+  thumbnailUrl: z.string().nullable(),
+  /** The models and keys the bundle asks for before it runs. */
+  needs: exampleNeeds.optional()
 });
 export type ExampleAppSummary = z.infer<typeof exampleAppSummary>;
 

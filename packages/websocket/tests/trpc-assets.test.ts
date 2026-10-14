@@ -30,13 +30,9 @@ vi.mock("@nodetool-ai/config", async (orig) => {
   };
 });
 
-// Stub the storage write so update() with `data` doesn't hit disk.
 vi.mock("../src/lib/thumbnail.js", async (orig) => {
   const actual = await orig<typeof import("../src/lib/thumbnail.js")>();
-  return {
-    ...actual,
-    storeAssetWithThumbnail: vi.fn().mockResolvedValue(undefined)
-  };
+  return { ...actual, storeAssetWithThumbnail: vi.fn().mockResolvedValue(undefined) };
 });
 
 import { Asset } from "@nodetool-ai/models";
@@ -314,15 +310,10 @@ describe("assets router", () => {
         data: Buffer.from("hello").toString("base64"),
         data_encoding: "base64"
       });
-      // size is set to the byteLength of the decoded buffer.
-      expect(a.size).toBe(5);
       expect(storeAssetWithThumbnail).toHaveBeenCalledWith(
-        "user-1",
-        "a1",
-        expect.any(String),
-        new Uint8Array(Buffer.from("hello")),
-        expect.any(String)
+        "user-1", "a1", "a1.png", new Uint8Array(Buffer.from("hello")), "image/png"
       );
+      expect(a.size).toBe(5);
     });
 
     it("throws NOT_FOUND when the asset does not exist", async () => {

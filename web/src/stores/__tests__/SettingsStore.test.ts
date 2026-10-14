@@ -333,6 +333,30 @@ describe("SettingsStore", () => {
       expect(kept).toBe(1);
     });
 
+    test("text size defaults to Default and persists a picked size", async () => {
+      expect(useSettingsStore.getState().settings.textSize).toBe("default");
+      useSettingsStore.getState().setTextSize("larger");
+      expect(useSettingsStore.getState().settings.textSize).toBe("larger");
+      const stored = JSON.parse(localStorage.getItem("settings-storage") ?? "{}");
+      expect(stored.state.settings.textSize).toBe("larger");
+    });
+
+    test("an unknown persisted text size falls back to Default", async () => {
+      localStorage.setItem(
+        "settings-storage",
+        JSON.stringify({
+          state: { settings: { textSize: "huge" } },
+          version: 0
+        })
+      );
+      let restored = "";
+      await jest.isolateModulesAsync(async () => {
+        const fresh = await import("../SettingsStore");
+        restored = fresh.useSettingsStore.getState().settings.textSize;
+      });
+      expect(restored).toBe("default");
+    });
+
     test("defaultAutosaveSettings has correct structure", () => {
       expect(defaultAutosaveSettings.enabled).toBe(true);
       expect(defaultAutosaveSettings.intervalMinutes).toBe(10);

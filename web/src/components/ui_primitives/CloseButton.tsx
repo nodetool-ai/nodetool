@@ -8,12 +8,12 @@
  */
 
 import React, { memo, forwardRef, useCallback } from "react";
-import { IconButton, Tooltip } from "@mui/material";
+import { IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
-import { tooltipWithShortcut } from "./Tooltip";
+import { Tooltip, tooltipWithShortcut } from "./Tooltip";
 
 export interface CloseButtonProps {
   /**
