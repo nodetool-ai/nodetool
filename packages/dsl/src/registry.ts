@@ -2,6 +2,7 @@
  * Registry and executor resolution shared by the graph DSL (`run()`) and the
  * native flow API. One builtin-pack list, two consumers.
  */
+import { createMissingPackError } from "@nodetool-ai/node-catalog";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   resolvePythonNodeExecutor,
@@ -75,9 +76,8 @@ async function loadBuiltinRegistry(): Promise<NodeRegistry> {
 }
 
 /**
- * Can any in-process TS registry resolve this node type? A `false` answer makes
- * the type a Python candidate, which is what decides whether a worker bridge is
- * worth connecting.
+ * Types handled by the TS registry never require a Python worker. Catalog
+ * types are refused by the executor resolver rather than sent to Python.
  */
 export function createHasTsExecutor(
   registry: NodeRegistry | undefined,
@@ -86,7 +86,10 @@ export function createHasTsExecutor(
   return (nodeType: string): boolean =>
     Boolean(registry?.has(nodeType)) ||
     NodeRegistry.global.has(nodeType) ||
-    builtinRegistry.has(nodeType);
+    builtinRegistry.has(nodeType) ||
+    registry?.availability(nodeType) === "catalog" ||
+    NodeRegistry.global.availability(nodeType) === "catalog" ||
+    builtinRegistry.availability(nodeType) === "catalog";
 }
 
 export interface ExecutorResolverOptions {
@@ -112,6 +115,12 @@ export function createExecutorResolver(
     }
     if (builtinRegistry.has(node.type)) {
       return builtinRegistry.resolve(node);
+    }
+    for (const registry of [opts?.registry, NodeRegistry.global, builtinRegistry]) {
+      const entry = registry?.catalogEntry(node.type);
+      if (entry && registry?.availability(node.type) === "catalog") {
+        throw createMissingPackError(entry.pack, [node.type]);
+      }
     }
     const py = resolvePythonNodeExecutor(bridge, node);
     if (py) return py;

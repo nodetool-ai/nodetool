@@ -13,7 +13,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
 import { getAllMcpTools } from "@nodetool-ai/agents";
 import { initTestDb, Workflow } from "@nodetool-ai/models";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type {
   BaseProvider,
   ProviderStreamItem,
@@ -51,7 +51,7 @@ const GRAPH = {
 };
 
 /** A registry whose two node types echo a constant through the graph. */
-const registry = {
+const registry = Object.assign(new NodeRegistry(), {
   has: () => true,
   resolve: () => ({
     async process(ins: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -63,7 +63,7 @@ const registry = {
   getMetadata: () => undefined,
   listMetadata: () => [],
   validateNode: () => []
-} as unknown as NodeRegistry;
+});
 
 const spec = () => ({
   title: "Drafter",

@@ -95,6 +95,10 @@ export interface GraphValidationInput {
 export type GraphValidationSeverity = "error" | "warning" | "info";
 
 export interface GraphValidationIssue {
+  /** Catalog ownership for pack_not_installed diagnostics. */
+  packId?: string;
+  installBytes?: number;
+  installCommand?: string | null;
   severity: GraphValidationSeverity;
   /**
    * Stable category: "unknown_node" | "missing_id" | "duplicate_id" |
@@ -157,6 +161,9 @@ export interface GraphValidationReport {
 export interface GraphValidationRegistry {
   has(nodeType: string): boolean;
   getMetadata(nodeType: string): NodeMetadata | undefined;
+  availability?(nodeType: string): import("./registry.js").NodeAvailability;
+  catalogEntry?(nodeType: string): import("./registry.js").NodeCatalogEntry | undefined;
+  catalogPack?(nodeType: string): import("./registry.js").NodeCatalogPackMetadata | undefined;
   validateNode(
     descriptor: {
       id: string;
@@ -196,6 +203,13 @@ export interface GraphValidationRegistry {
     modelType: string,
     modelId: string
   ): readonly string[] | undefined;
+}
+
+function isStaticallyKnownNode(
+  registry: Pick<GraphValidationRegistry, "has" | "availability">,
+  nodeType: string
+): boolean {
+  return registry.has(nodeType) || registry.availability?.(nodeType) === "catalog";
 }
 
 /**
@@ -930,14 +944,14 @@ export interface SecretRequirementSite {
  */
 export function collectSecretRequirementSites(
   graph: GraphValidationInput,
-  registry: Pick<GraphValidationRegistry, "has" | "getMetadata">
+  registry: Pick<GraphValidationRegistry, "has" | "getMetadata" | "availability">
 ): SecretRequirementSite[] {
   const sites: SecretRequirementSite[] = [];
   const seen = new Set<string>();
   for (const node of graph.nodes ?? []) {
     const nodeId = String(node.id ?? "");
     const nodeType = String(node.type ?? "");
-    if (!nodeType || !registry.has(nodeType)) continue;
+    if (!nodeType || !isStaticallyKnownNode(registry, nodeType)) continue;
     const meta = registry.getMetadata(nodeType);
     for (const key of meta?.required_settings ?? []) {
       if (!isNonEmptyString(key)) continue;
@@ -976,7 +990,7 @@ export function collectSecretRequirementSites(
  */
 export function collectMissingSecretIssues(
   graph: GraphValidationInput,
-  registry: Pick<GraphValidationRegistry, "has" | "getMetadata">,
+  registry: Pick<GraphValidationRegistry, "has" | "getMetadata" | "availability">,
   availableSecrets?: ReadonlySet<string> | null
 ): GraphValidationIssue[] {
   if (!availableSecrets) return [];
@@ -1395,6 +1409,19 @@ export function validateGraph(
         nodeId: id,
         message: `Node "${id}" has no type`
       });
+    } else if (registry.availability?.(type) === "catalog") {
+      const entry = registry.catalogEntry?.(type);
+      const pack = registry.catalogPack?.(type);
+      issues.push({
+        severity: "error",
+        code: "pack_not_installed",
+        nodeId: id,
+        nodeType: type,
+        packId: entry?.pack,
+        installBytes: pack?.installBytes ?? 0,
+        installCommand: pack?.installCommand ?? null,
+        message: `Node type "${type}" belongs to pack "${entry?.pack ?? "unknown"}", which is not installed`
+      });
     } else if (!registry.has(type) && !isEditorOnlyType(type)) {
       issues.push({
         severity: "error",
@@ -1441,7 +1468,7 @@ export function validateGraph(
 
     issues.push(...collectLeftoverWiringHandleIssues(id, type, node));
 
-    if (!type || !registry.has(type)) continue;
+    if (!type || !isStaticallyKnownNode(registry, type)) continue;
     const propIssues = registry.validateNode(
       {
         id,
@@ -1536,7 +1563,7 @@ export function validateGraph(
     const [targetId, handle] = key.split("\u0000");
     const node = byId.get(targetId);
     const type = String(node?.type ?? "");
-    if (!type || !registry.has(type)) continue;
+    if (!type || !isStaticallyKnownNode(registry, type)) continue;
     const propType = registry
       .getMetadata(type)
       ?.properties?.find((prop) => prop.name === handle)?.type;

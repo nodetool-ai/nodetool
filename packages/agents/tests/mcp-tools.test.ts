@@ -13,7 +13,7 @@ import {
   debugSessions,
   InteractiveEscalationHandle
 } from "@nodetool-ai/execution/service";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   getAllMcpTools,
   type ExampleWorkflowCatalog
@@ -69,7 +69,7 @@ beforeEach(() => {
 });
 
 /** A registry that resolves nothing — enough to get past the "no registry" gate. */
-const stubRegistry = {
+const stubRegistry = Object.assign(new NodeRegistry(), {
   has: () => false,
   getMetadata: () => undefined,
   resolve: () => {
@@ -77,7 +77,7 @@ const stubRegistry = {
   },
   resolveMetadata: () => undefined,
   validateNode: () => []
-} as unknown as NodeRegistry;
+});
 
 /** Poll the job row until it reaches `status`, so a detached run can be read. */
 async function waitForJobStatus(
@@ -407,7 +407,7 @@ describe("create_workflow", () => {
   // saves, and the result names every unpicked model. The run preflight is
   // what refuses it, before any node executes.
   describe("unset model warning", () => {
-    const modelRegistry = {
+    const modelRegistry = Object.assign(new NodeRegistry(), {
       has: (type: string) => type === "nodetool.agents.Agent",
       getMetadata: () => undefined,
       resolveMetadata: () => undefined,
@@ -425,7 +425,7 @@ describe("create_workflow", () => {
                   'Property "model" requires a language_model to be selected'
               }
             ]
-    } as unknown as NodeRegistry;
+    });
     const checked = capTool("create_workflow", { nodeRegistry: modelRegistry });
     const graphWithAgent = (edges: unknown[] = []) => ({
       nodes: [
@@ -476,7 +476,7 @@ describe("create_workflow", () => {
      * only `properties` — so every graph with a selected model was refused
      * as unselected.
      */
-    const bagRegistry = {
+    const bagRegistry = Object.assign(new NodeRegistry(), {
       has: (type: string) => type === "nodetool.agents.Agent",
       getMetadata: () => undefined,
       resolveMetadata: () => undefined,
@@ -496,7 +496,7 @@ describe("create_workflow", () => {
                   'Property "model" requires a language_model to be selected'
               }
             ]
-    } as unknown as NodeRegistry;
+    });
     const bagChecked = capTool("create_workflow", {
       nodeRegistry: bagRegistry,
       // Silent catalogs: this test is about the unselected-model gate, not
@@ -1144,13 +1144,13 @@ describe("validate_workflow", () => {
     const saved = await saveWorkflow({
       graph: { nodes: [{ id: "n1", type: "ns.A", data: {} }], edges: [] }
     });
-    const registry = {
+    const registry = Object.assign(new NodeRegistry(), {
       has: () => true,
       getMetadata: () => ({ properties: [], outputs: [] }),
       validateNode: () => []
-    };
+    });
     const withRegistry = capTool("validate_workflow", {
-      nodeRegistry: registry as never,
+      nodeRegistry: registry,
       modelCatalogs: RUNTIME_MODEL_CATALOGS
     });
     const result = (await withRegistry.process(ctx, {
@@ -1163,13 +1163,13 @@ describe("validate_workflow", () => {
   // provider and a model id it does not offer validated clean on this surface,
   // which is exactly where hallucinated ids come from.
   it("flags a model id the provider does not offer", async () => {
-    const registry = {
+    const registry = Object.assign(new NodeRegistry(), {
       has: () => true,
       getMetadata: () => ({ properties: [], outputs: [] }),
       validateNode: () => []
-    };
+    });
     const withCatalogs = capTool("validate_workflow", {
-      nodeRegistry: registry as never,
+      nodeRegistry: registry,
       modelCatalogs: {
         listProviderIds: () => ["kie"],
         listModelIds: (provider, modelType) =>
@@ -1206,7 +1206,7 @@ describe("validate_workflow", () => {
 // store.
 describe("validate_workflow missing credentials", () => {
   const KEYED = "ns.NeedsKey";
-  const keyedRegistry = {
+  const keyedRegistry = Object.assign(new NodeRegistry(), {
     has: (type: string) => type === KEYED,
     getMetadata: () => ({
       properties: [],
@@ -1214,7 +1214,7 @@ describe("validate_workflow missing credentials", () => {
       required_settings: ["FAL_API_KEY"]
     }),
     validateNode: () => []
-  } as unknown as NodeRegistry;
+  });
 
   const graph = {
     nodes: [{ id: "n1", type: KEYED, properties: {} }],
@@ -1284,11 +1284,11 @@ describe("validate_workflow missing credentials", () => {
 
   it("does not ask at all when the graph declares nothing", async () => {
     const asked: string[][] = [];
-    const bareRegistry = {
+    const bareRegistry = Object.assign(new NodeRegistry(), {
       has: () => true,
       getMetadata: () => ({ properties: [], outputs: [] }),
       validateNode: () => []
-    } as unknown as NodeRegistry;
+    });
     const tool = capTool("validate_workflow", {
       nodeRegistry: bareRegistry,
       modelCatalogs: RUNTIME_MODEL_CATALOGS,
@@ -1775,10 +1775,10 @@ describe("start_background_job", () => {
     });
     const tool = capTool("start_background_job", {
       workflowEnvironment: async () => ({
-        registry: {
+        registry: Object.assign(new NodeRegistry(), {
           ...stubRegistry,
           getClass: () => undefined
-        } as unknown as NodeRegistry,
+        }),
         resolveExecutor: () => ({
           process: async () => {
             await parked;

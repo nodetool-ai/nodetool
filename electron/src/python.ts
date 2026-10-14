@@ -1,6 +1,5 @@
 import { promises as fs, constants } from "fs";
 import { spawn } from "child_process";
-import * as os from "os";
 import { app } from "electron";
 import * as path from "path";
 
@@ -14,6 +13,7 @@ import { getTorchBackend, torchBackendArgs } from "./torchPlatformCache";
 // without dragging the @nodetool-ai/runtime barrel (and every provider's
 // heavy SDK) into the main process.
 import { MIN_NODETOOL_CORE_VERSION } from "@nodetool-ai/protocol/bridge-protocol";
+import { runtimeLocations } from "@nodetool-ai/config";
 
 /**
  * Python environment manager for the Electron shell.
@@ -444,22 +444,11 @@ async function runCommand(command: string[]): Promise<void> {
  * Get the default installation location based on platform
  */
 function getDefaultInstallLocation(): string {
-  switch (process.platform) {
-    case "win32":
-      // Use ProgramData on Windows for all users, or AppData for current user
-      return process.env.ALLUSERSPROFILE
-        ? path.join(process.env.ALLUSERSPROFILE, "nodetool", "conda_env")
-        : path.join(process.env.APPDATA!, "nodetool", "conda_env");
-    case "darwin":
-      return path.join(os.homedir(), "nodetool_env");
-    case "linux":
-      // Use /opt for all users, or ~/.local/share for current user
-      return process.env.SUDO_USER
-        ? "/opt/nodetool/conda_env"
-        : path.join(os.homedir(), ".local/share/nodetool/conda_env");
-    default:
-      return path.join(os.homedir(), ".nodetool/conda_env");
-  }
+  const location = runtimeLocations({ ...process.env, NODETOOL_HOST: "desktop" }, {
+    desktopUserData: app.getPath("userData"), settings: {}
+  }).condaEnv;
+  if (!location) { throw new Error("The desktop host requires a conda environment location"); }
+  return location;
 }
 export {
   verifyApplicationPaths,

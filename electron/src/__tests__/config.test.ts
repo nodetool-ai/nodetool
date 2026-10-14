@@ -68,6 +68,17 @@ describe('Config', () => {
   });
 
   describe('getCondaEnvPath', () => {
+    it('uses NODETOOL_CONDA_ENV before recorded settings, the active env, and the cache', () => {
+      mockReadSettings.mockReturnValue({ CONDA_ENV: '/recorded-env' });
+      expect(getCondaEnvPath()).toBe('/recorded-env');
+      process.env.NT_ELECTRON_DEV_MODE = '1';
+      process.env.CONDA_PREFIX = '/active-env';
+      process.env.NODETOOL_CONDA_ENV = ' /override-env ';
+      expect(getCondaEnvPath()).toBe('/override-env');
+      expect(getPythonPath()).toBe(path.join('/override-env', process.platform === 'win32' ? 'python.exe' : 'bin/python'));
+      process.env.NODETOOL_CONDA_ENV = '/next-override';
+      expect(getCondaEnvPath()).toBe('/next-override');
+    });
     it('returns a location set after the path was first read', () => {
       mockReadSettings.mockReturnValue({ CONDA_ENV: '/old/env' });
       expect(getCondaEnvPath()).toBe('/old/env');
@@ -191,8 +202,7 @@ describe('Config', () => {
 
         const result = getCondaEnvPath();
 
-        // macOS implementation ignores SUDO_USER and always uses ~/nodetool_env
-        expect(result.replace(/\\/g, '/')).toContain('nodetool_env');
+        expect(result.replace(/\\/g, '/')).toContain('nodetool/conda_env');
       });
 
       it('should use user path when SUDO_USER not set', () => {
@@ -200,7 +210,7 @@ describe('Config', () => {
 
         const result = getCondaEnvPath();
 
-        expect(result.replace(/\\/g, '/')).toContain('nodetool_env');
+        expect(result.replace(/\\/g, '/')).toContain('nodetool/conda_env');
       });
     });
 
@@ -242,7 +252,7 @@ describe('Config', () => {
         const result = getCondaEnvPath();
 
         // Normalize separators so this is platform-agnostic (Windows runners use `\`)
-        expect(result.replace(/\\/g, '/')).toContain('.nodetool/conda_env');
+        expect(result.replace(/\\/g, '/')).toContain('nodetool/conda_env');
       });
     });
   });

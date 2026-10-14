@@ -35,7 +35,7 @@ import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { buildFullRegistry } from "./node-registry.js";
-import { applyOptionalNodeModules } from "./optional-node-root.js";
+import { initializeCliRuntime } from "./runtime-env.js";
 
 // Configure logging: in interactive mode, suppress non-error logs to a file
 // so they don't interfere with the Ink TUI. Env vars can still override.
@@ -54,7 +54,7 @@ if (!process.env["NODETOOL_LOG_FILE"]) {
 }
 configureLogging();
 // Optional imports fall back to the root `nodetool runtime add` installs into.
-applyOptionalNodeModules();
+initializeCliRuntime(import.meta.url);
 
 program
   .name("nodetool-chat")

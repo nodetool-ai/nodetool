@@ -89,6 +89,7 @@ FROM node:24.18.0-bookworm-slim AS runtime
 
 ENV NODE_ENV=production \
     NODETOOL_ENV=production \
+    NODETOOL_HOST=docker \
     NODETOOL_STORAGE_AUTO_CLEANUP=1 \
     HOST=0.0.0.0 \
     STATIC_FOLDER=/app/web/dist \

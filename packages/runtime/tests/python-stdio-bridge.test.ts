@@ -13,6 +13,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { MissingRuntimePackageError, missingRuntimeDetailsOf } from "@nodetool-ai/protocol";
 
 import { PythonStdioBridge } from "../src/python-stdio-bridge.js";
 
@@ -114,7 +115,14 @@ describe("PythonStdioBridge against the faithful stdio fake", () => {
     const bridge = track(
       makeBridge({ FAKE_WORKER_MODE: "never-ready" }, { startupTimeoutMs: 300 })
     );
-    await expect(bridge.connect()).rejects.toThrow(/did not become ready/i);
+    const error = await bridge.connect().catch((cause: unknown) => cause);
+    expect(error).toBeInstanceOf(MissingRuntimePackageError);
+    expect(missingRuntimeDetailsOf(error)).toMatchObject({
+      runtimePackage: "python", missing: "Python worker", reason: "broken"
+    });
+    expect(error).toMatchObject({ cause: expect.objectContaining({
+      message: expect.stringMatching(/^Python worker did not become ready within 300ms\./)
+    }) });
     expect(bridge.isConnected).toBe(false);
   });
 

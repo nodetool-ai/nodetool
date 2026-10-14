@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import type { VideoRef } from "@nodetool-ai/node-sdk";
 import { withTaskSpan } from "@nodetool-ai/runtime";
+import { MissingRuntimePackageError, missingRuntimePackageDetails, missingRuntimeText } from "@nodetool-ai/protocol";
 import {
   isNonEmptyString,
   isObjectLike,
@@ -30,15 +31,11 @@ export const execFile = promisify(execFileCb);
 export const FFMPEG_MAX_BUFFER = 50 * 1024 * 1024;
 
 /** A required binary (ffmpeg/ffprobe) is not installed or not on PATH. */
-export class MissingBinaryError extends Error {
+export class MissingBinaryError extends MissingRuntimePackageError {
   readonly binary: string;
   constructor(binary: string) {
-    super(
-      `${binary} is not installed or not on PATH. Install ${binary} (the ` +
-        `Package Manager UI can do this) to process video — these nodes shell ` +
-        `out to ffmpeg/ffprobe and cannot run without it.`
-    );
-    this.name = "MissingBinaryError";
+    const details = missingRuntimePackageDetails(binary, "ffmpeg");
+    super(missingRuntimeText(details), "ffmpeg", { details });
     this.binary = binary;
   }
 }

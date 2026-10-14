@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import os from "node:os";
 import { initTestDb, Workflow } from "@nodetool-ai/models";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { Escalation } from "@nodetool-ai/protocol";
 
 vi.mock("../src/lib/workflow-workspace.js", async () => {
@@ -45,7 +45,7 @@ const echoExecutor = {
 
 // The handler asks the registry for executors and (via hydrateGraphNodeFlags)
 // for classes/metadata; an unknown type just defaults every flag to false.
-const registry = {
+const registry = Object.assign(new NodeRegistry(), {
   has: (t: string) => t === "test.Fail" || t === "nodetool.output.Output",
   resolve: (node: { type: string }) =>
     node.type === "test.Fail" ? failExecutor : echoExecutor,
@@ -54,7 +54,7 @@ const registry = {
   getMetadata: () => undefined,
   listMetadata: () => [],
   validateNode: () => []
-} as unknown as NodeRegistry;
+});
 
 async function createFailingWorkflow(): Promise<Workflow> {
   return (await Workflow.create({

@@ -18,6 +18,8 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
+    "@nodetool-ai/agents": "*",
+    "@nodetool-ai/transformers-js-provider": "*",
     "@nodetool-ai/atlascloud-nodes": "*",
     "@nodetool-ai/audio-nodes": "*",
     "@nodetool-ai/automation-nodes": "*",
@@ -57,6 +59,12 @@
     "vitest": "^5.0.1"
   },
   "exports": {
+    "./server-pack-source": {
+      "nodetool-dev": "./src/server-pack-source.ts",
+      "types": "./dist/server-pack-source.d.ts",
+      "import": "./dist/server-pack-source.js",
+      "default": "./dist/server-pack-source.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",

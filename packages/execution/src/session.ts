@@ -1,3 +1,4 @@
+import { createMissingPackError } from "@nodetool-ai/node-catalog";
 import { withRegisteredRunTrace, settleRegisteredRunTrace } from "./service/run-trace-lifecycle.js";
 /** Canonical lifecycle for top-level Node/server workflow runs. */
 import { randomUUID } from "node:crypto";
@@ -261,6 +262,12 @@ export class ExecutionSession {
 
     try {
       const normalized = normalizeGraph(options.graph);
+      for (const node of normalized.nodes) {
+        const entry = registry?.catalogEntry(node.type);
+        if (entry && registry?.availability(node.type) === "catalog") {
+          throw createMissingPackError(entry.pack, [node.type]);
+        }
+      }
       if (options.preflight !== false) {
         await assertPreflight(normalized, {
           catalogs: options.catalogs,

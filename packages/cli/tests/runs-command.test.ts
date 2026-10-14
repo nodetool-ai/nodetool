@@ -6,7 +6,6 @@ import { registerRunsCommands } from "../src/commands/runs.js";
 
 const readers = vi.hoisted(() => ({ list: vi.fn(), get: vi.fn(), trace: vi.fn(), logs: vi.fn(), updates: vi.fn(), remoteGet: vi.fn(), remoteUpdates: vi.fn(), ensureDb: vi.fn() }));
 vi.mock("@nodetool-ai/execution", () => ({ listRuns: readers.list, getRun: readers.get, getRunTrace: readers.trace, getRunLogs: readers.logs, readRunUpdates: readers.updates }));
-vi.mock("@nodetool-ai/protocol", async () => ({ ...await import("../../protocol/src/run-readers.js"), ...await import("../../protocol/src/run-trace.js") }));
 vi.mock("../src/api-client.js", () => ({ createApiClient: () => ({ runs: { get: { query: readers.remoteGet }, updates: { query: readers.remoteUpdates } } }) }));
 
 const run = { id: "a".repeat(32), user_id: "1", kind: "workflow" as const, source_id: "job", parent_run_id: null,
