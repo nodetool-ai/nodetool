@@ -3,12 +3,13 @@
  * into `modelDirectory.generated.ts` by `scripts/generate-model-directory.mjs`.
  */
 import {
+  canonicalModels,
   modelDirectory,
   type ModelDirectoryKind,
 } from "./modelDirectory.generated";
 import { PROVIDER_DISPLAY } from "./providerDisplay";
 
-export { modelDirectory };
+export { canonicalModels, modelDirectory };
 
 export const MODEL_KIND_LABEL: Record<ModelDirectoryKind, string> = {
   language: "Language and vision",
@@ -63,10 +64,23 @@ export function modelProviderName(id: string): string {
   return PROVIDER_DISPLAY[id]?.name ?? PROVIDER_NAMES[id] ?? id;
 }
 
-/** Distinct model ids across every kind and provider. */
-export function modelDirectoryCounts(): { models: number; providers: number } {
+/**
+ * Distinct provider model ids across every kind and provider, and how many
+ * models carry an Artificial Analysis canonical id.
+ */
+export function modelDirectoryCounts(): {
+  models: number;
+  providers: number;
+  canonical: number;
+} {
   const ids = new Set<string>();
   const providers = new Set<string>();
+  for (const m of canonicalModels) {
+    for (const r of m.routes) {
+      providers.add(r.provider);
+      ids.add(`${r.provider}:${r.id}`);
+    }
+  }
   for (const group of modelDirectory) {
     for (const p of group.providers) {
       providers.add(p.provider);
@@ -74,5 +88,9 @@ export function modelDirectoryCounts(): { models: number; providers: number } {
     }
     for (const p of group.liveProviders) providers.add(p);
   }
-  return { models: ids.size, providers: providers.size };
+  return {
+    models: ids.size,
+    providers: providers.size,
+    canonical: canonicalModels.length,
+  };
 }

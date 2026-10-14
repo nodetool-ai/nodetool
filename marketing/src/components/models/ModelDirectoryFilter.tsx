@@ -19,7 +19,7 @@ export default function ModelDirectoryFilter({ targetId }: { targetId: string })
     if (!root) return;
     const q = normalize(query);
     let total = 0;
-    root.querySelectorAll<HTMLElement>("[data-model-provider]").forEach((group) => {
+    root.querySelectorAll<HTMLElement>("[data-model-group]").forEach((group) => {
       let matches = 0;
       group.querySelectorAll<HTMLElement>("[data-model]").forEach((row) => {
         const hit = !q || normalize(row.textContent ?? "").includes(q);
@@ -31,7 +31,7 @@ export default function ModelDirectoryFilter({ targetId }: { targetId: string })
       total += matches;
     });
     root.querySelectorAll<HTMLElement>("[data-model-kind]").forEach((section) => {
-      const visible = section.querySelector("[data-model-provider]:not([hidden])");
+      const visible = section.querySelector("[data-model-group]:not([hidden])");
       section.hidden = q.length > 0 && !visible;
     });
     setShown(q ? total : null);

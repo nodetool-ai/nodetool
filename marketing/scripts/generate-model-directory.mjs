@@ -18,6 +18,10 @@
  * repo. They are recorded in each group's `liveProviders` instead of being
  * given model names the repo does not contain.
  *
+ * Routes listed in the Artificial Analysis rankings snapshot
+ * (`packages/model-pricing/src/generated/model-rankings.json`) are grouped
+ * under that snapshot's canonical model id in `canonicalModels`.
+ *
  * Run: `node marketing/scripts/generate-model-directory.mjs`
  * (wired as `npm run seo:model-directory`). Pass `--check` to fail when the
  * checked-in file is stale.
@@ -37,6 +41,22 @@ const OUT = resolve(
   "data",
   "modelDirectory.generated.ts"
 );
+
+/**
+ * Artificial Analysis rankings snapshot, keyed `<provider>:<model id>`. Each
+ * route carries the leaderboard's canonical id, which groups every provider
+ * route to one model.
+ */
+const RANKINGS = "packages/model-pricing/src/generated/model-rankings.json";
+
+/** Rankings task → directory kind. */
+const KIND_BY_TASK = {
+  text_to_image: "image",
+  image_to_image: "image",
+  text_to_video: "video",
+  image_to_video: "video",
+  text_to_speech: "audio",
+};
 
 const MANIFESTS = [
   { id: "fal_ai", manifest: "packages/fal-nodes/src/fal-manifest.json" },
@@ -313,8 +333,58 @@ function collect() {
     }
   }
 
+  // Routes Artificial Analysis ranks are grouped under their canonical model.
+  // Every other id stays in the per-provider list.
+  const rankings = JSON.parse(
+    readFileSync(resolve(REPO_ROOT, RANKINGS), "utf8")
+  ).models;
+  const canonical = new Map();
+  for (const kind of KINDS) {
+    for (const [provider, models] of Object.entries(table[kind] ?? {})) {
+      for (const id of [...models.keys()]) {
+        const entry = rankings[`${provider}:${id}`];
+        if (!entry?.canonical) continue;
+        const model = canonical.get(entry.canonical) ?? {
+          canonical: entry.canonical,
+          name: entry.name,
+          ...(entry.creator ? { creator: entry.creator } : {}),
+          tasks: new Set(),
+          routes: [],
+        };
+        for (const task of Object.keys(entry.tasks)) model.tasks.add(task);
+        model.routes.push({ provider, id });
+        canonical.set(entry.canonical, model);
+        models.delete(id);
+      }
+    }
+  }
+  const unmatched = Object.keys(rankings).filter(
+    (key) => ![...canonical.values()].some((m) =>
+      m.routes.some((r) => `${r.provider}:${r.id}` === key)
+    )
+  );
+  if (unmatched.length > 0) {
+    throw new Error(
+      `${RANKINGS} ranks routes with no model definition: ${unmatched.join(", ")}`
+    );
+  }
+
+  const canonicalModels = [...canonical.values()]
+    .map((m) => {
+      const tasks = [...m.tasks].sort(byCodeUnit);
+      const kinds = new Set(tasks.map((t) => KIND_BY_TASK[t]).filter(Boolean));
+      const kind = ["video", "image", "audio"].find((k) => kinds.has(k));
+      if (!kind) throw new Error(`${m.canonical}: no known task in ${tasks.join(", ")}`);
+      const routes = m.routes.sort(
+        (a, b) => byCodeUnit(a.provider, b.provider) || byCodeUnit(a.id, b.id)
+      );
+      return { ...m, kind, tasks, routes };
+    })
+    .sort((a, b) => byCodeUnit(a.name.toLowerCase(), b.name.toLowerCase()) || byCodeUnit(a.canonical, b.canonical));
+
   const kinds = KINDS.filter((k) => table[k]).map((kind) => {
     const providers = Object.entries(table[kind])
+      .filter(([, models]) => models.size > 0)
       .map(([provider, models]) => ({
         provider,
         models: [...models]
@@ -327,7 +397,7 @@ function collect() {
     return { kind, total, providers, liveProviders };
   });
 
-  return kinds;
+  return { canonicalModels, kinds };
 }
 
 function render(directory) {
@@ -371,7 +441,23 @@ export interface ModelDirectoryGroup {
   liveProviders: string[];
 }
 
-export const modelDirectory: ModelDirectoryGroup[] = ${JSON.stringify(directory, null, 2)};
+export interface CanonicalModel {
+  /** Artificial Analysis canonical id: one id for every provider route. */
+  canonical: string;
+  name: string;
+  creator?: string;
+  kind: "image" | "video" | "audio";
+  /** Leaderboard tasks the model is ranked on. */
+  tasks: string[];
+  /** Provider routes NodeTool serves this model through. */
+  routes: { provider: string; id: string }[];
+}
+
+/** Models with an Artificial Analysis canonical id, from model-rankings.json. */
+export const canonicalModels: CanonicalModel[] = ${JSON.stringify(directory.canonicalModels, null, 2)};
+
+/** Model ids with no canonical id, by kind and provider. */
+export const modelDirectory: ModelDirectoryGroup[] = ${JSON.stringify(directory.kinds, null, 2)};
 `;
 }
 

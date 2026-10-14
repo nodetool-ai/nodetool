@@ -38,6 +38,3530 @@ export interface ModelDirectoryGroup {
   liveProviders: string[];
 }
 
+export interface CanonicalModel {
+  /** Artificial Analysis canonical id: one id for every provider route. */
+  canonical: string;
+  name: string;
+  creator?: string;
+  kind: "image" | "video" | "audio";
+  /** Leaderboard tasks the model is ranked on. */
+  tasks: string[];
+  /** Provider routes NodeTool serves this model through. */
+  routes: { provider: string; id: string }[];
+}
+
+/** Models with an Artificial Analysis canonical id, from model-rankings.json. */
+export const canonicalModels: CanonicalModel[] = [
+  {
+    "canonical": "bagel",
+    "name": "Bagel",
+    "creator": "Bytedance",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/bagel"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/bagel/edit"
+      },
+      {
+        "provider": "replicate",
+        "id": "bytedance/bagel"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "boreal",
+    "name": "Boreal",
+    "creator": "Creatify",
+    "tasks": [
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "creatify/boreal"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "chatterbox",
+    "name": "Chatterbox",
+    "creator": "Resemble AI",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "resemble-ai/chatterbox"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "dreamina-3-1",
+    "name": "Dreamina 3.1",
+    "creator": "Bytedance",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/bytedance/dreamina/v3.1/text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "bytedance/dreamina-3.1"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "seedance-2-0",
+    "name": "Dreamina Seedance 2.0 720p",
+    "creator": "ByteDance Seed",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "bytedance/seedance-2.0/image-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "bytedance/seedance-2.0/image-to-video"
+      },
+      {
+        "provider": "kie",
+        "id": "bytedance/seedance-2"
+      },
+      {
+        "provider": "replicate",
+        "id": "bytedance/seedance-2.0"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "eleven-v3",
+    "name": "Eleven v3",
+    "creator": "ElevenLabs",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "elevenlabs",
+        "id": "eleven_v3"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/elevenlabs/text-to-dialogue/eleven-v3"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/elevenlabs/tts/eleven-v3"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "eleven-v4",
+    "name": "Eleven v4",
+    "creator": "ElevenLabs",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "elevenlabs/tts/eleven-v4"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "eleven-v4-turbo",
+    "name": "Eleven v4 Turbo",
+    "creator": "ElevenLabs",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "elevenlabs/tts/eleven-v4-turbo"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "ernie-image",
+    "name": "ERNIE Image",
+    "creator": "Baidu",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/ernie-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "ernie-image-turbo",
+    "name": "ERNIE Image Turbo",
+    "creator": "Baidu",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/ernie-image/turbo"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "bria_fibo",
+    "name": "FIBO",
+    "creator": "Bria",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "bria/fibo-edit/edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "bria/fibo/generate"
+      },
+      {
+        "provider": "replicate",
+        "id": "bria/fibo"
+      },
+      {
+        "provider": "replicate",
+        "id": "bria/fibo-edit"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "bria_fibo-lite",
+    "name": "FIBO Lite",
+    "creator": "Bria",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "bria/fibo-lite/generate"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "flash-v2-5",
+    "name": "Flash v2.5",
+    "creator": "ElevenLabs",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "elevenlabs",
+        "id": "eleven_flash_v2_5"
+      },
+      {
+        "provider": "replicate",
+        "id": "elevenlabs/flash-v2.5"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "flux-3",
+    "name": "FLUX 3",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "blackforestlabs/flux-3/text-to-video"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "flux-1-dev",
+    "name": "FLUX.1 [dev]",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "black-forest-labs/flux-dev"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-1/dev"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux/dev"
+      },
+      {
+        "provider": "replicate",
+        "id": "black-forest-labs/flux-dev"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "flux-1-schnell",
+    "name": "FLUX.1 [schnell]",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "black-forest-labs/flux-schnell"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-1/schnell"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux/schnell"
+      },
+      {
+        "provider": "replicate",
+        "id": "black-forest-labs/flux-schnell"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "flux-1-kontext-dev",
+    "name": "FLUX.1 Kontext [dev]",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "image_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "black-forest-labs/flux-kontext-dev"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "flux-1-kontext-max",
+    "name": "FLUX.1 Kontext [max]",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "together",
+        "id": "black-forest-labs/FLUX.1-kontext-max"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "flux-1-kontext-pro",
+    "name": "FLUX.1 Kontext [pro]",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-pro/kontext"
+      },
+      {
+        "provider": "replicate",
+        "id": "black-forest-labs/flux-kontext-pro"
+      },
+      {
+        "provider": "together",
+        "id": "black-forest-labs/FLUX.1-kontext-pro"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "flux_flux-2--dev",
+    "name": "FLUX.2 [dev]",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "black-forest-labs/flux-2-dev"
+      },
+      {
+        "provider": "together",
+        "id": "black-forest-labs/FLUX.2-dev"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "flux_flux-2--flex",
+    "name": "FLUX.2 [flex]",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "black-forest-labs/flux-2-flex/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "black-forest-labs/flux-2-flex/text-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-2-flex"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-2-flex/edit"
+      },
+      {
+        "provider": "kie",
+        "id": "flux-2/flex-image-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "flux-2/flex-text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "black-forest-labs/flux-2-flex"
+      },
+      {
+        "provider": "together",
+        "id": "black-forest-labs/FLUX.2-flex"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "flux_flux-2-klein-4b",
+    "name": "FLUX.2 [klein] 4B",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-2/klein/4b"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-2/klein/4b/edit"
+      },
+      {
+        "provider": "replicate",
+        "id": "black-forest-labs/flux-2-klein-4b"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "flux_flux-2-klein-9b",
+    "name": "FLUX.2 [klein] 9B",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-2/klein/9b"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-2/klein/9b/edit"
+      },
+      {
+        "provider": "replicate",
+        "id": "black-forest-labs/flux-2-klein-9b"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "black_forest_labs_flux-2-max",
+    "name": "FLUX.2 [max]",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-2-max"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-2-max/edit"
+      },
+      {
+        "provider": "replicate",
+        "id": "black-forest-labs/flux-2-max"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "flux_flux-2--pro",
+    "name": "FLUX.2 [pro]",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "black-forest-labs/flux-2-pro/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "black-forest-labs/flux-2-pro/text-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-2-pro"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-2-pro/edit"
+      },
+      {
+        "provider": "kie",
+        "id": "flux-2/pro-image-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "flux-2/pro-text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "black-forest-labs/flux-2-pro"
+      },
+      {
+        "provider": "together",
+        "id": "black-forest-labs/FLUX.2-pro"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "flux1-1-pro",
+    "name": "FLUX1.1 [pro]",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-pro/v1.1"
+      },
+      {
+        "provider": "together",
+        "id": "black-forest-labs/FLUX.1.1-pro"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "flux1-1-pro-ultra",
+    "name": "FLUX1.1 [pro] Ultra",
+    "creator": "Black Forest Labs",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "black-forest-labs/flux-1.1-pro-ultra"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "gemini-3-1-tts",
+    "name": "Gemini 3.1 Flash TTS",
+    "creator": "Google",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "google/gemini-3.1-flash-tts"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/gemini-3.1-flash-tts"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini-3.1-flash-tts-preview"
+      },
+      {
+        "provider": "kie",
+        "id": "google/gemini-3-1-flash-tts"
+      },
+      {
+        "provider": "replicate",
+        "id": "google/gemini-3.1-flash-tts"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "gemini-3-8-flash-tts",
+    "name": "Gemini 3.8 Flash TTS",
+    "creator": "Google",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "google/gemini-3.8-flash-tts"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini-3.8-flash-tts"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "gemini-3-8-flash-lite-tts",
+    "name": "Gemini 3.8 Flash-Lite TTS",
+    "creator": "Google",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "google/gemini-3.8-flash-lite-tts"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini-3.8-flash-lite-tts"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "gemini-omni-flash",
+    "name": "Gemini Omni Flash",
+    "creator": "Google",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "google/gemini-omni-flash/image-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "google/gemini-omni-flash"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "google/gemini-omni-flash/image-to-video"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini-omni-1.1-flash"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "gemini-omni-flash-1-1",
+    "name": "Gemini Omni Flash 1.1",
+    "creator": "Google",
+    "tasks": [
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "google/gemini-omni-flash/v1.1/text-to-video"
+      },
+      {
+        "provider": "kie",
+        "id": "google/gemini-omni-flash-1-1"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "glm_glm-image",
+    "name": "GLM-Image",
+    "creator": "Z AI",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/glm-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/glm-image/image-to-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "openai-gpt_image-1-5",
+    "name": "GPT Image 1.5 (high)",
+    "creator": "OpenAI",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "openai/gpt-image-1.5/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "openai/gpt-image-1.5/text-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "gpt-image/1.5-image-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "gpt-image/1.5-text-to-image"
+      },
+      {
+        "provider": "openai",
+        "id": "gpt-image-1.5"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "gpt-image-2",
+    "name": "GPT Image 2 (high)",
+    "creator": "OpenAI",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "openai/gpt-image-2/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "openai/gpt-image-2/text-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "gpt-image-2-image-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "gpt-image-2-text-to-image"
+      },
+      {
+        "provider": "openai",
+        "id": "gpt-image-2"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "grok-imagine-image-2-0",
+    "name": "Grok Imagine Image 2.0",
+    "creator": "SpaceXAI",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "xai/grok-imagine-image-2.0/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "xai/grok-imagine-image-2.0/text-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "xai/grok-imagine-image/v2.0/edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "xai/grok-imagine-image/v2.0/text-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "grok-imagine-image-2-0/text-to-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "grok-imagine-video-1.5",
+    "name": "Grok Imagine Video 1.5",
+    "creator": "SpaceXAI",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "xai/grok-imagine-video-v1.5/image-to-video"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "xai/grok-imagine-video-v1.5/text-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "xai/grok-imagine-video/v1.5/image-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "xai/grok-imagine-video/v1.5/text-to-video"
+      },
+      {
+        "provider": "kie",
+        "id": "grok-imagine-video-1-5-preview"
+      },
+      {
+        "provider": "replicate",
+        "id": "xai/grok-imagine-video-1.5"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "grok-imagine-image",
+    "name": "grok-imagine-image",
+    "creator": "SpaceXAI",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "xai/grok-imagine-image/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "xai/grok-imagine-image/text-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "xai/grok-imagine-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "xai/grok-imagine-image/edit"
+      },
+      {
+        "provider": "replicate",
+        "id": "xai/grok-imagine-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "grok-imagine-image-quality",
+    "name": "grok-imagine-image-quality",
+    "creator": "SpaceXAI",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "xai/grok-imagine-image-quality/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "xai/grok-imagine-image-quality/text-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "xai/grok-imagine-image/quality/edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "xai/grok-imagine-image/quality/text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "xai/grok-imagine-image-quality"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "grok-imagine-video",
+    "name": "grok-imagine-video",
+    "creator": "SpaceXAI",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "xai/grok-imagine-video/image-to-video"
+      },
+      {
+        "provider": "replicate",
+        "id": "xai/grok-imagine-video"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "hailuo-02-fast",
+    "name": "Hailuo 02 Fast",
+    "creator": "MiniMax",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/minimax/hailuo-02-fast/image-to-video"
+      },
+      {
+        "provider": "replicate",
+        "id": "minimax/hailuo-02-fast"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "hailuo-02-pro",
+    "name": "Hailuo 02 Pro",
+    "creator": "MiniMax",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/minimax/hailuo-02/pro/image-to-video"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "hailuo-2-3-prompt-enhancement",
+    "name": "Hailuo 2.3",
+    "creator": "MiniMax",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "minimax",
+        "id": "MiniMax-Hailuo-2.3"
+      },
+      {
+        "provider": "replicate",
+        "id": "minimax/hailuo-2.3"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "hailuo-2-3-fast-prompt-enhancement",
+    "name": "Hailuo 2.3 Fast",
+    "creator": "MiniMax",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "minimax",
+        "id": "MiniMax-Hailuo-2.3-Fast"
+      },
+      {
+        "provider": "replicate",
+        "id": "minimax/hailuo-2.3-fast"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "happyhorse-1-0",
+    "name": "HappyHorse-1.0",
+    "creator": "Alibaba-ATH",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "alibaba/happyhorse-1.0"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "happyhorse-1-1",
+    "name": "HappyHorse-1.1",
+    "creator": "Alibaba-ATH",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "alibaba/happyhorse-1.1/image-to-video"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "alibaba/happyhorse-1.1/text-to-video"
+      },
+      {
+        "provider": "kie",
+        "id": "happyhorse-1-1/image-to-video"
+      },
+      {
+        "provider": "kie",
+        "id": "happyhorse-1-1/text-to-video"
+      },
+      {
+        "provider": "replicate",
+        "id": "alibaba/happyhorse-1.1"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "hidream-e1-1",
+    "name": "HiDream-E1.1",
+    "creator": "HiDream",
+    "tasks": [
+      "image_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/hidream-e1-1"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "hidream-o1-image",
+    "name": "HiDream-O1-Image",
+    "creator": "HiDream",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/hidream-o1-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/hidream-o1-image/edit"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "hidream-o1-image-dev",
+    "name": "HiDream-O1-Image-Dev",
+    "creator": "HiDream",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/hidream-o1-image/dev"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/hidream-o1-image/dev/edit"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "i2v-01-director",
+    "name": "I2V-01-Director",
+    "creator": "MiniMax",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "minimax",
+        "id": "I2V-01-Director"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "ideogram-3-0",
+    "name": "Ideogram 3.0",
+    "creator": "Ideogram",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/ideogram/v3"
+      },
+      {
+        "provider": "replicate",
+        "id": "ideogram-ai/ideogram-v3-quality"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "ideogram-v4",
+    "name": "Ideogram 4.0",
+    "creator": "Ideogram",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "ideogram/v4"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "ideogram-v4-quality",
+    "name": "Ideogram 4.0 (Quality)",
+    "creator": "Ideogram",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "ideogram/v4/quality/text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "ideogram-ai/ideogram-v4-quality"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "ideogram-v4-fast",
+    "name": "Ideogram 4.0 Fast",
+    "creator": "Fal",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "ideogram/v4/fast"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "ideogram-v4-instant",
+    "name": "Ideogram 4.0 Instant",
+    "creator": "Fal",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "ideogram/v4/instant"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "ideogram-v2",
+    "name": "Ideogram v2",
+    "creator": "Ideogram",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/ideogram/v2"
+      },
+      {
+        "provider": "replicate",
+        "id": "ideogram-ai/ideogram-v2"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "ideogram-v2-turbo",
+    "name": "Ideogram v2 Turbo",
+    "creator": "Ideogram",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/ideogram/v2/turbo"
+      },
+      {
+        "provider": "replicate",
+        "id": "ideogram-ai/ideogram-v2-turbo"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "ideogram-v2a",
+    "name": "Ideogram v2a",
+    "creator": "Ideogram",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/ideogram/v2a"
+      },
+      {
+        "provider": "replicate",
+        "id": "ideogram-ai/ideogram-v2a"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "ideogram-v2a-turbo",
+    "name": "Ideogram v2a Turbo",
+    "creator": "Ideogram",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/ideogram/v2a/turbo"
+      },
+      {
+        "provider": "replicate",
+        "id": "ideogram-ai/ideogram-v2a-turbo"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "image-01",
+    "name": "Image-01",
+    "creator": "MiniMax",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/minimax/image-01"
+      },
+      {
+        "provider": "minimax",
+        "id": "image-01"
+      },
+      {
+        "provider": "replicate",
+        "id": "minimax/image-01"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "google-imagen_imagen-4-fast",
+    "name": "Imagen 4 Fast",
+    "creator": "Google",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "kie",
+        "id": "google/imagen4-fast"
+      },
+      {
+        "provider": "replicate",
+        "id": "google/imagen-4-fast"
+      },
+      {
+        "provider": "together",
+        "id": "google/imagen-4.0-fast"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "google-imagen_imagen-4-ultra",
+    "name": "Imagen 4 Ultra",
+    "creator": "Google",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "kie",
+        "id": "google/imagen4-ultra"
+      },
+      {
+        "provider": "replicate",
+        "id": "google/imagen-4-ultra"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "imagineart-1-5-preview",
+    "name": "ImagineArt 1.5 Preview",
+    "creator": "ImagineArt",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "imagineart/imagineart-1.5-preview/text-to-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "imagineart-2-0",
+    "name": "ImagineArt 2.0",
+    "creator": "ImagineArt",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "imagineart/imagineart-2.0-edit-preview/image-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "imagineart/imagineart-2.0-preview/text-to-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "kling-1-6-pro",
+    "name": "Kling 1.6 Pro",
+    "creator": "KlingAI",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "kwaivgi/kling-v1.6-pro"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "kling-2-0",
+    "name": "Kling 2.0",
+    "creator": "KlingAI",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "kwaivgi/kling-v2.0"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "kling-2-1-master",
+    "name": "Kling 2.1 Master",
+    "creator": "KlingAI",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "kie",
+        "id": "kling/v2-1-master-image-to-video"
+      },
+      {
+        "provider": "replicate",
+        "id": "kwaivgi/kling-v2.1-master"
+      },
+      {
+        "provider": "together",
+        "id": "kwaivgI/kling-2.1-master"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "kling-2-1-pro",
+    "name": "Kling 2.1 Pro",
+    "creator": "KlingAI",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "kie",
+        "id": "kling/v2-1-pro"
+      },
+      {
+        "provider": "together",
+        "id": "kwaivgI/kling-2.1-pro"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "kling-2-1-standard",
+    "name": "Kling 2.1 Standard",
+    "creator": "KlingAI",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "kie",
+        "id": "kling/v2-1-standard"
+      },
+      {
+        "provider": "together",
+        "id": "kwaivgI/kling-2.1-standard"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "kling-3-0-pro",
+    "name": "Kling 3.0 1080p (Pro)",
+    "creator": "KlingAI",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "kwaivgi/kling-v3.0-pro/image-to-video"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "kwaivgi/kling-v3.0-pro/text-to-video"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "kling-image-3-0",
+    "name": "Kling Image 3.0",
+    "creator": "KlingAI",
+    "tasks": [
+      "image_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/kling-image/v3/image-to-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "kling-image-o1",
+    "name": "Kling Image O1",
+    "creator": "KlingAI",
+    "tasks": [
+      "image_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/kling-image/o1"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "krea-2-large",
+    "name": "Krea 2 Large",
+    "creator": "Krea",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "krea/v2/large/text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "krea/krea-2-large"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "krea-2-medium",
+    "name": "Krea 2 Medium",
+    "creator": "Krea",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "krea/v2/medium/text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "krea/krea-2-medium"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "krea-2-medium-turbo",
+    "name": "Krea 2 Medium Turbo",
+    "creator": "Krea",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "krea/v2/medium/turbo/text-to-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "longcat_longcat-image",
+    "name": "LongCat Image",
+    "creator": "Meituan",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/longcat-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/longcat-image/edit"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "ltx-2-fast",
+    "name": "LTX-2 Fast",
+    "creator": "Lightricks",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "lightricks/ltx-2-fast"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "ltx-2-pro",
+    "name": "LTX-2 Pro",
+    "creator": "Lightricks",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "lightricks/ltx-2-pro"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "ltx-2-3-fast",
+    "name": "LTX-2.3 Fast",
+    "creator": "Lightricks",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "lightricks/ltx-2.3-fast"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "ltx-2-3-pro",
+    "name": "LTX-2.3 Pro",
+    "creator": "Lightricks",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "lightricks/ltx-2.3-pro"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "luma-photon",
+    "name": "Luma Photon",
+    "creator": "Luma Labs",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/luma-photon"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "luma-photon-flash",
+    "name": "Luma Photon Flash",
+    "creator": "Luma Labs",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/luma-photon/flash"
+      },
+      {
+        "provider": "replicate",
+        "id": "luma/photon-flash"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "lumina-image-v2",
+    "name": "Lumina Image v2",
+    "creator": "OpenGVLab",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/lumina-image/v2"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "mai-image-2-5",
+    "name": "MAI-Image-2.5",
+    "creator": "Microsoft AI",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "microsoft/mai-image-2.5/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "microsoft/mai-image-2.5/text-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "microsoft/mai-image-2.5"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "microsoft/mai-image-2.5/edit"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "mai-image-2-5-flash",
+    "name": "MAI-Image-2.5-Flash",
+    "creator": "Microsoft AI",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "microsoft/mai-image-2.5-flash/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "microsoft/mai-image-2.5-flash/text-to-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "mai-image-2-5-pro",
+    "name": "MAI-Image-2.5-Pro",
+    "creator": "Microsoft AI",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "microsoft/mai-image-2.5-pro"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "microsoft/mai-image-2.5-pro/edit"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "minimax-h3",
+    "name": "MiniMax H3",
+    "creator": "MiniMax",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "minimax/h3/image-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "minimax/h3/image-to-video"
+      },
+      {
+        "provider": "kie",
+        "id": "minimax-h3/image-to-video"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "minimax-h3-max",
+    "name": "MiniMax H3 Max",
+    "creator": "Fal",
+    "tasks": [
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "minimax/h3-max/text-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "minimax/h3-max/text-to-video"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "motion-2-0",
+    "name": "Motion 2.0",
+    "creator": "Leonardo.Ai",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "leonardoai/motion-2.0"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "multilingual-v2",
+    "name": "Multilingual v2",
+    "creator": "ElevenLabs",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "elevenlabs",
+        "id": "eleven_multilingual_v2"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/elevenlabs/tts/multilingual-v2"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "muse-image-1.0",
+    "name": "Muse Image",
+    "creator": "Meta",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "meta/muse-image/edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "meta/muse-image/text-to-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "nano-banana-2",
+    "name": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+    "creator": "Google",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-2/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-2/text-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/nano-banana-2"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/nano-banana-2/edit"
+      },
+      {
+        "provider": "kie",
+        "id": "nano-banana-2"
+      },
+      {
+        "provider": "replicate",
+        "id": "google/nano-banana-2"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "nano-banana-2-lite",
+    "name": "Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image)",
+    "creator": "Google",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-2-lite/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "google/nano-banana-2-lite/text-to-image"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini-3.1-flash-lite-image"
+      },
+      {
+        "provider": "kie",
+        "id": "nano-banana-2-lite"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "omnigen-v2",
+    "name": "OmniGen V2",
+    "creator": "VectorSpaceLab",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/omnigen-v2"
+      },
+      {
+        "provider": "replicate",
+        "id": "lucataco/omnigen2"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "pruna_p-image",
+    "name": "P-Image",
+    "creator": "Pruna AI",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "prunaai/p-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "prunaai/p-image-edit"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "p-video",
+    "name": "P-Video",
+    "creator": "Pruna AI",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "prunaai/p-video"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "pika-2-2",
+    "name": "Pika 2.2",
+    "creator": "Pika Art",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/pika/v2.2/image-to-video"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "pixverse-v4-5",
+    "name": "PixVerse V4.5",
+    "creator": "PixVerse",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "pixverse/pixverse-v4.5"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "pixverse-v5",
+    "name": "PixVerse V5",
+    "creator": "PixVerse",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/pixverse/v5/image-to-video"
+      },
+      {
+        "provider": "replicate",
+        "id": "pixverse/pixverse-v5"
+      },
+      {
+        "provider": "together",
+        "id": "pixverse/pixverse-v5"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "pixverse-v5-5",
+    "name": "PixVerse V5.5",
+    "creator": "PixVerse",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/pixverse/v5.5/image-to-video"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "pixverse-v5-6",
+    "name": "PixVerse V5.6",
+    "creator": "PixVerse",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/pixverse/v5.6/image-to-video"
+      },
+      {
+        "provider": "replicate",
+        "id": "pixverse/pixverse-v5.6"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "pixverse-v6",
+    "name": "PixVerse V6",
+    "creator": "PixVerse",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "pixverse/v6/image-to-video"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "pixverse/v6/text-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/pixverse/v6/image-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/pixverse/v6/text-to-video"
+      },
+      {
+        "provider": "kie",
+        "id": "pixverse-v6/image-to-video"
+      },
+      {
+        "provider": "kie",
+        "id": "pixverse-v6/text-to-video"
+      },
+      {
+        "provider": "replicate",
+        "id": "pixverse/pixverse-v6"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "qwen-image",
+    "name": "Qwen Image",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/qwen-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "qwen/qwen-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "wavespeedai/qwen-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "qwen-image-edit",
+    "name": "Qwen Image Edit",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/qwen-image-edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/qwen-image-edit/image-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/qwen-image/image-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "qwen/image-edit"
+      },
+      {
+        "provider": "replicate",
+        "id": "qwen/qwen-image-edit"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "qwen_qwen-image-edit-2511",
+    "name": "Qwen Image Edit Plus 2511",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "qwen/qwen-image-edit-2511"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "qwen_qwen-image-2512",
+    "name": "Qwen Image Max 2512",
+    "creator": "Alibaba",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "qwen/qwen-image-2512"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "qwen-image-3-0",
+    "name": "Qwen-Image-3.0",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "qwen-image-3.0/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "qwen-image-3.0/text-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "alibaba/qwen-image-3/edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "alibaba/qwen-image-3/text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "alibaba/qwen-image-3"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "qwen-image-3-0-pro",
+    "name": "Qwen-Image-3.0-Pro",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "qwen-image-3.0-pro/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "qwen-image-3.0-pro/text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "alibaba/qwen-image-3-pro"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "qwen3-tts-vc-realtime",
+    "name": "Qwen3 TTS",
+    "creator": "Alibaba",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "qwen/qwen3-tts"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "realtime-tts-2",
+    "name": "Realtime TTS-2",
+    "creator": "Inworld",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "inworld/realtime-tts-2"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "recraft-20b",
+    "name": "Recraft 20B",
+    "creator": "Recraft",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/recraft-20b"
+      },
+      {
+        "provider": "replicate",
+        "id": "recraft-ai/recraft-20b"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "recraft-v3",
+    "name": "Recraft V3",
+    "creator": "Recraft",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/recraft-v3"
+      },
+      {
+        "provider": "replicate",
+        "id": "recraft-ai/recraft-v3"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "recraft-v4",
+    "name": "Recraft V4",
+    "creator": "Recraft",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/recraft/v4/text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "recraft-ai/recraft-v4"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "recraft-v4-pro",
+    "name": "Recraft V4 Pro",
+    "creator": "Recraft",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/recraft/v4/pro/text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "recraft-ai/recraft-v4-pro"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "recraft-v4-1",
+    "name": "Recraft V4.1",
+    "creator": "Recraft",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/recraft/v4.1/text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "recraft-ai/recraft-v4.1"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "recraft-v4-1-flash",
+    "name": "Recraft V4.1 Flash",
+    "creator": "Recraft",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "recraft/v4.1/flash/text-to-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "recraft-v4-1-pro",
+    "name": "Recraft V4.1 Pro",
+    "creator": "Recraft",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/recraft/v4.1/pro/text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "recraft-ai/recraft-v4.1-pro"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "recraft-v4-1-utility",
+    "name": "Recraft V4.1 Utility",
+    "creator": "Recraft",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/recraft/v4.1/utility/text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "recraft-ai/recraft-v4.1-utility"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "recraft-v4-1-utility-pro",
+    "name": "Recraft V4.1 Utility Pro",
+    "creator": "Recraft",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/recraft/v4.1/utility/pro/text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "recraft-ai/recraft-v4.1-utility-pro"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "sana-sprint-1-6b",
+    "name": "Sana Sprint 1.6B",
+    "creator": "NVIDIA",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "nvidia/sana-sprint-1.6b"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "sdxl-lightning",
+    "name": "SDXL Lightning",
+    "creator": "Bytedance",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "prunaai/sdxl-lightning"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "seedance-1-5-pro",
+    "name": "Seedance 1.5 pro",
+    "creator": "ByteDance Seed",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "bytedance/seedance-v1.5-pro/image-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/bytedance/seedance/v1.5/pro/image-to-video"
+      },
+      {
+        "provider": "kie",
+        "id": "bytedance/seedance-1.5-pro"
+      },
+      {
+        "provider": "replicate",
+        "id": "bytedance/seedance-1.5-pro"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "seedream-3-0-byteplus",
+    "name": "Seedream 3.0",
+    "creator": "ByteDance Seed",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/bytedance/seedream/v3/text-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "bytedance/seedream"
+      },
+      {
+        "provider": "replicate",
+        "id": "bytedance/seedream-3"
+      },
+      {
+        "provider": "together",
+        "id": "ByteDance-Seed/Seedream-3.0"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "bytedance-seed_seedream-4-0",
+    "name": "Seedream 4.0",
+    "creator": "ByteDance Seed",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/bytedance/seedream/v4/edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/bytedance/seedream/v4/text-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "bytedance/seedream-v4-edit"
+      },
+      {
+        "provider": "kie",
+        "id": "bytedance/seedream-v4-text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "bytedance/seedream-4"
+      },
+      {
+        "provider": "together",
+        "id": "ByteDance-Seed/Seedream-4.0"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "seedream-4-5",
+    "name": "Seedream 4.5",
+    "creator": "ByteDance Seed",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "bytedance/seedream-v4.5"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "bytedance/seedream-v4.5/edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/bytedance/seedream/v4.5/edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/bytedance/seedream/v4.5/text-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "seedream/4.5-edit"
+      },
+      {
+        "provider": "kie",
+        "id": "seedream/4.5-text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "bytedance/seedream-4.5"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "seedream-5-0-lite",
+    "name": "Seedream 5.0 Lite",
+    "creator": "ByteDance Seed",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "bytedance/seedream-v5.0-lite"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "bytedance/seedream-v5.0-lite/edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "bytedance/seedream/v5/lite/edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "bytedance/seedream/v5/lite/text-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/bytedance/seedream/v5/lite/edit"
+      },
+      {
+        "provider": "kie",
+        "id": "seedream/5-lite-image-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "seedream/5-lite-text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "bytedance/seedream-5-lite"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "seedream-5-0-pro",
+    "name": "Seedream 5.0 Pro",
+    "creator": "ByteDance Seed",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "bytedance/seedream-v5.0-pro/edit"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "bytedance/seedream-v5.0-pro/text-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "bytedance/seedream/v5/pro/edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "bytedance/seedream/v5/pro/text-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "seedream/5-pro-image-to-image"
+      },
+      {
+        "provider": "kie",
+        "id": "seedream/5-pro-text-to-image"
+      },
+      {
+        "provider": "replicate",
+        "id": "bytedance/seedream-5-pro"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "xai-text-to-speech",
+    "name": "SpaceXAI TTS",
+    "creator": "SpaceXAI",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "elevenlabs/v3/text-to-speech"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/index-tts-2/text-to-speech"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/tada/1b/text-to-speech"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/tada/3b/text-to-speech"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "resemble-ai/chatterboxhd/text-to-speech"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "speech-2.6-hd",
+    "name": "Speech 2.6 HD",
+    "creator": "MiniMax",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "minimax/speech-2.6-hd"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/minimax/speech-2.6-hd"
+      },
+      {
+        "provider": "minimax",
+        "id": "speech-2.6-hd"
+      },
+      {
+        "provider": "replicate",
+        "id": "minimax/speech-2.6-hd"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "speech-2.6-turbo",
+    "name": "Speech 2.6 Turbo",
+    "creator": "MiniMax",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "minimax/speech-2.6-turbo"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/minimax/speech-2.6-turbo"
+      },
+      {
+        "provider": "minimax",
+        "id": "speech-2.6-turbo"
+      },
+      {
+        "provider": "replicate",
+        "id": "minimax/speech-2.6-turbo"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "speech-2-8-hd",
+    "name": "Speech 2.8 HD",
+    "creator": "MiniMax",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/minimax/speech-2.8-hd"
+      },
+      {
+        "provider": "minimax",
+        "id": "speech-2.8-hd"
+      },
+      {
+        "provider": "replicate",
+        "id": "minimax/speech-2.8-hd"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "speech-2-8-turbo",
+    "name": "Speech 2.8 Turbo",
+    "creator": "MiniMax",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/minimax/speech-2.8-turbo"
+      },
+      {
+        "provider": "minimax",
+        "id": "speech-2.8-turbo"
+      },
+      {
+        "provider": "replicate",
+        "id": "minimax/speech-2.8-turbo"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "speech-02-hd",
+    "name": "Speech-02-HD",
+    "creator": "MiniMax",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/minimax/speech-02-hd"
+      },
+      {
+        "provider": "minimax",
+        "id": "speech-02-hd"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "speech-02-turbo",
+    "name": "Speech-02-Turbo",
+    "creator": "MiniMax",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/minimax/speech-02-turbo"
+      },
+      {
+        "provider": "minimax",
+        "id": "speech-02-turbo"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "flux_srpo",
+    "name": "SRPO",
+    "creator": "Tencent",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux-1/srpo"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/flux/srpo"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "stable-diffusion-3-medium",
+    "name": "Stable Diffusion 3 Medium",
+    "creator": "Stability.ai",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/stable-diffusion-v3-medium"
+      },
+      {
+        "provider": "together",
+        "id": "stabilityai/stable-diffusion-3-medium"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "stable-diffusion-3-5-large",
+    "name": "Stable Diffusion 3.5 Large",
+    "creator": "Stability.ai",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "stability-ai/stable-diffusion-3.5-large"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "stable-diffusion-3-5-large-turbo",
+    "name": "Stable Diffusion 3.5 Large Turbo",
+    "creator": "Stability.ai",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "stability-ai/stable-diffusion-3.5-large-turbo"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "stable-diffusion-3-5-medium",
+    "name": "Stable Diffusion 3.5 Medium",
+    "creator": "Stability.ai",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "stability-ai/stable-diffusion-3.5-medium"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "step1x-edit",
+    "name": "Step1X-Edit",
+    "creator": "StepFun",
+    "tasks": [
+      "image_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/step1x-edit"
+      },
+      {
+        "provider": "replicate",
+        "id": "zsxkib/step1x-edit"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "tts-1",
+    "name": "TTS-1",
+    "creator": "OpenAI",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "xai/tts-v1"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "xai/tts/v1"
+      },
+      {
+        "provider": "openai",
+        "id": "tts-1"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "tts-1-hd",
+    "name": "TTS-1 HD",
+    "creator": "OpenAI",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "openai",
+        "id": "tts-1-hd"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "turbo-v2-5",
+    "name": "Turbo v2.5",
+    "creator": "ElevenLabs",
+    "tasks": [
+      "text_to_speech"
+    ],
+    "routes": [
+      {
+        "provider": "elevenlabs",
+        "id": "eleven_turbo_v2_5"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/elevenlabs/tts/turbo-v2.5"
+      },
+      {
+        "provider": "replicate",
+        "id": "elevenlabs/turbo-v2.5"
+      }
+    ],
+    "kind": "audio"
+  },
+  {
+    "canonical": "veo-2",
+    "name": "Veo 2",
+    "creator": "Google",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/veo2"
+      },
+      {
+        "provider": "replicate",
+        "id": "google/veo-2"
+      },
+      {
+        "provider": "together",
+        "id": "google/veo-2.0"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "veo-3-no-audio",
+    "name": "Veo 3",
+    "creator": "Google",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/veo3/image-to-video"
+      },
+      {
+        "provider": "replicate",
+        "id": "google/veo-3"
+      },
+      {
+        "provider": "together",
+        "id": "google/veo-3.0"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "veo-3-1",
+    "name": "Veo 3.1",
+    "creator": "Google",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "google/veo3.1/image-to-video"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "google/veo3.1/text-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/veo3.1"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/veo3.1/image-to-video"
+      },
+      {
+        "provider": "gemini",
+        "id": "veo-3.1-generate-preview"
+      },
+      {
+        "provider": "kie",
+        "id": "veo-3-1"
+      },
+      {
+        "provider": "replicate",
+        "id": "google/veo-3.1"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "veo-3-1-fast",
+    "name": "Veo 3.1 Fast",
+    "creator": "Google",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "google/veo3.1-fast/image-to-video"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "google/veo3.1-fast/text-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/veo3.1/fast"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/veo3.1/fast/image-to-video"
+      },
+      {
+        "provider": "gemini",
+        "id": "veo-3.1-fast-generate-preview"
+      },
+      {
+        "provider": "replicate",
+        "id": "google/veo-3.1-fast"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "veo-3-1-lite",
+    "name": "Veo 3.1 Lite",
+    "creator": "Google",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "google/veo3.1-lite/image-to-video"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "google/veo3.1-lite/text-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/veo3.1/lite"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/veo3.1/lite/image-to-video"
+      },
+      {
+        "provider": "gemini",
+        "id": "veo-3.1-lite-generate-preview"
+      },
+      {
+        "provider": "replicate",
+        "id": "google/veo-3.1-lite"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "vidu-q1",
+    "name": "Vidu Q1",
+    "creator": "Vidu",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/vidu/q1/image-to-video"
+      },
+      {
+        "provider": "together",
+        "id": "vidu/vidu-q1"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "vidu_vidu_q2",
+    "name": "Vidu Q2",
+    "creator": "Vidu",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/vidu/q2/text-to-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "vidu-q3-pro",
+    "name": "Vidu Q3 Pro",
+    "creator": "Vidu",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "vidu/q3-pro/image-to-video"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "vidu/q3-pro/text-to-video"
+      },
+      {
+        "provider": "replicate",
+        "id": "vidu/q3-pro"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "vidu-q3-turbo",
+    "name": "Vidu Q3 Turbo",
+    "creator": "Vidu",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "vidu/q3-turbo"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "wan-2-2-5b",
+    "name": "Wan 2.2 5B",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/wan/v2.2-5b/image-to-video"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "wan-2-2-a14b",
+    "name": "Wan 2.2 A14B",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/wan/v2.2-a14b/image-to-video"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "wan-2-5-preview",
+    "name": "Wan 2.5 Preview",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "replicate",
+        "id": "wan-video/wan-2.5-t2v"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "wan-2-6",
+    "name": "Wan 2.6",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "alibaba/wan-2.6/image-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "wan/v2.6/image-to-video"
+      },
+      {
+        "provider": "kie",
+        "id": "wan/2-6-image-to-video"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "wan_wan-2-6",
+    "name": "Wan 2.6 Image",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "alibaba/wan-2.6/image-edit"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "wan-2-7",
+    "name": "Wan 2.7",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "alibaba/wan-2.7/text-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/wan/v2.7/edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/wan/v2.7/text-to-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "wan-2-7-v2v",
+    "name": "Wan 2.7",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "alibaba/wan-2.7/image-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/wan/v2.7/image-to-video"
+      },
+      {
+        "provider": "kie",
+        "id": "wan/2-7-image-to-video"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "wan-2-7-pro",
+    "name": "Wan 2.7 Pro",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_image",
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "alibaba/wan-2.7-pro/text-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/wan/v2.7/pro/edit"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/wan/v2.7/pro/text-to-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "wan-3-0",
+    "name": "Wan 3.0",
+    "creator": "Alibaba",
+    "tasks": [
+      "image_to_video",
+      "text_to_video"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "alibaba/wan-3.0/image-to-video"
+      },
+      {
+        "provider": "atlascloud",
+        "id": "alibaba/wan-3.0/text-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "alibaba/wan-3.0/image-to-video"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "alibaba/wan-3.0/text-to-video"
+      },
+      {
+        "provider": "replicate",
+        "id": "alibaba/wan-3"
+      }
+    ],
+    "kind": "video"
+  },
+  {
+    "canonical": "wan_wan-2-6-text-to-image-v2",
+    "name": "Wan2.6 Text to Image",
+    "creator": "Alibaba",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "alibaba/wan-2.6/text-to-image"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "wan/v2.6/text-to-image"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "alibaba_z-image-base",
+    "name": "Z-Image Base",
+    "creator": "Alibaba",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/z-image/base"
+      }
+    ],
+    "kind": "image"
+  },
+  {
+    "canonical": "alibaba_z-image-turbo",
+    "name": "Z-Image Turbo",
+    "creator": "Alibaba",
+    "tasks": [
+      "text_to_image"
+    ],
+    "routes": [
+      {
+        "provider": "atlascloud",
+        "id": "z-image/turbo"
+      },
+      {
+        "provider": "fal_ai",
+        "id": "fal-ai/z-image/turbo"
+      },
+      {
+        "provider": "replicate",
+        "id": "prunaai/z-image-turbo"
+      }
+    ],
+    "kind": "image"
+  }
+];
+
+/** Model ids with no canonical id, by kind and provider. */
 export const modelDirectory: ModelDirectoryGroup[] = [
   {
     "kind": "language",
@@ -911,17 +4435,11 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 1298,
+    "total": 1056,
     "providers": [
       {
         "provider": "fal_ai",
         "models": [
-          {
-            "id": "alibaba/qwen-image-3/edit"
-          },
-          {
-            "id": "alibaba/qwen-image-3/text-to-image"
-          },
           {
             "id": "bria/embed-product"
           },
@@ -951,9 +4469,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "bria/fibo-edit/colorize"
-          },
-          {
-            "id": "bria/fibo-edit/edit"
           },
           {
             "id": "bria/fibo-edit/edit/structured_instruction"
@@ -986,13 +4501,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "bria/fibo-gen-1.5/text-to-image"
           },
           {
-            "id": "bria/fibo-lite/generate"
-          },
-          {
             "id": "bria/fibo-lite/generate/structured_prompt"
-          },
-          {
-            "id": "bria/fibo/generate"
           },
           {
             "id": "bria/fibo/generate/structured_prompt"
@@ -1022,19 +4531,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "bytedance/seedream/v5/flash/text-to-image"
           },
           {
-            "id": "bytedance/seedream/v5/lite/edit"
-          },
-          {
-            "id": "bytedance/seedream/v5/lite/text-to-image"
-          },
-          {
-            "id": "bytedance/seedream/v5/pro/edit"
-          },
-          {
             "id": "bytedance/seedream/v5/pro/layerize"
-          },
-          {
-            "id": "bytedance/seedream/v5/pro/text-to-image"
           },
           {
             "id": "clarityai/crystal-upscaler"
@@ -1053,12 +4550,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/aura-flow"
-          },
-          {
-            "id": "fal-ai/bagel"
-          },
-          {
-            "id": "fal-ai/bagel/edit"
           },
           {
             "id": "fal-ai/bagel/understand"
@@ -1115,31 +4606,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/bria/text-to-image/hd"
           },
           {
-            "id": "fal-ai/bytedance/dreamina/v3.1/text-to-image"
-          },
-          {
             "id": "fal-ai/bytedance/seed/v2/mini"
           },
           {
             "id": "fal-ai/bytedance/seed3d/image-to-3d"
-          },
-          {
-            "id": "fal-ai/bytedance/seedream/v3/text-to-image"
-          },
-          {
-            "id": "fal-ai/bytedance/seedream/v4.5/edit"
-          },
-          {
-            "id": "fal-ai/bytedance/seedream/v4.5/text-to-image"
-          },
-          {
-            "id": "fal-ai/bytedance/seedream/v4/edit"
-          },
-          {
-            "id": "fal-ai/bytedance/seedream/v4/text-to-image"
-          },
-          {
-            "id": "fal-ai/bytedance/seedream/v5/lite/edit"
           },
           {
             "id": "fal-ai/cartoonify"
@@ -1232,9 +4702,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/era-3d"
           },
           {
-            "id": "fal-ai/ernie-image"
-          },
-          {
             "id": "fal-ai/ernie-image-trainer"
           },
           {
@@ -1242,9 +4709,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/ernie-image/lora/turbo"
-          },
-          {
-            "id": "fal-ai/ernie-image/turbo"
           },
           {
             "id": "fal-ai/esrgan"
@@ -1364,9 +4828,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/flowedit"
           },
           {
-            "id": "fal-ai/flux-1/dev"
-          },
-          {
             "id": "fal-ai/flux-1/dev/image-to-image"
           },
           {
@@ -1382,25 +4843,13 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/flux-1/krea/redux"
           },
           {
-            "id": "fal-ai/flux-1/schnell"
-          },
-          {
             "id": "fal-ai/flux-1/schnell/redux"
-          },
-          {
-            "id": "fal-ai/flux-1/srpo"
           },
           {
             "id": "fal-ai/flux-1/srpo/image-to-image"
           },
           {
             "id": "fal-ai/flux-2"
-          },
-          {
-            "id": "fal-ai/flux-2-flex"
-          },
-          {
-            "id": "fal-ai/flux-2-flex/edit"
           },
           {
             "id": "fal-ai/flux-2-klein-4b-base-trainer"
@@ -1448,18 +4897,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/flux-2-lora-gallery/virtual-tryon"
           },
           {
-            "id": "fal-ai/flux-2-max"
-          },
-          {
-            "id": "fal-ai/flux-2-max/edit"
-          },
-          {
-            "id": "fal-ai/flux-2-pro"
-          },
-          {
-            "id": "fal-ai/flux-2-pro/edit"
-          },
-          {
             "id": "fal-ai/flux-2-pro/outpaint"
           },
           {
@@ -1484,9 +4921,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/flux-2/flash/edit"
           },
           {
-            "id": "fal-ai/flux-2/klein/4b"
-          },
-          {
             "id": "fal-ai/flux-2/klein/4b/base"
           },
           {
@@ -1499,16 +4933,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/flux-2/klein/4b/base/lora"
           },
           {
-            "id": "fal-ai/flux-2/klein/4b/edit"
-          },
-          {
             "id": "fal-ai/flux-2/klein/4b/edit/lora"
           },
           {
             "id": "fal-ai/flux-2/klein/4b/lora"
-          },
-          {
-            "id": "fal-ai/flux-2/klein/9b"
           },
           {
             "id": "fal-ai/flux-2/klein/9b/base"
@@ -1521,9 +4949,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/flux-2/klein/9b/base/lora"
-          },
-          {
-            "id": "fal-ai/flux-2/klein/9b/edit"
           },
           {
             "id": "fal-ai/flux-2/klein/9b/edit/lora"
@@ -1619,9 +5044,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/flux-lora/stream"
           },
           {
-            "id": "fal-ai/flux-pro/kontext"
-          },
-          {
             "id": "fal-ai/flux-pro/kontext/max"
           },
           {
@@ -1638,9 +5060,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/flux-pro/new"
-          },
-          {
-            "id": "fal-ai/flux-pro/v1.1"
           },
           {
             "id": "fal-ai/flux-pro/v1.1-ultra"
@@ -1685,9 +5104,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/flux-vision-upscaler"
           },
           {
-            "id": "fal-ai/flux/dev"
-          },
-          {
             "id": "fal-ai/flux/dev/redux"
           },
           {
@@ -1700,13 +5116,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/flux/krea/redux"
           },
           {
-            "id": "fal-ai/flux/schnell"
-          },
-          {
             "id": "fal-ai/flux/schnell/redux"
-          },
-          {
-            "id": "fal-ai/flux/srpo"
           },
           {
             "id": "fal-ai/flux/srpo/image-to-image"
@@ -1751,12 +5161,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/ghiblify"
           },
           {
-            "id": "fal-ai/glm-image"
-          },
-          {
-            "id": "fal-ai/glm-image/image-to-image"
-          },
-          {
             "id": "fal-ai/got-ocr/v2"
           },
           {
@@ -1778,22 +5182,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/gpt-image-1/text-to-image"
           },
           {
-            "id": "fal-ai/hidream-e1-1"
-          },
-          {
             "id": "fal-ai/hidream-i1-full/image-to-image"
-          },
-          {
-            "id": "fal-ai/hidream-o1-image"
-          },
-          {
-            "id": "fal-ai/hidream-o1-image/dev"
-          },
-          {
-            "id": "fal-ai/hidream-o1-image/dev/edit"
-          },
-          {
-            "id": "fal-ai/hidream-o1-image/edit"
           },
           {
             "id": "fal-ai/hunyuan-3d/v3.1/part"
@@ -1859,16 +5248,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/ideogram/upscale"
           },
           {
-            "id": "fal-ai/ideogram/v2"
-          },
-          {
             "id": "fal-ai/ideogram/v2/edit"
           },
           {
             "id": "fal-ai/ideogram/v2/remix"
-          },
-          {
-            "id": "fal-ai/ideogram/v2/turbo"
           },
           {
             "id": "fal-ai/ideogram/v2/turbo/edit"
@@ -1877,19 +5260,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/ideogram/v2/turbo/remix"
           },
           {
-            "id": "fal-ai/ideogram/v2a"
-          },
-          {
             "id": "fal-ai/ideogram/v2a/remix"
           },
           {
-            "id": "fal-ai/ideogram/v2a/turbo"
-          },
-          {
             "id": "fal-ai/ideogram/v2a/turbo/remix"
-          },
-          {
-            "id": "fal-ai/ideogram/v3"
           },
           {
             "id": "fal-ai/ideogram/v3/edit"
@@ -2105,16 +5479,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/joyai-image-edit"
           },
           {
-            "id": "fal-ai/kling-image/o1"
-          },
-          {
             "id": "fal-ai/kling-image/o3/image-to-image"
           },
           {
             "id": "fal-ai/kling-image/o3/text-to-image"
-          },
-          {
-            "id": "fal-ai/kling-image/v3/image-to-image"
           },
           {
             "id": "fal-ai/kling-image/v3/text-to-image"
@@ -2162,12 +5530,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/llava-next"
           },
           {
-            "id": "fal-ai/longcat-image"
-          },
-          {
-            "id": "fal-ai/longcat-image/edit"
-          },
-          {
             "id": "fal-ai/lora"
           },
           {
@@ -2183,12 +5545,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/ltx-2.3-quality/hdr/lora"
           },
           {
-            "id": "fal-ai/luma-photon"
-          },
-          {
-            "id": "fal-ai/luma-photon/flash"
-          },
-          {
             "id": "fal-ai/luma-photon/flash/modify"
           },
           {
@@ -2199,9 +5555,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/luma-photon/reframe"
-          },
-          {
-            "id": "fal-ai/lumina-image/v2"
           },
           {
             "id": "fal-ai/marlin"
@@ -2217,9 +5570,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/meshy/rigging/multi-animation"
-          },
-          {
-            "id": "fal-ai/minimax/image-01"
           },
           {
             "id": "fal-ai/minimax/image-01/subject-reference"
@@ -2264,12 +5614,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/nano-banana"
           },
           {
-            "id": "fal-ai/nano-banana-2"
-          },
-          {
-            "id": "fal-ai/nano-banana-2/edit"
-          },
-          {
             "id": "fal-ai/nano-banana-pro"
           },
           {
@@ -2301,9 +5645,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/omnigen-v1"
-          },
-          {
-            "id": "fal-ai/omnigen-v2"
           },
           {
             "id": "fal-ai/ovis-image"
@@ -2393,9 +5734,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/pulid"
           },
           {
-            "id": "fal-ai/qwen-image"
-          },
-          {
             "id": "fal-ai/qwen-image-2/edit"
           },
           {
@@ -2418,9 +5756,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/qwen-image-2512/lora"
-          },
-          {
-            "id": "fal-ai/qwen-image-edit"
           },
           {
             "id": "fal-ai/qwen-image-edit-2509"
@@ -2519,9 +5854,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/qwen-image-edit-trainer"
           },
           {
-            "id": "fal-ai/qwen-image-edit/image-to-image"
-          },
-          {
             "id": "fal-ai/qwen-image-edit/inpaint"
           },
           {
@@ -2543,16 +5875,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/qwen-image-trainer"
           },
           {
-            "id": "fal-ai/qwen-image/image-to-image"
-          },
-          {
             "id": "fal-ai/realistic-vision"
-          },
-          {
-            "id": "fal-ai/recraft-20b"
-          },
-          {
-            "id": "fal-ai/recraft-v3"
           },
           {
             "id": "fal-ai/recraft/upscale/creative"
@@ -2564,31 +5887,13 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/recraft/v3/image-to-image"
           },
           {
-            "id": "fal-ai/recraft/v4.1/pro/text-to-image"
-          },
-          {
             "id": "fal-ai/recraft/v4.1/pro/text-to-vector"
-          },
-          {
-            "id": "fal-ai/recraft/v4.1/text-to-image"
           },
           {
             "id": "fal-ai/recraft/v4.1/text-to-vector"
           },
           {
-            "id": "fal-ai/recraft/v4.1/utility/pro/text-to-image"
-          },
-          {
-            "id": "fal-ai/recraft/v4.1/utility/text-to-image"
-          },
-          {
-            "id": "fal-ai/recraft/v4/pro/text-to-image"
-          },
-          {
             "id": "fal-ai/recraft/v4/pro/text-to-vector"
-          },
-          {
-            "id": "fal-ai/recraft/v4/text-to-image"
           },
           {
             "id": "fal-ai/recraft/v4/text-to-vector"
@@ -2720,9 +6025,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/stable-diffusion-v15"
           },
           {
-            "id": "fal-ai/stable-diffusion-v3-medium"
-          },
-          {
             "id": "fal-ai/stable-diffusion-v3-medium/image-to-image"
           },
           {
@@ -2730,9 +6032,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/stable-diffusion-v35-medium"
-          },
-          {
-            "id": "fal-ai/step1x-edit"
           },
           {
             "id": "fal-ai/stepx-edit2"
@@ -2780,9 +6079,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/vidu/q2/reference-to-image"
           },
           {
-            "id": "fal-ai/vidu/q2/text-to-image"
-          },
-          {
             "id": "fal-ai/vidu/reference-to-image"
           },
           {
@@ -2828,18 +6124,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/wan/v2.2-a14b/text-to-image/lora"
           },
           {
-            "id": "fal-ai/wan/v2.7/edit"
-          },
-          {
-            "id": "fal-ai/wan/v2.7/pro/edit"
-          },
-          {
-            "id": "fal-ai/wan/v2.7/pro/text-to-image"
-          },
-          {
-            "id": "fal-ai/wan/v2.7/text-to-image"
-          },
-          {
             "id": "fal-ai/whisper"
           },
           {
@@ -2864,13 +6148,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/z-image-turbo-trainer-v2"
           },
           {
-            "id": "fal-ai/z-image/base"
-          },
-          {
             "id": "fal-ai/z-image/base/lora"
-          },
-          {
-            "id": "fal-ai/z-image/turbo"
           },
           {
             "id": "fal-ai/z-image/turbo/controlnet"
@@ -2915,25 +6193,16 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "hitem3d/hi3d/image-to-relief"
           },
           {
-            "id": "ideogram/v4"
-          },
-          {
             "id": "ideogram/v4.5"
           },
           {
             "id": "ideogram/v4.5/edit"
           },
           {
-            "id": "ideogram/v4/fast"
-          },
-          {
             "id": "ideogram/v4/image-to-image"
           },
           {
             "id": "ideogram/v4/image-to-image/lora"
-          },
-          {
-            "id": "ideogram/v4/instant"
           },
           {
             "id": "ideogram/v4/lora"
@@ -2948,25 +6217,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "ideogram/v4/trainer"
           },
           {
-            "id": "imagineart/imagineart-1.5-preview/text-to-image"
-          },
-          {
             "id": "imagineart/imagineart-1.5-pro-preview/text-to-image"
-          },
-          {
-            "id": "imagineart/imagineart-2.0-edit-preview/image-to-image"
-          },
-          {
-            "id": "imagineart/imagineart-2.0-preview/text-to-image"
-          },
-          {
-            "id": "krea/v2/large/text-to-image"
-          },
-          {
-            "id": "krea/v2/medium/text-to-image"
-          },
-          {
-            "id": "krea/v2/medium/turbo/text-to-image"
           },
           {
             "id": "luma/agent/uni-1/v1/edit"
@@ -2979,24 +6230,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "luma/agent/uni-1/v1/text-to-image"
-          },
-          {
-            "id": "meta/muse-image/edit"
-          },
-          {
-            "id": "meta/muse-image/text-to-image"
-          },
-          {
-            "id": "microsoft/mai-image-2.5"
-          },
-          {
-            "id": "microsoft/mai-image-2.5-pro"
-          },
-          {
-            "id": "microsoft/mai-image-2.5-pro/edit"
-          },
-          {
-            "id": "microsoft/mai-image-2.5/edit"
           },
           {
             "id": "minimax/h3/flf2v/trainer"
@@ -3077,9 +6310,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "pixelcut/product-photo"
           },
           {
-            "id": "recraft/v4.1/flash/text-to-image"
-          },
-          {
             "id": "recraft/v4/style/pro/text-to-image"
           },
           {
@@ -3153,27 +6383,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "wan/v2.6/image-to-image"
-          },
-          {
-            "id": "wan/v2.6/text-to-image"
-          },
-          {
-            "id": "xai/grok-imagine-image"
-          },
-          {
-            "id": "xai/grok-imagine-image/edit"
-          },
-          {
-            "id": "xai/grok-imagine-image/quality/edit"
-          },
-          {
-            "id": "xai/grok-imagine-image/quality/text-to-image"
-          },
-          {
-            "id": "xai/grok-imagine-image/v2.0/edit"
-          },
-          {
-            "id": "xai/grok-imagine-image/v2.0/text-to-image"
           }
         ]
       },
@@ -3196,12 +6405,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "alexgenovese/upscaler"
           },
           {
-            "id": "alibaba/qwen-image-3"
-          },
-          {
-            "id": "alibaba/qwen-image-3-pro"
-          },
-          {
             "id": "anon987654321/ra2"
           },
           {
@@ -3211,19 +6414,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "arthuryeti/dwiss-qwen-2"
           },
           {
-            "id": "black-forest-labs/flux-1.1-pro-ultra"
-          },
-          {
             "id": "black-forest-labs/flux-1.1-pro-ultra-finetuned"
-          },
-          {
-            "id": "black-forest-labs/flux-2-dev"
-          },
-          {
-            "id": "black-forest-labs/flux-2-flex"
-          },
-          {
-            "id": "black-forest-labs/flux-2-klein-4b"
           },
           {
             "id": "black-forest-labs/flux-2-klein-4b-base"
@@ -3232,19 +6423,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "black-forest-labs/flux-2-klein-4b-base-lora"
           },
           {
-            "id": "black-forest-labs/flux-2-klein-9b"
-          },
-          {
             "id": "black-forest-labs/flux-2-klein-9b-base"
           },
           {
             "id": "black-forest-labs/flux-2-klein-9b-base-lora"
-          },
-          {
-            "id": "black-forest-labs/flux-2-max"
-          },
-          {
-            "id": "black-forest-labs/flux-2-pro"
           },
           {
             "id": "black-forest-labs/flux-canny-dev"
@@ -3257,9 +6439,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "black-forest-labs/flux-depth-pro"
-          },
-          {
-            "id": "black-forest-labs/flux-dev"
           },
           {
             "id": "black-forest-labs/flux-dev-lora"
@@ -3280,9 +6459,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "black-forest-labs/flux-kontext-max"
           },
           {
-            "id": "black-forest-labs/flux-kontext-pro"
-          },
-          {
             "id": "black-forest-labs/flux-krea-dev"
           },
           {
@@ -3298,9 +6474,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "black-forest-labs/flux-redux-schnell"
           },
           {
-            "id": "black-forest-labs/flux-schnell"
-          },
-          {
             "id": "black-forest-labs/flux-schnell-lora"
           },
           {
@@ -3308,12 +6481,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "bria/expand-image"
-          },
-          {
-            "id": "bria/fibo"
-          },
-          {
-            "id": "bria/fibo-edit"
           },
           {
             "id": "bria/generate-background"
@@ -3340,13 +6507,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "bria/remove-background"
           },
           {
-            "id": "bytedance/bagel"
-          },
-          {
             "id": "bytedance/dolphin"
-          },
-          {
-            "id": "bytedance/dreamina-3.1"
           },
           {
             "id": "bytedance/flux-pulid"
@@ -3359,21 +6520,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "bytedance/sdxl-lightning-4step"
-          },
-          {
-            "id": "bytedance/seedream-3"
-          },
-          {
-            "id": "bytedance/seedream-4"
-          },
-          {
-            "id": "bytedance/seedream-4.5"
-          },
-          {
-            "id": "bytedance/seedream-5-lite"
-          },
-          {
-            "id": "bytedance/seedream-5-pro"
           },
           {
             "id": "catacolabs/sdxl-ad-inpaint"
@@ -3592,16 +6738,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "google/imagen-4"
           },
           {
-            "id": "google/imagen-4-fast"
-          },
-          {
-            "id": "google/imagen-4-ultra"
-          },
-          {
             "id": "google/nano-banana"
-          },
-          {
-            "id": "google/nano-banana-2"
           },
           {
             "id": "google/nano-banana-2-lite"
@@ -3625,31 +6762,13 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "ideogram-ai/ideogram-character"
           },
           {
-            "id": "ideogram-ai/ideogram-v2"
-          },
-          {
-            "id": "ideogram-ai/ideogram-v2-turbo"
-          },
-          {
-            "id": "ideogram-ai/ideogram-v2a"
-          },
-          {
-            "id": "ideogram-ai/ideogram-v2a-turbo"
-          },
-          {
             "id": "ideogram-ai/ideogram-v3-balanced"
-          },
-          {
-            "id": "ideogram-ai/ideogram-v3-quality"
           },
           {
             "id": "ideogram-ai/ideogram-v3-turbo"
           },
           {
             "id": "ideogram-ai/ideogram-v4-balanced"
-          },
-          {
-            "id": "ideogram-ai/ideogram-v4-quality"
           },
           {
             "id": "ideogram-ai/layerize"
@@ -3662,12 +6781,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "jingyunliang/swinir"
-          },
-          {
-            "id": "krea/krea-2-large"
-          },
-          {
-            "id": "krea/krea-2-medium"
           },
           {
             "id": "leonardoai/lucid-origin"
@@ -3712,9 +6825,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "lucataco/merge-img"
           },
           {
-            "id": "lucataco/omnigen2"
-          },
-          {
             "id": "lucataco/pasd-magnify"
           },
           {
@@ -3731,9 +6841,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "lucataco/vid2webp"
-          },
-          {
-            "id": "luma/photon-flash"
           },
           {
             "id": "luma/reframe-image"
@@ -3754,9 +6861,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "microsoft/bringing-old-photos-back-to-life"
           },
           {
-            "id": "minimax/image-01"
-          },
-          {
             "id": "moonshotai/kimi-k2-thinking"
           },
           {
@@ -3767,9 +6871,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "nightmareai/real-esrgan"
-          },
-          {
-            "id": "nvidia/sana-sprint-1.6b"
           },
           {
             "id": "openai/clip"
@@ -3823,12 +6924,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "prunaai/hidream-l1-full"
           },
           {
-            "id": "prunaai/p-image"
-          },
-          {
-            "id": "prunaai/p-image-edit"
-          },
-          {
             "id": "prunaai/p-image-edit-lora"
           },
           {
@@ -3844,13 +6939,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "prunaai/p-image-upscale"
           },
           {
-            "id": "prunaai/sdxl-lightning"
-          },
-          {
             "id": "prunaai/wan-2.2-image"
-          },
-          {
-            "id": "prunaai/z-image-turbo"
           },
           {
             "id": "qwen-edit-apps/qwen-image-edit-plus-lora-fusion"
@@ -3874,22 +6963,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "qwen/qwen-edit-multiangle"
           },
           {
-            "id": "qwen/qwen-image"
-          },
-          {
             "id": "qwen/qwen-image-2"
           },
           {
             "id": "qwen/qwen-image-2-pro"
-          },
-          {
-            "id": "qwen/qwen-image-2512"
-          },
-          {
-            "id": "qwen/qwen-image-edit"
-          },
-          {
-            "id": "qwen/qwen-image-edit-2511"
           },
           {
             "id": "qwen/qwen-image-edit-plus"
@@ -3899,9 +6976,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "qwen/qwen-image-lora-trainer-legacy"
-          },
-          {
-            "id": "recraft-ai/recraft-20b"
           },
           {
             "id": "recraft-ai/recraft-20b-svg"
@@ -3916,16 +6990,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "recraft-ai/recraft-remove-background"
           },
           {
-            "id": "recraft-ai/recraft-v3"
-          },
-          {
             "id": "recraft-ai/recraft-v3-svg"
-          },
-          {
-            "id": "recraft-ai/recraft-v4"
-          },
-          {
-            "id": "recraft-ai/recraft-v4-pro"
           },
           {
             "id": "recraft-ai/recraft-v4-pro-svg"
@@ -3934,22 +6999,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "recraft-ai/recraft-v4-svg"
           },
           {
-            "id": "recraft-ai/recraft-v4.1"
-          },
-          {
-            "id": "recraft-ai/recraft-v4.1-pro"
-          },
-          {
             "id": "recraft-ai/recraft-v4.1-pro-svg"
           },
           {
             "id": "recraft-ai/recraft-v4.1-svg"
-          },
-          {
-            "id": "recraft-ai/recraft-v4.1-utility"
-          },
-          {
-            "id": "recraft-ai/recraft-v4.1-utility-pro"
           },
           {
             "id": "recraft-ai/recraft-vectorize"
@@ -4015,15 +7068,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "stability-ai/stable-diffusion"
           },
           {
-            "id": "stability-ai/stable-diffusion-3.5-large"
-          },
-          {
-            "id": "stability-ai/stable-diffusion-3.5-large-turbo"
-          },
-          {
-            "id": "stability-ai/stable-diffusion-3.5-medium"
-          },
-          {
             "id": "stability-ai/stable-diffusion-inpainting"
           },
           {
@@ -4066,16 +7110,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "wan-video/wan-2.7-image-pro"
           },
           {
-            "id": "wavespeedai/qwen-image"
-          },
-          {
             "id": "wuzoobia/bruna-portrait"
-          },
-          {
-            "id": "xai/grok-imagine-image"
-          },
-          {
-            "id": "xai/grok-imagine-image-quality"
           },
           {
             "id": "xinntao/esrgan"
@@ -4108,9 +7143,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "zsxkib/instant-id"
           },
           {
-            "id": "zsxkib/step1x-edit"
-          },
-          {
             "id": "zsyoaoa/invsr"
           },
           {
@@ -4122,28 +7154,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         "provider": "atlascloud",
         "models": [
           {
-            "id": "alibaba/wan-2.6/image-edit",
-            "name": "Wan 2.6 — Image Edit"
-          },
-          {
-            "id": "alibaba/wan-2.6/text-to-image",
-            "name": "Wan 2.6 — Text to Image"
-          },
-          {
             "id": "alibaba/wan-2.7-pro/image-edit",
             "name": "Wan 2.7 Pro — Image Edit"
           },
           {
-            "id": "alibaba/wan-2.7-pro/text-to-image",
-            "name": "Wan 2.7 Pro — Text to Image"
-          },
-          {
             "id": "alibaba/wan-2.7/image-edit",
             "name": "Wan 2.7 — Image Edit"
-          },
-          {
-            "id": "alibaba/wan-2.7/text-to-image",
-            "name": "Wan 2.7 — Text to Image"
           },
           {
             "id": "atlascloud/image-upscaler",
@@ -4152,74 +7168,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "atlascloud/photo-cleanup",
             "name": "Photo Cleanup"
-          },
-          {
-            "id": "black-forest-labs/flux-2-flex/edit",
-            "name": "FLUX.2 Flex — Edit"
-          },
-          {
-            "id": "black-forest-labs/flux-2-flex/text-to-image",
-            "name": "FLUX.2 Flex — Text to Image"
-          },
-          {
-            "id": "black-forest-labs/flux-2-pro/edit",
-            "name": "FLUX.2 Pro — Edit"
-          },
-          {
-            "id": "black-forest-labs/flux-2-pro/text-to-image",
-            "name": "FLUX.2 Pro — Text to Image"
-          },
-          {
-            "id": "black-forest-labs/flux-dev",
-            "name": "FLUX.1 Dev"
-          },
-          {
-            "id": "black-forest-labs/flux-kontext-dev",
-            "name": "FLUX.1 Kontext Dev"
-          },
-          {
-            "id": "black-forest-labs/flux-schnell",
-            "name": "FLUX.1 Schnell"
-          },
-          {
-            "id": "bytedance/seedream-v4.5",
-            "name": "Seedream v4.5 — Text to Image"
-          },
-          {
-            "id": "bytedance/seedream-v4.5/edit",
-            "name": "Seedream v4.5 — Edit"
-          },
-          {
-            "id": "bytedance/seedream-v5.0-lite",
-            "name": "Seedream v5.0 Lite — Text to Image"
-          },
-          {
-            "id": "bytedance/seedream-v5.0-lite/edit",
-            "name": "Seedream v5.0 Lite — Edit"
-          },
-          {
-            "id": "bytedance/seedream-v5.0-pro/edit",
-            "name": "Seedream v5.0 Pro — Edit"
-          },
-          {
-            "id": "bytedance/seedream-v5.0-pro/text-to-image",
-            "name": "Seedream v5.0 Pro — Text to Image"
-          },
-          {
-            "id": "google/nano-banana-2-lite/edit",
-            "name": "Nano Banana 2 Lite — Edit"
-          },
-          {
-            "id": "google/nano-banana-2-lite/text-to-image",
-            "name": "Nano Banana 2 Lite — Text to Image"
-          },
-          {
-            "id": "google/nano-banana-2/edit",
-            "name": "Nano Banana 2 — Edit"
-          },
-          {
-            "id": "google/nano-banana-2/text-to-image",
-            "name": "Nano Banana 2 — Text to Image"
           },
           {
             "id": "google/nano-banana-pro/edit",
@@ -4246,32 +7194,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "HiDream O1 1.5 — Text to Image"
           },
           {
-            "id": "ideogram/v4/quality/text-to-image",
-            "name": "Ideogram v4 Quality — Text to Image"
-          },
-          {
             "id": "ideogram/v4/turbo/text-to-image",
             "name": "Ideogram v4 Turbo — Text to Image"
           },
           {
             "id": "krea-2-turbo/text-to-image",
             "name": "Krea 2 Turbo — Text to Image"
-          },
-          {
-            "id": "microsoft/mai-image-2.5-flash/edit",
-            "name": "MAI Image 2.5 Flash — Edit"
-          },
-          {
-            "id": "microsoft/mai-image-2.5-flash/text-to-image",
-            "name": "MAI Image 2.5 Flash — Text to Image"
-          },
-          {
-            "id": "microsoft/mai-image-2.5/edit",
-            "name": "MAI Image 2.5 — Edit"
-          },
-          {
-            "id": "microsoft/mai-image-2.5/text-to-image",
-            "name": "MAI Image 2.5 — Text to Image"
           },
           {
             "id": "nvidia/cosmos-3-super/text-to-image",
@@ -4284,14 +7212,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "openai/gpt-image-1-mini/text-to-image",
             "name": "GPT Image 1 Mini — Text to Image"
-          },
-          {
-            "id": "openai/gpt-image-1.5/edit",
-            "name": "GPT Image 1.5 — Edit"
-          },
-          {
-            "id": "openai/gpt-image-1.5/text-to-image",
-            "name": "GPT Image 1.5 — Text to Image"
           },
           {
             "id": "openai/gpt-image-1/edit",
@@ -4316,30 +7236,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "openai/gpt-image-2.5-sunburst/text-to-image",
             "name": "GPT Image 2.5 Sunburst — Text to Image"
-          },
-          {
-            "id": "openai/gpt-image-2/edit",
-            "name": "GPT Image 2 — Edit"
-          },
-          {
-            "id": "openai/gpt-image-2/text-to-image",
-            "name": "GPT Image 2 — Text to Image"
-          },
-          {
-            "id": "qwen-image-3.0-pro/edit",
-            "name": "Qwen Image 3.0 Pro — Edit"
-          },
-          {
-            "id": "qwen-image-3.0-pro/text-to-image",
-            "name": "Qwen Image 3.0 Pro — Text to Image"
-          },
-          {
-            "id": "qwen-image-3.0/edit",
-            "name": "Qwen Image 3.0 — Edit"
-          },
-          {
-            "id": "qwen-image-3.0/text-to-image",
-            "name": "Qwen Image 3.0 — Text to Image"
           },
           {
             "id": "qwen/qwen-image-2.0-pro/edit",
@@ -4372,30 +7268,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "tencent/image/upscaler",
             "name": "Tencent Image Upscaler"
-          },
-          {
-            "id": "xai/grok-imagine-image-2.0/edit",
-            "name": "Grok Imagine Image 2.0 — Edit"
-          },
-          {
-            "id": "xai/grok-imagine-image-2.0/text-to-image",
-            "name": "Grok Imagine Image 2.0 — Text to Image"
-          },
-          {
-            "id": "xai/grok-imagine-image-quality/edit",
-            "name": "Grok Imagine Image Quality — Edit"
-          },
-          {
-            "id": "xai/grok-imagine-image-quality/text-to-image",
-            "name": "Grok Imagine Image Quality — Text to Image"
-          },
-          {
-            "id": "xai/grok-imagine-image/edit",
-            "name": "Grok Imagine Image — Edit"
-          },
-          {
-            "id": "xai/grok-imagine-image/text-to-image",
-            "name": "Grok Imagine Image — Text to Image"
           },
           {
             "id": "youchuan/v8.1/blend",
@@ -4436,10 +7308,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "youchuan/v8.2/text-to-image",
             "name": "Youchuan v8.2 — Text to Image"
-          },
-          {
-            "id": "z-image/turbo",
-            "name": "Z-Image Turbo — Text to Image"
           }
         ]
       },
@@ -4451,48 +7319,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Generate 4o Image"
           },
           {
-            "id": "bytedance/seedream",
-            "name": "Seedream3.0 - Text to Image"
-          },
-          {
-            "id": "bytedance/seedream-v4-edit",
-            "name": "Seedream4.0 - Edit"
-          },
-          {
-            "id": "bytedance/seedream-v4-text-to-image",
-            "name": "Seedream4.0 - Text to Image"
-          },
-          {
-            "id": "flux-2/flex-image-to-image",
-            "name": "Flux-2 - Image to Image"
-          },
-          {
-            "id": "flux-2/flex-text-to-image",
-            "name": "Flux-2 - Text to Image"
-          },
-          {
-            "id": "flux-2/pro-image-to-image",
-            "name": "Flux-2 - Pro Image to Image"
-          },
-          {
-            "id": "flux-2/pro-text-to-image",
-            "name": "Flux-2 - Pro Text to Image"
-          },
-          {
             "id": "flux1-kontext",
             "name": "Generate or Edit Image"
           },
           {
             "id": "google/imagen4",
             "name": "Google - imagen4"
-          },
-          {
-            "id": "google/imagen4-fast",
-            "name": "Google - imagen4-fast"
-          },
-          {
-            "id": "google/imagen4-ultra",
-            "name": "Google - imagen4-ultra"
           },
           {
             "id": "google/nano-banana",
@@ -4519,22 +7351,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "GPT Image 2.5 Sunburst - Text to Image"
           },
           {
-            "id": "gpt-image-2-image-to-image",
-            "name": "GPT Image 2 - Image To Image"
-          },
-          {
-            "id": "gpt-image-2-text-to-image",
-            "name": "GPT Image-2 - Text to Image"
-          },
-          {
-            "id": "gpt-image/1.5-image-to-image",
-            "name": "GPT Image-1.5 - Image to Image"
-          },
-          {
-            "id": "gpt-image/1.5-text-to-image",
-            "name": "GPT Image-1.5 - Text to Image"
-          },
-          {
             "id": "grok-imagine-image-2-0/image-edit",
             "name": "Grok Imagine Image 2.0 Image Edit"
           },
@@ -4545,10 +7361,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "grok-imagine-image-2-0/segment-map",
             "name": "Grok Imagine Image 2.0 Segment Map"
-          },
-          {
-            "id": "grok-imagine-image-2-0/text-to-image",
-            "name": "Grok Imagine Image 2.0 Text To Image"
           },
           {
             "id": "grok-imagine/image-to-image",
@@ -4583,20 +7395,8 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Ideogram V3 Text to Image"
           },
           {
-            "id": "nano-banana-2",
-            "name": "Google - Nano Banana 2"
-          },
-          {
-            "id": "nano-banana-2-lite",
-            "name": "Google - Nano Banana 2 Lite"
-          },
-          {
             "id": "nano-banana-pro",
             "name": "Google - Nano Banana Pro"
-          },
-          {
-            "id": "qwen/image-edit",
-            "name": "Qwen - Image Edit"
           },
           {
             "id": "qwen/image-to-image",
@@ -4643,32 +7443,8 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Recraft - Remove Background"
           },
           {
-            "id": "seedream/4.5-edit",
-            "name": "Seedream4.5 - Edit"
-          },
-          {
-            "id": "seedream/4.5-text-to-image",
-            "name": "Seedream4.5 - Text to Image"
-          },
-          {
-            "id": "seedream/5-lite-image-to-image",
-            "name": "Seedream5.0 Lite - Image to Image"
-          },
-          {
-            "id": "seedream/5-lite-text-to-image",
-            "name": "Seedream5.0 Lite - Text to Image"
-          },
-          {
-            "id": "seedream/5-pro-image-to-image",
-            "name": "Seedream5.0 Pro - Image to Image"
-          },
-          {
             "id": "seedream/5-pro-layer-decomposition",
             "name": "Seedream 5.0 Pro -  Layer Decomposition"
-          },
-          {
-            "id": "seedream/5-pro-text-to-image",
-            "name": "Seedream5.0 Pro - Text to Image"
           },
           {
             "id": "topaz/image-upscale",
@@ -4685,71 +7461,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "z-image",
             "name": "Z-Image"
-          }
-        ]
-      },
-      {
-        "provider": "together",
-        "models": [
-          {
-            "id": "ByteDance-Seed/Seedream-3.0",
-            "name": "Seedream 3.0 — Text to Image"
-          },
-          {
-            "id": "ByteDance-Seed/Seedream-4.0",
-            "name": "Seedream 4.0 — Text to Image"
-          },
-          {
-            "id": "black-forest-labs/FLUX.1-kontext-max",
-            "name": "FLUX.1 Kontext Max — Text to Image"
-          },
-          {
-            "id": "black-forest-labs/FLUX.1-kontext-pro",
-            "name": "FLUX.1 Kontext Pro — Text to Image"
-          },
-          {
-            "id": "black-forest-labs/FLUX.1-schnell",
-            "name": "FLUX.1 Schnell — Text to Image"
-          },
-          {
-            "id": "black-forest-labs/FLUX.1.1-pro",
-            "name": "FLUX.1.1 Pro — Text to Image"
-          },
-          {
-            "id": "black-forest-labs/FLUX.2-dev",
-            "name": "FLUX.2 Dev — Text to Image"
-          },
-          {
-            "id": "black-forest-labs/FLUX.2-flex",
-            "name": "FLUX.2 Flex — Text to Image"
-          },
-          {
-            "id": "black-forest-labs/FLUX.2-pro",
-            "name": "FLUX.2 Pro — Text to Image"
-          },
-          {
-            "id": "google/flash-image-2.5",
-            "name": "Flash Image 2.5 — Text to Image"
-          },
-          {
-            "id": "google/gemini-3-pro-image",
-            "name": "Gemini 3 Pro Image — Text to Image"
-          },
-          {
-            "id": "google/imagen-4.0-fast",
-            "name": "Imagen 4.0 Fast — Text to Image"
-          },
-          {
-            "id": "google/imagen-4.0-preview",
-            "name": "Imagen 4.0 Preview — Text to Image"
-          },
-          {
-            "id": "ideogram/ideogram-3.0",
-            "name": "Ideogram 3.0 — Text to Image"
-          },
-          {
-            "id": "stabilityai/stable-diffusion-3-medium",
-            "name": "Stable Diffusion 3 Medium — Text to Image"
           }
         ]
       },
@@ -4970,31 +7681,27 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
-        "provider": "openai",
+        "provider": "together",
         "models": [
           {
-            "id": "gpt-image-1",
-            "name": "GPT Image 1"
+            "id": "black-forest-labs/FLUX.1-schnell",
+            "name": "FLUX.1 Schnell — Text to Image"
           },
           {
-            "id": "gpt-image-1-mini",
-            "name": "GPT Image 1 Mini"
+            "id": "google/flash-image-2.5",
+            "name": "Flash Image 2.5 — Text to Image"
           },
           {
-            "id": "gpt-image-1.5",
-            "name": "GPT Image 1.5"
+            "id": "google/gemini-3-pro-image",
+            "name": "Gemini 3 Pro Image — Text to Image"
           },
           {
-            "id": "gpt-image-2",
-            "name": "GPT Image 2"
+            "id": "google/imagen-4.0-preview",
+            "name": "Imagen 4.0 Preview — Text to Image"
           },
           {
-            "id": "gpt-image-2.5-flare",
-            "name": "GPT Image 2.5 Flare"
-          },
-          {
-            "id": "gpt-image-2.5-sunburst",
-            "name": "GPT Image 2.5 Sunburst"
+            "id": "ideogram/ideogram-3.0",
+            "name": "Ideogram 3.0 — Text to Image"
           }
         ]
       },
@@ -5041,6 +7748,27 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
+        "provider": "openai",
+        "models": [
+          {
+            "id": "gpt-image-1",
+            "name": "GPT Image 1"
+          },
+          {
+            "id": "gpt-image-1-mini",
+            "name": "GPT Image 1 Mini"
+          },
+          {
+            "id": "gpt-image-2.5-flare",
+            "name": "GPT Image 2.5 Flare"
+          },
+          {
+            "id": "gpt-image-2.5-sunburst",
+            "name": "GPT Image 2.5 Sunburst"
+          }
+        ]
+      },
+      {
         "provider": "aki",
         "models": [
           {
@@ -5067,10 +7795,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "gemini-3.1-flash-image",
             "name": "Gemini 3.1 Flash Image"
-          },
-          {
-            "id": "gemini-3.1-flash-lite-image",
-            "name": "Gemini 3.1 Flash-Lite Image"
           }
         ]
       },
@@ -5130,15 +7854,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Gemini Images (web)"
           }
         ]
-      },
-      {
-        "provider": "minimax",
-        "models": [
-          {
-            "id": "image-01",
-            "name": "MiniMax Image-01"
-          }
-        ]
       }
     ],
     "liveProviders": [
@@ -5147,7 +7862,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "video",
-    "total": 1127,
+    "total": 1007,
     "providers": [
       {
         "provider": "fal_ai",
@@ -5183,13 +7898,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "alibaba/wan-3.0-prime/text-to-video"
           },
           {
-            "id": "alibaba/wan-3.0/image-to-video"
-          },
-          {
             "id": "alibaba/wan-3.0/reference-to-video"
-          },
-          {
-            "id": "alibaba/wan-3.0/text-to-video"
           },
           {
             "id": "argil/avatars/audio-to-video"
@@ -5226,9 +7935,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "blackforestlabs/flux-3/keyframes-to-video/draft"
-          },
-          {
-            "id": "blackforestlabs/flux-3/text-to-video"
           },
           {
             "id": "blackforestlabs/flux-3/text-to-video/draft"
@@ -5274,9 +7980,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "bytedance/seedance-2.0/fast/text-to-video"
-          },
-          {
-            "id": "bytedance/seedance-2.0/image-to-video"
           },
           {
             "id": "bytedance/seedance-2.0/mini/image-to-video"
@@ -5325,9 +8028,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "clarityai/crystal-video-upscaler"
-          },
-          {
-            "id": "creatify/boreal"
           },
           {
             "id": "decart/lucy-14b/image-to-video"
@@ -5394,9 +8094,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/bytedance/omnihuman/v1.5"
-          },
-          {
-            "id": "fal-ai/bytedance/seedance/v1.5/pro/image-to-video"
           },
           {
             "id": "fal-ai/bytedance/seedance/v1.5/pro/text-to-video"
@@ -6278,12 +8975,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/magi/image-to-video"
           },
           {
-            "id": "fal-ai/minimax/hailuo-02-fast/image-to-video"
-          },
-          {
-            "id": "fal-ai/minimax/hailuo-02/pro/image-to-video"
-          },
-          {
             "id": "fal-ai/minimax/hailuo-02/pro/text-to-video"
           },
           {
@@ -6348,9 +9039,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/pika/v2.1/text-to-video"
-          },
-          {
-            "id": "fal-ai/pika/v2.2/image-to-video"
           },
           {
             "id": "fal-ai/pika/v2.2/pikaframes"
@@ -6449,16 +9137,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/pixverse/v5.5/effects"
           },
           {
-            "id": "fal-ai/pixverse/v5.5/image-to-video"
-          },
-          {
             "id": "fal-ai/pixverse/v5.5/text-to-video"
           },
           {
             "id": "fal-ai/pixverse/v5.5/transition"
-          },
-          {
-            "id": "fal-ai/pixverse/v5.6/image-to-video"
           },
           {
             "id": "fal-ai/pixverse/v5.6/text-to-video"
@@ -6470,9 +9152,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/pixverse/v5/effects"
           },
           {
-            "id": "fal-ai/pixverse/v5/image-to-video"
-          },
-          {
             "id": "fal-ai/pixverse/v5/text-to-video"
           },
           {
@@ -6480,12 +9159,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/pixverse/v6/extend"
-          },
-          {
-            "id": "fal-ai/pixverse/v6/image-to-video"
-          },
-          {
-            "id": "fal-ai/pixverse/v6/text-to-video"
           },
           {
             "id": "fal-ai/pixverse/v6/transition"
@@ -6581,16 +9254,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/topaz/upscale/video"
           },
           {
-            "id": "fal-ai/veo2"
-          },
-          {
-            "id": "fal-ai/veo3.1"
-          },
-          {
             "id": "fal-ai/veo3.1/extend-video"
-          },
-          {
-            "id": "fal-ai/veo3.1/fast"
           },
           {
             "id": "fal-ai/veo3.1/fast/extend-video"
@@ -6599,34 +9263,19 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/veo3.1/fast/first-last-frame-to-video"
           },
           {
-            "id": "fal-ai/veo3.1/fast/image-to-video"
-          },
-          {
             "id": "fal-ai/veo3.1/fast/reference-to-video"
           },
           {
             "id": "fal-ai/veo3.1/first-last-frame-to-video"
           },
           {
-            "id": "fal-ai/veo3.1/image-to-video"
-          },
-          {
-            "id": "fal-ai/veo3.1/lite"
-          },
-          {
             "id": "fal-ai/veo3.1/lite/first-last-frame-to-video"
-          },
-          {
-            "id": "fal-ai/veo3.1/lite/image-to-video"
           },
           {
             "id": "fal-ai/veo3.1/reference-to-video"
           },
           {
             "id": "fal-ai/veo3/fast/image-to-video"
-          },
-          {
-            "id": "fal-ai/veo3/image-to-video"
           },
           {
             "id": "fal-ai/video-as-prompt"
@@ -6636,9 +9285,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/vidu/image-to-video"
-          },
-          {
-            "id": "fal-ai/vidu/q1/image-to-video"
           },
           {
             "id": "fal-ai/vidu/q1/reference-to-video"
@@ -6779,9 +9425,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/wan/v2.2-14b/speech-to-video"
           },
           {
-            "id": "fal-ai/wan/v2.2-5b/image-to-video"
-          },
-          {
             "id": "fal-ai/wan/v2.2-5b/text-to-video"
           },
           {
@@ -6789,9 +9432,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/wan/v2.2-5b/text-to-video/fast-wan"
-          },
-          {
-            "id": "fal-ai/wan/v2.2-a14b/image-to-video"
           },
           {
             "id": "fal-ai/wan/v2.2-a14b/image-to-video/lora"
@@ -6813,9 +9453,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/wan/v2.7/edit-video"
-          },
-          {
-            "id": "fal-ai/wan/v2.7/image-to-video"
           },
           {
             "id": "fal-ai/wan/v2.7/reference-to-video"
@@ -6842,13 +9479,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/workflow-utilities/trim-video"
           },
           {
-            "id": "google/gemini-omni-flash"
-          },
-          {
             "id": "google/gemini-omni-flash/edit"
-          },
-          {
-            "id": "google/gemini-omni-flash/image-to-video"
           },
           {
             "id": "google/gemini-omni-flash/reference-to-video"
@@ -6861,9 +9492,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "google/gemini-omni-flash/v1.1/reference-to-video"
-          },
-          {
-            "id": "google/gemini-omni-flash/v1.1/text-to-video"
           },
           {
             "id": "lightricks/ltx-2.5/audio-to-video/fast"
@@ -6944,13 +9572,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "minimax/h3-max/styles/vhs"
           },
           {
-            "id": "minimax/h3-max/text-to-video"
-          },
-          {
             "id": "minimax/h3-max/text-to-video/lora"
-          },
-          {
-            "id": "minimax/h3/image-to-video"
           },
           {
             "id": "minimax/h3/image-to-video/lora"
@@ -7070,9 +9692,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "veed/video-background-removal/green-screen"
           },
           {
-            "id": "wan/v2.6/image-to-video"
-          },
-          {
             "id": "wan/v2.6/image-to-video/flash"
           },
           {
@@ -7088,37 +9707,19 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "xai/grok-imagine-video/extend-video"
           },
           {
-            "id": "xai/grok-imagine-video/image-to-video"
-          },
-          {
             "id": "xai/grok-imagine-video/reference-to-video"
           },
           {
             "id": "xai/grok-imagine-video/text-to-video"
           },
           {
-            "id": "xai/grok-imagine-video/v1.5/image-to-video"
-          },
-          {
             "id": "xai/grok-imagine-video/v1.5/reference-to-video"
-          },
-          {
-            "id": "xai/grok-imagine-video/v1.5/text-to-video"
           }
         ]
       },
       {
         "provider": "replicate",
         "models": [
-          {
-            "id": "alibaba/happyhorse-1.0"
-          },
-          {
-            "id": "alibaba/happyhorse-1.1"
-          },
-          {
-            "id": "alibaba/wan-3"
-          },
           {
             "id": "alibaba/wan-3-prime"
           },
@@ -7168,12 +9769,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "bytedance/seedance-1-pro-fast"
           },
           {
-            "id": "bytedance/seedance-1.5-pro"
-          },
-          {
-            "id": "bytedance/seedance-2.0"
-          },
-          {
             "id": "bytedance/seedance-2.0-fast"
           },
           {
@@ -7216,22 +9811,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fofr/kontext-ps1"
           },
           {
-            "id": "google/veo-2"
-          },
-          {
-            "id": "google/veo-3"
-          },
-          {
             "id": "google/veo-3-fast"
-          },
-          {
-            "id": "google/veo-3.1"
-          },
-          {
-            "id": "google/veo-3.1-fast"
-          },
-          {
-            "id": "google/veo-3.1-lite"
           },
           {
             "id": "heygen/avatar-iv"
@@ -7267,19 +9847,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "kwaivgi/kling-v1.5-standard"
           },
           {
-            "id": "kwaivgi/kling-v1.6-pro"
-          },
-          {
             "id": "kwaivgi/kling-v1.6-standard"
           },
           {
-            "id": "kwaivgi/kling-v2.0"
-          },
-          {
             "id": "kwaivgi/kling-v2.1"
-          },
-          {
-            "id": "kwaivgi/kling-v2.1-master"
           },
           {
             "id": "kwaivgi/kling-v2.5-turbo-pro"
@@ -7300,28 +9871,13 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "kwaivgi/kling-v3-video"
           },
           {
-            "id": "leonardoai/motion-2.0"
-          },
-          {
             "id": "lightricks/audio-to-video"
           },
           {
             "id": "lightricks/ltx-2-distilled"
           },
           {
-            "id": "lightricks/ltx-2-fast"
-          },
-          {
-            "id": "lightricks/ltx-2-pro"
-          },
-          {
             "id": "lightricks/ltx-2-retake"
-          },
-          {
-            "id": "lightricks/ltx-2.3-fast"
-          },
-          {
-            "id": "lightricks/ltx-2.3-pro"
           },
           {
             "id": "lightricks/ltx-video"
@@ -7387,15 +9943,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "minimax/hailuo-02"
           },
           {
-            "id": "minimax/hailuo-02-fast"
-          },
-          {
-            "id": "minimax/hailuo-2.3"
-          },
-          {
-            "id": "minimax/hailuo-2.3-fast"
-          },
-          {
             "id": "minimax/video-01"
           },
           {
@@ -7426,22 +9973,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "pixverse/pixverse-v4"
           },
           {
-            "id": "pixverse/pixverse-v4.5"
-          },
-          {
-            "id": "pixverse/pixverse-v5"
-          },
-          {
-            "id": "pixverse/pixverse-v5.6"
-          },
-          {
-            "id": "pixverse/pixverse-v6"
-          },
-          {
             "id": "pollinations/real-basicvsr-video-superresolution"
-          },
-          {
-            "id": "prunaai/p-video"
           },
           {
             "id": "prunaai/p-video-animate"
@@ -7495,12 +10027,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "veed/fabric-1.0"
           },
           {
-            "id": "vidu/q3-pro"
-          },
-          {
-            "id": "vidu/q3-turbo"
-          },
-          {
             "id": "wan-video/wan-2.1-1.3b"
           },
           {
@@ -7529,9 +10055,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "wan-video/wan-2.5-i2v-fast"
-          },
-          {
-            "id": "wan-video/wan-2.5-t2v"
           },
           {
             "id": "wan-video/wan-2.5-t2v-fast"
@@ -7576,12 +10099,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "xai/grok-imagine-r2v"
           },
           {
-            "id": "xai/grok-imagine-video"
-          },
-          {
-            "id": "xai/grok-imagine-video-1.5"
-          },
-          {
             "id": "xai/grok-imagine-video-extension"
           },
           {
@@ -7600,28 +10117,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Alibaba HappyHorse 1.0 — Reference to Video"
           },
           {
-            "id": "alibaba/happyhorse-1.1/image-to-video",
-            "name": "HappyHorse 1.1 — Image to Video"
-          },
-          {
             "id": "alibaba/happyhorse-1.1/reference-to-video",
             "name": "HappyHorse 1.1 — Reference to Video"
           },
           {
-            "id": "alibaba/happyhorse-1.1/text-to-video",
-            "name": "HappyHorse 1.1 — Text to Video"
-          },
-          {
-            "id": "alibaba/wan-2.6/image-to-video",
-            "name": "Wan 2.6 — Image to Video"
-          },
-          {
             "id": "alibaba/wan-2.6/text-to-video",
             "name": "Wan 2.6 — Text to Video"
-          },
-          {
-            "id": "alibaba/wan-2.7/image-to-video",
-            "name": "Wan 2.7 — Image to Video"
           },
           {
             "id": "alibaba/wan-2.7/reference-to-video",
@@ -7648,16 +10149,8 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Wan 3.0 Prime — Text to Video"
           },
           {
-            "id": "alibaba/wan-3.0/image-to-video",
-            "name": "Wan 3.0 — Image to Video"
-          },
-          {
             "id": "alibaba/wan-3.0/reference-to-video",
             "name": "Wan 3.0 — Reference to Video"
-          },
-          {
-            "id": "alibaba/wan-3.0/text-to-video",
-            "name": "Wan 3.0 — Text to Video"
           },
           {
             "id": "atlascloud/video-upscaler",
@@ -7692,10 +10185,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Seedance 2.0 Mini — Text to Video"
           },
           {
-            "id": "bytedance/seedance-2.0/image-to-video",
-            "name": "Seedance 2.0 — Image to Video"
-          },
-          {
             "id": "bytedance/seedance-2.0/reference-to-video",
             "name": "Seedance 2.0 — Reference to Video"
           },
@@ -7714,10 +10203,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "bytedance/seedance-2.5/text-to-video",
             "name": "Seedance 2.5 — Text to Video"
-          },
-          {
-            "id": "bytedance/seedance-v1.5-pro/image-to-video",
-            "name": "Seedance v1.5 Pro — Image to Video"
           },
           {
             "id": "bytedance/seedance-v1.5-pro/text-to-video",
@@ -7744,10 +10229,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Gemini Omni 1.1 Flash — Video Extend"
           },
           {
-            "id": "google/gemini-omni-flash/image-to-video",
-            "name": "Gemini Omni Flash — Image to Video"
-          },
-          {
             "id": "google/gemini-omni-flash/reference-to-video",
             "name": "Gemini Omni Flash — Reference to Video"
           },
@@ -7760,36 +10241,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Gemini Omni Flash — Video Edit"
           },
           {
-            "id": "google/veo3.1-fast/image-to-video",
-            "name": "Veo 3.1 Fast — Image to Video"
-          },
-          {
-            "id": "google/veo3.1-fast/text-to-video",
-            "name": "Veo 3.1 Fast — Text to Video"
-          },
-          {
-            "id": "google/veo3.1-lite/image-to-video",
-            "name": "Veo 3.1 Lite — Image to Video"
-          },
-          {
             "id": "google/veo3.1-lite/start-end-frame-to-video",
             "name": "Veo 3.1 Lite — Start and End Frame to Video"
           },
           {
-            "id": "google/veo3.1-lite/text-to-video",
-            "name": "Veo 3.1 Lite — Text to Video"
-          },
-          {
-            "id": "google/veo3.1/image-to-video",
-            "name": "Veo 3.1 — Image to Video"
-          },
-          {
             "id": "google/veo3.1/reference-to-video",
             "name": "Veo 3.1 — Reference to Video"
-          },
-          {
-            "id": "google/veo3.1/text-to-video",
-            "name": "Veo 3.1 — Text to Video"
           },
           {
             "id": "kwaivgi/kling-v2.6-pro/image-to-video",
@@ -7806,14 +10263,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "kwaivgi/kling-v3.0-4k/text-to-video",
             "name": "Kling v3.0 4K — Text to Video"
-          },
-          {
-            "id": "kwaivgi/kling-v3.0-pro/image-to-video",
-            "name": "Kling v3.0 Pro — Image to Video"
-          },
-          {
-            "id": "kwaivgi/kling-v3.0-pro/text-to-video",
-            "name": "Kling v3.0 Pro — Text to Video"
           },
           {
             "id": "kwaivgi/kling-v3.0-std/image-to-video",
@@ -7900,14 +10349,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "MiniMax H3 Max — Image to Video"
           },
           {
-            "id": "minimax/h3-max/text-to-video",
-            "name": "MiniMax H3 Max — Text to Video"
-          },
-          {
-            "id": "minimax/h3/image-to-video",
-            "name": "MiniMax H3 — Image to Video"
-          },
-          {
             "id": "minimax/h3/reference-to-video",
             "name": "MiniMax H3 — Reference to Video"
           },
@@ -7932,16 +10373,8 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "PixVerse C1 — Reference to Video"
           },
           {
-            "id": "pixverse/v6/image-to-video",
-            "name": "PixVerse v6 — Image to Video"
-          },
-          {
             "id": "pixverse/v6/reference-to-video",
             "name": "PixVerse v6 — Reference to Video"
-          },
-          {
-            "id": "pixverse/v6/text-to-video",
-            "name": "PixVerse v6 — Text to Video"
           },
           {
             "id": "sync/lipsync-v3",
@@ -7964,28 +10397,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Vidu Q2 — Reference to Video"
           },
           {
-            "id": "vidu/q3-pro/image-to-video",
-            "name": "Vidu Q3 Pro — Image to Video"
-          },
-          {
-            "id": "vidu/q3-pro/text-to-video",
-            "name": "Vidu Q3 Pro — Text to Video"
-          },
-          {
             "id": "vidu/q3/reference-to-video",
             "name": "Vidu Q3 — Reference to Video"
           },
           {
-            "id": "xai/grok-imagine-video-v1.5/image-to-video",
-            "name": "Grok Imagine Video v1.5 — Image to Video"
-          },
-          {
             "id": "xai/grok-imagine-video-v1.5/reference-to-video",
             "name": "Grok Imagine Video v1.5 — Reference to Video"
-          },
-          {
-            "id": "xai/grok-imagine-video-v1.5/text-to-video",
-            "name": "Grok Imagine Video v1.5 — Text to Video"
           },
           {
             "id": "youchuan/v8.1/image-to-video",
@@ -8000,14 +10417,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
       {
         "provider": "kie",
         "models": [
-          {
-            "id": "bytedance/seedance-1.5-pro",
-            "name": "Bytedance Seedance 1.5 Pro"
-          },
-          {
-            "id": "bytedance/seedance-2",
-            "name": "bytedance-seedance-2"
-          },
           {
             "id": "bytedance/seedance-2-5",
             "name": "Bytedance Seedance 2.5"
@@ -8043,14 +10452,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "gemini-omni-video",
             "name": "Gemini Omni Video"
-          },
-          {
-            "id": "google/gemini-omni-flash-1-1",
-            "name": "Gemini Omni 1.1 Flash"
-          },
-          {
-            "id": "grok-imagine-video-1-5-preview",
-            "name": "Grok Imagine Video 1.5 Preview"
           },
           {
             "id": "grok-imagine/extend",
@@ -8093,16 +10494,8 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Hailuo 2.3 Standard Image to Video"
           },
           {
-            "id": "happyhorse-1-1/image-to-video",
-            "name": "HappyHorse-1-1 image-to-video"
-          },
-          {
             "id": "happyhorse-1-1/reference-to-video",
             "name": "HappyHorse-1-1 reference-to-video"
-          },
-          {
-            "id": "happyhorse-1-1/text-to-video",
-            "name": "HappyHorse-1-1 text-to-video"
           },
           {
             "id": "happyhorse/image-to-video",
@@ -8167,20 +10560,8 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Kling AI Avatar Standard"
           },
           {
-            "id": "kling/v2-1-master-image-to-video",
-            "name": "Kling - V2.5 Turbo Image to Video Pro"
-          },
-          {
             "id": "kling/v2-1-master-text-to-video",
             "name": "Kling V2.1 Master Text to Video"
-          },
-          {
-            "id": "kling/v2-1-pro",
-            "name": "Kling V2.1 Pro"
-          },
-          {
-            "id": "kling/v2-1-standard",
-            "name": "Kling V2.1 Standard"
           },
           {
             "id": "kling/v2-5-turbo-text-to-video-pro",
@@ -8193,10 +10574,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "kling/v3-turbo-text-to-video",
             "name": "Kling - V3 Turbo Text to Video"
-          },
-          {
-            "id": "minimax-h3/image-to-video",
-            "name": "MiniMax H3 Image-to-Video"
           },
           {
             "id": "minimax-h3/reference-to-video",
@@ -8223,16 +10600,8 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "PixVerse V6 Video Extension"
           },
           {
-            "id": "pixverse-v6/image-to-video",
-            "name": "PixVerse V6 Image-to-Video"
-          },
-          {
             "id": "pixverse-v6/reference-to-video",
             "name": "PixVerse V6 Fusion / Reference-to-Video"
-          },
-          {
-            "id": "pixverse-v6/text-to-video",
-            "name": "PixVerse V6 Text-to-Video"
           },
           {
             "id": "pixverse-v6/transition",
@@ -8253,10 +10622,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "topaz/video-upscale",
             "name": "Topaz - Video Upscale"
-          },
-          {
-            "id": "veo-3-1",
-            "name": "Generate Veo3.1 Video"
           },
           {
             "id": "veo/extend",
@@ -8311,20 +10676,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Wan - 2-6-flash-video-to-video"
           },
           {
-            "id": "wan/2-6-image-to-video",
-            "name": "Wan 2.6 - Image to Video"
-          },
-          {
             "id": "wan/2-6-text-to-video",
             "name": "Wan 2.6 - Text to Video"
           },
           {
             "id": "wan/2-6-video-to-video",
             "name": "Wan 2.6 - Video to Video"
-          },
-          {
-            "id": "wan/2-7-image-to-video",
-            "name": "Wan 2.7 - Image to Video"
           },
           {
             "id": "wan/2-7-r2v",
@@ -8618,71 +10975,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
-        "provider": "together",
-        "models": [
-          {
-            "id": "ByteDance/Seedance-1.0-lite",
-            "name": "Seedance 1.0 Lite — Text to Video"
-          },
-          {
-            "id": "ByteDance/Seedance-1.0-pro",
-            "name": "Seedance 1.0 Pro — Text to Video"
-          },
-          {
-            "id": "google/veo-2.0",
-            "name": "Veo 2.0 — Text to Video"
-          },
-          {
-            "id": "google/veo-3.0",
-            "name": "Veo 3.0 — Text to Video"
-          },
-          {
-            "id": "google/veo-3.0-audio",
-            "name": "Veo 3.0 + Audio — Text to Video"
-          },
-          {
-            "id": "kwaivgI/kling-2.1-master",
-            "name": "Kling 2.1 Master — Text to Video"
-          },
-          {
-            "id": "kwaivgI/kling-2.1-pro",
-            "name": "Kling 2.1 Pro — Text to Video"
-          },
-          {
-            "id": "kwaivgI/kling-2.1-standard",
-            "name": "Kling 2.1 Standard — Text to Video"
-          },
-          {
-            "id": "minimax/hailuo-02",
-            "name": "MiniMax Hailuo 02 — Text to Video"
-          },
-          {
-            "id": "minimax/video-01-director",
-            "name": "MiniMax Video 01 Director — Text to Video"
-          },
-          {
-            "id": "openai/sora-2",
-            "name": "Sora 2 — Text to Video"
-          },
-          {
-            "id": "openai/sora-2-pro",
-            "name": "Sora 2 Pro — Text to Video"
-          },
-          {
-            "id": "pixverse/pixverse-v5",
-            "name": "PixVerse v5 — Text to Video"
-          },
-          {
-            "id": "vidu/vidu-2.0",
-            "name": "Vidu 2.0 — Text to Video"
-          },
-          {
-            "id": "vidu/vidu-q1",
-            "name": "Vidu Q1 — Text to Video"
-          }
-        ]
-      },
-      {
         "provider": "useapi",
         "models": [
           {
@@ -8781,6 +11073,43 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
+        "provider": "together",
+        "models": [
+          {
+            "id": "ByteDance/Seedance-1.0-lite",
+            "name": "Seedance 1.0 Lite — Text to Video"
+          },
+          {
+            "id": "ByteDance/Seedance-1.0-pro",
+            "name": "Seedance 1.0 Pro — Text to Video"
+          },
+          {
+            "id": "google/veo-3.0-audio",
+            "name": "Veo 3.0 + Audio — Text to Video"
+          },
+          {
+            "id": "minimax/hailuo-02",
+            "name": "MiniMax Hailuo 02 — Text to Video"
+          },
+          {
+            "id": "minimax/video-01-director",
+            "name": "MiniMax Video 01 Director — Text to Video"
+          },
+          {
+            "id": "openai/sora-2",
+            "name": "Sora 2 — Text to Video"
+          },
+          {
+            "id": "openai/sora-2-pro",
+            "name": "Sora 2 Pro — Text to Video"
+          },
+          {
+            "id": "vidu/vidu-2.0",
+            "name": "Vidu 2.0 — Text to Video"
+          }
+        ]
+      },
+      {
         "provider": "evolink",
         "models": [
           {
@@ -8814,56 +11143,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
-        "provider": "minimax",
-        "models": [
-          {
-            "id": "I2V-01-Director",
-            "name": "MiniMax Video-01 Director (I2V)"
-          },
-          {
-            "id": "MiniMax-Hailuo-02",
-            "name": "MiniMax Hailuo 02"
-          },
-          {
-            "id": "MiniMax-Hailuo-2.3",
-            "name": "MiniMax Hailuo 2.3"
-          },
-          {
-            "id": "MiniMax-Hailuo-2.3-Fast",
-            "name": "MiniMax Hailuo 2.3 Fast"
-          },
-          {
-            "id": "S2V-01",
-            "name": "MiniMax Video-01 Subject"
-          },
-          {
-            "id": "T2V-01-Director",
-            "name": "MiniMax Video-01 Director"
-          }
-        ]
-      },
-      {
-        "provider": "gemini",
-        "models": [
-          {
-            "id": "gemini-omni-1.1-flash",
-            "name": "Gemini Omni Flash"
-          },
-          {
-            "id": "veo-3.1-fast-generate-preview",
-            "name": "Veo 3.1 Fast Preview"
-          },
-          {
-            "id": "veo-3.1-generate-preview",
-            "name": "Veo 3.1 Preview"
-          },
-          {
-            "id": "veo-3.1-lite-generate-preview",
-            "name": "Veo 3.1 Lite Preview"
-          }
-        ]
-      },
-      {
         "provider": "vgenv",
         "models": [
           {
@@ -8881,6 +11160,23 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "minimax/h3-standard",
             "name": "MiniMax H3 Standard"
+          }
+        ]
+      },
+      {
+        "provider": "minimax",
+        "models": [
+          {
+            "id": "MiniMax-Hailuo-02",
+            "name": "MiniMax Hailuo 02"
+          },
+          {
+            "id": "S2V-01",
+            "name": "MiniMax Video-01 Subject"
+          },
+          {
+            "id": "T2V-01-Director",
+            "name": "MiniMax Video-01 Director"
           }
         ]
       },
@@ -8927,7 +11223,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "audio",
-    "total": 270,
+    "total": 219,
     "providers": [
       {
         "provider": "fal_ai",
@@ -8958,12 +11254,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "elevenlabs/music/v2.5"
-          },
-          {
-            "id": "elevenlabs/tts/eleven-v4"
-          },
-          {
-            "id": "elevenlabs/tts/eleven-v4-turbo"
           },
           {
             "id": "fal-ai/ace-step"
@@ -9014,18 +11304,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/elevenlabs/sound-effects/v2"
           },
           {
-            "id": "fal-ai/elevenlabs/text-to-dialogue/eleven-v3"
-          },
-          {
-            "id": "fal-ai/elevenlabs/tts/eleven-v3"
-          },
-          {
-            "id": "fal-ai/elevenlabs/tts/multilingual-v2"
-          },
-          {
-            "id": "fal-ai/elevenlabs/tts/turbo-v2.5"
-          },
-          {
             "id": "fal-ai/elevenlabs/voice-changer"
           },
           {
@@ -9038,13 +11316,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/ffmpeg-api/merge-audios"
           },
           {
-            "id": "fal-ai/gemini-3.1-flash-tts"
-          },
-          {
             "id": "fal-ai/gemini-tts"
-          },
-          {
-            "id": "fal-ai/index-tts-2/text-to-speech"
           },
           {
             "id": "fal-ai/inworld-tts"
@@ -9120,24 +11392,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/minimax/preview/speech-2.5-turbo"
-          },
-          {
-            "id": "fal-ai/minimax/speech-02-hd"
-          },
-          {
-            "id": "fal-ai/minimax/speech-02-turbo"
-          },
-          {
-            "id": "fal-ai/minimax/speech-2.6-hd"
-          },
-          {
-            "id": "fal-ai/minimax/speech-2.6-turbo"
-          },
-          {
-            "id": "fal-ai/minimax/speech-2.8-hd"
-          },
-          {
-            "id": "fal-ai/minimax/speech-2.8-turbo"
           },
           {
             "id": "fal-ai/minimax/voice-clone"
@@ -9254,12 +11508,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/stable-audio-3/small/sfx/text-to-audio"
           },
           {
-            "id": "fal-ai/tada/1b/text-to-speech"
-          },
-          {
-            "id": "fal-ai/tada/3b/text-to-speech"
-          },
-          {
             "id": "fal-ai/thinksound/audio"
           },
           {
@@ -9287,12 +11535,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/zonos2"
           },
           {
-            "id": "google/gemini-3.8-flash-lite-tts"
-          },
-          {
-            "id": "google/gemini-3.8-flash-tts"
-          },
-          {
             "id": "google/lyria-3.5"
           },
           {
@@ -9317,9 +11559,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "resemble-ai/chatterboxhd/speech-to-speech"
           },
           {
-            "id": "resemble-ai/chatterboxhd/text-to-speech"
-          },
-          {
             "id": "sonilo/v1.1/text-to-music"
           },
           {
@@ -9336,9 +11575,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "xai/grok-voice"
-          },
-          {
-            "id": "xai/tts/v1"
           }
         ]
       },
@@ -9364,15 +11600,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "cjwbw/voicecraft"
           },
           {
-            "id": "elevenlabs/flash-v2.5",
-            "name": "ElevenLabs Flash V2.5"
-          },
-          {
             "id": "elevenlabs/music"
-          },
-          {
-            "id": "elevenlabs/turbo-v2.5",
-            "name": "ElevenLabs Turbo V2.5"
           },
           {
             "id": "elevenlabs/v2-multilingual",
@@ -9384,10 +11612,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fermatresearch/spanish-f5-tts"
-          },
-          {
-            "id": "google/gemini-3.1-flash-tts",
-            "name": "Gemini 3.1 Flash TTS"
           },
           {
             "id": "google/lyria-2"
@@ -9405,10 +11629,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "inworld/realtime-tts-1.5-mini",
             "name": "Inworld Realtime TTS 1.5 Mini"
-          },
-          {
-            "id": "inworld/realtime-tts-2",
-            "name": "Inworld Realtime TTS 2"
           },
           {
             "id": "inworld/tts-1.5-max",
@@ -9462,22 +11682,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "minimax/speech-02-turbo"
           },
           {
-            "id": "minimax/speech-2.6-hd",
-            "name": "MiniMax Speech 2.6 HD"
-          },
-          {
-            "id": "minimax/speech-2.6-turbo",
-            "name": "MiniMax Speech 2.6 Turbo"
-          },
-          {
-            "id": "minimax/speech-2.8-hd",
-            "name": "MiniMax Speech 2.8 HD"
-          },
-          {
-            "id": "minimax/speech-2.8-turbo",
-            "name": "MiniMax Speech 2.8 Turbo"
-          },
-          {
             "id": "minimax/voice-cloning"
           },
           {
@@ -9491,14 +11695,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "playht/play-dialog"
-          },
-          {
-            "id": "qwen/qwen3-tts",
-            "name": "Qwen3 TTS"
-          },
-          {
-            "id": "resemble-ai/chatterbox",
-            "name": "Chatterbox"
           },
           {
             "id": "resemble-ai/chatterbox-multilingual",
@@ -9631,10 +11827,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Gemini 2.5 Pro Text to Speech"
           },
           {
-            "id": "google/gemini-3-1-flash-tts",
-            "name": "Gemini 3.1 Flash Text to speech"
-          },
-          {
             "id": "recoveryAudio",
             "name": "Recovery Audio"
           },
@@ -9680,10 +11872,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Seed Audio 1.0"
           },
           {
-            "id": "elevenlabs/v3/text-to-speech",
-            "name": "ElevenLabs v3 Text-to-Speech"
-          },
-          {
             "id": "google/gemini-2.5-flash-tts",
             "name": "Gemini 2.5 Flash TTS"
           },
@@ -9692,24 +11880,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Gemini 2.5 Pro TTS"
           },
           {
-            "id": "google/gemini-3.1-flash-tts",
-            "name": "Gemini 3.1 Flash TTS"
-          },
-          {
             "id": "minimax/music-2.6",
             "name": "MiniMax Music 2.6"
           },
           {
             "id": "minimax/music-3.0",
             "name": "MiniMax Music 3.0"
-          },
-          {
-            "id": "minimax/speech-2.6-hd",
-            "name": "MiniMax Speech 2.6 HD"
-          },
-          {
-            "id": "minimax/speech-2.6-turbo",
-            "name": "MiniMax Speech 2.6 Turbo"
           },
           {
             "id": "suno/chirp-v6",
@@ -9722,10 +11898,48 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "suno/chirp-v6-wild",
             "name": "Suno chirp-v6-wild"
+          }
+        ]
+      },
+      {
+        "provider": "elevenlabs",
+        "models": [
+          {
+            "id": "eleven_flash_v2",
+            "name": "Flash v2"
           },
           {
-            "id": "xai/tts-v1",
-            "name": "xAI TTS v1"
+            "id": "eleven_monolingual_v1",
+            "name": "Monolingual v1"
+          },
+          {
+            "id": "eleven_multilingual_v1",
+            "name": "Multilingual v1"
+          },
+          {
+            "id": "eleven_turbo_v2",
+            "name": "Turbo v2"
+          }
+        ]
+      },
+      {
+        "provider": "gemini",
+        "models": [
+          {
+            "id": "gemini-2.5-flash-preview-tts",
+            "name": "Gemini 2.5 Flash TTS"
+          },
+          {
+            "id": "gemini-2.5-pro-preview-tts",
+            "name": "Gemini 2.5 Pro TTS"
+          },
+          {
+            "id": "lyria-3-clip-preview",
+            "name": "Lyria 3 Clip Preview"
+          },
+          {
+            "id": "lyria-3.5",
+            "name": "Lyria 3.5"
           }
         ]
       },
@@ -9743,117 +11957,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "music-2.6",
             "name": "MiniMax Music 2.6"
-          },
-          {
-            "id": "speech-02-hd",
-            "name": "MiniMax Speech 02 HD"
-          },
-          {
-            "id": "speech-02-turbo",
-            "name": "MiniMax Speech 02 Turbo"
-          },
-          {
-            "id": "speech-2.6-hd",
-            "name": "MiniMax Speech 2.6 HD"
-          },
-          {
-            "id": "speech-2.6-turbo",
-            "name": "MiniMax Speech 2.6 Turbo"
-          },
-          {
-            "id": "speech-2.8-hd",
-            "name": "MiniMax Speech 2.8 HD"
-          },
-          {
-            "id": "speech-2.8-turbo",
-            "name": "MiniMax Speech 2.8 Turbo"
-          }
-        ]
-      },
-      {
-        "provider": "elevenlabs",
-        "models": [
-          {
-            "id": "eleven_flash_v2",
-            "name": "Flash v2"
-          },
-          {
-            "id": "eleven_flash_v2_5",
-            "name": "Flash v2.5"
-          },
-          {
-            "id": "eleven_monolingual_v1",
-            "name": "Monolingual v1"
-          },
-          {
-            "id": "eleven_multilingual_v1",
-            "name": "Multilingual v1"
-          },
-          {
-            "id": "eleven_multilingual_v2",
-            "name": "Multilingual v2"
-          },
-          {
-            "id": "eleven_turbo_v2",
-            "name": "Turbo v2"
-          },
-          {
-            "id": "eleven_turbo_v2_5",
-            "name": "Turbo v2.5"
-          },
-          {
-            "id": "eleven_v3",
-            "name": "Eleven v3"
-          }
-        ]
-      },
-      {
-        "provider": "gemini",
-        "models": [
-          {
-            "id": "gemini-2.5-flash-preview-tts",
-            "name": "Gemini 2.5 Flash TTS"
-          },
-          {
-            "id": "gemini-2.5-pro-preview-tts",
-            "name": "Gemini 2.5 Pro TTS"
-          },
-          {
-            "id": "gemini-3.1-flash-tts-preview",
-            "name": "Gemini 3.1 Flash TTS Preview"
-          },
-          {
-            "id": "gemini-3.8-flash-lite-tts",
-            "name": "Gemini 3.8 Flash-Lite TTS"
-          },
-          {
-            "id": "gemini-3.8-flash-tts",
-            "name": "Gemini 3.8 Flash TTS"
-          },
-          {
-            "id": "lyria-3-clip-preview",
-            "name": "Lyria 3 Clip Preview"
-          },
-          {
-            "id": "lyria-3.5",
-            "name": "Lyria 3.5"
-          }
-        ]
-      },
-      {
-        "provider": "openai",
-        "models": [
-          {
-            "id": "gpt-4o-mini-tts",
-            "name": "GPT-4o Mini TTS (Deprecated)"
-          },
-          {
-            "id": "tts-1",
-            "name": "TTS 1"
-          },
-          {
-            "id": "tts-1-hd",
-            "name": "TTS 1 HD"
           }
         ]
       },
@@ -9871,6 +11974,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "hexgrad/Kokoro-82M",
             "name": "Kokoro 82M — Text to Speech"
+          }
+        ]
+      },
+      {
+        "provider": "openai",
+        "models": [
+          {
+            "id": "gpt-4o-mini-tts",
+            "name": "GPT-4o Mini TTS (Deprecated)"
           }
         ]
       }
