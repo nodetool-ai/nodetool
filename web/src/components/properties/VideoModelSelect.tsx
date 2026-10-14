@@ -76,8 +76,8 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
       <ModelSelectButton
         ref={buttonRef}
         active={!!value}
-        label={currentSelectedModelDetails?.name || value || "Select Model"}
-        subLabel="Select Video Model"
+        label={currentSelectedModelDetails?.name || value || "Select model"}
+        subLabel="Select video model"
         onClick={handleClick}
       />
       <VideoModelMenuDialog
