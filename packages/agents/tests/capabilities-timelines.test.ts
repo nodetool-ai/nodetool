@@ -993,6 +993,52 @@ describe("set_timeline_document", () => {
     });
   });
 
+  it("stores every asset ref form as the asset's full id", async () => {
+    const row = await makeTimeline();
+    const asset = (await Asset.create({
+      user_id: "u1",
+      name: "shot-1-still.jpg",
+      content_type: "image/jpeg"
+    })) as Asset;
+    const short = asset.id.slice(0, 12);
+    const refs = [
+      `asset://${short}.jpg`,
+      `asset://${short}`,
+      short,
+      asset.id,
+      "package://nodetool-base/timelines/voltra/street.jpg"
+    ];
+    const base = replacement();
+    const clips = refs.map((ref, i) => ({
+      ...base.clips[0],
+      id: `clip-${i}`,
+      startMs: i * 1000,
+      durationMs: 1000,
+      currentAssetId: ref,
+      versions: i === 0 ? [{
+        id: "v1", createdAt: "", jobId: "", assetId: ref,
+        workflowUpdatedAt: "", dependencyHash: "", paramOverridesSnapshot: {},
+        status: "success"
+      }] : []
+    }));
+
+    const result = await run().invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: { ...base, clips }
+    });
+
+    expect(result).toMatchObject({ written: true });
+    const stored = (await TimelineSequence.findById(row.id))?.toDocument();
+    expect(stored?.clips.map((c) => c.currentAssetId)).toEqual([
+      asset.id,
+      asset.id,
+      asset.id,
+      asset.id,
+      "package://nodetool-base/timelines/voltra/street.jpg"
+    ]);
+    expect(stored?.clips[0].versions[0].assetId).toBe(asset.id);
+  });
+
   it("writes the document, restamps the duration, and re-validates it", async () => {
     const row = await makeTimeline();
     const result = (await run().invoke("set_timeline_document", {
