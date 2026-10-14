@@ -391,3 +391,25 @@ outer five-second deadline expired under concurrent builds. Their child
 limits remain 30 seconds. Their outer limits now allow five seconds for
 cleanup. The focused eight tests pass and assertions are unchanged. Fresh
 remote verification must pass before marking either PR ready.
+
+The actual Linux packed install on `3763e9204b` passes the guard over 617
+packages, the DSL import, version and help. It measures 850,632 KiB, but the
+MCP workflow call hangs with QuickJSHostRefInvalid. This is not A8 acceptance
+or an A9 baseline. A minimal fresh npm reproduction found that wrapper 3.1
+pulls QuickJS core 0.32 against the selected 0.31 WASM variant. Switching only
+the wrapper to 3.0.1 restores the async host callback. `05aced81f0` restricts
+both wrapper consumers to `~3.0.1`, retains runtime and metadata regressions,
+and records the minor-version compatibility requirement. Astra cleared it.
+Rerun the actual packed MCP workflow before setting the size budget.
+
+`5b3722db29` uses namespaced spawn input so Windows can obtain a short alias
+of the admitted long directory. The child verifies nonzero directory identity,
+uses the plain short cwd physically, and preserves npm's logical project path
+for configuration and INIT_CWD. Native Node 22/24 checks passed startup and
+configuration, then exposed npm's long-path mkdtemp limitation in a relative
+cache. `2474510a09` maps only in-root temporary prefixes to the verified short
+directory, preserving trailing separators and checking the actual containing
+directory. External prefixes and prefixes creating siblings remain unchanged.
+The separator regression fails before the fix and passes afterward. Both
+changes are reviewed, but the real Windows cache, lifecycle and M15 checks
+still require native CI success.
