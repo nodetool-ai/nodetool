@@ -3,6 +3,24 @@ import { exportInterchange } from "../src/interchange.js";
 import { parseXml, premiereToTimeline, readPremiereXml, type PremiereSequence } from "../src/interchangeImport.js";
 import { makeClip, makeTrack } from "../src/defaults.js";
 
+// Quadrupling the input costs about 4x for linear work and 16x for quadratic
+// work. A ratio holds on a slow CI runner where a wall-clock bound does not.
+const LINEAR_GROWTH_LIMIT = 10;
+
+function bestTime(run: () => void): number {
+  let best = Number.POSITIVE_INFINITY;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const started = performance.now();
+    run();
+    best = Math.min(best, performance.now() - started);
+  }
+  return best;
+}
+
+function growthRatio(run: (count: number) => void, count: number): number {
+  return bestTime(() => run(count * 4)) / bestTime(() => run(count));
+}
+
 function sequence(): PremiereSequence {
   return {
     name: "cut", fps: 25, frameMs: 40, width: 1280, height: 720,
@@ -29,24 +47,26 @@ describe("Premiere import regressions", () => {
   });
 
   it("bounds work for a large track with missing transition endpoints", () => {
-    const items = '<clipitem><start>-1</start><end>-1</end><file id="f"/></clipitem>'.repeat(30_000);
-    const xml = `<xmeml><sequence><media><video><track><file id="f"><name>shot.mp4</name><pathurl>shot.mp4</pathurl></file>${items}</track></video></media></sequence></xmeml>`;
-    const started = performance.now();
-    const read = readPremiereXml(xml);
+    const xmlFor = (count: number): string => {
+      const items = '<clipitem><start>-1</start><end>-1</end><file id="f"/></clipitem>'.repeat(count);
+      return `<xmeml><sequence><media><video><track><file id="f"><name>shot.mp4</name><pathurl>shot.mp4</pathurl></file>${items}</track></video></media></sequence></xmeml>`;
+    };
+    const read = readPremiereXml(xmlFor(30_000));
     expect(read.clips).toEqual([]);
     expect(read.warnings).toContain("30000 item(s) without media (nested sequences, generators, titles) were left out.");
-    expect(performance.now() - started).toBeLessThan(3000);
+    expect(growthRatio((count) => readPremiereXml(xmlFor(count)), 7_500)).toBeLessThan(LINEAR_GROWTH_LIMIT);
   });
 
   it("collects a large distinct file table without scanning every clip per file", () => {
-    const files = Array.from({ length: 30_000 }, (_, index) => `<file id="f${index}"><pathurl>shot${index}.mp4</pathurl></file>`).join("");
-    const clips = Array.from({ length: 30_000 }, (_, index) => `<clipitem><start>0</start><end>25</end><file id="f${index}"/></clipitem>`).join("");
-    const xml = `<xmeml><sequence><media><video>${files}<track>${clips}</track></video></media></sequence></xmeml>`;
-    const started = performance.now();
-    const read = readPremiereXml(xml);
+    const xmlFor = (count: number): string => {
+      const files = Array.from({ length: count }, (_, index) => `<file id="f${index}"><pathurl>shot${index}.mp4</pathurl></file>`).join("");
+      const clips = Array.from({ length: count }, (_, index) => `<clipitem><start>0</start><end>25</end><file id="f${index}"/></clipitem>`).join("");
+      return `<xmeml><sequence><media><video>${files}<track>${clips}</track></video></media></sequence></xmeml>`;
+    };
+    const read = readPremiereXml(xmlFor(30_000));
     expect(read.files).toHaveLength(30_000);
     expect(read.clips).toHaveLength(30_000);
-    expect(performance.now() - started).toBeLessThan(3000);
+    expect(growthRatio((count) => readPremiereXml(xmlFor(count)), 7_500)).toBeLessThan(LINEAR_GROWTH_LIMIT);
   });
 
   it("indexes used tracks without repeatedly visiting every clip", () => {
