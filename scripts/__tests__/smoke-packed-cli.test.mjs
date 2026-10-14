@@ -20,7 +20,7 @@ it("keeps the required core-smoke status dependent on verification and the indep
   expect(guard.needs).toEqual(["verification", "packed-install"]);
   expect(guard.if).toBe("always()");
   const checks = workflow.jobs.verification.steps.map(step => step.run);
-  for (const command of ["npm run test:affected", "npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base origin/main", "npm run backend:smoke"]) {
+  for (const command of ["npm run test:affected", "npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base origin/main --jobs 2", "npm run backend:smoke"]) {
     expect(checks).toContain(command);
   }
   expect(workflow.jobs["packed-install"].needs).toBeUndefined();
@@ -37,6 +37,31 @@ it("keeps the required core-smoke status dependent on verification and the indep
     });
     expect(result.status).toBe(expected);
   }
+});
+
+it("prepares sandboxed Chromium before packed verification runs browser suites", () => {
+  const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
+  const steps = workflow.jobs.verification.steps;
+  const affectedIndex = steps.findIndex(step => step.run === "npm run test:affected");
+  const installIndex = steps.findIndex(step => step.run === "npx playwright install --with-deps chromium");
+  const sandboxIndex = steps.findIndex(step => step.name === "Enable and verify the Chromium sandbox");
+  expect(affectedIndex).toBeGreaterThan(0);
+  expect(installIndex).toBeGreaterThanOrEqual(0);
+  expect(sandboxIndex).toBeGreaterThan(installIndex);
+  expect(affectedIndex).toBeGreaterThan(sandboxIndex);
+  expect(steps[sandboxIndex].run).toContain("chromiumSandbox: true");
+  expect(steps[sandboxIndex].run).toContain("sudo apparmor_parser -r");
+});
+
+it("bounds verification test concurrency without changing build scheduling", () => {
+  const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
+  const job = workflow.jobs.verification;
+  expect(job.env?.NODETOOL_TURBO_CONCURRENCY).toBeUndefined();
+  const affected = job.steps.find(step => step.name === "Verify affected tests");
+  expect(affected.env).toMatchObject({ NODETOOL_TURBO_CONCURRENCY: "1", NODETOOL_TEST_WORKERS: "1" });
+  const harness = job.steps.find(step => step.name === "Verify harnesses");
+  expect(harness.env).toMatchObject({ NODETOOL_TEST_WORKERS: "1" });
+  expect(harness.run).toBe("npm run dev:nodetool -- harness gate --base origin/main --jobs 2");
 });
 
 function releaseTarball(root, filename, name, version) {
