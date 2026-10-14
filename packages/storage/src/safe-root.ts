@@ -94,7 +94,7 @@ function isInside(rootDir: string, target: string): boolean {
   const rel = relative(rootDir, target);
   return (
     rel === "" ||
-    (rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel)) // key-boundary-ok: path-segment check, `sep` is the anchor
+    (rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel)) // key-boundary-ok: sep anchors the parent path component on this platform.
   );
 }
 

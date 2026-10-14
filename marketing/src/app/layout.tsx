@@ -4,6 +4,7 @@ import "./globals.css";
 import Script from "next/script";
 import MotionProvider from "../components/MotionProvider";
 import JsonLd from "../components/JsonLd";
+import { DEFAULT_OG_IMAGES } from "../lib/defaultOgImage";
 import {
   organizationSchema,
   softwareApplicationSchema,
@@ -105,12 +106,7 @@ export const metadata: Metadata = {
       "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
     url: "https://nodetool.ai",
     siteName: "NodeTool",
-    images: [
-      {
-        url: "/preview.png",
-        alt: "NodeTool | Open-source agent-first creative workspace",
-      },
-    ],
+    images: DEFAULT_OG_IMAGES,
     locale: "en_US",
     type: "website",
   },
@@ -118,7 +114,6 @@ export const metadata: Metadata = {
   // openGraph, which a root value would override on every child route.
   twitter: {
     card: "summary_large_image",
-    images: ["/preview.png"],
   },
 };
 

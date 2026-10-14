@@ -86,11 +86,28 @@ describe("useModels scope", () => {
         id: "org/unavailable",
         name: "Unavailable",
         type: "hf.text_to_speech",
+        downloaded: true,
         execution: {
           kind: "local",
           state: "unavailable",
           label: "Unavailable",
           reason: "No compatible adapter is installed."
+        }
+      },
+      {
+        // A recommended model that still needs a download is not installed.
+        id: "ggerganov/whisper.cpp/ggml-base.en.bin",
+        name: "base.en",
+        type: "hf.whisper_cpp",
+        provider: "whisper_cpp",
+        repo_id: "ggerganov/whisper.cpp",
+        path: "ggml-base.en.bin",
+        downloaded: false,
+        execution: {
+          kind: "server",
+          state: "download_required",
+          label: "Server",
+          reason: "Download the model files to the NodeTool host before use."
         }
       }
     ]);

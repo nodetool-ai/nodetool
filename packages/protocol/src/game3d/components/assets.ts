@@ -25,7 +25,10 @@ export const gameAssetBinding3D = z.discriminatedUnion("mediaKind", [
   z.strictObject({ mediaKind: z.literal("hdri"), ...assetIdentity, format: z.enum(["hdr", "exr"]),
     width: z.number().int().min(2).max(2048), height: z.number().int().min(1).max(1024),
     byteLength: z.number().int().min(1).max(16 * 1024 * 1024), preparationVersion: z.literal("1")
-  }).refine((binding) => binding.width === binding.height * 2, { message: "HDRI must be a 2:1 equirectangular image", path: ["width"] })
+  }).refine((binding) => binding.width === binding.height * 2, { message: "HDRI must be a 2:1 equirectangular image", path: ["width"] }),
+  z.strictObject({ mediaKind: z.literal("image"), ...assetIdentity, format: z.enum(["png", "jpeg", "webp"]),
+    width: z.number().int().min(1).max(4096), height: z.number().int().min(1).max(4096),
+    byteLength: z.number().int().min(1).max(16 * 1024 * 1024), preparationVersion: z.literal("1") })
 ]);
 
 export type GameAssetBinding3D = z.infer<typeof gameAssetBinding3D>;

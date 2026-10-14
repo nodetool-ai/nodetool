@@ -30,16 +30,13 @@ vi.mock("@nodetool-ai/config", async (orig) => {
   };
 });
 
-// Keep update() with `data` off the disk: asset bytes go through the storage
-// adapter, so swap it for an in-memory one.
-vi.mock("../src/lib/storage.js", async (orig) => {
-  const actual = await orig<typeof import("../src/lib/storage.js")>();
-  const { InMemoryStorageAdapter } = await import("@nodetool-ai/storage");
-  const adapter = new InMemoryStorageAdapter();
-  return { ...actual, getAssetAdapter: () => adapter };
+vi.mock("../src/lib/thumbnail.js", async (orig) => {
+  const actual = await orig<typeof import("../src/lib/thumbnail.js")>();
+  return { ...actual, storeAssetWithThumbnail: vi.fn().mockResolvedValue(undefined) };
 });
 
 import { Asset } from "@nodetool-ai/models";
+import { storeAssetWithThumbnail } from "../src/lib/thumbnail.js";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -313,7 +310,9 @@ describe("assets router", () => {
         data: Buffer.from("hello").toString("base64"),
         data_encoding: "base64"
       });
-      // size is set to the byteLength of the decoded buffer.
+      expect(storeAssetWithThumbnail).toHaveBeenCalledWith(
+        "user-1", "a1", "a1.png", new Uint8Array(Buffer.from("hello")), "image/png"
+      );
       expect(a.size).toBe(5);
     });
 

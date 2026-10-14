@@ -15,7 +15,8 @@
  */
 
 import { forwardRef, memo, useCallback, useMemo } from "react";
-import { IconButton, IconButtonProps, Tooltip } from "@mui/material";
+import { IconButton, IconButtonProps } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import StopIcon from "@mui/icons-material/Stop";

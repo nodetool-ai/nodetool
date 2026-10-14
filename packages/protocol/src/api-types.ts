@@ -13,6 +13,7 @@ import type {
   OutputCorrelation
 } from "./graph.js";
 import type { NodeEffect } from "./platform.js";
+import type { ExampleNeeds } from "./example-needs.js";
 
 // ---------------------------------------------------------------------------
 // Media Refs
@@ -477,6 +478,8 @@ export interface Workflow {
   workspace_id?: string | null;
   required_providers?: string[] | null;
   required_models?: string[] | null;
+  /** Set on shipped examples: the models and keys the graph asks for. */
+  needs?: ExampleNeeds | null;
   html_app?: string | null;
   /** App-builder document (Puck layout + bindings): `{ version, data }`. */
   app_doc?: Record<string, unknown> | null;
