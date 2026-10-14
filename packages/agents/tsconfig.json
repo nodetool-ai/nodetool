@@ -56,6 +56,9 @@
       "path": "../model3d"
     },
     {
+      "path": "../node-catalog"
+    },
+    {
       "path": "../node-sdk"
     },
     {
