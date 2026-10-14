@@ -299,6 +299,7 @@ export const CLOUD_HIDDEN_SETTING_GROUPS: readonly string[] = [
   "WhisperCppServer",
   "Wan2GP",
   "PythonNodes",
+  "ClaudeAgent",
   "Deployment"
 ];
 

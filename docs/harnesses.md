@@ -1558,7 +1558,7 @@ IS_SANDBOX=1 npm run dev:nodetool -- eval graph-planner -p claude_agent_sdk -m c
 ```
 
 Details on env stripping and the uid=0 blocker:
-[docs/AGENTS.md § Claude Agent SDK](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md#claude-agent-sdk).
+[docs/AGENTS.md § Claude Agent provider](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md#claude-agent-provider).
 
 A **`graph-e2e`** suite takes the same planner all the way through: it plans a
 workflow, executes it on the kernel with the case's inputs, and has an LLM judge
