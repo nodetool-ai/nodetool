@@ -31,7 +31,8 @@ vi.mock("@nodetool-ai/config", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@nodetool-ai/config")>();
   return {
     ...actual,
-    importOptionalModule: async (packageName: string): Promise<unknown> => {
+    importOptionalModule: async (packageName: string, options?: Parameters<typeof actual.importOptionalModule>[1]): Promise<unknown> => {
+      if (packageName === "@napi-rs/canvas") { return actual.importOptionalModule(packageName, options); }
       const factory = libraries.get(packageName);
       if (factory === undefined) {
         throw new Error(`this test declares no stub for "${packageName}"`);
@@ -238,9 +239,12 @@ describe("ocr.recognize", () => {
     // No stub registered: the mock rejects, the way a missing package does.
     const { recognize } = await loadOcr();
 
-    await expect(recognize(new Uint8Array([1]))).rejects.toThrow(
-      'The optional "tesseract.js" package is not installed'
-    );
+    await expect(recognize(new Uint8Array([1]))).rejects.toMatchObject({
+      name: "MissingRuntimePackageError",
+      runtimePackage: "tesseract-ocr",
+      details: { runtimePackage: "tesseract-ocr", missing: "tesseract.js",
+        reason: "missing", managed: "nodetool runtime add tesseract-ocr" }
+    });
   });
 
   it("reports a library that imports without a recognize export", async () => {
@@ -522,18 +526,24 @@ describe("tfjs.classify", () => {
     stubMobileNet([]);
     const { classify } = await loadTfjs();
 
-    await expect(classify(fixturePng)).rejects.toThrow(
-      'The optional "@tensorflow/tfjs" package is not installed'
-    );
+    await expect(classify(fixturePng)).rejects.toMatchObject({
+      name: "MissingRuntimePackageError",
+      runtimePackage: "tensorflow-js",
+      details: { runtimePackage: "tensorflow-js", missing: "@tensorflow/tfjs",
+        reason: "missing", managed: "nodetool runtime add tensorflow-js" }
+    });
   });
 
   it("reports a missing model package", async () => {
     stubTf();
     const { classify } = await loadTfjs();
 
-    await expect(classify(fixturePng)).rejects.toThrow(
-      'The optional "@tensorflow-models/mobilenet" package is not installed'
-    );
+    await expect(classify(fixturePng)).rejects.toMatchObject({
+      name: "MissingRuntimePackageError",
+      runtimePackage: "tensorflow-js",
+      details: { runtimePackage: "tensorflow-js", missing: "@tensorflow-models/mobilenet",
+        reason: "missing", managed: "nodetool runtime add tensorflow-js" }
+    });
   });
 
   it("selects the cpu backend once, and survives a backend that refuses", async () => {
@@ -563,9 +573,12 @@ describe("tfjs.classify", () => {
     });
     const { classify } = await loadTfjs();
 
-    await expect(classify(fixturePng)).rejects.toThrow(
-      'The optional "@tensorflow-models/mobilenet" package is not installed'
-    );
+    await expect(classify(fixturePng)).rejects.toMatchObject({
+      name: "MissingRuntimePackageError",
+      runtimePackage: "tensorflow-js",
+      details: { runtimePackage: "tensorflow-js", missing: "@tensorflow-models/mobilenet",
+        reason: "missing", managed: "nodetool runtime add tensorflow-js" }
+    });
     expect(await classify(fixturePng)).toEqual([
       { className: "cat", probability: 1 }
     ]);
@@ -705,9 +718,12 @@ describe("tfjs.detect", () => {
     stubTf();
     const { detect } = await loadTfjs();
 
-    await expect(detect(fixturePng)).rejects.toThrow(
-      'The optional "@tensorflow-models/coco-ssd" package is not installed'
-    );
+    await expect(detect(fixturePng)).rejects.toMatchObject({
+      name: "MissingRuntimePackageError",
+      runtimePackage: "tensorflow-js",
+      details: { runtimePackage: "tensorflow-js", missing: "@tensorflow-models/coco-ssd",
+        reason: "missing", managed: "nodetool runtime add tensorflow-js" }
+    });
   });
 });
 
@@ -777,8 +793,11 @@ describe("tfjs.answer", () => {
     stubTf();
     const { answer } = await loadTfjs();
 
-    await expect(answer("who?", "a passage")).rejects.toThrow(
-      'The optional "@tensorflow-models/qna" package is not installed'
-    );
+    await expect(answer("who?", "a passage")).rejects.toMatchObject({
+      name: "MissingRuntimePackageError",
+      runtimePackage: "tensorflow-js",
+      details: { runtimePackage: "tensorflow-js", missing: "@tensorflow-models/qna",
+        reason: "missing", managed: "nodetool runtime add tensorflow-js" }
+    });
   });
 });

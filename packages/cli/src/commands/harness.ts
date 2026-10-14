@@ -32,7 +32,7 @@ import {
   type GateCheck,
   type GatePlan
 } from "../harness/registry.js";
-import { readWorkspacePackages } from "../affected/affected.js";
+import { readWorkspacePackages, type PackageInfo } from "../affected/affected.js";
 import {
   auditCapabilityCoverage,
   planCapabilityMappingGate,
@@ -41,7 +41,8 @@ import {
 import { CAPABILITY_COVERAGE } from "../harness/capability-table.js";
 import {
   readChangedFiles,
-  isGateRelevantCodeFile
+  isGateRelevantCodeFile,
+  isGlobalGateFile
 } from "../harness/changed-files.js";
 
 /** Sentinel exit code for a selfcheck the gate had to kill on timeout. */
@@ -319,7 +320,14 @@ export function registerHarnessCommands(program: Command): void {
 
         const { toRun, skippedExpensive, skippedSuites } = selectChecks(
           plan.checks,
-          { expensive: opts.expensive, includeSuites: opts.includeSuites }
+          {
+            expensive: opts.expensive,
+            includeSuites: opts.includeSuites,
+            globalFiles: plan.globalFiles,
+            workspaces: plan.globalFiles.length > 0
+              ? readWorkspacePackages(repoRoot)
+              : []
+          }
         );
         // A directory recorded in UNCLAIMED_PATHS has already been judged: no
         // harness reaches it, and the entry says why. `auditPathClaims` honors
@@ -432,19 +440,117 @@ export function registerHarnessCommands(program: Command): void {
  */
 export function selectChecks(
   checks: readonly GateCheck[],
-  opts: { expensive?: boolean; includeSuites?: boolean }
+  opts: {
+    expensive?: boolean;
+    includeSuites?: boolean;
+    globalFiles?: readonly string[];
+    workspaces?: readonly PackageInfo[];
+  }
 ): {
   toRun: GateCheck[];
   skippedExpensive: GateCheck[];
   skippedSuites: GateCheck[];
 } {
-  const skippedSuites = checks.filter((c) => c.suiteOnly && !opts.includeSuites);
-  const rest = checks.filter((c) => !skippedSuites.includes(c));
+  const fullPass = opts.globalFiles?.some(isGlobalGateFile) ?? false;
+  const workspaces = new Set(
+    (opts.workspaces ?? [])
+      .filter((p) => /^(packages|reliability)\/[^/]+$/.test(p.dir) ||
+        p.dir === "web" || p.dir === "electron")
+      .flatMap((p) => [p.name, p.dir])
+  );
+  const skippedSuites = checks.filter((c) => !opts.includeSuites &&
+    (c.suiteOnly || (fullPass && isCoveredWorkspaceTest(c.command, workspaces)))
+  );
+  const skipped = new Set(skippedSuites);
+  const rest = checks.filter((c) => !skipped.has(c));
   return {
     toRun: rest.filter((c) => opts.expensive || c.cost === "cheap"),
     skippedExpensive: rest.filter((c) => !opts.expensive && c.cost === "expensive"),
     skippedSuites
   };
+}
+
+/** Recognize a restricted shell grammar, retaining every command we cannot prove covered. */
+function isCoveredWorkspaceTest(
+  command: string,
+  workspaces: ReadonlySet<string>
+): boolean {
+  // Quotes may protect filter expressions such as 'one|two'. Shell expansion,
+  // redirection and operators other than an AND between test commands are rejected.
+  if (/[$`\\\n\r;<>%!^]/.test(command)) {
+    return false;
+  }
+  const segments: string[][] = [];
+  let segment: string[] = [];
+  let token = "";
+  let quote = "";
+  const flush = (): void => {
+    if (token) {
+      segment.push(token);
+    }
+    token = "";
+  };
+  for (let i = 0; i < command.length; i++) {
+    const char = command.charAt(i);
+    if (quote) {
+      if (char === quote) {
+        quote = "";
+      } else {
+        token += char;
+      }
+    } else if (char === "'" || char === '"') {
+      quote = char;
+    } else if (/\s/.test(char)) {
+      flush();
+    } else if (char === "&" && command[i + 1] === "&") {
+      flush();
+      segments.push(segment);
+      segment = [];
+      i++;
+    } else if (";&|<>()*?{}[]#".includes(char)) {
+      return false;
+    } else {
+      token += char;
+    }
+  }
+  if (quote) {
+    return false;
+  }
+  flush();
+  segments.push(segment);
+  return segments.every((tokens) => {
+    let i = 0;
+    if (tokens[i++] !== "npm") {
+      return false;
+    }
+    if (tokens[i] === "run") {
+      i++;
+    }
+    if (tokens[i++] !== "test") {
+      return false;
+    }
+    let count = 0;
+    while (tokens[i]?.startsWith("--workspace=")) {
+      const workspace = tokens[i];
+      if (!workspace || !workspaces.has(workspace.slice("--workspace=".length))) {
+        return false;
+      }
+      i++;
+      count++;
+    }
+    if (count === 0) {
+      return false;
+    }
+    if (i === tokens.length) {
+      return true;
+    }
+    if (tokens[i++] !== "--") {
+      return false;
+    }
+    return tokens.slice(i).every((arg) => !arg.startsWith("-") ||
+      arg === "--runInBand" || /^(--testPathPattern|--testNamePattern)=.+/.test(arg)
+    );
+  });
 }
 
 export interface GateCheckResult {
@@ -455,6 +561,8 @@ export interface GateCheckResult {
   timedOut: boolean;
   /** Killed by a signal or a spawn error that is not the timeout. */
   killed: boolean;
+  /** Wall-clock execution time, excluding time waiting for a pool worker. */
+  durationMs: number;
 }
 
 export interface ExecuteChecksOptions {
@@ -603,7 +711,8 @@ async function runCheckAsync(
 function interpretOutcome(
   check: GateCheck,
   raw: RawOutcome,
-  o: ExecuteChecksOptions
+  o: ExecuteChecksOptions,
+  durationMs: number
 ): { result: GateCheckResult; stdoutText: string; stderrText: string } {
   const timedOut = raw.errorCode === "ETIMEDOUT";
   const killed = raw.signal != null || raw.hasError;
@@ -626,7 +735,8 @@ function interpretOutcome(
       ok: !timedOut && !killed && exitCode === 0,
       exitCode,
       timedOut,
-      killed
+      killed,
+      durationMs
     },
     stdoutText,
     stderrText
@@ -650,15 +760,21 @@ export async function executeChecks(
 
   const runSerial = async (index: number): Promise<void> => {
     const check = checks[index]!;
+    process.stderr.write(`START ${check.harnessId}\n`);
+    const started = performance.now();
     if (!o.json) console.log(`\n── ${check.harnessId}: ${check.command}\n`);
     const { result, stdoutText, stderrText } = interpretOutcome(
       check,
       await runCheckSync(check, o),
-      o
+      o,
+      Math.round(performance.now() - started)
     );
     if (stderrText) process.stderr.write(stderrText);
     if (stdoutText) process.stdout.write(stdoutText);
     results[index] = result;
+    process.stderr.write(
+      `${result.ok ? "PASS" : "FAIL"} ${check.harnessId} (${result.durationMs}ms)\n`
+    );
   };
 
   if (o.jobs <= 1) {
@@ -675,8 +791,12 @@ export async function executeChecks(
     while (next < cheap.length) {
       const index = cheap[next++]!;
       const check = checks[index]!;
+      process.stderr.write(`START ${check.harnessId}\n`);
+      const started = performance.now();
       const raw = await runCheckAsync(check, o);
-      const { result, stdoutText, stderrText } = interpretOutcome(check, raw, o);
+      const { result, stdoutText, stderrText } = interpretOutcome(
+        check, raw, o, Math.round(performance.now() - started)
+      );
       // One block per check, written without an await in between, so output
       // from checks that finish together does not interleave.
       if (!o.json) {
@@ -686,6 +806,9 @@ export async function executeChecks(
       if (stderrText) process.stderr.write(stderrText);
       if (stdoutText) process.stdout.write(stdoutText);
       results[index] = result;
+      process.stderr.write(
+        `${result.ok ? "PASS" : "FAIL"} ${check.harnessId} (${result.durationMs}ms)\n`
+      );
     }
   };
   await Promise.all(

@@ -1,4 +1,4 @@
-import type { DeclaredPropertyMetadata, NodeMetadata } from "@nodetool-ai/node-sdk";
+import type { NodeCatalogEntry } from "@nodetool-ai/node-sdk";
 
 export interface PinnedPackage {
   readonly name: string;
@@ -27,9 +27,4 @@ export interface NodeCatalogIndex {
   readonly owners: Readonly<Record<string, string>>;
 }
 
-export interface CatalogNode {
-  readonly node_type: string;
-  readonly pack: string;
-  readonly metadata: NodeMetadata;
-  readonly declared: readonly DeclaredPropertyMetadata[];
-}
+export type CatalogNode = NodeCatalogEntry;

@@ -1434,6 +1434,7 @@ export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[
       name: pkg.name,
       description: pkg.description,
       installed: s.installed,
+      bundled: s.bundled,
       installing: runtimeRegistry.isInstalling(s.id),
       installedVersion: s.installedVersion,
       latestVersion: s.latestVersion,

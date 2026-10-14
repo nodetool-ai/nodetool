@@ -1,3 +1,4 @@
+import { createMissingPackError } from "@nodetool-ai/node-catalog";
 import { getUserId } from "./lib/http-user-id.js";
 import {
   createServer,
@@ -358,6 +359,10 @@ export async function getWorkflowRuntimeEnvironment(
         if (registry.has(node.type)) {
           return registry.resolve(node);
         }
+        const catalogEntry = registry.catalogEntry(node.type);
+        if (catalogEntry && registry.availability(node.type) === "catalog") {
+          throw createMissingPackError(catalogEntry.pack, [node.type]);
+        }
         if (pythonBridgeReady && pythonBridge.hasNodeType(node.type)) {
           const meta = pythonBridge
             .getNodeMetadata()
@@ -378,7 +383,7 @@ export async function getWorkflowRuntimeEnvironment(
             meta?.requires_vram_gb
           );
         }
-        if (registry.getMetadata(node.type) && !registry.has(node.type)) {
+        if (registry.availability(node.type) === "python") {
           const stderrSummary =
             (
               pythonBridge as { getRecentStderrSummary?: () => string | null }

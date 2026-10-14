@@ -149,6 +149,19 @@ describe("usePackageManager", () => {
     expect(result.current.bulkUpdate).toBeNull();
   });
 
+  it("labels bundled libraries Included and offers no install or removal actions", () => {
+    useRuntimePackagesStore.setState({
+      available: true,
+      statuses: [{ id: "imaging", name: "Image & Canvas Libraries", description: "Image codecs", installed: true,
+        installing: false, bundled: true, updateAvailable: true }]
+    });
+    const { result } = renderHook(() => usePackageManager({ cat: "runtimes", q: "", filter: "all" }));
+    expect(result.current.rows).toEqual([
+      expect.objectContaining({ key: "imaging", badge: "included" })
+    ]);
+    expect(result.current.rows[0].buttons).toBeUndefined();
+  });
+
   it("offers an update for an outdated desktop runtime package", () => {
     const update = jest.fn().mockResolvedValue(true);
     useRuntimePackagesStore.setState({
