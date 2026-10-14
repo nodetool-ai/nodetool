@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { CodexProvider } from "../../src/providers/codex-provider.js";
+import {
+  CodexProvider,
+  CODEX_FALLBACK_MODELS
+} from "../../src/providers/codex-provider.js";
 import { CODEX_BACKEND_BASE_URL } from "@nodetool-ai/protocol";
-import { OPENAI_FALLBACK_MODELS } from "../../src/providers/openai-provider.js";
 import { providerFailureDetail } from "../../src/providers/provider-error.js";
 
 afterEach(() => vi.restoreAllMocks());
@@ -41,7 +43,12 @@ describe("CodexProvider", () => {
         JSON.stringify({
           models: [
             { slug: "gpt-5.5", display_name: "GPT-5.5" },
-            { slug: "codex-account-model", display_name: "Account model" }
+            { slug: "codex-account-model", display_name: "Account model" },
+            {
+              slug: "codex-auto-review",
+              display_name: "Codex Auto Review",
+              visibility: "hide"
+            }
           ]
         }),
         { status: 200, headers: { "content-type": "application/json" } }
@@ -50,7 +57,7 @@ describe("CodexProvider", () => {
     const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
     const models = await provider.getAvailableLanguageModels();
     expect(fetchSpy).toHaveBeenCalledWith(
-      `${CODEX_BACKEND_BASE_URL}/models?client_version=0.155.0`,
+      `${CODEX_BACKEND_BASE_URL}/models?client_version=0.162.1`,
       expect.any(Object)
     );
     expect(models).toEqual([
@@ -65,7 +72,7 @@ describe("CodexProvider", () => {
   });
 
   it.each(["offline", "http-error", "empty", "invalid-json"])(
-    "lists the OpenAI catalog when /models returns %s",
+    "lists the Codex fallback catalog when /models returns %s",
     async (scenario) => {
       const fetchSpy = vi.spyOn(globalThis, "fetch");
       if (scenario === "offline") {
@@ -82,12 +89,8 @@ describe("CodexProvider", () => {
       }
       const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
       const models = await provider.getAvailableLanguageModels();
-      expect(models).toEqual(
-        OPENAI_FALLBACK_MODELS.map((m) => ({
-          ...m,
-          provider: "codex"
-        }))
-      );
+      expect(models).toEqual(CODEX_FALLBACK_MODELS);
+      expect(models.map((m) => m.id)).toContain("gpt-6.1-sol");
     }
   );
 

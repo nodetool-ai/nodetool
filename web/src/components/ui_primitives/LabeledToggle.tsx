@@ -27,7 +27,8 @@
  */
 
 import React, { useCallback, useMemo, memo } from "react";
-import { Box, IconButton, Tooltip } from "@mui/material";
+import { Box, IconButton } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import type { TooltipProps } from "@mui/material/Tooltip";

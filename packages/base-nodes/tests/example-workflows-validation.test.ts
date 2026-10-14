@@ -117,7 +117,7 @@ function loadWorkflowsFrom(dir: string, group: string): WorkflowFile[] {
   if (!fs.existsSync(dir)) return [];
   return fs
     .readdirSync(dir)
-    .filter((f) => f.endsWith(".json"))
+    .filter((f) => f.endsWith(".json") && f !== "package.json")
     .sort()
     .map((fileName) => {
       const filePath = path.join(dir, fileName);

@@ -34,9 +34,9 @@ const WEB_DEMO_ENTRY = path.resolve(DEMO_ROOT, "../web/src/demo/index.ts");
  */
 const GENERATED_JSON: Record<string, string> = {
   "@nodetool/fal-node-type-pricing": "fal-nodes/src/generated/fal-node-type-pricing.json",
-  "@nodetool/fal-unit-pricing-catalog": "fal-nodes/src/generated/fal-unit-pricing.json",
+  "@nodetool/fal-unit-pricing-catalog": "model-pricing/src/generated/fal-unit-pricing.json",
   "@nodetool/kie-node-type-pricing": "kie-nodes/src/generated/kie-node-type-pricing.json",
-  "@nodetool/kie-unit-pricing-catalog": "kie-nodes/src/generated/kie-unit-pricing.json",
+  "@nodetool/kie-unit-pricing-catalog": "model-pricing/src/generated/kie-unit-pricing.json",
 };
 
 /** Built-in → stub file (browser-safe partial implementations). */

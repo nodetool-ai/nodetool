@@ -82,6 +82,18 @@ function websocketTest(name) {
  */
 export const PATH_CHECKS = [
   {
+    path: /^scripts\/(?:bump-version\.mjs|__tests__\/bump-version\.test\.mjs)$/,
+    steps: [{ label: "catalog version bump", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/bump-version.test.mjs"] }]
+  },
+
+  {
+    path: /^scripts\/(?:node-catalog\/|generate-node-catalog\.mjs$|__tests__\/node-catalog\.test\.mjs$)/,
+    steps: [
+      { label: "node catalog generator", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/node-catalog.test.mjs"] },
+      { label: "node catalog drift", command: "npm", args: ["run", "check:node-catalog"] }
+    ]
+  },
+  {
     path: /^(?:scripts\/__tests__\/browser-tracing-stub\.test\.mjs|web\/vite-node-stubs\/tracing-stub\.js)$/,
     steps: [{ label: "browser tracing shim", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/browser-tracing-stub.test.mjs"] }]
   },

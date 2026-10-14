@@ -6,6 +6,7 @@ import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
 import { showcaseEntries, showcaseModels, humanize } from "@/data/showcase";
 import { ShowcaseGrid } from "../../_components";
+import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -29,6 +30,7 @@ export async function generateMetadata({
     description: `Every showcase image and video generated with ${label} on NodeTool.`,
     alternates: { canonical: `/showcase/model/${slug}` },
     openGraph: {
+      images: DEFAULT_OG_IMAGES,
       title: `${label} showcase — AI generations on NodeTool`,
       description: `Every showcase image and video generated with ${label} on NodeTool.`,
       url: `${BASE_URL}/showcase/model/${slug}`,

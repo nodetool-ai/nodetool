@@ -30,17 +30,13 @@ vi.mock("@nodetool-ai/config", async (orig) => {
   };
 });
 
-// Mock filesystem writes so update() with `data` doesn't hit disk.
-vi.mock("node:fs/promises", async (orig) => {
-  const actual = await orig<typeof import("node:fs/promises")>();
-  return {
-    ...actual,
-    mkdir: vi.fn().mockResolvedValue(undefined),
-    writeFile: vi.fn().mockResolvedValue(undefined)
-  };
+vi.mock("../src/lib/thumbnail.js", async (orig) => {
+  const actual = await orig<typeof import("../src/lib/thumbnail.js")>();
+  return { ...actual, storeAssetWithThumbnail: vi.fn().mockResolvedValue(undefined) };
 });
 
 import { Asset } from "@nodetool-ai/models";
+import { storeAssetWithThumbnail } from "../src/lib/thumbnail.js";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -314,7 +310,9 @@ describe("assets router", () => {
         data: Buffer.from("hello").toString("base64"),
         data_encoding: "base64"
       });
-      // size is set to the byteLength of the decoded buffer.
+      expect(storeAssetWithThumbnail).toHaveBeenCalledWith(
+        "user-1", "a1", "a1.png", new Uint8Array(Buffer.from("hello")), "image/png"
+      );
       expect(a.size).toBe(5);
     });
 

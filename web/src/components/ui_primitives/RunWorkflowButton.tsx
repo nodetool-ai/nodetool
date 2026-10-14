@@ -14,7 +14,8 @@
  */
 
 import { forwardRef, memo, useCallback, useMemo } from "react";
-import { Button, ButtonProps, Fab, FabProps, Tooltip } from "@mui/material";
+import { Button, ButtonProps, Fab, FabProps } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import { LoadingSpinner } from "./LoadingSpinner";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";

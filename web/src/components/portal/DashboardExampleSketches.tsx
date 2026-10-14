@@ -5,7 +5,8 @@ import {
   creationProjectId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
-import { trpc, trpcClient } from "../../trpc/client";
+import useOnboardingStore from "../../stores/OnboardingStore";
+import { trpc } from "../../trpc/client";
 import {
   AutoGrid,
   Card,
@@ -18,16 +19,15 @@ import {
   Text,
   TYPOGRAPHY
 } from "../ui_primitives";
-import { newDocumentId } from "../../lib/newDocumentId";
 import {
-  buildExampleSketch,
   EXAMPLE_SKETCHES,
-  EXAMPLE_SKETCH_HEIGHT,
-  EXAMPLE_SKETCH_WIDTH,
   exampleSketchUrl,
   type ExampleSketch
 } from "../../utils/exampleSketches";
+import { installExampleSketch } from "../../utils/installExampleSketch";
 import { notifyMutationError } from "../../utils/notifyMutationError";
+import { NO_EXAMPLE_NEEDS } from "../../utils/exampleNeeds";
+import ExampleNeedsPill from "./ExampleNeedsPill";
 
 const DashboardExampleSketches = () => {
   const [category, setCategory] = useState("All");
@@ -39,27 +39,8 @@ const DashboardExampleSketches = () => {
   const utils = trpc.useUtils();
   const install = useMutation({
     retry: false,
-    mutationFn: async (example: ExampleSketch) => {
-      const projectId = creationProjectId();
-      const document = await buildExampleSketch(example);
-      const created = await trpcClient.sketch.create.mutate({
-        id: newDocumentId(),
-        name: example.name,
-        projectId,
-        backgroundColor: document.sketch.canvas.backgroundColor,
-        width: EXAMPLE_SKETCH_WIDTH,
-        height: EXAMPLE_SKETCH_HEIGHT
-      });
-      try {
-        return await trpcClient.sketch.update.mutate({
-          id: created.id,
-          document
-        });
-      } catch (error) {
-        await trpcClient.sketch.delete.mutate({ id: created.id });
-        throw error;
-      }
-    },
+    mutationFn: (example: ExampleSketch) =>
+      installExampleSketch(example, creationProjectId()),
     onSuccess: (created) => {
       utils.sketch.get.setData({ id: created.id }, created);
       void utils.sketch.list.invalidate();
@@ -71,6 +52,7 @@ const DashboardExampleSketches = () => {
         projectId: created.projectId
       });
       navigate("/workspace");
+      useOnboardingStore.getState().markStep("keep-creating");
     },
     onError: (error) => notifyMutationError("add the example sketch", error)
   });
@@ -120,6 +102,7 @@ const DashboardExampleSketches = () => {
               <Caption>{example.category}</Caption>
               <Text sx={TYPOGRAPHY.sans.label}>{example.name}</Text>
               <Caption color="secondary">{example.description}</Caption>
+              <ExampleNeedsPill needs={NO_EXAMPLE_NEEDS} />
               <EditorButton
                 disabled={install.isPending}
                 aria-label={`Open ${example.name}`}

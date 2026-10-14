@@ -287,7 +287,7 @@ jobs:
           [
             {
               "check": "typecheck",
-              "command": "npm run typecheck && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run build:example-apps:check && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples && npm run capabilities:check",
+              "command": "npm run typecheck && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run build:example-apps:check && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples && npm run capabilities:check && npm run check:node-catalog",
               "mobile-deps": "true",
               "extra-apt": "mesa-vulkan-drivers ffmpeg",
               "is-test": "false",
@@ -1022,6 +1022,48 @@ jobs:
             packages/workflow-runner/test-results/
           retention-days: 7
 
+  node-catalog:
+    name: Node catalog (${{ matrix.platform }})
+    needs: changes
+    if: ${{ !inputs.docs-only && inputs.shared }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+          - os: macos-15
+            platform: darwin-arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build on Linux
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/setup-build
+
+      - name: Set up Node on macOS
+        if: runner.os == 'macOS'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install and build on macOS
+        if: runner.os == 'macOS'
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+        run: npm ci && npm run build:packages
+
+      - name: Verify platform and deterministic catalog bytes
+        env:
+          CATALOG_PLATFORM: ${{ matrix.platform }}
+        run: |
+          node -e 'if (`${process.platform}-${process.arch}` !== process.env.CATALOG_PLATFORM) throw new Error("Unexpected catalog verification platform")'
+          npm run check:node-catalog
+
   # Aggregating gate. Kept as job id `quality` (no custom name) so the surfaced
   # status check stays "Quality Gate (npm run check) / quality" — the existing
   # REQUIRED check, so branch protection needs no change.
@@ -1033,7 +1075,7 @@ jobs:
   # — fails the gate.
   quality:
     name: quality
-    needs: [changes, static, build, built, docker, integration, workflow-runner-e2e]
+    needs: [changes, static, build, built, docker, integration, workflow-runner-e2e, node-catalog]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1052,7 +1094,8 @@ jobs:
             "built:${{ needs.built.result }}" \
             "docker:${{ needs.docker.result }}" \
             "integration:${{ needs.integration.result }}" \
-            "workflow-runner-e2e:${{ needs.workflow-runner-e2e.result }}"; do
+            "workflow-runner-e2e:${{ needs.workflow-runner-e2e.result }}" \
+            "node-catalog:${{ needs.node-catalog.result }}"; do
             name="${leg%%:*}"
             result="${leg#*:}"
             echo "- \`$name\`: $result" >> $GITHUB_STEP_SUMMARY

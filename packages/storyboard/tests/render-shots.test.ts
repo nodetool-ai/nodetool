@@ -109,6 +109,44 @@ describe("renderShots", () => {
     expect(saved.keyframe?.render_inputs?.recorded_at).toBeTypeOf("string");
   });
 
+  it("attaches every still when four renders finish together", async () => {
+    const doc = board([0, 1, 2, 3].map((index) => shot({ id: `s${index + 1}`, index })));
+    let release = () => {};
+    const allStarted = new Promise<void>((resolve) => { release = resolve; });
+    let started = 0;
+    const { host, state } = fakeHost(doc);
+    const generate = host.runGeneration;
+    host.runGeneration = async (request) => {
+      if (++started === 4) release();
+      await allStarted;
+      return generate(request);
+    };
+    // A real CAS: a write based on a stale token is refused.
+    host.updateStoryboard = async ({ document: next, baseUpdatedAt }) => {
+      await Promise.resolve();
+      if (baseUpdatedAt !== state.updatedAt) return null;
+      state.writes++;
+      state.document = next;
+      state.updatedAt = `t${state.writes}`;
+      return { document: next, updatedAt: state.updatedAt };
+    };
+
+    const outcomes = await renderShots(
+      host,
+      { id: "b1" },
+      planShotRenders(doc, NO_ENTITIES, "keyframe"),
+      { concurrency: 4, newId: ids() }
+    );
+
+    expect(outcomes.filter((outcome) => !outcome.ok)).toEqual([]);
+    expect(state.document.shots.map((s) => s.status)).toEqual([
+      "keyframe_ready", "keyframe_ready", "keyframe_ready", "keyframe_ready"
+    ]);
+    expect(state.document.shots.map((s) => s.keyframe?.asset_id).sort()).toEqual([
+      "asset-1", "asset-2", "asset-3", "asset-4"
+    ]);
+  });
+
   it("uses the editor's resolution defaults for stills and clips", async () => {
     const doc = board([shot({ id: "s1", index: 0, render_mode: "direct" })]);
     const { host, requests } = fakeHost(doc);

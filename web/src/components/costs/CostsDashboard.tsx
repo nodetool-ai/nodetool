@@ -550,7 +550,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
             size="smaller"
             family="secondary"
             sx={{
-              color: theme.vars.palette.text.disabled,
+              color: theme.vars.palette.text.secondary,
               whiteSpace: "nowrap"
             }}
           >
@@ -642,7 +642,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           <Text
             size="smaller"
             family="secondary"
-            sx={{ color: theme.vars.palette.text.disabled }}
+            sx={{ color: theme.vars.palette.text.secondary }}
           >
             {count}
           </Text>
