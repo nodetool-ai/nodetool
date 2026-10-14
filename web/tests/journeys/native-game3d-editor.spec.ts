@@ -176,7 +176,7 @@ test("releases native 3D pointer lock when its dock tab becomes inactive and pre
   if (!original) { throw new Error("Native 3D canvas did not mount"); }
   await dragGameDockTab(page, "Inspector Close Inspector", '[data-game-dock-group]:has([data-dock-tab="viewport"]) [data-game-dock-body]');
   const viewportTab = page.getByRole("tab", { name: "Viewport", exact: true });
-  const inspectorTab = page.getByRole("tab", { name: "Inspector Close Inspector", exact: true });
+  const inspectorTab = page.getByRole("tab").filter({ has: page.getByText("Inspector", { exact: true }) });
   expect(await inspectorTab.evaluate((node) => node.closest("[data-game-dock-group]")?.getAttribute("data-game-dock-group")))
     .toEqual(await viewportTab.evaluate((node) => node.closest("[data-game-dock-group]")?.getAttribute("data-game-dock-group")));
   await viewportTab.click();
