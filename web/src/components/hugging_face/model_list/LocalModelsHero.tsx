@@ -17,6 +17,7 @@ import {
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { formatBytes } from "../../../utils/modelFormatting";
 import { ModelStat } from "../ModelStat";
+import { isInstalledModel, isManageableModel } from "./useModels";
 
 const DOCS_URL = "https://docs.nodetool.ai/models-and-providers";
 
@@ -29,7 +30,9 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
   const theme = useTheme();
 
   const stats = useMemo(() => {
-    const installed = models.filter((m) => m.downloaded);
+    const installed = models.filter(
+      (m) => isManageableModel(m) && isInstalledModel(m)
+    );
     return {
       count: installed.length,
       size: formatBytes(

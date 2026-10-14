@@ -20,7 +20,12 @@ import {
   type ApplicationResponse,
   type ExampleAppSummary
 } from "@nodetool-ai/protocol/api-schemas/applications.js";
-import { isModelSelected, type ModelSelection } from "@nodetool-ai/protocol";
+import {
+  isModelSelected,
+  scanExampleNeeds,
+  type ModelSelection
+} from "@nodetool-ai/protocol";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { RECOMMENDED_MODELS } from "@nodetool-ai/runtime";
 import { loadConfiguredProviders } from "../configured-providers.js";
 import { ApiErrorCode } from "../error-codes.js";
@@ -38,6 +43,8 @@ export interface ExampleAppsOptions {
   examplesDir?: string;
   examplesAssetsFallbackDir?: string;
   exampleAppsDir?: string;
+  /** Node metadata, for the keys a bundle's nodes declare. */
+  registry?: Pick<NodeRegistry, "getMetadata">;
 }
 
 /**
@@ -113,7 +120,11 @@ const summarize = (
   description: bundle.description,
   workflows: bundle.workflows.map((workflow) => workflow.name),
   operationCount: bundle.app.operations.length,
-  thumbnailUrl: thumbnailFor(bundle, slug, options)
+  thumbnailUrl: thumbnailFor(bundle, slug, options),
+  needs: scanExampleNeeds(
+    bundle,
+    (nodeType) => options.registry?.getMetadata(nodeType)?.required_settings
+  )
 });
 
 /** Every shipped example app, sorted by slug. Invalid files are skipped. */
