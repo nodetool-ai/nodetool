@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
+import { importPack } from "@nodetool-ai/node-catalog";
 import { createLogger, getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
 import { AmbiguousGameIdError, MissingGameDraftSourceError, Asset, Game, Prediction, Project, Workspace } from "@nodetool-ai/models";
 import { anyGameAssetBinding as gameAssetBinding, gameAssetBinding as legacyAssetBinding, gameAssetBinding3D, anyGameDocument as gameDocument, gameInputFrame, shortResourceId, type AnyGameAssetBinding, type AnyGameDocument as GameDocument, type GameDocument as LegacyGameDocument, type GameDocument3D, type GameInputFrame, type GameRenderFrame } from "@nodetool-ai/protocol";
@@ -568,7 +569,7 @@ const install: CapabilityExport = {
     let binding: AnyGameAssetBinding = parsed.data;
     try {
       if (draft.document.schemaVersion === 3 && binding.mediaKind === "image") {
-        const { prepareGameImage3D } = await import("@nodetool-ai/game-renderer/preparation3d");
+        const { prepareGameImage3D } = await importPack<typeof import("@nodetool-ai/game-renderer/preparation3d")>("game", "@nodetool-ai/game-renderer/preparation3d");
         const prepared = await prepareGameImage3D(bytes, { assetId: binding.assetId, expectedDigest: binding.digest, signal: run.context.signal });
         if (!prepared.ok) { return { error: "Image preparation failed", diagnostics: prepared.diagnostics }; }
         binding = { ...prepared.image.binding, required: binding.required ?? true };
@@ -896,7 +897,7 @@ const generateAsset: CapabilityExport = {
     }
     if (sourceBytes.byteLength > MAX_BUILD_ASSET_BYTES) { return { error: "Game asset exceeds the supported asset size" }; }
     if (draft.document.schemaVersion === 3 && kind === "image") {
-      const { prepareGameImage3D } = await import("@nodetool-ai/game-renderer/preparation3d");
+      const { prepareGameImage3D } = await importPack<typeof import("@nodetool-ai/game-renderer/preparation3d")>("game", "@nodetool-ai/game-renderer/preparation3d");
       const digest = createHash("sha256").update(sourceBytes).digest("hex");
       const prepared = await prepareGameImage3D(sourceBytes, { assetId: `generated:${digest}`, expectedDigest: digest, signal: run.context.signal });
       if (!prepared.ok) { return { error: "Image preparation failed", diagnostics: prepared.diagnostics }; }
