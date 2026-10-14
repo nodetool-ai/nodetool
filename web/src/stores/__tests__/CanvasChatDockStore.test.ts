@@ -3,7 +3,8 @@ import useCanvasChatDockStore, {
   MAX_DOCK_WIDTH,
   MAX_OVERLAY_HEIGHT,
   MIN_DOCK_WIDTH,
-  MIN_OVERLAY_HEIGHT
+  MIN_OVERLAY_HEIGHT,
+  defaultComposerCollapsed
 } from "../CanvasChatDockStore";
 
 const reset = () =>
@@ -18,6 +19,31 @@ const reset = () =>
 
 describe("CanvasChatDockStore", () => {
   beforeEach(reset);
+
+  describe("default composer state", () => {
+    const initialHeight = window.innerHeight;
+    afterEach(() => {
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: initialHeight
+      });
+    });
+    const setHeight = (height: number) =>
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: height
+      });
+
+    it("starts collapsed in a 1280x720 window so the graph stays visible", () => {
+      setHeight(720);
+      expect(defaultComposerCollapsed()).toBe(true);
+    });
+
+    it("starts expanded in a 1440x900 window", () => {
+      setHeight(900);
+      expect(defaultComposerCollapsed()).toBe(false);
+    });
+  });
 
   it("starts collapsed with the responsive default width", () => {
     const s = useCanvasChatDockStore.getState();

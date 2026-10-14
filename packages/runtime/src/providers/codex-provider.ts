@@ -26,7 +26,7 @@ import {
   isString,
   type Chunk
 } from "@nodetool-ai/protocol";
-import { OpenAIProvider, OPENAI_FALLBACK_MODELS } from "./openai-provider.js";
+import { OpenAIProvider } from "./openai-provider.js";
 import { extractChatGptAccountId } from "./oauth/jwt-claims.js";
 import type {
   ImageModel,
@@ -53,6 +53,22 @@ const log = createLogger("nodetool.runtime.codex");
  * Responses built-in `image_generation` tool from a normal chat model.
  */
 const CODEX_IMAGE_ORCHESTRATOR_MODEL = "gpt-5.5";
+
+/**
+ * The models the Codex CLI lists in its picker, mirrored from its bundled
+ * `models.json` (entries with `visibility: "list"`). Shown only when the live
+ * `/models` listing is unavailable.
+ */
+export const CODEX_FALLBACK_MODELS: LanguageModel[] = [
+  ["gpt-6.1-sol", "GPT-6.1-Sol"],
+  ["gpt-6-sol", "GPT-6-Sol"],
+  ["gpt-6-luna", "GPT-6-Luna"],
+  ["gpt-6-astra", "GPT-6-Astra"],
+  ["gpt-5.6-sol", "GPT-5.6-Sol"],
+  ["gpt-5.6-terra", "GPT-5.6-Terra"],
+  ["gpt-5.6-luna", "GPT-5.6-Luna"],
+  ["gpt-5.5", "GPT-5.5"]
+].map(([id, name]) => ({ id, name, provider: PROVIDER_IDS.CODEX }));
 
 const CODEX_CONTROL_TOKEN = /<\|(?:endoftext|endofprompt|startoftext)\|>/g;
 
@@ -146,36 +162,39 @@ export class CodexProvider extends OpenAIProvider {
   }
 
   /**
-   * Return the account- and version-specific models served by Codex. Use the
-   * shared OpenAI catalog only when the live listing is unavailable or empty.
+   * Return the account- and version-specific models served by Codex, minus
+   * the ones Codex itself hides from its picker. Use {@link CODEX_FALLBACK_MODELS}
+   * only when the live listing is unavailable or empty.
    */
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const fallback: LanguageModel[] = OPENAI_FALLBACK_MODELS.map((model) => ({
-      ...model,
-      provider: PROVIDER_IDS.CODEX
-    }));
     try {
       const url = `${CODEX_BACKEND_BASE_URL}/models?client_version=${encodeURIComponent(codexClientVersion())}`;
       const res = await fetch(url, {
         headers: this.buildHeaders("application/json")
       });
-      if (!res.ok) return fallback;
+      if (!res.ok) return CODEX_FALLBACK_MODELS;
       const payload = (await res.json()) as {
-        models?: Array<{ slug?: string; display_name?: string }>;
+        models?: Array<{
+          slug?: string;
+          display_name?: string;
+          visibility?: string;
+        }>;
       };
       const models = (payload.models ?? [])
         .filter(
           (m): m is { slug: string; display_name?: string } =>
-            typeof m.slug === "string" && m.slug.length > 0
+            typeof m.slug === "string" &&
+            m.slug.length > 0 &&
+            m.visibility !== "hide"
         )
         .map((m) => ({
           id: m.slug,
           name: m.display_name ?? m.slug,
           provider: PROVIDER_IDS.CODEX
         }));
-      return models.length > 0 ? models : fallback;
+      return models.length > 0 ? models : CODEX_FALLBACK_MODELS;
     } catch {
-      return fallback;
+      return CODEX_FALLBACK_MODELS;
     }
   }
 

@@ -14,7 +14,8 @@
  */
 
 import { forwardRef, memo } from "react";
-import { IconButton, IconButtonProps, Tooltip } from "@mui/material";
+import { IconButton, IconButtonProps } from "@mui/material";
+import { Tooltip } from "./Tooltip";
 import { LoadingSpinner } from "./LoadingSpinner";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";

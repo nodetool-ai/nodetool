@@ -29,12 +29,6 @@ export const metadata: Metadata = {
       "One command connects NodeTool to your coding agent. Ask for images, video, speech, or a whole workflow in plain words.",
     url: "https://nodetool.ai/developers",
     siteName: "NodeTool",
-    images: [
-      {
-        url: "/preview.png",
-        alt: "NodeTool for developers",
-      },
-    ],
     locale: "en_US",
     type: "website",
   },
@@ -43,7 +37,6 @@ export const metadata: Metadata = {
     title: "NodeTool for Developers",
     description:
       "Give Claude Code, Codex, or Cursor images, video, speech, and repeatable workflows over MCP. Open source under AGPL-3.0.",
-    images: ["/preview.png"],
   },
 };
 
