@@ -31,11 +31,11 @@ const styles = (theme: Theme) =>
     flexShrink: 0,
     height: "100%",
     borderLeft: `1px solid ${theme.vars.palette.divider}`,
-    background: `rgb(${theme.vars.palette.common.blackChannel} / 0.20)`,
     // A 20% black rail reads as a grey slab on the light shell.
-    ...theme.applyStyles("light", {
-      background: theme.vars.palette.c_overlay_subtle
-    }),
+    background:
+      theme.palette.mode === "light"
+        ? theme.vars.palette.c_overlay_subtle
+        : `rgb(${theme.vars.palette.common.blackChannel} / 0.20)`,
     display: "flex",
     flexDirection: "column",
     minHeight: 0,
