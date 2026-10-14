@@ -42,9 +42,8 @@ export async function loadPackLoaderContext(): Promise<PackLoaderContext | undef
   pending ??= Promise.resolve().then(provider).then((value) => {
     context = value;
     return value;
-  }).catch((error: unknown) => {
+  }).finally(() => {
     pending = undefined;
-    throw error;
   });
   return pending;
 }

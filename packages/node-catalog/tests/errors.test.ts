@@ -12,8 +12,11 @@ vi.mock("../src/catalog-data.js", () => ({ readCatalogIndex: () => state.index }
 const { MissingPackError, createMissingPackError } = await import("../src/errors.js");
 
 describe("missing pack error", () => {
-  it("expands dependency cycles once with deterministic runtime and node lists", () => {
-    const error = createMissingPackError("video", ["video.B", "video.A", "video.B"]);
+  it.each([
+    { packId: "video" },
+    { packId: Object.freeze(["video", "audio", "video"]) }
+  ])("expands dependency cycles once with deterministic runtime and node lists: $packId", ({ packId }) => {
+    const error = createMissingPackError(packId, ["video.B", "video.A", "video.B"]);
     expect(error).toBeInstanceOf(MissingPackError);
     expect(error.details).toEqual({
       error: "missing_pack",

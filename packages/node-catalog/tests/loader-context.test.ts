@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { runInNewContext } from "node:vm";
+import { MissingPackError } from "@nodetool-ai/protocol";
 import {
   currentPackInstall,
   loadPackLoaderContext,
@@ -15,6 +17,12 @@ const context: PackLoaderContext = {
   install: { supported: true, reason: null, command: null }
 };
 
+const missingPack = new MissingPackError({
+  error: "missing_pack", packs: [], runtimeLibraries: [], nodeTypes: [],
+  install: { supported: false, reason: "host cannot install", command: null },
+  restartRequired: false
+});
+
 describe("host pack inventory initialization", () => {
   it("defers IO and shares one snapshot across concurrent pack requests", async () => {
     let scans = 0;
@@ -30,8 +38,14 @@ describe("host pack inventory initialization", () => {
     expect(currentPackInstall()).toBe(context.install);
   });
 
-  it("preserves initialization failures and allows an explicit retry", async () => {
-    const failure = new Error("inventory read failed");
+  it.each([
+    new Error("inventory read failed"),
+    missingPack,
+    JSON.parse(JSON.stringify(missingPack)),
+    runInNewContext('new Error("foreign inventory read failed")'),
+    "inventory read failed",
+    null
+  ])("preserves initialization failure identity and allows an explicit retry: %s", async (failure) => {
     let scans = 0;
     setPackLoaderContextProvider(() => {
       scans++;

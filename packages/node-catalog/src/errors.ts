@@ -14,7 +14,7 @@ export function createMissingPackError(
 ): MissingPackError {
   const index = catalog;
   const byId = new Map(index.packs.map((pack) => [pack.id, pack]));
-  const pending = typeof packId === "string" ? [packId] : [...packId];
+  const pending = [packId].flat();
   const ids = new Set<string>();
   const runtimeLibraries = new Set<string>();
   for (let i = 0; i < pending.length; i++) {
