@@ -8,6 +8,7 @@ import { useExampleTimelines, useInstallExampleTimeline } from "../../hooks/useT
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { creationProjectId, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import useOnboardingStore from "../../stores/OnboardingStore";
 import {
   AutoGrid,
   BORDER_RADIUS,
@@ -19,7 +20,9 @@ import {
   VideoPlayer,
   getSpacingPx
 } from "../ui_primitives";
+import { NO_EXAMPLE_NEEDS } from "../../utils/exampleNeeds";
 import { DashboardSectionHeader, useSectionWrap } from "./dashboardChrome";
+import ExampleNeedsPill from "./ExampleNeedsPill";
 
 const styles = (theme: Theme) => css({
   paddingTop: getSpacingPx(SPACING.xxl),
@@ -65,6 +68,7 @@ const TimelineCard = memo(function TimelineCard({ timeline, installing, onInstal
       <div className="timeline-body">
         <span className="timeline-name">{timeline.name}</span>
         <span className="timeline-description">{timeline.description}</span>
+        <ExampleNeedsPill needs={NO_EXAMPLE_NEEDS} />
         <span className="timeline-meta">{Math.round(timeline.durationMs / 1000)} seconds · {timeline.clipCount} editable clips · {timeline.fps} fps</span>
         <EditorButton
           variant="contained"
@@ -95,6 +99,7 @@ const DashboardExampleTimelines = () => {
       onSuccess: (created) => {
         openTab({ type: "timeline", ref: created.id, mode: "view", title: created.name, projectId: created.projectId });
         navigate("/workspace");
+        useOnboardingStore.getState().markStep("keep-creating");
       },
       onError: (error) => {
         addNotification({ type: "error", alert: true, content: `Couldn't add ${timeline.name}: ${error.message}` });

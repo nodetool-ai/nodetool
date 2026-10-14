@@ -7,6 +7,7 @@ import { BASE_URL } from "./BASE_URL";
 import { trpcClient } from "../trpc/client";
 import { Asset, AssetList, AssetSearchResult } from "./ApiTypes";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
+import { assetIdFromRef } from "@nodetool-ai/protocol";
 import type { AssetGridStoreApi } from "./AssetGridStore";
 import { AppError, createErrorMessage } from "../utils/errorHandling";
 import {
@@ -360,7 +361,11 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   },
 
   get: async (id: string, project_id?: string) => {
-    const getInput: Parameters<typeof trpcClient.assets.get.query>[0] = { id };
+    // A clip or prompt may still hold `asset://<id>.<ext>`; the endpoint takes
+    // the bare id or its 12-character prefix.
+    const getInput: Parameters<typeof trpcClient.assets.get.query>[0] = {
+      id: assetIdFromRef(id)
+    };
     if (project_id !== undefined) getInput.project_id = project_id;
     const raw = await trpcClient.assets.get.query(getInput);
     const data = normalizeAssetUrls(raw);

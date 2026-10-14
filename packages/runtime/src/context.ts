@@ -3999,10 +3999,17 @@ export class ProcessingContext {
         mimeOverride ??
         generationMime(req.capability, bytes);
       const ext = extForGenerationMime(mime);
+      // The asset's `uri` takes its extension from the name, so a caller's
+      // bare name (`shot-1-still`) gets the one the bytes have; otherwise the
+      // row reads `asset://<id>` while this result says `asset://<id>.<ext>`.
+      const persistName =
+        req.persist?.name && !/\.[a-z0-9]+$/i.test(req.persist.name)
+          ? `${req.persist.name}.${ext}`
+          : req.persist?.name;
       const name =
-        buffers.length === 1 || !req.persist?.name
-          ? (req.persist?.name ?? `${req.capability}-${startedName(id)}.${ext}`)
-          : req.persist.name.replace(/(\.[a-z0-9]+)?$/i, `-${index + 1}$1`);
+        buffers.length === 1 || !persistName
+          ? (persistName ?? `${req.capability}-${startedName(id)}.${ext}`)
+          : persistName.replace(/(\.[a-z0-9]+)?$/i, `-${index + 1}$1`);
       try {
         const created = await this.createAsset({
           name,

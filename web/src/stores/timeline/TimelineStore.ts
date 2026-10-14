@@ -142,6 +142,7 @@ import {
   type TimelineMergeDoc
 } from "./merge";
 import { reportDocumentConflicts } from "../documentConflictReporter";
+import { normalizeClipAssetRefs } from "./clipAssetRefs";
 import type { DocumentOp } from "@nodetool-ai/protocol";
 
 // ── Snap threshold ─────────────────────────────────────────────────────────
@@ -2007,7 +2008,8 @@ export const createTimelineStore = (
 
         // ── Init ────────────────────────────────────────────────────────────
 
-        loadSequence: (seq) => {
+        loadSequence: (loaded) => {
+          const seq = { ...loaded, clips: normalizeClipAssetRefs(loaded.clips) };
           const transcript = seq.transcript ?? [];
 
           // Legacy sequences stored the transcript as `TranscriptLine[]` binding
