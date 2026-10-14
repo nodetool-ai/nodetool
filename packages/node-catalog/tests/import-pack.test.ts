@@ -26,11 +26,23 @@ it("keeps unavailable packs catalog-only and preserves initialization errors", a
   const script = `
     import assert from "node:assert/strict";
     import { registerHooks } from "node:module";
+    const started = Date.now();
+    const phase = message => process.stdout.write("catalog fixture: " + message + " (" + (Date.now() - started) + "ms)\\n");
     const source = ${JSON.stringify(new URL("../dist/index.js", import.meta.url).href)};
+    phase("loading metadata");
+    const { importPack, registerAvailablePacks, registerCatalogPack, readCatalogIndex, readCatalogNodes, MissingPackError } = await import(source);
+    const packs = readCatalogIndex().packs;
+    const unavailable = new Set(packs.filter(pack => pack.kind === "node-pack")
+      .flatMap(pack => [pack.npm.name, ...pack.provides]));
+    assert(unavailable.size > 0);
+    assert(unavailable.has("@nodetool-ai/fal-nodes"));
+    assert(packs.some(pack => pack.kind === "core" && pack.npm.name === "@nodetool-ai/core-nodes"));
+    for (const pack of packs.filter(pack => pack.kind === "core")) assert(!unavailable.has(pack.npm.name));
+    phase("metadata ready");
     const hooks = registerHooks({
       resolve(specifier, context, nextResolve) {
-        if (specifier === "@nodetool-ai/fal-nodes") {
-          const error = new Error("Cannot find package @nodetool-ai/fal-nodes");
+        if (unavailable.has(specifier)) {
+          const error = new Error("Cannot find package " + specifier);
           error.code = "ERR_MODULE_NOT_FOUND";
           throw error;
         }
@@ -38,10 +50,11 @@ it("keeps unavailable packs catalog-only and preserves initialization errors", a
       }
     });
     const { NodeRegistry } = await import("@nodetool-ai/node-sdk");
-    const { importPack, registerAvailablePacks, registerCatalogPack, readCatalogNodes, MissingPackError } = await import(source);
     await assert.rejects(importPack("fal"), error => error instanceof MissingPackError && error.details.install.supported === false);
     const registry = new NodeRegistry();
+    phase("registering available core");
     await registerAvailablePacks(registry, { includeOptionalPacks: true });
+    phase("core-only registration ready");
     const nodes = readCatalogNodes().filter(node => node.pack === "fal");
     assert(nodes.length > 0);
     for (const node of nodes) {
@@ -53,6 +66,7 @@ it("keeps unavailable packs catalog-only and preserves initialization errors", a
     await registerCatalogPack(single, "fal");
     assert.equal(single.listMetadata().length, nodes.length);
     for (const node of nodes) assert.equal(single.availability(node.node_type), "catalog");
+    phase("FAL metadata verified");
     hooks.deregister();
     const failing = registerHooks({
       load(url, context, nextLoad) {
@@ -77,10 +91,16 @@ it("keeps unavailable packs catalog-only and preserves initialization errors", a
   child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
   try {
     const code = await new Promise<number | null>((resolve, reject) => {
-      child.on("error", reject);
+      const failed = (error: Error) => reject(new Error(
+        `Catalog fixture child failed: ${error.message}\nstdout:\n${stdout}\nstderr:\n${stderr}`,
+        { cause: error }
+      ));
+      child.on("error", failed);
+      child.stdout.on("error", failed);
+      child.stderr.on("error", failed);
       child.on("close", resolve);
     });
-    expect(code, stderr).toBe(0);
+    expect(code, `stdout:\n${stdout}\nstderr:\n${stderr}`).toBe(0);
     expect(stdout).toContain("catalog fallback and initialization failure verified");
   } finally {
     clearTimeout(timer);
