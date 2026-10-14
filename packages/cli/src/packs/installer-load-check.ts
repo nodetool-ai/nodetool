@@ -20,7 +20,9 @@ export async function verifyPackLoads(snapshot: InstalledPackSnapshot, catalog: 
       if (sdk !== coreSdk) { throw new Error(`Pack resolves another node-sdk: ${entry.npm}`); }
     }
     const module = await importPack(id);
-    const registrar = z.custom<(registry: NodeRegistry) => void>(isCallable).parse(module[pack.registrar]);
+    const registrar = z.object({
+      [pack.registrar]: z.custom<(registry: NodeRegistry) => void>(isCallable)
+    }).parse(module)[pack.registrar];
     const registry = new NodeRegistry();
     registry.registerPackage(id, registrar);
     const actual = [...registry.list()].sort();
