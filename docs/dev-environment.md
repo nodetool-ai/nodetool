@@ -107,7 +107,7 @@ checkout does not change.
 - After `npm install` changes a version range, run `npm explain <package>`.
   npm can place the new version under `packages/<name>/node_modules/` instead
   of the root. A package that the runtime loads by name, such as
-  `@anthropic-ai/claude-agent-sdk`, must stay at the root. Record the root
+  `node-llama-cpp`, must stay at the root. Record the root
   placement in the lockfile. A later `npm install` keeps a placement that
   already satisfies the range.
 - npm 10 removes `libc` on every install that rewrites the lockfile. Run

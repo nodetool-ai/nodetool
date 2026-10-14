@@ -1,28 +1,25 @@
 import { getTracer } from "../telemetry.js";
 import { tracedProviderLoop, tracedToolCall, beginProviderRound, providerRoundContext, traceContentAllowed, messageTraceContent, traceTextContent } from "./loop-tracing.js";
 /**
- * ClaudeAgentProvider — Claude reached through the official
- * `@anthropic-ai/claude-agent-sdk` instead of an API key.
+ * ClaudeAgentProvider — Claude reached through the headless Claude Code CLI
+ * instead of an API key.
  *
  * Unlike {@link AnthropicProvider}, this provider sends no `ANTHROPIC_API_KEY`:
- * the SDK drives the bundled `claude` binary (shipped as an optional platform
- * dependency, so there is nothing to install on PATH) and lets it authenticate
- * with the machine's logged-in Claude subscription (the credentials stored
- * under `~/.claude`). The SDK streams `SDKMessage`s, which we translate into the
- * cross-provider {@link ProviderStreamItem} stream.
+ * it runs the user's installed `claude` executable in print mode with
+ * stream-json input and output (see {@link runClaudeCli}) and lets it
+ * authenticate with the machine's logged-in Claude subscription (the
+ * credentials stored under `~/.claude`). The executable is `CLAUDE_CLI_PATH`
+ * when set, else found on PATH or in the usual install locations. The CLI
+ * streams JSON messages, which we translate into the cross-provider
+ * {@link ProviderStreamItem} stream.
  *
- * `@anthropic-ai/claude-agent-sdk` is a *soft* (optional peer) dependency: it is
- * not installed by default and must be added with the package manager before
- * this provider can run. It is loaded lazily via {@link loadSdk}, so a missing
- * package surfaces as a clear install hint only when the provider is actually
- * used — the rest of the runtime, and the browser worker bundle, never need it.
- *
- * It is a *pure LLM* provider: the agentic tool loop is collapsed to a single
- * turn with every built-in tool disabled (`allowedTools: []`), filesystem
- * settings/skills disabled (`settingSources: []`), permission prompts neutered
- * (`permissionMode: "dontAsk"`), and the default agent system prompt fully
- * replaced (`systemPrompt`), so the model behaves like a plain chat completion —
- * text in, text (and thinking) out.
+ * The single-turn primitive is a *pure LLM* call: one turn with every built-in
+ * tool disabled (`tools: []`), filesystem settings disabled
+ * (`settingSources: []`), and the default agent system prompt fully replaced
+ * (`systemPrompt`), so the model behaves like a plain chat completion — text
+ * in, text (and thinking) out. {@link generateLoop} lets the CLI run its own
+ * agent loop over NodeTool's tools, which this process serves as an MCP server
+ * over the CLI's control channel.
  *
  * Session continuity: when a `threadId` is supplied the provider routes the
  * thread through a single upstream session and, on subsequent turns, resumes it
@@ -35,22 +32,28 @@ import { tracedProviderLoop, tracedToolCall, beginProviderRound, providerRoundCo
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { createLogger, importOptionalModule } from "@nodetool-ai/config";
-import type {
-  McpSdkServerConfigWithInstance,
-  Options,
-  SdkMcpToolDefinition,
-  SDKAssistantMessage,
-  SDKMessage,
-  SDKPartialAssistantMessage,
-  SDKResultMessage,
-  SDKUserMessage
-} from "@anthropic-ai/claude-agent-sdk";
-import { z, type ZodTypeAny } from "zod";
-import type {
-  ImageBlockParam,
-  TextBlockParam
-} from "@anthropic-ai/sdk/resources/messages";
+import { createLogger } from "@nodetool-ai/config";
+import type { TextBlockParam } from "@anthropic-ai/sdk/resources/messages";
+import {
+  CLAUDE_CLI_PATH_SETTING,
+  resolveClaudeCliPath,
+  runClaudeCli,
+  systemLookupEnv,
+  type ClaudeCliAssistant,
+  type ClaudeCliMessage,
+  type ClaudeCliOptions,
+  type ClaudeCliResult,
+  type ClaudeCliSpawnFn,
+  type ClaudeCliStreamEvent,
+  type ClaudeCliSystemInit,
+  type ClaudeCliUser,
+  type ClaudePrompt,
+  type ClaudePromptBlock,
+  type ClaudeQueryFn,
+  type ClaudeToolDefinition,
+  type ClaudeToolResultBlock,
+  type ClaudeToolServer
+} from "./claude-cli.js";
 import {
   BaseProvider,
   budgetStopItem,
@@ -96,11 +99,11 @@ const log = createLogger("nodetool.runtime.providers.claude-agent");
 const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant.";
 
 /**
- * The Claude Agent SDK's built-in tools. Passed as `disallowedTools` on the
+ * Claude Code's built-in tools. Passed as `disallowedTools` on the
  * tool-free path so a "pure LLM" completion cannot execute host tools (Bash,
  * file, web) under bypassPermissions.
  */
-const SDK_BUILTIN_TOOLS = [
+const BUILTIN_TOOLS = [
   "Bash",
   "BashOutput",
   "KillShell",
@@ -118,38 +121,21 @@ const SDK_BUILTIN_TOOLS = [
 ];
 
 /** The built-ins a tool-using turn keeps even when it offered no counterpart. */
-const SDK_WEB_TOOLS = ["WebSearch", "WebFetch"];
+const WEB_TOOLS = ["WebSearch", "WebFetch"];
 
 /**
- * Env vars a nested Claude subscription session leaks into its children. The
- * SDK spawns the bundled CLI as a subprocess; left in place these would make it
- * believe it is itself nested. We strip them via `options.env` rather than any
- * raw `child_process` plumbing.
+ * Env vars a nested Claude subscription session leaks into its children. Left
+ * in place these would make the spawned CLI believe it is itself nested.
  */
 const NESTED_SESSION_ENV =
   /^(CLAUDECODE|CLAUDE_(CODE|SESSION|ENABLE|AFTER|AUTO)_[A-Za-z0-9_]*)$/;
 
-/**
- * The subset of the SDK `query` signature this provider depends on. We only
- * pass a string for text-only turns or a structured user message for images,
- * and consume the result as an async iterable. Injectable for tests.
- */
-export type ClaudeQueryFn = (params: {
-  prompt: string | AsyncIterable<SDKUserMessage>;
-  options?: Options;
-}) => AsyncIterable<SDKMessage>;
+export type { ClaudeQueryFn };
 
-/** The SDK `createSdkMcpServer` factory. Injectable for tests. */
-export type ClaudeCreateMcpServerFn = (opts: {
-  name: string;
-  version?: string;
-  tools: Array<SdkMcpToolDefinition>;
-}) => McpSdkServerConfigWithInstance;
-
-/** MCP server name under which NodeTool's tools are exposed to the SDK. */
+/** MCP server name under which NodeTool's tools are exposed to the CLI. */
 const TOOL_SERVER_NAME = "nodetool_tools";
 /**
- * Turns a structured-output call may take. The SDK validates the answer
+ * Turns a structured-output call may take. The CLI validates the answer
  * against the schema and, when it does not match, hands the model the errors
  * and asks again — each retry is a turn. With one turn, the first answer that
  * misses the schema fails the call as `error_max_turns`.
@@ -176,27 +162,30 @@ interface TurnConfig {
    * primitive, which only streams chunks.
    */
   emitMessages: boolean;
-  /** `maxTurns` passed to the SDK (1 for a single turn; higher with tools). */
+  /** `maxTurns` passed to the CLI (1 for a single turn; higher with tools). */
   maxTurns: number;
-  /** The in-process MCP tool server + allow-list, or null when tool-free. */
-  mcp: { mcpServers: Options["mcpServers"]; allowedTools: string[] } | null;
+  /** The host-served MCP tool server + allow-list, or null when tool-free. */
+  mcp: {
+    mcpServers: Record<string, ClaudeToolServer>;
+    allowedTools: string[];
+  } | null;
   /**
    * Whether the caller offered tools at all. Distinct from `mcp`, which is null
-   * both on the tool-free path and when every offered tool was replaced by an
-   * SDK built-in. Built-ins are disabled on the tool-free path or when
+   * both on the tool-free path and when every offered tool was replaced by a
+   * CLI built-in. Built-ins are disabled on the tool-free path or when
    * the caller explicitly sets `providedToolsOnly`.
    */
   toolsOffered: boolean;
-  /** Restrict availability to the supplied MCP tools, with no SDK built-ins. */
+  /** Restrict availability to the supplied MCP tools, with no CLI built-ins. */
   providedToolsOnly?: boolean;
   /**
-   * The SDK built-ins the turn may use, passed as `tools`. Every other
+   * The CLI built-ins the turn may use, passed as `tools`. Every other
    * built-in stays out of the prompt, where its schema would be re-read on
    * every request of the loop.
    */
   builtinTools: string[];
   /**
-   * Session working directory. Set to the run's workspace so the SDK's
+   * Session working directory. Set to the run's workspace so the CLI's
    * path-scoped built-ins (`Read`/`Write`/`Edit`/`Glob`/`Grep`) resolve where
    * the NodeTool tools they replace would have.
    */
@@ -204,68 +193,40 @@ interface TurnConfig {
   /**
    * A materialized local skills plugin: the temp directory it was written to
    * plus the skill names it contributes. Present only on the loop path, when
-   * the caller handed the provider user skills — the SDK's native `Skill` tool
+   * the caller handed the provider user skills — the CLI's native `Skill` tool
    * needs the agent loop to be usable. Null / absent otherwise.
    */
   skillsPlugin?: { dir: string; names: string[] } | null;
-  /** SDK structured output replaces the forced result tool on single turns. */
-  outputFormat?: Options["outputFormat"];
+  /** CLI structured output replaces the forced result tool on single turns. */
+  outputFormat?: ClaudeCliOptions["outputFormat"];
   resultToolName?: string;
 }
 
 interface ClaudeAgentProviderOptions {
-  /**
-   * Inject the SDK `query` (tests). Defaults to the real `query`, lazily
-   * imported on first use so the browser worker bundle that pulls in this
-   * barrel never tries to bundle the Node-only SDK.
-   */
+  /** Replace the CLI session runner (tests). */
   queryFn?: ClaudeQueryFn;
-  /** Inject the SDK `createSdkMcpServer` (tests). Defaults to the real one. */
-  createMcpServerFn?: ClaudeCreateMcpServerFn;
-}
-
-/**
- * Lazily import the optional `@anthropic-ai/claude-agent-sdk`. The SDK is a soft
- * (peer) dependency — it is not bundled with the app and must be installed at
- * runtime from the Package Manager (Software → Claude Agent SDK), which drops it
- * into the user-managed optional-node `node_modules`. {@link importOptionalModule}
- * hides the specifier from bundlers (so the browser/worker bundle never pulls in
- * the Node-only SDK) and falls back to resolving it from that optional root via
- * `NODETOOL_OPTIONAL_NODE_MODULES`, so a plain ESM `import` (which ignores
- * NODE_PATH) still finds a Package-Manager install. A missing package surfaces
- * as a clear, actionable error at call time.
- */
-async function loadSdk(): Promise<
-  typeof import("@anthropic-ai/claude-agent-sdk")
-> {
-  try {
-    return await importOptionalModule<
-      typeof import("@anthropic-ai/claude-agent-sdk")
-    >("@anthropic-ai/claude-agent-sdk");
-  } catch (err) {
-    throw new Error(
-      "The Claude Agent provider requires the optional " +
-        "'@anthropic-ai/claude-agent-sdk' package, which is not installed. " +
-        "Install it from the Package Manager (Software → Claude Agent SDK).",
-      { cause: err as Error }
-    );
-  }
+  /** Start the CLI process another way (tests). */
+  spawn?: ClaudeCliSpawnFn;
 }
 
 export class ClaudeAgentProvider extends BaseProvider {
-  /** The SDK runs with bypassPermissions, so its built-in `WebSearch` is live. */
+  /** The CLI runs with bypassPermissions, so its built-in `WebSearch` is live. */
   override get supportsNativeWebSearch(): boolean {
     return true;
   }
 
   static requiredSecrets(): string[] {
-    // Auth lives in the SDK's own credential store (~/.claude), not in an env
+    // Auth lives in the CLI's own credential store (~/.claude), not in an env
     // secret — there is nothing for the registry to resolve.
     return [];
   }
 
   private readonly injectedQueryFn: ClaudeQueryFn | null;
-  private readonly injectedCreateMcpServerFn: ClaudeCreateMcpServerFn | null;
+  private readonly spawnFn: ClaudeCliSpawnFn | undefined;
+  /** `CLAUDE_CLI_PATH` from settings or the environment, when set. */
+  private readonly configuredCliPath: string | undefined;
+  /** The resolved executable. Cleared on failure so a later install is found. */
+  private cliPath: Promise<string> | null = null;
   /**
    * Within-process cache of the active session per thread. The persisted
    * `provider_session` column is the source of truth; this only spares a DB
@@ -274,22 +235,28 @@ export class ClaudeAgentProvider extends BaseProvider {
   private readonly sessions = new Map<string, ProviderSession>();
 
   constructor(
-    _secrets: Record<string, unknown> = {},
+    secrets: Record<string, unknown> = {},
     options: ClaudeAgentProviderOptions = {}
   ) {
     super(PROVIDER_IDS.CLAUDE_AGENT_SDK);
     this.injectedQueryFn = options.queryFn ?? null;
-    this.injectedCreateMcpServerFn = options.createMcpServerFn ?? null;
+    this.spawnFn = options.spawn;
+    const configured = secrets[CLAUDE_CLI_PATH_SETTING];
+    this.configuredCliPath = isNonEmptyString(configured)
+      ? configured
+      : (typeof process !== "undefined"
+          ? process.env[CLAUDE_CLI_PATH_SETTING]
+          : undefined) || undefined;
   }
 
-  /** The subscription token is the SDK's business — never hand it to a sandbox. */
+  /** The subscription token is the CLI's business — never hand it to a sandbox. */
   override getContainerEnv() {
     return {};
   }
 
   /**
-   * Tools run inside the SDK's own agent loop ({@link generateLoop}): NodeTool's
-   * tools are exposed as an in-process MCP server whose handlers call back into
+   * Tools run inside the CLI's own agent loop ({@link generateLoop}): NodeTool's
+   * tools are exposed as a host-served MCP server whose handlers call back into
    * the harness's tool executor. The single-turn {@link generateMessages} stays
    * tool-free.
    */
@@ -298,8 +265,8 @@ export class ClaudeAgentProvider extends BaseProvider {
   }
 
   /**
-   * Stable model aliases the SDK resolves to the latest dated model. Aliases
-   * avoid pinning a version that ages out; the concrete model id the SDK
+   * Stable model aliases the CLI resolves to the latest dated model. Aliases
+   * avoid pinning a version that ages out; the concrete model id the CLI
    * selects is captured from the stream for accurate cost attribution.
    */
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
@@ -312,26 +279,32 @@ export class ClaudeAgentProvider extends BaseProvider {
     ];
   }
 
-  /** Resolve the SDK `query`, lazily importing it off the Node-only package. */
-  private async loadQuery(): Promise<ClaudeQueryFn> {
-    if (this.injectedQueryFn) return this.injectedQueryFn;
-    const mod = await loadSdk();
-    return mod.query;
+  /** The CLI executable, located once per provider. */
+  resolveCliPath(): Promise<string> {
+    this.cliPath ??= (async () =>
+      resolveClaudeCliPath(this.configuredCliPath, await systemLookupEnv()))();
+    const pending = this.cliPath;
+    pending.catch(() => {
+      if (this.cliPath === pending) this.cliPath = null;
+    });
+    return pending;
   }
 
-  /** Resolve the SDK `createSdkMcpServer`, lazily importing the Node-only pkg. */
-  private async loadCreateMcpServer(): Promise<ClaudeCreateMcpServerFn> {
-    if (this.injectedCreateMcpServerFn) return this.injectedCreateMcpServerFn;
-    const mod = await loadSdk();
-    // SAFETY: the SDK's factory is generic over each tool's Zod shape; this
-    // provider always hands it the default `AnyZodRawShape` definitions.
-    return mod.createSdkMcpServer as ClaudeCreateMcpServerFn;
+  /** The session runner: the injected one, or the real CLI. */
+  private loadQuery(): ClaudeQueryFn {
+    if (this.injectedQueryFn) return this.injectedQueryFn;
+    const spawn = this.spawnFn;
+    return (params) =>
+      (async function* (provider: ClaudeAgentProvider) {
+        const cliPath = await provider.resolveCliPath();
+        yield* runClaudeCli({ cliPath, spawn, ...params });
+      })(this);
   }
 
   /**
-   * Run the SDK's own agent loop. Tool-free turns behave exactly like
-   * {@link generateMessages}; with `tools` we expose them as an in-process MCP
-   * server whose handlers call `executeTool`, let the SDK loop (`maxTurns > 1`),
+   * Run the CLI's own agent loop. Tool-free turns behave exactly like
+   * {@link generateMessages}; with `tools` we expose them as a host-served MCP
+   * server whose handlers call `executeTool`, let the CLI loop (`maxTurns > 1`),
    * and translate its `tool_use`/`tool_result` stream into ToolCall items and
    * persistable {@link ProviderMessageEvent}s.
    */
@@ -345,7 +318,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       workspaceDir?: string;
       /**
        * The user's DB skills. Materialized into an isolated local plugin so the
-       * SDK's native `Skill` tool can list and load them on demand, keeping
+       * CLI's native `Skill` tool can list and load them on demand, keeping
        * `settingSources: []` intact (no `~/.claude` / `CLAUDE.md` leakage). The
        * caller hands these in instead of baking a skill catalog into the system
        * prompt — this provider owns skill resolution.
@@ -353,13 +326,13 @@ export class ClaudeAgentProvider extends BaseProvider {
       skills?: ProviderSkill[];
     }
   ): AsyncGenerator<ProviderStreamItem> {
-    return yield* tracedProviderLoop(this.provider, args.model, () => this.generateSdkLoop(args));
+    return yield* tracedProviderLoop(this.provider, args.model, () => this.generateCliLoop(args));
   }
 
-  private async *generateSdkLoop(args: Parameters<ClaudeAgentProvider["generateLoop"]>[0]): AsyncGenerator<ProviderStreamItem> {
-    // The SDK owns the loop, so honoring the budget is this override's job:
+  private async *generateCliLoop(args: Parameters<ClaudeAgentProvider["generateLoop"]>[0]): AsyncGenerator<ProviderStreamItem> {
+    // The CLI owns the loop, so honoring the budget is this override's job:
     // reserve before the first turn, and again after every assistant turn that
-    // requested tools — that is the point where the SDK will make another call.
+    // requested tools — that is the point where the CLI will make another call.
     // A refusal aborts the session instead of letting it spend past the cap.
     const { runBudget, turnBudget } = resolveTurnBudget(args.turnBudget);
     if (runBudget?.deadline.expired()) {
@@ -367,7 +340,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       return;
     }
     // Every turn this session makes holds its own reservation, and the whole
-    // set is settled in the `finally` below — the SDK reports one number for
+    // set is settled in the `finally` below — the CLI reports one number for
     // the session, not one per turn.
     const reservations: TurnReservationHandle[] = [];
     if (turnBudget) {
@@ -386,7 +359,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       : sdkNativeReplacements(offered.map((t) => t.name), args.workspaceDir);
     const tools = offered.filter((t) => !replaced.has(t.name));
     if (replaced.size > 0) {
-      log.debug("Using SDK built-ins in place of NodeTool tools", {
+      log.debug("Using CLI built-ins in place of NodeTool tools", {
         replaced: [...replaced]
       });
     }
@@ -396,7 +369,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     // `executeTool`; build the MCP server when at least one route exists.
     const hasToolExecute = tools.some((t) => t.execute);
 
-    // The SDK loop is stopped by aborting this controller — a terminal tool
+    // The CLI loop is stopped by aborting this controller — a terminal tool
     // fires it after running. Bridge the caller's signal into it too, and pass
     // its signal (overriding args.signal) down so runTurn cancels on either.
     const abortController = new AbortController();
@@ -407,20 +380,16 @@ export class ClaudeAgentProvider extends BaseProvider {
         args.signal.addEventListener("abort", onExternalAbort, { once: true });
     }
 
-    let mcp: {
-      mcpServers: Options["mcpServers"];
-      allowedTools: string[];
-    } | null = null;
+    let mcp: TurnConfig["mcp"] = null;
     if (tools.length > 0 && (executeTool || hasToolExecute)) {
-      const createServer = await this.loadCreateMcpServer();
       // MCP tool results carry typed content blocks, so image-bearing results
-      // (view_image) are returned as real image blocks the SDK hands to Claude —
-      // no flattening to text on the agent-SDK path.
+      // (view_image) are returned as real image blocks the CLI hands to Claude —
+      // no flattening to text.
       const defs = tools.map((t) =>
         toolDefinition(
           t,
           async (name, toolArgs) => {
-            // The SDK runs parallel calls of one tool in the same millisecond,
+            // The CLI runs parallel calls of one tool in the same millisecond,
             // so a clock alone would hand them one id.
             const toolCallId = `call_${name}_${crypto.randomUUID()}`;
             const result = t.execute
@@ -428,24 +397,24 @@ export class ClaudeAgentProvider extends BaseProvider {
               : executeTool
                 ? await tracedToolCall({ id: toolCallId, name, args: toolArgs }, () => executeTool({ id: toolCallId, name, args: toolArgs }))
                 : `Tool "${name}" is not available`;
-            // A terminal tool ends the SDK loop after its result is delivered.
+            // A terminal tool ends the CLI loop after its result is delivered.
             if (t.terminal) abortController.abort();
             return result;
           },
           args.resolveMedia
         )
       );
-      const server = createServer({
+      const server: ClaudeToolServer = {
         name: TOOL_SERVER_NAME,
         version: "1.0.0",
         tools: defs
-      });
+      };
       mcp = {
         mcpServers: { [TOOL_SERVER_NAME]: server },
         allowedTools: tools.map((t) => `${TOOL_PREFIX}${t.name}`)
       };
     }
-    // Materialize the user's skills into a throwaway local plugin the SDK's
+    // Materialize the user's skills into a throwaway local plugin the CLI's
     // native skill loader discovers. Best-effort: a disk failure drops skills
     // for the turn, it does not sink it. Cleaned up in the `finally` below.
     let skillsPlugin: { dir: string; names: string[] } | null = null;
@@ -453,14 +422,14 @@ export class ClaudeAgentProvider extends BaseProvider {
       try {
         skillsPlugin = await materializeSkillsPlugin(args.skills ?? []);
       } catch (err) {
-        log.warn("Failed to materialize user skills for the SDK", {
+        log.warn("Failed to materialize user skills for the CLI", {
           error: err instanceof Error ? err.message : String(err)
         });
       }
     }
 
     const costBefore = turnBudget ? this.getTotalCost() : 0;
-    // Set when the budget refuses a further turn: the SDK session is aborted
+    // Set when the budget refuses a further turn: the CLI session is aborted
     // and the stop is yielded once the stream has drained, so it stays the
     // loop's final item.
     let budgetStop: ProviderStop | null = null;
@@ -483,7 +452,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           skillsPlugin
         }
       );
-      // The SDK grows the conversation internally, so reserving against the
+      // The CLI grows the conversation internally, so reserving against the
       // opening prompt every time would under-count every later turn — badly,
       // on a tool-heavy loop. The messages it emits are the same ones it is
       // accumulating, so the transcript is rebuilt here to reserve against.
@@ -506,7 +475,7 @@ export class ClaudeAgentProvider extends BaseProvider {
         reservations.push(next);
       }
     } finally {
-      // The SDK reports usage once, on the terminal `result` message, so a
+      // The CLI reports usage once, on the terminal `result` message, so a
       // per-turn actual doesn't exist here. Reservations accumulate untouched
       // for the session's duration — conservative by construction — and the
       // real number lands when the session ends.
@@ -530,7 +499,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       }
       if (args.signal)
         args.signal.removeEventListener("abort", onExternalAbort);
-      // Remove the throwaway skills plugin. The SDK's subprocess has finished
+      // Remove the throwaway skills plugin. The CLI process has finished
       // reading it by now (the stream is drained), so best-effort cleanup is
       // safe; a leftover temp dir is not worth failing the turn over.
       if (skillsPlugin) {
@@ -590,7 +559,7 @@ export class ClaudeAgentProvider extends BaseProvider {
   /**
    * Shared session machinery for {@link generateMessages} and
    * {@link generateLoop}: decide resume vs fresh (best-effort, with a
-   * full-history priming fallback), then drive one SDK turn via {@link runTurn}.
+   * full-history priming fallback), then drive one CLI turn via {@link runTurn}.
    * `config` selects single-turn streaming vs the tool/message-emitting loop.
    */
   private async *runWithSession(
@@ -673,14 +642,14 @@ export class ClaudeAgentProvider extends BaseProvider {
     });
   }
 
-  /** Drive one SDK `query` turn and translate its messages into stream items. */
+  /** Drive one CLI session and translate its messages into stream items. */
   private async *runTurn(
     args: Pick<
       Parameters<BaseProvider["generateMessages"]>[0],
       "model" | "messages" | "maxTurns" | "signal" | "thinking" | "effort"
     >,
     plan: {
-      prompt: PromptContent;
+      prompt: ClaudePrompt;
       resume: string | undefined;
       systemPrompt: string;
       systemHash: string;
@@ -697,10 +666,10 @@ export class ClaudeAgentProvider extends BaseProvider {
       config: TurnConfig;
     }
   ): AsyncGenerator<ProviderStreamItem> {
-    const queryFn = await this.loadQuery();
+    const queryFn = this.loadQuery();
 
-    // Cancellation: the SDK stops the underlying query when its AbortController
-    // fires. Bridge the caller's signal onto a fresh controller per turn.
+    // Cancellation: the CLI process is killed when its AbortController fires.
+    // Bridge the caller's signal onto a fresh controller per turn.
     const abortController = new AbortController();
     const onAbort = () => abortController.abort();
     if (args.signal) {
@@ -708,9 +677,9 @@ export class ClaudeAgentProvider extends BaseProvider {
       else args.signal.addEventListener("abort", onAbort, { once: true });
     }
 
-    const options: Options = {
+    const options: ClaudeCliOptions = {
       systemPrompt: plan.systemPrompt,
-      // Pass aliases ("sonnet"/"opus"/"haiku") straight through to the SDK.
+      // Pass aliases ("sonnet"/"opus"/"haiku") straight through to the CLI.
       model: args.model || undefined,
       // 1 for a single turn; higher when tools may drive multiple rounds.
       maxTurns: plan.config.maxTurns,
@@ -720,13 +689,13 @@ export class ClaudeAgentProvider extends BaseProvider {
       // Do NOT load repo .claude / CLAUDE.md / skills.
       settingSources: [],
       // Run without asking for permissions: never prompt AND never deny. This
-      // lets the SDK agent use the built-ins `tools` keeps alongside
+      // lets the CLI agent use the built-ins `tools` keeps alongside
       // NodeTool's MCP tools. bypassPermissions requires the explicit
       // safety flag below.
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
       // On the tool-free path (the documented "pure LLM" primitive used by
-      // generateMessage/generateMessages), explicitly disable the SDK's
+      // generateMessage/generateMessages), explicitly disable the CLI's
       // built-in tools. Under bypassPermissions they are otherwise live and
       // auto-approved, so a prompt-injected "call Bash …" in untrusted text
       // being summarized/classified would execute on the host. allowedTools is
@@ -736,23 +705,23 @@ export class ClaudeAgentProvider extends BaseProvider {
       // replaced by a built-in offered tools and has no MCP server, and
       // disabling the built-ins there would leave it with nothing.
       //
-      // `ToolSearch` is disabled on BOTH paths. It searches tools the SDK has
+      // `ToolSearch` is disabled on BOTH paths. It searches tools the CLI has
       // deferred, and NodeTool defers none — it registers its handful of tools
       // in-process — so the search always comes back empty. A model that fell
       // back to it after a mis-named tool call got nothing and stalled the turn.
       // Supplied-only loops also disable Skill and keep all supplied dispatch
       // inside the caller's MCP boundary.
       disallowedTools: plan.config.providedToolsOnly
-        ? [...SDK_BUILTIN_TOOLS, "Skill", "ToolSearch"]
+        ? [...BUILTIN_TOOLS, "Skill", "ToolSearch"]
         : plan.config.toolsOffered
           ? ["ToolSearch"]
-          : [...SDK_BUILTIN_TOOLS, "ToolSearch"],
+          : [...BUILTIN_TOOLS, "ToolSearch"],
       tools: plan.config.builtinTools,
-      // Only the in-process NodeTool server. Without this the child also loads
+      // Only the host-served NodeTool server. Without this the child also loads
       // the account's claude.ai connectors and the user's MCP servers, and
       // their tool schemas grow every request of the loop.
       strictMcpConfig: true,
-      // Hide the skills bundled with the SDK. The plugin below names its own.
+      // Hide the skills bundled with the CLI. The plugin below names its own.
       skills: [],
       includePartialMessages: true,
       // Setting env REPLACES the child env, so spread process.env minus the
@@ -780,7 +749,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     if (plan.config.mcp) {
       options.mcpServers = plan.config.mcp.mcpServers;
     }
-    // Enable the SDK's native skill loop over the user's DB skills, which were
+    // Enable the CLI's native skill loop over the user's DB skills, which were
     // materialized into an isolated local plugin. This rides `plugins`, NOT
     // `settingSources` (kept `[]`), so no `~/.claude` / `.claude` settings or
     // `CLAUDE.md` are read; `skipMcpDiscovery` blocks any `.mcp.json` the dir
@@ -800,8 +769,8 @@ export class ClaudeAgentProvider extends BaseProvider {
       options.resume = plan.resume;
     }
 
-    // Log the exact wire body (sans the non-serializable AbortController, MCP
-    // server instances, and the full env, which can carry secrets) so the
+    // Log the request (sans the non-serializable AbortController, the MCP
+    // tool handlers, and the full env, which can carry secrets) so the
     // request-log UI shows what was sent without leaking the environment.
     this.recordRequestPayload({
       prompt: plan.prompt,
@@ -816,7 +785,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       }
     });
 
-    log.debug("Claude Agent SDK request", {
+    log.debug("Claude CLI request", {
       model: args.model,
       resume: Boolean(plan.resume)
     });
@@ -847,7 +816,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     // and fail the call with it instead.
     let authFailure: string | null = null;
 
-    // The SDK splits one API assistant turn into one frame per content block —
+    // The CLI splits one API assistant turn into one frame per content block —
     // thinking, then text, then each tool_use. Emitting a message per frame
     // would hand the consumer a text-only assistant message in the middle of a
     // tool round, which every chat surface reads as "the turn ended" (the chat
@@ -876,8 +845,8 @@ export class ClaudeAgentProvider extends BaseProvider {
     };
 
     try {
-      for await (const msg of queryFn({ prompt: sdkPrompt(plan.prompt), options })) {
-        if (msg.type === "system" && msg.subtype === "init") {
+      for await (const msg of queryFn({ prompt: plan.prompt, options })) {
+        if (isSystemInit(msg)) {
           // Capture the session and surface it immediately so a streaming
           // consumer can persist it onto the assistant message it creates.
           if (isNonEmptyString(msg.model)) resolvedModel = msg.model;
@@ -895,7 +864,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           continue;
         }
 
-        if (msg.type === "stream_event") {
+        if (isStreamEvent(msg)) {
           if (msg.event.type === "message_start") {
             if (observedTurn) { closeLlm(); beginProviderRound(this.provider, args.model); llmSpan = startLlm(); }
             observedTurn = true;
@@ -922,7 +891,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           continue;
         }
 
-        if (msg.type === "assistant") {
+        if (isAssistant(msg)) {
           if (msg.error === "authentication_failed") {
             authFailure = finalBlocks(msg)
               .filter((block) => !block.thinking)
@@ -971,7 +940,7 @@ export class ClaudeAgentProvider extends BaseProvider {
         // Tool results come back as a user message; surface them as tool
         // messages so the harness can persist them. The assistant turn that
         // asked for them is complete by now, so it goes out first.
-        if (msg.type === "user") {
+        if (isUser(msg)) {
           if (plan.config.emitMessages) {
             const flushed = flushPending();
             if (flushed) yield flushed;
@@ -989,7 +958,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           continue;
         }
 
-        if (msg.type === "result") {
+        if (isResult(msg)) {
           // Bill every terminal result, not just the successful ones: an
           // errored/max-turns run still consumed (and was charged for) tokens.
           this.trackResultUsage(msg, resolvedModel);
@@ -1023,14 +992,14 @@ export class ClaudeAgentProvider extends BaseProvider {
       const trailing = flushPending();
       if (trailing) yield trailing;
     } catch (err) {
-      // The query can reject (auth failure, missing session, spawn error). Never
+      // The session can fail (auth failure, missing session, spawn error). Never
       // collapse to a generic string — surface the real message.
       if (args.signal?.aborted) return;
       throw err instanceof Error ? err : new Error(String(err));
     } finally {
       closeLlm();
-      // Terminate the SDK query on every exit path. On normal completion the
-      // query has already finished and this is a no-op; on an early `break`
+      // Terminate the CLI session on every exit path. On normal completion it
+      // has already finished and this is a no-op; on an early `break`
       // (consumer cancelled) or a throw it is the only thing that stops the
       // subprocess, which otherwise runs its whole agentic loop to completion.
       abortController.abort();
@@ -1039,7 +1008,7 @@ export class ClaudeAgentProvider extends BaseProvider {
   }
 
   /** Record token usage from a terminal `result` message (success or error). */
-  private trackResultUsage(msg: SDKResultMessage, model: string): void {
+  private trackResultUsage(msg: ClaudeCliResult, model: string): void {
     const usage = msg.usage;
     if (!usage) return;
     const input = num(usage.input_tokens);
@@ -1109,7 +1078,7 @@ const CHILD_ENV_ALLOWLIST = /^CLAUDE_CODE_OAUTH_TOKEN$/;
 
 /**
  * A copy of the current environment with nested-session leakage stripped, for
- * the SDK's `options.env`. `ANTHROPIC_BASE_URL` and the `HTTP(S)_PROXY` vars are
+ * the CLI process. `ANTHROPIC_BASE_URL` and the `HTTP(S)_PROXY` vars are
  * preserved (they are not matched by {@link NESTED_SESSION_ENV}) so API routing
  * keeps working; `CLAUDE_CODE_OAUTH_TOKEN` is explicitly allowlisted so
  * token-based auth survives on headless hosts.
@@ -1144,7 +1113,7 @@ function turnBuiltins(
     const builtin = SDK_NATIVE_TOOL_REPLACEMENTS.get(name);
     if (builtin) builtins.add(builtin);
   }
-  if (toolsOffered) for (const name of SDK_WEB_TOOLS) builtins.add(name);
+  if (toolsOffered) for (const name of WEB_TOOLS) builtins.add(name);
   if (hasSkillsPlugin) builtins.add("Skill");
   return [...builtins];
 }
@@ -1160,7 +1129,7 @@ function isFilesystemSafeSkillName(name: string): boolean {
 }
 
 /**
- * Write the user's DB skills to a throwaway local plugin the SDK's native skill
+ * Write the user's DB skills to a throwaway local plugin the CLI's native skill
  * loader can discover, and return `{ dir, names }` (or null when nothing was
  * written). The layout is the Claude Code plugin format:
  *
@@ -1215,19 +1184,23 @@ async function materializeSkillsPlugin(
 
 /** Pull a text/thinking delta out of a partial `stream_event`, if any. */
 function partialDelta(
-  msg: SDKPartialAssistantMessage
+  msg: ClaudeCliStreamEvent
 ): { text?: string; thinking?: string } | null {
   const event = msg.event;
   if (event.type !== "content_block_delta") return null;
   const delta = event.delta;
-  if (delta.type === "text_delta") return { text: delta.text };
-  if (delta.type === "thinking_delta") return { thinking: delta.thinking };
+  if (delta?.type === "text_delta" && isString(delta.text)) {
+    return { text: delta.text };
+  }
+  if (delta?.type === "thinking_delta" && isString(delta.thinking)) {
+    return { thinking: delta.thinking };
+  }
   return null;
 }
 
 /** The concrete dated model id, captured from a partial `message_start`. */
 function capturedModelFromPartial(
-  msg: SDKPartialAssistantMessage
+  msg: ClaudeCliStreamEvent
 ): string | null {
   const event = msg.event;
   if (event.type !== "message_start") return null;
@@ -1237,7 +1210,7 @@ function capturedModelFromPartial(
 
 /** Text/thinking blocks of a final assistant message, kept separate. */
 function finalBlocks(
-  msg: SDKAssistantMessage
+  msg: ClaudeCliAssistant
 ): Array<{ content: string; thinking: boolean }> {
   const content = msg.message?.content;
   if (!Array.isArray(content)) return [];
@@ -1256,7 +1229,7 @@ function finalBlocks(
  * Recover the plain tool name from what the model emitted.
  *
  * Two prefixes get stripped, in order:
- *  - `mcp__<server>__`, which the SDK adds to in-process MCP tool names.
+ *  - `mcp__<server>__`, which the CLI adds to MCP tool names.
  *  - `tools.`, the retired guest toolbelt's call form, which models still
  *    turn into a top-level tool name. Without this the call reaches no tool
  *    at all.
@@ -1269,7 +1242,7 @@ function stripToolPrefix(name: string | undefined): string {
 }
 
 /** Split a final assistant message into its text and its tool calls. */
-function assistantParts(msg: SDKAssistantMessage) {
+function assistantParts(msg: ClaudeCliAssistant) {
   const content = msg.message?.content;
   let text = "";
   const toolCalls: ToolCall[] = [];
@@ -1292,9 +1265,9 @@ function assistantParts(msg: SDKAssistantMessage) {
   return { text, toolCalls };
 }
 
-/** Extract `tool_result` blocks from a user message the SDK emitted. */
+/** Extract `tool_result` blocks from a user message the CLI emitted. */
 function toolResultsFromUser(
-  msg: SDKUserMessage
+  msg: ClaudeCliUser
 ): Array<{ toolCallId: string; content: string }> {
   const content = msg.message?.content;
   const out: Array<{ toolCallId: string; content: string }> = [];
@@ -1331,9 +1304,9 @@ function toolResultText(content: unknown): string {
 }
 
 /**
- * Build an in-process MCP tool definition that bridges a NodeTool
- * {@link ProviderTool} to the harness's tool executor. The JSON-Schema input is
- * shimmed to the Zod raw shape the SDK expects.
+ * Build a host-served MCP tool definition that bridges a NodeTool
+ * {@link ProviderTool} to the harness's tool executor. The JSON-Schema input
+ * goes to the CLI unchanged.
  */
 function toolDefinition(
   tool: ProviderTool,
@@ -1342,11 +1315,11 @@ function toolDefinition(
     args: Record<string, unknown>
   ) => Promise<string | MessageContent[]>,
   resolveMedia?: (messages: Message[]) => Promise<Message[]>
-): SdkMcpToolDefinition {
+): ClaudeToolDefinition {
   return {
     name: tool.name,
     description: tool.description ?? "",
-    inputSchema: jsonSchemaToZodShape(tool.inputSchema) as never,
+    inputSchema: tool.inputSchema ?? { type: "object", properties: {} },
     handler: async (toolArgs: Record<string, unknown>) => {
       const result = await run(tool.name, toolArgs ?? {});
       const resolved =
@@ -1365,9 +1338,7 @@ function toolDefinition(
   };
 }
 
-type McpContentBlock =
-  | { type: "text"; text: string }
-  | { type: "image"; data: string; mimeType: string };
+type McpContentBlock = ClaudeToolResultBlock;
 
 /**
  * Decode a NodeTool image content part into an MCP image block (raw base64 +
@@ -1406,7 +1377,7 @@ function toMcpImageBlock(image: {
 
 /**
  * Convert a tool result into MCP content blocks. Text passes through; image
- * parts become MCP image blocks (the SDK forwards them to Claude as real
+ * parts become MCP image blocks (the CLI forwards them to Claude as real
  * images). An image that can't be inlined becomes a failure note.
  */
 export function toolResultToMcpContent(
@@ -1438,61 +1409,6 @@ export function toolResultToMcpContent(
   return blocks;
 }
 
-/** Convert a JSON-Schema object's properties to a Zod raw shape. */
-function jsonSchemaToZodShape(
-  schema: Record<string, unknown> | undefined
-) {
-  const props = (schema?.properties as Record<string, unknown>) ?? {};
-  const required = new Set((schema?.required as string[]) ?? []);
-  const shape: Record<string, ZodTypeAny> = {};
-  for (const [key, raw] of Object.entries(props)) {
-    let zt = jsonPropToZod(raw as Record<string, unknown>);
-    if (!required.has(key)) zt = zt.optional();
-    shape[key] = zt;
-  }
-  return shape;
-}
-
-/** Convert one JSON-Schema property to a Zod type (the subset NodeTool uses). */
-function jsonPropToZod(prop: Record<string, unknown>): ZodTypeAny {
-  const desc = isString(prop?.description) ? prop.description : undefined;
-  let zt: ZodTypeAny;
-  switch (prop?.type) {
-    case "string":
-      zt = z.string();
-      break;
-    case "number":
-    case "integer":
-      zt = z.number();
-      break;
-    case "boolean":
-      zt = z.boolean();
-      break;
-    case "array":
-      zt = z.array(
-        prop.items
-          ? jsonPropToZod(prop.items as Record<string, unknown>)
-          : z.unknown()
-      );
-      break;
-    case "object": {
-      const shape = jsonSchemaToZodShape(prop);
-      // Free-form objects (no declared sub-properties — e.g. add_node's
-      // `node_properties`) must keep arbitrary keys. `z.object({})` strips
-      // every key, silently dropping all node configuration on the SDK tool
-      // bridge; passthrough preserves the nested values.
-      zt =
-        Object.keys(shape).length > 0
-          ? z.object(shape)
-          : z.object({}).passthrough();
-      break;
-    }
-    default:
-      zt = z.unknown();
-  }
-  return desc ? zt.describe(desc) : zt;
-}
-
 /**
  * A refused Claude login, carrying status 401 so the provider layer classifies
  * it as a credential failure and the UI offers to sign in again.
@@ -1505,18 +1421,14 @@ function claudeAuthError(detail: string): Error {
 }
 
 /** Build a descriptive Error from a non-success `result` message. */
-function resultError(
-  msg: Extract<SDKResultMessage, { subtype: string }>
-): Error {
-  const parts: string[] = [`Claude Agent SDK query failed (${msg.subtype})`];
-  if ("errors" in msg && Array.isArray(msg.errors) && msg.errors.length) {
+function resultError(msg: ClaudeCliResult): Error {
+  const parts: string[] = [`Claude Code session failed (${msg.subtype})`];
+  if (Array.isArray(msg.errors) && msg.errors.length) {
     parts.push(msg.errors.join("; "));
-  } else if ("result" in msg && isNonEmptyString(msg.result)) {
+  } else if (isNonEmptyString(msg.result)) {
     parts.push(msg.result);
   }
-  const denials = (
-    msg
-  ).permission_denials;
+  const denials = msg.permission_denials;
   if (Array.isArray(denials) && denials.length) {
     parts.push(
       `permission denied: ${denials.map((d) => d.tool_name ?? "?").join(", ")}`
@@ -1552,7 +1464,7 @@ function extractSystemPrompt(messages: Message[]): string {
  * replayed (re-feeding them would present the model its own prior answer as
  * user input).
  */
-function buildResumeDelta(messages: Message[], checkpoint: number): PromptContent {
+function buildResumeDelta(messages: Message[], checkpoint: number): ClaudePrompt {
   const delta = messages.slice(checkpoint).filter((m) => m.role === "user");
   if (hasImages(delta)) {
     return delta.flatMap((message, index) => [
@@ -1570,12 +1482,12 @@ function buildResumeDelta(messages: Message[], checkpoint: number): PromptConten
  * The prompt for a fresh session. A lone user turn is sent verbatim. When there
  * is pre-existing FOREIGN history (a cold thread, a model switch, or an
  * edited/branched conversation) we prime context ONCE with a single delimited
- * user message instead of rebuilding a `Human:/Assistant:` transcript — the SDK
+ * user message instead of rebuilding a `Human:/Assistant:` transcript — the CLI
  * cannot import external assistant turns, so this is deliberate context priming,
  * not a faithful reconstruction. Text and inline images are retained, while
  * thinking is stripped.
  */
-function buildFreshPrompt(messages: Message[]): PromptContent {
+function buildFreshPrompt(messages: Message[]): ClaudePrompt {
   const convo = messages.filter((m) => m.role !== "system");
   if (convo.length === 0) return "";
   if (convo.length === 1 && convo[0].role === "user") {
@@ -1586,7 +1498,7 @@ function buildFreshPrompt(messages: Message[]): PromptContent {
   const newTurn = last.role === "user" ? textOf(last.content) : "";
   const prior = last.role === "user" ? convo.slice(0, -1) : convo;
   if (hasImages(convo)) {
-    const blocks: PromptBlock[] = [];
+    const blocks: ClaudePromptBlock[] = [];
     if (prior.length) {
       blocks.push({type: "text", text: "<conversation_so_far>\n"});
       for (const message of prior) {
@@ -1618,9 +1530,6 @@ function buildFreshPrompt(messages: Message[]): PromptContent {
   return [primed, newTurn].filter(Boolean).join("\n\n");
 }
 
-type PromptBlock = TextBlockParam | ImageBlockParam;
-type PromptContent = string | PromptBlock[];
-
 function hasImages(messages: readonly Message[]): boolean {
   return messages.some(
     (message) => Array.isArray(message.content) &&
@@ -1629,11 +1538,11 @@ function hasImages(messages: readonly Message[]): boolean {
 }
 
 /** Images must already be inline. This boundary never fetches caller URLs. */
-function promptBlocks(content: Message["content"]): PromptBlock[] {
+function promptBlocks(content: Message["content"]): ClaudePromptBlock[] {
   if (isString(content)) {
     return [{type: "text", text: content}];
   }
-  const blocks: PromptBlock[] = [];
+  const blocks: ClaudePromptBlock[] = [];
   for (const part of content ?? []) {
     if (part.type === "text") {
       blocks.push({type: "text", text: part.text});
@@ -1652,15 +1561,22 @@ function promptBlocks(content: Message["content"]): PromptBlock[] {
   return blocks;
 }
 
-function sdkPrompt(content: PromptContent): string | AsyncIterable<SDKUserMessage> {
-  if (isString(content)) {
-    return content;
-  }
-  return (async function* () {
-    yield {
-      type: "user",
-      parent_tool_use_id: null,
-      message: {role: "user", content}
-    } satisfies SDKUserMessage;
-  })();
+function isSystemInit(msg: ClaudeCliMessage): msg is ClaudeCliSystemInit {
+  return msg.type === "system" && msg.subtype === "init";
+}
+
+function isStreamEvent(msg: ClaudeCliMessage): msg is ClaudeCliStreamEvent {
+  return msg.type === "stream_event";
+}
+
+function isAssistant(msg: ClaudeCliMessage): msg is ClaudeCliAssistant {
+  return msg.type === "assistant";
+}
+
+function isUser(msg: ClaudeCliMessage): msg is ClaudeCliUser {
+  return msg.type === "user";
+}
+
+function isResult(msg: ClaudeCliMessage): msg is ClaudeCliResult {
+  return msg.type === "result";
 }
