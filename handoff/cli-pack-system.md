@@ -11,6 +11,9 @@ instruction. The foundation PR is
 stacked against that branch until the foundation lands. Both layers remain
 work in progress pending remote verification.
 
+Read [latest acceptance and remaining work](#a8-acceptance-and-a9-size-gate)
+before the earlier implementation checkpoints.
+
 Read [repository instructions](../AGENTS.md),
 [development standards](../docs/DEVELOPMENT_STANDARDS.md), the touched area
 overlays and [implement](../.agents/skills/implement/SKILL.md).
@@ -215,7 +218,7 @@ against the fork using the same local installed tree and compiled bytes. They
 show source/manifest edge savings, not a clean Linux install or a final size
 budget. Package-root savings overlap and must not be summed. A9 remains open.
 
-## Immediate continuation
+## Earlier implementation checkpoints
 
 A14 install-mode and inventory helpers are committed as `a7c58b1e81`.
 A15 connects their snapshot to CLI registration, providers and the installed
@@ -291,17 +294,15 @@ The production dependency scanner now enumerates runtime AST imports rather
 than counting erased type queries. Invalid production imports, empty scans,
 side-effect imports and mixed imports are retained regressions.
 
-1. Inspect [draft PR #6558](https://github.com/nodetool-ai/nodetool/pull/6558),
-   stacked against `codex/cli-pack-system-runtime`. The A4/A8 checkpoint is
-   `4a18eef330`. Inspect its remote packed-core-cli checks and the foundation
-   PR checks.
-   Fix failures before marking either layer ready.
-2. After actual core-only Linux installation succeeds, implement A9 using the
-   measured installed size plus the plan’s margin. Prove the size check fails
-   on an oversized fixture before enforcing it. Do not invent a threshold.
-3. Continue staging verification and promotion, the installed-pack source,
-   cross-surface missing-pack errors, authorized installer, commands and npm
-   matrix. Perform A24 only after its prerequisites pass.
+Inspect [draft PR #6558](https://github.com/nodetool-ai/nodetool/pull/6558),
+stacked against `codex/cli-pack-system-runtime`, and the foundation PR checks.
+Fix mandatory verification failures before marking either layer ready.
+A8, A9 and A23 acceptance evidence is recorded below.
+
+The installed-pack source, cross-surface errors, authorized installer, commands
+and native matrix are implemented. Continue with the real release and staging
+prerequisites. Perform A24 only after its required checks and release proofs
+pass. Publishing npm packages and merging PRs still need separate authorization.
 
 Q6 follows the recommended `nodetool nodes` namespace because `nodetool packs`
 already means sandbox packs. Q9 uses explicit local CLI authorization naming
@@ -458,3 +459,21 @@ runs and in the real packed smoke. Only that integration test now has a
 30-second deadline. The other 456 script tests passed in the failed run.
 Mandatory verification and the required aggregate check still need success.
 A24 remains blocked by its release and verification prerequisites.
+
+`70b4c5c38f` passes the actual enforced size gate in CI: 849,612 KiB is below
+892,097 KiB. The full bundled smoke also passes. Small block-allocation
+differences remain within the measured margin.
+
+Foundation CI on `7eeb417b5c` exposed stale OCR/TFJS and Whisper message
+assertions, plus the already-repaired email mock boundary. The child reproduces
+the failures and verifies the structured MissingRuntimePackageError details,
+managed commands, discovery and retries. All 67 focused OCR/TFJS and Whisper
+tests pass. The real canvas passthrough retains the loader options. Astra
+cleared the fixture changes.
+
+The foundation branch now contains those fixture repairs and the shared
+QuickJS compatibility fix at `1002271efd`. Its regular video and compiler
+dependencies remain intact. Child merge `dfdc94737a` retains the dependency
+cuts and has the same tree as fixture checkpoint `af78fc513b`. Both wrappers
+remain in the tested 3.0 patch series. Fresh mandatory CI on both layers is
+still required before completion.
