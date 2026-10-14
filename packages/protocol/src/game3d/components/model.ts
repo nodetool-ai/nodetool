@@ -4,6 +4,7 @@ import { gameMaterial3D } from "./material.js";
 
 export const gameModel3D = z.strictObject({
   assetId: id, nodeId: id.optional(), castShadow: z.boolean().default(true), receiveShadow: z.boolean().default(true),
+  materialId: id.optional(),
   material: gameMaterial3D.partial().optional()
 });
 
