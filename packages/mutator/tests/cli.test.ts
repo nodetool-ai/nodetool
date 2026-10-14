@@ -1,9 +1,17 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { isSourceFile, parseArgs, run, selectFiles, UsageError } from "../src/cli.js";
+import { isSourceFile, parseArgs, type Options, run, selectFiles, UsageError } from "../src/cli.js";
 import { ShellRunner, type CommandRunner } from "../src/runner.js";
 import { gitInit, MATH_PACKAGE, project } from "./fixture.js";
+
+function parsed(argv: string[]): Options {
+  const options = parseArgs(argv);
+  if (options === "help") {
+    throw new Error("expected options, got help");
+  }
+  return options;
+}
 
 function capture() {
   let out = "";
@@ -192,10 +200,10 @@ describe("selectFiles", () => {
       "pkg/dist/d.js": "",
       "pkg/src/__tests__/e.ts": ""
     });
-    expect(selectFiles(parseArgs(["--root", root]) as never, root)).toEqual([join(root, "pkg/src/a.ts")]);
-    expect(selectFiles(parseArgs(["--root", root, "a.ts"]) as never, root)).toEqual([join(root, "pkg/src/a.ts")]);
-    expect(selectFiles(parseArgs(["--root", root, "nomatch"]) as never, root)).toEqual([]);
-    expect(selectFiles(parseArgs(["--root", root, "--exclude", "pkg/src"]) as never, root)).toEqual([]);
+    expect(selectFiles(parsed(["--root", root]), root)).toEqual([join(root, "pkg/src/a.ts")]);
+    expect(selectFiles(parsed(["--root", root, "a.ts"]), root)).toEqual([join(root, "pkg/src/a.ts")]);
+    expect(selectFiles(parsed(["--root", root, "nomatch"]), root)).toEqual([]);
+    expect(selectFiles(parsed(["--root", root, "--exclude", "pkg/src"]), root)).toEqual([]);
   });
 
   it("knows source files", () => {

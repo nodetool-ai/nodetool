@@ -2,6 +2,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
+import { isText } from "./json.js";
 
 export const SOURCE_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
 
@@ -35,7 +36,8 @@ interface PackageJson {
 
 function readPackage(directory: string): PackageJson {
   try {
-    return JSON.parse(readFileSync(join(directory, "package.json"), "utf8")) as PackageJson;
+    const parsed: PackageJson = JSON.parse(readFileSync(join(directory, "package.json"), "utf8"));
+    return parsed;
   } catch {
     return {};
   }
@@ -52,7 +54,7 @@ export function usesVitest(directory: string): boolean {
 }
 
 export function hasScript(directory: string, name: string): boolean {
-  return typeof readPackage(directory).scripts?.[name] === "string";
+  return isText(readPackage(directory).scripts?.[name]);
 }
 
 /** POSIX single-quote a shell argument. */
