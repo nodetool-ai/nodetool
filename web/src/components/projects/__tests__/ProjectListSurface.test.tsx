@@ -166,7 +166,7 @@ describe("ProjectListSurface", () => {
     createProject.mockResolvedValue({ id: "p-new", name: "Comet" });
     openProject.mockResolvedValue(true);
     renderSurface();
-    await userEvent.click(screen.getByRole("button", { name: "+ New project" }));
+    await userEvent.click(screen.getByRole("button", { name: "New project" }));
     expect(createProject).not.toHaveBeenCalled();
 
     await userEvent.type(screen.getByLabelText("Project name"), "Comet");
@@ -203,10 +203,14 @@ describe("ProjectListSurface", () => {
 
   it("exports a project from its card", async () => {
     renderSurface();
-    await userEvent.click(screen.getByRole("button", { name: "Export" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Actions for Aurora Launch Spot" })
+    );
+    await userEvent.click(screen.getByRole("menuitem", { name: "Export" }));
     expect(exportProject).toHaveBeenCalledWith(
       { id: "p1", name: "Aurora Launch Spot" },
       expect.anything()
     );
+    expect(openProject).not.toHaveBeenCalled();
   });
 });

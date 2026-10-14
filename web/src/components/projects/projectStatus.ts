@@ -86,8 +86,9 @@ interface ProjectProgress {
 }
 
 /**
- * The pill over the card's montage: how far the clips have got. A project
- * with no board and no cut gets none rather than an invented one.
+ * The pill beside the card's name: how far the board's clips have got. A
+ * project with no board gets none rather than an invented one. A cut's length
+ * is already in the status line, so a cut alone adds no pill.
  */
 export const projectProgress = (
   documents: readonly ProjectDocument[]
@@ -98,10 +99,6 @@ export const projectProgress = (
       label: `clips ${board.clips}/${board.shots}`,
       done: board.clips === board.shots
     };
-  }
-  const cut = statusOfKind(documents, "timeline");
-  if (cut) {
-    return { label: `cut · ${formatDuration(cut.durationMs)}`, done: false };
   }
   return null;
 };
