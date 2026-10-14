@@ -222,6 +222,7 @@ describe("useVoiceInput", () => {
     act(() => {
       result.current.startRecording();
     });
+    await waitFor(() => expect(result.current.isConfigOpen).toBe(true));
     await act(async () => {
       result.current.selectModel(whisper);
     });
