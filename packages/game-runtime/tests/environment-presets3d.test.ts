@@ -189,8 +189,8 @@ it("rejects unknown names, missing scenes, and entity overflow without mutating 
   expect(document).toEqual(before);
 });
 
-it("replays 120 ticks from tick 60 for preset-authored scenes with seed 1", async () => {
-  const document = apply(createNative3DGame("preset-replay"), "sunny-day");
+it.each(GAME_ENVIRONMENT_PRESET_IDS_3D)("replays %s for 120 ticks from tick 60 with seed 1", async (preset) => {
+  const document = apply(createNative3DGame("preset-replay"), preset);
   const session = await createGameSession3D(document, 1);
   let resumed: Awaited<ReturnType<typeof createGameSession3D>> | undefined;
   try {
