@@ -1,20 +1,27 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useState } from "react";
 import type { DragEvent } from "react";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, type Theme } from "@mui/material/styles";
 import { serializeDragData, useDragDropStore } from "../../lib/dragdrop";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
 import {
+  AutoGrid,
   Caption,
   Chip,
   EmptyState,
   FlexColumn,
   FlexRow,
-  ListPanelItem,
   LoadingSpinner,
+  ResponsiveImage,
   SPACING,
   SectionHeader,
-  listPanelStyles
+  TYPOGRAPHY,
+  TruncatedText,
+  getSpacingPx,
+  listPanelStyles,
+  selectableTileStyles,
+  selectedTileStyles
 } from "../ui_primitives";
 import {
   useExampleGroups,
@@ -25,22 +32,65 @@ import {
 
 type ExampleFilter = ExampleKind | "all";
 
-interface ExampleRowProps {
+const cardStyles = (theme: Theme) =>
+  css({
+    ".example-card": {
+      ...selectableTileStyles(theme),
+      display: "flex",
+      flexDirection: "column",
+      minWidth: 0,
+      padding: 0,
+      textAlign: "left",
+      color: theme.vars.palette.text.primary,
+      background: theme.vars.palette.c_node_bg,
+      overflow: "hidden",
+      cursor: "pointer",
+      "&.active": { ...selectedTileStyles(theme), cursor: "wait" }
+    },
+    ".example-thumb": {
+      position: "relative",
+      display: "grid",
+      placeItems: "center",
+      width: "100%",
+      aspectRatio: "16 / 9",
+      background: theme.vars.palette.c_node_bg_group,
+      color: theme.vars.palette.text.secondary,
+      overflow: "hidden",
+      // The card is the drag source, not the image inside it.
+      img: { pointerEvents: "none" }
+    },
+    ".example-busy": {
+      position: "absolute",
+      inset: 0,
+      display: "grid",
+      placeItems: "center",
+      background: theme.vars.palette.c_scrim_strong
+    },
+    ".example-body": {
+      display: "flex",
+      flexDirection: "column",
+      gap: getSpacingPx(SPACING.micro),
+      padding: getSpacingPx(SPACING.sm)
+    }
+  });
+
+interface ExampleCardProps {
   readonly entry: ExampleEntry;
   readonly icon: ExampleGroup["icon"];
   readonly opening: boolean;
   readonly onOpen: (key: string) => void;
 }
 
-const ExampleRow = memo(function ExampleRow({
+const ExampleCard = memo(function ExampleCard({
   entry,
-  icon,
+  icon: Icon,
   opening,
   onOpen
-}: ExampleRowProps) {
+}: ExampleCardProps) {
   const setActiveDrag = useDragDropStore((state) => state.setActiveDrag);
   const clearDrag = useDragDropStore((state) => state.clearDrag);
-  const { drag } = entry;
+  const [thumbFailed, setThumbFailed] = useState(false);
+  const { drag, thumbnail } = entry;
   const handleDragStart = useCallback(
     (event: DragEvent<HTMLButtonElement>) => {
       if (!drag) {
@@ -53,20 +103,48 @@ const ExampleRow = memo(function ExampleRow({
     [drag, setActiveDrag]
   );
   const handleOpen = useCallback(() => onOpen(entry.key), [entry.key, onOpen]);
+  const handleThumbError = useCallback(() => setThumbFailed(true), []);
 
   return (
-    <ListPanelItem
-      id={entry.key}
-      name={entry.name}
-      fallbackName="Untitled example"
-      icon={icon}
-      active={opening}
-      secondary={opening ? "Adding a copy…" : entry.secondary}
+    <button
+      type="button"
+      className={opening ? "example-card active" : "example-card"}
+      title={entry.secondary || undefined}
+      aria-busy={opening}
       draggable={drag !== undefined}
       onDragStart={drag ? handleDragStart : undefined}
       onDragEnd={drag ? clearDrag : undefined}
-      onOpen={handleOpen}
-    />
+      onClick={handleOpen}
+    >
+      <span className="example-thumb" aria-hidden>
+        {thumbnail && !thumbFailed ? (
+          <ResponsiveImage
+            locator={thumbnail}
+            alt=""
+            aspectRatio="16 / 9"
+            loading="lazy"
+            preferThumbnail
+            showErrorFallback={false}
+            onError={handleThumbError}
+          />
+        ) : (
+          <Icon />
+        )}
+        {opening && (
+          <span className="example-busy">
+            <LoadingSpinner size="small" />
+          </span>
+        )}
+      </span>
+      <span className="example-body">
+        <TruncatedText sx={TYPOGRAPHY.sans.label}>
+          {entry.name || "Untitled example"}
+        </TruncatedText>
+        <Caption color="secondary" noWrap>
+          {opening ? "Adding a copy…" : entry.secondary}
+        </Caption>
+      </span>
+    </button>
   );
 });
 
@@ -110,23 +188,26 @@ const ExampleSection = ({
         onAction={group.retry}
       />
     ) : (
-      entries.map((entry) => (
-        <ExampleRow
-          key={entry.key}
-          entry={entry}
-          icon={group.icon}
-          opening={entry.key === openingKey}
-          onOpen={onOpen}
-        />
-      ))
+      <AutoGrid minItemWidth={128} gap={SPACING.md}>
+        {entries.map((entry) => (
+          <ExampleCard
+            key={entry.key}
+            entry={entry}
+            icon={group.icon}
+            opening={entry.key === openingKey}
+            onOpen={onOpen}
+          />
+        ))}
+      </AutoGrid>
     )}
   </FlexColumn>
 );
 
 /**
- * The left panel's Examples view: every kind of shipped example in one list.
- * A row opens the example as an editable copy. Models, sketches and timelines
- * also drag onto the surfaces that take them.
+ * The left panel's Examples view: every kind of shipped example as a card
+ * with the same preview image as the Examples page. A card opens the example
+ * as an editable copy. Models, sketches and timelines also drag onto the
+ * surfaces that take them.
  */
 const ExamplesPanel = () => {
   const theme = useTheme();
@@ -155,7 +236,12 @@ const ExamplesPanel = () => {
   }, [groups, filter, query]);
 
   return (
-    <FlexColumn fullHeight fullWidth gap={0} css={listPanelStyles(theme)}>
+    <FlexColumn
+      fullHeight
+      fullWidth
+      gap={0}
+      css={[listPanelStyles(theme), cardStyles(theme)]}
+    >
       <div className="list-panel-search">
         <CategorySearchBar
           value={query}

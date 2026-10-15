@@ -4,6 +4,7 @@ import SearchErrorBoundary from "../../SearchErrorBoundary";
 import GlobalSearchResults from "../GlobalSearchResults";
 import AssetGridContent from "../AssetGridContent";
 import BreadcrumbNav from "../BreadcrumbNav";
+import AssetTypeFilterBar from "../AssetTypeFilterBar";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { Asset, AssetWithPath } from "../../../stores/ApiTypes";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
@@ -121,11 +122,14 @@ const AssetFilesPanel: React.FC<AssetFilesPanelProps> = ({
             />
           </SearchErrorBoundary>
         ) : (
-          <AssetGridContent
-            isHorizontal={isHorizontal}
-            itemSpacing={itemSpacing}
-            onDoubleClick={handleDoubleClick}
-          />
+          <>
+            <AssetTypeFilterBar />
+            <AssetGridContent
+              isHorizontal={isHorizontal}
+              itemSpacing={itemSpacing}
+              onDoubleClick={handleDoubleClick}
+            />
+          </>
         )}
       </div>
     </div>

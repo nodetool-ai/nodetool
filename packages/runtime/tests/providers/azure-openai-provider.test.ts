@@ -165,6 +165,33 @@ describe("AzureOpenAIProvider", () => {
     expect(headers.get("api-key")).toBe("azure-key");
   });
 
+  it.each(["encoded", "streaming"])("uses mapped model capabilities while routing %s media to deployment names", async (mode) => {
+    const fetchFn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.endsWith("/audio/speech")) return new Response(new Uint8Array([1, 2]));
+      return chatJsonResponse({ text: "hello", words: [], segments: [] });
+    });
+    const p = provider({ AZURE_OPENAI_DEPLOYMENTS: "speech-prod=gpt-4o-mini-tts,transcription-prod=whisper-1" }, fetchFn);
+    const speechArgs = { model: "speech-prod", text: "hi", audioFormat: "mp3", language: "French", instructions: "Speak softly" };
+    if (mode === "encoded") {
+      await p.textToSpeechEncoded(speechArgs);
+    } else {
+      for await (const chunk of p.textToSpeech(speechArgs)) {
+        expect(chunk).toBeDefined();
+      }
+    }
+    const speechInit = fetchFn.mock.calls[0][1];
+    expect(JSON.parse(String(speechInit?.body))).toMatchObject({ model: "speech-prod", instructions: "Speak in French. Speak softly" });
+    await p.automaticSpeechRecognition({ model: "transcription-prod", audio: new Uint8Array([1, 2]), word_timestamps: true });
+    const [transcriptionInput, transcriptionInit] = fetchFn.mock.calls.find(([input]) => String(input).endsWith("/audio/transcriptions"))!;
+    const transcriptionRequest = transcriptionInput instanceof Request
+      ? transcriptionInput.clone()
+      : new Request(String(transcriptionInput), transcriptionInit);
+    const transcriptionBody = await transcriptionRequest.formData();
+    expect(transcriptionBody.get("model")).toBe("transcription-prod");
+    expect(transcriptionBody.get("response_format")).toBe("verbose_json");
+  });
+
   it("fails the first request, not construction, on a malformed endpoint", async () => {
     const p = provider({ AZURE_OPENAI_ENDPOINT: "nope" });
     await expect(

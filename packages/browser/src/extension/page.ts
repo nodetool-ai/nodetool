@@ -34,6 +34,7 @@ export interface ExtensionPageHandle {
 
 interface CreateExtensionPageOptions extends ExtensionCdpClientOptions {
   viewport?: { width: number; height: number };
+  signal?: AbortSignal;
   /** Attach a tab whose URL contains this text instead of the active tab. */
   urlMatch?: string;
 }
@@ -48,11 +49,14 @@ export async function createExtensionPage(
   transport?: ExtensionChannel,
   options: CreateExtensionPageOptions = {}
 ): Promise<ExtensionPageHandle> {
+  options.signal?.throwIfAborted();
   const viewport = options.viewport ?? DEFAULT_VIEWPORT;
   const clientOptions: ExtensionCdpClientOptions = { sessionId: options.sessionId };
   if (options.commandTimeoutMs !== undefined) clientOptions.commandTimeoutMs = options.commandTimeoutMs;
   const cdp = new ExtensionCdpClient(transport, clientOptions);
 
+  const abort = (): void => { cdp.detach("Cancelled"); void cdp.close(); };
+  options.signal?.addEventListener("abort", abort, { once: true });
   let attached = false;
   try {
     await cdp.attach(undefined, options.urlMatch);
@@ -71,11 +75,13 @@ export async function createExtensionPage(
       page,
       client: cdp.client,
       close: async () => {
+        options.signal?.removeEventListener("abort", abort);
         cdp.detach();
         await cdp.close();
       }
     };
   } catch (err) {
+    options.signal?.removeEventListener("abort", abort);
     if (attached) cdp.detach();
     await cdp.close();
     throw err instanceof Error ? err : new Error(String(err));

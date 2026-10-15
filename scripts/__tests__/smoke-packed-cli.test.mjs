@@ -9,7 +9,7 @@ import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 
-import { assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, coreOnlyCliManifest, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, REQUIRED_COMMANDS, repackCoreCli, smokeManifest } from "../smoke-packed-cli.mjs";
+import { assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, coreOnlyCliManifest, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, probeServe, REQUIRED_COMMANDS, repackCoreCli, smokeManifest } from "../smoke-packed-cli.mjs";
 
 const fixtures = [];
 afterEach(() => { for (const root of fixtures.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
@@ -20,7 +20,7 @@ it("keeps the required core-smoke status dependent on verification and the indep
   expect(guard.needs).toEqual(["verification", "packed-install"]);
   expect(guard.if).toBe("always()");
   const checks = workflow.jobs.verification.steps.map(step => step.run);
-  for (const command of ["npm run test:affected", "npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base origin/main --jobs 2", "npm run backend:smoke"]) {
+  for (const command of ["npm run test:affected", "npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base origin/main --jobs 1", "npm run backend:smoke"]) {
     expect(checks).toContain(command);
   }
   expect(workflow.jobs["packed-install"].needs).toBeUndefined();
@@ -61,7 +61,7 @@ it("bounds verification test concurrency without changing build scheduling", () 
   expect(affected.env).toMatchObject({ NODETOOL_TURBO_CONCURRENCY: "1", NODETOOL_TEST_WORKERS: "1" });
   const harness = job.steps.find(step => step.name === "Verify harnesses");
   expect(harness.env).toMatchObject({ NODETOOL_TEST_WORKERS: "1" });
-  expect(harness.run).toBe("npm run dev:nodetool -- harness gate --base origin/main --jobs 2");
+  expect(harness.run).toBe("npm run dev:nodetool -- harness gate --base origin/main --jobs 1");
 });
 
 function releaseTarball(root, filename, name, version) {
@@ -89,6 +89,31 @@ describe("existingTarballs", () => {
     expect(() => existingTarballs([{ name: "@nodetool-ai/cli", version: "1.2.3" }], root))
       .toThrow("Duplicate tarball for @nodetool-ai/cli");
   });
+});
+
+it.skipIf(process.platform === "win32")("launches MCP and server probes from the installed consumer directory", async () => {
+  const root = mkdtempSync(join(tmpdir(), "packed-probes-"));
+  const consumer = join(root, "consumer");
+  mkdirSync(consumer);
+  const bin = join(root, "fake-cli");
+  const trace = join(root, "cwd.jsonl");
+  writeFileSync(bin, `#!${process.execPath}\nimport { appendFileSync } from 'node:fs';
+import { createInterface } from 'node:readline';
+import { createServer } from 'node:http';
+appendFileSync(process.env.PROBE_TRACE, JSON.stringify(process.cwd()) + '\\n');
+if (process.argv[2] === 'mcp') createInterface({ input: process.stdin }).on('line', line => {
+const msg = JSON.parse(line); if (!msg.id) return;
+console.log(JSON.stringify({ jsonrpc:'2.0', id:msg.id, result: msg.id === 2 ? {tools:[{name:'fixture'}]} : {} }));
+});
+else createServer((req,res) => {res.end('ok');}).listen(Number(process.argv[4]), '127.0.0.1');`, { mode: 0o755 });
+  try {
+    const env = { ...process.env, PROBE_TRACE: trace };
+    expect(await probeMcp(bin, env, consumer, undefined, 5000)).toBe(1);
+    await probeServe(bin, env, consumer, 5000);
+    expect(readFileSync(trace, "utf8").trim().split("\n").map(JSON.parse)).toEqual([consumer, consumer]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 describe("smokeManifest", () => {

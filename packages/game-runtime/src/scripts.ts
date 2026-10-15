@@ -44,7 +44,9 @@ export interface GameScriptCall {
   readonly velocityX: number;
   readonly velocityY: number;
   readonly touching: GameScriptTouching;
-  /** Schema 4 metadata. Props travel once per entity in `GameScriptInput.props`. */
+  /** Final properties retained for a destruction call after removal. */
+  readonly props?: GameEntityProps;
+  /** Schema 4 metadata. Active props travel once per entity in `GameScriptInput.props`. */
   readonly tags?: readonly string[];
   readonly rotation?: number;
   readonly active?: boolean;
@@ -172,6 +174,8 @@ export interface GameScriptOptions {
 
 /** Only proven input-only functions may retain their context between calls. */
 export interface IsolatedScriptCall {
+  /** Final properties retained for a destruction call after removal. */
+  readonly props?: GameEntityProps;
   readonly sourceKey: string;
   readonly stateKey: string;
   readonly entityId: string;
@@ -490,7 +494,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       const callJson = (call: Call, plan: GameScriptHookPlan | undefined): string => {
         // A lifecycle call shows its hooks the record's inner state and receives its hook steps instead of host facts.
         const guest = plan === undefined ? call : { ...call, state: plan.state, lifecycle: undefined, steps: plan.steps };
-        return JSON.stringify(propsTable === undefined ? guest : { ...guest, props: propsOf(propsTable, call.entityId) });
+        return JSON.stringify(propsTable === undefined ? guest : { ...guest, props: call.lifecycle?.destroy ? call.props ?? propsOf(propsTable, call.entityId) : propsOf(propsTable, call.entityId) });
       };
       let hostWorld: ScriptWorldSnapshot | undefined;
       const getHostWorld = (): ScriptWorldSnapshot => hostWorld ??= new ScriptWorldSnapshot(world ?? input.world, propsTable);

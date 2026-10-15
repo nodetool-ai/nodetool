@@ -110,9 +110,14 @@ function currentTab(): ExtensionTab {
 }
 
 /** Calls share one tab, so each waits for the previous one. */
+let activeSignal: AbortSignal | undefined;
 let queue: Promise<unknown> = Promise.resolve();
 function serialized<T>(run: () => Promise<T>): Promise<T> {
-  const next = queue.then(run, run);
+  const owned = async (): Promise<T> => {
+    try { return await run(); }
+    finally { activeSignal = undefined; await tab?.release?.(); }
+  };
+  const next = queue.then(owned, owned);
   queue = next.catch(() => undefined);
   return next;
 }
@@ -130,12 +135,13 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 async function evaluate<T>(expression: string, timeoutMs?: number): Promise<T> {
-  return (await currentTab().evaluate(expression, timeoutMs)) as T;
+  activeSignal?.throwIfAborted();
+  return (await currentTab().evaluate(expression, timeoutMs, activeSignal)) as T;
 }
 
 /** {@link pollTab} on the Gemini tab. */
 function poll<T>(expression: string, timeoutMs: number): Promise<T | null> {
-  return pollTab<T>(currentTab(), expression, timeoutMs);
+  return pollTab<T>(currentTab(), expression, timeoutMs, activeSignal);
 }
 
 /** The page path of a chat drops the `c_` prefix of its id. */
@@ -154,7 +160,7 @@ async function waitForComposer(): Promise<void> {
   let ready = false;
   while (!ready && Date.now() < deadline) {
     ready = await evaluate<boolean>(`/*nt:ready*/ !!document.querySelector(${JSON.stringify(COMPOSER)})`);
-    if (!ready) await sleep(250);
+    if (!ready) await sleep(250, activeSignal);
   }
   // `oPEP7c` holds the signed-in account. A signed-out page has a composer but no account.
   const signedIn = await evaluate<boolean>(`/*nt:session*/ !!(window.WIZ_global_data && WIZ_global_data.oPEP7c)`);
@@ -164,7 +170,7 @@ async function waitForComposer(): Promise<void> {
   // click before that starts no request. The mode picker is the last part.
   const settled = Date.now() + APP_SETTLE_TIMEOUT_MS;
   while (Date.now() < settled && !(await evaluate<boolean>(`/*nt:settled*/ !!document.querySelector(${JSON.stringify(MODE_BUTTON)})`))) {
-    await sleep(250);
+    await sleep(250, activeSignal);
   }
 }
 
@@ -173,14 +179,14 @@ async function waitForHistory(): Promise<void> {
   const deadline = Date.now() + READY_TIMEOUT_MS;
   while (Date.now() < deadline) {
     if (await evaluate<boolean>(`/*nt:history*/ document.querySelectorAll("user-query").length > 0`)) return;
-    await sleep(250);
+    await sleep(250, activeSignal);
   }
   throw new ChatUnavailableError("The Gemini chat did not load its earlier turns");
 }
 
 /** Open a new chat with no tool selected. */
 async function openNewChat(): Promise<void> {
-  await currentTab().navigate(`${BASE_URL}/app`);
+  await currentTab().navigate(`${BASE_URL}/app`, activeSignal);
   await waitForComposer();
   // A selected tool shows as a chip with a close icon.
   await evaluate(`/*nt:clear-tools*/ (async () => {
@@ -281,7 +287,7 @@ async function attachImages(images: Uint8Array[]): Promise<void> {
   const files: Array<{ id: string; name: string; type: string }> = [];
   for (const [index, image] of images.entries()) {
     const type = detectImageMime(image);
-    const id = await stageBytesInTab(currentTab(), image);
+    const id = await stageBytesInTab(currentTab(), image, activeSignal);
     files.push({ id, name: `image-${index + 1}.${type.split("/")[1] ?? "png"}`, type });
   }
   const paste = `/*nt:attach*/ (() => {
@@ -342,7 +348,7 @@ async function submit(text: string, attachments: number): Promise<void> {
   })()`);
   // The send button slides in after the first character. A click during
   // that animation starts no request.
-  await sleep(500);
+  await sleep(500, activeSignal);
   const ready = await poll<boolean>(`/*nt:send-ready*/ (() => {
     const button = document.querySelector(${JSON.stringify(SUBMIT)});
     const previews = document.querySelectorAll(${JSON.stringify(ATTACHMENT)});
@@ -386,10 +392,14 @@ async function waitForResponse(timeoutMs: number, signal?: AbortSignal): Promise
  * reloads the page and drops the pending click, and the send is retried once.
  */
 async function sendAndRead(setup: () => Promise<void>, text: string, images: Uint8Array[], timeoutMs: number, signal?: AbortSignal): Promise<GeminiWebReply> {
+  activeSignal = signal;
   for (let attempt = 1; ; attempt++) {
+    activeSignal?.throwIfAborted();
     await setup();
+    activeSignal?.throwIfAborted();
     await attachImages(images);
     try {
+      activeSignal?.throwIfAborted();
       await submit(text, images.length);
       break;
     } catch (error) {
@@ -572,7 +582,7 @@ async function runChatTurnHoldingTab(turn: ChatTurn): Promise<{ conversationId: 
   const setup = async (): Promise<void> => {
     if (turn.conversationId) {
       const path = chatPath(turn.conversationId);
-      await currentTab().navigate(`${BASE_URL}${path}`);
+      await currentTab().navigate(`${BASE_URL}${path}`, activeSignal);
       await waitForComposer();
       // A deleted or foreign chat redirects to a new one.
       const pathname = await evaluate<string>(`/*nt:location*/ location.pathname`);
@@ -690,7 +700,7 @@ export class GeminiWebProvider extends BaseProvider {
     }
     if (!result) {
       // The caller may have sent only the delta; a new chat needs the whole conversation.
-      const messages = canResume && args.loadFullHistory ? await args.loadFullHistory() : args.messages;
+      const messages = args.loadFullHistory ? await args.loadFullHistory() : args.messages;
       const images = await this.lastUserImages(messages, args.signal);
       result = await serialized(() => runChatTurnHoldingTab({ model: args.model, text: composePrompt(messages), images, signal: args.signal }));
     }

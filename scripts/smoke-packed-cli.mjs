@@ -432,7 +432,7 @@ function freePort() {
  * Start `nodetool serve` and resolve once `GET /health` answers 200. The
  * server is killed either way.
  */
-async function probeServe(bin, env, cwd, timeoutMs = 120_000) {
+export async function probeServe(bin, env, cwd, timeoutMs = 120_000) {
   const port = await freePort();
   // `serve` runs the server as a child process, so start a process group
   // and kill the whole group, or the server outlives the check.

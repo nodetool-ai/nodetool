@@ -62,6 +62,9 @@ import {
 import { IpcChannels } from "./types.d";
 import { updateSetting, readSettingsAsync } from "./settings";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
+import { configureCertificateTrust } from "./certificateTrust";
+
+configureCertificateTrust();
 
 async function initializeBackendServerWithKeychainRetry(): Promise<void> {
   try {

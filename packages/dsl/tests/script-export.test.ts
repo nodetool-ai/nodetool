@@ -116,7 +116,7 @@ describe("workflowToScript", () => {
     expect(script.code).toContain(
       'import { callNode as runNode, streamNode } from "@nodetool-ai/sandbox-flow";'
     );
-    expect(script.code).toContain('const greeting = inputs.greeting ?? "Hello";');
+    expect(script.code).toContain('value: inputs.greeting ?? "Hello"');
     expect(script.code).toContain('await call("nodetool.text.Concat"');
     expect(script.code).not.toContain("nodetool.workflows.base_node.Comment");
 
@@ -236,9 +236,7 @@ describe("workflowToScript", () => {
       { target: "sandbox" }
     );
     expect(list.unsupported).toEqual([]);
-    expect(list.code).toContain(
-      'audio_files: [pick(string, "output"), pick(string2, "output")]'
-    );
+    expect(list.code).toContain('audio_files: aggregate([pick(string, "output"), pick(string2, "output")], true)');
 
     const scalar = workflowToScript(
       {
@@ -253,6 +251,122 @@ describe("workflowToScript", () => {
     expect(scalar.unsupported).toEqual([
       expect.objectContaining({ node_id: "c", message: expect.stringContaining('2 values on "string"') })
     ]);
+  });
+
+  test("external inputs retain bounds", async () => {
+    const graph: Graph = {
+      nodes: [
+        { id: "i", type: "nodetool.input.IntegerInput", data: { name: "count", value: 5, min: 1, max: 10 } },
+        { id: "o", type: "nodetool.output.Output", data: { name: "result" } }
+      ],
+      edges: [{ source: "i", sourceHandle: "output", target: "o", targetHandle: "value" }]
+    };
+    expect(await runNodeScript(workflowToScript(graph, { target: "node" }).code, { count: 999 })).toEqual({ result: 10 });
+  });
+
+  test("partial branches use defaults while wholly untaken branches skip", async () => {
+    const graph: Graph = {
+      nodes: [
+        { id: "if", type: "nodetool.control.If", data: { condition: true, value: "X" } },
+        { id: "cat", type: "nodetool.text.Concat", data: { a: "A", b: "B" } },
+        { id: "o", type: "nodetool.output.Output", data: { name: "result" } }
+      ],
+      edges: [
+        { source: "if", sourceHandle: "if_true", target: "cat", targetHandle: "a" },
+        { source: "if", sourceHandle: "if_false", target: "cat", targetHandle: "b" },
+        { source: "cat", sourceHandle: "output", target: "o", targetHandle: "value" }
+      ]
+    };
+    expect(await runNodeScript(workflowToScript(graph, { target: "node" }).code, {})).toEqual({ result: "XB" });
+  });
+
+  test("list fan-in flattens list values", async () => {
+    const graph: Graph = {
+      nodes: [
+        { id: "a", type: "nodetool.constant.List", data: { value: ["a", "b"] } },
+        { id: "b", type: "nodetool.constant.List", data: { value: ["c"] } },
+        { id: "fe", type: "nodetool.control.ForEach", data: {} },
+        { id: "o", type: "nodetool.output.Output", data: { name: "items" } }
+      ],
+      edges: [
+        { source: "a", sourceHandle: "output", target: "fe", targetHandle: "input_list" },
+        { source: "b", sourceHandle: "output", target: "fe", targetHandle: "input_list" },
+        { source: "fe", sourceHandle: "output", target: "o", targetHandle: "value" }
+      ]
+    };
+    expect(await runNodeScript(workflowToScript(graph, { target: "node" }).code, {})).toEqual({ items: ["a", "b", "c"] });
+  });
+
+  test("intermediate streamed Output forwards items to Collect", async () => {
+    const graph: Graph = {
+      nodes: [
+        { id: "l", type: "nodetool.constant.List", data: { value: ["a", "b"] } },
+        { id: "fe", type: "nodetool.control.ForEach", data: {} },
+        { id: "mid", type: "nodetool.output.Output", data: { name: "mid" } },
+        { id: "col", type: "nodetool.control.Collect", data: {} },
+        { id: "o", type: "nodetool.output.Output", data: { name: "final" } }
+      ],
+      edges: [
+        { source: "l", sourceHandle: "output", target: "fe", targetHandle: "input_list" },
+        { source: "fe", sourceHandle: "output", target: "mid", targetHandle: "value" },
+        { source: "mid", sourceHandle: "output", target: "col", targetHandle: "input_item" },
+        { source: "col", sourceHandle: "output", target: "o", targetHandle: "value" }
+      ]
+    };
+    const script = workflowToScript(graph, { target: "node" });
+    expect(script.unsupported).toEqual([]);
+    expect(await runNodeScript(script.code, {})).toEqual({ mid: ["a", "b"], final: ["a", "b"] });
+  });
+
+  test("list fan-in with no taken branches skips the downstream node", async () => {
+    const graph: Graph = {
+      nodes: [
+        { id: "a", type: "nodetool.control.If", data: { condition: false, value: ["a"] } },
+        { id: "b", type: "nodetool.control.If", data: { condition: false, value: ["b"] } },
+        { id: "fe", type: "nodetool.control.ForEach", data: { input_list: ["default"] } },
+        { id: "o", type: "nodetool.output.Output", data: { name: "items" } }
+      ],
+      edges: [
+        { source: "a", sourceHandle: "if_true", target: "fe", targetHandle: "input_list" },
+        { source: "b", sourceHandle: "if_true", target: "fe", targetHandle: "input_list" },
+        { source: "fe", sourceHandle: "output", target: "o", targetHandle: "value" }
+      ]
+    };
+    expect(await runNodeScript(workflowToScript(graph, { target: "node" }).code, {})).toEqual({});
+  });
+
+  test("correlation-dependent Zip is rejected during conversion", () => {
+    const script = workflowToScript({ nodes: [{ id: "z", type: "nodetool.control.Zip", data: {} }], edges: [] }, { target: "node" });
+    expect(script.unsupported).toContainEqual(expect.objectContaining({ node_id: "z" }));
+  });
+
+  test("bypass routing retains declared types", async () => {
+    const graph: Graph = {
+      nodes: [
+        { id: "b", type: "nodetool.constant.Bool", data: { value: true } },
+        { id: "s", type: "nodetool.constant.String", data: { value: "kept" } },
+        { id: "if", type: "nodetool.control.If", data: {}, ui_properties: { bypassed: true } },
+        { id: "t", type: "nodetool.text.Template", data: { template: "{string}" } },
+        { id: "o", type: "nodetool.output.Output", data: { name: "result" } }
+      ],
+      edges: [
+        { source: "b", sourceHandle: "output", target: "if", targetHandle: "condition" },
+        { source: "s", sourceHandle: "output", target: "if", targetHandle: "value" },
+        { source: "if", sourceHandle: "if_true", target: "t", targetHandle: "string" },
+        { source: "t", sourceHandle: "output", target: "o", targetHandle: "value" }
+      ]
+    };
+    expect(await runNodeScript(workflowToScript(graph, { target: "node" }).code, {})).toEqual({ result: "kept" });
+  });
+
+  test("display labels cannot inject executable source", async () => {
+    const graph: Graph = {
+      nodes: [{ id: "o", type: "nodetool.output.Output", name: "Result\nglobalThis.labelExecuted = true;\n//", data: { value: "safe" } }],
+      edges: []
+    };
+    await runNodeScript(workflowToScript(graph, { target: "node" }).code, {});
+    expect(Reflect.get(globalThis, "labelExecuted")).toBeUndefined();
+    Reflect.deleteProperty(globalThis, "labelExecuted");
   });
 
   test("a cycle is refused at conversion", () => {
@@ -292,6 +406,6 @@ describe("workflowToScript", () => {
     );
     expect(script.inputs).toEqual([{ name: "maxCount", type: "int" }]);
     expect(script.outputs).toEqual([{ name: "classNode", type: "int" }]);
-    expect(script.code).toContain("const maxCount = inputs.maxCount ?? 3;");
+    expect(script.code).toContain("value: inputs.maxCount ?? 3");
   });
 });

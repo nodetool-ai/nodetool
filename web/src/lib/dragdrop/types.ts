@@ -8,6 +8,7 @@
 import type { ExampleModel } from "../../utils/exampleModels";
 import type {
   Asset,
+  Graph,
   NodeMetadata,
   MessageImageContent,
   MessageVideoContent,
@@ -30,7 +31,9 @@ export type DragDataType =
   | "chat-media" // Generated media block dragged out of the chat view
   | "example-model" // Shipped glTF example model from the Examples panel
   | "example-sketch" // Shipped example sketch, installed on drop
-  | "example-timeline"; // Shipped example timeline, installed on drop
+  | "example-timeline" // Shipped example timeline, installed on drop
+  | "example-storyboard" // Shipped example storyboard, installed on drop
+  | "example-workflow"; // Shipped example workflow, its nodes pasted on drop
 
 /** A single image/video/audio block from a chat message, draggable to canvas. */
 export type ChatMediaDragPayload =
@@ -59,6 +62,12 @@ export interface ExampleDocumentDragPayload {
   name: string;
 }
 
+/** A shipped example workflow, whose graph is pasted onto the canvas. */
+export interface ExampleWorkflowDragPayload {
+  name: string;
+  graph: Graph;
+}
+
 export interface DragPayloadMap {
   "create-node": NodeMetadata;
   asset: Asset;
@@ -72,6 +81,8 @@ export interface DragPayloadMap {
   "example-model": ExampleModel;
   "example-sketch": ExampleDocumentDragPayload;
   "example-timeline": ExampleDocumentDragPayload;
+  "example-storyboard": ExampleDocumentDragPayload;
+  "example-workflow": ExampleWorkflowDragPayload;
 }
 
 interface DragDataFor<T extends DragDataType> {

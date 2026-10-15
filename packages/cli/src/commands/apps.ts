@@ -15,17 +15,20 @@ import type { Command } from "commander";
 import {
   applyBundle,
   bundleFromApplication,
+  operationTarget,
   parseApplicationBundle,
   serializeApplicationBundle,
   type ApplicationBundle,
-  type BundleWorkflowSource
+  type BundleWorkflowSource,
+  type BundleJsScriptSource
 } from "@nodetool-ai/app-runtime";
 import {
   Application,
   Workflow,
   createStableUuid,
   createTimeOrderedUuid,
-  releasedApplicationRelease
+  releasedApplicationRelease,
+  createJsScriptResolver
 } from "@nodetool-ai/models";
 import { checkoutPackageAssetsDir } from "../package-assets.js";
 
@@ -69,8 +72,18 @@ async function collectAppBundle(
   );
 
   const sources: BundleWorkflowSource[] = [];
+  const scripts: BundleJsScriptSource[] = [];
+  const seenScripts = new Set<string>();
   const seen = new Set<string>();
   for (const operation of document.operations) {
+    const target = operationTarget(operation);
+    if (target.kind === "script") {
+      if (seenScripts.has(target.scriptId)) continue;
+      seenScripts.add(target.scriptId);
+      const script = await createJsScriptResolver().resolve({ id: target.scriptId, version: target.scriptVersion }, LOCAL_USER_ID);
+      if (script) scripts.push({ scriptId: target.scriptId, name: script.name, document: script.document, sourceId: target.scriptId, version: target.scriptVersion });
+      continue;
+    }
     if (seen.has(operation.workflowId)) continue;
     seen.add(operation.workflowId);
     const pin = pinned.get(operation.workflowId);
@@ -98,7 +111,8 @@ async function collectAppBundle(
 
   return bundleFromApplication(
     { name: app.name, description: app.description, document },
-    sources
+    sources,
+    scripts
   );
 }
 

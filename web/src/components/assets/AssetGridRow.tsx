@@ -6,17 +6,21 @@ import {
 } from "./assetGridUtils";
 import AssetItem from "./AssetItem";
 import { colorForType } from "../../config/data_types";
-import { IconForType } from "../../config/IconForType";
 import { Asset } from "../../stores/ApiTypes";
-import { Text, Tooltip, BORDER_RADIUS, EYEBROW, SPACING, getSpacingPx } from "../ui_primitives";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import {
+  Box,
+  Caption,
+  EYEBROW,
+  FlexRow,
+  MOTION,
+  SPACING,
+  Text
+} from "../ui_primitives";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
-import {
-  TOOLTIP_ENTER_NEXT_DELAY,
-  TOOLTIP_DESCRIPTION_DELAY
-} from "../../config/constants";
-import { ExpandCollapseButton } from "../ui_primitives";
 import { assetTypeLabel } from "./assetTypeLabels";
+import { AssetGroupIcon } from "./assetGroupIcons";
 
 interface AssetGridRowProps {
   index: number;
@@ -31,8 +35,8 @@ interface AssetGridRowProps {
     handleSelectAsset: (_id: string) => void;
     onDragStart: (_id: string) => string[];
     onDoubleClick: (_asset: Asset) => void;
-    expandedTypes: Set<string>;
-    toggleExpanded: (_type: string) => void;
+    collapsedGroups: ReadonlySet<string>;
+    toggleGroup: (_type: string) => void;
   };
 }
 
@@ -46,8 +50,8 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     selectedAssetIds,
     handleSelectAsset,
     onDoubleClick,
-    expandedTypes,
-    toggleExpanded
+    collapsedGroups,
+    toggleGroup
   } = data;
 
   const theme = useTheme();
@@ -96,14 +100,12 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     }
   }, [openContextMenu, rowItems]);
 
-  const emptyCallback = useCallback(() => {}, []);
-
   const handleToggleExpanded = useCallback(() => {
     if (rowItems.length > 0 && rowItems[0]?.isDivider) {
       const divider = rowItems[0];
-      toggleExpanded(divider.type);
+      toggleGroup(divider.type);
     }
-  }, [rowItems, toggleExpanded]);
+  }, [rowItems, toggleGroup]);
 
   if (rowItems.length === 0) {
     return null;
@@ -114,89 +116,60 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
 
   if (isDividerRow) {
     const divider = rowItems[0];
-    const isExpanded = expandedTypes.has(divider.type);
-
-    const typeLabel = assetTypeLabel(divider.type);
+    const isExpanded = !collapsedGroups.has(divider.type);
 
     return (
-      <Tooltip
-        title={`${isExpanded ? "Collapse" : "Expand"} ${typeLabel.toLowerCase()}`}
-        placement="bottom"
-        delay={TOOLTIP_DESCRIPTION_DELAY}
-        nextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
+      <FlexRow
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        aria-label={`${assetTypeLabel(divider.type)}, ${divider.count} ${
+          divider.count === 1 ? "file" : "files"
+        }`}
+        align="center"
+        gap={SPACING.sm}
+        className="content-type-header"
+        onClick={handleToggleExpanded}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleToggleExpanded();
+          }
+        }}
+        style={{
+          ...style,
+          height: DIVIDER_HEIGHT,
+          padding: `0 ${itemSpacing}px`,
+          boxSizing: "border-box"
+        }}
       >
-        <div
-          role="button"
-          tabIndex={0}
-          style={{
-            ...style,
-            height: DIVIDER_HEIGHT,
-            padding: `${itemSpacing}px ${itemSpacing}px`,
-            boxSizing: "border-box",
-            display: "flex",
-            alignItems: "center",
-            cursor: "pointer",
-            gap: getSpacingPx(SPACING.md)
+        <ExpandMoreIcon
+          className="group-chevron"
+          sx={{
+            fontSize: 16,
+            color: theme.vars.palette.text.secondary,
+            transform: isExpanded ? "none" : "rotate(-90deg)",
+            transition: MOTION.transform
           }}
-          className="content-type-header"
-          onClick={handleToggleExpanded}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handleToggleExpanded();
-            }
-          }}
+        />
+        <AssetGroupIcon
+          group={divider.type}
+          sx={{ fontSize: 16, color: colorForType(divider.type) }}
+        />
+        <Text
+          component="span"
+          sx={{ ...EYEBROW, color: theme.vars.palette.text.secondary, whiteSpace: "nowrap" }}
         >
-          <Text
-            size="small"
-            style={{
-              color: theme.vars.palette.grey[300],
-              lineHeight: 1,
-              whiteSpace: "nowrap"
-            }}
-          >
-            {divider.count}
-          </Text>
-          <IconForType
-            iconName={divider.type}
-            containerStyle={{
-              borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,
-              marginLeft: "0",
-              marginTop: "0"
-            }}
-            bgStyle={{
-              backgroundColor: "transparent",
-              width: "16px"
-            }}
-            showTooltip={false}
-          />
-          <Text
-            style={{
-              ...EYEBROW,
-              color: theme.vars.palette.text.secondary,
-              lineHeight: 1,
-              whiteSpace: "nowrap"
-            }}
-          >
-            {typeLabel}
-          </Text>
-          <div
-            className="divider"
-            style={{
-              flex: 1,
-              height: "2px",
-              backgroundColor: colorForType(divider.type)
-            }}
-          />
-          <ExpandCollapseButton
-            expanded={isExpanded}
-            onClick={emptyCallback}
-            size="small"
-            nodrag={false}
-            sx={{ pointerEvents: 'none' }}
-          />
-        </div>
-      </Tooltip>
+          {assetTypeLabel(divider.type)}
+        </Text>
+        <Caption component="span" color="muted">
+          {divider.count}
+        </Caption>
+        <Box
+          className="divider"
+          sx={{ flex: 1, height: "1px", backgroundColor: theme.vars.palette.divider }}
+        />
+      </FlexRow>
     );
   }
 

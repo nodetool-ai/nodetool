@@ -23,7 +23,7 @@ function entityState(id: string, graph: GameEntityState3D["animationGraph"], ext
 
 describe("live animation state", () => {
   const blending = { graphId: "locomotion", parameters: { speed: 0.4, grounded: true },
-    layers: [{ state: "run", enteredTick: 100, previousState: "idle", previousEnteredTick: 40, transitionTicks: 6 }] };
+    layers: [{ state: "run", transitionIndex: 0, enteredTick: 100, previousState: "idle", previousEnteredTick: 40, transitionTicks: 6 }] };
   const settled = { graphId: "locomotion", parameters: { speed: 0 }, layers: [{ state: "idle", enteredTick: 0 }] };
 
   it("reads the preferred entity, else the first active entity running the graph", () => {
@@ -31,9 +31,9 @@ describe("live animation state", () => {
       entityState("enemy", settled), entityState("other", { ...settled, graphId: "other" }), entityState("hero", blending)
     ] };
     expect(animationGraphLiveState(inspection, "locomotion", "hero")).toEqual({ entityId: "hero", tick: 103,
-      parameters: { speed: 0.4, grounded: true }, layers: [{ state: "run", previousState: "idle", blending: true }] });
+      parameters: { speed: 0.4, grounded: true }, layers: [{ state: "run", previousState: "idle", transitionIndex: 0, blending: true }] });
     expect(animationGraphLiveState(inspection, "locomotion", "missing")?.entityId).toBe("enemy");
-    expect(animationGraphLiveState(inspection, "locomotion", undefined)?.layers).toEqual([{ state: "idle", previousState: undefined, blending: false }]);
+    expect(animationGraphLiveState(inspection, "locomotion", undefined)?.layers).toEqual([{ state: "idle", previousState: undefined, transitionIndex: undefined, blending: false }]);
     expect(animationGraphLiveState(inspection, "unused", "hero")).toBeNull();
     expect(animationGraphLiveState(null, "locomotion", "hero")).toBeNull();
   });
@@ -45,11 +45,11 @@ describe("live animation state", () => {
 
   it("stops reporting the previous state once the transition blend has finished", () => {
     const inspection = { tick: 106, entities: [entityState("hero", blending)] };
-    expect(animationGraphLiveState(inspection, "locomotion", "hero")?.layers[0]).toEqual({ state: "run", previousState: undefined, blending: false });
+    expect(animationGraphLiveState(inspection, "locomotion", "hero")?.layers[0]).toEqual({ state: "run", previousState: undefined, transitionIndex: 0, blending: false });
   });
 
   it("highlights the current and previous state nodes and animates the transition that is blending", () => {
-    const live = { state: "run", previousState: "idle", blending: true };
+    const live = { state: "run", previousState: "idle", transitionIndex: 0, blending: true };
     const nodes = animationGraphNodes(layer, {}, live, { kind: "state", stateId: "jump" }, false);
     expect(nodes.map((node) => [node.id, node.data.live, node.selected])).toEqual([
       ["*", null, false], ["idle", "previous", false], ["run", "current", false], ["jump", null, true], ["orphan", null, false]
@@ -105,4 +105,10 @@ describe("animation graph canvas model", () => {
       { path: ["scenes", 0], message: "Scene problem" }
     ], "locomotion")).toEqual(["layers.0.transitions.1: A transition needs at least one condition or exitTicks"]);
   });
+});
+
+it("highlights only the selected wildcard or parallel transition", () => {
+  const parallel = { ...layer, transitions: [layer.transitions[0], layer.transitions[0], layer.transitions[2]] };
+  expect(animationGraphEdges(parallel, { state: "run", previousState: "idle", blending: true, transitionIndex: 1 }, null, {}).map((edge) => edge.animated)).toEqual([false, true, false]);
+  expect(animationGraphEdges(parallel, { state: "jump", previousState: "idle", blending: true, transitionIndex: 2 }, null, {}).map((edge) => edge.animated)).toEqual([false, false, true]);
 });
