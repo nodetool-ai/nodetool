@@ -1,19 +1,14 @@
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   Box,
-  Caption,
   EmptyState,
   FlexColumn,
   FlexRow,
-  LoadingSpinner
+  LoadingSpinner,
+  SPACING,
+  TruncatedText,
+  TYPOGRAPHY
 } from "../ui_primitives";
 import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
 import { BASE_URL } from "../../stores/BASE_URL";
@@ -22,6 +17,8 @@ import { useSaveAudioToAsset } from "../../hooks/audio/useSaveAudioToAsset";
 import ReportBugButton from "../support/ReportBugButton";
 import WaveformView, { type Selection } from "./WaveformView";
 import AudioEditorToolbar from "./AudioEditorToolbar";
+import AudioTransportBar from "./AudioTransportBar";
+import { formatEditorTime } from "./formatEditorTime";
 import AudioEffectDialog from "./AudioEffectDialog";
 import {
   applyEffect,
@@ -31,7 +28,7 @@ import {
   type EffectParams
 } from "./audioEffects";
 import { useEditHistory } from "./useEditHistory";
-import { createPlayheadStore, type PlayheadStore } from "./playheadStore";
+import { createPlayheadStore } from "./playheadStore";
 import {
   applyGain,
   audioBufferToSample,
@@ -79,34 +76,6 @@ const getAudioContextCtor = (): typeof AudioContext | null => {
   }
   return null;
 };
-
-const formatTime = (seconds: number): string => {
-  const safe = Math.max(0, seconds);
-  const m = Math.floor(safe / 60);
-  const s = Math.floor(safe % 60);
-  const ms = Math.floor((safe % 1) * 1000);
-  return `${m}:${String(s).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
-};
-
-/** Clock in the footer — the only editor text that updates during playback. */
-const PlaybackClock = memo(function PlaybackClock({
-  playhead,
-  duration
-}: {
-  playhead: PlayheadStore;
-  duration: number;
-}) {
-  const seconds = useSyncExternalStore(
-    playhead.subscribe,
-    playhead.get,
-    playhead.get
-  );
-  return (
-    <Caption>
-      {formatTime(seconds)} / {formatTime(duration)}
-    </Caption>
-  );
-});
 
 /**
  * In-browser audio sample editor (Audacity-style): decode an asset into PCM,
@@ -555,28 +524,42 @@ const AudioSampleEditor = ({
     );
   }
 
+  const statusText = hasSelection && selection
+    ? `Selection ${formatEditorTime(selection.start)} – ${formatEditorTime(
+        selection.end
+      )} · ${formatEditorTime(selection.end - selection.start)}`
+    : "Drag to select, click to seek";
+  const status = effectError ? (
+    <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
+      <TruncatedText
+        showTooltip
+        color="error.main"
+        sx={TYPOGRAPHY.sans.caption}
+      >
+        {effectError}
+      </TruncatedText>
+      <ReportBugButton
+        context={{
+          source: "operation-failure",
+          summary: "Audio editor effect failed",
+          errorText: effectError
+        }}
+      />
+    </FlexRow>
+  ) : (
+    <TruncatedText color="text.secondary" sx={TYPOGRAPHY.sans.caption}>
+      {statusText}
+    </TruncatedText>
+  );
+
   return (
     <FlexColumn fullWidth fullHeight sx={{ overflow: "hidden" }}>
       <AudioEditorToolbar
-        isPlaying={isPlaying}
-        loop={loop}
-        zoom={zoom}
-        minZoom={MIN_ZOOM}
-        maxZoom={MAX_ZOOM}
-        canZoomIn={zoom < MAX_ZOOM}
-        canZoomOut={zoom > MIN_ZOOM}
         hasSelection={hasSelection}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
         saving={saving}
         canSave={!loading && !error}
-        onTogglePlay={togglePlay}
-        onStop={stop}
-        onToggleLoop={handleToggleLoop}
-        onZoomIn={zoomIn}
-        onZoomOut={zoomOut}
-        onZoomFit={zoomFit}
-        onZoomChange={setZoom}
         onTrim={handleTrim}
         onDelete={handleDelete}
         onSilence={handleSilence}
@@ -607,38 +590,23 @@ const AudioSampleEditor = ({
         />
       </Box>
 
-      <FlexRow
-        align="center"
-        justify="space-between"
-        sx={{
-          flexShrink: 0,
-          px: 1.5,
-          py: 0.5,
-          borderTop: "1px solid var(--palette-divider)"
-        }}
-      >
-        {effectError ? (
-          <FlexRow align="center" gap={1}>
-            <Caption color="error">{effectError}</Caption>
-            <ReportBugButton
-              context={{
-                source: "operation-failure",
-                summary: "Audio editor effect failed",
-                errorText: effectError
-              }}
-            />
-          </FlexRow>
-        ) : (
-          <Caption>
-            {hasSelection && selection
-            ? `Selection ${formatTime(selection.start)} – ${formatTime(
-                selection.end
-              )} (${formatTime(selection.end - selection.start)})`
-              : "Drag to select · Click to seek"}
-          </Caption>
-        )}
-        <PlaybackClock playhead={playhead} duration={duration} />
-      </FlexRow>
+      <AudioTransportBar
+        isPlaying={isPlaying}
+        loop={loop}
+        playhead={playhead}
+        duration={duration}
+        zoom={zoom}
+        minZoom={MIN_ZOOM}
+        maxZoom={MAX_ZOOM}
+        status={status}
+        onTogglePlay={togglePlay}
+        onStop={stop}
+        onToggleLoop={handleToggleLoop}
+        onZoomIn={zoomIn}
+        onZoomOut={zoomOut}
+        onZoomFit={zoomFit}
+        onZoomChange={setZoom}
+      />
 
       {openEffect && (
         <AudioEffectDialog

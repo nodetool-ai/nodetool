@@ -1,6 +1,8 @@
 import path from "node:path";
 
-import { fetchExternalMedia } from "@nodetool-ai/runtime";
+import { fetchExternalMedia, loadMediaRefBytes } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { resolveModelBytes } from "@nodetool-ai/nodes-utils";
 
 import type {
   JsonResourceRef,
@@ -25,107 +27,61 @@ export function modelBytes(model: unknown): Uint8Array {
 
 export async function modelRefToBytes(
   model: unknown,
-  context?: {
-    storage?: {
-      retrieve(uri: string): Promise<Uint8Array | null>;
-    } | null;
-  }
+  context?: ProcessingContext
 ): Promise<Uint8Array> {
   if (!isObjectLike(model)) return new Uint8Array();
-  const obj = model as Model3DRefLike;
-
-  const inline = toBytes(obj.data);
-  if (inline.length > 0) return inline;
-
-  const uri = obj.uri ?? "";
-  if (!uri) return new Uint8Array();
-
-  if (context?.storage) {
-    const stored = await context.storage.retrieve(uri);
-    if (stored && stored.length > 0) return new Uint8Array(stored);
-  }
-
-  if (uri.startsWith("file://")) {
-    const { readFile } = await import("node:fs/promises");
-    const { fileURLToPath } = await import("node:url");
-    return new Uint8Array(await readFile(fileURLToPath(uri)));
-  }
-
-  if (uri.startsWith("http://") || uri.startsWith("https://")) {
-    // Caller-supplied uri — the media-ref egress policy decides whether this
-    // host opens the socket; a refusal throws and names the URL.
-    const res = await fetchExternalMedia(uri);
-    if (!res.ok) throw new Error(`Failed to fetch model (${res.status}): ${uri}`);
-    return new Uint8Array(await res.arrayBuffer());
-  }
-
-  return new Uint8Array();
+  return resolveModelBytes(model as Model3DRefLike, context);
 }
 
 /**
  * Resolve an image-ref-shaped value (`{uri, data, asset_id, ...}`) to raw
- * image bytes. Accepts inline `data` (base64 string or Uint8Array), a
- * `data:` URI, or — given a `ProcessingContext` — a storage URI / file://
- * URI / http(s) URL.
+ * image bytes through the shared media-ref resolver: inline `data`, a
+ * `data:` URI, an `asset://` URI or bare `asset_id`, a storage URI, a
+ * `file://` URI, or an http(s) URL.
  *
  * Throws when nothing resolvable is present so the caller can surface a
  * clear "missing image" error rather than silently sending zero bytes.
  */
 export async function imageRefToBytes(
   ref: unknown,
-  context?: {
-    storage?: {
-      retrieve(uri: string): Promise<Uint8Array | null>;
-    } | null;
-  }
+  context?: ProcessingContext
 ): Promise<Uint8Array> {
   if (!isObjectLike(ref)) {
     throw new Error("Image input is empty");
   }
-  const obj = ref as { data?: unknown; uri?: string };
-
-  if (obj.data instanceof Uint8Array && obj.data.length > 0) {
-    return new Uint8Array(obj.data);
-  }
-  if (isNonEmptyString(obj.data)) {
-    return Uint8Array.from(Buffer.from(obj.data, "base64"));
-  }
-
+  const obj = ref as {
+    data?: unknown;
+    uri?: string;
+    asset_id?: string | null;
+  };
   const uri = obj.uri ?? "";
-  if (!uri) throw new Error("Image input has no data or uri");
+  if (
+    !uri &&
+    !obj.asset_id &&
+    !(obj.data instanceof Uint8Array && obj.data.length > 0) &&
+    !isNonEmptyString(obj.data)
+  ) {
+    throw new Error("Image input has no data or uri");
+  }
 
-  if (uri.startsWith("data:")) {
-    const comma = uri.indexOf(",");
-    if (comma === -1) throw new Error(`Malformed data URI: ${uri.slice(0, 32)}…`);
-    const meta = uri.slice(0, comma);
-    const payload = uri.slice(comma + 1);
-    if (meta.includes(";base64")) {
-      return Uint8Array.from(Buffer.from(payload, "base64"));
+  const bytes = await loadMediaRefBytes(
+    { data: obj.data, uri, asset_id: obj.asset_id, type: "image" },
+    context,
+    {
+      fetchHttp: async (url) => {
+        // Same policy as every other caller-supplied media uri.
+        const res = await fetchExternalMedia(url);
+        if (!res.ok) {
+          throw new Error(`Failed to fetch image (${res.status}): ${url}`);
+        }
+        return new Uint8Array(await res.arrayBuffer());
+      }
     }
-    return Uint8Array.from(Buffer.from(decodeURIComponent(payload), "utf-8"));
-  }
-
-  if (context?.storage) {
-    const stored = await context.storage.retrieve(uri);
-    if (stored && stored.length > 0) return new Uint8Array(stored);
-  }
-
-  if (uri.startsWith("file://")) {
-    const { readFile } = await import("node:fs/promises");
-    const { fileURLToPath } = await import("node:url");
-    return new Uint8Array(await readFile(fileURLToPath(uri)));
-  }
-
-  if (uri.startsWith("http://") || uri.startsWith("https://")) {
-    // Same policy as every other caller-supplied media uri.
-    const res = await fetchExternalMedia(uri);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch image (${res.status}): ${uri}`);
-    }
-    return new Uint8Array(await res.arrayBuffer());
-  }
-
-  throw new Error(`Unable to resolve image uri: ${uri}`);
+  );
+  if (bytes && bytes.length > 0) return bytes;
+  throw new Error(
+    `Unable to resolve image uri: ${uri || `asset://${obj.asset_id ?? ""}`}`
+  );
 }
 
 export function modelRef(

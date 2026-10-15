@@ -494,7 +494,7 @@ describe("useWorkflowSetupFlow", () => {
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
 
     await userEvent.type(
-      screen.getByPlaceholderText("Summarize a PDF and email it"),
+      screen.getByPlaceholderText("Make a cover image for each title in a list"),
       "x"
     );
     rerender(
@@ -701,7 +701,7 @@ describe("useWorkflowSetupFlow", () => {
     settings = writeWorkflowSetup({}, { stage: "idea", brief: "" });
     renderFlow();
     await userEvent.type(
-      screen.getByPlaceholderText("Summarize a PDF and email it"),
+      screen.getByPlaceholderText("Make a cover image for each title in a list"),
       "abc"
     );
     // Each keystroke reached the document at once.

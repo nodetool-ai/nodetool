@@ -7,7 +7,7 @@
  */
 import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import type { ApplicationBundle } from "@nodetool-ai/app-runtime";
+import { isObjectLike, isString, type ApplicationBundle } from "@nodetool-ai/app-runtime";
 
 const SCHEME = "package://";
 
@@ -31,7 +31,7 @@ export function packageAssetUris(bundle: ApplicationBundle): string[] {
   const found = new Set<string>();
   const visit = (value: unknown, depth: number): void => {
     if (depth > 64) return;
-    if (typeof value === "string") {
+    if (isString(value)) {
       if (packageAssetPath(value)) found.add(value);
       return;
     }
@@ -39,7 +39,7 @@ export function packageAssetUris(bundle: ApplicationBundle): string[] {
       for (const item of value) visit(item, depth + 1);
       return;
     }
-    if (typeof value === "object" && value !== null) {
+    if (isObjectLike(value)) {
       for (const entry of Object.values(value)) visit(entry, depth + 1);
     }
   };
