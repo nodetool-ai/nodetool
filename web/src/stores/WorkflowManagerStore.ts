@@ -633,8 +633,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           const editedDuringSave =
             nodeStore !== nodeStoreBefore ||
             !stateBefore ||
-            current.nodes !== stateBefore.nodes ||
-            current.edges !== stateBefore.edges ||
+            current.editGeneration !== stateBefore.editGeneration ||
             current.workflow !== stateBefore.workflow;
           // Only mark the store clean (and adopt the server's workflow
           // attributes) when nothing changed during the save. If the user

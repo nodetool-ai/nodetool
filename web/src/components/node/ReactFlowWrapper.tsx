@@ -77,6 +77,7 @@ import {
 } from "../../utils/untakenBranches";
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
 import { useFitToScreenRequest } from "../../hooks/useFitToScreenRequest";
+import { useClearInspectorOverlap } from "../../hooks/useClearInspectorOverlap";
 import { useNodeDragDiagnostics } from "../../hooks/useNodeDragDiagnostics";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
@@ -150,6 +151,8 @@ const comfyNodeTypes = Object.fromEntries(
 
 interface ReactFlowWrapperProps {
   workflowId: string;
+  /** False for a tab that is mounted but not shown. Defaults to true. */
+  active?: boolean;
 }
 
 import GhostNode from "./GhostNode";
@@ -176,7 +179,8 @@ import {
 } from "./reactFlowGraphModel";
 
 const ReactFlowWrapper = ({
-  workflowId
+  workflowId,
+  active = true
 }: ReactFlowWrapperProps) => {
   const openSubgraph = useOpenSubgraph();
   const isDarkMode = useIsDarkMode();
@@ -957,6 +961,7 @@ const ReactFlowWrapper = ({
     void reactFlowInstance.fitView({ duration: 400, padding: 0.1 });
   }, [reactFlowInstance]);
   useFitToScreenRequest(shouldFitToScreen, nodeStore, fitToScreen);
+  useClearInspectorOverlap(active);
 
   const snapGrid = useMemo(
     () => [gridSnap, gridSnap] as [number, number],

@@ -76,7 +76,6 @@ import {
   Layer,
   BlendMode,
   coerceBlendMode,
-  summarizeLayerImageReference,
   buildLayersPanelRows,
   getDescendantIds,
   findMergeDownTargetIndex
@@ -1405,7 +1404,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                   fontFamily: "var(--fontFamily2)"
                 }}
               >
-                {summarizeLayerImageReference(activeLayer.imageReference)}
+                {/* The storage path means nothing to a person, so the line
+                    names the image by its layer and keeps the size and fit.
+                    The tooltip on the layer's link icon still carries the
+                    full reference. */}
+                {`${activeLayer.name} · source ${activeLayer.imageReference.naturalWidth}×${activeLayer.imageReference.naturalHeight} · ${activeLayer.imageReference.objectFit}`}
               </Text>
             </Box>
           ) : null}

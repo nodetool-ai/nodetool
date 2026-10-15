@@ -6,6 +6,7 @@ import { useTheme, type Theme } from "@mui/material/styles";
 import {
   AlertBanner,
   CloseButton,
+  CONTROL,
   CopyButton,
   EditorButton,
   FlexRow,
@@ -28,6 +29,12 @@ const easing = {
   exiting: "cubic-bezier(0.4, 0, 1, 1)"
 };
 const MAX_WIDTH = "440px";
+/**
+ * Below this window width the top-right corner holds the home screen's
+ * getting-started checklist, so toasts move to the bottom right, above the
+ * status bar (UX study 3 saw them cover the checklist at 1280 wide).
+ */
+export const TOAST_BOTTOM_BELOW_WIDTH = 1440;
 const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   const typeMap: Record<string, AlertColor> = {
     error: "error",
@@ -43,7 +50,7 @@ const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   return typeMap[type] || "info";
 };
 
-const styles = (theme: Theme) =>
+export const styles = (theme: Theme) =>
   css({
     position: "fixed",
     top: "68px",
@@ -120,10 +127,15 @@ const styles = (theme: Theme) =>
         transition: `opacity ${TRANSITION_DURATION}ms ${easing.exiting}, transform ${TRANSITION_DURATION}ms ${easing.exiting}`
       }
     },
+    [`@media (max-width: ${TOAST_BOTTOM_BELOW_WIDTH - 1}px)`]: {
+      top: "auto",
+      bottom: `calc(${CONTROL.height.md}px + ${getSpacingPx(SPACING.md)})`
+    },
     // Phones: span the viewport between equal gutters instead of hugging
     // the text at a fixed offset from the right edge.
     [theme.breakpoints.down("sm")]: {
       top: "56px",
+      bottom: "auto",
       left: getSpacingPx(SPACING.md),
       right: getSpacingPx(SPACING.md),
       alignItems: "stretch",

@@ -262,6 +262,12 @@ class BrowserSession {
           : "A file picker opened. You have no files to pick, so it closed."
       );
     });
+    page.on("download", (download) => {
+      this.pendingEvents.push(
+        `The browser downloaded a file: “${download.suggestedFilename()}”.`
+      );
+      void this.privateLog("download", { url: download.url() });
+    });
     page.on("close", () => {
       const pages = this.context.pages();
       const last = pages[pages.length - 1];

@@ -132,6 +132,11 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
     [onChange, addRecent]
   );
 
+  const selectedModel = useMemo(
+    () => (value ? { id: value, provider } : undefined),
+    [value, provider]
+  );
+
   if (inStudio) {
     return (
       <CuratedModelSelect
@@ -164,6 +169,7 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
         task={task}
         recommendedModels={recommendedModels}
         modelPacks={modelPacks}
+        selectedModel={selectedModel}
       />
     </>
   );
