@@ -37,7 +37,7 @@ export const DEFAULT_INSTALLER_OPERATIONS: InstallerOperations = {
   npmVersion: installerNpmVersion, npm: runInstallerNpm, loadCheck: childLoadCheck
 };
 
-/** Additive install transaction. No command can enable it without both flag and authorization. */
+/** Additive install transaction. Requires a live command authorization. */
 export async function installPacks(request: InstallPacksRequest, authorization: InstallAuthorization, operations: InstallerOperations = DEFAULT_INSTALLER_OPERATIONS): Promise<DesiredPackState> {
   return installPacksTransaction(request, authorization, operations, "install");
 }
@@ -48,7 +48,6 @@ export async function repairPackInstallation(request: InstallPacksRequest, autho
 }
 
 async function installPacksTransaction(request: InstallPacksRequest, authorization: InstallAuthorization, operations: InstallerOperations, operation: "install" | "repair"): Promise<DesiredPackState> {
-  if (process.env["NODETOOL_PACKS_INSTALLER"] !== "1") { throw new Error("Node pack installer is disabled. Set NODETOOL_PACKS_INSTALLER=1 to enable the preview."); }
   const { mode } = request;
   if (mode.kind !== "global" && mode.kind !== "local") { throw new Error(mode.reason); }
   assertLiveInstallAuthorization(authorization);

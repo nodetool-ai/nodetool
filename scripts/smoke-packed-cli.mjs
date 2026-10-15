@@ -1,32 +1,5 @@
 #!/usr/bin/env node
-/**
- * Install `@nodetool-ai/cli` from packed tarballs and check that it runs the
- * way an agent uses it on a clean machine: no repository, no `.env`, no
- * keychain, no provider keys. A fresh test-only master key keeps secret-store
- * initialization independent of the host keychain.
- *
- * By default every public workspace is packed with `npm pack`. Pass
- * `--tarballs-dir` to reuse the release tarballs. A throwaway project
- * depends on the CLI tarball, and `overrides` point every other workspace
- * name at its tarball, so npm resolves the whole tree the way the registry
- * would after a complete publish, without touching the registry for our own
- * packages. Run it after `prepare-publish.mjs` and before `npm publish`: a
- * failure here means the release would not install or start.
- *
- * Checks, each against an empty HOME:
- *   1. `nodetool --version` prints the workspace version.
- *   2. `nodetool --help` lists the agent harness commands.
- *   3. `nodetool mcp serve` answers initialize and lists tools. Core-only also
- *      runs a core workflow through execute_code.
- *   4. JSON and TypeScript DSL workflows run without calling a model.
- *   5. Mediabunny decodes the checked-in audio/video fixture.
- *   6. `nodetool serve` answers `GET /health`.
- * Core-only additionally imports the DSL, validates a missing FAL node's
- * properties, checks its run fails, and rejects excluded installed packages.
- *
- * Usage:
- *   node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>] [--tarballs-dir <dir>] [--core-only]
- */
+/** Install original release artifacts and exercise real core and optional pack consumers. */
 
 import { randomBytes } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
@@ -47,12 +20,15 @@ import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { CORE_PACKAGES, NODE_PACKS, RUNTIME_LIBRARIES } from "./node-catalog/tiers.mjs";
+import { NODE_PACKS, RUNTIME_LIBRARIES } from "./node-catalog/tiers.mjs";
+
+import { startPackedRegistry, artifactIntegrity } from "./packed-registry.mjs";
+import { runFalFixture } from "./packed-fal-fixture.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const PACKAGE_ROOTS = ["packages", "reliability"];
 const CLI_NAME = "@nodetool-ai/cli";
-const CORE_INSTALL_BUDGET_KIB = 892_097;
+export const CORE_INSTALL_BUDGET_KIB = 892_097;
 export const REQUIRED_COMMANDS = [
   "run", "info", "serve", "chat", "workflows", "jobs", "assets", "models", "storage",
   "secrets", "settings", "mcp", "projects", "package", "packs", "runtime", "worker",
@@ -82,37 +58,23 @@ function publicPackages() {
   return found.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/**
- * The throwaway project manifest: depend on the CLI tarball, and override
- * every other workspace name with its tarball. npm refuses an override that
- * conflicts with a direct dependency, so the CLI is not overridden.
- */
-export function smokeManifest(tarballs) {
-  const overrides = {};
-  for (const [name, file] of Object.entries(tarballs)) {
-    if (name !== CLI_NAME) overrides[name] = `file:${file}`;
-  }
-  return {
-    name: "nodetool-packed-smoke",
-    private: true,
-    dependencies: { [CLI_NAME]: `file:${tarballs[CLI_NAME]}` },
-    overrides
-  };
-}
-
-const CORE_NODE_PACKAGES = ["core-nodes", "text-nodes", "data-nodes", "llm-nodes", "code-nodes"].map(name => `@nodetool-ai/${name}`);
 const EXCLUDED_PACKAGES = new Set(["@nodetool-ai/base-nodes", ...NODE_PACKS.flatMap(pack => [pack.npmName, ...pack.provides])]);
 
-/** Test-only manifest cut. The published CLI keeps its bundled packs until A24. */
-export function coreOnlyCliManifest(manifest) {
-  const result = structuredClone(manifest);
-  for (const field of ["dependencies", "optionalDependencies", "peerDependencies", "peerDependenciesMeta"]) {
-    if (!result[field]) { continue; }
-    for (const name of EXCLUDED_PACKAGES) { delete result[field][name]; }
+export function assertInstalledSelection(output, selected) {
+  const rows = JSON.parse(output);
+  if (!Array.isArray(rows) || selected.length === 0) { throw new Error("Pack selection audit requires installed rows and selected packs"); }
+  for (const id of selected) {
+    if (!rows.some(row => row.id === id && row.installed === true)) { throw new Error(`Selected pack was not installed: ${id}`); }
   }
-  result.dependencies ??= {};
-  for (const name of CORE_NODE_PACKAGES) { result.dependencies[name] = manifest.version; }
-  return result;
+  for (const row of rows) {
+    if (row.kind === "runtime-library" && row.requiredBy.some(id => selected.includes(id)) && !row.installed) { throw new Error(`Required runtime was not installed: ${row.id}`); }
+  }
+}
+
+function assertDesiredSelection(env, root, selected) {
+  const data = process.platform === "win32" ? join(env.HOME, "AppData", "Roaming") : env.XDG_DATA_HOME;
+  const state = JSON.parse(readFileSync(join(data, "nodetool", "cli-packs.json"), "utf8"))[realpathSync(root)];
+  if (!state || state.dirty || selected.some(id => !state.packs.includes(id))) { throw new Error("Installed selection was not persisted as clean desired state"); }
 }
 
 export function assertCoreInstallSize(diskUsage, maxKiB) {
@@ -122,20 +84,6 @@ export function assertCoreInstallSize(diskUsage, maxKiB) {
   if (!Number.isSafeInteger(measuredKiB) || measuredKiB <= 0) { throw new Error(`Invalid core install disk usage: ${JSON.stringify(diskUsage)}`); }
   if (measuredKiB > maxKiB) { throw new Error(`Core install uses ${measuredKiB} KiB, exceeding the ${maxKiB} KiB limit`); }
   return measuredKiB;
-}
-
-export function repackCoreCli(file, dest) {
-  const staging = mkdtempSync(join(dest, "cli-repack-"));
-  try {
-    run("tar", ["-xzf", file, "-C", staging], {});
-    const manifestFile = join(staging, "package", "package.json");
-    const manifest = JSON.parse(readFileSync(manifestFile, "utf8"));
-    if (manifest.name !== CLI_NAME) { throw new Error(`Expected ${CLI_NAME}, got ${manifest.name}`); }
-    writeFileSync(manifestFile, `${JSON.stringify(coreOnlyCliManifest(manifest), null, 2)}\n`);
-    return pack([{ name: CLI_NAME, dir: join(staging, "package") }], dest)[CLI_NAME];
-  } finally {
-    rmSync(staging, { recursive: true, force: true });
-  }
 }
 
 /** Enumerate installed manifests, including nested and scoped packages. */
@@ -482,54 +430,42 @@ async function main() {
     }
   });
   if (values.help) {
-    console.log(`Usage: node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>] [--tarballs-dir <dir>] [--core-only]
+    console.log(`Usage: node scripts/smoke-packed-cli.mjs [--keep] [--work-dir <dir>] --tarballs-dir <dir> [--core-only]
 
-Packs every public workspace, installs ${CLI_NAME} from the tarballs into an
-empty project, and runs it against an empty HOME.
+Installs ${CLI_NAME} from original pinned release tarballs into isolated
+project and global consumers, each with an empty HOME.
 
-  --core-only       Repack the CLI without on-demand node packs and check the isolated core
+  --core-only       Exercise the core and install only FAL after the core checks
   --keep            Keep the work directory for inspection
   --work-dir <dir>  Use this directory instead of a new temp directory
   --tarballs-dir <dir>  Reuse release tarballs, checking workspace names and versions`);
     return;
   }
 
+  if (!values["tarballs-dir"]) { throw new Error("--tarballs-dir is required. Prepare pinned artifacts with publish-packages.mjs --pack-only first."); }
+
   const work = values["work-dir"]
     ? resolve(values["work-dir"])
     : mkdtempSync(join(tmpdir(), "nodetool-packed-"));
-  const tarballDir = join(work, "tarballs");
   const appDir = join(work, "app");
   const home = join(work, "home");
-  for (const d of [tarballDir, appDir, home]) mkdirSync(d, { recursive: true });
+  for (const d of [appDir, home]) mkdirSync(d, { recursive: true });
 
+  let registry;
+  let hashes;
   try {
-    const packages = publicPackages().filter(pkg => !values["core-only"] || CORE_PACKAGES.includes(pkg.name));
+    const packages = publicPackages();
     const cli = packages.find((p) => p.name === CLI_NAME);
     if (!cli) throw new Error(`${CLI_NAME} is not a public workspace`);
 
-    const tarballs = values["tarballs-dir"]
-      ? existingTarballs(packages, resolve(values["tarballs-dir"]))
-      : pack(packages, tarballDir);
-    if (values["core-only"]) {
-      for (const [name, file] of Object.entries(tarballs)) {
-        const copied = join(tarballDir, file.split(/[\\/]/).pop());
-        if (resolve(file) !== resolve(copied)) { copyFileSync(file, copied); }
-        tarballs[name] = copied;
-      }
-      tarballs[CLI_NAME] = repackCoreCli(tarballs[CLI_NAME], tarballDir);
-    }
-    console.log(`Using ${packages.length} packed package(s)${values["core-only"] ? " for core-only smoke" : ""}`);
-
-    writeFileSync(
-      join(appDir, "package.json"),
-      `${JSON.stringify(smokeManifest(tarballs), null, 2)}\n`
-    );
-    console.log(`Installing ${CLI_NAME} from tarballs in ${appDir}`);
-    run("npm", ["install", "--no-audit", "--no-fund", "--loglevel=error"], {
-      cwd: appDir,
-      stdio: ["ignore", "pipe", "pipe"]
-    });
-    if (values["core-only"]) {
+    const tarballs = existingTarballs(packages, resolve(values["tarballs-dir"]));
+    hashes = Object.entries(tarballs).map(([name, file]) => ({ name, file, integrity: artifactIntegrity(file) }));
+    registry = await startPackedRegistry(tarballs);
+    writeFileSync(join(home, ".npmrc"), `registry=${registry.url}\ncache=${join(work, "npm-cache")}\n`);
+    const env = { ...cleanEnv(home), SECRETS_MASTER_KEY: randomBytes(32).toString("base64") };
+    writeFileSync(join(appDir, "package.json"), JSON.stringify({ name: "nodetool-packed-smoke", private: true }));
+    run("npm", ["install", "--no-audit", "--no-fund", "--loglevel=error", `${CLI_NAME}@${cli.version}`], { cwd: appDir, env });
+    {
       const inspected = assertCoreOnlyInstall(appDir);
       console.log(`ok  core-only guard inspected ${inspected} installed packages`);
       run(process.execPath, ["--input-type=module", "-e", 'await import("@nodetool-ai/dsl");'], { cwd: appDir, timeout: 120_000 });
@@ -537,13 +473,12 @@ empty project, and runs it against an empty HOME.
     }
     const diskUsage = run("du", ["-sk", "node_modules"], { cwd: appDir }).trim();
     console.log(`Packed CLI disk usage (KiB): ${diskUsage}`);
-    if (values["core-only"] && process.platform === "linux" && process.arch === "x64") {
+    if (process.platform === "linux" && process.arch === "x64") {
       const measuredKib = assertCoreInstallSize(diskUsage, CORE_INSTALL_BUDGET_KIB);
       console.log(`ok  core-only size ${measuredKib} KiB <= ${CORE_INSTALL_BUDGET_KIB} KiB`);
     }
 
     const bin = join(appDir, "node_modules", ".bin", "nodetool");
-    const env = { ...cleanEnv(home), SECRETS_MASTER_KEY: randomBytes(32).toString("base64") };
     const cliOptions = { env, cwd: appDir, timeout: 120_000 };
 
     const version = run(bin, ["--version"], cliOptions).trim();
@@ -558,7 +493,7 @@ empty project, and runs it against an empty HOME.
     }
     console.log(`ok  nodetool --help lists ${REQUIRED_COMMANDS.join(", ")}`);
 
-    const coreWorkflow = values["core-only"] ? JSON.parse(readFileSync(join(ROOT, NO_MODEL_WORKFLOW), "utf8")).graph : undefined;
+    const coreWorkflow = JSON.parse(readFileSync(join(ROOT, NO_MODEL_WORKFLOW), "utf8")).graph;
     const tools = await probeMcp(bin, env, appDir, coreWorkflow);
     if (tools === 0) throw new Error("nodetool mcp serve listed no tools");
     console.log(`ok  nodetool mcp serve lists tools${coreWorkflow ? " and runs a core workflow through execute_code" : ` (${tools})`}`);
@@ -593,7 +528,7 @@ empty project, and runs it against an empty HOME.
     }
     console.log("ok  nodetool run executes a TypeScript workflow without downloads");
 
-    if (values["core-only"]) {
+    {
       const falFixture = join(appDir, "missing-fal.json");
       writeFileSync(falFixture, JSON.stringify({ graph: missingFalGraph() }));
       const validated = spawnSync(bin, ["validate", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
@@ -622,7 +557,43 @@ empty project, and runs it against an empty HOME.
 
     await probeServe(bin, env, appDir);
     console.log("ok  nodetool serve answers /health");
+
+    const selectedPacks = values["core-only"] ? ["fal"] : NODE_PACKS.map(pack => pack.id);
+    run(bin, ["packs", "add", ...selectedPacks, "--yes"], { ...cliOptions, timeout: 900_000 });
+    assertInstalledSelection(run(bin, ["packs", "list", "--json"], cliOptions), selectedPacks);
+    assertDesiredSelection(env, appDir, selectedPacks);
+    run(bin, ["packs", "doctor", "--installed", "--json"], cliOptions);
+    runFalFixture(realpathSync(bin), appDir, env, run);
+    console.log(`ok  actual packs add installed ${selectedPacks.join(", ")} and FAL workflow completed`);
+
+    const prefix = join(work, "global");
+    const globalHome = join(work, "global-home");
+    const globalCwd = join(work, "global-consumer");
+    for (const directory of [globalHome, globalCwd]) { mkdirSync(directory, { recursive: true }); }
+    writeFileSync(join(globalHome, ".npmrc"), `registry=${registry.url}\nprefix=${prefix}\ncache=${join(work, "npm-cache")}\n`);
+    const globalEnv = { ...cleanEnv(globalHome), SECRETS_MASTER_KEY: randomBytes(32).toString("base64") };
+    run("npm", ["install", "--global", "--prefix", prefix, "--no-audit", "--no-fund", `${CLI_NAME}@${cli.version}`], { cwd: globalCwd, env: globalEnv, timeout: 900_000 });
+    const globalRoot = join(prefix, process.platform === "win32" ? "node_modules" : "lib/node_modules", "@nodetool-ai/cli");
+    assertCoreOnlyInstall(globalRoot);
+    if (process.platform === "linux" && process.arch === "x64") {
+      assertCoreInstallSize(run("du", ["-sk", "node_modules"], { cwd: process.platform === "win32" ? prefix : join(prefix, "lib") }), CORE_INSTALL_BUDGET_KIB);
+    }
+    const globalEntry = join(globalRoot, "dist/nodetool.js");
+    const globalOptions = { cwd: globalCwd, env: globalEnv, timeout: 900_000 };
+    if (run(process.execPath, [globalEntry, "--version"], globalOptions).trim() !== cli.version) { throw new Error("Global CLI version differs"); }
+    run(process.execPath, [globalEntry, "packs", "add", ...selectedPacks, "--yes"], globalOptions);
+    assertInstalledSelection(run(process.execPath, [globalEntry, "packs", "list", "--json"], globalOptions), selectedPacks);
+    assertDesiredSelection(globalEnv, globalRoot, selectedPacks);
+    run(process.execPath, [globalEntry, "packs", "doctor", "--installed", "--json"], globalOptions);
+    runFalFixture(globalEntry, globalCwd, globalEnv, run);
+    console.log("ok  global packed CLI installs packs and executes the FAL workflow");
+
+
   } finally {
+    await registry?.close();
+    for (const artifact of hashes ?? []) {
+      if (artifactIntegrity(artifact.file) !== artifact.integrity) { throw new Error(`Original artifact changed: ${artifact.name}`); }
+    }
     if (values.keep || values["work-dir"]) {
       console.log(`Work directory kept at ${work}`);
     } else {

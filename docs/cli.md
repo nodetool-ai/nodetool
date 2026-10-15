@@ -2616,9 +2616,9 @@ nodetool package node-docs --package-name nodetool.text
 
 ### `nodetool packs`
 
-Manage node packs and npm runtime libraries for a global CLI installation or
-an npm project. Mutation is a preview feature enabled with
-`NODETOOL_PACKS_INSTALLER=1`. Temporary npx installations and development
+The npm CLI includes core, text, data, LLM, and code nodes. Install other node
+packs and npm runtime libraries with `nodetool packs` in a global CLI
+installation or an npm project. Temporary npx installations and development
 checkouts support diagnostics but refuse installation changes.
 
 | Command | Behavior |
@@ -2636,7 +2636,9 @@ checkouts support diagnostics but refuse installation changes.
 Add commands prompt with package versions, size estimates, approved scripts
 and local manifest changes. Use `--yes` in a non-interactive terminal. Local
 installation updates package.json and package-lock.json. Restart running
-servers after adding or removing packs.
+servers after adding or removing packs. After upgrading the CLI, use
+`nodetool packs add --restore` to reinstall the recorded pack and runtime set
+for that installation root.
 
 `run`, `debug`, `node run` and `workflows run` accept `--install-missing`.
 `NODETOOL_AUTO_INSTALL=1` also authorizes those commands. They install missing

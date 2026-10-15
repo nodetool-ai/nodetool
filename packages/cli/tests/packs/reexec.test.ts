@@ -78,7 +78,6 @@ describe("install and re-execute missing packs", () => {
   });
 
   it("leaves external runtime failures outside npm installation", async () => {
-    vi.stubEnv("NODETOOL_PACKS_INSTALLER", "1");
     const snapshot = vi.fn(async () => { throw new Error("unexpected inventory"); });
     for (const runtime of ["ffmpeg", "blender", "python"] as const) {
       expect(await installMissingPacksAndReexec(missingRuntimePackageError(runtime, runtime), {
@@ -88,14 +87,11 @@ describe("install and re-execute missing packs", () => {
     expect(snapshot).not.toHaveBeenCalled();
   });
 
-  it("does no inventory or install work on a re-executed process or outside the preview gate", async () => {
+  it("does no inventory or install work on a re-executed process", async () => {
     const missing = createMissingPackError("game");
     const snapshot = vi.fn(async () => { throw new Error("unexpected inventory"); });
-    for (const [preview, reexec] of [["1", "1"], [undefined, undefined]]) {
-      vi.stubEnv("NODETOOL_PACKS_INSTALLER", preview);
-      vi.stubEnv("NODETOOL_PACKS_REEXEC", reexec);
-      expect(await installMissingPacksAndReexec(missing, { command: "run", installMissing: true }, { snapshot })).toBeNull();
-    }
+    vi.stubEnv("NODETOOL_PACKS_REEXEC", "1");
+    expect(await installMissingPacksAndReexec(missing, { command: "run", installMissing: true }, { snapshot })).toBeNull();
     expect(snapshot).not.toHaveBeenCalled();
   });
 });

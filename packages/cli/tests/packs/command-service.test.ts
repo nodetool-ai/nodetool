@@ -11,6 +11,7 @@ afterEach(async () => { vi.restoreAllMocks(); vi.unstubAllEnvs(); await disposeP
 
 describe("node command services with actual npm", () => {
   it("adds with --yes, reports the installed tree, verifies registration and explicitly restores recorded intent", async () => {
+    vi.stubEnv("NODETOOL_PACKS_INSTALLER", undefined);
     const f = await setupPackRegistry();
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -41,13 +42,13 @@ describe("node command services with actual npm", () => {
     expect(readInstalledPacks(f.request.mode, catalog).packs.map(pack => pack.id)).toEqual(["fixture"]);
   }, 60_000);
 
-  it("requires noninteractive confirmation and refuses preview-disabled installs before npm", async () => {
+  it("requires noninteractive confirmation before npm", async () => {
     const f = await setupPackRegistry();
     const npm = vi.spyOn(f.operations, "npm");
     const service = await createPackCommandServices({ snapshot: readInstalledPacks(f.request.mode, f.request.catalog),
       catalog: f.request.catalog, stateFile: f.request.stateFile, operations: f.operations });
-    vi.stubEnv("NODETOOL_PACKS_INSTALLER", "0");
-    await expect(service.add(["fixture"], { yes: true })).rejects.toThrow("disabled");
+    vi.stubEnv("CI", "1");
+    await expect(service.add(["fixture"], {})).rejects.toThrow("Use --yes");
     expect(npm).not.toHaveBeenCalled();
   }, 60_000);
 

@@ -18,7 +18,7 @@ decision codes of the pack spec.
 | A0.3 | Land each assignment as one commit, or as a series that is green at each commit. Run the [mandatory post-change verification](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification) before each commit. |
 | A0.4 | Run `npm run backend:smoke` for each assignment that changes a manifest, the server entry, or a lazy import. The desktop bundle flattens modules, so a cut can pass in the monorepo and fail in the artifact. |
 | A0.5 | Make each new gate fail on deliberately invalid input before you enforce it (pack spec 19.2). |
-| A0.6 | Do not change the published CLI until A24. Before A24, the CLI manifest keeps its node packs, and the installer stays behind `NODETOOL_PACKS_INSTALLER=1`. |
+| A0.6 | Keep the published CLI bundled until the A13 release proof passes. A24 switches the CLI to core dependencies and enables authorized pack installation by default. |
 | A0.7 | When an assignment changes a decision, update the pack spec in the same commit. |
 
 ## 2. Plan decisions
@@ -215,8 +215,8 @@ rebuilds and imports.
 | CLI registry | `packages/cli/src/node-registry.ts:12-15`, `packages/cli/src/nodetool-main.ts:46`, `packages/cli/src/providers.ts:38-42` | Static pack and provider imports. |
 | Lazy modules | `packages/config/src/optional-modules.ts`, `packages/cli/src/optional-node-root.ts`, `packages/cli/src/commands/runtime.ts` | `importOptionalModule` and the `runtime` command exist. A19 extracts the npm runner from `optional-node-root.ts`. |
 | Image codecs | `packages/runtime/src/image-codec.ts` | `sharp` is lazy already. Its error text names `npm install sharp`. A4.1 changes it to the `imaging` runtime error. |
-| Packed smoke | `scripts/smoke-packed-cli.mjs` | Packs every public workspace and installs the CLI tarball into a throwaway project with `overrides`. A7 and A8 extend it. |
-| Publishing | `.github/workflows/publish.yaml:19,83-97`, `scripts/publish-packages.mjs`, `scripts/prepare-publish.mjs` | Uses `NODE_AUTH_TOKEN` and `--provenance`. A13. |
+| Packed smoke | `scripts/smoke-packed-cli.mjs` | Installs original pinned release artifacts through an isolated registry. Core purity and size checks precede authorized optional-pack installation. |
+| Publishing | `.github/workflows/publish.yaml`, `scripts/publish-packages.mjs`, `scripts/prepare-publish.mjs` | Uses npm trusted publishing and provenance. Original artifacts pass staging verification before promotion, with the CLI last. |
 | Test selection | `scripts/test-affected.mjs` (`PATH_CHECKS`), `packages/cli/src/harness/registry.ts` | A1 adds the catalog drift check. |
 | Validation | `packages/node-sdk/src/registry.ts` (`NodeMetadataSource`), `packages/node-sdk/src/graph-validation.ts` | A3. |
 
@@ -668,7 +668,7 @@ the structured error. The run continues after the error.
 
 ## 8. Phase 4: installer (pack spec step 4)
 
-The installer stays behind `NODETOOL_PACKS_INSTALLER=1` until A24.
+A24 enables the installer by default. Installation still requires CLI authorization and remains unavailable inside serve and MCP processes.
 
 ### A18. The install lock
 
@@ -777,10 +777,13 @@ A second re-executed process never installs.
 
 **Blocked by:** every assignment above.
 
-1. Remove the 14 node packs and `game-renderer` from
-   `packages/cli/package.json`.
-2. Make the full packed smoke install packs through `packs add`.
-3. Remove `NODETOOL_PACKS_INSTALLER`.
+1. Remove the optional pack and companion dependencies from
+   `packages/cli/package.json`. Keep the core, text, data, LLM and code node
+   packages as explicit dependencies.
+2. Make the packed smoke consume the original pinned release tarballs without
+   changing their manifests. Verify the clean core before installing optional
+   packs through `packs add`.
+3. Remove the preview flag while retaining explicit install authorization.
 4. Update `docs/cli.md` and `docs/node-packs.md`. Add a release note about
    `packs add --restore`.
 
@@ -788,7 +791,10 @@ A second re-executed process never installs.
 
 - A clean `npm install -g @nodetool-ai/cli@<staging>` is within the size
   gate.
-- `packs add fal` followed by a `fal` workflow run succeeds.
+- `packs add fal` followed by a real installed FAL node workflow succeeds
+  with deterministic responses and no provider API spend.
+- Global registry installation and signature verification run before promotion.
+  Failure leaves the final release tag unchanged.
 
 ## 10. Dependency order
 

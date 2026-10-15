@@ -234,9 +234,10 @@ it at runtime.
 ### 6.4 Clean-core tests
 
 The monorepo tree contains every pack, so in-repo Jest cannot prove the cut.
-`scripts/smoke-packed-cli.mjs` already installs packed tarballs into an empty
-project and runs the CLI against an empty HOME. It gains a core-only variant
-that installs the CLI tarball with no pack tarballs available:
+`scripts/smoke-packed-cli.mjs` installs the original pinned release tarballs
+through an isolated registry into an empty project or global prefix, with an
+empty HOME. It does not rewrite the CLI manifest. The core checks run before
+any optional pack installation:
 
 1. `nodetool --help` lists every command, including those that need packs.
 2. `node -e 'import("@nodetool-ai/dsl")'` from the install root succeeds.
@@ -256,6 +257,11 @@ that installs the CLI tarball with no pack tarballs available:
    resolved `@typescript/typescript6` wrapper. The exceptions must resolve from
    those dependents and satisfy their declared ranges. The check fails on a
    deliberately added pack before it is enforced.
+
+After the clean-core checks, the smoke uses the real authorized installer to
+add FAL and runs an installed FAL node with deterministic responses. The full
+smoke installs the optional packs through `packs add`. Registry staging
+verification also exercises a clean global install before promotion.
 
 ## 7. Shared third-party identity (F4)
 

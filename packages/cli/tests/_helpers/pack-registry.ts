@@ -100,7 +100,6 @@ export async function setupPackRegistry(conflict = false, options: { readonly tl
   const catalog: NodeCatalogIndex = { schemaVersion: 1, coreVersion: "1.0.0", owners: {}, packs: [{ id: "fixture", kind: "node-pack",
     npm: { name: pinned.name, version: pinned.version, integrity: pinned.integrity }, registrar: "register", provides: [], requires: [], runtimeLibraries: [], secrets: [],
     scriptAllowlist: options.allowScript ? [{ name: pinned.name, version: pinned.version, integrity: pinned.integrity }] : [], installBytes: 1, nodeCount: 0 }] };
-  vi.stubEnv("NODETOOL_PACKS_INSTALLER", "1");
   const request = { mode: { kind: "local" as const, installRoot: root, nodeModulesRoot: join(root, "node_modules"), cliRoot: root, coreVersion: "1.0.0", pathStyle: process.platform === "win32" ? "win32" as const : "posix" as const },
     packs: ["fixture"], catalog, stateFile: join(directory, "cli-packs.json") };
   const operations: InstallerOperations = { npmVersion: installerNpmVersion, npm: run,

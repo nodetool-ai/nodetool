@@ -8,15 +8,27 @@ Flag-level reference for the CLI: [cli.md](cli.md).
 
 ## Packed CLI smoke
 
-After `npm run build:packages`, run `node scripts/smoke-packed-cli.mjs` to
-install the public package tarballs into an isolated project and exercise the
-CLI. Add `--core-only` to repack the test CLI without on-demand node packs.
-The published CLI manifest retains its packs until the final switch.
+After `npm run build:packages`, prepare and pin the original release artifacts:
 
-The core smoke runs JSON and TypeScript workflows, executes a workflow through
-local MCP, starts the HTTP server, checks catalog validation for an absent FAL
-pack, and decodes audio and video through the installed media codecs. It audits
-nested installed packages for accidental pack or optional-library dependencies.
+```bash
+node scripts/prepare-publish.mjs
+node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts
+node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts
+node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts
+```
+
+The smoke requires an existing tarball directory and never rewrites those artifacts.
+Both modes install the actual CLI into isolated project and global consumers.
+The core checks run JSON and TypeScript workflows, execute a workflow through
+local MCP, start the HTTP server, validate an absent FAL pack, and decode audio
+and video through the installed media codecs. The installed-tree audit rejects
+accidental pack or optional-library dependencies before adding packs.
+
+Core mode installs FAL through `packs add`. Full mode installs every catalog
+node pack, retaining the optional coverage formerly provided by `base-nodes`.
+Both execute the installed FAL node with a deterministic queue response fixture.
+The fixture rejects unexpected network requests and never calls the live FAL API.
+
 The compiler exceptions and their range checks are defined in
 [plan D23](cli-pack-system-plan.md#d23-compiler-dependencies-required-by-core-packages).
 

@@ -92,7 +92,6 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
         return;
       }
       assertPackInstallProcessAllowed();
-      if (process.env["NODETOOL_PACKS_INSTALLER"] !== "1") { throw new Error("Node pack installer is disabled. Set NODETOOL_PACKS_INSTALLER=1 to enable the preview."); }
       const installRequest = request(selected.packs, selected.runtimeLibraries);
       const installed = await installWithCommandAuthorization({
         authorize: () => authorizePackInstallCommand({ request: installRequest,

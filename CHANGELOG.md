@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The npm CLI includes core node packages by default. Install optional packs
+  with `nodetool packs add`. After upgrading, restore the recorded pack and
+  runtime set with `nodetool packs add --restore`. Restart running server and
+  MCP processes after changing packs.
+
 ## [September 2026]
 
 Shipped [v0.7.0](https://github.com/nodetool-ai/nodetool/releases/tag/v0.7.0).

@@ -39,7 +39,6 @@ async function fixture() {
     return "";
   });
   const operations: InstallerOperations = { npmVersion: async () => "11.16.0", npm, loadCheck: vi.fn(async () => {}) };
-  vi.stubEnv("NODETOOL_PACKS_INSTALLER", "1");
   return { root, request, operations, npm, add };
 }
 
@@ -57,10 +56,8 @@ describe("pack installer", () => {
     expect(() => assertAdditivePlan({ add: [{ name: "shared", version: "1" }, { name: "shared", version: "1" }], change: [], remove: [] }, [], new Set(), [{ name: "shared", version: "1", integrity: "pin" }], "1")).toThrow(/identity/);
     expect(() => assertAdditivePlan({ add: [{ name: "@nodetool-ai/new", version: "2" }], change: [], remove: [] }, [], new Set(), [], "1")).toThrow(/version/);
   });
-  it("requires both preview flag and explicit local authorization", async () => {
-    const f = await fixture(); vi.stubEnv("NODETOOL_PACKS_INSTALLER", "0");
-    await expect(installPacks(f.request, f.operations)).rejects.toThrow(/disabled/);
-    vi.stubEnv("NODETOOL_PACKS_INSTALLER", "1");
+  it("requires explicit local authorization", async () => {
+    const f = await fixture();
     await expect(installAuthorizedPacks(f.request, JSON.parse("{}"), f.operations)).rejects.toThrow(/authorization/);
     expect(f.npm).not.toHaveBeenCalled();
   });

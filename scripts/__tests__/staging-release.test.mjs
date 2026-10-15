@@ -188,28 +188,56 @@ describe("staging publication policy", () => {
 
 const roots = [];
 afterEach(() => { for (const root of roots.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
-it("audits the fresh CLI before pack addition and the expanded tree before registration", async () => {
-  const root = mkdtempSync(join(tmpdir(), "registry-smoke-test-"));
-  roots.push(root);
+it("audits project and global installs before execution and verifies both FAL workflows", async () => {
+  const root = mkdtempSync(join(tmpdir(), "registry-smoke-test-")); roots.push(root);
   const calls = [];
-  let project;
   await verifyRegistryInstall(catalogFixture(), { temporaryRoot: root, run: (command, args, options) => {
-    project = options.cwd;
-    expect(options.env.HOME).toBe(join(project, "home"));
-    expect(JSON.parse(readFileSync(join(project, "package.json"), "utf8")).private).toBe(true);
-    calls.push([command, args, options.env]);
-    return args[0] === "--version" ? version : "";
+    calls.push([command, args, options]);
+    if (args.includes("--global")) {
+      const prefix = args[args.indexOf("--prefix") + 1];
+      const directory = join(prefix, process.platform === "win32" ? "node_modules" : "lib/node_modules", "@nodetool-ai/cli/node_modules/@nodetool-ai/core-nodes");
+      mkdirSync(directory, { recursive: true });
+      writeFileSync(join(directory, "package.json"), JSON.stringify({ name: "@nodetool-ai/core-nodes", version }));
+    }
+    if (args.includes("--version")) { return version; }
+    if (command === "du") { return "100 node_modules"; }
+    if (args.includes("--import")) {
+      const origin = "https://queue.fal.run/openrouter/router";
+      writeFileSync(options.env.FAL_FIXTURE_TRACE, [
+        { step: 0, method: "POST", url: origin },
+        { step: 1, method: "GET", url: `${origin}/requests/packed-fixture/status` },
+        { step: 2, method: "GET", url: `${origin}/requests/packed-fixture` }
+      ].map(JSON.stringify).join("\n"));
+      return JSON.stringify({status:"completed",outputs:{fal_result:["packed FAL fixture"]}});
+    }
+    return "";
   } });
-  const cli = join(project, "node_modules/.bin/nodetool");
-  expect(calls[0][1]).toEqual(["install", "--ignore-scripts", "--no-audit", "--no-fund", "@nodetool-ai/cli@1.2.3"]);
-  expect(calls[0][2].NODETOOL_PACKS_INSTALLER).toBeUndefined();
-  expect(calls[1].slice(0, 2)).toEqual(["npm", ["audit", "signatures"]]);
-  expect(calls[2].slice(0, 2)).toEqual([cli, ["--version"]]);
-  expect(calls[3].slice(0, 2)).toEqual([cli, ["packs", "add", "fal", "--yes"]]);
-  expect(calls[3][2].NODETOOL_PACKS_INSTALLER).toBe("1");
-  expect(calls[4].slice(0, 2)).toEqual(["npm", ["audit", "signatures"]]);
-  expect(calls[4][2].NODETOOL_PACKS_INSTALLER).toBeUndefined();
-  expect(calls.at(-1)[1].at(-1)).toContain("registry.list().length !== 2");
+  expect(calls[1][1]).toEqual(["audit", "signatures"]);
+  expect(calls[2][1]).toEqual(["rebuild", "better-sqlite3", "--ignore-scripts=false", "--no-audit", "--no-fund"]);
+  expect(calls[3][1]).toEqual(["--version"]);
+  expect(calls[4][1]).toEqual(["packs", "add", "fal", "--yes"]);
+  expect(calls[5][1]).toEqual(["audit", "signatures"]);
+  const globalInstall = calls.findIndex(([, args]) => args.includes("--global"));
+  const projectModules = join(calls[0][2].cwd, "node_modules");
+  const globalPrefix = calls[globalInstall][1][calls[globalInstall][1].indexOf("--prefix") + 1];
+  for (const start of [calls[globalInstall][2].cwd, join(globalPrefix, "lib/node_modules/@nodetool-ai/cli")]) {
+    for (let directory = start; ; directory = resolve(directory, "..")) {
+      expect(join(directory, "node_modules")).not.toBe(projectModules);
+      if (resolve(directory, "..") === directory) { break; }
+    }
+  }
+
+  if (process.platform === "linux" && process.arch === "x64") {
+    expect(calls.find(([command]) => command === "du")[2].cwd).toBe(join(globalPrefix, "lib"));
+  }
+  expect(calls[globalInstall + 1][1].slice(0, 4)).toEqual(["audit", "signatures", "--global=false", "--prefix"]);
+  expect(calls[globalInstall + 2][1].slice(0, 3)).toEqual(["rebuild", "better-sqlite3", "--ignore-scripts=false"]);
+  expect(calls.filter(([, args]) => args.includes("--import"))).toHaveLength(2);
+  const globalWorkflow = calls.findLastIndex(([, args]) => args.includes("--import"));
+  const globalAudit = calls.findLastIndex(([, args]) => args[0] === "audit");
+  expect(globalAudit).toBeGreaterThan(globalInstall);
+  expect(globalWorkflow).toBeGreaterThan(globalAudit);
+  expect(calls.every(([, , options]) => options.env.NODETOOL_PACKS_INSTALLER === undefined)).toBe(true);
 });
 
 it("refuses to execute the installed CLI when its initial signature audit fails", async () => {
@@ -234,7 +262,7 @@ it("stops the registry smoke when the CLI refuses pack installation", async () =
   await expect(verifyRegistryInstall(catalogFixture(), { temporaryRoot: root, run: (command, args, options) => {
     calls.push([command, args]);
     if (args[0] === "packs") {
-      expect(options.env.NODETOOL_PACKS_INSTALLER).toBe("1");
+      expect(options.env.NODETOOL_PACKS_INSTALLER).toBeUndefined();
       throw new Error("pack integrity refused");
     }
     return args[0] === "--version" ? version : "";

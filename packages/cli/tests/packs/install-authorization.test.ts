@@ -32,7 +32,6 @@ async function fixture() {
   const request = { mode: { kind: "local" as const, installRoot: root, nodeModulesRoot: join(root, "node_modules"), cliRoot: root, coreVersion: "1", pathStyle: "posix" as const },
     packs: ["fixture"], catalog, stateFile: join(root, "cli-packs.json") };
   const operations: InstallerOperations = { npmVersion: vi.fn(async () => "11.16.0"), npm: vi.fn(async () => ""), loadCheck: vi.fn(async () => {}) };
-  vi.stubEnv("NODETOOL_PACKS_INSTALLER", "1");
   return { root, request, catalog, operations };
 }
 function terminal(): void {

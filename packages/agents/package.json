@@ -20,7 +20,7 @@
   "dependencies": {
     "@jitl/quickjs-ng-wasmfile-release-sync": "^0.31.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
-    "@mediabunny/server": "^1.54.0",
+    "@mediabunny/server": "1.54.0",
     "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/browser": "*",
     "@nodetool-ai/config": "*",
@@ -53,7 +53,7 @@
     "fflate": "^0.8.2",
     "ics": "^3.12.0",
     "js-yaml": "^4.3.2",
-    "mediabunny": "^1.54.0",
+    "mediabunny": "1.54.0",
     "papaparse": "^5.5.3",
     "subtitle": "^4.2.2",
     "turndown": "^7.2.2",

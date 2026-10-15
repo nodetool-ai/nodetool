@@ -9,8 +9,9 @@ describe("CLI missing-runtime boundary", () => {
     const details: MissingPackDetails = { error: "missing_pack", packs: [{ id: "fal", npm: "@nodetool-ai/fal-nodes", version: "1.2.3", installBytes: 0, requires: [] }],
       runtimeLibraries: [], nodeTypes: ["fal.Fixture"], install: { supported: true, reason: null, command: "nodetool packs add fal" }, restartRequired: false };
     const output = vi.spyOn(console, "log").mockImplementation(() => {});
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    const diagnostic = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(printCommandError(new Error("wrapped", { cause: new MissingPackError(details) }), true)).toBe(3);
+    expect(diagnostic).toHaveBeenCalledExactlyOnceWith(expect.stringContaining("nodetool packs add fal"));
     expect(JSON.parse(String(output.mock.calls[0]?.[0]))).toEqual(details);
     expect(commandFailureExitCode({ missingPack: details })).toBe(3);
   });

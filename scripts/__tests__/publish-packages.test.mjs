@@ -103,7 +103,10 @@ describe("unmetDeps", () => {
       mkdirSync(join(root, "bin"));
       copyFileSync(new URL("../publish-packages.mjs", import.meta.url), join(root, "scripts", "publish-packages.mjs"));
       copyFileSync(new URL("../smoke-packed-cli.mjs", import.meta.url), join(root, "scripts", "smoke-packed-cli.mjs"));
-      for (const directory of ["release", "node-catalog"]) {
+      for (const file of ["packed-registry.mjs", "packed-fal-fixture.mjs"]) {
+        copyFileSync(new URL(`../${file}`, import.meta.url), join(root, "scripts", file));
+      }
+      for (const directory of ["release", "node-catalog", "fixtures"]) {
         symlinkSync(new URL(`../${directory}`, import.meta.url), join(root, "scripts", directory), "dir");
       }
       const tarballs = join(root, "tarballs");

@@ -39,7 +39,6 @@ async function removeOwnedDirectories(root: string, nodeModules: string, paths: 
 
 /** Explicit removal mutates only packages exclusively owned by its authorized IDs. */
 export async function removePacks(request: InstallPacksRequest, authorization: InstallAuthorization, operations: InstallerOperations = DEFAULT_INSTALLER_OPERATIONS): Promise<PackRemovalResult> {
-  if (process.env["NODETOOL_PACKS_INSTALLER"] !== "1") { throw new Error("Node pack installer is disabled"); }
   const { mode } = request;
   if (mode.kind !== "global" && mode.kind !== "local") { throw new Error(mode.reason); }
   assertLiveInstallAuthorization(authorization);
