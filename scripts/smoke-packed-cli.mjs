@@ -160,7 +160,7 @@ export function existingTarballs(packages, directory) {
  * Start `nodetool mcp serve`, send initialize and tools/list over stdio, and
  * resolve with the tool count. Stdout is newline-delimited JSON-RPC.
  */
-function probeMcp(bin, env, cwd, timeoutMs = 120_000) {
+export function probeMcp(bin, env, cwd, timeoutMs = 120_000) {
   return new Promise((resolvePromise, reject) => {
     const child = spawn(bin, ["mcp", "serve"], { env, cwd, stdio: ["pipe", "pipe", "pipe"] });
     let stdout = "";
@@ -227,7 +227,7 @@ function freePort() {
  * Start `nodetool serve` and resolve once `GET /health` answers 200. The
  * server is killed either way.
  */
-async function probeServe(bin, env, cwd, timeoutMs = 120_000) {
+export async function probeServe(bin, env, cwd, timeoutMs = 120_000) {
   const port = await freePort();
   // `serve` runs the server as a child process, so start a process group
   // and kill the whole group, or the server outlives the check.

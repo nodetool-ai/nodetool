@@ -33,6 +33,15 @@ The server reads these variables, from the environment or the project's `.env`:
 The project depends on the published `@nodetool-ai/*` packages at the
 exporter's own version.
 
+Filesystem inputs resolve inside the exported application's storage directory
+or its copied package assets. Scripts share the storage directory as their
+workspace, so uploaded files remain readable. Uploaded active documents are
+downloaded with sandbox headers. Node-property controls can override only
+properties exposed by the application's bindings.
+Standalone execution requires registered native nodes with filesystem input
+metadata. Worker-only nodes are rejected because their host paths cannot be
+checked by this server.
+
 ## What it does not do
 
 `exportWarnings` names each of these for the app being exported, and the

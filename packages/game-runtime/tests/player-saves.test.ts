@@ -392,3 +392,15 @@ describe("3D save and load commands", () => {
     try { expect(() => session.step(empty)).toThrow(/settings saves cannot store a snapshot/); } finally { session.dispose(); }
   });
 });
+
+ it("bounds completed script loads under sustained requests", async () => {
+  const saves = new GamePlayerSaves(createMemoryGameSaveStorage());
+  for (let tick = 0; tick < 100; tick++) {
+    saves.withLoaded(idle);
+    saves.handle(Array.from({ length: 4 }, () => ({ kind: "load" as const, tick, entityId: "e", scope: "progress" as const, slot: "main" })), () => null);
+    await saves.idle();
+  }
+  let remaining = 0;
+  for (let tick = 0; tick < 100; tick++) { remaining += saves.withLoaded(idle).loaded?.length ?? 0; }
+  expect(remaining).toBeLessThanOrEqual(MAX_GAME_SAVE_QUEUE);
+});

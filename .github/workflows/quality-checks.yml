@@ -267,7 +267,7 @@ jobs:
             },
             {
               "check": "lint",
-              "command": "npm run lint",
+              "command": "npm run lint && npm run lint:anti-slop:check",
               "when": "always"
             },
             {
@@ -392,7 +392,7 @@ jobs:
             },
             {
               "check": "harness-gate",
-              "command": "if [ -n \"$CI_BASE_SHA\" ]; then npm run dev:nodetool -- harness gate --base \"$CI_BASE_SHA\" --json --jobs 2 --timeout 900 $NODETOOL_HARNESS_INCLUDE_SUITES; else npm run dev:nodetool -- harness gate --all --json --jobs 2 --timeout 900 $NODETOOL_HARNESS_INCLUDE_SUITES; fi",
+              "command": "if [ -n \"$CI_BASE_SHA\" ]; then npm run dev:nodetool -- harness gate --base \"$CI_BASE_SHA\" --json --jobs 1 --timeout 900 $NODETOOL_HARNESS_INCLUDE_SUITES; else npm run dev:nodetool -- harness gate --all --json --jobs 1 --timeout 900 $NODETOOL_HARNESS_INCLUDE_SUITES; fi",
               "mobile-deps": "false",
               "extra-apt": "mesa-vulkan-drivers ffmpeg",
               "is-test": "false",
@@ -738,7 +738,8 @@ jobs:
           TURBO_AFFECTED: ${{ inputs.base-sha != '' && needs.changes.outputs.turbo-affected == 'true' && '--affected' || '' }}
           CI_BASE_SHA: ${{ inputs.base-sha }}
           NODETOOL_HARNESS_INCLUDE_SUITES: ${{ inputs.skip-tests && '--include-suites' || '' }}
-          # Each of the two gate jobs runs its test files serially.
+          # Game script batches have a 50 ms wall-clock budget on every host.
+          # Run harnesses and test files serially to avoid competing for it.
           NODETOOL_TEST_WORKERS: ${{ matrix.check == 'harness-gate' && '1' || '' }}
           NODETOOL_CHECK_COMMAND: ${{ matrix.command }}
           NODETOOL_GAME_GOLDEN_ARTIFACTS: ${{ matrix.check == 'harness-gate' && format('{0}/native-game-golden-diagnostics', runner.temp) || '' }}

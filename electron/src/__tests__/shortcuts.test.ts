@@ -143,6 +143,20 @@ describe('Shortcuts', () => {
       expect(mockGlobalShortcut.register).toHaveBeenLastCalledWith('Alt+B', expect.any(Function));
     });
 
+    it.each([
+      ['Control+Alt+K', 'Ctrl+Alt+K'],
+      ['Ctrl+Shift+K', 'shift+control+k'],
+      ['CommandOrControl+K', process.platform === 'darwin' ? 'Cmd+K' : 'Ctrl+K'],
+    ])('transfers equivalent %s and %s without stale ownership', async (first, second) => {
+      await registerWorkflowShortcut(workflow('alias-first', first));
+      mockGlobalShortcut.isRegistered.mockReturnValue(true);
+      await registerWorkflowShortcut(workflow('alias-second', second));
+      mockGlobalShortcut.isRegistered.mockReturnValue(false);
+      mockGlobalShortcut.unregister.mockClear();
+      await registerWorkflowShortcut(workflow('alias-first', 'Alt+L'));
+      expect(mockGlobalShortcut.unregister).not.toHaveBeenCalled();
+    });
+
     it('releases the accelerator when a workflow clears its shortcut', async () => {
       await registerWorkflowShortcut(workflow('clear', 'Alt+C'));
       mockGlobalShortcut.unregister.mockClear();

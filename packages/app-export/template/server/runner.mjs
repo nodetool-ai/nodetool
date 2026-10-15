@@ -45,6 +45,9 @@ import {
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { createInputResolver, createMediaNormalizer } from "./media.mjs";
 import { createLocalStore } from "./store.mjs";
+import { createNodeInputBoundary, guardExecutor } from "./input-boundary.mjs";
+import { applyPropertyOverrides } from "./properties.mjs";
+import { observeSessionCancellation } from "./lifecycle.mjs";
 
 /** Run messages a script relays while it runs: agent text, tool calls, progress. */
 const RELAYED_MESSAGES = new Set([
@@ -71,7 +74,7 @@ export function loadBundleWorkflows(root) {
 }
 
 export function createRunner({ root, dataDir }) {
-  const { workflows, scripts } = loadBundleWorkflows(root);
+  const { bundle, workflows, scripts } = loadBundleWorkflows(root);
   // `package://<package>/<path>` sample inputs resolve from the copies the
   // export put under assets/.
   process.env.NODETOOL_PACKAGE_ASSETS_DIR ??= join(root, "assets");
@@ -82,8 +85,10 @@ export function createRunner({ root, dataDir }) {
   const store = createLocalStore({ dataDir, storage });
   const normalize = createMediaNormalizer(storage, store.assetKey);
   const resolveInputs = createInputResolver(storage);
-  const workspaceDir = join(dataDir, "workspace");
+  const resolveScriptInputs = createInputResolver(storage, { workspaceRelative: true });
+  const workspaceDir = storage.rootDir;
   mkdirSync(workspaceDir, { recursive: true });
+  const inputBoundary = createNodeInputBoundary([workspaceDir, join(root, "assets")]);
 
   const createContext = (jobId, workflowId, onMessage) =>
     new ProcessingContext({
@@ -95,6 +100,11 @@ export function createRunner({ root, dataDir }) {
       assetStorage: storage,
       workspaceDir,
       modelInterfaces: store.interfaces,
+      nodeExecutorGuard: (executor, type, inputs) => {
+        const metadata = registry.resolveMetadata(type);
+        if (!metadata) throw new Error(`Standalone app cannot enforce filesystem inputs for unregistered node: ${type}`);
+        return guardExecutor(executor, metadata, inputBoundary, inputs);
+      },
       // Output nodes would save every result a second time; outputs are
       // served from storage by URL instead.
       persistOutputAssets: false,
@@ -105,7 +115,8 @@ export function createRunner({ root, dataDir }) {
    * Run one workflow and hand every message to `send`, media already rewritten
    * to URLs the browser can load. Resolves when the run has settled.
    */
-  async function run({ workflowKey, params, jobId, signal, send }) {
+  async function run({ workflowKey, params, propertyOverrides, operationId, jobId, signal, send }) {
+    signal?.throwIfAborted();
     const workflow = workflows.get(workflowKey);
     if (!workflow) {
       throw new Error(`This app has no workflow "${workflowKey}"`);
@@ -115,9 +126,13 @@ export function createRunner({ root, dataDir }) {
     let session;
     try {
       session = await ExecutionSession.create({
-        graph: toRawGraphInput(workflow.graph),
+        graph: toRawGraphInput(applyPropertyOverrides(bundle, workflow, operationId, propertyOverrides)),
         registry,
         resolveNodeType,
+        resolveExecutor: (node) => {
+          if (!registry.has(node.type)) throw new Error(`Standalone app cannot enforce filesystem inputs for unregistered node: ${node.type}`);
+          return context.nodeExecutorGuard(registry.resolve(node), node.type, node.properties ?? {});
+        },
         jobId: id,
         workflowId: workflowKey,
         params: resolveInputs(params ?? {}),
@@ -132,8 +147,7 @@ export function createRunner({ root, dataDir }) {
       send({ type: "job_update", status: "failed", job_id: id, error: error.message });
       return null;
     }
-    const cancel = () => session.cancel("cancelled");
-    signal?.addEventListener("abort", cancel, { once: true });
+    const stopObserving = observeSessionCancellation(session, signal);
     try {
       for await (const message of session.messages) {
         // Node-level messages carry no job id; the browser routes by it.
@@ -143,7 +157,7 @@ export function createRunner({ root, dataDir }) {
       const result = await session.result;
       return result;
     } finally {
-      signal?.removeEventListener("abort", cancel);
+      stopObserving();
     }
   }
 
@@ -178,7 +192,7 @@ export function createRunner({ root, dataDir }) {
     context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("JS script run"));
     if (signal) context.signal = signal;
 
-    const resolved = resolveInputs(params ?? {});
+    const resolved = resolveScriptInputs(params ?? {});
     const values = {};
     for (const port of document.inputs) {
       if (port.name in resolved) values[port.name] = resolved[port.name];

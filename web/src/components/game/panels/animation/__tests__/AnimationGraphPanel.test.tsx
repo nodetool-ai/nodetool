@@ -5,6 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import type { GameAnimationGraph3D, GameDocument3D, GameEntityState3D, GameInspection3D } from "@nodetool-ai/protocol";
 import { applyGameOps3D, createNative3DGame, validateGame3D, type GameDocumentOp3D } from "@nodetool-ai/game-runtime";
 
+import { getGameDraftStore } from "../../../../../stores/game/GameDraftStore";
 import mockTheme from "../../../../../__mocks__/themeMock";
 import AnimationGraphPanel from "../AnimationGraphPanel";
 
@@ -65,7 +66,7 @@ function inspection(tick: number, state: string, previousState?: string): Pick<G
   const entity: GameEntityState3D = { id: "player-visual", spawnTick: 0, transform, previousTransform: transform, velocity: { x: 0, y: 0, z: 0 },
     angularVelocity: { x: 0, y: 0, z: 0 }, active: true, grounded: true,
     animationGraph: { graphId: "locomotion", parameters: { speed: 0.5 },
-      layers: [previousState === undefined ? { state, enteredTick: 100 } : { state, enteredTick: 100, previousState, previousEnteredTick: 10, transitionTicks: 6 }] } };
+      layers: [previousState === undefined ? { state, transitionIndex: 0, enteredTick: 100 } : { state, transitionIndex: 0, enteredTick: 100, previousState, previousEnteredTick: 10, transitionTicks: 6 }] } };
   return { tick, entities: [entity] };
 }
 
@@ -190,13 +191,23 @@ describe("AnimationGraphPanel", () => {
     if (!broken) { throw new Error("Fixture graph missing"); }
     broken.layers[0].transitions = [{ from: "idle", to: "run", conditions: [], durationTicks: 6 }, { from: "run", to: "idle", conditions: [], durationTicks: 6 }];
     expect(validateGame3D(document).diagnostics.map((entry) => entry.code)).toEqual(["unconditional_animation_transition", "unconditional_animation_transition"]);
-    const { onOps } = renderPanel(document, null);
+    const store = getGameDraftStore("incremental-graph-repair");
+    store.getState().load(document, "base");
+    const commit = jest.fn((ops: GameDocumentOp3D[], label: string) => store.getState().apply(ops, { label }));
+    const { onOps } = renderPanel(document, null, commit);
     expect(screen.getByRole("list", { name: "Graph problems" }).children).toHaveLength(2);
     await user.click(screen.getAllByRole("button", { name: "" })[0]);
     await user.type(within(screen.getByRole("region", { name: "Animation inspector" })).getByRole("textbox", { name: "Exit after ticks" }), "10{Enter}");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Change Animation Transition");
     expect(lastGraph(onOps).layers[0].transitions[0]).toMatchObject({ from: "idle", to: "run", exitTicks: 10 });
+    expect(store.getState().error).toBeNull();
+    expect(store.getState().commandHistory.past).toHaveLength(1);
+    store.getState().undo();
+    expect(store.getState().document).toEqual(document);
+    store.getState().redo();
+    const repaired = store.getState().document;
+    expect(repaired?.schemaVersion === 3 && repaired.animationGraphs?.locomotion.layers[0].transitions[0].exitTicks).toBe(10);
     await user.click(screen.getByRole("button", { name: "Open idle" }));
     const speed = screen.getByRole("textbox", { name: "Speed" });
     await user.clear(speed);

@@ -562,7 +562,7 @@ const applyChunk = (
     // The server titles a thread from its first message, so only an untitled
     // thread needs it. Asking again would overwrite a title the user set.
     const currentTitle = get().threads[threadId]?.title;
-    const needsTitle = !currentTitle || currentTitle === "New conversation";
+    const needsTitle = !currentTitle || currentTitle === "New conversation" || currentTitle === "New Thread";
     const messagesAfterUpdate = get().messageCache[threadId] || [];
     const assistantMessages = messagesAfterUpdate.filter(
       (msg) => msg.role === "assistant"

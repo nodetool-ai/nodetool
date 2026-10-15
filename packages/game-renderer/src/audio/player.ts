@@ -38,6 +38,8 @@ export class GameAudioPlayer {
   private readonly mixer: GameAudioMixer;
   private readonly failedStreams = new Set<string>();
   private readonly streamed = new Map<string, { voice: GameStreamingMusicVoice; assetId: string }>();
+  private readonly deferredDecodedFades = new Map<Voice, number>();
+  private readonly deferredFades = new Map<GameStreamingMusicVoice, number>();
   private readonly streamingFades = new Map<GameStreamingMusicVoice, string>();
   private readonly buffers = new Map<string, Promise<AudioBuffer | null>>();
   private readonly voices = new Map<string, Voice>();
@@ -209,7 +211,26 @@ export class GameAudioPlayer {
     if (this.desiredMusic?.voiceId !== next?.voiceId || this.desiredMusic?.startTick !== next?.startTick ||
       this.desiredMusic?.assetId !== next?.assetId || this.desiredMusic?.volume !== next?.volume ||
       this.desiredMusic?.fadeInTicks !== next?.fadeInTicks || this.desiredMusic?.fadeOutTicks !== next?.fadeOutTicks) {
-      if (this.desiredMusic) this.stop(this.desiredMusic.voiceId, this.desiredMusic.fadeOutTicks);
+      if (this.desiredMusic) {
+        const outgoing = this.streamed.get(this.desiredMusic.voiceId);
+        const decoded = this.voices.get(this.desiredMusic.voiceId);
+        const incomingStream = next && this.options.scenes?.find(scene => scene.id === snapshot.sceneId)?.music?.streaming;
+        if (incomingStream && (outgoing || decoded)) {
+          if (decoded) {
+            this.voices.delete(decoded.id);
+            this.fading.add(decoded);
+            this.deferredDecodedFades.set(decoded, this.desiredMusic.fadeOutTicks);
+          }
+          this.pending.delete(this.desiredMusic.voiceId);
+          if (outgoing) {
+            this.streamed.delete(this.desiredMusic.voiceId);
+            this.failedStreams.delete(this.desiredMusic.voiceId);
+            this.streamingFades.set(outgoing.voice, outgoing.assetId);
+            this.deferredFades.set(outgoing.voice, this.desiredMusic.fadeOutTicks);
+          }
+        } else { this.stop(this.desiredMusic.voiceId, this.desiredMusic.fadeOutTicks); }
+      }
+      if (!next) { this.finishDeferredFades(); }
       this.desiredMusic = next;
     }
     this.startDesiredMusic();
@@ -271,12 +292,15 @@ export class GameAudioPlayer {
     const bus = this.mixer.busFor(assetId, true);
     const voice = new GameStreamingMusicVoice(this.context, url, this.mixer.input(bus), settings, volume, fadeInTicks / this.options.tickRate,
       () => Math.max(0, this.tick - logicalStartTick) / this.options.tickRate, (message) => {
-        this.failedStreams.add(id);
+        if (this.streamed.get(id)?.voice === voice) { this.failedStreams.add(id); }
         this.options.status(message);
       }, () => {
         this.mixer.voiceEnded(bus);
         if (this.streamed.get(id)?.voice === voice) this.streamed.delete(id);
         this.streamingFades.delete(voice);
+        this.deferredFades.delete(voice);
+      }, () => {
+        if (this.streamed.get(id)?.voice === voice) { this.finishDeferredFades(); }
       });
     this.streamed.set(id, { voice, assetId });
     this.mixer.voiceStarted(bus);
@@ -387,12 +411,24 @@ export class GameAudioPlayer {
       }
       if (this.voices.get(id) === voice) this.voices.delete(id);
       this.fading.delete(voice);
+      this.deferredDecodedFades.delete(voice);
       source.disconnect();
       gain.disconnect();
       output.release();
     };
     const offset = logicalStartTick === undefined ? 0 : Math.max(0, this.tick - logicalStartTick) / this.options.tickRate;
     source.start(0, loop && buffer.duration > 0 ? offset % buffer.duration : 0);
+    if (logicalStartTick !== undefined) { this.finishDeferredFades(); }
+  }
+
+  private finishDeferredFades(): void {
+    const outgoing = [...this.deferredFades];
+    this.deferredFades.clear();
+    for (const [voice, ticks] of outgoing) { voice.stop(ticks / this.options.tickRate); }
+    for (const [voice, ticks] of this.deferredDecodedFades) {
+      if (this.fading.has(voice)) { stopGameVoice(voice, this.context, ticks, this.options.tickRate, this.fading); }
+    }
+    this.deferredDecodedFades.clear();
   }
 
   private stop(id: string, fadeTicks: number): void {
@@ -419,6 +455,7 @@ export class GameAudioPlayer {
     for (const id of this.voices.keys()) this.stop(id, 0);
     for (const voice of this.fading) voice.source.stop();
     this.fading.clear();
+    this.deferredDecodedFades.clear();
     this.desiredMusic = null;
     this.mixer.reset(snapshot.sceneId);
     this.sync(snapshot);
@@ -435,6 +472,7 @@ export class GameAudioPlayer {
     for (const id of this.voices.keys()) this.stop(id, 0);
     for (const voice of this.fading) voice.source.stop();
     this.fading.clear();
+    this.deferredDecodedFades.clear();
     this.buffers.clear();
     this.mixer.dispose();
     void this.context.close();

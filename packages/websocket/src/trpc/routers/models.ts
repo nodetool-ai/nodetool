@@ -1,3 +1,4 @@
+import { isCloudProfile } from "../../lib/cloud-profile.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { TRPCError } from "@trpc/server";
@@ -1411,7 +1412,7 @@ export const modelsRouter = router({
         return filterModelsByHfType(cached, input.model_type) as UnifiedModel[];
       }
       // Scans the server's own HuggingFace cache, like huggingfaceList.
-      if (isProduction()) return [];
+      if (isCloudProfile()) return [];
       try {
         return await getModelsByHfType(input.model_type);
       } catch {
@@ -1898,7 +1899,7 @@ export const modelsRouter = router({
     .mutation(async ({ input }) => {
       // The caches it probes are the server's, which production never offers
       // to its users.
-      if (isProduction()) {
+      if (isCloudProfile()) {
         return input.map((item) => ({ key: item.key, downloaded: false }));
       }
       return Promise.all(

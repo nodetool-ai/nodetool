@@ -51,6 +51,16 @@ const sanitizeProperties = (
     if (!ALLOWED_PROPERTIES.has(name)) {
       continue;
     }
+    if (name === "id" && value === "footnote-label") {
+      kept[name] = "user-content-footnote-label";
+      continue;
+    }
+    if (name === "ariaDescribedBy") {
+      kept[name] = Array.isArray(value)
+        ? value.map((id) => id === "footnote-label" ? "user-content-footnote-label" : id)
+        : value === "footnote-label" ? "user-content-footnote-label" : value;
+      continue;
+    }
     // GFM footnotes prefix their ids; any other id could shadow a global.
     if (
       name === "id" &&

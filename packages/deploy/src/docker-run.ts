@@ -224,7 +224,7 @@ export class DockerRunGenerator {
       env["DB_PATH"] = "/workspace/nodetool.db";
       env["VECTORSTORE_DB_PATH"] = "/workspace/vectorstore.db";
       env["ASSET_FOLDER"] = "/workspace/assets";
-      env["USERS_FILE"] = "/workspace/users.json";
+      env["USERS_FILE"] ??= "/workspace/users.json";
     }
 
     if (this.deployment.serverAuthToken) {

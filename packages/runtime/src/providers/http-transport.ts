@@ -101,10 +101,12 @@ export async function fetchWithRetry(
   let delay = 1000;
   let last: Response | undefined;
   for (let attempt = 1; attempt <= attempts; attempt++) {
+    init.signal?.throwIfAborted();
     let resp: Response;
     try {
       resp = await doFetch(url, init);
     } catch (err) {
+      init.signal?.throwIfAborted();
       if (attempt === attempts) throw err;
       await sleep(delay, init.signal ?? undefined);
       delay = Math.min(delay * 2, MAX_BACKOFF_MS);
