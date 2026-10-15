@@ -78,7 +78,7 @@ export default function TimelineEditorSection() {
           transition={{ duration: 0.3 }}
           className="scroll-fade relative"
         >
-          <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 overflow-hidden shadow-2xl shadow-sky-900/20 ring-1 ring-white/5 backdrop-blur-sm">
+          <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 overflow-hidden shadow-2xl shadow-sky-900/20 ring-1 ring-white/5 backdrop-blur-xs">
             <Image
               src="/creatives_timeline.webp"
               alt="NodeTool's built-in timeline editor: a video preview with a clip inspector panel (Transform and Color controls) on the right, a multi-track timeline with AI-generated video clips on a video track and an audio waveform below, plus a 'Generate a video at the playhead' prompt bar with a model selector and an Export button"

@@ -90,7 +90,7 @@ export default function ScriptEditorSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.3 }}
-            className="scroll-fade rounded-2xl border border-slate-700/60 bg-slate-900/80 p-6 shadow-2xl shadow-rose-900/20 ring-1 ring-white/5 backdrop-blur-sm"
+            className="scroll-fade rounded-2xl border border-slate-700/60 bg-slate-900/80 p-6 shadow-2xl shadow-rose-900/20 ring-1 ring-white/5 backdrop-blur-xs"
             aria-hidden="true"
           >
             <div className="mb-4 flex items-center gap-2 text-xs uppercase tracking-wide text-slate-500">
