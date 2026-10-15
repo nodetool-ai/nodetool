@@ -49,14 +49,15 @@ export interface GuidedFlowStarter {
 }
 
 /**
- * What the menu names two of the cards. The app's document lists read
- * "Timelines" and "Sketches" (the left panel, quick access, the panels'
- * own create buttons), so the menu does too — the entry cards keep their
- * own copy for the New Project surface and Studio.
+ * What the menu names one of the cards. The app's document lists read
+ * "Timelines" (the left panel, quick access, the panel's own create button),
+ * so the menu does too — the entry cards keep their own copy for the New
+ * Project surface and Studio. The picture flow stays "Image" everywhere (home
+ * card, menu, flow header, new tab). "Sketch" names only the editor document
+ * the flow ends in, which has its own entry in the menu's document section.
  */
 const MENU_TITLES: Partial<Record<EntryFlowId, string>> = {
-  video: "Timeline",
-  image: "Sketch"
+  video: "Timeline"
 };
 
 export interface GuidedFlowStarters {
@@ -193,7 +194,7 @@ export const useGuidedFlowStarters = (
       runStart("image", async () => {
         const projectId = projectIdOverride ?? creationProjectId();
         const started = await startImageFlow({
-          name: "Untitled sketch",
+          name: "New image",
           projectId,
           brief: ""
         });

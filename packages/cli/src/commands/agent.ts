@@ -312,7 +312,7 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
   // configuration — the thing YAML configs were removed for — and an agent
   // run that behaves differently from the last one is not reproducible.
   const belt = buildCliAgentBelt({
-    baseTools: buildCliToolbelt(configuredProviders, buildFullRegistry()),
+    baseTools: buildCliToolbelt(configuredProviders, await buildFullRegistry()),
     provider,
     model: modelId,
     forwardMessage: emit,

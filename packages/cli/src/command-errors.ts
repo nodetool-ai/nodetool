@@ -8,13 +8,23 @@
  */
 import { z } from "zod";
 import { missingRuntimeDetailsOf, missingRuntimeDetailsSchema, missingRuntimeText, type MissingRuntimeDetails } from "@nodetool-ai/protocol";
+import { missingPackDetailsOf, missingPackDetailsSchema, missingPackText, type MissingPackDetails } from "@nodetool-ai/protocol";
 
 const commandFailureSchema = z.object({
+  missingPack: missingPackDetailsSchema.optional().catch(undefined),
   missingRuntime: missingRuntimeDetailsSchema.optional().catch(undefined),
   server: z.object({
+    missingPack: missingPackDetailsSchema.optional().catch(undefined),
     missingRuntime: missingRuntimeDetailsSchema.optional().catch(undefined)
   }).optional().catch(undefined)
 });
+
+export function commandMissingPack(value: unknown): MissingPackDetails | null {
+  const details = missingPackDetailsOf(value);
+  if (details) { return details; }
+  const parsed = commandFailureSchema.safeParse(value);
+  return parsed.success ? parsed.data.missingPack ?? parsed.data.server?.missingPack ?? null : null;
+}
 
 export function commandMissingRuntime(value: unknown): MissingRuntimeDetails | null {
   const details = missingRuntimeDetailsOf(value);
@@ -25,13 +35,17 @@ export function commandMissingRuntime(value: unknown): MissingRuntimeDetails | n
 
 /** Missing runtimes use the shared install-required exit code. */
 export function commandFailureExitCode(error: unknown): 1 | 3 {
-  return commandMissingRuntime(error) ? 3 : 1;
+  return commandMissingRuntime(error) || commandMissingPack(error) ? 3 : 1;
 }
 
 export function printCommandError(err: unknown, json?: boolean): 1 | 3 {
   const missing = commandMissingRuntime(err);
-  const message = missing ? missingRuntimeText(missing) : err instanceof Error ? err.message : String(err);
+  const pack = commandMissingPack(err);
+  const message = missing ? missingRuntimeText(missing) : pack ? missingPackText(pack) : err instanceof Error ? err.message : String(err);
   console.error(message);
-  if (json) console.log(JSON.stringify(missing ? { error: "missing_runtime_package", ...missing } : { error: message }, null, 2));
+  if (pack?.install.supported && process.env["NODETOOL_PACKS_INSTALLER"] !== "1") {
+    console.error("The preview installer requires NODETOOL_PACKS_INSTALLER=1.");
+  }
+  if (json) console.log(JSON.stringify(missing ? { error: "missing_runtime_package", ...missing } : pack ?? { error: message }, null, 2));
   return commandFailureExitCode(err);
 }

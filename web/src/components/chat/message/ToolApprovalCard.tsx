@@ -7,6 +7,8 @@ import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import { EditorButton } from "../../editor_ui";
 import {
   Caption,
+  Card,
+  CardActions,
   CollapsibleSection,
   FlexColumn,
   FlexRow,
@@ -42,11 +44,6 @@ const QUESTIONS: Record<string, string> = {
 
 const styles = (theme: Theme) =>
   css({
-    border: `1px solid ${theme.vars.palette.divider}`,
-    borderLeft: `3px solid ${theme.vars.palette.warning.main}`,
-    borderRadius: BORDER_RADIUS.lg,
-    background: theme.vars.palette.background.paper,
-    overflow: "hidden",
     ".approval-body": {
       padding: theme.spacing(SPACING.lg, SPACING.lg, SPACING.md)
     },
@@ -71,9 +68,6 @@ const styles = (theme: Theme) =>
       overflowWrap: "anywhere"
     },
     ".approval-actions": {
-      padding: theme.spacing(SPACING.md, SPACING.lg),
-      borderTop: `1px solid ${theme.vars.palette.divider}`,
-      flexWrap: "wrap",
       button: {
         ...TYPOGRAPHY.sans.label,
         borderRadius: BORDER_RADIUS.pill,
@@ -157,7 +151,9 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
   );
 
   return (
-    <div
+    <Card
+      variant="inline"
+      tone="warning"
       css={cssStyles}
       className="tool-approval-card"
       role="group"
@@ -198,7 +194,7 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
           </CollapsibleSection>
         )}
       </FlexColumn>
-      <FlexRow gap={SPACING.md} align="center" className="approval-actions">
+      <CardActions className="approval-actions">
         <EditorButton
           variant="contained"
           color="primary"
@@ -225,8 +221,8 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
         >
           Deny
         </EditorButton>
-      </FlexRow>
-    </div>
+      </CardActions>
+    </Card>
   );
 };
 

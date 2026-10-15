@@ -1,15 +1,13 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
 import {
-  BORDER_RADIUS,
   Caption,
   Divider,
   FlexColumn,
   FlexRow,
+  FloatingToolbar,
   Popover,
   ToolbarIconButton,
-  Z_INDEX,
-  SPACING,
-  getSpacingPx
+  Z_INDEX
 } from "../ui_primitives";
 import AlignHorizontalCenter from "@mui/icons-material/AlignHorizontalCenter";
 import AlignHorizontalLeft from "@mui/icons-material/AlignHorizontalLeft";
@@ -256,24 +254,18 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
     }
 
     return (
-      <FlexRow
+      <FloatingToolbar
         className="selection-action-toolbar"
         role="region"
         aria-label="Selection Action Toolbar"
         onKeyDown={handleKeyDown}
-        gap={0.5}
-        align="center"
         sx={{
           position: "absolute",
           bottom: "auto",
           top: 30,
           left: "50%",
           transform: "translateX(-50%)",
-          zIndex: Z_INDEX.dropdown,
-          padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
-          backgroundColor: "var(--palette-grey-800)",
-          borderRadius: BORDER_RADIUS.md,
-          boxShadow: 1
+          zIndex: Z_INDEX.dropdown
         }}
       >
         <ToolbarIconButton
@@ -362,7 +354,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
             </FlexRow>
           </FlexColumn>
         </Popover>
-      </FlexRow>
+      </FloatingToolbar>
     );
   }
 );

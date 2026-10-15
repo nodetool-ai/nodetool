@@ -45,15 +45,23 @@ describe("catalog-only execution refusal", () => {
     expect(bridgeFactory).not.toHaveBeenCalled();
   });
 
-  it("reports property issues and the missing pack before ensurePythonBridge or job creation", async () => {
+  it("refuses a referenced sub-workflow before its bridge or outer graph can execute", async () => {
+    const loadWorkflow = vi.fn(async () => ({ graph }));
+    const bridgeFactory = vi.fn(async () => null);
+    await expect(ExecutionSession.create({ graph: { nodes: [{ id: "reference", type: "nodetool.workflows.workflow_node.Workflow", properties: { workflow_id: "saved" } }], edges: [] },
+      registry: registry(), loadWorkflow, bridgeFactory, preflight: false })).rejects.toMatchObject({ details: { error: "missing_pack", nodeTypes: [UnloadedFixture.nodeType] } });
+    expect(loadWorkflow).toHaveBeenCalledExactlyOnceWith("saved");
+    expect(bridgeFactory).not.toHaveBeenCalled();
+  });
+
+  it("reports the missing pack before ensurePythonBridge or job creation", async () => {
     const { runWorkflow } = await import("../src/service/workflow-run.js");
     const ensurePythonBridge = vi.fn(async () => undefined);
     const outcome = await runWorkflow({ graph, userId: "1", environment: { registry: registry(), ensurePythonBridge } });
     expect(outcome.kind).toBe("error");
     if (outcome.kind === "error") {
-      expect(outcome.status).toBe(400);
-      expect(outcome.detail).toContain('Required property "prompt" is not set');
-      expect(outcome.detail).toContain('pack "huggingface"');
+      expect(outcome.status).toBe(424);
+      expect(outcome.missingPack).toMatchObject({ error: "missing_pack", packs: [{ id: "huggingface" }] });
     }
     expect(ensurePythonBridge).not.toHaveBeenCalled();
     expect(jobCreate).not.toHaveBeenCalled();

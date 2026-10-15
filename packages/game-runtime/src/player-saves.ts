@@ -25,7 +25,7 @@ export interface GameSaveRecord {
  */
 export interface GameSaveStorage {
   read(scope: GameSaveScope, slot: string): Promise<unknown>;
-  write(scope: GameSaveScope, slot: string, record: GameSaveRecord): Promise<void>;
+  write(scope: GameSaveScope, slot: string, record: GameSaveRecord, options?: { readonly onlyIfEmpty?: boolean; readonly maxSlots?: number }): Promise<void | boolean>;
   remove(scope: GameSaveScope, slot: string): Promise<void>;
   slots(scope: GameSaveScope): Promise<readonly string[]>;
 }
@@ -38,7 +38,12 @@ export function createMemoryGameSaveStorage(): GameSaveStorage & { entries(): Re
       const stored = scopes[scope].get(slot);
       return stored === undefined ? undefined : JSON.parse(stored) as unknown;
     },
-    write: async (scope, slot, record) => { scopes[scope].set(slot, JSON.stringify(record)); },
+    write: async (scope, slot, record, options) => {
+      if (options?.onlyIfEmpty && scopes[scope].has(slot)) { return false; }
+      if (!scopes[scope].has(slot) && scopes[scope].size >= (options?.maxSlots ?? MAX_GAME_SAVE_SLOTS)) { throw new Error("Game save slot limit reached"); }
+      scopes[scope].set(slot, JSON.stringify(record));
+      return true;
+    },
     remove: async (scope, slot) => { scopes[scope].delete(slot); },
     slots: async (scope) => [...scopes[scope].keys()].sort(),
     entries: () => ({
@@ -79,6 +84,7 @@ export class GamePlayerSaves {
   private snapshotPending = false;
   private ready: GameSaveLoaded[] = [];
   private generation = 0;
+  private outstandingLoads = 0;
 
   constructor(private readonly storage: GameSaveStorage, private readonly options: GamePlayerSavesOptions = {}) {}
 
@@ -88,6 +94,15 @@ export class GamePlayerSaves {
    */
   save(scope: GameSaveScope, slot: string, data: unknown, snapshot?: unknown): Promise<void> {
     return this.queueSave(scope, slot, data, snapshot === undefined ? undefined : () => snapshot, () => true);
+  }
+
+  /** Initializes an empty progress slot atomically without replacing an existing save. */
+  initialize(slot: string, snapshot: unknown): Promise<boolean> {
+    gameSaveSlot.parse(slot);
+    const record = this.record(slot, {}, snapshot);
+    return this.enqueue(async () => {
+      return await this.storage.write("progress", slot, record, { onlyIfEmpty: true, maxSlots: MAX_GAME_SAVE_SLOTS }) !== false;
+    });
   }
 
   /** Reads a save, or null when the slot is empty. Stored data that fails validation is reported as an error. */
@@ -113,7 +128,8 @@ export class GamePlayerSaves {
   /**
    * Queues a step's save and load requests. `snapshot` is called now, before the next step, for saves that store
    * one, so the stored snapshot is the state at the end of the requesting tick. A request the queue rejects is
-   * reported through `onError`, and a rejected load still answers the script with null data.
+   * reported through `onError`. Accepted loads reserve response capacity until delivery. Loads rejected after
+   * response capacity is full are reported without adding another response.
    */
   handle(requests: readonly GameSaveRequest[] | undefined, snapshot: () => unknown): void {
     if (requests === undefined || requests.length === 0) { return; }
@@ -129,6 +145,11 @@ export class GamePlayerSaves {
           .catch(report(request));
         continue;
       }
+      if (this.outstandingLoads >= MAX_GAME_SAVE_QUEUE) {
+        report(request)(new Error("Game load response queue is full"));
+        continue;
+      }
+      this.outstandingLoads += 1;
       // A failed or rejected load still answers the script, with null data.
       const answer = (data: GameSaveData | null): void => {
         if (current()) { this.ready.push({ scope: request.scope, slot: request.slot, data }); }
@@ -156,6 +177,7 @@ export class GamePlayerSaves {
   withLoaded<Frame extends { readonly loaded?: readonly GameSaveLoaded[] }>(frame: Frame): Frame {
     if (this.ready.length === 0 || frame.loaded !== undefined) { return frame; }
     const delivered = this.ready.splice(0, MAX_GAME_SAVE_LOADS_PER_FRAME);
+    this.outstandingLoads -= delivered.length;
     return { ...frame, loaded: delivered } as Frame;
   }
 
@@ -163,6 +185,7 @@ export class GamePlayerSaves {
   clear(): void {
     this.generation += 1;
     this.ready = [];
+    this.outstandingLoads = 0;
   }
 
   /** Runs `work` after every earlier operation, or rejects at once when `MAX_GAME_SAVE_QUEUE` operations are pending. */
@@ -178,7 +201,7 @@ export class GamePlayerSaves {
 
   /**
    * Validates and queues a save. The queue and snapshot checks run before `snapshot` is called, so a rejected save
-   * costs no snapshot. The slot limit is checked inside the queued operation, so concurrent saves cannot exceed it.
+   * costs no snapshot. Storage enforces the slot limit atomically at the write boundary.
    */
   private queueSave(
     scope: GameSaveScope,
@@ -202,7 +225,7 @@ export class GamePlayerSaves {
           if (!existing.includes(slot) && existing.length >= MAX_GAME_SAVE_SLOTS) {
             throw new Error(`Game ${scope} saves are limited to ${MAX_GAME_SAVE_SLOTS} slots`);
           }
-          await this.storage.write(scope, slot, record);
+          await this.storage.write(scope, slot, record, { maxSlots: MAX_GAME_SAVE_SLOTS });
         } finally {
           if (record.snapshot !== undefined) { this.snapshotPending = false; }
         }

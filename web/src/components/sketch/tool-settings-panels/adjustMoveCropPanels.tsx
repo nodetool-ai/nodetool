@@ -18,7 +18,6 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import {
-  sketchSliderSx,
   sketchButtonSmallSx,
   sketchHintTextSx,
   SKETCH_COLORS
@@ -54,7 +53,6 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
       <Box className="setting-row">
         <Text className="setting-label">Brightness</Text>
         <Slider
-          sx={sketchSliderSx}
           size="small"
           min={-100}
           max={100}
@@ -66,7 +64,6 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
       <Box className="setting-row">
         <Text className="setting-label">Contrast</Text>
         <Slider
-          sx={sketchSliderSx}
           size="small"
           min={-100}
           max={100}
@@ -78,7 +75,6 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
       <Box className="setting-row">
         <Text className="setting-label">Saturation</Text>
         <Slider
-          sx={sketchSliderSx}
           size="small"
           min={-100}
           max={100}

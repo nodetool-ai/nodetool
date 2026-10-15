@@ -8,8 +8,8 @@
  * must go through the shared decode/encode paths rather than assume `data` is
  * already an encoded image.
  */
-import { importHidden } from "@nodetool-ai/config";
-import { isRawRgbaImage, type ImageRef } from "@nodetool-ai/protocol";
+import { importOptionalModule } from "@nodetool-ai/config";
+import { isRawRgbaImage, missingRuntimePackageError, type ImageRef } from "@nodetool-ai/protocol";
 import { withTaskSpan } from "./tracing-helpers.js";
 
 type SharpModuleNs = typeof import("sharp");
@@ -19,15 +19,10 @@ type SharpModule = SharpModuleNs | { default: SharpFn };
 let _sharpPromise: Promise<SharpFn | null> | null = null;
 
 /**
- * Actionable error for a missing/broken `sharp` native addon, thrown by the
- * raw-RGBA → PNG encoder when {@link loadSharp} resolves null and no Canvas
- * fallback applies.
+ * Installation guidance for a missing `sharp` codec in the imaging runtime.
  */
 export const SHARP_UNAVAILABLE_MESSAGE =
-  "The 'sharp' image codec is unavailable. It is a native addon that must be " +
-  "installed for this runtime (run `npm install sharp` in the server install, " +
-  "or reinstall it for your platform/arch — e.g. musl or a serverless target). " +
-  "Raw-RGBA images cannot be encoded to PNG here without sharp or a Canvas.";
+  missingRuntimePackageError("sharp", "imaging").message;
 
 /**
  * Lazily load `sharp`. Resolves `null` — never throws an opaque module-load
@@ -38,12 +33,9 @@ export const SHARP_UNAVAILABLE_MESSAGE =
  */
 async function loadSharp(): Promise<SharpFn | null> {
   if (!_sharpPromise) {
-    // The attempt rejects when the import throws (broken addon: musl, ABI
-    // mismatch, partial install) so the `.catch` below can drop it from the
-    // cache and a later, fixed install is picked up. A legitimate off-Node
-    // `null` resolves and is cached — there is nothing to retry there.
+    // Failed imports must be retried after installing the imaging runtime.
     const attempt = (async (): Promise<SharpFn | null> => {
-      const mod = await importHidden<SharpModule>("sharp");
+      const mod = await importOptionalModule<SharpModule>("sharp");
       if (!mod) return null;
       return "default" in mod ? mod.default : mod;
     })();
@@ -56,6 +48,15 @@ async function loadSharp(): Promise<SharpFn | null> {
   // reported as `null` (caller falls back to Canvas or a clear, actionable
   // error). The cache reset above already happened on the rejected attempt.
   return _sharpPromise.catch(() => null);
+}
+
+/** Load the image codec or report the imaging runtime required by this host. */
+export async function loadSharpOrThrow(): Promise<SharpFn> {
+  const sharp = await loadSharp();
+  if (!sharp) {
+    throw missingRuntimePackageError("sharp", "imaging");
+  }
+  return sharp;
 }
 
 /** Encode raw straight-alpha RGBA8 pixels to PNG bytes. */
@@ -94,7 +95,7 @@ async function encodePng(
       const blob = await canvas.convertToBlob({ type: "image/png" });
       return new Uint8Array(await blob.arrayBuffer());
     }
-    throw new Error(SHARP_UNAVAILABLE_MESSAGE);
+    throw missingRuntimePackageError("sharp", "imaging");
   }
   const png = await sharp(
     Buffer.from(data.buffer, data.byteOffset, data.byteLength),
@@ -239,7 +240,7 @@ async function rasterize(
 
   const sharp = await loadSharp();
   if (!sharp) {
-    throw new Error(SHARP_UNAVAILABLE_MESSAGE);
+    throw missingRuntimePackageError("sharp", "imaging");
   }
 
   const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -366,7 +367,7 @@ async function extractRegion(
 export async function validateImageEvidence(bytes: Uint8Array): Promise<void> {
   const sharp = await loadSharp();
   if (!sharp) {
-    throw new Error(SHARP_UNAVAILABLE_MESSAGE);
+    throw missingRuntimePackageError("sharp", "imaging");
   }
   await sharp(bytes, { failOn: "warning" })
     .raw()

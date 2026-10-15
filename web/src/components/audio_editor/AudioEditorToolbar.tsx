@@ -18,6 +18,9 @@ import {
   EditorMenuItem,
   FlexRow,
   NodeSlider,
+  SPACING,
+  Toolbar,
+  ToolbarDivider,
   ToolbarIconButton
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
@@ -60,18 +63,6 @@ interface AudioEditorToolbarProps {
   onSave: () => void;
   onDone: () => void;
 }
-
-const Separator = () => (
-  <Box
-    sx={{
-      width: "1px",
-      alignSelf: "stretch",
-      mx: 0.5,
-      my: 0.5,
-      backgroundColor: "var(--palette-divider)"
-    }}
-  />
-);
 
 const ZOOM_SLIDER_MIN = 0;
 const ZOOM_SLIDER_MAX = 100;
@@ -163,17 +154,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
   );
 
   return (
-    <FlexRow
-      align="center"
-      gap={0.5}
-      sx={{
-        flexShrink: 0,
-        flexWrap: "wrap",
-        px: 1,
-        py: 0.5,
-        borderBottom: "1px solid var(--palette-divider)"
-      }}
-    >
+    <Toolbar sx={{ flexWrap: "wrap", gap: SPACING.xs, py: SPACING.xs }}>
       <ToolbarIconButton
         icon={isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
         tooltip={isPlaying ? "Pause" : "Play"}
@@ -187,7 +168,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
         onClick={onToggleLoop}
       />
 
-      <Separator />
+      <ToolbarDivider />
 
       <ToolbarIconButton
         icon={<ZoomOutIcon />}
@@ -221,7 +202,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
         </Caption>
       </FlexRow>
 
-      <Separator />
+      <ToolbarDivider />
 
       <EditorButton size="small" onClick={onTrim} disabled={!hasSelection}>
         Trim
@@ -287,7 +268,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
         ])}
       </EditorMenu>
 
-      <Separator />
+      <ToolbarDivider />
 
       <ToolbarIconButton
         icon={<UndoIcon />}
@@ -315,7 +296,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
       <EditorButton variant="text" size="small" onClick={onDone}>
         Done
       </EditorButton>
-    </FlexRow>
+    </Toolbar>
   );
 });
 

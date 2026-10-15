@@ -75,9 +75,14 @@ function currentTab(): ExtensionTab {
 }
 
 /** Calls share one tab, so each waits for the previous one. */
+let activeSignal: AbortSignal | undefined;
 let queue: Promise<unknown> = Promise.resolve();
 function serialized<T>(run: () => Promise<T>): Promise<T> {
-  const next = queue.then(run, run);
+  const owned = async (): Promise<T> => {
+    try { return await run(); }
+    finally { activeSignal = undefined; await tab?.release?.(); }
+  };
+  const next = queue.then(owned, owned);
   queue = next.catch(() => undefined);
   return next;
 }
@@ -140,8 +145,9 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 async function evaluate<T>(expression: string, timeoutMs?: number): Promise<T> {
+  activeSignal?.throwIfAborted();
   try {
-    return (await currentTab().evaluate(expression, timeoutMs)) as T;
+    return (await currentTab().evaluate(expression, timeoutMs, activeSignal)) as T;
   } catch (error) {
     if (signedOut(error)) throw signInError();
     throw error;
@@ -151,7 +157,7 @@ async function evaluate<T>(expression: string, timeoutMs?: number): Promise<T> {
 /** {@link pollTab} on the ChatGPT tab, with the sign-in check of {@link evaluate}. */
 async function poll<T>(expression: string, timeoutMs: number): Promise<T | null> {
   try {
-    return await pollTab<T>(currentTab(), expression, timeoutMs);
+    return await pollTab<T>(currentTab(), expression, timeoutMs, activeSignal);
   } catch (error) {
     if (signedOut(error)) throw signInError();
     throw error;
@@ -162,7 +168,7 @@ async function waitForComposer(): Promise<void> {
   const deadline = Date.now() + READY_TIMEOUT_MS;
   while (Date.now() < deadline) {
     if (await evaluate<boolean>(`/*nt:ready*/ !!document.querySelector(${JSON.stringify(COMPOSER)})`)) return;
-    await sleep(250);
+    await sleep(250, activeSignal);
   }
   // A signed-out page has no composer, so tell that apart from a layout change.
   await evaluate(`/*nt:session*/ (async () => { ${AUTH} return true; })()`);
@@ -208,7 +214,7 @@ async function attachImages(images: Uint8Array[]): Promise<void> {
   const files: Array<{ id: string; name: string; type: string }> = [];
   for (const [index, image] of images.entries()) {
     const type = detectImageMime(image);
-    const id = await stageBytesInTab(currentTab(), image);
+    const id = await stageBytesInTab(currentTab(), image, activeSignal);
     files.push({ id, name: `image-${index + 1}.${type.split("/")[1] ?? "png"}`, type });
   }
   const pick = `/*nt:attach*/ (() => {
@@ -259,7 +265,7 @@ async function submit(text: string, attachments: number): Promise<void> {
     await evaluate(`/*nt:click*/ (() => { document.querySelector(${JSON.stringify(SUBMIT)}).click(); return true; })()`);
     const accepted = await poll<boolean>(`/*nt:accepted*/ (() => {
       const box = document.querySelector(${JSON.stringify(COMPOSER)});
-      return !box || box.innerText.trim() === "" || location.pathname.startsWith("/c/");
+      return !box || box.innerText.trim() === "";
     })()`, SEND_ACCEPT_TIMEOUT_MS);
     if (accepted) return;
   }
@@ -309,12 +315,14 @@ async function waitForReply(conversationId: string, timeoutMs: number, signal?: 
 
 /** Run one turn, in a new thread or a continued one, and return the reply. The caller holds the tab. */
 async function runTurnHoldingTab(request: TurnRequest): Promise<TurnResult> {
+  activeSignal = request.signal;
+  activeSignal?.throwIfAborted();
   const query = new URLSearchParams();
   if (request.model && request.model !== CHATGPT_AUTO_MODEL && request.model !== CHATGPT_IMAGE_MODEL) query.set("model", request.model);
   const search = query.toString() ? `?${query}` : "";
   let before: string | null = null;
   if (request.conversationId) {
-    await currentTab().navigate(`${BASE_URL}/c/${request.conversationId}${search}`);
+    await currentTab().navigate(`${BASE_URL}/c/${request.conversationId}${search}`, activeSignal);
     await waitForComposer();
     // A deleted or foreign thread redirects to a new chat.
     const pathname = await evaluate<string>(`/*nt:location*/ location.pathname`);
@@ -325,10 +333,12 @@ async function runTurnHoldingTab(request: TurnRequest): Promise<TurnResult> {
       throw new ThreadUnavailableError(error instanceof Error ? error.message : String(error));
     }
   } else {
-    await currentTab().navigate(`${BASE_URL}/${search}`);
+    await currentTab().navigate(`${BASE_URL}/${search}`, activeSignal);
     await waitForComposer();
   }
+  activeSignal?.throwIfAborted();
   await attachImages(request.images);
+  activeSignal?.throwIfAborted();
   await submit(request.text, request.images.length);
   const conversationId = request.conversationId ?? (await waitForConversationId(request.signal));
   log.info("ChatGPT turn submitted", { conversationId, model: request.model, continued: Boolean(request.conversationId), images: request.images.length });
@@ -520,7 +530,7 @@ export class ChatGPTProvider extends BaseProvider {
     }
     if (!result) {
       // The caller may have sent only the delta; a new thread needs the whole conversation.
-      const messages = canResume && args.loadFullHistory ? await args.loadFullHistory() : args.messages;
+      const messages = args.loadFullHistory ? await args.loadFullHistory() : args.messages;
       const request = await this.turnRequest(args.model, composePrompt(messages), messages, args.signal);
       result = await serialized(() => runTurnHoldingTab(request));
     }

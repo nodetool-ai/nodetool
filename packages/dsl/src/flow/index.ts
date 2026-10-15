@@ -8,6 +8,7 @@
 export {
   startFlow,
   createFlowForContext,
+  assertNodeAvailable,
   resolveFlow,
   resetDefaultFlow,
   FlowClosedError,

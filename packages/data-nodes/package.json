@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/data-nodes",
   "version": "0.8.3",
-  "description": "NodeTool data nodes — dataframes (CSV), RSS feeds, charts",
+  "description": "NodeTool data nodes \u2014 dataframes (CSV), RSS feeds, charts",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
@@ -15,7 +15,6 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
-    "@napi-rs/canvas": "^0.1.65",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
@@ -28,7 +27,8 @@
     "@types/node": "^22.0.0",
     "@types/papaparse": "^5.5.2",
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "@napi-rs/canvas": "^0.1.65"
   },
   "exports": {
     ".": {
@@ -79,5 +79,13 @@
     "csv",
     "rss",
     "charts"
-  ]
+  ],
+  "peerDependencies": {
+    "@napi-rs/canvas": "^0.1.65"
+  },
+  "peerDependenciesMeta": {
+    "@napi-rs/canvas": {
+      "optional": true
+    }
+  }
 }

@@ -10,6 +10,7 @@
  */
 
 import type { Command } from "commander";
+import { registerPackManagementCommands, type PackCommandServices } from "./pack-management.js";
 
 interface CompileOptions {
   json?: boolean;
@@ -17,8 +18,11 @@ interface CompileOptions {
   packSearchPath?: string[];
 }
 
-export function registerPackCommands(program: Command): void {
-  const packs = program.command("packs").description("Sandbox pack tooling");
+export function registerPackCommands(program: Command, loadServices: () => Promise<PackCommandServices> = async () => {
+  const { createPackCommandServices } = await import("../packs/command-service.js");
+  return createPackCommandServices();
+}): void {
+  const packs = program.command("packs").description("Manage node packs, runtime libraries and sandbox compilation");
 
   packs
     .command("compile")
@@ -94,4 +98,5 @@ export function registerPackCommands(program: Command): void {
       );
       if (skipped > 0) process.exitCode = 1;
     });
+  registerPackManagementCommands(packs, loadServices);
 }

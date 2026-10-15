@@ -11,8 +11,7 @@
  * near-identical frames says nothing about which instant each one is.
  */
 
-import { createCanvas, loadImage } from "@napi-rs/canvas";
-import { registerBundledFonts } from "@nodetool-ai/timeline/fonts/node";
+import { loadCanvas } from "@nodetool-ai/runtime";
 
 import { MAX_SHEET_WIDTH } from "../capabilities/timelines.specs.js";
 
@@ -56,6 +55,8 @@ export async function composeContactSheet(
   }
   // The labels are drawn with the same faces the frames were, so a sheet
   // rendered on a machine with no system fonts still reads.
+  const { createCanvas, loadImage } = await loadCanvas();
+  const { registerBundledFonts } = await import("@nodetool-ai/timeline/fonts/node");
   registerBundledFonts();
 
   const images = await Promise.all(

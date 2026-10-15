@@ -99,6 +99,8 @@ export interface ExecutionSessionOptions {
    * already present on the incoming graph and passes through unchanged.
    */
   registry?: NodeRegistry;
+  /** Resolve referenced sub-workflows in the caller's authorized scope during pack preflight. */
+  loadWorkflow?: (id: string) => Promise<{ graph: unknown } | null>;
   /**
    * Bypass the facade's own registry-based executor resolution
    * (`createExecutorResolver`) entirely and use this instead. With no registry,

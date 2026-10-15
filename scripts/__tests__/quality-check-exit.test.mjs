@@ -23,6 +23,19 @@ function matrixRunScript() {
 }
 
 describe("quality check matrix exit status", () => {
+  it("bounds package and file concurrency in the core test job", () => {
+    const source = readFileSync(WORKFLOW, "utf8");
+    const entry = source.match(/"check": "test-packages-core",\s*"command": ("(?:\\.|[^"\\])*")/);
+    expect(entry).not.toBeNull();
+    const command = JSON.parse(entry[1]);
+    const invocations = command.split(" && ").filter((part) => part.startsWith("npx turbo run test "));
+    expect(invocations).toHaveLength(2);
+    expect(invocations[0]).toMatch(/--concurrency=1(?: |$)/);
+    expect(invocations[1]).toMatch(/--concurrency=2(?: |$)/);
+    const builtJob = source.slice(source.indexOf("\n  built:"));
+    expect(builtJob).toContain("NODETOOL_TEST_WORKERS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-core' || matrix.check == 'test-packages-agents') && '1' || '' }}");
+  });
+
   it("bounds harness concurrency in both diff and full-run paths", () => {
     const source = readFileSync(WORKFLOW, "utf8");
     const entry = source.match(/"check": "harness-gate",\s*"command": ("(?:\\.|[^"\\])*")/);
@@ -33,12 +46,12 @@ describe("quality check matrix exit status", () => {
     expect(paths[0]).toContain('--base "$CI_BASE_SHA"');
     expect(paths[1]).toContain("--all");
     for (const path of paths) {
-      expect(path).toMatch(/--jobs 2(?: |$)/);
+      expect(path).toMatch(/--jobs 1(?: |$)/);
       expect(path).toMatch(/--timeout 900(?: |$)/);
     }
     const builtJob = source.slice(source.indexOf("\n  built:"));
     expect(builtJob).toMatch(/timeout-minutes: 45/);
-    expect(builtJob).toContain("NODETOOL_TEST_WORKERS: ${{ matrix.check == 'harness-gate' && '1' || '' }}");
+    expect(builtJob).toContain("NODETOOL_TEST_WORKERS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-core' || matrix.check == 'test-packages-agents') && '1' || '' }}");
     expect(builtJob).toContain("NODETOOL_HARNESS_INCLUDE_SUITES: ${{ inputs.skip-tests && '--include-suites' || '' }}");
     for (const base of ["", "fixture-base"]) {
       for (const skipTests of [false, true]) {
@@ -56,7 +69,7 @@ describe("quality check matrix exit status", () => {
         const args = result.stdout.trim().split("\n");
         expect(args.filter((arg) => arg === "--include-suites")).toHaveLength(skipTests ? 1 : 0);
         expect(args).toContain(base ? "--base" : "--all");
-        expect(args.slice(args.indexOf("--jobs"), args.indexOf("--jobs") + 2)).toEqual(["--jobs", "2"]);
+        expect(args.slice(args.indexOf("--jobs"), args.indexOf("--jobs") + 2)).toEqual(["--jobs", "1"]);
       }
     }
   });
@@ -71,7 +84,7 @@ describe("quality check matrix exit status", () => {
     const install = staticJob.match(/      - name: Install Chromium for agentic QA checks\n        if: matrix.check == 'lint'\n        run: npx playwright install --with-deps chromium\n/g);
     expect(install).toHaveLength(1);
     expect(staticJob.indexOf(install[0])).toBeLessThan(staticJob.indexOf(guard[0]));
-    expect(source).toMatch(/"check": "lint",\s*"command": "npm run lint",\s*"when": "always"/);
+    expect(source).toMatch(/"check": "lint",\s*"command": "npm run lint && npm run lint:anti-slop:check",\s*"when": "always"/);
   });
 
   it.each([

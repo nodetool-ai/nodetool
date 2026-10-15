@@ -9,7 +9,11 @@
 
 import type { Asset } from "@nodetool-ai/models";
 import { loadAssetStorageConfig, type StorageConfig } from "@nodetool-ai/config";
-import { assetObjectKey, createAssetUrlBuilder } from "@nodetool-ai/storage";
+import {
+  assetObjectKey,
+  createAssetUrlBuilder,
+  type AssetUrlBuilder
+} from "@nodetool-ai/storage";
 import type { AssetResponse } from "@nodetool-ai/protocol/api-schemas/assets.js";
 
 import { getAssetFileName } from "./asset-paths.js";
@@ -21,13 +25,13 @@ import {
 import { videoProxyState } from "./video-proxy.js";
 
 let cachedConfig: StorageConfig | null = null;
-let cachedBuilder: ((key: string) => Promise<string>) | null = null;
+let cachedBuilder: AssetUrlBuilder | null = null;
 
 /**
  * The URL builder for the configured storage backend, rebuilt when the
  * backend kind changes (a test switching backends mid-process).
  */
-function assetUrlBuilder(): (key: string) => Promise<string> {
+function assetUrlBuilder(): AssetUrlBuilder {
   const config = loadAssetStorageConfig();
   if (!cachedBuilder || cachedConfig?.kind !== config.kind) {
     cachedConfig = config;
@@ -44,18 +48,24 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
   // Owner-prefixed keys. Objects written before this layout are flat; the
   // `/api/storage` route falls back to the legacy path on a miss, and cloud
   // backends need `nodetool storage migrate-keys` (see docs/configuration.md).
-  const getUrl = fileName
-    ? await assetUrlBuilder()(assetObjectKey(asset.user_id, fileName)).catch(
-        () => null
-      )
-    : null;
-
+  // The row's `updated_at` versions the URL: an unchanged asset gets the URL
+  // it got last time, so the browser serves the bytes from its cache.
+  const version = asset.updated_at;
+  const buildUrl = assetUrlBuilder();
   const hasThumbnail = assetHasRasterThumbnail(asset.content_type);
-  const thumbKeyUrl = hasThumbnail
-    ? await assetUrlBuilder()(
-        assetObjectKey(asset.user_id, thumbnailKey(asset.id))
-      ).catch(() => null)
-    : null;
+  const [getUrl, thumbKeyUrl] = await Promise.all([
+    fileName
+      ? buildUrl(assetObjectKey(asset.user_id, fileName), version).catch(
+          () => null
+        )
+      : null,
+    hasThumbnail
+      ? buildUrl(
+          assetObjectKey(asset.user_id, thumbnailKey(asset.id)),
+          version
+        ).catch(() => null)
+      : null
+  ]);
   // A relink regenerates an external asset's thumbnail under the same key.
   // The file's mtime in the URL keeps a cached thumbnail of the previous file
   // from standing in for the new one. `get_url` stays unversioned (D5).

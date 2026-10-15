@@ -10,6 +10,16 @@ import { runWorkflow } from "./workflowExecution";
 // it keeps running a workflow that no longer has it (or no longer exists).
 const registeredShortcuts = new Map<string, string>();
 
+function acceleratorIdentity(accelerator: string): string {
+  const aliases: Record<string, string> = {
+    control: "ctrl", command: "cmd", option: "alt", meta: "super",
+    commandorcontrol: process.platform === "darwin" ? "cmd" : "ctrl",
+    cmdorctrl: process.platform === "darwin" ? "cmd" : "ctrl"
+  };
+  return accelerator.toLowerCase().split("+")
+    .map((part) => aliases[part] ?? part).sort().join("+");
+}
+
 const unregisterWorkflowShortcut = (workflowId: string): void => {
   const previous = registeredShortcuts.get(workflowId);
   if (previous === undefined) {
@@ -49,7 +59,7 @@ const registerWorkflowShortcut = async (workflow: Workflow): Promise<boolean> =>
       logMessage(`Unregistering existing shortcut "${shortcut}" before re-registering`);
       globalShortcut.unregister(shortcut);
       for (const [workflowId, accelerator] of registeredShortcuts) {
-        if (accelerator === shortcut) {
+        if (acceleratorIdentity(accelerator) === acceleratorIdentity(shortcut)) {
           registeredShortcuts.delete(workflowId);
         }
       }

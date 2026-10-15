@@ -14,13 +14,14 @@ import {
   type WorkspaceTabMode
 } from "../../stores/WorkspaceTabsStore";
 import {
-  BORDER_RADIUS,
   Caption,
   EditorButton,
   FlexColumn,
   FlexRow,
   LoadingSpinner,
-  Text
+  SaveState,
+  Text,
+  Toolbar
 } from "../ui_primitives";
 import MonacoPane from "./MonacoPane";
 import SvgPreview from "./SvgPreview";
@@ -47,18 +48,6 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     minHeight: 0,
     backgroundColor: theme.vars.palette.grey[900],
-    ".toolbar": {
-      flex: "0 0 auto",
-      padding: theme.spacing(0.5, 1),
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
-    },
-    ".dirty-dot": {
-      width: 8,
-      height: 8,
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: theme.vars.palette.warning.main,
-      flex: "0 0 auto"
-    },
     ".panes": {
       flex: 1,
       minHeight: 0,
@@ -68,7 +57,7 @@ const styles = (theme: Theme) =>
       flex: "1 1 50%",
       minWidth: 0,
       position: "relative",
-      borderRight: `1px solid ${theme.vars.palette.grey[700]}`
+      borderRight: `1px solid ${theme.vars.palette.divider}`
     },
     ".preview-pane": {
       flex: "1 1 50%",
@@ -213,12 +202,10 @@ const SvgSurface = ({ refId, mode }: SvgSurfaceProps) => {
 
   return (
     <div css={surfaceStyles}>
-      <FlexRow className="toolbar" align="center" justify="space-between">
+      <Toolbar sx={{ justifyContent: "space-between" }}>
         <Caption>{asset.name}</Caption>
         <FlexRow align="center" gap={0.5}>
-          {isDirty && (
-            <span className="dirty-dot" aria-label="Unsaved changes" />
-          )}
+          <SaveState state={isDirty ? "dirty" : "idle"} showLabel={false} />
           <EditorButton
             variant="contained"
             size="small"
@@ -229,7 +216,7 @@ const SvgSurface = ({ refId, mode }: SvgSurfaceProps) => {
             {isSaving ? "Saving…" : "Save"}
           </EditorButton>
         </FlexRow>
-      </FlexRow>
+      </Toolbar>
       <div className="panes">
         <div className="source-pane">
           <MonacoPane

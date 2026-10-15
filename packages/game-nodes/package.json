@@ -15,11 +15,13 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
+    "@dimforge/rapier3d-compat": "0.19.3",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.3",
+    "@nodetool-ai/game-renderer": "*"
   },
   "devDependencies": {
     "@nodetool-ai/audio-nodes": "*",

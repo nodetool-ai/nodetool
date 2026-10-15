@@ -123,9 +123,6 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         onReplan={onReRefine}
         replanPending={refining}
       />
-      {/* What `Re-refine` costs, beside `Re-refine` — a regeneration is a paid
-          action and gets the same summary the first one did (F23). */}
-      {generation ? <GenerationSummary {...generation} /> : null}
       {/* The failure sits under the button that asked for it, and the brief in
           the boxes above is untouched — a refused expansion overwrites
           nothing (F9). */}
@@ -174,6 +171,10 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           ))}
         </FlexRow>
       </FormField>
+      {/* What `Re-refine` costs — a regeneration is a paid action and gets the
+          same summary the first one did (F23). It sits below the count so the
+          count stays above the footer without scrolling at 1440 × 900. */}
+      {generation ? <GenerationSummary {...generation} /> : null}
     </FlexColumn>
   );
 };

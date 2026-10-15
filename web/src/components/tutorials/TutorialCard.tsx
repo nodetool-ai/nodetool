@@ -1,11 +1,10 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import type { CSSObject } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo } from "react";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx, SHADOW } from "../ui_primitives";
+import { Card, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, SHADOW } from "../ui_primitives";
 import type { Tutorial } from "./tutorialsData";
 
 const styles = (
@@ -13,21 +12,17 @@ const styles = (
   accent: string,
   active: boolean,
   compact: boolean
-) =>
-  css({
+): CSSObject => ({
     display: "flex",
     flexDirection: compact ? "row" : "column",
     alignItems: compact ? "stretch" : undefined,
     textAlign: "left",
     width: "100%",
-    padding: 0,
     border: `1px solid ${active ? accent : theme.vars.palette.divider}`,
-    borderRadius: BORDER_RADIUS.lg,
     background: active
       ? `rgba(${theme.vars.palette.primary.mainChannel} / 0.04)`
       : theme.vars.palette.c_node_bg,
     cursor: "pointer",
-    overflow: "hidden",
     transition: `border-color ${MOTION.fast}, transform ${MOTION.fast}, box-shadow ${MOTION.fast}`,
     boxShadow: active ? `0 0 0 1px ${accent}` : "none",
     // Touch devices keep :hover styles latched after a tap, so gate them on a
@@ -126,7 +121,7 @@ const styles = (
       color: theme.vars.palette.text.primary
     },
     ".tagline": taglineStyles(theme, compact)
-  });
+});
 
 /** The tagline, clamped to two lines in the compact row layout. */
 const taglineStyles = (theme: Theme, compact: boolean): CSSObject => {
@@ -161,9 +156,13 @@ const TutorialCardInner: React.FC<TutorialCardProps> = ({
 }) => {
   const theme = useTheme();
   return (
-    <button
+    <Card
+      component="button"
       type="button"
-      css={styles(theme, tutorial.accent, active, compact)}
+      variant="outlined"
+      padding="none"
+      radius="lg"
+      sx={styles(theme, tutorial.accent, active, compact)}
       onClick={() => onClick(tutorial.id)}
       aria-label={`Play tutorial: ${tutorial.title}`}
       aria-pressed={active}
@@ -187,7 +186,7 @@ const TutorialCardInner: React.FC<TutorialCardProps> = ({
         <h3 className="title">{tutorial.title}</h3>
         <p className="tagline">{tutorial.tagline}</p>
       </span>
-    </button>
+    </Card>
   );
 };
 

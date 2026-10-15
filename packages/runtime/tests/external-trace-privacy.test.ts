@@ -63,6 +63,22 @@ describe("external trace privacy default", () => {
     expect(received[0].attributes["llm.provider"]).toBe("test");
   });
 
+  it("waits for the lazy resource load and pending export before shutdown", async () => {
+    const events: string[] = [];
+    const exporter = new ContentFilteringSpanExporter({
+      export(_spans, callback) {
+        setTimeout(() => {
+          events.push("export");
+          callback({ code: 0 });
+        }, 10);
+      },
+      async shutdown() { events.push("shutdown"); }
+    });
+    exporter.export([span()], () => events.push("callback"));
+    await exporter.shutdown();
+    expect(events).toEqual(["export", "callback", "shutdown"]);
+  });
+
   it("keeps provider failure logs metadata-only outside an active span", () => {
     const error = vi.fn();
     logProviderRequestFailure({ provider: "test", model: "model", request: { prompt: "private request" }, error: new Error("private error") }, { error, info() {}, warn() {}, debug() {} });

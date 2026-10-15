@@ -558,6 +558,10 @@ it("hot reloads source during play, retains state, and keeps the last compiled s
     await user.click(screen.getByRole("button", { name: "Step" }));
     expect(store.getState().groups.at(-1)?.message).toBe("speed 3 state 2");
     await user.click(screen.getByRole("button", { name: "Save" }));
+    view.rerender(<HotReloadHarness gameDocument={hotReloadDocument(source(3))} />);
+    await user.click(screen.getByRole("button", { name: "Restart" }));
+    await waitFor(() => expect(screen.getByLabelText("Reload tick")).toHaveTextContent("0"));
+    await user.click(screen.getByRole("button", { name: "Pause" }));
     await user.click(screen.getByRole("button", { name: "Step" }));
     await user.click(screen.getByRole("button", { name: "Load" }));
     await user.click(screen.getByRole("button", { name: "Step" }));

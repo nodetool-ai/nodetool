@@ -19,7 +19,7 @@ import {
   Divider,
   EYEBROW,
   FlexRow,
-  NodeSlider,
+  Slider,
   ToolbarIconButton,
   CONTROL,
   MOTION,
@@ -269,101 +269,6 @@ export const InspectorPillInput = memo(function InspectorPillInput(
 
 // ── Slider row ─────────────────────────────────────────────────────────────
 
-const sliderRowStyles = (theme: Theme) =>
-  css({
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(2),
-    minHeight: 24,
-    padding: `0 ${getSpacingPx(SPACING.xs)}`
-  });
-
-const sliderLabelStyles = (theme: Theme) =>
-  css({
-    flex: "0 1 auto",
-    minWidth: 60,
-    color: theme.vars.palette.text.secondary,
-    ...TYPOGRAPHY.sans.label,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap"
-  });
-
-const sliderTrackStyles = css({
-  flex: "1 1 60px",
-  minWidth: 60,
-  display: "flex",
-  alignItems: "center"
-});
-
-const sliderValueStyles = (theme: Theme) =>
-  css({
-    flex: "0 0 44px",
-    ...TYPOGRAPHY.mono.label,
-    color: theme.vars.palette.text.secondary,
-    textAlign: "right",
-    fontVariantNumeric: "tabular-nums"
-  });
-
-/**
- * Precision slider styling, Lightroom/Premiere register: a thin rail, a small
- * round handle, and a filled segment that originates from the neutral value
- * (driven by the `--fill-*` CSS vars set on the wrapper) rather than always
- * from the left edge. `track={false}` suppresses MUI's own left-anchored fill;
- * the rail's gradient draws the bipolar fill instead, and a faint tick marks
- * the neutral point.
- */
-const precisionSliderSx = (theme: Theme) => {
-  const rail = theme.vars.palette.c_overlay_strong;
-  const accent = theme.vars.palette.primary.main;
-  const ring = theme.vars.palette.primary.mainChannel;
-  const shadow = `0 1px 2px rgba(${theme.vars.palette.common.blackChannel} / 0.45)`;
-  return {
-    marginTop: 0,
-    padding: `${getSpacingPx(SPACING.sm)} 0`,
-    height: 12,
-    "&.Mui-disabled": { opacity: 0.45 },
-    "& .MuiSlider-rail": {
-      height: 2,
-      borderRadius: BORDER_RADIUS.pill,
-      opacity: 1,
-      background: `linear-gradient(to right, ${rail} 0, ${rail} var(--fill-lo, 0%), ${accent} var(--fill-lo, 0%), ${accent} var(--fill-hi, 0%), ${rail} var(--fill-hi, 0%), ${rail} 100%)`,
-      // Neutral-point tick (shown only for bipolar sliders via --fill-show-tick).
-      "&::before": {
-        content: '""',
-        position: "absolute",
-        left: "var(--fill-origin, 0%)",
-        top: "50%",
-        width: 2,
-        height: 6,
-        transform: "translate(-50%, -50%)",
-        borderRadius: BORDER_RADIUS.pill,
-        backgroundColor: theme.vars.palette.text.disabled,
-        opacity: "var(--fill-show-tick, 0)",
-        pointerEvents: "none"
-      }
-    },
-    "& .MuiSlider-thumb": {
-      width: 10,
-      height: 10,
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: theme.vars.palette.text.primary,
-      border: `1px solid rgba(${theme.vars.palette.common.blackChannel} / 0.28)`,
-      boxShadow: shadow,
-      transition: MOTION.shadow,
-      "&:hover": {
-        boxShadow: `${shadow}, 0 0 0 4px rgba(${ring} / 0.18)`
-      },
-      "&.Mui-focusVisible, &.Mui-active": {
-        boxShadow: `${shadow}, 0 0 0 5px rgba(${ring} / 0.3)`
-      },
-      // Suppress MUI's value-label ripple pseudo-elements.
-      "&::before, &::after": { display: "none" }
-    },
-    ...reducedMotion({ "& .MuiSlider-thumb": { transition: MOTION.none } })
-  };
-};
-
 interface InspectorSliderRowProps {
   label: string;
   value: number;
@@ -388,11 +293,12 @@ interface InspectorSliderRowProps {
   resetValue?: number;
 }
 
-/** Label + full-width precision slider + mono value readout. */
+/**
+ * Label + full-width slider + mono value readout: the shared `Slider` in
+ * `layout="row"`, compact. This wrapper only adds the undo-batched gesture.
+ */
 export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
   ({ label, value, display, min, max, step, disabled, onChange, origin, resetValue }) => {
-    const theme = useTheme();
-    const sliderSx = useMemo(() => precisionSliderSx(theme), [theme]);
     const gesture = useBatchedGesture(onChange);
 
     const handleChange = useCallback(
@@ -409,56 +315,25 @@ export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
       [gesture]
     );
 
-    const span = max - min || 1;
-    const toPct = (v: number) =>
-      ((Math.min(max, Math.max(min, v)) - min) / span) * 100;
-    const valuePct = toPct(value);
-    const originPct = toPct(origin ?? min);
-    const showTick = origin !== undefined && origin > min && origin < max;
-
-    const fillVars = {
-      "--fill-lo": `${Math.min(originPct, valuePct)}%`,
-      "--fill-hi": `${Math.max(originPct, valuePct)}%`,
-      "--fill-origin": `${originPct}%`,
-      "--fill-show-tick": showTick ? 1 : 0
-    } as React.CSSProperties;
-
-    // Double-click reset is a single, discrete write — left un-batched.
-    const resetTarget = resetValue ?? origin;
-    const handleReset = useCallback(() => {
-      if (resetTarget !== undefined && !disabled) onChange(resetTarget);
-    }, [resetTarget, disabled, onChange]);
-
-    // Dragging the slider re-renders this row once per animation frame.
-    const rowCss = useMemo(() => sliderRowStyles(theme), [theme]);
-    const labelCss = useMemo(() => sliderLabelStyles(theme), [theme]);
-    const valueCss = useMemo(() => sliderValueStyles(theme), [theme]);
-
     return (
-      <div css={rowCss}>
-        <span css={labelCss} title={label}>
-          {label}
-        </span>
-        <div
-          css={sliderTrackStyles}
-          style={fillVars}
-          onDoubleClick={resetTarget !== undefined ? handleReset : undefined}
-        >
-          <NodeSlider
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            disabled={disabled}
-            track={false}
-            aria-label={label}
-            sx={sliderSx}
-            onChange={handleChange}
-            onChangeCommitted={handleChangeCommitted}
-          />
-        </div>
-        <span css={valueCss}>{display}</span>
-      </div>
+      <Slider
+        layout="row"
+        density="compact"
+        label={label}
+        display={display}
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        disabled={disabled}
+        origin={origin}
+        aria-label={label}
+        onChange={handleChange}
+        onChangeCommitted={handleChangeCommitted}
+        resetValue={resetValue}
+        // Double-click reset is a single, discrete write — un-batched.
+        onReset={onChange}
+      />
     );
   }
 );

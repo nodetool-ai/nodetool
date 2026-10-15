@@ -69,6 +69,12 @@ export class ZipStreamWriter {
   private readonly zip: Zip;
   private pending: Uint8Array[] = [];
   private failure: Error | null = null;
+  private writtenBytes = 0;
+
+  /** Bytes already delivered to the sink, excluding the pending directory. */
+  get bytesWritten(): number {
+    return this.writtenBytes;
+  }
 
   constructor(private readonly sink: ZipChunkSink) {
     this.zip = new Zip((err, chunk) => {
@@ -85,6 +91,7 @@ export class ZipStreamWriter {
     while (this.pending.length > 0) {
       const chunk = this.pending.shift()!;
       await this.sink(chunk);
+      this.writtenBytes += chunk.byteLength;
     }
   }
 

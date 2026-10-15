@@ -488,3 +488,9 @@ describe("command formatting", () => {
     expect(lastLine).toContain("myuser/myapp:latest");
   });
 });
+
+it("preserves an explicit USERS_FILE when persistent paths are omitted", () => {
+  const command = generateDockerRunCommand(makeDeployment({ container: { name: "test", port: 8080, environment: { USERS_FILE: "/workspace/auth/users.json" } } }));
+  expect(command).toContain("/workspace/auth/users.json");
+  expect(command).not.toContain("USERS_FILE=/workspace/users.json");
+});

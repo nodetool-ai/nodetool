@@ -47,23 +47,20 @@ jest.mock("../Dropzone", () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }));
 
-jest.mock("../../../serverState/useAssets", () => ({
-  __esModule: true,
-  default: () => ({
+let mockFolderTree: Record<string, unknown> = {
+  root: { id: "root", name: "Assets", children: [] }
+};
+
+jest.mock("../../../serverState/useAssets", () => {
+  const assets = () => ({
     error: null,
     folderFiles: [],
     folderFilesFiltered: [],
-    folderTree: { root: { id: "root", name: "Assets", children: [] } },
+    folderTree: mockFolderTree,
     navigateToFolderId: jest.fn()
-  }),
-  useAssets: () => ({
-    error: null,
-    folderFiles: [],
-    folderFilesFiltered: [],
-    folderTree: { root: { id: "root", name: "Assets", children: [] } },
-    navigateToFolderId: jest.fn()
-  })
-}));
+  });
+  return { __esModule: true, default: assets, useAssets: assets };
+});
 
 jest.mock("../../../serverState/useAssetUpload", () => ({
   __esModule: true,
@@ -167,5 +164,16 @@ describe("AssetGrid folder pane", () => {
     expect(Number(separator.getAttribute("aria-valuenow"))).toBe(
       Number(separator.getAttribute("aria-valuemin"))
     );
+  });
+
+  it("docks the folder pane on a wide viewport before any folder exists", async () => {
+    matchesNarrow = false;
+    mockFolderTree = {};
+    try {
+      renderGrid();
+      expect(await screen.findByTestId("folders-panel")).toBeInTheDocument();
+    } finally {
+      mockFolderTree = { root: { id: "root", name: "Assets", children: [] } };
+    }
   });
 });

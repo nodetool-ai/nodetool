@@ -117,6 +117,7 @@ export async function generateCatalog(definitions, { coreVersion, loadPack, read
   const index = canonicalJson({
     schemaVersion: 1,
     coreVersion,
+    installPins: [],
     packs,
     owners: Object.fromEntries([...owners].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0))
   });

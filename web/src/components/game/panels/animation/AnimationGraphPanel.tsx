@@ -43,7 +43,7 @@ interface AnimationGraphPanelProps {
   readonly selectedEntityId?: string;
   /** The play session's latest inspection. The session publishes it a few times a second, not every tick. */
   readonly inspection: Pick<GameInspection3D, "tick" | "entities"> | null;
-  readonly onOps: (ops: GameDocumentOp3D[], label: string) => void;
+  readonly onOps: (ops: GameDocumentOp3D[], label: string) => boolean | void;
 }
 
 function errorMessage(cause: unknown): string {
@@ -92,10 +92,11 @@ export default function AnimationGraphPanel({ document, diagnostics: documentDia
   const liveLayerState = live?.layers[layerIndex];
   const liveCurrent = liveLayerState?.state;
   const livePrevious = liveLayerState?.previousState;
+  const liveTransitionIndex = liveLayerState?.transitionIndex;
   const liveBlending = liveLayerState?.blending ?? false;
   // Inspections arrive several times a second. The canvas re-derives only when the highlighted states change.
-  const liveLayer = useMemo(() => liveCurrent === undefined ? null : { state: liveCurrent, previousState: livePrevious, blending: liveBlending },
-    [liveCurrent, livePrevious, liveBlending]);
+  const liveLayer = useMemo(() => liveCurrent === undefined ? null : { state: liveCurrent, previousState: livePrevious, transitionIndex: liveTransitionIndex, blending: liveBlending },
+    [liveCurrent, livePrevious, liveTransitionIndex, liveBlending]);
   const liveEntityName = live ? animatorEntities(document).find((entity) => entity.id === live.entityId)?.name || live.entityId : null;
 
   const diagnostics = useMemo(() => graphId === undefined ? [] : animationGraphDiagnostics(documentDiagnostics, graphId), [documentDiagnostics, graphId]);
@@ -109,8 +110,7 @@ export default function AnimationGraphPanel({ document, diagnostics: documentDia
     }
     setError(null);
     setNotice(null);
-    onOps(ops, label);
-    return true;
+    return onOps(ops, label) !== false;
   }, [document, documentDiagnostics, onOps]);
 
   const commit = useCallback<AnimationGraphCommit>((edit, label) => {

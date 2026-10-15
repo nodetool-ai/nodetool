@@ -72,6 +72,11 @@ function nodetoolStubPlugin(): Plugin {
 
 // Tests that need real workspace packages run without the stub plugin.
 const realPackageTests = [
+  "tests/packs/npm-matrix.test.ts",
+  "tests/packs/command-service.test.ts",
+  "tests/packs/pack-management-command.test.ts",
+  "tests/packs/reexec.test.ts",
+  "tests/packs/node-run-lazy.test.ts",
   "tests/command-errors-runtime.test.ts",
   "tests/runtime-env.test.ts",
   "tests/missing-runtime-cli.test.ts",

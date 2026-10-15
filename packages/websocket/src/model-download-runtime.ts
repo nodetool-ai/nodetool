@@ -1,3 +1,4 @@
+import { importPack } from "@nodetool-ai/node-catalog";
 import type { ModelDownloadUpdate } from "@nodetool-ai/runtime";
 
 export type ModelDownloadProgress = (update: ModelDownloadUpdate) => void;
@@ -13,7 +14,7 @@ export async function runTransformersJsModelDownload(
   signal: AbortSignal,
   onProgress: ModelDownloadProgress
 ): Promise<void> {
-  const tjs = await import("@nodetool-ai/transformers-js-nodes");
+  const tjs = await importPack<typeof import("@nodetool-ai/transformers-js-nodes")>("transformers-js");
   const fileTotals = new Map<string, { loaded: number; total: number }>();
   const completedFiles = new Set<string>();
 

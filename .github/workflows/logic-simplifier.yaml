@@ -36,6 +36,7 @@ jobs:
         run: node .github/scripts/agent-preflight.mjs --name logic-simplifier --title "$TITLE_PATTERN"
 
   logic-simplifier:
+    cache-mode: read
     needs: preflight
     if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest

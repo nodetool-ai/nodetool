@@ -217,8 +217,8 @@ describe("runSketchValidate", () => {
 });
 
 describe("runSketchDebug", () => {
-  it("seeds the bridge from the document and records each step", async () => {
-    const createBridge = vi.fn(() => fakeBridge());
+  it.each([false, true])("seeds the bridge from the document and records each step (async=%s)", async (asyncBridge) => {
+    const createBridge = vi.fn(() => asyncBridge ? Promise.resolve(fakeBridge()) : fakeBridge());
     const { report } = await runSketchDebug(
       sketchFile(),
       {

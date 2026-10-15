@@ -1,3 +1,4 @@
+import { importPack } from "@nodetool-ai/node-catalog";
 /**
  * The `model3d` layers of a preview pass, drawn before the first frame is
  * composited (D5, host 2).
@@ -20,7 +21,8 @@
  * empty clip.
  */
 
-import { loadImage } from "@napi-rs/canvas";
+import type { loadImage } from "@napi-rs/canvas";
+import { loadCanvas } from "@nodetool-ai/runtime";
 import type {
   ClipModel3DCamera,
   ClipModel3DStyle
@@ -154,6 +156,7 @@ export class Model3DPrerenderer {
   /** Render every group: one Chromium launch each, one PNG per requested frame. */
   async run(): Promise<void> {
     if (this.groups.size === 0) return;
+    const { loadImage } = await loadCanvas();
 
     // Imported here and not at module scope so a document with no 3D clip
     // never loads three.js, chrome-launcher or the render page bundle.
@@ -162,9 +165,7 @@ export class Model3DPrerenderer {
       | null = null;
     let loadError: unknown;
     try {
-      headless = await import(
-        "@nodetool-ai/video-nodes/nodes/model3d/render3d-headless"
-      );
+      headless = await importPack<typeof import("@nodetool-ai/video-nodes/nodes/model3d/render3d-headless")>("video", "@nodetool-ai/video-nodes/nodes/model3d/render3d-headless");
     } catch (error) {
       loadError = error;
     }

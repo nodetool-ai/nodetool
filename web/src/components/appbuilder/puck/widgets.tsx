@@ -40,7 +40,7 @@ import {
   TYPOGRAPHY,
   AudioPlayback,
   ResponsiveImage,
-  VideoPlayer, getSpacingPx
+  VideoPlayer
 } from "../../ui_primitives";
 import { AppEvent } from "../types";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";

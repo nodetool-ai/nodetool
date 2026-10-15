@@ -1245,6 +1245,15 @@ describe("WebSocketClientSession run_job — startJobInner branches", () => {
 });
 
 describe("WebSocketClientSession run_job — emitBeforeRunFailure persistence", () => {
+  it("retains the missing_pack payload on the job's failure envelope", async () => {
+    const ws = new MockWebSocket();
+    const runner = new WebSocketClientSession({ resolveExecutor });
+    await runner.connect(ws);
+    await asAny(runner).jobs.emitBeforeRunFailure("missing-pack-job", "wf", createMissingPackError("fal", ["fal.Fixture"]), false);
+    const failed = decodeAll(ws).find((message) => message.type === "job_update" && message.job_id === "missing-pack-job");
+    expect(failed?.missing_pack).toMatchObject({ error: "missing_pack", packs: [{ id: "fal" }], nodeTypes: ["fal.Fixture"] });
+    await runner.disconnect();
+  });
   it("persists a failed job row and emits a failed job_update", async () => {
     await initTestDb();
     const ws = new MockWebSocket();
@@ -1275,3 +1284,4 @@ describe("WebSocketClientSession run_job — emitBeforeRunFailure persistence", 
     await runner.disconnect();
   });
 });
+import { createMissingPackError } from "@nodetool-ai/node-catalog";

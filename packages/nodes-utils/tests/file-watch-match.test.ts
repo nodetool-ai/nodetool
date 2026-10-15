@@ -4,7 +4,7 @@ import {
   matchesFileWatchPattern,
   shouldEmitFileWatchEvent,
   shouldProcessFileWatchPath
-} from "../src/lib/file-watch-match.js";
+} from "../src/file-watch-match.js";
 
 describe("matchesFileWatchPattern", () => {
   it("matches everything for '*'", () => {

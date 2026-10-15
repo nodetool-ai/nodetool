@@ -57,6 +57,11 @@ interface AssetGridState {
   foldersVisible: boolean;
   toggleFoldersVisible: () => void;
 
+  /** Type groups the user collapsed in the grid and list views. */
+  collapsedAssetGroups: string[];
+  toggleAssetGroupCollapsed: (group: string) => void;
+  setCollapsedAssetGroups: (groups: string[]) => void;
+
   isRenaming: string | null;
   setIsRenaming: (isRenaming: string | null) => void;
 
@@ -193,6 +198,14 @@ const createAssetGridStore = (
   setCreateFolderDialogOpen: (open) => set({ createFolderDialogOpen: open }),
 
   foldersVisible: false,
+  collapsedAssetGroups: [],
+  toggleAssetGroupCollapsed: (group) =>
+    set((state) => ({
+      collapsedAssetGroups: state.collapsedAssetGroups.includes(group)
+        ? state.collapsedAssetGroups.filter((g) => g !== group)
+        : [...state.collapsedAssetGroups, group]
+    })),
+  setCollapsedAssetGroups: (groups) => set({ collapsedAssetGroups: groups }),
   toggleFoldersVisible: () =>
     set((state) => ({ foldersVisible: !state.foldersVisible })),
   isRenaming: null,
@@ -256,6 +269,7 @@ const createAssetGridStore = (
         storage: createJSONStorage(() => localStorage),
         partialize: (state) => ({
           foldersVisible: state.foldersVisible,
+          collapsedAssetGroups: state.collapsedAssetGroups,
           viewMode: state.viewMode,
           typeFilter: state.typeFilter,
           sizeFilter: state.sizeFilter,
