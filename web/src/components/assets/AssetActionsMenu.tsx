@@ -1,19 +1,10 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import TuneIcon from "@mui/icons-material/Tune";
 import FolderIcon from "@mui/icons-material/Folder";
 import FolderOffIcon from "@mui/icons-material/FolderOff";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import ImageIcon from "@mui/icons-material/Image";
-import VideocamIcon from "@mui/icons-material/Videocam";
-import AudiotrackIcon from "@mui/icons-material/Audiotrack";
-import ViewInArIcon from "@mui/icons-material/ViewInAr";
-import DescriptionIcon from "@mui/icons-material/Description";
-import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import FileUploadIcon from "@mui/icons-material/FileUpload";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -21,8 +12,6 @@ import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import AssetSearchInput from "./AssetSearchInput";
 import AssetActions from "./AssetActions";
 import SearchErrorBoundary from "../SearchErrorBoundary";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useAssets from "../../serverState/useAssets";
@@ -32,64 +21,14 @@ import {
   ContextMenu,
   MenuItemPrimitive,
   FlexRow,
-  TruncatedText,
   Box,
+  Chip,
   Divider,
-  BORDER_RADIUS,
-  FONT_SIZE_SANS,
-  MOTION,
-  SPACING, getSpacingPx
+  EditorButton,
+  TruncatedText,
+  SPACING
 } from "../ui_primitives";
-import { TYPE_FILTERS, TypeFilterKey } from "../../utils/formatUtils";
 import isEqual from "../../utils/isEqual";
-
-const styles = (theme: Theme) =>
-  css({
-    "&": {
-      margin: "0",
-      display: "flex",
-      flexWrap: "wrap",
-      justifyContent: "start",
-      alignItems: "start",
-      gap: getSpacingPx(SPACING.sm),
-      width: "100%",
-      transition: MOTION.all,
-      // Tighter, stacked controls for narrow sidebars
-      "@media (max-width: 520px)": {
-        flexDirection: "column",
-        alignItems: "stretch",
-        gap: getSpacingPx(SPACING.sm)
-      }
-    },
-    ".selected-asset-info": {
-      minHeight: "100px",
-      minWidth: "200px",
-      overflowY: "auto",
-      overflowX: "hidden",
-      fontSize: theme.fontSizeSmall,
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
-      color: theme.vars.palette.grey[200]
-    }
-  });
-
-const TYPE_FILTER_ICONS = {
-  all: <FilterAltOffIcon />,
-  image: <ImageIcon />,
-  video: <VideocamIcon />,
-  audio: <AudiotrackIcon />,
-  model_3d: <ViewInArIcon />,
-  text: <DescriptionIcon />,
-  application: <InsertDriveFileIcon />,
-  other: <MoreHorizIcon />
-} satisfies Record<TypeFilterKey, React.ReactNode>;
-
-const fullscreenFiltersStyles = css({
-  "&": {
-    width: "auto",
-    flex: "1 1 auto",
-    margin: 0
-  }
-});
 
 interface AssetActionsMenuProps {
   maxItemSize: number;
@@ -99,15 +38,18 @@ interface AssetActionsMenuProps {
   hideFolderControls?: boolean;
 }
 
+/**
+ * The asset browser toolbar. The fullscreen page has room for labeled
+ * controls on one row: search, view options, filters, then New folder and
+ * Upload. The sidebar keeps icon buttons and folds search and view options
+ * behind the options toggle.
+ */
 const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   maxItemSize,
   onUploadFiles,
   isFullscreenAssets = false,
   hideFolderControls = false
 }) => {
-  const setSelectedAssetIds = useAssetGridStore(
-    (state) => state.setSelectedAssetIds
-  );
   const setAssetSearchTerm = useAssetGridStore(
     (state) => state.setAssetSearchTerm
   );
@@ -118,16 +60,6 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   const setCreateFolderDialogOpen = useAssetGridStore(
     (state) => state.setCreateFolderDialogOpen
   );
-  const typeFilter = useAssetGridStore((state) => state.typeFilter);
-  const setTypeFilter = useAssetGridStore((state) => state.setTypeFilter);
-  const [typeFilterAnchor, setTypeFilterAnchor] = useState<HTMLElement | null>(
-    null
-  );
-
-  const handleTypeFilterChange = useCallback(
-    (next: TypeFilterKey) => setTypeFilter(next),
-    [setTypeFilter]
-  );
   const favoritesOnly = useAssetGridStore((state) => state.favoritesOnly);
   const setFavoritesOnly = useAssetGridStore(
     (state) => state.setFavoritesOnly
@@ -137,17 +69,17 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   const [modelFilterAnchor, setModelFilterAnchor] =
     useState<HTMLElement | null>(null);
   const { folderFiles, folderTree, modelOptions } = useAssets();
-  const { handleSelectAllAssets, handleDeselectAssets } =
-    useAssetSelection(folderFiles);
+  const { handleSelectAllAssets } = useAssetSelection(folderFiles);
   const [expanded, setExpanded] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasFolders = useMemo(
     () => !!folderTree && Object.keys(folderTree).length > 0,
     [folderTree]
   );
-  // In fullscreen the filter row is always visible; in the sidebar it is
-  // toggled by the tune button.
-  const showFilters = expanded || isFullscreenAssets;
+  // In fullscreen the search and view options are always visible; in the
+  // sidebar they are toggled by the options button.
+  const showOptions = expanded || isFullscreenAssets;
 
   const onLocalSearchChange = useCallback(
     (newSearchTerm: string) => {
@@ -156,11 +88,17 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
     [setAssetSearchTerm]
   );
 
-  const theme = useTheme();
+  const handleFileInput = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(event.target.files ?? []);
+      if (files.length > 0) {
+        onUploadFiles?.(files);
+      }
+      event.target.value = "";
+    },
+    [onUploadFiles]
+  );
 
-  const typeFilterActive = typeFilter !== "all";
-  const typeFilterLabel =
-    TYPE_FILTERS.find((f) => f.key === typeFilter)?.label ?? "All";
   const modelFilterLabel = modelFilter
     ? (modelOptions.find((m) => m.id === modelFilter)?.label ?? modelFilter)
     : "Any model";
@@ -168,169 +106,172 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   // model is already picked and has to stay clearable.
   const showModelFilter = modelOptions.length > 0 || modelFilter !== null;
 
-  return (
-    <Box
-      className="asset-menu"
-      sx={{
-        width: "100%",
-        ...(isFullscreenAssets && {
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          columnGap: SPACING.md,
-          rowGap: SPACING.xs,
-          px: SPACING.md,
-          py: SPACING.xs
-        })
-      }}
-    >
-      <FlexRow
-        className="asset-menu-toolbar"
-        align="center"
-        gap={SPACING.xs}
-        wrap
-        sx={{
-          px: SPACING.micro,
-          py: SPACING.micro,
-          "& .MuiIconButton-root": { padding: SPACING.sm },
-          "& .MuiSvgIcon-root": { fontSize: 16 }
-        }}
-      >
-        {/* Browse: toggle the folder navigator (sidebar only) */}
-        {!isFullscreenAssets && !hideFolderControls && hasFolders && (
-          <ToolbarIconButton
-            icon={foldersVisible ? <FolderIcon /> : <FolderOffIcon />}
-            tooltip={foldersVisible ? "Hide folders" : "Show folders"}
-            onClick={toggleFoldersVisible}
-            tooltipPlacement="top"
-            nodrag={false}
-            active={foldersVisible}
-          />
-        )}
+  const filters = (
+    <>
+      <Chip
+        compact
+        icon={favoritesOnly ? <StarIcon /> : <StarBorderIcon />}
+        label="Favorites"
+        active={favoritesOnly}
+        onClick={() => setFavoritesOnly(!favoritesOnly)}
+      />
+      {showModelFilter && (
+        <EditorButton
+          variant="text"
+          color={modelFilter ? "primary" : "inherit"}
+          density="compact"
+          startIcon={<SmartToyOutlinedIcon />}
+          endIcon={<ArrowDropDownIcon />}
+          tooltip="Filter by the model that generated the file"
+          aria-haspopup="menu"
+          onClick={(e) => setModelFilterAnchor(e.currentTarget)}
+          sx={{ maxWidth: 200 }}
+        >
+          <TruncatedText component="span" sx={{ fontSize: "inherit" }}>
+            {modelFilterLabel}
+          </TruncatedText>
+        </EditorButton>
+      )}
+    </>
+  );
 
-        {/* Filter: asset type (labeled to avoid icon guessing) */}
+  const createActions = isFullscreenAssets ? (
+    <FlexRow align="center" gap={SPACING.sm} sx={{ ml: "auto" }}>
+      {!hideFolderControls && (
+        <EditorButton
+          variant="outlined"
+          density="compact"
+          startIcon={<CreateNewFolderIcon />}
+          onClick={() => setCreateFolderDialogOpen(true)}
+        >
+          New folder
+        </EditorButton>
+      )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        hidden
+        multiple
+        onChange={handleFileInput}
+      />
+      <EditorButton
+        variant="contained"
+        density="compact"
+        startIcon={<FileUploadIcon />}
+        tooltip="Or drop files anywhere on the grid"
+        onClick={() => fileInputRef.current?.click()}
+      >
+        Upload
+      </EditorButton>
+    </FlexRow>
+  ) : (
+    <FlexRow
+      align="center"
+      gap={SPACING.micro}
+      sx={{ ml: "auto", pl: SPACING.micro }}
+    >
+      <Divider
+        orientation="vertical"
+        flexItem
+        sx={{ my: SPACING.micro, mr: SPACING.micro }}
+      />
+      {!hideFolderControls && (
         <ToolbarIconButton
-          tooltip="Filter by type"
-          onClick={(e) => setTypeFilterAnchor(e.currentTarget)}
+          icon={<CreateNewFolderIcon />}
+          tooltip="New folder"
+          onClick={() => setCreateFolderDialogOpen(true)}
           tooltipPlacement="top"
           nodrag={false}
-          active={typeFilterActive}
-          sx={{
-            borderRadius: BORDER_RADIUS.sm,
-            px: SPACING.micro,
-            gap: SPACING.micro,
-            fontSize: FONT_SIZE_SANS.label
-          }}
-        >
-          <FlexRow
-            align="center"
-            gap={SPACING.micro}
-            sx={{ "& .MuiSvgIcon-root": { fontSize: 18 } }}
-          >
-            {TYPE_FILTER_ICONS[typeFilter]}
-            <span>{typeFilterLabel}</span>
-            <ArrowDropDownIcon />
-          </FlexRow>
-        </ToolbarIconButton>
+        />
+      )}
+      <UploadButton
+        onFileSelect={(files) => onUploadFiles?.(files)}
+        iconVariant="file"
+        tooltip="Upload files"
+        multiple
+      />
+    </FlexRow>
+  );
 
-        {/* Filter: generating model */}
-        {showModelFilter && (
-          <ToolbarIconButton
-            tooltip="Filter by model"
-            onClick={(e) => setModelFilterAnchor(e.currentTarget)}
-            tooltipPlacement="top"
-            nodrag={false}
-            active={modelFilter !== null}
+  const search = (
+    <SearchErrorBoundary fallbackTitle="Search Input Error">
+      <AssetSearchInput
+        onLocalSearchChange={onLocalSearchChange}
+        focusOnTyping={false}
+        focusSearchInput={false}
+        width={240}
+      />
+    </SearchErrorBoundary>
+  );
+
+  return (
+    <Box className="asset-menu" sx={{ width: "100%" }}>
+      {isFullscreenAssets ? (
+        <FlexRow
+          className="asset-menu-toolbar"
+          align="center"
+          gap={SPACING.md}
+          wrap
+          sx={{ px: SPACING.md, py: SPACING.sm }}
+        >
+          {search}
+          <AssetActions
+            handleSelectAllAssets={handleSelectAllAssets}
+            maxItemSize={maxItemSize}
+          />
+          {filters}
+          {createActions}
+        </FlexRow>
+      ) : (
+        <>
+          <FlexRow
+            className="asset-menu-toolbar"
+            align="center"
+            gap={SPACING.xs}
+            wrap
             sx={{
-              borderRadius: BORDER_RADIUS.sm,
               px: SPACING.micro,
-              gap: SPACING.micro,
-              fontSize: FONT_SIZE_SANS.label,
-              maxWidth: 200
+              py: SPACING.micro,
+              "& .MuiIconButton-root": { padding: SPACING.sm },
+              "& .MuiIconButton-root .MuiSvgIcon-root": { fontSize: 16 }
             }}
           >
-            <FlexRow
-              align="center"
-              gap={SPACING.micro}
-              sx={{ minWidth: 0, "& .MuiSvgIcon-root": { fontSize: 18 } }}
-            >
-              <SmartToyOutlinedIcon />
-              <TruncatedText component="span" sx={{ fontSize: "inherit" }}>
-                {modelFilterLabel}
-              </TruncatedText>
-              <ArrowDropDownIcon />
-            </FlexRow>
-          </ToolbarIconButton>
-        )}
-
-        {/* Filter: starred assets from every folder */}
-        <ToolbarIconButton
-          icon={favoritesOnly ? <StarIcon /> : <StarBorderIcon />}
-          tooltip={favoritesOnly ? "Show all assets" : "Show favorites"}
-          onClick={() => setFavoritesOnly(!favoritesOnly)}
-          tooltipPlacement="top"
-          nodrag={false}
-          active={favoritesOnly}
-          aria-pressed={favoritesOnly}
-        />
-
-        {/* Search, sort & resize (sidebar only; always shown in fullscreen) */}
-        {!isFullscreenAssets && (
-          <ToolbarIconButton
-            icon={<TuneIcon />}
-            tooltip={expanded ? "Hide search & sort" : "Search, sort & resize"}
-            onClick={() => setExpanded((prev) => !prev)}
-            tooltipPlacement="top"
-            nodrag={false}
-            active={expanded}
-          />
-        )}
-
-        {/* Actions: create & add assets */}
-        <FlexRow align="center" gap={SPACING.micro} sx={{ ml: "auto", pl: SPACING.micro }}>
-          <Divider
-            orientation="vertical"
-            flexItem
-            sx={{ my: SPACING.micro, mr: SPACING.micro }}
-          />
-          {!hideFolderControls && (
+            {!hideFolderControls && hasFolders && (
+              <ToolbarIconButton
+                icon={foldersVisible ? <FolderIcon /> : <FolderOffIcon />}
+                tooltip={foldersVisible ? "Hide folders" : "Show folders"}
+                onClick={toggleFoldersVisible}
+                tooltipPlacement="top"
+                nodrag={false}
+                active={foldersVisible}
+              />
+            )}
             <ToolbarIconButton
-              icon={<CreateNewFolderIcon />}
-              tooltip="Create folder"
-              onClick={() => setCreateFolderDialogOpen(true)}
+              icon={<TuneIcon />}
+              tooltip={
+                expanded
+                  ? "Hide search and view options"
+                  : "Search, sort and view options"
+              }
+              onClick={() => setExpanded((prev) => !prev)}
               tooltipPlacement="top"
               nodrag={false}
+              active={expanded}
             />
+            {filters}
+            {createActions}
+          </FlexRow>
+          {showOptions && (
+            <SidebarOptionsRow>
+              {search}
+              <AssetActions
+                handleSelectAllAssets={handleSelectAllAssets}
+                maxItemSize={maxItemSize}
+              />
+            </SidebarOptionsRow>
           )}
-          <UploadButton
-            onFileSelect={(files) => onUploadFiles?.(files)}
-            iconVariant="file"
-            tooltip="Upload files"
-            multiple
-          />
-        </FlexRow>
-      </FlexRow>
-
-      <ContextMenu
-        open={Boolean(typeFilterAnchor)}
-        anchorEl={typeFilterAnchor}
-        onClose={() => setTypeFilterAnchor(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-        transformOrigin={{ vertical: "top", horizontal: "left" }}
-      >
-        {TYPE_FILTERS.map((filter) => (
-          <MenuItemPrimitive
-            key={filter.key}
-            label={filter.label}
-            icon={TYPE_FILTER_ICONS[filter.key]}
-            selected={typeFilter === filter.key}
-            onClick={() => {
-              handleTypeFilterChange(filter.key);
-              setTypeFilterAnchor(null);
-            }}
-          />
-        ))}
-      </ContextMenu>
+        </>
+      )}
 
       <ContextMenu
         open={Boolean(modelFilterAnchor)}
@@ -342,7 +283,8 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
         <MenuItemPrimitive
           label="Any model"
           icon={<FilterAltOffIcon />}
-          selected={modelFilter === null}
+          checkable="radio"
+          checked={modelFilter === null}
           onClick={() => {
             setModelFilter(null);
             setModelFilterAnchor(null);
@@ -353,7 +295,8 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
             key={model.id}
             label={model.label}
             icon={<SmartToyOutlinedIcon />}
-            selected={modelFilter === model.id}
+            checkable="radio"
+            checked={modelFilter === model.id}
             onClick={() => {
               setModelFilter(model.id);
               setModelFilterAnchor(null);
@@ -361,34 +304,23 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
           />
         ))}
       </ContextMenu>
-
-      {showFilters && (
-        <Box
-          className="asset-menu-with-global-search"
-          css={
-            isFullscreenAssets
-              ? [styles(theme), fullscreenFiltersStyles]
-              : styles(theme)
-          }
-        >
-          <SearchErrorBoundary fallbackTitle="Search Input Error">
-            <AssetSearchInput
-              onLocalSearchChange={onLocalSearchChange}
-              focusOnTyping={false}
-              focusSearchInput={false}
-              width={240}
-            />
-          </SearchErrorBoundary>
-          <AssetActions
-            setSelectedAssetIds={setSelectedAssetIds}
-            handleSelectAllAssets={handleSelectAllAssets}
-            handleDeselectAssets={handleDeselectAssets}
-            maxItemSize={maxItemSize}
-          />
-        </Box>
-      )}
     </Box>
   );
 };
+
+/** The sidebar's folded-out search and view options, stacked under the toolbar. */
+const SidebarOptionsRow: React.FC<{ children: React.ReactNode }> = ({
+  children
+}) => (
+  <FlexRow
+    className="asset-menu-with-global-search"
+    align="center"
+    gap={SPACING.sm}
+    wrap
+    sx={{ px: SPACING.micro, py: SPACING.xs }}
+  >
+    {children}
+  </FlexRow>
+);
 
 export default React.memo(AssetActionsMenu, isEqual);

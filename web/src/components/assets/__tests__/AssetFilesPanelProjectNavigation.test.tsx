@@ -15,6 +15,10 @@ jest.mock("../BreadcrumbNav", () => ({
   __esModule: true,
   default: () => null
 }));
+jest.mock("../AssetTypeFilterBar", () => ({
+  __esModule: true,
+  default: () => null
+}));
 jest.mock("../GlobalSearchResults", () => ({
   __esModule: true,
   default: ({

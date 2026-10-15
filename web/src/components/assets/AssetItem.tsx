@@ -163,7 +163,6 @@ const styles = (theme: Theme) =>
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
       width: "100%",
       height: "auto",
-      maxHeight: "2.6em",
       // Clamp to two lines so near-identical names (inpaint-result.png vs
       // inpaint-result-1.png) keep their distinguishing tail instead of being
       // cut to "inpaint-r…" on a single line.
@@ -182,7 +181,6 @@ const styles = (theme: Theme) =>
     ".name.large": {
       fontSize: theme.fontSizeSmall,
       lineHeight: "1.25em",
-      maxHeight: "2.6em",
       marginTop: 0
     },
     ".date": {
