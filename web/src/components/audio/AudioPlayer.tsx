@@ -1,11 +1,3 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import WaveSurfer from "wavesurfer.js";
-import Minimap from "wavesurfer.js/dist/plugins/minimap";
-import { Text, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
-
 import React, {
   useEffect,
   useState,
@@ -13,6 +5,18 @@ import React, {
   useCallback,
   useMemo
 } from "react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+import WaveSurfer from "wavesurfer.js";
+import Minimap from "wavesurfer.js/dist/plugins/minimap";
+
+import {
+  Box,
+  FlexColumn,
+  SPACING,
+  TruncatedText,
+  TYPOGRAPHY
+} from "../ui_primitives";
 import { throttle } from "../../utils/lodashAlternatives";
 import AudioControls from "./AudioControls";
 
@@ -20,6 +24,8 @@ type WaveSurferProps = {
   fontSize?: "normal" | "small" | "tiny";
   alwaysShowControls?: boolean;
   filename?: string;
+  /** Draw the filename above the waveform. It still names downloads when hidden. */
+  showFilename?: boolean;
   cursorColor?: string;
   waveColor?: string;
   progressColor?: string;
@@ -50,9 +56,9 @@ const getWsprops = (theme: Theme): WaveSurferProps => ({
   alwaysShowControls: false,
   filename: "",
   cursorWidth: 1,
-  cursorColor: theme.palette.divider,
-  waveColor: theme.palette.grey[300],
-  progressColor: theme.palette.text.secondary,
+  cursorColor: theme.palette.primary.light,
+  waveColor: theme.palette.grey[500],
+  progressColor: theme.palette.primary.main,
   source: "",
   barAlign: "bottom",
   barGap: 1,
@@ -73,58 +79,6 @@ const getWsprops = (theme: Theme): WaveSurferProps => ({
   playOnLoad: false
 });
 
-const styles = (theme: Theme) =>
-  css({
-    button: {
-      width: "25px !important",
-      height: "25px !important",
-      padding: getSpacingPx(SPACING.lg), // was 10px
-      transition: "border",
-      backgroundColor: "transparent",
-      border: `1px solid ${theme.vars.palette.c_overlay}`,
-      marginLeft: "0",
-      "&:hover": {
-        backgroundColor: "transparent",
-        border: `1px solid ${theme.vars.palette.c_overlay}`
-      }
-    },
-    ".tiny": {
-      fontSize: theme.fontSizeSmaller
-    },
-    ".normal": {
-      fontSize: theme.fontSizeNormal
-    },
-    ".big": {
-      fontSize: theme.fontSizeBig
-    },
-    ".waveform": {
-      width: "100%",
-      maxWidth: "99% !important"
-      // scrollbarWidth: "none",
-      // msOverflowStyle: "none"
-    },
-    ".minimap": {
-      width: "100%",
-      maxWidth: "99% !important",
-      marginTop: getSpacingPx(SPACING.micro),
-      cursor: "pointer",
-      opacity: "0",
-      transition: `opacity ${MOTION.slow}`
-    },
-    ".minimap.visible": {
-      opacity: "1"
-    }
-  });
-
-const formatTime = (time: number) => {
-  const hours = Math.floor(time / 3600);
-  const minutes = Math.floor((time % 3600) / 60);
-  const seconds = ("00" + Math.floor(time % 60)).slice(-2);
-  return hours > 0
-    ? `${hours}:${minutes < 10 ? "0" : ""}${minutes}:${seconds}`
-    : `${minutes < 10 ? "0" : ""}${minutes}:${seconds}`;
-};
-
 const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
   const theme = useTheme();
   const wsprops = useMemo(() => getWsprops(theme), [theme]);
@@ -132,6 +86,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     source,
     alwaysShowControls = wsprops.alwaysShowControls,
     filename = wsprops.filename,
+    showFilename = true,
     waveColor = wsprops.waveColor,
     progressColor = wsprops.progressColor,
     minimapHeight = wsprops.minimapHeight,
@@ -227,7 +182,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           container: `#${minimapId}`,
           waveColor,
           progressColor,
-          cursorColor: theme.palette.divider,
+          cursorColor: theme.palette.primary.light,
           height: minimapHeight,
           barHeight: minimapBarHeight,
           barAlign: "bottom",
@@ -318,7 +273,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     onPlay,
     onPause,
     checkWaveformFit,
-    theme.palette.divider,
+    theme.palette.primary.light,
     wsprops
   ]);
 
@@ -368,35 +323,38 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     }
   }, []);
 
-  const cssStyles = useMemo(() => styles(theme), [theme]);
+  const showMinimap =
+    waveSurferRef.current !== null && waveSurferRef.current.getDuration() > 15;
 
   return (
-    <div
-      css={cssStyles}
+    <FlexColumn
       onClick={(e) => {
         e.stopPropagation();
       }}
       className={`audio-controls-container${!fitsContainer ? " zoomed" : ""}${
         audioUrl === "" ? " disabled" : ""
       }`}
+      gap={SPACING.xs}
+      sx={{ width: "100%", minWidth: 0 }}
     >
-      <Text
-        className={`${fontSize} filename`}
-        style={{ color: "var(--palette-text-primary)" }}
-      >
-        {filename}
-      </Text>
-      <Text
-        className={`${fontSize} filename`}
-        style={{ color: "var(--palette-text-secondary)" }}
-      >
-        {`${formatTime(displayTime)} | ${formatTime(duration)}`}
-      </Text>
-      <div
-        id="waveform"
+      {showFilename && filename && (
+        <TruncatedText
+          className={`${fontSize} filename`}
+          showTooltip
+          color="text.primary"
+          sx={
+            fontSize === "normal"
+              ? TYPOGRAPHY.sans.label
+              : TYPOGRAPHY.sans.caption
+          }
+        >
+          {filename}
+        </TruncatedText>
+      )}
+      <Box
         className="waveform nodrag"
-        style={{ height: `${waveformHeight}px` }}
         ref={waveFormRef}
+        sx={{ width: "100%", height: waveformHeight, cursor: "pointer" }}
         onClick={(e) => {
           e.stopPropagation();
           const bbox = waveSurferRef.current
@@ -408,20 +366,24 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
             waveSurferRef.current?.seekTo(progress);
           }
         }}
-      ></div>
-      <div
+      />
+      <Box
         id={minimapId}
-        className={`minimap ${
-          waveSurferRef?.current && waveSurferRef.current.getDuration() > 15
-            ? "visible"
-            : ""
-        }`}
-        style={{ height: `${minimapHeight}px` }}
-      ></div>
+        className={`minimap${showMinimap ? " visible" : ""}`}
+        sx={{
+          width: "100%",
+          height: showMinimap ? minimapHeight : 0,
+          overflow: "hidden",
+          cursor: "pointer",
+          opacity: showMinimap ? 1 : 0
+        }}
+      />
       {(isReady || alwaysShowControls) && (
         <AudioControls
           isPlaying={isPlaying}
           zoom={zoom}
+          currentTime={displayTime}
+          duration={duration}
           filename={filename}
           assetUrl={audioUrl}
           mimeType={mimeType}
@@ -434,7 +396,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           onZoomChange={handleZoomChange}
         />
       )}
-    </div>
+    </FlexColumn>
   );
 };
 

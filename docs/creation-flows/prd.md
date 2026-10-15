@@ -1044,9 +1044,11 @@ node is placed.
 ### 11.1 Step 1 — Idea
 
 Heading "What should this workflow do?", subline "Describe the task. We'll plan
-the steps and check what it needs before building." Inspiration chips:
-"Summarize a PDF and email it", "Batch-generate product shots from a CSV",
-"Turn a YouTube URL into a blog post". Alternatives:
+the steps and check what it needs before building." Brief placeholder "Make a
+cover image for each title in a list". Inspiration chips, one per medium: "Turn
+each row of a product CSV into a studio photo", "Turn a one-line product
+description into a five-second video ad", "Turn a 30-second script into a
+voiceover". Alternatives:
 
 - **Start from an example** — the examples browser inline. Picking one copies
   it, stage `done`, opens the canvas.

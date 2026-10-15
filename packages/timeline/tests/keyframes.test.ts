@@ -1,14 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
+  KEYFRAME_PROPERTIES,
   findKeyframeAnimation,
   hasKeyframeAt,
+  keyframeIdentity,
   keyframeTimesMs,
   keyframeValueAt,
   removeKeyframe,
   setKeyframe
 } from "../src/keyframes.js";
 import { compileClipAnimations } from "../src/animation/compile.js";
-import { sampleAnimations } from "../src/animation/sample.js";
+import {
+  createAnimationSample,
+  sampleAnimations
+} from "../src/animation/sample.js";
+import {
+  ANIMATED_PROPERTIES,
+  ANIMATED_PROPERTY_FOLD
+} from "../src/animation/types.js";
 import { splitClip } from "../src/splitClip.js";
 import { trimClip } from "../src/trimClip.js";
 import type { TimelineClip } from "../src/types.js";
@@ -167,5 +176,35 @@ describe("keyframeValueAt easing", () => {
       value: 0.5,
       easing: "easeOut"
     });
+  });
+});
+
+describe("keyframeIdentity", () => {
+  const identitySample = createAnimationSample() as unknown as Record<
+    string,
+    number | undefined
+  >;
+  const withScalarIdentity = ANIMATED_PROPERTIES.filter(
+    (property) => typeof identitySample[property] === "number"
+  );
+
+  it.each(withScalarIdentity)(
+    "%s matches the value an undriven sample holds",
+    (property) => {
+      expect(keyframeIdentity(property)).toBe(identitySample[property]);
+    }
+  );
+
+  it("covers every property the inspector offers", () => {
+    for (const property of KEYFRAME_PROPERTIES) {
+      expect(withScalarIdentity).toContain(property);
+    }
+  });
+
+  it("is 1 for multiplying channels and 0 for adding ones", () => {
+    for (const property of withScalarIdentity) {
+      const fold = ANIMATED_PROPERTY_FOLD[property];
+      expect(keyframeIdentity(property)).toBe(fold === "multiply" ? 1 : 0);
+    }
   });
 });

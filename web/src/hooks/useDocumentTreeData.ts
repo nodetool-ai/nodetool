@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import type { Entity } from "@nodetool-ai/protocol";
 
 import { trpc } from "../trpc/client";
@@ -98,21 +98,40 @@ export const useDocumentTreeData = (
     { staleTime: INDEX_STALE_TIME, retry: false }
   );
 
+  // Every save refetches the index as new objects. A row re-renders when its
+  // leaf is a new object, and a project holds hundreds of rows, so a document
+  // the refetch did not change keeps the leaf it had.
+  const leafCache = useRef(new Map<string, DocumentTreeLeaf>());
+
   const groups = useMemo<readonly DocumentTreeGroup[]>(() => {
+    const previous = leafCache.current;
+    const next = new Map<string, DocumentTreeLeaf>();
     const byType = new Map<DocumentTreeLeafType, DocumentTreeLeaf[]>();
     for (const document of indexQuery.data?.documents ?? []) {
       const type = document.type;
+      const key = `${type}:${document.id}`;
+      const name = document.name || UNTITLED[type];
+      const cached = previous.get(key);
+      const leaf =
+        cached &&
+        cached.name === name &&
+        cached.projectId === projectId &&
+        cached.entity === document.entity
+          ? cached
+          : {
+              id: document.id,
+              name,
+              type,
+              typeLabel: TYPE_LABELS[type],
+              projectId,
+              entity: document.entity
+            };
+      next.set(key, leaf);
       const leaves = byType.get(type) ?? [];
-      leaves.push({
-        id: document.id,
-        name: document.name || UNTITLED[type],
-        type,
-        typeLabel: TYPE_LABELS[type],
-        projectId,
-        entity: document.entity
-      });
+      leaves.push(leaf);
       byType.set(type, leaves);
     }
+    leafCache.current = next;
     return GROUPS.map((group) => ({
       id: group.id,
       label: group.label,

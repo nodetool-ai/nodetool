@@ -464,20 +464,55 @@ const RemoveSectionControl: React.FC<{
 };
 
 /** A section's name and size, in the one tone every plan header uses. */
-const PlanReviewHeader: React.FC<{ section: PlanReviewSection }> = ({
-  section
+const PlanReviewHeader: React.FC<{ header: string; subheader?: string }> = ({
+  header,
+  subheader
 }) => (
   <>
     {/* A section header is a heading, so it reads as one. The small uppercase
         label tone put it below the block headings under it, which is backwards:
         18/600 for the section, 13/500 for its blocks. */}
     <Text size="big" component="h3">
-      {section.header}
+      {header}
     </Text>
-    {section.subheader ? (
-      <Caption color="muted">{section.subheader}</Caption>
-    ) : null}
+    {subheader ? <Caption color="muted">{subheader}</Caption> : null}
   </>
+);
+
+export interface PlanReviewHeadingProps {
+  header: string;
+  subheader?: string;
+  /** Controls at the end of the heading's line, e.g. a remove button. */
+  children?: React.ReactNode;
+}
+
+/**
+ * The ruled heading over a flat section. Exported so a step that draws its own
+ * items — the workflow step list — heads them the same way as the sections
+ * around them.
+ */
+export const PlanReviewHeading: React.FC<PlanReviewHeadingProps> = ({
+  header,
+  subheader,
+  children
+}) => (
+  // Name and size share the header's line: stacked, a two-word subheader read
+  // as a row of its own and pushed the section's first field a line further
+  // down on every scene.
+  <FlexRow
+    gap={GAP.normal}
+    align="baseline"
+    wrap
+    sx={{
+      borderBottom: "1px solid",
+      borderColor: "divider",
+      pb: `${SPACING_PX.sm}px`,
+      maxWidth: REVIEW_CONTENT_WIDTH
+    }}
+  >
+    <PlanReviewHeader header={header} subheader={subheader} />
+    {children}
+  </FlexRow>
 );
 
 /**
@@ -494,7 +529,10 @@ const PlanReviewSceneSection: React.FC<{
       <FlexColumn gap={GAP.comfortable} sx={REVIEW_SCENE_RAIL}>
         <FlexRow gap={GAP.normal} align="flex-start">
           <FlexColumn gap={GAP.tight} sx={{ minWidth: 0 }}>
-            <PlanReviewHeader section={section} />
+            <PlanReviewHeader
+              header={section.header}
+              subheader={section.subheader}
+            />
           </FlexColumn>
           {remove}
         </FlexRow>
@@ -583,23 +621,12 @@ const PlanReviewInternal: React.FC<PlanReviewProps> = ({
           />
         ) : (
           <FlexColumn key={section.id} gap={GAP.compact} component="section">
-            {/* Name and size share the header's line: stacked, a two-word
-                subheader read as a row of its own and pushed the section's
-                first field a line further down on every scene. */}
-            <FlexRow
-              gap={GAP.normal}
-              align="baseline"
-              wrap
-              sx={{
-                borderBottom: "1px solid",
-                borderColor: "divider",
-                pb: `${SPACING_PX.sm}px`,
-                maxWidth: REVIEW_CONTENT_WIDTH
-              }}
+            <PlanReviewHeading
+              header={section.header}
+              subheader={section.subheader}
             >
-              <PlanReviewHeader section={section} />
               {removeControl(section)}
-            </FlexRow>
+            </PlanReviewHeading>
             {section.rows.length > 0 ? (
               <Box sx={{ maxWidth: REVIEW_CONTENT_WIDTH }}>
                 <PlanReviewLines rows={section.rows} />

@@ -461,6 +461,31 @@ describe('Window Module', () => {
         expect(respond({ url: 'file:///app/dist-web/pages/logs.html' })['Access-Control-Allow-Origin']).toEqual(['*']);
       });
 
+      // Chromium rejects a response that carries two Allow-Origin values, so a
+      // server's own lowercase CORS header must not survive next to ours.
+      it('replaces the CORS headers the server already sent', () => {
+        createWindow();
+        const callback = jest.fn();
+        headersHandler()(
+          {
+            frame: { url: 'http://127.0.0.1:7777/' },
+            responseHeaders: {
+              'access-control-allow-origin': ['http://127.0.0.1:7777'],
+              'Access-Control-Allow-Methods': ['GET'],
+              'content-length': ['4'],
+            },
+          },
+          callback,
+        );
+
+        expect(callback.mock.calls[0][0].responseHeaders).toEqual({
+          'content-length': ['4'],
+          'Access-Control-Allow-Origin': ['*'],
+          'Access-Control-Allow-Methods': ['GET, POST, PUT, DELETE, OPTIONS'],
+          'Access-Control-Allow-Headers': ['*'],
+        });
+      });
+
       it('leaves headers untouched for third-party or frameless requests', () => {
         createWindow();
 

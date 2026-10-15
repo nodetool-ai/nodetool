@@ -524,7 +524,7 @@ export function planToPlacement(
         node.properties[slot.name] = chosen;
       } else if (slot) {
         issues.push(
-          `${label} needs a ${role} model and none was chosen, so its "${slot.name}" is unset.`
+          `${label} needs ${role === "image" || role === "audio" ? "an" : "a"} ${role} model and none was chosen, so its "${slot.name}" is unset.`
         );
       }
     }
@@ -960,31 +960,8 @@ export interface WorkflowInspirationChip {
 
 export const WORKFLOW_INSPIRATION_CHIPS: readonly WorkflowInspirationChip[] = [
   {
-    id: "summarize-pdf",
-    brief: "Summarize a PDF and email it",
-    plan: {
-      inputs: [{ name: "document", type: "document" }],
-      steps: [
-        {
-          id: "extract",
-          title: "Read the PDF",
-          summary: "Pull the text out of the uploaded document.",
-          node_type: "lib.pdf.ExtractText"
-        },
-        {
-          id: "summarize",
-          title: "Summarize it",
-          summary: "Write a short summary of the extracted text.",
-          node_type: "nodetool.agents.Summarizer",
-          model_role: "language"
-        }
-      ],
-      outputs: [{ name: "summary", type: "string" }]
-    }
-  },
-  {
     id: "product-shots",
-    brief: "Batch-generate product shots from a CSV",
+    brief: "Turn each row of a product CSV into a studio photo",
     plan: {
       inputs: [
         {
@@ -1020,27 +997,49 @@ export const WORKFLOW_INSPIRATION_CHIPS: readonly WorkflowInspirationChip[] = [
     }
   },
   {
-    id: "notes-to-post",
-    brief: "Turn rough notes into a blog post",
+    id: "description-to-ad",
+    brief: "Turn a one-line product description into a five-second video ad",
     plan: {
-      inputs: [{ name: "notes", type: "string" }],
-      steps: [
+      inputs: [
         {
-          id: "points",
-          title: "Pull out the key points",
-          summary: "Reduce the notes to the points the post should make.",
-          node_type: "nodetool.agents.Summarizer",
-          model_role: "language"
-        },
-        {
-          id: "write",
-          title: "Write the post",
-          summary: "Draft a blog post from the key points.",
-          node_type: "nodetool.agents.Agent",
-          model_role: "language"
+          name: "description",
+          type: "string",
+          sample: "A matte black water bottle on a mossy rock beside a mountain stream at dawn"
         }
       ],
-      outputs: [{ name: "post", type: "string" }]
+      steps: [
+        {
+          id: "render",
+          title: "Render the ad",
+          summary: "Generate a short video clip from the description.",
+          node_type: "nodetool.video.TextToVideo",
+          model_role: "video"
+        }
+      ],
+      outputs: [{ name: "ad", type: "video" }]
+    }
+  },
+  {
+    id: "script-to-voiceover",
+    brief: "Turn a 30-second script into a voiceover",
+    plan: {
+      inputs: [
+        {
+          name: "script",
+          type: "string",
+          sample: "Meet the bottle that keeps up with you. Cold for a day, hot for half of one, and light enough to forget it is there."
+        }
+      ],
+      steps: [
+        {
+          id: "voice",
+          title: "Record the voiceover",
+          summary: "Read the script aloud in a generated voice.",
+          node_type: "nodetool.audio.TextToSpeech",
+          model_role: "audio"
+        }
+      ],
+      outputs: [{ name: "voiceover", type: "audio" }]
     }
   }
 ];
