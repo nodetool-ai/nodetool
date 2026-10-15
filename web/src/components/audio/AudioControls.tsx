@@ -1,23 +1,31 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
+import React, { useCallback, ReactElement, memo } from "react";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PauseIcon from "@mui/icons-material/Pause";
+import RepeatIcon from "@mui/icons-material/Repeat";
+import VolumeOffOutlinedIcon from "@mui/icons-material/VolumeOffOutlined";
+import VolumeUpOutlinedIcon from "@mui/icons-material/VolumeUpOutlined";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
 
-import React, { useCallback, useMemo, ReactElement, memo } from "react";
-import { Text, ToolbarIconButton, MOTION, getSpacingPx, SPACING } from "../ui_primitives";
-import SliderBasic from "../inputs/SliderBasic";
-import LoopIcon from "@mui/icons-material/Loop";
-import { PlaybackButton } from "../ui_primitives";
-import OffIcon from "@mui/icons-material/VolumeOff";
-import UpIcon from "@mui/icons-material/VolumeUp";
-import DownloadIcon from "@mui/icons-material/Download";
-import { ActionButtonGroup } from "../ui_primitives";
-import type { Theme } from "@mui/material/styles";
+import {
+  BORDER_RADIUS,
+  Box,
+  Caption,
+  FlexRow,
+  SPACING,
+  Slider,
+  ToolbarIconButton,
+  TYPOGRAPHY
+} from "../ui_primitives";
 import { getAudioDownloadFilename } from "../../utils/audioFormat";
 
 interface AudioControlsProps {
+  /** `normal` draws the larger controls of the asset viewer. */
   fontSize?: "normal" | "small" | "tiny" | undefined;
   isPlaying: boolean;
   zoom: number;
+  currentTime?: number;
+  duration?: number;
   filename?: string;
   assetUrl?: string;
   mimeType?: string;
@@ -29,102 +37,14 @@ interface AudioControlsProps {
   setMute: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-interface ZoomProps {
-  fontSize?: "normal" | "small" | "tiny" | undefined;
-  zoom: number;
-  onSliderChange: (
-    event: Event,
-    newValue: number | number[],
-    activeThumb: number
-  ) => void;
-}
-
-const styles = (theme: Theme) =>
-  css({
-    button: {
-      width: "25px !important",
-      height: "25px !important",
-      marginLeft: "0",
-      padding: getSpacingPx(SPACING.micro),
-      transition: "border",
-      color: theme.vars.palette.grey[100],
-      backgroundColor: theme.vars.palette.grey[900]
-    },
-    "button:hover": {
-      backgroundColor: "transparent"
-    },
-    "button svg": {
-      width: "0.7em",
-      height: "0.7em",
-      opacity: "1"
-    },
-    ".play-button svg": {
-      width: "0.8em",
-      height: "0.8em"
-    },
-    ".loop-button.disabled svg": {
-      transition: `opacity ${MOTION.fast}`,
-      opacity: "0.5"
-    },
-    ".mute-button svg": {
-      transition: `opacity ${MOTION.fast}`,
-      opacity: "0.5"
-    },
-    ".mute-button.disabled svg": {
-      opacity: "1"
-    },
-    ".normal": {
-      fontSize: theme.fontSizeNormal
-    },
-    ".small": {
-      fontSize: theme.fontSizeSmall
-    },
-    ".tiny": {
-      fontSize: theme.fontSizeSmaller
-    },
-    ".zoom": {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: getSpacingPx(SPACING.xl)
-    },
-    ".zoom-slider": {
-      flexGrow: 1
-    }
-  });
-
-const Zoom: React.FC<ZoomProps> = ({
-  zoom,
-  onSliderChange,
-  fontSize
-}): ReactElement => {
-  const theme = useTheme();
-  return (
-    <div className="zoom nodrag" style={{ position: "relative" }}>
-      <Text id="zoom" className="slider-value">
-        <span className={`${fontSize}`}>ZOOM: </span>
-        <span
-          className={`${fontSize} value`}
-          style={{ marginTop: theme.spacing(1.5) }}
-        >
-          {zoom}
-        </span>
-      </Text>
-      <SliderBasic
-        className="zoom-slider nodrag"
-        value={zoom}
-        min={1}
-        max={100}
-        step={1}
-        size="small"
-        color="secondary"
-        aria-labelledby="discrete-slider"
-        valueLabelDisplay="off"
-        onChange={onSliderChange}
-      />
-    </div>
-  );
+export const formatPlayerTime = (time: number): string => {
+  const safe = Math.max(0, time);
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const seconds = String(Math.floor(safe % 60)).padStart(2, "0");
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${seconds}`
+    : `${minutes}:${seconds}`;
 };
 
 async function download(
@@ -170,103 +90,169 @@ async function download(
   }
 }
 
-const AudioControls: React.FC<AudioControlsProps> = memo(({
-  fontSize = "tiny",
-  isPlaying = false,
-  zoom,
-  loop,
-  setLoop,
-  mute,
-  setMute,
-  filename,
-  assetUrl,
-  mimeType,
-  onPlayPause,
-  onZoomChange
-}): ReactElement => {
-  const theme = useTheme();
-  const cssStyles = useMemo(() => styles(theme), [theme]);
-  const handleSliderChange = useCallback(
-    (event: Event, newValue: number | number[], _activeThumb: number): void => {
-      event.preventDefault();
-      const value = Array.isArray(newValue) ? newValue[0] : newValue;
-      onZoomChange(value);
-    },
-    [onZoomChange]
-  );
+/**
+ * The control row under the waveform player: play, clock, zoom, loop, mute
+ * and download. Narrow hosts (node previews, asset tiles) wrap the toggles
+ * onto a second line instead of clipping them.
+ */
+const AudioControls: React.FC<AudioControlsProps> = memo(
+  ({
+    fontSize = "tiny",
+    isPlaying = false,
+    zoom,
+    currentTime = 0,
+    duration = 0,
+    loop,
+    setLoop,
+    mute,
+    setMute,
+    filename,
+    assetUrl,
+    mimeType,
+    onPlayPause,
+    onZoomChange
+  }): ReactElement | null => {
+    const large = fontSize === "normal";
+    const buttonSize = large ? "medium" : "small";
+    const iconSize = large ? "medium" : "small";
 
-  const handleToggleLoop = useCallback(() => {
-    setLoop(!loop);
-  }, [loop, setLoop]);
+    const handleSliderChange = useCallback(
+      (event: Event, newValue: number | number[]): void => {
+        event.preventDefault();
+        const value = Array.isArray(newValue) ? newValue[0] : newValue;
+        onZoomChange(value);
+      },
+      [onZoomChange]
+    );
 
-  const handleToggleMute = useCallback(() => {
-    setMute(!mute);
-  }, [mute, setMute]);
+    const handleToggleLoop = useCallback(() => {
+      setLoop(!loop);
+    }, [loop, setLoop]);
 
-  const handleDownload = useCallback(() => {
-    if (assetUrl) {
-      download(assetUrl, { filename, mimeType });
-    } else {
-      console.warn("No assetUrl provided for download");
+    const handleToggleMute = useCallback(() => {
+      setMute(!mute);
+    }, [mute, setMute]);
+
+    const handleDownload = useCallback(() => {
+      if (assetUrl) {
+        download(assetUrl, { filename, mimeType });
+      } else {
+        console.warn("No assetUrl provided for download");
+      }
+    }, [assetUrl, filename, mimeType]);
+
+    if (!assetUrl) {
+      return null;
     }
-  }, [assetUrl, filename, mimeType]);
 
-  return (
-    <div
-      css={cssStyles}
-      className="audio-controls"
-      style={{ position: "relative" }}
-    >
-      {assetUrl && (
-        <div className="controls">
-          <Zoom
-            zoom={zoom}
-            fontSize={fontSize}
-            onSliderChange={handleSliderChange}
+    return (
+      <FlexRow
+        className="audio-controls nodrag"
+        role="group"
+        aria-label="Playback controls"
+        align="center"
+        wrap
+        gap={large ? SPACING.md : SPACING.xs}
+        sx={{ pt: large ? SPACING.md : SPACING.xs, rowGap: SPACING.micro }}
+      >
+        <ToolbarIconButton
+          className="play-button"
+          icon={
+            isPlaying ? (
+              <PauseIcon fontSize={iconSize} />
+            ) : (
+              <PlayArrowIcon fontSize={iconSize} />
+            )
+          }
+          tooltip={isPlaying ? "Pause" : "Play"}
+          tooltipPlacement="top"
+          size={buttonSize}
+          onClick={onPlayPause}
+          sx={{
+            borderRadius: BORDER_RADIUS.circle,
+            bgcolor: "primary.main",
+            color: "primary.contrastText",
+            "&:hover": {
+              bgcolor: "primary.dark",
+              color: "primary.contrastText"
+            }
+          }}
+        />
+        <Caption
+          className="audio-time"
+          color="secondary"
+          sx={{
+            ...(large ? TYPOGRAPHY.mono.label : TYPOGRAPHY.mono.caption),
+            whiteSpace: "nowrap"
+          }}
+        >
+          {formatPlayerTime(currentTime)} / {formatPlayerTime(duration)}
+        </Caption>
+        <FlexRow
+          className="audio-zoom"
+          align="center"
+          gap={SPACING.xs}
+          sx={{
+            flex: "1 1 0",
+            minWidth: large ? 160 : 40,
+            maxWidth: large ? 240 : 160,
+            mx: SPACING.md,
+            color: "text.secondary"
+          }}
+        >
+          {large && <ZoomInIcon fontSize="small" aria-hidden />}
+          <Slider
+            aria-label="Zoom"
+            density="compact"
+            value={zoom}
+            min={1}
+            max={100}
+            step={1}
+            onChange={handleSliderChange}
           />
-          <ActionButtonGroup
-            className="buttons"
-            spacing={0}
-            aria-label="Playback controls"
-          >
-            <PlaybackButton
-              state={isPlaying ? "playing" : "stopped"}
-              onPlay={onPlayPause}
-              onPause={onPlayPause}
-              playbackAction="toggle"
-              buttonSize="small"
-              nodrag
-              className="play-button"
-            />
-            <ToolbarIconButton
-              tooltip="Loop"
-              className={`loop-button${loop ? "" : " disabled"}`}
-              size="small"
-              onClick={handleToggleLoop}
-              icon={<LoopIcon />}
-              nodrag={false}
-            />
-            <ToolbarIconButton
-              tooltip="Mute"
-              className={`mute-button${mute ? "" : " disabled"}`}
-              size="small"
-              onClick={handleToggleMute}
-              icon={mute ? <OffIcon /> : <UpIcon />}
-              nodrag={false}
-            />
-            <ToolbarIconButton
-              tooltip="Download"
-              className={`download-audio-button${filename !== "" ? "" : " disabled"}`}
-              size="small"
-              onClick={handleDownload}
-              icon={<DownloadIcon />}
-              nodrag={false}
-            />
-          </ActionButtonGroup>
-        </div>
-      )}
-    </div>
-  );
-});
+        </FlexRow>
+        <Box sx={{ flexGrow: 1 }} />
+        <FlexRow align="center" gap={SPACING.micro}>
+          <ToolbarIconButton
+            className="loop-button"
+            icon={<RepeatIcon fontSize={iconSize} />}
+            tooltip="Loop"
+            tooltipPlacement="top"
+            size={buttonSize}
+            active={loop}
+            aria-pressed={loop}
+            onClick={handleToggleLoop}
+          />
+          <ToolbarIconButton
+            className="mute-button"
+            icon={
+              mute ? (
+                <VolumeOffOutlinedIcon fontSize={iconSize} />
+              ) : (
+                <VolumeUpOutlinedIcon fontSize={iconSize} />
+              )
+            }
+            tooltip="Mute"
+            tooltipPlacement="top"
+            size={buttonSize}
+            active={mute}
+            aria-pressed={mute}
+            onClick={handleToggleMute}
+          />
+          <ToolbarIconButton
+            className="download-audio-button"
+            icon={<FileDownloadOutlinedIcon fontSize={iconSize} />}
+            tooltip="Download"
+            tooltipPlacement="top"
+            size={buttonSize}
+            onClick={handleDownload}
+          />
+        </FlexRow>
+      </FlexRow>
+    );
+  }
+);
+
+AudioControls.displayName = "AudioControls";
 
 export default AudioControls;

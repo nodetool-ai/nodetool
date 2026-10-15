@@ -1,49 +1,39 @@
 import { memo, useCallback, useState, type MouseEvent } from "react";
 
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import PauseIcon from "@mui/icons-material/Pause";
-import StopIcon from "@mui/icons-material/Stop";
-import RepeatIcon from "@mui/icons-material/Repeat";
-import ZoomInIcon from "@mui/icons-material/ZoomIn";
-import ZoomOutIcon from "@mui/icons-material/ZoomOut";
-import FitScreenIcon from "@mui/icons-material/FitScreen";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import CropOutlinedIcon from "@mui/icons-material/CropOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import VolumeOffOutlinedIcon from "@mui/icons-material/VolumeOffOutlined";
+import TrendingUpOutlinedIcon from "@mui/icons-material/TrendingUpOutlined";
+import TrendingDownOutlinedIcon from "@mui/icons-material/TrendingDownOutlined";
+import HeightOutlinedIcon from "@mui/icons-material/HeightOutlined";
+import VolumeUpOutlinedIcon from "@mui/icons-material/VolumeUpOutlined";
+import VolumeDownOutlinedIcon from "@mui/icons-material/VolumeDownOutlined";
+import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
+import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import {
   Box,
   Caption,
+  CONTROL,
+  Divider,
+  EditorButton,
   EditorMenu,
   EditorMenuItem,
   FlexRow,
-  NodeSlider,
+  SPACING,
   ToolbarIconButton
 } from "../ui_primitives";
-import { EditorButton } from "../editor_ui";
-import { isNumber } from "../../utils/typePredicates";
 import { AUDIO_EFFECTS, EFFECT_GROUPS } from "./audioEffects";
 
 interface AudioEditorToolbarProps {
-  isPlaying: boolean;
-  loop: boolean;
-  zoom: number;
-  minZoom: number;
-  maxZoom: number;
-  canZoomIn: boolean;
-  canZoomOut: boolean;
   hasSelection: boolean;
   canUndo: boolean;
   canRedo: boolean;
   saving: boolean;
   canSave: boolean;
-  onTogglePlay: () => void;
-  onStop: () => void;
-  onToggleLoop: () => void;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onZoomFit: () => void;
-  onZoomChange: (zoom: number) => void;
   onTrim: () => void;
   onDelete: () => void;
   onSilence: () => void;
@@ -61,67 +51,25 @@ interface AudioEditorToolbarProps {
   onDone: () => void;
 }
 
-const Separator = () => (
-  <Box
-    sx={{
-      width: "1px",
-      alignSelf: "stretch",
-      mx: 0.5,
-      my: 0.5,
-      backgroundColor: "var(--palette-divider)"
-    }}
+const GroupDivider = () => (
+  <Divider
+    orientation="vertical"
+    flexItem
+    sx={{ mx: SPACING.xs, my: SPACING.sm }}
   />
 );
 
-const ZOOM_SLIDER_MIN = 0;
-const ZOOM_SLIDER_MAX = 100;
-const ZOOM_SLIDER_STEP = 1;
-
-const zoomToSliderValue = (zoom: number, minZoom: number, maxZoom: number) => {
-  const minLog = Math.log(minZoom);
-  const maxLog = Math.log(maxZoom);
-  const clampedZoom = Math.min(maxZoom, Math.max(minZoom, zoom));
-  return (
-    ((Math.log(clampedZoom) - minLog) / (maxLog - minLog)) * ZOOM_SLIDER_MAX
-  );
-};
-
-const sliderValueToZoom = (
-  sliderValue: number,
-  minZoom: number,
-  maxZoom: number
-) => {
-  const minLog = Math.log(minZoom);
-  const maxLog = Math.log(maxZoom);
-  const ratio = sliderValue / ZOOM_SLIDER_MAX;
-  return Math.exp(minLog + ratio * (maxLog - minLog));
-};
-
 /**
- * The audio editor's command bar: transport, zoom, region edits, and
- * undo/redo. Memoized so it does not re-render on every playback frame — only
- * the playhead and clock update while audio is playing.
+ * The audio editor's command bar: history, selection edits, level edits, the
+ * effects menu, and save. Transport and zoom live in `AudioTransportBar`
+ * under the waveform. Memoized so it does not re-render on playback frames.
  */
 const AudioEditorToolbar = memo(function AudioEditorToolbar({
-  isPlaying,
-  loop,
-  zoom,
-  minZoom,
-  maxZoom,
-  canZoomIn,
-  canZoomOut,
   hasSelection,
   canUndo,
   canRedo,
   saving,
   canSave,
-  onTogglePlay,
-  onStop,
-  onToggleLoop,
-  onZoomIn,
-  onZoomOut,
-  onZoomFit,
-  onZoomChange,
   onTrim,
   onDelete,
   onSilence,
@@ -137,20 +85,9 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
   onSave,
   onDone
 }: AudioEditorToolbarProps) {
-  const zoomSliderValue = zoomToSliderValue(zoom, minZoom, maxZoom);
-  const handleZoomSliderChange = useCallback(
-    (_event: Event, value: number | number[]) => {
-      if (isNumber(value)) {
-        onZoomChange(sliderValueToZoom(value, minZoom, maxZoom));
-      }
-    },
-    [maxZoom, minZoom, onZoomChange]
-  );
-
   const [effectsAnchor, setEffectsAnchor] = useState<HTMLElement | null>(null);
   const openEffectsMenu = useCallback(
-    (event: MouseEvent<HTMLElement>) =>
-      setEffectsAnchor(event.currentTarget),
+    (event: MouseEvent<HTMLElement>) => setEffectsAnchor(event.currentTarget),
     []
   );
   const closeEffectsMenu = useCallback(() => setEffectsAnchor(null), []);
@@ -162,98 +99,113 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
     [onEffect]
   );
 
+  const scope = hasSelection ? "selection" : "whole clip";
+
   return (
     <FlexRow
+      role="toolbar"
+      aria-label="Audio edits"
       align="center"
-      gap={0.5}
+      gap={SPACING.micro}
       sx={{
         flexShrink: 0,
         flexWrap: "wrap",
-        px: 1,
-        py: 0.5,
-        borderBottom: "1px solid var(--palette-divider)"
+        minHeight: CONTROL.height.xl,
+        px: SPACING.md,
+        py: SPACING.xs,
+        bgcolor: "background.paper",
+        borderBottom: 1,
+        borderColor: "divider"
       }}
     >
-      <ToolbarIconButton
-        icon={isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-        tooltip={isPlaying ? "Pause" : "Play"}
-        onClick={onTogglePlay}
-      />
-      <ToolbarIconButton icon={<StopIcon />} tooltip="Stop" onClick={onStop} />
-      <ToolbarIconButton
-        icon={<RepeatIcon />}
-        tooltip="Loop"
-        active={loop}
-        onClick={onToggleLoop}
-      />
-
-      <Separator />
-
-      <ToolbarIconButton
-        icon={<ZoomOutIcon />}
-        tooltip="Zoom out"
-        onClick={onZoomOut}
-        disabled={!canZoomOut}
-      />
-      <ToolbarIconButton
-        icon={<ZoomInIcon />}
-        tooltip="Zoom in"
-        onClick={onZoomIn}
-        disabled={!canZoomIn}
-      />
-      <ToolbarIconButton
-        icon={<FitScreenIcon />}
-        tooltip="Fit to window"
-        onClick={onZoomFit}
-      />
-      <FlexRow align="center" gap={1} sx={{ width: 160, mx: 0.5 }}>
-        <NodeSlider
-          aria-label="Waveform zoom"
-          value={zoomSliderValue}
-          min={ZOOM_SLIDER_MIN}
-          max={ZOOM_SLIDER_MAX}
-          step={ZOOM_SLIDER_STEP}
-          onChange={handleZoomSliderChange}
-          sx={{ flex: 1 }}
+      <FlexRow role="group" aria-label="History" align="center" gap={SPACING.micro}>
+        <ToolbarIconButton
+          icon={<UndoIcon fontSize="small" />}
+          tooltip="Undo"
+          onClick={onUndo}
+          disabled={!canUndo}
         />
-        <Caption sx={{ minWidth: 44, textAlign: "right" }}>
-          {Math.round(zoom * 100)}%
-        </Caption>
+        <ToolbarIconButton
+          icon={<RedoIcon fontSize="small" />}
+          tooltip="Redo"
+          onClick={onRedo}
+          disabled={!canRedo}
+        />
       </FlexRow>
 
-      <Separator />
+      <GroupDivider />
 
-      <EditorButton size="small" onClick={onTrim} disabled={!hasSelection}>
-        Trim
-      </EditorButton>
-      <EditorButton size="small" onClick={onDelete} disabled={!hasSelection}>
-        Delete
-      </EditorButton>
-      <EditorButton size="small" onClick={onSilence} disabled={!hasSelection}>
-        Silence
-      </EditorButton>
-      <EditorButton size="small" onClick={onFadeIn} disabled={!hasSelection}>
-        Fade in
-      </EditorButton>
-      <EditorButton size="small" onClick={onFadeOut} disabled={!hasSelection}>
-        Fade out
-      </EditorButton>
-      <EditorButton size="small" onClick={onNormalize}>
-        Normalize
-      </EditorButton>
-      <EditorButton size="small" onClick={onAmplify}>
-        Amplify
-      </EditorButton>
-      <EditorButton size="small" onClick={onQuieten}>
-        Quieten
-      </EditorButton>
-      <EditorButton size="small" onClick={onReverse}>
-        Reverse
-      </EditorButton>
+      <FlexRow role="group" aria-label="Selection edits" align="center" gap={SPACING.micro}>
+        <ToolbarIconButton
+          icon={<CropOutlinedIcon fontSize="small" />}
+          tooltip="Trim to selection"
+          onClick={onTrim}
+          disabled={!hasSelection}
+        />
+        <ToolbarIconButton
+          icon={<DeleteOutlineOutlinedIcon fontSize="small" />}
+          tooltip="Delete selection"
+          onClick={onDelete}
+          disabled={!hasSelection}
+        />
+        <ToolbarIconButton
+          icon={<VolumeOffOutlinedIcon fontSize="small" />}
+          tooltip="Silence selection"
+          onClick={onSilence}
+          disabled={!hasSelection}
+        />
+        <ToolbarIconButton
+          icon={<TrendingUpOutlinedIcon fontSize="small" />}
+          tooltip="Fade in selection"
+          onClick={onFadeIn}
+          disabled={!hasSelection}
+        />
+        <ToolbarIconButton
+          icon={<TrendingDownOutlinedIcon fontSize="small" />}
+          tooltip="Fade out selection"
+          onClick={onFadeOut}
+          disabled={!hasSelection}
+        />
+      </FlexRow>
+
+      <GroupDivider />
+
+      <FlexRow role="group" aria-label="Level edits" align="center" gap={SPACING.micro}>
+        <ToolbarIconButton
+          icon={<HeightOutlinedIcon fontSize="small" />}
+          tooltip={`Normalize ${scope}`}
+          ariaLabel="Normalize"
+          onClick={onNormalize}
+        />
+        <ToolbarIconButton
+          icon={<VolumeUpOutlinedIcon fontSize="small" />}
+          tooltip={`Amplify ${scope}`}
+          ariaLabel="Amplify"
+          onClick={onAmplify}
+        />
+        <ToolbarIconButton
+          icon={<VolumeDownOutlinedIcon fontSize="small" />}
+          tooltip={`Quieten ${scope}`}
+          ariaLabel="Quieten"
+          onClick={onQuieten}
+        />
+        <ToolbarIconButton
+          icon={<SwapHorizOutlinedIcon fontSize="small" />}
+          tooltip={`Reverse ${scope}`}
+          ariaLabel="Reverse"
+          onClick={onReverse}
+        />
+      </FlexRow>
+
+      <GroupDivider />
+
       <EditorButton
-        size="small"
+        variant="text"
+        color="inherit"
+        density="compact"
+        startIcon={<AutoFixHighOutlinedIcon />}
+        endIcon={<ExpandMoreIcon />}
         onClick={openEffectsMenu}
-        endIcon={<ArrowDropDownIcon />}
         aria-haspopup="menu"
         aria-expanded={effectsAnchor ? "true" : undefined}
       >
@@ -270,7 +222,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
             component="li"
             role="presentation"
             color="secondary"
-            sx={{ px: 2, pt: 1, pb: 0.5 }}
+            sx={{ px: SPACING.lg, pt: SPACING.xs, pb: SPACING.micro }}
           >
             {group}
           </Caption>,
@@ -287,34 +239,27 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
         ])}
       </EditorMenu>
 
-      <Separator />
-
-      <ToolbarIconButton
-        icon={<UndoIcon />}
-        tooltip="Undo"
-        onClick={onUndo}
-        disabled={!canUndo}
-      />
-      <ToolbarIconButton
-        icon={<RedoIcon />}
-        tooltip="Redo"
-        onClick={onRedo}
-        disabled={!canRedo}
-      />
-
       <Box sx={{ flexGrow: 1 }} />
 
-      <EditorButton
-        variant="contained"
-        size="small"
-        onClick={onSave}
-        disabled={saving || !canSave}
-      >
-        {saving ? "Saving…" : "Save to audio"}
-      </EditorButton>
-      <EditorButton variant="text" size="small" onClick={onDone}>
-        Done
-      </EditorButton>
+      <FlexRow align="center" gap={SPACING.xs}>
+        <EditorButton
+          variant="text"
+          color="inherit"
+          density="compact"
+          onClick={onDone}
+        >
+          Done
+        </EditorButton>
+        <EditorButton
+          variant="contained"
+          density="compact"
+          disableElevation
+          onClick={onSave}
+          disabled={saving || !canSave}
+        >
+          {saving ? "Saving…" : "Save"}
+        </EditorButton>
+      </FlexRow>
     </FlexRow>
   );
 });
