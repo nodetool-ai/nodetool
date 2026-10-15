@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { RUNTIME_NPM_PACKAGES } from "../../packages/protocol/dist/runtime-npm-packages.js";
 import { collectReleaseInstallPins, readRegistryInstallMetadata, runtimeInstallTargets } from "../release/install-pins.mjs";
@@ -8,6 +9,18 @@ const installed = name => ({ name, version: "4.5.6" });
 const metadata = (name, version) => ({ name, version, integrity: integrity(`${name}@${version}`) });
 
 describe("release install identities", () => {
+  it("keeps fresh-install shared dependency versions equal to the release pins", async () => {
+    const agents = JSON.parse(readFileSync(new URL("../../packages/agents/package.json", import.meta.url), "utf8"));
+    const lock = JSON.parse(readFileSync(new URL("../../package-lock.json", import.meta.url), "utf8"));
+    const pins = await collectReleaseInstallPins({ runtimePackages: RUNTIME_NPM_PACKAGES, readRegistryMetadata: metadata,
+      readInstalledManifest: name => ({ name, version: lock.packages[`node_modules/${name}`].version }) });
+    const shared = pins.filter(pin => pin.shared);
+    expect(shared).toHaveLength(2);
+    for (const pin of shared) {
+      expect(agents.dependencies[pin.name]).toBe(pin.version);
+    }
+  });
+
   it("covers every runtime npm target and both actual shared versions in one flat pin table", async () => {
     const readRegistryMetadata = vi.fn(metadata);
     const pins = await collectReleaseInstallPins({ runtimePackages: RUNTIME_NPM_PACKAGES, readRegistryMetadata, readInstalledManifest: installed });
