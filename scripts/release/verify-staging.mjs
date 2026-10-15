@@ -103,7 +103,7 @@ async function loadRegistryAttestations(url) {
   return response.json();
 }
 
-/** Before A22, verify a registry-installed CLI and pack with plain npm. */
+/** Verify a fresh registry CLI through its authorized pack installer. */
 export async function verifyRegistryInstall(catalog, { run = runReleaseCommand, temporaryRoot = tmpdir() } = {}) {
   const pack = catalog.packs.find(entry => entry.kind === "node-pack" && entry.id === "fal") ?? catalog.packs.find(entry => entry.kind === "node-pack");
   if (!pack) { throw new Error("No node pack is available for the staging install smoke"); }
@@ -113,11 +113,18 @@ export async function verifyRegistryInstall(catalog, { run = runReleaseCommand, 
     mkdirSync(home);
     const env = cleanEnv(home);
     writeFileSync(join(work, "package.json"), JSON.stringify({ name: "nodetool-staging-smoke", private: true }));
-    run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", `@nodetool-ai/cli@${catalog.coreVersion}`, `${pack.npm.name}@${pack.npm.version}`], { cwd: work, env });
-    // npm checks registry signatures and the signed provenance of installed packages.
+    run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", `@nodetool-ai/cli@${catalog.coreVersion}`], { cwd: work, env });
+    // Verify registry signatures before executing the newly installed CLI.
     run("npm", ["audit", "signatures"], { cwd: work, env });
-    const version = run(join(work, "node_modules/.bin/nodetool"), ["--version"], { cwd: work, env }).trim();
+    const cli = join(work, "node_modules/.bin/nodetool");
+    const version = run(cli, ["--version"], { cwd: work, env }).trim();
     if (version !== catalog.coreVersion) { throw new Error(`Staging CLI reports ${version}, expected ${catalog.coreVersion}`); }
+    run(cli, ["packs", "add", pack.id, "--yes"], {
+      cwd: work,
+      env: { ...env, NODETOOL_PACKS_INSTALLER: "1" }
+    });
+    // Verify the expanded tree before the independent registration smoke.
+    run("npm", ["audit", "signatures"], { cwd: work, env });
     const code = `const { NodeRegistry } = await import('@nodetool-ai/node-sdk');
 const { importPack } = await import('@nodetool-ai/node-catalog');
 const module = await importPack(${JSON.stringify(pack.id)});
