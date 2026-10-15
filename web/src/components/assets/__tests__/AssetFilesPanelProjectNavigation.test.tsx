@@ -4,7 +4,10 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
-import { useAssetGridStore } from "../../../stores/AssetGridStore";
+import {
+  ALL_PROJECTS,
+  useAssetGridStore
+} from "../../../stores/AssetGridStore";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 
 jest.mock("../AssetGridContent", () => ({
@@ -50,6 +53,7 @@ describe("AssetFilesPanel project navigation", () => {
       personalProjectId: "personal:user-1"
     });
     useAssetGridStore.setState({
+      projectFilter: null,
       scopeProjectId: "project-a",
       currentFolderId: "folder-a",
       selectedFolderId: "folder-a",
@@ -76,6 +80,29 @@ describe("AssetFilesPanel project navigation", () => {
       currentFolderId: "folder-b",
       isGlobalSearchActive: false,
       isGlobalSearchMode: false
+    });
+  });
+
+  it("opens the folder in place when the explorer lists every project", async () => {
+    useAssetGridStore.setState({
+      projectFilter: ALL_PROJECTS,
+      scopeProjectId: ALL_PROJECTS
+    });
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <AssetFilesPanel />
+      </ThemeProvider>
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Go to project B folder" })
+    );
+
+    expect(useWorkspaceTabsStore.getState().activeProjectId).toBe("project-a");
+    expect(useAssetGridStore.getState()).toMatchObject({
+      projectFilter: ALL_PROJECTS,
+      scopeProjectId: ALL_PROJECTS,
+      currentFolderId: "folder-b",
+      isGlobalSearchActive: false
     });
   });
 });

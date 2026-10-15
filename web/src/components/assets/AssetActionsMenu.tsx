@@ -11,6 +11,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import AssetSearchInput from "./AssetSearchInput";
 import AssetActions from "./AssetActions";
+import AssetProjectFilter from "./AssetProjectFilter";
 import SearchErrorBoundary from "../SearchErrorBoundary";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
@@ -108,6 +109,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
 
   const filters = (
     <>
+      <AssetProjectFilter />
       <Chip
         compact
         icon={favoritesOnly ? <StarIcon /> : <StarBorderIcon />}
