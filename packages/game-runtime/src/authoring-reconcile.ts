@@ -2,6 +2,8 @@ import { anyGameDocument, gameEntity, gameEntity3D, type AnyGameDocument, type G
 import { z } from "zod";
 
 type Json = z.infer<ReturnType<typeof z.json>>;
+const jsonValue = z.json();
+const jsonObject = z.record(z.string(), jsonValue);
 export interface GameAuthoringConflict extends GameAuthoringTarget { readonly code: string; readonly message: string }
 export interface GameAuthoringCandidate { readonly document: AnyGameDocument; readonly conflicts: readonly GameAuthoringConflict[]; readonly changedEntityIds: readonly string[] }
 const keyOf = (target: GameAuthoringTarget): string => JSON.stringify([target.sceneId, target.entityId]);
@@ -42,7 +44,7 @@ export function gameAuthoringBaseline(document: AnyGameDocument): AnyGameDocumen
 }
 function patch(entity: unknown, override: GameAuthoringOverride): unknown {
   if (override.path[0] === "id") { throw new Error("Override path cannot address entity identity"); }
-  const copy = z.record(z.string(), z.json()).parse(structuredClone(entity));
+  const copy = jsonObject.parse(structuredClone(entity));
   let cursor = copy;
   for (const [index, part] of override.path.entries()) {
     if (part === "__proto__" || part === "constructor" || part === "prototype") { throw new Error("Override path cannot address prototype properties"); }
@@ -62,7 +64,7 @@ function differences(base: unknown, current: unknown, target: GameAuthoringTarge
     return [...new Set([...Object.keys(base), ...Object.keys(current)])].filter((field) => path.length !== 0 || field !== "id").flatMap((field) => differences(base[field], current[field], target, [...path, field]));
   }
   if (path.length === 0) { return []; }
-  const override: GameAuthoringOverride = { ...target, path, value: current === undefined ? null : z.json().parse(current) };
+  const override: GameAuthoringOverride = { ...target, path, value: current === undefined ? null : jsonValue.parse(current) };
   if (current === undefined) { override.remove = true; }
   return [override];
 }
@@ -112,7 +114,7 @@ export function trackGameAuthoringEdits(before: AnyGameDocument, after: AnyGameD
       const retained = new Map<string, GameAuthoringOverride>();
       for (const explicit of explicitByTarget.get(key) ?? []) {
         const value = atPath(next.entity, explicit.path);
-        const updatedOverride: GameAuthoringOverride = { ...target, path: explicit.path, value: value === undefined ? null : z.json().parse(value) };
+        const updatedOverride: GameAuthoringOverride = { ...target, path: explicit.path, value: value === undefined ? null : jsonValue.parse(value) };
         if (value === undefined) { updatedOverride.remove = true; }
         retained.set(JSON.stringify(explicit.path), updatedOverride);
       }
