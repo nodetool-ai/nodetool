@@ -19,6 +19,7 @@ export const MODEL_KIND_LABEL: Record<ModelDirectoryKind, string> = {
   transcription: "Transcription",
   "3d": "3D",
   embedding: "Embedding",
+  other: "Training and other",
 };
 
 /** Names for runtime provider ids that `PROVIDER_DISPLAY` does not cover. */

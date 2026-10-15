@@ -11,7 +11,8 @@ export type ModelDirectoryKind =
   | "audio"
   | "transcription"
   | "3d"
-  | "embedding";
+  | "embedding"
+  | "other";
 
 export interface ModelDirectoryModel {
   /** Model id passed to the provider at call time. */
@@ -3565,7 +3566,7 @@ export const canonicalModels: CanonicalModel[] = [
 export const modelDirectory: ModelDirectoryGroup[] = [
   {
     "kind": "language",
-    "total": 225,
+    "total": 219,
     "providers": [
       {
         "provider": "replicate",
@@ -3574,16 +3575,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "abiruyt/text-extract-ocr"
           },
           {
-            "id": "adirik/e5-mistral-7b-instruct"
-          },
-          {
             "id": "andreasjansson/blip-2"
           },
           {
             "id": "andreasjansson/clip-features"
-          },
-          {
-            "id": "andreasjansson/llama-2-13b-embeddings"
           },
           {
             "id": "anthropic/claude-3.5-haiku",
@@ -3626,28 +3621,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Claude Sonnet 5"
           },
           {
-            "id": "beautyyuyanli/multilingual-e5-large"
-          },
-          {
-            "id": "center-for-curriculum-redesign/bge_1-5_query_embeddings"
-          },
-          {
-            "id": "cjwbw/shap-e"
-          },
-          {
-            "id": "collectiveai-team/speaker-diarization-3"
-          },
-          {
             "id": "cudanexus/ocr-surya"
-          },
-          {
-            "id": "cuuupid/gte-qwen2-7b-instruct"
-          },
-          {
-            "id": "daanelson/imagebind"
-          },
-          {
-            "id": "daanelson/whisperx"
           },
           {
             "id": "datalab-to/marker"
@@ -3668,16 +3642,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "DeepSeek V3.1"
           },
           {
-            "id": "elevenlabs/scribe-v2"
-          },
-          {
             "id": "falcons-ai/nsfw_image_detection"
-          },
-          {
-            "id": "firtoz/trellis"
-          },
-          {
-            "id": "fishwowater/trellis2"
           },
           {
             "id": "google/gemini-2.5-flash",
@@ -3700,9 +3665,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Gemini 3.5 Flash"
           },
           {
-            "id": "hyper3d/rodin"
-          },
-          {
             "id": "ibm-granite/granite-3.2-8b-instruct",
             "name": "Granite 3.2 8B Instruct"
           },
@@ -3722,12 +3684,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "ibm-granite/granite-4.2-8b"
           },
           {
-            "id": "ibm-granite/granite-embedding-278m-multilingual"
-          },
-          {
-            "id": "ibm-granite/granite-embedding-small-english-r2"
-          },
-          {
             "id": "ibm-granite/granite-speech-3.3-8b"
           },
           {
@@ -3742,16 +3698,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Granite Vision 4.1 4B"
           },
           {
-            "id": "krthr/clip-embeddings"
-          },
-          {
             "id": "lucataco/apollo-3b"
           },
           {
             "id": "lucataco/apollo-7b"
-          },
-          {
-            "id": "lucataco/deep3d"
           },
           {
             "id": "lucataco/deepseek-ocr"
@@ -3763,9 +3713,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "lucataco/moondream2"
           },
           {
-            "id": "lucataco/nomic-embed-text-v1"
-          },
-          {
             "id": "lucataco/qwen2.5-omni-7b",
             "name": "Qwen2.5 Omni 7B"
           },
@@ -3773,22 +3720,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "lucataco/sdxl-clip-interrogator"
           },
           {
-            "id": "lucataco/snowflake-arctic-embed-l"
-          },
-          {
-            "id": "lucataco/speaker-diarization"
-          },
-          {
             "id": "lucataco/videollama3-7b"
-          },
-          {
-            "id": "mark3labs/embeddings-gte-base"
-          },
-          {
-            "id": "meronym/speaker-diarization"
-          },
-          {
-            "id": "meronym/speaker-transcription"
           },
           {
             "id": "meta/llama-4-maverick-instruct",
@@ -3841,18 +3773,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Kimi K2.6"
           },
           {
-            "id": "nateraw/bge-large-en-v1.5"
-          },
-          {
             "id": "nvidia/nemotron-3-nano-30b-a3b",
             "name": "Nemotron 3 Nano 30B A3B"
           },
           {
             "id": "nvidia/nemotron-nano-v2-12b-vl",
             "name": "Nemotron Nano V2 12B VL"
-          },
-          {
-            "id": "nvidia/parakeet-rnnt-1.1b"
           },
           {
             "id": "openai/gpt-4.1",
@@ -3873,12 +3799,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "openai/gpt-4o-mini",
             "name": "GPT-4o Mini"
-          },
-          {
-            "id": "openai/gpt-4o-mini-transcribe"
-          },
-          {
-            "id": "openai/gpt-4o-transcribe"
           },
           {
             "id": "openai/gpt-5",
@@ -3945,13 +3865,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "O4 Mini"
           },
           {
-            "id": "openai/whisper"
-          },
-          {
             "id": "pharmapsychotic/clip-interrogator"
-          },
-          {
-            "id": "prunaai/hunyuan3d-2"
           },
           {
             "id": "qwen/qwen3-235b-a22b-instruct-2507",
@@ -3965,9 +3879,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "rafaelgalle/whisper-diarization-advanced"
           },
           {
-            "id": "replicate/all-mpnet-base-v2"
-          },
-          {
             "id": "salesforce/blip"
           },
           {
@@ -3975,38 +3886,8 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Snowflake Arctic Instruct"
           },
           {
-            "id": "tencent/hunyuan-3d-3.1"
-          },
-          {
-            "id": "tencent/hunyuan3d-2"
-          },
-          {
-            "id": "tencent/hunyuan3d-2mv"
-          },
-          {
-            "id": "thomasmol/whisper-diarization"
-          },
-          {
-            "id": "uthana/create-character-v1"
-          },
-          {
-            "id": "uthana/text-to-motion-diffusion-v2"
-          },
-          {
-            "id": "uthana/text-to-motion-vqvae-v1"
-          },
-          {
-            "id": "vaibhavs10/incredibly-fast-whisper"
-          },
-          {
-            "id": "valllllex/cartoonia_3d"
-          },
-          {
             "id": "xai/grok-4",
             "name": "Grok 4"
-          },
-          {
-            "id": "xai/grok-speech-to-text"
           },
           {
             "id": "yorickvp/llava-13b"
@@ -4016,12 +3897,179 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "yorickvp/llava-v1.6-vicuna-13b"
+          }
+        ]
+      },
+      {
+        "provider": "fal_ai",
+        "models": [
+          {
+            "id": "bria/ad-delayer"
           },
           {
-            "id": "zsxkib/jina-clip-v2"
+            "id": "bria/fibo-edit/edit/structured_instruction"
           },
           {
-            "id": "zsxkib/seedvr2"
+            "id": "bria/fibo-lite/generate/structured_prompt"
+          },
+          {
+            "id": "bria/fibo/generate/structured_prompt"
+          },
+          {
+            "id": "fal-ai/arbiter/image"
+          },
+          {
+            "id": "fal-ai/arbiter/image/image"
+          },
+          {
+            "id": "fal-ai/arbiter/image/text"
+          },
+          {
+            "id": "fal-ai/bagel/understand"
+          },
+          {
+            "id": "fal-ai/bytedance/seed/v2/mini"
+          },
+          {
+            "id": "fal-ai/florence-2-large/caption"
+          },
+          {
+            "id": "fal-ai/florence-2-large/detailed-caption"
+          },
+          {
+            "id": "fal-ai/florence-2-large/more-detailed-caption"
+          },
+          {
+            "id": "fal-ai/florence-2-large/ocr"
+          },
+          {
+            "id": "fal-ai/florence-2-large/region-to-category"
+          },
+          {
+            "id": "fal-ai/florence-2-large/region-to-description"
+          },
+          {
+            "id": "fal-ai/flux-3-action/so101"
+          },
+          {
+            "id": "fal-ai/got-ocr/v2"
+          },
+          {
+            "id": "fal-ai/imageutils/nsfw"
+          },
+          {
+            "id": "fal-ai/llava-next"
+          },
+          {
+            "id": "fal-ai/marlin"
+          },
+          {
+            "id": "fal-ai/marlin/find"
+          },
+          {
+            "id": "fal-ai/moondream-next"
+          },
+          {
+            "id": "fal-ai/moondream-next/batch"
+          },
+          {
+            "id": "fal-ai/moondream/batched"
+          },
+          {
+            "id": "fal-ai/moondream2"
+          },
+          {
+            "id": "fal-ai/moondream2/object-detection"
+          },
+          {
+            "id": "fal-ai/moondream2/point-object-detection"
+          },
+          {
+            "id": "fal-ai/moondream2/visual-query"
+          },
+          {
+            "id": "fal-ai/moondream3-preview/caption"
+          },
+          {
+            "id": "fal-ai/moondream3-preview/detect"
+          },
+          {
+            "id": "fal-ai/moondream3-preview/point"
+          },
+          {
+            "id": "fal-ai/moondream3-preview/query"
+          },
+          {
+            "id": "fal-ai/nemotron-diffusion-vlm"
+          },
+          {
+            "id": "fal-ai/sa2va/4b/image"
+          },
+          {
+            "id": "fal-ai/sa2va/4b/video"
+          },
+          {
+            "id": "fal-ai/sa2va/8b/image"
+          },
+          {
+            "id": "fal-ai/sa2va/8b/video"
+          },
+          {
+            "id": "fal-ai/sam-3/image/embed"
+          },
+          {
+            "id": "fal-ai/vggt-1b"
+          },
+          {
+            "id": "fal-ai/video-prompt-generator"
+          },
+          {
+            "id": "fal-ai/video-understanding"
+          },
+          {
+            "id": "fal-ai/x-ailab/nsfw"
+          },
+          {
+            "id": "nvidia/nemotron-3-nano-omni"
+          },
+          {
+            "id": "nvidia/nemotron-3-nano-omni/video"
+          },
+          {
+            "id": "nvidia/nemotron-3-nano-omni/vision"
+          },
+          {
+            "id": "openrouter/router"
+          },
+          {
+            "id": "openrouter/router/decisions"
+          },
+          {
+            "id": "openrouter/router/enterprise"
+          },
+          {
+            "id": "openrouter/router/openai/v1/chat/completions"
+          },
+          {
+            "id": "openrouter/router/openai/v1/embeddings"
+          },
+          {
+            "id": "openrouter/router/openai/v1/responses"
+          },
+          {
+            "id": "openrouter/router/video"
+          },
+          {
+            "id": "openrouter/router/video/enterprise"
+          },
+          {
+            "id": "openrouter/router/vision"
+          },
+          {
+            "id": "perceptron/isaac-01"
+          },
+          {
+            "id": "perceptron/isaac-01/openai/v1/chat/completions"
           }
         ]
       },
@@ -4109,14 +4157,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Gemini 3.1 Pro"
           },
           {
-            "id": "gemini-omni-audio",
-            "name": "Gemini Omni Audio"
-          },
-          {
-            "id": "gemini-omni-character",
-            "name": "Gemini Omni Character"
-          },
-          {
             "id": "gpt-5-2",
             "name": "GPT 5.2"
           },
@@ -4175,65 +4215,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "kimi-k3",
             "name": "Kimi K3"
-          }
-        ]
-      },
-      {
-        "provider": "fal_ai",
-        "models": [
-          {
-            "id": "fal-ai/audio-understanding"
-          },
-          {
-            "id": "fal-ai/florence-2-large/caption"
-          },
-          {
-            "id": "fal-ai/florence-2-large/detailed-caption"
-          },
-          {
-            "id": "fal-ai/florence-2-large/more-detailed-caption"
-          },
-          {
-            "id": "fal-ai/florence-2-large/ocr"
-          },
-          {
-            "id": "fal-ai/florence-2-large/region-to-category"
-          },
-          {
-            "id": "fal-ai/florence-2-large/region-to-description"
-          },
-          {
-            "id": "fal-ai/kling-video/create-voice"
-          },
-          {
-            "id": "fal-ai/moondream-next"
-          },
-          {
-            "id": "fal-ai/moondream2"
-          },
-          {
-            "id": "fal-ai/moondream2/visual-query"
-          },
-          {
-            "id": "fal-ai/phota/create-profile"
-          },
-          {
-            "id": "fal-ai/recraft/v3/create-style"
-          },
-          {
-            "id": "fal-ai/sam-3/image/embed"
-          },
-          {
-            "id": "fal-ai/video-prompt-generator"
-          },
-          {
-            "id": "fal-ai/video-understanding"
-          },
-          {
-            "id": "recraft/v4/create-style"
-          },
-          {
-            "id": "recraft/v4/pro/create-style"
           }
         ]
       },
@@ -4435,7 +4416,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 1056,
+    "total": 945,
     "providers": [
       {
         "provider": "fal_ai",
@@ -4471,9 +4452,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "bria/fibo-edit/colorize"
           },
           {
-            "id": "bria/fibo-edit/edit/structured_instruction"
-          },
-          {
             "id": "bria/fibo-edit/erase_by_text"
           },
           {
@@ -4501,12 +4479,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "bria/fibo-gen-1.5/text-to-image"
           },
           {
-            "id": "bria/fibo-lite/generate/structured_prompt"
-          },
-          {
-            "id": "bria/fibo/generate/structured_prompt"
-          },
-          {
             "id": "bria/genfill/v2"
           },
           {
@@ -4514,6 +4486,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "bria/product-dimensions"
+          },
+          {
+            "id": "bria/reimagine/3.2"
           },
           {
             "id": "bria/replace-background"
@@ -4537,22 +4512,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "clarityai/crystal-upscaler"
           },
           {
-            "id": "decart/lucy-2-5/realtime"
-          },
-          {
-            "id": "fal-ai/arbiter/image"
-          },
-          {
-            "id": "fal-ai/arbiter/image/image"
-          },
-          {
-            "id": "fal-ai/arbiter/image/text"
-          },
-          {
             "id": "fal-ai/aura-flow"
-          },
-          {
-            "id": "fal-ai/bagel/understand"
           },
           {
             "id": "fal-ai/ben/v2/image"
@@ -4606,19 +4566,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/bria/text-to-image/hd"
           },
           {
-            "id": "fal-ai/bytedance/seed/v2/mini"
-          },
-          {
-            "id": "fal-ai/bytedance/seed3d/image-to-3d"
-          },
-          {
             "id": "fal-ai/cartoonify"
           },
           {
             "id": "fal-ai/cat-vton"
-          },
-          {
-            "id": "fal-ai/ccsr"
           },
           {
             "id": "fal-ai/chain-of-zoom"
@@ -4645,9 +4596,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/cogview4"
           },
           {
-            "id": "fal-ai/cohere-transcribe"
-          },
-          {
             "id": "fal-ai/control-light"
           },
           {
@@ -4655,12 +4603,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/ddcolor"
-          },
-          {
-            "id": "fal-ai/deepfilternet3"
-          },
-          {
-            "id": "fal-ai/demucs"
           },
           {
             "id": "fal-ai/docres"
@@ -4684,15 +4626,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/dwpose"
           },
           {
-            "id": "fal-ai/elevenlabs/forced-alignment"
-          },
-          {
-            "id": "fal-ai/elevenlabs/speech-to-text"
-          },
-          {
-            "id": "fal-ai/elevenlabs/speech-to-text/scribe-v2"
-          },
-          {
             "id": "fal-ai/emu-3.5-image/edit-image"
           },
           {
@@ -4700,9 +4633,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/era-3d"
-          },
-          {
-            "id": "fal-ai/ernie-image-trainer"
           },
           {
             "id": "fal-ai/ernie-image/lora"
@@ -4777,13 +4707,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/feynobg"
           },
           {
-            "id": "fal-ai/ffmpeg-api/compose"
-          },
-          {
             "id": "fal-ai/ffmpeg-api/extract-frame"
-          },
-          {
-            "id": "fal-ai/ffmpeg-api/waveform"
           },
           {
             "id": "fal-ai/finegrain-eraser"
@@ -4852,18 +4776,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/flux-2"
           },
           {
-            "id": "fal-ai/flux-2-klein-4b-base-trainer"
-          },
-          {
-            "id": "fal-ai/flux-2-klein-4b-base-trainer/edit"
-          },
-          {
-            "id": "fal-ai/flux-2-klein-9b-base-trainer"
-          },
-          {
-            "id": "fal-ai/flux-2-klein-9b-base-trainer/edit"
-          },
-          {
             "id": "fal-ai/flux-2-lora-gallery/add-background"
           },
           {
@@ -4898,18 +4810,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/flux-2-pro/outpaint"
-          },
-          {
-            "id": "fal-ai/flux-2-trainer"
-          },
-          {
-            "id": "fal-ai/flux-2-trainer-v2"
-          },
-          {
-            "id": "fal-ai/flux-2-trainer-v2/edit"
-          },
-          {
-            "id": "fal-ai/flux-2-trainer/edit"
           },
           {
             "id": "fal-ai/flux-2/edit"
@@ -4970,9 +4870,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/flux-2/turbo/edit"
-          },
-          {
-            "id": "fal-ai/flux-3-action/so101"
           },
           {
             "id": "fal-ai/flux-control-lora-canny"
@@ -5161,9 +5058,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/ghiblify"
           },
           {
-            "id": "fal-ai/got-ocr/v2"
-          },
-          {
             "id": "fal-ai/gpt-image-1-mini"
           },
           {
@@ -5185,12 +5079,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/hidream-i1-full/image-to-image"
           },
           {
-            "id": "fal-ai/hunyuan-3d/v3.1/part"
-          },
-          {
-            "id": "fal-ai/hunyuan-3d/v3.1/rapid/text-to-3d"
-          },
-          {
             "id": "fal-ai/hunyuan-image/v2.1/text-to-image"
           },
           {
@@ -5201,18 +5089,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/hunyuan-image/v3/text-to-image"
-          },
-          {
-            "id": "fal-ai/hunyuan-motion"
-          },
-          {
-            "id": "fal-ai/hunyuan-motion/fast"
-          },
-          {
-            "id": "fal-ai/hunyuan-part"
-          },
-          {
-            "id": "fal-ai/hunyuan-video-lora-training"
           },
           {
             "id": "fal-ai/hunyuan_world"
@@ -5231,9 +5107,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/ideogram/character/remix"
-          },
-          {
-            "id": "fal-ai/ideogram/custom-models"
           },
           {
             "id": "fal-ai/ideogram/custom-models/generate"
@@ -5497,9 +5370,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/kolors/image-to-image"
           },
           {
-            "id": "fal-ai/krea-2-trainer"
-          },
-          {
             "id": "fal-ai/krea-2/turbo"
           },
           {
@@ -5527,9 +5397,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/live-portrait/image"
           },
           {
-            "id": "fal-ai/llava-next"
-          },
-          {
             "id": "fal-ai/lora"
           },
           {
@@ -5537,12 +5404,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/lora/inpaint"
-          },
-          {
-            "id": "fal-ai/ltx-2.3-quality/hdr"
-          },
-          {
-            "id": "fal-ai/ltx-2.3-quality/hdr/lora"
           },
           {
             "id": "fal-ai/luma-photon/flash/modify"
@@ -5557,49 +5418,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/luma-photon/reframe"
           },
           {
-            "id": "fal-ai/marlin"
-          },
-          {
-            "id": "fal-ai/marlin/find"
-          },
-          {
-            "id": "fal-ai/maya/batch"
-          },
-          {
-            "id": "fal-ai/meshy/rigging"
-          },
-          {
-            "id": "fal-ai/meshy/rigging/multi-animation"
-          },
-          {
             "id": "fal-ai/minimax/image-01/subject-reference"
           },
           {
-            "id": "fal-ai/moondream-next/batch"
-          },
-          {
             "id": "fal-ai/moondream-next/detection"
-          },
-          {
-            "id": "fal-ai/moondream/batched"
-          },
-          {
-            "id": "fal-ai/moondream2/object-detection"
-          },
-          {
-            "id": "fal-ai/moondream2/point-object-detection"
-          },
-          {
-            "id": "fal-ai/moondream3-preview/caption"
-          },
-          {
-            "id": "fal-ai/moondream3-preview/detect"
-          },
-          {
-            "id": "fal-ai/moondream3-preview/point"
-          },
-          {
-            "id": "fal-ai/moondream3-preview/query"
           },
           {
             "id": "fal-ai/moondream3-preview/segment"
@@ -5621,12 +5443,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/nano-banana/edit"
-          },
-          {
-            "id": "fal-ai/nemotron-diffusion-vlm"
-          },
-          {
-            "id": "fal-ai/nemotron/asr"
           },
           {
             "id": "fal-ai/nucleus-image"
@@ -5749,12 +5565,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/qwen-image-2512"
           },
           {
-            "id": "fal-ai/qwen-image-2512-trainer"
-          },
-          {
-            "id": "fal-ai/qwen-image-2512-trainer-v2"
-          },
-          {
             "id": "fal-ai/qwen-image-2512/lora"
           },
           {
@@ -5794,16 +5604,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/qwen-image-edit-2509-lora-gallery/shirt-design"
           },
           {
-            "id": "fal-ai/qwen-image-edit-2509-trainer"
-          },
-          {
             "id": "fal-ai/qwen-image-edit-2511"
           },
           {
             "id": "fal-ai/qwen-image-edit-2511-multiple-angles"
-          },
-          {
-            "id": "fal-ai/qwen-image-edit-2511-trainer"
           },
           {
             "id": "fal-ai/qwen-image-edit-2511/lora"
@@ -5848,19 +5652,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/qwen-image-edit-plus-lora-gallery/shirt-design"
           },
           {
-            "id": "fal-ai/qwen-image-edit-plus-trainer"
-          },
-          {
-            "id": "fal-ai/qwen-image-edit-trainer"
-          },
-          {
             "id": "fal-ai/qwen-image-edit/inpaint"
           },
           {
             "id": "fal-ai/qwen-image-layered"
-          },
-          {
-            "id": "fal-ai/qwen-image-layered-trainer"
           },
           {
             "id": "fal-ai/qwen-image-layered/lora"
@@ -5870,9 +5665,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/qwen-image-max/text-to-image"
-          },
-          {
-            "id": "fal-ai/qwen-image-trainer"
           },
           {
             "id": "fal-ai/realistic-vision"
@@ -5920,18 +5712,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/reve/text-to-image"
           },
           {
-            "id": "fal-ai/sa2va/4b/image"
-          },
-          {
-            "id": "fal-ai/sa2va/4b/video"
-          },
-          {
-            "id": "fal-ai/sa2va/8b/image"
-          },
-          {
-            "id": "fal-ai/sa2va/8b/video"
-          },
-          {
             "id": "fal-ai/sam-3-1/image"
           },
           {
@@ -5942,15 +5722,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/sam-3/image-rle"
-          },
-          {
-            "id": "fal-ai/sam-audio/separate"
-          },
-          {
-            "id": "fal-ai/sam-audio/span-separate"
-          },
-          {
-            "id": "fal-ai/sam-audio/visual-separate"
           },
           {
             "id": "fal-ai/sam2/auto-segment"
@@ -5992,28 +5763,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/sensenova-u1-infographic"
           },
           {
-            "id": "fal-ai/silero-vad"
-          },
-          {
             "id": "fal-ai/sky-raccoon"
           },
           {
             "id": "fal-ai/smart-resize"
-          },
-          {
-            "id": "fal-ai/smart-turn"
-          },
-          {
-            "id": "fal-ai/sora-2/characters"
-          },
-          {
-            "id": "fal-ai/speech-to-text"
-          },
-          {
-            "id": "fal-ai/speech-to-text/turbo"
-          },
-          {
-            "id": "fal-ai/stable-audio-3-trainer"
           },
           {
             "id": "fal-ai/stable-cascade"
@@ -6055,12 +5808,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/topaz/upscale/image"
           },
           {
-            "id": "fal-ai/trellis-2-lora-trainer"
-          },
-          {
-            "id": "fal-ai/turbo-flux-trainer"
-          },
-          {
             "id": "fal-ai/uno"
           },
           {
@@ -6073,43 +5820,16 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/vecglypher/image-to-svg"
           },
           {
-            "id": "fal-ai/vggt-1b"
-          },
-          {
             "id": "fal-ai/vidu/q2/reference-to-image"
           },
           {
             "id": "fal-ai/vidu/reference-to-image"
           },
           {
-            "id": "fal-ai/wan-22-image-trainer"
-          },
-          {
-            "id": "fal-ai/wan-22-trainer/i2v-a14b"
-          },
-          {
-            "id": "fal-ai/wan-22-trainer/t2v-a14b"
-          },
-          {
             "id": "fal-ai/wan-25-preview/image-to-image"
           },
           {
             "id": "fal-ai/wan-25-preview/text-to-image"
-          },
-          {
-            "id": "fal-ai/wan-trainer"
-          },
-          {
-            "id": "fal-ai/wan-trainer/flf2v-720p"
-          },
-          {
-            "id": "fal-ai/wan-trainer/i2v-720p"
-          },
-          {
-            "id": "fal-ai/wan-trainer/t2v"
-          },
-          {
-            "id": "fal-ai/wan-trainer/t2v-14b"
           },
           {
             "id": "fal-ai/wan/v2.2-5b/text-to-image"
@@ -6124,28 +5844,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/wan/v2.2-a14b/text-to-image/lora"
           },
           {
-            "id": "fal-ai/whisper"
-          },
-          {
-            "id": "fal-ai/wizper"
-          },
-          {
             "id": "fal-ai/workflow-utilities/extract-nth-frame"
           },
           {
             "id": "fal-ai/workflow-utilities/pick-image-by-index"
-          },
-          {
-            "id": "fal-ai/x-ailab/nsfw"
-          },
-          {
-            "id": "fal-ai/z-image-base-trainer"
-          },
-          {
-            "id": "fal-ai/z-image-trainer"
-          },
-          {
-            "id": "fal-ai/z-image-turbo-trainer-v2"
           },
           {
             "id": "fal-ai/z-image/base/lora"
@@ -6214,9 +5916,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "ideogram/v4/tiling/lora"
           },
           {
-            "id": "ideogram/v4/trainer"
-          },
-          {
             "id": "imagineart/imagineart-1.5-pro-preview/text-to-image"
           },
           {
@@ -6232,34 +5931,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "luma/agent/uni-1/v1/text-to-image"
           },
           {
-            "id": "minimax/h3/flf2v/trainer"
-          },
-          {
-            "id": "minimax/h3/i2v/trainer"
-          },
-          {
-            "id": "minimax/h3/ref2va/trainer"
-          },
-          {
-            "id": "minimax/h3/t2v/trainer"
-          },
-          {
             "id": "nvidia/cosmos-3-super/text-to-image"
-          },
-          {
-            "id": "nvidia/nemotron-3-nano-omni"
-          },
-          {
-            "id": "nvidia/nemotron-3-nano-omni/audio"
-          },
-          {
-            "id": "nvidia/nemotron-3-nano-omni/video"
-          },
-          {
-            "id": "nvidia/nemotron-3-nano-omni/vision"
-          },
-          {
-            "id": "nvidia/nemotron-asr-multilingual/asr"
           },
           {
             "id": "openai/gpt-image-2"
@@ -6278,30 +5950,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "openai/gpt-image-2/edit"
-          },
-          {
-            "id": "openrouter/router"
-          },
-          {
-            "id": "openrouter/router/audio"
-          },
-          {
-            "id": "openrouter/router/decisions"
-          },
-          {
-            "id": "openrouter/router/enterprise"
-          },
-          {
-            "id": "openrouter/router/video"
-          },
-          {
-            "id": "openrouter/router/video/enterprise"
-          },
-          {
-            "id": "openrouter/router/vision"
-          },
-          {
-            "id": "perceptron/isaac-01"
           },
           {
             "id": "pixelcut/background-removal"
@@ -7862,7 +7510,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "video",
-    "total": 1007,
+    "total": 991,
     "providers": [
       {
         "provider": "fal_ai",
@@ -7955,6 +7603,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "bria/video/background-removal/green-screen-despill"
           },
           {
+            "id": "bria/video/background-removal/realtime"
+          },
+          {
             "id": "bria/video/background-removal/v3"
           },
           {
@@ -8033,6 +7684,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "decart/lucy-14b/image-to-video"
           },
           {
+            "id": "decart/lucy-2-5/realtime"
+          },
+          {
             "id": "decart/lucy-edit/dev"
           },
           {
@@ -8043,6 +7697,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "decart/lucy-restyle"
+          },
+          {
+            "id": "decart/lucy2-vton/realtime"
           },
           {
             "id": "fal-ai/ai-avatar"
@@ -8117,6 +7774,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/bytedance/seedance/v1/pro/text-to-video"
           },
           {
+            "id": "fal-ai/bytedance/video-stylize"
+          },
+          {
+            "id": "fal-ai/ccsr"
+          },
+          {
             "id": "fal-ai/cogvideox-5b"
           },
           {
@@ -8181,6 +7844,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/fast-svd/text-to-video"
+          },
+          {
+            "id": "fal-ai/ffmpeg-api/compose"
           },
           {
             "id": "fal-ai/ffmpeg-api/images-to-video"
@@ -8711,6 +8377,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/ltx-2.3-quality/extend-video/lora"
           },
           {
+            "id": "fal-ai/ltx-2.3-quality/hdr"
+          },
+          {
+            "id": "fal-ai/ltx-2.3-quality/hdr/lora"
+          },
+          {
             "id": "fal-ai/ltx-2.3-quality/image-to-video"
           },
           {
@@ -8819,9 +8491,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/ltx-video-13b-distilled/multiconditioning"
           },
           {
-            "id": "fal-ai/ltx-video-trainer"
-          },
-          {
             "id": "fal-ai/ltx-video-v095"
           },
           {
@@ -8832,84 +8501,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/ltx-video/image-to-video"
-          },
-          {
-            "id": "fal-ai/ltx2-video-trainer"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/a2a"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/a2v"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/audio-extend-prefix"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/audio-extend-suffix"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/audio-inpaint"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/av2av"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/av2av-masked"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/extend-prefix"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/extend-suffix"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/i2v"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/ic-lora/a2a"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/ic-lora/av2av"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/ic-lora/av2av-masked"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/ic-lora/v2v"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/ic-lora/v2v-masked"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/inpaint"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/interpolate"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/outpaint"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/t2a"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/t2v"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/v2a"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/v2v"
-          },
-          {
-            "id": "fal-ai/ltx23-trainer-v2/v2v-masked"
-          },
-          {
-            "id": "fal-ai/ltx23-v2v-trainer"
-          },
-          {
-            "id": "fal-ai/ltx23-video-trainer"
           },
           {
             "id": "fal-ai/ltxv-13b-098-distilled"
@@ -9201,6 +8792,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/skyreels-i2v"
+          },
+          {
+            "id": "fal-ai/sora-2/characters"
           },
           {
             "id": "fal-ai/sora-2/image-to-video"
@@ -10450,6 +10044,14 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Bytedance - V1 Pro Text to Video"
           },
           {
+            "id": "gemini-omni-audio",
+            "name": "Gemini Omni Audio"
+          },
+          {
+            "id": "gemini-omni-character",
+            "name": "Gemini Omni Character"
+          },
+          {
             "id": "gemini-omni-video",
             "name": "Gemini Omni Video"
           },
@@ -11223,7 +10825,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "audio",
-    "total": 219,
+    "total": 229,
     "providers": [
       {
         "provider": "fal_ai",
@@ -11271,6 +10873,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/ace-step/prompt-to-audio"
           },
           {
+            "id": "fal-ai/audio-understanding"
+          },
+          {
             "id": "fal-ai/bytedance/seed-speech/tts/v2"
           },
           {
@@ -11284,6 +10889,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/csm-1b"
+          },
+          {
+            "id": "fal-ai/deepfilternet3"
+          },
+          {
+            "id": "fal-ai/demucs"
           },
           {
             "id": "fal-ai/dia-tts"
@@ -11320,6 +10931,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/inworld-tts"
+          },
+          {
+            "id": "fal-ai/kling-video/create-voice"
           },
           {
             "id": "fal-ai/kling-video/v1/tts"
@@ -11373,6 +10987,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/maya"
           },
           {
+            "id": "fal-ai/maya/batch"
+          },
+          {
+            "id": "fal-ai/maya/stream"
+          },
+          {
             "id": "fal-ai/minimax-music"
           },
           {
@@ -11422,6 +11042,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/qwen-3-tts/voice-design/1.7b"
+          },
+          {
+            "id": "fal-ai/sam-audio/separate"
+          },
+          {
+            "id": "fal-ai/sam-audio/span-separate"
+          },
+          {
+            "id": "fal-ai/sam-audio/visual-separate"
           },
           {
             "id": "fal-ai/stable-audio"
@@ -11978,6 +11607,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
+        "provider": "dreamina",
+        "models": [
+          {
+            "id": "instrumental",
+            "name": "Dreamina Instrumental"
+          }
+        ]
+      },
+      {
         "provider": "openai",
         "models": [
           {
@@ -11988,17 +11626,19 @@ export const modelDirectory: ModelDirectoryGroup[] = [
       }
     ],
     "liveProviders": [
-      "dreamina",
       "openrouter"
     ]
   },
   {
     "kind": "transcription",
-    "total": 27,
+    "total": 47,
     "providers": [
       {
         "provider": "replicate",
         "models": [
+          {
+            "id": "collectiveai-team/speaker-diarization-3"
+          },
           {
             "id": "daanelson/whisperx",
             "name": "WhisperX"
@@ -12014,6 +11654,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "ibm-granite/granite-speech-4.1-2b",
             "name": "Granite Speech 4.1 2B"
+          },
+          {
+            "id": "lucataco/speaker-diarization"
+          },
+          {
+            "id": "meronym/speaker-diarization"
+          },
+          {
+            "id": "meronym/speaker-transcription"
           },
           {
             "id": "nvidia/canary-qwen-2.5b",
@@ -12054,6 +11703,59 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "xai/grok-speech-to-text",
             "name": "Grok Speech To Text"
+          }
+        ]
+      },
+      {
+        "provider": "fal_ai",
+        "models": [
+          {
+            "id": "fal-ai/cohere-transcribe"
+          },
+          {
+            "id": "fal-ai/elevenlabs/forced-alignment"
+          },
+          {
+            "id": "fal-ai/elevenlabs/speech-to-text"
+          },
+          {
+            "id": "fal-ai/elevenlabs/speech-to-text/scribe-v2"
+          },
+          {
+            "id": "fal-ai/nemotron/asr"
+          },
+          {
+            "id": "fal-ai/nemotron/asr/stream"
+          },
+          {
+            "id": "fal-ai/silero-vad"
+          },
+          {
+            "id": "fal-ai/smart-turn"
+          },
+          {
+            "id": "fal-ai/speech-to-text"
+          },
+          {
+            "id": "fal-ai/speech-to-text/stream"
+          },
+          {
+            "id": "fal-ai/speech-to-text/turbo"
+          },
+          {
+            "id": "fal-ai/speech-to-text/turbo/stream"
+          },
+          {
+            "id": "fal-ai/whisper"
+          },
+          {
+            "id": "fal-ai/wizper"
+          },
+          {
+            "id": "nvidia/nemotron-3-nano-omni/audio"
+          },
+          {
+            "id": "nvidia/nemotron-asr-multilingual/asr"
           }
         ]
       },
@@ -12141,11 +11843,17 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "3d",
-    "total": 86,
+    "total": 109,
     "providers": [
       {
         "provider": "fal_ai",
         "models": [
+          {
+            "id": "fal-ai/bytedance/seed3d/image-to-3d"
+          },
+          {
+            "id": "fal-ai/hunyuan-3d/v3.1/part"
+          },
           {
             "id": "fal-ai/hunyuan-3d/v3.1/pro/image-to-3d"
           },
@@ -12156,7 +11864,19 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/hunyuan-3d/v3.1/rapid/image-to-3d"
           },
           {
+            "id": "fal-ai/hunyuan-3d/v3.1/rapid/text-to-3d"
+          },
+          {
             "id": "fal-ai/hunyuan-3d/v3.1/smart-topology"
+          },
+          {
+            "id": "fal-ai/hunyuan-motion"
+          },
+          {
+            "id": "fal-ai/hunyuan-motion/fast"
+          },
+          {
+            "id": "fal-ai/hunyuan-part"
           },
           {
             "id": "fal-ai/hunyuan3d-v21"
@@ -12189,6 +11909,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/hunyuan3d/v2/turbo"
           },
           {
+            "id": "fal-ai/hunyuan_world/image-to-world"
+          },
+          {
             "id": "fal-ai/hyper3d/rodin"
           },
           {
@@ -12205,6 +11928,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/hyper3d/rodin/v2.5/text-to-3d/fast"
+          },
+          {
+            "id": "fal-ai/meshy/rigging"
+          },
+          {
+            "id": "fal-ai/meshy/rigging/multi-animation"
           },
           {
             "id": "fal-ai/meshy/v5/multi-image-to-3d"
@@ -12405,6 +12134,53 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
+        "provider": "replicate",
+        "models": [
+          {
+            "id": "cjwbw/shap-e"
+          },
+          {
+            "id": "firtoz/trellis"
+          },
+          {
+            "id": "fishwowater/trellis2"
+          },
+          {
+            "id": "hyper3d/rodin"
+          },
+          {
+            "id": "lucataco/deep3d"
+          },
+          {
+            "id": "prunaai/hunyuan3d-2"
+          },
+          {
+            "id": "tencent/hunyuan-3d-3.1"
+          },
+          {
+            "id": "tencent/hunyuan3d-2"
+          },
+          {
+            "id": "tencent/hunyuan3d-2mv"
+          },
+          {
+            "id": "uthana/create-character-v1"
+          },
+          {
+            "id": "uthana/text-to-motion-diffusion-v2"
+          },
+          {
+            "id": "uthana/text-to-motion-vqvae-v1"
+          },
+          {
+            "id": "valllllex/cartoonia_3d"
+          },
+          {
+            "id": "zsxkib/seedvr2"
+          }
+        ]
+      },
+      {
         "provider": "meshy",
         "models": [
           {
@@ -12447,7 +12223,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "embedding",
-    "total": 41,
+    "total": 42,
     "providers": [
       {
         "provider": "replicate",
@@ -12459,6 +12235,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "andreasjansson/clip-features",
             "name": "CLIP Features"
+          },
+          {
+            "id": "andreasjansson/llama-2-13b-embeddings"
           },
           {
             "id": "beautyyuyanli/multilingual-e5-large",
@@ -12657,5 +12436,251 @@ export const modelDirectory: ModelDirectoryGroup[] = [
     "liveProviders": [
       "openrouter"
     ]
+  },
+  {
+    "kind": "other",
+    "total": 78,
+    "providers": [
+      {
+        "provider": "fal_ai",
+        "models": [
+          {
+            "id": "fal-ai/ernie-image-trainer"
+          },
+          {
+            "id": "fal-ai/ffmpeg-api/metadata"
+          },
+          {
+            "id": "fal-ai/ffmpeg-api/waveform"
+          },
+          {
+            "id": "fal-ai/flux-2-klein-4b-base-trainer"
+          },
+          {
+            "id": "fal-ai/flux-2-klein-4b-base-trainer/edit"
+          },
+          {
+            "id": "fal-ai/flux-2-klein-9b-base-trainer"
+          },
+          {
+            "id": "fal-ai/flux-2-klein-9b-base-trainer/edit"
+          },
+          {
+            "id": "fal-ai/flux-2-trainer"
+          },
+          {
+            "id": "fal-ai/flux-2-trainer-v2"
+          },
+          {
+            "id": "fal-ai/flux-2-trainer-v2/edit"
+          },
+          {
+            "id": "fal-ai/flux-2-trainer/edit"
+          },
+          {
+            "id": "fal-ai/hunyuan-video-lora-training"
+          },
+          {
+            "id": "fal-ai/ideogram/custom-models"
+          },
+          {
+            "id": "fal-ai/krea-2-trainer"
+          },
+          {
+            "id": "fal-ai/ltx-video-trainer"
+          },
+          {
+            "id": "fal-ai/ltx2-video-trainer"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/a2a"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/a2v"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/audio-extend-prefix"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/audio-extend-suffix"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/audio-inpaint"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/av2av"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/av2av-masked"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/extend-prefix"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/extend-suffix"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/i2v"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/ic-lora/a2a"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/ic-lora/av2av"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/ic-lora/av2av-masked"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/ic-lora/v2v"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/ic-lora/v2v-masked"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/inpaint"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/interpolate"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/outpaint"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/t2a"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/t2v"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/v2a"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/v2v"
+          },
+          {
+            "id": "fal-ai/ltx23-trainer-v2/v2v-masked"
+          },
+          {
+            "id": "fal-ai/ltx23-v2v-trainer"
+          },
+          {
+            "id": "fal-ai/ltx23-video-trainer"
+          },
+          {
+            "id": "fal-ai/omnilottie"
+          },
+          {
+            "id": "fal-ai/omnilottie/image-to-lottie"
+          },
+          {
+            "id": "fal-ai/omnilottie/video-to-lottie"
+          },
+          {
+            "id": "fal-ai/phota/create-profile"
+          },
+          {
+            "id": "fal-ai/qwen-3-tts/clone-voice/0.6b"
+          },
+          {
+            "id": "fal-ai/qwen-3-tts/clone-voice/1.7b"
+          },
+          {
+            "id": "fal-ai/qwen-image-2512-trainer"
+          },
+          {
+            "id": "fal-ai/qwen-image-2512-trainer-v2"
+          },
+          {
+            "id": "fal-ai/qwen-image-edit-2509-trainer"
+          },
+          {
+            "id": "fal-ai/qwen-image-edit-2511-trainer"
+          },
+          {
+            "id": "fal-ai/qwen-image-edit-plus-trainer"
+          },
+          {
+            "id": "fal-ai/qwen-image-edit-trainer"
+          },
+          {
+            "id": "fal-ai/qwen-image-layered-trainer"
+          },
+          {
+            "id": "fal-ai/qwen-image-trainer"
+          },
+          {
+            "id": "fal-ai/recraft/v3/create-style"
+          },
+          {
+            "id": "fal-ai/stable-audio-3-trainer"
+          },
+          {
+            "id": "fal-ai/trellis-2-lora-trainer"
+          },
+          {
+            "id": "fal-ai/turbo-flux-trainer"
+          },
+          {
+            "id": "fal-ai/wan-22-image-trainer"
+          },
+          {
+            "id": "fal-ai/wan-22-trainer/i2v-a14b"
+          },
+          {
+            "id": "fal-ai/wan-22-trainer/t2v-a14b"
+          },
+          {
+            "id": "fal-ai/wan-trainer"
+          },
+          {
+            "id": "fal-ai/wan-trainer/flf2v-720p"
+          },
+          {
+            "id": "fal-ai/wan-trainer/i2v-720p"
+          },
+          {
+            "id": "fal-ai/wan-trainer/t2v"
+          },
+          {
+            "id": "fal-ai/wan-trainer/t2v-14b"
+          },
+          {
+            "id": "fal-ai/z-image-base-trainer"
+          },
+          {
+            "id": "fal-ai/z-image-trainer"
+          },
+          {
+            "id": "fal-ai/z-image-turbo-trainer-v2"
+          },
+          {
+            "id": "ideogram/v4/trainer"
+          },
+          {
+            "id": "minimax/h3/flf2v/trainer"
+          },
+          {
+            "id": "minimax/h3/i2v/trainer"
+          },
+          {
+            "id": "minimax/h3/ref2va/trainer"
+          },
+          {
+            "id": "minimax/h3/t2v/trainer"
+          },
+          {
+            "id": "openrouter/router/audio"
+          },
+          {
+            "id": "recraft/v4/create-style"
+          },
+          {
+            "id": "recraft/v4/pro/create-style"
+          }
+        ]
+      }
+    ],
+    "liveProviders": []
   }
 ];

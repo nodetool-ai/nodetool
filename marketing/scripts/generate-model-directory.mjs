@@ -58,7 +58,7 @@ const KIND_BY_TASK = {
   text_to_speech: "audio",
 };
 
-const MANIFESTS = [
+export const MANIFESTS = [
   { id: "fal_ai", manifest: "packages/fal-nodes/src/fal-manifest.json" },
   {
     id: "replicate",
@@ -150,11 +150,11 @@ const KINDS = [
   "transcription",
   "3d",
   "embedding",
+  "other",
 ];
 
 const KIND_BY_OUTPUT = {
   image: "image",
-  dict: "image", // fal returns some image endpoints as a dict payload
   video: "video",
   audio: "audio",
   model_3d: "3d",
@@ -162,6 +162,29 @@ const KIND_BY_OUTPUT = {
   string: "language",
   text: "language",
 };
+
+const KIND_BY_MODALITY = Object.fromEntries([
+  ["image", ["image", "text_to_image", "image_to_image", "image-generate", "image-upscale", "image-enhance", "image-background", "image-face", "image-process"]],
+  ["video", ["video", "text_to_video", "image_to_video", "video_to_video", "audio_to_video", "reference_to_video", "extend_video", "video-generate", "video-face", "video-process", "video-enhance"]],
+  ["audio", ["audio", "text_to_audio", "text_to_speech", "audio_to_audio", "speech_to_speech", "video_to_audio", "audio-speech", "audio-generate", "audio-enhance", "audio-separate"]],
+  ["transcription", ["automatic_speech_recognition", "speech_to_text", "audio_to_text", "audio-transcribe"]],
+  ["language", ["llm", "vision", "image_to_json", "image_to_text", "video_to_text", "text_to_json", "text-generate", "image-analyze", "image-ocr"]],
+  ["3d", ["image_to_3d", "text_to_3d", "3d_to_3d", "image-3d"]],
+  ["embedding", ["embedding"]],
+  ["other", ["training", "json_processing"]],
+].flatMap(([kind, modalities]) => modalities.map(modality => [modality, kind])));
+
+function manifestKind(model) {
+  const modalities = [...(model.supportedTasks ?? []), model.task, model.moduleName, model.modality];
+  if (modalities.includes("training")) return "other";
+  if (["image", "video", "audio", "model_3d"].includes(model.outputType)) {
+    return KIND_BY_OUTPUT[model.outputType];
+  }
+  for (const modality of modalities) {
+    if (KIND_BY_MODALITY[modality]) return KIND_BY_MODALITY[modality];
+  }
+  return KIND_BY_OUTPUT[model.outputType] ?? "other";
+}
 
 const KIND_BY_METHOD = {
   Language: "language",
@@ -202,9 +225,29 @@ function block(src, open) {
   return "";
 }
 
-const SIBLING_SOURCES = readdirSync(PROVIDER_DIR)
+const SIBLING_SOURCE_FILES = new Map(readdirSync(PROVIDER_DIR)
   .filter((f) => f.endsWith(".ts"))
-  .map((f) => readFileSync(resolve(PROVIDER_DIR, f), "utf8"));
+  .map((f) => [f, readFileSync(resolve(PROVIDER_DIR, f), "utf8")]));
+const SIBLING_SOURCES = [...SIBLING_SOURCE_FILES.values()];
+
+function delegatedMethod(receiver, method, src) {
+  const initializer = new RegExp(`\\b${receiver}\\s*(?::[^=;\\n]+)?=\\s*(\\w+)\\s*\\(`).exec(src);
+  if (!initializer) return null;
+  const localFactory = initializer[1];
+  for (const imported of src.matchAll(/import\s*\{([^}]+)\}\s*from\s*["']\.\/([^"']+)["']/g)) {
+    const binding = imported[1].split(",").map(name => name.trim().split(/\s+as\s+/))
+      .find(names => (names[1] ?? names[0]) === localFactory);
+    if (!binding) continue;
+    const sibling = SIBLING_SOURCE_FILES.get(imported[2].replace(/\.js$/, ".ts"));
+    if (!sibling) return null;
+    const factory = new RegExp(`\\bfunction\\s+${binding[0]}\\b[^\\{]*\\{`).exec(sibling);
+    if (!factory) return null;
+    const factoryBody = block(sibling, factory.index + factory[0].length - 1);
+    const definition = new RegExp(`\\b(?:async\\s+)?${method}\\(\\)[^{]*\\{`).exec(factoryBody);
+    if (definition) return { src: sibling, body: block(factoryBody, definition.index + definition[0].length - 1) };
+  }
+  return null;
+}
 
 /** Find `const NAME = <literal>` in `src`, then in the sibling sources. */
 function constValue(name, src) {
@@ -280,10 +323,17 @@ function staticModels(body, src, seen = new Set()) {
     const def = new RegExp(`\\n\\s*(?:private |protected )?${m[1]}\\(\\)[^{]*\\{`).exec(src);
     if (def) out = out.concat(staticModels(block(src, def.index + def[0].length - 1), src, seen));
   }
+  for (const match of body.matchAll(/this\.(\w+)\.(\w+)\(\)/g)) {
+    const key = `${match[1]}.${match[2]}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const delegated = delegatedMethod(match[1], match[2], src);
+    if (delegated) out = out.concat(staticModels(delegated.body, delegated.src, seen));
+  }
   return out;
 }
 
-function collect() {
+export function collect() {
   /** kind → provider → Map(id → name) */
   const table = {};
   const add = (kind, provider, id, name) => {
@@ -294,10 +344,7 @@ function collect() {
 
   for (const { id: provider, manifest } of MANIFESTS) {
     for (const n of loadJson(manifest)) {
-      const tasks = [n.modality, n.task, ...(n.supportedTasks ?? [])];
-      const kind = tasks.includes("automatic_speech_recognition")
-        ? "transcription"
-        : KIND_BY_OUTPUT[n.outputType];
+      const kind = manifestKind(n);
       const id = n.modelId ?? n.endpointId;
       if (!kind || !id) continue;
       add(kind, provider, id, n.title ?? null);
@@ -414,7 +461,8 @@ export type ModelDirectoryKind =
   | "audio"
   | "transcription"
   | "3d"
-  | "embedding";
+  | "embedding"
+  | "other";
 
 export interface ModelDirectoryModel {
   /** Model id passed to the provider at call time. */
@@ -481,4 +529,6 @@ function main() {
   console.log(`Wrote ${OUT}`);
 }
 
-main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}
