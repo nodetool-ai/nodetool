@@ -212,6 +212,7 @@ export { InspectorValueInput } from "./InspectorValueInput";
 export type { InspectorValueInputProps, InspectorValueScrub, InspectorValueGesture } from "./InspectorValueInput";
 export { NumberField } from "./NumberField";
 export type { NumberFieldProps } from "./NumberField";
+export { numberFieldHeight, numberFieldSurfaceStyles, numberFieldTextStyles, numberFieldUnitStyles, numberFieldPaddingX } from "./NumberField";
 export { NumericField } from "./NumericField";
 export type { NumericFieldProps } from "./NumericField";
 export { TreeRow } from "./TreeRow";
