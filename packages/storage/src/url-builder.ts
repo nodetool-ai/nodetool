@@ -31,8 +31,6 @@ export type AssetUrlBuilder = (key: string, version?: string) => Promise<string>
 const SIGN_BATCH_SIZE = 500;
 /** Signed URLs kept for reuse, per builder. */
 const URL_CACHE_MAX_ENTRIES = 20_000;
-/** A cached URL is reused until half of its lifetime has passed. */
-const URL_REUSE_MS = (SIGNED_URL_TTL * 1000) / 2;
 
 interface CachedUrl {
   url: string;
@@ -51,13 +49,16 @@ function withUrlCache(
   // Map iteration order is insertion order, so the first key is the least
   // recently used once hits are re-inserted.
   const cache = new Map<string, CachedUrl>();
+  // A cached URL is reused until half of its lifetime has passed. Read here,
+  // not at module load, so importing this module never touches the config.
+  const reuseMs = (SIGNED_URL_TTL * 1000) / 2;
   return async (key, version) => {
     if (version === undefined) return sign(key);
     const hit = cache.get(key);
     if (
       hit &&
       hit.version === version &&
-      now() - hit.signedAt < URL_REUSE_MS
+      now() - hit.signedAt < reuseMs
     ) {
       cache.delete(key);
       cache.set(key, hit);
