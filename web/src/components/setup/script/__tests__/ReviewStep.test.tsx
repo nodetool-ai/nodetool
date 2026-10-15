@@ -127,12 +127,17 @@ describe("script ReviewStep", () => {
     expect(screen.getByDisplayValue("Welcome back.")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Glad to be here.")).toBeInTheDocument();
     expect(screen.getByDisplayValue("warm")).toBeInTheDocument();
-    expect(screen.getAllByRole("combobox", { name: "Speaker" })).toHaveLength(2);
+    expect(
+      screen.getByRole("button", { name: "Host, change speaker" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Guest, change speaker" })
+    ).toBeInTheDocument();
   });
 
   it("shows the timing a subtitle import brought with it", () => {
     renderStep();
-    expect(screen.getByDisplayValue("2.8s")).toBeInTheDocument();
+    expect(screen.getByText("Target 2.8s")).toBeInTheDocument();
   });
 
   it("counts the words and states the spoken length at the flow's pace", () => {
@@ -156,8 +161,10 @@ describe("script ReviewStep", () => {
     const user = userEvent.setup();
     renderStep();
 
-    await user.click(screen.getAllByRole("combobox", { name: "Speaker" })[0]);
-    await user.click(screen.getByRole("option", { name: "Guest" }));
+    await user.click(
+      screen.getByRole("button", { name: "Host, change speaker" })
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Guest" }));
 
     expect(setLineSpeaker).toHaveBeenCalledWith("line_1", "spk_guest");
   });
@@ -180,8 +187,8 @@ describe("script ReviewStep", () => {
   it("says what a rewrite will cost before it is pressed (F23)", () => {
     renderStep();
     expect(
-      screen.getByRole("region", { name: "Before you generate" })
-    ).toHaveTextContent("Rewrite 6 words");
+      screen.getByRole("group", { name: "Before you generate" })
+    ).toHaveAttribute("title", expect.stringContaining("Rewrite 6 words"));
   });
 
   it("prices the script a rewrite sends, not only the brief (F7)", () => {
@@ -207,7 +214,9 @@ describe("script ReviewStep", () => {
       </ThemeProvider>
     );
     expect(screen.getByRole("button", { name: "Rewrite" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Add a line" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Add a line to Intro" })
+    ).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "Open the editor without voicing" })
     ).toBeDisabled();
@@ -218,7 +227,9 @@ describe("script ReviewStep", () => {
     const user = userEvent.setup();
     renderStep();
 
-    await user.click(screen.getByRole("button", { name: "Add a line" }));
+    await user.click(
+      screen.getByRole("button", { name: "Add a line to Intro" })
+    );
     const linesOf = () =>
       useScriptStore
         .getState()
@@ -238,10 +249,13 @@ describe("script ReviewStep", () => {
       .patchLine(SCRIPT_ID, "line_2", { speakerId: null });
     renderStep();
 
-    const speakers = screen.getAllByRole("combobox", { name: "Speaker" });
-    expect(speakers[1]).toHaveTextContent("No speaker");
-    await user.click(speakers[0]);
-    await user.click(screen.getByRole("option", { name: "No speaker" }));
+    expect(
+      screen.getByRole("button", { name: "Assign speaker" })
+    ).toHaveTextContent("no speaker");
+    await user.click(
+      screen.getByRole("button", { name: "Host, change speaker" })
+    );
+    await user.click(screen.getByRole("menuitem", { name: "No speaker" }));
     expect(setLineSpeaker).toHaveBeenCalledWith("line_1", null);
   });
 
@@ -260,10 +274,15 @@ describe("script ReviewStep", () => {
     expect(screen.getByDisplayValue("Welcome back.")).toHaveAttribute(
       "readonly"
     );
-    for (const speaker of screen.getAllByRole("combobox", { name: "Speaker" })) {
-      expect(speaker).toHaveAttribute("aria-disabled", "true");
-    }
-    expect(screen.getByRole("button", { name: "Add a line" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Host, change speaker" })
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Add a line to Intro" })
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: /^Remove “/ })
+    ).not.toBeInTheDocument();
   });
 
   it("shows why the last rewrite failed (F6)", () => {
@@ -307,5 +326,63 @@ describe("script ReviewStep", () => {
         .scripts[SCRIPT_ID].sections.flatMap((section) => section.lines)
         .every((line) => line.takes.length === 0)
     ).toBe(true);
+  });
+
+  it("gives a new line the speaker its section ended on", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(
+      screen.getByRole("button", { name: "Add a line to Intro" })
+    );
+
+    const added = useScriptStore
+      .getState()
+      .scripts[SCRIPT_ID].sections[0].lines.at(-1);
+    expect(setLineSpeaker).toHaveBeenCalledWith(added?.id, "spk_guest");
+  });
+
+  it("edits a line's direction in place, as the editor does", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.type(screen.getByDisplayValue("warm"), "ly");
+
+    expect(
+      useScriptStore.getState().scripts[SCRIPT_ID].sections[0].lines[0]
+        .direction
+    ).toBe("warmly");
+  });
+
+  it("adds a direction to a line that has none", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(
+      screen.getByRole("button", { name: "Add direction to “Glad to be here.”" })
+    );
+    const directions = screen.getAllByRole("textbox", { name: "Direction" });
+    expect(directions).toHaveLength(2);
+    await user.type(directions[1], "dry");
+
+    expect(
+      useScriptStore.getState().scripts[SCRIPT_ID].sections[0].lines[1]
+        .direction
+    ).toBe("dry");
+  });
+
+  it("removes one line", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(
+      screen.getByRole("button", { name: "Remove “Welcome back.”" })
+    );
+
+    expect(
+      useScriptStore
+        .getState()
+        .scripts[SCRIPT_ID].sections[0].lines.map((line) => line.id)
+    ).toEqual(["line_2"]);
   });
 });

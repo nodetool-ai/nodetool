@@ -1,7 +1,47 @@
 import { expect, it } from "vitest";
 import { GAME_ENVIRONMENT_PRESET_IDS_3D, gameDocument3D, getGameEnvironmentPreset3D } from "@nodetool-ai/protocol";
 import { createGameSession3D, validateGame3D } from "@nodetool-ai/game-runtime";
-import { GAME_3D_TOOL_LOOP_CASES, GAME_TOOL_LOOP_CASES } from "../src/evals/surfaces/game.js";
+import { GAME_3D_TOOL_LOOP_CASES, GAME_TOOL_LOOP_CASES, MATERIAL_EVAL_PNG_BASE64 } from "../src/evals/surfaces/game.js";
+
+it("authors four verified textures and a named toon material through public edits and replays it", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item => item.id === "material-system-3d");
+  if (!candidate) { throw new Error("Material eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  const edit = bridge.tools.find(tool => tool.name === "edit_native_game");
+  if (!predicate || !edit) { throw new Error("Material eval must expose edits and final-state validation"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const { prepareGameImage3D } = await import("@nodetool-ai/game-renderer/preparation3d");
+  const bytes = Buffer.from(MATERIAL_EVAL_PNG_BASE64, "base64");
+  const prepared = await prepareGameImage3D(bytes, { assetId: "material-eval-image" });
+  if (!prepared.ok) { throw new Error("PNG fixture must prepare successfully"); }
+  const initial = gameDocument3D.parse(bridge.finalState());
+  for (const slot of ["base", "normal", "orm", "emissive"]) { expect(initial.assets[slot]).toEqual(prepared.image.binding); }
+  expect(await edit.execute({ ops: [
+    ...["base", "normal", "orm", "emissive"].map(slot => ({ op: "bind_asset", slot, binding: prepared.image.binding })),
+    { op: "set_material", material_id: "toon", material: { shading: "toon", toonSteps: 4, outline: { color: "#000000", width: 0.02 },
+      baseColorTexture: { assetId: "base", tiling: { x: 2, y: 3 }, offset: { x: 0.25, y: -0.5 } },
+      normalTexture: { assetId: "normal" }, ormTexture: { assetId: "orm" }, emissiveTexture: { assetId: "emissive" } } },
+    { op: "update_entity", entity_id: "crate", set: { primitive: { materialId: "toon" } } }
+  ] })).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+  const document = gameDocument3D.parse(bridge.finalState());
+  const session = await createGameSession3D(document, 1);
+  let resumed: Awaited<ReturnType<typeof createGameSession3D>> | undefined;
+  try {
+    for (let tick = 0; tick < 120; tick++) {
+      const result = session.step({ pressed: [] });
+      if (tick === 59) { resumed = await createGameSession3D(document, 1, session.snapshot()); }
+      else if (resumed) {
+        expect(resumed.step({ pressed: [] }).events).toEqual(result.events);
+        expect(resumed.snapshot()).toEqual(session.snapshot());
+      }
+    }
+  } finally {
+    resumed?.dispose();
+    session.dispose();
+  }
+});
 
 it("applies all four named lighting presets through public edits and checks the eval predicate", async () => {
   const candidate = GAME_TOOL_LOOP_CASES.find((item) => item.id === "environment-preset-3d");

@@ -26,6 +26,7 @@ import { formatUsd } from "@nodetool-ai/model-pricing";
 import {
   AlertBanner,
   AudioPlayback,
+  CONTROL,
   Caption,
   EditorButton,
   FlexColumn,
@@ -36,6 +37,7 @@ import {
   Text
 } from "../../ui_primitives";
 import TTSModelSelect from "../../properties/TTSModelSelect";
+import ScriptSpeakerAvatar from "../../script/ScriptSpeakerAvatar";
 import { getScriptAgentHandler } from "../../../components/script/scriptAgentBridge";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import {
@@ -52,6 +54,7 @@ import type { TTSModelValue } from "../../../stores/ApiTypes";
 import { getModelUnitPrice } from "../../../utils/modelUnitPricing";
 import type { BugReportContext } from "../../../utils/bugReportBundle";
 import ReportBugButton from "../../support/ReportBugButton";
+import { REVIEW_BLOCK, REVIEW_CONTENT_WIDTH } from "../reviewStyles";
 import { useSetupVoices } from "./useSetupVoices";
 import type { SetupVoice } from "./useSetupVoices";
 
@@ -238,24 +241,34 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
   );
 
   return (
-    <FlexColumn gap={GAP.normal} component="section">
-      <FlexColumn gap={GAP.micro}>
-        <Text size="normal" component="h3">
-          {speaker.name}
-        </Text>
-        <Caption color="secondary" component="p">
-          {hasLine
-            ? `Samples read: “${spoken}”`
-            : "This speaker has no lines yet, so there is nothing to sample."}
-        </Caption>
-        {/* Every audition is a speech call, so the step says so before one is
-            pressed rather than after it is billed (F23). */}
-        {hasLine ? (
+    <FlexColumn
+      gap={GAP.normal}
+      component="section"
+      aria-label={speaker.name}
+      sx={REVIEW_BLOCK}
+    >
+      {/* The portrait and colour the editor gives this speaker, so the card
+          reads as the same person the review's gutter named. */}
+      <FlexRow gap={GAP.normal} align="center">
+        <ScriptSpeakerAvatar speaker={speaker} size={CONTROL.height.md} />
+        <FlexColumn gap={GAP.micro} sx={{ minWidth: 0 }}>
+          <Text size="normal" weight={600} component="h3">
+            {speaker.name}
+          </Text>
           <Caption color="secondary" component="p">
-            {`Each sample is one speech call of ${spoken.length} characters${cost === null ? "" : ` · ${cost}`}.`}
+            {hasLine
+              ? `Samples read: “${spoken}”`
+              : "This speaker has no lines yet, so there is nothing to sample."}
           </Caption>
-        ) : null}
-      </FlexColumn>
+          {/* Every audition is a speech call, so the step says so before one
+              is pressed rather than after it is billed (F23). */}
+          {hasLine ? (
+            <Caption color="muted" component="p">
+              {`Each sample is one speech call of ${spoken.length} characters${cost === null ? "" : ` · ${cost}`}.`}
+            </Caption>
+          ) : null}
+        </FlexColumn>
+      </FlexRow>
       <FlexRow gap={GAP.comfortable} wrap align="flex-end">
         {readOnly ? (
           <Text size="normal">
@@ -331,15 +344,6 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
           autoPlay={playRequest > 0}
         />
       ) : null}
-      {readOnly ? null : (
-        <EditorButton
-          variant="text"
-          size="small"
-          onClick={() => openProviderOnboarding()}
-        >
-          Add a voice provider
-        </EditorButton>
-      )}
     </FlexColumn>
   );
 };
@@ -374,7 +378,10 @@ const VoicesStepInternal: React.FC<VoicesStepProps> = ({
   const language = setup?.language ?? "English";
 
   return (
-    <FlexColumn gap={GAP.spacious}>
+    <FlexColumn
+      gap={GAP.spacious}
+      sx={{ width: "100%", maxWidth: REVIEW_CONTENT_WIDTH }}
+    >
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
           Choose the voices
@@ -455,18 +462,37 @@ const VoicesStepInternal: React.FC<VoicesStepProps> = ({
         </AlertBanner>
       ) : null}
 
-      {cast.map((speaker) => (
-        <SpeakerVoiceRow
-          key={speaker.id}
-          scriptId={scriptId}
-          speaker={speaker}
-          line={firstLineOf(script?.sections ?? [], speaker.id)}
-          voices={voices}
-          pace={pace}
-          speed={speed}
-          readOnly={readOnly}
-        />
-      ))}
+      <FlexColumn gap={GAP.comfortable}>
+        {cast.map((speaker) => (
+          <SpeakerVoiceRow
+            key={speaker.id}
+            scriptId={scriptId}
+            speaker={speaker}
+            line={firstLineOf(script?.sections ?? [], speaker.id)}
+            voices={voices}
+            pace={pace}
+            speed={speed}
+            readOnly={readOnly}
+          />
+        ))}
+      </FlexColumn>
+
+      {/* Once for the step, not once per speaker: every card's link opened
+          the same provider settings. */}
+      {readOnly || noProvider ? null : (
+        <FlexRow gap={GAP.normal} align="center" wrap>
+          <Caption color="secondary">
+            Missing a voice you want?
+          </Caption>
+          <EditorButton
+            variant="text"
+            size="small"
+            onClick={() => openProviderOnboarding()}
+          >
+            Add a voice provider
+          </EditorButton>
+        </FlexRow>
+      )}
     </FlexColumn>
   );
 };

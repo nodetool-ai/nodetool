@@ -66,6 +66,11 @@ async function start(): Promise<void> {
   let paused = false;
   let contextPaused = false;
   const renderer = await createGameRenderer3D({ canvas, signal: controller.signal,
+    resolveImage: async (logicalId) => {
+      const bytes = localAssets.get(logicalId);
+      const binding = Object.hasOwn(game.assets, logicalId) ? game.assets[logicalId] : undefined;
+      return bytes && binding?.mediaKind === "image" ? { bytes, binding } : null;
+    },
     resolveFont: async (logicalId) => { const bytes = localAssets.get(logicalId); return bytes ? { bytes, digest: game.assets[logicalId]?.digest } : null; },
     resolveModel: async (logicalId) => {
       const bytes = localAssets.get(logicalId);

@@ -26,8 +26,11 @@ export const TaskUpdateSidebar = memo<TaskUpdateSidebarProps>(
           width: TASK_SIDEBAR_WIDTH,
           flexShrink: 0,
           minHeight: 0,
-          borderLeft: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,
-          background: `rgb(${theme.vars.palette.common.blackChannel} / 0.20)`
+          borderLeft: `1px solid ${theme.vars.palette.divider}`,
+          background: `rgb(${theme.vars.palette.common.blackChannel} / 0.20)`,
+          ...theme.applyStyles("light", {
+            background: theme.vars.palette.c_overlay_subtle
+          })
         }}
       >
         <ScrollArea fullHeight padding={SPACING.lg}>

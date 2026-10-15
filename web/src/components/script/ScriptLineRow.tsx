@@ -6,7 +6,6 @@ import type {
   KeyboardEvent,
   MouseEvent
 } from "react";
-import { useTheme } from "@mui/material/styles";
 import MicNoneIcon from "@mui/icons-material/MicNone";
 import CheckIcon from "@mui/icons-material/Check";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -17,7 +16,6 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import TheaterComedyIcon from "@mui/icons-material/TheaterComedy";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import PersonAddIcon from "@mui/icons-material/PersonAddAlt";
 import {
   FlexColumn,
   FlexRow,
@@ -31,7 +29,6 @@ import {
   Popover,
   EditorMenu,
   MenuItemPrimitive,
-  TruncatedText,
   StatusPill,
   EditorButton,
   CONTROL,
@@ -41,8 +38,7 @@ import {
   SPACING_PX,
   BORDER_RADIUS,
   TYPOGRAPHY,
-  MOTION,
-  getSpacingPx
+  MOTION
 } from "../ui_primitives";
 import {
   useScriptStore,
@@ -50,21 +46,17 @@ import {
   lineStatus,
   effectiveVoice,
   type ScriptLine,
-  type ScriptSpeaker,
-  type VoiceBinding
+  type ScriptSpeaker
 } from "../../stores/script/ScriptStore";
-import type { TTSModelValue } from "../../stores/ApiTypes";
 import { voiceLine } from "../../stores/script/scriptVoicing";
 import { playTake } from "../../stores/script/playTake";
 import { getErrorMessage } from "../../utils/errorHandling";
 import { formatDuration } from "../../utils/formatUtils";
-import { useInStudio } from "../../studio/StudioContext";
-import { STUDIO_VOICE } from "../../studio/curatedModels";
 import ScriptTakeGallery from "./ScriptTakeGallery";
 import { takeWorkflowMedia } from "./scriptWorkflowMedia";
 import { SendToWorkflowButton } from "../workflows/SendToWorkflowMenu";
 import ScriptShotChip from "./ScriptShotChip";
-import ScriptSpeakerAvatar from "./ScriptSpeakerAvatar";
+import { ScriptSpeakerPicker, SPEAKER_GUTTER } from "./ScriptSpeakerPicker";
 import ScriptTakeWaveform from "./ScriptTakeWaveform";
 import type { ScriptLineShotLink } from "../../hooks/script/useScriptShotLinks";
 
@@ -112,7 +104,7 @@ interface ScriptLineRowProps {
 }
 
 /** Width of the screenplay speaker gutter: avatar plus the speaker's name. */
-const GUTTER = 148;
+const GUTTER = SPEAKER_GUTTER;
 
 /** Width of the hover-revealed drag handle rail left of the gutter. */
 const DRAG_RAIL = 20;
@@ -146,16 +138,6 @@ const PAUSE_AFTER_MS = [
   { ms: 2000, label: "2s pause" }
 ] as const;
 
-let speakerCounter = 0;
-const newSpeakerId = (): string =>
-  `spk_${Date.now().toString(36)}_${(speakerCounter++).toString(36)}`;
-
-const voiceFromStudio = (value: TTSModelValue): VoiceBinding => ({
-  provider: String(value.provider),
-  model: value.id,
-  voice: value.selected_voice || value.voices?.[0] || ""
-});
-
 /**
  * Borderless field styling: the script reads as a document, so the input
  * chrome only materializes on hover/focus.
@@ -176,188 +158,6 @@ const quietField = {
     }
   }
 } as const;
-
-const SpeakerDot = ({ color }: { color: string | undefined }) => (
-  <Box
-    aria-hidden
-    sx={{
-      width: getSpacingPx(SPACING.md),
-      height: getSpacingPx(SPACING.md),
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: color ?? "action.disabled",
-      flexShrink: 0
-    }}
-  />
-);
-
-const SpeakerPicker = ({
-  scriptId,
-  lineId,
-  speaker,
-  cast,
-  readOnly,
-  mobile
-}: {
-  scriptId: string;
-  lineId: string;
-  speaker: ScriptSpeaker | null;
-  cast: ScriptSpeaker[];
-  readOnly: boolean;
-  mobile: boolean;
-}) => {
-  const theme = useTheme();
-  const inStudio = useInStudio();
-  const patchLine = useScriptStore((s) => s.patchLine);
-  const addSpeaker = useScriptStore((s) => s.addSpeaker);
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-
-  const close = useCallback(() => setAnchor(null), []);
-
-  const assign = useCallback(
-    (speakerId: string | null) => {
-      patchLine(scriptId, lineId, { speakerId });
-      close();
-    },
-    [patchLine, scriptId, lineId, close]
-  );
-
-  const addAndAssign = useCallback(() => {
-    const id = newSpeakerId();
-    const palette = [
-      theme.vars.palette.primary.main,
-      theme.vars.palette.secondary.main,
-      theme.vars.palette.success.main,
-      theme.vars.palette.warning.main,
-      theme.vars.palette.info.main,
-      theme.vars.palette.error.main
-    ];
-    addSpeaker(scriptId, {
-      id,
-      name: `Speaker ${cast.length + 1}`,
-      color: palette[cast.length % palette.length],
-      voice: inStudio && STUDIO_VOICE ? voiceFromStudio(STUDIO_VOICE) : null
-    });
-    patchLine(scriptId, lineId, { speakerId: id });
-    close();
-  }, [
-    addSpeaker,
-    patchLine,
-    scriptId,
-    lineId,
-    cast.length,
-    theme,
-    inStudio,
-    close
-  ]);
-
-  const label = speaker?.name ?? "no speaker";
-  const canOpen = !readOnly;
-
-  return (
-    <>
-      <Tooltip
-        title={
-          readOnly
-            ? label
-            : cast.length
-              ? "Change speaker"
-              : "Add a speaker"
-        }
-      >
-        <Box
-          component="button"
-          type="button"
-          disabled={!canOpen}
-          aria-haspopup="menu"
-          aria-expanded={!!anchor}
-          aria-label={
-            speaker ? `${speaker.name}, change speaker` : "Assign speaker"
-          }
-          onClick={
-            canOpen
-              ? (e: MouseEvent<HTMLElement>) => setAnchor(e.currentTarget)
-              : undefined
-          }
-          sx={{
-            flexShrink: 0,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: SPACING.md,
-            width: mobile ? "auto" : GUTTER,
-            minWidth: 0,
-            padding: SPACING.none,
-            border: "none",
-            background: "none",
-            textAlign: "left",
-            cursor: canOpen ? "pointer" : "default",
-            ...TYPOGRAPHY.sans.label,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: speaker ? speaker.color ?? "text.primary" : "text.disabled",
-            transition: MOTION.fast,
-            "&:hover:not(:disabled)": { filter: "brightness(1.2)" },
-            "&:focus-visible": {
-              outline: "2px solid",
-              outlineColor: "primary.main",
-              outlineOffset: "2px",
-              borderRadius: BORDER_RADIUS.sm
-            }
-          }}
-        >
-          <ScriptSpeakerAvatar
-            speaker={speaker}
-            size={mobile ? CONTROL.height.xs : CONTROL.height.md}
-          />
-          <TruncatedText
-            component="span"
-            sx={{
-              display: "block",
-              flex: 1,
-              minWidth: 0,
-              margin: SPACING.none,
-              font: "inherit",
-              letterSpacing: "inherit",
-              textTransform: "inherit",
-              color: "inherit"
-            }}
-          >
-            {label}
-          </TruncatedText>
-        </Box>
-      </Tooltip>
-      <EditorMenu
-        anchorEl={anchor}
-        open={!!anchor}
-        onClose={close}
-        anchorOrigin={{ vertical: "bottom", horizontal: mobile ? "left" : "right" }}
-        transformOrigin={{ vertical: "top", horizontal: mobile ? "left" : "right" }}
-      >
-        <MenuItemPrimitive
-          label="No speaker"
-          selected={!speaker}
-          onClick={() => assign(null)}
-        />
-        {cast.map((candidate) => (
-          <MenuItemPrimitive
-            key={candidate.id}
-            label={candidate.name}
-            selected={candidate.id === speaker?.id}
-            icon={<SpeakerDot color={candidate.color} />}
-            onClick={() => assign(candidate.id)}
-          />
-        ))}
-        {!readOnly && (
-          <MenuItemPrimitive
-            dividerBefore
-            label="Add speaker"
-            icon={<PersonAddIcon fontSize="small" />}
-            onClick={addAndAssign}
-          />
-        )}
-      </EditorMenu>
-    </>
-  );
-};
 
 const ScriptLineRow = ({
   scriptId,
@@ -497,7 +297,7 @@ const ScriptLineRow = ({
   );
 
   const speakerButton = (
-    <SpeakerPicker
+    <ScriptSpeakerPicker
       scriptId={scriptId}
       lineId={line.id}
       speaker={speaker}

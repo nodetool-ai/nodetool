@@ -1,13 +1,20 @@
 import { isDeepStrictEqual } from "node:util";
+import { createHash } from "node:crypto";
 import * as acorn from "acorn";
 import { z } from "zod";
-import { gameDocument, gameDocument3D, gameEntity, gameEntity3D, getGameEnvironmentPreset3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
+import { gameAssetBinding3D, getGameEnvironmentPreset3D, gameDocument, gameDocument3D, gameEntity, gameEntity3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
 import { applyGameOps, applyGameOps3D, collisionLayerBits3D, resolvePhysicsMaterials3D, validateGame3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
 import type { HeadlessSurfaceBridge, ToolLoopEvalCase } from "../tool-loop-eval.js";
 
 const FORCE_SCRIPT_EVAL_SOURCE = "input => ({ state: input.state, commands: input.tick === 0 ? [{ kind: 'addForce', force: { x: 120, y: 0, z: 0 } }, { kind: 'addTorque', torque: { x: 0, y: 60, z: 0 } }, { kind: 'addForceAtPoint', force: { x: 0, y: 0, z: 120 }, point: { x: 20, y: 11, z: 20 } }] : [] })";
 
 const SCRIPT_PARAMS_EVAL_SOURCE = "(input) => ({ state: input.params, commands: [] })";
+
+export const MATERIAL_EVAL_PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEklEQVQImWP4v5ThPzJmIF0AAKAXKjHRs1nSAAAAAElFTkSuQmCC";
+const materialEvalImageBytes = Buffer.from(MATERIAL_EVAL_PNG_BASE64, "base64");
+const MATERIAL_EVAL_IMAGE_BINDING = gameAssetBinding3D.options[5].parse({ mediaKind: "image", assetId: "material-eval-image",
+  digest: createHash("sha256").update(materialEvalImageBytes).digest("hex"), format: "png", width: 4, height: 4,
+  byteLength: materialEvalImageBytes.length, preparationVersion: "1", required: true });
 
 /** Headless game editor bridge that exercises the production op reducer. */
 export function createGameToolBridge(initial: GameDocument): HeadlessSurfaceBridge<GameDocument> {
@@ -603,6 +610,33 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         const crate = parsed.data.scenes[0].entities.find(entity => entity.id === "crate");
         return crate?.body3d?.type === "dynamic" && crate.behaviors.length === 1 &&
           crate.behaviors[0].kind === "script" && crate.behaviors[0].source === FORCE_SCRIPT_EVAL_SOURCE;
+      } }]
+  }
+}, {
+  id: "material-system-3d",
+  description: "Author four image texture slots, UV transforms and a named toon material through public 3D edits.",
+  objective: "The 3D draft already has verified image slots base, normal, orm and emissive. Create the named material toon using all four slots, with shading toon, four steps and a black outline of width 0.02. Its base color texture tiles x2/y3 and offsets x0.25/y-0.5. Assign it to the crate primitive.",
+  createBridge: () => {
+    const document = createNative3DGame("material-eval");
+    document.assets = Object.fromEntries(["base", "normal", "orm", "emissive"].map(slot => [slot, { ...MATERIAL_EVAL_IMAGE_BINDING }]));
+    return createGameToolBridge3D(document);
+  },
+  systemPrompt: "Use get_native_game and edit_native_game. bind_asset accepts verified 3D image bindings. set_material {material_id, material} defines a named material. Texture fields baseColorTexture, normalTexture, ormTexture and emissiveTexture name image asset slots with assetId and optional tiling/offset {x,y}. update_entity set primitive.materialId selects the complete named material.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "namedToonMaterial", detail: "The crate lacks the named toon material, verified texture slots, UV transforms or outline.",
+      test: state => {
+        const parsed = gameDocument3D.safeParse(state);
+        if (!parsed.success || !validateGame3D(parsed.data).valid) { return false; }
+        const document = parsed.data;
+        const material = document.materials?.toon;
+        const primitive = document.scenes[0].entities.find(entity => entity.id === "crate")?.primitive;
+        return primitive?.materialId === "toon" && material?.shading === "toon" && material.toonSteps === 4 &&
+          material.outline?.color === "#000000" && material.outline.width === 0.02 &&
+          material.baseColorTexture?.assetId === "base" && material.baseColorTexture.tiling?.x === 2 && material.baseColorTexture.tiling.y === 3 &&
+          material.baseColorTexture.offset?.x === 0.25 && material.baseColorTexture.offset.y === -0.5 &&
+          material.normalTexture?.assetId === "normal" && material.ormTexture?.assetId === "orm" && material.emissiveTexture?.assetId === "emissive" &&
+          ["base", "normal", "orm", "emissive"].every(slot => document.assets[slot]?.mediaKind === "image");
       } }]
   }
 }, {
