@@ -358,6 +358,36 @@ describe("review step", () => {
       "false"
     );
   });
+
+  // The summary under a finished brief describes a second pass. The first-pass
+  // copy ("You read and fix the brief next") is wrong once the brief exists,
+  // and it pushed the count below the footer (A1/S023).
+  it("shows re-refine copy, not the first-pass copy, under the finished brief", () => {
+    useGlobalChatStore.setState({
+      selectedModel: { id: "m", provider: "openai", name: "M", type: "language_model" } as never
+    });
+    seed(reviewing);
+    renderOverlay();
+    expect(screen.queryByText(/five-field brief/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/You read and fix the brief next/)).not.toBeInTheDocument();
+    const region = screen.getByRole("region", { name: "Before you generate" });
+    expect(region).toHaveTextContent("Re-refine writes a new brief from your edits");
+    useGlobalChatStore.setState({ selectedModel: undefined });
+  });
+
+  it("puts the variation count above the cost summary so it stays above the footer", () => {
+    useGlobalChatStore.setState({
+      selectedModel: { id: "m", provider: "openai", name: "M", type: "language_model" } as never
+    });
+    seed(reviewing);
+    renderOverlay();
+    const group = screen.getByRole("radiogroup", { name: "Variations" });
+    const region = screen.getByRole("region", { name: "Before you generate" });
+    expect(
+      group.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    useGlobalChatStore.setState({ selectedModel: undefined });
+  });
 });
 
 describe("step 1 alternatives (criterion 1)", () => {
@@ -840,11 +870,14 @@ describe("picking while more variations start", () => {
       await userEvent.click(
         screen.getByRole("button", { name: "Make more variations" })
       );
-      // The new tile shows at once, still rendering.
+      // The new tile shows at once, still rendering, and offers no Pick yet.
+      expect(
+        screen.getByRole("group", { name: "Variation 2 preview" })
+      ).toBeInTheDocument();
       const pickButtons = screen.getAllByRole("button", {
         name: "Sketch editor"
       });
-      expect(pickButtons).toHaveLength(2);
+      expect(pickButtons).toHaveLength(1);
       await userEvent.click(pickButtons[0]);
       const layers = useSketchStore.getState().document.layers;
       expect(layers.find((layer) => layer.id === first)?.visible).toBe(true);

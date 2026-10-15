@@ -15,6 +15,8 @@ interface ImageModelMenuDialogProps {
   anchorEl?: HTMLElement | null;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
+  /** The model the control holds now. Its row is marked in the list. */
+  selectedModel?: { id: string; provider?: string };
 }
 
 function ImageModelMenuDialog({
@@ -24,7 +26,8 @@ function ImageModelMenuDialog({
   task,
   anchorEl,
   recommendedModels,
-  modelPacks
+  modelPacks,
+  selectedModel
 }: ImageModelMenuDialogProps) {
   const modelData = useImageModelsByProvider({ task });
   return (
@@ -40,6 +43,8 @@ function ImageModelMenuDialog({
       modelType="image_model"
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
+      selectedModel={selectedModel}
+      promptForApiKey
     />
   );
 }

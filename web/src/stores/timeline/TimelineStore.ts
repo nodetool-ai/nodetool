@@ -2033,6 +2033,22 @@ export const createTimelineStore = (
               audioTrack.id
             );
             const { clips, durationMs } = reflowGenerated(migrated);
+            // A caption track the migration emptied would sit in the editor
+            // as an empty "Captions" lane while the preview still shows the
+            // captions, which now ride on the voiceover clips (UX study 3).
+            const emptied = new Set(
+              tracks
+                .filter(
+                  (t) =>
+                    t.type === "subtitle" &&
+                    seq.clips.some((c) => c.trackId === t.id) &&
+                    !clips.some((c) => c.trackId === t.id)
+                )
+                .map((t) => t.id)
+            );
+            if (emptied.size > 0) {
+              tracks = tracks.filter((t) => !emptied.has(t.id));
+            }
             const next = {
               sequenceId: seq.id,
               baseUpdatedAt: seq.updatedAt,

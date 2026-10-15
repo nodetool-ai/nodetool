@@ -10,6 +10,7 @@ import {
   invokedStarter,
   projectNameFromPrompt,
   rankStarters,
+  starterDescription,
   starterLabel,
   toggleStarterInPrompt,
   type ProjectStarter
@@ -247,38 +248,73 @@ describe("rankStarters", () => {
     ).toEqual(["house-style", "beat-sync-editing", "launch-commercial"]);
   });
 
-  // A guide to prompting one model line is loaded by the agent mid-run, not
-  // started from; it goes to the back unless this user did start from it.
-  it("ranks the model-line prompting guides last", () => {
-    const veo: ProjectStarter = {
-      name: "veo-3-prompting",
-      description: "Prompt Veo 3.",
+  // A guide to prompting one model line, a code-action API reference, or an
+  // engineering skill is not something a project starts from: the row and its
+  // "N more" list leave them out unless this user started from one.
+  it("leaves out shipped reference, prompting and engineering skills", () => {
+    const shipped = (name: string): ProjectStarter => ({
+      name,
+      description: "x.",
       system: true
-    };
+    });
+    const names = [
+      "veo-3-prompting",
+      "api-agents",
+      "api-memory",
+      "nodetool-custom-node-developer",
+      "nodetool-js-scripting",
+      "manimgx"
+    ];
+    const all = [...names.map(shipped), houseStyle, launch];
+    expect(rankStarters(all, []).map((starter) => starter.name)).toEqual([
+      "house-style",
+      "launch-commercial"
+    ]);
     expect(
-      rankStarters([veo, houseStyle, launch], []).map((starter) => starter.name)
-    ).toEqual(["house-style", "launch-commercial", "veo-3-prompting"]);
-    expect(
-      rankStarters([veo, houseStyle, launch], [at("veo-3-prompting", "2026-03-01")]).map(
+      rankStarters(all, [at("veo-3-prompting", "2026-03-01")]).map(
         (starter) => starter.name
       )
     ).toEqual(["veo-3-prompting", "house-style", "launch-commercial"]);
   });
 
-  // The `api-*` skills document one code-action namespace for the agent; a
-  // row of "Api agents", "Api apps"… in front of the real starters says
-  // nothing about what to make.
-  it("ranks the code-action API references with the guides", () => {
-    const apiAgents: ProjectStarter = {
-      name: "api-agents",
-      description: "Call nodetool.agents from a code action.",
-      system: true
+  it("keeps a user's own skill even when it is named like a reference", () => {
+    const own: ProjectStarter = {
+      name: "api-notes",
+      description: "Mine.",
+      system: false
     };
+    expect(rankStarters([own], []).map((starter) => starter.name)).toEqual([
+      "api-notes"
+    ]);
+  });
+
+  it("gives each starter a short plain description", () => {
+    const [ranked] = rankStarters(
+      [
+        {
+          name: "gpt-thing",
+          description:
+            "Prompt a model with five slots. Use whenever the model id contains gpt-image-2 (openai/gpt-image-2) on generate_image.",
+          system: false
+        }
+      ],
+      []
+    );
+    expect(ranked.description).toBe("Prompt a model with five slots.");
+  });
+});
+
+describe("starterDescription", () => {
+  it("cuts the agent-facing trigger sentences", () => {
     expect(
-      rankStarters([apiAgents, houseStyle, launch], []).map(
-        (starter) => starter.name
-      )
-    ).toEqual(["house-style", "launch-commercial", "api-agents"]);
+      starterDescription("Make a cut. Load before the first call. Not for X.")
+    ).toBe("Make a cut.");
+  });
+
+  it("shortens a long first sentence at a word", () => {
+    const out = starterDescription(`${"word ".repeat(60)}end.`);
+    expect(out.length).toBeLessThanOrEqual(111);
+    expect(out.endsWith("…")).toBe(true);
   });
 });
 

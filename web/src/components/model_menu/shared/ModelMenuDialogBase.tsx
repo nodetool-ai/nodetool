@@ -16,12 +16,17 @@ import {
   Popover,
   Text,
   EditorButton,
+  EmptyState,
+  ListItemButton,
   SPACING,
   menuPaperStyles
 } from "../../ui_primitives";
+import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
+import { getProviderDisplayName } from "../../../utils/providerDisplay";
 import { capabilityForModelType, useModelProviderSetup } from "../../../hooks/useModelProviderSetup";
 import type { OnboardingCapability } from "../../../stores/ProviderOnboardingStore";
 import AddIcon from "@mui/icons-material/Add";
+import KeyIcon from "@mui/icons-material/VpnKey";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import CloseIcon from "@mui/icons-material/Close";
@@ -53,6 +58,7 @@ import {
 } from "../../../utils/modelNormalization";
 import {
   ModelMenuStoreHook,
+  requiredSecretForProvider,
   useModelMenuData
 } from "../../../stores/ModelMenuStore";
 import { useModelAvailability } from "../../../hooks/useModelAvailability";
@@ -91,6 +97,13 @@ interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   modelType?: string;
   setupCapability?: OnboardingCapability;
   setupProviderIds?: readonly string[];
+  /** The model the control holds now. Its row is marked in the list. */
+  selectedModel?: { id: string; provider?: string };
+  /**
+   * Show an "Add an API key" row above the list while no API provider has a
+   * usable model, so the route to a key is not only the footer link.
+   */
+  promptForApiKey?: boolean;
 }
 
 const EMPTY_MODELS: never[] = [];
@@ -115,7 +128,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   modelPacks = [],
   modelType,
   setupCapability,
-  setupProviderIds
+  setupProviderIds,
+  selectedModel,
+  promptForApiKey = false
 }: ModelMenuBaseProps<TModel>) {
   const {
     models,
@@ -172,6 +187,18 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   } = useModelMenuData<TModel>(models ?? EMPTY_MODELS, storeHook);
 
   const providers = modelData.providers ?? providersFromModels;
+
+  // Providers that list at least one model. A provider chip with no models
+  // gets an empty state instead of a list, and a change in this set clears a
+  // stale provider filter.
+  const providersWithModels = useMemo(
+    () => new Set((models ?? EMPTY_MODELS).map((m) => m.provider ?? "")),
+    [models]
+  );
+  const providerSetKey = useMemo(
+    () => [...providersWithModels].sort().join("|"),
+    [providersWithModels]
+  );
 
   const storedSizeBucket = useModelFiltersStore((s) => s.sizeBucket);
   // The cloud version hides the size filter, so a bucket persisted from a
@@ -398,6 +425,20 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     }
   }, [filteredModelsAdvanced, activeIndex, getAvailability, handleSelectModel]);
 
+  // Footer "Add providers" and the empty-state button share this path. A
+  // provider with a known key name highlights that key in the dialog.
+  const handleConnectProvider = useCallback(
+    (provider: string | null) => {
+      const secret = provider ? requiredSecretForProvider(provider) : null;
+      onClose();
+      openProviderOnboarding({
+        capability: setupCapability ?? capabilityForModelType(modelType),
+        highlightSecretKey: secret ?? undefined
+      });
+    },
+    [onClose, setupCapability, modelType]
+  );
+
   const handleRefresh = useCallback(async () => {
     if (!refetch || isFetching) {
       return;
@@ -461,6 +502,45 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     }
   }, [open]);
 
+  // The provider filter is remembered between openings. Connecting a key
+  // changes which providers have models, and a filter left on one provider
+  // would hide the new one, so a changed provider set starts on All models.
+  // A filter whose provider has no models is cleared as well.
+  const lastProviderSetKey = React.useRef<string | null>(null);
+  const wasOpen = React.useRef(false);
+  React.useEffect(() => {
+    if (!open) {
+      wasOpen.current = false;
+      return;
+    }
+    if (isLoading || models === undefined) {
+      return;
+    }
+    const justOpened = !wasOpen.current;
+    wasOpen.current = true;
+    const changed =
+      lastProviderSetKey.current !== null &&
+      lastProviderSetKey.current !== providerSetKey;
+    lastProviderSetKey.current = providerSetKey;
+    // Only the opening moment checks for an empty provider: clicking one while
+    // the menu is open must keep showing its empty state.
+    const emptyFilter =
+      justOpened &&
+      selectedProvider !== null &&
+      !providersWithModels.has(selectedProvider);
+    if (changed || emptyFilter) {
+      setSelectedProvider(null);
+    }
+  }, [
+    open,
+    isLoading,
+    models,
+    providerSetKey,
+    providersWithModels,
+    selectedProvider,
+    setSelectedProvider
+  ]);
+
   React.useLayoutEffect(() => {
     if (open) {
       updatePosition();
@@ -512,6 +592,26 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     />
   );
 
+  const providerLabel = selectedProvider
+    ? getProviderDisplayName(selectedProvider)
+    : "";
+  const showProviderEmpty =
+    !isLoading &&
+    !customView &&
+    selectedProvider !== null &&
+    !providersWithModels.has(selectedProvider);
+
+  // Any ready API model means a key or sign-in is already connected.
+  const hasApiModel = (models ?? EMPTY_MODELS).some(
+    (m) => m.execution?.state === "ready" && m.execution.kind === "api"
+  );
+  const showAddKeyRow =
+    promptForApiKey &&
+    !hasApiModel &&
+    !isLoading &&
+    !isError &&
+    models !== undefined;
+
   const modelPane = (
     <FlexColumn
       sx={{
@@ -541,6 +641,16 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         </Box>
       )}
       <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+        {showProviderEmpty ? (
+          <EmptyState
+            variant="empty"
+            size="small"
+            title={`${providerLabel} has no models yet`}
+            description={`Connect ${providerLabel} to see its models here.`}
+            actionText={`Connect ${providerLabel}`}
+            onAction={() => handleConnectProvider(selectedProvider)}
+          />
+        ) : (
         <ModelList<TModel>
           models={filteredModelsAdvanced}
           onSelect={handleSelectModel}
@@ -554,7 +664,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           modelType={modelType}
           downloadTargetLabel={downloadTargetLabel}
           onClose={onClose}
+          selectedModel={selectedModel}
         />
+        )}
       </Box>
     </FlexColumn>
   );
@@ -744,6 +856,28 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           )}
         </FlexRow>
       </Collapse>
+
+      {showAddKeyRow && (
+        <ListItemButton
+          className="model-menu__add-key"
+          onClick={() => handleConnectProvider(null)}
+          sx={{
+            flexShrink: 0,
+            gap: SPACING.md,
+            px: SPACING.lg,
+            py: SPACING.sm,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`
+          }}
+        >
+          <KeyIcon fontSize="small" sx={{ color: "primary.main" }} />
+          <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
+            <Text weight={500}>Add an API key</Text>
+            <Caption sx={{ color: "text.secondary" }}>
+              Use cloud models from OpenAI, Anthropic, Google and others.
+            </Caption>
+          </FlexColumn>
+        </ListItemButton>
+      )}
 
       {body}
       <FlexRow
