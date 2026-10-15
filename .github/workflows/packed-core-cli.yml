@@ -70,6 +70,7 @@ jobs:
         run: npm --prefix mobile ci
       - name: Verify affected tests
         env:
+          NODETOOL_WEB_TEST_RECYCLE_WORKERS: "1"
           NODETOOL_TURBO_CONCURRENCY: "1"
           NODETOOL_TEST_WORKERS: "1"
         run: npm run test:affected
