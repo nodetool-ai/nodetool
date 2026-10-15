@@ -23,15 +23,17 @@ const READ_PIECE_BYTES = 400_000;
 
 /** Runs scripts in one site's tab. */
 export interface ExtensionTab {
+  /** Release exclusive bridge ownership after the entire provider turn. */
+  release?(): Promise<void>;
   /** Run `expression` (a JS expression, may be a promise) in the tab and return its JSON value. */
-  evaluate(expression: string, timeoutMs?: number): Promise<unknown>;
+  evaluate(expression: string, timeoutMs?: number, signal?: AbortSignal): Promise<unknown>;
   /** Navigate the tab and wait for the load event. */
-  navigate(url: string): Promise<void>;
+  navigate(url: string, signal?: AbortSignal): Promise<void>;
   /**
    * Load `url` with the browser's cookies for it and return the body. The
    * browser loads it, not the page, so the page's CORS rules do not apply.
    */
-  download(url: string, timeoutMs?: number): Promise<Uint8Array>;
+  download(url: string, timeoutMs?: number, signal?: AbortSignal): Promise<Uint8Array>;
 }
 
 /** A tab call that did not answer in time. Its outcome is unknown. */
@@ -39,7 +41,7 @@ export class ExtensionTabStallError extends Error {}
 
 /**
  * Attach to the open tab whose URL contains `host`. One attach serves every
- * caller and closes after {@link IDLE_CLOSE_MS} without calls. Any error drops
+ * operation until its caller releases ownership, with an idle fallback. Any error drops
  * the attach, so the next call attaches afresh.
  */
 export function createExtensionTab(host: string): ExtensionTab {
@@ -48,16 +50,22 @@ export function createExtensionTab(host: string): ExtensionTab {
   let opening: Promise<Handle> | null = null;
   let idleTimer: ReturnType<typeof setTimeout> | null = null;
   let busy = 0;
+  let generation = 0;
+  let openingAbort: AbortController | null = null;
 
   const drop = async (): Promise<void> => {
+    generation += 1;
+    openingAbort?.abort();
+    openingAbort = null;
+    opening = null;
     const current = handle;
     handle = null;
     if (current) await current.close().catch(() => undefined);
   };
 
-  const open = async (): Promise<Handle> => {
+  const open = async (signal: AbortSignal): Promise<Handle> => {
     const { createExtensionPage } = await import("@nodetool-ai/browser");
-    const next = await createExtensionPage(undefined, { urlMatch: host });
+    const next = await createExtensionPage(undefined, { urlMatch: host, signal });
     try {
       const attachedHost = await next.page.evaluate<string>("location.hostname");
       if (attachedHost !== host) {
@@ -70,7 +78,8 @@ export function createExtensionTab(host: string): ExtensionTab {
     return next;
   };
 
-  const withPage = async <T>(what: string, timeoutMs: number, run: (current: Handle) => Promise<T>): Promise<T> => {
+  const withPage = async <T>(what: string, timeoutMs: number, run: (current: Handle) => Promise<T>, signal?: AbortSignal): Promise<T> => {
+    signal?.throwIfAborted();
     if (idleTimer) clearTimeout(idleTimer);
     busy += 1;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -78,21 +87,40 @@ export function createExtensionTab(host: string): ExtensionTab {
       timer = setTimeout(() => reject(new ExtensionTabStallError(`The ${host} tab did not answer ${what} within ${timeoutMs / 1000}s`)), timeoutMs);
       timer.unref?.();
     });
+    let onAbort: (() => void) | undefined;
+    const aborted = new Promise<never>((_, reject) => {
+      onAbort = () => reject(signal?.reason ?? new Error("Aborted"));
+      signal?.addEventListener("abort", onAbort, { once: true });
+    });
+    const operationGeneration = generation;
+    let expired = false;
     try {
       const work = (async () => {
         if (!handle) {
-          opening ??= open().finally(() => { opening = null; });
-          handle = await opening;
+          if (!opening) {
+            openingAbort = new AbortController();
+            const pending = open(openingAbort.signal).finally(() => { if (opening === pending) opening = null; });
+            opening = pending;
+          }
+          const next = await opening;
+          if (expired || operationGeneration !== generation) {
+            await next.close().catch(() => undefined);
+            throw new ExtensionTabStallError("Tab opening was abandoned");
+          }
+          handle = next;
         }
+        signal?.throwIfAborted();
         return run(handle);
       })();
       // Keep a late rejection from surfacing as unhandled after the timeout won.
       work.catch(() => undefined);
-      return await Promise.race([work, timeout]);
+      return await Promise.race([work, timeout, aborted]);
     } catch (error) {
+      expired = true;
       await drop();
       throw error;
     } finally {
+      if (onAbort) signal?.removeEventListener("abort", onAbort);
       clearTimeout(timer);
       busy -= 1;
       if (busy === 0) {
@@ -103,21 +131,23 @@ export function createExtensionTab(host: string): ExtensionTab {
   };
 
   return {
-    evaluate: (expression, timeoutMs = TAB_CALL_TIMEOUT_MS) =>
+    release: drop,
+    evaluate: (expression, timeoutMs = TAB_CALL_TIMEOUT_MS, signal) =>
       withPage("a script", timeoutMs, async (current) => {
         // Chrome can freeze a background tab. A frozen page still runs this
         // script but none of its own tasks, so a click or a timer would wait
         // until the user shows the tab. Unfreezing first keeps it working.
         await current.client.Page.setWebLifecycleState({ state: "active" }).catch(() => undefined);
+        signal?.throwIfAborted();
         return current.page.evaluate(expression);
-      }),
-    navigate: (url) =>
+      }, signal),
+    navigate: (url, signal) =>
       withPage(`loading ${url}`, TAB_CALL_TIMEOUT_MS, async (current) => {
         log.debug("Navigating tab", { url });
         await current.page.goto(url, { waitUntil: "load", timeout: TAB_CALL_TIMEOUT_MS - 5_000 });
-      }),
-    download: (url, timeoutMs = TAB_CALL_TIMEOUT_MS) =>
-      withPage("a download", timeoutMs, (current) => downloadWithBrowser(current.client, url))
+      }, signal),
+    download: (url, timeoutMs = TAB_CALL_TIMEOUT_MS, signal) =>
+      withPage("a download", timeoutMs, (current) => downloadWithBrowser(current.client, url), signal)
   };
 }
 
@@ -160,10 +190,11 @@ const POLL_TAB_INTERVAL_MS = 250;
  * evaluation from here runs at once. Page scripts therefore do one step each
  * and leave every wait to this loop.
  */
-export async function pollTab<T>(tab: ExtensionTab, expression: string, timeoutMs: number): Promise<T | null> {
+export async function pollTab<T>(tab: ExtensionTab, expression: string, timeoutMs: number, signal?: AbortSignal): Promise<T | null> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
-    const value = (await tab.evaluate(expression)) as T;
+    signal?.throwIfAborted();
+    const value = (await tab.evaluate(expression, undefined, signal)) as T;
     if (value) return value;
     if (Date.now() >= deadline) return null;
     await new Promise((resolve) => setTimeout(resolve, POLL_TAB_INTERVAL_MS));
@@ -174,14 +205,16 @@ export async function pollTab<T>(tab: ExtensionTab, expression: string, timeoutM
  * Put `bytes` into the page as `window.__ntStage[id]` (a base64 string) and
  * return the id. A page script reads and deletes it.
  */
-export async function stageBytesInTab(tab: ExtensionTab, bytes: Uint8Array): Promise<string> {
+export async function stageBytesInTab(tab: ExtensionTab, bytes: Uint8Array, signal?: AbortSignal): Promise<string> {
+  signal?.throwIfAborted();
   const id = randomUUID();
   const key = JSON.stringify(id);
   const base64 = Buffer.from(bytes).toString("base64");
-  await tab.evaluate(`(() => { window.__ntStage ??= {}; window.__ntStage[${key}] = ""; return true; })()`);
+  await tab.evaluate(`(() => { window.__ntStage ??= {}; window.__ntStage[${key}] = ""; return true; })()`, undefined, signal);
   for (let at = 0; at < base64.length; at += STAGE_PIECE_CHARS) {
+    signal?.throwIfAborted();
     const piece = JSON.stringify(base64.slice(at, at + STAGE_PIECE_CHARS));
-    await tab.evaluate(`(() => { window.__ntStage[${key}] += ${piece}; return true; })()`);
+    await tab.evaluate(`(() => { window.__ntStage[${key}] += ${piece}; return true; })()`, undefined, signal);
   }
   return id;
 }

@@ -2528,9 +2528,9 @@ CI adds `--include-suites` when its `skip-tests` input disables package tests.
 
 Check starts and completions print to stderr, including with `--json`.
 Each result includes `durationMs`, while stdout keeps the JSON output.
-CI uses `--jobs 2` and `NODETOOL_TEST_WORKERS=1` to run two cheap checks
-concurrently with serial test files inside each check. Expensive checks
-remain serial, and timeouts still apply.
+CI uses `--jobs 1` and `NODETOOL_TEST_WORKERS=1` to run selfchecks and their
+test files serially. This prevents competing selfchecks from exhausting
+the game runtime’s wall-clock script batch budgets. Timeouts still apply.
 
 ```bash
 nodetool harness gate --base main

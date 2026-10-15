@@ -5,7 +5,7 @@ import isEqual from "../../../utils/isEqual";
 import PropertyLabel from "../../node/PropertyLabel";
 import { PropertyProps } from "../../node/PropertyInput";
 import { useTheme } from "@mui/material/styles";
-import { Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, EditorButton, CloseButton } from "../../ui_primitives";
+import { Text, SPACING, getSpacingPx, EditorButton, CloseButton } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import FileBrowserDialog from "../../dialogs/FileBrowserDialog";
 import { isString } from "../../../utils/typePredicates";

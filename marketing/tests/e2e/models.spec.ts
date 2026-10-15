@@ -16,6 +16,25 @@ test.describe("model pages", () => {
     ).toBeVisible();
   });
 
+  test("model directory hub lists every supported model and filters them", async ({
+    page,
+  }) => {
+    await page.goto("/models#all-models");
+    const list = page.locator("#all-models-list");
+    expect(await list.locator("[data-model]").count()).toBeGreaterThan(1000);
+
+    // Ranked models appear once, under their Artificial Analysis canonical id.
+    const veo = list.locator("[data-model]", { hasText: "veo-3-1-fast" });
+    await expect(veo).toHaveCount(1);
+    await expect(veo).toContainText("Veo 3.1 Fast");
+
+    // "veo 3.1" also finds ids written without the space, like veo3.1.
+    await page.getByRole("searchbox", { name: /search models/i }).fill("veo 3.1");
+    await expect(page.getByText(/^\d+ matching models?$/)).toBeVisible();
+    await expect(veo).toBeVisible();
+    await expect(list.getByText("fal-ai/flux/schnell", { exact: true })).toBeHidden();
+  });
+
   // A model page with zero showcase items still builds — thumbnail fallback,
   // no empty hero section.
   const emptyModel = modelEntries.find(

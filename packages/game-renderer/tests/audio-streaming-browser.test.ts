@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { chromium } from "@playwright/test";
 import { createNative3DGame, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 import { expect, it } from "vitest";
+import { gameUiTree } from "@nodetool-ai/protocol";
 import { buildStandaloneGame } from "../src/build.js";
 import { buildStandaloneGame3D } from "../src/build3d.js";
 
@@ -47,6 +48,9 @@ it.each(["2D", "3D"])("plays exported %s streaming music after a gesture and loo
   const digest = createHash("sha256").update(bytes).digest("hex");
   const document = dimension === "3D" ? createNative3DGame("streaming-browser3d") :
     { ...createTopDownRoomGame("streaming-browser"), schemaVersion: 2 as const };
+  document.ui = gameUiTree.parse({ focusNavigation: true, nodes: [
+    { kind: "button", id: "start", action: document.inputActions[0], width: 100, height: 100 }
+  ] });
   document.scenes[0].music = { assetId: "music", volume: 0.4, fadeInTicks: 6, fadeOutTicks: 6,
     streaming: { loopStartSeconds: 10, loopEndSeconds: 20 } };
   if (document.schemaVersion === 3) {
@@ -119,7 +123,8 @@ it.each(["2D", "3D"])("plays exported %s streaming music after a gesture and loo
     await page.goto(origin);
     await page.waitForFunction((is3D) => Boolean(is3D ? window.nativeGame3DPlayer : window.nativeGamePlayer), dimension === "3D");
     expect(await page.evaluate(() => window.streamingTestMedia.every(media => media.paused))).toBe(true);
-    await page.keyboard.press("Shift");
+    const canvas = page.locator("canvas").first();
+    await canvas.click({ position: { x: 10, y: 10 } });
     await page.waitForFunction(() => window.streamingTestMedia.length === 1 && !window.streamingTestMedia[0].paused && window.streamingTestMedia[0].currentTime > 0);
     const startup = await page.evaluate(() => ({ decodes: window.streamingTestDecodes, encodedFetches: window.streamingTestAudioFetches,
       mediaSources: window.streamingTestMediaSources, duration: window.streamingTestMedia[0].duration }));

@@ -47,6 +47,14 @@ interface SupabaseListOptions {
   search?: string;
 }
 
+/** One key's result from {@link SupabaseBucketApi.createSignedUrls}. */
+export interface SupabaseSignedUrlEntry {
+  key: string;
+  /** Absolute URL, or null when this key could not be signed. */
+  signedUrl: string | null;
+  error: string | null;
+}
+
 export interface SupabaseUploadOptions {
   contentType?: string;
   upsert?: boolean;
@@ -85,6 +93,18 @@ export interface SupabaseBucketApi {
     error: SupabaseError | null;
   }>;
   /**
+   * Sign many keys in one request. Each entry carries its own `error` (an
+   * absent object fails alone), and the top-level `error` is set only when
+   * the request itself failed.
+   */
+  createSignedUrls(
+    keys: string[],
+    expiresIn: number
+  ): Promise<{
+    data: SupabaseSignedUrlEntry[] | null;
+    error: SupabaseError | null;
+  }>;
+  /**
    * Mint a one-shot upload URL for `key`. The caller (typically a browser)
    * PUTs the bytes straight to the returned URL, so object bytes never pass
    * through this process. The token is scoped to this exact key — it cannot
@@ -116,6 +136,13 @@ function encodeKey(key: string): string {
 /** The `object/sign` response body: a path relative to `/storage/v1`. */
 interface SupabaseSignResponse {
   signedURL?: string;
+}
+
+/** One entry of the bulk `object/sign/<bucket>` response body. */
+interface SupabaseBulkSignEntry {
+  path?: string | null;
+  signedURL?: string | null;
+  error?: string | null;
 }
 
 /** The `object/upload/sign` response body: a path relative to `/storage/v1`. */
@@ -346,6 +373,44 @@ export function createSupabaseStorageClient(
               data: { signedUrl: `${base}/storage/v1${body.signedURL}` },
               error: null
             };
+          },
+
+          async createSignedUrls(keys, expiresIn) {
+            const response = await send(
+              `${base}/storage/v1/object/sign/${bucket}`,
+              {
+                method: "POST",
+                headers: { ...authHeaders, "Content-Type": "application/json" },
+                body: JSON.stringify({ expiresIn, paths: keys })
+              }
+            );
+            if (!response.ok) {
+              return { data: null, error: await readError(response) };
+            }
+            const body: SupabaseBulkSignEntry[] = await response.json();
+            const byPath = new Map<string, SupabaseBulkSignEntry>();
+            for (const entry of body) {
+              if (entry.path) byPath.set(entry.path, entry);
+            }
+            const data = keys.map((key, index): SupabaseSignedUrlEntry => {
+              // Entries name their path. One without a path answers by position.
+              const positional = body[index];
+              const entry =
+                byPath.get(key) ?? (positional?.path ? undefined : positional);
+              if (entry?.signedURL) {
+                return {
+                  key,
+                  signedUrl: `${base}/storage/v1${entry.signedURL}`,
+                  error: null
+                };
+              }
+              return {
+                key,
+                signedUrl: null,
+                error: entry?.error || "Supabase sign response missing signedURL"
+              };
+            });
+            return { data, error: null };
           },
 
           async createSignedUploadUrl(key) {

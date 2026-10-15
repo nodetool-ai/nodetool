@@ -19,9 +19,13 @@ on:
 permissions:
   contents: read
 
+# Superseded pull request runs are cancelled. Runs on main are not: a full
+# javascript-typescript analysis outlasts the gap between merges, so cancelling
+# would leave main without a finished baseline for pull request alerts to diff
+# against. A newer main push waits and replaces any older queued one.
 concurrency:
   group: codeql-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   analyze:

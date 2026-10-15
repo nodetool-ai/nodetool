@@ -55,46 +55,48 @@ describe("native bridge", () => {
     expect(await isBridgeAvailable()).toBe(false);
   });
 
-  it("routes each client's cdp result back under that client's own id", async () => {
+  it("leases one tab to independent clients and routes commands and events only to its owner", async () => {
     const a = createSocketChannel();
     const b = createSocketChannel();
     const gotA: unknown[] = [];
     const gotB: unknown[] = [];
-    a.onMessage((f) => gotA.push(f));
-    b.onMessage((f) => gotB.push(f));
-    // Both clients use id 1: the host must not let them collide.
-    a.send({ kind: "cdp", id: 1, method: "A.one" });
-    b.send({ kind: "cdp", id: 1, method: "B.one" });
+    a.onMessage((frame) => gotA.push(frame));
+    b.onMessage((frame) => gotB.push(frame));
+    a.send({ kind: "attach", urlMatch: "chatgpt.com" });
     await wait(100);
-    expect(received.map((f) => f.method)).toEqual(["A.one", "B.one"]);
-    const [first, second] = received;
-    expect(first.id).not.toBe(second.id);
-
-    extensionSend({ kind: "cdp_result", id: second.id, result: { from: "B" } });
-    extensionSend({ kind: "cdp_result", id: first.id, result: { from: "A" } });
+    extensionSend({ kind: "attached", tabId: 5 });
     await wait(100);
-    expect(gotA).toEqual([{ kind: "cdp_result", id: 1, result: { from: "A" } }]);
-    expect(gotB).toEqual([{ kind: "cdp_result", id: 1, result: { from: "B" } }]);
-    a.close();
-    b.close();
-  });
-
-  it("broadcasts CDP events to every client", async () => {
-    const a = createSocketChannel();
-    const b = createSocketChannel();
-    const gotA: unknown[] = [];
-    const gotB: unknown[] = [];
-    a.onMessage((f) => gotA.push(f));
-    b.onMessage((f) => gotB.push(f));
-    a.send({ kind: "ping", ts: 1 });
-    b.send({ kind: "ping", ts: 2 });
+    b.send({ kind: "attach", urlMatch: "gemini.google.com" });
+    b.send({ kind: "cdp", id: 1, method: "Page.navigate" });
+    a.send({ kind: "cdp", id: 1, method: "Runtime.evaluate" });
     await wait(100);
+    expect(received.filter((frame) => frame.kind === "attach")).toHaveLength(1);
+    expect(received.filter((frame) => frame.kind === "cdp")).toHaveLength(1);
+    expect(gotB).toContainEqual({ kind: "cdp_result", id: 1, error: { message: "Client does not own the browser tab" } });
     extensionSend({ kind: "cdp_event", method: "Page.loadEventFired", params: {} });
     await wait(100);
     expect(gotA).toContainEqual({ kind: "cdp_event", method: "Page.loadEventFired", params: {} });
-    expect(gotB).toContainEqual({ kind: "cdp_event", method: "Page.loadEventFired", params: {} });
-    a.close();
+    expect(gotB).not.toContainEqual({ kind: "cdp_event", method: "Page.loadEventFired", params: {} });
+    a.send({ kind: "detach" });
+    await wait(100);
+    expect(received.filter((frame) => frame.kind === "attach")).toHaveLength(1);
+    extensionSend({ kind: "detach" });
+    await wait(100);
+    expect(received.filter((frame) => frame.kind === "attach").at(-1)?.urlMatch).toBe("gemini.google.com");
+    extensionSend({ kind: "attached", tabId: 6 });
+    await wait(100);
+    expect(gotB).toContainEqual({ kind: "attached", tabId: 6 });
+    // Releasing Gemini permits ChatGPT to reacquire its original tab immediately.
+    a.send({ kind: "attach", urlMatch: "chatgpt.com" });
     b.close();
+    await wait(100);
+    extensionSend({ kind: "detach" });
+    await wait(100);
+    expect(received.filter((frame) => frame.kind === "attach").at(-1)?.urlMatch).toBe("chatgpt.com");
+    extensionSend({ kind: "attached", tabId: 5 });
+    await wait(100);
+    expect(gotA.filter((frame) => (frame as { kind?: string }).kind === "attached")).toHaveLength(2);
+    a.close();
   });
 
   it("answers heartbeats itself", async () => {
@@ -106,51 +108,6 @@ describe("native bridge", () => {
     expect(got).toEqual([{ kind: "pong", ts: 42 }]);
     expect(received).toEqual([]);
     channel.close();
-  });
-
-  it("keeps the debugger attached until the last client lets go", async () => {
-    const a = createSocketChannel();
-    const b = createSocketChannel();
-    a.onMessage(() => undefined);
-    const gotB: unknown[] = [];
-    b.onMessage((f) => gotB.push(f));
-    a.send({ kind: "attach" });
-    await wait(100);
-    expect(received.filter((f) => f.kind === "attach")).toHaveLength(1);
-    extensionSend({ kind: "attached", tabId: 5 });
-    await wait(100);
-
-    // A second client attaching reuses the live attachment.
-    b.send({ kind: "attach" });
-    await wait(100);
-    expect(received.filter((f) => f.kind === "attach")).toHaveLength(1);
-    expect(gotB).toContainEqual({ kind: "attached", tabId: 5 });
-
-    a.send({ kind: "detach" });
-    await wait(100);
-    expect(received.filter((f) => f.kind === "detach")).toHaveLength(0);
-    b.close();
-    await wait(100);
-    expect(received.filter((f) => f.kind === "detach")).toHaveLength(1);
-    a.close();
-  });
-
-  it("asks the extension again when a client names a tab", async () => {
-    const a = createSocketChannel();
-    const b = createSocketChannel();
-    a.onMessage(() => undefined);
-    b.onMessage(() => undefined);
-    a.send({ kind: "attach" });
-    await wait(100);
-    extensionSend({ kind: "attached", tabId: 5 });
-    await wait(100);
-    b.send({ kind: "attach", urlMatch: "dreamina.capcut.com" });
-    await wait(100);
-    const attaches = received.filter((f) => f.kind === "attach");
-    expect(attaches).toHaveLength(2);
-    expect(attaches[1].urlMatch).toBe("dreamina.capcut.com");
-    a.close();
-    b.close();
   });
 
   it("drives the production CDP client through the host", async () => {

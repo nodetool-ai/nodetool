@@ -16,9 +16,11 @@ import { gameAudioSettings } from "./components/audio.js";
 import { gameAudioEmitter } from "./components/audioSource.js";
 import { gameInputBindings } from "../game-input.js";
 import { gameUiFrame, gameUiOverrides, gameUiTree } from "../game-ui.js";
+import { gameScreens } from "../game-screens.js";
 
 export * from "../game-input.js";
 export * from "../game-ui.js";
+export * from "../game-screens.js";
 
 export const gameEntity = z.strictObject({
   id: z.string().min(1),
@@ -91,6 +93,7 @@ export const gameDocument = z.strictObject({
   hudEffectOrder: z.enum(["beforeEffects", "afterEffects"]).optional(),
   audio: gameAudioSettings.optional(),
   ui: gameUiTree.optional(),
+  screens: gameScreens.optional(),
   assets: z.record(z.string(), gameAssetBinding),
   scenes: z.array(gameScene).min(1)
 });

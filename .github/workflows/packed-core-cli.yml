@@ -80,7 +80,7 @@ jobs:
       - name: Verify harnesses
         env:
           NODETOOL_TEST_WORKERS: "1"
-        run: npm run dev:nodetool -- harness gate --base origin/main --jobs 2
+        run: npm run dev:nodetool -- harness gate --base origin/main --jobs 1
       - name: Verify the packaged backend
         run: npm run backend:smoke
   packed-install:

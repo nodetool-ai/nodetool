@@ -1,5 +1,5 @@
 import type { GamePlayerSaves, GameSaveRecord, GameSaveStorage } from "@nodetool-ai/game-runtime";
-import type { GameSaveScope } from "@nodetool-ai/protocol";
+import { MAX_GAME_SAVE_SLOTS, type GameSaveScope } from "@nodetool-ai/protocol";
 
 const DATABASE = "nodetool-game-saves";
 const STORE = "saves";
@@ -45,7 +45,29 @@ export function createIndexedDbGameSaveStorage(gameId: string, factory: IDBFacto
   };
   return {
     read: (scope, slot) => run("readonly", (store) => store.get(saveKey(gameId, scope, slot))),
-    write: async (scope, slot, record) => { await run("readwrite", (store) => store.put(record, saveKey(gameId, scope, slot))); },
+    write: async (scope, slot, record, options) => {
+      if (!options) { await run("readwrite", store => store.put(record, saveKey(gameId, scope, slot))); return; }
+      const transaction = (await database()).transaction(STORE, "readwrite");
+      const store = transaction.objectStore(STORE);
+      let written = false;
+      let failure: Error | undefined;
+      const completed = new Promise<boolean>((resolve, reject) => {
+        transaction.oncomplete = () => failure ? reject(failure) : resolve(written);
+        transaction.onerror = transaction.onabort = () => reject(transaction.error ?? new Error("Game save write failed"));
+      });
+      const request = store.getAllKeys();
+      request.onsuccess = () => {
+        const slots = slotsUnder(request.result.filter((key): key is string => typeof key === "string"), gameId, scope);
+        if (options.onlyIfEmpty && slots.includes(slot)) { return; }
+        if (!slots.includes(slot) && slots.length >= (options.maxSlots ?? MAX_GAME_SAVE_SLOTS)) {
+          failure = new Error("Game save slot limit reached");
+          return;
+        }
+        store.put(record, saveKey(gameId, scope, slot));
+        written = true;
+      };
+      return completed;
+    },
     remove: async (scope, slot) => { await run("readwrite", (store) => store.delete(saveKey(gameId, scope, slot))); },
     slots: async (scope) => slotsUnder((await run("readonly", (store) => store.getAllKeys())).filter((key): key is string => typeof key === "string"), gameId, scope)
   };
@@ -60,21 +82,32 @@ export type GameSaveWebStorage = Pick<Storage, "getItem" | "setItem" | "removeIt
  */
 export function createLocalGameSaveStorage(gameId: string, storage: GameSaveWebStorage, prefix = "nodetool.game.saves"): GameSaveStorage {
   const key = (scope: GameSaveScope, slot: string): string => `${prefix}/${saveKey(gameId, scope, slot)}`;
+  const slots = (scope: GameSaveScope): string[] => {
+    const keys: string[] = [];
+    for (let index = 0; index < storage.length; index += 1) {
+      const name = storage.key(index);
+      if (name?.startsWith(`${prefix}/`)) { keys.push(name.slice(prefix.length + 1)); }
+    }
+    return slotsUnder(keys, gameId, scope);
+  };
   return {
     read: async (scope, slot) => {
       const stored = storage.getItem(key(scope, slot));
       return stored === null ? undefined : JSON.parse(stored) as unknown;
     },
-    write: async (scope, slot, record: GameSaveRecord) => { storage.setItem(key(scope, slot), JSON.stringify(record)); },
+    write: async (scope, slot, record: GameSaveRecord, options) => {
+      const write = (): boolean => {
+        const existing = slots(scope);
+        if (options?.onlyIfEmpty && existing.includes(slot)) { return false; }
+        if (!existing.includes(slot) && existing.length >= (options?.maxSlots ?? MAX_GAME_SAVE_SLOTS)) { throw new Error("Game save slot limit reached"); }
+        storage.setItem(key(scope, slot), JSON.stringify(record));
+        return true;
+      };
+      const locks = globalThis.navigator?.locks;
+      return locks ? locks.request(`${prefix}/${gameId}/${scope}`, async () => write()) : write();
+    },
     remove: async (scope, slot) => { storage.removeItem(key(scope, slot)); },
-    slots: async (scope) => {
-      const keys: string[] = [];
-      for (let index = 0; index < storage.length; index += 1) {
-        const name = storage.key(index);
-        if (name?.startsWith(`${prefix}/`)) { keys.push(name.slice(prefix.length + 1)); }
-      }
-      return slotsUnder(keys, gameId, scope);
-    }
+    slots: async (scope) => slots(scope)
   };
 }
 
@@ -87,7 +120,7 @@ export async function loadQuickSave(saves: GamePlayerSaves, slot: string, legacy
   if (record !== null) { return record; }
   const stored = legacy.storage.getItem(legacy.key);
   if (stored === null) { return null; }
-  await saves.save("progress", slot, {}, JSON.parse(stored) as unknown);
-  legacy.storage.removeItem(legacy.key);
+  const migrated = await saves.initialize(slot, JSON.parse(stored) as unknown);
+  if (migrated) { legacy.storage.removeItem(legacy.key); }
   return saves.load("progress", slot);
 }

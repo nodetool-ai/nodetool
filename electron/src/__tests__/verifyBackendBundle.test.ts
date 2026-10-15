@@ -79,6 +79,10 @@ function writeValidBundle(dir: string): void {
   );
   writeStagedPackage(dir, "esbuild", { version: "0.28.1" });
   writeStagedPackage(dir, "@esbuild/linux-x64", { version: "0.28.1" });
+  fs.mkdirSync(path.join(dir, "_modules", "esbuild", "lib"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "_modules", "esbuild", "lib", "main.js"), "module.exports = {};");
+  fs.mkdirSync(path.join(dir, "_modules", "@esbuild", "linux-x64", "bin"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "_modules", "@esbuild", "linux-x64", "bin", "esbuild"), "x", { mode: 0o755 });
   writeStagedPackage(dir, "sharp", { version: "0.35.3" });
   writeStagedPackage(dir, "@img/sharp-linux-x64", {
     version: "0.35.3",
@@ -442,6 +446,25 @@ describe("verify-backend-bundle", () => {
     result = runVerify(tempDir);
     expect(result.status).toBe(1);
     expect(result.output).toContain("_modules/esbuild is missing");
+  });
+
+  it("rejects metadata-only esbuild packages", () => {
+    fs.rmSync(path.join(tempDir, "_modules", "@esbuild", "linux-x64", "bin"), { recursive: true });
+    const result = runVerify(tempDir);
+    expect(result.status).toBe(1);
+    expect(result.output).toContain("esbuild");
+  });
+
+  it("rejects a mismatched esbuild platform package version", () => {
+    writeStagedPackage(tempDir, "@esbuild/linux-x64", { version: "0.27.0" });
+    const result = runVerify(tempDir);
+    expect(result.status).toBe(1);
+    expect(result.output).toContain("version does not match esbuild");
+  });
+
+  it("rejects a non-executable esbuild binary", () => {
+    fs.chmodSync(path.join(tempDir, "_modules", "@esbuild", "linux-x64", "bin", "esbuild"), 0o644);
+    expect(runVerify(tempDir).status).toBe(1);
   });
 
   it("fails when no @img prebuild is staged at all", () => {

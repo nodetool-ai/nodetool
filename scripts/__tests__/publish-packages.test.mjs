@@ -7,10 +7,10 @@
  * one aborts a recoverable release, the other reports a broken release as green.
  */
 import { afterEach, describe, expect, it } from "vitest";
-
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { spawnSync } from "node:child_process";
 
 import {
   classifyPublishResult,
@@ -96,6 +96,37 @@ describe("publishOrder", () => {
 });
 
 describe("unmetDeps", () => {
+  it.skipIf(process.platform === "win32")("does not extend a broken partial release through an already-published dependency", () => {
+    const root = mkdtempSync(join(tmpdir(), "publish-retry-"));
+    try {
+      mkdirSync(join(root, "scripts"));
+      mkdirSync(join(root, "bin"));
+      copyFileSync(new URL("../publish-packages.mjs", import.meta.url), join(root, "scripts", "publish-packages.mjs"));
+      copyFileSync(new URL("../smoke-packed-cli.mjs", import.meta.url), join(root, "scripts", "smoke-packed-cli.mjs"));
+      for (const directory of ["release", "node-catalog"]) {
+        symlinkSync(new URL(`../${directory}`, import.meta.url), join(root, "scripts", directory), "dir");
+      }
+      const tarballs = join(root, "tarballs");
+      mkdirSync(tarballs);
+      for (const [name, dependencies] of [["image-editor", {}], ["agents", { "image-editor": "1.0.0" }], ["cli", { agents: "1.0.0" }]]) {
+        const dir = join(root, "packages", name);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(join(dir, "package.json"), JSON.stringify({ name, version: "1.0.0", dependencies }));
+        const staging = join(root, "staging", name);
+        mkdirSync(join(staging, "package"), { recursive: true });
+        copyFileSync(join(dir, "package.json"), join(staging, "package/package.json"));
+        const packed = spawnSync("tar", ["-czf", join(tarballs, `${name}.tgz`), "-C", staging, "package"], { encoding: "utf8" });
+        expect(packed.status, packed.stderr).toBe(0);
+      }
+      writeFileSync(join(root, "bin", "npm"), `#!${process.execPath}\nif (process.argv[2] === 'pack') { console.log(JSON.stringify([{filename: process.cwd().split('/').at(-1) + '.tgz'}])); process.exit(0); } if (process.argv[2] === 'view') { if (process.argv[3] === 'agents@1.0.0') { console.log('"1.0.0"'); process.exit(0); } process.exit(1); } if (process.argv[3].endsWith('/image-editor.tgz')) process.exit(1); console.log('unexpected publish');`, { mode: 0o755 });
+      const result = spawnSync(process.execPath, [join(root, "scripts", "publish-packages.mjs"), "--tarballs-dir", tarballs], { encoding: "utf8", env: { ...process.env, PATH: `${join(root, "bin")}:${process.env.PATH}` } });
+      expect(result.status).toBe(1);
+      expect(result.stdout).not.toContain("publish cli@1.0.0");
+      expect(result.stderr).toContain("BLOCK   cli@1.0.0");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
   // The 0.8.2 release: app-runtime's PUT returned 404, then agents and cli
   // published anyway and pointed at an app-runtime@0.8.2 that never existed.
   it("blocks a package whose dependency failed to publish", () => {

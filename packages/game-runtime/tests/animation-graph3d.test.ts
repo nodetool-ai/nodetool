@@ -84,7 +84,7 @@ describe("3D animation graph runtime", () => {
       for (let tick = 1; tick <= 71; tick += 1) { session.step(input); }
       const layers = () => session.snapshot().entities.find((entity) => entity.id === "player")?.animationGraph;
       expect(layers()?.parameters.jump).toBe(false);
-      expect(layers()?.layers[0]).toEqual({ state: "jump", enteredTick: 71, previousState: "move", previousEnteredTick: 0, transitionTicks: 4 });
+      expect(layers()?.layers[0]).toEqual({ state: "jump", enteredTick: 71, transitionIndex: 0, previousState: "move", previousEnteredTick: 0, transitionTicks: 4 });
       const pose = playerPose(session.step(input).frame).layers[0];
       expect(pose).toMatchObject({ current: { startTick: 71, loop: false, clips: [{ clipId: "clip:2", weight: 1 }] }, previous: { startTick: 0 }, transitionTicks: 4 });
       session.step(input);
@@ -234,4 +234,28 @@ describe("3D animation graph validation and ops", () => {
     expect(removed.animationGraphs).toBeUndefined();
     expect(() => applyGameOps3D(removed, [{ op: "remove_animation_graph", graph_id: "locomotion" }])).toThrow("Animation graph does not exist");
   });
+});
+
+it("retains the selected wildcard transition identity during a live blend", async () => {
+  const session = await createGameSession3D(animatedDocument("input=>({state:null,commands:[{kind:'setAnimParam',name:'jump',value:true}]})"), 1);
+  try {
+    session.step(input);
+    expect(session.inspect().entities.find((entity) => entity.id === "player")?.animationGraph?.layers[0]).toMatchObject({ previousState: "move", state: "jump", transitionIndex: 0 });
+  } finally { session.dispose(); }
+});
+
+it("identifies the eligible parallel transition rather than both matching endpoints", async () => {
+  const document = animatedDocument("input=>({state:null,commands:[{kind:'setAnimParam',name:'speed',value:0.5}]})");
+  const graph = document.animationGraphs!.locomotion;
+  graph.layers[0].transitions = [
+    { from: "move", to: "jump", conditions: [{ parameter: "speed", op: "gt", value: 0.8 }], durationTicks: 4 },
+    { from: "move", to: "jump", conditions: [{ parameter: "speed", op: "gt", value: 0.2 }], durationTicks: 4 }
+  ];
+  const session = await createGameSession3D(document, 1);
+  try {
+    session.step(input);
+    expect(session.inspect().entities.find((entity) => entity.id === "player")?.animationGraph?.layers[0]).toMatchObject({ previousState: "move", state: "jump", transitionIndex: 1 });
+    const restored = await createGameSession3D(document, 1, session.snapshot());
+    try { expect(restored.inspect()).toEqual(session.inspect()); } finally { restored.dispose(); }
+  } finally { session.dispose(); }
 });

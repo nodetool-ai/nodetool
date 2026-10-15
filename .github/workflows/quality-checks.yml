@@ -267,7 +267,7 @@ jobs:
             },
             {
               "check": "lint",
-              "command": "npm run lint",
+              "command": "npm run lint && npm run lint:anti-slop:check",
               "when": "always"
             },
             {
@@ -392,7 +392,7 @@ jobs:
             },
             {
               "check": "harness-gate",
-              "command": "if [ -n \"$CI_BASE_SHA\" ]; then npm run dev:nodetool -- harness gate --base \"$CI_BASE_SHA\" --json --jobs 2 --timeout 900 $NODETOOL_HARNESS_INCLUDE_SUITES; else npm run dev:nodetool -- harness gate --all --json --jobs 2 --timeout 900 $NODETOOL_HARNESS_INCLUDE_SUITES; fi",
+              "command": "if [ -n \"$CI_BASE_SHA\" ]; then npm run dev:nodetool -- harness gate --base \"$CI_BASE_SHA\" --json --jobs 1 --timeout 900 $NODETOOL_HARNESS_INCLUDE_SUITES; else npm run dev:nodetool -- harness gate --all --json --jobs 1 --timeout 900 $NODETOOL_HARNESS_INCLUDE_SUITES; fi",
               "mobile-deps": "false",
               "extra-apt": "mesa-vulkan-drivers ffmpeg",
               "is-test": "false",
@@ -738,8 +738,8 @@ jobs:
           TURBO_AFFECTED: ${{ inputs.base-sha != '' && needs.changes.outputs.turbo-affected == 'true' && '--affected' || '' }}
           CI_BASE_SHA: ${{ inputs.base-sha }}
           NODETOOL_HARNESS_INCLUDE_SUITES: ${{ inputs.skip-tests && '--include-suites' || '' }}
-          # Bound file workers when the core shard or harness runs multiple suites.
-          NODETOOL_TEST_WORKERS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-core') && '1' || '' }}
+          # Avoid competing file workers around game script wall-clock budgets.
+          NODETOOL_TEST_WORKERS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-core' || matrix.check == 'test-packages-agents') && '1' || '' }}
           NODETOOL_CHECK_COMMAND: ${{ matrix.command }}
           NODETOOL_GAME_GOLDEN_ARTIFACTS: ${{ matrix.check == 'harness-gate' && format('{0}/native-game-golden-diagnostics', runner.temp) || '' }}
         run: |

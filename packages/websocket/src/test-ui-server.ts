@@ -961,7 +961,8 @@ export interface TestUiServerOptions extends HttpApiOptions {
   host?: string;
   examplesDir?: string;
   /**
-   * Called after built-in nodes are registered, before the server starts.
+   * Called with the supplied registry or after the default registry is built,
+   * before the server starts.
    * Lets callers register extra node classes / metadata (e.g. an e2e harness
    * registering test-only node types) on the same registry the runner uses.
    */
@@ -1333,13 +1334,15 @@ export async function createTestUiServer(options: TestUiServerOptions = {}) {
   const examplesDir = resolveExamplesDir(options);
 
   const metadataRoots = resolveMetadataRoots(options);
-  const registry = new NodeRegistry();
-  registry.loadPythonMetadata({
-    roots: metadataRoots,
-    maxDepth: options.metadataMaxDepth ?? 8
-  });
-  await registerBuiltInNodes(registry);
-  applyProductionNodePolicy(registry);
+  const registry = options.registry ?? new NodeRegistry();
+  if (!options.registry) {
+    registry.loadPythonMetadata({
+      roots: metadataRoots,
+      maxDepth: options.metadataMaxDepth ?? 8
+    });
+    await registerBuiltInNodes(registry);
+    applyProductionNodePolicy(registry);
+  }
   options.configureRegistry?.(registry);
   const resolvedApiOptions: HttpApiOptions = {
     ...options,

@@ -29,10 +29,12 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import AssetListView from "./AssetListView";
+import { assetTypeLabel } from "./assetTypeLabels";
 import {
   BORDER_RADIUS,
   EmptyState,
   LoadingSpinner,
+  MOTION,
   getSpacingPx,
   SPACING,
   focusRing
@@ -53,7 +55,7 @@ const styles = (theme: Theme) =>
     ".asset-list": {
       flex: 1,
       minHeight: 0,
-      marginTop: getSpacingPx(SPACING.xl),
+      marginTop: getSpacingPx(SPACING.sm),
       overflow: "auto"
     },
     ".autosizer-list": {
@@ -61,24 +63,15 @@ const styles = (theme: Theme) =>
     },
     ".content-type-header": {
       width: "100%",
-      padding: `${getSpacingPx(SPACING.md)} 0`,
-      backgroundColor: "transparent",
-      fontSize: theme.fontSizeSmall,
-      textTransform: "uppercase",
+      cursor: "pointer",
+      userSelect: "none",
       borderRadius: BORDER_RADIUS.md,
+      transition: MOTION.background,
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover
+      },
       "&:focus-visible": focusRing(theme)
     },
-    ".content-type-header button": {
-      opacity: 0.6
-    },
-    ".content-type-header:hover button": {
-      opacity: 1
-    },
-    ".divider": {
-      width: "100%",
-      height: "2px",
-      backgroundColor: theme.vars.palette.divider
-    }
   });
 
 // Constant, so `memo(AssetGridRow)` actually hits — a literal at the call site
@@ -111,17 +104,26 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
     return folderFilesFiltered || [];
   }, [propAssets, folderFilesFiltered]);
 
-  // State for which content-types are expanded / collapsed must be defined
-  // *before* we compute the prepared items that depend on it, so that the
-  // hook order remains stable.
-  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
-    new Set(["folder", "image", "audio", "video", "model_3d", "text", "other"])
+  // Collapsed type groups are remembered per surface, so a group the user
+  // folded away stays folded in the next folder and after a reload.
+  const collapsedAssetGroups = useAssetGridStore(
+    (state) => state.collapsedAssetGroups
+  );
+  const toggleAssetGroupCollapsed = useAssetGridStore(
+    (state) => state.toggleAssetGroupCollapsed
+  );
+  const typeFilter = useAssetGridStore((state) => state.typeFilter);
+  const setTypeFilter = useAssetGridStore((state) => state.setTypeFilter);
+  const collapsedGroups = useMemo(
+    () => new Set(collapsedAssetGroups),
+    [collapsedAssetGroups]
   );
 
-  // Prepare items (adds dividers, respects expanded types)
+  // With one type filtered in, a single group header adds nothing (and
+  // collapsing it would hide every asset), so the grid drops the headers.
   const preparedItems = useMemo(() => {
-    return prepareItems(assets || [], expandedTypes);
-  }, [assets, expandedTypes]);
+    return prepareItems(assets || [], collapsedGroups, typeFilter === "all");
+  }, [assets, collapsedGroups, typeFilter]);
 
   // Extract visual order of assets excluding dividers – this is the order that
   // users actually see and therefore the order that shift-range selection must
@@ -153,18 +155,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
     () => getFooterHeight(assetItemSize),
     [assetItemSize]
   );
-
-  const toggleExpanded = useCallback((type: string) => {
-    setExpandedTypes((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(type)) {
-        newSet.delete(type);
-      } else {
-        newSet.add(type);
-      }
-      return newSet;
-    });
-  }, []);
 
   const updateGridDimensions = useCallback(
     (width: number) => {
@@ -234,10 +224,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
       if (rowItems[0]?.isDivider) {
         return DIVIDER_HEIGHT;
       }
-      const type = rowItems[0]?.type;
-      if (type && !expandedTypes.has(type)) {
-        return 0; // Hide collapsed rows
-      }
       // Add extra space for filenames when item size is large (matching AssetGridRow logic)
       const extraFooterSpace = getExtraFooterSpace(assetItemSize);
       return (
@@ -252,7 +238,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
       gridDimensions,
       footerHeight,
       itemSpacing,
-      expandedTypes,
       assetItemSize
     ]
   );
@@ -269,8 +254,8 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
       handleSelectAsset,
       onDragStart,
       onDoubleClick: onDoubleClick || (() => {}),
-      expandedTypes,
-      toggleExpanded
+      collapsedGroups,
+      toggleGroup: toggleAssetGroupCollapsed
     };
   }, [
     preparedItems,
@@ -281,8 +266,8 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
     handleSelectAsset,
     onDragStart,
     onDoubleClick,
-    expandedTypes,
-    toggleExpanded
+    collapsedGroups,
+    toggleAssetGroupCollapsed
     // Note: selectedAssetIds is NOT included here!
   ]);
 
@@ -386,6 +371,15 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
             description={error.message || "An error occurred. Please try again."}
             actionText="Retry"
             onAction={refetchAssets}
+            size="small"
+          />
+        ) : typeFilter !== "all" ? (
+          <EmptyState
+            variant="no-results"
+            title={`No ${assetTypeLabel(typeFilter).toLowerCase()} here`}
+            description="Other file types are hidden by the type filter."
+            actionText="Show all types"
+            onAction={() => setTypeFilter("all")}
             size="small"
           />
         ) : (

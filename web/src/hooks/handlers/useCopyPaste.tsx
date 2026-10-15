@@ -2,7 +2,6 @@
 
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Edge, Node } from "@xyflow/react";
-import type { GraphLink } from "@nodetool-ai/protocol";
 import { NodeData } from "../../stores/NodeData";
 import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -11,13 +10,10 @@ import useSessionStateStore from "../../stores/SessionStateStore";
 import { useClipboardContentPaste } from "./useClipboardContentPaste";
 import { isTextInputActive } from "../../utils/browser";
 import { absoluteNodePosition } from "../../utils/absoluteNodePosition";
+import { insertGraphFragment, type GraphFragment } from "./insertGraphFragment";
 
-interface ClipboardData {
-  nodes: Node<NodeData>[];
-  edges: Edge[];
-  /** Lineage links between copied nodes. Absent in older clipboard data. */
-  links?: GraphLink[];
-}
+/** Lineage links are absent in older clipboard data. */
+type ClipboardData = GraphFragment;
 
 const isValidNode = (node: unknown): node is Node<NodeData> =>
   !!node && typeof node === "object" && "id" in node && typeof node.id === "string";
@@ -223,144 +219,16 @@ export const useCopyPaste = (): UseCopyPasteResult => {
       return;
     }
 
-    // At this point, no text input is focused, so we can proceed with node paste.
-    // Read fresh state from the store so that cross-workflow paste always uses
-    // the current workflow's nodes/edges/workflowId rather than a stale snapshot
-    // captured when the callback was last created.
-    const {
-      nodes: copiedNodes,
-      edges: copiedEdges,
-      links: copiedLinks
-    } = parsedData;
-    const oldToNewIds = new Map<string, string>();
-    const newNodes: Node<NodeData>[] = [];
-    const newEdges: Edge[] = [];
-
-    const {
-      nodes,
-      edges,
-      links,
-      setNodes,
-      setEdges,
-      setLinks,
-      generateNodeIds,
-      workflow
-    } = nodeStore.getState();
-    const workflowId = workflow.id;
-
-    // Generate new sequential IDs for all copied nodes
-    const newIds = generateNodeIds(copiedNodes.length);
-    copiedNodes.forEach((node: Node<NodeData>, index: number) => {
-      oldToNewIds.set(node.id, newIds[index]);
-    });
-
-    // calculate offset for pasting
-    const firstNodePosition = reactFlow.screenToFlowPosition({
+    const flowPosition = reactFlow.screenToFlowPosition({
       x: mousePosition.x,
       y: mousePosition.y
     });
-
-    if (!firstNodePosition) {
+    if (!flowPosition) {
       console.warn("Failed to calculate paste position");
       return;
     }
 
-    // Anchor on a top-level node: a group child's position is relative.
-    const anchorNode =
-      copiedNodes.find(
-        (node) => !node.parentId || !oldToNewIds.has(node.parentId)
-      ) ?? copiedNodes[0];
-    const firstPos = anchorNode.position ?? { x: 0, y: 0 };
-    const offset = {
-      x: firstNodePosition.x - (firstPos.x ?? 0),
-      y: firstNodePosition.y - (firstPos.y ?? 0)
-    };
-
-    // create new nodes with updated IDs and parent references
-    for (const node of copiedNodes) {
-      const newId = oldToNewIds.get(node.id)!;
-      let newParentId: string | undefined;
-
-      // check if parent exists in copied nodes
-      if (node.parentId && oldToNewIds.has(node.parentId)) {
-        newParentId = oldToNewIds.get(node.parentId);
-      } else {
-        newParentId = undefined;
-      }
-
-      const positionAbsolute = node.data?.positionAbsolute;
-
-      const newNode: Node<NodeData> = {
-        ...node,
-        id: newId,
-        parentId: newParentId,
-        data: {
-          ...node.data,
-          // Update workflow_id to current workflow when pasting
-          workflow_id: workflowId,
-          positionAbsolute: positionAbsolute
-            ? {
-              x: positionAbsolute.x + offset.x,
-              y: positionAbsolute.y + offset.y
-            }
-            : undefined
-        },
-        position: {
-          x: (node.position?.x ?? 0) + (newParentId ? 0 : offset.x),
-          y: (node.position?.y ?? 0) + (newParentId ? 0 : offset.y)
-        },
-        selected: true // Select pasted nodes
-      };
-
-      newNodes.push(newNode);
-    }
-
-    // Update edges
-    copiedEdges.forEach((edge: Edge) => {
-      const newSource = oldToNewIds.get(edge.source);
-      const newTarget = oldToNewIds.get(edge.target);
-
-      if (newSource && newTarget) {
-        newEdges.push({
-          ...edge,
-          id: crypto.randomUUID(), // Edge IDs can still be UUIDs
-          source: newSource,
-          target: newTarget,
-          selected: false // Edges should not be selected
-        });
-      }
-    });
-
-    // Deselect existing nodes, then add the new selected nodes
-    const deselectedNodes = nodes.map((node) => ({
-      ...node,
-      selected: false
-    }));
-    const deselectedEdges = edges.map((edge) => ({
-      ...edge,
-      selected: false
-    }));
-
-    const newLinks: GraphLink[] = [];
-    for (const link of Array.isArray(copiedLinks) ? copiedLinks : []) {
-      const newSource = oldToNewIds.get(link.source);
-      const newTarget = oldToNewIds.get(link.target);
-      if (newSource && newTarget) {
-        newLinks.push({
-          ...link,
-          id: crypto.randomUUID().replace(/-/g, ""),
-          source: newSource,
-          target: newTarget
-        });
-      }
-    }
-
-    // Update state
-    setNodes([...deselectedNodes, ...newNodes]);
-    setEdges([...deselectedEdges, ...newEdges]);
-    if (newLinks.length > 0) {
-      setLinks([...links, ...newLinks]);
-    }
+    insertGraphFragment(nodeStore, parsedData, flowPosition);
   }, [
     nodeStore,
     reactFlow,

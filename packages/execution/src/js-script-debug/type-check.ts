@@ -18,6 +18,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { importOptionalModule } from "@nodetool-ai/config";
+import { SANDBOX_CAPABILITY_PACK, sandboxCapabilityModuleName } from "@nodetool-ai/protocol";
 import type { JsScriptDebugIssue } from "./types.js";
 
 /** `specifier -> absolute path to the pack's shipped .d.ts`, e.g. `"@nodetool-ai/sandbox-timeline" -> ".../sandbox/index.d.ts"`. */
@@ -70,6 +71,14 @@ declare function sandboxToAsset(value: unknown): Promise<unknown>;
  * own declarations, and an unresolved import is `any` to it.
  */
 const UNRESOLVED_MODULE_CODES = new Set([2307, 2882]);
+let capabilityModules: Promise<readonly string[]> | undefined;
+
+function availableCapabilityModules(): Promise<readonly string[]> {
+  capabilityModules ??= importOptionalModule<{ DECLARED_CAPABILITY_MODULES: readonly string[] }>("@nodetool-ai/agents")
+    .then((platform) => platform.DECLARED_CAPABILITY_MODULES)
+    .catch(() => []);
+  return capabilityModules;
+}
 
 /**
  * Type-check `code` (a script or Code-node body) as an ES module against the
@@ -114,6 +123,7 @@ export async function typeCheckAgainstPackDts(
 
   const dir = await mkdtemp(join(tmpdir(), "nodetool-jsscript-types-"));
   try {
+    const availableModules = await availableCapabilityModules();
     const globalsPath = join(dir, "sandbox-globals.d.ts");
     const scriptPath = join(dir, "script.ts");
     await writeFile(globalsPath, SANDBOX_GLOBALS_DTS, "utf8");
@@ -147,7 +157,10 @@ export async function typeCheckAgainstPackDts(
       .filter(
         (diagnostic) =>
           diagnostic.file?.fileName === scriptPath &&
-          !UNRESOLVED_MODULE_CODES.has(diagnostic.code)
+          (!UNRESOLVED_MODULE_CODES.has(diagnostic.code) || (() => {
+            const specifier = diagnostic.file.text.slice(diagnostic.start, (diagnostic.start ?? 0) + (diagnostic.length ?? 0)).replace(/^["']|["']$/g, "");
+            return (specifier === SANDBOX_CAPABILITY_PACK || specifier.startsWith(`${SANDBOX_CAPABILITY_PACK}/`)) && !availableModules.includes(sandboxCapabilityModuleName(specifier) ?? "");
+          })())
       );
 
     return diagnostics.map((diagnostic) => {

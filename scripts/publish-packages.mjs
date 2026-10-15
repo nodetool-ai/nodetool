@@ -240,6 +240,13 @@ skipping versions already present on the registry.
 
     for (const pkg of packages) {
       const { name, version } = pkg;
+      const unmet = unmetDeps(pkg, available);
+      if (unmet.length > 0) {
+        console.error(`BLOCK   ${name}@${version} (needs ${unmet.join(", ")})`);
+        blocked.push(`${name}@${version}`);
+        continue;
+      }
+
       if (!values["dry-run"] && alreadyPublished(name, version)) {
         console.log(`skip    ${name}@${version} (already on registry)`);
         try {
@@ -250,13 +257,6 @@ skipping versions already present on the registry.
           console.error(`FAIL    ${name}@${version} staging tag`);
           failed.push({ name: `${name}@${version}`, output: error.message });
         }
-        continue;
-      }
-
-      const unmet = unmetDeps(pkg, available);
-      if (unmet.length > 0) {
-        console.error(`BLOCK   ${name}@${version} (needs ${unmet.join(", ")})`);
-        blocked.push(`${name}@${version}`);
         continue;
       }
 

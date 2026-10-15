@@ -67,6 +67,20 @@ describe("Asset.paginate – additional filters", () => {
   beforeEach(setup);
   afterEach(() => ModelObserver.clear());
 
+  it("loads every generation member beyond a page with tied timestamps, scoped to user, workflow, node and job", async () => {
+    const expected: string[] = [];
+    const common = { user_id: "u1", workflow_id: "wf1", node_id: "n1", job_id: "j1", created_at: "2026-01-01T00:00:00.000Z" };
+    for (let index = 0; index < 54; index++) {
+      const row = await Asset.create<Asset>({ ...common, name: String(index) });
+      expected.push(row.id);
+    }
+    for (const overrides of [{ user_id: "u2" }, { workflow_id: "wf2" }, { node_id: "n2" }, { job_id: "j2" }]) {
+      await Asset.create<Asset>({ ...common, ...overrides, name: "excluded" });
+    }
+    const rows = await Asset.listByJobNode("u1", "wf1", "n1", "j1");
+    expect(rows.map((row) => row.id).sort()).toEqual(expected.sort());
+  });
+
   it("filters by workflowId", async () => {
     await Asset.create<Asset>({
       user_id: "u1",
