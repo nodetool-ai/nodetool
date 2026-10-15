@@ -102,7 +102,7 @@ expanding to the mutated file relative to that directory.
 
 | Package | Default test command | Default coverage |
 | --- | --- | --- |
-| Uses Vitest | `npx --no-install vitest related --run --passWithNoTests {file}` | a V8 coverage run of the package suite |
+| Uses Vitest | `npx --no-install vitest related --run --passWithNoTests --maxWorkers=1 {file}` | a V8 coverage run of the package suite |
 | Has a `coverage` script | `npm test` | `npm run coverage`, read from `coverage/` |
 | Other | `npm test` | none, so every site is uncovered |
 
@@ -121,6 +121,13 @@ The package itself is a private copy, with `node_modules`, `dist`, and other
 build output linked. The project tree is never written. Overlays are removed
 at the end of the run, and an interrupted run's overlays are removed at the
 start of the next.
+
+The default Vitest command allocates one inner test worker per mutation
+worker. The baseline uses the same command. This preserves the related test
+selection and avoids multiplying parallel test pools. Custom `--test-command`
+values are used unchanged. Baseline durations and the resulting numeric
+mutant deadlines can change with scheduling. The timeout factor and minimum
+remain unchanged.
 
 ## Differences from unclebob/mutator
 

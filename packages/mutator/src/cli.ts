@@ -88,7 +88,7 @@ Arguments:
             contains this text are mutated.
 
 Default test command: a Vitest package runs
-  npx --no-install vitest related --run --passWithNoTests {file}
+  npx --no-install vitest related --run --passWithNoTests --maxWorkers=1 {file}
 and any other package runs npm test. Default coverage for a Vitest package is
 a V8 coverage run of its suite.
 
