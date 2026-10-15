@@ -8,6 +8,17 @@ export function artifactIntegrity(file) {
   return `sha512-${createHash("sha512").update(readFileSync(file)).digest("base64")}`;
 }
 
+export function publicRegistryUrl(requestTarget) {
+  if (typeof requestTarget !== "string" || !requestTarget.startsWith("/") || requestTarget.startsWith("//") || requestTarget.includes("\\")) {
+    throw new Error("Registry requests must use an origin-form path");
+  }
+  const target = new URL("https://registry.npmjs.org");
+  const incoming = new URL(requestTarget, target);
+  target.pathname = incoming.pathname;
+  target.search = incoming.search;
+  return target;
+}
+
 /** Serve original release bytes in a worker so synchronous CLI probes cannot block npm. */
 export async function startPackedRegistry(tarballs) {
   const worker = new Worker(new URL(import.meta.url), { workerData: tarballs });
@@ -33,7 +44,8 @@ if (!isMainThread) {
   const server = createServer(async (request, response) => {
     try {
       if (request.method !== "GET") { response.writeHead(405).end(); return; }
-      const path = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
+      const upstreamUrl = publicRegistryUrl(request.url);
+      const path = decodeURIComponent(upstreamUrl.pathname);
       const tarball = path.startsWith("/tarballs/");
       const name = path.slice(tarball ? "/tarballs/".length : 1);
       const artifact = artifacts.get(name);
@@ -47,7 +59,7 @@ if (!isMainThread) {
         return;
       }
       if (tarball || name.startsWith("@nodetool-ai/")) { response.writeHead(404).end("Missing original release artifact"); return; }
-      const upstream = await fetch(`https://registry.npmjs.org${request.url}`, { signal: AbortSignal.timeout(120_000), redirect: "error" });
+      const upstream = await fetch(upstreamUrl, { signal: AbortSignal.timeout(120_000), redirect: "error" });
       response.writeHead(upstream.status, { "content-type": upstream.headers.get("content-type") ?? "application/json" });
       response.end(Buffer.from(await upstream.arrayBuffer()));
     } catch (error) { response.writeHead(500).end(String(error)); }

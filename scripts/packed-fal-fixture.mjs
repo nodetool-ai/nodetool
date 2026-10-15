@@ -7,8 +7,8 @@ import { fileURLToPath } from "node:url";
 export function falFixtureGraph() {
   return { nodes: [
     { id: "fal", type: "fal.llm.OpenRouter", data: { prompt: "Return the fixture response", model: "fixture/model" } },
-    { id: "out", type: "nodetool.output.Output", name: "fal_result", data: { name: "fal_result" } }
-  ], edges: [{ id: "fal-output", source: "fal", sourceHandle: "output", target: "out", targetHandle: "value" }] };
+    { id: "out", type: "nodetool.control.Reroute", name: "fal_result" }
+  ], edges: [{ id: "fal-output", source: "fal", sourceHandle: "output", target: "out", targetHandle: "input_value" }] };
 }
 
 /** Execute the installed FAL node, substituting only the external queue transport. */

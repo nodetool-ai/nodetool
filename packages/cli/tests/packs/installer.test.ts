@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { installPacks as installAuthorizedPacks, type InstallPacksRequest, type InstallerOperations } from "../../src/packs/installer.js";
 import { authorizePackInstallCommand } from "../../src/commands/pack-install-authorization.js";
+import { prepareInstallSelection } from "../../src/packs/install-selection.js";
+import { prepareTreeVerification } from "../../src/packs/install-verification.js";
 async function installPacks(request: InstallPacksRequest, operations: InstallerOperations) {
   const authorization = await authorizePackInstallCommand({ request, command: "packs-add" });
   if (!authorization) { throw new Error("Missing fixture authorization"); }
@@ -108,10 +110,44 @@ describe("pack installer", () => {
     await writeFile(join(f.root, "node_modules/.package-lock.json"), '{"packages":{}}');
     await expect(snapshotInstallTree(f.root)).rejects.toThrow(/stale/);
   });
+  it("pins the requested runtime root without rejecting a dependency's private version", async () => {
+    const f = await fixture();
+    const installPins = [
+      { name: "sharp", version: "0.35.5", integrity: "sha512-root-sharp" },
+      { name: "@napi-rs/canvas", version: "0.1.100", integrity: "sha512-canvas" }
+    ];
+    const request = { ...f.request, packs: [], runtimeLibraries: ["imaging"], catalog: { ...f.request.catalog, installPins } };
+    const selection = await prepareInstallSelection(request);
+    const { pins, coreNames } = await prepareTreeVerification(selection, f.root);
+    const roots = installPins.map(pin => ({ ...pin, path: `node_modules/${pin.name}`, realPath: join(f.root, "node_modules", pin.name) }));
+    const nested = { name: "sharp", version: "0.34.5", integrity: "sha512-private-sharp",
+      path: "node_modules/@huggingface/transformers/node_modules/sharp", realPath: join(f.root, "node_modules/@huggingface/transformers/node_modules/sharp") };
+    expect(() => assertTreePins([], [...roots, nested], pins, coreNames, "1.0.0")).not.toThrow();
+    for (const change of [{ version: "0.34.5" }, { integrity: "sha512-corrupt" }]) {
+      expect(() => assertTreePins([], [{ ...roots[0], ...change }, roots[1], nested], pins, coreNames, "1.0.0")).toThrow(/pin/);
+    }
+    expect(() => assertTreePins([], [roots[1], { ...nested, version: roots[0].version, integrity: roots[0].integrity }], pins, coreNames, "1.0.0")).toThrow(/pin/);
+    expect(() => assertTreePins([], [...roots, nested], [{ ...installPins[0], shared: true }], coreNames, "1.0.0")).toThrow(/pin/);
+    expect(() => assertTreePins([nested], [...roots, { ...nested, integrity: "sha512-tampered" }], pins, coreNames, "1.0.0")).toThrow(/changed/);
+    for (const initialGlobalLockMissing of [false, true]) {
+      await expect(prepareTreeVerification({ ...selection, before: [nested], initialGlobalLockMissing }, f.root)).resolves.toBeDefined();
+    }
+  });
   it("pins alias folders using real manifest identity and integrity", () => {
     const tree = [{ path: "node_modules/typescript", name: "@typescript/typescript6", version: "6.0.2", integrity: "sha512-ts", realPath: "/fixture/node_modules/typescript" }];
     expect(() => assertTreePins([], tree, [{ name: "@typescript/typescript6", installName: "typescript", version: "6.0.2", integrity: "sha512-ts" }], new Set(), "1")).not.toThrow();
     expect(() => assertTreePins([], [{ ...tree[0], path: "node_modules/wrong" }], [{ name: "@typescript/typescript6", installName: "typescript", version: "6.0.2", integrity: "sha512-ts" }], new Set(), "1")).toThrow(/pin/);
+  });
+  it("requires the canonical runtime alias identity at the root folder", async () => {
+    const f = await fixture();
+    const pin = { name: "@typescript/typescript6", installName: "typescript", version: "6.0.2", integrity: "sha512-ts" };
+    const request = { ...f.request, packs: [], runtimeLibraries: ["typescript"], catalog: { ...f.request.catalog, installPins: [pin] } };
+    const selection = await prepareInstallSelection(request);
+    const { pins, coreNames } = await prepareTreeVerification(selection, f.root);
+    const entry = { ...pin, path: "node_modules/typescript", realPath: join(f.root, "node_modules/typescript") };
+    expect(() => assertTreePins([], [entry], pins, coreNames, "1.0.0")).not.toThrow();
+    expect(() => assertTreePins([], [{ ...entry, name: "typescript" }], pins, coreNames, "1.0.0")).toThrow(/pin/);
+    expect(() => assertTreePins([], [{ ...entry, path: "node_modules/consumer/node_modules/typescript" }], pins, coreNames, "1.0.0")).toThrow(/pin/);
   });
   it("requests canonical runtime alias specs and checks their exact registry identity", async () => {
     const f = await fixture();

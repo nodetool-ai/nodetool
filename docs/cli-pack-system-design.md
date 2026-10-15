@@ -813,8 +813,18 @@ Before any install script or import:
 4. Each shared-identity library resolves to one realpath from every dependent
    (D12).
 
-Other third-party packages float within their declared ranges, as they do for
-the core CLI install today (R1).
+Requested runtime library pins apply to their exact top-level installation
+folders, including npm aliases. Private transitive copies may use other
+versions within their declared ranges. Pack, companion, shared-identity and
+script allowlist pins retain their checks across installed copies. Every
+pre-existing package remains unchanged.
+
+Doctor verifies runtime libraries recorded in the desired set or required by
+installed optional packs. Optional capabilities inside core packages do not
+require installing their runtimes in an otherwise clean core installation. An intrinsic transitive dependency alone does not make a
+managed runtime library installed.
+
+Other third-party packages float within their declared ranges (R1).
 
 ### 14.7 Rollback
 

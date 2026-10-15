@@ -65,7 +65,7 @@ export async function prepareInstallSelection(request: InstallPacksRequest, opti
   const byFolder = new Map((catalog.installPins ?? []).map((pin) => [pin.installName ?? pin.name, pin]));
   const replayLibraries = previous.runtimeLibraries.filter((id) => isRuntimeNpmPackageId(id) && RUNTIME_NPM_PACKAGES[id].packageNames.every((name) => {
     const pin = byFolder.get(name);
-    return pin && before.some((entry) => entry.name === pin.name && entry.version === pin.version &&
+    return pin && before.some((entry) => entry.path === `node_modules/${name}` && entry.name === pin.name && entry.version === pin.version &&
       (entry.integrity === pin.integrity || (mode.kind === "global" && tree.missingLock && entry.integrity === undefined)));
   }));
   const explicitLibraries = [...(request.runtimeLibraries ?? []), ...(options.restoreDesired ? previous.runtimeLibraries : [])];

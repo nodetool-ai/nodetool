@@ -3,7 +3,15 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { artifactIntegrity, startPackedRegistry } from "../packed-registry.mjs";
+import { artifactIntegrity, publicRegistryUrl, startPackedRegistry } from "../packed-registry.mjs";
+it.each(["@127.0.0.1/internal", "https://169.254.169.254/internal", "//localhost/internal", "/\\localhost/internal"])("rejects a request target that could change the upstream authority: %s", target => {
+  expect(() => publicRegistryUrl(target)).toThrow("origin-form path");
+});
+it.each(["/is-odd", "/@scope%2fpackage?write=true", "/%2f%2flocalhost/internal"])("keeps metadata requests on the public registry: %s", target => {
+  const url = publicRegistryUrl(target);
+  expect(url.origin).toBe("https://registry.npmjs.org");
+  expect(url.pathname + url.search).toBe(target);
+});
 it("serves unchanged original artifact metadata and bytes and refuses absent first-party packages", async () => {
   const root=mkdtempSync(join(tmpdir(),"original-registry-")); let registry;
   try {
