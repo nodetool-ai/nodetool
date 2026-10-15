@@ -366,6 +366,30 @@ describe("GlobalChatStore", () => {
     );
   });
 
+  it("sends the chosen reasoning level with each chat turn", async () => {
+    mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(true);
+    mockGlobalWebSocketManager.isConnected = true;
+    let sentData: unknown;
+    mockGlobalWebSocketManager.send.mockImplementation(async (data) => {
+      sentData = data;
+      return Promise.resolve();
+    });
+
+    await store.getState().createNewThread();
+    store.getState().setReasoningEffort("high");
+    await store.getState().sendMessage({
+      role: "user",
+      type: "message",
+      content: "hello"
+    } as Message);
+
+    expect(sentData).toEqual(
+      expect.objectContaining({
+        data: expect.objectContaining({ reasoning_effort: "high" })
+      })
+    );
+  });
+
   it("a new thread inherits the last chosen permission mode", async () => {
     const first = await store.getState().createNewThread();
     store.getState().setPermissionMode(first, "auto");

@@ -59,6 +59,7 @@ import { useChatDraftStore } from "../../../stores/ChatDraftStore";
 import { StopGenerationButton } from "./StopGenerationButton";
 import MediaCostEstimate from "./MediaCostEstimate";
 import PermissionSelector from "./PermissionSelector";
+import ReasoningSelector from "./ReasoningSelector";
 import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
 import { useFirstRunLanguageModel } from "../../../hooks/useFirstRunLanguageModel";
 
@@ -923,6 +924,11 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                     requireToolSupport,
                     onPick: (model) => onModelChange?.(model)
                   }}
+                />
+                <ReasoningSelector
+                  provider={chatModel?.provider}
+                  model={chatModel?.id}
+                  compact={isCompact}
                 />
                 <PermissionSelector threadId={threadId} compact={isCompact} />
               </>

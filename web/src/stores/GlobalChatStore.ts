@@ -37,9 +37,11 @@ import {
 } from "@nodetool-ai/protocol/api-schemas";
 import {
   isModelSelected,
+  isReasoningEffort,
   NO_MODEL_SELECTED_MESSAGE,
   noMediaModelSelectedMessage
 } from "@nodetool-ai/protocol";
+import type { ReasoningEffort } from "@nodetool-ai/protocol";
 import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
@@ -304,6 +306,11 @@ export interface GlobalChatState {
   getPermissionMode: (threadId: string | null) => PermissionMode;
   setPermissionMode: (threadId: string | null, mode: PermissionMode) => void;
 
+  // Reasoning level sent with every chat turn. Null keeps the provider
+  // default. The server drops it for models that do not accept it.
+  reasoningEffort: ReasoningEffort | null;
+  setReasoningEffort: (effort: ReasoningEffort | null) => void;
+
   // Inline tool-approval prompts awaiting a user decision, keyed by approval_id.
   pendingApprovals: Record<string, PendingApproval>;
   addPendingApproval: (req: ToolApprovalRequest) => void;
@@ -479,6 +486,7 @@ interface PersistedChatState {
   threadModel?: Record<string, LanguageModel>;
   permissionMode: Record<string, PermissionMode>;
   lastPermissionMode?: PermissionMode;
+  reasoningEffort?: ReasoningEffort | null;
 }
 
 const useGlobalChatStore = create<GlobalChatState>()(
@@ -654,6 +662,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
           void sendPermissionMode(threadId, mode);
         }
       },
+
+      reasoningEffort: null,
+      setReasoningEffort: (effort: ReasoningEffort | null) =>
+        set({ reasoningEffort: effort }),
 
       // Inline tool-approval prompts
       pendingApprovals: {},
@@ -1157,6 +1169,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           collections: _collections,
           ...messageWithoutTools
         } = message;
+        const reasoningEffort = isMediaGeneration
+          ? null
+          : get().reasoningEffort;
         const chatMessageData = {
           ...messageWithoutTools,
           id: messageId,
@@ -1172,7 +1187,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
               message.provider ??
               selectedModel?.provider)
             : selectedModel?.provider,
-          media_generation: mediaGeneration
+          media_generation: mediaGeneration,
+          ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {})
         };
 
         // Wrap in chat_message command structure as per unified WebSocket API
@@ -1901,7 +1917,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         selectedModel: state.selectedModel,
         threadModel: state.threadModel,
         permissionMode: state.permissionMode,
-        lastPermissionMode: state.lastPermissionMode
+        lastPermissionMode: state.lastPermissionMode,
+        reasoningEffort: state.reasoningEffort
       }),
       // Default persist merge is shallow, so a rehydrate that finishes after
       // a thread was created would replace the per-thread maps.
@@ -1971,7 +1988,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         };
       },
       // `merge` above already guarantees every persisted map is an object and
-      // leaves the unpersisted fields at their initial values, so only the two
+      // leaves the unpersisted fields at their initial values, so only the
       // persisted scalars that can carry a bad value are re-checked here.
       onRehydrateStorage: () => (state) => {
         if (!state) {
@@ -1983,6 +2000,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           state.lastPermissionMode !== "default"
         ) {
           state.lastPermissionMode = DEFAULT_PERMISSION_MODE;
+        }
+        if (!isReasoningEffort(state.reasoningEffort)) {
+          state.reasoningEffort = null;
         }
         if (!state.selectedModel) {
           state.selectedModel = buildDefaultLanguageModel();

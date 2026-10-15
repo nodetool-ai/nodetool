@@ -46,7 +46,8 @@ import {
   isCallable,
   isNumber,
   isRecord,
-  isString
+  isString,
+  supportsReasoningEffort
 } from "@nodetool-ai/protocol";
 import {
   isProviderMessageEvent,
@@ -1599,7 +1600,13 @@ export class OpenAIProvider extends BaseProvider {
   private async buildResponsesRequest(
     args: Pick<
       Parameters<BaseProvider["generateMessages"]>[0],
-      "model" | "tools" | "toolChoice" | "maxTokens" | "temperature" | "topP"
+      | "model"
+      | "tools"
+      | "toolChoice"
+      | "maxTokens"
+      | "temperature"
+      | "topP"
+      | "effort"
     >,
     config: {
       input: Array<Record<string, unknown>>;
@@ -1622,6 +1629,16 @@ export class OpenAIProvider extends BaseProvider {
     if (args.maxTokens != null) request.max_output_tokens = args.maxTokens;
     if (args.temperature != null) request.temperature = args.temperature;
     if (args.topP != null) request.top_p = args.topP;
+    // `reasoning.effort` tops out at "high" on gpt-5, and the `-chat` models
+    // take no reasoning at all.
+    if (args.effort && supportsReasoningEffort(PROVIDER_IDS.OPENAI, args.model)) {
+      request.reasoning = {
+        effort:
+          args.effort === "xhigh" || args.effort === "max"
+            ? "high"
+            : args.effort
+      };
+    }
 
     const tools = this.formatResponsesTools(
       args.tools ?? [],
