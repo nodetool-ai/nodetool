@@ -10,6 +10,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 
 import { assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, coreOnlyCliManifest, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, probeServe, REQUIRED_COMMANDS, repackCoreCli, smokeManifest } from "../smoke-packed-cli.mjs";
+import { partitionPlan } from "../packed-verification.mjs";
+import { fullPlan, readPackages } from "../test-affected.mjs";
 
 const fixtures = [];
 afterEach(() => { for (const root of fixtures.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
@@ -17,10 +19,16 @@ afterEach(() => { for (const root of fixtures.splice(0)) { rmSync(root, { recurs
 it("keeps the required core-smoke status dependent on verification and the independent packed install", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
   const guard = workflow.jobs["core-smoke"];
-  expect(guard.needs).toEqual(["verification", "packed-install"]);
+  expect(guard.needs).toEqual(["verification-plan", "verification", "packed-install"]);
   expect(guard.if).toBe("always()");
-  const checks = workflow.jobs.verification.steps.map(step => step.run);
-  for (const command of ["npm run test:affected", "npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base origin/main --jobs 1", "npm run backend:smoke"]) {
+  const scripts = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")).scripts;
+  const jobs = partitionPlan(fullPlan(), readPackages({}), scripts);
+  const checks = jobs.flatMap(({ commands }) => commands).map(({ command, args }) => [command, ...args].join(" "));
+  expect(workflow.jobs.verification.needs).toBe("verification-plan");
+  expect(workflow.jobs.verification.strategy.matrix).toBe("${{ fromJSON(needs.verification-plan.outputs.matrix) }}");
+  expect(workflow.jobs.verification.steps.map(step => step.run)).toContain('node scripts/packed-verification.mjs run "$RUNNER_TEMP/packed-verification.json" "$PACKED_TASK"');
+  expect(jobs.filter(({ id }) => id.startsWith("test-packages-")).length).toBeGreaterThan(0);
+  for (const command of ["npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base origin/main --jobs 1", "npm run backend:smoke"]) {
     expect(checks).toContain(command);
   }
   expect(workflow.jobs["packed-install"].needs).toBeUndefined();
@@ -31,26 +39,27 @@ it("keeps the required core-smoke status dependent on verification and the indep
   for (const job of ["verification", "packed-install", "release-pins"]) {
     expect(workflow.jobs[job].steps.find(step => step.uses === "./.github/actions/setup-build").with.cache).toBe("read-only");
   }
-  for (const [verification, installed, qualityGate, expected] of [
-    ["success", "success", "false", 0],
-    ["failure", "success", "false", 1],
-    ["success", "cancelled", "false", 1],
-    ["skipped", "success", "false", 1],
-    ["skipped", "success", "true", 0],
-    ["skipped", "failure", "true", 1],
-    ["failure", "success", "true", 1],
-    ["cancelled", "success", "true", 1]
-  ]) {
-    const result = spawnSync("bash", ["-c", guard.steps[0].run], {
-      env: { ...process.env, VERIFICATION_RESULT: verification, PACKED_INSTALL_RESULT: installed, QUALITY_GATE_VERIFIES: qualityGate }
-    });
-    expect(result.status, `${verification} ${installed} ${qualityGate}`).toBe(expected);
+  for (const planned of ["success", "failure", "cancelled", "skipped"]) {
+    for (const verification of ["success", "failure", "cancelled", "skipped"]) {
+      for (const installed of ["success", "failure", "cancelled", "skipped"]) {
+        for (const qualityGate of ["false", "true"]) {
+          const result = spawnSync("bash", ["-c", guard.steps[0].run], {
+            env: { ...process.env, PLAN_RESULT: planned, VERIFICATION_RESULT: verification, PACKED_INSTALL_RESULT: installed, QUALITY_GATE_VERIFIES: qualityGate }
+          });
+          const verified = (planned === "success" && verification === "success")
+            || (qualityGate === "true" && planned === "skipped" && verification === "skipped");
+          expect(result.status, `${planned} ${verification} ${installed} ${qualityGate}`).toBe(installed === "success" && verified ? 0 : 1);
+        }
+      }
+    }
   }
 });
 
 it("leaves verification to the Quality Gate only on pull requests into main", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
-  expect(workflow.jobs.verification.if).toBe("github.event_name != 'pull_request' || github.base_ref != 'main'");
+  expect(workflow.jobs["verification-plan"].if).toBe("github.event_name != 'pull_request' || github.base_ref != 'main'");
+  expect(workflow.jobs.verification.needs).toBe("verification-plan");
+  expect(workflow.jobs.verification.if).toBeUndefined();
   expect(workflow.jobs["core-smoke"].steps[0].env.QUALITY_GATE_VERIFIES)
     .toBe("${{ github.event_name == 'pull_request' && github.base_ref == 'main' }}");
   // The skip is safe only while Test runs on every pull request into main
@@ -67,7 +76,7 @@ it("leaves verification to the Quality Gate only on pull requests into main", ()
 it("prepares sandboxed Chromium before packed verification runs browser suites", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
   const steps = workflow.jobs.verification.steps;
-  const affectedIndex = steps.findIndex(step => step.run === "npm run test:affected");
+  const affectedIndex = steps.findIndex(step => step.name === "Run the selected verification bucket");
   const installIndex = steps.findIndex(step => step.run === "npx playwright install --with-deps chromium");
   const sandboxIndex = steps.findIndex(step => step.name === "Enable and verify the Chromium sandbox");
   expect(affectedIndex).toBeGreaterThan(0);
@@ -82,11 +91,12 @@ it("bounds verification test concurrency without changing build scheduling", () 
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
   const job = workflow.jobs.verification;
   expect(job.env?.NODETOOL_TURBO_CONCURRENCY).toBeUndefined();
-  const affected = job.steps.find(step => step.name === "Verify affected tests");
+  const affected = job.steps.find(step => step.name === "Run the selected verification bucket");
   expect(affected.env).toMatchObject({ NODETOOL_TURBO_CONCURRENCY: "1", NODETOOL_TEST_WORKERS: "1" });
-  const harness = job.steps.find(step => step.name === "Verify harnesses");
-  expect(harness.env).toMatchObject({ NODETOOL_TEST_WORKERS: "1" });
-  expect(harness.run).toBe("npm run dev:nodetool -- harness gate --base origin/main --jobs 1");
+  const scripts = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")).scripts;
+  const fixed = partitionPlan(fullPlan(), readPackages({}), scripts).find(({ id }) => id === "fixed-checks");
+  const harness = fixed.commands.find(({ label }) => label === "harnesses");
+  expect([harness.command, ...harness.args].join(" ")).toBe("npm run dev:nodetool -- harness gate --base origin/main --jobs 1");
 });
 
 function releaseTarball(root, filename, name, version) {

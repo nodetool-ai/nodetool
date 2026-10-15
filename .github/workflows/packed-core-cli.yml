@@ -5,6 +5,13 @@ on:
     paths:
       - 'packages/**'
       - 'scripts/smoke-packed-cli.mjs'
+      - 'scripts/packed-verification.mjs'
+      - 'scripts/test-affected.mjs'
+      - 'scripts/ci-plan.mjs'
+      - 'scripts/run-turbo.mjs'
+      - 'scripts/__tests__/packed-verification.test.mjs'
+      - 'web/jest.config.ts'
+      - 'scripts/__tests__/jest-worker-memory.test.mjs'
       - 'scripts/fixtures/codec-identity.mp4'
       - 'scripts/node-catalog/tiers.mjs'
       - 'scripts/prepare-publish.mjs'
@@ -31,18 +38,53 @@ jobs:
   # A pull request into `main` also runs the Test workflow, whose Quality
   # Gate runs these same checks in parallel shards: the affected suites,
   # typecheck, lint, harness gate and backend smoke. Running them again
-  # here, serially on one runner, cost a second runner for up to 90
-  # minutes and timed out on diffs that select every suite. Stacked pull
+  # here costs a second set of runners for the same selection. Stacked pull
   # requests into other branches get no Test run, so they still verify
-  # here, as do manual runs.
-  verification:
+  # here, as do manual runs. Skipping the plan skips the verification
+  # matrix that needs it.
+  verification-plan:
     if: github.event_name != 'pull_request' || github.base_ref != 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    outputs:
+      sha: ${{ steps.plan.outputs.sha }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .nvmrc
+      - name: Freeze the canonical affected selection
+        id: plan
+        run: node scripts/packed-verification.mjs plan "$RUNNER_TEMP/packed-verification.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packed-verification-plan
+          path: ${{ runner.temp }}/packed-verification.json
+          if-no-files-found: error
+  verification:
+    needs: verification-plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.verification-plan.outputs.matrix) }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          ref: ${{ needs.verification-plan.outputs.sha }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packed-verification-plan
+          path: ${{ runner.temp }}
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .nvmrc
+      - name: Restore the frozen selection base
+        run: node scripts/packed-verification.mjs prepare "$RUNNER_TEMP/packed-verification.json"
       - uses: ./.github/actions/setup-build
         with:
           cache: read-only
@@ -76,21 +118,13 @@ jobs:
 
       - name: Install mobile check dependencies
         run: npm --prefix mobile ci
-      - name: Verify affected tests
+      - name: Run the selected verification bucket
         env:
+          NODETOOL_WEB_TEST_RECYCLE_WORKERS: "1"
           NODETOOL_TURBO_CONCURRENCY: "1"
           NODETOOL_TEST_WORKERS: "1"
-        run: npm run test:affected
-      - name: Verify types
-        run: npm run typecheck
-      - name: Verify lint
-        run: npm run lint
-      - name: Verify harnesses
-        env:
-          NODETOOL_TEST_WORKERS: "1"
-        run: npm run dev:nodetool -- harness gate --base origin/main --jobs 1
-      - name: Verify the packaged backend
-        run: npm run backend:smoke
+          PACKED_TASK: ${{ matrix.task }}
+        run: node scripts/packed-verification.mjs run "$RUNNER_TEMP/packed-verification.json" "$PACKED_TASK"
   packed-install:
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -106,13 +140,14 @@ jobs:
       - name: Smoke-test the packed full CLI
         run: node scripts/smoke-packed-cli.mjs
   core-smoke:
-    needs: [verification, packed-install]
+    needs: [verification-plan, verification, packed-install]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require complete verification and packed installation
         env:
+          PLAN_RESULT: ${{ needs.verification-plan.result }}
           VERIFICATION_RESULT: ${{ needs.verification.result }}
           PACKED_INSTALL_RESULT: ${{ needs.packed-install.result }}
           QUALITY_GATE_VERIFIES: ${{ github.event_name == 'pull_request' && github.base_ref == 'main' }}
@@ -121,11 +156,11 @@ jobs:
             echo "Packed CLI installation did not pass."
             exit 1
           fi
-          if [ "$VERIFICATION_RESULT" = "skipped" ] && [ "$QUALITY_GATE_VERIFIES" = "true" ]; then
+          if [ "$PLAN_RESULT" = "skipped" ] && [ "$VERIFICATION_RESULT" = "skipped" ] && [ "$QUALITY_GATE_VERIFIES" = "true" ]; then
             echo "The Test workflow's Quality Gate verifies this pull request into main."
             exit 0
           fi
-          if [ "$VERIFICATION_RESULT" != "success" ]; then
+          if [ "$PLAN_RESULT" != "success" ] || [ "$VERIFICATION_RESULT" != "success" ]; then
             echo "Packed CLI verification did not pass."
             exit 1
           fi
