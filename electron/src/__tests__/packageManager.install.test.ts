@@ -22,6 +22,10 @@ jest.mock('electron', () => ({
   },
 }));
 
+// Electron adds process.getSystemVersion; plain Node in Jest lacks it.
+(process as NodeJS.Process & { getSystemVersion: () => string }).getSystemVersion =
+  () => '15.0';
+
 // Real collaborator modules; only the calls that would read the filesystem or
 // a Python/conda install are stubbed on them.
 jest.spyOn(config, 'getProcessEnv').mockReturnValue({});
