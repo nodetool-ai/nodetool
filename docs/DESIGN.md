@@ -891,6 +891,33 @@ render each rule at a docked width of 360px. Check a new panel against them.
 | Field rhythm | A label sits 4px above its field. Fields in a form are 12px apart (`gap={3}`), so each label reads with its own field. |
 | Tabs fit the panel | Small `TabGroup` tabs must all fit at 360px. Shorten the labels or drop the icons before the strip has to scroll. |
 
+### Toolbars and status bars
+
+Every editor's top bar, bottom bar and floating bar comes from these
+primitives in `ui_primitives`. Do not build a bar from a `FlexRow` plus a
+hand-written background, border and height.
+
+| Primitive | Use |
+|---|---|
+| `Toolbar` | The strip above or below an editor surface. `position="top"` (default) rules its bottom edge, `position="bottom"` its top edge, both with the `divider` color on `background.paper`. `density="normal"` is 40px, `density="compact"` is 28px. Padding is `SPACING.md` on the sides and the gap is `SPACING.sm`. |
+| `ToolbarGroup`, `ToolbarDivider` | A cluster of related controls (4px gap) and the vertical rule between clusters. Never draw a divider with `borderLeft` or a pseudo-element. |
+| `StatusBar`, `StatusBarItem` | The bottom strip for selection, hints, counts and zoom. A compact bottom `Toolbar` with caption type in `text.secondary`. `StatusBarItem grow` is the one item that takes the free width and truncates. |
+| `SaveState` | The one save readout: `state="dirty"` is an 8px `warning.main` dot, `saving` a small spinner, `saved` a `success.main` dot, `error` an `error.main` dot. `showLabel={false}` keeps only the dot (labelled for screen readers) when the Save button beside it already says "Saving…". Override the text with `labels`. |
+| `FloatingToolbar` | A bar over a selection, a hovered card or a node. It uses the menu paper (`menuPaperStyles`): overlay paper, divider frame, `BORDER_RADIUS.lg`, `SHADOW.lg`. The caller owns position, z-index and visibility. |
+
+Rules:
+
+- A top or bottom bar is a `Toolbar`. A floating bar is a `FloatingToolbar`.
+  Any other surface that floats (a compose card, a pill) spreads
+  `menuPaperStyles(theme)` instead of picking its own radius and shadow.
+- Pass layout through `sx`, never through an Emotion `css` prop. `Toolbar`'s own
+  `sx` wins over a `css` class on the same element.
+- Do not use `grey[700]`, `grey[800]` or `grey[900]` for a bar's border or
+  background, or a translucent background with `backdropFilter`.
+- Do not copy a `.dirty-dot` block. Render `SaveState`.
+- A bar taller than its density (a stacked two-row header) overrides
+  `flexDirection` and `px` in `sx` but keeps the surface and rule.
+
 ---
 
 ## 11. Properties panels
