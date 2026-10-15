@@ -1,10 +1,11 @@
 import { prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import { GlbTransformNode } from "./base.js";
 import type { Model3DRefLike } from "./types.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import { convertGlbToGltf } from "./document-ops.js";
-import { modelBytes, modelFormat, modelRef, replaceExtension } from "./utils.js";
+import { modelFormat, modelRefToBytes, modelRef, replaceExtension } from "./utils.js";
 
 /** Output handles FormatConverterNode.process() emits. */
 type FormatConverterNodeOutputs = {
@@ -43,9 +44,11 @@ export class FormatConverterNode extends GlbTransformNode {
     return null;
   }
 
-  async process(): Promise<FormatConverterNodeOutputs> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<FormatConverterNodeOutputs> {
     const model = this.getModel();
-    const bytes = modelBytes(model);
+    const bytes = await modelRefToBytes(model, context);
     const inputFormat = modelFormat(model);
     const outputFormat = this.output_format.toLowerCase();
 
