@@ -1172,7 +1172,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const reasoningEffort = isMediaGeneration
           ? null
           : get().reasoningEffort;
-        const chatMessageData = {
+        const chatMessageData: Record<string, unknown> = {
           ...messageWithoutTools,
           id: messageId,
           workflow_id: message.workflow_id ?? boundWorkflowId,
@@ -1187,9 +1187,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
               message.provider ??
               selectedModel?.provider)
             : selectedModel?.provider,
-          media_generation: mediaGeneration,
-          ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {})
+          media_generation: mediaGeneration
         };
+        if (reasoningEffort) {
+          chatMessageData.reasoning_effort = reasoningEffort;
+        }
 
         // Wrap in chat_message command structure as per unified WebSocket API
         const commandMessage = {
