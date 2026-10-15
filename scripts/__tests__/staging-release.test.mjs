@@ -188,7 +188,7 @@ describe("staging publication policy", () => {
 
 const roots = [];
 afterEach(() => { for (const root of roots.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
-it("uses a clean ignored-script registry install, checks signatures, CLI version and pack registration", async () => {
+it("audits the fresh CLI before pack addition and the expanded tree before registration", async () => {
   const root = mkdtempSync(join(tmpdir(), "registry-smoke-test-"));
   roots.push(root);
   const calls = [];
@@ -197,12 +197,51 @@ it("uses a clean ignored-script registry install, checks signatures, CLI version
     project = options.cwd;
     expect(options.env.HOME).toBe(join(project, "home"));
     expect(JSON.parse(readFileSync(join(project, "package.json"), "utf8")).private).toBe(true);
-    calls.push([command, args]);
+    calls.push([command, args, options.env]);
     return args[0] === "--version" ? version : "";
   } });
-  expect(calls[0][1]).toEqual(["install", "--ignore-scripts", "--no-audit", "--no-fund", "@nodetool-ai/cli@1.2.3", "@nodetool-ai/fal-nodes@1.2.3"]);
-  expect(calls[1][1]).toEqual(["audit", "signatures"]);
+  const cli = join(project, "node_modules/.bin/nodetool");
+  expect(calls[0][1]).toEqual(["install", "--ignore-scripts", "--no-audit", "--no-fund", "@nodetool-ai/cli@1.2.3"]);
+  expect(calls[0][2].NODETOOL_PACKS_INSTALLER).toBeUndefined();
+  expect(calls[1].slice(0, 2)).toEqual(["npm", ["audit", "signatures"]]);
+  expect(calls[2].slice(0, 2)).toEqual([cli, ["--version"]]);
+  expect(calls[3].slice(0, 2)).toEqual([cli, ["packs", "add", "fal", "--yes"]]);
+  expect(calls[3][2].NODETOOL_PACKS_INSTALLER).toBe("1");
+  expect(calls[4].slice(0, 2)).toEqual(["npm", ["audit", "signatures"]]);
+  expect(calls[4][2].NODETOOL_PACKS_INSTALLER).toBeUndefined();
   expect(calls.at(-1)[1].at(-1)).toContain("registry.list().length !== 2");
+});
+
+it("refuses to execute the installed CLI when its initial signature audit fails", async () => {
+  const root = mkdtempSync(join(tmpdir(), "registry-cli-signature-refusal-"));
+  roots.push(root);
+  const calls = [];
+  await expect(verifyRegistryInstall(catalogFixture(), { temporaryRoot: root, run: (command, args) => {
+    calls.push([command, args]);
+    if (args[0] === "audit") {
+      throw new Error("CLI signature refused");
+    }
+    return args[0] === "--version" ? version : "";
+  } })).rejects.toThrow("CLI signature refused");
+  expect(calls).toHaveLength(2);
+  expect(calls.every(([command]) => command === "npm")).toBe(true);
+});
+
+it("stops the registry smoke when the CLI refuses pack installation", async () => {
+  const root = mkdtempSync(join(tmpdir(), "registry-pack-refusal-"));
+  roots.push(root);
+  const calls = [];
+  await expect(verifyRegistryInstall(catalogFixture(), { temporaryRoot: root, run: (command, args, options) => {
+    calls.push([command, args]);
+    if (args[0] === "packs") {
+      expect(options.env.NODETOOL_PACKS_INSTALLER).toBe("1");
+      throw new Error("pack integrity refused");
+    }
+    return args[0] === "--version" ? version : "";
+  } })).rejects.toThrow("pack integrity refused");
+  expect(calls.at(-1)[1]).toEqual(["packs", "add", "fal", "--yes"]);
+  expect(calls.filter(([, args]) => args[0] === "audit")).toHaveLength(1);
+  expect(calls.some(([, args]) => args[0] === "--input-type=module")).toBe(false);
 });
 
 it("the standalone verifier exits nonzero on a deliberately wrong pin before npm view", () => {

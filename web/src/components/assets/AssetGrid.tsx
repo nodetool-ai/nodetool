@@ -137,6 +137,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     folderFilesFiltered,
     folderTree,
     navigateToFolderId,
+    projectId,
     refetchAssetsAndFolders
   } = useAssets();
   const {
@@ -262,11 +263,12 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       files.forEach((file: File) => {
         uploadAsset({
           file: file,
-          parent_id: currentFolderId || undefined
+          parent_id: currentFolderId || undefined,
+          project_id: projectId
         });
       });
     },
-    [currentFolderId, uploadAsset]
+    [currentFolderId, projectId, uploadAsset]
   );
 
   if (selectedFolderId === null) {

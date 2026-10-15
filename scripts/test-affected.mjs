@@ -298,7 +298,7 @@ function resolveBase(baseArg) {
   return null;
 }
 
-function changedFiles(baseArg) {
+export function changedFiles(baseArg) {
   const files = new Set([
     ...gitLines(["diff", "--name-only", "HEAD"]),
     ...gitLines(["ls-files", "--others", "--exclude-standard"])

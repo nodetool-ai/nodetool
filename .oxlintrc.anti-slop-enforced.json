@@ -140,6 +140,7 @@
     },
     {
       "files": [
+        "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
         "packages/automation-nodes/src/**",
@@ -262,6 +263,7 @@
     {
       "files": [
         "electron/src/**",
+        "packages/app-export/src/**",
         "packages/app-runtime/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/audio-nodes/src/**",
@@ -418,6 +420,7 @@
     },
     {
       "files": [
+        "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
         "packages/automation-nodes/src/**",
@@ -460,6 +463,7 @@
     },
     {
       "files": [
+        "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
         "packages/automation-nodes/src/**",

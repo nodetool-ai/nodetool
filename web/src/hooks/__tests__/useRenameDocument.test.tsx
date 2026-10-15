@@ -11,8 +11,9 @@ const mockWorkflowManager = {
   saveWorkflow: jest.fn(),
   queryClient: { invalidateQueries: jest.fn() }
 };
+const mockWorkflowManagerStore = { getState: () => mockWorkflowManager };
 jest.mock("../../contexts/WorkflowManagerContext", () => ({
-  useWorkflowManagerStore: () => ({ getState: () => mockWorkflowManager })
+  useWorkflowManagerStore: () => mockWorkflowManagerStore
 }));
 
 const mockInvalidate = {
@@ -49,8 +50,10 @@ jest.mock("../../trpc/client", () => ({
   }
 }));
 
+// tRPC returns a new mutation object on every render; its `mutateAsync` is stable.
+const mockUpdateApplicationAsync = jest.fn();
 jest.mock("../useApplications", () => ({
-  useUpdateApplication: () => ({ mutateAsync: jest.fn() })
+  useUpdateApplication: () => ({ mutateAsync: mockUpdateApplicationAsync })
 }));
 
 const mockSketchSession = { documentId: "other-sketch" };
@@ -85,6 +88,15 @@ beforeEach(() => {
 });
 
 const renderRename = () => renderHook(() => useRenameDocument()).result;
+
+// The Documents panel memoizes its rows and passes this function to each one,
+// so a new function on every render re-renders hundreds of rows.
+it("returns the same function across renders", () => {
+  const { result, rerender } = renderHook(() => useRenameDocument());
+  const first = result.current;
+  rerender();
+  expect(result.current).toBe(first);
+});
 
 describe("workflow", () => {
   it("saves an open workflow through the workflow manager", async () => {

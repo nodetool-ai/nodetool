@@ -47,7 +47,9 @@ const renameSketch = async (id: string, name: string): Promise<void> => {
 export const useRenameDocument = (): RenameDocument => {
   const workflowManagerStore = useWorkflowManagerStore();
   const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
-  const updateApplication = useUpdateApplication();
+  // The mutation object is new on every render. `mutateAsync` is stable, and
+  // the Documents panel needs a stable callback for its memoized rows.
+  const { mutateAsync: updateApplication } = useUpdateApplication();
   const trpcUtils = trpc.useUtils();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -176,7 +178,7 @@ export const useRenameDocument = (): RenameDocument => {
             await useGlobalChatStore.getState().updateThreadTitle(ref, trimmed);
             break;
           case "application":
-            await updateApplication.mutateAsync({ id: ref, name: trimmed });
+            await updateApplication({ id: ref, name: trimmed });
             break;
           case "project":
             await trpcClient.projects.update.mutate({ id: ref, name: trimmed });

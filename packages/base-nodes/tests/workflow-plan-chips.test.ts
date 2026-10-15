@@ -44,6 +44,22 @@ const MODELS = {
     name: "fake",
     path: null,
     supported_tasks: []
+  },
+  audio: {
+    type: "tts_model",
+    provider: "fake",
+    id: "fake",
+    name: "fake",
+    path: null,
+    supported_tasks: []
+  },
+  video: {
+    type: "video_model",
+    provider: "fake",
+    id: "fake",
+    name: "fake",
+    path: null,
+    supported_tasks: []
   }
 };
 
@@ -79,9 +95,9 @@ const build = (plan: (typeof WORKFLOW_INSPIRATION_CHIPS)[number]["plan"]) => {
 describe("shipped inspiration chips", () => {
   it("ships the three chips step 1 offers", () => {
     expect(WORKFLOW_INSPIRATION_CHIPS.map((chip) => chip.brief)).toEqual([
-      "Summarize a PDF and email it",
-      "Batch-generate product shots from a CSV",
-      "Turn rough notes into a blog post"
+      "Turn each row of a product CSV into a studio photo",
+      "Turn a one-line product description into a five-second video ad",
+      "Turn a 30-second script into a voiceover"
     ]);
   });
 
@@ -158,7 +174,7 @@ describe("shipped inspiration chips", () => {
       knownNodeType: (type) => registry.has(type),
       providerConfigured: () => false
     });
-    expect(resolved.missingRoles).toEqual(["language"]);
+    expect(resolved.missingRoles).toEqual(["image"]);
     expect(resolved.canContinue).toBe(false);
   });
 
@@ -167,6 +183,6 @@ describe("shipped inspiration chips", () => {
       WORKFLOW_INSPIRATION_CHIPS[0].plan,
       lookup
     );
-    expect(placement.issues.join(" ")).toContain("needs a language model");
+    expect(placement.issues.join(" ")).toContain("needs an image model");
   });
 });

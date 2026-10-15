@@ -59,10 +59,11 @@ const styles = (theme: Theme) =>
     },
     "& .selection": {
       position: "absolute",
-      top: `${RULER_HEIGHT}px`,
+      top: 0,
       bottom: 0,
-      backgroundColor: theme.vars.palette.primary.main,
-      opacity: 0.22,
+      backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.16)`,
+      borderLeft: `1px solid ${theme.vars.palette.primary.main}`,
+      borderRight: `1px solid ${theme.vars.palette.primary.main}`,
       pointerEvents: "none"
     },
     "& .playhead": {
@@ -71,12 +72,23 @@ const styles = (theme: Theme) =>
       bottom: 0,
       width: "1px",
       backgroundColor: theme.vars.palette.secondary.main,
-      pointerEvents: "none"
+      pointerEvents: "none",
+      // Marker in the ruler so the playhead stays findable on loud audio.
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: `-${PLAYHEAD_MARKER_HALF_WIDTH}px`,
+        borderLeft: `${PLAYHEAD_MARKER_HALF_WIDTH}px solid transparent`,
+        borderRight: `${PLAYHEAD_MARKER_HALF_WIDTH}px solid transparent`,
+        borderTop: `${PLAYHEAD_MARKER_HALF_WIDTH * 2}px solid ${theme.vars.palette.secondary.main}`
+      }
     }
   });
 
 const DRAG_THRESHOLD_PX = 3;
 const RULER_HEIGHT = 24;
+const PLAYHEAD_MARKER_HALF_WIDTH = 4;
 const MIN_TICK_SPACING_PX = 80;
 const TICK_INTERVALS_SECONDS = [
   0.01,
@@ -185,8 +197,6 @@ const WaveformView = memo(function WaveformView({
 
   const waveColor = theme.palette.grey[300];
   const midColor = theme.palette.grey[700];
-  const rulerColor = theme.palette.text.secondary;
-  const rulerLineColor = theme.palette.divider;
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -216,6 +226,18 @@ const WaveformView = memo(function WaveformView({
     const contentWidth = Math.max(1, Math.ceil(duration * pixelsPerSecond));
     const drawWidth = Math.max(0, Math.min(viewportWidth, contentWidth - scrollX));
     const waveformHeight = Math.max(1, height - RULER_HEIGHT);
+
+    // Canvas cannot read CSS variables, so resolve the active color scheme's
+    // palette from the container.
+    const computed = getComputedStyle(container);
+    const rulerColor = computed.getPropertyValue("--palette-text-secondary");
+    const rulerLineColor = computed.getPropertyValue("--palette-divider");
+    const rulerBackground = computed.getPropertyValue(
+      "--palette-background-paper"
+    );
+
+    ctx.fillStyle = rulerBackground;
+    ctx.fillRect(0, 0, viewportWidth, RULER_HEIGHT);
 
     const tickInterval = chooseTickInterval(pixelsPerSecond);
     ctx.strokeStyle = rulerLineColor;
@@ -256,6 +278,10 @@ const WaveformView = memo(function WaveformView({
 
       ctx.fillStyle = midColor;
       ctx.fillRect(0, Math.round(mid), drawWidth, 1);
+      if (c > 0) {
+        ctx.fillStyle = rulerLineColor;
+        ctx.fillRect(0, Math.round(RULER_HEIGHT + laneHeight * c), viewportWidth, 1);
+      }
 
       ctx.fillStyle = waveColor;
       for (let px = 0; px < drawWidth; px += 1) {
@@ -286,8 +312,6 @@ const WaveformView = memo(function WaveformView({
     pixelsPerSecond,
     waveColor,
     midColor,
-    rulerColor,
-    rulerLineColor,
     theme.fontSizeSmaller,
     theme.fontFamily2
   ]);
