@@ -8,10 +8,8 @@ import {
   ToolbarIconButton,
   EditorMenu,
   MenuItemPrimitive,
-  BORDER_RADIUS,
   CONTROL,
-  SHADOW,
-  Toolbar
+  FloatingToolbar
 } from "../ui_primitives";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -131,21 +129,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
   return (
     <>
-      <Toolbar
-        variant="dense"
-        className="node-toolbar"
-        disableGutters
-        sx={{
-          minHeight: 0,
-          gap: 0.5,
-          padding: 0.5,
-          backgroundColor: theme.vars.palette.grey[900],
-          border: `1px solid ${theme.vars.palette.divider}`,
-          borderRadius: BORDER_RADIUS.lg,
-          boxShadow: SHADOW(theme).md,
-          marginBottom: 2
-        }}
-      >
+      <FloatingToolbar className="node-toolbar" sx={{ marginBottom: 2 }}>
         <ToolbarIconButton
           title={isWorkflowRunning ? "Running…" : "Run Node"}
           className="nodrag"
@@ -224,7 +208,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         >
           <MoreVertIcon sx={ICON_SX} />
         </ToolbarIconButton>
-      </Toolbar>
+      </FloatingToolbar>
 
       <EditorMenu
         anchorEl={anchorEl}

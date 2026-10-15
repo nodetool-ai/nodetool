@@ -20,6 +20,21 @@ export { DialogActionButtons } from "./DialogActionButtons";
 export type { DialogActionButtonsProps } from "./DialogActionButtons";
 
 export { ToolbarIconButton } from "./ToolbarIconButton";
+export { Toolbar, ToolbarGroup, ToolbarDivider, TOOLBAR_HEIGHT } from "./Toolbar";
+export type {
+  ToolbarProps,
+  ToolbarGroupProps,
+  ToolbarDensity
+} from "./Toolbar";
+export { FloatingToolbar } from "./FloatingToolbar";
+export type { FloatingToolbarProps } from "./FloatingToolbar";
+export { StatusBar, StatusBarItem, SaveState } from "./StatusBar";
+export type {
+  StatusBarProps,
+  StatusBarItemProps,
+  SaveStateProps,
+  SaveStateValue
+} from "./StatusBar";
 export type { ToolbarIconButtonProps } from "./ToolbarIconButton";
 
 // Export shortcut hint component
@@ -499,7 +514,6 @@ export {
   SvgIcon,
   Modal,
   Fade,
-  Toolbar,
   LinearProgress,
   MuiAutocomplete,
   MuiDialog
@@ -546,7 +560,6 @@ export type {
   SvgIconProps,
   ModalProps,
   FadeProps,
-  ToolbarProps,
   LinearProgressProps,
   MuiAutocompleteProps,
   MuiDialogProps

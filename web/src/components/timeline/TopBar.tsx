@@ -6,9 +6,9 @@ import React, { memo, useCallback, useRef, useState } from "react";
 import {
   Caption,
   EditorMenu,
-  FlexRow,
   MenuItemPrimitive,
   SPACING,
+  ToolbarGroup,
   ToolbarIconButton
 } from "../ui_primitives";
 import CodeIcon from "@mui/icons-material/Code";
@@ -120,7 +120,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
       !!onExportMedia;
 
     return (
-      <FlexRow align="center" gap={SPACING.micro}>
+      <ToolbarGroup sx={{ gap: SPACING.micro }}>
         {activitySlot}
         {onToggleTranscript && (
           <ToolbarIconButton
@@ -260,7 +260,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
             </EditorMenu>
           </>
         )}
-      </FlexRow>
+      </ToolbarGroup>
     );
   }
 );
