@@ -32,6 +32,7 @@ import {
 import { useAddExampleModelAsset } from "../../hooks/useAddExampleModelAsset";
 import { trpc } from "../../trpc/client";
 import type { DragData } from "../../lib/dragdrop";
+import { BASE_URL } from "../../stores/BASE_URL";
 import { listExampleApps } from "../../utils/exampleApps";
 import {
   EXAMPLE_MODEL_PACKS,
@@ -41,6 +42,7 @@ import {
 } from "../../utils/exampleModels";
 import {
   EXAMPLE_SKETCHES,
+  exampleSketchUrl,
   type ExampleSketch
 } from "../../utils/exampleSketches";
 import { installExampleSketch } from "../../utils/installExampleSketch";
@@ -61,6 +63,8 @@ export interface ExampleEntry {
   readonly key: string;
   readonly name: string;
   readonly secondary: string;
+  /** Media locator of the preview image the Examples page shows, if any. */
+  readonly thumbnail?: string;
   /** Present on examples that drop targets accept. */
   readonly drag?: DragData;
 }
@@ -88,6 +92,14 @@ const plural = (count: number, noun: string): string =>
   `${count} ${noun}${count === 1 ? "" : "s"}`;
 
 const NO_RETRY = (): void => undefined;
+
+/** Server gallery paths are relative to the API, like on the Examples page. */
+const serverImage = (url: string | null | undefined): string | undefined => {
+  if (!url) {
+    return undefined;
+  }
+  return url.startsWith("http") ? url : `${BASE_URL}${url}`;
+};
 
 /**
  * Every kind of shipped example, as rows for the Examples panel. Opening a row
@@ -212,11 +224,17 @@ export const useExampleGroups = (): ExampleGroups => {
         kind: "workflows",
         label: "Workflows",
         icon: AccountTreeOutlinedIcon,
+        dropHint: "Drag onto the workflow canvas to add its nodes.",
         entries: (workflowList ?? []).map((workflow: Workflow) => ({
           key: `workflows:${workflow.id}`,
           name: workflow.name,
           secondary:
-            workflow.description || plural(workflow.graph.nodes.length, "node")
+            workflow.description || plural(workflow.graph.nodes.length, "node"),
+          thumbnail: serverImage(workflow.thumbnail_url),
+          drag: {
+            type: "example-workflow",
+            payload: { name: workflow.name, graph: workflow.graph }
+          }
         })),
         isLoading: templates.isPending,
         isError: templates.isError,
@@ -229,7 +247,8 @@ export const useExampleGroups = (): ExampleGroups => {
         entries: (apps.data ?? []).map((app) => ({
           key: `apps:${app.slug}`,
           name: app.name,
-          secondary: app.description
+          secondary: app.description,
+          thumbnail: serverImage(app.thumbnailUrl)
         })),
         isLoading: apps.isPending,
         isError: apps.isError,
@@ -239,10 +258,16 @@ export const useExampleGroups = (): ExampleGroups => {
         kind: "storyboards",
         label: "Storyboards",
         icon: DashboardOutlinedIcon,
+        dropHint: "Drag onto the workflow canvas to add a copy as a node.",
         entries: (storyboards.data ?? []).map((storyboard) => ({
           key: `storyboards:${storyboard.slug}`,
           name: storyboard.name,
-          secondary: plural(storyboard.shotCount, "shot")
+          secondary: plural(storyboard.shotCount, "shot"),
+          thumbnail: serverImage(storyboard.thumbnailUrl),
+          drag: {
+            type: "example-storyboard",
+            payload: { slug: storyboard.slug, name: storyboard.name }
+          }
         })),
         isLoading: storyboards.isPending,
         isError: storyboards.isError,
@@ -257,6 +282,7 @@ export const useExampleGroups = (): ExampleGroups => {
           key: `timelines:${timeline.slug}`,
           name: timeline.name,
           secondary: `${Math.round(timeline.durationMs / 1000)} seconds · ${plural(timeline.clipCount, "clip")}`,
+          thumbnail: timeline.posterUri,
           drag: {
             type: "example-timeline",
             payload: { slug: timeline.slug, name: timeline.name }
@@ -275,6 +301,7 @@ export const useExampleGroups = (): ExampleGroups => {
           key: `sketches:${sketch.slug}`,
           name: sketch.name,
           secondary: `${sketch.category} · ${plural(sketch.layers.length, "layer")}`,
+          thumbnail: exampleSketchUrl(sketch.slug, "preview"),
           drag: {
             type: "example-sketch",
             payload: { slug: sketch.slug, name: sketch.name }
@@ -310,7 +337,8 @@ export const useExampleGroups = (): ExampleGroups => {
         entries: (games.data ?? []).map((game) => ({
           key: `games:${game.slug}`,
           name: game.name,
-          secondary: game.description
+          secondary: game.description,
+          thumbnail: game.posterUri
         })),
         isLoading: games.isPending,
         isError: games.isError,

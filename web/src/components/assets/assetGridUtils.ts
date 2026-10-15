@@ -1,4 +1,13 @@
 import { Asset } from "../../stores/ApiTypes";
+import { TYPE_FILTERS, TypeFilterKey } from "../../utils/formatUtils";
+
+/** A type group in the asset grid: every type filter except "All". */
+export type AssetGroupKey = Exclude<TypeFilterKey, "all">;
+
+/** Group order in the grid and the type filter, matching the filter menu. */
+export const ASSET_GROUP_KEYS: AssetGroupKey[] = TYPE_FILTERS.map(
+  (filter) => filter.key
+).filter((key): key is AssetGroupKey => key !== "all");
 
 export type AssetOrDivider =
   | { isDivider: true; type: string; count: number }
@@ -14,10 +23,10 @@ export const getFooterHeight = (size: number): number => {
   switch (size) {
     case 1:
       return 5;
+    // Room for a two-line name under the thumbnail.
     case 2:
-      return 40;
     case 3:
-      return 40;
+      return 48;
     case 4:
     case 5:
       return 30;
@@ -69,47 +78,57 @@ export const calculateGridDimensions = (
   return { columns, itemWidth, itemHeight };
 };
 
+/**
+ * Lay the assets out as type groups, each led by a divider row. Assets of a
+ * collapsed group are left out, so only its divider remains. With `grouped`
+ * false (one type is filtered in) the assets come back without dividers.
+ */
 export const prepareItems = (
   assets: Asset[],
-  expandedTypes: Set<string>
+  collapsedGroups: ReadonlySet<string>,
+  grouped = true
 ): AssetOrDivider[] => {
   if (!assets || assets.length === 0) {
     return [];
   }
 
-  const assetsByType: Record<string, Asset[]> = {
-    image: [],
-    audio: [],
-    video: [],
-    model_3d: [],
-    text: [],
-    other: []
-  };
-
+  const assetsByGroup = new Map<AssetGroupKey, Asset[]>(
+    ASSET_GROUP_KEYS.map((key) => [key, []])
+  );
   assets.forEach((asset) => {
-    const type = getAssetCategory(asset.content_type);
-    if (type in assetsByType) {
-      assetsByType[type].push(asset);
-    } else {
-      assetsByType.other.push(asset);
-    }
+    assetsByGroup.get(getAssetGroup(asset.content_type))?.push(asset);
   });
 
-  return Object.entries(assetsByType).flatMap(
-    ([type, assets]): AssetOrDivider[] => {
-      if (assets.length === 0) {
+  return [...assetsByGroup.entries()].flatMap(
+    ([type, groupAssets]): AssetOrDivider[] => {
+      if (groupAssets.length === 0) {
         return [];
       }
+      const items = groupAssets.map(
+        (asset): AssetOrDivider => ({ ...asset, isDivider: false, type })
+      );
+      if (!grouped) {
+        return items;
+      }
       return [
-        { isDivider: true, type, count: assets.length },
-        ...(expandedTypes.has(type)
-          ? assets.map(
-              (asset): AssetOrDivider => ({ ...asset, isDivider: false, type })
-            )
-          : [])
+        { isDivider: true, type, count: groupAssets.length },
+        ...(collapsedGroups.has(type) ? [] : items)
       ];
     }
   );
+};
+
+/** Count the assets in each type group. */
+export const countAssetGroups = (
+  assets: Asset[]
+): Record<AssetGroupKey, number> => {
+  const counts = Object.fromEntries(
+    ASSET_GROUP_KEYS.map((key) => [key, 0])
+  ) as Record<AssetGroupKey, number>;
+  assets.forEach((asset) => {
+    counts[getAssetGroup(asset.content_type)] += 1;
+  });
+  return counts;
 };
 
 export const getAssetCategory = (contentType: string): string => {
@@ -121,6 +140,18 @@ export const getAssetCategory = (contentType: string): string => {
   }
 
   return topLevelType || "other";
+};
+
+/**
+ * The type group an asset belongs to. Top-level MIME types without a group of
+ * their own (fonts, unknown types) fall into "other", so the "Other" filter
+ * and the "Other" group hold the same assets.
+ */
+export const getAssetGroup = (contentType: string): AssetGroupKey => {
+  const category = getAssetCategory(contentType || "");
+  return (ASSET_GROUP_KEYS as string[]).includes(category)
+    ? (category as AssetGroupKey)
+    : "other";
 };
 
 export const calculateRowCount = (

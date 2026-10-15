@@ -1,229 +1,69 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
-import { useCallback, memo, useMemo } from "react";
+import React, { useCallback, memo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
-import DeselectIcon from "@mui/icons-material/Deselect";
-
-import {
-  ButtonGroup,
-  Select,
-  MenuItem,
-  type SelectChangeEvent, getSpacingPx, SPACING
-} from "../ui_primitives";
-import { EditorButton } from "../editor_ui";
+import SortIcon from "@mui/icons-material/Sort";
+import StraightenIcon from "@mui/icons-material/Straighten";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import GridViewIcon from "@mui/icons-material/GridView";
+import PhotoSizeSelectSmallIcon from "@mui/icons-material/PhotoSizeSelectSmall";
 
 import useAssets from "../../serverState/useAssets";
 import { useSettingsStore } from "../../stores/SettingsStore";
-
-import SliderBasic from "../inputs/SliderBasic";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import {
+  ContextMenu,
+  EditorButton,
+  FlexRow,
+  LoadingSpinner,
+  MenuItemPrimitive,
+  Slider,
+  Tooltip,
+  ViewModeToggle,
+  SPACING
+} from "../ui_primitives";
 import { SIZE_FILTERS, SizeFilterKey } from "../../utils/formatUtils";
-import ViewListIcon from "@mui/icons-material/ViewList";
-import ViewModuleIcon from "@mui/icons-material/ViewModule";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { Tooltip, LoadingSpinner, Box } from "../ui_primitives";
+
+type AssetsOrder = "name" | "date" | "size";
+
+const SORT_OPTIONS: { key: AssetsOrder; label: string; short: string }[] = [
+  { key: "date", label: "Newest first", short: "Newest" },
+  { key: "name", label: "Name (A to Z)", short: "Name" },
+  { key: "size", label: "Largest first", short: "Largest" }
+];
+
+const SIZE_LABELS: Record<SizeFilterKey, string> = {
+  all: "Any size",
+  empty: "Empty files",
+  small: "Under 1 MB",
+  medium: "1 to 10 MB",
+  large: "10 to 100 MB",
+  xlarge: "Over 100 MB"
+};
+
+const VIEW_OPTIONS = [
+  { value: "grid", icon: <GridViewIcon />, tooltip: "Grid view" },
+  { value: "list", icon: <ViewListIcon />, tooltip: "List view" }
+];
 
 interface AssetActionsProps {
-  setSelectedAssetIds: (assetIds: string[]) => void;
   handleSelectAllAssets: () => void;
-  handleDeselectAssets: () => void;
   maxItemSize?: number;
 }
 
-const styles = (theme: Theme) =>
-  css({
-    "&": {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: getSpacingPx(SPACING.xs),
-      maxWidth: "100%",
-      flexGrow: 1,
-      minHeight: "30px"
-    },
-    "& p": {
-      display: "inline-block"
-    },
-    ".asset-button-group": {
-      width: "auto",
-      display: "flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.xs),
-      border: 0,
-      padding: 0
-    },
-    ".asset-button-group.MuiButtonGroup-root button": {
-      color: theme.vars.palette.grey[200],
-      minWidth: "20px",
-      border: 0,
-      margin: "0",
-      padding: 0
-    },
-
-    // Smaller, cleaner icons in the asset toolbar
-    ".asset-button-group .MuiSvgIcon-root, .asset-button-group svg": {
-      fontSize: "var(--fontSizeBig)",
-      width: "18px",
-      height: "18px",
-      color: theme.vars.palette.grey[400]
-    },
-    ".asset-button-group .MuiButton-root:hover": {
-      border: 0,
-      color: "var(--palette-primary-main)",
-      backgroundColor: "transparent"
-    },
-    ".asset-button-group .MuiButton-root.disabled": {
-      color: theme.vars.palette.grey[400]
-    },
-    // size slider
-    ".asset-size-slider": {
-      paddingLeft: getSpacingPx(SPACING.xs),
-      flexGrow: 1,
-      flexShrink: 1,
-      paddingRight: getSpacingPx(SPACING.md),
-      minWidth: "80px",
-      maxWidth: "170px"
-    },
-    ".asset-size-slider .MuiSlider-root": {
-      height: "25px",
-      margin: "0",
-      padding: "0",
-      top: "0.2em",
-      color: theme.vars.palette.grey[200]
-    },
-    ".asset-size-slider .MuiSlider-root:hover": {
-      color: "var(--palette-primary-main)"
-    },
-    ".asset-size-slider .MuiSlider-root:hover .MuiSlider-thumb": {
-      backgroundColor: "var(--palette-primary-main)"
-    },
-    ".asset-size-slider .MuiSlider-track": {
-      backgroundColor: "transparent",
-      border: "none"
-    },
-    // sort by
-    ".sort-assets": {
-      margin: `0 ${getSpacingPx(SPACING.md)}`,
-      color: "var(--palette-primary-main)",
-      fontSize: theme.fontSizeSmaller,
-      textTransform: "uppercase",
-      position: "relative"
-    },
-    ".sort-assets:hover, .sort-assets [aria-expanded='true']": {
-      color: theme.vars.palette.grey[0]
-    },
-    ".sort-assets .MuiSelect-select": {
-      color: theme.vars.palette.grey[200],
-      border: "1px solid " + theme.vars.palette.grey[500],
-      borderRadius: ".25em",
-      padding: getSpacingPx(SPACING.md),
-      textOverflow: "clip",
-      backgroundColor: "transparent",
-      textAlign: "center",
-      boxSizing: "border-box",
-      lineHeight: "1.2",
-      height: "auto"
-    },
-
-    ".sort-assets .MuiSelect-select:hover": {
-      border: "1px solid " + "var(--palette-primary-main)",
-      borderRadius: ".25em",
-      backgroundColor: "transparent"
-    },
-
-    ".sort-assets .MuiSelect-icon": {
-      display: "none",
-      color: "var(--palette-primary-main)",
-      right: "0"
-    },
-    ".sort-assets.MuiInput-root::before": {
-      borderBottom: "none"
-    },
-    ".sort-assets.MuiInput-root::after": {
-      borderBottom: "none"
-    },
-    ".sort-assets.MuiInput-root:hover::before": {
-      border: "none !important  "
-    },
-    ".sort-assets.MuiInput-root:hover::after": {
-      border: "none"
-    },
-    // size filter
-    ".size-filter": {
-      margin: "0",
-      padding: `0 ${getSpacingPx(SPACING.xs)}`,
-      color: "var(--palette-primary-main)",
-      fontSize: theme.fontSizeSmaller,
-      textTransform: "uppercase",
-      position: "relative"
-    },
-    ".size-filter:hover, .size-filter [aria-expanded='true']": {
-      color: theme.vars.palette.grey[0]
-    },
-    ".size-filter .MuiSelect-select": {
-      color: theme.vars.palette.grey[200],
-      border: "1px solid " + theme.vars.palette.grey[500],
-      borderRadius: ".25em",
-      padding: getSpacingPx(SPACING.md),
-      textOverflow: "ellipsis",
-      backgroundColor: "transparent",
-      textAlign: "center",
-      boxSizing: "border-box",
-      lineHeight: "1.2",
-      height: "auto"
-    },
-    ".size-filter .MuiSelect-select:hover": {
-      border: "1px solid " + "var(--palette-primary-main)",
-      color: "var(--palette-primary-main)"
-    },
-    ".size-filter .MuiSelect-icon": {
-      display: "none"
-    },
-    ".size-filter.MuiInput-root::before": {
-      borderBottom: "none"
-    },
-    ".size-filter.MuiInput-root::after": {
-      borderBottom: "none"
-    },
-    ".size-filter.MuiInput-root:hover::before": {
-      border: "none !important"
-    },
-    ".size-filter.MuiInput-root:hover::after": {
-      border: "none"
-    },
-    // Stack controls on very narrow widths
-    "@media (max-width: 520px)": {
-      "&": {
-        flexDirection: "column",
-        alignItems: "stretch"
-      },
-      ".asset-button-group": {
-        justifyContent: "flex-start",
-        flexWrap: "wrap"
-      },
-      ".sort-assets, .size-filter": {
-        margin: "0",
-        width: "100%",
-        maxWidth: "100%"
-      },
-      ".asset-size-slider": {
-        maxWidth: "100%"
-      }
-    }
-  });
-
+/**
+ * View options for the asset browser: sort order, file size filter, grid or
+ * list, thumbnail size and select all. Each control says what it sets.
+ */
 const AssetActions = ({
   handleSelectAllAssets,
-  handleDeselectAssets,
   maxItemSize = 10
 }: AssetActionsProps) => {
-  const theme = useTheme();
   const { isLoading } = useAssets();
   const [settings, setAssetItemSize, setAssetsOrder] = useSettingsStore(
     useShallow(
-      (state) => [state.settings, state.setAssetItemSize, state.setAssetsOrder] as const
+      (state) =>
+        [state.settings, state.setAssetItemSize, state.setAssetsOrder] as const
     )
   );
   const [sizeFilter, setSizeFilter] = useAssetGridStore(
@@ -232,154 +72,141 @@ const AssetActions = ({
   const [viewMode, setViewMode] = useAssetGridStore(
     useShallow((state) => [state.viewMode, state.setViewMode] as const)
   );
+  const [sortAnchor, setSortAnchor] = useState<HTMLElement | null>(null);
+  const [sizeAnchor, setSizeAnchor] = useState<HTMLElement | null>(null);
 
-  const handleOrderChange = useCallback((_event: SelectChangeEvent<string>, newOrder: "name" | "date" | "size" | null) => {
-    if (newOrder !== null) {
-      setAssetsOrder(newOrder);
-    }
-  }, [setAssetsOrder]);
+  const sortLabel =
+    SORT_OPTIONS.find((option) => option.key === settings.assetsOrder)
+      ?.short ?? "Name";
 
-  const handleSizeFilterChange = useCallback((_event: SelectChangeEvent<string>, newSizeFilter: SizeFilterKey | null) => {
-    if (newSizeFilter !== null) {
-      setSizeFilter(newSizeFilter);
-    }
-  }, [setSizeFilter]);
+  const handleItemSize = useCallback(
+    (_event: Event, value: number | number[]) => {
+      setAssetItemSize(Array.isArray(value) ? value[0] : value);
+    },
+    [setAssetItemSize]
+  );
 
-  const handleViewModeToggle = useCallback(() => {
-    setViewMode(viewMode === "grid" ? "list" : "grid");
-  }, [viewMode, setViewMode]);
-
-  const handleChange = useCallback((_event: Event, value: number | number[]) => {
-    if (Array.isArray(value)) {
-      setAssetItemSize(value[0]);
-    } else {
-      setAssetItemSize(value);
-    }
-  }, [setAssetItemSize]);
-
-  const loadingIndicatorStyle = useMemo(() => ({
-    position: "absolute" as const,
-    right: "4em",
-    top: "1.4em",
-    left: "unset",
-    "& span": {
-      height: "1em !important",
-      width: "1em !important"
-    }
-  }), []);
-
-  const handleSortChange = useCallback((e: SelectChangeEvent<string>) => {
-    handleOrderChange(e, e.target.value as "name" | "date" | "size");
-  }, [handleOrderChange]);
-
-  const handleSizeFilter = useCallback((e: SelectChangeEvent<string>) => {
-    handleSizeFilterChange(e, e.target.value as SizeFilterKey);
-  }, [handleSizeFilterChange]);
+  const handleViewMode = useCallback(
+    (mode: string) => setViewMode(mode === "list" ? "list" : "grid"),
+    [setViewMode]
+  );
 
   return (
-    <div className="asset-actions" css={styles(theme)}>
-      <ButtonGroup className="asset-button-group" size="small" tabIndex={-1}>
-        <Tooltip
-          title="Select all"
-          disableInteractive
-        >
-          <EditorButton onClick={handleSelectAllAssets} tabIndex={-1}>
-            <SelectAllIcon />
-          </EditorButton>
-        </Tooltip>
-        <Tooltip
-          title="Deselect"
-          disableInteractive
-        >
-          <EditorButton onClick={handleDeselectAssets} tabIndex={-1}>
-            <DeselectIcon />
-          </EditorButton>
-        </Tooltip>
-        <Tooltip
-          title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
-          disableInteractive
-        >
-          <EditorButton onClick={handleViewModeToggle} tabIndex={-1}>
-            {viewMode === "grid" ? <ViewListIcon /> : <ViewModuleIcon />}
-          </EditorButton>
-        </Tooltip>
-
-        {isLoading && (
-          <Box
-            className={`loading-indicator ${isLoading ? "loading" : ""}`}
-            sx={loadingIndicatorStyle}
-          >
-            <LoadingSpinner size="small" />
-          </Box>
-        )}
-      </ButtonGroup>
-
-      <Tooltip
-        title="Sort assets"
-        placement="bottom"
-        disableInteractive
+    <FlexRow
+      className="asset-actions"
+      align="center"
+      gap={SPACING.sm}
+      wrap
+      sx={{ flexGrow: 1, minWidth: 0 }}
+    >
+      <EditorButton
+        variant="text"
+        color="inherit"
+        density="compact"
+        startIcon={<SortIcon />}
+        endIcon={<ArrowDropDownIcon />}
+        tooltip="Sort files"
+        aria-haspopup="menu"
+        onClick={(e) => setSortAnchor(e.currentTarget)}
       >
-        <Select
-          variant="standard"
-          className="sort-assets"
-          value={settings.assetsOrder}
-          onChange={handleSortChange}
-          displayEmpty
-          inputProps={{ "aria-label": "Sort assets" }}
-          tabIndex={-1}
-        >
-          <MenuItem value="name">Name</MenuItem>
-          <MenuItem value="date">Date</MenuItem>
-          <MenuItem value="size">Size</MenuItem>
-        </Select>
-      </Tooltip>
-
-      <Tooltip
-        title="Filter by file size"
-        placement="bottom"
-        disableInteractive
+        {`Sort: ${sortLabel}`}
+      </EditorButton>
+      <EditorButton
+        variant="text"
+        color={sizeFilter === "all" ? "inherit" : "primary"}
+        density="compact"
+        startIcon={<StraightenIcon />}
+        endIcon={<ArrowDropDownIcon />}
+        tooltip="Filter by file size"
+        aria-haspopup="menu"
+        onClick={(e) => setSizeAnchor(e.currentTarget)}
       >
-        <Select
-          className="size-filter"
-          variant="standard"
-          value={sizeFilter}
-          sx={{
-            "& .MuiSelect-select": {
-              minWidth: "80px"
-            }
-          }}
-          onChange={handleSizeFilter}
-          displayEmpty
-          inputProps={{ "aria-label": "Filter by size" }}
-          tabIndex={-1}
-        >
-          {SIZE_FILTERS.map((filter) => (
-            <MenuItem key={filter.key} value={filter.key}>
-              {filter.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </Tooltip>
+        {SIZE_LABELS[sizeFilter]}
+      </EditorButton>
+
+      <ViewModeToggle
+        value={viewMode}
+        onChange={handleViewMode}
+        options={VIEW_OPTIONS}
+        nodrag={false}
+        aria-label="View"
+      />
 
       {viewMode === "grid" && (
-        <div className="asset-size-slider">
-          <SliderBasic
-            size="small"
-            defaultValue={settings.assetItemSize}
-            aria-label="Small"
-            tooltipText="Item Size"
-            tooltipPlacement="bottom"
-            valueLabelDisplay="auto"
-            step={1}
-            marks
-            min={1}
-            max={maxItemSize}
-            onChange={handleChange}
-            value={settings.assetItemSize}
-          />
-        </div>
+        <Tooltip title="Thumbnail size" placement="bottom">
+          <FlexRow
+            align="center"
+            gap={SPACING.sm}
+            sx={{ width: 140, flexShrink: 0, color: "text.secondary" }}
+          >
+            <PhotoSizeSelectSmallIcon sx={{ fontSize: 16 }} />
+            <Slider
+              size="small"
+              aria-label="Thumbnail size"
+              step={1}
+              min={1}
+              max={maxItemSize}
+              value={settings.assetItemSize}
+              onChange={handleItemSize}
+            />
+          </FlexRow>
+        </Tooltip>
       )}
-    </div>
+
+      <EditorButton
+        variant="text"
+        color="inherit"
+        density="compact"
+        startIcon={<SelectAllIcon />}
+        tooltip="Select every file in view"
+        onClick={handleSelectAllAssets}
+      >
+        Select all
+      </EditorButton>
+
+      {isLoading && <LoadingSpinner size={16} inline />}
+
+      <ContextMenu
+        open={Boolean(sortAnchor)}
+        anchorEl={sortAnchor}
+        onClose={() => setSortAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+      >
+        {SORT_OPTIONS.map((option) => (
+          <MenuItemPrimitive
+            key={option.key}
+            label={option.label}
+            checkable="radio"
+            checked={settings.assetsOrder === option.key}
+            onClick={() => {
+              setAssetsOrder(option.key);
+              setSortAnchor(null);
+            }}
+          />
+        ))}
+      </ContextMenu>
+      <ContextMenu
+        open={Boolean(sizeAnchor)}
+        anchorEl={sizeAnchor}
+        onClose={() => setSizeAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+      >
+        {SIZE_FILTERS.map((filter) => (
+          <MenuItemPrimitive
+            key={filter.key}
+            label={SIZE_LABELS[filter.key]}
+            checkable="radio"
+            checked={sizeFilter === filter.key}
+            onClick={() => {
+              setSizeFilter(filter.key);
+              setSizeAnchor(null);
+            }}
+          />
+        ))}
+      </ContextMenu>
+    </FlexRow>
   );
 };
 

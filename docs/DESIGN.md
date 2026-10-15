@@ -958,6 +958,7 @@ import { AutoGrid, selectableRowStyles, selectableTileStyles } from "../ui_primi
 | Row title | `TYPOGRAPHY.sans.label` (13px / 500). A row's secondary line is `Caption` |
 | Tile title | `TYPOGRAPHY.sans.label`. Metadata under it is `Caption` |
 | Group headers | `EYEBROW` in `text.secondary`, left-aligned with the rows: date groups, providers, asset types, namespaces. `SectionHeader size="small"` renders it |
+| Type groups | A long mixed list (the asset browser) groups by file type. The header is a button: chevron, type icon, label and count. Collapsed groups are remembered per surface. A row of `Chip`s above the list filters to one type, with counts |
 | Grid | `AutoGrid`. It caps the minimum column at the container width, so one tile fits a narrow panel |
 | Long lists | `VirtualList` |
 | Media | `ResponsiveImage` with `preferThumbnail`, and `loading="lazy"` in a long list |

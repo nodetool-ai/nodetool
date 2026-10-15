@@ -58,12 +58,12 @@ describe("getFooterHeight", () => {
     expect(getFooterHeight(1)).toBe(5);
   });
 
-  it("returns 40 for size 2", () => {
-    expect(getFooterHeight(2)).toBe(40);
+  it("returns 48 for size 2", () => {
+    expect(getFooterHeight(2)).toBe(48);
   });
 
-  it("returns 40 for size 3", () => {
-    expect(getFooterHeight(3)).toBe(40);
+  it("returns 48 for size 3", () => {
+    expect(getFooterHeight(3)).toBe(48);
   });
 
   it("returns 30 for size 4", () => {

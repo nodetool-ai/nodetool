@@ -10,7 +10,10 @@ import {
   useAssetGridStoreApi
 } from "../stores/AssetGridStore";
 import { SIZE_FILTERS } from "../utils/formatUtils";
-import { getAssetCategory } from "../components/assets/assetGridUtils";
+import {
+  countAssetGroups,
+  getAssetGroup
+} from "../components/assets/assetGridUtils";
 import { trpcClient } from "../trpc/client";
 import { normalizeAssetList } from "../utils/normalizeAsset";
 import { useNotificationStore } from "../stores/NotificationStore";
@@ -271,11 +274,11 @@ export const useAssets = () => {
           }
         }
 
-        // Asset-category filtering (image / video / audio / etc.)
+        // Type-group filtering (image / video / audio / etc.)
         let categoryMatch = true;
         if (options.typeFilter && options.typeFilter !== "all") {
-          const category = getAssetCategory(asset.content_type || "");
-          categoryMatch = category === options.typeFilter;
+          categoryMatch =
+            getAssetGroup(asset.content_type || "") === options.typeFilter;
         }
 
         const modelMatch = options.modelFilter
@@ -289,22 +292,30 @@ export const useAssets = () => {
     },
     []
   );
-  const folderFilesFiltered = useMemo(() => {
+  // Every filter except the type, so the type filter can count each group.
+  const folderFilesAnyType = useMemo(() => {
     return filterAssets(processedAssets, {
       searchTerm: assetSearchTerm || "",
       contentType: null,
       sizeFilter: sizeFilter,
-      typeFilter: typeFilter,
       modelFilter: modelFilter
     });
-  }, [
-    filterAssets,
-    processedAssets,
-    assetSearchTerm,
-    sizeFilter,
-    typeFilter,
-    modelFilter
-  ]);
+  }, [filterAssets, processedAssets, assetSearchTerm, sizeFilter, modelFilter]);
+
+  const folderFilesFiltered = useMemo(() => {
+    if (typeFilter === "all") {
+      return folderFilesAnyType;
+    }
+    return folderFilesAnyType.filter(
+      (asset) => getAssetGroup(asset.content_type || "") === typeFilter
+    );
+  }, [folderFilesAnyType, typeFilter]);
+
+  // Assets per type group under the other filters, for the type filter chips.
+  const typeCounts = useMemo(
+    () => countAssetGroups(folderFilesAnyType),
+    [folderFilesAnyType]
+  );
 
   // The models behind the assets in view, for the model filter menu.
   const modelOptions = useMemo(() => {
@@ -438,6 +449,7 @@ export const useAssets = () => {
   return {
     folderFiles: processedAssets, // Processed and sorted non-folder assets from the current folder
     folderFilesFiltered, // Filtered assets based on search term and content type
+    typeCounts, // Assets per type group under every filter but the type
     folderAssets: currentFolderAssets, // Raw data returned from the API for the current folder, including both files and folders
     folderTree, // Tree structure of all folders in the system
     modelOptions, // models that generated the assets in view

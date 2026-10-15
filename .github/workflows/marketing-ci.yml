@@ -19,11 +19,13 @@ name: Marketing CI/CD
 # The paths below are the site plus the reverse dependency edge. marketing/ is
 # otherwise its own npm project and the root workspace's Quality Gate skips
 # entirely for a marketing-only PR (see the `shared` filter in test.yml), but
-# three of this workflow's steps check generated files against data that lives
+# four of this workflow's steps check generated files against data that lives
 # in packages/:
 #
 #   gen:templates          → packages/base-nodes/nodetool/examples|assets/nodetool-base
 #   seo:provider-catalog   → packages/*-nodes/src/*-manifest.json
+#   seo:model-directory    → the manifests, packages/runtime/src/providers
+#                            and packages/model-pricing/src/generated/model-rankings.json
 #   seo:check              → packages/base-nodes/nodetool/examples/nodetool-base
 #
 # Without them a PR that edits an example workflow or a provider manifest lands
@@ -38,6 +40,8 @@ on:
       - "packages/base-nodes/nodetool/examples/nodetool-base/**"
       - "packages/base-nodes/nodetool/assets/nodetool-base/**"
       - "packages/*-nodes/src/*-manifest.json"
+      - "packages/runtime/src/providers/*"
+      - "packages/model-pricing/src/generated/model-rankings.json"
       - ".github/workflows/marketing-ci.yml"
   pull_request:
     paths:
@@ -45,6 +49,8 @@ on:
       - "packages/base-nodes/nodetool/examples/nodetool-base/**"
       - "packages/base-nodes/nodetool/assets/nodetool-base/**"
       - "packages/*-nodes/src/*-manifest.json"
+      - "packages/runtime/src/providers/*"
+      - "packages/model-pricing/src/generated/model-rankings.json"
       - ".github/workflows/marketing-ci.yml"
 
 # Least-privilege token: this workflow only reads the repo to build/lint/deploy
@@ -92,6 +98,11 @@ jobs:
 
       - name: Check generated provider catalog is up to date
         run: npm run seo:provider-catalog -- --check
+
+      - name: Check generated model directory is up to date
+        run: |
+          node --test scripts/__tests__/generate-model-directory.test.mjs
+          npm run seo:model-directory -- --check
 
       - name: Check generated agent discovery files are up to date
         run: npm run seo:check
