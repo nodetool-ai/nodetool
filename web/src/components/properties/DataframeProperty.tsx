@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme, alpha } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useState, DragEvent } from "react";
 import { PropertyProps } from "../node/PropertyInput";
