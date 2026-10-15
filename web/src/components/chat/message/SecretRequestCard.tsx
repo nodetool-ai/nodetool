@@ -11,7 +11,9 @@ import {
   FlexRow,
   Text,
   TextInput,
-  BORDER_RADIUS,
+  Card,
+  CardBody,
+  CardHeader,
   TYPOGRAPHY
 } from "../../ui_primitives";
 import useSecretsStore from "../../../stores/SecretsStore";
@@ -28,27 +30,10 @@ interface SecretRequestCardProps {
 
 const styles = (theme: Theme) =>
   css({
-    border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: BORDER_RADIUS.lg,
-    overflow: "hidden",
-    ".secret-request-header": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(2),
-      padding: theme.spacing(1.5, 2),
-      borderBottom: `1px solid ${theme.vars.palette.divider}`
-    },
     ".secret-request-key": {
       ...TYPOGRAPHY.mono.code,
       color: theme.vars.palette.text.secondary,
-      whiteSpace: "nowrap",
-      marginLeft: "auto"
-    },
-    ".secret-request-body": {
-      display: "flex",
-      flexDirection: "column",
-      gap: theme.spacing(1.5),
-      padding: theme.spacing(1.5, 2)
+      whiteSpace: "nowrap"
     },
     ".secret-request-link": {
       fontSize: "var(--fontSizeSmall)",
@@ -128,20 +113,20 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
   }, [approvalId, onResolve]);
 
   return (
-    <div css={cssStyles} className="secret-request-card" role="group">
-      <div className="secret-request-header">
-        <KeyRoundedIcon fontSize="small" />
-        <FlexColumn gap={0}>
-          <Text size="small" weight={500}>
-            Enter a credential
-          </Text>
-          <Text size="smaller" color="secondary">
-            Saved to your secret store. The agent never sees the value.
-          </Text>
-        </FlexColumn>
-        <span className="secret-request-key">{request.key}</span>
-      </div>
-      <div className="secret-request-body">
+    <Card
+      variant="inline"
+      css={cssStyles}
+      className="secret-request-card"
+      role="group"
+    >
+      <CardHeader
+        divided
+        icon={<KeyRoundedIcon fontSize="small" />}
+        title="Enter a credential"
+        subtitle="Saved to your secret store. The agent never sees the value."
+        trailing={<span className="secret-request-key">{request.key}</span>}
+      />
+      <CardBody className="secret-request-body">
         {request.reason && (
           <Text size="small" color="secondary">
             {request.reason}
@@ -162,7 +147,7 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
             Where to get this key
           </a>
         )}
-      </div>
+      </CardBody>
       <div className="secret-request-footer">
         <TextInput
           size="small"
@@ -201,7 +186,7 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
           </EditorButton>
         </FlexRow>
       </div>
-    </div>
+    </Card>
   );
 };
 

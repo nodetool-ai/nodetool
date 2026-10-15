@@ -135,14 +135,13 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
   return (
     <Card
       padding="none"
+      variant="outlined"
+      radius="sm"
       sx={{
         mb: 2,
-        backgroundColor: "var(--palette-grey-900)",
-        border: "1px solid var(--palette-grey-700)",
-        borderRadius: BORDER_RADIUS.sm,
         transition: MOTION.border,
         "&:hover": {
-          borderColor: "var(--palette-grey-500)"
+          borderColor: "text.disabled"
         }
       }}
     >
