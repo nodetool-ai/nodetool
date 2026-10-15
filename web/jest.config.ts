@@ -24,6 +24,9 @@ export default {
   },
   testTimeout: 10000,
   maxWorkers,
+  ...(process.env.NODETOOL_WEB_TEST_RECYCLE_WORKERS === "1"
+    ? { workerIdleMemoryLimit: WORKER_MEMORY_BYTES }
+    : {}),
   moduleNameMapper: {
     "^@nodetool-ai/gpu/webgpu$": "<rootDir>/../packages/gpu/src/webgpu/index.ts",
     "^@nodetool-ai/gpu/pool$": "<rootDir>/../packages/gpu/src/pool.ts",

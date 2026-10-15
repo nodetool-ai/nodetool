@@ -5,6 +5,13 @@ on:
     paths:
       - 'packages/**'
       - 'scripts/smoke-packed-cli.mjs'
+      - 'scripts/packed-verification.mjs'
+      - 'scripts/test-affected.mjs'
+      - 'scripts/ci-plan.mjs'
+      - 'scripts/run-turbo.mjs'
+      - 'scripts/__tests__/packed-verification.test.mjs'
+      - 'web/jest.config.ts'
+      - 'scripts/__tests__/jest-worker-memory.test.mjs'
       - 'scripts/fixtures/codec-identity.mp4'
       - 'scripts/node-catalog/tiers.mjs'
       - 'scripts/prepare-publish.mjs'
@@ -28,13 +35,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  verification-plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    outputs:
+      sha: ${{ steps.plan.outputs.sha }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .nvmrc
+      - name: Freeze the canonical affected selection
+        id: plan
+        run: node scripts/packed-verification.mjs plan "$RUNNER_TEMP/packed-verification.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packed-verification-plan
+          path: ${{ runner.temp }}/packed-verification.json
+          if-no-files-found: error
   verification:
+    needs: verification-plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.verification-plan.outputs.matrix) }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          ref: ${{ needs.verification-plan.outputs.sha }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packed-verification-plan
+          path: ${{ runner.temp }}
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .nvmrc
+      - name: Restore the frozen selection base
+        run: node scripts/packed-verification.mjs prepare "$RUNNER_TEMP/packed-verification.json"
       - uses: ./.github/actions/setup-build
         with:
           cache: read-only
@@ -68,21 +110,13 @@ jobs:
 
       - name: Install mobile check dependencies
         run: npm --prefix mobile ci
-      - name: Verify affected tests
+      - name: Run the selected verification bucket
         env:
+          NODETOOL_WEB_TEST_RECYCLE_WORKERS: "1"
           NODETOOL_TURBO_CONCURRENCY: "1"
           NODETOOL_TEST_WORKERS: "1"
-        run: npm run test:affected
-      - name: Verify types
-        run: npm run typecheck
-      - name: Verify lint
-        run: npm run lint
-      - name: Verify harnesses
-        env:
-          NODETOOL_TEST_WORKERS: "1"
-        run: npm run dev:nodetool -- harness gate --base origin/main --jobs 1
-      - name: Verify the packaged backend
-        run: npm run backend:smoke
+          PACKED_TASK: ${{ matrix.task }}
+        run: node scripts/packed-verification.mjs run "$RUNNER_TEMP/packed-verification.json" "$PACKED_TASK"
   packed-install:
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -98,17 +132,18 @@ jobs:
       - name: Smoke-test the packed full CLI
         run: node scripts/smoke-packed-cli.mjs
   core-smoke:
-    needs: [verification, packed-install]
+    needs: [verification-plan, verification, packed-install]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require complete verification and packed installation
         env:
+          PLAN_RESULT: ${{ needs.verification-plan.result }}
           VERIFICATION_RESULT: ${{ needs.verification.result }}
           PACKED_INSTALL_RESULT: ${{ needs.packed-install.result }}
         run: |
-          if [ "$VERIFICATION_RESULT" != "success" ] || [ "$PACKED_INSTALL_RESULT" != "success" ]; then
+          if [ "$PLAN_RESULT" != "success" ] || [ "$VERIFICATION_RESULT" != "success" ] || [ "$PACKED_INSTALL_RESULT" != "success" ]; then
             echo "Packed CLI verification or installation did not pass."
             exit 1
           fi
