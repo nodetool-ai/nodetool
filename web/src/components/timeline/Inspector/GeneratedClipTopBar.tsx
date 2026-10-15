@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 /**
  * GeneratedClipTopBar
  *
@@ -10,39 +9,37 @@
  */
 
 import React, { memo } from "react";
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 
 import type { TimelineClip } from "@nodetool-ai/timeline";
-import { Z_INDEX } from "../../ui_primitives";
+import { Toolbar, Z_INDEX } from "../../ui_primitives";
 import { GeneratedClipHeader } from "./GeneratedClipHeader";
 import { ClipActions } from "./ClipActions";
 
-const topBarStyles = (theme: Theme) =>
-  css({
-    position: "sticky",
-    top: 0,
-    zIndex: Z_INDEX.sticky,
-    // Match the Panel surface so scrolling content passes cleanly underneath.
-    backgroundColor: theme.vars.palette.background.default,
-    borderBottom: `1px solid ${theme.vars.palette.divider}`
-  });
+// Pinned stack of two rows rather than a single-row bar: the surface, rule and
+// z-order come from Toolbar, the column layout is local.
+const topBarSx = {
+  position: "sticky",
+  top: 0,
+  zIndex: Z_INDEX.sticky,
+  flexDirection: "column",
+  alignItems: "stretch",
+  gap: 0,
+  px: 0,
+  // Match the Panel surface so scrolling content passes cleanly underneath.
+  bgcolor: "background.default"
+} as const;
 
 interface GeneratedClipTopBarProps {
   clip: TimelineClip;
 }
 
 export const GeneratedClipTopBar: React.FC<GeneratedClipTopBarProps> = memo(
-  ({ clip }) => {
-    const theme = useTheme();
-    return (
-      <div css={topBarStyles(theme)}>
-        <GeneratedClipHeader clip={clip} />
-        <ClipActions clipId={clip.id} />
-      </div>
-    );
-  }
+  ({ clip }) => (
+    <Toolbar sx={topBarSx}>
+      <GeneratedClipHeader clip={clip} />
+      <ClipActions clipId={clip.id} />
+    </Toolbar>
+  )
 );
 
 GeneratedClipTopBar.displayName = "GeneratedClipTopBar";

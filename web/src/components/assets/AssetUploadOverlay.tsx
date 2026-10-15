@@ -28,8 +28,8 @@ const styles = (theme: Theme) =>
       maxWidth: "600px",
       maxHeight: "500px",
       overflowY: "auto",
-      backgroundColor: theme.vars.palette.grey[600],
-      outline: `2px solid ${theme.vars.palette.grey[900]}`,
+      backgroundColor: theme.vars.palette.background.paper,
+      outline: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: SHADOW(theme).lg,
       padding: getSpacingPx(SPACING.xl),
       borderRadius: BORDER_RADIUS.lg

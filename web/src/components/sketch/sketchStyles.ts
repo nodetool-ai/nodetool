@@ -68,47 +68,6 @@ export const SKETCH_Z_INDEX = {
 // ─── Shared sx Objects ────────────────────────────────────────────────────────
 
 /**
- * Minimal, professional slider — thin 2px track, small 10px thumb, no shadows.
- * Apply directly: `<Slider sx={sketchSliderSx} />`
- */
-export const sketchSliderSx: SxProps<Theme> = (t) => {
-  return {
-    padding: `${getSpacingPx(SPACING.md)} 0`,
-    "& .MuiSlider-rail": {
-      height: "2px",
-      opacity: 0.3,
-      backgroundColor: t.vars.palette.grey[400]
-    },
-    "& .MuiSlider-track": {
-      height: "2px",
-      border: "none",
-      backgroundColor: t.vars.palette.grey[300]
-    },
-    "& .MuiSlider-thumb": {
-      width: "10px",
-      height: "10px",
-      backgroundColor: t.vars.palette.grey[200],
-      boxShadow: "none",
-      transition: `box-shadow ${MOTION.fast}`,
-      ...reducedMotion({ transition: MOTION.none }),
-      // Brightest neutral on hover (#FCFCFC), never pure #fff.
-      "&:hover": {
-        boxShadow: "none",
-        backgroundColor: t.vars.palette.c_brightest
-      },
-      // Keyboard focus stays visibly distinct from hover: a Studio-Blue
-      // ring (WCAG 2.2 AA). Previously this shared the hover rule and set
-      // `boxShadow: none`, erasing the focus indicator entirely.
-      "&.Mui-focusVisible": {
-        boxShadow: `0 0 0 3px ${t.vars.palette.primary.main}`,
-        backgroundColor: t.vars.palette.c_brightest
-      },
-      "&::before": { display: "none" }
-    }
-  };
-};
-
-/**
  * Compact ToggleButton sizing used throughout tool settings panels.
  * Apply directly: `<ToggleButton sx={toggleButtonSmallSx} />`
  *

@@ -5,7 +5,9 @@ import { useTheme, type Theme } from "@mui/material/styles";
 
 import { isFunction } from "../../utils/typePredicates";
 import { SPACING, getSpacingPx } from "./spacing";
-import { BORDER_RADIUS, CONTROL, MOTION, TYPOGRAPHY } from "./tokens";
+import { CONTROL } from "./tokens";
+import { useFieldDensity, type FieldDensity } from "./fieldDensity";
+import { numberFieldPaddingX, numberFieldSurfaceStyles, numberFieldTextStyles, numberFieldUnitStyles } from "./NumberField";
 
 export interface InspectorValueScrub {
   step: number;
@@ -42,34 +44,28 @@ export interface InspectorValueInputProps {
   ref?: Ref<HTMLInputElement>;
 }
 
-const wrapStyles = (theme: Theme, disabled: boolean, focused: boolean, scrubbable: boolean, height: number, grow: boolean) => css({
+const wrapStyles = (theme: Theme, disabled: boolean, focused: boolean, scrubbable: boolean, density: FieldDensity, grow: boolean) => css({
+  ...numberFieldSurfaceStyles(theme, density, focused),
   display: "inline-flex",
   flex: grow ? "1 1 auto" : undefined,
   width: grow ? "100%" : undefined,
   alignItems: "center",
   gap: getSpacingPx(SPACING.micro),
-  height,
-  padding: theme.spacing(0, SPACING.md),
-  backgroundColor: theme.vars.palette.background.default,
-  border: `1px solid ${focused ? theme.vars.palette.primary.main : theme.vars.palette.c_overlay}`,
-  borderRadius: BORDER_RADIUS.sm,
+  padding: `0 ${numberFieldPaddingX(theme)}`,
   minWidth: CONTROL.height.xl + CONTROL.height.xs,
   justifyContent: "flex-end",
   opacity: disabled ? 0.5 : 1,
-  transition: `border-color ${MOTION.fast}`,
   cursor: scrubbable && !focused && !disabled ? "ew-resize" : undefined,
-  touchAction: scrubbable ? "none" : undefined,
-  "&:hover": { borderColor: focused ? theme.vars.palette.primary.main : theme.vars.palette.divider }
+  touchAction: scrubbable ? "none" : undefined
 });
 
 const inputStyles = (theme: Theme, scrubbable: boolean, focused: boolean) => css({
-  ...TYPOGRAPHY.mono.code,
+  ...numberFieldTextStyles(theme),
   flex: "1 1 auto",
   minWidth: 0,
   background: "transparent",
   border: "none",
   outline: "none",
-  color: theme.vars.palette.text.primary,
   letterSpacing: 0,
   textAlign: "right",
   padding: 0,
@@ -84,11 +80,7 @@ const clampToScrub = (next: number, scrub: InspectorValueScrub): number => {
   return clamped;
 };
 
-const unitStyles = (theme: Theme) => css({
-  ...TYPOGRAPHY.mono.label,
-  color: theme.vars.palette.text.secondary,
-  flexShrink: 0
-});
+const unitStyles = (theme: Theme) => css(numberFieldUnitStyles(theme));
 
 /** Scrub and arrow-key step multiplier: Shift is coarse, Alt is fine. */
 const stepMultiplier = (event: { shiftKey: boolean; altKey: boolean }): number =>
@@ -225,8 +217,10 @@ export const InspectorValueInput = memo(function InspectorValueInput({
     }
   }, [scrub, disabled, draft, value, scrubGesture, onCommit]);
 
+  const contextDensity = useFieldDensity();
+  const density: FieldDensity = size === "small" ? "compact" : contextDensity;
   const wrapCss = useMemo(() => wrapStyles(theme, disabled, focused, Boolean(scrub),
-    size === "small" ? CONTROL.height.xs : CONTROL.height.sm, grow), [theme, disabled, focused, scrub, size, grow]);
+    density, grow), [theme, disabled, focused, scrub, density, grow]);
   const inputCss = useMemo(() => inputStyles(theme, Boolean(scrub), focused), [theme, scrub, focused]);
   const unitCss = useMemo(() => unitStyles(theme), [theme]);
 

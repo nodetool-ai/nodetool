@@ -32,6 +32,7 @@ import {
   CloseButton,
   EditorButton,
   FlexRow,
+  FloatingToolbar,
   LoadingSpinner,
   MagicGenerationFill,
   MOTION,
@@ -381,11 +382,9 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
           <MagicGenerationFill framed borderRadius={BORDER_RADIUS.sm} />
         </Box>
       )}
-      <FlexRow
+      <FloatingToolbar
         className="sketch-selection-action-bar"
         data-testid="sketch-selection-action-bar"
-        align="center"
-        gap={0.5}
         sx={{
           position: "absolute",
           left: leftCss,
@@ -393,11 +392,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
           transform: `translate(-50%, ${placeAbove ? "-100%" : "0"})`,
           zIndex: SKETCH_Z_INDEX.overlay + 5,
           pointerEvents: "auto",
-          padding: theme.spacing(0.5),
-          borderRadius: BORDER_RADIUS.md,
-          backgroundColor: theme.vars.palette.grey[900],
-          border: `1px solid ${theme.vars.palette.grey[700]}`,
-          boxShadow: theme.shadows[6],
           whiteSpace: "nowrap",
           // Glowing rotating border while a generation is running. zIndex -1
           // keeps it behind the opaque bar so only the outset frame shows.
@@ -554,7 +548,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
           buttonSize="small"
           className="sketch-selection-close"
         />
-      </FlexRow>
+      </FloatingToolbar>
 
       {mode === "inpaint" && (
         <RefineSelectionPopover

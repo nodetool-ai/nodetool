@@ -17,7 +17,6 @@ import React, {
 } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import {
-  sketchSliderSx,
   sketchFieldSx,
   SKETCH_CHECKERBOARD,
   SKETCH_COLORS,
@@ -1332,7 +1331,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               Opacity
             </Text>
             <Slider
-              sx={sketchSliderSx}
               size="small"
               min={0}
               max={1}

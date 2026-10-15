@@ -22,7 +22,7 @@ import {
   ShapeSettings,
   ShapeToolType
 } from "../types";
-import { colorSwatchSx, sketchHintTextSx, sketchSliderSx } from "../sketchStyles";
+import { colorSwatchSx, sketchHintTextSx } from "../sketchStyles";
 import ColorPickerPopover from "../ColorPickerPopover";
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 
@@ -101,7 +101,6 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
       <Box className="setting-row">
         <Text className="setting-label">Width</Text>
         <Slider
-          sx={sketchSliderSx}
           size="small"
           min={1}
           max={50}
@@ -159,7 +158,6 @@ export const FillSettingsPanel = memo(function FillSettingsPanel({
     <Box className="setting-row">
       <Text className="setting-label">Tolerance</Text>
       <Slider
-        sx={sketchSliderSx}
         size="small"
         min={0}
         max={128}
@@ -180,7 +178,6 @@ export const BlurSettingsPanel = memo(function BlurSettingsPanel({
       <Box className="setting-row">
         <Text className="setting-label">Size</Text>
         <Slider
-          sx={sketchSliderSx}
           size="small"
           min={1}
           max={200}
@@ -192,7 +189,6 @@ export const BlurSettingsPanel = memo(function BlurSettingsPanel({
       <Box className="setting-row">
         <Text className="setting-label">Strength</Text>
         <Slider
-          sx={sketchSliderSx}
           size="small"
           min={1}
           max={20}
@@ -307,7 +303,6 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
       <Box className="setting-row">
         <Text className="setting-label">Size</Text>
         <Slider
-          sx={sketchSliderSx}
           size="small"
           min={1}
           max={200}
@@ -319,7 +314,6 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
       <Box className="setting-row">
         <Text className="setting-label">Opacity</Text>
         <Slider
-          sx={sketchSliderSx}
           size="small"
           min={0}
           max={1}
@@ -334,7 +328,6 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
       <Box className="setting-row">
         <Text className="setting-label">Hardness</Text>
         <Slider
-          sx={sketchSliderSx}
           size="small"
           min={0}
           max={1}
