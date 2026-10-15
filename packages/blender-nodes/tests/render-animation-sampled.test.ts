@@ -43,8 +43,8 @@ function camera(overrides: Partial<BakeCameraParams> = {}): BakeCameraParams {
     background_color: "#102030",
     transparent: false,
     engine: "eevee",
-    samples: 16,
-    denoise: true,
+    samples: 1,
+    denoise: false,
     resolution_percentage: 100,
     ...overrides
   };

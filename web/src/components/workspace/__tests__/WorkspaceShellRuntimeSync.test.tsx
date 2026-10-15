@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 
 const workspaceTabsState = {
   tabs: [],
@@ -26,9 +26,18 @@ jest.mock("../../../contexts/WorkflowManagerContext", () => ({
 const panelState = {
   panel: { isVisible: false, isDragging: false, panelSize: 0 }
 };
+const panelListeners = new Set<() => void>();
 jest.mock("../../../stores/PanelStore", () => ({
-  usePanelStore: (selector: (state: typeof panelState) => unknown) =>
-    selector(panelState)
+  usePanelStore: Object.assign(
+    (selector: (state: typeof panelState) => unknown) => selector(panelState),
+    {
+      getState: () => panelState,
+      subscribe: (listener: () => void) => {
+        panelListeners.add(listener);
+        return () => panelListeners.delete(listener);
+      }
+    }
+  )
 }));
 
 jest.mock("../../../hooks/useWorkspaceMenuShortcuts", () => ({
@@ -93,6 +102,7 @@ jest.mock("../../node_editor/Alert", () => ({
 }));
 
 import WorkspaceShell from "../WorkspaceShell";
+import { TOOLBAR_WIDTH } from "../../../config/constants";
 
 describe("WorkspaceShell frontend tool runtime", () => {
   it("initializes the runtime while the New Project surface is active", async () => {
@@ -100,5 +110,25 @@ describe("WorkspaceShell frontend tool runtime", () => {
 
     expect(await screen.findByText("New project")).toBeInTheDocument();
     expect(screen.getByTestId("frontend-tool-runtime-sync")).toBeInTheDocument();
+  });
+});
+
+describe("WorkspaceShell drawer gutter", () => {
+  it("publishes the left drawer's width for guided flows and follows resizes", () => {
+    const { container } = render(<WorkspaceShell />);
+    const shell = container.querySelector<HTMLElement>(".workspace-shell");
+
+    expect(shell?.style.getPropertyValue("--workspace-drawer-gutter")).toBe(
+      `${TOOLBAR_WIDTH}px`
+    );
+
+    act(() => {
+      panelState.panel = { isVisible: true, isDragging: false, panelSize: 600 };
+      panelListeners.forEach((listener) => listener());
+    });
+
+    expect(shell?.style.getPropertyValue("--workspace-drawer-gutter")).toBe(
+      "600px"
+    );
   });
 });

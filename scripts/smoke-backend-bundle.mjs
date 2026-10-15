@@ -257,18 +257,33 @@ async function bootAndProbe(bundleDir, timeoutMs, nodeBinary) {
   return { healthy, exit, output: output.join(""), port, lastProbeError };
 }
 
+/** Move resolution outside the checkout so ancestor dependencies cannot hide gaps. */
+export async function copyBackendBundleForSmoke(bundleDir, temporaryRoot = os.tmpdir()) {
+  const isolated = await fsp.mkdtemp(path.join(temporaryRoot, "nodetool-bundle-smoke-"));
+  try {
+    await fsp.cp(bundleDir, isolated, {
+      recursive: true, mode: fs.constants.COPYFILE_FICLONE, verbatimSymlinks: true
+    });
+    return isolated;
+  } catch (error) {
+    await fsp.rm(isolated, { recursive: true, force: true });
+    throw error;
+  }
+}
+
 export async function smokeBackendBundle(
   bundleDir,
   { timeoutMs = 120_000, nodePath } = {}
 ) {
-  const nodeBinary = resolveNodeBinary(bundleDir, nodePath);
-  const restore = await withPackagedModuleLayout(bundleDir);
+  const isolated = await copyBackendBundleForSmoke(bundleDir);
+  const nodeBinary = resolveNodeBinary(isolated, nodePath);
   let result;
   try {
-    await probeMediabunnyCodecs(bundleDir);
-    result = await bootAndProbe(bundleDir, timeoutMs, nodeBinary);
+    await withPackagedModuleLayout(isolated);
+    await probeMediabunnyCodecs(isolated);
+    result = await bootAndProbe(isolated, timeoutMs, nodeBinary);
   } finally {
-    await restore();
+    await fsp.rm(isolated, { recursive: true, force: true });
   }
   result.nodeBinary = nodeBinary;
 

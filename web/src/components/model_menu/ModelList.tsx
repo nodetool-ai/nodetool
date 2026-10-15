@@ -9,18 +9,15 @@ import {
   Tooltip,
   EmptyState,
   Box,
-  Text,
   Caption,
-  BORDER_RADIUS,
-  EYEBROW,
+  Chip,
+  CONTROL,
+  SectionHeader,
   TYPOGRAPHY,
   selectableRowStyles,
   selectedRowStyles,
   SPACING,
-  getSpacingPx,
   ListItemButton,
-  ListItemText,
-  ListItemIcon,
   VirtualList
 } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -38,11 +35,15 @@ import {
   executionForDisplay,
   modelDownloadTarget
 } from "../../utils/modelNormalization";
+import { getProviderDisplayName } from "../../utils/providerDisplay";
 
 import type { Theme } from "@mui/material/styles";
 
-const ROW_HEIGHT = 50;
-const DOWNLOAD_ROW_HEIGHT = 56;
+// Rows are spaced 2px apart so neighbouring hover and selection fills do not
+// touch.
+const ROW_GAP = 2;
+const ROW_HEIGHT = CONTROL.height.md + ROW_GAP;
+const DOWNLOAD_ROW_HEIGHT = 48;
 const SECTION_HEADER_HEIGHT = 36;
 const FULL_HEIGHT_STYLE: React.CSSProperties = { height: "100%" };
 
@@ -56,54 +57,54 @@ type ListRow<TModel> =
   | { kind: "downloadHeader" }
   | { kind: "download"; model: DownloadableModel };
 
-const LIST_ITEM_BUTTON_SX = { width: "100%", textAlign: "left" } as const;
-const LIST_ITEM_ICON_SX = { minWidth: 64, gap: 0.25 } as const;
-const FLEX_ROW_SX = { overflow: "hidden", minWidth: 0 } as const;
-const MODEL_NAME_STYLE: React.CSSProperties = {
+const ROW_SX = {
+  width: "100%",
+  height: CONTROL.height.md,
+  gap: SPACING.md,
+  px: SPACING.md,
+  py: 0
+} as const;
+const NAME_SX = {
+  ...TYPOGRAPHY.sans.label,
+  color: "text.primary",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   minWidth: 0,
-  flex: "1 1 auto"
-};
-const PRIMARY_TYPOGRAPHY_PROPS = { component: "div" as const, noWrap: true };
-const SECONDARY_TYPOGRAPHY_PROPS = { component: "div" as const };
+  flex: "0 1 auto"
+} as const;
+const DETAIL_SX = {
+  color: "text.secondary",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  minWidth: 0,
+  flex: "1 1 0"
+} as const;
 
 const listStyles = (theme: Theme) =>
   css({
-    overflowY: "auto",
-    overflowX: "hidden",
-    maxHeight: 600,
-    "& .MuiListItemButton-root": { py: 0.5 },
-    "& .MuiListItemText-primary": {
-      ...TYPOGRAPHY.sans.label,
-      color: theme.vars.palette.text.primary
-    },
-    "& .MuiListItemText-secondary": {
-      ...TYPOGRAPHY.sans.caption,
-      color: theme.vars.palette.text.secondary
-    },
     "& .model-menu__model-item": selectableRowStyles(theme),
     "& .model-menu__model-item.is-unavailable": {
-      opacity: 0.55,
       cursor: "not-allowed"
     },
-    "& .model-menu__model-item.is-unavailable .MuiListItemText-primary": {
-      color: theme.vars.palette.text.disabled
-    },
-    "& .model-menu__model-item.is-unavailable .MuiListItemText-secondary": {
-      color: theme.vars.palette.text.disabled
-    },
-    // Mouse only: the star and pin are revealed on hover. iOS Safari reads a
-    // tap on a row whose content changes on hover as the hover and drops the
-    // click, so on touch they stay visible and the row selects on one tap.
-    "@media (hover: hover)": {
-      "& .MuiListItemButton-root:hover .favorite-star": {
-        opacity: 1
+    "& .model-menu__model-item.is-unavailable .model-name, & .model-menu__model-item.is-unavailable .model-detail":
+      {
+        color: theme.vars.palette.text.disabled
       },
-      "& .MuiListItemButton-root:hover .default-pin": {
-        opacity: 1
-      }
+    // Mouse only: the star and pin are revealed on hover or keyboard focus.
+    // iOS Safari reads a tap on a row whose content changes on hover as the
+    // hover and drops the click, so on touch they stay visible and the row
+    // selects on one tap.
+    "@media (hover: hover)": {
+      "& .model-menu__model-item:hover .favorite-star, & .model-menu__model-item.is-active .favorite-star":
+        {
+          opacity: 1
+        },
+      "& .model-menu__model-item:hover .default-pin, & .model-menu__model-item.is-active .default-pin":
+        {
+          opacity: 1
+        }
     },
     "& .model-menu__model-item.is-active": selectedRowStyles(theme)
   });
@@ -152,6 +153,21 @@ const HighlightedModelName = memo<{
 });
 
 HighlightedModelName.displayName = "HighlightedModelName";
+
+type ExecutionDisplay = ReturnType<typeof executionForDisplay>;
+
+/** The chip colour of a model's execution state. */
+const executionColor = (
+  execution: ExecutionDisplay
+): "info" | "success" | "warning" | "default" => {
+  if (execution.state === "download_required") {
+    return "warning";
+  }
+  if (execution.state !== "ready") {
+    return "default";
+  }
+  return execution.kind === "api" ? "info" : "success";
+};
 
 interface ModelListProps<TModel extends ModelSelectorModel> {
   models: TModel[];
@@ -209,34 +225,6 @@ function ModelList<TModel extends ModelSelectorModel>({
     openSettingsTab("providers");
     onClose?.();
   }, [onClose]);
-
-  const badgeStyle = useMemo<React.CSSProperties>(
-    () => ({
-      flex: "0 0 auto",
-      padding: `0 ${getSpacingPx(SPACING.sm)}`,
-      fontSize: "var(--fontSizeSmaller)",
-      lineHeight: 1.4,
-      borderRadius: BORDER_RADIUS.xs,
-      background: theme.vars.palette.action.hover,
-      color: theme.vars.palette.text.secondary,
-      border: "none"
-    }),
-    [theme.vars.palette.action.hover, theme.vars.palette.text.secondary]
-  );
-
-  const secondaryTextStyle = useMemo<React.CSSProperties>(
-    () => ({
-      display: "flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.xs),
-      fontSize: theme.vars.fontSizeSmaller,
-      color: theme.vars.palette.text.secondary,
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    }),
-    [theme.vars.fontSizeSmaller, theme.vars.palette.text.secondary]
-  );
 
   // Flatten selectable models + recommended downloads into one virtualized
   // list. Model rows stay first and 1:1 with `models`, so a model's flat index
@@ -315,97 +303,79 @@ function ModelList<TModel extends ModelSelectorModel>({
               : !hasKey
                 ? "Add API key in Settings to use this model"
                 : "";
+      // A file inside a repository shows the file, then the model it belongs
+      // to. Any other model shows its name, then its provider.
+      const detail = m.path ? m.name : getProviderDisplayName(m.provider);
       return (
         <Tooltip disableInteractive title={tooltipTitle}>
-            <ListItemButton
-              className={`model-menu__model-item ${
-                available ? "" : "is-unavailable"
-              } ${fav ? "is-favorite" : ""} ${isActive ? "is-active" : ""}`}
-              aria-disabled={!available}
-              aria-selected={isActive}
-              data-index={index}
-              data-available={available}
-              onClick={handleModelClick}
-              sx={LIST_ITEM_BUTTON_SX}
+          <ListItemButton
+            disableRipple
+            className={`model-menu__model-item ${
+              available ? "" : "is-unavailable"
+            } ${fav ? "is-favorite" : ""} ${isActive ? "is-active" : ""}`}
+            aria-disabled={!available}
+            aria-selected={isActive}
+            data-index={index}
+            data-available={available}
+            onClick={handleModelClick}
+            sx={ROW_SX}
+          >
+            <FlexRow
+              gap={SPACING.md}
+              align="baseline"
+              sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}
             >
-              <ListItemIcon sx={LIST_ITEM_ICON_SX}>
-                <FavoriteStar provider={m.provider} id={m.id} size="small" />
-                <DefaultModelPin
-                  modelType={modelType}
-                  provider={m.provider}
-                  id={m.id}
-                  name={m.name}
-                  supportedTasks={
-                    "supported_tasks" in m && Array.isArray(m.supported_tasks)
-                      ? m.supported_tasks
-                      : undefined
-                  }
-                  size="small"
+              <Box component="span" className="model-name" sx={NAME_SX}>
+                <HighlightedModelName
+                  name={m.path || m.name}
+                  searchTerm={searchTerm}
+                  primaryColor={theme.vars.palette.primary.main}
                 />
-              </ListItemIcon>
-              <ListItemText
-                primary={
-                  <FlexRow
-                    gap={1}
-                    align="center"
-                    justify="space-between"
-                    fullWidth
-                    sx={FLEX_ROW_SX}
-                  >
-                    <span className="model-name" style={MODEL_NAME_STYLE}>
-                      <HighlightedModelName
-                        name={m.path || m.name}
-                        searchTerm={searchTerm}
-                        primaryColor={theme.vars.palette.primary.main}
-                      />
-                    </span>
-                    {downloadTarget ? (
-                      <ModelRowDownload
-                        target={downloadTarget}
-                        onDownload={() => onModelDownload?.(m)}
-                        targetLabel={downloadTargetLabel}
-                      />
-                    ) : (
-                    <Tooltip
-                      title={execution.reason ?? execution.label}
-                      placement="top"
-                    >
-                      <span
-                        className={`badge-execution badge-${execution.kind}`}
-                        tabIndex={0}
-                        aria-label={`${execution.label}: ${execution.reason ?? execution.label}`}
-                        style={{
-                          ...badgeStyle,
-                          color:
-                            execution.kind === "api"
-                              ? theme.vars.palette.info.main
-                              : execution.state === "ready"
-                                ? theme.vars.palette.success.main
-                                : execution.state === "download_required"
-                                  ? theme.vars.palette.warning.main
-                                  : theme.vars.palette.text.disabled,
-                          border: "1px solid currentColor"
-                        }}
-                      >
-                        {execution.label}
-                      </span>
-                    </Tooltip>
-                    )}
-                  </FlexRow>
+              </Box>
+              {detail && (
+                <Caption className="model-detail" sx={DETAIL_SX}>
+                  {detail}
+                </Caption>
+              )}
+            </FlexRow>
+            <FlexRow gap={0} align="center" sx={{ flexShrink: 0 }}>
+              <FavoriteStar provider={m.provider} id={m.id} size="small" />
+              <DefaultModelPin
+                modelType={modelType}
+                provider={m.provider}
+                id={m.id}
+                name={m.name}
+                supportedTasks={
+                  "supported_tasks" in m && Array.isArray(m.supported_tasks)
+                    ? m.supported_tasks
+                    : undefined
                 }
-                secondary={
-                  <span style={secondaryTextStyle}>
-                    {m.path
-                      ? m.name
-                      : m.provider
-                        ? `Provider: ${m.provider}`
-                        : ""}
-                  </span>
-                }
-                primaryTypographyProps={PRIMARY_TYPOGRAPHY_PROPS}
-                secondaryTypographyProps={SECONDARY_TYPOGRAPHY_PROPS}
+                size="small"
               />
-            </ListItemButton>
+            </FlexRow>
+            {downloadTarget ? (
+              <ModelRowDownload
+                target={downloadTarget}
+                onDownload={() => onModelDownload?.(m)}
+                targetLabel={downloadTargetLabel}
+              />
+            ) : (
+              <Tooltip
+                title={execution.reason ?? execution.label}
+                placement="top"
+              >
+                <Chip
+                  className={`badge-execution badge-${execution.kind}`}
+                  label={execution.label}
+                  compact
+                  color={executionColor(execution)}
+                  tabIndex={0}
+                  aria-label={`${execution.label}: ${execution.reason ?? execution.label}`}
+                  sx={{ flexShrink: 0 }}
+                />
+              </Tooltip>
+            )}
+          </ListItemButton>
         </Tooltip>
       );
     },
@@ -414,8 +384,6 @@ function ModelList<TModel extends ModelSelectorModel>({
       getAvailability,
       activeIndex,
       handleModelClick,
-      badgeStyle,
-      secondaryTextStyle,
       searchTerm,
       theme.vars.palette.primary.main,
       modelType,
@@ -431,31 +399,22 @@ function ModelList<TModel extends ModelSelectorModel>({
       }
       if (row.kind === "downloadHeader") {
         return (
-          <FlexRow
-              align="flex-end"
-              justify="space-between"
-              sx={{
-                px: 1.5,
-                pt: 1.5,
-                pb: 0.5,
-                height: "100%"
-              }}
-            >
-              <Text sx={{ ...EYEBROW, color: "text.secondary" }}>
-                Available to download
-              </Text>
-              {downloadTargetLabel && (
+          <SectionHeader
+            title="Available to download"
+            size="small"
+            action={
+              downloadTargetLabel && (
                 <Tooltip
-                  title={`Downloads land on ${downloadTargetLabel} — where models run in this session.`}
+                  title={`Downloads land on ${downloadTargetLabel}, where models run in this session`}
                 >
-                  <Caption
-                    sx={{ color: "text.secondary", whiteSpace: "nowrap" }}
-                  >
-                    → {downloadTargetLabel}
+                  <Caption sx={{ color: "text.secondary", whiteSpace: "nowrap" }}>
+                    To {downloadTargetLabel}
                   </Caption>
                 </Tooltip>
-              )}
-          </FlexRow>
+              )
+            }
+            sx={{ px: SPACING.md, height: "100%", alignItems: "flex-end" }}
+          />
         );
       }
       return (
@@ -481,38 +440,16 @@ function ModelList<TModel extends ModelSelectorModel>({
             variant="no-results"
             size="small"
             title="No models found"
-            description={`No models match "${searchTerm}". Try a different term or enable more providers.`}
+            description={`No models match "${searchTerm}". Try another term or enable more providers.`}
           />
         ) : hasDownloads ? (
           <EmptyState
             variant="empty"
             size="small"
             icon={<DownloadIcon className="empty-icon" />}
-            title="No models yet — let's get started"
-            description={
-              <>
-                Download a local model or add an API key for a cloud provider to
-                get going.{" "}
-                <Box
-                  component="button"
-                  type="button"
-                  sx={{
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    font: "inherit",
-                    color: "primary.main",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                    "&:hover": { opacity: 0.8 }
-                  }}
-                  onClick={handleOpenSettings}
-                >
-                  Open Settings
-                </Box>
-              </>
-            }
-            actionText="Open Settings"
+            title="No models yet"
+            description="Download a local model or add an API key for a cloud provider."
+            actionText="Open settings"
             onAction={handleOpenSettings}
           />
         ) : (
@@ -520,30 +457,8 @@ function ModelList<TModel extends ModelSelectorModel>({
             variant="empty"
             size="small"
             title="No models available"
-            description={
-              <>
-                Enable a provider in the left sidebar or add an API key in{" "}
-                <Box
-                  component="button"
-                  type="button"
-                  sx={{
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    font: "inherit",
-                    color: "primary.main",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                    "&:hover": { opacity: 0.8 }
-                  }}
-                  onClick={handleOpenSettings}
-                >
-                  Settings
-                </Box>
-                .
-              </>
-            }
-            actionText="Open Settings"
+            description="Enable a provider in the sidebar or add an API key in settings."
+            actionText="Open settings"
             onAction={handleOpenSettings}
           />
         )
@@ -555,7 +470,9 @@ function ModelList<TModel extends ModelSelectorModel>({
           sx={{
             height: "100%",
             width: "100%",
-            minHeight: 320
+            minHeight: 320,
+            px: SPACING.sm,
+            py: SPACING.xs
           }}
           items={flatRows}
           estimateSize={estimateSize}

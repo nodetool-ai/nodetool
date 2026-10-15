@@ -1,12 +1,28 @@
-import { useCallback, useState, type MouseEvent } from "react";
+import {
+  useCallback,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type SyntheticEvent
+} from "react";
+
+import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import UnarchiveOutlinedIcon from "@mui/icons-material/UnarchiveOutlined";
 
 import {
+  Box,
+  ContextMenu,
   Dialog,
   EditorButton,
   FlexColumn,
   FlexRow,
+  MenuItemPrimitive,
   SPACING,
-  Text
+  Text,
+  ToolbarIconButton
 } from "../ui_primitives";
 import {
   useArchiveProject,
@@ -27,18 +43,37 @@ interface ProjectLifecycleActionsProps {
     isPersonal: boolean;
     archivedAt: string | null;
   };
+  /**
+   * `buttons` lays the actions out as text buttons, for a list row.
+   * `menu` folds them behind one overflow button, for a card, so the card's
+   * footer is left to what the project is rather than what can be done to it.
+   */
+  readonly layout?: "buttons" | "menu";
 }
 
+/**
+ * The card around the actions opens its project on click and on Enter. The
+ * menu and the delete dialog render in portals, but React still bubbles their
+ * events through the component tree, so they stop here.
+ */
+const stopBubbling = (event: SyntheticEvent) => event.stopPropagation();
+const stopKeyBubbling = (event: KeyboardEvent) => event.stopPropagation();
+
 /** Export, archive, or permanently delete a named project from its management surface. */
-const ProjectLifecycleActions = ({ project }: ProjectLifecycleActionsProps) => {
+const ProjectLifecycleActions = ({
+  project,
+  layout = "buttons"
+}: ProjectLifecycleActionsProps) => {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const closeMenu = useCallback(() => setMenuAnchor(null), []);
   const archive = useArchiveProject();
   const restore = useRestoreProject();
   const remove = useDeleteProject();
   const exportProject = useExportProject();
   const addNotification = useNotificationStore((state) => state.addNotification);
 
-  const stop = (event: MouseEvent<HTMLButtonElement>) => event.stopPropagation();
+  const stop = (event: MouseEvent<HTMLElement>) => event.stopPropagation();
   const reportError = useCallback(
     (action: string, error: ErrorWithMessage) =>
       addNotification({
@@ -49,8 +84,9 @@ const ProjectLifecycleActions = ({ project }: ProjectLifecycleActionsProps) => {
     [addNotification, project.name]
   );
   const handleExport = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
+    (event: MouseEvent<HTMLElement>) => {
       stop(event);
+      setMenuAnchor(null);
       exportProject.mutate(
         { id: project.id, name: project.name },
         { onError: (error) => reportError("export", error) }
@@ -59,22 +95,25 @@ const ProjectLifecycleActions = ({ project }: ProjectLifecycleActionsProps) => {
     [exportProject, project.id, project.name, reportError]
   );
   const handleArchive = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
+    (event: MouseEvent<HTMLElement>) => {
       stop(event);
+      setMenuAnchor(null);
       archive.mutate({ id: project.id }, { onError: (error) => reportError("archive", error) });
     },
     [archive, project.id, reportError]
   );
   const handleRestore = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
+    (event: MouseEvent<HTMLElement>) => {
       stop(event);
+      setMenuAnchor(null);
       restore.mutate({ id: project.id }, { onError: (error) => reportError("restore", error) });
     },
     [project.id, reportError, restore]
   );
   const requestDelete = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
+    (event: MouseEvent<HTMLElement>) => {
       stop(event);
+      setMenuAnchor(null);
       setConfirmingDelete(true);
     },
     []
@@ -91,8 +130,56 @@ const ProjectLifecycleActions = ({ project }: ProjectLifecycleActionsProps) => {
 
   if (project.isPersonal) return null;
 
-  return (
-    <>
+  const actions =
+    layout === "menu" ? (
+      <>
+        <ToolbarIconButton
+          icon={<MoreHorizIcon />}
+          tooltip="Project actions"
+          ariaLabel={`Actions for ${project.name}`}
+          aria-haspopup="menu"
+          aria-expanded={Boolean(menuAnchor)}
+          onClick={(event: MouseEvent<HTMLButtonElement>) => {
+            stop(event);
+            setMenuAnchor(event.currentTarget);
+          }}
+        />
+        <ContextMenu
+          open={Boolean(menuAnchor)}
+          anchorEl={menuAnchor}
+          onClose={closeMenu}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <MenuItemPrimitive
+            label={exportProject.isPending ? "Exporting…" : "Export"}
+            icon={<FileDownloadOutlinedIcon />}
+            disabled={exportProject.isPending}
+            onClick={handleExport}
+          />
+          {project.archivedAt ? (
+            <MenuItemPrimitive
+              label="Restore"
+              icon={<UnarchiveOutlinedIcon />}
+              onClick={handleRestore}
+            />
+          ) : (
+            <MenuItemPrimitive
+              label="Archive"
+              icon={<ArchiveOutlinedIcon />}
+              onClick={handleArchive}
+            />
+          )}
+          <MenuItemPrimitive
+            label="Delete project"
+            icon={<DeleteOutlineIcon />}
+            color="error"
+            dividerBefore
+            onClick={requestDelete}
+          />
+        </ContextMenu>
+      </>
+    ) : (
       <FlexRow gap={SPACING.sm}>
         <EditorButton
           density="compact"
@@ -115,6 +202,16 @@ const ProjectLifecycleActions = ({ project }: ProjectLifecycleActionsProps) => {
           Delete
         </EditorButton>
       </FlexRow>
+    );
+
+  return (
+    <Box
+      component="span"
+      onClick={stopBubbling}
+      onKeyDown={stopKeyBubbling}
+      sx={{ display: "contents" }}
+    >
+      {actions}
       <Dialog
         open={confirmingDelete}
         onClose={() => !remove.isPending && setConfirmingDelete(false)}
@@ -134,7 +231,7 @@ const ProjectLifecycleActions = ({ project }: ProjectLifecycleActionsProps) => {
           </Text>
         </FlexColumn>
       </Dialog>
-    </>
+    </Box>
   );
 };
 

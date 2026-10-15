@@ -29,9 +29,10 @@ import type {
   ProcessingMessage,
   ControlEvent,
   CorrelationLineage,
-  Intervention
+  Intervention,
+  MissingRuntimeDetails
 } from "@nodetool-ai/protocol";
-import { TypeMetadata } from "@nodetool-ai/protocol";
+import { TypeMetadata, missingRuntimeDetailsOf } from "@nodetool-ai/protocol";
 import { ensureBounded, redactValue } from "./supervisor.js";
 import type { SupervisorHandle } from "./supervisor.js";
 
@@ -271,6 +272,7 @@ export interface RunResult {
 
   /** Error message if status is 'failed'. */
   error?: string;
+  missingRuntime?: MissingRuntimeDetails;
 
   /**
    * Every supervisor escalation and the verdict it received, in order. A
@@ -344,6 +346,7 @@ export class WorkflowRunner {
 
   /** All emitted messages. */
   private _messages: ProcessingMessage[] = [];
+  private _missingRuntime: MissingRuntimeDetails | undefined;
 
   /** Cancellation flag. */
   private _cancelled = false;
@@ -764,13 +767,17 @@ export class WorkflowRunner {
           workflow_id: request.workflow_id ?? null,
           error
         });
-        return {
+        const result: RunResult = {
           outputs: Object.fromEntries(this._outputs),
           messages: this._messages,
           status: "failed",
           error,
           interventions: this._recordedInterventions()
         };
+        if (this._missingRuntime) {
+          result.missingRuntime = this._missingRuntime;
+        }
+        return result;
       }
 
       const status = this._cancelled ? "cancelled" : "completed";
@@ -792,6 +799,7 @@ export class WorkflowRunner {
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      this._missingRuntime ??= missingRuntimeDetailsOf(err) ?? undefined;
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.error("Workflow failed", { jobId: request.job_id, error: message });
       // Drain active edges on error for front-end cleanup
@@ -815,13 +823,17 @@ export class WorkflowRunner {
         error: message,
         validation_issues: validationIssues
       });
-      return {
+      const result: RunResult = {
         outputs: Object.fromEntries(this._outputs),
         messages: this._messages,
         status: "failed",
         error: message,
         interventions: this._recordedInterventions()
       };
+      if (this._missingRuntime) {
+        result.missingRuntime = this._missingRuntime;
+      }
+      return result;
     } finally {
       this._running = false;
     }
@@ -835,6 +847,7 @@ export class WorkflowRunner {
     this._multiEdgeListInputs = new Map();
     this._outputs = new Map();
     this._messages = [];
+    this._missingRuntime = undefined;
     this._cancelled = false;
     this._abortController = new AbortController();
     this._pendingControlResponses = new Map();
@@ -2504,6 +2517,9 @@ export class WorkflowRunner {
   }
 
   private _emit(msg: ProcessingMessage): void {
+    if (msg.type === "node_update" && msg.error_detail?.missing_runtime) {
+      this._missingRuntime ??= msg.error_detail.missing_runtime;
+    }
     // Retain for RunResult.messages — except the realtime-audio firehose: a
     // live synth patch emits ~50 audio-chunk output_updates per node per
     // second, each holding a sample buffer, so retaining them grows the heap

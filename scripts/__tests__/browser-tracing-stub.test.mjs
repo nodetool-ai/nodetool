@@ -1,7 +1,50 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
+import { build } from "esbuild";
+import { fileURLToPath } from "node:url";
 import { SpanStatusCode } from "@opentelemetry/api";
 import * as tracing from "../../web/vite-node-stubs/tracing-stub.js";
+
+test("browser trace context imports do not require Node async-hooks exports", async () => {
+  const result = await build({
+    entryPoints: [fileURLToPath(new URL("../../packages/runtime/src/trace-context-manager.ts", import.meta.url))],
+    bundle: true,
+    platform: "browser",
+    format: "esm",
+    write: false,
+    external: ["@nodetool-ai/config", "@opentelemetry/api"],
+    plugins: [{
+      name: "browser-async-hooks-boundary",
+      setup(plugin) {
+        plugin.onResolve({ filter: /^node:async_hooks$/ }, () => ({ path: "async-hooks", namespace: "browser-empty" }));
+        plugin.onLoad({ filter: /.*/, namespace: "browser-empty" }, () => ({ contents: "export {};", loader: "js" }));
+      }
+    }]
+  });
+  assert.equal(result.outputFiles.length, 1);
+  assert.ok(result.outputFiles[0].text.includes("NodeTraceContextManager"));
+});
+
+test.each([
+  "../../web/vite-node-stubs/fs-stub.js",
+  "../../packages/workflow-runner/e2e/stubs/fs-stub.js"
+])("browser filesystem stub %s exports a throwing renameSync", async (stubPath) => {
+  const result = await build({
+    stdin: { contents: 'export { renameSync } from "node:fs";', resolveDir: process.cwd() },
+    bundle: true,
+    platform: "browser",
+    format: "esm",
+    write: false,
+    plugins: [{
+      name: "browser-filesystem-boundary",
+      setup(plugin) {
+        plugin.onResolve({ filter: /^node:fs$/ }, () => ({ path: fileURLToPath(new URL(stubPath, import.meta.url)) }));
+      }
+    }]
+  });
+  const stub = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString("base64")}`);
+  assert.throws(() => stub.renameSync("before", "after"), /node:fs.renameSync not available in browser/);
+});
 
 test("browser tracing helpers preserve callback values and errors without recording", async () => {
   const helpers = [

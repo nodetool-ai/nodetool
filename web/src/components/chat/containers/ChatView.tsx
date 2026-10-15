@@ -60,7 +60,12 @@ const styles = (theme: Theme) =>
       flexDirection: "row",
       overflow: "hidden",
       minHeight: 0,
-      padding: theme.spacing(0, 6, 6, 6)
+      padding: theme.spacing(0, 6, 6, 6),
+      // On a phone the 24px gutters plus the assistant turn's own inset
+      // leave the reply a narrow strip down the middle of the screen.
+      [theme.breakpoints.down("sm")]: {
+        padding: theme.spacing(0, SPACING.md, SPACING.md)
+      }
     },
     ".chat-main": {
       position: "relative",

@@ -18,7 +18,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import { MissingRuntimePackageError } from "@nodetool-ai/protocol";
+import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 import { HostBinaryMissingError } from "@nodetool-ai/runtime";
 
 const execFileAsync = promisify(execFile);
@@ -96,11 +96,9 @@ export async function resolveManimgxBinary(
       failures.push(` MANIMGX_PATH=${JSON.stringify(candidate)} failed: ${result.failure}`);
     }
   }
-  throw new MissingRuntimePackageError(
-    `manimgx was not found. ${MANIMGX_INSTALL_HINT}${failures.join("")}`,
-    "manimgx",
-    { cause: new HostBinaryMissingError("manimgx") }
-  );
+  const error = missingRuntimePackageError("manimgx", "manimgx", new HostBinaryMissingError("manimgx"));
+  error.message += failures.join("");
+  throw error;
 }
 
 /** Forget the cached resolution. Tests use this after mutating the environment. */

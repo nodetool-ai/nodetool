@@ -24,6 +24,18 @@ beforeEach(() => {
 });
 afterEach(() => {
   setPlatform(originalPlatform);
+  vi.unstubAllEnvs();
+});
+
+it("keeps the failed specifier, cause, and source install command on the loader error", async () => {
+  vi.stubEnv("NODETOOL_HOST", "source");
+  const cause = new Error("fixture binding unavailable");
+  mocks.load.mockRejectedValue(cause);
+  const { loadWhisperNode } = await import("../src/binding.js");
+  const error = await loadWhisperNode().catch((failure: unknown) => failure);
+  expect(error).toMatchObject({ cause, details: { runtimePackage: "whisper-cpp", missing: "@fugood/whisper.node" } });
+  expect(String(error)).toContain("npm run dev:nodetool -- runtime add whisper-cpp");
+  expect(String(error)).not.toContain("Package Manager");
 });
 
 it("keeps an explicit backend without probing", async () => {

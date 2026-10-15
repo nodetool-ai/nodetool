@@ -29,6 +29,9 @@ export const createStyles = (theme: Theme) => ({
     flexDirection: "column",
     padding: theme.spacing(6, 0, 3),
     minHeight: 0,
+    [theme.breakpoints.down("sm")]: {
+      paddingTop: theme.spacing(SPACING.md)
+    }
   }),
   messageWrapper: css({
     flex: 1,
@@ -62,7 +65,7 @@ export const createStyles = (theme: Theme) => ({
       borderRadius: BORDER_RADIUS.sm
     },
     "&::-webkit-scrollbar-thumb:hover": {
-      background: theme.vars.palette.warning.main
+      background: theme.vars.palette.action.active
     },
   }),
   chatMessagesList: css({
@@ -108,7 +111,12 @@ export const createStyles = (theme: Theme) => ({
       border: "none",
       background: "transparent",
       alignItems: "flex-end",
-      fontWeight: 500
+      fontWeight: 500,
+      // A phone column is narrow enough that 75% wraps a short question
+      // onto three lines.
+      [theme.breakpoints.down("sm")]: {
+        maxWidth: "88%"
+      }
     },
 
     // Editing a sent message opens the full column, so the text has room.
@@ -179,8 +187,8 @@ export const createStyles = (theme: Theme) => ({
     ".message-actions": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1.5),
-      marginTop: theme.spacing(1),
+      gap: theme.spacing(SPACING.sm),
+      marginTop: theme.spacing(SPACING.xs),
       opacity: 0,
       pointerEvents: "none",
       transition: MOTION.opacity,
@@ -331,20 +339,21 @@ export const createStyles = (theme: Theme) => ({
       top: SPACING_PX.lg,
       bottom: SPACING_PX.lg,
       width: LOG_RAIL_WIDTH,
-      background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
+      background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, rgb(${theme.vars.palette.secondary.mainChannel} / 0.27))`,
       borderRadius: BORDER_RADIUS.xs
     },
 
     ".log-update-dot": {
       position: "absolute",
-      left: -SPACING_PX.xxl,
+      // Centered on the rail: rail center = xs + LOG_RAIL_WIDTH / 2.
+      left: SPACING_PX.xs + LOG_RAIL_WIDTH / 2 - LOG_DOT_SIZE / 2,
       top: SPACING_PX.lg,
       width: LOG_DOT_SIZE,
       height: LOG_DOT_SIZE,
       borderRadius: BORDER_RADIUS.circle,
       backgroundColor: theme.vars.palette.primary.main,
       border: `${LOG_RAIL_WIDTH}px solid ${theme.vars.palette.background.default}`,
-      boxShadow: `0 0 ${LOG_DOT_SIZE}px ${theme.vars.palette.primary.main}aa`,
+      boxShadow: `0 0 ${LOG_DOT_SIZE}px rgb(${theme.vars.palette.primary.mainChannel} / 0.67)`,
       zIndex: Z_INDEX.raised
     },
 
@@ -352,20 +361,20 @@ export const createStyles = (theme: Theme) => ({
       fontSize: FONT_SIZE_SANS.label,
       padding: theme.spacing(SPACING.md, SPACING.lg),
       borderRadius: BORDER_RADIUS.md,
-      backgroundColor: theme.vars.palette.c_scrim,
-      border: `1px solid ${theme.vars.palette.action.disabledBackground}`
+      backgroundColor: theme.vars.palette.c_overlay,
+      border: `1px solid ${theme.vars.palette.divider}`
     },
 
     ".log-severity-info": {
-      color: theme.vars.palette.grey[300]
+      color: theme.vars.palette.text.secondary
     },
 
     ".log-severity-warning": {
-      color: theme.vars.palette.warning.light
+      color: theme.vars.palette.warning.main
     },
 
     ".log-severity-error": {
-      color: theme.vars.palette.error.light
+      color: theme.vars.palette.error.main
     },
 
     ".thought-section-container": {

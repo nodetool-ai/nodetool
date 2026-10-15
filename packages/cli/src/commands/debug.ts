@@ -21,7 +21,7 @@ import {
   type SupervisorCliOptions
 } from "../supervisor.js";
 import { numericOptionParser } from "../numeric-options.js";
-import { printCommandError } from "../command-errors.js";
+import { printCommandError, commandMissingRuntime } from "../command-errors.js";
 
 interface DebugCliOptions extends SupervisorCliOptions {
   server?: boolean;
@@ -125,6 +125,9 @@ export function registerDebugCommands(program: Command): void {
         });
 
       const report = await runOnce();
+      if (!report.verdict.ok && commandMissingRuntime(report)) {
+        process.exit(printCommandError(report, opts.json));
+      }
       if (opts.json) {
         console.log(JSON.stringify(report, null, 2));
       } else {
@@ -155,8 +158,7 @@ export function registerDebugCommands(program: Command): void {
       });
       process.exit(0);
     } catch (e) {
-      printCommandError(e, opts.json);
-      process.exit(1);
+      process.exit(printCommandError(e, opts.json));
     }
   });
 }

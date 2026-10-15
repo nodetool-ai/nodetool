@@ -21,9 +21,14 @@ import { useLanguageModelProviders } from "../../../hooks/useProviders";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import { isElectron, isLocalhost } from "../../../lib/env";
 
+import { CHAT_COLUMN_MAX_WIDTH } from "../types/chat.types";
+
 import openaiIcon from "../../../icons/providers/openai.svg";
 import anthropicIcon from "../../../icons/providers/anthropic.svg";
 import geminiColorIcon from "../../../icons/providers/gemini-color.svg";
+
+/** Keeps the subtitle to a readable line length on a wide column. */
+const WELCOME_TEXT_MAX_WIDTH = 520;
 
 const styles = (theme: Theme) =>
   css({
@@ -42,7 +47,8 @@ const styles = (theme: Theme) =>
 
     ".welcome-inner": {
       width: "100%",
-      maxWidth: "900px",
+      // The composer's column, so the welcome and the input share edges.
+      maxWidth: `${CHAT_COLUMN_MAX_WIDTH}px`,
       display: "flex",
       flexDirection: "column",
       alignItems: "stretch",
@@ -72,7 +78,8 @@ const styles = (theme: Theme) =>
     ".welcome-subtitle": {
       color: theme.vars.palette.text.secondary,
       fontSize: "var(--fontSizeNormal)",
-      lineHeight: 1.6
+      lineHeight: 1.6,
+      maxWidth: WELCOME_TEXT_MAX_WIDTH
     },
 
     ".suggestions": {
@@ -180,15 +187,15 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
     <div css={cssStyles} className="chat-welcome">
       <div className="welcome-inner">
         {noProvider ? (
-          <FlexColumn align="center" gap={SPACING.sm} sx={{ textAlign: "center" }}>
+          <FlexColumn align="center" gap={SPACING.lg} sx={{ textAlign: "center" }}>
             <KeyRoundedIcon className="welcome-icon" />
             <Text className="welcome-title">
               Connect an AI provider to get started
             </Text>
-            <Text className="welcome-subtitle" sx={{ maxWidth: 520 }}>
+            <Text className="welcome-subtitle">
               {SETUP_SUBTITLE}
             </Text>
-            <FlexRow gap={SPACING.xs} justify="center" wrap sx={{ mt: SPACING.micro }}>
+            <FlexRow gap={SPACING.xs} justify="center" wrap>
               {SETUP_PROVIDERS.map((provider) => (
                 <FlexRow
                   key={provider.name}
@@ -227,7 +234,6 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
               size="small"
               startIcon={<KeyRoundedIcon />}
               onClick={handleConnectProvider}
-              sx={{ mt: SPACING.xs }}
             >
               Connect a provider
             </EditorButton>

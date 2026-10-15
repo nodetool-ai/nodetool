@@ -23,6 +23,44 @@ function matrixRunScript() {
 }
 
 describe("quality check matrix exit status", () => {
+  it("bounds harness concurrency in both diff and full-run paths", () => {
+    const source = readFileSync(WORKFLOW, "utf8");
+    const entry = source.match(/"check": "harness-gate",\s*"command": ("(?:\\.|[^"\\])*")/);
+    expect(entry).not.toBeNull();
+    const command = JSON.parse(entry[1]);
+    const paths = command.match(/npm run dev:nodetool -- harness gate [^;]+/g);
+    expect(paths).toHaveLength(2);
+    expect(paths[0]).toContain('--base "$CI_BASE_SHA"');
+    expect(paths[1]).toContain("--all");
+    for (const path of paths) {
+      expect(path).toMatch(/--jobs 2(?: |$)/);
+      expect(path).toMatch(/--timeout 900(?: |$)/);
+    }
+    const builtJob = source.slice(source.indexOf("\n  built:"));
+    expect(builtJob).toMatch(/timeout-minutes: 45/);
+    expect(builtJob).toContain("NODETOOL_TEST_WORKERS: ${{ matrix.check == 'harness-gate' && '1' || '' }}");
+    expect(builtJob).toContain("NODETOOL_HARNESS_INCLUDE_SUITES: ${{ inputs.skip-tests && '--include-suites' || '' }}");
+    for (const base of ["", "fixture-base"]) {
+      for (const skipTests of [false, true]) {
+        const result = spawnSync("bash", ["-e", "-c", `npm() { printf '%s\\n' "$@"; }\n${command}`], {
+          encoding: "utf8",
+          env: {
+            ...process.env,
+            CI_BASE_SHA: base,
+            NODETOOL_HARNESS_INCLUDE_SUITES: skipTests ? "--include-suites" : ""
+          },
+          timeout: 5000
+        });
+        expect(result.error).toBeUndefined();
+        expect(result.status).toBe(0);
+        const args = result.stdout.trim().split("\n");
+        expect(args.filter((arg) => arg === "--include-suites")).toHaveLength(skipTests ? 1 : 0);
+        expect(args).toContain(base ? "--base" : "--all");
+        expect(args.slice(args.indexOf("--jobs"), args.indexOf("--jobs") + 2)).toEqual(["--jobs", "2"]);
+      }
+    }
+  });
+
   it("runs the offline agentic QA origin checks in the always-selected lint job", () => {
     const source = readFileSync(WORKFLOW, "utf8");
     const guard = source.match(/      - name: Check agentic QA origin restrictions\n        if: (.*)\n        run: (.*)\n/g);

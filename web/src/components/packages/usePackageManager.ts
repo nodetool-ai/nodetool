@@ -109,7 +109,7 @@ export interface PMRow {
   name: string;
   desc: string;
   version?: string;
-  badge: "alwaysOn" | "installed" | "update" | "notInstalled" | null;
+  badge: "alwaysOn" | "included" | "installed" | "update" | "notInstalled" | null;
   toggle?: {
     enabled: boolean;
     label: string;
@@ -409,13 +409,13 @@ export function usePackageManager(params: {
       );
       rows = ordered.map((rt) => {
         const busy = rtBusy.includes(rt.id) || rt.installing;
-        const hasUpdate = rt.installed && Boolean(rt.updateAvailable);
+        const hasUpdate = !rt.bundled && rt.installed && Boolean(rt.updateAvailable);
         const row: PMRow = {
           key: rt.id,
           group: RUNTIME_GROUP_LABEL[runtimeGroup(rt.id)],
           name: rt.name,
           desc: rt.description,
-          badge: hasUpdate
+          badge: rt.bundled ? "included" : hasUpdate
             ? "update"
             : rt.installed
               ? "installed"
@@ -428,7 +428,7 @@ export function usePackageManager(params: {
         }
         // Installing runs through the desktop app; in the browser the row is
         // status-only.
-        if (rtAvailable) {
+        if (rtAvailable && !rt.bundled) {
           row.buttons = {
             install: !rt.installed,
             update: hasUpdate,

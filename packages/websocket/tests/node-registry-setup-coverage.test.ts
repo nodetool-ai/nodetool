@@ -28,19 +28,19 @@ describe("applyProductionNodePolicy", () => {
     else process.env["NODETOOL_ENV"] = original;
   });
 
-  it("is a no-op outside production", () => {
+  it("is a no-op outside production", async () => {
     const registry = new NodeRegistry();
-    registerBuiltInNodes(registry, { enabledOverrides: allEnabled() });
+    await registerBuiltInNodes(registry, { enabledOverrides: allEnabled() });
     const before = registry.list().length;
     applyProductionNodePolicy(registry);
     expect(registry.list().length).toBe(before);
   });
 
-  it("drops optional prod-skipped node types when NODETOOL_ENV=production", () => {
+  it("drops optional prod-skipped node types when NODETOOL_ENV=production", async () => {
     // Register with transformers-js enabled *before* flipping to production so
     // the prod-skipped node types actually exist, then let the policy prune them.
     const registry = new NodeRegistry();
-    registerBuiltInNodes(registry, { enabledOverrides: allEnabled() });
+    await registerBuiltInNodes(registry, { enabledOverrides: allEnabled() });
 
     const skippedBefore = registry
       .list()
@@ -71,10 +71,10 @@ describe("registerBuiltInNodes in production", () => {
     else process.env["NODETOOL_ENV"] = original;
   });
 
-  it("skips the transformers-js pack entirely in production", () => {
+  it("skips the transformers-js pack entirely in production", async () => {
     process.env["NODETOOL_ENV"] = "production";
     const registry = new NodeRegistry();
-    registerBuiltInNodes(registry, { enabledOverrides: allEnabled() });
+    await registerBuiltInNodes(registry, { enabledOverrides: allEnabled() });
     expect(registry.list().some((t) => t.startsWith("transformers."))).toBe(
       false
     );

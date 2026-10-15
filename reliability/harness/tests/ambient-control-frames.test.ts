@@ -37,7 +37,7 @@ describe("ambient control frames on an idle connection", () => {
     "arrive unsolicited, and the relay drivers' policy drops them",
     { timeout: 30000 },
     async () => {
-      const srv = createTestUiServer({ host: "127.0.0.1", port: 0 });
+      const srv = await createTestUiServer({ host: "127.0.0.1", port: 0 });
       await srv.listen();
       const address = srv.server.address();
       const port =

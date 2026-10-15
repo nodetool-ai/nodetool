@@ -494,7 +494,7 @@ describe("look step", () => {
       screen.queryByRole("radiogroup", { name: "Image model" })
     ).not.toBeInTheDocument();
     await userEvent.click(
-      screen.getByRole("button", { name: "Select Image Model" })
+      screen.getByRole("button", { name: "Select image model" })
     );
     await userEvent.click(
       screen.getByRole("button", { name: "Choose text_to_image model" })

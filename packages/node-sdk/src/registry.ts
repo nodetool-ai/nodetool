@@ -16,7 +16,8 @@ import type {
 } from "./metadata.js";
 import { loadPythonPackageMetadata } from "./metadata.js";
 import { getNodeMetadata } from "./node-metadata.js";
-import type { NodePropertyValidationIssue } from "./validation.js";
+import { validateNodeProperties, type NodePropertyValidationIssue } from "./validation.js";
+import type { DeclaredPropertyMetadata } from "./decorators.js";
 import type { ScoredNode, ScoreOptions } from "./search.js";
 import { NodeSearchIndex } from "./search.js";
 
@@ -29,7 +30,24 @@ export type NodeMetadataSource =
   | "typescript"
   | "python-package"
   | "python-bridge"
-  | "loaded-metadata";
+  | "loaded-metadata"
+  | "catalog";
+
+export type NodeAvailability = "executable" | "catalog" | "python" | "unknown";
+
+/** Structural catalog contract. The catalog package depends on node-sdk. */
+export interface NodeCatalogEntry {
+  readonly node_type: string;
+  readonly pack: string;
+  readonly metadata: NodeMetadata;
+  readonly declared: readonly DeclaredPropertyMetadata[];
+}
+
+export interface NodeCatalogPackMetadata {
+  readonly id: string;
+  readonly installBytes: number;
+  readonly installCommand?: string | null;
+}
 
 export interface RegisterNodeOptions {
   metadata?: NodeMetadata;
@@ -51,6 +69,8 @@ export interface RegistryGraphResolverOptions {
 
 export class NodeRegistry {
   private _classes = new Map<string, NodeClass>();
+  private _catalogEntries = new Map<string, NodeCatalogEntry>();
+  private _catalogPacks = new Map<string, NodeCatalogPackMetadata>();
   private _loadedMetadataByType = new Map<string, NodeMetadata>();
   private _registeredMetadataByType = new Map<string, NodeMetadata>();
   private _loadedMetadataSourceByType = new Map<string, NodeMetadataSource>();
@@ -184,10 +204,10 @@ export class NodeRegistry {
   }
 
   /**
-   * Validate a node descriptor against its registered class's @prop schema.
+   * Validate a node descriptor against executable or catalog @prop metadata.
    *
    * Returns an empty array when:
-   *   - the class is not registered (the runner will surface that elsewhere), or
+   *   - neither an executable class nor catalog schema is known, or
    *   - all required/model fields are populated.
    */
   validateNode(
@@ -195,9 +215,27 @@ export class NodeRegistry {
     connectedHandles?: ReadonlySet<string> | ReadonlyArray<string>
   ): NodePropertyValidationIssue[] {
     const NodeClass = this._classes.get(descriptor.type);
-    if (!NodeClass) return [];
-    const properties =
-      descriptor.properties ?? {};
+    const properties = descriptor.properties ?? {};
+    if (!NodeClass) {
+      const entry = this.catalogEntry(descriptor.type);
+      if (!entry) {
+        return [];
+      }
+      let dynamicValues = descriptor.dynamic_properties;
+      if (descriptor.dynamic_inputs && !dynamicValues) {
+        const declaredNames = new Set(entry.declared.map((property) => property.name));
+        dynamicValues = Object.fromEntries(Object.keys(descriptor.dynamic_inputs)
+          .filter((name) => !declaredNames.has(name))
+          .map((name) => [name, properties[name]]));
+      }
+      return validateNodeProperties(entry.declared, properties, {
+        connectedHandles,
+        nodeId: descriptor.id,
+        nodeType: descriptor.type,
+        dynamicSlots: descriptor.dynamic_inputs,
+        dynamicValues
+      });
+    }
     return NodeClass.validateProperties(properties, {
       connectedHandles,
       nodeId: descriptor.id,
@@ -261,6 +299,10 @@ export class NodeRegistry {
         }
       }
     }
+    filtered.loadCatalog(
+      [...this._catalogEntries.values()].filter((entry) => supportsPlatform(entry.metadata.platforms, target)),
+      this._catalogPacks.values()
+    );
     return filtered;
   }
 
@@ -328,6 +370,46 @@ export class NodeRegistry {
   has(nodeType: string): boolean {
     return this._classes.has(nodeType);
   }
+
+  availability(nodeType: string): NodeAvailability {
+    if (this.has(nodeType)) {
+      return "executable";
+    }
+    const source = this._loadedMetadataSourceByType.get(nodeType);
+    if (source === "catalog") {
+      return "catalog";
+    }
+    if (source === "python-package" || source === "python-bridge") {
+      return "python";
+    }
+    return "unknown";
+  }
+
+  catalogEntry(nodeType: string): NodeCatalogEntry | undefined {
+    return this._catalogEntries.get(nodeType);
+  }
+
+  catalogPack(nodeType: string): NodeCatalogPackMetadata | undefined {
+    const entry = this.catalogEntry(nodeType);
+    return entry ? this._catalogPacks.get(entry.pack) : undefined;
+  }
+
+  loadCatalog(
+    entries: Iterable<NodeCatalogEntry>,
+    packs: Iterable<NodeCatalogPackMetadata> = []
+  ): void {
+    for (const pack of packs) {
+      this._catalogPacks.set(pack.id, pack);
+    }
+    for (const entry of entries) {
+      this._catalogEntries.set(entry.node_type, entry);
+      this._loadedMetadataByType.set(entry.node_type, entry.metadata);
+      this._loadedMetadataSourceByType.set(entry.node_type, "catalog");
+      this._loadedPackageIdByType.set(entry.node_type, entry.pack);
+    }
+    this.invalidateMetadataCaches();
+  }
+
 
   list(): string[] {
     return [...this._classes.keys()];
@@ -418,6 +500,7 @@ export class NodeRegistry {
     metadata: NodeMetadata,
     options: LoadMetadataOptions = {}
   ): void {
+    this._catalogEntries.delete(nodeType);
     this._loadedMetadataByType.set(nodeType, metadata);
     this._loadedMetadataSourceByType.set(
       nodeType,
@@ -442,6 +525,7 @@ export class NodeRegistry {
       }
     }
     for (const [nodeType, metadata] of loaded.nodesByType.entries()) {
+      this._catalogEntries.delete(nodeType);
       this._loadedMetadataByType.set(nodeType, metadata);
       this._loadedMetadataSourceByType.set(nodeType, "python-package");
       const packageId = packageIdByType.get(nodeType);
@@ -461,6 +545,7 @@ export class NodeRegistry {
    */
   unregister(nodeType: string): boolean {
     const hadClass = this._classes.delete(nodeType);
+    this._catalogEntries.delete(nodeType);
     this._loadedMetadataByType.delete(nodeType);
     this._registeredMetadataByType.delete(nodeType);
     this._loadedMetadataSourceByType.delete(nodeType);
@@ -473,6 +558,8 @@ export class NodeRegistry {
 
   clear(): void {
     this._classes.clear();
+    this._catalogEntries.clear();
+    this._catalogPacks.clear();
     this._loadedMetadataByType.clear();
     this._registeredMetadataByType.clear();
     this._loadedMetadataSourceByType.clear();

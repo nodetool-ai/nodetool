@@ -51,6 +51,12 @@ describe("validateRepoId", () => {
 describe("getRuntimePackageStatuses", () => {
   afterEach(() => jest.restoreAllMocks());
 
+  it("passes bundled library status to the renderer", async () => {
+    jest.spyOn(runtimeRegistry, "statuses").mockResolvedValue([{ id: "imaging", installed: true, bundled: true }]);
+    const [status] = await getRuntimePackageStatuses();
+    expect(status).toMatchObject({ id: "imaging", installed: true, bundled: true });
+  });
+
   it("passes an npm package's installed and pinned versions to the renderer", async () => {
     jest.spyOn(runtimeRegistry, "statuses").mockResolvedValue([
       {

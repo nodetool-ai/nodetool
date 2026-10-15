@@ -10,6 +10,7 @@
 
 import {
   NodeRegistry,
+  applyBuiltinNodePolicy,
   loadInstalledPacks,
   readBuiltinPackOverrides,
   type NodeMetadata,
@@ -25,19 +26,17 @@ import {
 } from "@nodetool-ai/protocol";
 import { setPackSnapshot } from "./pack-snapshot.js";
 import { refreshSandboxCatalog } from "./sandbox-catalog.js";
-import {
-  registerBuiltinPacks,
-  setBuiltinPackEnabled,
-  applyBuiltinNodePolicy,
-  builtinPackUnavailableReason
-} from "@nodetool-ai/base-nodes/builtin-packs";
+import { loadBundledPackSource, type PackSource } from "./pack-source.js";
+
+const registrySources = new WeakMap<NodeRegistry, PackSource>();
 
 interface BootstrapLogger {
   info: (msg: string) => void;
   warn: (msg: string) => void;
 }
 
-interface BootstrapRegistryOptions {
+export interface BootstrapRegistryOptions {
+  packSource?: PackSource;
   /** Roots scanned for Python package metadata. */
   metadataRoots?: string[];
   metadataMaxDepth?: number;
@@ -61,6 +60,7 @@ function isCloudProfile(): boolean {
 }
 
 interface RegisterBuiltInNodesOptions {
+  packSource?: PackSource;
   /**
    * Per-pack enabled overrides keyed by pack id. Packs absent from the map
    * keep their install default (`defaultEnabled` in the catalog — most packs
@@ -72,10 +72,13 @@ interface RegisterBuiltInNodesOptions {
   log?: BootstrapLogger;
 }
 
-export function getUnavailableBuiltinPackDiagnostics(): NodePackAvailabilityDiagnostic[] {
+export async function getUnavailableBuiltinPackDiagnostics(
+  registry?: NodeRegistry
+): Promise<NodePackAvailabilityDiagnostic[]> {
+  const packSource = (registry && registrySources.get(registry)) ?? await loadBundledPackSource();
   const overrides = isCloudProfile() ? undefined : readBuiltinPackOverrides();
   return BUILTIN_NODE_PACKS.flatMap((pack) => {
-    const reason = builtinPackUnavailableReason(pack, {
+    const reason = packSource.unavailableReason(pack, {
       enabledOverrides: overrides,
       cloudProfile: isCloudProfile(),
       production: isProduction()
@@ -143,18 +146,20 @@ export function mergePythonBridgeMetadata(
 }
 
 /**
- * Register the enabled first-party node packs into `registry` (synchronous).
+ * Register the enabled first-party node packs into `registry`.
  * Required packs and packs enabled by default or by the user load; the rest
  * are skipped.
  */
-export function registerBuiltInNodes(
+export async function registerBuiltInNodes(
   registry: NodeRegistry,
   options: RegisterBuiltInNodesOptions = {}
-): void {
+): Promise<void> {
+  const packSource = options.packSource ?? await loadBundledPackSource();
+  registrySources.set(registry, packSource);
   const overrides =
     options.enabledOverrides ??
     (isCloudProfile() ? undefined : readBuiltinPackOverrides());
-  registerBuiltinPacks(
+  await packSource.register(
     registry,
     {
       enabledOverrides: overrides,
@@ -176,12 +181,13 @@ export function registerBuiltInNodes(
  * types attributed to that pack during registration, so packs sharing a namespace prefix
  * with other packs are untouched.
  */
-export function applyBuiltinPackEnabled(
+export async function applyBuiltinPackEnabled(
   registry: NodeRegistry,
   id: string,
   enabled: boolean
-): void {
-  setBuiltinPackEnabled(registry, id, enabled);
+): Promise<void> {
+  const packSource = registrySources.get(registry) ?? await loadBundledPackSource();
+  await packSource.setEnabled(registry, id, enabled);
 }
 
 /** Drop optional node types that aren't available in cloud/production builds. */
@@ -242,7 +248,14 @@ export async function bootstrapNodeRegistry(
     roots: options.metadataRoots,
     maxDepth: options.metadataMaxDepth ?? 8
   });
-  registerBuiltInNodes(registry, options.log ? { log: options.log } : {});
+  const builtinOptions: RegisterBuiltInNodesOptions = {};
+  if (options.log) {
+    builtinOptions.log = options.log;
+  }
+  if (options.packSource) {
+    builtinOptions.packSource = options.packSource;
+  }
+  await registerBuiltInNodes(registry, builtinOptions);
   if (options.loadPacks !== false) {
     const loadOptions: Parameters<typeof loadInstalledPacks>[1] = {
       onResult: (result) => logPackResult(result, options.log)

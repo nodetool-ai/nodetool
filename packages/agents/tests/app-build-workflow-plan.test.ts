@@ -29,6 +29,9 @@ import { APP_BUILD_EVAL_CASES } from "../src/evals/app-build-cases.js";
  * `nodetool eval app-build` leg the harness gate runs.
  */
 const registry = {
+  availability(type: string) { return this.has(type) ? "executable" : "unknown"; },
+  catalogEntry: () => undefined,
+  catalogPack: () => undefined,
   has: () => true,
   getMetadata: () => undefined,
   validateNode: () => []

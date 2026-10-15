@@ -248,8 +248,12 @@ describe("node catalog drift gate", () => {
     "packages/kie-nodes/src/kie-manifest.json",
     "packages/whisper-cpp/src/index.ts",
     "packages/node-catalog/data/nodes.ndjson",
-    "scripts/node-catalog/packs.mjs"
+    "scripts/node-catalog/packs.mjs",
+    "tools/oxlint/pack-boundaries/index.mjs",
+    "tools/oxlint/pack-boundaries/tests/no-direct-pack-imports.test.ts"
   ])("selects the catalog selfcheck for %s", (file) => {
-    expect(planGate([file]).checks.some((check) => check.harnessId === "node-catalog")).toBe(true);
+    const plan = planGate([file]);
+    expect(plan.checks.some((check) => check.harnessId === "node-catalog")).toBe(true);
+    expect(plan.unmappedFiles).toEqual([]);
   });
 });

@@ -52,6 +52,7 @@
     { "path": "packages/chat" },
     { "path": "packages/telegram" },
     { "path": "packages/websocket" },
+    { "path": "packages/server" },
     { "path": "packages/cli" },
     { "path": "packages/sdk" },
     { "path": "packages/sandbox-compiler" },
