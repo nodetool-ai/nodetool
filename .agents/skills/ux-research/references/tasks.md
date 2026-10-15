@@ -48,9 +48,13 @@ never put it in a packet.
 | `save-copy` | You want a copy of something already made in this app on your own computer. Save it there. | seeded-demo | 15 | Export and download |
 | `fix-broken` | Someone left something here that should summarise a trip, but it does not work. Make it work, until you see a summary. | failing-run | 20 | Recovering from a broken workflow |
 | `repeat-job` | Every week you turn a few rough notes into a short tidy summary. Set the app up so it does that job for you whenever you need it, and try it once. | empty | 20 | Setting up a reusable process |
+| `change-photo` | You have a photo of your own. Have the app make a new version of it that looks like a watercolour painting, until you see the new version. | empty | 20 | Working on your own picture |
+| `ask-file` | You have a file of notes from a meeting. Ask the app when the next meeting is, using the file, until you see an answer. | empty | 15 | Asking about your own file |
+| `fix-error` | Someone left something here that should turn trip notes into a packing list, but it stops with a problem when it runs. Make it work, until you see a packing list. | other-provider | 20 | Recovering from a run error |
+| `plan-video` | You want a short video advertising a small bakery. Have the app plan it scene by scene, with a picture for each scene, until you see the scenes with their pictures. | empty | 25 | Planning a multi-part creative piece |
 
-`add-key` needs a test key in `credentials`. `add-photo` needs an image in
-`assets`. `switch-model` on `seeded-demo` has every provider connected, so it
+`add-key` needs a test key in `credentials`. `add-photo` and `change-photo`
+need an image in `assets`, and `ask-file` a text file. `switch-model` on `seeded-demo` has every provider connected, so it
 studies the choice and not the setup.
 
 ## End states and routes
@@ -77,6 +81,10 @@ studies the choice and not the setup.
 | `save-copy` | The receipt says the browser downloaded a file of something made in the app. | Where it looked for export, and which format it chose. | [timeline](../../agentic-qa/references/protocols/creative.md#timeline) |
 | `fix-broken` | The run completes and its output is visible. | Where it first learned what was wrong, and whether it ran before fixing. | [run-failure](../../agentic-qa/references/protocols/workflows.md#run-failure) |
 | `repeat-job` | A workflow or app built from the participant's description, saved, and run once with its output visible. | Whether it chose chat, a workflow, or an app, and whether it reopened what it built. | [automation-keep](../../agentic-qa/references/protocols/workflows.md#automation-keep) |
+| `change-photo` | A changed image made from the participant's photo is visible. | Whether it asked the chat first, and where it expected an image model. | [image](../../agentic-qa/references/protocols/library.md#image) |
+| `ask-file` | A reply in a conversation whose question carries the notes file. | Where it attached the file, and whether the home composer read as a place to ask. | [chat](../../agentic-qa/references/protocols/chat.md#chat) |
+| `fix-error` | The run completes and its output is visible, after the participant changed the document. | Whether it read the error, and whether it added the named key or switched the model. | [run-failure](../../agentic-qa/references/protocols/workflows.md#run-failure) |
+| `plan-video` | A storyboard with more than one shot and a still on each shot is visible. | Where it expected the pictures to come from. | [storyboard](../../agentic-qa/references/protocols/creative.md#storyboard) |
 
 Study 2 found two tasks whose end state asks more than their text:
 `switch-model` ("Change it") lets a participant stop at the picker without
@@ -89,6 +97,13 @@ model is selected, so "the one that answers now" does not exist and a
 participant can take a first pick for the switch. On the fakes,
 `make-picture` pays for retyping the "fake" brief and `repeat-job` always
 gets the capitalise plan, so judge both on mechanics.
+
+Study 4 found that `fix-broken` has no fault left when the participant
+connects a key first, because empty model fields now take the default model.
+Use `fix-error` for run faults. `change-photo` and `ask-file` together do not
+fit 35 actions, so give each its own session or run `ask-file` first. On the
+fakes the chat never calls a tool, so a chat request for an edited photo only
+gets text back.
 
 ## Adding a task
 

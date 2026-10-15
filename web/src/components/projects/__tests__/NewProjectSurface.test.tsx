@@ -453,6 +453,7 @@ jest.mock("../../workspace/openPageTab", () => ({
 
 // The `@` picker's search fans out to the asset store and the entity library;
 // this surface only needs the picked row to reach the prompt.
+let mockMentionAssets: unknown[] = [];
 jest.mock(
   "../../node_types/editing/promptComposer/useAssetMentionSearch",
   () => ({
@@ -471,7 +472,7 @@ jest.mock(
                 reference_images: []
               }
             ],
-      displayedAssets: [],
+      displayedAssets: query === null ? [] : mockMentionAssets,
       hasMoreSaved: false,
       loadMoreSaved: jest.fn(),
       handleRename: jest.fn()
@@ -489,6 +490,7 @@ import { OPTION_CARD_CLASS } from "../../setup/OptionCardGrid";
 import { clearChatTurn, peekChatTurn } from "../../chat/pendingChatTurn";
 import useOnboardingStore from "../../../stores/OnboardingStore";
 import { useProviderOnboardingStore } from "../../../stores/ProviderOnboardingStore";
+import type { Asset } from "../../../stores/ApiTypes";
 
 // The real tab store behind the suite's selector mock: `creationProjectId`
 // reads it, so a "current project" pick files where these tests point it.
@@ -541,6 +543,7 @@ const renderSurface = (initialFlowTab: FlowTab | null = null, expandFormats = tr
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockMentionAssets = [];
   localStorage.clear();
   sessionStorage.clear();
   openProject.mockResolvedValue(true);
@@ -1249,6 +1252,30 @@ describe("NewProjectSurface", () => {
       type: "text",
       text: "/launch-commercial A spot for our desk lamp"
     });
+  });
+
+  // UX research study 4: a text file picked with `@` showed as a broken
+  // picture and was counted as "Ref images · 1".
+  it("shows a file picked with `@` by its name, not as a reference image", async () => {
+    mockMentionAssets = [
+      {
+        id: "notes-asset",
+        name: "meeting-notes.txt",
+        content_type: "text/plain",
+        get_url: "https://example.test/meeting-notes.txt"
+      } as Asset
+    ];
+    renderSurface();
+    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    await userEvent.type(prompt, "When is the next meeting? @meet");
+    await screen.findByText("meeting-notes.txt");
+    // The entity row comes first; the file is the second row.
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "meeting-notes.txt" })).toBeInTheDocument()
+    );
+    expect(screen.getByRole("button", { name: "Reference images" })).toBeInTheDocument();
   });
 
   it("writes an entity picked from `@` into the prompt as its token", async () => {

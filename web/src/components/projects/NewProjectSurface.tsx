@@ -32,6 +32,7 @@ import { createTopDownRoomGame, createNative3DGame } from "@nodetool-ai/game-run
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 
 import {
@@ -515,6 +516,9 @@ const NewProjectSurface = ({
     getFileContents
   } = useFileHandling();
   const { uploadFiles, isUploading } = useComposerAssetUpload(addDroppedFiles);
+  const referenceImageCount = droppedFiles.filter((file) =>
+    file.type.startsWith("image/")
+  ).length;
   const { data: entities } = useEntities();
   // Both the user's own skills and the ones NodeTool ships: either is a
   // starter, and either is invoked the same way.
@@ -2095,7 +2099,17 @@ const NewProjectSurface = ({
 
               {droppedFiles.length > 0 && (
                 <FlexRow gap={SPACING.md} wrap sx={{ px: SPACING.xl }}>
-                  {droppedFiles.map((file) => (
+                  {droppedFiles.map((file) =>
+                    // A text file or a document has no picture to show, so
+                    // it reads as its name rather than a broken thumbnail.
+                    !file.type.startsWith("image/") ? (
+                      <Chip
+                        key={file.id}
+                        icon={<InsertDriveFileOutlinedIcon />}
+                        label={file.name}
+                        onDelete={() => removeFile(file.id)}
+                      />
+                    ) : (
                     <Box key={file.id} sx={{ position: "relative" }}>
                       <ResponsiveImage
                         locator={file.dataUri}
@@ -2117,7 +2131,8 @@ const NewProjectSurface = ({
                         }}
                       />
                     </Box>
-                  ))}
+                    )
+                  )}
                 </FlexRow>
               )}
 
@@ -2137,9 +2152,9 @@ const NewProjectSurface = ({
                   onClick={() => refInputRef.current?.click()}
                   sx={composerToolSx}
                 >
-                  {droppedFiles.length === 0
+                  {referenceImageCount === 0
                     ? "Reference images"
-                    : `Ref images · ${droppedFiles.length}`}
+                    : `Ref images · ${referenceImageCount}`}
                 </EditorButton>
                 <input
                   ref={refInputRef}
