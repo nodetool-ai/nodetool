@@ -8,7 +8,7 @@ import { ColumnDef, DataframeRef } from "../../stores/ApiTypes";
 import DataTable from "../node/DataTable/DataTable";
 import ColumnsManager from "../node/ColumnsManager";
 import DataframeEditorModal from "./DataframeEditorModal";
-import { ToolbarIconButton, EditorButton, ButtonGroup, MOTION, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx } from "../ui_primitives";
+import { ToolbarIconButton, EditorButton, ButtonGroup, SPACING, Z_INDEX, getSpacingPx, dropZoneSurfaceStyle } from "../ui_primitives";
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
@@ -85,25 +85,13 @@ const styles = (theme: Theme) =>
       width: "100%",
       border: "0",
       textAlign: "center",
-      transition: MOTION.all,
-      outline: `1px dashed ${theme.vars.palette.grey[600]}`,
+      ...dropZoneSurfaceStyle(theme),
       margin: `${theme.spacing(SPACING.sm)} 0`,
-      backgroundColor: alpha(theme.palette.common.black, 0.2),
-      borderRadius: BORDER_RADIUS.md,
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      cursor: "pointer",
-      "&:hover": {
-        outline: `1px dashed ${theme.vars.palette.grey[400]}`,
-        backgroundColor: alpha(theme.palette.common.black, 0.3)
-      },
-      "&.drag-over": {
-        backgroundColor: theme.vars.palette.grey[600],
-        outline: `2px dashed ${theme.vars.palette.grey[100]}`,
-        outlineOffset: "-2px"
-      }
+      cursor: "pointer"
     },
     ".dropzone-content": {
       display: "flex",

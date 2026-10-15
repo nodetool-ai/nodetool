@@ -1212,6 +1212,16 @@ import { EmptyState, LoadingSpinner, TabGroup, TabPanel } from "../ui_primitives
 | Loading | Never bare "Loading…" text. A dropdown option may keep a disabled "Loading…" item |
 | Tabs | `TabGroup`, not raw `Tabs` and `Tab`. Workspace document tabs and the inspector's counted tabs are their own components |
 
+### Drop zones
+
+Every file drop target uses `DropZone` (`ui_primitives/DropZone.tsx`) or, for class-based surfaces, its style helpers. There is one drag-over look: `2px dashed primary` outline with the `action.selected` fill. The `reject` state uses the same outline in `error`; idle is `1px dashed divider`.
+
+- **Inline target** (property editors, empty states): `<DropZone onFilesDrop={...}>` or, where the drop handler reads the DataTransfer itself (`useFileDrop`), pass `onDrop`.
+- **Whole-panel target** (asset grid): `<DropZone overlay onFilesDrop={...}>`; children stay untouched and a translucent label layer covers them while over. `DropZoneOverlay` is the same layer for a hand-wired parent.
+- **Class-based surfaces** (`.dropzone` / `.drag-over` CSS): spread `dropZoneSurfaceStyle(theme)` (or `dropZoneOverStyle`, `dropZoneRejectStyle`, `dropZoneOutline`) instead of writing outline and fill colours.
+- Track drag state with `useDragOverState` (`hooks/handlers/useDragOverState.ts`); `useFileDrop` keeps the drop handling.
+- Forbidden: hand-built `dashed` outlines with `grey[*]` fills, a `3px` dashed overlay, or a per-component `isDragOver` + `setTimeout` pair. Reorder-drag targets (timeline tracks, tabs, trees) are not drop zones and keep their insertion markers.
+
 ### Progress and generation status
 
 A wait shows one of five marks, picked by what the user is waiting on. Never

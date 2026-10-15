@@ -459,6 +459,19 @@ export type { SelectableListItemProps } from "./SelectableListItem";
 
 export { CheckerDropzone } from "./CheckerDropzone";
 export type { CheckerDropzoneProps } from "./CheckerDropzone";
+export {
+  DropZone,
+  DropZoneOverlay,
+  dropZoneOutline,
+  dropZoneOverStyle,
+  dropZoneRejectStyle,
+  dropZoneSurfaceStyle
+} from "./DropZone";
+export type {
+  DropZoneProps,
+  DropZoneState,
+  DropZoneOverlayProps
+} from "./DropZone";
 
 export { VideoPlayer } from "./VideoPlayer";
 export type { VideoPlayerProps } from "./VideoPlayer";

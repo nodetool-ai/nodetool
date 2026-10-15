@@ -1,6 +1,6 @@
 import type { CSSObject } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { BORDER_RADIUS, MOTION, SPACING, getSpacingPx } from "../../ui_primitives";
+import { SPACING, dropZoneSurfaceStyle, getSpacingPx } from "../../ui_primitives";
 
 export const listDropzoneStyles = (theme: Theme): CSSObject => ({
   ".dropzone": {
@@ -10,23 +10,12 @@ export const listDropzoneStyles = (theme: Theme): CSSObject => ({
     border: "0",
     maxWidth: "none",
     textAlign: "center",
-    transition: MOTION.all,
-    outline: `1px dashed ${theme.vars.palette.grey[600]}`,
+    ...dropZoneSurfaceStyle(theme),
     margin: `${theme.spacing(SPACING.sm)} 0`,
-    backgroundColor: theme.vars.palette.c_scrim_soft,
-    borderRadius: BORDER_RADIUS.md,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    cursor: "pointer",
-    "&:hover": {
-      outline: `1px dashed ${theme.vars.palette.grey[400]}`
-    },
-    "&.drag-over": {
-      backgroundColor: theme.vars.palette.grey[600],
-      outline: `2px dashed ${theme.vars.palette.grey[100]}`,
-      outlineOffset: "-2px"
-    }
+    cursor: "pointer"
   },
   ".dropzone p": {
     textAlign: "center",
