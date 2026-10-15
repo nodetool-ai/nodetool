@@ -1,59 +1,14 @@
-/** @jsxImportSource @emotion/react */
-import { useState, DragEvent, useRef, useCallback, useEffect } from "react";
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, FONT_WEIGHT, Z_INDEX, getSpacingPx, SPACING } from "../ui_primitives";
+import { DropZone } from "../ui_primitives";
 
-const styles = (theme: Theme) =>
-  css({
-    "&": {
-      display: "flex",
-      flexDirection: "column",
-      flex: 1,
-      minHeight: 0,
-      overflow: "hidden",
-      height: "100%",
-      position: "relative"
-    },
-    ".dragging-overlay": {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
-      zIndex: Z_INDEX.overlay,
-      pointerEvents: "none",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      border: `3px dashed ${theme.vars.palette.primary.main}`,
-      borderRadius: BORDER_RADIUS.lg
-    },
-    ".dragging-overlay-text": {
-      color: theme.vars.palette.primary.main,
-      fontSize: theme.fontSizeNormal,
-      fontWeight: FONT_WEIGHT.semibold,
-      pointerEvents: "none",
-      textTransform: "uppercase",
-      letterSpacing: "0.05em"
-    },
-    ".file-upload-button": {
-      zIndex: Z_INDEX.raised,
-      height: "fit-content",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      padding: `0 ${getSpacingPx(SPACING.md)}`,
-      right: "48px",
-      margin: "0",
-      border: "none",
-      outline: "none",
-      borderRadius: BORDER_RADIUS.sm,
-      transition: `background ${MOTION.fast}`
-    }
-  });
+const rootSx = {
+  display: "flex",
+  flexDirection: "column",
+  flex: 1,
+  minHeight: 0,
+  overflow: "hidden",
+  height: "100%",
+  position: "relative"
+} as const;
 
 interface DropzoneProps {
   onDrop: (files: File[]) => void;
@@ -61,75 +16,17 @@ interface DropzoneProps {
 }
 
 const Dropzone: React.FC<DropzoneProps> = (props) => {
-  const theme = useTheme();
-  const [isExternalDrag, setIsExternalDrag] = useState(false);
-  const leaveTimeoutId = useRef<NodeJS.Timeout | null>(null);
-  const clearLeaveTimeout = () => {
-    if (leaveTimeoutId.current) {
-      clearTimeout(leaveTimeoutId.current);
-      leaveTimeoutId.current = null;
-    }
-  };
-
-  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    clearLeaveTimeout();
-
-    // check if the drag event contains external files
-    const hasFiles = Array.from(e.dataTransfer.items).some(
-      (item) => item.kind === "file"
-    );
-    setIsExternalDrag(hasFiles);
-  }, []);
-
-  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    leaveTimeoutId.current = setTimeout(() => {
-      setIsExternalDrag(false);
-    }, 50);
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      clearLeaveTimeout();
-      setIsExternalDrag(false);
-
-      // If dropped items are files, handle them
-      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-        const files = Array.from(e.dataTransfer.files);
-        props.onDrop(files);
-      }
-    },
-    [props]
-  );
-
-  useEffect(() => {
-    return () => {
-      clearLeaveTimeout();
-    };
-  }, []);
-
   return (
-    <div
-      css={styles(theme)}
-      className={`dropzone${isExternalDrag ? " is-dragging" : ""}`}
-      onDragEnter={handleDragOver}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+    <DropZone
+      overlay
+      className="dropzone"
+      onFilesDrop={props.onDrop}
+      leaveDelayMs={50}
+      sx={rootSx}
     >
-      {isExternalDrag && (
-        <div className="dragging-overlay">
-          <span className="dragging-overlay-text">Drop files to upload</span>
-        </div>
-      )}
       {/* Upload button moved into the toolbar; keep drag-and-drop active here */}
       {props.children}
-    </div>
+    </DropZone>
   );
 };
 
