@@ -11,7 +11,7 @@ import { playAnimationGraphState3D, setAnimationParameter3D } from "./animation-
 
 const NO_TAGS: readonly string[] = Object.freeze([]);
 /** Fields of a removed instance's last call that its onDestroy hook reads. */
-const REMOVED_FIELDS_3D = ["position", "velocity", "grounded", "tags", "rotation"] as const;
+const REMOVED_FIELDS_3D = ["position", "velocity", "grounded", "tags", "rotation", "props"] as const;
 
 function scriptMetadata(state: EntityState3D): Pick<GameScriptCall3D, "tags" | "active" | "rotation"> {
   return { tags: state.definition.tags ?? NO_TAGS, active: state.active, rotation: [...state.transform.rotation] };
@@ -36,6 +36,7 @@ export function scriptCall3D(context: GameSystemContext3D, state: EntityState3D,
     velocity: { ...state.velocity },
     grounded: state.controller?.grounded ?? false,
     ...scriptMetadata(state),
+    props: state.props ?? {},
     maxCommands: behavior.maxCommands,
     maxTickMs: behavior.maxTickMs
   };

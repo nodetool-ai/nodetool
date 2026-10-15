@@ -36,9 +36,11 @@ const store = {
   apps: new Map<string, FakeApp>(),
   workflows: new Map<string, FakeWorkflow>()
 };
+const scriptResolve = vi.fn();
 let idCounter = 0;
 
 vi.mock("@nodetool-ai/models", () => ({
+  createJsScriptResolver: () => ({ resolve: scriptResolve }),
   createTimeOrderedUuid: () => `new-id-${++idCounter}`,
   releasedApplicationRelease: vi.fn().mockResolvedValue(null),
   Application: {
@@ -184,7 +186,27 @@ describe("nodetool apps bundles", () => {
     store.apps.clear();
     store.workflows.clear();
     idCounter = 0;
+    scriptResolve.mockReset();
     seed();
+  });
+
+  it("collects pinned script bodies when exporting by application id", async () => {
+    const app = store.apps.get("app-1")!;
+    const document = app.toDocument() as { operations: unknown[] };
+    document.operations.push({ id: "script", name: "Read", workflowId: "", target: { kind: "script", scriptId: "s1", scriptVersion: 2 }, inputs: {}, outputs: {}, policy: "replace" });
+    const { emptyJsScriptDocument } = await import("@nodetool-ai/protocol/api-schemas/js-scripts.js");
+    const script = { ...emptyJsScriptDocument(), code: 'await output("result", "pinned body");', secrets: ["SCRIPT_KEY"] };
+    scriptResolve.mockResolvedValue({ name: "Read", document: script });
+    const dir = await mkdtemp(join(tmpdir(), "nodetool-apps-"));
+    const file = join(dir, "scripts.app.json");
+    const exported = await run(["apps", "export-bundle", "app-1", "-o", file]);
+    expect(exported.exitCode).toBeNull();
+    expect(scriptResolve).toHaveBeenCalledWith({ id: "s1", version: 2 }, "1");
+    const bundle = JSON.parse(await readFile(file, "utf8"));
+    expect(bundle.scripts).toHaveLength(1);
+    expect(bundle.scripts[0].document.code).toBe(script.code);
+    expect(bundle.scripts[0].document.secrets).toEqual(["SCRIPT_KEY"]);
+    expect(bundle.app.operations.at(-1).target.scriptId).toBe(bundle.scripts[0].key);
   });
 
   it("round-trips an app and its workflows through a bundle file", async () => {

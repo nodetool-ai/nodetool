@@ -147,10 +147,68 @@ describe("createSupabaseStorageClient", () => {
   });
 });
 
+describe("createSignedUrls", () => {
+  it("POSTs every key to the bulk sign endpoint and maps each result", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse([
+        {
+          path: "u/a.png",
+          signedURL: "/object/sign/assets/u/a.png?token=ta",
+          error: null
+        },
+        {
+          path: "u/gone.jpg",
+          signedURL: null,
+          error: "Either the object does not exist or you do not have access to it"
+        }
+      ])
+    );
+
+    const { data, error } = await client()
+      .storage.from("assets")
+      .createSignedUrls(["u/a.png", "u/gone.jpg"], 600);
+
+    expect(error).toBeNull();
+    expect(data).toEqual([
+      {
+        key: "u/a.png",
+        signedUrl:
+          "https://xyz.supabase.co/storage/v1/object/sign/assets/u/a.png?token=ta",
+        error: null
+      },
+      {
+        key: "u/gone.jpg",
+        signedUrl: null,
+        error: "Either the object does not exist or you do not have access to it"
+      }
+    ]);
+    const { url, init } = lastRequest();
+    expect(url).toBe("https://xyz.supabase.co/storage/v1/object/sign/assets");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({
+      expiresIn: 600,
+      paths: ["u/a.png", "u/gone.jpg"]
+    });
+  });
+
+  it("maps a failed request to a top-level error", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ statusCode: 404, message: "Bucket not found" }, 404)
+    );
+    const { data, error } = await client()
+      .storage.from("nope")
+      .createSignedUrls(["a.png"], 60);
+    expect(data).toBeNull();
+    expect(error?.message).toBe("Bucket not found");
+  });
+});
+
 describe("createAssetUrlBuilder (supabase)", () => {
   it("returns the signed URL for a key", async () => {
     fetchMock.mockResolvedValue(
-      jsonResponse({ signedURL: "/object/sign/assets/k.png?token=t" })
+      jsonResponse([
+        { path: "k.png", signedURL: "/object/sign/assets/k.png?token=t" }
+      ])
     );
 
     const build = createAssetUrlBuilder({
@@ -166,13 +224,16 @@ describe("createAssetUrlBuilder (supabase)", () => {
 
     const { init } = lastRequest();
     expect(JSON.parse(init.body as string)).toEqual({
-      expiresIn: SIGNED_URL_TTL
+      expiresIn: SIGNED_URL_TTL,
+      paths: ["k.png"]
     });
   });
 
   it("throws a mapped error when signing fails", async () => {
     fetchMock.mockResolvedValue(
-      jsonResponse({ statusCode: 400, message: "Object not found" }, 400)
+      jsonResponse([
+        { path: "missing.png", signedURL: null, error: "Object not found" }
+      ])
     );
 
     const build = createAssetUrlBuilder({

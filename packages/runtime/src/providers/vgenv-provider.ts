@@ -34,6 +34,7 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_REFERENCE_IMAGES = 9;
 const POLL_INTERVAL_MS = 8000;
 const DEFAULT_TIMEOUT_SECONDS = 30 * 60;
+const CANCEL_TIMEOUT_MS = 5000;
 const TERMINAL = new Set(["succeeded", "failed", "cancelled"]);
 
 const VideoSchema = z.object({
@@ -220,26 +221,33 @@ export class VgenvProvider extends BaseProvider {
   ): Promise<Video> {
     const { signal } = params;
     const path = `${BASE_URL}/videos/${encodeURIComponent(created.id)}`;
-    const deadline = Date.now() + (params.timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS) * 1000;
+    const timeout = new AbortController();
+    const pollingSignal = signal ? AbortSignal.any([signal, timeout.signal]) : timeout.signal;
+    const timer = setTimeout(() => timeout.abort(), (params.timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS) * 1000);
     let current = created;
-    let timedOut = false;
     try {
       while (!TERMINAL.has(current.status)) {
-        if (Date.now() >= deadline) {
-          timedOut = true;
-          throw new Error(`vgenv video ${created.id} timed out while ${current.status}`);
-        }
-        await sleep(POLL_INTERVAL_MS, signal);
-        signal?.throwIfAborted();
+        pollingSignal.throwIfAborted();
+        await sleep(POLL_INTERVAL_MS, pollingSignal);
+        pollingSignal.throwIfAborted();
         current = await this.parse(
-          await fetchWithRetry(path, { headers: this.headers(), signal }),
+          await fetchWithRetry(path, { headers: this.headers(), signal: pollingSignal }),
           "video status"
         );
+        pollingSignal.throwIfAborted();
       }
     } catch (error) {
       // An abort can land in the sleep or inside the status request.
-      if (timedOut || signal?.aborted) await this.cancel(created.id);
+      if (timeout.signal.aborted || signal?.aborted) await this.cancel(created.id);
+      if (signal?.aborted) {
+        signal.throwIfAborted();
+      }
+      if (timeout.signal.aborted) {
+        throw new Error(`vgenv video ${created.id} timed out while ${current.status}`);
+      }
       throw error;
+    } finally {
+      clearTimeout(timer);
     }
     return current;
   }
@@ -250,20 +258,33 @@ export class VgenvProvider extends BaseProvider {
    * so a failure here must not mask the abort or timeout that triggered it.
    */
   private async cancel(id: string): Promise<void> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CANCEL_TIMEOUT_MS);
     try {
       await fetch(`${BASE_URL}/videos/${encodeURIComponent(id)}`, {
         method: "DELETE",
-        headers: this.headers()
+        headers: this.headers(),
+        signal: controller.signal
       });
     } catch {
       // The caller is already failing with the abort or timeout reason.
+    } finally {
+      clearTimeout(timer);
     }
   }
 
   private async download(url: string, signal?: AbortSignal): Promise<Uint8Array> {
     // The result is already billed, so transient CDN failures are retried.
     const response = await fetchWithRetry(url, { signal }, {
-      fetchImpl: (input, init) => safeFetch(String(input), init)
+      fetchImpl: async (input, init) => {
+        const response = await safeFetch(String(input), init);
+        if (!response.ok) {
+          return response;
+        }
+        // Read inside the retry boundary so a broken response stream retries
+        // the protected CDN request, without creating another generation.
+        return new Response(await response.arrayBuffer(), { status: response.status, headers: response.headers });
+      }
     });
     if (!response.ok) throw new Error(`vgenv result download failed: HTTP ${response.status}`);
     return new Uint8Array(await response.arrayBuffer());

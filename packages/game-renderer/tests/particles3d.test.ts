@@ -123,6 +123,19 @@ describe("3D particles beside a session", () => {
     expect(particle(burst.data, 0).slice(0, 3)).toEqual([1, 2, 3]);
   });
 
+  it("round trips surviving world particles without their emitter in the frame", () => {
+    const simulator = new ParticleSimulator({ dimension: "3d" });
+    simulator.sync([{ entityId: "gone", position: { x: 0, y: 0, z: 0 }, rotation: IDENTITY,
+      particles: gameParticles.parse({ emitters: [{ id: "fx", rate: 0, bursts: [{ count: 1 }], lifetime: 2, space: "world" }] }) }]);
+    simulator.step(TICK);
+    simulator.sync([]);
+    const samples = gameParticleSamples3D(simulator);
+    expect(samples).toHaveLength(1);
+    const seen: ParticleView[] = [];
+    gameParticleFieldFromSamples3D(samples, { ...blockoutFrame(), entities: [] }).forEachParticle(value => seen.push(value));
+    expect(seen).toHaveLength(1);
+  });
+
   it("drops samples whose emitter is not in the frame", () => {
     const frame = blockoutFrame();
     frame.entities = [{ ...frame.entities[0]!, particles: gameParticles.parse({ emitters: [{ id: "fx" }] }) }];
@@ -292,6 +305,11 @@ describe("3D particle render pass", () => {
     // Velocity alignment turns the mesh's +Y onto the particle's +X travel.
     const up = new THREE.Vector3(0, 1, 0).applyQuaternion(rotation);
     expect(up.x).toBeCloseTo(1, 6);
+    boxes.computeBoundingSphere();
+    current = field([view(emitter({ render: { kind: "mesh", shape: "box" }, unlit: true }), { z: -20 })]);
+    await pipeline.render(recorded.context);
+    if (boxes.boundingSphere === null) { boxes.computeBoundingSphere(); }
+    expect(boxes.boundingSphere?.center.z).toBeCloseTo(-20);
     // A frame without particles releases every draw.
     current = null;
     await pipeline.render(recorded.context);
@@ -299,6 +317,24 @@ describe("3D particle render pass", () => {
     expect(pass.drawn).toBe(0);
     pass.dispose();
     expect(scene.getObjectByName("game-particles")).toBeUndefined();
+  });
+
+  it("keeps static quad buffers owned by the rendered geometries through disposal", async () => {
+    const pipeline = new RenderPipeline3D();
+    const scene = new THREE.Scene();
+    const particles = field([view(emitter({ blend: "normal" })), view(emitter({ blend: "additive" }))]);
+    const pass = new GameParticlePass3D(pipeline, { scene, particles: () => particles });
+    await pipeline.render(recordingContext(scene, new THREE.PerspectiveCamera()).context);
+    const geometries: THREE.BufferGeometry[] = [];
+    scene.traverse(object => { if (object instanceof THREE.Mesh) { geometries.push(object.geometry); } });
+    expect(geometries).toHaveLength(2);
+    expect(geometries[0]!.getAttribute("position")).not.toBe(geometries[1]!.getAttribute("position"));
+    const disposed: boolean[] = [];
+    for (const geometry of geometries) {
+      geometry.addEventListener("dispose", () => disposed.push(geometry.index !== null && geometry.hasAttribute("position") && geometry.hasAttribute("uv")));
+    }
+    pass.dispose();
+    expect(disposed).toEqual([true, true]);
   });
 
   it("renders scene depth for soft billboards and restores every renderer and scene setting it changed", async () => {
@@ -310,7 +346,7 @@ describe("3D particle render pass", () => {
     const solid = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide });
     const cutout = new THREE.Texture();
     // An alpha-tested cut-out whose opacity is below its cutoff draws nothing in the scene pass.
-    const masked = new THREE.MeshStandardMaterial({ alphaTest: 0.5, opacity: 0.2, map: cutout });
+    const masked = new THREE.MeshStandardMaterial({ alphaTest: 0.5, opacity: 0.2, map: cutout, vertexColors: true });
     const glass = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.5 });
     for (const [name, material] of [["solid", solid], ["masked", masked], ["glass", glass]] as const) {
       const mesh = new THREE.Mesh(box, material);
@@ -331,7 +367,7 @@ describe("3D particle render pass", () => {
       return material;
     };
     expect(depth("solid")).toMatchObject({ colorWrite: false, visible: true, side: THREE.DoubleSide, alphaTest: 0 });
-    expect(depth("masked")).toMatchObject({ colorWrite: false, visible: true, alphaTest: 0.5, opacity: 0.2, map: cutout });
+    expect(depth("masked")).toMatchObject({ colorWrite: false, visible: true, alphaTest: 0.5, opacity: 0.2, map: cutout, vertexColors: true });
     expect(depth("glass").visible).toBe(false);
     for (const [name, material] of [["solid", solid], ["masked", masked], ["glass", glass]] as const) {
       expect((scene.getObjectByName(name) as THREE.Mesh).material).toBe(material);

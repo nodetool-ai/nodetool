@@ -61,6 +61,55 @@ const getMetadata = (type: string) =>
 const ids = (g: GraphData) => g.nodes.map((n) => n.id).sort();
 
 describe("planPartialRun", () => {
+  it("aggregates a large cached fan-in without copying growing prefixes", async () => {
+    const sources = Array.from({ length: 10_000 }, (_, index) => ({ id: `source-${index}`, type: "test.Gen", properties: {} }));
+    const plan = await planPartialRun({
+      nodes: [...sources, { id: "out", type: "test.List", properties: {} }],
+      edges: sources.map((source) => edge(source.id, "out", "items"))
+    }, ["out"], {
+      getMetadata: (type) => type === "test.List" ? metadata({ properties: [{ name: "items", type: { type: "list", type_args: [{ type: "str", type_args: [] }] } }] }) : genMeta,
+      loadPreviousGeneration: async (node) => ({ outputs: { output: [node.id] }, jobId: null, assetIds: [] })
+    });
+    if (plan.kind !== "graph") throw new Error("expected graph");
+    expect(plan.graph.nodes[0]?.properties.items).toEqual(sources.map((source) => source.id));
+    expect(plan.reused).toHaveLength(sources.length);
+  });
+  it("rewrites bypasses before looking for saved generations", async () => {
+    const bypassed = { ...graph, nodes: graph.nodes.map((node) => node.id === "gen"
+      ? { ...node, ui_properties: { bypassed: true } } : node) };
+    const loadPreviousGeneration = vi.fn(async () => ({ outputs: { output: "obsolete" }, jobId: null, assetIds: [] }));
+    const plan = await planPartialRun(bypassed, ["consumer"], { getMetadata, loadPreviousGeneration });
+    if (plan.kind !== "graph") throw new Error("expected graph");
+    expect(ids(plan.graph)).toEqual(["consumer", "prompt"]);
+    expect(plan.graph.edges).toEqual([expect.objectContaining({ source: "prompt", target: "consumer" })]);
+    expect(loadPreviousGeneration).not.toHaveBeenCalled();
+  });
+
+  it("keeps control targets and their input dependencies", async () => {
+    const controlled: GraphData = { nodes: graph.nodes, edges: [
+      { ...edge("consumer", "gen"), edge_type: "control" }, edge("prompt", "gen", "prompt")
+    ] };
+    const plan = await planPartialRun(controlled, ["consumer"], { getMetadata });
+    if (plan.kind !== "graph") throw new Error("expected graph");
+    expect(ids(plan.graph)).toEqual(["consumer", "gen", "prompt"]);
+    expect(plan.graph.edges).toEqual(controlled.edges);
+  });
+
+  it.each([false, true])("aggregates cached lists according to their element type (nested: %s)", async (nested) => {
+    const listGraph: GraphData = { nodes: [
+      { id: "a", type: "test.Gen", properties: {} },
+      { id: "b", type: "test.Gen", properties: {} },
+      { id: "out", type: "test.List", properties: {} }
+    ], edges: [edge("a", "out", "items"), edge("b", "out", "items")] };
+    const plan = await planPartialRun(listGraph, ["out"], {
+      getMetadata: (type) => type === "test.List" ? metadata({ properties: [{ name: "items", type: {
+        type: "list", type_args: [nested ? { type: "list", type_args: [{ type: "str", type_args: [] }] } : { type: "str", type_args: [] }]
+      } }] }) : genMeta,
+      loadPreviousGeneration: async (node) => ({ outputs: { output: node.id === "a" ? ["a", "b"] : ["c"] }, jobId: null, assetIds: [] })
+    });
+    if (plan.kind !== "graph") throw new Error("expected graph");
+    expect(plan.graph.nodes[0]?.properties.items).toEqual(nested ? [["a", "b"], ["c"]] : ["a", "b", "c"]);
+  });
   it("keeps the selection and its upstream, drops downstream and siblings", async () => {
     const plan = await planPartialRun(graph, ["consumer"], { getMetadata });
     if (plan.kind !== "graph") throw new Error("expected a graph");
@@ -268,7 +317,8 @@ describe("planPartialRun", () => {
 describe("generationOutputFor", () => {
   it("prefers the named handle, else the sole value", () => {
     expect(generationOutputFor({ image: 1, mask: 2 }, "mask")).toBe(2);
-    expect(generationOutputFor({ output: 1 }, "image")).toBe(1);
+    expect(generationOutputFor({ output: 1 }, "image")).toBeUndefined();
+    expect(generationOutputFor({ output: 1 }, undefined)).toBe(1);
     expect(generationOutputFor({ image: 1, mask: 2 }, "other")).toBeUndefined();
   });
 });
@@ -372,6 +422,10 @@ describe("previousGenerationFromAssets", () => {
     expect(
       previousGenerationFromAssets([{ ...text, size: 900_000 }], textMeta)
     ).toBeNull();
+    const corrupted = "x".repeat(199_999) + "\uFFFD";
+    expect(previousGenerationFromAssets([
+      { ...text, size: 200_002, metadata: { text: corrupted } }
+    ], textMeta)).toBeNull();
   });
 
   it("reads a structured generation from its inline JSON", () => {

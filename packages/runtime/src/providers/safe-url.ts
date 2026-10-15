@@ -250,6 +250,13 @@ export async function safeFetch(
     // that omit them (treated as no redirect).
     const location = res.headers?.get?.("location") ?? null;
     if (res.status >= 300 && res.status < 400 && location) {
+      const method = (currentInit.method ?? "GET").toUpperCase();
+      if (((res.status === 301 || res.status === 302) && method === "POST") ||
+          (res.status === 303 && method !== "GET" && method !== "HEAD")) {
+        const headers = new Headers(currentInit.headers);
+        for (const name of ["content-encoding", "content-language", "content-location", "content-type", "content-length"]) headers.delete(name);
+        currentInit = { ...currentInit, method: "GET", body: undefined, headers };
+      }
       const next = new URL(location, current);
       if (next.origin !== currentOrigin) {
         currentInit = stripCrossOriginCredentials(currentInit);

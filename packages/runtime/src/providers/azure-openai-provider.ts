@@ -22,6 +22,7 @@ export type AzureDeploymentKind = "chat" | "image" | "tts" | "asr" | "embedding"
 export interface AzureDeployment {
   id: string;
   kind: AzureDeploymentKind;
+  model?: string;
 }
 
 const DEPLOYMENT_KINDS: readonly AzureDeploymentKind[] = [
@@ -63,19 +64,30 @@ export function inferAzureDeploymentKind(name: string): AzureDeploymentKind {
 /**
  * Parse `AZURE_OPENAI_DEPLOYMENTS`: a comma-separated list of deployment
  * names. A name may carry an explicit kind after a colon
- * (`my-painter:image`) when the name does not reveal it.
+ * (`my-painter:image`) when the name does not reveal it. Append `=model`
+ * to resolve capabilities independently of the deployment routing name.
  */
 export function parseAzureDeployments(raw: string | undefined): AzureDeployment[] {
   const deployments: AzureDeployment[] = [];
   for (const entry of (raw ?? "").split(",")) {
     const trimmed = entry.trim();
     if (!trimmed) continue;
-    const colon = trimmed.lastIndexOf(":");
-    const suffix = colon > 0 ? trimmed.slice(colon + 1).trim().toLowerCase() : "";
+    const equals = trimmed.indexOf("=");
+    const deploymentName = equals > 0 ? trimmed.slice(0, equals).trim() : trimmed;
+    const model = equals > 0 ? trimmed.slice(equals + 1).trim() : undefined;
+    if (equals > 0 && !model) {
+      throw new Error("Azure deployment model mapping must name an underlying model");
+    }
+    const colon = deploymentName.lastIndexOf(":");
+    const suffix = colon > 0 ? deploymentName.slice(colon + 1).trim().toLowerCase() : "";
     const kind = DEPLOYMENT_KINDS.find((candidate) => candidate === suffix);
-    const id = kind ? trimmed.slice(0, colon).trim() : trimmed;
+    const id = kind ? deploymentName.slice(0, colon).trim() : deploymentName;
     if (!id || deployments.some((d) => d.id === id)) continue;
-    deployments.push({ id, kind: kind ?? inferAzureDeploymentKind(id) });
+    const deployment: AzureDeployment = { id, kind: kind ?? inferAzureDeploymentKind(model ?? id) };
+    if (model) {
+      deployment.model = model;
+    }
+    deployments.push(deployment);
   }
   return deployments;
 }
@@ -195,6 +207,11 @@ export class AzureOpenAIProvider extends OpenAIProvider {
     this.endpoint = endpoint;
     this.apiVersion = apiVersion;
     this.deployments = parseAzureDeployments(secrets.AZURE_OPENAI_DEPLOYMENTS);
+  }
+
+  protected override mediaModelIdentity(model: string): string {
+    const identity = this.deployments.find((deployment) => deployment.id === model)?.model ?? model;
+    return identity === "whisper" ? "whisper-1" : identity;
   }
 
   override getContainerEnv(): Record<string, string> {

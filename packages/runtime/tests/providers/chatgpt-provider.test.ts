@@ -24,7 +24,7 @@ interface FakePage {
  * A chatgpt.com tab: the composer is ready, a send moves the URL to the
  * conversation, and each conversation poll returns the next scripted state.
  */
-function fakeTab(states: PathNode[][], options: { signedIn?: boolean; models?: Array<{ slug: string; title: string }>; goneThreads?: string[]; lostAttaches?: number } = {}): FakePage {
+function fakeTab(states: PathNode[][], options: { signedIn?: boolean; models?: Array<{ slug: string; title: string }>; goneThreads?: string[]; lostAttaches?: number; ignoredSend?: boolean } = {}): FakePage {
   const page: FakePage = { navigations: [], sent: [], attached: 0, staged: [], scripts: [] };
   let pathname = "/";
   let polls = 0;
@@ -46,6 +46,13 @@ function fakeTab(states: PathNode[][], options: { signedIn?: boolean; models?: A
         throw new Error("NT_NOT_SIGNED_IN");
       }
       switch (op) {
+        case "accepted":
+          if (options.ignoredSend) {
+            const document = { querySelector: () => ({ innerText: "still unsent" }) };
+            const location = { pathname: `/c/${CONVERSATION_ID}` };
+            return new Function("document", "location", `return ${expression}`)(document, location);
+          }
+          return true;
         case "ready": return true;
         case "send":
           page.sent.push(JSON.parse(/insertText", false, ("(?:[^"\\]|\\.)*")\)/.exec(expression)![1]));
@@ -201,6 +208,35 @@ describe("ChatGPTProvider", () => {
     await vi.advanceTimersByTimeAsync(5_000);
     await pending;
     expect(page.navigations).toEqual(["https://chatgpt.com/"]);
+  });
+
+  it("loads full history after a system change rejects a delta session", async () => {
+    const page = fakeTab([[node("user", "x"), node("assistant", "ok", { endTurn: true })]]);
+    const history = [{ role: "user" as const, content: "Remember 42" }, { role: "assistant" as const, content: "42" }, { role: "user" as const, content: "Which number?" }];
+    const load = vi.fn().mockResolvedValue(history);
+    const pending = new ChatGPTProvider().generateMessage({ model: "auto", messages: [{ role: "system", content: "New rules" }, { role: "user", content: "Which number?" }], providerSession: { providerId: "chatgpt", model: "auto", token: CONVERSATION_ID, checkpoint: 1, systemHash: "stale" }, loadFullHistory: load });
+    await vi.advanceTimersByTimeAsync(5_000);
+    await pending;
+    expect(load).toHaveBeenCalledOnce();
+    expect(page.sent).toEqual([composePrompt(history)]);
+  });
+
+  it("does no browser work for a cancelled queued request", async () => {
+    const page = fakeTab([[node("assistant", "ok", { endTurn: true })]]);
+    const controller = new AbortController();
+    controller.abort(new Error("cancelled"));
+    await expect(new ChatGPTProvider().generateMessage({ model: "auto", messages: [{ role: "user", content: "hi" }], signal: controller.signal })).rejects.toThrow("cancelled");
+    expect(page.navigations).toEqual([]);
+    expect(page.sent).toEqual([]);
+  });
+
+  it("does not treat an unchanged conversation URL as send acceptance", async () => {
+    const page = fakeTab([[node("assistant", "old", { endTurn: true })], [node("assistant", "new", { endTurn: true })]], { ignoredSend: true });
+    const pending = new ChatGPTProvider().generateMessage({ model: "auto", messages: [{ role: "user", content: "hi" }, { role: "user", content: "next" }], providerSession: { providerId: "chatgpt", model: "auto", token: CONVERSATION_ID, checkpoint: 1 } });
+    const rejected = expect(pending).rejects.toThrow("did not accept");
+    await vi.advanceTimersByTimeAsync(100_000);
+    await rejected;
+    expect(page.scripts.filter((op) => op === "click").length).toBeGreaterThan(1);
   });
 
   it("attaches the last user message's images", async () => {

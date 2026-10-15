@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { QuickJSContext, QuickJSRuntime } from "quickjs-emscripten-core";
 import { gameDocument, type GameDocument } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame } from "../src/sample.js";
-import { defaultScriptCallClock, wallScriptCallClock } from "../src/script-clock.js";
+import { defaultScriptCallClock, wallScriptCallClock, threadCpuScriptCallClock, startScriptCallTimer } from "../src/script-clock.js";
 import { prepareGameScripts, scriptSourceKey, type GameScriptCall } from "../src/scripts.js";
 
 // Destructuring the input makes this a fresh-context script, so every call creates and disposes a context.
@@ -74,11 +74,48 @@ describe("per-call script budget", () => {
 });
 
 describe("per-call script clock", () => {
+  it("selects available native thread CPU accounting on Node", () => {
+    expect(typeof process.threadCpuUsage).toBe("function");
+    expect(threadCpuScriptCallClock()?.kind).toBe("thread-cpu");
+    expect(defaultScriptCallClock.kind).toBe("thread-cpu");
+  });
+
+  it("converts actual native CPU microseconds into milliseconds", () => {
+    const clock = threadCpuScriptCallClock();
+    if (!clock) { throw new Error("Node thread CPU accounting is unavailable"); }
+    const before = process.threadCpuUsage();
+    const milliseconds = clock.now();
+    const after = process.threadCpuUsage();
+
+    expect(milliseconds).toBeGreaterThanOrEqual((before.user + before.system) / 1000);
+    expect(milliseconds).toBeLessThanOrEqual((after.user + after.system) / 1000);
+  });
+
+  it("keeps blocked wall time out of the default 20 ms CPU timer", () => {
+    const expires = startScriptCallTimer(defaultScriptCallClock, 20);
+    const wallExpires = startScriptCallTimer(wallScriptCallClock, 20);
+    const before = process.threadCpuUsage();
+    const started = performance.now();
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 30);
+    const cpu = process.threadCpuUsage(before);
+    const evidence = {
+      clock: defaultScriptCallClock.kind,
+      cpuMs: (cpu.user + cpu.system) / 1000,
+      wallMs: performance.now() - started
+    };
+    const expired = expires();
+    const wallExpired = wallExpires();
+
+    expect(evidence.cpuMs).toBeLessThan(20);
+    expect(expired, JSON.stringify(evidence)).toBe(false);
+    expect(wallExpired).toBe(true);
+    expect(defaultScriptCallClock.kind).toBe("thread-cpu");
+  });
+
   const input = (tick: number) => ({ tick, pressed: [], justPressed: [], events: [], world: [] });
   // Linux can lag a running thread's CPU time by a scheduler tick, so the call's own work must stay well under the limit.
   // The block stays short because it also counts against the 50 ms wall-clock batch budget.
   const shortCall: GameScriptCall = { ...call, maxTickMs: 6 };
-  const threadCpuMs = (): number => { const { user, system } = process.threadCpuUsage(); return (user + system) / 1000; };
   // A world entity whose snapshot copy blocks the thread without using CPU. The snapshot is built inside the call window.
   const blockingWorld = (ms: number) => [{
     id: "sleeper", source: "sleeper", y: 0, velocityX: 0, velocityY: 0,
@@ -111,17 +148,17 @@ describe("per-call script clock", () => {
     } finally { runner.dispose(); }
   });
 
-  it("interrupts a CPU-bound loop once it has used its call limit", async () => {
+  it.each([1, 20])("interrupts a CPU-bound loop at a %i ms call limit", async (limit) => {
     const base = fixture();
     const looping = gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) =>
-      entity.id === "worker" ? { ...entity, behaviors: [{ kind: "script", source: "({ state }) => { while (true) {} }", maxTickMs: 20, maxCommands: 8 }] } : entity) })) });
+      entity.id === "worker" ? { ...entity, behaviors: [{ kind: "script", source: "({ state }) => { while (true) {} }", maxTickMs: limit, maxCommands: 8 }] } : entity) })) });
     const runner = await prepareGameScripts(looping);
     try {
-      const cpu = threadCpuMs();
+      const cpu = defaultScriptCallClock.now();
       const wall = performance.now();
-      expect(() => runner.run([call], input(0), 1)).toThrow(/interrupted/);
-      // The call stops at 20 ms of thread CPU, or earlier at the 50 ms wall-clock batch budget.
-      expect(threadCpuMs() - cpu >= 20 || performance.now() - wall >= 50).toBe(true);
+      expect(() => runner.run([{ ...call, maxTickMs: limit }], input(0), 1)).toThrow(/interrupted/);
+      // The per-call CPU budget and the independent 50 ms batch wall budget both remain enforced.
+      expect(defaultScriptCallClock.now() - cpu >= limit || performance.now() - wall >= 50).toBe(true);
     } finally { runner.dispose(); }
   });
 });

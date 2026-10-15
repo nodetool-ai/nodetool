@@ -37,6 +37,7 @@ jobs:
         run: node .github/scripts/agent-preflight.mjs --name workflow-example-validation --title "$TITLE_PATTERN"
 
   workflow-example-validation:
+    cache-mode: read
     needs: preflight
     if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest

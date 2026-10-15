@@ -4,12 +4,13 @@
  * this shape; a sequence exported from Premiere imports once its XML is
  * zipped with its media.
  *
- * Media is matched by file name, because the XML's `pathurl`s name paths on
- * the machine that wrote it. Only files a clip uses are stored. A clip whose
+ * Media is matched by relative path first, then by an unambiguous file name
+ * when `pathurl` names the exporting machine. Only used files are stored. A clip whose
  * file is not in the zip is left out and counted.
  */
 import { strFromU8 } from "fflate";
 import {
+  MAX_PREMIERE_XML_BYTES,
   premiereToTimeline,
   readPremiereXml,
   type PremiereImport
@@ -57,6 +58,7 @@ export function findPremiereXml(
     if (path.startsWith("__MACOSX/") || !path.toLowerCase().endsWith(".xml")) {
       continue;
     }
+    if (bytes.byteLength > MAX_PREMIERE_XML_BYTES) { throw new Error("Premiere XML exceeds the 8 MiB limit"); }
     const xml = strFromU8(bytes);
     if (xml.includes("<xmeml")) return xml;
   }
@@ -85,29 +87,35 @@ export async function importPremiereArchive(
   options: ImportPremiereOptions
 ): Promise<ImportPremiereResult> {
   const sequence = readPremiereXml(xml);
-  const byName = new Map<string, string>();
-  const byLowerName = new Map<string, string>();
-  for (const path of Object.keys(entries)) {
-    if (path.startsWith("__MACOSX/") || path.endsWith("/")) continue;
-    const name = baseName(path);
-    if (!byName.has(name)) byName.set(name, path);
-    if (!byLowerName.has(name.toLowerCase())) {
-      byLowerName.set(name.toLowerCase(), path);
-    }
+  const paths = Object.keys(entries).filter((path) => !path.startsWith("__MACOSX/") && !path.endsWith("/"));
+  const normalized = (value: string): string => {
+    let decoded = value;
+    try { decoded = decodeURIComponent(value); } catch { /* Keep malformed escapes literal. */ }
+    return decoded.replace(/\\/g, "/").replace(/^(?:\.\/)+/, "");
+  };
+  // An ambiguous key needs no candidate array. Resolve each XML file in constant time.
+  const byPath = new Map<string, string | null>();
+  const byName = new Map<string, string | null>();
+  const add = (map: Map<string, string | null>, key: string, path: string): void => {
+    const existing = map.get(key);
+    map.set(key, existing === undefined ? path : existing === path ? path : null);
+  };
+  for (const path of paths) {
+    add(byPath, normalized(path), path);
+    add(byName, baseName(normalized(path)).toLowerCase(), path);
   }
 
   const stored = new Map<string, string>();
   const imported: ImportPremiereResult["imported"] = [];
   for (const file of sequence.files) {
-    const candidates = [file.name, baseName(file.pathurl)];
-    try {
-      candidates.push(decodeURIComponent(baseName(file.pathurl)));
-    } catch {
-      // A malformed escape leaves the raw name as the only candidate.
+    const filePath = normalized(file.pathurl);
+    let path = byPath.get(filePath);
+    if (path === undefined) {
+      const named = byName.get(file.name.toLowerCase());
+      const located = byName.get(baseName(filePath).toLowerCase());
+      path = named === null || located === null || (named && located && named !== located)
+        ? undefined : named ?? located;
     }
-    const path =
-      candidates.map((name) => byName.get(name)).find(Boolean) ??
-      candidates.map((name) => byLowerName.get(name.toLowerCase())).find(Boolean);
     if (!path) continue;
     if (!stored.has(path)) {
       const name = baseName(path);

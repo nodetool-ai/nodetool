@@ -43,6 +43,34 @@ function gh(args) {
   return execFileSync("gh", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 }
 
+/** Discover both labeled PRs and legacy bot PRs, refusing incomplete history. */
+export function discoverRoutinePrs({ label, titleRegex, since }, run = gh) {
+  const fields = "number,title,state,author,labels,mergedAt";
+  const found = new Map();
+  for (const state of ["open", "merged"]) {
+    const dateFilter = state === "merged" ? `merged:>=${since.toISOString().slice(0, 10)}` : "";
+    for (const labeled of [true, false]) {
+      if (!labeled && !titleRegex) continue;
+      const search = [labeled ? "" : "author:app/claude", dateFilter].filter(Boolean).join(" ");
+      const args = ["pr", "list", "--state", state, "--search", search, "--limit", "1000", "--json", fields];
+      if (labeled) args.push("--label", label);
+      const prs = JSON.parse(run(args));
+      if (prs.length >= 1000) throw new Error("PR discovery is incomplete: result limit reached");
+      for (const pr of prs) {
+        if (belongsToRoutine(pr, label, titleRegex)) found.set(pr.number, pr);
+      }
+    }
+  }
+  for (const pr of found.values()) {
+    if (pr.state !== "MERGED") continue;
+    const files = JSON.parse(run(["api", "--paginate", "--slurp", `repos/{owner}/{repo}/pulls/${pr.number}/files?per_page=100`]));
+    const completeFiles = files.flat();
+    if (completeFiles.length >= 3000) throw new Error(`PR #${pr.number} file discovery is incomplete: API limit reached`);
+    pr.files = completeFiles.map((file) => ({ path: file.filename }));
+  }
+  return [...found.values()];
+}
+
 function parseArgs(argv) {
   const args = { days: 30 };
   for (let i = 0; i < argv.length; i += 2) {
@@ -62,16 +90,7 @@ function main() {
 
   gh(["label", "create", label, "--color", "5319e7", "--description", `Opened by the ${name} workflow`, "--force"]);
 
-  // Every routine opens its PRs as the Claude app, so the author filter keeps
-  // both queries small. The open query has no date bound: an old open PR
-  // still blocks a new one.
-  const fields = "number,title,state,author,labels,mergedAt,files";
-  const list = (state, search) =>
-    JSON.parse(gh(["pr", "list", "--state", state, "--search", search, "--limit", "300", "--json", fields]));
-  const prs = [
-    ...list("open", "author:app/claude"),
-    ...list("merged", `author:app/claude merged:>=${since.toISOString().slice(0, 10)}`),
-  ];
+  const prs = discoverRoutinePrs({ label, titleRegex, since });
 
   const { open, recentFiles } = summarize(prs, { label, titleRegex, since });
 

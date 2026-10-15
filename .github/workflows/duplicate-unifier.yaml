@@ -41,6 +41,7 @@ jobs:
         run: node .github/scripts/agent-preflight.mjs --name duplicate-unifier --title "$TITLE_PATTERN"
 
   duplicate-unifier:
+    cache-mode: read
     needs: preflight
     if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest

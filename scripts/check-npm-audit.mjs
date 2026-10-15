@@ -20,9 +20,9 @@
 // why the advisory is not reachable, or what fixing it takes.
 
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const ROOT = new URL("..", import.meta.url).pathname;
@@ -61,7 +61,7 @@ export const key = (a) => `${a.project}:${a.id}`;
 
 /** Advisories in `head` that are neither in `base` nor allowlisted. */
 export function addedAdvisories(head, base, allowlist) {
-  const known = new Set([...base.map(key), ...allowlist.map(key)]);
+  const known = new Set([...base.map(key), ...allowlist.filter((a) => a.reason?.trim()).map(key)]);
   return head.filter((a) => !known.has(key(a)));
 }
 
@@ -83,26 +83,49 @@ export function mergeAllowlist(current, allowlist) {
 }
 
 function audit(dir, project) {
-  let out;
+  const cache = mkdtempSync(join(tmpdir(), "npm-audit-cache-"));
   try {
-    out = execFileSync("npm", ["audit", "--package-lock-only", "--omit=dev", "--json"], {
-      cwd: dir,
-      encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-  } catch (err) {
-    // npm audit exits non-zero whenever it finds anything; the report is still on stdout.
-    out = err.stdout;
+    let out;
+    try {
+      out = execFileSync("npm", ["audit", "--package-lock-only", "--omit=dev", "--json",
+        "--registry=https://registry.npmjs.org/", `--cache=${cache}`], {
+        cwd: dir,
+        encoding: "utf8",
+        maxBuffer: 64 * 1024 * 1024,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } catch (err) {
+      // Advisory findings use a nonzero exit status with a JSON report.
+      out = err.stdout;
+    }
+    if (!out) {
+      throw new Error(`npm audit printed nothing for ${project}`);
+    }
+    return advisoriesFromAudit(JSON.parse(out), project);
+  } finally {
+    rmSync(cache, { recursive: true, force: true });
   }
-  if (!out) {
-    throw new Error(`npm audit printed nothing for ${project}`);
-  }
-  return advisoriesFromAudit(JSON.parse(out), project);
 }
 
+const isManifest = (file) => /(^|\/)(?:package(?:-lock)?|npm-shrinkwrap)\.json$/.test(file) && !file.includes("node_modules/");
+
 function auditWorkingTree() {
-  return Object.entries(PROJECTS).flatMap(([project, dir]) => audit(join(ROOT, dir), project));
+  const dir = mkdtempSync(join(tmpdir(), "npm-audit-head-"));
+  try {
+    // Like the base snapshot, the head contains manifests only, without checkout npm configuration.
+    const files = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], { cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 })
+      .split("\0").filter(isManifest);
+    for (const file of new Set(files)) {
+      const source = join(ROOT, file);
+      if (!existsSync(source)) continue;
+      const destination = join(dir, file);
+      mkdirSync(dirname(destination), { recursive: true });
+      copyFileSync(source, destination);
+    }
+    return Object.entries(PROJECTS).flatMap(([project, sub]) => audit(join(dir, sub), project));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 /** Audit each project as it stood at `ref`, from its manifests alone. */
@@ -111,7 +134,7 @@ function auditRef(ref) {
   try {
     const files = execFileSync("git", ["ls-tree", "-r", "--name-only", ref], { cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 })
       .split("\n")
-      .filter((f) => /(^|\/)package(-lock)?\.json$/.test(f) && !f.includes("node_modules/"));
+      .filter(isManifest);
     const archive = execFileSync("git", ["archive", ref, ...files], { cwd: ROOT, maxBuffer: 256 * 1024 * 1024 });
     execFileSync("tar", ["-x", "-C", dir], { input: archive });
     return Object.entries(PROJECTS).flatMap(([project, sub]) => audit(join(dir, sub), project));
@@ -142,8 +165,10 @@ function main() {
   if (baseAt >= 0) {
     const base = auditRef(args[baseAt + 1]);
     const added = addedAdvisories(current, base, allowlist);
+    const { unexplained } = checkAllowlist(current, allowlist);
     console.log(`High/critical production advisories: ${base.length} at base, ${current.length} here.`);
-    if (added.length) {
+    if (added.length || unexplained.length) {
+      unexplained.forEach((a) => console.error(`allowlisted without a reason:${describe(a)}`));
       console.error("This change adds high or critical advisories:");
       added.forEach((a) => console.error(describe(a)));
       console.error("Upgrade or replace the dependency, or allowlist the advisory with a reason in .github/npm-audit-allowlist.json.");
