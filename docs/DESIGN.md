@@ -1008,6 +1008,19 @@ import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from ".
 | Variant | Outlined fields everywhere. A dense panel sets `FieldDensityContext` once (see [Panel composition](#panel-composition)) |
 | Text | Labels and options are sentence case ("Tool name", "Ask every time"). Acronyms keep their case ("API key", "ID") |
 
+### Sliders
+
+There is one slider: `Slider` from `ui_primitives`. It owns the rail, track and thumb look (rounded pill rail, primary fill, ring thumb). `NodeSlider` (adds `nodrag`, compact by default, `changed`) and `AdjustmentSlider` / `InspectorSliderRow` are thin wrappers over it.
+
+| Rule | Detail |
+|---|---|
+| Density | `density="normal"` (6px rail) for app UI; `density="compact"` (4px rail) for node bodies, inspectors and tool panels. `size="small"` also means compact |
+| Layout | `layout="inline"` (default) is the bare track. `layout="row"` is `label`, track, `display` readout. Use `NodeSlider` inside node bodies so the canvas does not drag |
+| Default marker | `changed={value !== default}`: neutral thumb at the default, primary thumb otherwise |
+| Bipolar | `origin={0}` for a range with a neutral point: the fill grows from it and a tick marks it. `resetValue` (or `origin`) gives double-click reset |
+| Behaviour | `onChange` for live updates, `onChangeCommitted` for the undo step. The primitive never changes either |
+| Forbidden | `type="range"` inputs, `sx` / `css` that restyle `.MuiSlider-rail`, `-track` or `-thumb`, a local `*SliderSx`, or a new slider wrapper. Sibling node bodies use the same slider |
+
 ---
 
 ## 14. Controls

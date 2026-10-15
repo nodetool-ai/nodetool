@@ -13,7 +13,6 @@ import BorderStyleIcon from "@mui/icons-material/BorderStyle";
 import {
   iconButtonCompactSx,
   sketchButtonSmallSx,
-  sketchSliderSx,
   SKETCH_COLORS
 } from "../sketchStyles";
 import { SelectSettings, SelectToolMode } from "../types";
@@ -117,7 +116,6 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           <Box className="setting-row">
             <Text className="setting-label">Tol.</Text>
             <Slider
-              sx={sketchSliderSx}
               size="small"
               min={0}
               max={255}
