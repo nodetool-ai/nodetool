@@ -42,7 +42,8 @@ export {
   createSupabaseStorageClient,
   type SupabaseStorageApi,
   type SupabaseBucketApi,
-  type SupabaseObjectEntry
+  type SupabaseObjectEntry,
+  type SupabaseSignedUrlEntry
 } from "./supabase-rest.js";
 export { createStorageAdapter, type StorageConfig } from "./factory.js";
 
@@ -72,7 +73,7 @@ export {
 } from "./s3/index.js";
 
 // URL builder
-export { createAssetUrlBuilder } from "./url-builder.js";
+export { createAssetUrlBuilder, type AssetUrlBuilder } from "./url-builder.js";
 
 // Caches
 export { MemoryUriCache } from "./memory-uri-cache.js";
