@@ -28,7 +28,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # A pull request into `main` also runs the Test workflow, whose Quality
+  # Gate runs these same checks in parallel shards: the affected suites,
+  # typecheck, lint, harness gate and backend smoke. Running them again
+  # here, serially on one runner, cost a second runner for up to 90
+  # minutes and timed out on diffs that select every suite. Stacked pull
+  # requests into other branches get no Test run, so they still verify
+  # here, as do manual runs.
   verification:
+    if: github.event_name != 'pull_request' || github.base_ref != 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -107,9 +115,18 @@ jobs:
         env:
           VERIFICATION_RESULT: ${{ needs.verification.result }}
           PACKED_INSTALL_RESULT: ${{ needs.packed-install.result }}
+          QUALITY_GATE_VERIFIES: ${{ github.event_name == 'pull_request' && github.base_ref == 'main' }}
         run: |
-          if [ "$VERIFICATION_RESULT" != "success" ] || [ "$PACKED_INSTALL_RESULT" != "success" ]; then
-            echo "Packed CLI verification or installation did not pass."
+          if [ "$PACKED_INSTALL_RESULT" != "success" ]; then
+            echo "Packed CLI installation did not pass."
+            exit 1
+          fi
+          if [ "$VERIFICATION_RESULT" = "skipped" ] && [ "$QUALITY_GATE_VERIFIES" = "true" ]; then
+            echo "The Test workflow's Quality Gate verifies this pull request into main."
+            exit 0
+          fi
+          if [ "$VERIFICATION_RESULT" != "success" ]; then
+            echo "Packed CLI verification did not pass."
             exit 1
           fi
   release-pins:

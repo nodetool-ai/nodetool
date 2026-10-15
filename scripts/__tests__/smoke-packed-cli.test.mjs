@@ -31,11 +31,36 @@ it("keeps the required core-smoke status dependent on verification and the indep
   for (const job of ["verification", "packed-install", "release-pins"]) {
     expect(workflow.jobs[job].steps.find(step => step.uses === "./.github/actions/setup-build").with.cache).toBe("read-only");
   }
-  for (const [verification, installed, expected] of [["success", "success", 0], ["failure", "success", 1], ["success", "cancelled", 1], ["skipped", "success", 1]]) {
+  for (const [verification, installed, qualityGate, expected] of [
+    ["success", "success", "false", 0],
+    ["failure", "success", "false", 1],
+    ["success", "cancelled", "false", 1],
+    ["skipped", "success", "false", 1],
+    ["skipped", "success", "true", 0],
+    ["skipped", "failure", "true", 1],
+    ["failure", "success", "true", 1],
+    ["cancelled", "success", "true", 1]
+  ]) {
     const result = spawnSync("bash", ["-c", guard.steps[0].run], {
-      env: { ...process.env, VERIFICATION_RESULT: verification, PACKED_INSTALL_RESULT: installed }
+      env: { ...process.env, VERIFICATION_RESULT: verification, PACKED_INSTALL_RESULT: installed, QUALITY_GATE_VERIFIES: qualityGate }
     });
-    expect(result.status).toBe(expected);
+    expect(result.status, `${verification} ${installed} ${qualityGate}`).toBe(expected);
+  }
+});
+
+it("leaves verification to the Quality Gate only on pull requests into main", () => {
+  const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
+  expect(workflow.jobs.verification.if).toBe("github.event_name != 'pull_request' || github.base_ref != 'main'");
+  expect(workflow.jobs["core-smoke"].steps[0].env.QUALITY_GATE_VERIFIES)
+    .toBe("${{ github.event_name == 'pull_request' && github.base_ref == 'main' }}");
+  // The skip is safe only while Test runs on every pull request into main
+  // and its Quality Gate runs each command verification would.
+  const test = yaml.load(readFileSync(new URL("../../.github/workflows/test.yml", import.meta.url), "utf8"));
+  expect(test.on.pull_request).toEqual({ branches: ["main"] });
+  expect(test.jobs.quality.uses).toBe("./.github/workflows/quality-checks.yml");
+  const quality = readFileSync(new URL("../../.github/workflows/quality-checks.yml", import.meta.url), "utf8");
+  for (const command of ["npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base", "npm run backend:smoke", "npm run test:scripts", "npx turbo run test"]) {
+    expect(quality, command).toContain(command);
   }
 });
 
