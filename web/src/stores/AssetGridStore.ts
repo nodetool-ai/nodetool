@@ -87,6 +87,12 @@ interface AssetGridState {
   /** Project whose folder and selection state this explorer currently represents. */
   scopeProjectId: string | null;
   resetForProject: (projectId: string) => void;
+  /**
+   * Project the explorer lists instead of the workspace's active project.
+   * Null follows the active project, {@link ALL_PROJECTS} lists every project.
+   */
+  projectFilter: string | null;
+  setProjectFilter: (projectId: string | null) => void;
   setWorkflowFilter: (workflowId: string | null) => void;
 
   /** Show only starred assets, from every folder. */
@@ -100,6 +106,9 @@ interface AssetGridState {
 export type AssetGridStoreApi = StoreApi<AssetGridState>;
 
 const PERSIST_VERSION = 1;
+
+/** {@link AssetGridState.projectFilter} value that lists every project. */
+export const ALL_PROJECTS = "*all";
 
 /**
  * Build a fresh AssetGrid store bound to its own persistence key. Each surface
@@ -257,6 +266,8 @@ const createAssetGridStore = (
           }
     ),
   setWorkflowFilter: (workflowId) => set({ workflowFilter: workflowId }),
+  projectFilter: null,
+  setProjectFilter: (projectId) => set({ projectFilter: projectId }),
 
   favoritesOnly: false,
   setFavoritesOnly: (favoritesOnly) => set({ favoritesOnly }),

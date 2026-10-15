@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAssetStore } from "../stores/AssetStore";
 import { AssetSearchResult } from "../stores/ApiTypes";
-import {
-  LOOSE_PROJECT_ID,
-  useWorkspaceTabsStore
-} from "../stores/WorkspaceTabsStore";
+import { useAssetProjectScope } from "../hooks/assets/useAssetProjectScope";
 
 export const useAssetSearch = () => {
   const [isSearching, setIsSearching] = useState(false);
@@ -12,10 +9,7 @@ export const useAssetSearch = () => {
   const projectAbortControllerRef = useRef(new AbortController());
   const latestRequestIdRef = useRef(0);
   const search = useAssetStore((state) => state.search);
-  const projectId = useWorkspaceTabsStore(
-    (state) =>
-      state.activeProjectId ?? state.personalProjectId ?? LOOSE_PROJECT_ID
-  );
+  const { projectId } = useAssetProjectScope();
 
   useEffect(() => {
     const abortController = new AbortController();
