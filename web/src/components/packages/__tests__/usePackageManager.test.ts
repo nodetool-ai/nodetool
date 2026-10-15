@@ -149,19 +149,32 @@ describe("usePackageManager", () => {
     expect(result.current.bulkUpdate).toBeNull();
   });
 
+  it("labels bundled libraries Included and offers no install or removal actions", () => {
+    useRuntimePackagesStore.setState({
+      available: true,
+      statuses: [{ id: "imaging", name: "Image & Canvas Libraries", description: "Image codecs", installed: true,
+        installing: false, bundled: true, updateAvailable: true }]
+    });
+    const { result } = renderHook(() => usePackageManager({ cat: "runtimes", q: "", filter: "all" }));
+    expect(result.current.rows).toEqual([
+      expect.objectContaining({ key: "imaging", badge: "included" })
+    ]);
+    expect(result.current.rows[0].buttons).toBeUndefined();
+  });
+
   it("offers an update for an outdated desktop runtime package", () => {
     const update = jest.fn().mockResolvedValue(true);
     useRuntimePackagesStore.setState({
       available: true,
       statuses: [
         {
-          id: "claude-agent-sdk",
-          name: "Claude Agent SDK",
-          description: "SDK",
+          id: "tensorflow-js",
+          name: "TensorFlow.js Models",
+          description: "Models",
           installed: true,
           installing: false,
-          installedVersion: "0.3.190",
-          latestVersion: "0.3.283",
+          installedVersion: "4.20.0",
+          latestVersion: "4.22.0",
           updateAvailable: true
         },
         {
@@ -177,12 +190,12 @@ describe("usePackageManager", () => {
     const { result } = renderHook(() =>
       usePackageManager({ cat: "runtimes", q: "", filter: "all" })
     );
-    const sdk = result.current.rows.find((r) => r.key === "claude-agent-sdk");
-    expect(sdk?.badge).toBe("update");
-    expect(sdk?.version).toBe("v0.3.190  →  v0.3.283");
-    expect(sdk?.buttons?.update).toBe(true);
-    sdk?.buttons?.onUpdate();
-    expect(update).toHaveBeenCalledWith("claude-agent-sdk");
+    const tfjs = result.current.rows.find((r) => r.key === "tensorflow-js");
+    expect(tfjs?.badge).toBe("update");
+    expect(tfjs?.version).toBe("v4.20.0  →  v4.22.0");
+    expect(tfjs?.buttons?.update).toBe(true);
+    tfjs?.buttons?.onUpdate();
+    expect(update).toHaveBeenCalledWith("tensorflow-js");
 
     const ffmpeg = result.current.rows.find((r) => r.key === "ffmpeg");
     expect(ffmpeg?.badge).toBe("installed");

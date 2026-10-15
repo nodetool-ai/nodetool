@@ -5,6 +5,7 @@
  * `packages/websocket/src/headless-job-runner.ts`. See the package README's
  * inventory table (row "Executor resolution").
  */
+import { createMissingPackError } from "@nodetool-ai/node-catalog";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
@@ -20,6 +21,10 @@ export function createExecutorResolver(
   return (node: NodeDescriptor): NodeExecutor => {
     if (registry.has(node.type)) {
       return registry.resolve(node);
+    }
+    const entry = registry.catalogEntry(node.type);
+    if (entry && registry.availability(node.type) === "catalog") {
+      throw createMissingPackError(entry.pack, [node.type]);
     }
     const py = resolvePythonNodeExecutor(bridge, node);
     if (py) return py;

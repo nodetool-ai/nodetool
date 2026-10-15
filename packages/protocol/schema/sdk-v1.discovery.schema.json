@@ -399,7 +399,8 @@
               "typescript",
               "python-package",
               "python-bridge",
-              "loaded-metadata"
+              "loaded-metadata",
+              "catalog"
             ],
             "type": "string"
           },
@@ -486,7 +487,8 @@
                     "typescript",
                     "python-package",
                     "python-bridge",
-                    "loaded-metadata"
+                    "loaded-metadata",
+                    "catalog"
                   ],
                   "type": "string"
                 },

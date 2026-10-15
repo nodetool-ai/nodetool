@@ -6,6 +6,7 @@ import {
   toTitleCase,
   getProviderBaseName,
   formatGenericProviderName,
+  getProviderDisplayName,
   getProviderUrl
 } from "../providerDisplay";
 
@@ -34,6 +35,20 @@ describe("providerDisplay", () => {
       expect(isHuggingFaceProvider("")).toBe(false);
       expect(isHuggingFaceProvider(undefined)).toBe(false);
       expect(isHuggingFaceProvider(null as any)).toBe(false);
+    });
+  });
+
+  describe("getProviderDisplayName", () => {
+    it("names the hosting provider for a HuggingFace route", () => {
+      expect(getProviderDisplayName("huggingface_groq")).toBe(
+        getProviderBaseName("huggingface_groq")
+      );
+    });
+
+    it("formats any other provider id", () => {
+      expect(getProviderDisplayName("google")).toBe("Gemini");
+      expect(getProviderDisplayName("llama_cpp")).toBe("Llama.cpp");
+      expect(getProviderDisplayName(undefined)).toBe("");
     });
   });
 

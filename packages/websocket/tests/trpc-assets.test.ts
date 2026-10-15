@@ -30,9 +30,13 @@ vi.mock("@nodetool-ai/config", async (orig) => {
   };
 });
 
+// Keep router orchestration at the storage boundary, including safe-root writes.
 vi.mock("../src/lib/thumbnail.js", async (orig) => {
   const actual = await orig<typeof import("../src/lib/thumbnail.js")>();
-  return { ...actual, storeAssetWithThumbnail: vi.fn().mockResolvedValue(undefined) };
+  return {
+    ...actual,
+    storeAssetWithThumbnail: vi.fn().mockResolvedValue(undefined)
+  };
 });
 
 import { Asset } from "@nodetool-ai/models";

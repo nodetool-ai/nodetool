@@ -14,8 +14,7 @@ export function registerGameSmokeCommand(game: Command): void {
           : `Rendered ${report.frames} frames, advanced ${report.ticks} ticks\n${report.errors.map(error => `${error}\n`).join("")}`);
         if (!report.ok) { process.exitCode = 1; }
       } catch (error) {
-        printCommandError(error, options.json);
-        process.exitCode = 1;
+        process.exitCode = printCommandError(error, options.json);
       }
     });
 }

@@ -128,6 +128,21 @@ describe("JobItem", () => {
       expect(screen.getByText(/Running/)).toBeInTheDocument();
     });
 
+    it("shows an indeterminate progress bar only while running", () => {
+      const runningJob = { ...baseJob, status: "running" as const, finished_at: null };
+      const { rerender } = renderWithTheme(<JobItem job={runningJob} />);
+      expect(
+        screen.getByRole("progressbar", { name: "Running Test Workflow" })
+      ).toBeInTheDocument();
+
+      rerender(
+        <ThemeProvider theme={mockTheme}>
+          <JobItem job={baseJob} />
+        </ThemeProvider>
+      );
+      expect(screen.queryByRole("progressbar")).toBeNull();
+    });
+
     it("displays queued status", () => {
       const queuedJob = { ...baseJob, status: "queued" as const, started_at: null, finished_at: null };
       renderWithTheme(<JobItem job={queuedJob} />);

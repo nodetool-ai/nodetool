@@ -88,7 +88,7 @@ Arguments:
             contains this text are mutated.
 
 Default test command: a Vitest package runs
-  npx --no-install vitest related --run --passWithNoTests {file}
+  npx --no-install vitest related --run --passWithNoTests --maxWorkers=1 {file}
 and any other package runs npm test. Default coverage for a Vitest package is
 a V8 coverage run of its suite.
 
@@ -488,13 +488,10 @@ const defaultIo: Io = {
 };
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  run(process.argv.slice(2)).then(
-    (code) => {
-      process.exitCode = code;
-    },
-    (error: unknown) => {
-      process.stderr.write(`${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`);
-      process.exitCode = 1;
-    }
-  );
+  try {
+    process.exitCode = await run(process.argv.slice(2));
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`);
+    process.exitCode = 1;
+  }
 }

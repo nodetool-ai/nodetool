@@ -1,3 +1,4 @@
+import { validateGraph } from "@nodetool-ai/node-sdk";
 import { registerWorkflowRunTrace } from "./run-trace-lifecycle.js";
 /**
  * Running a saved workflow, as a service every host can call in-process.
@@ -23,6 +24,7 @@ import {
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
+import { isPythonNodeType } from "@nodetool-ai/protocol";
 import type {
   NodeExecutor,
   ProcessingContext,
@@ -796,6 +798,14 @@ export async function runWorkflow(
   const environment = await resolveEnvironment();
 
   const registry = environment.registry;
+  if (runnableGraph.nodes.some((node) => registry.availability(node.type) === "catalog")) {
+    const report = validateGraph(runnableGraph, registry);
+    return {
+      kind: "error",
+      status: 400,
+      detail: report.issues.filter((issue) => issue.severity === "error").map((issue) => issue.message).join("\n")
+    };
+  }
   // The cheap preflight above ran before the registry existed. Unpicked models
   // need its metadata, and are refused here, still before the job row.
   const unsetModels = unsetModelErrors(runnableGraph, registry);
@@ -810,10 +820,9 @@ export async function runWorkflow(
   }
   const hasPythonNode = runnableGraph.nodes.some((node) => {
     const nodeType = isString(node.type) ? node.type : "";
-    return (
-      nodeType !== "" &&
-      Boolean(registry.getMetadata(nodeType)) &&
-      !registry.has(nodeType)
+    const availability = registry.availability(nodeType);
+    return nodeType !== "" && (
+      availability === "python" || (availability === "unknown" && isPythonNodeType(nodeType))
     );
   });
   if (hasPythonNode && environment.ensurePythonBridge) {

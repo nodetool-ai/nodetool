@@ -56,7 +56,7 @@ export class ElectronRuntimePackage implements RuntimePackage {
   }
 
   async status(_ctx: RuntimeContext): Promise<RuntimeStatus> {
-    return { installed: true };
+    return { installed: true, bundled: true };
   }
 
   async *install(_ctx: RuntimeContext, _signal: AbortSignal): AsyncIterable<RuntimeProgress> {

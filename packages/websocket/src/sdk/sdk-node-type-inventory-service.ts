@@ -19,8 +19,8 @@ export class SdkNodeTypeInventoryServiceError extends Error {
   }
 }
 
-function unavailablePackDiagnostics(): NodePackAvailabilityDiagnostic[] {
-  const builtins = getUnavailableBuiltinPackDiagnostics();
+async function unavailablePackDiagnostics(registry: NodeRegistry): Promise<NodePackAvailabilityDiagnostic[]> {
+  const builtins = await getUnavailableBuiltinPackDiagnostics(registry);
   const installed = getPackSnapshot()
     .filter((result) => result.status !== "loaded")
     .map((result) => ({
@@ -33,11 +33,11 @@ function unavailablePackDiagnostics(): NodePackAvailabilityDiagnostic[] {
     .slice(0, 100);
 }
 
-export function getSdkNodeTypeInventory(args: {
+export async function getSdkNodeTypeInventory(args: {
   registry: NodeRegistry;
   pythonBridgeReady: boolean;
   input: SdkNodeTypeInventoryInput;
-}): NodeTypeInventory {
+}): Promise<NodeTypeInventory> {
   if (!isSdkWorkflowInterfaceV1Enabled()) {
     throw new SdkNodeTypeInventoryServiceError(
       "SDK node/type inventory v1 is disabled"
@@ -48,7 +48,7 @@ export function getSdkNodeTypeInventory(args: {
       cursor: args.input.cursor,
       limit: args.input.limit,
       pythonBridgeReady: args.pythonBridgeReady,
-      unavailablePacks: unavailablePackDiagnostics()
+      unavailablePacks: await unavailablePackDiagnostics(args.registry)
     })
   );
 }

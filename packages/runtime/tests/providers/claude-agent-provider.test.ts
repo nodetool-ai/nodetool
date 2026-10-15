@@ -7,12 +7,17 @@ import {
   type ClaudeQueryFn
 } from "../../src/providers/claude-agent-provider.js";
 import type {
+  ClaudeCliMessage,
+  ClaudeCliOptions,
+  ClaudePromptBlock,
+  ClaudeToolDefinition
+} from "../../src/providers/claude-cli.js";
+import type {
   Message,
   MessageContent,
   ProviderSession,
   ProviderStreamItem
 } from "../../src/providers/types.js";
-import type { Options, SDKMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { generateStructured } from "../../src/providers/structured-output.js";
 import { providerFailureDetail } from "../../src/providers/provider-error.js";
 import { ProcessingContext } from "../../src/context.js";
@@ -77,19 +82,19 @@ describe("toolResultToMcpContent", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Scripted SDKMessage builders (minimal shapes, cast to the SDK union)
+// Scripted ClaudeCliMessage builders (minimal shapes, cast to the message union)
 // ---------------------------------------------------------------------------
 
-const sysInit = (sessionId: string, model = "claude-haiku-4-5"): SDKMessage =>
+const sysInit = (sessionId: string, model = "claude-haiku-4-5"): ClaudeCliMessage =>
   ({
     type: "system",
     subtype: "init",
     session_id: sessionId,
     model,
     uuid: "u-init"
-  }) as unknown as SDKMessage;
+  }) as unknown as ClaudeCliMessage;
 
-const textDelta = (text: string): SDKMessage =>
+const textDelta = (text: string): ClaudeCliMessage =>
   ({
     type: "stream_event",
     session_id: "s",
@@ -100,9 +105,9 @@ const textDelta = (text: string): SDKMessage =>
       index: 0,
       delta: { type: "text_delta", text }
     }
-  }) as unknown as SDKMessage;
+  }) as unknown as ClaudeCliMessage;
 
-const thinkingDelta = (thinking: string): SDKMessage =>
+const thinkingDelta = (thinking: string): ClaudeCliMessage =>
   ({
     type: "stream_event",
     session_id: "s",
@@ -113,7 +118,7 @@ const thinkingDelta = (thinking: string): SDKMessage =>
       index: 0,
       delta: { type: "thinking_delta", thinking }
     }
-  }) as unknown as SDKMessage;
+  }) as unknown as ClaudeCliMessage;
 
 const successResult = (
   usage: Record<string, number> = {
@@ -122,7 +127,7 @@ const successResult = (
     cache_read_input_tokens: 0,
     cache_creation_input_tokens: 100
   }
-): SDKMessage =>
+): ClaudeCliMessage =>
   ({
     type: "result",
     subtype: "success",
@@ -138,9 +143,9 @@ const successResult = (
     stop_reason: "end_turn",
     session_id: "s",
     uuid: "u-result"
-  }) as unknown as SDKMessage;
+  }) as unknown as ClaudeCliMessage;
 
-const errorResult = (subtype: string, errors: string[]): SDKMessage =>
+const errorResult = (subtype: string, errors: string[]): ClaudeCliMessage =>
   ({
     type: "result",
     subtype,
@@ -156,10 +161,10 @@ const errorResult = (subtype: string, errors: string[]): SDKMessage =>
     stop_reason: null,
     session_id: "s",
     uuid: "u-result"
-  }) as unknown as SDKMessage;
+  }) as unknown as ClaudeCliMessage;
 
 /** The messages a successful single-turn invocation streams. */
-const PING_SCRIPT: SDKMessage[] = [
+const PING_SCRIPT: ClaudeCliMessage[] = [
   sysInit("sess-1"),
   thinkingDelta("hmm"),
   textDelta("ping"),
@@ -172,15 +177,19 @@ const PING_SCRIPT: SDKMessage[] = [
 
 interface QueryCall {
   prompt: Parameters<ClaudeQueryFn>[0]["prompt"];
-  options?: Options;
+  options?: ClaudeCliOptions;
 }
 
+/** The options of the most recent fake session, for reading its tool server. */
+let lastQueryOptions: ClaudeCliOptions | undefined;
+
 function fakeQuery(
-  script: SDKMessage[] | (() => AsyncGenerator<SDKMessage>)
+  script: ClaudeCliMessage[] | (() => AsyncGenerator<ClaudeCliMessage>)
 ): { fn: ClaudeQueryFn; calls: QueryCall[] } {
   const calls: QueryCall[] = [];
   const fn: ClaudeQueryFn = (params) => {
     calls.push({ prompt: params.prompt, options: params.options });
+    lastQueryOptions = params.options;
     if (typeof script === "function") return script();
     return (async function* () {
       for (const m of script) yield m;
@@ -205,11 +214,9 @@ const chunksOf = (items: ProviderStreamItem[]): ChunkItem[] =>
 const sessionOf = (items: ProviderStreamItem[]): SessionItem | undefined =>
   items.find((i): i is SessionItem => "type" in i && i.type === "session");
 
-async function structuredPrompt(call: QueryCall): Promise<SDKUserMessage[]> {
-  if (typeof call.prompt === "string") throw new Error("Expected a structured SDK image prompt");
-  const messages = [];
-  for await (const message of call.prompt) messages.push(message);
-  return messages;
+function structuredPrompt(call: QueryCall): ClaudePromptBlock[] {
+  if (typeof call.prompt === "string") throw new Error("Expected a structured image prompt");
+  return call.prompt;
 }
 const imageMsg = (label: string, image: Extract<MessageContent, {type: "image_url"}>["image"]): Message => ({role: "user", content: [{type: "text", text: label}, {type: "image_url", image}]});
 
@@ -247,12 +254,7 @@ describe("ClaudeAgentProvider", () => {
   it("passes actual image blocks to the SDK instead of dropping review pixels", async () => {
     let received: unknown;
     const queryFn: ClaudeQueryFn = ({prompt}) => (async function* () {
-      if (typeof prompt === "string") received = prompt;
-      else {
-        const messages = [];
-        for await (const message of prompt) messages.push(message);
-        received = messages;
-      }
+      received = prompt;
       for (const message of PING_SCRIPT) yield message;
     })();
     const provider = new ClaudeAgentProvider({}, {queryFn});
@@ -261,23 +263,23 @@ describe("ClaudeAgentProvider", () => {
       {type: "image_url", image: {uri: "data:image/png;base64,QUJD"}},
       {type: "text", text: "Keep its source exact"}
     ]}]}));
-    expect(received).toEqual([{type: "user", parent_tool_use_id: null, message: {role: "user", content: [
+    expect(received).toEqual([
       {type: "text", text: "Review this actual frame"},
       {type: "image", source: {type: "base64", media_type: "image/png", data: "QUJD"}},
       {type: "text", text: "Keep its source exact"}
-    ]}}]);
+    ]);
   });
 
   it("forwards raw bytes and base64 images through the tool-using SDK loop", async () => {
     const {fn, calls} = fakeQuery(PING_SCRIPT);
-    const provider = new ClaudeAgentProvider({}, {queryFn: fn, createMcpServerFn: fakeCreateMcpServer().fn});
+    const provider = new ClaudeAgentProvider({}, {queryFn: fn});
     await collect(provider.generateLoop({model: "sonnet", messages: [{role: "user", content: [
       {type: "text", text: "Product"},
       {type: "image_url", image: {data: new Uint8Array([1, 2, 3]), mimeType: "image/jpeg"}},
       {type: "text", text: "Logo"},
       {type: "image_url", image: {data: "QUJD", mimeType: "image/webp"}}
     ]}], tools: [{name: "review_cut", description: "Review", inputSchema: {type: "object"}}], executeTool: async () => "ok"}));
-    expect((await structuredPrompt(calls[0]))[0].message.content).toEqual([
+    expect(structuredPrompt(calls[0])).toEqual([
       {type: "text", text: "Product"}, {type: "image", source: {type: "base64", media_type: "image/jpeg", data: "AQID"}},
       {type: "text", text: "Logo"}, {type: "image", source: {type: "base64", media_type: "image/webp", data: "QUJD"}}
     ]);
@@ -290,7 +292,7 @@ describe("ClaudeAgentProvider", () => {
     const messages = [userMsg("first"), asstMsg("prior answer"), imageMsg("New candidate", {uri: "data:image/png;base64,QUJD"})];
     await collect(provider.generateMessages({model: "sonnet", messages, providerSession: {providerId: "claude_agent_sdk", model: "sonnet", token: "sess-old", checkpoint: 2}}));
     expect(calls[0].options?.resume).toBe("sess-old");
-    const content = (await structuredPrompt(calls[0]))[0].message.content;
+    const content = structuredPrompt(calls[0]);
     expect(content).toEqual([{type: "text", text: "New candidate"}, {type: "image", source: {type: "base64", media_type: "image/png", data: "QUJD"}}]);
   });
 
@@ -298,7 +300,7 @@ describe("ClaudeAgentProvider", () => {
     const {fn, calls} = fakeQuery(PING_SCRIPT);
     const provider = new ClaudeAgentProvider({}, {queryFn: fn});
     await collect(provider.generateMessages({model: "sonnet", messages: [imageMsg("Original reference", {uri: "data:image/png;base64,QUJD"}), asstMsg("Prior findings"), userMsg("Review again")]}));
-    const content = (await structuredPrompt(calls[0]))[0].message.content;
+    const content = structuredPrompt(calls[0]);
     expect(content).toEqual([
       {type: "text", text: "<conversation_so_far>\n"},
       {type: "text", text: "User: "}, {type: "text", text: "Original reference"},
@@ -340,7 +342,7 @@ describe("ClaudeAgentProvider", () => {
         model: "haiku"
       })
     );
-    const opts = calls[0].options as Options;
+    const opts = calls[0].options as ClaudeCliOptions;
     expect(calls[0].prompt).toBe("hi");
     expect(opts.systemPrompt).toBe("Be terse.");
     expect(opts.model).toBe("haiku");
@@ -384,7 +386,7 @@ describe("ClaudeAgentProvider", () => {
     const structuredResult = {
       ...successResult(),
       structured_output: screenplay
-    } as SDKMessage;
+    } as ClaudeCliMessage;
     const { fn, calls } = fakeQuery([sysInit("sess-structured"), structuredResult]);
     const provider = new ClaudeAgentProvider({}, { queryFn: fn });
 
@@ -435,7 +437,7 @@ describe("ClaudeAgentProvider", () => {
           { type: "text", text: "answer" }
         ]
       }
-    } as unknown as SDKMessage;
+    } as unknown as ClaudeCliMessage;
     const { fn } = fakeQuery([sysInit("sess-x"), finalAssistant, successResult()]);
     const provider = new ClaudeAgentProvider({}, { queryFn: fn });
     const chunks = chunksOf(
@@ -507,12 +509,12 @@ describe("ClaudeAgentProvider", () => {
           model: "<synthetic>",
           content: [{ type: "text", text: refusal }]
         }
-      } as unknown as SDKMessage,
+      } as unknown as ClaudeCliMessage,
       {
         ...(successResult() as object),
         is_error: true,
         result: refusal
-      } as unknown as SDKMessage
+      } as unknown as ClaudeCliMessage
     ]);
     const provider = new ClaudeAgentProvider({}, { queryFn: fn });
     const chunks: ProviderStreamItem[] = [];
@@ -854,20 +856,20 @@ describe("ClaudeAgentProvider", () => {
   // generateLoop (agent loop) + tool calling
   // -------------------------------------------------------------------------
 
-  const assistantTextMsg = (text: string): SDKMessage =>
+  const assistantTextMsg = (text: string): ClaudeCliMessage =>
     ({
       type: "assistant",
       session_id: "s",
       parent_tool_use_id: null,
       uuid: "u-asst",
       message: { model: "claude-haiku-4-5", content: [{ type: "text", text }] }
-    }) as unknown as SDKMessage;
+    }) as unknown as ClaudeCliMessage;
 
   const assistantToolUse = (
     id: string,
     name: string,
     input: Record<string, unknown>
-  ): SDKMessage =>
+  ): ClaudeCliMessage =>
     ({
       type: "assistant",
       session_id: "s",
@@ -877,9 +879,9 @@ describe("ClaudeAgentProvider", () => {
         model: "claude-haiku-4-5",
         content: [{ type: "tool_use", id, name, input }]
       }
-    }) as unknown as SDKMessage;
+    }) as unknown as ClaudeCliMessage;
 
-  const userToolResult = (toolUseId: string, text: string): SDKMessage =>
+  const userToolResult = (toolUseId: string, text: string): ClaudeCliMessage =>
     ({
       type: "user",
       session_id: "s",
@@ -888,7 +890,7 @@ describe("ClaudeAgentProvider", () => {
       message: {
         content: [{ type: "tool_result", tool_use_id: toolUseId, content: text }]
       }
-    }) as unknown as SDKMessage;
+    }) as unknown as ClaudeCliMessage;
 
   type MsgItem = Extract<ProviderStreamItem, { type: "message" }>;
   const messagesOf = (items: ProviderStreamItem[]): MsgItem["message"][] =>
@@ -896,16 +898,18 @@ describe("ClaudeAgentProvider", () => {
       .filter((i): i is MsgItem => "type" in i && i.type === "message")
       .map((i) => i.message);
 
-  function fakeCreateMcpServer() {
-    const captured: { defs: Array<{ handler: (a: unknown) => Promise<unknown> }> } =
-      { defs: [] };
-    const fn = ((opts: { name: string; tools: typeof captured.defs }) => {
-      captured.defs = opts.tools;
-      return { type: "sdk", name: opts.name, instance: {} };
-    }) as unknown as ConstructorParameters<
-      typeof ClaudeAgentProvider
-    >[1]["createMcpServerFn"];
-    return { fn, captured };
+  /** The tools the provider served to the most recent session. */
+  function hostedTools() {
+    const captured = {
+      get defs(): Array<Omit<ClaudeToolDefinition, "handler"> & { handler: (a: unknown) => Promise<unknown> }> {
+        const tools = lastQueryOptions?.mcpServers?.nodetool_tools?.tools ?? [];
+        return tools.map((tool) => ({
+          ...tool,
+          handler: (a: unknown) => tool.handler(a as Record<string, unknown>)
+        }));
+      }
+    };
+    return { captured };
   }
 
   it("generateLoop without tools emits one assistant message + live chunks", async () => {
@@ -923,11 +927,11 @@ describe("ClaudeAgentProvider", () => {
         threadId: "t1"
       })
     );
-    expect((calls[0].options as Options).maxTurns).toBe(1);
-    expect((calls[0].options as Options).mcpServers).toBeUndefined();
+    expect((calls[0].options as ClaudeCliOptions).maxTurns).toBe(1);
+    expect((calls[0].options as ClaudeCliOptions).mcpServers).toBeUndefined();
     // No skills handed in: no plugin, and the bundled skills stay hidden.
-    expect((calls[0].options as Options).plugins).toBeUndefined();
-    expect((calls[0].options as Options).skills).toEqual([]);
+    expect((calls[0].options as ClaudeCliOptions).plugins).toBeUndefined();
+    expect((calls[0].options as ClaudeCliOptions).skills).toEqual([]);
     const msgs = messagesOf(items);
     expect(msgs).toHaveLength(1);
     expect(msgs[0]).toMatchObject({ role: "assistant", content: "hello" });
@@ -938,12 +942,12 @@ describe("ClaudeAgentProvider", () => {
   it("materializes user skills into an isolated local plugin for the SDK", async () => {
     let pluginDir: string | undefined;
     let skillMd: string | undefined;
-    const optionsSeen: Options[] = [];
+    const optionsSeen: ClaudeCliOptions[] = [];
     // A bespoke queryFn (not fakeQuery) so it can read the SKILL.md off disk
     // while the plugin dir still exists — cleanup runs in generateLoop's finally,
     // after the stream is drained.
     const fn: ClaudeQueryFn = (params) => {
-      optionsSeen.push(params.options as Options);
+      optionsSeen.push(params.options as ClaudeCliOptions);
       return (async function* () {
         const p = (
           params.options?.plugins?.[0] as { path: string } | undefined
@@ -1003,10 +1007,10 @@ describe("ClaudeAgentProvider", () => {
       assistantTextMsg("all done"),
       successResult()
     ]);
-    const mcp = fakeCreateMcpServer();
+    const mcp = hostedTools();
     const provider = new ClaudeAgentProvider(
       {},
-      { queryFn: fn, createMcpServerFn: mcp.fn }
+      { queryFn: fn }
     );
     const executed: ToolCall[] = [];
     const executeTool = async (tc: ToolCall): Promise<string> => {
@@ -1034,7 +1038,7 @@ describe("ClaudeAgentProvider", () => {
     );
 
     // Tools were registered with the SDK and the loop was allowed to iterate.
-    const opts = calls[0].options as Options;
+    const opts = calls[0].options as ClaudeCliOptions;
     expect(opts.allowedTools).toContain("mcp__nodetool_tools__echo");
     expect(opts.maxTurns).toBeGreaterThan(1);
     expect(opts.mcpServers).toBeTruthy();
@@ -1086,10 +1090,10 @@ describe("ClaudeAgentProvider", () => {
       fetchFn: async () => new Response("not found", { status: 404 })
     });
     const { fn } = fakeQuery([sysInit("sess-image"), successResult()]);
-    const mcp = fakeCreateMcpServer();
+    const mcp = hostedTools();
     const provider = new ClaudeAgentProvider(
       {},
-      { queryFn: fn, createMcpServerFn: mcp.fn }
+      { queryFn: fn }
     );
     let imageUri = "asset://contact.png";
 
@@ -1148,10 +1152,10 @@ describe("ClaudeAgentProvider", () => {
 
   it("gives parallel calls of one tool distinct ids within one millisecond", async () => {
     const { fn } = fakeQuery([sysInit("sess-par"), assistantTextMsg("ok"), successResult()]);
-    const mcp = fakeCreateMcpServer();
+    const mcp = hostedTools();
     const provider = new ClaudeAgentProvider(
       {},
-      { queryFn: fn, createMcpServerFn: mcp.fn }
+      { queryFn: fn }
     );
     const executed: ToolCall[] = [];
     await collect(
@@ -1185,7 +1189,7 @@ describe("ClaudeAgentProvider", () => {
   // surface reads as the end of the turn (the composer flips back to Send and
   // hides Stop), and would persist an empty row for the thinking frame.
   it("coalesces the block-split frames of one assistant turn into one message", async () => {
-    const assistantThinking = (thinking: string): SDKMessage =>
+    const assistantThinking = (thinking: string): ClaudeCliMessage =>
       ({
         type: "assistant",
         session_id: "s",
@@ -1195,7 +1199,7 @@ describe("ClaudeAgentProvider", () => {
           model: "claude-haiku-4-5",
           content: [{ type: "thinking", thinking }]
         }
-      }) as unknown as SDKMessage;
+      }) as unknown as ClaudeCliMessage;
 
     const { fn } = fakeQuery([
       sysInit("sess-split"),
@@ -1206,10 +1210,10 @@ describe("ClaudeAgentProvider", () => {
       assistantTextMsg("all done"),
       successResult()
     ]);
-    const mcp = fakeCreateMcpServer();
+    const mcp = hostedTools();
     const provider = new ClaudeAgentProvider(
       {},
-      { queryFn: fn, createMcpServerFn: mcp.fn }
+      { queryFn: fn }
     );
     const items = await collect(
       provider.generateLoop({
@@ -1250,10 +1254,10 @@ describe("ClaudeAgentProvider", () => {
       assistantTextMsg("ok"),
       successResult()
     ]);
-    const mcp = fakeCreateMcpServer();
+    const mcp = hostedTools();
     const provider = new ClaudeAgentProvider(
       {},
-      { queryFn: fn, createMcpServerFn: mcp.fn }
+      { queryFn: fn }
     );
     const names = [
       "edit_timeline",
@@ -1277,7 +1281,7 @@ describe("ClaudeAgentProvider", () => {
         executeTool: async () => "ok"
       })
     );
-    const options = calls[0].options as Options;
+    const options = calls[0].options as ClaudeCliOptions;
     expect(options.tools).toEqual([]);
     expect(options.allowedTools).toEqual(
       names.map((name) => `mcp__nodetool_tools__${name}`)
@@ -1304,10 +1308,10 @@ describe("ClaudeAgentProvider", () => {
       assistantTextMsg("ok"),
       successResult()
     ]);
-    const mcp = fakeCreateMcpServer();
+    const mcp = hostedTools();
     const provider = new ClaudeAgentProvider(
       {},
-      { queryFn: fn, createMcpServerFn: mcp.fn }
+      { queryFn: fn }
     );
     const executed: string[] = [];
     await collect(
@@ -1326,7 +1330,7 @@ describe("ClaudeAgentProvider", () => {
         }
       })
     );
-    const options = calls[0].options as Options;
+    const options = calls[0].options as ClaudeCliOptions;
     expect(options.tools).toEqual([]);
     expect(options.allowedTools).toEqual([
       "mcp__nodetool_tools__read_file",
@@ -1347,10 +1351,10 @@ describe("ClaudeAgentProvider", () => {
       assistantTextMsg("ok"),
       successResult()
     ]);
-    const mcp = fakeCreateMcpServer();
+    const mcp = hostedTools();
     const provider = new ClaudeAgentProvider(
       {},
-      { queryFn: fn, createMcpServerFn: mcp.fn }
+      { queryFn: fn }
     );
     await collect(
       provider.generateLoop({
@@ -1370,7 +1374,7 @@ describe("ClaudeAgentProvider", () => {
       })
     );
 
-    const opts = calls[0].options as Options;
+    const opts = calls[0].options as ClaudeCliOptions;
     expect(opts.allowedTools).toEqual([
       "mcp__nodetool_tools__list_directory",
       "mcp__nodetool_tools__run_subtask",
@@ -1394,10 +1398,10 @@ describe("ClaudeAgentProvider", () => {
       assistantTextMsg("ok"),
       successResult()
     ]);
-    const mcp = fakeCreateMcpServer();
+    const mcp = hostedTools();
     const provider = new ClaudeAgentProvider(
       {},
-      { queryFn: fn, createMcpServerFn: mcp.fn }
+      { queryFn: fn }
     );
     const executed: string[] = [];
     await collect(
@@ -1413,7 +1417,7 @@ describe("ClaudeAgentProvider", () => {
       })
     );
 
-    const opts = calls[0].options as Options;
+    const opts = calls[0].options as ClaudeCliOptions;
     expect(opts.allowedTools).toEqual(["mcp__nodetool_tools__todo_write"]);
     expect(opts.tools).not.toContain("TodoWrite");
     await mcp.captured.defs[0].handler({
@@ -1431,10 +1435,10 @@ describe("ClaudeAgentProvider", () => {
       assistantTextMsg("ok"),
       successResult()
     ]);
-    const mcp = fakeCreateMcpServer();
+    const mcp = hostedTools();
     const provider = new ClaudeAgentProvider(
       {},
-      { queryFn: fn, createMcpServerFn: mcp.fn }
+      { queryFn: fn }
     );
     await collect(
       provider.generateLoop({
@@ -1448,7 +1452,7 @@ describe("ClaudeAgentProvider", () => {
       })
     );
 
-    const opts = calls[0].options as Options;
+    const opts = calls[0].options as ClaudeCliOptions;
     // web_search is not path-scoped, so WebSearch still replaces it.
     expect(opts.allowedTools).toEqual(["mcp__nodetool_tools__read_file"]);
     expect(opts.cwd).toBeUndefined();
@@ -1465,10 +1469,10 @@ describe("ClaudeAgentProvider", () => {
       assistantTextMsg("done"),
       successResult()
     ]);
-    const mcp = fakeCreateMcpServer();
+    const mcp = hostedTools();
     const provider = new ClaudeAgentProvider(
       {},
-      { queryFn: fn, createMcpServerFn: mcp.fn }
+      { queryFn: fn }
     );
     const items = await collect(
       provider.generateLoop({
@@ -1497,10 +1501,10 @@ describe("ClaudeAgentProvider", () => {
       assistantTextMsg("done"),
       successResult()
     ]);
-    const mcp = fakeCreateMcpServer();
+    const mcp = hostedTools();
     const provider = new ClaudeAgentProvider(
       {},
-      { queryFn: fn, createMcpServerFn: mcp.fn }
+      { queryFn: fn }
     );
     const items = await collect(
       provider.generateLoop({
@@ -1533,7 +1537,7 @@ describe("ClaudeAgentProvider", () => {
       })
     );
 
-    const opts = calls[0].options as Options;
+    const opts = calls[0].options as ClaudeCliOptions;
     expect(opts.mcpServers).toBeUndefined();
     // The caller offered a tool, so the built-ins must not be disabled — and
     // the loop must still be allowed the turns to use them. ToolSearch is the
@@ -1542,15 +1546,16 @@ describe("ClaudeAgentProvider", () => {
     expect(opts.maxTurns).toBeGreaterThan(1);
   });
 
-  it("preserves keys of a free-form object param (no z.object({}) stripping)", async () => {
+  it("serves the tool's JSON Schema unchanged and keeps free-form object keys", async () => {
     // Regression: a tool param declared as a free-form object (e.g. add_node's
-    // `node_properties`) was converted to z.object({}), which strips every
-    // nested key — silently dropping all node configuration on the SDK bridge.
+    // `node_properties`) once lost every nested key on the tool bridge,
+    // silently dropping all node configuration.
     const { fn } = fakeQuery([sysInit("sess-ff"), assistantTextMsg("ok"), successResult()]);
-    const mcp = fakeCreateMcpServer();
+    const mcp = hostedTools();
+    const seenArgs: unknown[] = [];
     const provider = new ClaudeAgentProvider(
       {},
-      { queryFn: fn, createMcpServerFn: mcp.fn }
+      { queryFn: fn }
     );
     await collect(
       provider.generateLoop({
@@ -1567,14 +1572,23 @@ describe("ClaudeAgentProvider", () => {
             }
           }
         ],
-        executeTool: async () => "ok"
+        executeTool: async (call) => {
+          seenArgs.push(call.args);
+          return "ok";
+        }
       })
     );
-    const shape = (mcp.captured.defs[0] as unknown as {
-      inputSchema: Record<string, { parse: (v: unknown) => unknown }>;
-    }).inputSchema;
-    const parsed = shape.node_properties.parse({ prompt: "a red fox", bits: 2 });
-    expect(parsed).toEqual({ prompt: "a red fox", bits: 2 });
+    await mcp.captured.defs[0].handler({
+      node_properties: { prompt: "a red fox", bits: 2 }
+    });
+    expect(mcp.captured.defs[0].inputSchema).toEqual({
+      type: "object",
+      properties: { node_properties: { type: "object" } },
+      required: []
+    });
+    expect(seenArgs).toEqual([
+      { node_properties: { prompt: "a red fox", bits: 2 } }
+    ]);
   });
 
   it("cancels the query when the abort signal fires", async () => {
@@ -1621,7 +1635,7 @@ describe("ClaudeAgentProvider", () => {
     controller.abort();
     await result;
     expect(calls[0].options?.abortController?.signal.aborted).toBe(true);
-    expect((await structuredPrompt(calls[0]))[0].message.content).toEqual([
+    expect(structuredPrompt(calls[0])).toEqual([
       {type: "text", text: "Actual frame"}, {type: "image", source: {type: "base64", media_type: "image/png", data: "QUJD"}}
     ]);
   });

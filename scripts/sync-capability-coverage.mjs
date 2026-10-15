@@ -58,7 +58,8 @@ const SUITE_EXTRAS = [
   "code-capabilities.test.ts",
   "js-scripts-capabilities.test.ts",
   "apify-capabilities.test.ts",
-  "serpapi-capabilities.test.ts"
+  "serpapi-capabilities.test.ts",
+  "game-asset-pipeline.test.ts"
   // `media-read-bytes.test.ts` drives `read_media_bytes` by guest import but
   // is not in the `capability-suites` selfcheck's filter list
   // (packages/cli/src/harness/registry.ts), and a suite the table names must
@@ -83,6 +84,7 @@ const EVAL_MODULES = [
   ["evals/tool-loop-cases.js", "TOOL_LOOP_EVAL_CASES"],
   ["evals/escalation-cases.js", "WORKFLOW_ESCALATION_TOOL_LOOP_CASES"],
   ["evals/surfaces/app.js", "APP_TOOL_LOOP_CASES"],
+  ["evals/surfaces/game.js", "GAME_TOOL_LOOP_CASES"],
   ["evals/surfaces/creative-pipeline.js", "CREATIVE_PIPELINE_TOOL_LOOP_CASES"],
   ["evals/surfaces/js-script.js", "JS_SCRIPT_TOOL_LOOP_CASES"],
   ["evals/surfaces/model3d.js", "MODEL3D_TOOL_LOOP_CASES"],

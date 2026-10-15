@@ -37,7 +37,6 @@ function nodetoolStubPlugin(): Plugin {
     "@nodetool-ai/fal-nodes",
     "@nodetool-ai/replicate-nodes",
     "@nodetool-ai/dsl",
-    "@nodetool-ai/protocol",
     "@nodetool-ai/config",
     "@nodetool-ai/deploy",
     "@nodetool-ai/vectorstore",
@@ -73,6 +72,9 @@ function nodetoolStubPlugin(): Plugin {
 
 // Tests that need real workspace packages run without the stub plugin.
 const realPackageTests = [
+  "tests/command-errors-runtime.test.ts",
+  "tests/runtime-env.test.ts",
+  "tests/missing-runtime-cli.test.ts",
   "tests/runs-integration.test.ts",
   "tests/app-debug-harness.test.ts",
   "tests/app-debug-target.test.ts",

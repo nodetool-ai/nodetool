@@ -1,5 +1,14 @@
 import { expect, test } from "@playwright/test";
 
+interface NativeGameWindow extends Window {
+  readonly nativeGamePlayer: {
+    readonly snapshot: () => { readonly sceneId: string };
+    readonly saves: {
+      load(scope: "progress", slot: "quicksave"): Promise<{ readonly snapshot?: { readonly sceneId: string } } | null>;
+    };
+  };
+}
+
 const games = [
   { name: "Kindle", slug: "kindle", scene: "temple" },
   { name: "Lumen", slug: "lumen", scene: "forest" },
@@ -23,12 +32,21 @@ for (const game of games) {
     await player.locator("canvas").click();
     await page.keyboard.press("Space");
     await player.getByRole("button", { name: "Save", exact: true }).click();
-    const savedScene = await player.locator("canvas").evaluate((element, slug) => {
-      const storage = element.ownerDocument.defaultView?.localStorage;
-      const key = Object.keys(storage ?? {}).find((entry) => entry.startsWith(`nodetool-game:${slug}:`));
-      return key && storage ? JSON.parse(storage.getItem(key) ?? "{}").sceneId : undefined;
-    }, game.slug);
+    await expect(player.locator("#status")).toHaveText("Game saved");
+    const savedScene = await player.locator("canvas").evaluate(async (element) => {
+      // The generated player exposes its public save API on the frame window.
+      const view = element.ownerDocument.defaultView as unknown as NativeGameWindow;
+      return (await view.nativeGamePlayer.saves.load("progress", "quicksave"))?.snapshot?.sceneId;
+    });
     expect(savedScene).toBe(game.scene);
+    await player.getByRole("button", { name: "Load", exact: true }).click();
+    await expect(player.locator("#status")).toHaveText("Game loaded");
+    const loadedScene = await player.locator("canvas").evaluate((element) => {
+      // This is the same public player boundary used by the standalone harness.
+      const view = element.ownerDocument.defaultView as unknown as NativeGameWindow;
+      return view.nativeGamePlayer.snapshot().sceneId;
+    });
+    expect(loadedScene).toBe(game.scene);
     await expect(section.getByRole("link", { name: "Open full game" })).toHaveAttribute("href", `/games/${game.slug}/index.html`);
     await section.getByRole("button", { name: "Stop game", exact: true }).click();
     await expect(section.locator("iframe")).toHaveCount(0);

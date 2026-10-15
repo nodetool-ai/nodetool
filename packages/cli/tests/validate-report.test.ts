@@ -77,3 +77,12 @@ describe("renderValidation", () => {
     expect(lines[1]).toContain("✅");
   });
 });
+
+
+describe("catalog validation report", () => {
+  it("explains pack_not_installed alongside the owning pack issue", () => {
+    const out = renderValidation(report([{ severity: "error", code: "pack_not_installed", nodeId: "image", message: 'Node belongs to pack "image", which is not installed' }])).join("\n");
+    expect(out).toContain("pack_not_installed — node metadata is known");
+    expect(out).toContain('pack "image"');
+  });
+});

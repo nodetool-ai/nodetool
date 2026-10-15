@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sdkNodeTypeInventoryOutput } from "@nodetool-ai/protocol/api-schemas/nodes.js";
 import {
   buildNodeTypeInventory,
   NodeRegistry,
@@ -118,5 +119,21 @@ describe("buildNodeTypeInventory", () => {
     expect(enumType?.values).toHaveLength(64);
     expect(enumType?.values_truncated).toBe(true);
     expect(enumType?.examples).toHaveLength(5);
+  });
+});
+
+
+describe("catalog inventory protocol boundary", () => {
+  it("preserves catalog provenance counts through the API output schema", () => {
+    const registry = new NodeRegistry();
+    registry.loadCatalog([{
+      node_type: "test.CatalogInventory", pack: "image",
+      metadata: metadata("test.CatalogInventory", { type: "image", type_args: [] }, { type: "str", type_args: [] }),
+      declared: []
+    }]);
+    const inventory = buildNodeTypeInventory(registry);
+    const parsed = sdkNodeTypeInventoryOutput.parse(inventory);
+    expect(parsed.provenance_counts).toEqual({ catalog: 1 });
+    expect(parsed.types.every((type) => type.sources.catalog === 1)).toBe(true);
   });
 });

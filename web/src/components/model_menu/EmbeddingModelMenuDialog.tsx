@@ -31,7 +31,7 @@ function EmbeddingModelMenuDialog({
       onClose={onClose}
       modelData={modelData}
       onModelChange={onModelChange}
-      title="Select Embedding Model"
+      title="Select embedding model"
       searchPlaceholder="Search embedding models…"
       storeHook={useEmbeddingModelMenuStore}
       modelType="embedding_model"

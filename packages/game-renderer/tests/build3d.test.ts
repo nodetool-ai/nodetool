@@ -8,6 +8,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import { afterEach, describe, expect, it } from "vitest";
 import { gameModel3D, gameAnimator3D, gameNonSpatialBehavior } from "@nodetool-ai/protocol";
 import { createGameSession3D, createNative3DGame } from "@nodetool-ai/game-runtime";
+import { prepareGameImage3D } from "../src/renderer3d/assets/image-preparation.js";
 import { normalizeGameModel3D } from "../src/preparation3d.js";
 import { skinnedGlb } from "./fixtures/game3d.js";
 import { buildStandaloneGame3D } from "../src/build3d.js";
@@ -17,6 +18,27 @@ afterEach(async () => { await Promise.all(created.splice(0).map((path) => rm(pat
 async function root(): Promise<string> { const path = await mkdtemp(join(tmpdir(), "game3d-export-")); created.push(path); return path; }
 
 describe("offline 3D export", () => {
+  it.each(["png", "jpeg", "webp"] as const)("exports verified %s images through local manifest paths", async (format) => {
+    const canvas = createCanvas(2, 3);
+    const bytes = new Uint8Array(format === "png" ? canvas.toBuffer("image/png") : format === "jpeg" ? canvas.toBuffer("image/jpeg") : canvas.toBuffer("image/webp"));
+    const result = await prepareGameImage3D(bytes, { assetId: "image" });
+    if (!result.ok) { throw new Error("Image preparation failed"); }
+    const document = createNative3DGame("image-export");
+    document.assets.texture = result.image.binding;
+    const output = join(await root(), "game");
+    const built = await buildStandaloneGame3D({ document, outputDir: output, resolveAsset: async () => ({ bytes, mimeType: `image/${format}` }) });
+    expect(built.assetPaths.texture).toBe(`./assets/${result.image.binding.digest}.${format}`);
+    expect(new Uint8Array(await readFile(join(output, built.assetPaths.texture!)))).toEqual(bytes);
+  }, 30_000);
+  it.each(["width", "digest"] as const)("rejects mismatched image %s at export", async (field) => {
+    const bytes = new Uint8Array(createCanvas(2, 3).toBuffer("image/png"));
+    const result = await prepareGameImage3D(bytes, { assetId: "image" });
+    if (!result.ok) { throw new Error("Image preparation failed"); }
+    const document = createNative3DGame("image-export");
+    document.assets.texture = { ...result.image.binding, ...(field === "width" ? { width: 4 } : { digest: "0".repeat(64) }) };
+    await expect(buildStandaloneGame3D({ document, outputDir: join(await root(), "game"), resolveAsset: async () => ({ bytes, mimeType: "image/png" }) })).rejects.toThrow(field === "width" ? "metadata changed" : "digest changed");
+  }, 30_000);
+
   it("hashes runtime files and refuses to overwrite a nonempty destination", async () => {
     const directory = await root();
     const output = join(directory, "game");

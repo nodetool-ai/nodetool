@@ -42,9 +42,9 @@ const ELECTRON_DIR = path.join(ROOT_DIR, "electron");
 const ENTRY_POINT = path.join(
   ROOT_DIR,
   "packages",
-  "websocket",
+  "server",
   "dist",
-  "server.js"
+  "main.js"
 );
 const NATIVE_HOST_ENTRY_POINT = path.join(
   ROOT_DIR,
@@ -113,6 +113,7 @@ const PROFILE = OPTIONS.profile;
 // timelines through the same GPU compositor the editor previews with, on
 // lavapipe in the container (D9, docs/plans/motion-graphics.md).
 const REQUIRED_EXTERNAL_PACKAGES = [
+  "@opentelemetry/api",
   "sharp",
   "better-sqlite3",
   "@jitl/quickjs-ng-wasmfile-release-sync",

@@ -1,9 +1,17 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { isSourceFile, parseArgs, run, selectFiles, UsageError } from "../src/cli.js";
+import { isSourceFile, parseArgs, type Options, run, selectFiles, UsageError } from "../src/cli.js";
 import { ShellRunner, type CommandRunner } from "../src/runner.js";
 import { gitInit, MATH_PACKAGE, project } from "./fixture.js";
+
+function parsed(argv: string[]): Options {
+  const options = parseArgs(argv);
+  if (options === "help") {
+    throw new Error("expected options, got help");
+  }
+  return options;
+}
 
 function capture() {
   let out = "";
@@ -32,6 +40,41 @@ class CountingRunner implements CommandRunner {
 const TEST = ["--no-coverage", "--test-command", "node tests/run.mjs"];
 
 describe("run", () => {
+  it.each([
+    {
+      label: "the generated Vitest command",
+      options: [],
+      expected: "npx --no-install vitest related --run --passWithNoTests --maxWorkers=1 src/math.mjs"
+    },
+    {
+      label: "an unchanged custom command",
+      options: ["--test-command", "custom-oracle --workers=3 {file}"],
+      expected: "custom-oracle --workers=3 src/math.mjs"
+    }
+  ])("uses $label for the baseline and every selected mutant", async ({ options, expected }) => {
+    const root = project({
+      ...MATH_PACKAGE,
+      "packages/math/package.json": JSON.stringify({ name: "math", type: "module", scripts: { test: "vitest run" } })
+    });
+    const commands: string[] = [];
+    const runner: CommandRunner = {
+      verbose: false,
+      run: async (command) => {
+        commands.push(command);
+        return { code: 0, timedOut: false, seconds: 0, output: "" };
+      }
+    };
+
+    const code = await run(
+      ["--root", root, "--no-coverage", ...options, join(root, "packages/math/src/math.mjs")],
+      capture().io,
+      runner
+    );
+
+    expect(code).toBe(3);
+    expect(commands).toEqual([expected, expected, expected, expected]);
+  });
+
   it("kills, survives, records the snapshot, and leaves the source alone", async () => {
     const root = project(MATH_PACKAGE);
     const source = join(root, "packages/math/src/math.mjs");
@@ -192,10 +235,10 @@ describe("selectFiles", () => {
       "pkg/dist/d.js": "",
       "pkg/src/__tests__/e.ts": ""
     });
-    expect(selectFiles(parseArgs(["--root", root]) as never, root)).toEqual([join(root, "pkg/src/a.ts")]);
-    expect(selectFiles(parseArgs(["--root", root, "a.ts"]) as never, root)).toEqual([join(root, "pkg/src/a.ts")]);
-    expect(selectFiles(parseArgs(["--root", root, "nomatch"]) as never, root)).toEqual([]);
-    expect(selectFiles(parseArgs(["--root", root, "--exclude", "pkg/src"]) as never, root)).toEqual([]);
+    expect(selectFiles(parsed(["--root", root]), root)).toEqual([join(root, "pkg/src/a.ts")]);
+    expect(selectFiles(parsed(["--root", root, "a.ts"]), root)).toEqual([join(root, "pkg/src/a.ts")]);
+    expect(selectFiles(parsed(["--root", root, "nomatch"]), root)).toEqual([]);
+    expect(selectFiles(parsed(["--root", root, "--exclude", "pkg/src"]), root)).toEqual([]);
   });
 
   it("knows source files", () => {

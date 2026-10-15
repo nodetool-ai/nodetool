@@ -7,20 +7,17 @@ import { useMediaQuery } from "@mui/material";
 import {
   Tooltip,
   Caption,
-  Divider,
   LoadingSpinner,
   ToolbarIconButton,
   FlexRow,
   FlexColumn,
   Box,
   Collapse,
-  BORDER_RADIUS,
-  List,
-  ListItemButton,
   Popover,
   Text,
   EditorButton,
-  SPACING
+  SPACING,
+  menuPaperStyles
 } from "../../ui_primitives";
 import { capabilityForModelType, useModelProviderSetup } from "../../../hooks/useModelProviderSetup";
 import type { OnboardingCapability } from "../../../stores/ProviderOnboardingStore";
@@ -29,11 +26,12 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import CloseIcon from "@mui/icons-material/Close";
 
-import StarIcon from "@mui/icons-material/Star"; // Favorite
+import StarIcon from "@mui/icons-material/StarBorder"; // Favorite
 import HistoryIcon from "@mui/icons-material/History"; // Recent
 import SearchInput from "../../search/SearchInput";
 import ModelFiltersBar from "../ModelFiltersBar";
 import ProviderList from "../ProviderList";
+import ModelMenuNavItem from "./ModelMenuNavItem";
 import ModelList from "../ModelList";
 import type { DownloadableModel } from "../ModelList";
 import ModelPackCard from "../../hugging_face/ModelPackCard";
@@ -95,70 +93,11 @@ interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   setupProviderIds?: readonly string[];
 }
 
-interface QuickViewButtonProps {
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
-  horizontal: boolean;
-  onClick: () => void;
-}
-
-/** Favorites / Recent entry in the model menu's provider rail. */
-const QuickViewButton: React.FC<QuickViewButtonProps> = ({
-  icon,
-  label,
-  active,
-  horizontal,
-  onClick
-}) => (
-  <ListItemButton
-    disableRipple
-    selected={active}
-    onClick={onClick}
-    sx={{
-      py: 1,
-      px: 0,
-      borderRadius: BORDER_RADIUS.xs,
-      justifyContent: "center",
-      minHeight: 40,
-      minWidth: horizontal ? 76 : undefined
-    }}
-  >
-    <Tooltip title={label} placement={horizontal ? "bottom" : "right"}>
-      <FlexColumn align="center" gap={0.5}>
-        <FlexRow
-          align="center"
-          justify="center"
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: BORDER_RADIUS.circle,
-            bgcolor: active ? "primary.main" : "action.selected",
-            border: (t) =>
-              `1px solid ${active ? "transparent" : t.vars.palette.divider}`,
-            color: active ? "primary.contrastText" : "text.primary"
-          }}
-        >
-          {icon}
-        </FlexRow>
-        {horizontal && (
-          <Caption
-            sx={{
-              maxWidth: 76,
-              textAlign: "center",
-              lineHeight: 1.15,
-              fontSize: "var(--fontSizeSmaller)"
-            }}
-          >
-            {label}
-          </Caption>
-        )}
-      </FlexColumn>
-    </Tooltip>
-  </ListItemButton>
-);
-
 const EMPTY_MODELS: never[] = [];
+
+const POPOVER_WIDTH = 640;
+const POPOVER_HEIGHT = 560;
+const SIDEBAR_WIDTH = 176;
 
 const modelKey = (model: ModelSelectorModel): string =>
   `${model.provider ?? ""}:${model.id ?? ""}`;
@@ -169,8 +108,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   anchorEl,
   modelData,
   onModelChange,
-  title = "Select Model",
-  searchPlaceholder = "Search models...",
+  title = "Select model",
+  searchPlaceholder = "Search models",
   storeHook,
   recommendedModels = [],
   modelPacks = [],
@@ -197,7 +136,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   });
   const isError = !!fetchedError;
   const theme = useTheme();
-  // Below `sm` the 600x560 popover no longer fits, so the menu takes over the
+  // Below `sm` the 640x560 popover no longer fits, so the menu takes over the
   // whole viewport and the provider rail becomes a horizontal strip.
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -234,7 +173,6 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const providers = modelData.providers ?? providersFromModels;
 
-  const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);
   const storedSizeBucket = useModelFiltersStore((s) => s.sizeBucket);
   // The cloud version hides the size filter, so a bucket persisted from a
   // local session must not silently filter its list.
@@ -252,7 +190,6 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const filteredModelsAdvanced = useMemo(() => {
     const filtered = applyAdvancedModelFilters<TModel>(baseModels, {
-      selectedTypes,
       sizeBucket,
       families: []
     });
@@ -265,7 +202,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             : 0;
       return rank(left) - rank(right);
     });
-  }, [baseModels, selectedTypes, sizeBucket]);
+  }, [baseModels, sizeBucket]);
 
   const handleSelectModel = useCallback(
     (model: TModel) => {
@@ -499,7 +436,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       return;
     }
     const rect = anchorEl.getBoundingClientRect();
-    const height = 480; // Height of the menu (popover paper)
+    const height = POPOVER_HEIGHT;
     const spaceBelow = window.innerHeight - rect.bottom;
 
     if (spaceBelow < height && rect.top > height) {
@@ -533,75 +470,46 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     }
   }, [open, updatePosition, setSearch]);
 
+  const railOrientation = isMobile ? "horizontal" : "vertical";
+  // Runs before an entry's own click, so picking All models or a provider
+  // leaves Favorites or Recent, and picking Favorites or Recent sets it again.
+  const handleRailClickCapture = useCallback(() => {
+    setCustomView(null);
+  }, []);
   const quickViews = (
-    <List
-      dense
-      className="model-menu__quick-views"
-      sx={{
-        py: isMobile ? 0 : 1,
-        px: 0.5,
-        // Keep the icons aligned with the provider icons when the provider
-        // list shows a scrollbar.
-        pr: isMobile ? 0.5 : 1.5,
-        width: isMobile ? "auto" : "100%",
-        display: "flex",
-        flexDirection: isMobile ? "row" : "column",
-        gap: 0.5,
-        flexShrink: 0
-      }}
-    >
-      <QuickViewButton
-        icon={
-          <StarIcon
-            fontSize="small"
-            sx={{ fontSize: "var(--fontSizeBig)", color: "inherit" }}
-          />
-        }
+    <>
+      <ModelMenuNavItem
+        className="model-menu__quick-view model-menu__quick-view--favorites"
+        orientation={railOrientation}
         label="Favorites"
-        active={customView === "favorites"}
-        horizontal={isMobile}
+        icon={<StarIcon />}
+        selected={customView === "favorites"}
         onClick={handleSetFavoritesView}
+        count={favoriteModels.length}
       />
-      <QuickViewButton
-        icon={
-          <HistoryIcon
-            fontSize="small"
-            sx={{ fontSize: "var(--fontSizeBig)", color: "inherit" }}
-          />
-        }
+      <ModelMenuNavItem
+        className="model-menu__quick-view model-menu__quick-view--recent"
+        orientation={railOrientation}
         label="Recent"
-        active={customView === "recent"}
-        horizontal={isMobile}
+        icon={<HistoryIcon />}
+        selected={customView === "recent"}
         onClick={handleSetRecentView}
+        count={recentModels.length}
       />
-    </List>
+    </>
   );
 
   const providerRail = (
-    <Box
-      sx={
-        isMobile
-          ? { flex: 1, minWidth: 0, overflow: "hidden" }
-          : { flex: 1, overflow: "hidden", width: "100%" }
-      }
-      onClickCapture={() => {
-        // If user clicks anywhere in provider list, we assume they want to stick to filtered view
-        if (customView) {
-          setCustomView(null);
-        }
-      }}
-    >
-      <ProviderList
-        providers={providers}
-        models={models ?? EMPTY_MODELS}
-        isLoading={!!isLoading}
-        isError={!!isError}
-        storeHook={storeHook}
-        forceUnselect={!!customView}
-        iconOnly
-        orientation={isMobile ? "horizontal" : "vertical"}
-      />
-    </Box>
+    <ProviderList
+      providers={providers}
+      models={models ?? EMPTY_MODELS}
+      isLoading={!!isLoading}
+      isError={!!isError}
+      storeHook={storeHook}
+      forceUnselect={!!customView}
+      orientation={railOrientation}
+      quickViews={quickViews}
+    />
   );
 
   const modelPane = (
@@ -609,15 +517,14 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       sx={{
         flex: 1,
         minWidth: 0,
-        minHeight: 0,
-        bgcolor: "background.paper"
+        minHeight: 0
       }}
     >
       {modelPacks.length > 0 && (
         <Box
           sx={{
-            px: 2,
-            pt: 1.5,
+            px: SPACING.lg,
+            pt: SPACING.md,
             maxHeight: 180,
             overflowY: "auto",
             flexShrink: 0,
@@ -652,41 +559,39 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     </FlexColumn>
   );
 
-  // Mobile stacks the rail above the list; desktop keeps it as a left sidebar.
+  // Mobile stacks a chip strip above the list; desktop keeps a sidebar. A
+  // click in either leaves the Favorites or Recent view for the provider.
   const body = isMobile ? (
     <FlexColumn sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-      <FlexRow
-        align="stretch"
+      <Box
+        onClickCapture={handleRailClickCapture}
         sx={{
           flexShrink: 0,
-          borderBottom: `1px solid ${theme.vars.palette.divider}`,
-          bgcolor: theme.vars.palette.background.default
+          borderBottom: `1px solid ${theme.vars.palette.divider}`
         }}
       >
-        {quickViews}
-        <Divider orientation="vertical" flexItem sx={{ my: 1, opacity: 0.6 }} />
         {providerRail}
-      </FlexRow>
+      </Box>
       {modelPane}
     </FlexColumn>
   ) : (
-    <FlexRow sx={{ flex: 1, overflow: "hidden" }}>
+    <FlexRow sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
       <FlexColumn
+        onClickCapture={handleRailClickCapture}
         sx={{
-          width: 88,
+          width: SIDEBAR_WIDTH,
           flexShrink: 0,
-          borderRight: `1px solid ${theme.vars.palette.divider}`,
-          bgcolor: theme.vars.palette.background.default,
-          alignItems: "center"
+          minHeight: 0,
+          borderRight: `1px solid ${theme.vars.palette.divider}`
         }}
       >
-        {quickViews}
-        <Divider sx={{ mx: 2, mb: 1, opacity: 0.6 }} />
         {providerRail}
       </FlexColumn>
       {modelPane}
     </FlexRow>
   );
+
+  const hasProviderErrors = !!providerErrors && providerErrors.length > 0;
 
   return (
     <Popover
@@ -702,17 +607,16 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       transitionDuration={0}
       slotProps={{
         paper: {
-          elevation: 24,
+          // The picker is a menu with a search box: it shares the menu
+          // surface, frame and shadow.
+          sx: isMobile
+            ? { borderRadius: 0, backgroundImage: "none" }
+            : menuPaperStyles(theme),
           style: {
-            width: isMobile ? "100vw" : "600px",
-            height: isMobile ? "100dvh" : "560px",
+            width: isMobile ? "100vw" : `${POPOVER_WIDTH}px`,
+            height: isMobile ? "100dvh" : `${POPOVER_HEIGHT}px`,
             maxHeight: isMobile ? "100dvh" : "90vh",
             maxWidth: "100vw",
-            borderRadius: isMobile ? 0 : theme.vars.rounded.dialog,
-            background: theme.vars.palette.background.paper,
-            border: isMobile
-              ? "none"
-              : `1px solid ${theme.vars.palette.divider}`,
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
@@ -726,17 +630,17 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     >
       {isMobile && (
         <FlexRow
-          gap={1}
+          gap={SPACING.md}
           align="center"
           justify="space-between"
           sx={{
-            px: 2,
-            py: 1.5,
+            px: SPACING.lg,
+            py: SPACING.md,
             flexShrink: 0,
             borderBottom: `1px solid ${theme.vars.palette.divider}`
           }}
         >
-          <Text weight={600} truncate>
+          <Text weight={500} truncate>
             {title}
           </Text>
           <ToolbarIconButton
@@ -750,101 +654,90 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       )}
 
       <FlexRow
-        gap={isMobile ? 1 : 2}
+        gap={SPACING.xs}
         align="center"
         sx={{
-          p: 1.5,
-          pl: 2,
+          px: SPACING.lg,
+          py: SPACING.md,
           borderBottom: `1px solid ${theme.vars.palette.divider}`,
-          flexShrink: 0,
-          background: theme.vars.palette.background.paper
+          flexShrink: 0
         }}
       >
-        <FlexRow gap={isMobile ? 1 : 2} align="center" sx={{ flex: 1 }}>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <SearchInput
-              onSearchChange={handleSearchChange}
-              placeholder={searchPlaceholder}
-              debounceTime={150}
-              // Autofocusing on mobile raises the keyboard over the list.
-              focusSearchInput={!isMobile}
-              focusOnTyping={!isMobile}
-              onPressArrowDown={handleArrowDown}
-              onPressArrowUp={handleArrowUp}
-              onPressEnter={handleEnter}
-              width="100%"
-            />
-          </Box>
-          <ToolbarIconButton
-            icon={<RefreshIcon fontSize="small" />}
-            tooltip="Refresh models"
-            onClick={handleRefresh}
-            disabled={!refetch || !!isFetching}
-            size="small"
-            nodrag={false}
+        <Box sx={{ flex: 1, minWidth: 0, mr: SPACING.sm }}>
+          <SearchInput
+            onSearchChange={handleSearchChange}
+            placeholder={searchPlaceholder}
+            debounceTime={150}
+            // Autofocusing on mobile raises the keyboard over the list.
+            focusSearchInput={!isMobile}
+            focusOnTyping={!isMobile}
+            onPressArrowDown={handleArrowDown}
+            onPressArrowUp={handleArrowUp}
+            onPressEnter={handleEnter}
+            width="100%"
           />
-          <ModelFiltersBar />
-        </FlexRow>
+        </Box>
+        <ToolbarIconButton
+          icon={<RefreshIcon fontSize="small" />}
+          tooltip="Refresh models"
+          onClick={handleRefresh}
+          disabled={!refetch || !!isFetching}
+          size="small"
+          nodrag={false}
+        />
+        <ModelFiltersBar />
       </FlexRow>
 
-      <Collapse
-        in={
-          !!(
-            isLoading ||
-            isFetching ||
-            (providerErrors && providerErrors.length > 0)
-          )
-        }
-      >
+      <Collapse in={!!(isLoading || isFetching || hasProviderErrors)}>
         <FlexRow
-          gap={1}
+          gap={SPACING.md}
           align="center"
           sx={{
-            px: 2,
-            py: 1,
-            borderBottom: `1px solid ${theme.vars.palette.divider}`,
-            bgcolor:
-              providerErrors && providerErrors.length > 0
-                ? theme.vars.palette.warning.main + "15"
-                : theme.vars.palette.action.hover,
-            fontSize: "var(--fontSizeSmall)"
+            px: SPACING.lg,
+            py: SPACING.sm,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`
           }}
         >
           {(isLoading || isFetching) && (
-            <>
-              <LoadingSpinner size="small" />
-              <Caption sx={{ color: "text.secondary" }}>
-                {loadingProgress
-                  ? `Loading models: ${loadingProgress.loaded}/${loadingProgress.total} providers…`
-                  : "Loading models…"}
-              </Caption>
-            </>
+            <LoadingSpinner
+              size="small"
+              text={
+                loadingProgress
+                  ? `Loading models from ${loadingProgress.loaded} of ${loadingProgress.total} providers`
+                  : "Loading models"
+              }
+            />
           )}
-          {providerErrors && providerErrors.length > 0 && !isLoading && (
+          {hasProviderErrors && !isLoading && (
             <Tooltip
               title={
-                <Box sx={{ maxWidth: 300 }}>
-                  <Caption size="small">
-                    Failed to load models from:
-                  </Caption>
+                <FlexColumn gap={SPACING.xs}>
+                  <Caption>Failed to load models from:</Caption>
                   {providerErrors.map((pe) => (
-                    <Caption key={pe.provider} component="div" sx={{ mt: 0.5 }}>
-                      • {pe.provider}:{" "}
+                    <Caption key={pe.provider} component="div">
+                      {pe.provider}:{" "}
                       {pe.error instanceof Error
                         ? pe.error.message
                         : "Unknown error"}
                     </Caption>
                   ))}
-                </Box>
+                </FlexColumn>
               }
             >
-              <FlexRow gap={0.5} align="center" sx={{ cursor: "help" }}>
+              <FlexRow
+                gap={SPACING.xs}
+                align="center"
+                tabIndex={0}
+                sx={{ cursor: "help" }}
+              >
                 <WarningAmberIcon
-                  sx={{ fontSize: "1.2em", color: "warning.main" }}
+                  fontSize="small"
+                  sx={{ color: "warning.main" }}
                 />
                 <Caption sx={{ color: "warning.main" }}>
-                  {providerErrors.length} provider
-                  {providerErrors.length > 1 ? "s" : ""} failed to load
+                  {providerErrors.length === 1
+                    ? "1 provider failed to load"
+                    : `${providerErrors.length} providers failed to load`}
                 </Caption>
               </FlexRow>
             </Tooltip>
@@ -853,9 +746,23 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       </Collapse>
 
       {body}
-      <FlexRow justify="space-between" align="center" sx={{ px: SPACING.lg, py: SPACING.md, flexShrink: 0, borderTop: `1px solid ${theme.vars.palette.divider}` }}>
-        <Caption>Missing a provider?</Caption>
-        <EditorButton variant="text" size="small" startIcon={<AddIcon />} onClick={openSetup}>
+      <FlexRow
+        justify="space-between"
+        align="center"
+        sx={{
+          px: SPACING.lg,
+          py: SPACING.sm,
+          flexShrink: 0,
+          borderTop: `1px solid ${theme.vars.palette.divider}`
+        }}
+      >
+        <Caption sx={{ color: "text.secondary" }}>Missing a provider?</Caption>
+        <EditorButton
+          variant="text"
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={openSetup}
+        >
           Add providers
         </EditorButton>
       </FlexRow>

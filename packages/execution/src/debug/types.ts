@@ -8,7 +8,7 @@
  * different, thinner shape than the CLI did for the same run.
  */
 
-import type { Intervention } from "@nodetool-ai/protocol";
+import type { Intervention, MissingRuntimeDetails } from "@nodetool-ai/protocol";
 import type { SupervisedRunSummary } from "../supervisor.js";
 
 /** A single value emitted by a node (output_update / generation_complete). */
@@ -146,6 +146,7 @@ export interface ServerRunReport {
   ok: boolean;
   status: string;
   error: string | null;
+  missingRuntime?: MissingRuntimeDetails;
   durationMs: number;
   summary: ExecutionSummary;
   trace: TraceSummary | null;

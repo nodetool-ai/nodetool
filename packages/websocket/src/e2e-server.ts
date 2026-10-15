@@ -104,7 +104,7 @@ async function main(): Promise<void> {
   if (examplesDir) {
     serverOptions.examplesDir = examplesDir;
   }
-  const srv = createTestUiServer(serverOptions);
+  const srv = await createTestUiServer(serverOptions);
   await srv.listen();
 
   console.log(

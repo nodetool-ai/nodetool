@@ -212,8 +212,7 @@ export function registerVersionCommands<
         }
         printTable(items.map(spec.tableRow));
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 
@@ -239,8 +238,7 @@ export function registerVersionCommands<
         printTable([spec.tableRow(item)]);
         console.log(spec.showSummary(spec.counts(document), item));
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 
@@ -268,8 +266,7 @@ export function registerVersionCommands<
             `✅ Snapshot saved as v${item.version}${item.name ? ` (${String(item.name)})` : ""}`
           );
         } catch (e) {
-          printCommandError(e, opts.json);
-          process.exit(1);
+          process.exit(printCommandError(e, opts.json));
         }
       }
     );
@@ -329,8 +326,7 @@ export function registerVersionCommands<
         }
         restoredOk = validation.ok;
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
       process.exit(restoredOk ? 0 : 1);
     });
@@ -382,8 +378,7 @@ export function registerVersionCommands<
             }
           }
         } catch (e) {
-          printCommandError(e, opts.json);
-          process.exit(1);
+          process.exit(printCommandError(e, opts.json));
         }
         if (aborted) process.exit(1);
       }

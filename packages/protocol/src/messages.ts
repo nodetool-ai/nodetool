@@ -26,6 +26,7 @@
  */
 
 import { z } from "zod";
+import { missingRuntimeDetailsSchema } from "./missing-runtime-package.js";
 import { isRecord, isString } from "./predicates.js";
 import {
   supervisorDecisionSchema,
@@ -382,6 +383,7 @@ export const nodeErrorDetailSchema = z.object({
   code: z.string(),
   /** Runtime package to install, for `missing_runtime_package`. */
   runtime_package: z.string().nullable().optional(),
+  missing_runtime: missingRuntimeDetailsSchema.nullable().optional(),
   /** Provider id as the runtime knows it (e.g. `openai`). */
   provider: z.string().nullable().optional(),
   /** Secret key holding that provider's credential (e.g. `OPENAI_API_KEY`). */

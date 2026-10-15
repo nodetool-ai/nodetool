@@ -16,7 +16,7 @@ import {
   WorkflowVersion,
   Asset
 } from "@nodetool-ai/models";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 
 vi.mock("../src/lib/workflow-workspace.js", async () => {
   const actual = await vi.importActual<
@@ -47,7 +47,7 @@ const echoExecutor = {
   }
 };
 
-const registry = {
+const registry = Object.assign(new NodeRegistry(), {
   has: (t: string) => t === "test.Echo" || t === "nodetool.output.Output",
   resolve: () => echoExecutor,
   getClass: () => undefined,
@@ -55,7 +55,7 @@ const registry = {
   getMetadata: () => undefined,
   listMetadata: () => [],
   validateNode: () => []
-} as unknown as NodeRegistry;
+});
 
 const GRAPH = {
   nodes: [

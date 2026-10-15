@@ -11,6 +11,7 @@
  */
 
 import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
+import { missingRuntimePackageOf } from "@nodetool-ai/protocol";
 import { ensureGoogleFonts } from "@nodetool-ai/timeline/fonts/google-node";
 import type {
   FrameAdjustment,
@@ -584,7 +585,7 @@ export async function renderTimelineComposited(
         } catch (error) {
           if (
             signal?.aborted ||
-            (error instanceof Error && error.name === "MissingBinaryError")
+            missingRuntimePackageOf(error) === "ffmpeg"
           ) {
             throw error;
           }

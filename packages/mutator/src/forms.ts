@@ -13,6 +13,7 @@
 
 import { createHash } from "node:crypto";
 import ts from "typescript";
+import { isText, type JsonValue } from "./json.js";
 import { discoverSites, parse } from "./sites.js";
 import type { Site } from "./model.js";
 
@@ -156,8 +157,8 @@ export function mutationId(
 
 export function mutationFile(mutation: string): string | null {
   try {
-    const value: unknown = JSON.parse(mutation);
-    return Array.isArray(value) && typeof value[0] === "string" ? value[0] : null;
+    const value: JsonValue = JSON.parse(mutation);
+    return Array.isArray(value) && isText(value[0]) ? value[0] : null;
   } catch {
     return null;
   }

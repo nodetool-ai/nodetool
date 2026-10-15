@@ -12,7 +12,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
 import { Application, initTestDb, Workflow } from "@nodetool-ai/models";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 
 import applicationsRoutes from "../src/routes/applications.js";
 import type { AppDebugDeps } from "../src/lib/app-debug-service.js";
@@ -44,7 +44,7 @@ const GRAPH = {
 };
 
 /** A registry whose two node types echo the input through the graph. */
-const registry = {
+const registry = Object.assign(new NodeRegistry(), {
   has: () => true,
   resolve: () => ({
     async process(ins: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -56,10 +56,10 @@ const registry = {
   getMetadata: () => undefined,
   listMetadata: () => [],
   validateNode: () => []
-} as unknown as NodeRegistry;
+});
 
 /** The same registry, slow enough that a cancel can reach a live run. */
-const slowRegistry = {
+const slowRegistry = Object.assign(new NodeRegistry(), {
   ...registry,
   resolve: () => ({
     async process(ins: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -67,7 +67,7 @@ const slowRegistry = {
       return { output: ins["value"] ?? "a drafted note" };
     }
   })
-} as unknown as NodeRegistry;
+});
 
 /** A draft the assistant would be holding: one operation, three widgets. */
 const document = (outputBinding = "op:main/out:out1") => ({

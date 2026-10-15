@@ -46,7 +46,7 @@ export function istanbulLines(entry: IstanbulFile): Set<number> {
 }
 
 export function parseIstanbul(text: string, baseDir: string): CoverageMap {
-  const data = JSON.parse(text) as Record<string, IstanbulFile>;
+  const data: Record<string, IstanbulFile> = JSON.parse(text);
   const map: CoverageMap = new Map();
   for (const [key, entry] of Object.entries(data)) {
     const path = resolve(baseDir, entry.path ?? key);

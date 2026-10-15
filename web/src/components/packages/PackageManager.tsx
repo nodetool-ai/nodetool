@@ -90,6 +90,7 @@ const BadgeChip = ({ badge }: { badge: PMRow["badge"] }) => {
   > = {
     alwaysOn: { label: "Always on", color: "default" },
     installed: { label: "Installed", color: "success" },
+    included: { label: "Included", color: "default" },
     update: { label: "Update available", color: "warning" },
     notInstalled: { label: "Not installed", color: "default" }
   };

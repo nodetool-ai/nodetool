@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { z } from "zod";
+import { importPack } from "@nodetool-ai/node-catalog";
 import { createLogger, getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
 import { AmbiguousGameIdError, MissingGameDraftSourceError, Asset, Game, Prediction, Project, Workspace } from "@nodetool-ai/models";
 import { anyGameAssetBinding as gameAssetBinding, gameAssetBinding as legacyAssetBinding, gameAssetBinding3D, anyGameDocument as gameDocument, gameInputFrame, shortResourceId, type AnyGameAssetBinding, type AnyGameDocument as GameDocument, type GameDocument as LegacyGameDocument, type GameDocument3D, type GameInputFrame, type GameRenderFrame } from "@nodetool-ai/protocol";
@@ -557,14 +559,24 @@ const install: CapabilityExport = {
     if (!candidate || createHash("sha256").update(candidate.bytes).digest("hex") !== parsed.data.digest) {
       return { error: "Candidate asset is missing or changed" };
     }
-    const { path, extension, contentType, bytes } = candidate;
+    const { path, bytes } = candidate;
+    let { extension, contentType } = candidate;
+    let targetPath = path;
     if (base !== undefined && base !== game.current_revision) return { error: "Game was modified concurrently" };
     const draft = await Game.readDraft(user, game.id, workspace);
     if (!draft) return { error: "Game draft is missing" };
     const expectedUpdatedAt = typeof args["base_updated_at"] === "string" ? args["base_updated_at"] : draft.game.draft_updated_at;
     let binding: AnyGameAssetBinding = parsed.data;
     try {
-      if (binding.mediaKind === "model") {
+      if (draft.document.schemaVersion === 3 && binding.mediaKind === "image") {
+        const { prepareGameImage3D } = await importPack<typeof import("@nodetool-ai/game-renderer/preparation3d")>("game", "@nodetool-ai/game-renderer/preparation3d");
+        const prepared = await prepareGameImage3D(bytes, { assetId: binding.assetId, expectedDigest: binding.digest, signal: run.context.signal });
+        if (!prepared.ok) { return { error: "Image preparation failed", diagnostics: prepared.diagnostics }; }
+        binding = { ...prepared.image.binding, required: binding.required ?? true };
+        extension = prepared.image.binding.format === "jpeg" ? "jpg" : prepared.image.binding.format;
+        contentType = `image/${prepared.image.binding.format}`;
+        targetPath = `${game.source_root}/assets/${binding.digest}.${extension}`;
+      } else if (binding.mediaKind === "model") {
         const { prepareGameModelBinding3D } = await import("@nodetool-ai/game-renderer/preparation3d");
         const prepared = await prepareGameModelBinding3D(bytes, { assetId: binding.assetId, expectedDigest: binding.digest, signal: run.context.signal });
         if (!prepared.ok) { return { error: "Model preparation failed", diagnostics: prepared.diagnostics }; }
@@ -585,7 +597,7 @@ const install: CapabilityExport = {
     if (!targetBinding.success) { return { error: "Asset binding does not match the game dimension" }; }
     const storage = run.context.assetStorage;
     if (!storage) return { error: "Asset storage is unavailable" };
-    if (candidateWorkspace !== workspace) await workspace.write(path, bytes, contentType);
+    if (candidateWorkspace !== workspace || targetPath !== path) await workspace.write(targetPath, bytes, contentType);
     const installed = await Asset.create({
       user_id: user,
       project_id: game.project_id,
@@ -797,7 +809,12 @@ const generateAsset: CapabilityExport = {
       try { return await stageModelGameAsset3D(run, game, workspace, draft.document, args); }
       catch (error) { run.context.signal?.throwIfAborted(); return { error: error instanceof Error ? error.message : String(error) }; }
     }
-    if (draft.document.schemaVersion === 3 && kind === "image") { return { error: "3D games use model assets with embedded textures" }; }
+    if (draft.document.schemaVersion === 3 && kind === "image" && args["preparation"] !== undefined) {
+      const preparation = z.record(z.string(), z.unknown()).safeParse(args["preparation"]);
+      if (!preparation.success || Object.keys(preparation.data).length > 0) {
+        return { error: "3D images do not support sprite preparation. Set UV tiling and offset on the material's texture slots." };
+      }
+    }
     const reference = typeof args["reference_slot"] === "string" ? draft.document.assets[args["reference_slot"]] : undefined;
     if (args["reference_slot"] !== undefined && !reference) { return { error: "reference_slot is not bound" }; }
     if (reference && kind !== "image") { return { error: "reference_slot requires kind image" }; }
@@ -879,6 +896,18 @@ const generateAsset: CapabilityExport = {
       if (!sourceBytes) { return { error: "Generated asset bytes are unavailable", generation_id: generated.generation_id }; }
     }
     if (sourceBytes.byteLength > MAX_BUILD_ASSET_BYTES) { return { error: "Game asset exceeds the supported asset size" }; }
+    if (draft.document.schemaVersion === 3 && kind === "image") {
+      const { prepareGameImage3D } = await importPack<typeof import("@nodetool-ai/game-renderer/preparation3d")>("game", "@nodetool-ai/game-renderer/preparation3d");
+      const digest = createHash("sha256").update(sourceBytes).digest("hex");
+      const prepared = await prepareGameImage3D(sourceBytes, { assetId: `generated:${digest}`, expectedDigest: digest, signal: run.context.signal });
+      if (!prepared.ok) { return { error: "Image preparation failed", diagnostics: prepared.diagnostics }; }
+      const binding = prepared.image.binding;
+      const extension = binding.format === "jpeg" ? "jpg" : binding.format;
+      await workspace.write(`${game.source_root}/assets/${binding.digest}.${extension}`, prepared.image.bytes, `image/${binding.format}`);
+      return { game_id: shortResourceId(game.id), slot, binding, candidate_workspace_id: game.workspace_id,
+        draft_updated_at: draft.game.draft_updated_at, installed: false,
+        next: "Call install_native_game_asset with this binding to install the verified candidate." };
+    }
     let bytes = sourceBytes;
     let width = 1;
     let height = 1;

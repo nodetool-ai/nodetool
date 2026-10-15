@@ -24,7 +24,9 @@ const VALID_DRAG_TYPES: ReadonlySet<string> = new Set<DragDataType>([
   "chat-media",
   "example-model",
   "example-sketch",
-  "example-timeline"
+  "example-timeline",
+  "example-storyboard",
+  "example-workflow"
 ]);
 
 function isDragData(value: unknown): value is DragData {
@@ -81,7 +83,9 @@ const LEGACY_KEY_MAP = {
   "chat-media": "", // Only carried in the unified format
   "example-model": "",
   "example-sketch": "",
-  "example-timeline": ""
+  "example-timeline": "",
+  "example-storyboard": "",
+  "example-workflow": ""
 } satisfies Record<DragDataType, string>;
 
 /**
