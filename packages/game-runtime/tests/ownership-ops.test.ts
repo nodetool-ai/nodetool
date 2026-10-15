@@ -36,6 +36,9 @@ it("refreshes ownership indexes after removal, insertion, movement and a replace
   update("y", 3, 2);
   update("x", 4);
   expect(authoring.overrides.map(entry => [entry.path[0], entry.value])).toEqual([["x", 4], ["name", 0], ["y", 3]]);
+  update("new", 6);
+  update("new", 7);
+  expect(authoring.overrides.filter(entry => entry.path[0] === "new")).toEqual([{ ...target, path: ["new"], value: 7 }]);
   authoring.overrides = [...authoring.overrides, { ...target, path: ["x"], value: 4 }];
   expect(() => update("x", 5)).toThrow("unambiguous target key");
 });
