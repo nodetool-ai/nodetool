@@ -1,6 +1,47 @@
 import { describe, expect, it } from "vitest";
 import { anyGameDocument, type AnyGameDocument } from "@nodetool-ai/protocol";
 import { anyGameDocumentOp, applyAnyGameOps, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "../src/index.js";
+import { applyGameOwnershipOperation, createGameOwnershipDeltaState } from "../src/ownership-ops.js";
+
+it("indexes stable ownership updates once for a large atomic batch", () => {
+  const document = retained(createTopDownRoomGame);
+  if (!document.authoring) { throw new Error("Fixture authoring missing"); }
+  let keyReads = 0;
+  document.authoring.overrides = Array.from({ length: 350 }, (_, index) => ({
+    get sceneId() { keyReads++; return document.entrySceneId; }, entityId: `root-${index}`, path: ["props", "value"], value: index
+  }));
+  const state = createGameOwnershipDeltaState((_index, _path, message) => { throw new Error(message); });
+  for (let index = 0; index < 350; index++) {
+    applyGameOwnershipOperation(document, { op: "set_override_membership", scene_id: document.entrySceneId,
+      entity_id: `root-${index}`, path: ["props", "value"], override: { value: index + 1 } }, state, index);
+  }
+  expect(keyReads).toBeLessThanOrEqual(700);
+  expect(document.authoring.overrides.map(entry => entry.value)).toEqual(Array.from({ length: 350 }, (_, index) => index + 1));
+});
+
+it("refreshes ownership indexes after removal, insertion, movement and a replaced membership array", () => {
+  const document = retained(createTopDownRoomGame);
+  const authoring = document.authoring;
+  if (!authoring) { throw new Error("Fixture authoring missing"); }
+  const target = { sceneId: document.entrySceneId, entityId: "player" };
+  authoring.overrides = ["x", "y", "name"].map(path => ({ ...target, path: [path], value: 0 }));
+  const state = createGameOwnershipDeltaState((_index, _path, message) => { throw new Error(message); });
+  const update = (path: string, value: number | null, index?: number): void => {
+    applyGameOwnershipOperation(document, { op: "set_override_membership", scene_id: target.sceneId, entity_id: target.entityId,
+      path: [path], override: value === null ? null : { value }, ...(index === undefined ? {} : { index }) }, state, 0);
+  };
+  update("x", 1);
+  update("x", null);
+  update("x", 2, 0);
+  update("y", 3, 2);
+  update("x", 4);
+  expect(authoring.overrides.map(entry => [entry.path[0], entry.value])).toEqual([["x", 4], ["name", 0], ["y", 3]]);
+  update("new", 6);
+  update("new", 7);
+  expect(authoring.overrides.filter(entry => entry.path[0] === "new")).toEqual([{ ...target, path: ["new"], value: 7 }]);
+  authoring.overrides = [...authoring.overrides, { ...target, path: ["x"], value: 4 }];
+  expect(() => update("x", 5)).toThrow("unambiguous target key");
+});
 
 function apply(document: AnyGameDocument, ops: readonly unknown[]): AnyGameDocument {
   const schema = document.schemaVersion === 3 ? gameDocumentOp3D : gameDocumentOp;
