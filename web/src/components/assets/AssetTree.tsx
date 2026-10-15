@@ -23,10 +23,7 @@ import { Asset } from "../../stores/ApiTypes";
 import { IconForType } from "../../config/IconForType";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import {
-  LOOSE_PROJECT_ID,
-  useWorkspaceTabsStore
-} from "../../stores/WorkspaceTabsStore";
+import { useAssetProjectScope } from "../../hooks/assets/useAssetProjectScope";
 
 const styles = (_theme: Theme) =>
   css({
@@ -54,10 +51,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [closedFolders, setClosedFolders] = useState<string[]>([]);
   const getAssetsRecursive = useAssetStore((state) => state.getAssetsRecursive);
-  const projectId = useWorkspaceTabsStore(
-    (state) =>
-      state.activeProjectId ?? state.personalProjectId ?? LOOSE_PROJECT_ID
-  );
+  const { projectId } = useAssetProjectScope();
 
   const folderIcon = useMemo(() => <IconForType iconName="folder" />, []);
   const imageIcon = useMemo(() => <IconForType iconName="image" />, []);
