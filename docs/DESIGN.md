@@ -1140,6 +1140,14 @@ import { CloseButton, EditorButton } from "../ui_primitives";
 | Native button | Only for a tile, card or swatch whose whole surface is the hit target. It keeps a visible focus ring and `type="button"` |
 | Not a button | A tag or filter is a `Chip`. A command stays a button even when it is pill-shaped |
 
+### Number fields
+
+Use `NumberField` (`ui_primitives/NumberField.tsx`) for every number a person types in a dialog, form or panel. It is a `TextInput type="number"` with `min`, `max` and `step`, a `unit` suffix (`%`, `px`, `ms`), optional `scrub` (drag the unfocused field sideways; Shift x10, Alt x0.1) and the field density of the surface (`FieldDensityContext`). One focus ring, no native spinner buttons (ArrowUp/ArrowDown still step), units in the mono label style.
+
+- It keeps the value as text and reports it through `onChange` (native event) or `onValueChange` (raw text). Parse and clamp in the owner, on blur or Enter, as before.
+- `NumericField` is `NumberField` plus a commit-while-typing buffer for gizmo-driven values. `InspectorValueInput` (game inspector rows) and `inputs/NumberInput` (property and node-body rows with a label and range bar) are the two specialised scrub rows; they use the same tokens, but do not build a third.
+- Forbidden: `TextInput type="number"` or MUI `TextField type="number"` with hand-set `inputProps` min/max, `InputAdornment` for units, or per-file font and padding overrides on the input.
+
 ### Empty, loading and tabs
 
 A panel or list with nothing to show draws `EmptyState`. A section that is

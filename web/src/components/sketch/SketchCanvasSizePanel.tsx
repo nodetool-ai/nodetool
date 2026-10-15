@@ -24,7 +24,7 @@ import {
   MenuItem,
   Select,
   Switch,
-  TextField,
+  NumberField,
   FONT_SIZE_SANS,
   SPACING,
   getSpacingPx
@@ -313,25 +313,27 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
       </FlexColumn>
 
       <FlexRow align="center" gap={1} sx={{ mt: 2 }}>
-        <TextField
+        <NumberField
           size="small"
           label="Width"
-          type="number"
           value={customWidth}
           onChange={(e) => setCustomWidth(e.target.value)}
-          inputProps={{ min: 1, max: 4096, step: 1 }}
+          min={1}
+          max={4096}
+          step={1}
           sx={dimensionFieldSx}
         />
         <Text sx={{ fontSize: FONT_SIZE_SANS.label, color: SKETCH_COLORS.textFaint }}>
           ×
         </Text>
-        <TextField
+        <NumberField
           size="small"
           label="Height"
-          type="number"
           value={customHeight}
           onChange={(e) => setCustomHeight(e.target.value)}
-          inputProps={{ min: 1, max: 4096, step: 1 }}
+          min={1}
+          max={4096}
+          step={1}
           sx={dimensionFieldSx}
         />
         <StateIconButton

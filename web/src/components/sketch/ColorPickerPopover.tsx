@@ -24,6 +24,7 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   TextField,
+  NumberField,
   Slider,
   IconButton,
   Popover,
@@ -376,16 +377,14 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
           {(["r", "g", "b"] as const).map((ch) => (
             <FlexColumn key={ch} align="center" sx={{ flex: 1 }}>
               <Text sx={{ fontSize: FONT_SIZE_SANS.caption, color: SKETCH_COLORS.textMuted }}>{ch.toUpperCase()}</Text>
-              <TextField
+              <NumberField
                 size="small"
-                type="number"
                 value={ch === "r" ? r : ch === "g" ? g : b}
                 onChange={(e) => handleRgb(ch, e.target.value)}
-                inputProps={{
-                  min: 0,
-                  max: 255,
-                  "aria-label": RGB_LABELS[ch]
-                }}
+                min={0}
+                max={255}
+                ariaLabel={RGB_LABELS[ch]}
+                align="center"
                 sx={numSx}
               />
             </FlexColumn>
@@ -400,16 +399,14 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
               <Text sx={{ fontSize: FONT_SIZE_SANS.caption, color: SKETCH_COLORS.textMuted }}>
                 {ch === "h" ? "H°" : ch === "s" ? "S%" : "L%"}
               </Text>
-              <TextField
+              <NumberField
                 size="small"
-                type="number"
                 value={ch === "h" ? hsl.h : ch === "s" ? hsl.s : hsl.l}
                 onChange={(e) => handleHsl(ch, e.target.value)}
-                inputProps={{
-                  min: 0,
-                  max: ch === "h" ? 360 : 100,
-                  "aria-label": HSL_LABELS[ch]
-                }}
+                min={0}
+                max={ch === "h" ? 360 : 100}
+                ariaLabel={HSL_LABELS[ch]}
+                align="center"
                 sx={numSx}
               />
             </FlexColumn>
