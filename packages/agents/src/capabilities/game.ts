@@ -1,4 +1,3 @@
-import { importPack } from "@nodetool-ai/node-catalog";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
