@@ -29,7 +29,8 @@ const wrapperStyles = css({
   alignItems: "center",
   transition: MOTION.all,
   "@media (hover: hover)": {
-    opacity: 0
+    opacity: 0,
+    "&:focus-within": { opacity: 1 }
   }
 });
 

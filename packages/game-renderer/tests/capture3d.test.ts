@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { describe, expect, it } from "vitest";
+import { prepareGameImage3D } from "../src/renderer3d/assets/image-preparation.js";
 import { prepareGameModelBinding3D } from "../src/preparation3d.js";
 import { captureGameFrame3D } from "../src/node3d.js";
 import { gameParticles, type GameRenderFrame3D } from "@nodetool-ai/protocol";
@@ -10,6 +11,24 @@ import type { GameParticleField, ParticleView } from "../src/index.js";
 import { blockoutFrame, triangleGlb, skinnedGlb } from "./fixtures/game3d.js";
 
 describe("real Chromium 3D capture", () => {
+  it("stages only effective named material images and rejects missing bindings", async () => {
+    const bytes = new Uint8Array(createCanvas(2, 3).toBuffer("image/png"));
+    const result = await prepareGameImage3D(bytes, { assetId: "texture" });
+    if (!result.ok) { throw new Error("Image preparation failed"); }
+    const frame = blockoutFrame();
+    const primitive = frame.entities[0]?.primitive;
+    if (!primitive) { throw new Error("Fixture primitive is missing"); }
+    primitive.material.baseColorTexture = { assetId: "unused" };
+    primitive.materialId = "named";
+    frame.materials = { named: { ...primitive.material, baseColorTexture: { assetId: "texture" } } };
+    frame.images = { texture: result.image.binding };
+    const ids: string[] = [];
+    await captureGameFrame3D(frame, { resolveAsset: async (id) => { ids.push(id); return bytes; } });
+    expect(ids).toEqual(["texture"]);
+    delete frame.images.texture;
+    await expect(captureGameFrame3D(frame, { resolveAsset: async () => bytes })).rejects.toThrow("Missing capture image binding");
+  }, 40_000);
+
   it("renders embedded model textures in catalog captures", async () => {
     const texture = createCanvas(2, 2);
     const textureContext = texture.getContext("2d");

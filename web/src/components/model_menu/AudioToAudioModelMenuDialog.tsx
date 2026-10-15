@@ -33,8 +33,8 @@ function AudioToAudioModelMenuDialog({
       onClose={onClose}
       modelData={modelData}
       onModelChange={onModelChange}
-      title="Select Audio To Audio Model"
-      searchPlaceholder="Search voice changers, separators, denoisers..."
+      title="Select audio-to-audio model"
+      searchPlaceholder="Search voice changers, separators, denoisers"
       storeHook={useAudioToAudioModelMenuStore}
       modelType="audio_to_audio_model"
       recommendedModels={recommendedModels}
