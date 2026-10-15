@@ -31,9 +31,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verification:
+  affected-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -76,6 +76,46 @@ jobs:
           NODETOOL_TURBO_CONCURRENCY: "1"
           NODETOOL_TEST_WORKERS: "1"
         run: npm run test:affected
+  verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-build
+        with:
+          cache: read-only
+          extra-apt: ffmpeg mesa-vulkan-drivers
+      - name: Install Chromium for native 3D tests
+        run: npx playwright install --with-deps chromium
+
+      # Ubuntu restricts user namespaces for downloaded Chromium binaries.
+      # Allow only Playwright's browser paths so capture keeps its sandbox.
+      # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
+      - name: Enable and verify the Chromium sandbox
+        run: |
+          sudo tee /etc/apparmor.d/nodetool-playwright > /dev/null <<'PROFILE'
+          abi <abi/4.0>,
+          include <tunables/global>
+
+          profile nodetool-playwright-chromium /@{HOME}/.cache/ms-playwright/chromium-*/chrome-linux*/chrome flags=(unconfined) {
+            userns,
+          }
+
+          profile nodetool-playwright-headless /@{HOME}/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux*/chrome-headless-shell flags=(unconfined) {
+            userns,
+          }
+          PROFILE
+          sudo apparmor_parser -r /etc/apparmor.d/nodetool-playwright
+          node --input-type=module <<'JS'
+          import { chromium } from "playwright";
+          const browser = await chromium.launch({ headless: true, chromiumSandbox: true });
+          await browser.close();
+          JS
+
+      - name: Install mobile check dependencies
+        run: npm --prefix mobile ci
       - name: Verify types
         run: npm run typecheck
       - name: Verify lint
@@ -103,18 +143,19 @@ jobs:
       - name: Smoke-test the packed full CLI
         run: node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts
   core-smoke:
-    needs: [verification, packed-install]
+    needs: [affected-tests, verification, packed-install]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require complete verification and packed installation
         env:
+          AFFECTED_TESTS_RESULT: ${{ needs.affected-tests.result }}
           VERIFICATION_RESULT: ${{ needs.verification.result }}
           PACKED_INSTALL_RESULT: ${{ needs.packed-install.result }}
         run: |
-          if [ "$VERIFICATION_RESULT" != "success" ] || [ "$PACKED_INSTALL_RESULT" != "success" ]; then
-            echo "Packed CLI verification or installation did not pass."
+          if [ "$AFFECTED_TESTS_RESULT" != "success" ] || [ "$VERIFICATION_RESULT" != "success" ] || [ "$PACKED_INSTALL_RESULT" != "success" ]; then
+            echo "Packed CLI tests, verification, or installation did not pass."
             exit 1
           fi
   release-pins:
