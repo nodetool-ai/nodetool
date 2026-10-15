@@ -171,22 +171,28 @@ const DropZoneInner: React.FC<DropZoneProps> = ({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       sx={[
-        (theme) => ({
-          position: "relative",
-          borderRadius: BORDER_RADIUS.md,
-          transition: MOTION.all,
-          ...reducedMotion({ transition: MOTION.none }),
-          ...(overlay
-            ? {}
-            : state === "idle"
-              ? {
-                  outline: `1px dashed ${theme.vars.palette.divider}`,
-                  backgroundColor: theme.vars.palette.Paper.overlay
-                }
-              : state === "reject"
-                ? dropZoneRejectStyle(theme)
-                : dropZoneOverStyle(theme))
-        }),
+        (theme) => {
+          const base: CSSObject = {
+            position: "relative",
+            borderRadius: BORDER_RADIUS.md,
+            transition: MOTION.all,
+            ...reducedMotion({ transition: MOTION.none })
+          };
+          if (overlay) {
+            return base;
+          }
+          if (state === "reject") {
+            return { ...base, ...dropZoneRejectStyle(theme) };
+          }
+          if (state === "over") {
+            return { ...base, ...dropZoneOverStyle(theme) };
+          }
+          return {
+            ...base,
+            outline: `1px dashed ${theme.vars.palette.divider}`,
+            backgroundColor: theme.vars.palette.Paper.overlay
+          };
+        },
         ...sxEntries(sx)
       ]}
     >
