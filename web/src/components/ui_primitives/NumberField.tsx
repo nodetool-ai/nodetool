@@ -167,7 +167,7 @@ export const NumberField = memo(
           min,
           max,
           step,
-          ...(ariaLabel ? { "aria-label": ariaLabel } : {}),
+          "aria-label": ariaLabel,
         }}
         sx={{
           "& input[type=number]": {
