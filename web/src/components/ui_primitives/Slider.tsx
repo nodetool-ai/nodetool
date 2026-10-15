@@ -27,7 +27,7 @@ import { useTheme } from "@mui/material/styles";
 import { BORDER_RADIUS, MOTION, TYPOGRAPHY, reducedMotion } from "./tokens";
 import { SPACING } from "./spacing";
 
-export interface SliderProps extends MuiSliderProps {
+export interface SliderProps extends Omit<MuiSliderProps, "onReset"> {
   /** Compact sizing for dense toolbars, node bodies and inspectors. */
   density?: "compact" | "normal";
   /** `inline`: track only. `row`: label, track and value readout. */
