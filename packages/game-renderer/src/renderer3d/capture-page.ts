@@ -32,6 +32,13 @@ window.captureNativeGame3D = async (input) => {
   if (!canvas) { throw new Error("Capture canvas is missing"); }
   const controller = new AbortController();
   const renderer = await createGameRenderer3D({ canvas, signal: controller.signal, preserveDrawingBuffer: true,
+    resolveImage: async (logicalId) => {
+      const binding = input.frame.images && Object.hasOwn(input.frame.images, logicalId) ? input.frame.images[logicalId] : undefined;
+      const asset = Object.hasOwn(input.assets, logicalId) ? input.assets[logicalId] : undefined;
+      if (!asset || !binding) { return null; }
+      if (asset.digest !== undefined && asset.digest !== binding.digest) { throw new Error(`Capture image digest changed for ${logicalId}`); }
+      return { bytes: Uint8Array.from(atob(asset.base64), (character) => character.charCodeAt(0)), binding };
+    },
     resolveFont: async (logicalId) => {
       const asset = input.assets[logicalId];
       return asset ? { bytes: Uint8Array.from(atob(asset.base64), (character) => character.charCodeAt(0)), digest: asset.digest } : null;

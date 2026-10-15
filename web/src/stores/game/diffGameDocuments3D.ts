@@ -22,6 +22,9 @@ export function diffGameDocuments3D(from: GameDocument3D, to: GameDocument3D): G
   for (const [slot, binding] of Object.entries(to.assets)) {
     if (changed(from.assets[slot], binding)) { ops.push({ op: "bind_asset", slot, binding }); }
   }
+  for (const [materialId, material] of Object.entries(to.materials ?? {})) {
+    if (changed(from.materials?.[materialId], material)) { ops.push({ op: "set_material", material_id: materialId, material }); }
+  }
   for (const [prefabId, prefab] of Object.entries(to.prefabs)) {
     if (changed(from.prefabs[prefabId], prefab)) { ops.push({ op: "set_prefab", prefab_id: prefabId, prefab }); }
   }
@@ -115,6 +118,14 @@ export function diffGameDocuments3D(from: GameDocument3D, to: GameDocument3D): G
   }
   for (const graphId of Object.keys(from.animationGraphs ?? {})) {
     if (!(graphId in (to.animationGraphs ?? {}))) { ops.push({ op: "remove_animation_graph", graph_id: graphId }); }
+  }
+  for (const materialId of Object.keys(from.materials ?? {})) {
+    if (!Object.hasOwn(to.materials ?? {}, materialId)) { ops.push({ op: "remove_material", material_id: materialId }); }
+  }
+  if (to.materials && Object.keys(to.materials).length === 0 && changed(from.materials, to.materials)) {
+    ops.push({ op: "set_game", materials: {} });
+  } else if (to.materials === undefined && from.materials && Object.keys(from.materials).length === 0) {
+    ops.push({ op: "set_game", materials: null });
   }
   for (const slot of Object.keys(from.assets)) {
     if (!(slot in to.assets)) { ops.push({ op: "unbind_asset", slot }); }

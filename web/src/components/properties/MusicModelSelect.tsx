@@ -61,9 +61,9 @@ const MusicModelSelect: React.FC<MusicModelSelectProps> = ({
         ref={buttonRef}
         active={!!modelId}
         label={
-          currentSelectedModelDetails?.name || modelId || "Select Music Model"
+          currentSelectedModelDetails?.name || modelId || "Select music model"
         }
-        subLabel="Select Text-to-Music Model"
+        subLabel="Select text-to-music model"
         onClick={handleClick}
       />
       <MusicModelMenuDialog

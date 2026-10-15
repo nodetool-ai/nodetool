@@ -9,6 +9,7 @@ import { useGamePlaySession3D } from "../useGamePlaySession3D";
 import { useGameConsoleFeed } from "../panels/console/useGameConsoleFeed";
 import { getGameConsoleStore } from "../../../stores/game/GameConsoleStore";
 import { FixedTickClock } from "@nodetool-ai/game-renderer";
+import { createGameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import { asResolvedMediaUrl, resolveMediaUri } from "../../../utils/resolveMediaUri";
 
@@ -35,6 +36,7 @@ jest.mock("../../../utils/resolveMediaUri", () => ({
 }));
 
 const colliderBytes = new TextEncoder().encode(JSON.stringify({ vertices: [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1], indices: [0, 2, 1, 0, 1, 3, 0, 3, 2, 1, 2, 3] }));
+const mockAssetBytes = new Map<string, Uint8Array>();
 const installedId = "b".repeat(32);
 function fixture(): GameDocument3D {
   return gameDocument3D.parse({ schemaVersion: 3, engineVersion: "2", dimension: "3d", id: "hook3d", revision: "saved", entrySceneId: "level",
@@ -86,13 +88,15 @@ const originalFetch = global.fetch;
 const originalClone = global.structuredClone;
 beforeEach(() => {
   mockRenderers.length = 0;
+  mockAssetBytes.clear();
   localStorage.clear();
   // The shared Jest JSON clone cannot restore optional snapshot fields.
   global.structuredClone = (value) => deserialize(serialize(value));
   jest.mocked(resolveMediaUri).mockResolvedValue(asResolvedMediaUrl("https://owned.example/ground.json") ?? "");
-  global.fetch = jest.fn(async () => {
-    if ("Response" in globalThis) { return new Response(colliderBytes.slice()); }
-    return { ok: true, arrayBuffer: async () => colliderBytes.slice().buffer } as Response;
+  global.fetch = jest.fn(async (url) => {
+    const bytes = mockAssetBytes.get(String(url)) ?? colliderBytes;
+    if ("Response" in globalThis) { return new Response(bytes.slice()); }
+    return { ok: true, arrayBuffer: async () => bytes.slice().buffer } as Response;
   });
 });
 afterEach(() => { global.fetch = originalFetch; global.structuredClone = originalClone; jest.clearAllMocks(); });
@@ -110,6 +114,29 @@ it("loads installed collider bytes after the runtime parses and clones document 
   await waitFor(() => expect(mockRenderers).toHaveLength(1));
   expect(screen.getByTestId("error")).toBeEmptyDOMElement();
   expect(fetch).toHaveBeenCalledTimes(1);
+  view.unmount();
+});
+
+it("passes owned image bytes and bindings to the renderer and rejects non-image slots", async () => {
+  const document = fixture();
+  const imageBytes = new Uint8Array(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEklEQVQImWP4v5ThPzJmIF0AAKAXKjHRs1nSAAAAAElFTkSuQmCC", "base64"));
+  const imageUrl = asResolvedMediaUrl("https://owned.example/paint.png");
+  if (!imageUrl) { throw new Error("Invalid fixture URL"); }
+  mockAssetBytes.set(imageUrl, imageBytes);
+  jest.mocked(resolveMediaUri).mockImplementation(async (locator) => locator === `asset://${"c".repeat(32)}`
+    ? imageUrl : asResolvedMediaUrl("https://owned.example/ground.json") ?? "");
+  document.assets.paint = { mediaKind: "image", assetId: "c".repeat(32), required: true,
+    digest: createHash("sha256").update(imageBytes).digest("hex"), format: "png", width: 4, height: 4,
+    byteLength: imageBytes.length, preparationVersion: "1" };
+  const view = render(<Harness document={document} />);
+  await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("WebGL2"));
+  const options = jest.mocked(createGameRenderer3D).mock.calls[0]?.[0];
+  if (!options?.resolveImage) { throw new Error("Missing image resolver"); }
+  const controller = new AbortController();
+  expect(await options.resolveImage("paint", controller.signal)).toEqual({ bytes: imageBytes, binding: document.assets.paint });
+  expect(resolveMediaUri).toHaveBeenCalledWith(`asset://${"c".repeat(32)}`);
+  expect(await options.resolveImage("ground", controller.signal)).toBeNull();
+  expect(await options.resolveImage("constructor", controller.signal)).toBeNull();
   view.unmount();
 });
 

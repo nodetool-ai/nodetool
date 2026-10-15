@@ -242,6 +242,13 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       const { createGameRenderer3D, createGameEditorPasses3D } = await import("@nodetool-ai/game-renderer/browser3d");
       rendererPromiseRef.current ??= createGameRenderer3D({ canvas, signal: rendererControllerRef.current.signal,
         editorPasses: createGameEditorPasses3D,
+        resolveImage: async (slot, signal) => {
+          const assets = sourceRef.current.assets;
+          const binding = Object.hasOwn(assets, slot) ? assets[slot] : undefined;
+          if (binding?.mediaKind !== "image") { return null; }
+          const bytes = await readAsset(slot, signal);
+          return bytes ? { bytes, binding } : null;
+        },
         resolveModel: async (slot, signal) => {
           const bytes = await readAsset(slot, signal);
           return bytes ? { bytes, digest: sourceRef.current.assets[slot]?.digest } : null;

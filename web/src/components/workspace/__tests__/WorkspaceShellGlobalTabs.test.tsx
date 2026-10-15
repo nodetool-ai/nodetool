@@ -35,8 +35,10 @@ const panelState = {
   panel: { isVisible: false, isDragging: false, panelSize: 0 }
 };
 jest.mock("../../../stores/PanelStore", () => ({
-  usePanelStore: (selector: (state: typeof panelState) => unknown) =>
-    selector(panelState)
+  usePanelStore: Object.assign(
+    (selector: (state: typeof panelState) => unknown) => selector(panelState),
+    { getState: () => panelState, subscribe: () => () => undefined }
+  )
 }));
 
 jest.mock("../../../hooks/useWorkspaceMenuShortcuts", () => ({
