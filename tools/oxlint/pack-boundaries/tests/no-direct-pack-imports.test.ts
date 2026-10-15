@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -78,16 +78,8 @@ describe("core pack import migration ratchet", () => {
     }
   });
 
-  it("keeps an explicit, nonempty ledger of existing imports", () => {
+  it("permits no legacy import exceptions after the dependency cuts", () => {
     const baseline = JSON.parse(readFileSync(join(root, "tools", "oxlint", "pack-boundaries", "migration-baseline.json"), "utf8"));
-    expect(Object.keys(baseline).length).toBeGreaterThan(0);
-    for (const [file, sites] of Object.entries(baseline)) {
-      expect(existsSync(join(root, file)), file).toBe(true);
-      expect(Array.isArray(sites)).toBe(true);
-      const source = readFileSync(join(root, file), "utf8");
-      for (const site of sites as Array<{ statement: string }>) {
-        expect(source.includes(site.statement), `${file}: ${site.statement}`).toBe(true);
-      }
-    }
+    expect(baseline).toEqual({});
   });
 });

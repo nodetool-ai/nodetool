@@ -34,23 +34,18 @@
     "codegen:check": "tsx scripts/codegen.ts --check"
   },
   "dependencies": {
-    "@nodetool-ai/base-nodes": "*",
     "@nodetool-ai/config": "*",
-    "@nodetool-ai/elevenlabs-nodes": "*",
     "@nodetool-ai/execution": "*",
-    "@nodetool-ai/huggingface-nodes": "*",
     "@nodetool-ai/kernel": "*",
-    "@nodetool-ai/minimax-nodes": "*",
     "@nodetool-ai/node-catalog": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/reve-nodes": "*",
     "@nodetool-ai/runtime": "*",
-    "@nodetool-ai/storage": "*",
-    "@nodetool-ai/transformers-js-nodes": "*",
-    "@nodetool-ai/whisper-cpp": "*"
+    "@nodetool-ai/storage": "*"
   },
   "devDependencies": {
+    "@nodetool-ai/base-nodes": "*",
+    "@nodetool-ai/whisper-cpp": "*",
     "@types/node": "^22.0.0",
     "tsx": "^4.0.0",
     "typescript": "npm:@typescript/typescript6@6.0.2",

@@ -6,13 +6,15 @@
  * Heavy deps (registry + runtime) load lazily inside the action.
  */
 import type { Command } from "commander";
-import { printCommandError, commandMissingRuntime } from "../command-errors.js";
+import { printCommandError, commandMissingRuntime, commandMissingPack } from "../command-errors.js";
+import { installMissingPacksAndReexec } from "./install-missing-packs.js";
 
 interface NodeRunCliOptions {
   props?: string;
   // Commander stores `--no-secrets` as `secrets: false` (defaults to true).
   secrets?: boolean;
   json?: boolean;
+  installMissing?: boolean;
 }
 
 export function registerNodeCommands(program: Command): void {
@@ -32,6 +34,7 @@ export function registerNodeCommands(program: Command): void {
     )
     .option("--no-secrets", "Don't resolve secrets/assets (hermetic run)")
     .option("--json", "Print the full run result as JSON")
+    .option("--install-missing", "Authorize missing node pack installation, then re-execute once")
     .action(async (nodeType: string, opts: NodeRunCliOptions) => {
       try {
         const { runSingleNode } = await import("../node/run-node.js");
@@ -68,7 +71,9 @@ export function registerNodeCommands(program: Command): void {
           runOptions.secretResolver = secretResolver;
         }
         const result = await runSingleNode(nodeType, runOptions);
-        if (!result.ok && commandMissingRuntime(result)) {
+        if (!result.ok && (commandMissingRuntime(result) || commandMissingPack(result))) {
+          const exit = await installMissingPacksAndReexec(result, { command: "node-run", installMissing: opts.installMissing });
+          if (exit !== null) { process.exit(exit); }
           process.exit(printCommandError(result, opts.json));
         }
 
@@ -92,6 +97,8 @@ export function registerNodeCommands(program: Command): void {
         }
         process.exit(result.ok ? 0 : 1);
       } catch (e) {
+        const exit = await installMissingPacksAndReexec(e, { command: "node-run", installMissing: opts.installMissing });
+        if (exit !== null) { process.exit(exit); }
         process.exit(printCommandError(e, opts.json));
       }
     });

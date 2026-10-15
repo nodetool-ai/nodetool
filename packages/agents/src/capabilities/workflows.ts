@@ -1,3 +1,4 @@
+import { importPack } from "@nodetool-ai/node-catalog";
 /**
  * The `workflows` capability module — the pilot namespace.
  *
@@ -1710,9 +1711,7 @@ async function requireGameTemplate(game: GameSetup | null) {
         "This workflow has no native game template yet. Pick topdown with set_game_setup."
     };
   }
-  const { getNativeTemplate, listNativeTemplates } = await import(
-    "@nodetool-ai/game-nodes"
-  );
+  const { getNativeTemplate, listNativeTemplates } = await importPack<typeof import("@nodetool-ai/game-nodes")>("game", "@nodetool-ai/game-nodes");
   try {
     return getNativeTemplate(id);
   } catch {

@@ -27,5 +27,6 @@ export const RUNTIME_LIBRARIES = [
   { id: "typescript", packages: ["typescript"] },
   { id: "tokenizer", packages: ["js-tiktoken"] },
   { id: "tracing", packages: ["@opentelemetry/core", "@opentelemetry/resources", "@opentelemetry/sdk-trace-base"] },
-  { id: "esbuild", packages: ["esbuild"] }
+  { id: "esbuild", packages: ["esbuild"] },
+  { id: "rapier", packages: ["@dimforge/rapier3d-compat"] }
 ];

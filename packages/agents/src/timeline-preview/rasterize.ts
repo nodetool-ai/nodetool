@@ -14,9 +14,9 @@
  * glyphs and not merely the same layout (D8).
  */
 
-import { createCanvas, type Canvas } from "@napi-rs/canvas";
+import type { Canvas } from "@napi-rs/canvas";
+import { loadCanvas } from "@nodetool-ai/runtime";
 import type { ClipShapeStyle, ClipTextStyle } from "@nodetool-ai/timeline";
-import { registerBundledFonts } from "@nodetool-ai/timeline/fonts/node";
 import type {
   RasterContext2D,
   ResolvedCaption,
@@ -44,14 +44,20 @@ const MAX_CACHE_ENTRIES = 32;
 export class PreviewRasterizer {
   private readonly cache = new Map<string, Canvas>();
 
-  constructor(
+  private constructor(
     private readonly width: number,
-    private readonly height: number
-  ) {
+    private readonly height: number,
+    private readonly createCanvas: typeof import("@napi-rs/canvas")["createCanvas"]
+  ) {}
+
+  static async create(width: number, height: number): Promise<PreviewRasterizer> {
     // Before any glyph is drawn, and once per process. A preview whose fonts
     // are registered later shows the fallback face for the frames already
     // rasterized — and caches them.
+    const { createCanvas } = await loadCanvas();
+    const { registerBundledFonts } = await import("@nodetool-ai/timeline/fonts/node");
     registerBundledFonts();
+    return new PreviewRasterizer(width, height, createCanvas);
   }
 
   caption(caption: ResolvedCaption): Canvas | null {
@@ -109,7 +115,7 @@ export class PreviewRasterizer {
       const hit = this.cache.get(key);
       if (hit) return hit;
     }
-    const canvas = createCanvas(this.width, this.height);
+    const canvas = this.createCanvas(this.width, this.height);
     // SAFETY: `RasterContext2D` is the subset of the 2D canvas API the drawing
     // helpers use, and a skia canvas context provides all of it.
     draw(canvas.getContext("2d") as unknown as RasterContext2D);

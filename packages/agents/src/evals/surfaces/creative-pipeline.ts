@@ -296,15 +296,15 @@ export interface CreativePipelineInitialState {
  * Build the composite bridge: the three real creative surfaces plus brief and
  * review instrumentation, sharing one project state.
  */
-export function createCreativePipelineBridge(
+export async function createCreativePipelineBridge(
   initial: CreativePipelineInitialState
-): HeadlessSurfaceBridge<CreativePipelineFinalState> {
+): Promise<HeadlessSurfaceBridge<CreativePipelineFinalState>> {
   const brief = initial.brief;
   const media = initial.media;
   const artifacts: GeneratedArtifact[] = [];
 
   const script = createScriptToolBridge({ title: brief.product });
-  const sketch = createSketchToolBridge({
+  const sketch = await createSketchToolBridge({
     name: `${brief.product} — style frame`,
     layers: [{ name: "Background" }]
   });

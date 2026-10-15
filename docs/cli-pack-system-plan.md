@@ -13,7 +13,7 @@ decision codes of the pack spec.
 
 | Code | Rule |
 |---|---|
-| A0.1 | Start an assignment only when every assignment that blocks it is on `main`. |
+| A0.1 | Start an assignment only when every assignment that blocks it is on `main`, unless the user explicitly authorizes dependent work on a fork of the prerequisite branch. Keep that work in a stacked PR. |
 | A0.2 | Re-read the files in section 3 before you edit them. The line numbers in the pack spec date from its review. |
 | A0.3 | Land each assignment as one commit, or as a series that is green at each commit. Run the [mandatory post-change verification](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification) before each commit. |
 | A0.4 | Run `npm run backend:smoke` for each assignment that changes a manifest, the server entry, or a lazy import. The desktop bundle flattens modules, so a cut can pass in the monorepo and fail in the artifact. |
@@ -33,16 +33,17 @@ The runtime library tier of the pack spec uses the ids of
 These rules apply:
 
 - A missing library throws `missingRuntimePackageError`.
-- `nodetool runtime add <id>` installs a library. `nodetool packs add`
-  installs node packs only.
+- `nodetool packs add` installs node packs or runtime library ids through
+  the pinned, authorized installer. The existing `nodetool runtime add`
+  remains available for compatibility.
 - The catalog has no `CatalogRuntimeLibrary` entries. A pack lists runtime
   package ids in `runtimeLibraries`.
 - No `importRuntimeLibrary` helper is built. Core code calls
   `importOptionalModule` and throws the runtime package error.
 
-The CLI already works this way. `3f9f9c2c98` loads `js-tiktoken` through the
-`tokenizer` id. Without D17, NodeTool has two registries, two install commands,
-two errors and two install roots for one concept.
+`3f9f9c2c98` loads `js-tiktoken` through the `tokenizer` id. The runtime id
+registry and typed runtime errors remain shared. Node-pack management adds
+those same ids to its pinned installation boundary.
 
 | Pack spec library | Runtime package id |
 |---|---|
@@ -52,9 +53,10 @@ two errors and two install roots for one concept.
 | `tokenizer` | `tokenizer` (exists) |
 | `tracing` (OpenTelemetry) | `tracing` (new) |
 | `esbuild` (6.1 row, not in the tier list) | `esbuild` (new) |
+| `@dimforge/rapier3d-compat` (optional physics peer) | `rapier` (new) |
 | `game-renderer` | none, see D18 |
 
-The desktop app and the Docker image bundle the four new libraries. Their
+The desktop app and the Docker image bundle the new libraries. Their
 registry entries name the hosts that bundle them. The desktop Package Manager
 shows these entries as included and never offers an install.
 
@@ -139,6 +141,67 @@ steps:
 With all packs installed, the result is equal to `registerBuiltinPacks`. With
 no packs installed, the result is the core nodes plus catalog entries. A15
 replaces the "resolves" test with the installed set and its version check.
+
+### D23. Compiler dependencies required by core packages
+
+The core-only guard permits `esbuild` because `tsx` requires it (D11).
+It permits TypeScript because `@trpc/client` and `@trpc/server` declare a
+non-optional TypeScript peer. Both tRPC packages remain core dependencies.
+When that peer resolves to `@typescript/typescript6`, its declared
+`@typescript/old` compiler alias is part of the same required closure.
+Removing these compiler packages would require replacing the TypeScript
+workflow loader or the API framework.
+
+The smoke guard verifies that these packages resolve from their core
+dependents and satisfy the declared dependency or peer ranges. Every other
+runtime library and every on-demand node pack remains forbidden. Making a
+core package's library peer optional does not remove a library that another
+dependency still requires.
+
+### D24. Install identities in the release catalog
+
+`index.installPins` holds exact version and integrity records for provided
+companions, npm runtime libraries and shared `mediabunny` packages. An alias
+records its registry name in `name` and its installed folder in `installName`.
+The protocol runtime table remains the only mapping from runtime ids to npm
+specs. Shared records have `shared: true`. Runtime pins also carry `installBytes`
+from fresh Linux production-tree measurements with scripts disabled. Summed
+estimates can overlap because each includes its own dependency tree.
+
+Release packing hashes original companion tarballs and reads exact external
+registry metadata. Staging verifies every record. Source generation and a new
+cohort clear these release-specific pins. The installer refuses missing pins.
+
+### D25. Global installation baseline without a hidden lock
+
+A real npm global install has no hidden lockfile. When that file is absent in
+global mode, the initial snapshot records package paths, names, versions and
+realpaths without claiming integrity. Existing malformed or stale locks still
+fail. Local mode still requires its hidden lock.
+
+The dry-run plan remains additive. Post-install verification requires a valid
+hidden lock and every release pin before scripts or imports. Existing package
+identities must remain unchanged, and known initial integrities must match.
+This trusts the already-running CLI installation. Lock metadata does not verify
+pre-existing file contents.
+
+### D26. Verified replay actions in npm plans
+
+npm can report `change` when replaying a pack at the same version. The matrix
+requires a second global add to preserve the first pack. Normalize this action
+only for a catalog-owned node pack or provided companion whose known initial
+integrity matches its release pin and whose version matches the core cohort.
+
+For npm 11 JSON, reported before/after names, versions and paths must match the
+exact snapshot identity. npm 10 text must match the complete same-version
+`change <name> <version> => <version>` action. Its name must identify exactly
+one snapshot entry in the expected hoisted package folder, with a matching
+canonical realpath. Nested or ambiguous entries remain refused.
+
+Core, shared, runtime and project packages retain strict change refusal.
+Unproven replay actions are refused. Scripts stay disabled. Post-install checks
+compare every previous path, name, version, integrity and realpath before
+rebuilds and imports.
 
 ## 3. Current seams
 
@@ -409,7 +472,9 @@ These are the other A4.6 source cuts:
 
 - `routes/nodes.ts` uses `importPack("integration")`.
 - `routes/documents.ts` uses `importPack("document", "lib/pdf-text")`.
-- The file-watch predicates move from `automation-nodes` into `websocket`.
+- The file-watch predicates move from `automation-nodes` into `nodes-utils`,
+  shared with `websocket` without adding Node path imports to the browser
+  protocol entrypoint.
 - `routes/kie-pricing.ts` reads from `model-pricing`.
 - `trpc/routers/models.ts` returns empty model lists with a pack hint.
 - `trpc/routers/games.ts`, `routes/games.ts` and `model-download-runtime.ts`
@@ -498,10 +563,16 @@ beside phase 1.
    step.
 2. **A13.2 Tarballs.** Pack each package once and publish the tarball files.
 3. **A13.3 Pins.** Use this order:
-   1. Pack the node packs.
+   1. Pack every catalog registrar package, including core registrars, and
+      its first-party companion packages. Preserve these original tarballs.
    2. Compute the integrity and `installBytes` of each pack on linux-x64.
+      Measure a fresh production install with scripts disabled, matching the
+      default pack installer policy. Include its production dependency tree.
+      Before final core tarballs exist, use local core folder overrides with
+      `--install-links`, which respects each package's `files` field.
    3. Write the pins into `node-catalog/data/index.json`.
-   4. Pack the core packages.
+   4. Rebuild the pinned catalog artifact, then pack the remaining core
+      packages. Do not repack the earlier registrar or companion artifacts.
 4. **A13.4 Staging.** Publish everything under the dist-tag `staging`. Then
    verify these points:
    - For each pin, `npm view <name>@<version> dist.integrity` equals the pin.
@@ -670,7 +741,7 @@ with two processes shows that the second process waits.
 
 ### A22. The commands and the re-exec
 
-**Blocked by:** A21, Q6.
+**Blocked by:** A21. Q6 is resolved: the user selected `nodetool packs`.
 
 1. Add `list`, `add`, `add --restore`, `add --for`, `remove`, `doctor` and
    `why` (pack spec 15).
@@ -749,14 +820,13 @@ and the runtime install steps 1 and 2 beside it.
 
 ## 11. Open questions
 
-- **Q6.** `nodetool packs` already names the sandbox pack tooling. Use the
-  same command for node packs, or rename the new verbs to `nodetool nodes
-  add` and similar? This blocks A22. The recommendation is `nodetool nodes`,
-  because one verb with two meanings misleads agents.
+- **Q6.** The user selected `nodetool packs` for installer management.
+  The existing `nodetool packs compile` subcommand remains available.
 - **Q8.** This plan keeps `llm-nodes` and `code-nodes` in core, as the
   pack spec tier table does.
-- **Q9.** Can local mode write the user's `package.json` and lockfile? This
-  blocks the local mode part of A20. Global mode does not depend on it.
+- **Q9.** The user authorized local installer updates to the selected project’s
+  package.json and package-lock.json. CLI authorization still binds the root
+  and mutation paths and names those files in the prompt.
 
 ## 12. Risks of this plan
 

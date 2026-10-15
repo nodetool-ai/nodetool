@@ -10,7 +10,8 @@
 //
 // This check mirrors that prune exactly: it walks the production dependency
 // closure of PROD_ENTRYPOINTS and requires every package in the closure to
-// declare each `@nodetool-ai/*` package its source imports. Packages outside
+// declare each `@nodetool-ai/*` package its source imports at runtime. Erased
+// type imports need no production edge. Packages outside
 // the closure (e.g. the private *-codegen build tools) are not shipped and are
 // intentionally not checked.
 //
@@ -68,15 +69,52 @@ async function collectSourceFiles(dir) {
 
 /**
  * Imported specifiers and ambient module declarations, read by the TypeScript
- * scanner: a specifier written in a comment, in a prompt example, or in a
+ * AST: a specifier written in a comment, in a prompt example, or in a
  * snippet of guest code inside a template literal is not an import.
  */
-function scanSpecifiers(source) {
-  const scan = ts.preProcessFile(source, /* readImportFiles */ true, /* detectJavaScriptImports */ true);
-  return {
-    imported: scan.importedFiles.map((file) => file.fileName),
-    ambient: scan.ambientExternalModules ?? []
-  };
+function scanSpecifiers(source, file) {
+  const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
+  const imported = [];
+  const ambient = [];
+  function add(node) {
+    if (node && ts.isStringLiteralLike(node)) {
+      imported.push(node.text);
+    }
+  }
+  function visit(node) {
+    if (ts.isImportTypeNode(node)) {
+      return;
+    }
+    if (ts.isImportDeclaration(node)) {
+      const clause = node.importClause;
+      const bindings = clause?.namedBindings;
+      const onlyNamedTypes = !clause?.name && bindings && ts.isNamedImports(bindings) && bindings.elements.length > 0 &&
+        bindings.elements.every(element => element.isTypeOnly);
+      if (!clause?.isTypeOnly && !onlyNamedTypes) {
+        add(node.moduleSpecifier);
+      }
+    } else if (ts.isExportDeclaration(node)) {
+      const onlyNamedTypes = node.exportClause && ts.isNamedExports(node.exportClause) && node.exportClause.elements.length > 0 &&
+        node.exportClause.elements.every(element => element.isTypeOnly);
+      if (!node.isTypeOnly && !onlyNamedTypes) {
+        add(node.moduleSpecifier);
+      }
+    } else if (ts.isImportEqualsDeclaration(node)) {
+      if (!node.isTypeOnly && ts.isExternalModuleReference(node.moduleReference)) {
+        add(node.moduleReference.expression);
+      }
+    } else if (ts.isCallExpression(node)) {
+      if (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        (ts.isIdentifier(node.expression) && node.expression.text === "require")) {
+        add(node.arguments[0]);
+      }
+    } else if (ts.isModuleDeclaration(node) && ts.isStringLiteral(node.name)) {
+      ambient.push(node.name.text);
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(tree);
+  return { imported, ambient };
 }
 
 // Load every workspace manifest under packages/.
@@ -115,15 +153,17 @@ while (queue.length > 0) {
 }
 
 const violations = [];
+let inspectedFiles = 0;
 
 for (const name of closure) {
   const { dir, prodDeps } = manifests.get(name);
   const sourceFiles = await collectSourceFiles(join(dir, "src"));
+  inspectedFiles += sourceFiles.length;
   const scans = [];
   // Declared by the package itself, so never resolved from node_modules.
   const ambient = new Set();
   for (const file of sourceFiles) {
-    const scan = scanSpecifiers(await readFile(file, "utf8"));
+    const scan = scanSpecifiers(await readFile(file, "utf8"), file);
     scans.push({ file, imported: scan.imported });
     for (const specifier of scan.ambient) ambient.add(specifier);
   }
@@ -139,6 +179,10 @@ for (const name of closure) {
   for (const [dep, file] of missing) {
     violations.push({ pkg: name, dep, file });
   }
+}
+
+if (inspectedFiles === 0) {
+  throw new Error("Production dependency audit inspected no source files");
 }
 
 if (violations.length > 0) {

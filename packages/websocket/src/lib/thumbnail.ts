@@ -26,7 +26,8 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import sharp from "sharp";
+import type { Sharp } from "sharp";
+import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import {
   assetKeyCandidates,
@@ -52,7 +53,7 @@ export function thumbnailKey(assetId: string): string {
 /** What a thumbnail is made from: bytes in memory, or a file on this host. */
 export type ThumbnailSource = { bytes: Uint8Array } | { path: string };
 
-function resizeAndEncode(pipeline: ReturnType<typeof sharp>): Promise<Buffer> {
+function resizeAndEncode(pipeline: Sharp): Promise<Buffer> {
   return pipeline
     .resize({
       width: THUMB_MAX_DIM,
@@ -80,6 +81,7 @@ export function generateImageThumb(
   input: Uint8Array | string
 ): Promise<Buffer> {
   return withTaskSpan("cpu", "image.thumbnail", {}, async () => {
+    const sharp = await loadSharpOrThrow();
     try {
       return await resizeAndEncode(
         sharp(input).rotate().trim({ threshold: 10 })
@@ -161,6 +163,7 @@ async function generatePdfThumb(source: ThumbnailSource): Promise<Buffer> {
   } else {
     bytes = source.bytes;
   }
+  const sharp = await loadSharpOrThrow();
   const { PDFiumLibrary } = await import("@hyzyla/pdfium");
   const lib = await PDFiumLibrary.init();
   let doc: Awaited<ReturnType<typeof lib.loadDocument>> | null = null;

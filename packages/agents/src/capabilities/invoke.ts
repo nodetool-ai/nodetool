@@ -7,6 +7,7 @@ import type {
   ProviderTool
 } from "@nodetool-ai/runtime";
 import { SpanStatusCode } from "@opentelemetry/api";
+import { missingPackDetailsOf } from "@nodetool-ai/protocol";
 import { getTracer, getRunTraceScope, suppressRunTraceContent, stringifyTraceContent } from "@nodetool-ai/runtime";
 import { budgetFromContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -204,8 +205,19 @@ export async function invokeCapability(
     suppressRunTraceContent();
   }
   const tracer = getTracer();
+  const invoke = async (): Promise<unknown> => {
+    try {
+      return await invokeCapabilityImpl(run, entry, rawArgs);
+    } catch (error) {
+      const missing = missingPackDetailsOf(error);
+      if (missing) {
+        return missing;
+      }
+      throw error;
+    }
+  };
   if (!tracer) {
-    return invokeCapabilityImpl(run, entry, rawArgs);
+    return invoke();
   }
   return tracer.startActiveSpan("capability.call", async (span) => {
     span.setAttribute("capability.name", entry.spec.name);
@@ -215,7 +227,7 @@ export async function invokeCapability(
       span.setAttribute("tool.arguments", stringifyTraceContent(rawArgs));
     }
     try {
-      const result = await invokeCapabilityImpl(run, entry, rawArgs);
+      const result = await invoke();
       const failed = result !== null && typeof result === "object" && "error" in result;
       span.setStatus({ code: failed ? SpanStatusCode.ERROR : SpanStatusCode.OK });
       if (scope && scope.origin !== "public" && !scope.policy.contentSuppressed) {

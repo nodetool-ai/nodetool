@@ -2,6 +2,8 @@
  * @nodetool-ai/execution – Public API
  */
 export { ExecutionSession } from "./session.js";
+export { findMissingPacks } from "./missing-packs.js";
+export type { MissingPackLookupOptions } from "./missing-packs.js";
 export {
   DurableGenerationLifecycle,
   createDurableGenerationLifecycle,

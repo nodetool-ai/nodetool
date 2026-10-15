@@ -2,6 +2,7 @@ import { registerChatRunTrace, registerWorkflowRunTrace, withRegisteredRunTrace,
 import { getRunTraceScope, suppressRunTraceContent } from "@nodetool-ai/runtime";
 import {
   TRACE_RESTRICTED_CAPABILITY_MODULES,
+  missingPackDetailsOf,
   isFullResourceId
 } from "@nodetool-ai/protocol";
 import { trace, SpanStatusCode } from "@opentelemetry/api";
@@ -1356,6 +1357,10 @@ export class ChatTurnHandler {
     try {
       graph = await this.deps.hydrateGraph(rawGraph);
     } catch (err) {
+      const missing = missingPackDetailsOf(err);
+      if (missing) {
+        return missing;
+      }
       return {
         error: `Failed to prepare node '${nodeType}': ${
           err instanceof Error ? err.message : String(err)
@@ -1367,6 +1372,10 @@ export class ChatTurnHandler {
       try {
         await this.deps.beforeRunJob(graph);
       } catch (err) {
+        const missing = missingPackDetailsOf(err);
+        if (missing) {
+          return missing;
+        }
         return {
           error: `Node prerequisites failed: ${
             err instanceof Error ? err.message : String(err)
@@ -1430,6 +1439,10 @@ export class ChatTurnHandler {
         validateNode: this.session.validateNode
       });
     } catch (err) {
+      const missing = missingPackDetailsOf(err);
+      if (missing) {
+        return missing;
+      }
       if (!isExecutionPreflightError(err)) throw err;
       return { error: err.message };
     }
@@ -1451,6 +1464,9 @@ export class ChatTurnHandler {
     }
 
     if (result.status === "failed") {
+      if (result.missingPack) {
+        return result.missingPack;
+      }
       return { error: result.error ?? `Node '${nodeType}' failed` };
     }
     if (nodeResult === undefined) {

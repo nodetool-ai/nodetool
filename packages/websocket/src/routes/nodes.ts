@@ -4,10 +4,8 @@ import type { HttpApiOptions } from "../http-api.js";
 import {
   handleNodeMetadata
 } from "../http-api.js";
-import {
-  resolveComfyWorkflow,
-  resolveKieDynamicSchema
-} from "@nodetool-ai/base-nodes";
+import { importPack, MissingPackError } from "@nodetool-ai/node-catalog";
+type IntegrationModule = typeof import("@nodetool-ai/integration-nodes");
 import { ApiErrorCode, apiError } from "../error-codes.js";
 import {
   isNonBlankString,
@@ -54,8 +52,13 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     }
 
     try {
+      const { resolveKieDynamicSchema } = await importPack<IntegrationModule>("integration");
       reply.send(resolveKieDynamicSchema(modelInfo.trim()));
     } catch (error) {
+      if (error instanceof MissingPackError) {
+        reply.status(503).send({ ...error.details, ...apiError(ApiErrorCode.SERVICE_UNAVAILABLE, error.message) });
+        return;
+      }
       reply
         .status(400)
         .send(
@@ -91,6 +94,7 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     async (req, reply) => {
       const body = req.body as { workflow?: unknown; png_base64?: string };
       try {
+        const { resolveComfyWorkflow } = await importPack<IntegrationModule>("integration");
         reply.send(
           resolveComfyWorkflow(
             isString(body.png_base64)
@@ -99,6 +103,10 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
           )
         );
       } catch (error) {
+        if (error instanceof MissingPackError) {
+          reply.status(503).send({ ...error.details, ...apiError(ApiErrorCode.SERVICE_UNAVAILABLE, error.message) });
+          return;
+        }
         reply
           .status(400)
           .send(

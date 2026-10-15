@@ -1,8 +1,7 @@
 /**
- * Registry and executor resolution shared by the graph DSL (`run()`) and the
- * native flow API. One builtin-pack list, two consumers.
+ * Registry and executor resolution shared by the graph DSL and native flow API.
  */
-import { createMissingPackError } from "@nodetool-ai/node-catalog";
+import { createMissingPackError, registerAvailablePacks } from "@nodetool-ai/node-catalog";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   resolvePythonNodeExecutor,
@@ -13,14 +12,7 @@ import type { NodeDescriptor } from "@nodetool-ai/protocol";
 
 let builtinRegistryPromise: Promise<NodeRegistry> | null = null;
 
-/**
- * The registry of node packs shipped with the DSL. Built once per process:
- * `run()` used to rebuild it per call, and the flow API calls this per node
- * call, where re-importing six packages would dominate the cost of the call.
- *
- * Every pack except `base-nodes` is optional — an environment that cannot load
- * one (missing native dependency, platform-specific pack) keeps the rest.
- */
+/** Build the resolvable legacy DSL packs once, retaining missing-pack metadata. */
 export function buildBuiltinRegistry(): Promise<NodeRegistry> {
   builtinRegistryPromise ??= loadBuiltinRegistry();
   return builtinRegistryPromise;
@@ -28,50 +20,10 @@ export function buildBuiltinRegistry(): Promise<NodeRegistry> {
 
 async function loadBuiltinRegistry(): Promise<NodeRegistry> {
   const builtinRegistry = new NodeRegistry();
-  const { registerBaseNodes } = await import("@nodetool-ai/base-nodes");
-  registerBaseNodes(builtinRegistry);
-  try {
-    const { registerWhisperCppNodes } = await import("@nodetool-ai/whisper-cpp");
-    registerWhisperCppNodes(builtinRegistry);
-  } catch {
-    // Some environments do not have the whisper.cpp node package installed.
-  }
-  try {
-    const { registerElevenLabsNodes } = await import(
-      "@nodetool-ai/elevenlabs-nodes"
-    );
-    registerElevenLabsNodes(builtinRegistry);
-  } catch {
-    // Some environments do not have the ElevenLabs node package in a runnable state.
-  }
-  try {
-    const { registerMinimaxNodes } = await import("@nodetool-ai/minimax-nodes");
-    registerMinimaxNodes(builtinRegistry);
-  } catch {
-    // Some environments do not have the MiniMax node package in a runnable state.
-  }
-  try {
-    const { registerTransformersJsNodes } = await import(
-      "@nodetool-ai/transformers-js-nodes"
-    );
-    registerTransformersJsNodes(builtinRegistry);
-  } catch {
-    // Some environments do not have the Transformers.js node package in a runnable state.
-  }
-  try {
-    const { registerHuggingFaceNodes } = await import(
-      "@nodetool-ai/huggingface-nodes"
-    );
-    registerHuggingFaceNodes(builtinRegistry);
-  } catch {
-    // Some environments do not have the Hugging Face node package in a runnable state.
-  }
-  try {
-    const { registerReveNodes } = await import("@nodetool-ai/reve-nodes");
-    registerReveNodes(builtinRegistry);
-  } catch {
-    // Some environments do not have the Reve node package in a runnable state.
-  }
+  await registerAvailablePacks(builtinRegistry, {
+    includeOptionalPacks: true,
+    excludedPackIds: ["fal", "kie", "topaz", "atlascloud", "higgsfield", "together", "replicate"]
+  });
   return builtinRegistry;
 }
 
@@ -95,6 +47,24 @@ export function createHasTsExecutor(
 export interface ExecutorResolverOptions {
   /** Custom node registry, consulted before the global and builtin ones. */
   registry?: NodeRegistry | undefined;
+}
+
+/** Refuse only catalog entries present in the selected registries, without constructing a node. */
+export function assertNodePackAvailable(
+  nodeType: string,
+  opts: ExecutorResolverOptions | undefined,
+  builtinRegistry: NodeRegistry
+): void {
+  const registries = [opts?.registry, NodeRegistry.global, builtinRegistry];
+  if (registries.some((registry) => registry?.has(nodeType))) {
+    return;
+  }
+  for (const registry of registries) {
+    const entry = registry?.catalogEntry(nodeType);
+    if (entry && registry?.availability(nodeType) === "catalog") {
+      throw createMissingPackError(entry.pack, [nodeType]);
+    }
+  }
 }
 
 /**

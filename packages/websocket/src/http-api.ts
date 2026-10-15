@@ -489,7 +489,8 @@ function jsonResponse(data: unknown, init?: ResponseInit): Response {
   });
 }
 
-function errorResponse(status: number, detail: string): Response {
+function errorResponse(status: number, detail: string, missingPack?: import("@nodetool-ai/protocol").MissingPackDetails): Response {
+  if (missingPack) { return jsonResponse({ detail: { kind: "missing_pack", ...missingPack } }, { status: 424 }); }
   return jsonResponse({ detail }, { status });
 }
 
@@ -716,7 +717,7 @@ export async function handleWorkflowRun(
   const outcome = await runWorkflow(runOptions);
 
   if (outcome.kind === "error") {
-    return errorResponse(outcome.status, outcome.detail);
+    return errorResponse(outcome.status, outcome.detail, outcome.missingPack);
   }
   return jsonResponse(outcome.payload);
 }
@@ -744,7 +745,7 @@ export async function handleDebugSessionRequest(
 
   const answer = (outcome: RunWorkflowOutcome): Response =>
     outcome.kind === "error"
-      ? errorResponse(outcome.status, outcome.detail)
+      ? errorResponse(outcome.status, outcome.detail, outcome.missingPack)
       : jsonResponse(outcome.payload);
 
   if (subPath === null) {

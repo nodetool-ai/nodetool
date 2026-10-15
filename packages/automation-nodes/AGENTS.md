@@ -23,7 +23,9 @@
 
 - **A glob-to-regex converter must translate every metacharacter the contract
   promises** — `*` → `.*` **and** `?` → `.` — not just `*`. The converter is
-  `src/lib/file-watch-match.ts`; `tests/file-watch-match.test.ts` pins it.
+  [the shared matcher](../nodes-utils/src/file-watch-match.ts), re-exported by
+  `src/lib/file-watch-match.ts`.
+  [Matcher tests](../nodes-utils/tests/file-watch-match.test.ts) pin it.
 
 ## Triggers & timeouts
 
