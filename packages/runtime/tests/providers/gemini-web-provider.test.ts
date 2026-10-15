@@ -257,8 +257,15 @@ describe("GeminiWebProvider", () => {
     const untouched = () => { throw new Error("listing must not reach the tab"); };
     setGeminiWebTab({ evaluate: untouched, navigate: untouched, download: untouched });
     const provider = new GeminiWebProvider();
-    expect((await provider.getAvailableLanguageModels()).map((m) => m.id)).toEqual(["auto"]);
-    expect(await provider.getAvailableImageModels()).toMatchObject([{ id: "gemini-web-image", supportedTasks: ["text_to_image", "image_to_image"] }]);
+    // Before any call has read the picker, the known modes are listed.
+    expect((await provider.getAvailableLanguageModels()).map((m) => m.id)).toEqual(["auto", "8c46e95b1a07cecc", "56fdd199312815e2", "e6fa609c3fa255c0", "95a4c0abcba24364"]);
+    expect(await provider.getAvailableImageModels()).toMatchObject([
+      { id: "gemini-web-image", supportedTasks: ["text_to_image", "image_to_image"] },
+      { id: "gemini-web-image:8c46e95b1a07cecc", name: "Gemini Images (3.5 Flash-Lite)" },
+      { id: "gemini-web-image:56fdd199312815e2", name: "Gemini Images (3.8 Flash)" },
+      { id: "gemini-web-image:e6fa609c3fa255c0", name: "Gemini Images (3.1 Pro)" },
+      { id: "gemini-web-image:95a4c0abcba24364", name: "Gemini Images (4 Argon)" }
+    ]);
     expect(await provider.getAvailableVideoModels()).toMatchObject([{ id: "gemini-web-video", aspectRatios: ["16:9", "9:16"] }]);
     expect(provider.getCapabilities()).toEqual(expect.arrayContaining(["generate_message", "text_to_image", "image_to_image", "text_to_video", "image_to_video"]));
   });
@@ -273,6 +280,23 @@ describe("GeminiWebProvider", () => {
     expect(page.sent[0]).toContain("A lighthouse at sunrise");
     expect(page.sent[0]).toContain("Aspect ratio: 1:1.");
     expect(page.downloads).toEqual([`${IMAGE_URL}=s0-d-I`]);
+  });
+
+  it("generates an image in the mode the image model names", async () => {
+    const page = fakeTab();
+    const pending = new GeminiWebProvider().textToImage({ model: { id: "gemini-web-image:e6fa609c3fa255c0", provider: "gemini_web" } as never, prompt: "x" });
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(await pending).toEqual(JPEG);
+    expect(page.modePicked).toBe("e6fa609c3fa255c0");
+    expect(page.scripts.indexOf("modes")).toBeLessThan(page.scripts.indexOf("send"));
+  });
+
+  it("keeps the current mode for the plain image model", async () => {
+    const page = fakeTab();
+    const pending = new GeminiWebProvider().textToImage({ model: IMAGE_MODEL, prompt: "x" });
+    await vi.advanceTimersByTimeAsync(10_000);
+    await pending;
+    expect(page.scripts).not.toContain("modes");
   });
 
   it("pastes the source images for an edit", async () => {
@@ -419,6 +443,7 @@ describe("GeminiWebProvider", () => {
     ]);
     // The mode picker read during the turn now backs the listing.
     expect((await provider.getAvailableLanguageModels()).map((m) => m.id)).toEqual(["auto", ...MODES.map((m) => m.id)]);
+    expect((await provider.getAvailableImageModels()).map((m) => m.id)).toEqual(["gemini-web-image", ...MODES.map((m) => `gemini-web-image:${m.id}`)]);
 
     const second = [...first, { role: "assistant" as const, content: "Noted: 42." }, { role: "user" as const, content: "Which number?" }];
     const turn2 = collect(provider.generateMessages({ model: "auto", messages: second, threadId: "t1" }));

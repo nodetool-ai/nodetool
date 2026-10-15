@@ -59,7 +59,7 @@ const HOST = "gemini.google.com";
 const BASE_URL = `https://${HOST}`;
 /** The model id that keeps the mode the user picked last in Gemini. */
 export const GEMINI_WEB_AUTO_MODEL = "auto";
-/** The image model: Gemini's own image tool, run by the current mode. */
+/** The image model: Gemini's own image tool, run by the current mode. `gemini-web-image:<mode id>` picks a mode. */
 export const GEMINI_WEB_IMAGE_MODEL = "gemini-web-image";
 /** The video model: Gemini's video tool (Veo). */
 export const GEMINI_WEB_VIDEO_MODEL = "gemini-web-video";
@@ -108,7 +108,7 @@ let tab: ExtensionTab | null = null;
 /** Replace the tab. Tests use this to avoid a real browser. */
 export function setGeminiWebTab(next: ExtensionTab | null): void {
   tab = next;
-  liveModels = null;
+  liveModes = null;
 }
 
 function currentTab(): ExtensionTab {
@@ -128,8 +128,31 @@ function serialized<T>(run: () => Promise<T>): Promise<T> {
   return next;
 }
 
+interface GeminiMode {
+  /** The stable `data-mode-id` of the mode picker item. */
+  id: string;
+  name: string;
+}
+
+/**
+ * The modes of the Gemini mode picker, listed before any call has read the
+ * live picker. An account can offer more, or fewer. Picking a mode the
+ * account lacks fails with the list of the modes it has.
+ */
+const KNOWN_MODES: readonly GeminiMode[] = [
+  { id: "8c46e95b1a07cecc", name: "3.5 Flash-Lite" },
+  { id: "56fdd199312815e2", name: "3.8 Flash" },
+  { id: "e6fa609c3fa255c0", name: "3.1 Pro" },
+  { id: "95a4c0abcba24364", name: "4 Argon" }
+];
+
 /** Modes read from the page during an earlier call, so listing never attaches. */
-let liveModels: { at: number; models: LanguageModel[] } | null = null;
+let liveModes: { at: number; modes: GeminiMode[] } | null = null;
+
+/** The live modes when a call has read them, else {@link KNOWN_MODES}. */
+function listedModes(): readonly GeminiMode[] {
+  return liveModes?.modes ?? KNOWN_MODES;
+}
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -273,10 +296,7 @@ async function selectMode(modeId: string): Promise<void> {
     await sleep(300);
   }
   if (modes.length > 0) {
-    liveModels = {
-      at: Date.now(),
-      models: modes.filter((m) => m.id).map((m) => ({ id: m.id, name: `Gemini ${m.name || m.id}`, provider: PROVIDER_IDS.GEMINI_WEB }))
-    };
+    liveModes = { at: Date.now(), modes: modes.filter((m) => m.id).map((m) => ({ id: m.id, name: m.name || m.id })) };
   }
   if (modeId !== GEMINI_WEB_AUTO_MODEL && !modes.some((m) => m.id === modeId)) {
     throw new Error(`Gemini has no mode ${modeId}. Its modes are: ${modes.map((m) => `${m.id} (${m.name})`).join(", ") || "none found"}`);
@@ -608,7 +628,7 @@ async function runChatTurnHoldingTab(turn: ChatTurn): Promise<{ conversationId: 
     } else {
       await openNewChat();
     }
-    if (turn.model !== GEMINI_WEB_AUTO_MODEL || !liveModels || Date.now() - liveModels.at > MODELS_TTL_MS) {
+    if (turn.model !== GEMINI_WEB_AUTO_MODEL || !liveModes || Date.now() - liveModes.at > MODELS_TTL_MS) {
       await selectMode(turn.model);
     }
   };
@@ -633,22 +653,27 @@ export class GeminiWebProvider extends BaseProvider {
 
   /**
    * Listing never attaches to the tab: it returns `auto` plus the modes read
-   * during an earlier call. A mode id from the Gemini mode picker also works
-   * as a model id.
+   * during an earlier call, or the known public modes before any call. A mode
+   * id from the Gemini mode picker also works as a model id.
    */
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     const auto: LanguageModel = { id: GEMINI_WEB_AUTO_MODEL, name: "Gemini (current mode)", provider: PROVIDER_IDS.GEMINI_WEB };
-    return [auto, ...(liveModels?.models ?? [])];
+    return [auto, ...listedModes().map((m) => ({ id: m.id, name: `Gemini ${m.name}`, provider: PROVIDER_IDS.GEMINI_WEB }))];
   }
 
+  /** One image model for the current mode, and one for each listed mode. */
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return [{
-      id: GEMINI_WEB_IMAGE_MODEL,
-      name: "Gemini Images (web)",
+    const image = (id: string, name: string): ImageModel => ({
+      id,
+      name,
       provider: PROVIDER_IDS.GEMINI_WEB,
       supportedTasks: ["text_to_image", "image_to_image"],
       aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4"]
-    }];
+    });
+    return [
+      image(GEMINI_WEB_IMAGE_MODEL, "Gemini Images (web)"),
+      ...listedModes().map((m) => image(`${GEMINI_WEB_IMAGE_MODEL}:${m.id}`, `Gemini Images (${m.name})`))
+    ];
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
@@ -760,8 +785,14 @@ export class GeminiWebProvider extends BaseProvider {
   private async generateImage(
     prompt: string,
     images: Uint8Array[],
-    params: { aspectRatio?: string | null; width?: number | null; height?: number | null; negativePrompt?: string | null; signal?: AbortSignal }
+    params: { model?: { id: string }; aspectRatio?: string | null; width?: number | null; height?: number | null; negativePrompt?: string | null; signal?: AbortSignal }
   ): Promise<Uint8Array> {
+    // `gemini-web-image:<mode id>` runs the image tool in that mode.
+    const modeId = params.model?.id.startsWith(`${GEMINI_WEB_IMAGE_MODEL}:`) ? params.model.id.slice(GEMINI_WEB_IMAGE_MODEL.length + 1) : null;
+    const setup = async (): Promise<void> => {
+      await openNewChat();
+      if (modeId) await selectMode(modeId);
+    };
     const text = [
       images.length > 0
         ? "Edit the attached image(s) as described and reply with one image. Do not ask questions."
@@ -773,7 +804,7 @@ export class GeminiWebProvider extends BaseProvider {
     // The download runs in the same turn on the tab, so no other call can
     // navigate the tab away in between.
     return serialized(async () => {
-      const reply = await sendAndRead(openNewChat, text, images, IMAGE_TIMEOUT_MS, params.signal);
+      const reply = await sendAndRead(setup, text, images, IMAGE_TIMEOUT_MS, params.signal);
       const url = reply.images.at(-1);
       if (!url) {
         throw new Error(`Gemini finished without an image${reply.text ? `: ${reply.text.slice(0, 300)}` : ""}.${chatLink(reply.conversationId)}`);
