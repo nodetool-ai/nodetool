@@ -141,6 +141,38 @@ describe("loadMediaRefBytes", () => {
     });
   });
 
+  // A browser run has no storage adapter or asset table. Its only byte source
+  // is the `/api/storage/<id>.<ext>` route, which a bare id cannot address.
+  it.each([
+    { uri: "asset://abc", asset_id: "abc" },
+    { asset_id: "abc" }
+  ])("retries a bare asset id with the file names of its type: %o", async (ref) => {
+    const ctx = {
+      resolveAssetBytes: vi.fn(async (uri: string) => ({
+        bytes: uri === "asset://abc.gltf" ? new Uint8Array([16, 17]) : null,
+        attempts: []
+      }))
+    } as unknown as ProcessingContext;
+
+    const bytes = await loadMediaRefBytes({ type: "model3d", ...ref }, ctx);
+
+    expect(bytes).toEqual(new Uint8Array([16, 17]));
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://abc.glb", {
+      requireOwnedAsset: true
+    });
+  });
+
+  it("does not retry an asset uri that already names its file", async () => {
+    const ctx = {
+      resolveAssetBytes: vi.fn(async () => ({ bytes: null, attempts: [] }))
+    } as unknown as ProcessingContext;
+
+    expect(
+      await loadMediaRefBytes({ type: "image", uri: "asset://abc.png" }, ctx)
+    ).toBeNull();
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledTimes(1);
+  });
+
   it("does not bypass unavailable asset resolution through raw storage candidates", async () => {
     const ctx = {
       resolveAssetBytes: vi.fn(async () => ({ bytes: null, attempts: [] })),

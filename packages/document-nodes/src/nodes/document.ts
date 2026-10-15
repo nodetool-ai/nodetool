@@ -14,12 +14,14 @@ import {
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
 } from "@nodetool-ai/nodes-utils";
+import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const NODE_ONLY: readonly Platform[] = ["node"];
 
 type DocumentRefLike = {
   uri?: string;
+  asset_id?: string | null;
   data?: Uint8Array | string;
   text?: string;
 };
@@ -28,6 +30,30 @@ function asBytes(data: Uint8Array | string | undefined): Uint8Array {
   if (!data) return new Uint8Array();
   if (data instanceof Uint8Array) return data;
   return Uint8Array.from(Buffer.from(data, "base64"));
+}
+
+/**
+ * Bytes behind a document ref's `uri` or `asset_id`: `asset://`, storage and
+ * http(s) refs through the shared media-ref resolver, then a relative or
+ * `file://` path read from disk.
+ */
+async function documentRefBytes(
+  document: DocumentRefLike,
+  context?: ProcessingContext
+): Promise<Uint8Array> {
+  const resolved = await loadMediaRefBytes(
+    { uri: document.uri, asset_id: document.asset_id, type: "document" },
+    context
+  );
+  if (resolved !== null) return resolved;
+  const uri = document.uri ?? "";
+  if (!uri || uri.startsWith("asset://") || /^https?:/.test(uri)) {
+    throw new Error(
+      `SaveDocumentFile: cannot read document '${uri || `asset://${document.asset_id}`}'`
+    );
+  }
+  const fs = await loadNodeFsPromises();
+  return new Uint8Array(await fs.readFile(toFilePath(uri)));
 }
 
 function toFilePath(uriOrPath: string): string {
@@ -159,12 +185,12 @@ export class SaveDocumentFileNode extends BaseNode {
     // The bytes first, so one write call covers every source shape and the
     // workspace path never needs a second branch.
     let bytes: Uint8Array | string;
-    if (document.data) {
+    if (document.data !== undefined && document.data.length > 0) {
       bytes = asBytes(document.data);
     } else if (document.text != null) {
       bytes = document.text;
-    } else if (document.uri) {
-      bytes = new Uint8Array(await fs.readFile(toFilePath(document.uri)));
+    } else if (document.uri || document.asset_id) {
+      bytes = await documentRefBytes(document, context);
     } else {
       bytes = "";
     }

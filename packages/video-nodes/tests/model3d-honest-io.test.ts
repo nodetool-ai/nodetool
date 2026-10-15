@@ -846,3 +846,56 @@ describe("model3d honest I/O", () => {
     expect((result.output as Record<string, unknown>).format).toBe("glb");
   });
 });
+
+describe("model3d nodes resolve asset refs", () => {
+  const ASSET_ID = "7a5835f86af44d878e875730d37b05ca";
+
+  /** A context whose only byte source is the asset resolver. */
+  function assetContext(bytes: Uint8Array): ProcessingContext {
+    const ctx = new ProcessingContext({ jobId: "test-job" });
+    Object.assign(ctx, {
+      resolveAssetBytes: vi.fn(async (uri: string) => ({
+        bytes: uri === `asset://${ASSET_ID}` ? bytes : null,
+        attempts: []
+      }))
+    });
+    return ctx;
+  }
+
+  it("GetModel3DMetadata reads a model stored as asset://<id>", async () => {
+    const node = new GetModel3DMetadataNode();
+    node.assign({
+      model: { type: "model_3d", uri: `asset://${ASSET_ID}`, asset_id: ASSET_ID }
+    });
+    const result = await node.process(assetContext(createTriangleGlb()));
+    expect((result.output as { vertex_count: number }).vertex_count).toBe(3);
+  });
+
+  it("FormatConverter converts a model that carries only an asset_id", async () => {
+    const node = new FormatConverterNode();
+    node.assign({
+      model: { type: "model_3d", uri: "", asset_id: ASSET_ID, format: "glb" },
+      output_format: "gltf"
+    });
+    const result = await node.process(assetContext(createTriangleGlb()));
+    const data = (result.output as { data: string }).data;
+    expect(JSON.parse(Buffer.from(data, "base64").toString("utf-8")).asset).toBeDefined();
+  });
+
+  it("ImageTo3D sends the bytes of an asset:// image to the provider", async () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+    const runProviderPrediction = vi
+      .fn()
+      .mockResolvedValue(new Uint8Array([0x67, 0x6c, 0x54, 0x46]));
+    const ctx = assetContext(png);
+    Object.assign(ctx, { runProviderPrediction });
+    const node = new ImageTo3DNode();
+    node.assign({
+      model: { type: "model_3d_model", provider: "meshy", id: "meshy-4" },
+      image: { type: "image", uri: `asset://${ASSET_ID}`, asset_id: ASSET_ID }
+    });
+    await node.process(ctx);
+    expect(runProviderPrediction).toHaveBeenCalledTimes(1);
+    expect(runProviderPrediction.mock.calls[0][0].params.images).toEqual([png]);
+  });
+});

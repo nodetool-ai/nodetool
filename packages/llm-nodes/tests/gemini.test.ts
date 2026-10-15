@@ -9,6 +9,7 @@ import {
   TranscribeGeminiNode,
   GEMINI_NODES
 } from "@nodetool-ai/llm-nodes/gemini";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const originalFetch = global.fetch;
 const mockFetch = vi.fn();
@@ -739,6 +740,65 @@ describe("TranscribeGeminiNode", () => {
     expect(result.output).toBe("Hello world");
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.contents[0].parts[1].inlineData.mimeType).toBe("audio/wav");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Asset refs
+// ---------------------------------------------------------------------------
+describe("Gemini nodes resolve asset refs", () => {
+  const ASSET_ID = "7a5835f86af44d878e875730d37b05ca";
+  const BYTES = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0]);
+  const assetContext = {
+    resolveAssetBytes: async (uri: string) => ({
+      bytes: uri === `asset://${ASSET_ID}` ? BYTES : null,
+      attempts: []
+    })
+  } as unknown as ProcessingContext;
+
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
+  it("ImageGeneration sends an asset:// input image", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ inlineData: { data: "out" } }] } }]
+      })
+    });
+    const node = new ImageGenerationNode();
+    node.assign({
+      prompt: "a dog",
+      model: "gemini-3.1-flash-image",
+      image: { type: "image", uri: `asset://${ASSET_ID}`, asset_id: ASSET_ID }
+    });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    await node.process(assetContext);
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.contents[0].parts[1].inlineData.data).toBe(
+      Buffer.from(BYTES).toString("base64")
+    );
+  });
+
+  it("Transcribe sends audio that carries only an asset_id", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: "Hello world" }] } }]
+      })
+    });
+    const node = new TranscribeGeminiNode();
+    node.assign({ audio: { type: "audio", uri: "", asset_id: ASSET_ID } });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    const result = await node.process(assetContext);
+
+    expect(result.output).toBe("Hello world");
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.contents[0].parts[1].inlineData.data).toBe(
+      Buffer.from(BYTES).toString("base64")
+    );
   });
 });
 

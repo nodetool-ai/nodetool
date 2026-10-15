@@ -1,5 +1,6 @@
 export type Model3DRefLike = {
   uri?: string;
+  asset_id?: string | null;
   data?: Uint8Array | string;
   format?: string;
   vertices?: number;
