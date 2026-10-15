@@ -210,6 +210,8 @@ export { BatchedColorInput } from "./BatchedColorInput";
 export type { BatchedColorInputProps } from "./BatchedColorInput";
 export { InspectorValueInput } from "./InspectorValueInput";
 export type { InspectorValueInputProps, InspectorValueScrub, InspectorValueGesture } from "./InspectorValueInput";
+export { NumberField } from "./NumberField";
+export type { NumberFieldProps } from "./NumberField";
 export { NumericField } from "./NumericField";
 export type { NumericFieldProps } from "./NumericField";
 export { TreeRow } from "./TreeRow";
