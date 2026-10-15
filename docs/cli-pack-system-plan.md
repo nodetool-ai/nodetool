@@ -179,11 +179,18 @@ global mode, the initial snapshot records package paths, names, versions and
 realpaths without claiming integrity. Existing malformed or stale locks still
 fail. Local mode still requires its hidden lock.
 
-The dry-run plan remains additive. Post-install verification requires a valid
-hidden lock and every release pin before scripts or imports. Existing package
-identities must remain unchanged, and known initial integrities must match.
-This trusts the already-running CLI installation. Lock metadata does not verify
-pre-existing file contents.
+The initial global authorization also names existing catalog-pinned roots that
+need integrity records. npm reinstalls those exact versions with scripts
+disabled. A separate plan check accepts only the authorized roots at their
+existing names, versions and paths. Other changes remain refused. This case
+requires the whole hidden lock to be absent, and cannot repair an incomplete
+or malformed lock.
+
+Post-install verification requires a valid hidden lock and every bootstrap pin
+before scripts or imports. Existing package identities remain unchanged, and
+known initial integrities must match. Rollback replays the same exact baseline
+roots. This trusts the already-running CLI installation. Lock metadata does
+not verify pre-existing file contents.
 
 ### D26. Verified replay actions in npm plans
 

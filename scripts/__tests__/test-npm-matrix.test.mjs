@@ -42,4 +42,9 @@ test("the workflow schedules all six native platform and actual npm combinations
   }
   assert.ok(workflow.on.pull_request.paths.includes("packages/cli/src/npm-runner.ts"));
   assert.ok(workflow.on.pull_request.paths.includes("packages/cli/src/packs/**"));
+  assert.ok(workflow.on.pull_request.paths.includes("packages/cli/tests/packs/global-bootstrap.test.ts"));
+  const bootstrap = workflow.jobs["npm-matrix"].steps.find(step => step.name === "Verify initial global integrity bootstrap");
+  assert.ok(bootstrap, "each native combination must exercise the initial global bootstrap");
+  assert.equal(bootstrap["working-directory"], "packages/cli");
+  assert.equal(bootstrap.run, "node ../../scripts/run-vitest.mjs run tests/packs/global-bootstrap.test.ts");
 });

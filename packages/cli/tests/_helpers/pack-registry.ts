@@ -25,7 +25,7 @@ export async function disposePackRegistryFixtures(): Promise<void> {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 }
 
-export async function setupPackRegistry(conflict = false, options: { readonly tls?: boolean; readonly optionalDependency?: boolean; readonly allowScript?: boolean } = {}) {
+export async function setupPackRegistry(conflict = false, options: { readonly tls?: boolean; readonly optionalDependency?: boolean; readonly allowScript?: boolean; readonly globalCore?: boolean } = {}) {
   const directory = await realpath(await mkdtemp(join(tmpdir(), "packs-registry-"))); roots.push(directory);
   const npm = findNpmCli(); if (!npm) { throw new Error("Local npm-cli.js required for integration fixture"); }
   const tarballs = new Map<string, { name: string; version: string; bytes: Buffer; integrity: string; dependencies: Record<string, string> }>();
@@ -33,7 +33,7 @@ export async function setupPackRegistry(conflict = false, options: { readonly tl
     ["fixture-baseline", "1.0.0", {}], ["fixture-baseline", "2.0.0", {}],
     ["@nodetool-ai/fixture-nodes", "1.0.0", conflict ? { "fixture-baseline": "2.0.0" } : {}],
     ["@nodetool-ai/fixture2-nodes", "1.0.0", {}],
-    ["@nodetool-ai/cli", "1.0.0", { "fixture-baseline": "1.0.0" }],
+    ["@nodetool-ai/cli", "1.0.0", { "fixture-baseline": "1.0.0", ...(options.globalCore ? { "@nodetool-ai/fixture2-nodes": "1.0.0" } : {}) }],
     ["@nodetool-ai/cli", "1.1.0", { "fixture-baseline": "1.0.0" }],
     ["fixture-optional", "1.0.0", {}]
   ] as const) {

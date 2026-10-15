@@ -4,6 +4,7 @@ import { RUNTIME_NPM_PACKAGES, isRuntimeNpmPackageId } from "@nodetool-ai/protoc
 import type { InstallMode } from "./mode.js";
 import { readInstallTree, type TreePackage } from "./install-tree.js";
 
+import { globalBootstrapPins, type GlobalBootstrapPin } from "./global-bootstrap.js";
 import { readDesiredState, type DesiredPackState } from "./install-state.js";
 export { readDesiredState } from "./install-state.js";
 export type { DesiredPackState } from "./install-state.js";
@@ -29,6 +30,7 @@ export interface InstallSelection {
   readonly replayLibraries: readonly string[];
   readonly installedIds: readonly string[];
   readonly initialGlobalLockMissing: boolean;
+  readonly bootstrap?: readonly GlobalBootstrapPin[];
   readonly mutationPaths?: readonly string[];
 }
 export function expandCatalogPacks(catalog: NodeCatalogIndex, ids: readonly string[]): CatalogPack[] {
@@ -73,5 +75,6 @@ export async function prepareInstallSelection(request: InstallPacksRequest, opti
   const libraries = [...new Set([...replayLibraries, ...explicitLibraries, ...requested.flatMap((pack) => pack.runtimeLibraries).filter(isRuntimeNpmPackageId)])].sort();
   const scripts = [...new Map(packs.flatMap((pack) => pack.scriptAllowlist).map((pin) => [JSON.stringify(pin), pin])).values()];
   return { root, coreVersion: mode.coreVersion, mode: mode.kind, packs, runtimeLibraries: libraries, scripts, previous, catalog, before, replayLibraries, installedIds,
-    initialGlobalLockMissing: mode.kind === "global" && tree.missingLock };
+    initialGlobalLockMissing: mode.kind === "global" && tree.missingLock,
+    bootstrap: mode.kind === "global" && tree.missingLock ? globalBootstrapPins(catalog, before, libraries) : [] };
 }

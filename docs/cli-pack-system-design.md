@@ -759,7 +759,10 @@ command is not covered. `packs doctor` detects its effects.
    lack this file. Only that initial global snapshot may omit integrity
    (plan D25). Existing malformed or stale locks still fail. Post-install
    verification requires a valid lock and all release pins before scripts or
-   imports. Preserve initial identities and compare every known integrity.
+   imports. Preserve initial identities and compare every known integrity. The
+   first global transaction can reinstall explicitly authorized catalog roots
+   at the same version to establish genuine npm integrity records, with scripts
+   disabled. See [global bootstrap](cli-pack-system-plan.md#d25-global-installation-baseline-without-a-hidden-lock).
 6. Plan with `npm install --dry-run` and the same flags and specs (14.5).
 7. Run `npm install` with `--ignore-scripts`.
 8. Verify the tree (14.6). No install script and no pack import has run yet.
