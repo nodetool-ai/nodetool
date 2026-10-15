@@ -441,9 +441,11 @@ dependency tree on Linux x64, with scripts disabled as in the default pack
 installer. It includes shared dependencies and excludes artifacts that install
 scripts would generate. It is separate from the runnable core CLI size gate.
 The release job packs all catalog registrars and companion libraries before
-writing pins. Local core folder overrides permit measurement before the final
-core artifacts exist. After rebuilding the pinned catalog, it packs the
-remaining core packages without changing any earlier tarball.
+writing pins. Temporary core tarballs provide measurement inputs before the
+final core artifacts exist. They follow each package's `files` rules, have
+scripts disabled, and are removed after measurement. They never enter the
+final release artifact map. After rebuilding the pinned catalog, the release
+job packs the remaining core packages without changing any earlier tarball.
 
 `npm run check:node-catalog` regenerates the catalog and diffs it. It fails on
 any difference and asserts that it compared more than zero node types. Add it

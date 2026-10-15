@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { cleanEnv } from "../smoke-packed-cli.mjs";
+import { cleanEnv, pack as packPackages } from "../smoke-packed-cli.mjs";
 import { canonicalJson } from "../node-catalog/generate.mjs";
 import { runReleaseCommand } from "./commands.mjs";
 import { collectReleaseInstallPins, validateInstallPin } from "./install-pins.mjs";
@@ -33,7 +33,22 @@ export function catalogPackageNames(catalog) {
   return names;
 }
 
-/** Local folder overrides are measurement inputs, never final core artifacts. */
+/** Keep measurement-only core archives separate from the final release artifacts. */
+export async function withMeasurementTarballs(tarballs, workspaces, measure, {
+  temporaryRoot = tmpdir(),
+  pack = packPackages
+} = {}) {
+  const directory = mkdtempSync(join(temporaryRoot, "nodetool-measurement-tarballs-"));
+  try {
+    // npm's folder overrides misresolve prerelease dependencies of tarballs.
+    const core = workspaces.filter(workspace => !tarballs[workspace.name]);
+    const measurement = await pack(core, directory);
+    return await measure({ ...tarballs, ...measurement });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
 export function measurementManifest(pack, tarballs, workspaces) {
   const file = tarballs[pack.npm.name];
   if (!file) { throw new Error(`Missing release tarball for ${pack.npm.name}`); }
@@ -45,7 +60,8 @@ export function measurementManifest(pack, tarballs, workspaces) {
   const overrides = {};
   for (const workspace of workspaces) {
     if (workspace.name === pack.npm.name) { continue; }
-    overrides[workspace.name] = `file:${tarballs[workspace.name] ?? workspace.dir}`;
+    if (!tarballs[workspace.name]) { throw new Error(`Missing measurement tarball for ${workspace.name}`); }
+    overrides[workspace.name] = `file:${tarballs[workspace.name]}`;
   }
   return {
     name: "nodetool-release-pack-measurement",
@@ -169,7 +185,12 @@ export async function writeReleasePinnedCatalog(file, tarballs, {
       validateInstallPin(pin);
     }
   }
-  return writePinnedCatalog(file, tarballs, { ...options, additionalPins });
+  return withMeasurementTarballs(tarballs, options.workspaces ?? [], measurement =>
+    writePinnedCatalog(file, tarballs, {
+      ...options,
+      additionalPins,
+      measure: options.measure ?? (pack => measurePackInstallBytes(pack, measurement, options.workspaces ?? [], options.measurementOptions))
+    }));
 }
 
 async function main() {

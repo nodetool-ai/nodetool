@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { catalogPackageNames, measurementManifest, measurePackInstallBytes, measureRuntimeInstallBytes, pinCatalog, tarballIntegrity, writePinnedCatalog } from "../release/pin-catalog.mjs";
+import { catalogPackageNames, measurementManifest, measurePackInstallBytes, measureRuntimeInstallBytes, pinCatalog, tarballIntegrity, withMeasurementTarballs, writePinnedCatalog } from "../release/pin-catalog.mjs";
 
 const roots = [];
 afterEach(() => { for (const root of roots.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
@@ -130,6 +130,67 @@ describe("catalog release pins", () => {
 });
 
 describe("Linux production install measurement", () => {
+  it("packs missing core workspaces once for the cohort and cleans them after a measurement failure", async () => {
+    const { root, tarballs } = fixture();
+    const original = { ...tarballs };
+    const core = { name: "@nodetool-ai/node-sdk", dir: join(root, "node-sdk") };
+    const registrar = { name: "@nodetool-ai/core-nodes", dir: join(root, "core-nodes") };
+    let directory;
+    const pack = vi.fn((workspaces, destination) => {
+      directory = destination;
+      expect(workspaces).toEqual([core]);
+      const file = join(destination, "node-sdk.tgz");
+      writeFileSync(file, "measurement only");
+      return { [core.name]: file };
+    });
+    await expect(withMeasurementTarballs(tarballs, [registrar, core], async measurement => {
+      expect(measurement[registrar.name]).toBe(tarballs[registrar.name]);
+      expect(existsSync(measurement[core.name])).toBe(true);
+      throw new Error("measurement failed");
+    }, { temporaryRoot: root, pack })).rejects.toThrow("measurement failed");
+    expect(pack).toHaveBeenCalledTimes(1);
+    expect(tarballs).toEqual(original);
+    expect(existsSync(directory)).toBe(false);
+  });
+
+  it("refuses an unpacked core dependency instead of using a directory override", () => {
+    const { catalog, tarballs } = fixture();
+    expect(() => measurementManifest(catalog.packs[0], tarballs, [{ name: "@nodetool-ai/node-sdk", dir: "/workspace/node-sdk" }])).toThrow("Missing measurement tarball");
+  });
+
+  it.runIf(process.platform === "linux" && process.arch === "x64").each([
+    ["0.8.4", "0.8.4"],
+    ["0.8.4-a13.1", "0.8.4-a13.1"],
+    ["0.8.4-a13.1", "^0.8.4-a13.1"]
+  ])("installs a %s pack with an unpublished %s core dependency without changing release bytes", async (version, dependency) => {
+    const { root } = fixture();
+    const packName = "@nodetool-ai/measurement-pack";
+    const coreName = "@nodetool-ai/measurement-core";
+    const staging = join(root, "staging");
+    const core = join(root, "core");
+    mkdirSync(join(staging, "package"), { recursive: true });
+    mkdirSync(core);
+    writeFileSync(join(staging, "package/package.json"), JSON.stringify({ name: packName, version, dependencies: { [coreName]: dependency } }));
+    writeFileSync(join(core, "package.json"), JSON.stringify({ name: coreName, version }));
+    const file = join(root, `measurement-pack-${version}.tgz`);
+    const packed = spawnSync("tar", ["-czf", file, "-C", staging, "package"], { encoding: "utf8" });
+    expect(packed.status, packed.stderr).toBe(0);
+    const before = tarballIntegrity(file);
+    const pack = { id: "measurement", npm: { name: packName }, provides: [] };
+    const tarballs = { [packName]: file };
+    const workspaces = [{ name: coreName, dir: core }];
+    let measurementFile;
+    const bytes = await withMeasurementTarballs(tarballs, workspaces, measurement => {
+      measurementFile = measurement[coreName];
+      expect(existsSync(measurementFile)).toBe(true);
+      return measurePackInstallBytes(pack, measurement, workspaces, { temporaryRoot: root });
+    }, { temporaryRoot: root });
+    expect(bytes).toBeGreaterThan(0);
+    expect(tarballIntegrity(file)).toBe(before);
+    expect(tarballs).toEqual({ [packName]: file });
+    expect(existsSync(measurementFile)).toBe(false);
+  });
+
   it("measures the exact alias target with dependencies and scripts disabled", () => {
     const { root } = fixture();
     const pin = { name: "@typescript/typescript6", installName: "typescript", version: "6.0.2", integrity: `sha512-${createHash("sha512").update("compiler").digest("base64")}` };
@@ -147,8 +208,9 @@ describe("Linux production install measurement", () => {
     expect(bytes).toBe(24576);
   });
 
-  it("uses immutable pack tarballs and measurement-only core directory overrides", () => {
+  it("uses immutable pack tarballs and separate core measurement tarballs", () => {
     const { catalog, tarballs } = fixture();
+    tarballs["@nodetool-ai/node-sdk"] = "/measurement/node-sdk.tgz";
     const result = measurementManifest(catalog.packs[1], tarballs, [
       { name: "@nodetool-ai/game-nodes", dir: "/workspace/game-nodes" },
       { name: "@nodetool-ai/game-renderer", dir: "/workspace/game-renderer" },
@@ -158,7 +220,7 @@ describe("Linux production install measurement", () => {
       "@nodetool-ai/game-nodes": `file:${tarballs["@nodetool-ai/game-nodes"]}`,
       "@nodetool-ai/game-renderer": `file:${tarballs["@nodetool-ai/game-renderer"]}`
     });
-    expect(result.overrides).toEqual({ "@nodetool-ai/game-renderer": `file:${tarballs["@nodetool-ai/game-renderer"]}`, "@nodetool-ai/node-sdk": "file:/workspace/node-sdk" });
+    expect(result.overrides).toEqual({ "@nodetool-ai/game-renderer": `file:${tarballs["@nodetool-ai/game-renderer"]}`, "@nodetool-ai/node-sdk": "file:/measurement/node-sdk.tgz" });
   });
 
   it("measures allocated disk usage after a clean production install and removes its temporary project", () => {

@@ -568,8 +568,9 @@ beside phase 1.
    2. Compute the integrity and `installBytes` of each pack on linux-x64.
       Measure a fresh production install with scripts disabled, matching the
       default pack installer policy. Include its production dependency tree.
-      Before final core tarballs exist, use local core folder overrides with
-      `--install-links`, which respects each package's `files` field.
+      Before final core tarballs exist, pack temporary core measurement
+      tarballs with scripts disabled. Use them only as install overrides,
+      then remove them. Keep them outside the final release artifact map.
    3. Write the pins into `node-catalog/data/index.json`.
    4. Rebuild the pinned catalog artifact, then pack the remaining core
       packages. Do not repack the earlier registrar or companion artifacts.
