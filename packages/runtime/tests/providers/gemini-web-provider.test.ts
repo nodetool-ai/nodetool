@@ -215,6 +215,15 @@ describe("findGeneratedVideo", () => {
 });
 
 describe("GeminiWebProvider", () => {
+  it("does not navigate or submit a pre-cancelled request", async () => {
+    const page = fakeTab();
+    const controller = new AbortController();
+    controller.abort(new Error("cancelled"));
+    await expect(new GeminiWebProvider().generateMessage({ model: "auto", messages: [{ role: "user", content: "hi" }], signal: controller.signal })).rejects.toThrow("cancelled");
+    expect(page.navigations).toEqual([]);
+    expect(page.sent).toEqual([]);
+  });
+
   it("lists models without touching the tab", async () => {
     const untouched = () => { throw new Error("listing must not reach the tab"); };
     setGeminiWebTab({ evaluate: untouched, navigate: untouched, download: untouched });
@@ -389,6 +398,17 @@ describe("GeminiWebProvider", () => {
     await vi.advanceTimersByTimeAsync(10_000);
     await settled;
     expect(page.sent).toEqual([]);
+  });
+
+  it("loads full history when changed system instructions reject a delta", async () => {
+    const page = fakeTab();
+    const history = [{ role: "user" as const, content: "Remember 42" }, { role: "assistant" as const, content: "Noted" }, { role: "user" as const, content: "Which number?" }];
+    const load = vi.fn().mockResolvedValue(history);
+    const pending = new GeminiWebProvider().generateMessage({ model: "auto", messages: [{ role: "system", content: "New rules" }, { role: "user", content: "Which number?" }], providerSession: { providerId: "gemini_web", model: "auto", token: CHAT_ID, checkpoint: 1, systemHash: "stale" }, loadFullHistory: load });
+    await vi.advanceTimersByTimeAsync(5_000);
+    await pending;
+    expect(load).toHaveBeenCalledOnce();
+    expect(page.sent[0]).toContain("Remember 42");
   });
 
   it("starts a new chat with the whole conversation when the old one is gone", async () => {

@@ -21,7 +21,7 @@ function BriefModelPicker({ readOnly = false }: { readOnly?: boolean }) {
 /** The brief model, for the shell's footer beside the estimate it prices. */
 export function BriefModelFooterField({ readOnly }: { readOnly?: boolean }) {
   return (
-    <SetupFooterField label="Model">
+    <SetupFooterField label="Brief model">
       <BriefModelPicker readOnly={readOnly} />
     </SetupFooterField>
   );

@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { mkdtempSync, rmSync, writeFileSync, readdirSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import { parse } from "yaml";
 
-import { summarize } from "../scripts/agent-preflight.mjs";
+import { summarize, discoverRoutinePrs } from "../scripts/agent-preflight.mjs";
 import { tally, toMarkdown } from "../scripts/agent-pr-report.mjs";
 
 const dir = new URL("../workflows/", import.meta.url);
@@ -50,6 +53,7 @@ for (const { file, wf } of routines) {
     const setup = steps.find((s) => s.uses === "./.github/actions/setup-build");
     assert.ok(setup, "no setup-build step");
     assert.equal(setup.with?.cache, "read-only");
+    assert.equal(wf.jobs[name]["cache-mode"], "read");
     assert.ok(!steps.some((s) => s.uses?.startsWith("actions/setup-node")));
   });
 
@@ -129,3 +133,50 @@ test("jobs that publish or deploy never restore a shared cache", () => {
     }
   }
 });
+
+ test("preflight discovers labeled human PRs and paginates merged files", () => {
+   const calls = [];
+   const found = discoverRoutinePrs({ label: "agent:logic-simplifier", titleRegex: /^refactor: simplify/, since: new Date("2026-10-01") }, (args) => {
+     calls.push(args);
+     if (args[0] === "api") return JSON.stringify(Array.from({ length: 101 }, (_, i) => ({ filename: `file${i}.ts` })));
+     if (args.includes("--label") && args.includes("open")) return JSON.stringify([pr({ number: 2, author: { login: "human" }, labels: [{ name: "agent:logic-simplifier" }] })]);
+     if (args.includes("--label") && args.includes("merged")) return JSON.stringify([pr({ number: 3, state: "MERGED", mergedAt: "2026-10-05", labels: [{ name: "agent:logic-simplifier" }] })]);
+     return "[]";
+   });
+   assert.equal(summarize(found, { label: "agent:logic-simplifier", titleRegex: null, since: new Date("2026-10-01") }).open[0].number, 2);
+   assert.equal(found.find((p) => p.number === 3).files.length, 101);
+   assert.ok(calls.some((args) => args.includes("--paginate")));
+ });
+
+ test("preflight fails closed at the PR discovery cap", () => {
+   assert.throws(() => discoverRoutinePrs({ label: "agent:x", titleRegex: null, since: new Date() }, () => JSON.stringify(Array.from({ length: 1000 }, () => pr({})))), /incomplete/);
+ });
+
+ test("shared setup disables implicit npm cache writers", () => {
+   const action = parse(readFileSync(new URL("../actions/setup-build/action.yml", import.meta.url), "utf8"));
+   const setup = action.runs.steps.find((step) => step.uses?.startsWith("actions/setup-node"));
+   assert.equal(setup.with["package-manager-cache"], false);
+   assert.match(setup.with.cache, /inputs.cache == 'read-write'/);
+   const audit = read("dependency-audit.yml");
+   assert.equal(audit.jobs.audit["cache-mode"], "none");
+   assert.equal(audit.jobs.audit.steps.find((step) => step.uses?.startsWith("actions/setup-node")).with["package-manager-cache"], false);
+   assert.ok(audit.on.pull_request.paths.includes("**/npm-shrinkwrap.json"));
+ });
+
+ test("QA collects build failure and continues to the repair decision", () => {
+   const steps = read("quality-assurance.yaml").jobs["quality-assurance"].steps;
+   assert.equal(steps.find((s) => s.uses === "./.github/actions/setup-build").with["build-packages"], "false");
+   const check = steps.find((s) => s.name === "Run quality checks");
+   const root = mkdtempSync(join(tmpdir(), "qa-build-fixture-"));
+   try {
+     writeFileSync(join(root, "npm"), '#!/bin/bash\necho "$*" >> "$QA_CALLS"\nif [ "$2" = build:packages ]; then echo "compilation failed"; exit 1; fi\n', { mode: 0o755 });
+     execFileSync("bash", ["-eo", "pipefail", "-c", check.run], { cwd: root, env: { ...process.env, PATH: `${root}:${process.env.PATH}`, QA_CALLS: join(root, "calls"), GITHUB_ENV: join(root, "env"), GITHUB_STEP_SUMMARY: join(root, "summary") } });
+     assert.match(readFileSync(join(root, "env"), "utf8"), /QUALITY_FAILED=1/);
+     assert.match(readFileSync(join(root, "build.log"), "utf8"), /compilation failed/);
+     assert.match(readFileSync(join(root, "calls"), "utf8"), /run test/);
+   } finally { rmSync(root, { recursive: true, force: true }); }
+ });
+
+ test("PR lint checks generated anti-slop ratchet drift", () => {
+   assert.match(readFileSync(new URL("../workflows/quality-checks.yml", import.meta.url), "utf8"), /npm run lint && npm run lint:anti-slop:check/);
+ });

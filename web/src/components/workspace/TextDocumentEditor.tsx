@@ -28,7 +28,8 @@ import {
   FlexColumn,
   FlexRow,
   LoadingSpinner,
-  BORDER_RADIUS
+  SaveState,
+  Toolbar
 } from "../ui_primitives";
 
 interface TextDocumentEditorProps {
@@ -48,9 +49,6 @@ const styles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.grey[900],
     color: theme.vars.palette.common.white,
     ".editor-toolbar-row": {
-      flex: "0 0 auto",
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
-      backgroundColor: theme.vars.palette.grey[900],
       ".editor-toolbar": {
         flex: 1,
         borderBottom: "none",
@@ -58,13 +56,6 @@ const styles = (theme: Theme) =>
       }
     },
 
-    ".dirty-dot": {
-      width: 8,
-      height: 8,
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: theme.vars.palette.warning.main,
-      flex: "0 0 auto"
-    },
     ".editor-host": {
       flex: 1,
       minHeight: 0,
@@ -321,9 +312,7 @@ const TextDocumentEditor = ({
             onChange={handleDataframeChange}
             toolbarEnd={
               <>
-                {isDirty && (
-                  <span className="dirty-dot" aria-label="Unsaved changes" />
-                )}
+                <SaveState state={isDirty ? "dirty" : "idle"} showLabel={false} />
                 <EditorButton
                   variant="contained"
                   size="small"
@@ -356,10 +345,9 @@ const TextDocumentEditor = ({
   return (
     <div css={editorStyles}>
       {!isCsv && (
-        <FlexRow
+        <Toolbar
           className="editor-toolbar-row"
-          align="center"
-          justify="space-between"
+          sx={{ justifyContent: "space-between", px: 0, gap: 0 }}
         >
           <EditorToolbar
             onUndo={handleUndo}
@@ -370,9 +358,7 @@ const TextDocumentEditor = ({
             wordWrapEnabled={wordWrap}
           />
           <FlexRow align="center" gap={0.5} sx={{ px: 1 }}>
-            {isDirty && (
-              <span className="dirty-dot" aria-label="Unsaved changes" />
-            )}
+            <SaveState state={isDirty ? "dirty" : "idle"} showLabel={false} />
             <EditorButton
               variant="contained"
               size="small"
@@ -383,7 +369,7 @@ const TextDocumentEditor = ({
               {isSaving ? "Saving…" : "Save"}
             </EditorButton>
           </FlexRow>
-        </FlexRow>
+        </Toolbar>
       )}
 
       {body()}

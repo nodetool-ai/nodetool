@@ -435,65 +435,77 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
             {tile.failed && tile.reason && sharedReason === null ? (
               <Caption color="secondary">{tile.reason}</Caption>
             ) : null}
-            <FlexRow gap={GAP.normal} wrap>
-              <EditorButton
-                variant="contained"
-                disabled={!tile.assetId}
-                onClick={() => pick(tile.layerId)}
-              >
-                Sketch editor
-              </EditorButton>
-              {(
-                [
-                  ["entity", "Save to entities"],
-                  ["canvas", "New node canvas"],
-                  ["video", "Image to video"]
-                ] as const
-              ).map(([destination, label]) => (
+            {/* Nothing here is offered for a variation that has not rendered:
+                a disabled contained button looks like an enabled one in this
+                theme. A failed one keeps its retry, and a running one has
+                none, since its tile already says it is rendering. */}
+            {tile.assetId || tile.failed ? (
+              <FlexRow gap={GAP.normal} wrap>
+                {tile.assetId ? (
+                  <>
+                    <EditorButton
+                      variant="contained"
+                      disabled={!tile.assetId}
+                      onClick={() => pick(tile.layerId)}
+                    >
+                      Sketch editor
+                    </EditorButton>
+                    {(
+                      [
+                        ["entity", "Save to entities"],
+                        ["canvas", "New node canvas"],
+                        ["video", "Image to video"]
+                      ] as const
+                    ).map(([destination, label]) => (
+                      <EditorButton
+                        key={destination}
+                        variant="outlined"
+                        disabled={
+                          !tile.assetId ||
+                          actions[tile.layerId]?.state === "saving"
+                        }
+                        onClick={() => void sendTo(tile.layerId, destination)}
+                      >
+                        {label}
+                      </EditorButton>
+                    ))}
+                  </>
+                ) : null}
                 <EditorButton
-                  key={destination}
-                  variant="outlined"
-                  disabled={
-                    !tile.assetId || actions[tile.layerId]?.state === "saving"
-                  }
-                  onClick={() => void sendTo(tile.layerId, destination)}
+                  variant="text"
+                  disabled={tile.pending}
+                  onClick={() => regenerate(tile.layerId, tile.failed)}
                 >
-                  {label}
+                  {tile.failed ? `Try ${tile.label} again` : "Regenerate"}
+                  {/* Another render is paid for, so its price sits on the button. */}
+                  {regenerateDetail ? ` · ${regenerateDetail}` : ""}
                 </EditorButton>
-              ))}
-              <EditorButton
-                variant="text"
-                disabled={tile.pending}
-                onClick={() => regenerate(tile.layerId, tile.failed)}
-              >
-                {tile.failed ? `Try ${tile.label} again` : "Regenerate"}
-                {/* Another render is paid for, so its price sits on the button. */}
-                {regenerateDetail ? ` · ${regenerateDetail}` : ""}
-              </EditorButton>
-              <EditorButton
-                variant="text"
-                disabled={!tile.assetId}
-                onClick={() => {
-                  if (tile.assetId) {
-                    downloadVariation(tile.assetId, tile.label).catch(
-                      (cause: unknown) => {
-                        const reason =
-                          cause instanceof Error ? ` ${cause.message}` : "";
-                        setActions((current) => ({
-                          ...current,
-                          [tile.layerId]: {
-                            state: "failed",
-                            message: `Could not download ${tile.label}.${reason}`
+                {tile.assetId ? (
+                  <EditorButton
+                    variant="text"
+                    onClick={() => {
+                      if (tile.assetId) {
+                        downloadVariation(tile.assetId, tile.label).catch(
+                          (cause: unknown) => {
+                            const reason =
+                              cause instanceof Error ? ` ${cause.message}` : "";
+                            setActions((current) => ({
+                              ...current,
+                              [tile.layerId]: {
+                                state: "failed",
+                                message: `Could not download ${tile.label}.${reason}`
+                              }
+                            }));
                           }
-                        }));
+                        );
                       }
-                    );
-                  }
-                }}
-              >
-                Download
-              </EditorButton>
-            </FlexRow>
+                    }}
+                  >
+                    Download
+                  </EditorButton>
+                ) : null}
+              </FlexRow>
+            ) : null}
             {actions[tile.layerId] ? (
               <Text
                 size="small"

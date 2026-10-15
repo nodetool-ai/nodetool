@@ -198,7 +198,10 @@ export const useAssets = () => {
     isLoading: isLoadingFolderTree
   } = useQuery({
     queryKey: ["folderTree", settings.assetsOrder, activeProjectId],
-    queryFn: fetchAllFolders
+    queryFn: fetchAllFolders,
+    // Every component that calls useAssets mounts this query. Without a
+    // staleTime each later mount refetched the whole folder list.
+    staleTime: 30_000
   });
 
   const refetchFolders = useCallback(() => {

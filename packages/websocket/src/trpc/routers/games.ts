@@ -1,12 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { z } from "zod";
-import sharp from "sharp";
+import { loadSharpOrThrow } from "@nodetool-ai/runtime";
+import { importPack } from "@nodetool-ai/node-catalog";
+type GamePreparationModule = typeof import("@nodetool-ai/game-renderer/preparation3d");
 import { createLogger, getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
 import { AmbiguousGameIdError, InvalidGameDocumentError, MissingGameDraftSourceError, Asset, Game, Project, Workspace } from "@nodetool-ai/models";
 import { exampleGameSummary, anyGameAssetBinding, gameAssetBinding, gameAssetBinding3D, gameAssetSiblingRebinds, gamePreparedCollider3D, gameModelImportSettings3D, parseGameDocument, anyGameDocument, gameDocument as gameDocument2D, gameDocument3D, installExampleGameInput, stagedGameCandidateRecord, stagedGameCandidateRecordPath, type AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame, createNative3DGame, anyGameDocumentOp, GameOpError, decodePreparedGameCollider3D, trackGameAuthoringEdits, validateAnyGame } from "@nodetool-ai/game-runtime";
-import { normalizeGameModel3D, prepareGameModelBinding3D } from "@nodetool-ai/game-renderer/preparation3d";
 import { contextSecretAvailability, createCapabilityRun, gateFromContext } from "@nodetool-ai/agents";
 import { gameAuthoringCandidate, gameAuthoringProgram, gameAuthoringConflict } from "@nodetool-ai/protocol";
 import { PERMISSION_GATE_CONTEXT_KEY, ProcessingContext, headlessGate } from "@nodetool-ai/runtime";
@@ -433,6 +434,7 @@ async function installCandidateBinding(userId: string, input: z.infer<typeof ins
   const { extension, contentType, bytes } = candidate;
   let binding = input.binding;
   if (binding.mediaKind === "model") {
+    const { prepareGameModelBinding3D } = await importPack<GamePreparationModule>("game", "@nodetool-ai/game-renderer/preparation3d");
     const prepared = await prepareGameModelBinding3D(bytes, { assetId: binding.assetId, expectedDigest: digest });
     if (!prepared.ok) { throwApiError(ApiErrorCode.INVALID_INPUT, prepared.diagnostics.map((issue) => issue.message).join("; ")); }
     const sourceAsset = binding.sourceAssetId ? await Asset.find(ctx.userId, binding.sourceAssetId) : null;
@@ -743,6 +745,7 @@ export const gamesRouter = router({
         throwApiError(ApiErrorCode.INVALID_INPUT, is3D ? "Model content digest changed" : "Image content digest changed");
       }
       if (draft.document.schemaVersion === 3) {
+        const { normalizeGameModel3D } = await importPack<GamePreparationModule>("game", "@nodetool-ai/game-renderer/preparation3d");
         const normalized = await normalizeGameModel3D(bytes, {
           assetId: asset.id, sourceAssetId: asset.id, importSettings: input.importSettings,
           provenance: asset.workflow_id ?? undefined,
@@ -762,6 +765,7 @@ export const gamesRouter = router({
         return persistGameAsset(ctx.userId, game, workspace, draft.game.draft_updated_at, input.slot,
           normalized.binding, normalized.bytes, "glb", "model/gltf-binary");
       }
+      const sharp = await loadSharpOrThrow();
       const metadata = await sharp(bytes).metadata();
       if (!metadata.width || !metadata.height) { throwApiError(ApiErrorCode.INVALID_INPUT, "Image dimensions are unavailable"); }
       const saved = await Game.updateDraft(ctx.userId, game.id, draft.game.draft_updated_at, [{

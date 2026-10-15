@@ -388,8 +388,9 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   still draws, in front of the bundled default, and the validator reports it
   as `font_not_portable`.
 - **`src/fonts/register-node.ts` is not reachable from the root export, or
-  from `./fonts`.** It imports `@napi-rs/canvas`, and the root export has no
-  runtime dependencies (AS2); Node hosts reach it as
+  from `./fonts`.** It loads `@napi-rs/canvas` through the runtime imaging
+  loader when this Node subpath is imported. The root export has no rendering
+  dependencies (AS2). Node hosts reach it as
   `@nodetool-ai/timeline/fonts/node` and call `registerBundledFonts()` before
   they draw. The catalog and the `@font-face` generator carry no imports at
   all, which is what lets the browser, the validator and the fonts endpoint
@@ -406,7 +407,8 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   files under `getNodetoolCacheDir()/timeline-google-fonts/<slug>/` (see the
   "Google Fonts family resolution (timeline)" row in
   `docs/url-egress-inventory.md`). `google-fonts-node.ts`
-  (`@nodetool-ai/timeline/fonts/google-node`) adds `@napi-rs/canvas`
+  (`@nodetool-ai/timeline/fonts/google-node`) loads the imaging runtime and adds
+  canvas
   registration on top — `ensureGoogleFonts(sequence)` is what
   `RenderTimeline`, `nodetool timeline render` and the agent's frame preview
   call before constructing their rasterizer, returning `{resolved,

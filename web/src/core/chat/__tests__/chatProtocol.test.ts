@@ -302,12 +302,12 @@ describe("chatProtocol", () => {
       expect(capturedState.summarizeThread).not.toHaveBeenCalled();
     });
 
-    it("asks the server for a title while the thread has the default one", async () => {
+    it.each(["New conversation", "New Thread"])("asks the server for a title while the thread has the default %s", async (title) => {
       let capturedState: GlobalChatState = partialChatState({
         status: "connected",
         currentThreadId: "thread-1",
         threads: {
-          "thread-1": { id: "thread-1", title: "New conversation", updated_at: new Date().toISOString() }
+          "thread-1": { id: "thread-1", title, updated_at: new Date().toISOString() }
         },
         messageCache: {
           "thread-1": [{ role: "user", type: "message", content: "Hello world" }]

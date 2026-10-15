@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
-import { Box, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
+import { BORDER_RADIUS, getSpacingPx, SPACING, StatusBar } from "../ui_primitives";
 import LockIcon from "@mui/icons-material/Lock";
 
 interface EditorStatusBarProps {
@@ -23,29 +23,6 @@ interface EditorStatusBarProps {
 
 const styles = (theme: Theme) =>
   css({
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xl)}`,
-    backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.7)`,
-    backdropFilter: "blur(8px)",
-    fontSize: theme.fontSizeSmaller,
-    color: theme.vars.palette.grey[300],
-    fontFamily: theme.fontFamily2,
-    height: "2em",
-    position: "relative",
-    "&::before": {
-      content: "''",
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: "1px",
-      background: `linear-gradient(90deg,
-        rgba(${theme.vars.palette.common.whiteChannel} / 0.06),
-        rgba(${theme.vars.palette.common.whiteChannel} / 0.03) 50%,
-        transparent 100%)`
-    },
     ".stats": {
       display: "flex",
       gap: getSpacingPx(SPACING.md),
@@ -63,7 +40,7 @@ const styles = (theme: Theme) =>
         opacity: 0.7
       },
       ".value": {
-        color: theme.vars.palette.grey[100],
+        color: theme.vars.palette.text.primary,
         fontWeight: 600
       }
     },
@@ -71,15 +48,13 @@ const styles = (theme: Theme) =>
       width: "3px",
       height: "3px",
       borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.15)`,
+      backgroundColor: theme.vars.palette.text.disabled,
       flexShrink: 0
     },
     ".status-info": {
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.lg),
-      color: theme.vars.palette.grey[400],
-      fontSize: theme.fontSizeSmaller,
       ".info-item": {
         whiteSpace: "nowrap"
       }
@@ -119,7 +94,11 @@ const EditorStatusBar = ({
   const lineCount = text === "" ? 1 : text.split("\n").length;
 
   return (
-    <Box className="editor-status-bar" css={styles(theme)}>
+    <StatusBar
+      className="editor-status-bar"
+      css={styles(theme)}
+      sx={{ justifyContent: "space-between" }}
+    >
       <div className="stats">
         <div className="stat-item">
           <span className="label">Words:</span>
@@ -161,7 +140,7 @@ const EditorStatusBar = ({
         <span className="info-item">Spaces: {indentSize}</span>
         <span className="info-item">{encoding}</span>
       </div>
-    </Box>
+    </StatusBar>
   );
 };
 

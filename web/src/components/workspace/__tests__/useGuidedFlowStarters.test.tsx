@@ -96,6 +96,7 @@ jest.mock("../openPageTab", () => ({
 }));
 
 import { useGuidedFlowStarters } from "../useGuidedFlowStarters";
+import { startImageFlow } from "../../setup/image/startImageFlow";
 
 const renderStarters = (onStarted = jest.fn()) => {
   const hook = renderHook(
@@ -170,6 +171,19 @@ it("starts the Game flow on a workflow that carries the game setup", async () =>
   // No game exists until the flow builds one.
   expect(gameCreate).not.toHaveBeenCalled();
   expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "workflow", projectId: "p-game" }));
+});
+
+it("names the picture flow Image in the menu and its new tab New image", async () => {
+  (startImageFlow as jest.Mock).mockImplementation(async (o: { name: string }) => ({
+    documentId: "sk-1",
+    name: o.name
+  }));
+  const { hook } = renderStarters();
+  const image = hook.result.current.starters.find((entry) => entry.id === "image")!;
+  expect(image.title).toBe("Image");
+  await act(async () => { await image.start("p1"); });
+  expect(startImageFlow).toHaveBeenCalledWith(expect.objectContaining({ name: "New image" }));
+  expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "sketch", title: "New image" }));
 });
 
 // The setup PATCH follows the create. When it fails, the empty timeline it

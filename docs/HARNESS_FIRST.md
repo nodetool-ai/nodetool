@@ -206,9 +206,9 @@ downstream of a changed one. It is opt-in because the hub workspaces (`cli`,
 then select most of the registry. The plan step loads no built package, so
 `--dry-run`, `list`, and `audit` work before `npm run build:packages`.
 
-CI runs cheap selfchecks two at a time with `--jobs 2`, while
-`NODETOOL_TEST_WORKERS=1` keeps each check's test files serial. Expensive
-checks remain serial. Each check reports its start and completion on stderr,
+CI runs selfchecks serially with `--jobs 1`, while
+`NODETOOL_TEST_WORKERS=1` keeps each check's test files serial. This avoids
+competing selfchecks exhausting the game runtime’s wall-clock script batch budgets. Each check reports its start and completion on stderr,
 including with `--json`, and its result includes `durationMs`. JSON results
 stay on stdout so logs can show progress without changing machine-readable
 output. The per-check timeout and CI job deadline still apply.

@@ -262,6 +262,13 @@ export interface NodeStoreState {
   ) => Node<NodeData>;
   autoLayout: () => Promise<void>;
   workflowIsDirty: boolean;
+  /**
+   * Counts user edits: every `setWorkflowDirty(true)` call adds one, even when
+   * the workflow is already dirty. A save compares it to tell an edit made
+   * while the save was in flight from React Flow re-measuring nodes, which
+   * replaces the node array without changing the workflow.
+   */
+  editGeneration: number;
   shouldFitToScreen: boolean;
   setShouldFitToScreen: (value: boolean) => void;
   selectAllNodes: () => void;
@@ -477,6 +484,7 @@ export const createNodeStore = (
                 created_at: new Date().toISOString()
               },
           workflowIsDirty: false,
+          editGeneration: 0,
           nodes: sanitizedNodes,
           edges: sanitizedEdges,
           links: initialLinks,
@@ -1350,10 +1358,16 @@ export const createNodeStore = (
             return { ...workflow, settings, graph };
           },
           setWorkflowDirty: (dirty: boolean): void => {
-            if (get().workflowIsDirty === dirty) {
+            if (dirty) {
+              set((state) => ({
+                editGeneration: state.editGeneration + 1,
+                workflowIsDirty: true
+              }));
               return;
             }
-            set({ workflowIsDirty: dirty });
+            if (get().workflowIsDirty) {
+              set({ workflowIsDirty: false });
+            }
           },
           setWorkflowUpdatedAt: (
             updatedAt: string,

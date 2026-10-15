@@ -9,7 +9,7 @@
  * How they pick up the design system:
  *
  * - Interactive controls (Button, Tabs, Tab, ToggleButton, Accordion,
- *   LinearProgress, Modal, Toolbar, Tooltip, Select/Switch/Menu/MenuItem/
+ *   LinearProgress, Modal, Tooltip, Select/Switch/Menu/MenuItem/
  *   OutlinedInput via editorControls) carry explicit `Mui*` overrides in
  *   `ThemeNodetool` / `themes/components/editorControls.ts`. If you re-export
  *   a new interactive control, add its override in the same PR or it renders
@@ -136,11 +136,10 @@ export { default as SvgIcon } from "@mui/material/SvgIcon";
 export type { SvgIconProps } from "@mui/material/SvgIcon";
 
 // Overlay / transition / chrome
-export { Modal, Fade, Toolbar, LinearProgress } from "@mui/material";
+export { Modal, Fade, LinearProgress } from "@mui/material";
 export type {
   ModalProps,
   FadeProps,
-  ToolbarProps,
   LinearProgressProps
 } from "@mui/material";
 

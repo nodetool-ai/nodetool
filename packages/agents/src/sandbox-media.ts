@@ -10,7 +10,7 @@
  *
  * Two backends implement the same surface, picked at first use:
  *
- * - **Node** — `@napi-rs/canvas` (Skia). Imported through `importHidden`, so no
+ * - **Node** — `@napi-rs/canvas` (Skia). Imported through `loadCanvas`, so no
  *   bundler tries to resolve the native addon into a browser graph. It is
  *   already staged as an external in `scripts/bundle-backend.mjs`, so the
  *   packaged Electron backend resolves it at runtime.
@@ -21,7 +21,7 @@
  * Neither backend is ever handed to the guest.
  */
 
-import { importHidden } from "@nodetool-ai/config";
+import { loadCanvas } from "@nodetool-ai/runtime";
 import {
   CANVAS_GRADIENT_MARKER,
   CANVAS_METHODS,
@@ -278,21 +278,15 @@ let backendPromise: Promise<MediaBackend> | null = null;
 export async function getMediaBackend(): Promise<MediaBackend> {
   if (!backendPromise) {
     backendPromise = (async () => {
-      const mod = await importHidden<NapiCanvasModule>("@napi-rs/canvas").catch(
-        () => null
-      );
-      if (mod && isFunction(mod.createCanvas)) {
-        return createNodeBackend(mod);
+      try {
+        // The backend adapter uses only the subset of Canvas named by NapiCanvasModule.
+        return createNodeBackend(await loadCanvas() as unknown as NapiCanvasModule);
+      } catch (error) {
+        if (isFunction(globalThis.OffscreenCanvas)) {
+          return createBrowserBackend();
+        }
+        throw error;
       }
-      if (
-        isFunction(globalThis.OffscreenCanvas)
-      ) {
-        return createBrowserBackend();
-      }
-      throw new Error(
-        "image and canvas need a 2D canvas: install @napi-rs/canvas on Node, " +
-          "or run somewhere with OffscreenCanvas"
-      );
     })();
     // A failed probe must not be cached as a rejected promise forever.
     backendPromise.catch(() => {

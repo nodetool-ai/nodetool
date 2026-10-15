@@ -67,9 +67,9 @@ describe("bundled fonts across the Node hosts", () => {
     expect(result.registered.length).toBeGreaterThan(0);
   });
 
-  it("draws Bebas Neue identically in the server render and the preview", () => {
+  it("draws Bebas Neue identically in the server render and the preview", async () => {
     const server = new NodeRasterizer(W, H).text(style("Bebas Neue"));
-    const previewCanvas = new PreviewRasterizer(W, H).text(style("Bebas Neue"));
+    const previewCanvas = (await PreviewRasterizer.create(W, H)).text(style("Bebas Neue"));
     expect(server).not.toBeNull();
     expect(previewCanvas).not.toBeNull();
 
@@ -99,13 +99,13 @@ describe("bundled fonts across the Node hosts", () => {
     expect(mismatchFraction(bebas, inter)).toBeGreaterThan(0.01);
   });
 
-  it("renders Inter 800 heavier than Inter 600 in both Node hosts", () => {
+  it("renders Inter 800 heavier than Inter 600 in both Node hosts", async () => {
     const rasterizer = new NodeRasterizer(W, H);
     const regular = { ...style("Inter"), fontWeight: 600 };
     const extraBold = { ...style("Inter"), fontWeight: 800 };
     const server600 = alphaOf(rasterizer.text(regular)!.rgba);
     const server800 = alphaOf(rasterizer.text(extraBold)!.rgba);
-    const preview = new PreviewRasterizer(W, H);
+    const preview = await PreviewRasterizer.create(W, H);
     const preview800 = alphaOf(
       preview.text(extraBold)!.getContext("2d").getImageData(0, 0, W, H).data
     );

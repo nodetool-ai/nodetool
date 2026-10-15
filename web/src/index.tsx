@@ -55,6 +55,7 @@ import { initKeyListeners } from "./stores/KeyPressedStore";
 import { useSettingsStore } from "./stores/SettingsStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata, prefetchMetadata } from "./serverState/useMetadata";
+import { useSeedDefaultModels } from "./hooks/useSeedDefaultModels";
 import { useCustomNodeMetadata } from "./serverState/useCustomNodeMetadata";
 import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
@@ -595,6 +596,16 @@ const CustomNodeMetadataBridge = () => {
   return null;
 };
 
+/**
+ * Pins the first usable model of a connected provider as the default language
+ * and image model, once, and starts the chat on it. Rendered only after
+ * sign-in because it queries the model catalog.
+ */
+const SeedDefaultModelsBridge = () => {
+  useSeedDefaultModels();
+  return null;
+};
+
 const MenuNavigationBridge = () => {
   const snapToGrid = useSettingsStore((state) => state.settings.snapToGrid);
   const setSnapToGrid = useSettingsStore((state) => state.setSnapToGrid);
@@ -700,6 +711,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
               <CustomNodeMetadataBridge />
               <WorkflowManagerProvider queryClient={queryClient}>
                 <KeyboardProvider active={true}>
+                  {status === "success" && <SeedDefaultModelsBridge />}
                   {status === "pending" && !isDevTestRoute && (
                     <div
                       role="status"

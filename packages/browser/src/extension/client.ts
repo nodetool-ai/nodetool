@@ -201,7 +201,11 @@ export class ExtensionCdpClient {
     if (this.closed) return;
     this.closed = true;
     this.stopHeartbeat();
-    this.rejectAll(new Error("Extension CDP connection closed"));
+    const error = new Error("Extension CDP connection closed");
+    this.attachReject?.(error);
+    this.attachReject = null;
+    this.attachResolve = null;
+    this.rejectAll(error);
     try {
       this.channel.close();
     } catch {

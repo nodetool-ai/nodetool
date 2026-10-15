@@ -15,9 +15,11 @@
 
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { GlobalFonts } from "@napi-rs/canvas";
+import { loadCanvas } from "@nodetool-ai/runtime";
 
 import { BUNDLED_FONTS } from "./catalog.js";
+
+const { GlobalFonts } = await loadCanvas();
 
 /** What one process-wide registration pass did. */
 export interface BundledFontRegistration {

@@ -261,6 +261,10 @@ export function useTimelineExport(): UseTimelineExportResult {
       runExport(
         (bytes, mimeType, name, extension) => {
           downloadBlob(bytes, mimeType, `${name}.${extension}`);
+          useNotificationStore.getState().addNotification({
+            type: "success",
+            content: `Exported ${name}.${extension}.`
+          });
         },
         filename,
         options

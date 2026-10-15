@@ -18,7 +18,7 @@ import {
   FlexRow,
   LoadingSpinner,
   ScrollArea,
-  Text, getSpacingPx, SPACING
+  Text, Toolbar, getSpacingPx, SPACING
 } from "../ui_primitives";
 
 interface TextPreviewProps {
@@ -35,13 +35,6 @@ const styles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     backgroundColor: theme.vars.palette.grey[900],
-    ".preview-header": {
-      flex: "0 0 auto",
-      height: "2.5em",
-      padding: `0 ${getSpacingPx(SPACING.md)} 0 ${getSpacingPx(SPACING.lg)}`,
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.grey[800]
-    },
     ".filename": {
       color: theme.vars.palette.text.primary,
       fontWeight: 500
@@ -180,11 +173,9 @@ const TextPreview = ({ asset }: TextPreviewProps) => {
 
   return (
     <FlexColumn css={styles(theme)} sx={{ width: "100%", height: "100%" }}>
-      <FlexRow
+      <Toolbar
         className="preview-header"
-        align="center"
-        justify="space-between"
-        gap={1}
+        sx={{ justifyContent: "space-between", pl: SPACING.lg }}
       >
         <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
           <Text className="filename" size="small">
@@ -195,7 +186,7 @@ const TextPreview = ({ asset }: TextPreviewProps) => {
           </Caption>
         </FlexRow>
         {text !== undefined && <CopyButton value={text} buttonSize="small" />}
-      </FlexRow>
+      </Toolbar>
       <div className="preview-body">{body()}</div>
     </FlexColumn>
   );

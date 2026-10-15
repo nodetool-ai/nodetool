@@ -101,6 +101,30 @@ function renderPanel(options: {
   return { layer, layers, props };
 }
 
+describe("SketchLayersPanel imported layer source line", () => {
+  it("names the image by its layer, not by its storage path", () => {
+    const { theme, layer, props } = buildPanelProps();
+    layer.name = "Variation 1";
+    layer.imageReference = {
+      uri: "/api/storage/1/188b129a59e34295b5f58b9f7dfca44c.png",
+      naturalWidth: 1536,
+      naturalHeight: 1024,
+      objectFit: "contain"
+    };
+    const { container } = render(
+      <ThemeProvider theme={theme}>
+        <SketchLayersPanel {...props} />
+      </ThemeProvider>
+    );
+    const line = container.querySelector(
+      ".sketch-layers-panel__active-layer-ref"
+    );
+    expect(line).toHaveTextContent("Variation 1 · source 1536×1024 · contain");
+    expect(line).not.toHaveTextContent("/api/storage");
+    expect(line).not.toHaveTextContent(".png");
+  });
+});
+
 describe("SketchLayersPanel blend mode quick cycling", () => {
   it("cycles blend mode directly with arrow keys without opening the menu", () => {
     const { layer, props } = renderPanel();

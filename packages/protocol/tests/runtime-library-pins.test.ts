@@ -18,7 +18,8 @@ const loaders: ReadonlyArray<readonly [RuntimeNpmPackageId, string, string]> = [
   ["tracing", "@opentelemetry/core", "runtime"],
   ["tracing", "@opentelemetry/resources", "runtime"],
   ["tracing", "@opentelemetry/sdk-trace-base", "runtime"],
-  ["esbuild", "esbuild", "sandbox-compiler"]
+  ["esbuild", "esbuild", "sandbox-compiler"],
+  ["rapier", "@dimforge/rapier3d-compat", "game-runtime"]
 ];
 
 describe("shared runtime library pins", () => {
@@ -37,7 +38,7 @@ describe("shared runtime library pins", () => {
     expect(semver.satisfies(version, range), `${spec} must satisfy ${loader}: ${declared}`).toBe(true);
   });
 
-  it.each(["imaging", "typescript", "tracing", "esbuild"] as const)("%s is bundled by desktop and Docker", (id) => {
+  it.each(["imaging", "typescript", "tracing", "esbuild", "rapier"] as const)("%s is bundled by desktop and Docker", (id) => {
     expect(RUNTIME_NPM_PACKAGES[id].bundledHosts).toEqual(["desktop", "docker"]);
   });
 

@@ -1,10 +1,13 @@
+import { isCloudProfile } from "../../lib/cloud-profile.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { TRPCError } from "@trpc/server";
 import type { Context } from "../context.js";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import { createLogger, getHfHubCacheDir } from "@nodetool-ai/config";
-import { discoverASRModels, discoverVadModels } from "@nodetool-ai/whisper-cpp";
+import { importPack, MissingPackError } from "@nodetool-ai/node-catalog";
+type WhisperModule = typeof import("@nodetool-ai/whisper-cpp");
+type TransformersModelsModule = typeof import("@nodetool-ai/transformers-js-nodes");
 import {
   getProvider,
   getRegisteredProvider,
@@ -35,13 +38,7 @@ import {
   deleteCachedHfModel,
   isLlamaCppModelCached as isFlatLlamaCppModelCached
 } from "@nodetool-ai/huggingface";
-import {
-  getTransformersJsCacheDir,
-  recommendedFor,
-  scanTransformersJsCache,
-  TJS_MODEL_TYPES,
-  type TjsModelRef
-} from "@nodetool-ai/transformers-js-nodes";
+import type { TjsModelRef } from "@nodetool-ai/transformers-js-nodes";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
 import { MODEL_SEARCH_KINDS } from "@nodetool-ai/protocol";
 import { rankedModelKeys } from "../../models-api.js";
@@ -55,6 +52,18 @@ import {
   resolveModelExecutionAvailability,
   type ProviderExecutionInfo
 } from "../../model-execution-availability.js";
+
+async function loadModelPack<T extends object>(pack: string): Promise<T | undefined> {
+  try {
+    return await importPack<T>(pack);
+  } catch (error) {
+    if (!(error instanceof MissingPackError)) {
+      throw error;
+    }
+    log.warn("Model list unavailable because its node pack is missing", { ...error.details, message: error.message });
+    return undefined;
+  }
+}
 
 const modelArtifactRefSchema = z.object({
   source: z.literal("huggingface"),
@@ -604,6 +613,14 @@ async function withWhisperDownloadStatus<T extends UnifiedModel>(
   models: T[],
   userId: string
 ): Promise<T[]> {
+  if (!models.some((model) => model.provider === "whisper_cpp")) {
+    return models;
+  }
+  const whisper = await loadModelPack<WhisperModule>("whisper-cpp");
+  if (!whisper) {
+    return models.filter((model) => model.provider !== "whisper_cpp");
+  }
+  const { discoverASRModels, discoverVadModels } = whisper;
   const modelsDir = await secretResolverFor(userId)("WHISPER_CPP_MODELS_DIR");
   const whisperFiles = new Map(
     (
@@ -761,7 +778,8 @@ function tjsRefToUnified(
  * A repo can match multiple types if listed in several recommended lists
  * (rare, but supported); we just return the set of (type, ref) pairings.
  */
-function tjsCachedAsRecommended(repoId: string): TjsModelRef[] {
+function tjsCachedAsRecommended(repoId: string, models: TransformersModelsModule): TjsModelRef[] {
+  const { TJS_MODEL_TYPES, recommendedFor } = models;
   const out: TjsModelRef[] = [];
   for (const type of TJS_MODEL_TYPES) {
     const match = recommendedFor(type).find((r) => r.repo_id === repoId);
@@ -924,7 +942,8 @@ async function resolveProviderModelExecution(
     )
   ) {
     try {
-      const cached = await scanTransformersJsCache(getTransformersJsCacheDir());
+      const tjs = await loadModelPack<TransformersModelsModule>("transformers-js");
+      const cached = tjs ? await tjs.scanTransformersJsCache(tjs.getTransformersJsCacheDir()) : [];
       cachedModels.push(
         ...cached.map((c) =>
           tjsRefToUnified({ repo_id: c.repo_id }, "tjs.cached", true, c.size_bytes)
@@ -983,14 +1002,15 @@ export async function getAllModels(userId: string): Promise<UnifiedModel[]> {
     }
 
     try {
-      const cached = await scanTransformersJsCache(getTransformersJsCacheDir());
+      const tjs = await loadModelPack<TransformersModelsModule>("transformers-js");
+      const cached = tjs ? await tjs.scanTransformersJsCache(tjs.getTransformersJsCacheDir()) : [];
       for (const c of cached) {
         // Surface each cached repo under its first matched recommended type
         // (e.g. "tjs.text_generation") so it lands in the right sidebar bucket;
         // fall back to "tjs.cached" for repos not in any recommended list.
-        const recommendedTypes = TJS_MODEL_TYPES.filter((t) =>
-          recommendedFor(t).some((r) => r.repo_id === c.repo_id)
-        );
+        const recommendedTypes = tjs?.TJS_MODEL_TYPES.filter((t) =>
+          tjs.recommendedFor(t).some((r) => r.repo_id === c.repo_id)
+        ) ?? [];
         const modelType = recommendedTypes[0] ?? "tjs.cached";
         all.push(
           tjsRefToUnified({ repo_id: c.repo_id }, modelType, true, c.size_bytes)
@@ -1411,7 +1431,7 @@ export const modelsRouter = router({
         return filterModelsByHfType(cached, input.model_type) as UnifiedModel[];
       }
       // Scans the server's own HuggingFace cache, like huggingfaceList.
-      if (isProduction()) return [];
+      if (isCloudProfile()) return [];
       try {
         return await getModelsByHfType(input.model_type);
       } catch {
@@ -1433,6 +1453,9 @@ export const modelsRouter = router({
     .output(modelsListOutput)
     .query(async ({ input }) => {
       if (isProduction()) return [];
+      const tjs = await loadModelPack<TransformersModelsModule>("transformers-js");
+      if (!tjs) return [];
+      const { recommendedFor, getTransformersJsCacheDir, scanTransformersJsCache } = tjs;
       const modelType = input.model_type;
       const recs = recommendedFor(modelType);
       const cacheDir = getTransformersJsCacheDir();
@@ -1460,7 +1483,7 @@ export const modelsRouter = router({
       // downloaded for this task without losing the recommended sort.
       for (const c of cached) {
         if (seen.has(c.repo_id)) continue;
-        const homes = tjsCachedAsRecommended(c.repo_id);
+        const homes = tjsCachedAsRecommended(c.repo_id, tjs);
         if (homes.length > 0) continue;
         out.push(
           tjsRefToUnified({ repo_id: c.repo_id }, modelType, true, c.size_bytes)
@@ -1483,6 +1506,9 @@ export const modelsRouter = router({
     .output(modelsListOutput)
     .query(async ({ input }) => {
       if (isProduction()) return [];
+      const tjs = await loadModelPack<TransformersModelsModule>("transformers-js");
+      if (!tjs) return [];
+      const { recommendedFor, getTransformersJsCacheDir, scanTransformersJsCache } = tjs;
       const modelType = input.model_type;
       const recs = recommendedFor(modelType);
       if (recs.length === 0) return [];
@@ -1898,7 +1924,7 @@ export const modelsRouter = router({
     .mutation(async ({ input }) => {
       // The caches it probes are the server's, which production never offers
       // to its users.
-      if (isProduction()) {
+      if (isCloudProfile()) {
         return input.map((item) => ({ key: item.key, downloaded: false }));
       }
       return Promise.all(

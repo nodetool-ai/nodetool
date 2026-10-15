@@ -768,6 +768,30 @@ export const HARNESSES: HarnessEntry[] = [
     selfcheck: { command: "npm run backend:smoke", cost: "expensive" }
   },
   {
+    id: "packed-core-cli",
+    title: "Core-only packed CLI install and execution smoke",
+    command: "node scripts/smoke-packed-cli.mjs --core-only",
+    kind: "meta",
+    capabilities: ["gated:pr"],
+    docs: "docs/harnesses.md § Packed CLI smoke",
+    selfcheck: {
+      command: "node scripts/smoke-packed-cli.mjs --core-only",
+      cost: "expensive"
+    }
+  },
+  {
+    id: "release-pins",
+    title: "Release catalog integrity, install measurement and packing order",
+    command: "node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-catalog.test.mjs scripts/__tests__/publish-packages.test.mjs scripts/__tests__/install-pins.test.mjs scripts/__tests__/staging-release.test.mjs scripts/__tests__/publish-tarballs.test.mjs",
+    kind: "meta",
+    capabilities: ["gated:pr"],
+    docs: "docs/harnesses.md § Release catalog pins",
+    selfcheck: {
+      command: "node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-catalog.test.mjs scripts/__tests__/publish-packages.test.mjs scripts/__tests__/install-pins.test.mjs scripts/__tests__/staging-release.test.mjs scripts/__tests__/publish-tarballs.test.mjs",
+      cost: "cheap"
+    }
+  },
+  {
     id: "docker-smoke",
     title: "Deploy-image smoke (build, boot, load app in a browser)",
     command: "node scripts/docker-smoke.mjs http://localhost:7777",
@@ -1843,6 +1867,31 @@ export const SURFACES: SurfaceEntry[] = [
       "scripts/bundle-backend.mjs",
       "scripts/verify-backend-bundle.mjs",
       "packages/config/src/package-asset-registry.ts"
+    ]
+  },
+  {
+    id: "packed-core-cli",
+    title: "Isolated core CLI package installation",
+    harnesses: ["packed-core-cli"],
+    paths: [
+      "scripts/smoke-packed-cli.mjs",
+      "scripts/fixtures/codec-identity.mp4",
+      ".github/workflows/packed-core-cli.yml"
+    ]
+  },
+  {
+    id: "release-pins",
+    title: "Release tarball catalog pins",
+    harnesses: ["release-pins"],
+    paths: [
+      "scripts/release/",
+      "scripts/publish-packages.mjs",
+      "scripts/prepare-publish.mjs",
+      "scripts/__tests__/pin-catalog.test.mjs",
+      "scripts/__tests__/publish-packages.test.mjs",
+      "scripts/__tests__/install-pins.test.mjs",
+      "scripts/__tests__/staging-release.test.mjs",
+      "scripts/__tests__/publish-tarballs.test.mjs"
     ]
   },
   {

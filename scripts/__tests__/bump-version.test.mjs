@@ -14,6 +14,7 @@ function catalogFixture() {
   return {
     schemaVersion: 1,
     coreVersion: OLD_VERSION,
+    installPins: [{ name: "shared-library", version: "1.0.0", integrity: "sha512-shared", shared: true }],
     owners: { "fixture.Node": "core" },
     packs: [{
       id: "core", npm: { name: "@nodetool-ai/core-nodes", version: OLD_VERSION, integrity: "sha512-old" },
@@ -35,6 +36,7 @@ describe("catalog cohort version bump", () => {
     const updated = bumpCatalogVersion(index, NEW_VERSION);
     expect(JSON.stringify(index)).toBe(original);
     expect(updated.coreVersion).toBe(NEW_VERSION);
+    expect(updated.installPins).toEqual([]);
     expect(updated.owners).toEqual(index.owners);
     expect(updated.packs[0].npm.version).toBe(NEW_VERSION);
     expect(updated.packs[0].npm.integrity).toBe("");

@@ -74,8 +74,12 @@ jest.mock("@mui/material/styles", () => ({
           mainChannel: "25, 118, 210"
         },
         action: {
-          hover: "rgba(0, 0, 0, 0.04)"
+          hover: "rgba(0, 0, 0, 0.04)",
+          selected: "rgba(0, 0, 0, 0.08)"
         },
+        divider: "rgba(255, 255, 255, 0.12)",
+        error: { main: "#f44336" },
+        Paper: { overlay: "rgba(0, 0, 0, 0.2)" },
         text: {
           primary: "#fff",
           secondary: "#bdbdbd"

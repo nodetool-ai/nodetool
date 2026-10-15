@@ -9,19 +9,18 @@ beforeEach(() => {
 afterEach(async () => { await shutdownTelemetry(); _resetTelemetryForTest(); });
 
 describe("telemetry pipeline", () => {
-  it("records local spans with no network exporter when no endpoint is configured", async () => {
+  it("skips tracing when no durable store or external sink is configured", async () => {
     const send = vi.fn<typeof fetch>();
     vi.stubGlobal("fetch", send);
-    expect(await initTelemetry({ silent: true })).toBe(true);
-    const span = getTracer()!.startSpan("local");
-    expect(span.isRecording()).toBe(true);
-    span.end();
+    expect(await initTelemetry({ silent: true })).toBe(false);
+    expect(getTracer()).toBeNull();
     await shutdownTelemetry();
     expect(send).not.toHaveBeenCalled();
   });
 
   it("preserves async parent spans and W3C propagation", async () => {
-    await initTelemetry({ silent: true });
+    const output = vi.spyOn(console, "dir").mockImplementation(() => {});
+    await initTelemetry({ console: true, silent: true });
     await getTracer()!.startActiveSpan("parent", async (parent) => {
       await Promise.resolve();
       expect(trace.getSpan(context.active())).toBe(parent);
@@ -36,6 +35,7 @@ describe("telemetry pipeline", () => {
       child.end();
       parent.end();
     });
+    output.mockRestore();
   });
 
   it("exports the configured service name and headers on shutdown", async () => {

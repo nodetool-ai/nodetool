@@ -19,6 +19,7 @@ import { createServer } from "node:http";
 import { dirname, extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
+import { storageResponseHeaders } from "./storage-policy.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 if (existsSync(join(ROOT, ".env"))) {
@@ -82,13 +83,14 @@ function safeJoin(base, requested) {
   return target === base || target.startsWith(base + sep) ? target : null;
 }
 
-async function serveFile(res, path, fallback) {
+async function serveFile(res, path, fallback, untrusted = false) {
   try {
     const info = await stat(path);
     if (!info.isFile()) throw new Error("not a file");
     res.writeHead(200, {
       "content-type": CONTENT_TYPES[extname(path).toLowerCase()] ?? "application/octet-stream",
-      "content-length": info.size
+      "content-length": info.size,
+      ...(untrusted && storageResponseHeaders(path))
     });
     createReadStream(path).pipe(res);
   } catch {
@@ -128,7 +130,7 @@ async function handleRun(req, res) {
     if (!res.writableEnded) res.write(`data: ${JSON.stringify(message)}\n\n`);
   };
   try {
-    const request = { params: body.params, jobId, signal: abort.signal, send };
+    const request = { params: body.params, propertyOverrides: body.property_overrides, operationId: body.operation_id, jobId, signal: abort.signal, send };
     if (script) await runner.runScript({ ...request, scriptKey: script });
     else await runner.run({ ...request, workflowKey: workflow });
   } catch (error) {
@@ -189,7 +191,7 @@ const server = createServer(async (req, res) => {
         sendJson(res, 400, { error: "invalid_path" });
         return;
       }
-      await serveFile(res, path, null);
+      await serveFile(res, path, null, true);
       return;
     }
     if (url.pathname.startsWith("/api/package-assets/") && req.method === "GET") {

@@ -26,8 +26,8 @@ import { isString } from "../predicates.js";
  * is built once and reused across cases; each case gets a fresh session,
  * context, and job id.
  */
-export function createEvalGraphRunner(): GraphRunner {
-  const registry = buildFullRegistry();
+export async function createEvalGraphRunner(): Promise<GraphRunner> {
+  const registry = await buildFullRegistry();
 
   return async ({ graph, params, timeoutMs, signal }) => {
     const startedAt = Date.now();

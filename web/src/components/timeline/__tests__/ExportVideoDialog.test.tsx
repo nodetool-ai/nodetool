@@ -8,10 +8,16 @@
  * behind a disabled control would send a request that only throws.
  */
 
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import { ExportVideoDialog } from "../ExportVideoDialog";
+import { canEncodeMp4 } from "../render/canEncodeMp4";
+
+jest.mock("../render/canEncodeMp4", () => ({
+  canEncodeMp4: jest.fn(async () => true)
+}));
+const mockCanEncodeMp4 = canEncodeMp4 as jest.MockedFunction<typeof canEncodeMp4>;
 
 const renderDialog = (onExport = jest.fn(), onClose = jest.fn()) => {
   render(
@@ -83,5 +89,24 @@ describe("ExportVideoDialog", () => {
     expect(alphaSwitch()).toBeDisabled();
     clickExport();
     expect(onExport).toHaveBeenCalledWith({ format: "mp4", alpha: false });
+  });
+
+  // UX study 3: all three participants' default MP4 export failed in a
+  // browser without an H.264 encoder, with the encoder's configuration string.
+  it("turns MP4 off and starts on WebM where the browser cannot encode it", async () => {
+    mockCanEncodeMp4.mockResolvedValueOnce(false);
+    const { onExport } = renderDialog();
+    expect(
+      await screen.findByText(/This browser cannot write MP4/)
+    ).toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: /format/i }));
+    expect(screen.getByRole("option", { name: "MP4 (H.264)" })).toHaveAttribute(
+      "aria-disabled",
+      "true"
+    );
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+    clickExport();
+    expect(onExport).toHaveBeenCalledWith({ format: "webm", alpha: false });
   });
 });

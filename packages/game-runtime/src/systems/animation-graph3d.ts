@@ -96,6 +96,7 @@ export function playAnimationGraphState3D(document: GameDocument3D, state: Entit
 
 function enterState(layer: GameAnimationGraphRuntime3D["layers"][number], target: string, tick: number, durationTicks: number): void {
   const previous = { state: layer.state, enteredTick: layer.enteredTick };
+  delete layer.transitionIndex;
   delete layer.previousState;
   delete layer.previousEnteredTick;
   delete layer.transitionTicks;
@@ -158,12 +159,13 @@ export function stepAnimationGraphs3D(document: GameDocument3D, states: readonly
         }
         // The finished crossfade stays one extra tick so the renderer's interpolated sample reaches full weight.
         if (elapsed > (layer.transitionTicks ?? 0)) {
+          delete layer.transitionIndex;
           delete layer.previousState;
           delete layer.previousEnteredTick;
           delete layer.transitionTicks;
         }
       }
-      for (const transition of definition.transitions) {
+      for (const [transitionIndex, transition] of definition.transitions.entries()) {
         if (transition.from !== layer.state && (transition.from !== ANY_ANIMATION_STATE || transition.to === layer.state)) {
           continue;
         }
@@ -179,6 +181,7 @@ export function stepAnimationGraphs3D(document: GameDocument3D, states: readonly
           }
         }
         enterState(layer, transition.to, tick, transition.durationTicks);
+        if (transition.durationTicks > 0) { layer.transitionIndex = transitionIndex; }
         break;
       }
     });

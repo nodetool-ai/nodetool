@@ -11,36 +11,12 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-
-const EXTENSIONS = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/webp": "webp",
-  "image/gif": "gif",
-  "image/svg+xml": "svg",
-  "audio/mpeg": "mp3",
-  "audio/wav": "wav",
-  "audio/x-wav": "wav",
-  "audio/ogg": "ogg",
-  "video/mp4": "mp4",
-  "video/webm": "webm",
-  "application/pdf": "pdf",
-  "application/json": "json",
-  "text/plain": "txt",
-  "text/markdown": "md",
-  "model/gltf-binary": "glb"
-};
+import { getAssetFileName } from "@nodetool-ai/protocol";
 
 /** A generated resource id: 32 lowercase hex characters. */
 const newId = () => randomUUID().replaceAll("-", "");
 
 const now = () => new Date().toISOString();
-
-const extensionFor = (name, contentType) => {
-  const dot = name.lastIndexOf(".");
-  if (dot > 0 && dot < name.length - 1) return name.slice(dot + 1).toLowerCase();
-  return EXTENSIONS[contentType] ?? "bin";
-};
 
 function readJson(path, fallback) {
   try {
@@ -135,8 +111,8 @@ export function createLocalStore({ dataDir, storage }) {
   const interfaces = {
     createAsset: async (args) => {
       const id = newId();
-      const ext = extensionFor(args.name, args.contentType);
-      const key = `${args.userId}/${id}.${ext}`;
+      const filename = getAssetFileName(id, args.contentType);
+      const key = `${args.userId}/${filename}`;
       await storage.store(key, args.content, args.contentType);
       const entry = {
         id,
@@ -152,14 +128,17 @@ export function createLocalStore({ dataDir, storage }) {
       };
       assets[id] = entry;
       saveIndex();
-      return { ...assetInfo(entry), uri: `asset://${id}.${ext}` };
+      return { ...assetInfo(entry), uri: `asset://${filename}` };
     },
     updateAssetBytes: async ({ assetId, content, contentType, name }) => {
       const entry = findAsset(assetId);
       if (!entry) return null;
       if (contentType) entry.content_type = contentType;
       if (name) entry.name = name;
+      const previousKey = entry.key;
+      entry.key = `${previousKey.slice(0, previousKey.lastIndexOf("/"))}/${getAssetFileName(entry.id, entry.content_type)}`;
       await storage.store(entry.key, content, entry.content_type);
+      if (previousKey !== entry.key) await storage.delete(previousKey);
       saveIndex();
       return assetInfo(entry);
     },

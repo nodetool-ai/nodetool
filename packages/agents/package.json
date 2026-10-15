@@ -21,14 +21,10 @@
     "@jitl/quickjs-ng-wasmfile-release-sync": "^0.31.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@mediabunny/server": "^1.54.0",
-    "@napi-rs/canvas": "^0.1.65",
     "@nodetool-ai/app-runtime": "*",
-    "@nodetool-ai/blender-nodes": "*",
     "@nodetool-ai/browser": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/execution": "*",
-    "@nodetool-ai/game-nodes": "*",
-    "@nodetool-ai/game-renderer": "*",
     "@nodetool-ai/game-runtime": "*",
     "@nodetool-ai/image-editor": "*",
     "@nodetool-ai/kernel": "*",
@@ -42,7 +38,6 @@
     "@nodetool-ai/storage": "*",
     "@nodetool-ai/storyboard": "*",
     "@nodetool-ai/timeline": "*",
-    "@nodetool-ai/video-nodes": "*",
     "@nodetool-ai/vectorstore": "*",
     "@sebastianwessel/quickjs": "~3.0.1",
     "acorn": "^8.16.0",
@@ -61,7 +56,8 @@
     "mediabunny": "^1.54.0",
     "papaparse": "^5.5.3",
     "subtitle": "^4.2.2",
-    "turndown": "^7.2.2"
+    "turndown": "^7.2.2",
+    "@nodetool-ai/node-catalog": "*"
   },
   "devDependencies": {
     "@llamaindex/liteparse": "^1.5.2",
@@ -94,7 +90,8 @@
     "tesseract.js": "^7.0.0",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^5.0.1",
-    "office-text-extractor": "^4.0.0"
+    "office-text-extractor": "^4.0.0",
+    "@napi-rs/canvas": "^0.1.65"
   },
   "peerDependencies": {
     "@llamaindex/liteparse": "^1.5.2",
@@ -114,7 +111,8 @@
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^2.4.5",
     "pptxgenjs": "^4.0.1",
-    "tesseract.js": "^7.0.0"
+    "tesseract.js": "^7.0.0",
+    "@napi-rs/canvas": "^0.1.65"
   },
   "peerDependenciesMeta": {
     "@llamaindex/liteparse": {
@@ -169,6 +167,9 @@
       "optional": true
     },
     "tesseract.js": {
+      "optional": true
+    },
+    "@napi-rs/canvas": {
       "optional": true
     }
   },

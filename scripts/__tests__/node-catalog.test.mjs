@@ -47,6 +47,7 @@ describe("node catalog generator", () => {
   it("takes ownership from each registrar and requirements from pack dependencies", async () => {
     const generated = await generate(fixture());
     const index = JSON.parse(generated.index);
+    expect(index.installPins).toEqual([]);
     expect(index.owners).toEqual({
       "nodetool.control.If": "core", "nodetool.game.SpriteSheet": "image", "kie.KieAI": "integration"
     });

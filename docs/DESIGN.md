@@ -891,6 +891,33 @@ render each rule at a docked width of 360px. Check a new panel against them.
 | Field rhythm | A label sits 4px above its field. Fields in a form are 12px apart (`gap={3}`), so each label reads with its own field. |
 | Tabs fit the panel | Small `TabGroup` tabs must all fit at 360px. Shorten the labels or drop the icons before the strip has to scroll. |
 
+### Toolbars and status bars
+
+Every editor's top bar, bottom bar and floating bar comes from these
+primitives in `ui_primitives`. Do not build a bar from a `FlexRow` plus a
+hand-written background, border and height.
+
+| Primitive | Use |
+|---|---|
+| `Toolbar` | The strip above or below an editor surface. `position="top"` (default) rules its bottom edge, `position="bottom"` its top edge, both with the `divider` color on `background.paper`. `density="normal"` is 40px, `density="compact"` is 28px. Padding is `SPACING.md` on the sides and the gap is `SPACING.sm`. |
+| `ToolbarGroup`, `ToolbarDivider` | A cluster of related controls (4px gap) and the vertical rule between clusters. Never draw a divider with `borderLeft` or a pseudo-element. |
+| `StatusBar`, `StatusBarItem` | The bottom strip for selection, hints, counts and zoom. A compact bottom `Toolbar` with caption type in `text.secondary`. `StatusBarItem grow` is the one item that takes the free width and truncates. |
+| `SaveState` | The one save readout: `state="dirty"` is an 8px `warning.main` dot, `saving` a small spinner, `saved` a `success.main` dot, `error` an `error.main` dot. `showLabel={false}` keeps only the dot (labelled for screen readers) when the Save button beside it already says "Saving…". Override the text with `labels`. |
+| `FloatingToolbar` | A bar over a selection, a hovered card or a node. It uses the menu paper (`menuPaperStyles`): overlay paper, divider frame, `BORDER_RADIUS.lg`, `SHADOW.lg`. The caller owns position, z-index and visibility. |
+
+Rules:
+
+- A top or bottom bar is a `Toolbar`. A floating bar is a `FloatingToolbar`.
+  Any other surface that floats (a compose card, a pill) spreads
+  `menuPaperStyles(theme)` instead of picking its own radius and shadow.
+- Pass layout through `sx`, never through an Emotion `css` prop. `Toolbar`'s own
+  `sx` wins over a `css` class on the same element.
+- Do not use `grey[700]`, `grey[800]` or `grey[900]` for a bar's border or
+  background, or a translucent background with `backdropFilter`.
+- Do not copy a `.dirty-dot` block. Render `SaveState`.
+- A bar taller than its density (a stacked two-row header) overrides
+  `flexDirection` and `px` in `sx` but keeps the surface and rule.
+
 ---
 
 ## 11. Properties panels
@@ -970,6 +997,25 @@ a shadow or lift as the only hover cue, or a second selected treatment. The
 one exception is `SelectableListItem`, whose left bar marks a second,
 dashed state such as a comparison target in version history.
 
+### Cards
+
+A card is always `Card` (from `ui_primitives`), never a hand-built `div` with a
+border, radius and background. One card has one radius, one background
+(`background.paper`) and one `divider` border.
+
+| Use | Primitive |
+|---|---|
+| Content tile or panel | `Card` (`variant="outlined"` for a frame; `radius` is `md` by default, `sm` or `lg` when the surface needs it) |
+| Clickable tile | `Card hoverable clickable`, or `component="button"` for a native button |
+| Card in the chat message stream (approvals, requests, summaries) | `Card variant="inline"`: `lg` radius, no padding, so the rows carry their own. Build it from `CardHeader` (icon, title, subtitle, trailing), `CardBody` and `CardActions` (divider above, wraps) |
+| Tint that carries meaning | `tone="info"` (a proposal to review) or `tone="warning"` (a decision is needed, 3px edge). Never decorative |
+| Labelled figure (costs, storage) | `StatCard`: `label`, `value`, optional `decimal`, `icon`, `delta`, `hint`. `layout="plain"` is the bare stack for a toolbar or hero |
+
+Do not write a card container with `borderRadius`, `border` and
+`backgroundColor` by hand, override a card with `grey[*]` colours, or define
+your own `stat-value` and `stat-label` styles. Row lists inside a dialog
+(`ProviderOnboardingCard`) are rows, not cards.
+
 ---
 
 ## 13. Forms
@@ -1007,6 +1053,19 @@ import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from ".
 | Field chrome | Fields keep their primitive look. Do not override `.MuiOutlinedInput-*`, `.MuiInputBase-*`, `.MuiSelect-*` or `.MuiInputLabel-*` from a form's `css` or `sx`. A form may set a field's width only |
 | Variant | Outlined fields everywhere. A dense panel sets `FieldDensityContext` once (see [Panel composition](#panel-composition)) |
 | Text | Labels and options are sentence case ("Tool name", "Ask every time"). Acronyms keep their case ("API key", "ID") |
+
+### Sliders
+
+There is one slider: `Slider` from `ui_primitives`. It owns the rail, track and thumb look (rounded pill rail, primary fill, ring thumb). `NodeSlider` (adds `nodrag`, compact by default, `changed`) and `AdjustmentSlider` / `InspectorSliderRow` are thin wrappers over it.
+
+| Rule | Detail |
+|---|---|
+| Density | `density="normal"` (6px rail) for app UI; `density="compact"` (4px rail) for node bodies, inspectors and tool panels. `size="small"` also means compact |
+| Layout | `layout="inline"` (default) is the bare track. `layout="row"` is `label`, track, `display` readout. Use `NodeSlider` inside node bodies so the canvas does not drag |
+| Default marker | `changed={value !== default}`: neutral thumb at the default, primary thumb otherwise |
+| Bipolar | `origin={0}` for a range with a neutral point: the fill grows from it and a tick marks it. `resetValue` (or `origin`) gives double-click reset |
+| Behaviour | `onChange` for live updates, `onChangeCommitted` for the undo step. The primitive never changes either |
+| Forbidden | `type="range"` inputs, `sx` / `css` that restyle `.MuiSlider-rail`, `-track` or `-thumb`, a local `*SliderSx`, or a new slider wrapper. Sibling node bodies use the same slider |
 
 ---
 
@@ -1121,6 +1180,14 @@ import { CloseButton, EditorButton } from "../ui_primitives";
 | Native button | Only for a tile, card or swatch whose whole surface is the hit target. It keeps a visible focus ring and `type="button"` |
 | Not a button | A tag or filter is a `Chip`. A command stays a button even when it is pill-shaped |
 
+### Number fields
+
+Use `NumberField` (`ui_primitives/NumberField.tsx`) for every number a person types in a dialog, form or panel. It is a `TextInput type="number"` with `min`, `max` and `step`, a `unit` suffix (`%`, `px`, `ms`), optional `scrub` (drag the unfocused field sideways; Shift x10, Alt x0.1) and the field density of the surface (`FieldDensityContext`). One focus ring, no native spinner buttons (ArrowUp/ArrowDown still step), units in the mono label style.
+
+- It keeps the value as text and reports it through `onChange` (native event) or `onValueChange` (raw text). Parse and clamp in the owner, on blur or Enter, as before.
+- All number fields share one look: `numberFieldSurfaceStyles(theme, density, focused)` (height per density, field background, border, radius, primary-border focus ring), `numberFieldTextStyles` and `numberFieldUnitStyles`, exported from `NumberField.tsx`. `NumericField` is `NumberField` plus a commit-while-typing buffer. `InspectorValueInput` (game inspector rows, `size="small"` forces compact) and `inputs/NumberInput` (property and node-body rows, always compact) keep their own commit and gesture logic but draw their wrapper with those helpers. A new number control must use them too.
+- Forbidden: `TextInput type="number"` or MUI `TextField type="number"` with hand-set `inputProps` min/max, `InputAdornment` for units, or per-file font and padding overrides on the input.
+
 ### Empty, loading and tabs
 
 A panel or list with nothing to show draws `EmptyState`. A section that is
@@ -1144,6 +1211,16 @@ import { EmptyState, LoadingSpinner, TabGroup, TabPanel } from "../ui_primitives
 | Search | A search or filter with no matches uses `variant="no-results"` |
 | Loading | Never bare "Loading…" text. A dropdown option may keep a disabled "Loading…" item |
 | Tabs | `TabGroup`, not raw `Tabs` and `Tab`. Workspace document tabs and the inspector's counted tabs are their own components |
+
+### Drop zones
+
+Every file drop target uses `DropZone` (`ui_primitives/DropZone.tsx`) or, for class-based surfaces, its style helpers. There is one drag-over look: `2px dashed primary` outline with the `action.selected` fill. The `reject` state uses the same outline in `error`; idle is `1px dashed divider`.
+
+- **Inline target** (property editors, empty states): `<DropZone onFilesDrop={...}>` or, where the drop handler reads the DataTransfer itself (`useFileDrop`), pass `onDrop`.
+- **Whole-panel target** (asset grid): `<DropZone overlay onFilesDrop={...}>`; children stay untouched and a translucent label layer covers them while over. `DropZoneOverlay` is the same layer for a hand-wired parent.
+- **Class-based surfaces** (`.dropzone` / `.drag-over` CSS): spread `dropZoneSurfaceStyle(theme)` (or `dropZoneOverStyle`, `dropZoneRejectStyle`, `dropZoneOutline`) instead of writing outline and fill colours.
+- Track drag state with `useDragOverState` (`hooks/handlers/useDragOverState.ts`); `useFileDrop` keeps the drop handling.
+- Forbidden: hand-built `dashed` outlines with `grey[*]` fills, a `3px` dashed overlay, or a per-component `isDragOver` + `setTimeout` pair. Reorder-drag targets (timeline tracks, tabs, trees) are not drop zones and keep their insertion markers.
 
 ### Progress and generation status
 

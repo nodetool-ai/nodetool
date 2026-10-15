@@ -429,9 +429,20 @@ describe("streamed scene music", () => {
     media[0].metadata();
     const voiceGain = context.mediaSources[0].outputs[0] as FakeGain;
     expect(voiceGain.gain.calls).toEqual([["set", 0, 5]]);
+    audio.sync(snapshot(120, 0));
     completePlay?.();
     await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(media[0].currentTime).toBe(2);
     expect(voiceGain.gain.calls.slice(-2)).toEqual([["set", 0, 5], ["ramp", 0.4, 6]]);
+    audio.pause();
+    let completeResume: (() => void) | undefined;
+    media[0].play.mockImplementationOnce(() => new Promise<void>(resolve => { completeResume = resolve; }));
+    audio.resume();
+    await vi.waitFor(() => expect(completeResume).toBeDefined());
+    audio.sync(snapshot(240, 0));
+    completeResume?.();
+    await new Promise<void>(resolve => setImmediate(resolve));
+    expect(media[0].currentTime).toBe(4);
     audio.dispose();
   });
 
@@ -567,6 +578,45 @@ describe("streamed scene music", () => {
     completeOldPlay?.();
     await new Promise<void>((resolve) => setImmediate(resolve));
     expect(media[0].paused).toBe(false);
+    audio.dispose();
+  });
+
+  it("does not let a fading scene voice failure block a later visit", async () => {
+    const { audio, media } = streamedPlayer(new FakeContext());
+    audio.updateScenes(["room", "next"].map(id => ({ id, music: { assetId: "music", streaming: { loopStartSeconds: 10, loopEndSeconds: 20 } } })));
+    audio.sync(snapshot(0, 0));
+    await audio.unlock();
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    media[0].metadata();
+    await new Promise<void>(resolve => setImmediate(resolve));
+    audio.sync({ ...snapshot(60, 60), sceneId: "next", music: { ...snapshot(60, 60).music!, voiceId: "scene:next:music" } });
+    await vi.waitFor(() => expect(media).toHaveLength(2));
+    media[1].metadata();
+    await new Promise<void>(resolve => setImmediate(resolve));
+    media[0].dispatchEvent(new Event("error"));
+    audio.sync(snapshot(120, 120));
+    await vi.waitFor(() => expect(media).toHaveLength(3));
+    audio.dispose();
+  });
+
+  it("keeps outgoing music until incoming playback is ready and ignores outgoing failures", async () => {
+    const { audio, media } = streamedPlayer(new FakeContext());
+    const first = snapshot(0, 0);
+    first.music = { ...first.music!, fadeOutTicks: 1 };
+    audio.sync(first);
+    await audio.unlock();
+    await vi.waitFor(() => expect(media).toHaveLength(1));
+    media[0].metadata();
+    await vi.waitFor(() => expect(media[0].paused).toBe(false));
+    audio.sync({ ...first, tick: 60, music: { ...first.music!, startTick: 60 } });
+    await vi.waitFor(() => expect(media).toHaveLength(2));
+    await new Promise(resolve => setTimeout(resolve, 40));
+    expect(media[0].src).not.toBe("");
+    media[0].dispatchEvent(new Event("error"));
+    media[1].metadata();
+    await new Promise<void>(resolve => setImmediate(resolve));
+    audio.sync({ ...first, tick: 120, music: { ...first.music!, startTick: 120 } });
+    await vi.waitFor(() => expect(media).toHaveLength(3));
     audio.dispose();
   });
 

@@ -148,6 +148,59 @@ describe("saveWorkflow first save", () => {
     );
   });
 
+  // UX study 3 (D13): a run saves the workflow, and while that save is in
+  // flight React Flow re-measures the nodes the results grew. That replaces
+  // the node array but is no edit, so the unsaved dot must still clear.
+  it("marks the workflow clean when only a re-measure landed during the save", async () => {
+    const store = createWorkflowManagerStore(new QueryClient());
+    const serverWorkflow: Workflow = {
+      id: "wf-measured",
+      name: "Trip summary",
+      description: "",
+      access: "private",
+      graph: { nodes: [], edges: [] },
+      created_at: "2026-08-01T00:00:00.000Z",
+      updated_at: "2026-08-02T00:00:00.000Z"
+    };
+    store.getState().addWorkflow(serverWorkflow);
+    const nodeStore = store.getState().getNodeStore("wf-measured");
+    nodeStore?.setState({ editGeneration: 3 });
+
+    updateMutate.mockImplementation(async () => {
+      nodeStore?.setState({ nodes: [] });
+      return { ...serverWorkflow, updated_at: "2026-08-03T00:00:00.000Z" };
+    });
+    await store.getState().saveWorkflow(serverWorkflow);
+
+    expect(nodeStore?.getState().setWorkflowDirty).toHaveBeenCalledWith(false);
+  });
+
+  it("keeps the workflow dirty when the user edited during the save", async () => {
+    const store = createWorkflowManagerStore(new QueryClient());
+    const serverWorkflow: Workflow = {
+      id: "wf-user-edit",
+      name: "Trip summary",
+      description: "",
+      access: "private",
+      graph: { nodes: [], edges: [] },
+      created_at: "2026-08-01T00:00:00.000Z",
+      updated_at: "2026-08-02T00:00:00.000Z"
+    };
+    store.getState().addWorkflow(serverWorkflow);
+    const nodeStore = store.getState().getNodeStore("wf-user-edit");
+    nodeStore?.setState({ editGeneration: 3 });
+
+    updateMutate.mockImplementation(async () => {
+      nodeStore?.setState({ editGeneration: 4 });
+      return { ...serverWorkflow, updated_at: "2026-08-03T00:00:00.000Z" };
+    });
+    await store.getState().saveWorkflow(serverWorkflow);
+
+    expect(nodeStore?.getState().setWorkflowDirty).not.toHaveBeenCalledWith(
+      false
+    );
+  });
+
   it("sends expected_updated_at for a workflow that came from the server", async () => {
     const store = createWorkflowManagerStore(new QueryClient());
     const serverWorkflow: Workflow = {

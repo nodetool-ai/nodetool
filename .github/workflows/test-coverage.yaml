@@ -27,6 +27,7 @@ jobs:
         run: node .github/scripts/agent-preflight.mjs --name test-coverage --title "$TITLE_PATTERN"
 
   test-coverage:
+    cache-mode: read
     needs: preflight
     if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest

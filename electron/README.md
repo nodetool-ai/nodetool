@@ -15,6 +15,13 @@ Electron wrapper that packages NodeTool as a desktop application. Bundles the we
 
 ## Development
 
+For a network with a private certificate authority, launch the desktop app with
+`NODETOOL_EXTRA_CA_CERTS` pointing to a PEM certificate bundle. The app adds
+these authorities to its main-process TLS trust and passes the bundle to the
+backend as `NODE_EXTRA_CA_CERTS`. The hardened Electron fuse removes
+`NODE_EXTRA_CA_CERTS` before application code starts, so use the NodeTool setting
+for desktop launches. Certificate verification remains enabled.
+
 ```bash
 npm run dev      # UI with hot reload
 npm run build    # Compile renderer and main

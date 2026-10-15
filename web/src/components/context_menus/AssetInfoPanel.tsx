@@ -126,7 +126,7 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({
   const runGraphSnapshot = snapshot?.graph ? snapshot : null;
 
   const handleOpenWorkflow = useCallback(() => {
-    openWorkflow(asset);
+    void openWorkflow(asset);
     onOpenWorkflow?.();
   }, [asset, onOpenWorkflow, openWorkflow]);
 

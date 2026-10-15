@@ -39,6 +39,14 @@ const codes = (validation: {
 }): string[] => validation.errors.map((issue) => issue.code);
 
 describe("validateJsScriptDoc packDtsSources", () => {
+  it.each([
+    'import { nonexistent } from "@nodetool-ai/sandbox-nodetool/does-not-exist";',
+    'import "@nodetool-ai/sandbox-nodetool/does-not-exist";'
+  ])("rejects an unavailable capability module: %s", async (statement) => {
+    const validation = await validateJsScriptDoc(doc(`${statement}\nawait output("ok", true);`), { packDtsSources });
+    expect(codes(validation)).toContain("js_script_type_error");
+    expect(validation.errors.some((issue) => issue.message.includes("does-not-exist"))).toBe(true);
+  });
   it("fails naming caret when typewriter's caret option is the wrong shape", async () => {
     const validation = await validateJsScriptDoc(
       doc(`

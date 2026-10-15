@@ -221,6 +221,25 @@ describe("BedrockProvider", () => {
     expect(p.usageTotals.inputTokens).toBe(14);
   });
 
+  it.each([undefined, 4096])("reconciles manual thinking with maxTokens %s and sampling", async (maxTokens) => {
+    const fetchFn = vi.fn(async () => json({ output: { message: { content: [] } } }));
+    await provider(fetchFn as unknown as typeof fetch).generateMessage({
+      messages: [{ role: "user", content: "Hi" }], model: "anthropic.claude-sonnet-4-6-v1:0",
+      thinking: { type: "manual", budgetTokens: 4096 }, maxTokens, temperature: 0.7, topP: 0.9
+    });
+    expect(sentBody(fetchFn).inferenceConfig).toEqual({ maxTokens: 4097 });
+  });
+
+  it("rejects forced tool selection with thinking", async () => {
+    const fetchFn = vi.fn();
+    await expect(provider(fetchFn as unknown as typeof fetch).generateMessage({
+      messages: [{ role: "user", content: "Hi" }], model: "anthropic.claude-sonnet-4-6-v1:0",
+      thinking: { type: "manual", budgetTokens: 2048 }, toolChoice: "any",
+      tools: [{ name: "lookup", description: "lookup", inputSchema: { type: "object" } }]
+    })).rejects.toThrow("thinking");
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
   it("returns tool calls from a non-streaming response", async () => {
     const fetchFn = vi.fn(async () =>
       json({
@@ -243,6 +262,9 @@ describe("BedrockProvider", () => {
         ["contentBlockDelta", { contentBlockIndex: 0, delta: { reasoningContent: { text: "Thinking" } } }],
         ["contentBlockDelta", { contentBlockIndex: 0, delta: { reasoningContent: { signature: "sig" } } }],
         ["contentBlockStop", { contentBlockIndex: 0 }],
+        ["contentBlockDelta", { contentBlockIndex: 3, delta: { reasoningContent: { text: "Second" } } }],
+        ["contentBlockDelta", { contentBlockIndex: 3, delta: { reasoningContent: { signature: "sig2" } } }],
+        ["contentBlockStop", { contentBlockIndex: 3 }],
         ["contentBlockDelta", { contentBlockIndex: 1, delta: { text: "Hel" } }],
         ["contentBlockDelta", { contentBlockIndex: 1, delta: { text: "lo" } }],
         ["contentBlockStop", { contentBlockIndex: 1 }],
@@ -264,13 +286,14 @@ describe("BedrockProvider", () => {
     );
     expect(items).toEqual([
       { type: "chunk", content: "Thinking", done: false, thinking: true },
+      { type: "chunk", content: "Second", done: false, thinking: true },
       { type: "chunk", content: "Hel", done: false },
       { type: "chunk", content: "lo", done: false },
       {
         id: "t1",
         name: "lookup",
         args: { q: "x" },
-        _anthropicThinkingBlocks: [{ type: "thinking", thinking: "Thinking", signature: "sig" }]
+        _anthropicThinkingBlocks: [{ type: "thinking", thinking: "Thinking", signature: "sig" }, { type: "thinking", thinking: "Second", signature: "sig2" }]
       },
       { type: "chunk", content: "", done: true }
     ]);
@@ -279,6 +302,23 @@ describe("BedrockProvider", () => {
       thinking: { type: "enabled", budget_tokens: 2048 }
     });
     expect(p.usageTotals.outputTokens).toBe(9);
+    const call = items.find((item) => "id" in item);
+    if (!call || !("id" in call)) {
+      throw new Error("Expected tool call");
+    }
+    fetchFn.mockImplementationOnce(async () => json({ output: { message: { content: [] } } }));
+    await p.generateMessage({
+      model: "eu.anthropic.claude-sonnet-4-6-v1:0",
+      messages: [
+        { role: "user", content: "Hi" },
+        { role: "assistant", content: null, toolCalls: [call], _anthropicThinkingBlocks: call._anthropicThinkingBlocks },
+        { role: "tool", toolCallId: call.id, content: "result" }
+      ]
+    });
+    expect(sentBody(fetchFn, 1).messages[1].content.slice(0, 2)).toEqual([
+      { reasoningContent: { reasoningText: { text: "Thinking", signature: "sig" } } },
+      { reasoningContent: { reasoningText: { text: "Second", signature: "sig2" } } }
+    ]);
   });
 
   it("sends reasoning back ahead of the tool calls it led to", async () => {

@@ -84,6 +84,7 @@ interface FlowHandle {
  * point of the hidden load is that no reference to the package survives.
  */
 interface FlowBackend {
+  assertNodeAvailable?(nodeType: string, opts: { flow: FlowHandle }): Promise<void>;
   createFlowForContext(context: ProcessingContext): Promise<FlowHandle>;
   invoke(
     nodeType: string,
@@ -332,6 +333,12 @@ const openNodeStream: CapabilityExport = {
 
     const backend = await requireBackend();
     const flow = await backend.createFlowForContext(gated.context);
+    try {
+      await backend.assertNodeAvailable?.(type, { flow });
+    } catch (error) {
+      await flow.close();
+      throw error;
+    }
     const iterator = backend
       .invokeStream(type, nodeInputs(params), { flow })
       [Symbol.asyncIterator]();

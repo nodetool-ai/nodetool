@@ -1,11 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
+import type { CSSObject } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo } from "react";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import {
   Caption,
+  Card,
   Chip,
   DeleteButton,
   FlexColumn,
@@ -27,12 +28,7 @@ type Resource = Memory["resources"][number];
 /** Asset thumbnail edge (px), on the 4px grid — a fixed component dimension. */
 const THUMB_SIZE = 56;
 
-const styles = (theme: Theme) =>
-  css({
-    padding: getSpacingPx(SPACING.lg),
-    borderRadius: BORDER_RADIUS.md,
-    border: `1px solid ${theme.vars.palette.divider}`,
-    background: theme.vars.palette.background.paper,
+const styles = (theme: Theme): CSSObject => ({
     transition: MOTION.background,
     "&:hover": {
       background: `rgb(${theme.vars.palette.common.whiteChannel} / 0.04)`
@@ -51,7 +47,7 @@ const styles = (theme: Theme) =>
       gap: getSpacingPx(SPACING.sm),
       marginTop: getSpacingPx(SPACING.md)
     }
-  });
+});
 
 /**
  * An asset resource of an image content-type — rendered as a small thumbnail.
@@ -117,7 +113,13 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
   const imageAssets = memory.resources.filter(isImageAsset);
   const otherResources = memory.resources.filter((r) => !isImageAsset(r));
   return (
-    <article className="memory-item" css={cssStyles}>
+    <Card
+      component="article"
+      variant="outlined"
+      padding={SPACING.lg}
+      className="memory-item"
+      sx={cssStyles}
+    >
       <FlexRow align="flex-start" justify="space-between" gap={SPACING.md}>
         <FlexColumn gap={0} sx={{ minWidth: 0 }}>
           <FlexRow align="center" gap={SPACING.sm} sx={{ minWidth: 0 }}>
@@ -163,7 +165,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
           ))}
         </div>
       )}
-    </article>
+    </Card>
   );
 };
 

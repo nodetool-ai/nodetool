@@ -1,3 +1,4 @@
+import { importPack } from "@nodetool-ai/node-catalog";
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
@@ -455,8 +456,8 @@ export function registerGameCommands(program: Command): void {
         const inputs = await readInputs(options.inputs, gameInputFrame);
         const session = await createScriptedGameSession(validated.document, seed);
         try {
-          const { captureGameFrame } = await import("@nodetool-ai/game-renderer/node");
-          const { GameParticles2D } = await import("@nodetool-ai/game-renderer");
+          const { captureGameFrame } = await importPack<typeof import("@nodetool-ai/game-renderer/node")>("game", "@nodetool-ai/game-renderer/node");
+          const { GameParticles2D } = await importPack<typeof import("@nodetool-ai/game-renderer")>("game", "@nodetool-ai/game-renderer");
           const particles = new GameParticles2D(validated.document.tickRate);
           let frame;
           for (let tick = 0; tick < ticks; tick += 1) {
@@ -514,7 +515,7 @@ export function registerGameCommands(program: Command): void {
           throw new Error("--name, --identifier, --app-version, --icon and --compile apply to --target tauri");
         }
         if (options.target === "tauri") {
-          const { buildTauriGameProject, compileTauriGameProject } = await import("@nodetool-ai/game-renderer/build-tauri");
+          const { buildTauriGameProject, compileTauriGameProject } = await importPack<typeof import("@nodetool-ai/game-renderer/build-tauri")>("game", "@nodetool-ai/game-renderer/build-tauri");
           const project = await buildTauriGameProject({
             document: validated.document, outputDir: resolve(options.out), resolveAsset: (assetId) => readBuildAsset(options.assetsDir, assetId),
             app: { name: options.name, identifier: options.identifier, version: options.appVersion,
@@ -529,9 +530,9 @@ export function registerGameCommands(program: Command): void {
             : `Built desktop app project in ${project.outputDir}\n${compiled ? `Compiled ${compiled.binaryPath}\n` : "Run npm install && npm run build there to make installers.\n"}`);
           return;
         }
-        const result = validated.document.schemaVersion === 3 ? await (await import("@nodetool-ai/game-renderer/build3d")).buildStandaloneGame3D({
+        const result = validated.document.schemaVersion === 3 ? await (await importPack<typeof import("@nodetool-ai/game-renderer/build3d")>("game", "@nodetool-ai/game-renderer/build3d")).buildStandaloneGame3D({
           document: validated.document, outputDir: resolve(options.out), resolveAsset: (assetId) => readBuildAsset(options.assetsDir, assetId)
-        }) : await (await import("@nodetool-ai/game-renderer/build")).buildStandaloneGame({
+        }) : await (await importPack<typeof import("@nodetool-ai/game-renderer/build")>("game", "@nodetool-ai/game-renderer/build")).buildStandaloneGame({
           document: validated.document, outputDir: options.out, resolveAsset: (assetId) => readBuildAsset(options.assetsDir, assetId)
         });
         process.stdout.write(options.json ? `${JSON.stringify(result)}\n` : `Built game in ${result.outputDir}\n`);
@@ -660,7 +661,7 @@ async function captureGame3D(document: GameDocument3D, options: CaptureOptions):
   const inputs = await readInputs(options.inputs, gameInputFrame3D);
   const session = await createGameSession3D(document, seed, undefined, sessionAssetOptions3D(options.assetsDir));
   try {
-    const { GameParticles3D } = await import("@nodetool-ai/game-renderer");
+    const { GameParticles3D } = await importPack<typeof import("@nodetool-ai/game-renderer")>("game", "@nodetool-ai/game-renderer");
     const particles = new GameParticles3D(document.tickRate);
     for (let tick = 0; tick < ticks; tick++) {
       const step = session.step(inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] }));
@@ -668,7 +669,7 @@ async function captureGame3D(document: GameDocument3D, options: CaptureOptions):
     }
     const frame = session.frame();
     const stateHash = await hashGameSnapshot3D(session.snapshot());
-    const { captureGameFrame3D } = await import("@nodetool-ai/game-renderer/node3d");
+    const { captureGameFrame3D } = await importPack<typeof import("@nodetool-ai/game-renderer/node3d")>("game", "@nodetool-ai/game-renderer/node3d");
     const captured = await captureGameFrame3D(frame, { stateHash, interpolation: 1, particles,
       width: Math.round(document.presentation.hudWidth * scale), height: Math.round(document.presentation.hudHeight * scale),
       resolveAsset: async (slot) => {
@@ -678,7 +679,7 @@ async function captureGame3D(document: GameDocument3D, options: CaptureOptions):
       } });
     const path = resolve(options.out);
     await writeFile(path, captured.png);
-    const { formatGameFrameBudgetOverrun, gameFrameBudgetOverruns, resolveGameFrameBudgets } = await import("@nodetool-ai/game-renderer");
+    const { formatGameFrameBudgetOverrun, gameFrameBudgetOverruns, resolveGameFrameBudgets } = await importPack<typeof import("@nodetool-ai/game-renderer")>("game", "@nodetool-ai/game-renderer");
     const limits = resolveGameFrameBudgets(document.performance?.budgets);
     const overruns = gameFrameBudgetOverruns({ drawCalls: captured.stats.drawCalls, triangles: captured.stats.triangles, particles: particles.count }, limits);
     const report = { dimension: "3d", path, tick: frame.tick, bytes: captured.png.byteLength, state_hash: stateHash,

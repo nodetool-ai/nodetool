@@ -21,7 +21,7 @@
  * visible and removes the bytes it stored.
  */
 import { createHash } from "node:crypto";
-import { mkdir } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import nodePath from "node:path";
 import { strFromU8, strToU8, unzipSync } from "fflate";
 import { z } from "zod";
@@ -37,6 +37,7 @@ import {
   PERSONAL_PROJECT_KIND,
   Project,
   PROJECT_ARCHIVE_TABLE_NAMES,
+  PROJECT_ARCHIVE_TABLES,
   projectArchiveColumns,
   projectArchivePrimaryKey,
   readProjectArchiveRecords,
@@ -112,15 +113,16 @@ const OWNER_COLUMNS = ["user_id", "project_id"] as const;
  * Nullable columns that link to another row. On import each keeps its link
  * only when the file carries the row it names.
  */
-const OPTIONAL_REFERENCES: Partial<Record<ProjectArchiveTableName, string[]>> = {
-  assets: ["job_id", "workflow_id", "sketch_document_id", "timeline_id"],
-  workflows: ["workspace_id"],
-  storyboards: ["timeline_id"],
-  scripts: ["timeline_id", "storyboard_id"],
-  timeline_sequences: ["workflow_id"],
-  image_documents: ["workflow_id", "thumbnail_asset_id"],
-  threads: ["workflow_id"],
-  messages: ["workflow_id"]
+const OPTIONAL_REFERENCES: Partial<Record<ProjectArchiveTableName, Record<string, ProjectArchiveTableName | null>>> = {
+  assets: { job_id: null, workflow_id: "workflows", sketch_document_id: "image_documents", timeline_id: "timeline_sequences" },
+  workflows: { workspace_id: "workspaces" },
+  storyboards: { timeline_id: "timeline_sequences" },
+  scripts: { timeline_id: "timeline_sequences", storyboard_id: "storyboards" },
+  timeline_sequences: { workflow_id: "workflows" },
+  image_documents: { workflow_id: "workflows", thumbnail_asset_id: "assets" },
+  threads: { workflow_id: "workflows" },
+  messages: { workflow_id: "workflows" },
+  game_draft_changes: { thread_id: "threads", message_id: "messages" }
 };
 
 /** Opens a workspace row for reading or writing its files. */
@@ -136,6 +138,8 @@ export interface WriteProjectArchiveOptions {
   readonly storage: StorageAdapter;
   readonly openWorkspace: OpenWorkspace;
   readonly nodetoolVersion?: string;
+  /** Aggregate decompressed limit, shared with the importer. */
+  readonly maxBytes?: number;
 }
 
 function assetEntryName(asset: Asset): string {
@@ -187,6 +191,26 @@ export async function writeProjectArchive(
   const project = await Project.findOwned(userId, options.projectId);
   if (!project) throw new Error("Project not found");
   const records = await readProjectArchiveRecords(userId, project.id);
+  let totalBytes = 0;
+  let totalEntries = 0;
+  let directoryBytes = 22;
+  // Leave room for the multipart upload framing under the HTTP body limit.
+  const uploadLimit = MAX_PROJECT_ARCHIVE_BYTES - 64 * 1024;
+  const addEntry: ZipStreamWriter["add"] = async (name, source, entryOptions) => {
+    totalBytes += exportSourceSize(source);
+    totalEntries += 1;
+    directoryBytes += 46 + Buffer.byteLength(name);
+    if (totalEntries > MAX_PROJECT_ARCHIVE_ENTRIES) {
+      throw new ProjectArchiveError("Project exceeds the importable archive entry limit");
+    }
+    if (totalBytes > (options.maxBytes ?? MAX_PROJECT_ARCHIVE_BYTES)) {
+      throw new ProjectArchiveError("Project exceeds the importable archive size limit");
+    }
+    await writer.add(name, source, entryOptions);
+    if (writer.bytesWritten + directoryBytes > uploadLimit) {
+      throw new ProjectArchiveError("Project exceeds the importable upload size limit");
+    }
+  };
 
   const manifest: ProjectArchiveManifest = {
     format: PROJECT_ARCHIVE_FORMAT,
@@ -269,7 +293,7 @@ export async function writeProjectArchive(
       bytes: size,
       sha256: await sha256OfSource(source)
     });
-    await writer.add(file, source);
+    await addEntry(file, source);
   }
 
   for (const row of workspaceRows) {
@@ -317,7 +341,7 @@ export async function writeProjectArchive(
           bytes: bytes.byteLength,
           sha256: createHash("sha256").update(bytes).digest("hex")
         });
-        await writer.add(file, bytes);
+        await addEntry(file, bytes);
       }
     }
   }
@@ -336,10 +360,10 @@ export async function writeProjectArchive(
     });
     manifest.counts[name] = written[name].length;
   }
-  await writer.add("records.json", strToU8(JSON.stringify(written)), {
+  await addEntry("records.json", strToU8(JSON.stringify(written)), {
     compress: true
   });
-  await writer.add(
+  await addEntry(
     "manifest.json",
     strToU8(JSON.stringify(manifest, null, 2)),
     { compress: true }
@@ -356,10 +380,6 @@ const RESOURCE_ID_TOKEN = /(?<![0-9a-f])[0-9a-f]{32}(?![0-9a-f])/g;
 /** Rewrites every exported id inside a value to its imported id. */
 class IdRemapper {
   constructor(private readonly ids: ReadonlyMap<string, string>) {}
-
-  has(id: unknown): boolean {
-    return typeof id === "string" && this.ids.has(id);
-  }
 
   string(value: string): string {
     const exact = this.ids.get(value);
@@ -400,6 +420,8 @@ export interface ImportProjectArchiveOptions {
     contentType: string;
     bytes: Uint8Array;
   }) => Promise<void>;
+  /** Removes every object created by the asset hook, including thumbnails. */
+  readonly removeAssetBytes?: (userId: string, assetId: string, contentType: string) => Promise<void>;
   readonly maxBytes?: number;
 }
 
@@ -431,7 +453,6 @@ export async function managedImportWorkspacePath(
     return `${managedWorkspaceKey(userId)}/projects/${segment}`;
   }
   const dir = nodePath.join(getManagedWorkspaceDir(userId), "projects", segment);
-  await mkdir(dir, { recursive: true });
   return dir;
 }
 
@@ -515,6 +536,24 @@ export async function importProjectArchive(
       ids.set(id, createTimeOrderedUuid());
     }
   }
+  const tableIds = new Map(PROJECT_ARCHIVE_TABLE_NAMES.map((name) => [
+    name, new Set(records[name].map((row) => row[projectArchivePrimaryKey(name)]))
+  ]));
+  for (const name of PROJECT_ARCHIVE_TABLE_NAMES) {
+    const spec = PROJECT_ARCHIVE_TABLES[name];
+    if (!("parent" in spec)) continue;
+    const parentIds = tableIds.get(spec.parent.name);
+    for (const row of records[name]) {
+      if (!parentIds?.has(row[spec.parent.column])) {
+        throw new ProjectArchiveError(`${name}.${spec.parent.column} must name a row in ${spec.parent.name}`);
+      }
+    }
+  }
+  for (const row of records.games) {
+    if (!tableIds.get("workspaces")?.has(row["workspace_id"])) {
+      throw new ProjectArchiveError("games.workspace_id must name an archived workspace");
+    }
+  }
   const remap = new IdRemapper(ids);
 
   const workspacePath =
@@ -522,26 +561,22 @@ export async function importProjectArchive(
   const imported = {} as ProjectArchiveRecords;
   for (const name of PROJECT_ARCHIVE_TABLE_NAMES) {
     const columns = new Set(projectArchiveColumns(name));
-    const optionalRefs = OPTIONAL_REFERENCES[name] ?? [];
+    const optionalRefs = OPTIONAL_REFERENCES[name] ?? {};
     imported[name] = records[name].map((source) => {
       const row = remap.value(source) as ProjectArchiveRow;
       if (columns.has("user_id")) row["user_id"] = userId;
       if (columns.has("project_id")) row["project_id"] = newProjectId;
       // A link to something the file does not carry would name a row on the
       // exporting install, so it is dropped rather than left dangling.
-      for (const ref of optionalRefs) {
-        if (source[ref] != null && !remap.has(source[ref])) row[ref] = null;
+      for (const [ref, table] of Object.entries(optionalRefs)) {
+        if (source[ref] != null && (!table || !tableIds.get(table)?.has(source[ref]))) row[ref] = null;
       }
       return row;
     });
   }
-  for (const row of imported.workspaces) {
-    row["path"] = await workspacePath(userId, String(row["id"]));
-    row["is_default"] = false;
-  }
   for (const [index, row] of imported.assets.entries()) {
     // A root-level asset's parent is its owner's id, which differs here.
-    if (!remap.has(records.assets[index]!["parent_id"])) {
+    if (!tableIds.get("assets")?.has(records.assets[index]!["parent_id"])) {
       row["parent_id"] = userId;
     }
     // An external path names a file on the exporting machine. Kept, it would
@@ -553,9 +588,21 @@ export async function importProjectArchive(
 
   const missing: string[] = [];
   const checksumMismatches: string[] = [];
-  const storedAssetUris: string[] = [];
+  const storedAssets: Array<{ assetId: string; contentType: string }> = [];
   const createdWorkspaces: RuntimeWorkspace[] = [];
   try {
+    const workspaces = new Map<string, RuntimeWorkspace>();
+    for (const [index, row] of imported.workspaces.entries()) {
+      row["path"] = await workspacePath(userId, String(row["id"]));
+      row["is_default"] = false;
+      const opened = options.openWorkspace(new Workspace(row));
+      if (!opened) {
+        if (workspaceStorageKind() !== "cloud") await rm(String(row["path"]), { recursive: true, force: true });
+        throw new ProjectArchiveError("Workspace storage is unavailable");
+      }
+      createdWorkspaces.push(opened);
+      workspaces.set(String(records.workspaces[index]!["id"]), opened);
+    }
     // Asset bytes.
     const assetRows = new Map(
       imported.assets.map((row, index) => [
@@ -575,6 +622,7 @@ export async function importProjectArchive(
       const assetId = String(row["id"]);
       const contentType = String(row["content_type"]);
       row["size"] = bytes.byteLength;
+      storedAssets.push({ assetId, contentType });
       if (options.storeAssetBytes) {
         await options.storeAssetBytes({ userId, assetId, contentType, bytes });
       } else {
@@ -584,20 +632,31 @@ export async function importProjectArchive(
           contentType
         );
       }
-      storedAssetUris.push(
-        storage.uriForKey(getAssetStorageKey(userId, assetId, contentType))
-      );
+
     }
 
-    // Workspace files.
-    const workspaces = new Map<string, RuntimeWorkspace>();
-    for (const [index, row] of imported.workspaces.entries()) {
-      const opened = options.openWorkspace(new Workspace(row));
-      if (!opened) {
-        throw new ProjectArchiveError("Workspace storage is unavailable");
-      }
-      createdWorkspaces.push(opened);
-      workspaces.set(String(records.workspaces[index]!["id"]), opened);
+    // Versioned game drafts name a digest of their contents. Rehash after
+    // rewriting IDs, then update both the filenames and history references.
+    const draftVersions = new Map<string, string>();
+    const draftPaths = new Map<string, string>();
+    for (const entry of manifest.workspace_files) {
+      const match = /\/drafts\/([a-f0-9]{64}(?:\.[A-Za-z0-9_-]+\.[a-f0-9]{32})?)\.json$/.exec(entry.path);
+      const bytes = entries[entry.file];
+      if (!match || !bytes) continue;
+      const previous = match[1];
+      const rewritten = remapJsonText(bytes, remap);
+      const next = sha256(rewritten) + remap.string(previous.slice(64));
+      draftVersions.set(previous, next);
+      draftPaths.set(entry.path, remap.string(entry.path.slice(0, -previous.length - 5)) + next + ".json");
+    }
+    for (const [index, row] of imported.games.entries()) {
+      const original = records.games[index];
+      const previous = original?.["draft_version_id"];
+      if (typeof previous === "string" && draftVersions.has(previous)) row["draft_version_id"] = draftVersions.get(previous);
+    }
+    for (const [index, row] of imported.game_draft_changes.entries()) {
+      const previous = records.game_draft_changes[index]?.["before_digest"];
+      if (typeof previous === "string" && draftVersions.has(previous)) row["before_digest"] = draftVersions.get(previous);
     }
     for (const entry of manifest.workspace_files) {
       const workspace = workspaces.get(entry.workspace_id);
@@ -608,7 +667,7 @@ export async function importProjectArchive(
         continue;
       }
       if (sha256(bytes) !== entry.sha256) checksumMismatches.push(entry.file);
-      const path = remap.string(entry.path);
+      const path = draftPaths.get(entry.path) ?? remap.string(entry.path);
       // Game sources and drafts are JSON that names their own ids.
       const data = path.endsWith(".json")
         ? remapJsonText(bytes, remap)
@@ -629,7 +688,7 @@ export async function importProjectArchive(
       thread_id: null
     });
     const threadId = manifest.project.thread_id;
-    project.thread_id = remap.has(threadId) ? remap.string(threadId!) : null;
+    project.thread_id = typeof threadId === "string" && tableIds.get("threads")?.has(threadId) ? remap.string(threadId) : null;
     project.beforeSave();
     await persistProjectArchive({
       project: {
@@ -659,8 +718,16 @@ export async function importProjectArchive(
     };
   } catch (error) {
     await Promise.allSettled([
-      ...storedAssetUris.map((uri) => storage.delete(uri)),
-      ...createdWorkspaces.map((workspace) => workspace.deleteAll(""))
+      ...storedAssets.map(({ assetId, contentType }) => options.removeAssetBytes
+        ? options.removeAssetBytes(userId, assetId, contentType)
+        : storage.delete(storage.uriForKey(getAssetStorageKey(userId, assetId, contentType)))),
+      ...createdWorkspaces.map(async (workspace) => {
+        try {
+          await workspace.deleteAll("");
+        } finally {
+          if (workspace.localDir) await rm(workspace.localDir, { recursive: true, force: true });
+        }
+      })
     ]);
     throw error;
   }

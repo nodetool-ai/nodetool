@@ -1,6 +1,7 @@
-import { ALL_BASE_NODES } from "@nodetool-ai/base-nodes";
-import { getNodeMetadata, type NodeMetadata } from "@nodetool-ai/node-sdk";
+import { readCatalogNodes } from "@nodetool-ai/node-catalog";
+import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import type { Edge } from "@nodetool-ai/protocol";
+import * as generatedNamespaces from "./generated/index.js";
 
 interface WorkflowLike {
   nodes: Array<Record<string, unknown>>;
@@ -119,11 +120,12 @@ function buildFactoryRefs(): Map<string, FactoryRef> {
     string,
     Array<{ metadata: NodeMetadata; factoryName: string }>
   >();
-  const baseNodes = Array.isArray(ALL_BASE_NODES) ? ALL_BASE_NODES : [];
-
-  for (const NodeClass of baseNodes) {
-    const metadata = getNodeMetadata(NodeClass);
+  const availableNamespaces = new Set(Object.keys(generatedNamespaces));
+  for (const { metadata } of readCatalogNodes()) {
     const namespace = metadata.namespace;
+    if (!availableNamespaces.has(barrelName(namespace))) {
+      continue;
+    }
     const factoryName = toCamelCase(extractClassName(metadata.node_type));
     const list = byNamespace.get(namespace) ?? [];
     list.push({ metadata, factoryName });

@@ -17,6 +17,7 @@ export interface AnimationGraphPosition { readonly x: number; readonly y: number
 export interface AnimationGraphLiveLayer {
   readonly state: string;
   readonly previousState?: string;
+  readonly transitionIndex?: number;
   readonly blending: boolean;
 }
 
@@ -56,7 +57,7 @@ export function animationGraphLiveState(inspection: Pick<GameInspection3D, "tick
     layers: runtime.layers.map((layer) => {
       const blending = layer.previousState !== undefined && layer.transitionTicks !== undefined
         && inspection.tick < layer.enteredTick + layer.transitionTicks;
-      return { state: layer.state, previousState: blending ? layer.previousState : undefined, blending };
+      return { state: layer.state, transitionIndex: layer.transitionIndex, previousState: blending ? layer.previousState : undefined, blending };
     }) };
 }
 
@@ -148,7 +149,7 @@ export function animationGraphNodes(layer: GameAnimationLayer3D, positions: Read
 export function animationGraphEdges(layer: GameAnimationLayer3D, live: AnimationGraphLiveLayer | null, selection: AnimationGraphSelection | null,
   positions: Readonly<Record<string, AnimationGraphPosition>>): Edge[] {
   return layer.transitions.map((transition, index) => {
-    const firing = Boolean(live?.blending && live.previousState === transition.from && live.state === transition.to);
+    const firing = Boolean(live?.blending && live.transitionIndex === index);
     const from = positions[transition.from];
     const to = positions[transition.to];
     const backward = transition.from !== ANY_ANIMATION_STATE && from !== undefined && to !== undefined && to.x <= from.x;

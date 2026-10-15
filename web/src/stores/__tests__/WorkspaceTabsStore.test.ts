@@ -498,6 +498,35 @@ describe("creationProjectId", () => {
     expect(opened && isTabInScope(opened, state.activeProjectId)).toBe(true);
   });
 
+  it("hides a background tab opened without a project while a project is active", () => {
+    // How "Open the workflow that made this" used to open a workflow that was
+    // not loaded yet: the tab became active but out of scope, so nothing showed.
+    const store = useWorkspaceTabsStore.getState();
+    store.setActiveProjectId("proj-other");
+    const id = store.openTab({ type: "workflow", ref: "wf-asset", mode: "edit" });
+    store.setActiveTab(id);
+
+    const state = useWorkspaceTabsStore.getState();
+    const opened = state.tabs.find((t) => t.id === id);
+    expect(opened && isTabInScope(opened, state.activeProjectId)).toBe(false);
+  });
+
+  it("shows a foreground tab opened with its project from another project", () => {
+    const store = useWorkspaceTabsStore.getState();
+    store.setActiveProjectId("proj-other");
+    const id = store.openForegroundTab({
+      type: "workflow",
+      ref: "wf-asset",
+      mode: "edit",
+      projectId: "proj-1"
+    });
+
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.activeProjectId).toBe("proj-1");
+    const opened = state.tabs.find((t) => t.id === id);
+    expect(opened && isTabInScope(opened, state.activeProjectId)).toBe(true);
+  });
+
   it("clears a project tab when switching to Personal with no Personal tab", () => {
     useWorkspaceTabsStore.getState().openProject({
       id: "proj-1",

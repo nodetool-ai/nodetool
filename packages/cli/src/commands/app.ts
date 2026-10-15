@@ -333,7 +333,7 @@ async function runAppBuild(
       provider,
       model,
       context,
-      registry: buildFullRegistry(),
+      registry: await buildFullRegistry(),
       providers,
       judge,
       // Supervision reaches the Run stage the way it reaches every other surface:

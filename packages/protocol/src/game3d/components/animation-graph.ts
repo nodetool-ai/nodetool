@@ -74,7 +74,7 @@ export const gameAnimationGraphRuntime3D = z.strictObject({
   graphId: id,
   parameters: z.record(id, z.union([finite, z.boolean()])),
   layers: z.array(z.strictObject({
-    state: id, enteredTick: tick, previousState: id.optional(), previousEnteredTick: tick.optional(), transitionTicks: tick.max(600).optional()
+    state: id, enteredTick: tick, transitionIndex: tick.optional(), previousState: id.optional(), previousEnteredTick: tick.optional(), transitionTicks: tick.max(600).optional()
   })).max(8)
 });
 

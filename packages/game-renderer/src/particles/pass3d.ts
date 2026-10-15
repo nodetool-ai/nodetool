@@ -272,6 +272,8 @@ export class GameParticlePass3D {
     variant.side = material.side;
     variant.alphaTest = material.alphaTest;
     variant.opacity = material.opacity;
+    const vertexColors = "vertexColors" in material && material.vertexColors === true;
+    if (variant.vertexColors !== vertexColors) { variant.vertexColors = vertexColors; variant.needsUpdate = true; }
     variant.map = "map" in material && material.map instanceof THREE.Texture ? material.map : null;
     variant.alphaMap = "alphaMap" in material && material.alphaMap instanceof THREE.Texture ? material.alphaMap : null;
     return variant;
@@ -295,9 +297,9 @@ export class GameParticlePass3D {
     const buffer = new THREE.InstancedInterleavedBuffer(new Float32Array(batch.data.length), PARTICLE_INSTANCE_STRIDE_3D);
     buffer.setUsage(THREE.DynamicDrawUsage);
     const geometry = new THREE.InstancedBufferGeometry();
-    geometry.index = this.quadGeometry.index;
-    geometry.setAttribute("position", this.quadGeometry.getAttribute("position"));
-    geometry.setAttribute("uv", this.quadGeometry.getAttribute("uv"));
+    geometry.index = this.quadGeometry.index?.clone() ?? null;
+    geometry.setAttribute("position", this.quadGeometry.getAttribute("position").clone());
+    geometry.setAttribute("uv", this.quadGeometry.getAttribute("uv").clone());
     geometry.setAttribute("particlePosition", new THREE.InterleavedBufferAttribute(buffer, 3, 0));
     geometry.setAttribute("particleVelocity", new THREE.InterleavedBufferAttribute(buffer, 3, 3));
     geometry.setAttribute("particleColor", new THREE.InterleavedBufferAttribute(buffer, 4, 6));
@@ -354,6 +356,7 @@ export class GameParticlePass3D {
       opacity[index] = data[base + 9]!;
     }
     draw.mesh.count = batch.count;
+    draw.mesh.boundingSphere = null;
     draw.mesh.instanceMatrix.needsUpdate = true;
     if (draw.mesh.instanceColor) { draw.mesh.instanceColor.needsUpdate = true; }
     draw.opacity.needsUpdate = true;
@@ -380,14 +383,7 @@ export class GameParticlePass3D {
 
   private release(draw: Draw): void {
     draw.mesh.removeFromParent();
-    if (draw.kind === "quad") {
-      // The index, position and uv attributes belong to the shared quad geometry, which the pass disposes once.
-      draw.mesh.geometry.index = null;
-      draw.mesh.geometry.deleteAttribute("position");
-      draw.mesh.geometry.deleteAttribute("uv");
-    } else {
-      draw.mesh.dispose();
-    }
+    if (draw.kind === "mesh") { draw.mesh.dispose(); }
     draw.mesh.geometry.dispose();
     draw.mesh.material.dispose();
   }
