@@ -2,8 +2,8 @@
   "schemaVersion": 3,
   "source": "https://genspend.io/api/v1/export",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-10-13T10:52:53.057Z",
-  "catalogGeneratedAt": "2026-10-13T10:52:51.845Z",
+  "updatedAt": "2026-10-15T08:32:10.002Z",
+  "catalogGeneratedAt": "2026-10-15T08:32:08.696Z",
   "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
   "catalogModels": 165,
   "catalogOfferings": 563,
@@ -19,7 +19,7 @@
     "together",
     "xai"
   ],
-  "pricedModels": 364,
+  "pricedModels": 362,
   "prices": {
     "atlascloud:alibaba/happyhorse-1.0/reference-to-video": {
       "unit_price": 0.14,
@@ -7428,15 +7428,6 @@
       "live": true,
       "source_url": "https://replicate.com/bytedance/seedream-4"
     },
-    "replicate:google/imagen-4": {
-      "unit_price": 0.04,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "imagen-4",
-      "match": "provider-id",
-      "live": true,
-      "source_url": "https://replicate.com/google/imagen-4"
-    },
     "replicate:google/lyria-2": {
       "unit_price": 0.12,
       "billing_unit": "minutes",
@@ -7501,15 +7492,6 @@
         ],
         "max": 8
       }
-    },
-    "replicate:ideogram-ai/ideogram-v3-quality": {
-      "unit_price": 0.09,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "ideogram-v3",
-      "match": "provider-id",
-      "live": true,
-      "source_url": "https://replicate.com/pricing"
     },
     "replicate:kwaivgi/kling-v2.5-turbo-pro": {
       "unit_price": 0.07,
