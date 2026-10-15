@@ -14,6 +14,7 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
+    "@dimforge/rapier3d-compat": "0.19.3",
     "@llamaindex/liteparse": "^1.5.2",
     "@napi-rs/canvas": "^0.1.65",
     "@nodetool-ai/agents": "*",

@@ -85,7 +85,7 @@ export type CreateSketchBridge = (initial: {
   width?: number;
   height?: number;
   layers?: { name: string; type?: "raster" | "mask" }[];
-}) => SketchBridge;
+}) => SketchBridge | Promise<SketchBridge>;
 
 export interface SketchDebugDeps extends SketchTargetDeps {
   /** Defaults to `@nodetool-ai/execution/sketch-debug`. */
@@ -123,14 +123,7 @@ async function loadCore(): Promise<SketchDebugCore> {
 
 async function loadBridgeFactory(): Promise<CreateSketchBridge> {
   const { createSketchToolBridge } = await import("@nodetool-ai/agents");
-  return (initial) =>
-    // SAFETY: the eval-surface bridge in @nodetool-ai/agents implements this
-    // exact tool list and snapshot — it is the bridge this type describes. The
-    // two packages declare the sketch document types independently, and that
-    // duplication is the only reason the structures do not line up.
-    createSketchToolBridge(
-      initial as Parameters<typeof createSketchToolBridge>[0]
-    ) as SketchBridge;
+  return (initial) => createSketchToolBridge(initial);
 }
 
 /** Load a sketch and validate it — no bridge, no bundle. */
@@ -259,7 +252,7 @@ export async function runSketchDebug(
     if (resolved.document.canvas.height !== undefined) {
       bridgeInit.height = resolved.document.canvas.height;
     }
-    const bridge = createBridge(bridgeInit);
+    const bridge = await createBridge(bridgeInit);
     interactions.push(
       ...(await runInteractionSteps(steps, bridge.tools, "sketch", deps.onLog))
     );

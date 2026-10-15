@@ -1,6 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION, BORDER_RADIUS, SPACING, TYPOGRAPHY, Z_INDEX, getSpacingPx } from "../ui_primitives";
+import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION, BORDER_RADIUS, SPACING, TYPOGRAPHY, DropZoneOverlay, getSpacingPx } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import WorkflowSelect from "./WorkflowSelect";
@@ -123,13 +122,7 @@ const CollectionItem = ({
     backgroundColor: "transparent",
     ...(dragOverCollection === collection.name && {
       backgroundColor: "action.hover",
-      borderStyle: "dashed",
-      borderWidth: 2,
-      borderColor: "primary.main",
       borderRadius: BORDER_RADIUS.md,
-      m: 0.5,
-      width: `calc(100% - ${getSpacingPx(SPACING.md)})`,
-      boxShadow: "0 0 0 1px rgb(var(--palette-primary-mainChannel) / 0.08)",
       "& > :not(.drop-zone-overlay)": {
         opacity: 0.12,
         filter: "blur(1px)"
@@ -169,35 +162,7 @@ const CollectionItem = ({
           />
         )}
       </FlexRow>
-      {dragOverCollection === collection.name && (
-        <FlexRow
-          className="drop-zone-overlay"
-          align="center"
-          justify="center"
-          sx={{
-            position: "absolute",
-            inset: 0,
-            backgroundColor: "transparent",
-            pointerEvents: "none",
-            zIndex: Z_INDEX.raised
-          }}
-        >
-          <Text
-            size="small"
-            sx={{
-              color: "primary.main",
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-              pointerEvents: "none",
-              textShadow: "0 0 10px rgb(var(--palette-primary-mainChannel) / 0.2)"
-            }}
-          >
-            <UploadFileIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
-            Drop files to upload
-          </Text>
-        </FlexRow>
-      )}
+      {dragOverCollection === collection.name && <DropZoneOverlay />}
       <FlexRow align="center" gap={SPACING.lg} fullWidth>
         <Tooltip title={`Collection: ${collection.name}`}>
           <Text

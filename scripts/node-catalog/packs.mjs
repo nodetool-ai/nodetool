@@ -47,7 +47,7 @@ const runtimeLibraries = {
   image: ["imaging"],
   audio: ["imaging"],
   video: ["imaging"],
-  game: ["imaging"],
+  game: ["imaging", "rapier"],
   document: ["imaging", "pdf-js"],
   automation: ["imaging"]
 };

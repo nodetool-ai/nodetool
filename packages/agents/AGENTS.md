@@ -218,7 +218,8 @@ progress bar.
 `image`, `audio`, `video`, and `canvas` are the media namespaces. Image and
 canvas are host bridges over a real
 2D canvas (`src/sandbox-media.ts`). The backend is picked at first use:
-`@napi-rs/canvas` (Skia) on Node, loaded through `importHidden` so no bundler
+`@napi-rs/canvas` (Skia) on Node, loaded through `loadCanvas` from
+`@nodetool-ai/runtime` so no bundler
 pulls the native addon into a browser graph — it is already staged as an
 external by `scripts/bundle-backend.mjs` — and `OffscreenCanvas` +
 `createImageBitmap` in the browser runner. Ops: `info`, `stats`, `decode`,

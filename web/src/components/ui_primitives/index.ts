@@ -20,6 +20,21 @@ export { DialogActionButtons } from "./DialogActionButtons";
 export type { DialogActionButtonsProps } from "./DialogActionButtons";
 
 export { ToolbarIconButton } from "./ToolbarIconButton";
+export { Toolbar, ToolbarGroup, ToolbarDivider, TOOLBAR_HEIGHT } from "./Toolbar";
+export type {
+  ToolbarProps,
+  ToolbarGroupProps,
+  ToolbarDensity
+} from "./Toolbar";
+export { FloatingToolbar } from "./FloatingToolbar";
+export type { FloatingToolbarProps } from "./FloatingToolbar";
+export { StatusBar, StatusBarItem, SaveState } from "./StatusBar";
+export type {
+  StatusBarProps,
+  StatusBarItemProps,
+  SaveStateProps,
+  SaveStateValue
+} from "./StatusBar";
 export type { ToolbarIconButtonProps } from "./ToolbarIconButton";
 
 // Export shortcut hint component
@@ -210,6 +225,9 @@ export { BatchedColorInput } from "./BatchedColorInput";
 export type { BatchedColorInputProps } from "./BatchedColorInput";
 export { InspectorValueInput } from "./InspectorValueInput";
 export type { InspectorValueInputProps, InspectorValueScrub, InspectorValueGesture } from "./InspectorValueInput";
+export { NumberField } from "./NumberField";
+export type { NumberFieldProps } from "./NumberField";
+export { numberFieldHeight, numberFieldSurfaceStyles, numberFieldTextStyles, numberFieldUnitStyles, numberFieldPaddingX } from "./NumberField";
 export { NumericField } from "./NumericField";
 export type { NumericFieldProps } from "./NumericField";
 export { TreeRow } from "./TreeRow";
@@ -228,8 +246,10 @@ export { Container } from "./Container";
 export type { ContainerProps } from "./Container";
 
 // Surface primitives
-export { Card } from "./Card";
-export type { CardProps } from "./Card";
+export { Card, CardHeader, CardBody, CardActions } from "./Card";
+export type { CardProps, CardHeaderProps } from "./Card";
+export { StatCard } from "./StatCard";
+export type { StatCardProps } from "./StatCard";
 
 export { Panel } from "./Panel";
 export type { PanelProps } from "./Panel";
@@ -439,6 +459,19 @@ export type { SelectableListItemProps } from "./SelectableListItem";
 
 export { CheckerDropzone } from "./CheckerDropzone";
 export type { CheckerDropzoneProps } from "./CheckerDropzone";
+export {
+  DropZone,
+  DropZoneOverlay,
+  dropZoneOutline,
+  dropZoneOverStyle,
+  dropZoneRejectStyle,
+  dropZoneSurfaceStyle
+} from "./DropZone";
+export type {
+  DropZoneProps,
+  DropZoneState,
+  DropZoneOverlayProps
+} from "./DropZone";
 
 export { VideoPlayer } from "./VideoPlayer";
 export type { VideoPlayerProps } from "./VideoPlayer";
@@ -499,7 +532,6 @@ export {
   SvgIcon,
   Modal,
   Fade,
-  Toolbar,
   LinearProgress,
   MuiAutocomplete,
   MuiDialog
@@ -546,7 +578,6 @@ export type {
   SvgIconProps,
   ModalProps,
   FadeProps,
-  ToolbarProps,
   LinearProgressProps,
   MuiAutocompleteProps,
   MuiDialogProps

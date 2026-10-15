@@ -2614,6 +2614,39 @@ nodetool package docs --compact
 nodetool package node-docs --package-name nodetool.text
 ```
 
+### `nodetool packs`
+
+Manage node packs and npm runtime libraries for a global CLI installation or
+an npm project. Mutation is a preview feature enabled with
+`NODETOOL_PACKS_INSTALLER=1`. Temporary npx installations and development
+checkouts support diagnostics but refuse installation changes.
+
+| Command | Behavior |
+|---|---|
+| `packs compile [--json] [--force]` | Compile installed sandbox pack modules. See [sandbox compilation](#nodetool-packs-compile). |
+| `packs list [--json]` | Show available packs, installation state and size estimates. |
+| `packs add <ids...> [--yes]` | Install the pinned packs or runtime libraries and their requirements. |
+| `packs add --restore [--yes]` | Restore the desired set recorded for this install root. |
+| `packs add --for <workflow-or-file> [--yes]` | Install missing requirements of a saved workflow or an explicitly named local file. |
+| `packs remove <ids...>` | Remove packages owned exclusively by the selection while preserving retained requirements. |
+| `packs doctor [--json] [--installed] [--pack <ids...>]` | Check the mode, versions, integrity and installation state. Registration checks use a fresh child process. |
+| `packs doctor --repair` | Repair a dirty installation after verifying its pinned cohort. |
+| `packs why <node_type-or-id>` | Explain ownership, requirements and installation state. |
+
+Add commands prompt with package versions, size estimates, approved scripts
+and local manifest changes. Use `--yes` in a non-interactive terminal. Local
+installation updates package.json and package-lock.json. Restart running
+servers after adding or removing packs.
+
+`run`, `debug`, `node run` and `workflows run` accept `--install-missing`.
+`NODETOOL_AUTO_INSTALL=1` also authorizes those commands. They install missing
+npm requirements and re-execute once, forwarding the child exit code. Serve,
+MCP and agent tools do not install packages automatically. External runtimes
+such as ffmpeg and Python require their own setup.
+
+See the [pack-system design](cli-pack-system-design.md#15-command-surface)
+for installation boundaries and the platform matrix.
+
 ### `nodetool packs compile`
 
 Compile every npm-backed sandbox module of every installed pack. A pack can

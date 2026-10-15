@@ -50,7 +50,7 @@ export {
   type Logger
 } from "./logging.js";
 
-export { importOptionalModule } from "./optional-modules.js";
+export { importOptionalModule, esmExportPath, packageManifestSchema } from "./optional-modules.js";
 
 export {
   runtimeLocations,

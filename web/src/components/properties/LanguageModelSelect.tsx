@@ -56,6 +56,11 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
     ) ?? null;
   }, [fetchedModels, value, provider]);
 
+  const selectedModel = useMemo(
+    () => (value ? { id: value, provider } : undefined),
+    [value, provider]
+  );
+
   return (
     <>
       <ModelSelectButton
@@ -76,6 +81,7 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
         requireToolSupport={requireToolSupport}
         recommendedModels={recommendedModels}
         modelPacks={modelPacks}
+        selectedModel={selectedModel}
       />
     </>
   );

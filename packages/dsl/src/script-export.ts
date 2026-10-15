@@ -19,10 +19,9 @@
  * it runs anything, naming every node and the reason.
  */
 
-import { ALL_BASE_NODES } from "@nodetool-ai/base-nodes";
+import { readCatalogNodes } from "@nodetool-ai/node-catalog";
 import { rewriteBypassedNodes } from "@nodetool-ai/kernel";
 import {
-  getNodeMetadata,
   type NodeMetadata,
   type TypeMetadata
 } from "@nodetool-ai/node-sdk";
@@ -34,7 +33,7 @@ export interface WorkflowToScriptOptions {
   target: ScriptTarget;
   workflowName?: string | null;
   /**
-   * Metadata for a node type. Defaults to the builtin node packages; a server
+   * Metadata for a node type. Defaults to the node catalog; a server
    * passes its registry so provider and pack nodes are described too.
    */
   getMetadata?: (nodeType: string) => NodeMetadata | undefined;
@@ -235,8 +234,7 @@ let builtinMetadata: Map<string, NodeMetadata> | null = null;
 function builtinMetadataFor(nodeType: string): NodeMetadata | undefined {
   if (!builtinMetadata) {
     builtinMetadata = new Map();
-    for (const NodeClass of ALL_BASE_NODES) {
-      const metadata = getNodeMetadata(NodeClass);
+    for (const { metadata } of readCatalogNodes()) {
       builtinMetadata.set(metadata.node_type, metadata);
     }
   }

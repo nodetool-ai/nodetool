@@ -12,6 +12,7 @@ import {
   FormSection,
   SectionHeader,
   SPACING,
+  NumberField,
   TextInput,
   SelectField,
   CollapsibleSection,
@@ -446,21 +447,19 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
             />
           )}
 
-          <TextInput
+          <NumberField
             label="Disk (GB)"
             value={disk}
             onChange={(e) => setDisk(e.target.value)}
-            type="number"
             helperText="Persistent volume for the model cache. Models download here once and survive a stop/resume. HF models are large — keep this generous."
             fullWidth
             compact
           />
 
-          <TextInput
+          <NumberField
             label="Idle timeout (minutes)"
             value={idleTimeout}
             onChange={(e) => setIdleTimeout(e.target.value)}
-            type="number"
             helperText="Idle this long → pause (GPU freed, volume + models kept). Your main guard against runaway GPU bills. Blank = never."
             fullWidth
             compact
@@ -503,11 +502,10 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
                 size="small"
                 description="Generate issues a fresh auth token per worker (recommended). Fixed reuses a token you set elsewhere."
               />
-              <TextInput
+              <NumberField
                 label="Max lifetime (minutes)"
                 value={maxLifetime}
                 onChange={(e) => setMaxLifetime(e.target.value)}
-                type="number"
                 helperText="Hard cap: at this age the worker is TERMINATED — pod and volume destroyed (models lost) — to stop all billing. Blank = no cap."
                 fullWidth
                 compact

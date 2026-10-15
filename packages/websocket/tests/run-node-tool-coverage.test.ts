@@ -6,10 +6,24 @@
 import { describe, it, expect, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { RunNodeTool } from "../src/agent/run-node-tool.js";
+import { createMissingPackError } from "@nodetool-ai/node-catalog";
 
 const ctx = undefined as unknown as ProcessingContext;
 
 describe("RunNodeTool", () => {
+  it("preserves missing pack details and continues with another node without retry", async () => {
+    const error = createMissingPackError("huggingface", ["huggingface.test.Missing"]);
+    const runNode = vi.fn(async (type: string) => {
+      if (type === "huggingface.test.Missing") {
+        throw error;
+      }
+      return { output: "continued" };
+    });
+    const tool = new RunNodeTool(runNode);
+    expect(await tool.process(ctx, { node_type: "huggingface.test.Missing" })).toEqual(error.details);
+    expect(await tool.process(ctx, { node_type: "test.Echo" })).toEqual({ output: "continued" });
+    expect(runNode.mock.calls.map(([type]) => type)).toEqual(["huggingface.test.Missing", "test.Echo"]);
+  });
   it("exposes name, description and a schema requiring node_type", () => {
     const tool = new RunNodeTool(async () => ({}));
     expect(tool.name).toBe("run_node");

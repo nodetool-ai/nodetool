@@ -1,4 +1,6 @@
 import { validateGraph } from "@nodetool-ai/node-sdk";
+import { findMissingPacks } from "../missing-packs.js";
+import type { MissingPackDetails } from "@nodetool-ai/protocol";
 import { registerWorkflowRunTrace } from "./run-trace-lifecycle.js";
 /**
  * Running a saved workflow, as a service every host can call in-process.
@@ -272,7 +274,7 @@ export interface RunWorkflowOptions {
  */
 export type RunWorkflowOutcome =
   | { kind: "payload"; payload: Record<string, unknown> }
-  | { kind: "error"; status: number; detail: string };
+  | { kind: "error"; status: number; detail: string; missingPack?: MissingPackDetails };
 
 /**
  * Server-side ceilings for the interactive bounds a caller may ask for. A
@@ -479,6 +481,10 @@ export function buildWorkflowRunPayload(
   debug: boolean,
   extras: { background: boolean }
 ) {
+  const packDetails: Pick<WorkflowRunResult, "missingPack"> = {};
+  if (result.missingPack) {
+    packDetails.missingPack = result.missingPack;
+  }
   if (debug) {
     // The debug surface reports what actually happened — per-node status and
     // errors, logs, edges, LLM calls, outputs — plus the same verdict the CLI
@@ -493,6 +499,7 @@ export function buildWorkflowRunPayload(
     // completed — but without them a supervised run reads as "ran clean".
     const warnings = collectInterventionWarnings("Server", summary);
     return {
+      ...packDetails,
       job_id: jobId,
       workflow_id: workflowId,
       status: result.status,
@@ -513,6 +520,7 @@ export function buildWorkflowRunPayload(
   }
 
   return {
+    ...packDetails,
     job_id: jobId,
     workflow_id: workflowId,
     status: result.status,
@@ -800,6 +808,10 @@ export async function runWorkflow(
   const environment = await resolveEnvironment();
 
   const registry = environment.registry;
+  const missingPack = await findMissingPacks(runnableGraph, registry, { loadWorkflow: (id) => Workflow.find(userId, id) });
+  if (missingPack) {
+    return { kind: "error", status: 424, detail: "Workflow requires node packs that are not installed.", missingPack };
+  }
   if (runnableGraph.nodes.some((node) => registry.availability(node.type) === "catalog")) {
     const report = validateGraph(runnableGraph, registry);
     return {

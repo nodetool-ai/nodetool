@@ -5,12 +5,13 @@
  * the parent's `.controls` grid.
  *
  * Bipolar specs (range straddling 0, neutral at 0 — temperature, tint,
- * shadows, …) hide the native track and fill outward from the centre so the
- * control reads as a signed adjustment, not a 0–100% level. A non-default
- * value lights the thumb via `changed`.
+ * shadows, …) pass `origin={0}` to the shared `Slider`, which fills outward
+ * from the centre so the control reads as a signed adjustment, not a 0–100%
+ * level. A non-default value lights the thumb via `changed`. The rail, track
+ * and thumb look is the primitive's; nothing here restyles MUI.
  *
- * `adjustmentSliderStyles` carries the row's CSS (labels, value chip, centre
- * tick / bipolar fill, MUI slider polish) — compose it into the body's emotion
+ * `adjustmentSliderStyles` carries the row's CSS (labels, value chip, cell
+ * layout) — compose it into the body's emotion
  * block alongside the body's own styles: `css={[bodyStyles, sliderStyles]}`.
  */
 
@@ -18,10 +19,7 @@ import React, { memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
-import { NodeSlider, BORDER_RADIUS, FONT_WEIGHT, SPACING, Z_INDEX } from "../../ui_primitives";
-
-const TRACK_HEIGHT = 4;
-const THUMB_SIZE = 12;
+import { NodeSlider, FONT_WEIGHT, SPACING } from "../../ui_primitives";
 
 export interface SliderSpec {
   name: string;
@@ -45,10 +43,6 @@ const formatSliderValue = (spec: SliderSpec, value: number): string => {
   return `${sign}${value.toFixed(2)}`;
 };
 
-/** Fraction 0..1 of where `value` sits in `[min, max]`. */
-const fraction = (spec: SliderSpec, value: number): number =>
-  spec.max === spec.min ? 0 : (value - spec.min) / (spec.max - spec.min);
-
 export const adjustmentSliderStyles = (theme: Theme) =>
   css({
     ".ctrl-label": {
@@ -69,27 +63,6 @@ export const adjustmentSliderStyles = (theme: Theme) =>
       width: "100%",
       height: 24
     },
-    ".slider-wrap .center-tick": {
-      position: "absolute",
-      top: "50%",
-      transform: "translate(-50%, -50%)",
-      width: 2,
-      height: 9,
-      borderRadius: BORDER_RADIUS.xs,
-      backgroundColor: theme.vars.palette.text.disabled,
-      pointerEvents: "none",
-      zIndex: 0
-    },
-    ".slider-wrap .bipolar-fill": {
-      position: "absolute",
-      top: "50%",
-      transform: "translateY(-50%)",
-      height: TRACK_HEIGHT,
-      borderRadius: BORDER_RADIUS.pill,
-      backgroundColor: theme.vars.palette.primary.main,
-      pointerEvents: "none",
-      zIndex: Z_INDEX.raised
-    },
     ".ctrl-value": {
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
@@ -99,36 +72,6 @@ export const adjustmentSliderStyles = (theme: Theme) =>
       textAlign: "right",
       lineHeight: 1,
       padding: `0 ${theme.spacing(SPACING.xs)}`
-    },
-    // Slider polish — rounded rail/track, ring-style thumb. Scoped here so the
-    // app's square editor sliders elsewhere are untouched.
-    ".controls .MuiSlider-root": {
-      padding: 0,
-      margin: 0
-    },
-    ".controls .MuiSlider-rail": {
-      height: TRACK_HEIGHT,
-      borderRadius: BORDER_RADIUS.pill,
-      opacity: 1,
-      backgroundColor: theme.vars.palette.action.selected
-    },
-    ".controls .MuiSlider-track": {
-      height: TRACK_HEIGHT,
-      borderRadius: BORDER_RADIUS.pill,
-      border: "none",
-      backgroundColor: theme.vars.palette.primary.main
-    },
-    // backgroundColor is left to NodeSlider (grey when neutral, primary when
-    // changed) so an unchanged thumb reads as a ring and a changed one fills in.
-    ".controls .MuiSlider-thumb": {
-      width: THUMB_SIZE,
-      height: THUMB_SIZE,
-      borderRadius: BORDER_RADIUS.circle,
-      border: `2px solid ${theme.vars.palette.background.paper}`,
-      boxShadow: "none",
-      "&:hover, &.Mui-focusVisible, &.Mui-active": {
-        boxShadow: `0 0 0 6px color-mix(in srgb, ${theme.vars.palette.primary.main} 20%, transparent)`
-      }
     }
   });
 
@@ -159,37 +102,20 @@ export const AdjustmentSlider: React.FC<AdjustmentSliderProps> = memo(({
     [onChange, spec.name, spec.step]
   );
 
-  // Centre fill geometry (bipolar only): from the neutral point (where 0 sits)
-  // out to the thumb. Slider padding is 0, so rail spans 0–100% and these
-  // percentages line up with the thumb.
-  const centreFrac = clamp(fraction(spec, 0), 0, 1);
-  const valueFrac = clamp(fraction(spec, value), 0, 1);
-  const fillLeft = Math.min(centreFrac, valueFrac) * 100;
-  const fillWidth = Math.abs(valueFrac - centreFrac) * 100;
-
   return (
     <>
       <span className={`ctrl-label${labelClassName ? ` ${labelClassName}` : ""}`}>
         {spec.label}
       </span>
-      <span className={`slider-wrap${spec.bipolar ? " is-bipolar" : ""}`}>
-        {spec.bipolar && (
-          <>
-            <span className="center-tick" style={{ left: `${centreFrac * 100}%` }} />
-            <span
-              className="bipolar-fill"
-              style={{ left: `${fillLeft}%`, width: `${fillWidth}%` }}
-            />
-          </>
-        )}
+      <span className="slider-wrap">
         <NodeSlider
           min={spec.min}
           max={spec.max}
           step={spec.step}
           value={value}
           changed={value !== spec.default}
-          // Native fill hidden for bipolar — the centre fill replaces it.
-          track={spec.bipolar ? false : "normal"}
+          // Bipolar: fill outward from the neutral 0 instead of the left edge.
+          origin={spec.bipolar ? 0 : undefined}
           onChange={handleChange}
           onChangeCommitted={onCommit}
           aria-label={`${spec.label} adjustment`}

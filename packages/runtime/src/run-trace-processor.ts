@@ -1,6 +1,6 @@
 import { context, trace, type Attributes, type Context, type Span as ApiSpan } from "@opentelemetry/api";
 import type { ReadableSpan, Span, SpanProcessor, SpanExporter } from "@opentelemetry/sdk-trace-base";
-import { resourceFromAttributes } from "@opentelemetry/resources";
+import { loadTracingModule } from "./tracing-module.js";
 import { isTraceContentKey, splitTraceRecord, TRACE_STRING_LIMIT, TRACE_CONTENT_BYTE_LIMIT, type TraceRecord, type RunTraceRegistration, type RunTraceUpdate } from "@nodetool-ai/protocol";
 import { createTraceTextRedactor, redactTraceText, setLogHook, safeProcessEnv, type LogEntry } from "@nodetool-ai/config";
 import { spanToRecord } from "./span-record.js";
@@ -50,6 +50,9 @@ function hasOversizedContent(value: unknown, depth = 0): boolean {
 
 /** Attach durable storage independently of external sink initialization. */
 export function configureRunTraceStore(adapter: RunTraceStore): void { store = adapter; }
+
+/** Whether durable trace storage has been configured as a trace sink. */
+export function hasRunTraceStore(): boolean { return store !== null; }
 
 function redactRecord(record: TraceRecord, options: TraceSanitizerOptions): TraceRecord {
   if (record.name.length > 200 || record.events.some((event) => event.name.length > 200) || hasOversizedContent(record.attributes) || hasOversizedContent(record.resource) || record.events.some((event) => hasOversizedContent(event.attributes)) || (record.status.message?.length ?? 0) > TRACE_STRING_LIMIT) {
@@ -140,40 +143,54 @@ function otelAttributes(input: Record<string, unknown>): Attributes {
 
 /** Filter before OTLP or the legacy console exporter can inspect an SDK span. */
 export class ContentFilteringSpanExporter implements SpanExporter {
+  private readonly pending = new Set<Promise<void>>();
   constructor(private readonly exporter: SpanExporter) {}
   export(spans: ReadableSpan[], callback: Parameters<SpanExporter["export"]>[1]): void {
-    this.exporter.export(spans.map((span) => {
-      const record = externalTraceRecord(spanToRecord(span), scopes.get(span));
-      const instrumentationScope: { name: string; version?: string } = { name: redactTraceText(span.instrumentationScope?.name ?? "nodetool", scopes.get(span)?.secretValues) };
-      if (span.instrumentationScope?.version) { instrumentationScope.version = redactTraceText(span.instrumentationScope.version, scopes.get(span)?.secretValues); }
-      const status: ReadableSpan["status"] = { code: span.status.code };
-      if (record.status.message) { status.message = record.status.message; }
-      const filtered = {
-        ...span,
-        duration: span.duration,
-        ended: span.ended,
-        droppedAttributesCount: span.droppedAttributesCount,
-        droppedEventsCount: span.droppedEventsCount,
-        droppedLinksCount: span.droppedLinksCount,
-        spanContext: () => ({ traceId: span.spanContext().traceId, spanId: span.spanContext().spanId, traceFlags: span.spanContext().traceFlags }),
-        links: (span.links ?? []).map((link) => ({ context: { traceId: link.context.traceId, spanId: link.context.spanId, traceFlags: link.context.traceFlags } })),
-        instrumentationScope,
-        name: record.name,
-        attributes: otelAttributes(record.attributes),
-        status,
-        events: record.events.map((event) => {
-          const filteredEvent: ReadableSpan["events"][number] = { name: event.name, time: eventTime(event.time_ms) };
-          if (event.attributes) { filteredEvent.attributes = otelAttributes(event.attributes); }
-          return filteredEvent;
-        }),
-        resource: resourceFromAttributes(otelAttributes(record.resource))
-      };
-      if (span.parentSpanContext) { filtered.parentSpanContext = { traceId: span.parentSpanContext.traceId, spanId: span.parentSpanContext.spanId, traceFlags: span.parentSpanContext.traceFlags }; }
-      return filtered;
-    }), callback);
+    const pending = loadTracingModule<typeof import("@opentelemetry/resources")>("@opentelemetry/resources").then(({ resourceFromAttributes }) => new Promise<void>((resolve) => {
+      this.exporter.export(spans.map((span) => {
+        const record = externalTraceRecord(spanToRecord(span), scopes.get(span));
+        const instrumentationScope: { name: string; version?: string } = { name: redactTraceText(span.instrumentationScope?.name ?? "nodetool", scopes.get(span)?.secretValues) };
+        if (span.instrumentationScope?.version) { instrumentationScope.version = redactTraceText(span.instrumentationScope.version, scopes.get(span)?.secretValues); }
+        const status: ReadableSpan["status"] = { code: span.status.code };
+        if (record.status.message) { status.message = record.status.message; }
+        const filtered = {
+          ...span,
+          duration: span.duration,
+          ended: span.ended,
+          droppedAttributesCount: span.droppedAttributesCount,
+          droppedEventsCount: span.droppedEventsCount,
+          droppedLinksCount: span.droppedLinksCount,
+          spanContext: () => ({ traceId: span.spanContext().traceId, spanId: span.spanContext().spanId, traceFlags: span.spanContext().traceFlags }),
+          links: (span.links ?? []).map((link) => ({ context: { traceId: link.context.traceId, spanId: link.context.spanId, traceFlags: link.context.traceFlags } })),
+          instrumentationScope,
+          name: record.name,
+          attributes: otelAttributes(record.attributes),
+          status,
+          events: record.events.map((event) => {
+            const filteredEvent: ReadableSpan["events"][number] = { name: event.name, time: eventTime(event.time_ms) };
+            if (event.attributes) { filteredEvent.attributes = otelAttributes(event.attributes); }
+            return filteredEvent;
+          }),
+          resource: resourceFromAttributes(otelAttributes(record.resource))
+        };
+        if (span.parentSpanContext) { filtered.parentSpanContext = { traceId: span.parentSpanContext.traceId, spanId: span.parentSpanContext.spanId, traceFlags: span.parentSpanContext.traceFlags }; }
+        return filtered;
+      }), (result) => {
+        resolve();
+        callback(result);
+      });
+    })).catch((error: unknown) => callback({ code: 1, error: error instanceof Error ? error : new Error(String(error)) }));
+    this.pending.add(pending);
+    void pending.then(() => this.pending.delete(pending));
   }
-  shutdown(): Promise<void> { return this.exporter.shutdown(); }
-  forceFlush(): Promise<void> { return this.exporter.forceFlush?.() ?? Promise.resolve(); }
+  async shutdown(): Promise<void> {
+    await Promise.all(this.pending);
+    await this.exporter.shutdown();
+  }
+  async forceFlush(): Promise<void> {
+    await Promise.all(this.pending);
+    await this.exporter.forceFlush?.();
+  }
 }
 
 interface QueuedWrite { readonly write: RunTraceWrite; readonly bytes: number; }

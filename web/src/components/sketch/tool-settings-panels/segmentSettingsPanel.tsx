@@ -21,7 +21,6 @@ import {
 import { EditorButton } from "../../editor_ui";
 import {
   sketchButtonSmallSx,
-  sketchSliderSx,
   SKETCH_COLORS
 } from "../sketchStyles";
 import ImageModelSelect from "../../properties/ImageModelSelect";
@@ -192,7 +191,6 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         <Box className="setting-row">
           <Text className="setting-label">Max Objects</Text>
           <Slider
-            sx={sketchSliderSx}
             size="small"
             min={1}
             max={20}
@@ -205,7 +203,6 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         <Box className="setting-row">
           <Text className="setting-label">Confidence</Text>
           <Slider
-            sx={sketchSliderSx}
             size="small"
             min={0}
             max={1}
@@ -221,7 +218,6 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         <Box className="setting-row">
           <Text className="setting-label">Min Size</Text>
           <Slider
-            sx={sketchSliderSx}
             size="small"
             min={0}
             max={10000}
@@ -235,7 +231,6 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         <Box className="setting-row">
           <Text className="setting-label">Feather</Text>
           <Slider
-            sx={sketchSliderSx}
             size="small"
             min={0}
             max={20}

@@ -25,15 +25,11 @@
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/storage": "*",
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/core": "^2.10.0",
-    "@opentelemetry/resources": "^2.10.0",
-    "@opentelemetry/sdk-trace-base": "^2.10.0",
     "@pydantic/genai-prices": "^0.1.9",
     "fflate": "^0.8.2",
     "msgpackr": "^1.11.2",
     "openai": "^6.35.0",
     "replicate": "^1.4.0",
-    "sharp": "^0.35.3",
     "ws": "^8.19.0",
     "zod": "^4.4.3"
   },
@@ -42,17 +38,42 @@
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "sharp": "^0.35.3",
+    "@opentelemetry/core": "^2.10.0",
+    "@opentelemetry/resources": "^2.10.0",
+    "@opentelemetry/sdk-trace-base": "^2.10.0",
+    "@napi-rs/canvas": "^0.1.65"
   },
   "peerDependencies": {
     "js-tiktoken": "^1.0.21",
-    "node-llama-cpp": "^3.0.0"
+    "node-llama-cpp": "^3.0.0",
+    "sharp": "^0.35.3",
+    "@opentelemetry/core": "^2.10.0",
+    "@opentelemetry/resources": "^2.10.0",
+    "@opentelemetry/sdk-trace-base": "^2.10.0",
+    "@napi-rs/canvas": "^0.1.65"
   },
   "peerDependenciesMeta": {
     "js-tiktoken": {
       "optional": true
     },
     "node-llama-cpp": {
+      "optional": true
+    },
+    "sharp": {
+      "optional": true
+    },
+    "@opentelemetry/core": {
+      "optional": true
+    },
+    "@opentelemetry/resources": {
+      "optional": true
+    },
+    "@opentelemetry/sdk-trace-base": {
+      "optional": true
+    },
+    "@napi-rs/canvas": {
       "optional": true
     }
   },

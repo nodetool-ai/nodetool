@@ -40,6 +40,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import {
   BORDER_RADIUS,
   CheckerDropzone,
+  NodeSlider,
   SPACING,
   ToolbarIconButton
 } from "../../ui_primitives";
@@ -127,29 +128,7 @@ const styles = (theme: Theme) =>
     },
     ".scrubber": {
       flex: "0 0 auto",
-      width: "100%",
-      height: 4,
-      appearance: "none",
-      background: theme.vars.palette.grey[700],
-      borderRadius: BORDER_RADIUS.xs,
-      cursor: "pointer",
-      margin: `${theme.spacing(SPACING.micro)} 0`,
-      "&::-webkit-slider-thumb": {
-        appearance: "none",
-        width: 12,
-        height: 12,
-        borderRadius: BORDER_RADIUS.circle,
-        backgroundColor: theme.vars.palette.primary.main,
-        cursor: "pointer"
-      },
-      "&::-moz-range-thumb": {
-        width: 12,
-        height: 12,
-        borderRadius: BORDER_RADIUS.circle,
-        backgroundColor: theme.vars.palette.primary.main,
-        border: "none",
-        cursor: "pointer"
-      }
+      width: "100%"
     },
     ".transport": {
       flex: "0 0 auto",
@@ -387,8 +366,8 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
   }, [commit]);
 
   const handleScrub = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const next = Number(e.target.value);
+    (_e: Event, value: number | number[]) => {
+      const next = Array.isArray(value) ? value[0] : value;
       seekTo(next);
       // setProperty debounces the auto-run; the final value is committed on
       // pointer release below.
@@ -505,15 +484,14 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
         )}
       </div>
 
-      <input
-        type="range"
-        className="scrubber nodrag nopan"
+      <NodeSlider
+        className="scrubber nopan"
         min={0}
         max={duration || 0}
         step={0.01}
         value={currentTime}
         onChange={handleScrub}
-        onPointerUp={commitCurrent}
+        onChangeCommitted={commitCurrent}
         disabled={!videoSrc}
         aria-label="Seek video"
       />

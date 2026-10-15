@@ -23,7 +23,20 @@ function matrixRunScript() {
 }
 
 describe("quality check matrix exit status", () => {
-  it("serializes harnesses in both diff and full-run paths", () => {
+  it("bounds package and file concurrency in the core test job", () => {
+    const source = readFileSync(WORKFLOW, "utf8");
+    const entry = source.match(/"check": "test-packages-core",\s*"command": ("(?:\\.|[^"\\])*")/);
+    expect(entry).not.toBeNull();
+    const command = JSON.parse(entry[1]);
+    const invocations = command.split(" && ").filter((part) => part.startsWith("npx turbo run test "));
+    expect(invocations).toHaveLength(2);
+    expect(invocations[0]).toMatch(/--concurrency=1(?: |$)/);
+    expect(invocations[1]).toMatch(/--concurrency=2(?: |$)/);
+    const builtJob = source.slice(source.indexOf("\n  built:"));
+    expect(builtJob).toContain("NODETOOL_TEST_WORKERS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-core' || matrix.check == 'test-packages-agents') && '1' || '' }}");
+  });
+
+  it("bounds harness concurrency in both diff and full-run paths", () => {
     const source = readFileSync(WORKFLOW, "utf8");
     const entry = source.match(/"check": "harness-gate",\s*"command": ("(?:\\.|[^"\\])*")/);
     expect(entry).not.toBeNull();
@@ -38,7 +51,7 @@ describe("quality check matrix exit status", () => {
     }
     const builtJob = source.slice(source.indexOf("\n  built:"));
     expect(builtJob).toMatch(/timeout-minutes: 45/);
-    expect(builtJob).toContain("NODETOOL_TEST_WORKERS: ${{ matrix.check == 'harness-gate' && '1' || '' }}");
+    expect(builtJob).toContain("NODETOOL_TEST_WORKERS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-core' || matrix.check == 'test-packages-agents') && '1' || '' }}");
     expect(builtJob).toContain("NODETOOL_HARNESS_INCLUDE_SUITES: ${{ inputs.skip-tests && '--include-suites' || '' }}");
     for (const base of ["", "fixture-base"]) {
       for (const skipTests of [false, true]) {

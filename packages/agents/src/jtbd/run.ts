@@ -50,7 +50,7 @@ export interface ErasedJob {
    * Build a fresh world for one run and return both its tools and the grader
    * that reads the state those tools left behind.
    */
-  start: () => { tools: HeadlessTool[]; grade: () => OutcomeResult[] };
+  start: () => Promise<{ tools: HeadlessTool[]; grade: () => OutcomeResult[] }>;
 }
 
 /** Seal a job's state type. The only way a job enters the registry. */
@@ -62,8 +62,8 @@ export function defineJob<TFinal>(job: JobToBeDone<TFinal>): ErasedJob {
     difficulty: job.difficulty,
     objective: job.objective,
     outcomeNames: job.outcomes.map((o) => o.name),
-    start: () => {
-      const bridge = job.createBridge();
+    start: async () => {
+      const bridge = await job.createBridge();
       return {
         tools: bridge.tools,
         grade: () => {
@@ -155,7 +155,7 @@ export async function runJob(
   }
 
   opts.onEvent?.(`▶ ${job.id}: ${job.statement}`);
-  const world = job.start();
+  const world = await job.start();
 
   const loopArgs: Parameters<typeof runToolLoop>[0] = {
     provider: opts.provider,

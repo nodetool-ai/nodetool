@@ -33,9 +33,13 @@ const MENU_WIDTH = 320;
 const MENU_MAX_WIDTH = 340;
 // Space kept between the menu and the bottom of the window.
 const MENU_VIEWPORT_GAP = 16;
+// The bottom status bar (PanelBottom's tab strip).
+const STATUS_BAR_SELECTOR = ".panel-tabbar";
 
 /**
- * The menu may grow down to the bottom of the window. A fixed share of the
+ * The menu may grow down to the bottom of the window, but no further than the
+ * top of the status bar, which is fixed over the window's bottom edge and hid
+ * the last rows ("New skill", "New 3D model") at 1280×720. A fixed share of the
  * viewport hid most blank documents on short windows with no cue to scroll.
  */
 const menuMaxHeight = (anchorEl: HTMLElement | null): string => {
@@ -43,6 +47,11 @@ const menuMaxHeight = (anchorEl: HTMLElement | null): string => {
     return "70vh";
   }
   const top = Math.ceil(anchorEl.getBoundingClientRect().bottom);
+  const statusBar = document.querySelector(STATUS_BAR_SELECTOR);
+  if (statusBar) {
+    const room = Math.floor(statusBar.getBoundingClientRect().top) - top;
+    return `${Math.max(room - MENU_VIEWPORT_GAP, 0)}px`;
+  }
   return `calc(100vh - ${top + MENU_VIEWPORT_GAP}px)`;
 };
 

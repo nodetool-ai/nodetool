@@ -48,6 +48,7 @@ export default {
       "<rootDir>/../packages/app-runtime/src/index.ts",
     "^@nodetool-ai/game-runtime$":
       "<rootDir>/../packages/game-runtime/src/index.ts",
+    "^@nodetool-ai/config$": "<rootDir>/src/__mocks__/nodetoolConfig.ts",
     "^@nodetool-ai/game-renderer$":
       "<rootDir>/../packages/game-renderer/src/index.ts",
     "^@nodetool-ai/game-renderer/browser$":

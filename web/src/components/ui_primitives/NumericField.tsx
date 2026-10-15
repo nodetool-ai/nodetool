@@ -2,9 +2,7 @@ import { useCallback, useState } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
 
 import { Box } from "./Box";
-import { TextInput } from "./TextInput";
-import { SPACING } from "./spacing";
-import { FONT_SIZE_SANS } from "./tokens";
+import { NumberField } from "./NumberField";
 
 export interface NumericFieldProps {
   value: number;
@@ -22,7 +20,7 @@ const roundTo = (value: number, digits = 4): number => {
   return Math.round(value * factor) / factor;
 };
 
-/** Editable numeric value that commits while typing and clamps on blur. */
+/** Editable numeric value that commits while typing and clamps on blur. Renders a NumberField. */
 export function NumericField({
   value,
   onCommit,
@@ -87,21 +85,14 @@ export function NumericField({
 
   return (
     <Box sx={[{ flex: 1, minWidth: 0, width: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}>
-      <TextInput
+      <NumberField
         className="nodrag nowheel"
-        type="number"
         size="small"
-        inputProps={{ step, "aria-label": label }}
+        step={step}
+        ariaLabel={label}
         value={text}
         onChange={handleChange}
         onBlur={handleBlur}
-        sx={{
-          "& .MuiInputBase-input": {
-            px: SPACING.sm,
-            py: SPACING.xs,
-            fontSize: FONT_SIZE_SANS.label
-          }
-        }}
       />
     </Box>
   );

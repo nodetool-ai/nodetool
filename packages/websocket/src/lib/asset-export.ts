@@ -1,7 +1,7 @@
 /**
  * Asset resolution for the export surfaces — the timeline and storyboard zips
  * and the workflow `.nodetool` bundle. Kept out of `http-api.ts` (which pulls
- * in `@nodetool-ai/dsl` → `base-nodes` at module load) so a route or a test can
+ * in graph authoring services) so a route or a test can
  * reach it on its own.
  *
  * The zips stream: {@link resolveExportSource} answers a local file (a managed

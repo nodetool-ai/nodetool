@@ -18,6 +18,8 @@ interface LanguageModelMenuDialogProps {
   anchorEl?: HTMLElement | null;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
+  /** The model the control holds now. Its row is marked in the list. */
+  selectedModel?: { id: string; provider?: string };
 }
 
 function LanguageModelMenuDialog({
@@ -28,7 +30,8 @@ function LanguageModelMenuDialog({
   requireToolSupport,
   anchorEl,
   recommendedModels,
-  modelPacks
+  modelPacks,
+  selectedModel
 }: LanguageModelMenuDialogProps) {
   const modelData = useLanguageModelsByProvider({
     allowedProviders,
@@ -47,6 +50,8 @@ function LanguageModelMenuDialog({
       modelType="language_model"
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
+      selectedModel={selectedModel}
+      promptForApiKey
     />
   );
 }

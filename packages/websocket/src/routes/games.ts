@@ -16,6 +16,7 @@ import { chmod, copyFile, mkdir } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { PassThrough } from "node:stream";
 import type { FastifyPluginAsync } from "fastify";
+import { importPack } from "@nodetool-ai/node-catalog";
 import { CLOUD_PROFILE_ENV, NODE_ENV_VAR, isCloudProfileActive, missingRuntimePackageOf } from "@nodetool-ai/protocol";
 import { bridge, streamedResponse } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
@@ -107,7 +108,7 @@ const gamesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         return jsonError(403, "Building an executable runs a compiler on the server, so it is available only in the desktop app and on a local server. Export the desktop app project instead.");
       }
       const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
-      const { findCargo, compileTauriGameProject } = await import("@nodetool-ai/game-renderer/build-tauri");
+      const { findCargo, compileTauriGameProject } = await importPack<typeof import("@nodetool-ai/game-renderer/build-tauri")>("game", "@nodetool-ai/game-renderer/build-tauri");
       if (!(await findCargo())) {
         return jsonError(503, "cargo was not found. Install Rust from the Package Manager, or from https://rustup.rs, to build the executable.",
           { runtime_package: "rust" });

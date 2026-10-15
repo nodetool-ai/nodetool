@@ -1,5 +1,5 @@
 import type { Shot } from "@nodetool-ai/protocol";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { loadCanvas, type ProcessingContext } from "@nodetool-ai/runtime";
 import { clampConcurrency, mapWithConcurrency } from "./concurrency.js";
 
 /** Use measured source length consistently for assembly, design preview and finishing. */
@@ -28,7 +28,7 @@ export async function measureStoryboardSources(shots: Shot[], context: Processin
 /** Pixel size of every graphics image, so finishing can fit it between its copy. */
 export async function measureStoryboardAssetSizes(shots: readonly Shot[], context: ProcessingContext, signal: AbortSignal = context.signal ?? new AbortController().signal): Promise<Record<string, { width: number; height: number }>> {
   const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
-  const { loadImage } = await import("@napi-rs/canvas");
+  const { loadImage } = await loadCanvas();
   const assetIds = new Set<string>();
   for (const shot of shots) {
     for (const element of shot.graphics?.elements ?? []) {

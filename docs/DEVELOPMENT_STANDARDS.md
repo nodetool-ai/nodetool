@@ -278,7 +278,7 @@ covers the correctness- and security-critical packages: `agents`, `auth`,
   pure-logic modules there grow.
 
 `node-sdk`'s `test:mutation:crash` runs the same tool with the crash-fuzzer
-corpus (`tests/fuzz/`, run with `npm run test:crash-fuzz`) as its only test
+corpus (`tests/fuzz/`, run with `npm run test:crash-fuzz --workspace=packages/node-sdk`) as its only test
 suite. It mutates the four parser sources (`graph-validation.ts`,
 `code-analysis.ts`, `code-node-validation.ts`, `validation.ts`) and answers a
 different question: not "do the tests catch regressions" but "does fuzzed

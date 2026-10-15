@@ -20,7 +20,8 @@
  * are reported on each frame.
  */
 
-import { createCanvas, loadImage, type Canvas } from "@napi-rs/canvas";
+import type { Canvas, loadImage } from "@napi-rs/canvas";
+import { loadCanvas } from "@nodetool-ai/runtime";
 import {
   computeModel3DBakeHash,
   resolveModel3DCamera,
@@ -28,7 +29,6 @@ import {
   type TimelineClip,
   type TimelineSequence
 } from "@nodetool-ai/timeline";
-import { ensureGoogleFonts } from "@nodetool-ai/timeline/fonts/google-node";
 import type {
   ActiveLayer,
   AnimatedLayerProps,
@@ -90,6 +90,7 @@ function describeError(error: unknown): string {
 type PreviewSource = Canvas | Awaited<ReturnType<typeof loadImage>>;
 
 async function loadPreviewImage(bytes: Uint8Array): Promise<Awaited<ReturnType<typeof loadImage>>> {
+  const { loadImage } = await loadCanvas();
   const buffer = Buffer.from(bytes);
   try {
     return await loadImage(buffer);
@@ -300,6 +301,7 @@ async function decodeVideoFrameAt(
   bytes: Uint8Array,
   sourceTimeSec: number
 ): Promise<{ canvas: Canvas; width: number; height: number } | null> {
+  const { createCanvas } = await loadCanvas();
   const sourceSec = Math.max(0, sourceTimeSec);
   let out: { canvas: Canvas; width: number; height: number } | null = null;
   await forEachVideoFrame(bytes, [sourceSec], (frame) => {
@@ -348,6 +350,8 @@ function clipName(sequence: TimelineSequence, clipId: string): string {
 export async function renderTimelineFrames(
   options: RenderTimelineFramesOptions
 ): Promise<RenderTimelineFramesResult> {
+  const { createCanvas } = await loadCanvas();
+  const { ensureGoogleFonts } = await import("@nodetool-ai/timeline/fonts/google-node");
   const { sequence, loadAsset } = options;
   const onlyClipIds = options.onlyClipIds ? new Set(options.onlyClipIds) : undefined;
   const { width, height } = frameSize(sequence, options.width);
@@ -373,9 +377,9 @@ export async function renderTimelineFrames(
   };
 
   const { unavailable: fontsUnavailable } = await ensureGoogleFonts(sequence);
-  const rasterizer = new PreviewRasterizer(width, height);
+  const rasterizer = await PreviewRasterizer.create(width, height);
   // Text size, tracking, and wrapping are authored in sequence pixels.
-  const referenceRasterizer = new PreviewRasterizer(
+  const referenceRasterizer = await PreviewRasterizer.create(
     animationCanvas.width,
     animationCanvas.height
   );

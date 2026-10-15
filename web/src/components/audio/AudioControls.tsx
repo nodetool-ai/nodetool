@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, ReactElement, memo } from "react";
-import { Text, ToolbarIconButton, MOTION, getSpacingPx, SPACING } from "../ui_primitives";
-import SliderBasic from "../inputs/SliderBasic";
+import { Text, ToolbarIconButton, MOTION, getSpacingPx, SPACING, Slider } from "../ui_primitives";
 import LoopIcon from "@mui/icons-material/Loop";
 import { PlaybackButton } from "../ui_primitives";
 import OffIcon from "@mui/icons-material/VolumeOff";
@@ -111,7 +110,8 @@ const Zoom: React.FC<ZoomProps> = ({
           {zoom}
         </span>
       </Text>
-      <SliderBasic
+      <Slider
+        density="compact"
         className="zoom-slider nodrag"
         value={zoom}
         min={1}
