@@ -7,7 +7,8 @@
  */
 
 import { memo } from "react";
-import type { ReactNode, ElementType } from "react";
+import type { ReactNode, ComponentType } from "react";
+import type { SvgIconProps } from "@mui/material/SvgIcon";
 import { Box } from "@mui/material";
 import { Card } from "./Card";
 import { FlexRow } from "./FlexRow";
@@ -23,7 +24,7 @@ export interface StatCardProps {
   /** Dimmer, smaller tail of the value (e.g. cents). */
   decimal?: string;
   /** Icon component shown in a chip at the top right (framed layout only). */
-  icon?: ElementType;
+  icon?: ComponentType<SvgIconProps>;
   /** Swatch or marker shown before the value. */
   valueAdornment?: ReactNode;
   /** Change versus a prior period: a chip or text, shown before the hint. */

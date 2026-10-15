@@ -5,7 +5,7 @@
  * Provides consistent card appearance across the application.
  */
 
-import { memo, forwardRef } from "react";
+import React, { memo, forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { ReactNode } from "react";
@@ -38,6 +38,10 @@ export interface CardProps extends BoxProps {
   hoverable?: boolean;
   /** Clickable card */
   clickable?: boolean;
+  /** Render as another element, e.g. "button" or "article" */
+  component?: React.ElementType;
+  /** Button type, for `component="button"` */
+  type?: "button" | "submit" | "reset";
 }
 
 const PADDING_VARIANTS = {
@@ -171,7 +175,7 @@ const CardInternal = forwardRef<HTMLDivElement, CardProps>(({
 export const Card = memo(CardInternal);
 Card.displayName = "Card";
 
-export interface CardHeaderProps extends BoxProps {
+export interface CardHeaderProps extends Omit<BoxProps, "title"> {
   /** Leading icon, already sized and tinted by the caller. */
   icon?: ReactNode;
   title: ReactNode;
@@ -195,7 +199,7 @@ export const CardHeader = memo(function CardHeader({
 }: CardHeaderProps) {
   return (
     <Box
-      sx={(theme) => ({
+      sx={[(theme) => ({
         display: "flex",
         alignItems: "center",
         gap: theme.spacing(SPACING.md),
@@ -203,8 +207,9 @@ export const CardHeader = memo(function CardHeader({
         borderBottom: divided
           ? `1px solid ${theme.vars.palette.divider}`
           : undefined,
-        ...(typeof sx === "function" ? sx(theme) : sx)
-      })}
+      }),
+        ...(Array.isArray(sx) ? sx : [sx])
+      ]}
       {...props}
     >
       {icon}
@@ -227,13 +232,14 @@ export const CardHeader = memo(function CardHeader({
 export const CardBody = memo(function CardBody({ sx, ...props }: BoxProps) {
   return (
     <Box
-      sx={(theme) => ({
+      sx={[(theme) => ({
         display: "flex",
         flexDirection: "column",
         gap: theme.spacing(SPACING.sm),
         padding: theme.spacing(SPACING.sm, SPACING.md),
-        ...(typeof sx === "function" ? sx(theme) : sx)
-      })}
+      }),
+        ...(Array.isArray(sx) ? sx : [sx])
+      ]}
       {...props}
     />
   );
@@ -246,15 +252,16 @@ export const CardActions = memo(function CardActions({
 }: BoxProps) {
   return (
     <Box
-      sx={(theme) => ({
+      sx={[(theme) => ({
         display: "flex",
         flexWrap: "wrap",
         alignItems: "center",
         gap: theme.spacing(SPACING.md),
         padding: theme.spacing(SPACING.md, SPACING.lg),
         borderTop: `1px solid ${theme.vars.palette.divider}`,
-        ...(typeof sx === "function" ? sx(theme) : sx)
-      })}
+      }),
+        ...(Array.isArray(sx) ? sx : [sx])
+      ]}
       {...props}
     />
   );

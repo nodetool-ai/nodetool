@@ -7,7 +7,6 @@ import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { EditorButton } from "../../editor_ui";
 import {
-  FlexColumn,
   FlexRow,
   Text,
   TextInput,
