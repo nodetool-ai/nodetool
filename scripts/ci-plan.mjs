@@ -62,6 +62,17 @@ export const BLENDER_FILES = /^packages\/blender-nodes\//;
 /** Web files whose change can alter any test, not just the ones importing them. */
 const WEB_GLOBAL = /^web\/src\/(setupTests\.ts$|__mocks__\/)/;
 
+/**
+ * Suites whose game scripts run against a 50 ms wall-clock batch budget. Their
+ * shard runs one package and one test file at a time, so they get a runner of
+ * their own instead of the head of the core shard.
+ */
+const GAME_SHARD = new Set([
+  "@nodetool-ai/game-runtime",
+  "@nodetool-ai/game-renderer",
+  "@nodetool-ai/cli"
+]);
+
 const NODES_SHARD = new Set([
   "@nodetool-ai/gpu",
   "@nodetool-ai/workflow-runner",
@@ -78,6 +89,7 @@ export function shardOf(name, dir) {
   if (!dir.startsWith("packages/") && !dir.startsWith("reliability/")) return null;
   if (name === "@nodetool-ai/websocket") return "test-packages-websocket";
   if (name === "@nodetool-ai/agents") return "test-packages-agents";
+  if (GAME_SHARD.has(name)) return "test-packages-game";
   if (/^packages\/[^/]+-nodes$/.test(dir) || NODES_SHARD.has(name)) return "test-packages-nodes";
   return "test-packages-core";
 }
@@ -93,12 +105,33 @@ export function fullCiPlan() {
     packages_agents: true,
     packages_nodes: true,
     packages_core: true,
+    packages_game: true,
     integration: true,
     workflow_runner_e2e: true,
     tsc6: true,
     docker: true,
     blender: true,
+    node_catalog: true,
     turbo_affected: false
+  };
+}
+
+/**
+ * Legs a pull request leaves to the merge queue once branch protection merges
+ * through one (`vars.MERGE_QUEUE`, see test.yml). The `merge_group` run plans
+ * them from a diff that contains the PR's changes, so each one still gates the
+ * merge; the PR just stops paying for them on every push. These are slow or macOS-only legs whose
+ * failure blocks the merge from the queue instead of from the PR.
+ */
+export const QUEUE_ONLY_LEGS = ["integration", "workflow_runner_e2e", "tsc6", "docker", "node_catalog"];
+
+/** A pull request's plan with the queue-only legs off, and which ones were on. */
+export function deferToQueue(plan) {
+  const deferred = QUEUE_ONLY_LEGS.filter((leg) => plan[leg] === true);
+  return {
+    ...plan,
+    ...Object.fromEntries(QUEUE_ONLY_LEGS.map((leg) => [leg, false])),
+    deferred_to_queue: deferred
   };
 }
 
@@ -150,11 +183,13 @@ export function buildCiPlan(files, packages, computeAffected) {
     packages_agents: shards.has("test-packages-agents"),
     packages_nodes: shards.has("test-packages-nodes"),
     packages_core: shards.has("test-packages-core"),
+    packages_game: shards.has("test-packages-game"),
     integration: affected.includes("@nodetool-ai/base-nodes"),
     workflow_runner_e2e: affected.includes("@nodetool-ai/workflow-runner"),
     tsc6: files.some((f) => TSC6_FILES.test(f)),
     docker,
     blender: files.some((f) => BLENDER_FILES.test(f)),
+    node_catalog: true,
     turbo_affected: !outsideWorkspaces
   };
 }
@@ -194,7 +229,8 @@ async function main(argv) {
   const files = base ? diffFiles(base, head) : null;
 
   if (mode === "plan") {
-    const plan = files === null ? fullCiPlan() : buildCiPlan(files, packages, computeAffected);
+    const planned = files === null ? fullCiPlan() : buildCiPlan(files, packages, computeAffected);
+    const plan = rest.includes("--defer-to-queue") ? deferToQueue(planned) : planned;
     const json = JSON.stringify(plan);
     console.log(files === null ? "No base: full run." : `${files.length} changed file(s) vs ${base}.`);
     console.log(JSON.stringify(plan, null, 2));
@@ -225,7 +261,7 @@ async function main(argv) {
     return 0;
   }
 
-  console.error("Usage: node scripts/ci-plan.mjs <plan|run> [apps...] [--base <sha>] [--head <sha>]");
+  console.error("Usage: node scripts/ci-plan.mjs <plan|run> [apps...] [--base <sha>] [--head <sha>] [--defer-to-queue]");
   return 2;
 }
 

@@ -28,6 +28,13 @@ any other check required. The other pull-request workflows filter by path or
 skip `merge_group`, so a required check from one of them never reports on a
 diff outside its paths and blocks the merge.
 
+When branch protection merges through the merge queue, set the repository
+variable `MERGE_QUEUE` to `true`. Pull request runs then leave the legs in
+`QUEUE_ONLY_LEGS` (`scripts/ci-plan.mjs`) to the queue's `merge_group` run,
+which runs every leg its diff needs before anything reaches `main`. Leave the
+variable unset while pull requests can merge without the queue, because those
+legs would then run nowhere before the merge.
+
 The browser suites in `user-journeys.yml`, `page-load-smoke.yml`, and
 `e2e-runner.yml` run nightly and on dispatch, and on a pull request only when
 the `browser-suites` label is added. None of them runs on a push to `main`. Their pull-request
@@ -41,8 +48,8 @@ below.
 
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
-| `test.yml` | Quality gate (typecheck, lint, tests) via `quality-checks.yml`, scoped to the legs the diff reaches; skipped for prose-only and marketing-only diffs. A push to `main` cancels the run of the push before it and diffs against the last `main` commit whose Test run passed. A nightly run and `merge_group` events are also wired | 0 | Required |
-| `quality-checks.yml` | Reusable gate: deps/lint static legs plus the TypeScript 6 build when manifests change, one shared build, and `built` legs chosen per diff (typecheck+parity+examples, four `test-packages-*` shards of the backend suite, three web Jest shards or one related-tests leg, electron+mobile, bundle, harness gate). The shipped-workflow integration tests and the workflow-runner browser E2E run here too, so their failures fail the required check. The `docker` leg builds the image, boots it, and loads the app in a browser when a diff changes the image's own files, and nightly. CI installs no Blender, so the Blender render suites skip | 0 | Required (infra called by `test.yml`) |
+| `test.yml` | Quality gate (typecheck, lint, tests) via `quality-checks.yml`, scoped to the legs the diff reaches; skipped for prose-only and marketing-only diffs. A new push to a PR cancels that PR's running run. A push to `main` waits for the running `main` run instead of cancelling it, and diffs against the last `main` commit whose Test run passed. A nightly run and `merge_group` events are also wired | 0 | Required |
+| `quality-checks.yml` | Reusable gate: deps/lint static legs plus the TypeScript 6 build when manifests change, one shared build, and `built` legs chosen per diff (typecheck+parity+examples, five `test-packages-*` shards of the backend suite (the game suites run serially in their own), three web Jest shards or one related-tests leg, electron+mobile, bundle, harness gate). The shipped-workflow integration tests and the workflow-runner browser E2E run here too, so their failures fail the required check. The `docker` leg builds the image, boots it, and loads the app in a browser when a diff changes the image's own files, and nightly. CI installs no Blender, so the Blender render suites skip | 0 | Required (infra called by `test.yml`) |
 | `page-load-smoke.yml` | Playwright: every route loads against a seeded backend. Nightly, dispatch, labeled PRs | 0 | Advisory on PRs with the `browser-suites` label |
 | `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack. Nightly, dispatch, labeled PRs | 1 | Advisory on PRs with the `browser-suites` label |
 | `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |

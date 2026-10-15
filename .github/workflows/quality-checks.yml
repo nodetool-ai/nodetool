@@ -152,17 +152,20 @@ jobs:
   #        remembered to run it by hand.
   #
   # `test-packages-websocket`:
-  #   The four backend test shards. Each runs `turbo run test` over a
+  #   The five backend test shards. Each runs `turbo run test` over a
   #   disjoint slice of the workspace graph: the two heaviest packages
   #   alone, the node packages (`./packages/*-nodes` plus the packages
-  #   only they use), and everything else. The `core` shard runs
-  #   game-runtime, game-renderer, and cli serially before the other packages
-  #   because their script deadlines are sensitive to CPU contention.
-  #   It also carries the two root-level
-  #   suites (`test:oxlint-rules`, `test:scripts`), which take a second.
-  #   The `nodes` and `core` filter lists are the
-  #   same list with the sign flipped — a package added to one must be
-  #   removed from the other, or it runs twice or not at all.
+  #   only they use), the game suites, and everything else. The `game`
+  #   shard runs game-runtime, game-renderer, and cli one package and one
+  #   test file at a time (`NODETOOL_TEST_WORKERS=1`): game scripts run
+  #   against a 50 ms wall-clock batch budget, which parallel test files
+  #   can push game-runtime past on a four-core runner. It writes golden
+  #   capture diagnostics like the harness gate. They used to run at the
+  #   head of the `core` shard, which put them and the rest of `core` on
+  #   one critical path. `core` also carries the two root-level suites
+  #   (`test:oxlint-rules`, `test:scripts`). The `nodes`, `game` and
+  #   `core` filter lists partition the same set: a package added to one
+  #   must be removed from another, or it runs twice or not at all.
   #
   #   `$TURBO_AFFECTED` (set on the `built` Run step) is `--affected`
   #   when there is a base commit and the plan's `turbo_affected` is
@@ -236,6 +239,7 @@ jobs:
       turbo-affected: ${{ steps.legs.outputs.turbo-affected }}
       integration: ${{ steps.legs.outputs.integration }}
       workflow-runner-e2e: ${{ steps.legs.outputs.workflow-runner-e2e }}
+      node-catalog: ${{ steps.legs.outputs.node-catalog }}
     steps:
       - name: Select legs from the plan
         id: legs
@@ -245,7 +249,7 @@ jobs:
           set -euo pipefail
           if ! jq -e 'type == "object"' <<<"${PLAN:-null}" >/dev/null 2>&1; then
             echo "::notice::No usable plan; running every leg."
-            PLAN='{"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true}'
+            PLAN='{"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"packages_game":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true}'
           fi
           select_legs() {
             jq -c --argjson p "$PLAN" '
@@ -322,12 +326,22 @@ jobs:
             },
             {
               "check": "test-packages-core",
-              "command": "npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter=@nodetool-ai/game-runtime --filter=@nodetool-ai/game-renderer --filter=@nodetool-ai/cli --concurrency=1 $TURBO_AFFECTED && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' --filter='!@nodetool-ai/game-renderer' --filter='!@nodetool-ai/cli' $TURBO_AFFECTED",
+              "command": "npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' --filter='!@nodetool-ai/game-renderer' --filter='!@nodetool-ai/cli' $TURBO_AFFECTED",
               "mobile-deps": "false",
               "extra-apt": "mesa-vulkan-drivers ffmpeg",
               "is-test": "true",
               "fetch-depth": "0",
               "when": "packages_core",
+              "jest-cache": ""
+            },
+            {
+              "check": "test-packages-game",
+              "command": "NODETOOL_TEST_WORKERS=1 NODETOOL_GAME_GOLDEN_ARTIFACTS=\"$RUNNER_TEMP/native-game-golden-diagnostics\" npx turbo run test --filter=@nodetool-ai/game-runtime --filter=@nodetool-ai/game-renderer --filter=@nodetool-ai/cli --concurrency=1 $TURBO_AFFECTED",
+              "mobile-deps": "false",
+              "extra-apt": "mesa-vulkan-drivers ffmpeg",
+              "is-test": "true",
+              "fetch-depth": "0",
+              "when": "packages_game",
               "jest-cache": ""
             },
             {
@@ -410,6 +424,7 @@ jobs:
             echo "turbo-affected=$(jq -r '.turbo_affected == true' <<<"$PLAN")"
             echo "integration=$(jq -r '.integration == true' <<<"$PLAN")"
             echo "workflow-runner-e2e=$(jq -r '.workflow_runner_e2e == true' <<<"$PLAN")"
+            echo "node-catalog=$(jq -r '.node_catalog != false' <<<"$PLAN")"
           } >> "$GITHUB_OUTPUT"
           jq -r '.include[].check' <<<"$built" | sed 's/^/built: /'
           jq -r '.include[].check' <<<"$static" | sed 's/^/static: /'
@@ -555,15 +570,15 @@ jobs:
   # caller ever sets `skip-tests: true`, add `--include-suites` below, because
   # this leg is `is-test: "false"` and would then be the only one left.
   #
-  # The backend suite goes the other way: it is split across four runners
+  # The backend suite goes the other way: it is split across five runners
   # (`test-packages-*`). As one leg it was the gate's critical path by about
   # ten minutes — every other leg finished within six minutes of `build`, that
   # one took fourteen — because ~58 vitest processes, each spawning a worker
   # per core, shared four cores. `websocket` (251 files) and `agents` (245
   # files) each get a runner of their own: their cost is one process
   # re-importing the whole backend per test file, so they are bounded by
-  # cores, not by the rest of the graph. The node packages and everything
-  # else split the remaining two.
+  # cores, not by the rest of the graph. The node packages, the serial game
+  # suites, and everything else split the remaining three.
   #
   # The web Jest suite (~1,600 files, ~7.5 min on one runner) is split the
   # same way, three `--shard`s, when a package it depends on changed. When
@@ -599,14 +614,14 @@ jobs:
           build-packages: "false"
 
       - name: Install Chromium for native 3D tests
-        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-agents' || matrix.check == 'harness-gate'
+        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents' || matrix.check == 'harness-gate'
         run: npx playwright install --with-deps chromium
 
       # Ubuntu restricts user namespaces for downloaded Chromium binaries.
       # Allow only Playwright's browser paths so capture keeps its sandbox.
       # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
       - name: Enable and verify the Chromium sandbox
-        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-agents' || matrix.check == 'harness-gate'
+        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents' || matrix.check == 'harness-gate'
         run: |
           sudo tee /etc/apparmor.d/nodetool-playwright > /dev/null <<'PROFILE'
           abi <abi/4.0>,
@@ -672,7 +687,7 @@ jobs:
       # where nothing else prunes.
       #
       # The archive is `.turbo/test-results`, not `.turbo/cache`: the cache
-      # dir also holds the restored build outputs, ~650 MB, and four shards
+      # dir also holds the restored build outputs, ~650 MB, and five shards
       # saving that per commit would evict the node_modules and build caches
       # from the repo's 10 GB. Only the entries turbo writes during the run
       # (test tasks: logs, no outputs, tens of KB each) are collected after
@@ -715,7 +730,7 @@ jobs:
           touch .turbo/run-start
 
       - name: Record native game capture environment
-        if: matrix.check == 'harness-gate'
+        if: matrix.check == 'harness-gate' || matrix.check == 'test-packages-game'
         run: |
           mkdir -p "${{ runner.temp }}/native-game-golden-diagnostics"
           node --input-type=module -e 'import { chromium } from "playwright"; import { execFileSync } from "node:child_process"; console.log(JSON.stringify({ node: process.version, chromiumExecutable: chromium.executablePath(), chromiumVersion: execFileSync(chromium.executablePath(), ["--version"], { encoding: "utf8" }).trim() }));' > "${{ runner.temp }}/native-game-golden-diagnostics/environment.json"
@@ -748,10 +763,10 @@ jobs:
           echo "::endgroup::"
 
       - name: Retain native game golden diagnostics
-        if: matrix.check == 'harness-gate' && !cancelled()
+        if: (matrix.check == 'harness-gate' || matrix.check == 'test-packages-game') && !cancelled()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: native-game-golden-diagnostics
+          name: native-game-golden-diagnostics-${{ matrix.check }}
           path: ${{ runner.temp }}/native-game-golden-diagnostics
           if-no-files-found: ignore
 
@@ -980,27 +995,24 @@ jobs:
             packages/workflow-runner/test-results/
           retention-days: 7
 
+  # The generated catalog must come out byte-identical on macOS too. The Linux
+  # check is the last step of the `typecheck` leg, which already has the built
+  # packages, so a Linux row here ran the same command on a second runner.
   node-catalog:
     name: Node catalog (${{ matrix.platform }})
     needs: changes
-    if: ${{ !inputs.docs-only && inputs.shared }}
+    if: ${{ !inputs.docs-only && inputs.shared && needs.changes.outputs.node-catalog == 'true' }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            platform: linux-x64
           - os: macos-15
             platform: darwin-arm64
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Build on Linux
-        if: runner.os == 'Linux'
-        uses: ./.github/actions/setup-build
 
       - name: Set up Node on macOS
         if: runner.os == 'macOS'
