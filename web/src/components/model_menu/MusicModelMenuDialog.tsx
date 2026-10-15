@@ -29,8 +29,8 @@ function MusicModelMenuDialog({
       onClose={onClose}
       modelData={modelData}
       onModelChange={onModelChange}
-      title="Select Music Model"
-      searchPlaceholder="Search text-to-music models..."
+      title="Select music model"
+      searchPlaceholder="Search text-to-music models"
       storeHook={useMusicModelMenuStore}
       modelType="music_model"
       recommendedModels={recommendedModels}

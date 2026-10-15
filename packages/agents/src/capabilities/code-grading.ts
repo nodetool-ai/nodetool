@@ -8,6 +8,8 @@
  * rules is how the two would silently diverge.
  */
 
+import type { MissingRuntimeDetails } from "@nodetool-ai/protocol";
+
 /** One `await emit(name, value)` call, in call order. */
 export interface EmittedEntry {
   name: string;
@@ -26,6 +28,7 @@ export interface HarnessRunResult {
   streamed?: StreamedItems;
   logs: string[];
   error?: string;
+  missingRuntime?: MissingRuntimeDetails;
   duration_ms: number;
 }
 
@@ -48,6 +51,7 @@ export interface TestCaseReport {
   streamed?: StreamedItems;
   logs: string[];
   error?: string;
+  missingRuntime?: MissingRuntimeDetails;
   mismatches: { output: string; expected: unknown; actual: unknown }[];
 }
 
@@ -56,6 +60,7 @@ export interface CodeTestReport {
   passed: number;
   failed: number;
   results: TestCaseReport[];
+  missingRuntime?: MissingRuntimeDetails;
 }
 
 /** Structural equality by JSON normalization — the values already crossed the sandbox boundary as plain data. */
@@ -123,14 +128,20 @@ export async function gradeCodeCases(
     if (outcome.outputs !== undefined) entry.outputs = outcome.outputs;
     if (outcome.streamed !== undefined) entry.streamed = outcome.streamed;
     if (outcome.error !== undefined) entry.error = outcome.error;
+    if (outcome.missingRuntime !== undefined) entry.missingRuntime = outcome.missingRuntime;
     results.push(entry);
   }
 
   const passed = results.filter((entry) => entry.ok).length;
-  return {
+  const missingRuntime = results.find((entry) => entry.missingRuntime)?.missingRuntime;
+  const report: CodeTestReport = {
     ok: passed === results.length,
     passed,
     failed: results.length - passed,
     results
   };
+  if (missingRuntime) {
+    report.missingRuntime = missingRuntime;
+  }
+  return report;
 }

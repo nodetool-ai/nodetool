@@ -86,7 +86,8 @@ import {
 function sandboxRunError(result: RunSandboxResult | undefined): Error {
   const message = result?.error ?? "Code execution failed";
   return result?.missingRuntimePackage !== undefined
-    ? new MissingRuntimePackageError(message, result.missingRuntimePackage)
+    ? new MissingRuntimePackageError(message, result.missingRuntimePackage,
+      result.missingRuntime ? { details: result.missingRuntime } : undefined)
     : new Error(message);
 }
 

@@ -78,6 +78,9 @@
       "path": "../model-pricing"
     },
     {
+      "path": "../node-catalog"
+    },
+    {
       "path": "../node-sdk"
     },
     {

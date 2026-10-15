@@ -27,7 +27,7 @@
 import { spawn } from "node:child_process";
 import { stat } from "node:fs/promises";
 import path from "node:path";
-import { isNumber, isObjectLike } from "@nodetool-ai/protocol";
+import { isNumber, isObjectLike, missingRuntimePackageError, runtimePackageForBinary } from "@nodetool-ai/protocol";
 import { withTaskSpan } from "./tracing-helpers.js";
 
 export type HostBinaryResult = {
@@ -176,7 +176,7 @@ export class HostBinaryMissingError extends Error {
   constructor(binary: string) {
     super(
       `${binary} is not installed or is not on PATH. ` +
-        `Install it with the Package Manager, or add it to PATH.`
+        `Add ${binary} to PATH.`
     );
     this.name = "HostBinaryMissingError";
     this.binary = binary;
@@ -387,7 +387,8 @@ function spawnBounded(
       const code =
         isObjectLike(err) && "code" in err ? String(err.code) : "";
       if (code === "ENOENT") {
-        reject(new HostBinaryMissingError(cmd));
+        const runtimePackage = runtimePackageForBinary(cmd);
+        reject(runtimePackage ? missingRuntimePackageError(cmd, runtimePackage, err) : new HostBinaryMissingError(cmd));
         return;
       }
       reject(err);

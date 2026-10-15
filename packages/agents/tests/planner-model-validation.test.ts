@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateGraph, validateNodeProperties } from "@nodetool-ai/node-sdk";
+import { BaseNode, getNodeMetadata, NodeRegistry, validateGraph, validateNodeProperties } from "@nodetool-ai/node-sdk";
 import { GraphBuilder } from "../src/graph-builder.js";
 import { metadataAwareRegistry } from "../src/tools/graph-validation-registry.js";
 import { normalizeModelProperties } from "../src/normalize-model-properties.js";
@@ -123,5 +123,23 @@ describe("authored graph validation — models", () => {
     it("accepts a pair the catalogs know", () => {
       expect(errorsFor("kimi/k2")).toEqual([]);
     });
+  });
+});
+
+
+describe("authored catalog graph validation", () => {
+  it("retains catalogue availability through the metadata-only planner adapter", () => {
+    class CatalogFixture extends BaseNode {
+      static readonly nodeType = "test.CatalogPlanner";
+      static readonly title = "Catalog planner";
+      static readonly description = "";
+      async process(): Promise<Record<string, unknown>> { return {}; }
+    }
+    const registry = new NodeRegistry();
+    registry.loadCatalog([{
+      node_type: CatalogFixture.nodeType, pack: "image", metadata: getNodeMetadata(CatalogFixture), declared: []
+    }]);
+    const report = validateGraph({ nodes: [{ id: "fixture", type: CatalogFixture.nodeType }], edges: [] }, metadataAwareRegistry(registry));
+    expect(report.issues.some((issue) => issue.code === "pack_not_installed" && issue.packId === "image")).toBe(true);
   });
 });

@@ -39,7 +39,7 @@ describe("ElectronRuntimePackage", () => {
   describe("status", () => {
     it("always reports installed", async () => {
       const status = await pkg.status(ctx);
-      expect(status.installed).toBe(true);
+      expect(status).toEqual({ installed: true, bundled: true });
     });
   });
 

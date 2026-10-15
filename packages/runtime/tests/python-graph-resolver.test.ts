@@ -18,6 +18,7 @@ function fakeBridge(
   >
 ): PythonBridgeBase {
   return {
+    isConnected: true,
     hasNodeType: (t: string) => t in known,
     getNodeMetadata: () =>
       Object.entries(known).map(([node_type, meta]) => ({

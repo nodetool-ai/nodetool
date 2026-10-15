@@ -245,6 +245,16 @@ const PROVIDER_URLS: Record<string, string> = {
 };
 
 /** Returns an external URL for a given provider name when known; otherwise null. */
+/**
+ * The name a picker shows for a provider id: the hosting provider for a
+ * HuggingFace route ("huggingface_groq" reads "Groq"), the formatted id
+ * otherwise.
+ */
+export const getProviderDisplayName = (provider?: string): string =>
+  isHuggingFaceProvider(provider)
+    ? getProviderBaseName(provider)
+    : formatGenericProviderName(provider);
+
 export const getProviderUrl = (provider?: string): string | null => {
   if (!provider) {
     return null;

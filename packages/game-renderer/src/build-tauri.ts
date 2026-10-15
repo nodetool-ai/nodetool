@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { createCanvas, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
 import type { AnyGameDocument } from "@nodetool-ai/protocol";
-import { MissingRuntimePackageError } from "@nodetool-ai/protocol/missing-runtime-package";
+import { missingRuntimePackageError } from "@nodetool-ai/protocol/missing-runtime-package";
 import type { StandaloneAsset } from "./build.js";
 
 /** Tauri releases the generated project pins. Bump the three together. */
@@ -410,13 +410,12 @@ export async function findCargo(env: NodeJS.ProcessEnv = process.env, platform: 
   return null;
 }
 
-const MISSING_CARGO = "cargo was not found. Install Rust from the Package Manager, or from https://rustup.rs, to compile the desktop app.";
 
 /** Compiles an exported project into a release executable with `cargo build --release`. */
 export async function compileTauriGameProject(project: Pick<TauriGameProject, "tauriDir" | "metadata">, options: CompileTauriGameOptions = {}): Promise<{ binaryPath: string }> {
   const env = options.env ?? process.env;
   const cargo = options.cargo ?? await findCargo(env);
-  if (!cargo) { throw new MissingRuntimePackageError(MISSING_CARGO, "rust"); }
+  if (!cargo) { throw missingRuntimePackageError("cargo", "rust"); }
   await new Promise<void>((resolvePromise, reject) => {
     const child = spawn(cargo, ["build", "--release"], { cwd: project.tauriDir, env, signal: options.signal,
       stdio: ["ignore", "pipe", "pipe"] });
@@ -429,7 +428,7 @@ export async function compileTauriGameProject(project: Pick<TauriGameProject, "t
     child.stdout.on("data", collect);
     child.stderr.on("data", collect);
     child.on("error", (error) => {
-      reject("code" in error && error.code === "ENOENT" ? new MissingRuntimePackageError(MISSING_CARGO, "rust", { cause: error }) : error);
+      reject("code" in error && error.code === "ENOENT" ? missingRuntimePackageError("cargo", "rust", error) : error);
     });
     child.on("close", (code) => {
       if (code === 0) { resolvePromise(); } else { reject(new Error(`cargo build failed with exit code ${code}\n${tail}`)); }

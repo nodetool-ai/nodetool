@@ -3,9 +3,17 @@ import type { ASRModel, Asset } from "../../../../stores/ApiTypes";
 import { useAssetUpload } from "../../../../serverState/useAssetUpload";
 import useModelPreferencesStore from "../../../../stores/ModelPreferencesStore";
 import { useNotificationStore } from "../../../../stores/NotificationStore";
+import { promptForMissingRuntimePackage } from "../../../../stores/RuntimePackagePromptStore";
 import { rpcRequest } from "../../../../lib/websocket/rpcRequest";
 import { isString } from "../../../../utils/typePredicates";
 import { useMicrophoneRecorder } from "../../../../hooks/browser/useMicrophoneRecorder";
+import {
+  WHISPER_CPP_PACKAGE,
+  WHISPER_CPP_PROVIDER,
+  isWhisperCppInstalled,
+  resolveDesktopAsrDefault,
+  type DesktopAsrDefault
+} from "./desktopAsrDefault";
 
 /** The `defaults` key holding the speech-to-text model (Settings → Default Models). */
 export const ASR_MODEL_PREFERENCE = "asr_model";
@@ -48,7 +56,10 @@ interface UseVoiceInputReturn {
   phase: VoiceInputPhase;
   durationMs: number;
   levelsRef: React.MutableRefObject<Float32Array>;
-  /** Mic button: starts recording, or asks for a model when none is set. */
+  /**
+   * Mic button: starts recording. With no default set, the desktop app falls
+   * back to whisper.cpp (offering its install), anything else asks for a model.
+   */
   startRecording: () => void;
   /** Accept: stop, transcribe, hand the text to the composer. */
   confirmRecording: () => void;
@@ -63,9 +74,11 @@ interface UseVoiceInputReturn {
  * The chat composer's voice input: record → confirm → transcribe with the
  * default speech-to-text model.
  *
- * The model is the one pinned in Settings → Default Models. With none pinned
- * there is nothing to transcribe with, so the mic opens the model picker
- * instead of recording, and what the user picks becomes the default.
+ * The model is the one pinned in Settings → Default Models. With none pinned,
+ * the desktop app defaults to a downloaded whisper.cpp model and pins it. When
+ * whisper.cpp is not installed it offers the install. Otherwise there is
+ * nothing to transcribe with, so the mic opens the model picker instead of
+ * recording, and what the user picks becomes the default.
  */
 export function useVoiceInput({
   onTranscript
@@ -110,6 +123,13 @@ export function useVoiceInput({
         }
         onTranscript(text);
       } catch (err) {
+        if (
+          model.provider === WHISPER_CPP_PROVIDER &&
+          (await isWhisperCppInstalled()) === false
+        ) {
+          promptForMissingRuntimePackage(WHISPER_CPP_PACKAGE);
+          return;
+        }
         reportError(
           `Transcription failed: ${
             err instanceof Error ? err.message : String(err)
@@ -122,19 +142,34 @@ export function useVoiceInput({
     [onTranscript, reportError]
   );
 
-  const startRecording = useCallback(() => {
-    // Recording without a model would only strand the audio at the confirm
-    // step, so the picker comes first.
-    if (!asrDefault) {
-      setIsConfigOpen(true);
-      return;
-    }
+  const beginRecording = useCallback(() => {
     void recorder.start().then((failure) => {
       if (failure) {
         reportError(failure);
       }
     });
-  }, [asrDefault, recorder, reportError]);
+  }, [recorder, reportError]);
+
+  const startRecording = useCallback(() => {
+    if (asrDefault) {
+      beginRecording();
+      return;
+    }
+    // Recording without a model would only strand the audio at the confirm
+    // step, so the model is settled first.
+    void resolveDesktopAsrDefault()
+      .catch((): DesktopAsrDefault => ({ kind: "unavailable" }))
+      .then((resolved) => {
+        if (resolved.kind === "model") {
+          setDefault(ASR_MODEL_PREFERENCE, resolved.model);
+          beginRecording();
+        } else if (resolved.kind === "missing") {
+          promptForMissingRuntimePackage(WHISPER_CPP_PACKAGE);
+        } else {
+          setIsConfigOpen(true);
+        }
+      });
+  }, [asrDefault, beginRecording, setDefault]);
 
   const confirmRecording = useCallback(() => {
     void recorder.confirm().then((blob) => {
@@ -179,13 +214,9 @@ export function useVoiceInput({
         void transcribe(pending, chosen);
         return;
       }
-      void recorder.start().then((failure) => {
-        if (failure) {
-          reportError(failure);
-        }
-      });
+      beginRecording();
     },
-    [recorder, reportError, setDefault, transcribe]
+    [beginRecording, setDefault, transcribe]
   );
 
   const phase: VoiceInputPhase = isTranscribing

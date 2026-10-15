@@ -16,6 +16,7 @@ import { readGameAssetInput, GAME_ASSET_NODE_RUNNER_CONTEXT_KEY, type GameAssetN
 const MAX_TICKS = 18_000;
 const MAX_BYTES = 64 * 1024 * 1024;
 const EXTENSIONS: Readonly<Record<string, string>> = {
+  "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp",
   "model/gltf-binary": "glb", "application/json": "json", "audio/wav": "wav", "audio/mpeg": "mp3", "audio/ogg": "ogg", "font/ttf": "ttf", "font/otf": "otf"
 };
 

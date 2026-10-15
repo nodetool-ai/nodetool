@@ -15,6 +15,7 @@ import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { ExecutionSession } from "@nodetool-ai/execution";
 import { resolveLocalSecret } from "./local-secrets.js";
 import type { Intervention } from "@nodetool-ai/protocol";
+import { MissingRuntimePackageError } from "@nodetool-ai/protocol";
 import { createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
@@ -94,6 +95,9 @@ export async function runDslFileSupervised(
     // unsupervised DSL path, which rethrows the first node error it finds.
     // Only the run's own terminal status decides.
     if (result.status === "failed") {
+      if (result.missingRuntime) {
+        throw new MissingRuntimePackageError(result.error ?? `Workflow ${name} failed`, result.missingRuntime.runtimePackage, { details: result.missingRuntime });
+      }
       throw new Error(result.error ?? `Workflow ${name} failed`);
     }
 

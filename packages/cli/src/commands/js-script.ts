@@ -19,7 +19,7 @@ import type { Command } from "commander";
 import type { JsScriptDebugReport } from "@nodetool-ai/execution/js-script-debug";
 import type { JsScriptRecord } from "../js-script-debug/target.js";
 import type { JsScriptTestReport } from "../js-script-debug/harness.js";
-import { printCommandError } from "../command-errors.js";
+import { commandMissingRuntime, printCommandError } from "../command-errors.js";
 import { printDebugSummary } from "./debug-summary-output.js";
 import { renderJsScriptValidation } from "./js-script-validation-output.js";
 import { registerJsScriptVersionsCommands } from "./js-script-versions.js";
@@ -139,8 +139,7 @@ export function registerJsScriptCommands(program: Command): void {
           (opts.warningsAsErrors === true && validation.warnings.length > 0);
         process.exit(failed ? 1 : 0);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 
@@ -170,6 +169,10 @@ export function registerJsScriptCommands(program: Command): void {
           inputStreams
         );
 
+        if (!result.ok && commandMissingRuntime(result)) {
+          process.exit(printCommandError(result, opts.json));
+        }
+
         if (opts.json) {
           // process.exit below drops what a pipe has not taken yet, so a
           // result past the pipe buffer (64 KB) arrived cut off.
@@ -183,8 +186,7 @@ export function registerJsScriptCommands(program: Command): void {
         }
         ok = result.ok;
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
       process.exit(ok ? 0 : 1);
     });
@@ -204,6 +206,10 @@ export function registerJsScriptCommands(program: Command): void {
           loadScript: await scriptLoader()
         });
 
+        if (!report.ok && commandMissingRuntime(report)) {
+          process.exit(printCommandError(report, opts.json));
+        }
+
         if (opts.json) {
           console.log(JSON.stringify(report, null, 2));
         } else {
@@ -211,8 +217,7 @@ export function registerJsScriptCommands(program: Command): void {
         }
         ok = report.ok;
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
       process.exit(ok ? 0 : 1);
     });
@@ -266,8 +271,7 @@ export function registerJsScriptCommands(program: Command): void {
         }
         process.exit(report.verdict.ok ? 0 : 1);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 

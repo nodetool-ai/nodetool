@@ -51,23 +51,29 @@ describe("validateRepoId", () => {
 describe("getRuntimePackageStatuses", () => {
   afterEach(() => jest.restoreAllMocks());
 
+  it("passes bundled library status to the renderer", async () => {
+    jest.spyOn(runtimeRegistry, "statuses").mockResolvedValue([{ id: "imaging", installed: true, bundled: true }]);
+    const [status] = await getRuntimePackageStatuses();
+    expect(status).toMatchObject({ id: "imaging", installed: true, bundled: true });
+  });
+
   it("passes an npm package's installed and pinned versions to the renderer", async () => {
     jest.spyOn(runtimeRegistry, "statuses").mockResolvedValue([
       {
-        id: "claude-agent-sdk",
+        id: "tensorflow-js",
         installed: true,
-        installedVersion: "0.3.190",
-        latestVersion: "0.3.283",
+        installedVersion: "4.20.0",
+        latestVersion: "4.22.0",
         updateAvailable: true,
       },
     ]);
     const [status] = await getRuntimePackageStatuses();
     expect(status).toMatchObject({
-      id: "claude-agent-sdk",
-      name: "Claude Agent SDK",
+      id: "tensorflow-js",
+      name: "TensorFlow.js Models",
       installed: true,
-      installedVersion: "0.3.190",
-      latestVersion: "0.3.283",
+      installedVersion: "4.20.0",
+      latestVersion: "4.22.0",
       updateAvailable: true,
     });
   });

@@ -16,6 +16,7 @@ export const lstatSync = notInBrowser("lstatSync");
 export const realpathSync = notInBrowser("realpathSync");
 export const accessSync = notInBrowser("accessSync");
 export const writeFileSync = notInBrowser("writeFileSync");
+export const renameSync = notInBrowser("renameSync");
 export const openSync = notInBrowser("openSync");
 export const writeSync = notInBrowser("writeSync");
 export const readSync = notInBrowser("readSync");
@@ -23,10 +24,8 @@ export const closeSync = notInBrowser("closeSync");
 export const createReadStream = notInBrowser("createReadStream");
 export const createWriteStream = notInBrowser("createWriteStream");
 export const cpSync = notInBrowser("cpSync");
-export const renameSync = notInBrowser("renameSync");
 export const unlinkSync = notInBrowser("unlinkSync");
 export const rmSync = notInBrowser("rmSync");
-export const renameSync = notInBrowser("renameSync");
 export const mkdtempSync = notInBrowser("mkdtempSync");
 
 // `constants` is data, not behavior — `accessSync(p, constants.R_OK)` reads it
@@ -60,6 +59,7 @@ export default {
   realpathSync,
   accessSync,
   writeFileSync,
+  renameSync,
   openSync,
   writeSync,
   readSync,
@@ -67,10 +67,8 @@ export default {
   createReadStream,
   createWriteStream,
   cpSync,
-  renameSync,
   unlinkSync,
   rmSync,
-  renameSync,
   mkdtempSync,
   constants,
   promises

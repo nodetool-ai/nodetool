@@ -1,20 +1,25 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { Command } from "commander";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   collectChangedFiles,
   readChangedFiles,
-  isGateRelevantCodeFile
+  isGateRelevantCodeFile,
+  isGlobalGateFile
 } from "../src/harness/changed-files.js";
 import {
   executeChecks,
+  registerHarnessCommands,
   printGatePlan,
   selectChecks,
   type ExecuteChecksOptions
 } from "../src/commands/harness.js";
-import type { GateCheck, GatePlan } from "../src/harness/registry.js";
+import { HARNESSES, planGate, type GateCheck, type GatePlan } from "../src/harness/registry.js";
+import { computeAffected, readWorkspacePackages } from "../src/affected/affected.js";
 
 describe("collectChangedFiles", () => {
   it.each([" M", "M ", "A ", "D ", " D", "??", "UU"])(
@@ -207,6 +212,12 @@ const runOpts = (
 });
 
 describe("selectChecks", () => {
+  const workspaces = [
+    { name: "@nodetool-ai/runtime", dir: "packages/runtime", internalDeps: [] },
+    { name: "@nodetool-ai/models", dir: "packages/models", internalDeps: [] },
+    { name: "nodetool", dir: "web", internalDeps: [] },
+    { name: "demo", dir: "demo", internalDeps: [] }
+  ];
   const checks = [
     check("plain", "true"),
     check("suite", "true", { suiteOnly: true }),
@@ -225,10 +236,110 @@ describe("selectChecks", () => {
     expect(r.toRun.map((c) => c.harnessId)).toEqual(["plain", "suite", "big"]);
     expect(r.skippedSuites).toEqual([]);
   });
+
+  it("skips only known workspace test commands covered by a global full pass", () => {
+    const cases = [
+      check("single", "npm run test --workspace=packages/runtime -- tests/example.test.ts"),
+      check("multiple", "npm run test --workspace=packages/runtime --workspace=@nodetool-ai/models -- example"),
+      check("chain", "npm test --workspace=web -- --runInBand --testPathPattern='one|two' && npm run test --workspace=packages/models"),
+      check("mixed", "npm run test --workspace=packages/runtime && npm run lint"),
+      check("unknown", "npm run test --workspace=packages/missing"),
+      check("demo", "npm run test --workspace=demo"),
+      check("other-script", "npm run test:journeys --workspace=web"),
+      check("substitution", "npm run test --workspace=web -- $(touch marker)"),
+      check("config", "npm run test --workspace=web -- --config other.json"),
+      check("project", "npm run test --workspace=web -- --project alternate"),
+      check("broken-quote", "npm run test --workspace=web -- 'unterminated"),
+      check("empty-segment", "npm run test --workspace=web &&"),
+      check("env", "CI=1 npm run test --workspace=web"),
+      check("redirect", "npm run test --workspace=web > marker"),
+      check("cmd-env", "npm run test --workspace=web -- %FLAGS%"),
+      check("cmd-delayed-env", "npm run test --workspace=web -- !FLAGS!"),
+      check("cmd-escape", "npm run test --workspace=web -- ^--config alternate.json"),
+      check("quoted-operator", "npm run test --workspace=web '--' '; echo done'"),
+      check("operator", "npm run test --workspace=web; echo done")
+    ];
+    const opts = { globalFiles: ["package-lock.json"], workspaces };
+    expect(selectChecks(cases, opts).skippedSuites.map(c => c.harnessId)).toEqual(["single", "multiple", "chain"]);
+    expect(selectChecks(cases, opts).toRun.map(c => c.harnessId)).toEqual([
+      "mixed", "unknown", "demo", "other-script", "substitution", "config", "project", "broken-quote", "empty-segment", "env", "redirect", "cmd-env", "cmd-delayed-env", "cmd-escape", "quoted-operator", "operator"
+    ]);
+    expect(selectChecks(cases, { ...opts, globalFiles: [] }).toRun).toEqual(cases);
+    expect(selectChecks(cases, { ...opts, globalFiles: ["README.md"] }).toRun).toEqual(cases);
+    expect(selectChecks(cases, { ...opts, includeSuites: true }).toRun).toEqual(cases);
+  });
+
+  it("selects a large global plan without changing check order", () => {
+    const checks = Array.from({ length: 10_000 }, (_, index) =>
+      check(`suite-${index}`, "npm run test --workspace=packages/runtime")
+    );
+    const selected = selectChecks(checks, { globalFiles: ["package-lock.json"], workspaces });
+    expect(selected.toRun).toEqual([]);
+    expect(selected.skippedSuites).toEqual(checks);
+  });
+
+  it("infers full coverage only for gate global files that select the canonical full plan", async () => {
+    const root = fileURLToPath(new URL("../../../", import.meta.url));
+    const moduleUrl = new URL("../../../scripts/test-affected.mjs", import.meta.url).href;
+    const { buildPlan, fullPlan } = await import(moduleUrl);
+    const packages = readWorkspacePackages(root);
+    expect(packages.length).toBeGreaterThan(0);
+    expect(fullPlan()).toEqual([
+      { label: "packages", command: "npm", args: ["run", "test:packages"] },
+      { label: "web", command: "npm", args: ["test", "--workspace=web"] },
+      { label: "electron", command: "npm", args: ["test", "--workspace=electron"] },
+      { label: "mobile", command: "npm", args: ["--prefix", "mobile", "test"] }
+    ]);
+    const rootManifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+    expect(rootManifest.scripts["test:packages"]).toContain('--filter="./packages/*"');
+    expect(rootManifest.scripts["test:packages"]).toContain('--filter="./reliability/*"');
+    const globalFiles = [
+      ...readdirSync(root),
+      ...readdirSync(join(root, "scripts")).map(file => `scripts/${file}`)
+    ].filter(isGlobalGateFile);
+    expect(globalFiles.length).toBeGreaterThan(0);
+    for (const file of globalFiles) {
+      const plan = planGate([file]);
+      expect(plan.globalFiles).toEqual([file]);
+      expect(buildPlan([file], packages, computeAffected).steps).toEqual(fullPlan());
+    }
+  });
+
+  it("does not infer a full test pass from --all and lets --include-suites override a global diff", async () => {
+    const output = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    try {
+      const program = new Command();
+      registerHarnessCommands(program);
+      await program.parseAsync(["node", "nodetool", "harness", "gate", "--all", "--dry-run", "--json"]);
+      const all = JSON.parse(String(output.mock.calls.at(-1)?.[0]));
+      expect(all.plan.globalFiles).toEqual([]);
+      expect(all.skippedSuites).toEqual(HARNESSES.filter(h => h.selfcheck?.suiteOnly).map(h => h.id));
+      const overrideProgram = new Command();
+      registerHarnessCommands(overrideProgram);
+      await overrideProgram.parseAsync(["node", "nodetool", "harness", "gate", "package-lock.json", "--include-suites", "--dry-run", "--json"]);
+      const explicit = JSON.parse(String(output.mock.calls.at(-1)?.[0]));
+      expect(explicit.plan.globalFiles).toEqual(["package-lock.json"]);
+      expect(explicit.skippedSuites).toEqual([]);
+    } finally {
+      output.mockRestore();
+    }
+  });
 });
 
 describe("executeChecks", () => {
   afterEach(() => vi.restoreAllMocks());
+
+  it.each([1, 2])("reports progress on stderr and durations without contaminating JSON output with jobs=%s", async (jobs) => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const results = await executeChecks([check("timed", node("process.exit(0)"))], runOpts({ jobs }));
+    expect(results[0].durationMs).toBeGreaterThanOrEqual(0);
+    expect(Number.isFinite(results[0].durationMs)).toBe(true);
+    expect(stderr.mock.calls.map(([chunk]) => String(chunk)).join("")).toMatch(/START timed[\s\S]*PASS timed.*\d+ms/);
+    expect(stderr.mock.calls.map(([chunk]) => String(chunk)).join("")).toContain(`PASS timed (${results[0].durationMs}ms)`);
+    expect(stdout).not.toHaveBeenCalled();
+    expect(JSON.parse(JSON.stringify({ results })).results[0].durationMs).toBe(results[0].durationMs);
+  });
 
   it("runs serially in plan order by default", async () => {
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);

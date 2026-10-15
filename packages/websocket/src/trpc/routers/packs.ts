@@ -309,7 +309,7 @@ export const packsRouter = router({
       // must not load just because the router module is imported.
       const { applyBuiltinPackEnabled } =
         await import("../../node-registry-setup.js");
-      applyBuiltinPackEnabled(ctx.registry, input.id, input.enabled);
+      await applyBuiltinPackEnabled(ctx.registry, input.id, input.enabled);
       return { packs: builtinPackDtos() };
     }),
 

@@ -43,6 +43,9 @@ export function metadataAwareRegistry(
   return {
     has: (nodeType: string) =>
       registry.has(nodeType) || registry.getMetadata(nodeType) != null,
+    availability: (nodeType) => registry.availability?.(nodeType) ?? (registry.has(nodeType) ? "executable" : "unknown"),
+    catalogEntry: (nodeType) => registry.catalogEntry?.(nodeType),
+    catalogPack: (nodeType) => registry.catalogPack?.(nodeType),
     getMetadata: (nodeType: string): NodeMetadata | undefined =>
       registry.getMetadata(nodeType),
     validateNode: (descriptor, connectedHandles) =>

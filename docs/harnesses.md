@@ -797,9 +797,9 @@ The Blender side has a coverage gap. The sampled producer behind a bake is
 exercised by
 `packages/blender-nodes/tests/render-animation-sampled.test.ts`, which runs
 only where Blender is installed — `BLENDER_PATH`, or `blender` on `PATH` —
-and skips everywhere else; CI sets `NODETOOL_REQUIRE_BLENDER=1`, which turns
-that skip into a failure. It therefore does not run in a plain dev container,
-and two defects in that producer surfaced only on the CI leg: a named animation
+and skips everywhere else, CI included: CI installs no Blender because EEVEE
+timed out on its GPU-less runners. It therefore runs only where a developer
+has Blender. Two defects in that producer surfaced only when CI still ran it: a named animation
 that selected nothing because the glTF importer's active action played over the
 muted NLA tracks, and RGB output where `render_image` and `render_passes` both
 write RGBA, which made a bake frame incomparable to a still.
@@ -1558,7 +1558,7 @@ IS_SANDBOX=1 npm run dev:nodetool -- eval graph-planner -p claude_agent_sdk -m c
 ```
 
 Details on env stripping and the uid=0 blocker:
-[docs/AGENTS.md § Claude Agent SDK](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md#claude-agent-sdk).
+[docs/AGENTS.md § Claude Agent provider](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md#claude-agent-provider).
 
 A **`graph-e2e`** suite takes the same planner all the way through: it plans a
 workflow, executes it on the kernel with the case's inputs, and has an LLM judge

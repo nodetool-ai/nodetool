@@ -907,6 +907,9 @@ const validateWorkflow: CapabilityExport = {
     );
     const registryView = {
       has: (type: string) => registry.has(type),
+      availability: (type: string) => registry.availability(type),
+      catalogEntry: (type: string) => registry.catalogEntry(type),
+      catalogPack: (type: string) => registry.catalogPack(type),
       getMetadata: (type: string) => registry.getMetadata(type),
       validateNode: (
         descriptor: Parameters<typeof registry.validateNode>[0],

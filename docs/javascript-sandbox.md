@@ -296,6 +296,13 @@ execution paths, so engines remain reusable. A worker reporting an interpreter
 failure is discarded. Guest exceptions leave the worker reusable. See the
 [reproduction and upstream issue draft](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/docs/quickjs-descriptor-leak.md).
 
+The agents and sandbox compiler keep `@sebastianwessel/quickjs` in the 3.0 patch
+series with `~3.0.1`. Its 3.1 release uses `quickjs-emscripten-core` 0.32, while
+the selected WASM variant uses the 0.31 ABI. Mixing those versions loses host
+function references and leaves asynchronous callbacks unresolved. Upgrade the
+wrapper, core, and WASM variant together and verify host callbacks on both
+execution paths.
+
 ## Security model
 
 The guest starts with less than plain QuickJS, and every capability past that is

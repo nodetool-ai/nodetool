@@ -1182,6 +1182,20 @@ import {
 | Accessible name | A labelled `ProgressBar` takes its name from `label`. A bar with no visible label passes `aria-label`. A `ThinkingIndicator` that is the only sign of the wait passes `announce` |
 | Text | Sentence case. The `text` of `LoadingSpinner` and the `label` of `ThinkingIndicator` carry no ellipsis, because the mark already moves: "Loading models". A busy label written as text, on a button or in a caption, ends with one "…" character, never three dots: "Saving…", "Generating…" |
 
+### Model picker
+
+Every model field opens one picker, `ModelMenuDialogBase`, from a
+`ModelSelectButton`. A new model type supplies its data, title and store, not a
+new picker. Preview it at `/preview/model-picker`.
+
+| Part | Rule |
+|---|---|
+| Trigger | `ModelSelectButton`: an outlined field with the model name, its provider or file in `text.secondary`, and a chevron. The placeholder is sentence case: "Select model", "Select image model" |
+| Surface | A menu surface (`menuPaperStyles`), 640 by 560px, full screen below `sm` |
+| Sidebar | `ModelMenuNavItem` rows, 32px: All models, Favorites, Recent, then providers under a "Providers" `SectionHeader`. Each row has a 16px icon, a label and its model count. Disabled providers follow under "Disabled", in `text.disabled`. A provider without its API key ends in a warning icon. Below `sm` the same entries become a strip of filter `Chip`s |
+| Model row | One line, 32px: the name in `TYPOGRAPHY.sans.label`, then the provider (or, for a file, its model) as `Caption`. Favorite and default pin show on hover, keyboard focus and touch. The execution state is a compact `Chip`: `info` for API, `success` for a ready local model, `warning` when files must download first |
+| Unavailable | The row stays listed in `text.disabled` and its tooltip says what is missing |
+
 ---
 
 ## 15. Migration Checklist

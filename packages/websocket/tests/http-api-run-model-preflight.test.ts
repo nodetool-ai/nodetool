@@ -36,6 +36,8 @@ const echoExecutor = {
 };
 
 const registry = {
+  availability(type: string) { return this.has(type) ? "executable" : "unknown"; },
+  catalogEntry: () => undefined,
   has: (t: string) => t.startsWith("test."),
   resolve: () => echoExecutor,
   getClass: () => undefined,

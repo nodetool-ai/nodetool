@@ -24,6 +24,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
+import { missingRuntimeDetailsOf } from "@nodetool-ai/protocol";
 import type {
   GenerationRequest,
   BaseProvider,
@@ -2387,6 +2388,8 @@ const ffmpeg: CapabilityExport = {
       }
       return report;
     } catch (e) {
+      const missingRuntime = missingRuntimeDetailsOf(e);
+      if (missingRuntime) { return { error: "missing_runtime_package", ...missingRuntime }; }
       if (e instanceof HostBinaryMissingError) {
         return { error: e.message };
       }
@@ -2541,6 +2544,8 @@ const ffprobe: CapabilityExport = {
       }
       return report;
     } catch (e) {
+      const missingRuntime = missingRuntimeDetailsOf(e);
+      if (missingRuntime) { return { error: "missing_runtime_package", ...missingRuntime }; }
       if (e instanceof HostBinaryMissingError) {
         return { error: e.message };
       }
@@ -2661,6 +2666,8 @@ const ytDlp: CapabilityExport = {
         ...(persisted ?? {})
       };
     } catch (e) {
+      const missingRuntime = missingRuntimeDetailsOf(e);
+      if (missingRuntime) { return { error: "missing_runtime_package", ...missingRuntime }; }
       if (e instanceof HostBinaryMissingError) {
         return { error: e.message };
       }

@@ -1,10 +1,12 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "oxc", "react"],
+  "jsPlugins": ["./tools/oxlint/pack-boundaries/index.mjs"],
   "categories": {
     "correctness": "error"
   },
   "rules": {
+    "pack-boundaries/no-direct-pack-imports": "error",
     "no-empty": ["error", { "allowEmptyCatch": true }],
     "prefer-const": "error",
     "react/rules-of-hooks": "error",

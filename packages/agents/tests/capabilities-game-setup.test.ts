@@ -18,7 +18,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { ModelObserver, Project, Workspace, Workflow, initTestDb } from "@nodetool-ai/models";
 import {
   GAME_INSPIRATION_CHIPS,
@@ -180,11 +180,11 @@ const METADATA: Record<string, unknown> = {
   )
 };
 
-const registry = {
+const registry = Object.assign(new NodeRegistry(), {
   has: (type: string) => type in METADATA,
   getMetadata: (type: string) => METADATA[type],
   validateNode: () => []
-} as unknown as NodeRegistry;
+});
 
 const context = { userId: "u1" } as unknown as ProcessingContext;
 

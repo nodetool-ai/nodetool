@@ -64,9 +64,9 @@ const AudioToAudioModelSelect: React.FC<AudioToAudioModelSelectProps> = ({
         label={
           currentSelectedModelDetails?.name ||
           modelId ||
-          "Select Audio To Audio Model"
+          "Select audio-to-audio model"
         }
-        subLabel="Select Audio-to-Audio Model"
+        subLabel="Select audio-to-audio model"
         onClick={handleClick}
       />
       <AudioToAudioModelMenuDialog
