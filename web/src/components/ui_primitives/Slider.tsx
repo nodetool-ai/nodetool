@@ -90,9 +90,10 @@ export const Slider = forwardRef<HTMLSpanElement, SliderProps>(
           borderRadius: BORDER_RADIUS.pill,
           height: railHeight,
           // Bipolar: the rail draws the fill (driven by --fill-* vars).
-          ...(origin === undefined ? {} : {
-            background: `linear-gradient(to right, transparent 0, transparent var(--fill-lo, 0%), ${primary} var(--fill-lo, 0%), ${primary} var(--fill-hi, 0%), transparent var(--fill-hi, 0%)), ${theme.vars.palette.action.selected}`
-          }),
+          background:
+            origin === undefined
+              ? theme.vars.palette.action.selected
+              : `linear-gradient(to right, transparent 0, transparent var(--fill-lo, 0%), ${primary} var(--fill-lo, 0%), ${primary} var(--fill-hi, 0%), transparent var(--fill-hi, 0%)), ${theme.vars.palette.action.selected}`,
           "&::before": origin === undefined ? { display: "none" } : {
             content: '""',
             position: "absolute",
@@ -138,7 +139,7 @@ export const Slider = forwardRef<HTMLSpanElement, SliderProps>(
           // above is the interaction affordance.
           "&::before, &::after": { display: "none" }
         },
-        ...(layout === "row" ? { flex: "1 1 auto" } : {}),
+        flex: layout === "row" ? "1 1 auto" : undefined,
         ...sx
       }),
       [theme, compact, railHeight, thumbSize, primary, ring, neutralThumb, origin, layout, sx]
