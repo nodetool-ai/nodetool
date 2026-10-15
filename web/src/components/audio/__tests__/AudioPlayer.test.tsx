@@ -99,7 +99,7 @@ describe("AudioPlayer", () => {
 
     it("should render waveform container", () => {
       const { container } = render(<AudioPlayer {...defaultProps} />, { wrapper: themeWrapper });
-      const waveform = container.querySelector("#waveform");
+      const waveform = container.querySelector(".waveform");
       expect(waveform).toBeInTheDocument();
     });
 
@@ -163,14 +163,14 @@ describe("AudioPlayer", () => {
     it("should render with custom height props", () => {
       const { container } = render(<AudioPlayer {...defaultProps} height={20} />, { wrapper: themeWrapper });
 
-      const waveform = container.querySelector<HTMLElement>("#waveform");
+      const waveform = container.querySelector<HTMLElement>(".waveform");
       expect(waveform).toBeInTheDocument();
     });
 
     it("should render with custom waveform height props", () => {
       const { container } = render(<AudioPlayer {...defaultProps} waveformHeight={25} />, { wrapper: themeWrapper });
 
-      const waveform = container.querySelector<HTMLElement>("#waveform");
+      const waveform = container.querySelector<HTMLElement>(".waveform");
       expect(waveform).toBeInTheDocument();
     });
 
@@ -179,6 +179,15 @@ describe("AudioPlayer", () => {
 
       const minimap = container.querySelector<HTMLElement>(".minimap");
       expect(minimap).toBeInTheDocument();
+    });
+  });
+
+  describe("Filename", () => {
+    it("hides the filename when showFilename is false", () => {
+      render(<AudioPlayer {...defaultProps} showFilename={false} />, {
+        wrapper: themeWrapper
+      });
+      expect(screen.queryByText("test-audio.mp3")).not.toBeInTheDocument();
     });
   });
 
