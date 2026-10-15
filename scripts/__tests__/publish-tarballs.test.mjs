@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -49,7 +49,7 @@ function fixtureRepository(root) {
 }
 
 describe("release tarball reuse", () => {
-  it.skipIf(process.platform !== "linux" || process.arch !== "x64")("packs each public workspace once and publishes those same files", () => {
+  it.skipIf(process.platform !== "linux" || process.arch !== "x64")("packs each final public artifact once and excludes temporary measurement archives from publication", () => {
     const root = mkdtempSync(join(tmpdir(), "nodetool-publish-test-"));
     try {
       const packages = fixtureRepository(root);
@@ -116,14 +116,19 @@ if (args[0] === "pack") {
       const published = run(["--dry-run", "--tarballs-dir", artifacts]);
       expect(published.status, published.stderr).toBe(0);
       const calls = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line));
-      const packs = calls.filter((call) => call.args[0] === "pack");
+      const packs = calls.filter((call) => call.args[0] === "pack" && dirname(call.file) === artifacts);
+      const measurements = calls.filter((call) => call.args[0] === "pack" && dirname(call.file) !== artifacts);
       const installs = calls.filter((call) => call.args[0] === "install");
       const publishes = calls.filter((call) => call.args[0] === "publish");
       expect(packs).toHaveLength(packages.length);
+      expect(measurements.map(call => call.name).sort()).toEqual(["@nodetool-ai/cli", "@nodetool-ai/node-catalog"]);
+      expect(measurements.every(call => !existsSync(call.file) && call.args.includes("--ignore-scripts"))).toBe(true);
       expect(new Set(packs.map(call => call.name))).toEqual(new Set(packages.map(name => `@nodetool-ai/${name}`)));
       expect(installs).toHaveLength(3);
       expect(installs.every(call => call.isolated)).toBe(true);
       expect(new Set(installs.map(call => call.cwd)).size).toBe(installs.length);
+      const lastInstall = calls.findLastIndex(call => call.args[0] === "install");
+      expect(calls.slice(lastInstall + 1).filter(call => call.args[0] === "pack").map(call => call.name).sort()).toEqual(["@nodetool-ai/cli", "@nodetool-ai/node-catalog"]);
       expect(publishes).toHaveLength(packs.length);
       for (const publishedArtifact of publishes) {
         expect(dirname(publishedArtifact.file)).toBe(artifacts);

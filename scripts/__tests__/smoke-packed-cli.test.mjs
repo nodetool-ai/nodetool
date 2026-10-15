@@ -61,6 +61,8 @@ it("prepares sandboxed Chromium before packed verification runs browser suites",
   expect(installIndex).toBeGreaterThanOrEqual(0);
   expect(sandboxIndex).toBeGreaterThan(installIndex);
   expect(affectedIndex).toBeGreaterThan(sandboxIndex);
+  expect(steps.find(step => step.uses === "./.github/actions/setup-build").with["extra-apt"]).toBe("ffmpeg mesa-vulkan-drivers");
+  expect(steps.slice(0, affectedIndex).some(step => step.run === "npm --prefix mobile ci")).toBe(true);
   expect(steps[sandboxIndex].run).toContain("chromiumSandbox: true");
   expect(steps[sandboxIndex].run).toContain("sudo apparmor_parser -r");
 });
