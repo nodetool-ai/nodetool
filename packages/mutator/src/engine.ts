@@ -91,19 +91,21 @@ export function selectSites(
   });
 }
 
-/** Read selection inputs without creating workers, baselines, or snapshots. */
-export function selectFileSites(
-  path: string,
-  source: string,
-  ctx: Pick<EngineContext, "root" | "store" | "coveredLines" | "changedForms" | "mutateAll" | "lines">
-): {
+export interface FileSiteSelection {
   found: Site[];
   lines: Set<number> | null | undefined;
   covered: Map<string, boolean>;
   history: History;
   digests: Map<string, string>;
   selected: Site[];
-} {
+}
+
+/** Read selection inputs without creating workers, baselines, or snapshots. */
+export function selectFileSites(
+  path: string,
+  source: string,
+  ctx: Pick<EngineContext, "root" | "store" | "coveredLines" | "changedForms" | "mutateAll" | "lines">
+): FileSiteSelection {
   const fileKey = relativeKey(ctx.root, path);
   const found = sitesInFile(source, path, fileKey);
   const lines = ctx.coveredLines === null ? null : ctx.coveredLines(path);
