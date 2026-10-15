@@ -996,6 +996,139 @@
                 }
               ]
             },
+            "missing_pack": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "properties": {
+                    "error": {
+                      "const": "missing_pack",
+                      "type": "string"
+                    },
+                    "install": {
+                      "oneOf": [
+                        {
+                          "additionalProperties": true,
+                          "properties": {
+                            "command": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "reason": {
+                              "type": "null"
+                            },
+                            "supported": {
+                              "const": true,
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "supported",
+                            "reason",
+                            "command"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": true,
+                          "properties": {
+                            "command": {
+                              "type": "null"
+                            },
+                            "reason": {
+                              "type": "string"
+                            },
+                            "supported": {
+                              "const": false,
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "supported",
+                            "reason",
+                            "command"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "nodeTypes": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "readOnly": true,
+                      "type": "array"
+                    },
+                    "packs": {
+                      "items": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "installBytes": {
+                            "minimum": 0,
+                            "type": "number"
+                          },
+                          "npm": {
+                            "type": "string"
+                          },
+                          "requires": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "readOnly": true,
+                            "type": "array"
+                          },
+                          "version": {
+                            "type": "string"
+                          }
+                        },
+                        "readOnly": true,
+                        "required": [
+                          "id",
+                          "npm",
+                          "version",
+                          "installBytes",
+                          "requires"
+                        ],
+                        "type": "object"
+                      },
+                      "readOnly": true,
+                      "type": "array"
+                    },
+                    "restartRequired": {
+                      "type": "boolean"
+                    },
+                    "runtimeLibraries": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "readOnly": true,
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "packs",
+                    "runtimeLibraries",
+                    "nodeTypes",
+                    "install",
+                    "restartRequired"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "queue_position": {
               "anyOf": [
                 {
@@ -1115,6 +1248,139 @@
                     "code": {
                       "type": "string"
                     },
+                    "missing_pack": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": true,
+                          "properties": {
+                            "error": {
+                              "const": "missing_pack",
+                              "type": "string"
+                            },
+                            "install": {
+                              "oneOf": [
+                                {
+                                  "additionalProperties": true,
+                                  "properties": {
+                                    "command": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "reason": {
+                                      "type": "null"
+                                    },
+                                    "supported": {
+                                      "const": true,
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "supported",
+                                    "reason",
+                                    "command"
+                                  ],
+                                  "type": "object"
+                                },
+                                {
+                                  "additionalProperties": true,
+                                  "properties": {
+                                    "command": {
+                                      "type": "null"
+                                    },
+                                    "reason": {
+                                      "type": "string"
+                                    },
+                                    "supported": {
+                                      "const": false,
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "supported",
+                                    "reason",
+                                    "command"
+                                  ],
+                                  "type": "object"
+                                }
+                              ]
+                            },
+                            "nodeTypes": {
+                              "items": {
+                                "type": "string"
+                              },
+                              "readOnly": true,
+                              "type": "array"
+                            },
+                            "packs": {
+                              "items": {
+                                "additionalProperties": true,
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "installBytes": {
+                                    "minimum": 0,
+                                    "type": "number"
+                                  },
+                                  "npm": {
+                                    "type": "string"
+                                  },
+                                  "requires": {
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "readOnly": true,
+                                    "type": "array"
+                                  },
+                                  "version": {
+                                    "type": "string"
+                                  }
+                                },
+                                "readOnly": true,
+                                "required": [
+                                  "id",
+                                  "npm",
+                                  "version",
+                                  "installBytes",
+                                  "requires"
+                                ],
+                                "type": "object"
+                              },
+                              "readOnly": true,
+                              "type": "array"
+                            },
+                            "restartRequired": {
+                              "type": "boolean"
+                            },
+                            "runtimeLibraries": {
+                              "items": {
+                                "type": "string"
+                              },
+                              "readOnly": true,
+                              "type": "array"
+                            }
+                          },
+                          "required": [
+                            "error",
+                            "packs",
+                            "runtimeLibraries",
+                            "nodeTypes",
+                            "install",
+                            "restartRequired"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "missing_runtime": {
                       "anyOf": [
                         {
@@ -1185,6 +1451,7 @@
                                 "imaging",
                                 "typescript",
                                 "tracing",
+                                "rapier",
                                 "esbuild"
                               ],
                               "type": "string"
@@ -1808,6 +2075,139 @@
             }
           ]
         },
+        "missing_pack": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "properties": {
+                "error": {
+                  "const": "missing_pack",
+                  "type": "string"
+                },
+                "install": {
+                  "oneOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "command": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "reason": {
+                          "type": "null"
+                        },
+                        "supported": {
+                          "const": true,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "supported",
+                        "reason",
+                        "command"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "command": {
+                          "type": "null"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "supported": {
+                          "const": false,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "supported",
+                        "reason",
+                        "command"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "nodeTypes": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "readOnly": true,
+                  "type": "array"
+                },
+                "packs": {
+                  "items": {
+                    "additionalProperties": true,
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "installBytes": {
+                        "minimum": 0,
+                        "type": "number"
+                      },
+                      "npm": {
+                        "type": "string"
+                      },
+                      "requires": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "readOnly": true,
+                        "type": "array"
+                      },
+                      "version": {
+                        "type": "string"
+                      }
+                    },
+                    "readOnly": true,
+                    "required": [
+                      "id",
+                      "npm",
+                      "version",
+                      "installBytes",
+                      "requires"
+                    ],
+                    "type": "object"
+                  },
+                  "readOnly": true,
+                  "type": "array"
+                },
+                "restartRequired": {
+                  "type": "boolean"
+                },
+                "runtimeLibraries": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "readOnly": true,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "error",
+                "packs",
+                "runtimeLibraries",
+                "nodeTypes",
+                "install",
+                "restartRequired"
+              ],
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "queue_position": {
           "anyOf": [
             {
@@ -1975,6 +2375,139 @@
                 "code": {
                   "type": "string"
                 },
+                "missing_pack": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "error": {
+                          "const": "missing_pack",
+                          "type": "string"
+                        },
+                        "install": {
+                          "oneOf": [
+                            {
+                              "additionalProperties": true,
+                              "properties": {
+                                "command": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "reason": {
+                                  "type": "null"
+                                },
+                                "supported": {
+                                  "const": true,
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "supported",
+                                "reason",
+                                "command"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "additionalProperties": true,
+                              "properties": {
+                                "command": {
+                                  "type": "null"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "supported": {
+                                  "const": false,
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "supported",
+                                "reason",
+                                "command"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        },
+                        "nodeTypes": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "readOnly": true,
+                          "type": "array"
+                        },
+                        "packs": {
+                          "items": {
+                            "additionalProperties": true,
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "installBytes": {
+                                "minimum": 0,
+                                "type": "number"
+                              },
+                              "npm": {
+                                "type": "string"
+                              },
+                              "requires": {
+                                "items": {
+                                  "type": "string"
+                                },
+                                "readOnly": true,
+                                "type": "array"
+                              },
+                              "version": {
+                                "type": "string"
+                              }
+                            },
+                            "readOnly": true,
+                            "required": [
+                              "id",
+                              "npm",
+                              "version",
+                              "installBytes",
+                              "requires"
+                            ],
+                            "type": "object"
+                          },
+                          "readOnly": true,
+                          "type": "array"
+                        },
+                        "restartRequired": {
+                          "type": "boolean"
+                        },
+                        "runtimeLibraries": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "readOnly": true,
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "error",
+                        "packs",
+                        "runtimeLibraries",
+                        "nodeTypes",
+                        "install",
+                        "restartRequired"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "missing_runtime": {
                   "anyOf": [
                     {
@@ -2045,6 +2578,7 @@
                             "imaging",
                             "typescript",
                             "tracing",
+                            "rapier",
                             "esbuild"
                           ],
                           "type": "string"

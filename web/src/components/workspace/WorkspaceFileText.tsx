@@ -17,7 +17,6 @@ import type { WorkspaceFileKind } from "./workspaceFileKind";
 import type { WorkspaceTabMode } from "../../stores/WorkspaceTabsStore";
 import {
   AlertBanner,
-  BORDER_RADIUS,
   Caption,
   CopyButton,
   DataTable,
@@ -26,7 +25,9 @@ import {
   FlexRow,
   LoadingSpinner,
   ScrollArea,
-  Text, getSpacingPx, SPACING
+  Text, getSpacingPx, SPACING,
+  SaveState,
+  Toolbar
 } from "../ui_primitives";
 
 interface WorkspaceFileTextProps {
@@ -47,13 +48,6 @@ const styles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     backgroundColor: theme.vars.palette.background.default,
-    ".file-header": {
-      flex: "0 0 auto",
-      height: "2.5em",
-      padding: `0 ${getSpacingPx(SPACING.md)} 0 ${getSpacingPx(SPACING.lg)}`,
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.background.paper
-    },
     ".filename": {
       color: theme.vars.palette.text.primary,
       fontWeight: 500
@@ -65,13 +59,6 @@ const styles = (theme: Theme) =>
     ".file-body": {
       flex: 1,
       minHeight: 0
-    },
-    ".dirty-dot": {
-      width: 8,
-      height: 8,
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: theme.vars.palette.warning.main,
-      flex: "0 0 auto"
     },
     ".csv-note": {
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`
@@ -277,11 +264,9 @@ const WorkspaceFileText = ({
 
   return (
     <FlexColumn css={paneStyles} sx={{ width: "100%", height: "100%" }}>
-      <FlexRow
+      <Toolbar
         className="file-header"
-        align="center"
-        justify="space-between"
-        gap={1}
+        sx={{ justifyContent: "space-between", pl: SPACING.lg }}
       >
         <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
           <Text className="filename" size="small">
@@ -295,9 +280,7 @@ const WorkspaceFileText = ({
           )}
           {mode === "edit" && (
             <>
-              {isDirty && (
-                <span className="dirty-dot" aria-label="Unsaved changes" />
-              )}
+              <SaveState state={isDirty ? "dirty" : "idle"} showLabel={false} />
               <EditorButton
                 variant="contained"
                 size="small"
@@ -310,7 +293,7 @@ const WorkspaceFileText = ({
             </>
           )}
         </FlexRow>
-      </FlexRow>
+      </Toolbar>
       {truncated && (
         <AlertBanner severity="warning" compact>
           Showing the first part of this file only — it is too large to load in

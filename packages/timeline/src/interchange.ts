@@ -229,10 +229,16 @@ function bool(value: boolean): string {
  */
 function packLanes(entries: readonly PremiereEntry[], enabled: boolean, locked: boolean): PremiereLane[] {
   const lanes: PremiereLane[] = [];
+  let highestActiveLane = -1;
   for (const entry of [...entries].sort((left, right) => left.start - right.start)) {
-    const lane = lanes.find((candidate) => (candidate.entries.at(-1)?.end ?? 0) <= entry.start);
-    if (lane) lane.entries.push(entry);
-    else lanes.push({ enabled, locked, entries: [entry] });
+    // Place it above every overlapping predecessor, even if a lower lane is free.
+    while (highestActiveLane >= 0 && (lanes[highestActiveLane]?.entries.at(-1)?.end ?? 0) <= entry.start) {
+      highestActiveLane -= 1;
+    }
+    highestActiveLane += 1;
+    const lane = lanes[highestActiveLane];
+    if (lane) { lane.entries.push(entry); }
+    else { lanes.push({ enabled, locked, entries: [entry] }); }
   }
   return lanes;
 }

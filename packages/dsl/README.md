@@ -40,6 +40,11 @@ const result = await run(greeter, { params: { name: "Ada" } });
 // { greeting: "Hello Ada!" }
 ```
 
+The DSL reads node metadata from the catalog for graph and script exports.
+Execution registers available node packs from the host installation. The DSL
+does not install node packs. A graph that needs a missing pack reports
+`missing_pack` before execution.
+
 `createNode(nodeType, inputs, opts)` is the low-level primitive behind the generated factories; `opts` covers `id`, `streaming`, `multiOutput`, `outputNames`, and `defaultOutput`. A single-output node can be passed directly as an input. Explicit `node.output()` syntax remains supported. Select multi-output slots with `node.output("slot")`, `node.outputs.slot`, or a safe named property such as `node.if_true`. Generated factories accept an optional second argument: `text.concat({ a: greeting, b: "!" }, { id: "joined" })`. Duplicate IDs in a build fail. Graphs with Python nodes connect a worker bridge automatically (via `RunOptions.bridgeOptions` or the `NODETOOL_WORKER_URL` environment).
 
 Regenerate the node factories after node changes:

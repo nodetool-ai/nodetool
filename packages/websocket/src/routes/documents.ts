@@ -14,7 +14,9 @@ import type { FastifyError, FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { createLogger } from "@nodetool-ai/config";
 import { missingRuntimePackageOf } from "@nodetool-ai/protocol";
-import { extractPdfText } from "@nodetool-ai/document-nodes/lib/pdf-text";
+import { importPack, MissingPackError } from "@nodetool-ai/node-catalog";
+import type { PdfTextResult } from "@nodetool-ai/document-nodes/lib/pdf-text";
+type PdfModule = typeof import("@nodetool-ai/document-nodes/lib/pdf-text");
 import { extractRawText } from "@nodetool-ai/agents/host-modules/mammoth";
 import {
   ApiErrorCode,
@@ -89,6 +91,12 @@ function failure(status: number, detail: string): Outcome {
  * instead of calling the file unreadable.
  */
 function missingPackage(err: unknown): Outcome | null {
+  if (err instanceof MissingPackError) {
+    return {
+      status: 503,
+      body: { ...err.details, ...apiError(ApiErrorCode.SERVICE_UNAVAILABLE, err.message) }
+    };
+  }
   const runtimePackage = missingRuntimePackageOf(err);
   if (runtimePackage === null) return null;
   return {
@@ -106,8 +114,9 @@ function missingPackage(err: unknown): Outcome | null {
 /** Run the extractor for `kind` and map its outcome onto § 7.6's contract. */
 async function extract(kind: DocumentKind, bytes: Buffer): Promise<Outcome> {
   if (kind === "pdf") {
-    let result: Awaited<ReturnType<typeof extractPdfText>>;
+    let result: PdfTextResult;
     try {
+      const { extractPdfText } = await importPack<PdfModule>("document", "lib/pdf-text");
       result = await extractPdfText(bytes);
     } catch (err: unknown) {
       const missing = missingPackage(err);

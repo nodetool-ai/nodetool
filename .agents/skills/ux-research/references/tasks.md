@@ -42,6 +42,12 @@ never put it in a packet.
 | `find-help` | You are not sure how this app works. Find help from inside the app. | empty | 10 | In-product help |
 | `find-cost` | Find out whether using this app has cost any money so far. | empty | 10 | Spend and pricing |
 | `change-look` | The text is hard for you to read. Change how the app looks so it is easier. | empty | 10 | Appearance settings |
+| `make-picture` | You want a picture of a red bicycle leaning on a blue wall. Have the app make it, until you see the picture. | empty | 20 | Making a first picture |
+| `ask-other-model` | You want a different AI model to answer you than the one that answers now. Switch to it and ask it something, until you see its answer. | seeded-demo | 15 | Which model answers |
+| `remove-restore` | Open one of the things already in this app, remove one part of it, then bring that part back. | seeded-demo | 15 | Undo after a larger change |
+| `save-copy` | You want a copy of something already made in this app on your own computer. Save it there. | seeded-demo | 15 | Export and download |
+| `fix-broken` | Someone left something here that should summarise a trip, but it does not work. Make it work, until you see a summary. | failing-run | 20 | Recovering from a broken workflow |
+| `repeat-job` | Every week you turn a few rough notes into a short tidy summary. Set the app up so it does that job for you whenever you need it, and try it once. | empty | 20 | Setting up a reusable process |
 
 `add-key` needs a test key in `credentials`. `add-photo` needs an image in
 `assets`. `switch-model` on `seeded-demo` has every provider connected, so it
@@ -65,12 +71,24 @@ studies the choice and not the setup.
 | `find-help` | A help surface is open and the participant says what it learned there. | Whether it found help or the assistant first. | [learn](../../agentic-qa/references/protocols/first-use.md#learn) |
 | `find-cost` | The participant names the amount spent and where it saw it. | Which word it searched for: cost, usage, billing, or credits. | [spend](../../agentic-qa/references/protocols/first-use.md#spend) |
 | `change-look` | The theme or text size changed. | Whether it looked in settings, a profile menu, or the browser. | [appearance](../../agentic-qa/references/protocols/first-use.md#appearance) |
+| `make-picture` | A generated picture is visible. | Where it asked first (chat or a picture flow), and which picker it took for the picture model. | [image](../../agentic-qa/references/protocols/library.md#image) |
+| `ask-other-model` | A reply after a model change, with the new model selected or named on the reply. | Whether it could tell which model answered before the change. | [model-switch](../../agentic-qa/references/protocols/chat.md#model-switch) |
+| `remove-restore` | The removed part is back in the document. | Undo, version history, or a redo by hand. | [undo-delete](../../agentic-qa/references/protocols/library.md#undo-delete) |
+| `save-copy` | The receipt says the browser downloaded a file of something made in the app. | Where it looked for export, and which format it chose. | [timeline](../../agentic-qa/references/protocols/creative.md#timeline) |
+| `fix-broken` | The run completes and its output is visible. | Where it first learned what was wrong, and whether it ran before fixing. | [run-failure](../../agentic-qa/references/protocols/workflows.md#run-failure) |
+| `repeat-job` | A workflow or app built from the participant's description, saved, and run once with its output visible. | Whether it chose chat, a workflow, or an app, and whether it reopened what it built. | [automation-keep](../../agentic-qa/references/protocols/workflows.md#automation-keep) |
 
 Study 2 found two tasks whose end state asks more than their text:
 `switch-model` ("Change it") lets a participant stop at the picker without
 seeing a reply, and `find-help` ("Find help") lets it stop when help is open
 without learning from it. Judge those end states as written, and report the
 wording gap with the result.
+
+Study 3 found the same kind of gap in `ask-other-model`: on `seeded-demo` no
+model is selected, so "the one that answers now" does not exist and a
+participant can take a first pick for the switch. On the fakes,
+`make-picture` pays for retyping the "fake" brief and `repeat-job` always
+gets the capitalise plan, so judge both on mechanics.
 
 ## Adding a task
 

@@ -35,11 +35,27 @@ import {
 } from "@nodetool-ai/protocol";
 import { getSecret, Setting } from "@nodetool-ai/models";
 import type { WebSocketChatClient } from "./websocket-client.js";
-import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-provider";
-import { registerWhisperCppProviders } from "@nodetool-ai/whisper-cpp";
+import { importPack, MissingPackError } from "@nodetool-ai/node-catalog";
 
-registerTransformersJsProvider();
-registerWhisperCppProviders();
+async function registerPackProvider(pack: "transformers-js" | "whisper-cpp"): Promise<void> {
+  if (pack === "transformers-js") {
+    const module = await importPack<typeof import("@nodetool-ai/transformers-js-provider")>(pack, "@nodetool-ai/transformers-js-provider");
+    module.registerTransformersJsProvider();
+  } else {
+    const module = await importPack<typeof import("@nodetool-ai/whisper-cpp")>(pack);
+    module.registerWhisperCppProviders();
+  }
+}
+
+async function registerAvailablePackProviders(): Promise<void> {
+  for (const pack of ["transformers-js", "whisper-cpp"] as const) {
+    try {
+      await registerPackProvider(pack);
+    } catch (error) {
+      if (!(error instanceof MissingPackError)) { throw error; }
+    }
+  }
+}
 
 /**
  * Chat-capable providers surfaced in interactive autocomplete (`/provider <tab>`)
@@ -185,6 +201,7 @@ async function ensurePythonProvidersRegistered(): Promise<void> {
  */
 let customProvidersPromise: Promise<void> | null = null;
 export async function ensureCustomProvidersRegistered(): Promise<void> {
+  await registerAvailablePackProviders();
   if (!customProvidersPromise) {
     customProvidersPromise = (async () => {
       const setting = await Setting.find("1", CUSTOM_PROVIDERS_SETTING_KEY);
@@ -201,6 +218,8 @@ export async function createProviderStrict(
   providerId: string
 ): Promise<BaseProvider> {
   const id = providerId.toLowerCase();
+  if (id === "transformers_js") { await registerPackProvider("transformers-js"); }
+  if (id === "whisper_cpp" || id === "whisper_cpp_server") { await registerPackProvider("whisper-cpp"); }
   await ensureCustomProvidersRegistered();
   if (
     PYTHON_ONLY_PROVIDERS.includes(id) &&
@@ -233,6 +252,8 @@ export async function createProvider(
   providerId: string
 ): Promise<BaseProvider> {
   const id = providerId.toLowerCase();
+  if (id === "transformers_js") { await registerPackProvider("transformers-js"); }
+  if (id === "whisper_cpp" || id === "whisper_cpp_server") { await registerPackProvider("whisper-cpp"); }
   await ensureCustomProvidersRegistered();
   if (
     !PYTHON_ONLY_PROVIDERS.includes(id) &&
@@ -461,6 +482,7 @@ export async function listOllamaModels(): Promise<UnifiedModel[]> {
  * also picks up DB-stored keys (not just env).
  */
 export async function configuredProviderIds(): Promise<Set<string>> {
+  await registerAvailablePackProviders();
   const flags = await Promise.all(
     KNOWN_PROVIDERS.map((id) => {
       // mlx is keyless but registered lazily (via the Python bridge), so

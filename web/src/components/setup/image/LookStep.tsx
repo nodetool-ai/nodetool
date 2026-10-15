@@ -406,7 +406,7 @@ export const ImageModelFooterField: React.FC<{
     return null;
   }
   return (
-    <SetupFooterField label="Model">
+    <SetupFooterField label="Image model">
       <ImageModelSelect
         value={look.model}
         provider={look.provider}

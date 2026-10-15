@@ -21,6 +21,7 @@ import {
   SPACING,
   Slider,
   Text,
+  Toolbar,
   ToolbarIconButton,
   TYPOGRAPHY
 } from "../ui_primitives";
@@ -130,19 +131,13 @@ const AudioTransportBar = memo(function AudioTransportBar({
   );
 
   return (
-    <Box
+    <Toolbar
+      position="bottom"
       sx={{
         display: "grid",
         gridTemplateColumns: "auto minmax(0, 1fr) auto",
-        alignItems: "center",
         columnGap: SPACING.lg,
-        flexShrink: 0,
-        minHeight: CONTROL.height.xl,
-        px: SPACING.md,
-        py: SPACING.xs,
-        bgcolor: "background.paper",
-        borderTop: 1,
-        borderColor: "divider"
+        py: SPACING.xs
       }}
     >
       <FlexRow align="center" gap={SPACING.md}>
@@ -246,7 +241,7 @@ const AudioTransportBar = memo(function AudioTransportBar({
           {Math.round(zoom * 100)}%
         </Caption>
       </FlexRow>
-    </Box>
+    </Toolbar>
   );
 });
 

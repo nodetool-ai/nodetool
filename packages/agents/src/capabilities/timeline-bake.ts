@@ -14,12 +14,11 @@
 
 import { randomUUID } from "node:crypto";
 
-import {
-  bakeModel3DClipToVideo,
-  bakeVideoFormat,
-  type BakeCameraParams,
-  type Model3DBakeRequest
+import type {
+  BakeCameraParams,
+  Model3DBakeRequest
 } from "@nodetool-ai/blender-nodes";
+import { importPack } from "@nodetool-ai/node-catalog";
 import { animationDurations, parseModel3D } from "@nodetool-ai/model3d";
 import {
   model3dBakeCameraParams,
@@ -56,6 +55,7 @@ export async function bakeModel3DClipOnServer(
   context: ProcessingContext,
   request: TimelineOpBakeModel3DRequest
 ): Promise<TimelineOpBakeModel3DResult> {
+  const { bakeVideoFormat, bakeModel3DClipToVideo } = await importPack<typeof import("@nodetool-ai/blender-nodes")>("blender");
   const { clip, sequence } = request;
   const assetId = clip.currentAssetId;
   if (!assetId) {

@@ -81,6 +81,9 @@
       "path": "../node-catalog"
     },
     {
+      "path": "../nodes-utils"
+    },
+    {
       "path": "../node-sdk"
     },
     {

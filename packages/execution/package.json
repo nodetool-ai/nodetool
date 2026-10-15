@@ -83,6 +83,12 @@
       "types": "./dist/sketch-debug/index.d.ts",
       "import": "./dist/sketch-debug/index.js",
       "default": "./dist/sketch-debug/index.js"
+    },
+    "./missing-packs": {
+      "nodetool-dev": "./src/missing-packs.ts",
+      "types": "./dist/missing-packs.d.ts",
+      "import": "./dist/missing-packs.js",
+      "default": "./dist/missing-packs.js"
     }
   },
   "license": "MIT",

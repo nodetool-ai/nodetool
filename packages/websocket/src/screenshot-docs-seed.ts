@@ -23,7 +23,7 @@ import { fileURLToPath } from "node:url";
 
 import { Asset, JsScript, Memory, Skill } from "@nodetool-ai/models";
 import { STYLE_PRESETS } from "@nodetool-ai/protocol";
-import sharp from "sharp";
+import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import {
   getDefaultVectorProvider,
   OWNER_METADATA_KEY
@@ -419,6 +419,7 @@ const MOCK_MEDIA: { id: string; source: string; contentType: string }[] = [
 ];
 
 async function seedMockMedia(userId: string): Promise<void> {
+  const sharp = await loadSharpOrThrow();
   for (const media of MOCK_MEDIA) {
     const image = sharp(readFileSync(join(REPO_ROOT, media.source)));
     const bytes =
@@ -441,6 +442,7 @@ async function seedMockMedia(userId: string): Promise<void> {
  * store each preset's tile art as the asset's file.
  */
 async function seedStylePresetMedia(userId: string): Promise<void> {
+  const sharp = await loadSharpOrThrow();
   const assets = await seedStylePresets(userId);
   for (const [index, preset] of STYLE_PRESETS.entries()) {
     const relative = preset.thumbnail.replace("package://nodetool-base/", "");

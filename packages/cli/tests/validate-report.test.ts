@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import type { GraphValidationReport } from "@nodetool-ai/node-sdk";
+import type { GraphValidationReport, GraphValidationIssue } from "@nodetool-ai/node-sdk";
+vi.mock("../src/command-errors.js", () => ({ printCommandError: vi.fn() }));
 
 // node-sdk is stubbed in this workspace's vitest config; the report renderer
 // only needs its headline helper.
@@ -8,7 +9,7 @@ vi.mock("@nodetool-ai/node-sdk", () => ({
     `${report.nodeCount} nodes, ${report.counts.errors} errors, ${report.counts.warnings} warnings`
 }));
 
-const { renderValidation } = await import("../src/commands/validate.js");
+const { renderValidation, validationFailureExitCode } = await import("../src/commands/validate.js");
 
 function report(
   issues: GraphValidationReport["issues"]
@@ -84,5 +85,13 @@ describe("catalog validation report", () => {
     const out = renderValidation(report([{ severity: "error", code: "pack_not_installed", nodeId: "image", message: 'Node belongs to pack "image", which is not installed' }])).join("\n");
     expect(out).toContain("pack_not_installed — node metadata is known");
     expect(out).toContain('pack "image"');
+  });
+});
+describe("validation install-required exit", () => {
+  it("returns3 for missing packs alone and1 for mixed invalid input", () => {
+    const missing: GraphValidationIssue = { severity: "error", code: "pack_not_installed", message: "Missing fal" };
+    expect(validationFailureExitCode(report([missing]))).toBe(3);
+    expect(validationFailureExitCode(report([missing, { severity: "error", code: "property", message: "Invalid prompt" }]))).toBe(1);
+    expect(validationFailureExitCode(report([{ severity: "error", code: "unknown_node", message: "Unknown" }]))).toBe(1);
   });
 });

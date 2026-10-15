@@ -5,6 +5,7 @@
 import { act, renderHook } from "@testing-library/react";
 
 const renderTimelineMock = jest.fn();
+const addNotificationMock = jest.fn();
 
 const storeState: Record<string, unknown> = {};
 
@@ -22,7 +23,9 @@ jest.mock("../../../stores/AssetStore", () => ({
 }));
 
 jest.mock("../../../stores/NotificationStore", () => ({
-  useNotificationStore: { getState: () => ({ addNotification: jest.fn() }) }
+  useNotificationStore: {
+    getState: () => ({ addNotification: addNotificationMock })
+  }
 }));
 
 import { useTimelineExport } from "../useTimelineExport";
@@ -58,6 +61,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   renderTimelineMock.mockReset();
+  addNotificationMock.mockReset();
 });
 
 describe("useTimelineExport duration", () => {
@@ -84,5 +88,30 @@ describe("useTimelineExport duration", () => {
     expect(renderTimelineMock.mock.calls[0][0]).toMatchObject({
       durationMs: 6000
     });
+  });
+});
+
+describe("useTimelineExport success message", () => {
+  it("names the downloaded file when the export finishes", async () => {
+    setClips([{ startMs: 0, durationMs: 4000 }], 4000);
+    renderTimelineMock.mockResolvedValue(RESULT);
+    const { result } = renderHook(() => useTimelineExport());
+    await act(async () => {
+      await result.current.exportVideo("Aurora Promo (Studio)");
+    });
+    expect(addNotificationMock).toHaveBeenCalledWith({
+      type: "success",
+      content: "Exported Aurora_Promo_Studio.mp4."
+    });
+  });
+
+  it("stays silent when the export fails", async () => {
+    setClips([{ startMs: 0, durationMs: 4000 }], 4000);
+    renderTimelineMock.mockRejectedValue(new Error("codec"));
+    const { result } = renderHook(() => useTimelineExport());
+    await act(async () => {
+      await result.current.exportVideo("cut");
+    });
+    expect(addNotificationMock).not.toHaveBeenCalled();
   });
 });

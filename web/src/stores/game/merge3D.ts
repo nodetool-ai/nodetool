@@ -124,6 +124,16 @@ function mergeNative3D(base: GameDocument3D, draft: GameDocument3D, server: Game
 }
 
 export const gameMergeAdapter3D: DocumentMergeAdapter<GameDocument3D> = {
+  finalize: (result, base, draft, server) => {
+    // Reject only errors the merge introduced: a draft or server document
+    // that was already invalid must not discard an otherwise clean merge.
+    const known = new Set([...validateGame3D(draft).errors, ...validateGame3D(server).errors]);
+    if (validateGame3D(result.doc).errors.every((error) => known.has(error))) { return result; }
+    return { doc: draft, nextBase: base, conflicts: [...result.conflicts, {
+      unit: { kind: "document", id: "document", label: "document dependencies" },
+      external: server, draft, reason: "dangling"
+    }] };
+  },
   merge: mergeNative3D,
   finalizeMergedDocument: (doc, base, draft, server, conflicts) => retainReferencedMaterials(doc, [draft, server, base], conflicts),
   collections: [

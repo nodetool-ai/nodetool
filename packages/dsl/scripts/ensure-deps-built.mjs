@@ -1,15 +1,10 @@
 // Ensures the workspace packages the DSL test suite loads are compiled to
 // `dist/` before vitest runs.
 //
-// The suite aliases `@nodetool-ai/base-nodes` to its TypeScript source (so the
-// node-sdk `NodeRegistry` stays a single module instance across the DSL runtime
-// and the registered node classes). That source imports a dozen sibling node
-// packages (core-nodes, image-nodes, video-nodes, …) which resolve only from
-// their compiled `dist/`, as do the extra provider packs the `run` helper loads
-// dynamically (huggingface-nodes, reve-nodes). Without a prior build the first
-// such import fails with
-//   Cannot find package '@nodetool-ai/core-nodes/nodes/control'
-// and every suite that touches base-nodes errors out.
+// Execution tests register installed packs through the catalog loader. Those
+// packages resolve their compiled entrypoints, so they must be built before
+// tests can exercise their node classes. Export tests use catalog metadata and
+// do not require installed packs.
 //
 // In CI the packages are already built (turbo's `^build` dependency, or the
 // downloaded `dist` artifact), so this script is a fast existence check and a
@@ -24,9 +19,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 // One built file per package the suite pulls from `dist/`. tsc emits a package's
 // whole `dist/` in one pass, so a present entrypoint means that package was
-// built. Covers every `*-nodes` pack `base-nodes/src` imports plus the provider
-// packs `run` loads dynamically — so a partial build (some dists present, one
-// missing) still triggers a rebuild instead of no-oping into a later failure.
+// built. A partial build still triggers a rebuild before execution tests.
 const REQUIRED_DISTS = [
   "packages/core-nodes/dist/nodes/control.js",
   "packages/audio-nodes/dist/index.js",

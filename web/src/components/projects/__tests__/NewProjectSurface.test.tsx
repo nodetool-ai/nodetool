@@ -8,6 +8,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../../__mocks__/themeMock";
+import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { useBugReportStore } from "../../../stores/BugReportStore";
 
 jest.mock("../CurrentProjectDocuments", () => ({
@@ -205,8 +206,21 @@ const storyboardDelete = jest.fn().mockResolvedValue({ ok: true });
 const workflowDelete = jest.fn().mockResolvedValue({ ok: true });
 const projectDelete = jest.fn().mockResolvedValue({ ok: true });
 const createGame = jest.fn(async () => ({ game: { id: "game-1" } }));
+let mockDocumentTotal: number | null = 3;
 jest.mock("../../../trpc/client", () => ({
   __esModule: true,
+  trpc: {
+    projects: {
+      documentPage: {
+        useQuery: () => ({
+          data:
+            mockDocumentTotal === null
+              ? undefined
+              : { total: mockDocumentTotal, documents: [] }
+        })
+      }
+    }
+  },
   trpcClient: {
     games: { create: { mutate: createGame } },
     timeline: { update: { mutate: timelineUpdate } },
@@ -532,6 +546,8 @@ beforeEach(() => {
   openProject.mockResolvedValue(true);
   hasConfiguredProvider = true;
   selectedModel = { provider: "anthropic", id: "claude-sonnet-5" };
+  mockDocumentTotal = 3;
+  useModelPreferencesStore.setState({ defaults: {} });
   actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: null, personalProjectId: null });
   clearChatTurn("chat-1");
   useOnboardingStore.setState({
@@ -1082,6 +1098,53 @@ describe("NewProjectSurface", () => {
         content: "Pick a language model and the chat starts."
       })
     );
+  });
+
+  // 11 of 12 study sessions stopped here after connecting a key.
+  it("starts with the Settings default language model instead of opening the picker", async () => {
+    selectedModel = { provider: "empty", id: "gpt-4o" };
+    useModelPreferencesStore.getState().setDefault("language_model", {
+      provider: "openai",
+      id: "gpt-5",
+      name: "GPT-5"
+    });
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
+
+    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
+    expect(setSelectedModel).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: "openai", id: "gpt-5" })
+    );
+    expect(screen.queryByRole("button", { name: "Pick Claude" })).toBeNull();
+    expect(addNotification).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: "Pick a language model and the chat starts."
+      })
+    );
+  });
+
+  it("shows the guided flows before the documents when the project has none", () => {
+    mockDocumentTotal = 0;
+    renderSurface();
+    const flows = document.getElementById("guided-flows") as HTMLElement;
+    const docs = screen.getByTestId("current-project-documents");
+    expect(
+      flows.compareDocumentPosition(docs) & 4 /* DOCUMENT_POSITION_FOLLOWING */
+    ).toBeTruthy();
+  });
+
+  it("keeps the documents before the guided flows when the project has some", () => {
+    mockDocumentTotal = 2;
+    renderSurface();
+    const flows = document.getElementById("guided-flows") as HTMLElement;
+    const docs = screen.getByTestId("current-project-documents");
+    expect(
+      docs.compareDocumentPosition(flows) & 4 /* DOCUMENT_POSITION_FOLLOWING */
+    ).toBeTruthy();
   });
 
   // A first-time user who sends before picking a model got an error and had

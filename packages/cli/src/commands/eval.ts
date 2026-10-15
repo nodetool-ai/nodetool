@@ -377,7 +377,7 @@ const graphE2eSuite: EvalSuite = {
       model: deps.model,
       registry: deps.registry,
       providers: deps.providers,
-      runGraph: createEvalGraphRunner(),
+      runGraph: await createEvalGraphRunner(),
       cases,
       timeoutMs: deps.timeoutMs,
       onEvent: deps.onEvent
@@ -916,7 +916,7 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
       ]);
 
     const provider = await createProviderStrict(opts.provider);
-    const registry = registryMod.buildFullRegistry();
+    const registry = await registryMod.buildFullRegistry();
     const providers =
       opts.findModel === false ? undefined : await buildConfiguredProviders();
 

@@ -11,7 +11,7 @@
  * `useTimelineExport`.
  */
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import {
   Dialog,
@@ -21,13 +21,17 @@ import {
   SPACING,
   type SelectOption
 } from "../ui_primitives";
+import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import type { BrowserExportFormat } from "./render/TimelineRenderer";
+import { canEncodeMp4 } from "./render/canEncodeMp4";
 
-const FORMAT_OPTIONS: readonly SelectOption[] = [
-  { value: "mp4", label: "MP4 (H.264)" },
+const formatOptions = (mp4Supported: boolean): readonly SelectOption[] => [
+  { value: "mp4", label: "MP4 (H.264)", disabled: !mp4Supported },
   { value: "webm", label: "WebM (VP9)" },
   { value: "png_sequence", label: "PNG sequence (.zip)" }
 ];
+
+const MP4_UNSUPPORTED_NOTE = "This browser cannot write MP4, so it is turned off.";
 
 /** One line under the picker saying what the choice actually produces. */
 const FORMAT_NOTE: Record<BrowserExportFormat, string> = {
@@ -69,8 +73,28 @@ export const ExportVideoDialog: React.FC<ExportVideoDialogProps> = ({
   onClose,
   onExport
 }) => {
+  const width = useTimelineStore((state) => state.width);
+  const height = useTimelineStore((state) => state.height);
   const [format, setFormat] = useState<BrowserExportFormat>("mp4");
   const [alpha, setAlpha] = useState(false);
+  const [mp4Supported, setMp4Supported] = useState(true);
+
+  // Ask the encoder before the render does: a browser without H.264 would
+  // otherwise fail the default export with the encoder's configuration string.
+  useEffect(() => {
+    if (!open) return;
+    let current = true;
+    void canEncodeMp4(width, height).then((supported) => {
+      if (!current) return;
+      setMp4Supported(supported);
+      if (!supported) {
+        setFormat((chosen) => (chosen === "mp4" ? "webm" : chosen));
+      }
+    });
+    return () => {
+      current = false;
+    };
+  }, [open, width, height]);
 
   const handleFormatChange = useCallback((value: string) => {
     if (!isExportFormat(value)) return;
@@ -98,8 +122,12 @@ export const ExportVideoDialog: React.FC<ExportVideoDialogProps> = ({
           label="Format"
           value={format}
           onChange={handleFormatChange}
-          options={FORMAT_OPTIONS}
-          description={FORMAT_NOTE[format]}
+          options={formatOptions(mp4Supported)}
+          description={
+            mp4Supported
+              ? FORMAT_NOTE[format]
+              : `${FORMAT_NOTE[format]} ${MP4_UNSUPPORTED_NOTE}`
+          }
         />
         <LabeledSwitch
           id="timeline-export-alpha"

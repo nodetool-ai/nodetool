@@ -17,7 +17,10 @@ vi.mock("@nodetool-ai/config", () => ({
 
 const safeFetch = vi.fn();
 vi.mock("@nodetool-ai/runtime", () => ({
-  safeFetch: (...args: [string, RequestInit?]) => safeFetch(...args)
+  safeFetch: (...args: [string, RequestInit?]) => safeFetch(...args),
+  loadCanvas: async () => ({
+    GlobalFonts: { registerFromPath: (...args: unknown[]) => registerFromPath(...args) }
+  })
 }));
 
 const SPACE_GROTESK_METADATA = `

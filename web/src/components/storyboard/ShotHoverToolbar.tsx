@@ -28,9 +28,9 @@ import { SendToWorkflowMenu } from "../workflows/SendToWorkflowMenu";
 import {
   EditorMenu,
   FlexRow,
+  FloatingToolbar,
   MenuItemPrimitive,
   ToolbarIconButton,
-  BORDER_RADIUS,
   SPACING
 } from "../ui_primitives";
 import type { WorkflowMediaItem } from "../../hooks/handlers/useGenerationToCanvas";
@@ -67,9 +67,6 @@ const rowSx = {
   position: "absolute",
   top: SPACING.xs,
   left: SPACING.xs,
-  p: SPACING.xs,
-  borderRadius: BORDER_RADIUS.sm,
-  bgcolor: "c_scrim",
   opacity: 0,
   ".shot-card:hover &": { opacity: 1 },
   "&:focus-within": { opacity: 1 },
@@ -131,9 +128,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
   }
   const what = downloadLabel ?? "still";
   return (
-    <FlexRow
-      align="center"
-      gap={SPACING.micro}
+    <FloatingToolbar
       onClick={swallowEvent}
       onKeyDown={swallowEvent}
       data-testid="shot-hover-toolbar"
@@ -246,7 +241,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
           onClose={closeSend}
         />
       )}
-    </FlexRow>
+    </FloatingToolbar>
   );
 };
 

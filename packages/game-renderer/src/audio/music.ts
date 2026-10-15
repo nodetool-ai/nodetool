@@ -31,7 +31,8 @@ export class GameStreamingMusicVoice {
     private readonly fadeSeconds: number,
     private readonly offset: () => number,
     private readonly status: (message: string) => void,
-    private readonly ended: () => void
+    private readonly ended: () => void,
+    private readonly playing: () => void = () => undefined
   ) {
     this.media.crossOrigin = "anonymous";
     this.media.preload = "metadata";
@@ -78,13 +79,18 @@ export class GameStreamingMusicVoice {
   private play(): void {
     const generation = ++this.playGeneration;
     void this.media.play().then(() => {
+      if (generation !== this.playGeneration) { return; }
       if (this.disposed || this.paused) {
         this.media.pause();
-      } else if (!this.started) {
-        this.started = true;
-        this.fadeStart = this.context.currentTime;
-        this.gain.gain.setValueAtTime(this.fadeSeconds > 0 ? 0 : this.volume, this.fadeStart);
-        if (this.fadeSeconds > 0) this.gain.gain.linearRampToValueAtTime(this.volume, this.fadeStart + this.fadeSeconds);
+      } else {
+        this.media.currentTime = loopOffset(Math.max(0, this.offset()), this.settings.loopStartSeconds, this.end);
+        if (!this.started) {
+          this.started = true;
+          this.playing();
+          this.fadeStart = this.context.currentTime;
+          this.gain.gain.setValueAtTime(this.fadeSeconds > 0 ? 0 : this.volume, this.fadeStart);
+          if (this.fadeSeconds > 0) this.gain.gain.linearRampToValueAtTime(this.volume, this.fadeStart + this.fadeSeconds);
+        }
       }
     }).catch((error: unknown) => {
       if (!this.disposed && !this.paused && generation === this.playGeneration) {

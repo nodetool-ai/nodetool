@@ -103,7 +103,7 @@ export const VISIBLE_STARTERS = 8;
 /**
  * A shipped guide to prompting one model line. The agent loads these mid-run,
  * when `find_model` names one for the model it picked; nobody starts a project
- * from "Veo 3 prompting", so they rank behind everything else.
+ * from "Veo 3 prompting".
  */
 const isPromptingGuide = (name: string): boolean => name.endsWith("-prompting");
 
@@ -114,18 +114,60 @@ const isPromptingGuide = (name: string): boolean => name.endsWith("-prompting");
  */
 const isApiReference = (name: string): boolean => name.startsWith("api-");
 
-/** A skill the agent loads mid-run rather than one a project starts from. */
-const isReferenceSkill = (name: string): boolean =>
-  isPromptingGuide(name) || isApiReference(name);
+/**
+ * Shipped skills for people writing code or running a server. Skills carry no
+ * audience field, so they are named here. A project does not start from any of
+ * them, and each still answers to `/` in the prompt.
+ */
+const ENGINEERING_SKILLS: ReadonlySet<string> = new Set([
+  "nodetool-api-reference",
+  "nodetool-custom-node-developer",
+  "nodetool-js-scripting",
+  "nodetool-deployment",
+  "nodetool-chat-cli",
+  "nodetool-skill-author",
+  "nodetool-rag-indexing",
+  "native-game-reference",
+  "manimgx"
+]);
+
+/** A shipped skill the agent loads mid-run, or one for engineers, not makers. */
+const isHiddenSystemSkill = (name: string): boolean =>
+  isPromptingGuide(name) || isApiReference(name) || ENGINEERING_SKILLS.has(name);
+
+/** Longest description a starter chip's tooltip and caption carry. */
+const DESCRIPTION_LIMIT = 110;
+
+/**
+ * A skill description is written for the agent that picks skills: it ends in
+ * "Use whenever the model id contains…" or "Load before the first call…".
+ * People get the first sentence, cut to a short length.
+ */
+export const starterDescription = (description: string): string => {
+  const text = description.replace(/\s+/g, " ").trim();
+  const trigger = text.search(/(?:^|[.!?—-]\s+)(?:Use|Load|Not for)\b/);
+  const lead = trigger > 0 ? text.slice(0, trigger + 1) : text;
+  const sentence = /^.*?[.!?](?=\s|$)/.exec(lead)?.[0] ?? lead;
+  const body = sentence.replace(/[.\s—-]+$/, "");
+  if (body.length <= DESCRIPTION_LIMIT) {
+    return body.length === 0 ? text : `${body}.`;
+  }
+  const cut = body.slice(0, DESCRIPTION_LIMIT);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+};
 
 /**
  * Starters in the order the row shows them: the ones this user's past projects
  * started from, most recently used first, then the rest as the catalog lists
- * them — the user's own skills, then the shipped ones — with the model-line
- * prompting guides and the code-action API references last. What someone has
- * started before is the best guess at what they will start next.
+ * them — the user's own skills, then the shipped ones. Shipped reference,
+ * prompting and engineering skills are left out unless this user started from
+ * one: what someone has started before is the best guess at what they will
+ * start next. Descriptions are cut to a plain first sentence.
  */
-export const rankStarters = <T extends { name: string }>(
+export const rankStarters = <
+  T extends { name: string; description?: string; system?: boolean }
+>(
   starters: readonly T[],
   summaries: readonly ProjectDetail[]
 ): T[] => {
@@ -144,12 +186,16 @@ export const rankStarters = <T extends { name: string }>(
     .sort((a, b) =>
       (lastUsed.get(b.name) ?? "").localeCompare(lastUsed.get(a.name) ?? "")
     );
-  const rest = starters.filter((starter) => !lastUsed.has(starter.name));
-  return [
-    ...used,
-    ...rest.filter((starter) => !isReferenceSkill(starter.name)),
-    ...rest.filter((starter) => isReferenceSkill(starter.name))
-  ];
+  const rest = starters.filter(
+    (starter) =>
+      !lastUsed.has(starter.name) &&
+      !(starter.system === true && isHiddenSystemSkill(starter.name))
+  );
+  return [...used, ...rest].map((starter) =>
+    typeof starter.description === "string"
+      ? { ...starter, description: starterDescription(starter.description) }
+      : starter
+  );
 };
 
 /** How long a name derived from the prompt may run before it is cut short. */

@@ -12,7 +12,7 @@ import React, {
 } from "react";
 import { useMediaQuery } from "@mui/material";
 import { EditorMenu } from "../ui_primitives";
-import { Tooltip, AlertBanner, FlexRow, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, SHADOW, reducedMotion } from "../ui_primitives";
+import { Tooltip, AlertBanner, FlexRow, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, menuPaperStyles, reducedMotion } from "../ui_primitives";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -154,10 +154,9 @@ const dockStyles = (theme: Theme) =>
     },
 
     ".media-compose-card": {
-      borderRadius: BORDER_RADIUS.lg,
-      background: theme.vars.palette.background.paper,
+      // The floating-bar surface shared with FloatingToolbar and menus.
+      ...menuPaperStyles(theme),
       backdropFilter: "none",
-      boxShadow: SHADOW(theme).sm,
       gap: theme.spacing(SPACING.xs),
       "&:focus-within": {
         boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}`

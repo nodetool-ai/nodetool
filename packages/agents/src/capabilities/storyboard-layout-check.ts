@@ -1,4 +1,4 @@
-import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { loadCanvas } from "@nodetool-ai/runtime";
 import {
   compileClipAnimations,
   makeClip,
@@ -103,6 +103,7 @@ export function shotHoldTimes(
 }
 
 async function decodePixels(png: Uint8Array): Promise<Pixels> {
+  const { createCanvas, loadImage } = await loadCanvas();
   const image = await loadImage(Buffer.from(png));
   const canvas = createCanvas(image.width, image.height);
   const context = canvas.getContext("2d");

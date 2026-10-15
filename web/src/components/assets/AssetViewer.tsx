@@ -504,7 +504,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const { openWorkflow } = useOpenAssetWorkflow();
   const handleOpenWorkflow = useCallback(() => {
     if (currentAsset?.workflow_id) {
-      openWorkflow(currentAsset);
+      void openWorkflow(currentAsset);
       handleClose();
     }
   }, [currentAsset, openWorkflow, handleClose]);

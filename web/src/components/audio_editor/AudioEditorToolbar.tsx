@@ -17,13 +17,13 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   Box,
   Caption,
-  CONTROL,
-  Divider,
   EditorButton,
   EditorMenu,
   EditorMenuItem,
-  FlexRow,
   SPACING,
+  Toolbar,
+  ToolbarDivider,
+  ToolbarGroup,
   ToolbarIconButton
 } from "../ui_primitives";
 import { AUDIO_EFFECTS, EFFECT_GROUPS } from "./audioEffects";
@@ -50,14 +50,6 @@ interface AudioEditorToolbarProps {
   onSave: () => void;
   onDone: () => void;
 }
-
-const GroupDivider = () => (
-  <Divider
-    orientation="vertical"
-    flexItem
-    sx={{ mx: SPACING.xs, my: SPACING.sm }}
-  />
-);
 
 /**
  * The audio editor's command bar: history, selection edits, level edits, the
@@ -102,23 +94,12 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
   const scope = hasSelection ? "selection" : "whole clip";
 
   return (
-    <FlexRow
+    <Toolbar
       role="toolbar"
       aria-label="Audio edits"
-      align="center"
-      gap={SPACING.micro}
-      sx={{
-        flexShrink: 0,
-        flexWrap: "wrap",
-        minHeight: CONTROL.height.xl,
-        px: SPACING.md,
-        py: SPACING.xs,
-        bgcolor: "background.paper",
-        borderBottom: 1,
-        borderColor: "divider"
-      }}
+      sx={{ flexWrap: "wrap", py: SPACING.xs }}
     >
-      <FlexRow role="group" aria-label="History" align="center" gap={SPACING.micro}>
+      <ToolbarGroup role="group" aria-label="History">
         <ToolbarIconButton
           icon={<UndoIcon fontSize="small" />}
           tooltip="Undo"
@@ -131,11 +112,11 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
           onClick={onRedo}
           disabled={!canRedo}
         />
-      </FlexRow>
+      </ToolbarGroup>
 
-      <GroupDivider />
+      <ToolbarDivider />
 
-      <FlexRow role="group" aria-label="Selection edits" align="center" gap={SPACING.micro}>
+      <ToolbarGroup role="group" aria-label="Selection edits">
         <ToolbarIconButton
           icon={<CropOutlinedIcon fontSize="small" />}
           tooltip="Trim to selection"
@@ -166,11 +147,11 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
           onClick={onFadeOut}
           disabled={!hasSelection}
         />
-      </FlexRow>
+      </ToolbarGroup>
 
-      <GroupDivider />
+      <ToolbarDivider />
 
-      <FlexRow role="group" aria-label="Level edits" align="center" gap={SPACING.micro}>
+      <ToolbarGroup role="group" aria-label="Level edits">
         <ToolbarIconButton
           icon={<HeightOutlinedIcon fontSize="small" />}
           tooltip={`Normalize ${scope}`}
@@ -195,9 +176,9 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
           ariaLabel="Reverse"
           onClick={onReverse}
         />
-      </FlexRow>
+      </ToolbarGroup>
 
-      <GroupDivider />
+      <ToolbarDivider />
 
       <EditorButton
         variant="text"
@@ -241,7 +222,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
 
       <Box sx={{ flexGrow: 1 }} />
 
-      <FlexRow align="center" gap={SPACING.xs}>
+      <ToolbarGroup>
         <EditorButton
           variant="text"
           color="inherit"
@@ -259,8 +240,8 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
         >
           {saving ? "Saving…" : "Save"}
         </EditorButton>
-      </FlexRow>
-    </FlexRow>
+      </ToolbarGroup>
+    </Toolbar>
   );
 });
 

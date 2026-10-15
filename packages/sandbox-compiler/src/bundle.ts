@@ -14,7 +14,9 @@ import { readFileSync } from "node:fs";
 import { isBuiltin } from "node:module";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import esbuild, { type BuildFailure, type Metafile, type Plugin } from "esbuild";
+import type { BuildFailure, Metafile, Plugin } from "esbuild";
+import { importOptionalModule } from "@nodetool-ai/config";
+import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 
 import {
   NPM_BUNDLE_CONDITIONS,
@@ -84,6 +86,26 @@ export type BundleOutcome =
   | { readonly status: "failed"; readonly failure: BundleFailure };
 
 const NAMESPACE = "nodetool-sandbox-entry";
+type Esbuild = typeof import("esbuild");
+let loadedEsbuild: Promise<Esbuild> | undefined;
+
+async function loadEsbuild(): Promise<Esbuild> {
+  if (!loadedEsbuild) {
+    const attempt = importOptionalModule<Esbuild>("esbuild").catch((cause: unknown) => {
+      if (cause instanceof Error && "code" in cause &&
+          (cause.code === "ERR_MODULE_NOT_FOUND" || cause.code === "MODULE_NOT_FOUND") &&
+          /Cannot find (?:package|module) ['"]esbuild['"]/.test(cause.message)) {
+        throw missingRuntimePackageError("esbuild", "esbuild", cause);
+      }
+      throw cause;
+    });
+    loadedEsbuild = attempt;
+    attempt.catch(() => {
+      if (loadedEsbuild === attempt) { loadedEsbuild = undefined; }
+    });
+  }
+  return loadedEsbuild;
+}
 
 /** Bundle `npmName` as resolved from `packDir`. */
 export async function bundleNpmModule(
@@ -104,6 +126,7 @@ async function runBuild(
   npmName: string,
   withDefault: boolean
 ): Promise<BundleOutcome> {
+  const esbuild = await loadEsbuild();
   const builtins: string[] = [];
   const contents = withDefault
     ? `export * from ${JSON.stringify(npmName)};\nexport { default } from ${JSON.stringify(npmName)};\n`
@@ -329,7 +352,8 @@ export function optionsDigest(esbuildVersion: string): string {
 }
 
 /** {@link optionsDigest} for the esbuild this process would bundle with. */
-export function currentOptionsDigest(): string {
+export async function currentOptionsDigest(): Promise<string> {
+  const esbuild = await loadEsbuild();
   return optionsDigest(esbuild.version);
 }
 

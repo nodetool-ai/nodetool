@@ -18,14 +18,14 @@
 
 import { randomUUID } from "node:crypto";
 import type { GltfJson, Model3DFile } from "@nodetool-ai/model3d";
-import {
-  runBlenderJob,
-  type BlenderEngine,
-  type BlenderResultStats,
-  type CameraMode,
-  type LightingPreset,
-  type RenderImageParams
+import type {
+  BlenderEngine,
+  BlenderResultStats,
+  CameraMode,
+  LightingPreset,
+  RenderImageParams
 } from "@nodetool-ai/blender-nodes";
+import { importPack } from "@nodetool-ai/node-catalog";
 import {
   HostBinaryMissingError,
   loadMediaRefBytes,
@@ -526,6 +526,7 @@ async function renderGeneration(
   const generation = await context.runGenerationWith(
     renderGenerationRequest(id, model, params),
     async (_provider, signal) => {
+      const { runBlenderJob } = await importPack<typeof import("@nodetool-ai/blender-nodes")>("blender");
       const result = await runBlenderJob(
         context,
         model.bytes,

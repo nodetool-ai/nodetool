@@ -163,7 +163,7 @@ export async function runAppDebug(
     const context = new Context({ userId: LOCAL_USER_ID, jobId: `app-debug-${Date.now()}`,
       secretResolver: getSecret, storage: new FileStorageAdapter(getDefaultAssetsPath()) });
     const recording = createAppDebugRunRecording({ userId: LOCAL_USER_ID, target: resolved,
-      context, registry: deps.registry ?? buildFullRegistry(), loadWorkflow: deps.loadFromDb, loadScript,
+      context, registry: deps.registry ?? await buildFullRegistry(), loadWorkflow: deps.loadFromDb, loadScript,
       onRunCreated: (id) => { runIds.add(id); },
       applicationId: resolved.info.source === "application" ? resolved.info.ref : undefined,
       runWorkflow: (parent: ProcessingContext, input) => runOnServer({ ...input, context: parent }),

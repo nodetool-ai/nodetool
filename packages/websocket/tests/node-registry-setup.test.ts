@@ -28,7 +28,7 @@ describe("registerBuiltInNodes", () => {
     await registerBuiltInNodes(registry, { enabledOverrides: allEnabled() });
     expect(registry.list().length).toBeGreaterThan(0);
     expect(registry.listNodePackageIds()).toEqual(
-      expect.arrayContaining(["base", "elevenlabs"])
+      expect.arrayContaining(["core", "text", "elevenlabs"])
     );
   });
 
@@ -126,7 +126,7 @@ describe("applyBuiltinPackEnabled", () => {
   it("throws for unknown pack ids", async () => {
     await expect(
       applyBuiltinPackEnabled(new NodeRegistry(), "nope", true)
-    ).rejects.toThrow(/No registrar/);
+    ).rejects.toThrow(/Unknown built-in node pack/);
   });
 });
 

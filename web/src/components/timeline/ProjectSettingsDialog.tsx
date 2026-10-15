@@ -23,8 +23,8 @@ import {
   FlexRow,
   FormSection,
   SelectField,
-  SPACING,
-  TextInput
+  NumberField,
+  SPACING
 } from "../ui_primitives";
 import type { SelectOption } from "../ui_primitives";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
@@ -251,9 +251,8 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
             size="small"
           />
           <FlexRow gap={SPACING.lg} align="flex-start">
-            <TextInput
+            <NumberField
               label="Width"
-              type="number"
               size="small"
               value={widthText}
               onChange={(e) => setWidthText(e.target.value)}
@@ -262,12 +261,13 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
                   ? `${MIN_DIM}–${MAX_DIM}`
                   : undefined
               }
-              inputProps={{ min: MIN_DIM, max: MAX_DIM, step: 2 }}
+              min={MIN_DIM}
+              max={MAX_DIM}
+              step={2}
               sx={{ flex: 1 }}
             />
-            <TextInput
+            <NumberField
               label="Height"
-              type="number"
               size="small"
               value={heightText}
               onChange={(e) => setHeightText(e.target.value)}
@@ -276,7 +276,9 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
                   ? `${MIN_DIM}–${MAX_DIM}`
                   : undefined
               }
-              inputProps={{ min: MIN_DIM, max: MAX_DIM, step: 2 }}
+              min={MIN_DIM}
+              max={MAX_DIM}
+              step={2}
               sx={{ flex: 1 }}
             />
           </FlexRow>
@@ -296,9 +298,8 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
                 size="small"
               />
             </FlexColumn>
-            <TextInput
+            <NumberField
               label="FPS"
-              type="number"
               size="small"
               value={fpsText}
               onChange={(e) => setFpsText(e.target.value)}
@@ -307,7 +308,9 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
                   ? `${MIN_FPS}–${MAX_FPS}`
                   : undefined
               }
-              inputProps={{ min: MIN_FPS, max: MAX_FPS, step: 1 }}
+              min={MIN_FPS}
+              max={MAX_FPS}
+              step={1}
               sx={{ flex: 1 }}
             />
           </FlexRow>
@@ -316,21 +319,21 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
         {/* ── Tempo ───────────────────────────────────────────────── */}
         <FormSection label="Tempo">
           <FlexRow gap={SPACING.lg} align="flex-start">
-            <TextInput
+            <NumberField
               label="BPM"
-              type="number"
               size="small"
               value={bpmText}
               onChange={(e) => setBpmText(e.target.value)}
               errorMessage={
                 bpmText !== "" && !bpmValid ? `${MIN_BPM}–${MAX_BPM}` : undefined
               }
-              inputProps={{ min: MIN_BPM, max: MAX_BPM, step: 1 }}
+              min={MIN_BPM}
+              max={MAX_BPM}
+              step={1}
               sx={{ flex: 1 }}
             />
-            <TextInput
+            <NumberField
               label="Beats per bar"
-              type="number"
               size="small"
               value={beatsPerBarText}
               onChange={(e) => setBeatsPerBarText(e.target.value)}
@@ -339,11 +342,9 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
                   ? `${MIN_BEATS_PER_BAR}–${MAX_BEATS_PER_BAR}`
                   : undefined
               }
-              inputProps={{
-                min: MIN_BEATS_PER_BAR,
-                max: MAX_BEATS_PER_BAR,
-                step: 1
-              }}
+              min={MIN_BEATS_PER_BAR}
+              max={MAX_BEATS_PER_BAR}
+              step={1}
               sx={{ flex: 1 }}
             />
             <FlexColumn sx={{ flex: 1 }}>
@@ -357,16 +358,16 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
               />
             </FlexColumn>
           </FlexRow>
-          <TextInput
+          <NumberField
             label="Beat one at"
-            type="number"
             size="small"
             value={offsetText}
             onChange={(e) => setOffsetText(e.target.value)}
             errorMessage={
               offsetText !== "" && !offsetValid ? "0 or more" : undefined
             }
-            inputProps={{ min: 0, step: 1 }}
+            min={0}
+            step={1}
             fullWidth={false}
             sx={{ alignSelf: "flex-start" }}
           />

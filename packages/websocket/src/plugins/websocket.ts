@@ -1,4 +1,6 @@
 import { createMissingPackError } from "@nodetool-ai/node-catalog";
+import { findMissingPacks } from "@nodetool-ai/execution";
+import { MissingPackError } from "@nodetool-ai/protocol";
 import type { FastifyPluginAsync } from "fastify";
 import { createLogger } from "@nodetool-ai/config";
 import { WsAdapter } from "../ws-adapter.js";
@@ -13,7 +15,7 @@ import {
   recordRunTraceSecret
 } from "@nodetool-ai/runtime";
 import type { WorkerManager } from "@nodetool-ai/compute";
-import { getSecret as getStoredSecret } from "@nodetool-ai/models";
+import { getSecret as getStoredSecret, Workflow } from "@nodetool-ai/models";
 import type { HttpApiOptions } from "../http-api.js";
 import { resolveWorkflowWorkspace } from "../lib/workflow-workspace.js";
 import { packWebSocketMessage } from "../messagepack.js";
@@ -123,12 +125,8 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       // the runner it is not talking to them.
       appSession: req.appSession,
       beforeRunJob: async (graph) => {
-        for (const node of graph.nodes) {
-          const entry = registry.catalogEntry(node.type);
-          if (entry && registry.availability(node.type) === "catalog") {
-            throw createMissingPackError(entry.pack, [node.type]);
-          }
-        }
+        const missing = await findMissingPacks(graph, registry, { loadWorkflow: (id) => Workflow.find(req.userId ?? "1", id) });
+        if (missing) { throw new MissingPackError(missing); }
         const needsBridge = runNeedsPythonBridge(graph.nodes, {
           bridgeReady: getPythonBridgeReady(),
           bridgeAvailable: pythonBridge.isAvailable(),

@@ -87,7 +87,7 @@ export interface JobToBeDone<TFinal = unknown> {
   /** The objective handed to the agent, in the user's own voice. */
   objective: string;
   /** Builds a fresh world per run. */
-  createBridge: () => HeadlessSurfaceBridge<TFinal>;
+  createBridge: () => HeadlessSurfaceBridge<TFinal> | Promise<HeadlessSurfaceBridge<TFinal>>;
   /** System prompt under test. Absent means the suite default is under test. */
   systemPrompt?: string;
   /** Turn cap. A long-horizon job declares the budget it needs. */

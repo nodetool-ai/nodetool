@@ -56,7 +56,7 @@ export async function compileNpmModule(
   if (
     known !== undefined &&
     known.probeOk &&
-    known.optionsDigest === currentOptionsDigest()
+    known.optionsDigest === await currentOptionsDigest()
   ) {
     return { outcome: outcomeFor(npmName, known), cached: true, key: known.key };
   }

@@ -5,6 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { EditorButton } from "../../editor_ui";
 import {
+  Card,
   FlexColumn,
   FlexRow,
   Text,
@@ -35,10 +36,6 @@ const QUESTION = "Run this plan?";
 
 const styles = (theme: Theme) =>
   css({
-    border: `1px solid ${theme.vars.palette.info.main}66`,
-    borderRadius: BORDER_RADIUS.lg,
-    background: `rgb(${theme.vars.palette.info.mainChannel} / 0.06)`,
-    overflow: "hidden",
     ".plan-approval-fallback": {
       padding: theme.spacing(SPACING.md, SPACING.lg)
     },
@@ -107,7 +104,9 @@ const PlanApprovalCard: React.FC<PlanApprovalCardProps> = ({
   );
 
   return (
-    <div
+    <Card
+      variant="inline"
+      tone="info"
       css={cssStyles}
       className="plan-approval-card"
       role="group"
@@ -173,7 +172,7 @@ const PlanApprovalCard: React.FC<PlanApprovalCardProps> = ({
           </EditorButton>
         </FlexRow>
       </FlexColumn>
-    </div>
+    </Card>
   );
 };
 

@@ -1,79 +1,75 @@
-import { spawn } from "node:child_process";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { expect, it } from "vitest";
+import { spawnSync } from "node:child_process";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { describe, expect, it } from "vitest";
 
-it("propagates resolved initialization failure with an alternate optional root and retries", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "nodetool-pack-source-"));
-  const source = new URL("../dist/pack-source.js", import.meta.url).href;
-  const alternate = join(directory, "optional", "node_modules", "@nodetool-ai", "server");
-  await mkdir(alternate, { recursive: true });
-  await writeFile(join(alternate, "package.json"), JSON.stringify({
-    name: "@nodetool-ai/server", type: "module", exports: { import: "./index.js", default: "./index.js" }
-  }));
-  await writeFile(join(alternate, "index.js"), `
-    globalThis.alternateLoads = (globalThis.alternateLoads ?? 0) + 1;
-    export const bundledPackSource = { marker: "unexpected fallback" };
-  `);
-  await writeFile(join(directory, "private-server.js"), "");
-  const script = join(directory, "check.mjs");
-  await writeFile(script, `
+const source = pathToFileURL(resolve(import.meta.dirname, "../src/pack-source.ts")).href;
+
+function runWithoutPacks(body: string) {
+  return spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "--eval", `
     import assert from "node:assert/strict";
     import { registerHooks } from "node:module";
-    const privateUrl = new URL("./private-server.js", import.meta.url).href;
-    let loads = 0;
-    const hooks = registerHooks({
-      resolve(specifier, context, nextResolve) {
-        if (specifier === "@nodetool-ai/server") {
-          return { url: privateUrl, shortCircuit: true };
-        }
-        return nextResolve(specifier, context);
-      },
-      load(url, context, nextLoad) {
-        if (new URL(url).pathname === new URL(privateUrl).pathname) {
-          loads += 1;
-          return { format: "module", shortCircuit: true,
-            source: loads === 1
-              ? 'throw new Error("resolved server initialization failure");'
-              : 'export const bundledPackSource = { marker: "private source" };'
-          };
-        }
-        return nextLoad(url, context);
+    import { readCatalogIndex } from "@nodetool-ai/node-catalog";
+    import { NodeRegistry } from "@nodetool-ai/node-sdk";
+    const hidden = new Set(["@nodetool-ai/server", "@nodetool-ai/base-nodes", ...readCatalogIndex().packs.flatMap(pack => [pack.npm.name, ...pack.provides])]);
+    let attempts = 0;
+    registerHooks({ resolve(specifier, context, next) {
+      if ([...hidden].some(name => specifier === name || specifier.startsWith(name + "/"))) {
+        attempts += 1;
+        const error = new Error("Hidden node pack: " + specifier);
+        error.code = "ERR_MODULE_NOT_FOUND";
+        throw error;
       }
-    });
-    const { loadBundledPackSource } = await import(${JSON.stringify(source)});
-    assert.equal(loads, 0, "source import must remain lazy");
-    await assert.rejects(loadBundledPackSource(), /resolved server initialization failure/);
-    assert.equal(globalThis.alternateLoads, undefined);
-    const source = await loadBundledPackSource();
-    assert.equal(source.marker, "private source");
-    assert.equal(await loadBundledPackSource(), source);
-    assert.equal(loads, 2, "successful retry must be cached");
-    assert.equal(globalThis.alternateLoads, undefined);
-    hooks.deregister();
-    process.stdout.write("initialization failure propagated, retry cached");
-  `);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
-  const child = spawn(process.execPath, [script], {
-    env: { ...process.env, NODETOOL_OPTIONAL_NODE_MODULES: join(directory, "optional", "node_modules") },
-    stdio: ["ignore", "pipe", "pipe"], signal: controller.signal
+      return next(specifier, context);
+    } });
+    const { createCatalogPackSource, loadBundledPackSource, setDefaultPackSource } = await import(${JSON.stringify(source)});
+    ${body}
+  `], { cwd: resolve(import.meta.dirname, "../../.."), encoding: "utf8", timeout: 30000 });
+}
+
+describe("standalone catalog pack source", () => {
+  it("boots without private server or node packs and keeps catalog diagnostics", () => {
+    const child = runWithoutPacks(`
+      const source = await loadBundledPackSource();
+      const registry = new NodeRegistry();
+      await source.register(registry, {});
+      assert.equal(registry.availability("nodetool.constant.Integer"), "catalog");
+      assert.equal(registry.has("nodetool.constant.Integer"), false);
+      assert.equal(await loadBundledPackSource(), source);
+      const { BUILTIN_NODE_PACKS } = await import("@nodetool-ai/protocol");
+      const fal = BUILTIN_NODE_PACKS.find(pack => pack.id === "fal");
+      assert.equal(source.unavailableReason(fal, {}), "node pack is not installed");
+      await source.registerProviders({});
+      assert.ok(attempts > 0);
+      await source.setEnabled(registry, "huggingface", false);
+      assert.equal(registry.getMetadata("huggingface.text.TextGeneration"), undefined);
+      await source.setEnabled(registry, "huggingface", true);
+      assert.ok(registry.listMetadata().some(node => node.node_type.startsWith("huggingface.")));
+    `);
+    expect(child.status, child.stderr).toBe(0);
   });
-  let stdout = "";
-  let stderr = "";
-  child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
-  child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
-  try {
-    const code = await new Promise<number | null>((resolve, reject) => {
-      child.on("error", reject);
-      child.on("close", resolve);
-    });
-    expect(code, stderr).toBe(0);
-    expect(stdout).toContain("initialization failure propagated, retry cached");
-  } finally {
-    clearTimeout(timeout);
-    child.kill();
-    await rm(directory, { recursive: true, force: true });
-  }
+
+  it("preserves an injected bundled source without resolving private packages", () => {
+    const child = runWithoutPacks(`
+      const injected = { register() {}, setEnabled() {}, unavailableReason() {}, registerProviders() {} };
+      setDefaultPackSource(injected);
+      assert.equal(await loadBundledPackSource(), injected);
+      assert.equal(attempts, 0);
+    `);
+    expect(child.status, child.stderr).toBe(0);
+  });
+
+  it("propagates initialization failures of a resolved pack", () => {
+    const child = runWithoutPacks(`
+      registerHooks({ resolve(specifier, context, next) {
+        if (specifier === '@nodetool-ai/core-nodes') {
+          return { url: 'data:text/javascript,throw%20new%20Error(%22resolved%20pack%20initialization%20failure%22)', shortCircuit: true };
+        }
+        return next(specifier, context);
+      } });
+      const source = createCatalogPackSource();
+      await assert.rejects(source.register(new NodeRegistry(), {}), /resolved pack initialization failure/);
+    `);
+    expect(child.status, child.stderr).toBe(0);
+  });
 });

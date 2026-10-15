@@ -21,7 +21,6 @@ import {
   StrokeAssistPreset,
   StrokeAssistSettings
 } from "../types";
-import { sketchSliderSx } from "../sketchStyles";
 import { effectiveEraserMode } from "./shared";
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import { isNumber } from "../../../utils/typePredicates";
@@ -261,7 +260,6 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
         <Box className="setting-row">
           <Text className="setting-label">Strength</Text>
           <Slider
-            sx={sketchSliderSx}
             size="small"
             min={0}
             max={1}
@@ -329,7 +327,6 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
         <Box className="setting-row">
           <Text className="setting-label">Snap</Text>
           <Slider
-            sx={sketchSliderSx}
             size="small"
             min={0}
             max={1}
@@ -386,7 +383,6 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
             <Box className="setting-row setting-row--wide">
               <Text className="setting-label">Size</Text>
               <Slider
-                sx={sketchSliderSx}
                 size="small"
                 min={1}
                 max={200}
@@ -398,7 +394,6 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
             <Box className="setting-row">
               <Text className="setting-label">Opacity</Text>
               <Slider
-                sx={sketchSliderSx}
                 size="small"
                 min={0}
                 max={1}
@@ -415,7 +410,6 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
         <Box className="setting-row">
           <Text className="setting-label">Hard</Text>
           <Slider
-            sx={sketchSliderSx}
             size="small"
             min={0}
             max={1}
@@ -432,7 +426,6 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
             <Box className="setting-row">
               <Text className="setting-label">Round</Text>
               <Slider
-                sx={sketchSliderSx}
                 size="small"
                 min={0.1}
                 max={1}
@@ -447,7 +440,6 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
             <Box className="setting-row">
               <Text className="setting-label">Angle</Text>
               <Slider
-                sx={sketchSliderSx}
                 size="small"
                 min={0}
                 max={360}
@@ -520,7 +512,6 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
             <Box className="setting-row setting-row--wide">
               <Text className="setting-label">Size</Text>
               <Slider
-                sx={sketchSliderSx}
                 size="small"
                 min={1}
                 max={10}
@@ -532,7 +523,6 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
             <Box className="setting-row">
               <Text className="setting-label">Opacity</Text>
               <Slider
-                sx={sketchSliderSx}
                 size="small"
                 min={0}
                 max={1}
@@ -619,7 +609,6 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
         <Box className="setting-row setting-row--wide">
           <Text className="setting-label">Size</Text>
           <Slider
-            sx={sketchSliderSx}
             size="small"
             min={1}
             max={200}
@@ -631,7 +620,6 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
         <Box className="setting-row">
           <Text className="setting-label">Opacity</Text>
           <Slider
-            sx={sketchSliderSx}
             size="small"
             min={0}
             max={1}
@@ -646,7 +634,6 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
         <Box className="setting-row">
           <Text className="setting-label">Stabilize</Text>
           <Slider
-            sx={sketchSliderSx}
             size="small"
             min={0}
             max={1}

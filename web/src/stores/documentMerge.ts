@@ -114,6 +114,7 @@ export interface DocumentMergeAdapter<TDoc> {
   /** Allow a domain to enforce constraints across independently merged units. */
   merge?(base: TDoc, draft: TDoc, server: TDoc, options?: MergeOptions): MergeResult<TDoc>;
   collections: MergeCollection<TDoc>[];
+  finalize?(result: MergeResult<TDoc>, base: TDoc, draft: TDoc, server: TDoc): MergeResult<TDoc>;
   /** Restore cross-collection references after all independently merged fields have settled. */
   finalizeMergedDocument?(doc: TDoc, base: TDoc, draft: TDoc, server: TDoc, conflicts: MergeConflict[]): TDoc;
   scalars?: MergeScalarField<TDoc>[];
@@ -1059,5 +1060,6 @@ export function mergeByUnits<TDoc>(
     }
   }
 
-  return { doc: adapter.finalizeMergedDocument?.(doc, base, draft, server, conflicts) ?? doc, conflicts, nextBase };
+  const result = { doc: adapter.finalizeMergedDocument?.(doc, base, draft, server, conflicts) ?? doc, conflicts, nextBase };
+  return adapter.finalize ? adapter.finalize(result, base, draft, server) : result;
 }

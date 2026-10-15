@@ -4,7 +4,8 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState, useRef, ChangeEvent } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Tooltip, ToolbarIconButton, MOTION, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx } from "../ui_primitives";
+import { useDragOverState } from "../../hooks/handlers/useDragOverState";
+import { Tooltip, ToolbarIconButton, MOTION, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx, dropZoneSurfaceStyle } from "../ui_primitives";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import ImageDimensions from "../node/ImageDimensions";
 import { useTheme } from "@mui/material/styles";
@@ -79,21 +80,8 @@ const PropertyDropzone = ({
         border: "0",
         maxWidth: "none",
         textAlign: "left",
-        transition: MOTION.all,
-        outline: `1px dashed ${theme.vars.palette.divider}`,
-        margin: `${theme.spacing(SPACING.sm)} 0`,
-        backgroundColor: theme.vars.palette.Paper.overlay,
-        borderRadius: BORDER_RADIUS.md,
-
-        "&:hover": {
-          outline: `1px dashed ${theme.vars.palette.text.secondary}`,
-          backgroundColor: theme.vars.palette.action.selected
-        },
-        "&.drag-over": {
-          backgroundColor: theme.vars.palette.action.selected,
-          outline: `2px dashed ${theme.vars.palette.primary.main}`,
-          outlineOffset: "-2px"
-        }
+        ...dropZoneSurfaceStyle(theme),
+        margin: `${theme.spacing(SPACING.sm)} 0`
       },
       ".dropzone.dropped": {
         width: "100%",
@@ -173,26 +161,27 @@ const PropertyDropzone = ({
       }
     });
 
-  const [isDragOver, setIsDragOver] = useState(false);
+  const {
+    isOver: isDragOver,
+    onDragOver: markDragOver,
+    onDragLeave: handleDragLeave,
+    reset: resetDragOver
+  } = useDragOverState();
 
   const handleDragOver = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       onDragOver(e);
-      setIsDragOver(true);
+      markDragOver(e);
     },
-    [onDragOver]
+    [onDragOver, markDragOver]
   );
-
-  const handleDragLeave = useCallback(() => {
-    setIsDragOver(false);
-  }, []);
 
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       onDrop(e);
-      setIsDragOver(false);
+      resetDragOver();
     },
-    [onDrop]
+    [onDrop, resetDragOver]
   );
 
   const handleImageLoad = useCallback(() => {

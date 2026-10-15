@@ -107,8 +107,8 @@ const briefFor: Record<string, typeof LANTERN_BRIEF> = {
   "review-catches-overrun": LANTERN_BRIEF
 };
 const bridge = media
-  ? createCreativePipelineBridge({ brief: briefFor[caseId] ?? LANTERN_BRIEF, media })
-  : evalCase.createBridge();
+  ? await createCreativePipelineBridge({ brief: briefFor[caseId] ?? LANTERN_BRIEF, media })
+  : await evalCase.createBridge();
 const provider = await createProviderStrict(providerId);
 
 interface Entry {

@@ -14,7 +14,7 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
-    "@dimforge/rapier3d-compat": "0.19.3",
+    "@nodetool-ai/config": "*",
     "@jitl/quickjs-ng-wasmfile-release-sync": "^0.31.0",
     "@nodetool-ai/protocol": "*",
     "quickjs-emscripten-core": "^0.31.0",
@@ -23,7 +23,8 @@
   },
   "devDependencies": {
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "@dimforge/rapier3d-compat": "0.19.3"
   },
   "exports": {
     ".": {
@@ -41,5 +42,13 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "peerDependencies": {
+    "@dimforge/rapier3d-compat": "0.19.3"
+  },
+  "peerDependenciesMeta": {
+    "@dimforge/rapier3d-compat": {
+      "optional": true
+    }
+  }
 }

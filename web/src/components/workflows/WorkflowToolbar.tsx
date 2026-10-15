@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, memo, useState, useMemo } from "react";
-import { ToolbarIconButton, DeleteButton, Chip, Box, EditorMenu, MenuItemPrimitive, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { ToolbarIconButton, DeleteButton, Chip, Box, EditorMenu, MenuItemPrimitive, MOTION, BORDER_RADIUS, SPACING, Toolbar, getSpacingPx } from "../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -34,14 +34,6 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       gap: getSpacingPx(SPACING.md),
       padding: `0 ${getSpacingPx(SPACING.lg)}` // was 0 10px
-    },
-
-    ".tools .buttons-row": {
-      display: "flex",
-      flexDirection: "row",
-      gap: getSpacingPx(SPACING.micro),
-      alignItems: "center",
-      width: "100%"
     },
 
     ".tools .tool-button": {
@@ -195,7 +187,12 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   return (
     <Box css={styles(theme)}>
       <div className="tools">
-        <div className="buttons-row">
+        <Toolbar
+          density="compact"
+          bordered={false}
+          className="buttons-row"
+          sx={{ bgcolor: "transparent", px: 0, gap: SPACING.micro, width: "100%" }}
+        >
           {availableTags.length > 0 && (
             <>
               <ToolbarIconButton
@@ -314,7 +311,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             />
           </EditorMenu>
 
-        </div>
+        </Toolbar>
 
         {selectedTags.length > 0 && (
           <div className="active-tags-row">

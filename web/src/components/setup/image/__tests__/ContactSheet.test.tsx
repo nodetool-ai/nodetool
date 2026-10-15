@@ -106,6 +106,56 @@ beforeEach(() => {
   mockFailures.clear();
 });
 
+// A disabled contained button looks like an enabled one in this theme, so a
+// variation that has not rendered offers none of its actions (A3/S035).
+describe("actions on a variation that has not rendered", () => {
+  it("offers none for a running variation and all of them once it lands", () => {
+    const layerIds = seedBatch();
+    const landedBindings = useSketchSessionStore.getState().bindings;
+    act(() =>
+      useSketchSessionStore.setState({
+        bindings: Object.fromEntries(
+          Object.entries(landedBindings).map(([id, binding]) => [
+            id,
+            { ...binding, status: "generating", currentAssetId: undefined }
+          ])
+        )
+      } as never)
+    );
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContactSheet
+          layerIds={layerIds}
+          onPick={onPick}
+          onMakeMore={onMakeMore}
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
+        />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "0 of 4 rendered · 4 still running"
+    );
+    for (const name of [
+      "Sketch editor",
+      "Save to entities",
+      "New node canvas",
+      "Image to video",
+      "Regenerate",
+      "Download"
+    ]) {
+      expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
+    }
+    act(() =>
+      useSketchSessionStore.setState({ bindings: landedBindings } as never)
+    );
+    expect(screen.getAllByRole("button", { name: "Sketch editor" })).toHaveLength(4);
+    expect(screen.getAllByRole("button", { name: "Download" })).toHaveLength(4);
+  });
+});
+
 describe("ContactSheet Pick (criterion 5)", () => {
   it.each(["draft", "queued", "generating"] as const)(
     "marks %s previews busy, including regeneration, until the batch settles",
@@ -457,12 +507,11 @@ describe("a failed batch", () => {
     const layerIds = seedFailedBatch();
     renderSheet(layerIds);
 
-    // Every Pick is dead, which is exactly why the exits have to exist.
-    for (const pick of screen.getAllByRole("button", {
-      name: "Sketch editor"
-    })) {
-      expect(pick).toBeDisabled();
-    }
+    // Nothing rendered, so no Pick is offered at all, which is exactly why
+    // the exits have to exist.
+    expect(
+      screen.queryByRole("button", { name: "Sketch editor" })
+    ).not.toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole("button", { name: "Back to generation settings" })

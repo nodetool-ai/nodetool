@@ -51,6 +51,7 @@ const SHARED = new Set([
   "_fetch",
   "_tempUrlResolver",
   "sandboxModuleCatalog",
+  "nodeExecutorGuard",
   "triggerEvent"
 ]);
 

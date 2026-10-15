@@ -6,6 +6,52 @@ way it is. The index — which harness answers which need — is
 [AGENTS.md § Agent Harnesses & Tooling](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#agent-harnesses--tooling).
 Flag-level reference for the CLI: [cli.md](cli.md).
 
+## Packed CLI smoke
+
+After `npm run build:packages`, run `node scripts/smoke-packed-cli.mjs` to
+install the public package tarballs into an isolated project and exercise the
+CLI. Add `--core-only` to repack the test CLI without on-demand node packs.
+The published CLI manifest retains its packs until the final switch.
+
+The core smoke runs JSON and TypeScript workflows, executes a workflow through
+local MCP, starts the HTTP server, checks catalog validation for an absent FAL
+pack, and decodes audio and video through the installed media codecs. It audits
+nested installed packages for accidental pack or optional-library dependencies.
+The compiler exceptions and their range checks are defined in
+[plan D23](cli-pack-system-plan.md#d23-compiler-dependencies-required-by-core-packages).
+
+The smoke prints `du -sk node_modules` for the installed tree. This is the Linux
+measurement used to establish the later size gate. The dedicated
+`packed-core-cli.yml` workflow runs the core smoke on pull requests, including
+stacked branches. Release CI runs it beside the full packed smoke.
+
+## Release catalog pins
+
+After building packages and running `node scripts/prepare-publish.mjs`, run
+`node scripts/publish-packages.mjs --pack-only --tarballs-dir <empty-directory>`
+on Linux x64. It packs the catalog registrar packages and their companion
+libraries, measures each pack in a fresh production install, writes integrity
+and size pins, rebuilds the catalog artifact, and packs the remaining packages.
+It preserves every previously packed tarball and performs no publication.
+The catalog also records original companion hashes, exact npm runtime alias
+identities and shared-library pins. Staging verifies these before promotion.
+
+The install size includes the pack’s production dependency tree. Measurement
+uses local core directory overrides before final core artifacts exist. npm
+packs those directories according to their `files` fields, with scripts
+disabled. Each install has a fresh project and home, with a shared download
+cache inside the release artifact directory.
+
+Run the deterministic pin, measurement and packing-order regressions with:
+
+```bash
+node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-catalog.test.mjs scripts/__tests__/publish-packages.test.mjs scripts/__tests__/install-pins.test.mjs scripts/__tests__/staging-release.test.mjs scripts/__tests__/publish-tarballs.test.mjs
+```
+
+The
+`release-pins` job in `packed-core-cli.yml` verifies actual Linux measurement
+and packing without publishing.
+
 ## CLI
 
 Two entry points: `nodetool` (management commands) and `nodetool-chat` (interactive chat).

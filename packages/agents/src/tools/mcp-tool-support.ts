@@ -72,7 +72,7 @@ export function noRegistryError(what: string) {
 export function outcomeResult(outcome: RunWorkflowOutcome): unknown {
   return outcome.kind === "payload"
     ? outcome.payload
-    : { error: outcome.detail, status: outcome.status };
+    : outcome.missingPack ?? { error: outcome.detail, status: outcome.status };
 }
 
 /** A stored workflow as the tools report it — the same fields the API returns. */

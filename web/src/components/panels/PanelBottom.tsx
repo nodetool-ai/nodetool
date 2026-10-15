@@ -158,7 +158,15 @@ const VIEW_SPECS = {
 
 const PANEL_VIEWS = BOTTOM_PANEL_GROUPS.flatMap((g) => g.views);
 
-const styles = (theme: Theme) =>
+/**
+ * Width of the status bar below which the cpu/mem and node-count readout is
+ * hidden. The tabs, the worker status and that readout need about this much
+ * together. With a side panel docked at 1280 the bar is narrower, and the
+ * readout used to cover the last tab ("Trace" cut to "T").
+ */
+export const STATUS_BAR_READOUT_MIN_WIDTH = 900;
+
+export const styles = (theme: Theme) =>
   css({
     position: "fixed",
     bottom: "0",
@@ -236,6 +244,10 @@ const styles = (theme: Theme) =>
       lineHeight: 1,
       color: theme.vars.palette.text.secondary,
       userSelect: "none",
+      // Sized by the bar's own width, not the window's: a docked side panel
+      // narrows the bar without narrowing the window.
+      containerType: "inline-size",
+      containerName: "statusbar",
 
       "& .status-cluster": {
         display: "inline-flex",
@@ -350,6 +362,11 @@ const styles = (theme: Theme) =>
 
       "& .meta-value": {
         color: theme.vars.palette.text.secondary
+      },
+
+      // After the readout's own rule, so it wins at equal specificity.
+      [`@container statusbar (max-width: ${STATUS_BAR_READOUT_MIN_WIDTH}px)`]: {
+        "& .meta-cluster": { display: "none" }
       }
     },
     ".panel-body": {

@@ -2111,6 +2111,11 @@ export class OpenAIProvider extends BaseProvider {
     throw new Error("OpenAI image editing returned no image data.");
   }
 
+  /** Resolve model capabilities separately from the ID sent to the API. */
+  protected mediaModelIdentity(model: string): string {
+    return model;
+  }
+
   async *textToSpeech(args: {
     text: string;
     model: string;
@@ -2137,7 +2142,7 @@ export class OpenAIProvider extends BaseProvider {
         speed,
         response_format: "pcm"
       };
-      if (args.model === "gpt-4o-mini-tts" && (args.language || args.instructions)) {
+      if (this.mediaModelIdentity(args.model) === "gpt-4o-mini-tts" && (args.language || args.instructions)) {
         request.instructions = [
           args.language ? `Speak in ${args.language}.` : undefined,
           args.instructions
@@ -2173,7 +2178,7 @@ export class OpenAIProvider extends BaseProvider {
       speed,
       response_format: "pcm"
     };
-    if (args.model === "gpt-4o-mini-tts" && (args.language || args.instructions)) {
+    if (this.mediaModelIdentity(args.model) === "gpt-4o-mini-tts" && (args.language || args.instructions)) {
       request.instructions = [
         args.language ? `Speak in ${args.language}.` : undefined,
         args.instructions
@@ -2234,7 +2239,7 @@ export class OpenAIProvider extends BaseProvider {
       speed,
       response_format: fmt
     };
-    if (args.model === "gpt-4o-mini-tts" && (args.language || args.instructions)) {
+    if (this.mediaModelIdentity(args.model) === "gpt-4o-mini-tts" && (args.language || args.instructions)) {
       request.instructions = [
         args.language ? `Speak in ${args.language}.` : undefined,
         args.instructions
@@ -2280,10 +2285,10 @@ export class OpenAIProvider extends BaseProvider {
             name: audioName
           });
 
-    const isDiarizationModel = args.model.startsWith(
+    const isDiarizationModel = this.mediaModelIdentity(args.model).startsWith(
       "gpt-4o-transcribe-diarize"
     );
-    if (args.word_timestamps && args.model !== "whisper-1") {
+    if (args.word_timestamps && this.mediaModelIdentity(args.model) !== "whisper-1") {
       throw new Error("Word timestamps are only supported by whisper-1");
     }
 

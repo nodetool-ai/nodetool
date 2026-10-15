@@ -4,6 +4,7 @@ import { prop } from "../src/decorators.js";
 import { getNodeMetadata } from "../src/node-metadata.js";
 import { NodeRegistry, type NodeCatalogEntry } from "../src/registry.js";
 import { validateGraph } from "../src/graph-validation.js";
+import { applyBuiltinNodePolicy } from "../src/builtin-node-policy.js";
 
 class CatalogFixture extends BaseNode {
   static readonly nodeType = "nodetool.image.CatalogFixture";
@@ -39,6 +40,19 @@ function catalogRegistry(): NodeRegistry {
 }
 
 describe("catalog registry", () => {
+  it("removes catalog metadata excluded by cloud and production policies", () => {
+    const registry = new NodeRegistry();
+    const catalogEntries = ["lib.browser.Screenshot", "transformers.Test", "fal.Test"].map((nodeType): NodeCatalogEntry => ({
+      ...entry(), node_type: nodeType, metadata: { ...entry().metadata, node_type: nodeType }
+    }));
+    registry.loadCatalog(catalogEntries, [{ id: "image", installBytes: 0 }]);
+    applyBuiltinNodePolicy(registry, { cloudProfile: true, production: true });
+    expect(registry.getMetadata("lib.browser.Screenshot")).toBeUndefined();
+    expect(registry.availability("lib.browser.Screenshot")).toBe("unknown");
+    expect(registry.availability("transformers.Test")).toBe("unknown");
+    expect(registry.availability("fal.Test")).toBe("catalog");
+  });
+
   it("distinguishes every metadata origin from executable classes", () => {
     const registry = catalogRegistry();
     expect(registry.availability(CatalogFixture.nodeType)).toBe("catalog");
