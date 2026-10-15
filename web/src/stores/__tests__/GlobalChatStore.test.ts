@@ -1926,6 +1926,7 @@ describe("GlobalChatStore", () => {
         "lastPermissionMode",
         "lastUsedThreadId",
         "permissionMode",
+        "reasoningEffort",
         "selectedModel",
         "threadModel"
       ]);
