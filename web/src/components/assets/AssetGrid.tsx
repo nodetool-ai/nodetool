@@ -184,9 +184,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const theme = useTheme();
 
-  // Folders are shown by default on the wide fullscreen page; elsewhere they
-  // follow the user's toggle. Either way, hide the tree entirely when there
-  // are no folders to show.
+  // The sidebar hides an empty folder tree until the user creates a folder.
+  // The fullscreen page always docks it: it also holds the Workflows browser
+  // and is where people expect to create and pick folders.
   const hasFolders = useMemo(
     () => !!folderTree && Object.keys(folderTree).length > 0,
     [folderTree]
@@ -205,7 +205,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const isNarrow = useMediaQuery(theme.breakpoints.down("sm"));
   const foldersDocked = Boolean(isFullscreenAssets) && !isNarrow;
   const effectiveFoldersVisible =
-    !isWorkflowOutputScope && hasFolders && (foldersDocked || foldersVisible);
+    !isWorkflowOutputScope &&
+    (foldersDocked || (hasFolders && foldersVisible));
 
   const user = useAuth((state) => state.user);
 
