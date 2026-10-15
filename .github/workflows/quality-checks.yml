@@ -322,7 +322,7 @@ jobs:
             },
             {
               "check": "test-packages-core",
-              "command": "npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter=@nodetool-ai/game-runtime --filter=@nodetool-ai/game-renderer --filter=@nodetool-ai/cli --concurrency=1 $TURBO_AFFECTED && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' --filter='!@nodetool-ai/game-renderer' --filter='!@nodetool-ai/cli' $TURBO_AFFECTED",
+              "command": "npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter=@nodetool-ai/game-runtime --filter=@nodetool-ai/game-renderer --filter=@nodetool-ai/cli --concurrency=1 $TURBO_AFFECTED && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' --filter='!@nodetool-ai/game-renderer' --filter='!@nodetool-ai/cli' --concurrency=2 $TURBO_AFFECTED",
               "mobile-deps": "false",
               "extra-apt": "mesa-vulkan-drivers ffmpeg",
               "is-test": "true",
@@ -738,8 +738,8 @@ jobs:
           TURBO_AFFECTED: ${{ inputs.base-sha != '' && needs.changes.outputs.turbo-affected == 'true' && '--affected' || '' }}
           CI_BASE_SHA: ${{ inputs.base-sha }}
           NODETOOL_HARNESS_INCLUDE_SUITES: ${{ inputs.skip-tests && '--include-suites' || '' }}
-          # Each of the two gate jobs runs its test files serially.
-          NODETOOL_TEST_WORKERS: ${{ matrix.check == 'harness-gate' && '1' || '' }}
+          # Bound file workers when the core shard or harness runs multiple suites.
+          NODETOOL_TEST_WORKERS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-core') && '1' || '' }}
           NODETOOL_CHECK_COMMAND: ${{ matrix.command }}
           NODETOOL_GAME_GOLDEN_ARTIFACTS: ${{ matrix.check == 'harness-gate' && format('{0}/native-game-golden-diagnostics', runner.temp) || '' }}
         run: |
