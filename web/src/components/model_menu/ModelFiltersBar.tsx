@@ -4,18 +4,13 @@ import React from "react";
 
 import {
   ToolbarIconButton,
-  Checkbox,
   Box,
   EditorMenu,
   EditorMenuItem,
   ListItemText
 } from "../ui_primitives";
-import CategoryIcon from "@mui/icons-material/Category";
 import StraightenIcon from "@mui/icons-material/Straighten";
-import useModelFiltersStore, {
-  SizeBucket,
-  TypeTag
-} from "../../stores/ModelFiltersStore";
+import useModelFiltersStore, { SizeBucket } from "../../stores/ModelFiltersStore";
 import { isProduction } from "../../lib/env";
 
 const barStyles = css({
@@ -25,16 +20,6 @@ const barStyles = css({
   flexWrap: "nowrap"
 });
 
-const typeOptions: TypeTag[] = [
-  "instruct",
-  "chat",
-  "base",
-  "sft",
-  "dpo",
-  "reasoning",
-  "code",
-  "math"
-];
 const sizeOptions: SizeBucket[] = [
   "1-2B",
   "3-7B",
@@ -45,49 +30,16 @@ const sizeOptions: SizeBucket[] = [
 ];
 
 const ModelFiltersBar: React.FC = () => {
-  const selectedTypes = useModelFiltersStore((state) => state.selectedTypes);
   const sizeBucket = useModelFiltersStore((state) => state.sizeBucket);
-  const toggleType = useModelFiltersStore((state) => state.toggleType);
   const setSizeBucket = useModelFiltersStore((state) => state.setSizeBucket);
 
-  // Local anchors for persistent menus
-  const [typeAnchor, setTypeAnchor] = React.useState<null | HTMLElement>(null);
+  // Local anchor for the persistent size menu
   const [sizeAnchor, setSizeAnchor] = React.useState<null | HTMLElement>(null);
 
-  const openType = Boolean(typeAnchor);
   const openSize = Boolean(sizeAnchor);
 
   return (
     <Box css={barStyles} className="model-menu__filters-bar">
-      {/* Type dropdown (multi) */}
-      <ToolbarIconButton
-        icon={<CategoryIcon fontSize="small" />}
-        tooltip={selectedTypes.length ? `Type: ${selectedTypes.join(", ")}` : "Filter by type"}
-        onClick={(e) => setTypeAnchor(e.currentTarget)}
-        size="small"
-        active={selectedTypes.length > 0 || openType}
-        nodrag={false}
-      />
-      <EditorMenu
-        anchorEl={typeAnchor}
-        open={openType}
-        onClose={() => setTypeAnchor(null)}
-        keepMounted
-      >
-        {typeOptions.map((t) => (
-          <EditorMenuItem
-            key={t}
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleType(t);
-            }}
-          >
-            <Checkbox size="small" checked={selectedTypes.includes(t)} />
-            <ListItemText primary={t} />
-          </EditorMenuItem>
-        ))}
-      </EditorMenu>
-
       {/* Size dropdown (single). Parameter-count buckets only describe local
           models, so the cloud version has nothing to filter. */}
       {!isProduction && (
