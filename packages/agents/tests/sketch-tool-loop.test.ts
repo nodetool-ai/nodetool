@@ -61,7 +61,7 @@ function createScriptedProvider(script: ScriptedCall[]): BaseProvider {
 
 describe("media verification evidence", () => {
   it("does not verify bytes for a placed missing asset", async () => {
-    const bridge = createSketchToolBridge();
+    const bridge = await createSketchToolBridge();
     const place = bridge.tools.find((tool) => tool.name === "ui_sketch_place_image");
     const result = await place!.execute({ image: "asset://missing" });
     expect(result).toMatchObject({ ok: true, visual_output_verified: false });
@@ -71,7 +71,7 @@ describe("media verification evidence", () => {
 
 describe("createSketchToolBridge", () => {
   it("starts with a single 'Background' layer, active", async () => {
-    const bridge = createSketchToolBridge();
+    const bridge = await createSketchToolBridge();
     const state = bridge.finalState();
     expect(state.layers).toHaveLength(1);
     expect(state.layers[0].name).toBe("Background");
@@ -79,7 +79,7 @@ describe("createSketchToolBridge", () => {
   });
 
   it("add_layer inserts directly above the active layer and becomes active", async () => {
-    const bridge = createSketchToolBridge();
+    const bridge = await createSketchToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
 
     const first = (await byName["ui_sketch_add_layer"].execute({
@@ -117,7 +117,7 @@ describe("createSketchToolBridge", () => {
   });
 
   it("generate creates a bound layer with generationStarted true by default", async () => {
-    const bridge = createSketchToolBridge();
+    const bridge = await createSketchToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
 
     const result = (await byName["ui_sketch_generate"].execute({
@@ -145,7 +145,7 @@ describe("createSketchToolBridge", () => {
   });
 
   it("place_image puts an asset on a new layer, sized to the canvas by default", async () => {
-    const bridge = createSketchToolBridge({ width: 800, height: 600 });
+    const bridge = await createSketchToolBridge({ width: 800, height: 600 });
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
 
     const result = (await byName["ui_sketch_place_image"].execute({
@@ -168,7 +168,7 @@ describe("createSketchToolBridge", () => {
   });
 
   it("place_image targets an existing layer and honors explicit bounds", async () => {
-    const bridge = createSketchToolBridge({ layers: [{ name: "Base" }] });
+    const bridge = await createSketchToolBridge({ layers: [{ name: "Base" }] });
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
 
     await byName["ui_sketch_place_image"].execute({
@@ -192,7 +192,7 @@ describe("createSketchToolBridge", () => {
   });
 
   it("place_image refuses a scheme the canvas cannot load", async () => {
-    const bridge = createSketchToolBridge();
+    const bridge = await createSketchToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
     await expect(
       byName["ui_sketch_place_image"].execute({ image: "ftp://host/pic.png" })
@@ -200,7 +200,7 @@ describe("createSketchToolBridge", () => {
   });
 
   it("generate with autoGenerate false does not start generation", async () => {
-    const bridge = createSketchToolBridge();
+    const bridge = await createSketchToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
     const result = (await byName["ui_sketch_generate"].execute({
       kind: "text-to-image",
@@ -212,7 +212,7 @@ describe("createSketchToolBridge", () => {
   });
 
   it("remove_layer on a missing target throws", async () => {
-    const bridge = createSketchToolBridge();
+    const bridge = await createSketchToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
     await expect(
       byName["ui_sketch_remove_layer"].execute({ target: "no-such-layer" })
@@ -220,7 +220,7 @@ describe("createSketchToolBridge", () => {
   });
 
   it("set_layer_props patches only provided fields", async () => {
-    const bridge = createSketchToolBridge();
+    const bridge = await createSketchToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
     await byName["ui_sketch_set_layer_props"].execute({
       target: "active",
@@ -234,7 +234,7 @@ describe("createSketchToolBridge", () => {
   });
 
   it("resize_canvas and selection update document state", async () => {
-    const bridge = createSketchToolBridge();
+    const bridge = await createSketchToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
     await byName["ui_sketch_resize_canvas"].execute({
       width: 1024,
@@ -292,7 +292,7 @@ interface StrokeToolResult {
 
 describe("createSketchToolBridge — painting", () => {
   it("a brush stroke paints real pixels on the layer", async () => {
-    const bridge = createSketchToolBridge({ width: 128, height: 128 });
+    const bridge = await createSketchToolBridge({ width: 128, height: 128 });
     const t = toolsOf(bridge);
     expect(bridge.finalState().paintedPixels).toBe(0);
 
@@ -332,7 +332,7 @@ describe("createSketchToolBridge — painting", () => {
   });
 
   it("a single point lays down one dab rather than nothing", async () => {
-    const bridge = createSketchToolBridge({ width: 64, height: 64 });
+    const bridge = await createSketchToolBridge({ width: 64, height: 64 });
     const t = toolsOf(bridge);
     await t["ui_sketch_stroke"].execute({
       strokes: [{ points: [{ x: 32, y: 32 }], color: "#00ff00", size: 16 }]
@@ -350,7 +350,7 @@ describe("createSketchToolBridge — painting", () => {
       { x: 20, y: 100 }
     ];
     const paint = async (closed: boolean): Promise<number> => {
-      const bridge = createSketchToolBridge({ width: 128, height: 128 });
+      const bridge = await createSketchToolBridge({ width: 128, height: 128 });
       await toolsOf(bridge)["ui_sketch_stroke"].execute({
         strokes: [{ points: square, closed, color: "#ffffff", size: 4 }]
       });
@@ -363,7 +363,7 @@ describe("createSketchToolBridge — painting", () => {
   });
 
   it("the eraser removes pixels the brush laid down", async () => {
-    const bridge = createSketchToolBridge({ width: 128, height: 128 });
+    const bridge = await createSketchToolBridge({ width: 128, height: 128 });
     const t = toolsOf(bridge);
     await t["ui_sketch_stroke"].execute({
       strokes: [
@@ -402,7 +402,7 @@ describe("createSketchToolBridge — painting", () => {
   });
 
   it("refuses to paint on a locked layer, leaving it unpainted", async () => {
-    const bridge = createSketchToolBridge({ width: 64, height: 64 });
+    const bridge = await createSketchToolBridge({ width: 64, height: 64 });
     const t = toolsOf(bridge);
     await t["ui_sketch_set_layer_props"].execute({
       target: "Background",
@@ -417,7 +417,7 @@ describe("createSketchToolBridge — painting", () => {
   });
 
   it("refuses to paint on a non-raster layer", async () => {
-    const bridge = createSketchToolBridge({ width: 64, height: 64 });
+    const bridge = await createSketchToolBridge({ width: 64, height: 64 });
     const t = toolsOf(bridge);
     await t["ui_sketch_add_layer"].execute({ name: "Alpha", type: "mask" });
     await expect(
@@ -428,7 +428,7 @@ describe("createSketchToolBridge — painting", () => {
   });
 
   it("a bad target rejects the whole batch before anything is painted", async () => {
-    const bridge = createSketchToolBridge({ width: 64, height: 64 });
+    const bridge = await createSketchToolBridge({ width: 64, height: 64 });
     const t = toolsOf(bridge);
     await expect(
       t["ui_sketch_stroke"].execute({
@@ -442,7 +442,7 @@ describe("createSketchToolBridge — painting", () => {
   });
 
   it("fillColor fills real pixels", async () => {
-    const bridge = createSketchToolBridge({ width: 32, height: 32 });
+    const bridge = await createSketchToolBridge({ width: 32, height: 32 });
     await toolsOf(bridge)["ui_sketch_add_layer"].execute({
       name: "Backdrop",
       fillColor: "#0000ff"
@@ -462,7 +462,7 @@ describe("createSketchToolBridge — painting", () => {
 
 describe("createSketchToolBridge — raster tools", () => {
   it("flood-fills a connected white region", async () => {
-    const bridge = createSketchToolBridge({ width: 32, height: 32 });
+    const bridge = await createSketchToolBridge({ width: 32, height: 32 });
     const t = toolsOf(bridge);
     await t["ui_sketch_add_layer"].execute({
       name: "Paint",
@@ -484,7 +484,7 @@ describe("createSketchToolBridge — raster tools", () => {
   });
 
   it("draws a filled rectangle", async () => {
-    const bridge = createSketchToolBridge({ width: 32, height: 32 });
+    const bridge = await createSketchToolBridge({ width: 32, height: 32 });
     const t = toolsOf(bridge);
     await t["ui_sketch_draw_shape"].execute({
       shape: "rect",
@@ -503,7 +503,7 @@ describe("createSketchToolBridge — raster tools", () => {
   });
 
   it("paints a linear gradient and samples the start color", async () => {
-    const bridge = createSketchToolBridge({ width: 32, height: 8 });
+    const bridge = await createSketchToolBridge({ width: 32, height: 8 });
     const t = toolsOf(bridge);
     await t["ui_sketch_gradient"].execute({
       type: "linear",
@@ -522,7 +522,7 @@ describe("createSketchToolBridge — raster tools", () => {
   });
 
   it("sets a rect selection and inverts it", async () => {
-    const bridge = createSketchToolBridge({ width: 16, height: 16 });
+    const bridge = await createSketchToolBridge({ width: 16, height: 16 });
     const t = toolsOf(bridge);
     await t["ui_sketch_set_selection_shape"].execute({
       shape: "rect",
@@ -534,7 +534,7 @@ describe("createSketchToolBridge — raster tools", () => {
   });
 
   it("flips a painted layer and crops the canvas", async () => {
-    const bridge = createSketchToolBridge({ width: 16, height: 16 });
+    const bridge = await createSketchToolBridge({ width: 16, height: 16 });
     const t = toolsOf(bridge);
     await t["ui_sketch_draw_shape"].execute({
       shape: "rect",
@@ -553,7 +553,7 @@ describe("createSketchToolBridge — raster tools", () => {
   });
 
   it("raises brightness of a dark layer", async () => {
-    const bridge = createSketchToolBridge({ width: 8, height: 8 });
+    const bridge = await createSketchToolBridge({ width: 8, height: 8 });
     const t = toolsOf(bridge);
     await t["ui_sketch_add_layer"].execute({
       name: "Tone",
@@ -571,7 +571,7 @@ describe("createSketchToolBridge — raster tools", () => {
 
 describe("createSketchToolBridge — compositing", () => {
   it("honors layer opacity", async () => {
-    const bridge = createSketchToolBridge({ width: 16, height: 16 });
+    const bridge = await createSketchToolBridge({ width: 16, height: 16 });
     const t = toolsOf(bridge);
     await t["ui_sketch_add_layer"].execute({
       name: "Under",
@@ -594,7 +594,7 @@ describe("createSketchToolBridge — compositing", () => {
   });
 
   it("maps 'add' onto Canvas 'lighter' and 'multiply' onto itself", async () => {
-    const bridge = createSketchToolBridge({ width: 16, height: 16 });
+    const bridge = await createSketchToolBridge({ width: 16, height: 16 });
     const t = toolsOf(bridge);
     await t["ui_sketch_add_layer"].execute({
       name: "Red",
@@ -627,7 +627,7 @@ describe("createSketchToolBridge — compositing", () => {
   });
 
   it("a hidden layer contributes nothing to the composite", async () => {
-    const bridge = createSketchToolBridge({ width: 16, height: 16 });
+    const bridge = await createSketchToolBridge({ width: 16, height: 16 });
     const t = toolsOf(bridge);
     await t["ui_sketch_add_layer"].execute({
       name: "Wash",
@@ -642,7 +642,7 @@ describe("createSketchToolBridge — compositing", () => {
   });
 
   it("duplicate_layer copies the bitmap instead of sharing it", async () => {
-    const bridge = createSketchToolBridge({ width: 64, height: 64 });
+    const bridge = await createSketchToolBridge({ width: 64, height: 64 });
     const t = toolsOf(bridge);
     await t["ui_sketch_stroke"].execute({
       strokes: [{ points: [{ x: 20, y: 20 }], color: "#ffffff", size: 10 }]
@@ -660,7 +660,7 @@ describe("createSketchToolBridge — compositing", () => {
 
 describe("ui_sketch_get_layer_image", () => {
   it("returns a PNG data URL for the composite and for a single layer", async () => {
-    const bridge = createSketchToolBridge({ width: 64, height: 64 });
+    const bridge = await createSketchToolBridge({ width: 64, height: 64 });
     const t = toolsOf(bridge);
     await t["ui_sketch_add_layer"].execute({ name: "Ink" });
     await t["ui_sketch_stroke"].execute({
@@ -714,7 +714,7 @@ describe("ui_sketch_get_layer_image", () => {
   });
 
   it("a missing target is an error, not a blank image", async () => {
-    const bridge = createSketchToolBridge();
+    const bridge = await createSketchToolBridge();
     await expect(
       toolsOf(bridge)["ui_sketch_get_layer_image"].execute({ target: "nope" })
     ).rejects.toThrow(/No layer found/);
@@ -723,7 +723,7 @@ describe("ui_sketch_get_layer_image", () => {
 
 describe("getLastSketchToolBridge", () => {
   it("hands a harness the composite PNG of the run it just drove", async () => {
-    const bridge = createSketchToolBridge({ width: 32, height: 32 });
+    const bridge = await createSketchToolBridge({ width: 32, height: 32 });
     await toolsOf(bridge)["ui_sketch_stroke"].execute({
       strokes: [{ points: [{ x: 16, y: 16 }], color: "#ffffff", size: 12 }]
     });

@@ -1,4 +1,6 @@
 import type { Collider, ColliderDesc, KinematicCharacterController, RigidBody, World } from "@dimforge/rapier3d-compat";
+import { IS_NODE, importOptionalModule } from "@nodetool-ai/config";
+import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 import type { GameCollider3D, GameInputFrame3D, GameScene3D, GameScriptCommand3D, GameSnapshot3D, GameVector3 } from "@nodetool-ai/protocol";
 import { add3, approach, multiplyQuaternion, quaternionArray, quaternionObject, quantizeSpatial3D, scale3, ZERO3 } from "./math.js";
 import { base64ToBytes, bytesToBase64 } from "./digest.js";
@@ -17,10 +19,30 @@ export interface PreparedCollider3D {
 }
 
 export async function prepareRapier3D(): Promise<Rapier> {
-  preparedRapier ??= import("@dimforge/rapier3d-compat").then(async (module) => {
-    await module.default.init();
-    return module.default;
-  });
+  if (!preparedRapier) {
+    const attempt = import("@dimforge/rapier3d-compat").catch(async (cause: unknown) => {
+      if (cause instanceof Error && "code" in cause &&
+          (cause.code === "ERR_MODULE_NOT_FOUND" || cause.code === "MODULE_NOT_FOUND") &&
+          /Cannot find (?:package|module) ['"]@dimforge\/rapier3d-compat['"]/.test(cause.message)) {
+        if (IS_NODE) {
+          try {
+            return await importOptionalModule<typeof import("@dimforge/rapier3d-compat")>("@dimforge/rapier3d-compat");
+          } catch (fallbackCause) {
+            throw missingRuntimePackageError("@dimforge/rapier3d-compat", "rapier", fallbackCause);
+          }
+        }
+        throw missingRuntimePackageError("@dimforge/rapier3d-compat", "rapier", cause);
+      }
+      throw cause;
+    }).then(async (module) => {
+      await module.default.init();
+      return module.default;
+    });
+    preparedRapier = attempt;
+    attempt.catch(() => {
+      if (preparedRapier === attempt) { preparedRapier = undefined; }
+    });
+  }
   return preparedRapier;
 }
 

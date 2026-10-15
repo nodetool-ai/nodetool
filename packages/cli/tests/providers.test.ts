@@ -6,12 +6,11 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-vi.mock("@nodetool-ai/whisper-cpp", () => ({
-  registerWhisperCppProviders: vi.fn()
-}));
-
-vi.mock("@nodetool-ai/transformers-js-provider", () => ({
-  registerTransformersJsProvider: vi.fn()
+vi.mock("@nodetool-ai/node-catalog", () => ({
+  importPack: vi.fn(async (pack: string) => pack === "whisper-cpp"
+    ? { registerWhisperCppProviders: vi.fn() }
+    : { registerTransformersJsProvider: vi.fn() }),
+  MissingPackError: class extends Error {}
 }));
 
 vi.mock("@nodetool-ai/models", () => ({

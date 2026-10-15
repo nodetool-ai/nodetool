@@ -82,7 +82,7 @@ Non-goals:
 |---|---|---|
 | Core | `cli`, `protocol`, `config`, `security`, `auth`, `storage`, `models`, `node-sdk`, `kernel`, `runtime`, `execution`, `agents`, `chat`, `websocket`, `dsl`, `vectorstore`, `app-runtime`, `app-export`, `compute`, `model-pricing`, `timeline`, `gpu`, `storyboard`, `image-editor`, `model3d`, `browser`, `sandbox-compiler`, `huggingface`, `game-runtime`, `deploy`, `telegram`, `sdk`, `nodes-utils`, the core node packages `core-nodes`, `text-nodes`, `data-nodes`, `llm-nodes`, `code-nodes`, and the new `node-catalog` | with the CLI |
 | Node pack | One npm package per pack id. Existing ids from `BUILTIN_NODE_PACKS` (`packages/protocol/src/builtin-packs.ts:61`): `whisper-cpp`, `elevenlabs`, `minimax`, `transformers-js`, `fal`, `kie`, `topaz`, `reve`, `atlascloud`, `higgsfield`, `together`, `replicate`, `huggingface`. New ids from the `base` split: `image`, `audio`, `video`, `document`, `game`, `blender`, `manimgx`, `automation`, `integration` | on demand |
-| Runtime library | Third-party packages that a core code path loads lazily: `imaging` (`sharp`, `@napi-rs/canvas`), `llama` (`node-llama-cpp`), `typescript`, `tokenizer` (`js-tiktoken`), `tracing` (OpenTelemetry SDK packages), `game-renderer` (first-party, not a node pack) | on demand |
+| Runtime library | Third-party packages that a core code path loads lazily: `imaging` (`sharp`, `@napi-rs/canvas`), `node-llama-cpp`, `typescript`, `tokenizer` (`js-tiktoken`), `tracing` (OpenTelemetry SDK packages), `esbuild`, `rapier` (`@dimforge/rapier3d-compat`). First-party libraries belong to their node pack (plan D18). | on demand |
 
 Rules:
 
@@ -157,7 +157,7 @@ Read from the `package.json` files. "Cut" names the change.
 | `runtime` → `js-tiktoken` | `packages/runtime/package.json:36` | Already an optional peer with a lazy import. Remove the remaining optional dependency from `runtime` and `agents` so clean installs omit it. Runtime id `tokenizer`. |
 | `runtime` → `sharp` | `packages/runtime/package.json:40` | Optional peer. All four runtime uses are already dynamic. |
 | `runtime` → OpenTelemetry SDK packages | `packages/runtime/package.json:28-33` | Keep `@opentelemetry/api`. Make `core`, `resources` and `sdk-trace-base` optional peers. They also pull in `sdk-trace` and `semantic-conventions`. Runtime library `tracing`. |
-| `game-runtime` → `@dimforge/rapier3d-compat` | `packages/game-runtime/package.json:17` | Optional peer. Regular dependency of the `game` pack. The import is already dynamic (`packages/game-runtime/src/spatial3d/world.ts:11`). |
+| `game-runtime` → `@dimforge/rapier3d-compat` | `packages/game-runtime/package.json` | Optional peer. Regular dependency of the `game` pack. The browser keeps a literal dynamic import. Node can fall back to the managed `rapier` runtime root. Failed attempts reset the initialization cache. |
 | `sandbox-compiler` → `esbuild` | `packages/sandbox-compiler/package.json:25` | Optional peer. Needed only by `nodetool packs compile`. |
 | `data-nodes` → `@napi-rs/canvas`, `chart.js` | `packages/data-nodes/package.json:18,23` | `chart.js` stays a dependency (D16). `@napi-rs/canvas` becomes an optional peer. The chart node already imports it dynamically (`packages/data-nodes/src/nodes/lib-charts.ts:162-167`). |
 
@@ -169,6 +169,15 @@ The two `npx tsx` calls (`packages/cli/src/nodetool-main.ts:586`,
 `packages/cli/src/debug/target.ts:49`) are replaced by in-process `tsImport`.
 `npx` fetches `tsx` from the registry when it is absent, which is an install
 without consent.
+
+The release catalog also carries `installPins` for provided companions, npm
+runtime libraries and shared `mediabunny` packages (plan D24). Each record has
+the registry name, exact version and integrity. `installName` identifies an
+npm alias folder and `shared: true` marks shared identity checks. Runtime ids
+still resolve through the protocol runtime table. Runtime pins include measured
+`installBytes` for their production trees with scripts disabled. Each estimate
+includes dependencies, so sums can overlap. Source generation and cohort
+version changes clear these pins until release packing fills them.
 
 ### 6.2 Source import edges
 
@@ -192,7 +201,7 @@ pack or heavy-library specifier.
 | `packages/websocket/src/server.ts:28-30` → `transformers-js-provider`, `whisper-cpp`, `base-nodes` (`setCodeNodeAgentsModule`) | static | Providers register only when installed. Import `setCodeNodeAgentsModule` from `code-nodes`, which stays core. |
 | `packages/websocket/src/routes/nodes.ts:10` → `base-nodes` (`resolveComfyWorkflow`, `resolveKieDynamicSchema`) | static | `importPack("integration")`. The route returns `missing_pack`. |
 | `packages/websocket/src/routes/documents.ts:17` → `document-nodes/lib/pdf-text` | static | `importPack("document", "lib/pdf-text")`. The route already handles `missingRuntimePackageOf` (`:16`). |
-| `packages/websocket/src/triggers/file-watch.ts:35` → `automation-nodes` | static | Extract the file-watch predicates into core (`protocol` or `websocket`). They are pure functions. |
+| `packages/websocket/src/triggers/file-watch.ts:35` → `automation-nodes` | static | Extract the file-watch predicates into `nodes-utils`, shared with websocket. Keep their Node path imports out of the browser protocol entrypoint. |
 | `packages/websocket/src/trpc/routers/games.ts:9` → `game-renderer/preparation3d` | static | `importRuntimeLibrary("game-renderer")`. |
 | `packages/websocket/src/routes/kie-pricing.ts:7` → `kie-nodes/kie-pricing-api` | static | Move `kie-pricing-api.ts` into `model-pricing`. It has no imports. |
 | `packages/websocket/src/trpc/routers/models.ts:7,44` → `whisper-cpp`, `transformers-js-nodes` | static | Lazy. Return empty model lists with a pack hint when absent. |
@@ -241,8 +250,12 @@ that installs the CLI tarball with no pack tarballs available:
 8. `nodetool run` on that workflow exits 3 and prints the `missing_pack` JSON
    with `--json`.
 9. A guard asserts that no `@nodetool-ai/*` node pack and none of the runtime
-   libraries in section 4 exist under the install's `node_modules`. The check
-   fails on a deliberately added pack before it is enforced.
+   libraries in section 4 exist under the install's `node_modules`, except
+   `esbuild` required by `tsx` and TypeScript required by the non-optional tRPC
+   peers (plan D23), including the compiler alias dependency declared by their
+   resolved `@typescript/typescript6` wrapper. The exceptions must resolve from
+   those dependents and satisfy their declared ranges. The check fails on a
+   deliberately added pack before it is enforced.
 
 ## 7. Shared third-party identity (F4)
 
@@ -302,7 +315,8 @@ D16 cancels three cuts in the table below (`@hyzyla/pdfium`, `mediabunny`,
 five core additions use about 170 MB of disk: `webgpu` 68 MB, `node-av` with
 its platform package 64 MB, `werift` 11 MB, `mediabunny` 11 MB,
 `@hyzyla/pdfium` 11 MB, `chart.js` 6 MB. `node-web-audio-api` (41 MB) moves
-with the `audio` pack. The projections in 8.3 and the gate in 8.4 predate D16.
+with the `audio` pack. The projections in 8.3 predate D16. The gate in 8.4 uses
+the clean installed core tree with D16 included.
 
 Savings of each cut, measured on top of S1:
 
@@ -339,8 +353,10 @@ declarations).
 D13. The gate measures `du -sk node_modules` after a clean
 `npm install <cli tarball>` in an empty project on linux-x64 in CI.
 
-- Hard gate at the end of step 1: the walker's measurement of the D16 core.
-  The earlier 320 MB figure excludes the D16 libraries.
+- Hard gate: **892,097 KiB** for the core-only Linux x64 install. The
+  [successful packed install](https://github.com/nodetool-ai/nodetool/actions/runs/38496155808)
+  measured **849,616 KiB**. The limit adds five percent, rounded up to the next
+  KiB. The same runner measured the bundled CLI at 1,075,516 KiB.
 - Ratchet target for a later release: 250 MB disk. It needs fewer declaration
   files in runtime-only packages and lazy provider SDKs. The fs-safe dependency
   has already been removed.
@@ -419,6 +435,15 @@ environment (an empty temporary home directory, no inherited secrets,
 Pins (`integrity`, `installBytes`) and script allowlists come from the release
 job (section 17). The repository file holds empty integrity strings, zero
 install sizes and empty script allowlists that the release job replaces.
+
+`installBytes` measures the total disk allocation of a fresh pack production
+dependency tree on Linux x64, with scripts disabled as in the default pack
+installer. It includes shared dependencies and excludes artifacts that install
+scripts would generate. It is separate from the runnable core CLI size gate.
+The release job packs all catalog registrars and companion libraries before
+writing pins. Local core folder overrides permit measurement before the final
+core artifacts exist. After rebuilding the pinned catalog, it packs the
+remaining core packages without changing any earlier tarball.
 
 `npm run check:node-catalog` regenerates the catalog and diffs it. It fails on
 any difference and asserts that it compared more than zero node types. Add it
@@ -622,9 +647,11 @@ An install proceeds only with one of these:
 4. An interactive prompt, when stdin and stderr are TTYs and `CI` is unset. The
    default answer is No.
 
-The prompt names each pack and runtime library with version and size, the
+The prompt names each pack and runtime library with version and estimated size, the
 packages that will run install scripts, and the files that change in local
 mode (`package.json`, `package-lock.json`).
+Pack size estimates include shared dependencies and omit files generated by
+allowlisted rebuilds. The prompt must not present them as final disk usage.
 
 `serve`, `mcp serve`, the headless job runner, chat, and every agent tool never
 install. They ignore `NODETOOL_AUTO_INSTALL` and return `missing_pack`.
@@ -720,7 +747,11 @@ command is not covered. `packs doctor` detects its effects.
    desired set.
 4. Take the lock.
 5. Snapshot the tree: every installed package's path, name, version, and
-   integrity from `node_modules/.package-lock.json`.
+   integrity from `node_modules/.package-lock.json`. A global npm install can
+   lack this file. Only that initial global snapshot may omit integrity
+   (plan D25). Existing malformed or stale locks still fail. Post-install
+   verification requires a valid lock and all release pins before scripts or
+   imports. Preserve initial identities and compare every known integrity.
 6. Plan with `npm install --dry-run` and the same flags and specs (14.5).
 7. Run `npm install` with `--ignore-scripts`.
 8. Verify the tree (14.6). No install script and no pack import has run yet.
@@ -751,8 +782,14 @@ The plan is refused when:
 - It adds an `@nodetool-ai` package whose version differs from the core
   version.
 
-Installs are therefore additive. A running `serve` process keeps working,
-because no file it loaded changes.
+npm 11 can report a same-identity replay as `change`. Normalize only the
+catalog-owned pack/companion action proven by its known release integrity and
+exact before/after snapshot path for npm 11 JSON. npm 10 text requires a
+complete same-version action and a unique pinned hoisted snapshot identity
+([plan D26](cli-pack-system-plan.md#d26-verified-replay-actions-in-npm-plans)). Protected packages and unproven
+actions retain change refusal. Post-install checks confirm package identities
+and original pins before scripts or imports. Running servers retain their
+loaded registry and need the restart notice to see newly installed packs.
 
 ### 14.6 Verification (F5)
 
@@ -775,8 +812,11 @@ the core CLI install today (R1).
 
 A failure in steps 7 to 10 triggers rollback:
 
-- `global`: rerun `npm install --no-save` with the previous desired set, which
-  removes the added packages (E3).
+- `global`: uninstall newly added package roots with scripts disabled, restore
+  the original manifests and replay the previous desired set. npm can retain
+  extraneous packages after `--no-save` calls. If it does, remove only new,
+  unlinked package directories inside the install root that contain no
+  pre-existing snapshot path, then replay the previous desired set.
 - `local`: `npm uninstall --save` for the added specs.
 
 Then the installer compares the tree with the snapshot. When it matches, the
@@ -786,8 +826,9 @@ a one-line pointer to `nodetool packs doctor --repair`.
 
 ## 15. Command surface
 
-`nodetool packs` exists today with `compile` for sandbox packs
-(`packages/cli/src/commands/packs.ts:21`). The new verbs join it (Q6).
+Use one `nodetool packs` command for installer management and sandbox
+compilation, as selected by the user (Q6). Keep the existing `packs compile`
+subcommand alongside `list`, `add`, `remove`, `doctor` and `why`.
 
 ```
 nodetool packs list [--json]              id, kind, installed, version, size, node count, required by
@@ -949,9 +990,9 @@ Node 22 (npm 10.9.x) and Node 24 (npm 11.x):
    - Add the core-only smoke variant (6.4). It installs a CI-built CLI tarball
      whose manifest has the node packs removed. The published CLI keeps its
      packs during this step, so users see no change.
-   - Exit criteria: the core-only smoke passes, the size check reports at or
-     below 320 MB disk (D13), and `npm run backend:smoke` passes for the
-     desktop bundle.
+   - Exit criteria: the core-only smoke passes, the size check stays within
+     the measured budget in [section 8.4](#84-budget), and
+     `npm run backend:smoke` passes for the desktop bundle.
 2. **Publishing hardening** (can run beside step 1). OIDC-only, tarball
    publishing, staging tag, verification, and promotion (section 17).
 3. **Pack loader.** Installed-pack discovery, catalog registration,
@@ -980,14 +1021,14 @@ Node 22 (npm 10.9.x) and Node 24 (npm 11.x):
 
 ## 22. Open questions
 
-- Q6. `nodetool packs` already means sandbox pack tooling, and the agent
-  capability `packs` lists sandbox packages. Keep one command for both kinds,
-  or rename the new verbs to `nodetool nodes add` and similar?
+- Q6. The user selected `nodetool packs` for installer management, alongside
+  the existing `packs compile` subcommand. The sandbox `packs` capability
+  retains its meaning.
 - Q8. Should `llm-nodes` and `code-nodes` stay core? They have no heavy
   dependencies, and the Agent and Code nodes are common in core workflows.
-- Q9. Local mode writes the user's `package.json` and lockfile. Is that
-  acceptable, or should local mode require an explicit `npm install` and only
-  print the command?
+- Q9. The user authorized local installer updates to the selected project’s
+  package.json and package-lock.json. The prompt names both files, and CLI
+  authorization binds the root and mutation paths.
 
 Q7 is resolved: chat compaction uses the existing character-count fallback
 when the `tokenizer` runtime package is absent.

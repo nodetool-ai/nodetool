@@ -1,4 +1,5 @@
 import { ROOT_CONTEXT, propagation, trace, isSpanContextValid } from "@opentelemetry/api";
+import { missingPackDetailsOf, type JobUpdate } from "@nodetool-ai/protocol";
 import { getRegisteredRunTrace } from "@nodetool-ai/models";
 import { ensureRunTraceTelemetry, openAppRunTrace, registerWorkflowRunTrace } from "@nodetool-ai/execution";
 /**
@@ -639,6 +640,7 @@ export class JobExecutionManager {
     persistJob: boolean
   ): Promise<void> {
     const errorMessage = err instanceof Error ? err.message : String(err);
+    const missingPack = missingPackDetailsOf(err);
     const appRun = await findAppRunByInvocation(
       this.session.requireUserId(),
       jobId
@@ -655,13 +657,18 @@ export class JobExecutionManager {
       userId: this.session.userId,
       context: { job_id: jobId, workflow_id: workflowId ?? "" }
     });
-    await this.session.send({
+    const update: JobUpdate = {
       type: "job_update",
       status: "failed",
       job_id: jobId,
       workflow_id: workflowId,
       error: errorMessage
-    });
+    };
+    if (missingPack) {
+      update.missing_pack = missingPack;
+      update.error_code = "missing_pack";
+    }
+    await this.session.send(update);
     if (!persistJob) return;
     try {
       const job = (await Job.get(jobId)) as Job | null;

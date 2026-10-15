@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ChartConfig, ChartData, ChartSeries } from "@nodetool-ai/protocol";
+import { loadCanvas } from "@nodetool-ai/runtime";
 import { asRows, type DataframeInput } from "./data.js";
 
 /** Output handles ChartRendererLibNode.process() emits. */
@@ -159,16 +160,14 @@ export class ChartRendererLibNode extends BaseNode {
     const colNames = [...keys];
     const rows = records.map((r) => colNames.map((name) => r[name] ?? null));
 
-    let createCanvas: typeof import("@napi-rs/canvas").createCanvas;
-    let napiPath2D: typeof import("@napi-rs/canvas").Path2D;
+    const { createCanvas, Path2D: napiPath2D } = await loadCanvas();
     let ChartJS: typeof import("chart.js");
     try {
-      ({ createCanvas, Path2D: napiPath2D } = await import("@napi-rs/canvas"));
       ChartJS = await import("chart.js");
     } catch (e) {
       throw new Error(
-        "Chart rendering requires '@napi-rs/canvas' and 'chart.js'. " +
-          "Install them with: npm install @napi-rs/canvas chart.js. " +
+        "Chart rendering requires 'chart.js'. " +
+          "Install it with: npm install chart.js. " +
           `(${e instanceof Error ? e.message : String(e)})`
       );
     }

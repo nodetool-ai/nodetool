@@ -21,6 +21,7 @@ import {
   messageToEvents,
   operationTarget,
   outputVariableTargets,
+  parseInputStateKey,
   resolveOperationParams,
   stateKey,
   type AppAction,
@@ -289,6 +290,13 @@ export function useAppRuntime(bundle: ApplicationBundle, instanceKey: string): A
         inputNodeIds: io.inputs.map((input) => input.nodeId),
         inputName: (nodeId) => io.inputs.find((input) => input.nodeId === nodeId)?.name
       });
+      const propertyOverrides: Record<string, { value: unknown }> = {};
+      for (const [key, value] of Object.entries(store.getState().inputs)) {
+        const ref = parseInputStateKey(key);
+        if (ref?.operationId === operation.id && ref.property !== undefined) {
+          propertyOverrides[`${ref.nodeId}#${ref.property}`] = { value };
+        }
+      }
 
       const invocationId = crypto.randomUUID();
       const runState: StartedRun = {
@@ -326,6 +334,8 @@ export function useAppRuntime(bundle: ApplicationBundle, instanceKey: string): A
         await runOperation({
           target: runTarget,
           params,
+          operationId: operation.id,
+          propertyOverrides,
           jobId: invocationId,
           signal: runState.controller.signal,
           onMessage: fold

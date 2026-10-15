@@ -308,6 +308,12 @@ it("round-trips physics materials and a collider's material reference through JS
   roundTrip(before, after);
 });
 
+it("returns an empty diff for identical documents with graph problems awaiting repair", () => {
+  const before = createNative3DGame("diff3d-invalid-noop");
+  before.animationGraphs = { broken: { parameters: {}, layers: [{ id: "base", mode: "override", weight: 1, initialState: "idle", states: { idle: { motion: { kind: "clip", clip: "idle" }, speed: 1, loop: true } }, transitions: [{ from: "idle", to: "idle", conditions: [], durationTicks: 0 }] }] } };
+  expect(() => applyGameOps3D(before, [])).toThrow(/condition|exitTicks/);
+  expect(diffAnyGameDocuments(before, structuredClone(before))).toEqual([]);
+});
 
 it("round-trips named material additions, edits and removal with granular wire operations", () => {
   const before = createNative3DGame("diff3d-materials");

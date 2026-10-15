@@ -518,13 +518,23 @@ export class BedrockProvider extends BaseProvider {
     const inferenceConfig: Record<string, unknown> = {
       maxTokens: args.maxTokens ?? DEFAULT_MAX_TOKENS
     };
-    if (args.temperature !== undefined) inferenceConfig.temperature = args.temperature;
-    if (args.topP !== undefined) inferenceConfig.topP = args.topP;
+    const additional = thinkingFields(args.model, args.thinking);
+    if (additional) {
+      if (args.toolChoice && args.toolChoice !== "auto" && args.tools?.some((tool) =>
+        tool.type !== "code_interpreter" && (args.toolChoice === "any" || args.toolChoice === tool.name))) {
+        throw new Error("Bedrock thinking does not support forced tool selection");
+      }
+      if (args.thinking?.type === "manual") {
+        inferenceConfig.maxTokens = Math.max(args.maxTokens ?? DEFAULT_MAX_TOKENS, args.thinking.budgetTokens + 1);
+      }
+    } else {
+      if (args.temperature !== undefined) inferenceConfig.temperature = args.temperature;
+      if (args.topP !== undefined) inferenceConfig.topP = args.topP;
+    }
     const request: Record<string, unknown> = { messages, inferenceConfig };
     if (system.length > 0) request.system = system;
     const toolConfig = this.toolConfig(args.tools, args.toolChoice);
     if (toolConfig) request.toolConfig = toolConfig;
-    const additional = thinkingFields(args.model, args.thinking);
     if (additional) request.additionalModelRequestFields = additional;
     this.recordRequestPayload(request);
     return request;
@@ -598,7 +608,7 @@ export class BedrockProvider extends BaseProvider {
     if (!response.body) throw new Error("Bedrock returned an empty stream");
 
     const tools = new Map<number, { id: string; name: string; input: string }>();
-    const thinking: AnthropicThinkingBlock[] = [];
+    const thinkingByIndex = new Map<number, AnthropicThinkingBlock>();
     const toolCalls: ToolCall[] = [];
 
     for await (const event of decodeEventStream(response.body as unknown as AsyncIterable<Uint8Array>)) {
@@ -635,18 +645,18 @@ export class BedrockProvider extends BaseProvider {
             if (tool) tool.input += delta.toolUse.input;
           } else if (isRecord(delta.reasoningContent)) {
             const reasoning = delta.reasoningContent;
-            let last = thinking.at(-1);
+            let last = thinkingByIndex.get(index);
             if (isString(reasoning.text)) {
               if (last?.type !== "thinking") {
                 last = { type: "thinking", thinking: "", signature: "" };
-                thinking.push(last);
+                thinkingByIndex.set(index, last);
               }
               last.thinking += reasoning.text;
               yield { type: "chunk", content: reasoning.text, done: false, thinking: true };
             } else if (isString(reasoning.signature) && last?.type === "thinking") {
               last.signature += reasoning.signature;
             } else if (isString(reasoning.redactedContent)) {
-              thinking.push({ type: "redacted_thinking", data: reasoning.redactedContent });
+              thinkingByIndex.set(index, { type: "redacted_thinking", data: reasoning.redactedContent });
             }
           }
           break;
@@ -676,6 +686,7 @@ export class BedrockProvider extends BaseProvider {
       }
     }
 
+    const thinking = [...thinkingByIndex.values()];
     for (const call of toolCalls) {
       if (thinking.length > 0) call._anthropicThinkingBlocks = [...thinking];
       yield call;

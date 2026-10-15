@@ -18,13 +18,15 @@
  * live host relays and RunResult.messages leaves out.
  */
 import { describe, expect, it, vi } from "vitest";
+import type { MissingPackDetails } from "@nodetool-ai/protocol";
 
 const created: Record<string, unknown>[] = [];
 
 /** What a run emits on its context, and what the runner retains of it. */
 const run = {
   emitted: [] as Record<string, unknown>[],
-  retained: [] as Record<string, unknown>[]
+  retained: [] as Record<string, unknown>[],
+  missingPack: undefined as MissingPackDetails | undefined
 };
 
 vi.mock("@nodetool-ai/execution", () => ({
@@ -37,7 +39,8 @@ vi.mock("@nodetool-ai/execution", () => ({
       for (const message of run.emitted) context.emit(message);
       return {
         result: Promise.resolve({
-          status: "completed",
+          status: run.missingPack ? "failed" : "completed",
+          missingPack: run.missingPack,
           messages: run.retained,
           outputs: {}
         }),
@@ -81,6 +84,20 @@ vi.mock("../src/debug/collector.js", () => ({
 vi.mock("../src/debug/trace.js", () => ({ readTraceSummary: async () => null }));
 
 describe("debug server runner hydration", () => {
+  it("retains structured lazy pack failures in the server report", async () => {
+    const { runOnServer } = await import("../src/debug/server-runner.js");
+    const missing: MissingPackDetails = {
+      error: "missing_pack", packs: [{ id: "game", npm: "@nodetool-ai/game-nodes", version: "1.2.3", installBytes: 0, requires: [] }],
+      runtimeLibraries: ["rapier"], nodeTypes: ["fixture.Lazy"], install: { supported: false, reason: "Fixture", command: null }, restartRequired: false
+    };
+    run.missingPack = missing;
+    try {
+      const { report } = await runOnServer({ graph: { nodes: [], edges: [] }, workflowId: null, params: {} } as never);
+      expect(report).toMatchObject({ ok: false, status: "failed", missingPack: missing });
+    } finally {
+      run.missingPack = undefined;
+    }
+  });
   it("hands ExecutionSession a resolveNodeType so propertyTypes get filled", async () => {
     const { runOnServer } = await import("../src/debug/server-runner.js");
     created.length = 0;

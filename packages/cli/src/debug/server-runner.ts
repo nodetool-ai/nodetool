@@ -85,7 +85,7 @@ export async function runOnServer(
     if (packageAssets) process.env["NODETOOL_PACKAGE_ASSETS_DIR"] = packageAssets;
   }
 
-  const registry = buildFullRegistry();
+  const registry = await buildFullRegistry();
   const jobId = `debug-${Date.now()}`;
 
   // Match a server run's workspace assignment so file/workspace nodes land in
@@ -243,6 +243,9 @@ export async function runOnServer(
   };
   if (result.missingRuntime) {
     report.missingRuntime = result.missingRuntime;
+  }
+  if (result.missingPack) {
+    report.missingPack = result.missingPack;
   }
   if (supervisor) {
     report.supervised = {

@@ -21,6 +21,7 @@ import {
   VirtualList
 } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
+import CheckIcon from "@mui/icons-material/Check";
 import FavoriteStar from "./FavoriteStar";
 import DefaultModelPin from "./DefaultModelPin";
 import RecommendedDownloadRow from "./shared/RecommendedDownloadRow";
@@ -105,6 +106,9 @@ const listStyles = (theme: Theme) =>
         {
           opacity: 1
         }
+    },
+    "& .model-menu__model-item.is-current .model-name": {
+      fontWeight: 600
     },
     "& .model-menu__model-item.is-active": selectedRowStyles(theme)
   });
@@ -201,6 +205,11 @@ interface ModelListProps<TModel extends ModelSelectorModel> {
   downloadTargetLabel?: string;
   /** Close the picker. Called after Open Settings opens the Settings tab. */
   onClose?: () => void;
+  /**
+   * The model the control currently holds. Its row is marked with a check.
+   * Without a provider, any provider's model of that id matches.
+   */
+  selectedModel?: { id: string; provider?: string };
 }
 
 function ModelList<TModel extends ModelSelectorModel>({
@@ -215,7 +224,8 @@ function ModelList<TModel extends ModelSelectorModel>({
   onModelDownload,
   modelType,
   downloadTargetLabel,
-  onClose
+  onClose,
+  selectedModel
 }: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const getAvailability = useModelAvailability();
@@ -292,6 +302,10 @@ function ModelList<TModel extends ModelSelectorModel>({
       const execution = executionForDisplay(m);
       const downloadTarget = onModelDownload ? modelDownloadTarget(m) : null;
       const isActive = index === activeIndex;
+      const isCurrent =
+        !!selectedModel &&
+        m.id === selectedModel.id &&
+        (!selectedModel.provider || m.provider === selectedModel.provider);
       const tooltipTitle = downloadTarget
         ? ""
         : execution.state !== "ready"
@@ -312,7 +326,10 @@ function ModelList<TModel extends ModelSelectorModel>({
             disableRipple
             className={`model-menu__model-item ${
               available ? "" : "is-unavailable"
-            } ${fav ? "is-favorite" : ""} ${isActive ? "is-active" : ""}`}
+            } ${fav ? "is-favorite" : ""} ${isActive ? "is-active" : ""} ${
+              isCurrent ? "is-current" : ""
+            }`}
+            aria-current={isCurrent ? "true" : undefined}
             aria-disabled={!available}
             aria-selected={isActive}
             data-index={index}
@@ -325,6 +342,18 @@ function ModelList<TModel extends ModelSelectorModel>({
               align="baseline"
               sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}
             >
+              {isCurrent && (
+                <CheckIcon
+                  className="model-current-check"
+                  titleAccess="Current model"
+                  fontSize="small"
+                  sx={{
+                    color: "primary.main",
+                    flexShrink: 0,
+                    alignSelf: "center"
+                  }}
+                />
+              )}
               <Box component="span" className="model-name" sx={NAME_SX}>
                 <HighlightedModelName
                   name={m.path || m.name}
@@ -388,7 +417,8 @@ function ModelList<TModel extends ModelSelectorModel>({
       theme.vars.palette.primary.main,
       modelType,
       onModelDownload,
-      downloadTargetLabel
+      downloadTargetLabel,
+      selectedModel
     ]
   );
 

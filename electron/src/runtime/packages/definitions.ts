@@ -41,6 +41,10 @@ export const RUNTIME_PACKAGES = {
     id: "esbuild", name: "Sandbox Compiler", category: "library", versionRange: "*",
     description: RUNTIME_NPM_PACKAGES.esbuild.description
   }),
+  rapier: new ElectronRuntimePackage({
+    id: "rapier", name: "3D Game Physics", category: "library", versionRange: "*",
+    description: RUNTIME_NPM_PACKAGES.rapier.description
+  }),
   python: new CondaRuntimePackage({
     id: "python",
     name: "Python",

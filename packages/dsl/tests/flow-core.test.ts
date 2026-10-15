@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import {
   FlowClosedError,
+  createFlowForContext,
   resetDefaultFlow,
   startFlow,
   type Flow,
@@ -8,6 +9,7 @@ import {
 } from "../src/flow/core.js";
 import { invoke } from "../src/flow/invoke.js";
 import { buildTestRegistry, lifecycle } from "./flow-nodes.js";
+import { ProcessingContext } from "@nodetool-ai/runtime";
 
 const registry = buildTestRegistry();
 
@@ -26,6 +28,24 @@ afterEach(async () => {
 });
 
 describe("invoke", () => {
+  test("context policy applies to native calls including copied contexts", async () => {
+    const guardedTypes: string[] = [];
+    const context = new ProcessingContext({
+      userId: "1", jobId: "guard-test", workflowId: null,
+      nodeExecutorGuard: (executor, type) => {
+        guardedTypes.push(type);
+        return executor;
+      }
+    });
+    context.set("native_flow_executor_guard", null);
+    const scoped = await createFlowForContext(context, { registry });
+    try {
+      expect(await invoke("nodetool.flowtest.Echo", { text: "allowed" }, { flow: scoped, signal: new AbortController().signal })).toEqual({ output: "allowed" });
+      expect(guardedTypes).toEqual(["nodetool.flowtest.Echo"]);
+    } finally {
+      await scoped.close();
+    }
+  });
   test("one-shot call returns the node's outputs", async () => {
     const out = await invoke(
       "nodetool.text.Concat",

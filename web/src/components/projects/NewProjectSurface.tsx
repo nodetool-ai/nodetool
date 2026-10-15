@@ -60,7 +60,14 @@ import {
   Tooltip,
   TYPOGRAPHY
 } from "../ui_primitives";
-import type { Asset, MessageContent, Workflow } from "../../stores/ApiTypes";
+import type {
+  Asset,
+  LanguageModel,
+  MessageContent,
+  Workflow
+} from "../../stores/ApiTypes";
+import { useProjectDocumentTotal } from "./useProjectDocumentTotal";
+import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { DroppedFile } from "../chat/types/chat.types";
 import { useAssetStore } from "../../stores/AssetStore";
 import {
@@ -581,6 +588,7 @@ const NewProjectSurface = ({
   const activeProjectId = useWorkspaceTabsStore(
     (state) => state.activeProjectId
   );
+  const projectDocumentTotal = useProjectDocumentTotal();
 
   /**
    * Make a document's project the one on screen before its tab opens. The
@@ -758,7 +766,23 @@ const NewProjectSurface = ({
     // starts on the "empty" sentinel, and a send with it never leaves the
     // client. Open this surface's own model menu rather than point at a
     // composer that is not on this screen, and start once a model is picked.
-    if (!isModelSelected(selectedModel)) {
+    // The Settings default language model counts: a connected account starts
+    // the chat at once, and the model menu stays a way to change it.
+    let sendModel = selectedModel;
+    if (!isModelSelected(sendModel)) {
+      const languageDefault =
+        useModelPreferencesStore.getState().defaults["language_model"];
+      if (languageDefault) {
+        sendModel = {
+          type: "language_model",
+          provider: languageDefault.provider,
+          id: languageDefault.id,
+          name: languageDefault.name
+        } as LanguageModel;
+        setSelectedModel(sendModel);
+      }
+    }
+    if (!isModelSelected(sendModel)) {
       setPendingModelStart(true);
       setModelAnchor(modelButtonRef.current);
       addNotification({
@@ -820,6 +844,7 @@ const NewProjectSurface = ({
     prompt,
     selectedEntities,
     selectedModel,
+    setSelectedModel,
     starter,
     starting
   ]);
@@ -1979,6 +2004,16 @@ const NewProjectSurface = ({
     );
   }
 
+  // One project's work: its documents, then its latest chats, both scoped by
+  // the project picker in the documents header.
+  const noDocuments = projectDocumentTotal === 0;
+  const projectWork = (
+    <FlexColumn gap={SPACING.xl}>
+      <CurrentProjectDocuments />
+      <RecentChats />
+    </FlexColumn>
+  );
+
   return (
     <ScrollArea fullHeight>
       <FlexColumn
@@ -2235,12 +2270,7 @@ const NewProjectSurface = ({
             )}
           </FlexColumn>
 
-          {/* One project's work: its documents, then its latest chats, both
-              scoped by the project picker in the documents header. */}
-          <FlexColumn gap={SPACING.xl}>
-            <CurrentProjectDocuments />
-            <RecentChats />
-          </FlexColumn>
+          {!noDocuments && projectWork}
 
           <FlexColumn
             component="section"
@@ -2310,6 +2340,10 @@ const NewProjectSurface = ({
               {showMoreFlows ? "Fewer formats" : "More formats"}
             </EditorButton>
           </FlexColumn>
+
+          {/* A project with no documents has nothing to resume, so the flow
+              cards come first and stay on the first screen. */}
+          {noDocuments && projectWork}
 
           {/* Examples come after the flows: they are a place to browse, not
               the first thing to do. */}

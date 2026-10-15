@@ -28,6 +28,36 @@ function program(): Command {
 }
 
 describe("nodetool packs compile", () => {
+  it("shares one lazy packs command with installer management", async () => {
+    const load = vi.fn(async () => { throw new Error("Help must not load installer services"); });
+    const command = new Command().exitOverride();
+    command.configureOutput({ writeOut: () => {}, writeErr: () => {} });
+    registerPackCommands(command, load);
+    expect(command.commands.map(child => child.name())).toEqual(["packs"]);
+    expect(command.commands[0].commands.map(child => child.name())).toEqual(["compile", "list", "add", "remove", "doctor", "why"]);
+    await expect(command.parseAsync(["packs", "--help"], { from: "user" })).rejects.toMatchObject({ code: "commander.helpDisplayed" });
+    expect(load).not.toHaveBeenCalled();
+    expect(compileSandboxCatalog).not.toHaveBeenCalled();
+  });
+
+  it("routes compilation and installer management through that same command", async () => {
+    compileSandboxCatalog.mockResolvedValueOnce(host([]));
+    const add = vi.fn(async () => {});
+    const load = vi.fn(async () => ({ list: async () => [], add, remove: async () => {},
+      doctor: async () => ({ healthy: true }), why: async () => ({}) }));
+    const command = new Command().exitOverride();
+    registerPackCommands(command, load);
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      await command.parseAsync(["packs", "compile"], { from: "user" });
+      expect(compileSandboxCatalog).toHaveBeenCalledWith({});
+      expect(load).not.toHaveBeenCalled();
+      await command.parseAsync(["packs", "add", "game", "--yes"], { from: "user" });
+      expect(add).toHaveBeenCalledWith(["game"], { yes: true });
+      expect(command.commands.map(child => child.name())).toEqual(["packs"]);
+    } finally { log.mockRestore(); }
+  });
+
   it("compiles with the default search paths and reports each module", async () => {
     compileSandboxCatalog.mockResolvedValueOnce(
       host([

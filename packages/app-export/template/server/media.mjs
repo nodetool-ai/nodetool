@@ -113,26 +113,30 @@ export function createMediaNormalizer(storage, assetKey = () => null) {
  * into `file://` URIs a node can read. A key that leaves the storage folder is
  * dropped rather than resolved.
  */
-export function createInputResolver(storage) {
+export function createInputResolver(storage, { workspaceRelative = false } = {}) {
   const root = normalizePath(storage.rootDir);
   const PREFIX = "/api/storage/";
 
   const resolveUri = (uri) => {
     const key = uri.slice(PREFIX.length).split("/").map(decodeURIComponent).join("/");
     const path = normalizePath(join(root, key));
-    return path.startsWith(root + sep) ? pathToFileURL(path).toString() : "";
+    if (!path.startsWith(root + sep)) throw new Error("Input storage handle leaves the storage directory");
+    return workspaceRelative ? path.slice(root.length + 1) : pathToFileURL(path).toString();
   };
 
   function resolve(value, depth = 0) {
-    if (depth > 32 || value == null) return value;
+    if (depth > 32) throw new Error("Input media exceeds the supported nesting depth");
+    if (value == null) return value;
+    if (typeof value === "string" && value.startsWith(PREFIX)) return resolveUri(value);
     if (Array.isArray(value)) return value.map((item) => resolve(item, depth + 1));
     if (!isRecord(value)) return value;
     const out = {};
     for (const [key, entry] of Object.entries(value)) {
-      out[key] =
-        key === "uri" && typeof entry === "string" && entry.startsWith(PREFIX)
-          ? resolveUri(entry)
-          : resolve(entry, depth + 1);
+      if (key === "uri" && typeof entry === "string") {
+        if (entry.startsWith(PREFIX)) out[key] = resolveUri(entry);
+        else if (/^(https?:|data:|asset:|package:)/i.test(entry)) out[key] = entry;
+        else throw new Error("Input media must use an uploaded storage handle or a supported media URI");
+      } else out[key] = resolve(entry, depth + 1);
     }
     return out;
   }

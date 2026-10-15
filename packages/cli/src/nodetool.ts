@@ -25,5 +25,7 @@ if (process.argv[2] === "harness") {
   registerHarnessCommands(program);
   await program.parseAsync();
 } else {
+  const { configureCliPackHost } = await import("./packs/host.js");
+  configureCliPackHost(import.meta.url);
   await import("./nodetool-main.js");
 }

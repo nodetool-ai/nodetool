@@ -1,3 +1,4 @@
+import { importPack } from "@nodetool-ai/node-catalog";
 import { resolve } from "node:path";
 import type { Command } from "commander";
 import { printCommandError } from "../command-errors.js";
@@ -8,7 +9,7 @@ export function registerGameSmokeCommand(game: Command): void {
     .option("--json", "Print a machine-readable report")
     .action(async (directory: string, options: { json?: boolean }) => {
       try {
-        const { smokeStandaloneGame } = await import("@nodetool-ai/game-renderer/smoke");
+        const { smokeStandaloneGame } = await importPack<typeof import("@nodetool-ai/game-renderer/smoke")>("game", "@nodetool-ai/game-renderer/smoke");
         const report = await smokeStandaloneGame(resolve(directory));
         process.stdout.write(options.json ? `${JSON.stringify(report)}\n`
           : `Rendered ${report.frames} frames, advanced ${report.ticks} ticks\n${report.errors.map(error => `${error}\n`).join("")}`);

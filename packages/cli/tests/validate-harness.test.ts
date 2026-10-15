@@ -1,6 +1,11 @@
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 
+const { buildRegistry } = vi.hoisted(() => ({ buildRegistry: vi.fn(async () => ({ has: () => true })) }));
+vi.mock("../src/node-registry.js", () => ({ buildFullRegistry: buildRegistry }));
+vi.mock("../src/command-errors.js", () => ({ printCommandError: vi.fn() }));
+vi.mock("@nodetool-ai/execution/missing-packs", () => ({ findMissingPacks: async () => null }));
+
 const cleanReport = {
   ok: true,
   nodeCount: 1,
@@ -63,5 +68,29 @@ describe("collectAvailableSecrets", () => {
         Promise.resolve(values[key])
       )
     ).resolves.toEqual(new Set());
+  });
+});
+
+describe("shared async validation registry", () => {
+  const file = fileURLToPath(new URL("../../../examples/workflows/hello_input_output_cli.json", import.meta.url));
+  const deps = { loadFromDb: async () => null };
+
+  it("shares one in-flight registration across concurrent validations", async () => {
+    vi.resetModules();
+    buildRegistry.mockClear();
+    const { runValidate } = await import("../src/validate/index.js");
+    const reports = await Promise.all([runValidate(file, deps), runValidate(file, deps)]);
+    expect(reports.map(result => result.report.ok)).toEqual([true, true]);
+    expect(buildRegistry).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries registration after a failed load", async () => {
+    vi.resetModules();
+    buildRegistry.mockClear();
+    buildRegistry.mockRejectedValueOnce(new Error("pack initialization failed"));
+    const { runValidate } = await import("../src/validate/index.js");
+    await expect(runValidate(file, deps)).rejects.toThrow("pack initialization failed");
+    await expect(runValidate(file, deps)).resolves.toMatchObject({ report: { ok: true } });
+    expect(buildRegistry).toHaveBeenCalledTimes(2);
   });
 });

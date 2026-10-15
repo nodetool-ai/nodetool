@@ -2,13 +2,15 @@ import { renderHook, act } from "@testing-library/react";
 
 const navigate = jest.fn();
 const createNew = jest.fn();
-const openTab = jest.fn(() => "tab-1");
 const openForegroundTab = jest.fn(() => "tab-2");
-const setActiveTab = jest.fn();
 const addNotification = jest.fn();
 const requestFitNode = jest.fn();
 
 const savedWorkflow = { id: "wf-1", name: "Portrait", project_id: "proj-1" };
+const looseWorkflow = { id: "wf-loose", name: "Scratch", project_id: null };
+const fetchWorkflow = jest.fn(async (id: string) =>
+  [savedWorkflow, looseWorkflow].find((workflow) => workflow.id === id)
+);
 
 jest.mock("react-router-dom", () => ({
   useNavigate: () => navigate
@@ -17,12 +19,14 @@ jest.mock("../../contexts/WorkflowManagerContext", () => ({
   useWorkflowManager: (
     selector: (state: {
       getWorkflow: (id: string) => unknown;
+      fetchWorkflow: typeof fetchWorkflow;
       createNew: typeof createNew;
     }) => unknown
   ) =>
     selector({
       getWorkflow: (id: string) =>
         id === savedWorkflow.id ? savedWorkflow : undefined,
+      fetchWorkflow,
       createNew
     })
 }));
@@ -33,13 +37,12 @@ jest.mock("../../stores/NotificationStore", () => ({
 }));
 jest.mock("../../stores/WorkspaceTabsStore", () => ({
   creationProjectId: () => "active-project",
+  LOOSE_PROJECT_ID: "default",
   useWorkspaceTabsStore: (
     selector: (state: {
-      openTab: typeof openTab;
       openForegroundTab: typeof openForegroundTab;
-      setActiveTab: typeof setActiveTab;
     }) => unknown
-  ) => selector({ openTab, openForegroundTab, setActiveTab })
+  ) => selector({ openForegroundTab })
 }));
 jest.mock("../useFitNodeEvent", () => ({
   requestFitNode: (request: unknown) => requestFitNode(request)
@@ -75,19 +78,19 @@ beforeEach(() => {
 });
 
 describe("useOpenAssetWorkflow", () => {
-  it("opens the saved workflow and reveals the asset's node", () => {
+  it("opens the saved workflow in its project and reveals the asset's node", async () => {
     const { result } = renderHook(() => useOpenAssetWorkflow());
 
-    act(() => result.current.openWorkflow(asset));
+    await act(() => result.current.openWorkflow(asset));
 
-    expect(openTab).toHaveBeenCalledWith({
+    expect(fetchWorkflow).toHaveBeenCalledWith("wf-1", { makeCurrent: false });
+    expect(openForegroundTab).toHaveBeenCalledWith({
       type: "workflow",
       ref: "wf-1",
       mode: "edit",
       title: "Portrait",
       projectId: "proj-1"
     });
-    expect(setActiveTab).toHaveBeenCalledWith("tab-1");
     expect(navigate).toHaveBeenCalledWith("/workspace");
     expect(requestFitNode).toHaveBeenCalledWith({
       workflowId: "wf-1",
@@ -95,12 +98,41 @@ describe("useOpenAssetWorkflow", () => {
     });
   });
 
-  it("does nothing for an asset no workflow made", () => {
+  it("opens a workflow outside any project as a loose tab", async () => {
     const { result } = renderHook(() => useOpenAssetWorkflow());
 
-    act(() => result.current.openWorkflow({ ...asset, workflow_id: null }));
+    await act(() =>
+      result.current.openWorkflow({ ...asset, workflow_id: "wf-loose" })
+    );
 
-    expect(openTab).not.toHaveBeenCalled();
+    expect(openForegroundTab).toHaveBeenCalledWith(
+      expect.objectContaining({ ref: "wf-loose", projectId: "default" })
+    );
+  });
+
+  it("says so when the workflow no longer exists", async () => {
+    const { result } = renderHook(() => useOpenAssetWorkflow());
+
+    await act(() =>
+      result.current.openWorkflow({ ...asset, workflow_id: "wf-deleted" })
+    );
+
+    expect(openForegroundTab).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "warning" })
+    );
+  });
+
+  it("does nothing for an asset no workflow made", async () => {
+    const { result } = renderHook(() => useOpenAssetWorkflow());
+
+    await act(() =>
+      result.current.openWorkflow({ ...asset, workflow_id: null })
+    );
+
+    expect(fetchWorkflow).not.toHaveBeenCalled();
+    expect(openForegroundTab).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
   });
 

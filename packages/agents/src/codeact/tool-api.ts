@@ -20,7 +20,7 @@ import type {
   MessageImageContent,
   ProviderTool
 } from "@nodetool-ai/runtime";
-import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
+import { missingPackDetailsOf, sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 
 import { capabilityModuleOf } from "../capabilities/registry.js";
 import { MAX_ACTION_IMAGES } from "../constants.js";
@@ -131,6 +131,10 @@ export function toTransferable(value: unknown): JsonValue {
  * operations in a partial batch may already be persisted.
  */
 export function extractErrorPayload(result: unknown): string | null {
+  // Missing packs are actionable structured tool results. Guest code can inspect them and continue.
+  if (missingPackDetailsOf(result)) {
+    return null;
+  }
   if (!isObjectLike(result) || Array.isArray(result)) {
     return null;
   }
@@ -276,7 +280,7 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
         name,
         toolCallId,
         result: transferable,
-        isError: false
+        isError: missingPackDetailsOf(result) !== null
       });
       return { ok: true, result: transferable };
     } catch (e) {

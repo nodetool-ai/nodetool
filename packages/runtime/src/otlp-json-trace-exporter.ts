@@ -1,5 +1,5 @@
 import type { Attributes, HrTime } from "@opentelemetry/api";
-import { ExportResultCode, type ExportResult } from "@opentelemetry/core";
+import type { ExportResult } from "@opentelemetry/core";
 import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
 
 type AnyValue =
@@ -127,10 +127,10 @@ export class OtlpJsonTraceExporter implements SpanExporter {
   constructor(private readonly config: OtlpExporterConfig, private readonly send: typeof fetch = fetch) {}
 
   export(spans: ReadableSpan[], callback: (result: ExportResult) => void): void {
-    if (this.stopped) { callback({ code: ExportResultCode.FAILED, error: new Error("Trace exporter is shut down") }); return; }
+    if (this.stopped) { callback({ code: 1, error: new Error("Trace exporter is shut down") }); return; }
     const pending = this.post(spans).then(
-      () => callback({ code: ExportResultCode.SUCCESS }),
-      (error: unknown) => callback({ code: ExportResultCode.FAILED, error: error instanceof Error ? error : new Error(String(error)) })
+      () => callback({ code: 0 }),
+      (error: unknown) => callback({ code: 1, error: error instanceof Error ? error : new Error(String(error)) })
     );
     this.pending.add(pending);
     void pending.finally(() => this.pending.delete(pending));

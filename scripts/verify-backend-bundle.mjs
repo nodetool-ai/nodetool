@@ -22,7 +22,7 @@
  *                   Exits 1 with diagnostics if any check fails.
  */
 
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -610,16 +610,26 @@ export function verifyBackendBundle(bundleDir) {
         "esbuild/lib/main.js. Keep esbuild in COMMON_EXTERNAL_PACKAGES."
     );
   }
-  const esbuildPlatforms = listFiles(path.join(modulesDir, "@esbuild")) ?? [];
-  if (!readPackageVersion(path.join(modulesDir, "esbuild"))) {
+  const esbuildDir = path.join(modulesDir, "esbuild");
+  const esbuildVersion = readPackageVersion(esbuildDir);
+  const esbuildTarget = `${targetPlatform}-${targetArch}`;
+  const esbuildPlatformDir = path.join(modulesDir, "@esbuild", esbuildTarget);
+  const esbuildBinary = targetPlatform === "win32"
+    ? path.join(esbuildPlatformDir, "esbuild.exe")
+    : path.join(esbuildPlatformDir, "bin", "esbuild");
+  const binaryStats = statSync(esbuildBinary, { throwIfNoEntry: false });
+  if (!esbuildVersion) {
     errors.push("_modules/esbuild is missing or has no readable package.json");
-  } else if (esbuildPlatforms.length === 0) {
+  } else if (!binaryStats?.isFile() || (targetPlatform !== "win32" && (binaryStats.mode & 0o111) === 0)
+    || !statSync(path.join(esbuildDir, "lib", "main.js"), { throwIfNoEntry: false })?.isFile()) {
     errors.push(
-      "no @esbuild/<platform> binary staged under _modules/@esbuild — the " +
+      `no @esbuild/<platform> binary or esbuild JavaScript entry staged for ${esbuildTarget} — the ` +
         "sandbox compiler could not start esbuild."
     );
+  } else if (readPackageVersion(esbuildPlatformDir) !== esbuildVersion) {
+    errors.push(`@esbuild/${esbuildTarget} version does not match esbuild ${esbuildVersion}`);
   } else {
-    summary.push(`esbuild staged with binary: ${esbuildPlatforms.join(", ")}`);
+    summary.push(`esbuild staged with binary: ${esbuildTarget}`);
   }
 
   const sharpVersion = readPackageVersion(path.join(modulesDir, "sharp"));

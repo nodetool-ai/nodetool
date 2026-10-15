@@ -32,7 +32,7 @@ it("keeps unavailable packs catalog-only and preserves initialization errors", a
     const phase = message => process.stdout.write("catalog fixture: " + message + " (" + (Date.now() - started) + "ms)\\n");
     const source = ${JSON.stringify(new URL("../dist/index.js", import.meta.url).href)};
     phase("loading metadata");
-    const { importPack, registerAvailablePacks, readCatalogIndex, readCatalogNodes, MissingPackError } = await import(source);
+    const { importPack, registerAvailablePacks, registerCatalogPack, readCatalogIndex, readCatalogNodes, MissingPackError } = await import(source);
     const packs = readCatalogIndex().packs;
     const unavailable = new Set(packs.filter(pack => pack.kind === "node-pack")
       .flatMap(pack => [pack.npm.name, ...pack.provides]));
@@ -64,6 +64,11 @@ it("keeps unavailable packs catalog-only and preserves initialization errors", a
       assert.deepEqual(registry.getMetadata(node.node_type), node.metadata);
     }
     assert.equal(registry.availability("nodetool.control.If"), "executable");
+    const single = new NodeRegistry();
+    await registerCatalogPack(single, "fal");
+    assert.equal(single.listMetadata().length, nodes.length);
+    for (const node of nodes) assert.equal(single.availability(node.node_type), "catalog");
+    phase("FAL metadata verified");
     hooks.deregister();
     const failing = registerHooks({
       load(url, context, nextLoad) {

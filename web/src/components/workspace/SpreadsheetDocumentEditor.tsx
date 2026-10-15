@@ -13,12 +13,12 @@ import { useContextCommands } from "../../hooks/useContextCommands";
 import type { ContextCommand } from "../../stores/CommandMenuStore";
 import DataTable from "../node/DataTable/DataTable";
 import {
-  BORDER_RADIUS,
   Caption,
   EditorButton,
   FlexColumn,
   LoadingSpinner,
-  SelectField
+  SelectField,
+  SaveState
 } from "../ui_primitives";
 import { arrayBufferToBase64 } from "../audio_editor/audioSample";
 import { isMac } from "../../utils/platform";
@@ -51,13 +51,6 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     backgroundColor: theme.vars.palette.grey[900],
     color: theme.vars.palette.common.white,
-    ".dirty-dot": {
-      width: 8,
-      height: 8,
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: theme.vars.palette.warning.main,
-      flex: "0 0 auto"
-    },
     ".sheet-select": {
       minWidth: 160
     },
@@ -273,9 +266,10 @@ const SpreadsheetDocumentEditor = ({
                   onChange={(value) => setSheetIndex(Number(value))}
                 />
               )}
-              {!readOnly && isDirty && (
-                <span className="dirty-dot" aria-label="Unsaved changes" />
-              )}
+              <SaveState
+                state={!readOnly && isDirty ? "dirty" : "idle"}
+                showLabel={false}
+              />
               {!readOnly && (
                 <EditorButton
                   variant="contained"

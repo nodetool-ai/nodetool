@@ -58,7 +58,7 @@ const bridgeOf = () => createCreativePipelineBridge({ brief: LANTERN_BRIEF });
 
 /** Run one tool by name against a bridge. */
 async function call(
-  bridge: ReturnType<typeof bridgeOf>,
+  bridge: Awaited<ReturnType<typeof bridgeOf>>,
   name: string,
   args: Record<string, unknown> = {}
 ) {
@@ -71,7 +71,7 @@ const linkedBridge = () =>
   createCreativePipelineBridge({ brief: TIDEWATCH_BRIEF });
 
 /** Write a voiced 2-line narration on a bridge, returning nothing. */
-async function writeNarration(bridge: ReturnType<typeof bridgeOf>) {
+async function writeNarration(bridge: Awaited<ReturnType<typeof bridgeOf>>) {
   await call(bridge, "ui_script_add_speaker", {
     name: "Narrator",
     voice: { provider: "elevenlabs", model: "eleven_v3", voice: "rachel" }
@@ -88,8 +88,8 @@ async function writeNarration(bridge: ReturnType<typeof bridgeOf>) {
 }
 
 describe("createCreativePipelineBridge", () => {
-  it("composes all four creative surfaces plus brief and review tools", () => {
-    const names = bridgeOf().tools.map((t) => t.name);
+  it("composes all four creative surfaces plus brief and review tools", async () => {
+    const names = (await bridgeOf()).tools.map((t) => t.name);
     expect(names.filter((n) => n.startsWith("ui_script_")).length).toBeGreaterThan(5);
     expect(names).toContain("validate_timeline");
     expect(names.filter((n) => n.startsWith("ui_sketch_")).length).toBeGreaterThan(5);
@@ -102,27 +102,27 @@ describe("createCreativePipelineBridge", () => {
     expect(names).toContain("ui_review_submit_notes");
   });
 
-  it("exposes exactly one assemble tool — the replacement, not the stub", () => {
-    const assemble = bridgeOf().tools.filter(
+  it("exposes exactly one assemble tool — the replacement, not the stub", async () => {
+    const assemble = (await bridgeOf()).tools.filter(
       (t) => t.name === "ui_storyboard_assemble_timeline"
     );
     expect(assemble).toHaveLength(1);
   });
 
   it("records briefReadBeforeWork only when the brief precedes surface edits", async () => {
-    const early = bridgeOf();
+    const early = (await bridgeOf());
     await call(early, "ui_brief_get");
     await call(early, "ui_sketch_add_layer", { name: "Sky" });
     expect(early.finalState().briefReadBeforeWork).toBe(true);
 
-    const late = bridgeOf();
+    const late = (await bridgeOf());
     await call(late, "ui_sketch_add_layer", { name: "Sky" });
     await call(late, "ui_brief_get");
     expect(late.finalState().briefReadBeforeWork).toBe(false);
   });
 
   it("refuses to assemble a timeline before any shot has a rendered clip", async () => {
-    const bridge = bridgeOf();
+    const bridge = (await bridgeOf());
     await call(bridge, "ui_storyboard_add_shot", { action: "hands at sunrise" });
     await expect(
       call(bridge, "ui_storyboard_assemble_timeline")
@@ -130,7 +130,7 @@ describe("createCreativePipelineBridge", () => {
   });
 
   it("lays one real timeline clip per rendered shot, overshooting the request", async () => {
-    const bridge = bridgeOf();
+    const bridge = (await bridgeOf());
     await call(bridge, "ui_storyboard_add_shot", {
       action: "hands lifting a cup at sunrise",
       durationSeconds: 4
@@ -147,7 +147,7 @@ describe("createCreativePipelineBridge", () => {
   });
 
   it("counts revisions from assembly, so fix-then-report scores like report-then-fix", async () => {
-    const seed = async (bridge: ReturnType<typeof bridgeOf>) => {
+    const seed = async (bridge: Awaited<ReturnType<typeof bridgeOf>>) => {
       await call(bridge, "ui_storyboard_add_shot", {
         action: "hands at sunrise",
         durationSeconds: 4
@@ -161,21 +161,21 @@ describe("createCreativePipelineBridge", () => {
     const notes = {
       notes: [{ severity: "blocker", note: "runtime overruns the brief" }]
     };
-    const trim = (bridge: ReturnType<typeof bridgeOf>) =>
+    const trim = (bridge: Awaited<ReturnType<typeof bridgeOf>>) =>
       call(bridge, "ui_timeline_trim_clip", {
         target: bridge.finalState().timeline.clips[0].id,
         durationMs: 3000
       });
 
     // Report, then fix.
-    const reportFirst = bridgeOf();
+    const reportFirst = (await bridgeOf());
     await seed(reportFirst);
     await call(reportFirst, "ui_review_get_cut");
     await call(reportFirst, "ui_review_submit_notes", notes);
     await trim(reportFirst);
 
     // Fix, verify, then report — what a live sonnet run actually did.
-    const fixFirst = bridgeOf();
+    const fixFirst = (await bridgeOf());
     await seed(fixFirst);
     await trim(fixFirst);
     await call(fixFirst, "ui_review_get_cut");
@@ -191,7 +191,7 @@ describe("createCreativePipelineBridge", () => {
     // A live claude_agent_sdk run failed here on a three-value enum: the model
     // said "critical" and the tool threw. The vocabulary is this harness's,
     // so synonyms map rather than error.
-    const bridge = bridgeOf();
+    const bridge = (await bridgeOf());
     await call(bridge, "ui_review_submit_notes", {
       notes: [
         { severity: "critical", note: "overruns" },
@@ -211,7 +211,7 @@ describe("createCreativePipelineBridge", () => {
   });
 
   it("lays one shot per script line when the board is derived, keeping the linkage", async () => {
-    const bridge = linkedBridge();
+    const bridge = await linkedBridge();
     await writeNarration(bridge);
     await call(bridge, "ui_script_derive_storyboard");
 
@@ -225,7 +225,7 @@ describe("createCreativePipelineBridge", () => {
   });
 
   it("assembles words and pictures into one cut once the board is linked", async () => {
-    const bridge = linkedBridge();
+    const bridge = await linkedBridge();
     await writeNarration(bridge);
     await call(bridge, "ui_script_derive_storyboard");
     for (const target of ["0", "1"]) {
@@ -257,7 +257,7 @@ describe("createCreativePipelineBridge", () => {
   });
 
   it("keeps editing the cut the linked assemble produced, not the one it replaced", async () => {
-    const bridge = linkedBridge();
+    const bridge = await linkedBridge();
     await writeNarration(bridge);
     await call(bridge, "ui_script_derive_storyboard");
     for (const target of ["0", "1"]) {
@@ -279,7 +279,7 @@ describe("createCreativePipelineBridge", () => {
   });
 
   it("validates the jointly-assembled cut with the shipped timeline validator", async () => {
-    const bridge = linkedBridge();
+    const bridge = await linkedBridge();
     await writeNarration(bridge);
     await call(bridge, "ui_script_derive_storyboard");
     for (const target of ["0", "1"]) {
@@ -301,7 +301,7 @@ describe("createCreativePipelineBridge", () => {
     // that carries it is an error the trim and move ops cannot produce (both
     // refuse non-positive durations and negative starts), so it is the one
     // invalid state this surface still lets an agent author.
-    const bridge = linkedBridge();
+    const bridge = await linkedBridge();
     await writeNarration(bridge);
     await call(bridge, "ui_script_derive_storyboard");
     await call(bridge, "ui_storyboard_generate_keyframe", { target: "0" });
@@ -318,7 +318,7 @@ describe("createCreativePipelineBridge", () => {
   });
 
   it("still assembles one clip per rendered shot when no script is linked", async () => {
-    const bridge = bridgeOf();
+    const bridge = (await bridgeOf());
     await call(bridge, "ui_storyboard_add_shot", {
       action: "hands at sunrise",
       durationSeconds: 4
@@ -335,7 +335,7 @@ describe("createCreativePipelineBridge", () => {
   });
 
   it("rejects committing to a concept that was never proposed", async () => {
-    const bridge = bridgeOf();
+    const bridge = (await bridgeOf());
     await expect(
       call(bridge, "ui_brief_choose_concept", { conceptId: "concept_9" })
     ).rejects.toThrow(/No concept with id/);

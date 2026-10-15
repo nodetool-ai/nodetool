@@ -161,20 +161,20 @@ describe("the job registry", () => {
     }
   });
 
-  it("builds a fresh, non-empty world per run", () => {
+  it("builds a fresh, non-empty world per run", async () => {
     for (const job of JOBS_TO_BE_DONE) {
-      const first = job.start();
-      const second = job.start();
+      const first = await job.start();
+      const second = await job.start();
       expect(first.tools.length, job.id).toBeGreaterThan(0);
       expect(second.tools, job.id).not.toBe(first.tools);
     }
   });
 
-  it("fails its own outcome checks on an untouched world", () => {
+  it("fails its own outcome checks on an untouched world", async () => {
     // A job whose checks pass before the agent does anything is measuring
     // nothing. This is the check-can-fail rule, applied to the catalogue.
     for (const job of JOBS_TO_BE_DONE) {
-      const graded = job.start().grade();
+      const graded = (await job.start()).grade();
       expect(graded.some((o) => !o.passed), job.id).toBe(true);
     }
   });
@@ -186,7 +186,7 @@ describe("the job registry", () => {
     // merely strict.
     const job = findJob("motion-title-sequence");
     if (!job) throw new Error("motion-title-sequence is not registered");
-    const world = job.start();
+    const world = await job.start();
     const tool = Object.fromEntries(world.tools.map((t) => [t.name, t]));
     const run = (name: string, args: Record<string, unknown>) =>
       tool[name].execute(args);
@@ -266,7 +266,7 @@ describe("the job registry", () => {
     // the picture follows the track must read the picture.
     const job = findJob("motion-title-sequence");
     if (!job) throw new Error("motion-title-sequence is not registered");
-    const world = job.start();
+    const world = await job.start();
     const tool = Object.fromEntries(world.tools.map((t) => [t.name, t]));
     await tool["ui_timeline_set_markers_from_beats"].execute({
       bpm: 120,
@@ -281,7 +281,7 @@ describe("the job registry", () => {
     // about the title being one unit, so a text clip has to name the group.
     const job = findJob("motion-title-sequence");
     if (!job) throw new Error("motion-title-sequence is not registered");
-    const world = job.start();
+    const world = await job.start();
     const tool = Object.fromEntries(world.tools.map((t) => [t.name, t]));
     await tool["ui_timeline_add_text_clip"].execute({
       text: "NIGHT SHIFT SESSIONS",
@@ -305,7 +305,7 @@ describe("the job registry", () => {
 });
 
 describe("defineJob", () => {
-  it("counts a check that throws as failed, never as a crashed run", () => {
+  it("counts a check that throws as failed, never as a crashed run", async () => {
     const job = defineJob({
       id: "throws",
       statement: "When x, I want y, so I can z.",
@@ -323,7 +323,7 @@ describe("defineJob", () => {
         }
       ]
     });
-    expect(job.start().grade()).toEqual([
+    expect((await job.start()).grade()).toEqual([
       { name: "boom", describe: "explodes", passed: false }
     ]);
   });

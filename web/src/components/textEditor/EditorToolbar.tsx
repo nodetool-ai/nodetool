@@ -8,7 +8,7 @@ import RedoIcon from "@mui/icons-material/Redo";
 import WrapTextIcon from "@mui/icons-material/WrapText";
 import SearchIcon from "@mui/icons-material/Search";
 import CodeIcon from "@mui/icons-material/Code";
-import { ToolbarIconButton, Box, MOTION, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
+import { Toolbar, ToolbarDivider, ToolbarGroup, ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 interface EditorToolbarProps {
   onUndo?: () => void;
@@ -25,36 +25,6 @@ interface EditorToolbarProps {
 
 const styles = (theme: Theme) =>
   css({
-    display: "flex",
-    alignItems: "center",
-    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xl)}`,
-    backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.25)`,
-    gap: getSpacingPx(SPACING.sm),
-    minHeight: "2.4em",
-    borderBottom: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.03)`,
-    ".toolbar-group": {
-      display: "flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.xs),
-      "&:not(:last-child)": {
-        borderRight: "none",
-        paddingRight: getSpacingPx(SPACING.sm),
-        marginRight: getSpacingPx(SPACING.xs),
-        position: "relative",
-        "&::after": {
-          content: "''",
-          position: "absolute",
-          right: 0,
-          top: "20%",
-          bottom: "20%",
-          width: "1px",
-          background: `linear-gradient(180deg,
-            transparent,
-            rgba(${theme.vars.palette.common.whiteChannel} / 0.1) 50%,
-            transparent)`
-        }
-      }
-    },
     ".toolbar-button": {
       padding: theme.spacing(1),
       color: `${theme.vars.palette.grey[300]} !important`,
@@ -99,9 +69,9 @@ const EditorToolbar = ({
   const theme = useTheme();
 
   return (
-    <Box className="editor-toolbar" css={styles(theme)}>
+    <Toolbar className="editor-toolbar" density="compact" css={styles(theme)}>
       {!readOnly && (
-        <div className="toolbar-group">
+        <ToolbarGroup>
           <ToolbarIconButton
             icon={<UndoIcon fontSize="small" />}
             tooltip="Undo"
@@ -118,10 +88,11 @@ const EditorToolbar = ({
             disabled={!canRedo}
             size="small"
           />
-        </div>
+        </ToolbarGroup>
       )}
+      {!readOnly && <ToolbarDivider />}
 
-      <div className="toolbar-group">
+      <ToolbarGroup>
         <ToolbarIconButton
           icon={<SearchIcon fontSize="small" />}
           tooltip="Find & Replace"
@@ -129,9 +100,10 @@ const EditorToolbar = ({
           onClick={onToggleFind}
           size="small"
         />
-      </div>
+      </ToolbarGroup>
+      <ToolbarDivider />
 
-      <div className="toolbar-group">
+      <ToolbarGroup>
         <ToolbarIconButton
           icon={<WrapTextIcon fontSize="small" />}
           tooltip="Toggle Word Wrap"
@@ -146,8 +118,8 @@ const EditorToolbar = ({
           onClick={onFormatCodeBlock}
           size="small"
         />
-      </div>
-    </Box>
+      </ToolbarGroup>
+    </Toolbar>
   );
 };
 

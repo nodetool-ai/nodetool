@@ -15,7 +15,7 @@ import {
   unregisterProvider,
   type BaseProvider
 } from "@nodetool-ai/runtime";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { BaseNode, getNodeMetadata, type NodeRegistry } from "@nodetool-ai/node-sdk";
 
 vi.mock("../src/lib/workflow-workspace.js", async () => {
   const actual = await vi.importActual<
@@ -35,9 +35,16 @@ const echoExecutor = {
   }
 };
 
+class MissingFal extends BaseNode {
+  static readonly nodeType = "fal.Fixture";
+  static readonly title = "Missing FAL";
+  static readonly description = "";
+  async process(): Promise<Record<string, unknown>> { return {}; }
+}
+
 const registry = {
-  availability(type: string) { return this.has(type) ? "executable" : "unknown"; },
-  catalogEntry: () => undefined,
+  availability(type: string) { return type === MissingFal.nodeType ? "catalog" : this.has(type) ? "executable" : "unknown"; },
+  catalogEntry: (type: string) => type === MissingFal.nodeType ? { node_type: type, pack: "fal", metadata: getNodeMetadata(MissingFal), declared: [] } : undefined,
   has: (t: string) => t.startsWith("test."),
   resolve: () => echoExecutor,
   getClass: () => undefined,
@@ -101,6 +108,30 @@ afterEach(() => {
 });
 
 describe("handleWorkflowRun model preflight", () => {
+  it("returns424 and the structured preflight missing_pack payload before creating a job", async () => {
+    const workflow = await Workflow.create<Workflow>({ user_id: "user-1", name: "Missing FAL", graph: {
+      nodes: [{ id: "fal", type: MissingFal.nodeType, properties: {} }], edges: []
+    } });
+    const response = await handleWorkflowRun(new Request("http://localhost/x", {
+      method: "POST", headers: { "x-user-id": "user-1", "content-type": "application/json" }, body: "{}"
+    }), workflow.id, { registry });
+    expect(response.status).toBe(424);
+    expect(await response.json()).toMatchObject({ detail: { kind: "missing_pack", error: "missing_pack", packs: [{ id: "fal" }], nodeTypes: [MissingFal.nodeType] } });
+    const [jobs] = await Job.paginate("user-1", { workflowId: workflow.id, limit: 10 });
+    expect(jobs).toHaveLength(0);
+  });
+
+  it("reports a missing FAL pack through an owner-scoped short sub-workflow id", async () => {
+    const child = await Workflow.create<Workflow>({ user_id: "user-1", name: "Nested missing FAL", graph: {
+      nodes: [{ id: "fal", type: MissingFal.nodeType, properties: {} }], edges: []
+    } });
+    const parent = await Workflow.create<Workflow>({ user_id: "user-1", name: "Parent", graph: {
+      nodes: [{ id: "reference", type: "nodetool.workflows.workflow_node.Workflow", properties: { workflow_id: child.id.slice(0, 12) } }], edges: []
+    } });
+    const response = await run(parent.id);
+    expect(response.status).toBe(424);
+    expect(await response.json()).toMatchObject({ detail: { error: "missing_pack", nodeTypes: [MissingFal.nodeType], packs: [{ id: "fal" }] } });
+  });
   it("refuses a run naming an unregistered provider, before the job exists", async () => {
     const workflow = await workflowWith({
       type: "image_model",

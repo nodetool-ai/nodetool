@@ -42,7 +42,8 @@ import {
   NodeRegistry,
   createGraphNodeTypeResolver
 } from "@nodetool-ai/node-sdk";
-import { registerBuiltinPacks } from "@nodetool-ai/base-nodes/builtin-packs";
+import { registerCliPacks } from "./packs/host.js";
+import { refusePackInstallsInProcess } from "./packs/install-process.js";
 import { CLI_LOCAL_BUILTIN_PACK_POLICY, CLI_DSL_BUILTIN_PACK_POLICY } from "./node-registry.js";
 import { ProcessingContext, createLocalWorkspace, initTelemetry, onPythonBridgeCreated } from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
@@ -59,6 +60,7 @@ import {
 } from "./supervisor.js";
 import { registerPackageCommands } from "./commands/package.js";
 import { registerPackCommands } from "./commands/packs.js";
+import { installMissingPacksAndReexec } from "./commands/install-missing-packs.js";
 import { registerRuntimeCommands } from "./commands/runtime.js";
 import { registerDeployCommands } from "./commands/deploy.js";
 import { registerHfCommands } from "./commands/models-hf.js";
@@ -104,7 +106,7 @@ import {
 } from "./providers.js";
 import { isString } from "./predicates.js";
 import { printTable, asJson, readSecretValue } from "./commands/output.js";
-import { printCommandError, commandMissingRuntime } from "./command-errors.js";
+import { printCommandError, commandMissingRuntime, commandMissingPack } from "./command-errors.js";
 import { childExitCode } from "./child-exit.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -138,7 +140,9 @@ function ensureDb(): void {
 }
 
 async function setupDb(): Promise<void> {
-  ensureDb();
+  const dbPath = getDefaultDbPath();
+  await migrateSqliteDb(dbPath);
+  initDb(dbPath);
   // Resolve the master encryption key from keychain / env / AWS so that
   // both encryption (Secret.upsert) and decryption (Secret.getDecryptedValue)
   // use the same persistent key. Without this, a fresh process would
@@ -323,14 +327,15 @@ addSupervisorOptions(
     .command("run <dsl-file>")
     .description("Run a TypeScript/JavaScript DSL workflow file")
     .option("--json", "Output results as JSON (default: pretty-print)")
+    .option("--install-missing", "Authorize missing node pack installation, then re-execute once")
 ).action(
-  async (dslFile: string, opts: { json?: boolean } & SupervisorCliOptions) => {
+  async (dslFile: string, opts: { json?: boolean; installMissing?: boolean } & SupervisorCliOptions) => {
     try {
       const { resolve } = await import("node:path");
       const { runDslFile } = await import("./run-dsl.js");
       const { NodeRegistry } = await import("@nodetool-ai/node-sdk");
 
-      registerBuiltinPacks(NodeRegistry.global, CLI_DSL_BUILTIN_PACK_POLICY);
+      await registerCliPacks(NodeRegistry.global, CLI_DSL_BUILTIN_PACK_POLICY);
 
       const supervisorConfig = parseSupervisorFlags(opts);
       const absolutePath = resolve(dslFile);
@@ -369,6 +374,8 @@ addSupervisorOptions(
         }
       }
     } catch (e) {
+      const exit = await installMissingPacksAndReexec(e, { command: "run", installMissing: opts.installMissing });
+      if (exit !== null) { process.exit(exit); }
       process.exit(printCommandError(e, opts.json));
     }
   }
@@ -438,7 +445,8 @@ program
   .option("--host <host>", "Host to bind", "127.0.0.1")
   .option("--port <port>", "Port to listen on", "7777")
   .action((opts) => {
-    const serverPath = resolve(__dirname, "../../websocket/dist/server.js");
+    refusePackInstallsInProcess("serve");
+    const serverPath = resolve(__dirname, "../dist/packs/serve.js");
     process.env["HOST"] = opts.host;
     process.env["PORT"] = opts.port;
     const result = spawnSync(process.execPath, [serverPath], {
@@ -492,6 +500,7 @@ addSupervisorOptions(
     .description("Run a workflow by ID, JSON file, or TypeScript DSL file")
     .option("--params <json>", "JSON params string")
     .option("--json", "Output as JSON")
+    .option("--install-missing", "Authorize missing node pack installation, then re-execute once")
     .option(
       "--asset-output-mode <mode>",
       "How media outputs are materialized: native | raw | data_uri | workspace | storage_url | temp_url",
@@ -517,6 +526,7 @@ addSupervisorOptions(
       assetOutputMode?: string;
       workspace?: string;
       triggerEvent?: string;
+      installMissing?: boolean;
     } & SupervisorCliOptions
   ) => {
     try {
@@ -598,7 +608,7 @@ addSupervisorOptions(
       // need to duplicate that here.
 
       const registry = new NodeRegistry();
-      registerBuiltinPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
+      await registerCliPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
 
       const jobId = `job-${Date.now()}`;
       // Resolve asset URIs (e.g. /api/storage/<key>) against the local
@@ -710,7 +720,9 @@ addSupervisorOptions(
         : Promise.resolve();
 
       const result = await session.result;
-      if (result.status === "failed" && commandMissingRuntime(result)) {
+      if (result.status === "failed" && (commandMissingRuntime(result) || commandMissingPack(result))) {
+        const exit = await installMissingPacksAndReexec(result, { command: "workflows-run", installMissing: opts.installMissing });
+        if (exit !== null) { process.exit(exit); }
         process.exit(printCommandError(result, opts.json));
       }
       await interventionLines;
@@ -749,6 +761,8 @@ addSupervisorOptions(
 
       process.exit(result.status === "completed" ? 0 : 1);
     } catch (e) {
+      const exit = await installMissingPacksAndReexec(e, { command: "workflows-run", installMissing: opts.installMissing });
+      if (exit !== null) { process.exit(exit); }
       process.exit(printCommandError(e, opts.json));
     }
   }
@@ -1667,6 +1681,7 @@ mcp
   )
   .action(async () => {
     try {
+      refusePackInstallsInProcess("mcp serve");
       const {
         createMcpServer,
         createMcpStdioTransport,
@@ -1682,7 +1697,7 @@ mcp
       // A local TS-node registry powers list_nodes / search_nodes /
       // validate_workflow without spinning up a Python worker.
       const registry = new NodeRegistry();
-      registerBuiltinPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
+      await registerCliPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
 
       // stdio serves exactly one local user; "1" is the local single-user id.
       const server = createMcpServer({

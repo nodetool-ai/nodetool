@@ -15,6 +15,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { MOTION, BORDER_RADIUS, reducedMotion } from "./tokens";
+import { dropZoneOutline } from "./DropZone";
 
 const DEFAULT_CHECKER_SIZE = 12;
 
@@ -52,10 +53,9 @@ const styles = (theme: Theme, checkerSize: number, isOver: boolean) =>
     ].join(", "),
     transition: `${MOTION.shadow}, ${MOTION.border}`,
     ...reducedMotion({ transition: MOTION.none }),
-    outline: isOver
-      ? `2px dashed ${theme.vars.palette.primary.main}`
-      : "1px solid transparent",
-    outlineOffset: isOver ? -2 : 0,
+    ...(isOver
+      ? dropZoneOutline(theme, "over")
+      : { outline: "1px solid transparent", outlineOffset: 0 }),
     ".checker-icon": {
       opacity: 0.55,
       "& svg": {

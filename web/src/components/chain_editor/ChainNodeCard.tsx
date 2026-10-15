@@ -15,6 +15,7 @@ import {
   Divider,
   ToolbarIconButton,
   Box,
+  Card,
   reducedMotion,
   activateOnKey,
   SHADOW
@@ -131,12 +132,13 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         : undefined;
 
   return (
-    <Box
+    <Card
       css={cardCss}
+      variant="outlined"
+      padding="none"
+      radius="sm"
       sx={{
-        borderRadius: BORDER_RADIUS.sm,
         border: `1.5px solid ${node.expanded ? `${nsColor}50` : theme.vars.palette.divider}`,
-        backgroundColor: theme.vars.palette.background.paper,
         overflow: "hidden",
         transition: MOTION.border,
         boxShadow: SHADOW(theme).sm,
@@ -253,7 +255,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
           </FlexRow>
         </FlexColumn>
       </Collapse>
-    </Box>
+    </Card>
   );
 }, (prev, next) => {
   if (prev.node !== next.node) return false;

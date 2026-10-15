@@ -2,9 +2,6 @@ import { describe, expect, test } from "vitest";
 import { workflowToDsl } from "../src/export.js";
 
 describe("workflowToDsl", () => {
-  // Sanity-check that buildFactoryRefs() populated the factory map at import time.
-  // If ALL_BASE_NODES or getNodeMetadata fails, this test would error before any
-  // graph-level test could run and produce a confusing "is not a function" failure.
   test("module loads and factory map is populated", () => {
     // Any known base-node type must use a factory call, not a createNode fallback.
     const source = workflowToDsl({

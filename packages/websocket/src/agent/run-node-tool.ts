@@ -9,6 +9,7 @@
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "@nodetool-ai/agents";
+import { missingPackDetailsOf } from "@nodetool-ai/protocol";
 import { isObjectLike } from "../lib/wire-values.js";
 
 /**
@@ -67,7 +68,15 @@ export class RunNodeTool extends Tool {
       isObjectLike(params["inputs"])
         ? (params["inputs"] as Record<string, unknown>)
         : {};
-    return this.runNode(nodeType, inputs);
+    try {
+      return await this.runNode(nodeType, inputs);
+    } catch (error) {
+      const missing = missingPackDetailsOf(error);
+      if (missing) {
+        return missing;
+      }
+      throw error;
+    }
   }
 
   userMessage(params: Record<string, unknown>): string {

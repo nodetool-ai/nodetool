@@ -18,12 +18,13 @@ import {
   Box,
   Caption,
   CONTROL,
-  Divider,
   EditorButton,
   EditorMenu,
   EditorMenuItem,
   FlexRow,
   SPACING,
+  Toolbar,
+  ToolbarDivider,
   ToolbarIconButton
 } from "../ui_primitives";
 import { AUDIO_EFFECTS, EFFECT_GROUPS } from "./audioEffects";
@@ -50,14 +51,6 @@ interface AudioEditorToolbarProps {
   onSave: () => void;
   onDone: () => void;
 }
-
-const GroupDivider = () => (
-  <Divider
-    orientation="vertical"
-    flexItem
-    sx={{ mx: SPACING.xs, my: SPACING.sm }}
-  />
-);
 
 /**
  * The audio editor's command bar: history, selection edits, level edits, the
@@ -102,20 +95,14 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
   const scope = hasSelection ? "selection" : "whole clip";
 
   return (
-    <FlexRow
+    <Toolbar
       role="toolbar"
       aria-label="Audio edits"
-      align="center"
-      gap={SPACING.micro}
       sx={{
-        flexShrink: 0,
         flexWrap: "wrap",
         minHeight: CONTROL.height.xl,
-        px: SPACING.md,
-        py: SPACING.xs,
-        bgcolor: "background.paper",
-        borderBottom: 1,
-        borderColor: "divider"
+        gap: SPACING.micro,
+        py: SPACING.xs
       }}
     >
       <FlexRow role="group" aria-label="History" align="center" gap={SPACING.micro}>
@@ -133,7 +120,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
         />
       </FlexRow>
 
-      <GroupDivider />
+      <ToolbarDivider />
 
       <FlexRow role="group" aria-label="Selection edits" align="center" gap={SPACING.micro}>
         <ToolbarIconButton
@@ -168,7 +155,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
         />
       </FlexRow>
 
-      <GroupDivider />
+      <ToolbarDivider />
 
       <FlexRow role="group" aria-label="Level edits" align="center" gap={SPACING.micro}>
         <ToolbarIconButton
@@ -197,7 +184,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
         />
       </FlexRow>
 
-      <GroupDivider />
+      <ToolbarDivider />
 
       <EditorButton
         variant="text"
@@ -260,7 +247,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
           {saving ? "Saving…" : "Save"}
         </EditorButton>
       </FlexRow>
-    </FlexRow>
+    </Toolbar>
   );
 });
 

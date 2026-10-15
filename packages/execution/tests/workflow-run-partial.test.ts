@@ -110,7 +110,11 @@ vi.mock("@nodetool-ai/models", async (importOriginal) => {
     },
     Workspace: { find: vi.fn(async () => null) },
     Job: { create: jobCreate },
-    Asset: { paginate: assetPaginate },
+    Asset: {
+      paginate: assetPaginate,
+      find: vi.fn(async (_userId: string, id: string) => savedAssets.find((row) => row.id === id) ?? null),
+      listByJobNode: vi.fn(async (_userId: string, workflowId: string, nodeId: string, jobId: string) => savedAssets.filter((row) => row.workflow_id === workflowId && row.node_id === nodeId && row.job_id === jobId))
+    },
     Prediction: { create: vi.fn() },
     getSecret: vi.fn(async () => null)
   };
@@ -216,6 +220,20 @@ beforeEach(() => {
 });
 
 describe("runWorkflow with nodeIds", () => {
+  it("reuses a pinned generation outside the newest asset page", async () => {
+    savedAssets.push({ id: "pinned", workflow_id: "wf-1", node_id: "gen", job_id: "old", content_type: "text/plain", size: 9, metadata: { text: "saved cat", generation_index: 0 } });
+    assetPaginate.mockResolvedValueOnce([[], ""]);
+    const gen = graph.nodes.find((node) => node.id === "gen");
+    if (!gen) throw new Error("missing generator");
+    gen.ui_properties = { selected_generation: "pinned" };
+    try {
+      const payload = payloadOf(await run({ nodeIds: ["caption"] }));
+      expect(payload.status).toBe("completed");
+      expect(calls).toEqual(["echo:saved cat"]);
+    } finally {
+      delete gen.ui_properties;
+    }
+  });
   it("refuses an unknown node id before the job row exists", async () => {
     const outcome = await run({ nodeIds: ["caption", "typo"] });
     expect(outcome).toEqual({

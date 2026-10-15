@@ -8,6 +8,8 @@
  *
  * Video exports mix the timeline audio after compositing the picture.
  */
+import { importPack } from "@nodetool-ai/node-catalog";
+
 import type { Command } from "commander";
 import type { TimelineExportDiagnostic } from "@nodetool-ai/video-nodes/nodes/timeline/compositeRender";
 import { printCommandError } from "../command-errors.js";
@@ -272,9 +274,7 @@ async function localAssetResolver(
       await import("@nodetool-ai/config");
     const { ProcessingContext } = await import("@nodetool-ai/runtime");
     const { FileStorageAdapter } = await import("@nodetool-ai/storage");
-    const { AssetFiles } = await import(
-      "@nodetool-ai/video-nodes/nodes/timeline/assetFiles"
-    );
+    const { AssetFiles } = await importPack<typeof import("@nodetool-ai/video-nodes/nodes/timeline/assetFiles")>("video", "@nodetool-ai/video-nodes/nodes/timeline/assetFiles");
     const { checkoutPackageAssetsDir } = await import("../package-assets.js");
     const packageAssets = checkoutPackageAssetsDir();
     initDb(getDefaultDbPath());
@@ -418,15 +418,15 @@ export async function runTimelineRender(
   const path = await import("node:path");
   const { resolveTimelineTarget } = await import("../timeline-debug/target.js");
   const { renderTimelineComposited } =
-    await import("@nodetool-ai/video-nodes/nodes/timeline/compositeRender");
+    await importPack<typeof import("@nodetool-ai/video-nodes/nodes/timeline/compositeRender")>("video", "@nodetool-ai/video-nodes/nodes/timeline/compositeRender");
   const { resolveTimelineOutput } =
-    await import("@nodetool-ai/video-nodes/nodes/timeline/outputFormats");
+    await importPack<typeof import("@nodetool-ai/video-nodes/nodes/timeline/outputFormats")>("video", "@nodetool-ai/video-nodes/nodes/timeline/outputFormats");
   const { encodeRgbaPng } =
-    await import("@nodetool-ai/video-nodes/nodes/timeline/pngSequence");
+    await importPack<typeof import("@nodetool-ai/video-nodes/nodes/timeline/pngSequence")>("video", "@nodetool-ai/video-nodes/nodes/timeline/pngSequence");
   const { mixCompositedTimelineAudio } =
-    await import("@nodetool-ai/video-nodes/nodes/timeline");
+    await importPack<typeof import("@nodetool-ai/video-nodes/nodes/timeline")>("video", "@nodetool-ai/video-nodes/nodes/timeline");
   const { contactSheetLayout, createContactSheet } =
-    await import("@nodetool-ai/video-nodes/nodes/timeline/contactSheet");
+    await importPack<typeof import("@nodetool-ai/video-nodes/nodes/timeline/contactSheet")>("video", "@nodetool-ai/video-nodes/nodes/timeline/contactSheet");
 
   const resolved = await resolveTimelineTarget(ref, { loadSequence });
   const { target, meta } = resolved;

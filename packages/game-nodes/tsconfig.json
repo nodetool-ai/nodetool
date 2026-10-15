@@ -12,6 +12,7 @@
     { "path": "../nodes-utils" },
     { "path": "../audio-nodes" },
     { "path": "../image-nodes" },
+    { "path": "../game-renderer" },
     { "path": "../storage" }
   ]
 }

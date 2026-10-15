@@ -160,12 +160,15 @@ export const useImageSetupFlow = ({
         : undefined,
     [brief, referenceCount, refineModel]
   );
-  // Re-refine also sends the five edited fields back as context.
+  // Re-refine also sends the five edited fields back as context. The brief
+  // exists by now, so the copy describes a second pass, not the first one.
   const reRefineSummary = useMemo<GenerationSummaryProps | undefined>(
     () =>
       refineSummary && refined
         ? {
             ...refineSummary,
+            result: "Re-refine writes a new brief from your edits",
+            next: "It replaces the five fields above. No image is rendered until you generate.",
             brief: `${brief}\n${Object.values(refined).join("\n")}`
           }
         : refineSummary,

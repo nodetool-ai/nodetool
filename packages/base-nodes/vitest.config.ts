@@ -28,6 +28,10 @@ export default defineConfig({
         __dirname,
         "../execution/src/service/index.ts"
       ),
+      "@nodetool-ai/execution/missing-packs": resolve(
+        __dirname,
+        "../execution/src/missing-packs.ts"
+      ),
       "@nodetool-ai/execution": resolve(__dirname, "../execution/src/index.ts"),
       "@nodetool-ai/kernel": resolve(__dirname, "../kernel/src/index.ts"),
       "@nodetool-ai/protocol": resolve(__dirname, "../protocol/src"),

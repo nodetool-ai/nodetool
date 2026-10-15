@@ -13,7 +13,7 @@
  * channel carries no information the colors do not.
  */
 
-import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { loadCanvas } from "@nodetool-ai/runtime";
 
 /** RGBA bytes of a PNG, drawn at `width` × `height`. */
 async function pixelsAt(
@@ -21,6 +21,7 @@ async function pixelsAt(
   width: number,
   height: number
 ): Promise<Uint8ClampedArray> {
+  const { createCanvas, loadImage } = await loadCanvas();
   const image = await loadImage(Buffer.from(png));
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -33,6 +34,7 @@ async function sizeOf(png: Uint8Array): Promise<{
   width: number;
   height: number;
 }> {
+  const { loadImage } = await loadCanvas();
   const image = await loadImage(Buffer.from(png));
   return { width: image.width, height: image.height };
 }
@@ -74,6 +76,7 @@ export async function sideBySide(
   a: Uint8Array,
   b: Uint8Array
 ): Promise<Uint8Array> {
+  const { createCanvas, loadImage } = await loadCanvas();
   const { width, height } = await sizeOf(a);
   const canvas = createCanvas(width * 2 + DIVIDER_PX, height);
   const ctx = canvas.getContext("2d");

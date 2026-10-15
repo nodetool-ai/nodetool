@@ -15,6 +15,9 @@ import {
 import { SUPERSEDED_TOOL_RESULT } from "../src/chat-tool-call-repair.js";
 import { decidePermission, gateFromContext } from "@nodetool-ai/agents";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { BaseNode, NodeRegistry } from "@nodetool-ai/node-sdk";
+import { importPack, readCatalogIndex, readCatalogNodes, MissingPackError, setPackLoaderContext } from "@nodetool-ai/node-catalog";
+import { findMissingPacks } from "@nodetool-ai/execution";
 import {
   makeChatTurnHarness,
   fakeProvider,
@@ -61,6 +64,88 @@ const echoExecutor = (node: {
 describe("run_node through the chat tool router", () => {
   beforeEach(() => {
     initTestDb();
+  });
+
+  it("preserves an installed node's lazy missing-pack failure and continues the chat", async () => {
+    class LazyInstalled extends BaseNode {
+      static readonly nodeType = "test.LazyInstalledPack";
+      static readonly title = "Installed lazy pack fixture";
+      static readonly description = "";
+      static readonly metadataOutputTypes = { output: "str" };
+      async process(): Promise<Record<string, unknown>> {
+        await importPack("game");
+        throw new Error("Missing game pack unexpectedly loaded");
+      }
+    }
+    const registry = new NodeRegistry();
+    registry.register(LazyInstalled);
+    expect(registry.availability(LazyInstalled.nodeType)).toBe("executable");
+    setPackLoaderContext({ coreVersion: readCatalogIndex().coreVersion, packs: [], install: { supported: false, reason: "Test host has no installer", command: null } });
+    const results: unknown[] = [];
+    const resolved: string[] = [];
+    const harness = makeChatTurnHarness({ session: {
+      resolveExecutor: (node) => {
+        resolved.push(node.type);
+        return node.type === LazyInstalled.nodeType ? registry.resolve(node) : echoExecutor(node);
+      },
+      resolveProvider: async () => fakeProvider({ generateLoop: async function* (args: GenerateLoopArgs) {
+        for (const [index, type] of [LazyInstalled.nodeType, "test.Echo"].entries()) {
+          results.push(await args.executeTool?.({ id: `lazy-${index}`, name: "run_node", args: { node_type: type, inputs: { value: "continued" } } }));
+        }
+        yield { type: "chunk", content: "continued", done: true };
+      } })
+    } });
+    const stop = autoApprove(harness);
+    try {
+      await harness.handler.handleChatMessage(chatTurn("installed-lazy-missing-pack"));
+    } finally {
+      stop();
+      setPackLoaderContext(undefined);
+    }
+    expect(JSON.parse(String(results[0]))).toMatchObject({ error: "missing_pack", packs: [{ id: "game" }], runtimeLibraries: ["imaging", "rapier"], restartRequired: false });
+    expect(String(results[1])).toContain("continued");
+    expect(resolved).toEqual([LazyInstalled.nodeType, "test.Echo"]);
+  });
+
+  it("refuses a catalog-only dynamic node before executor resolution and continues the chat", async () => {
+    const registry = new NodeRegistry();
+    const entry = readCatalogNodes().find((node) => node.pack === "huggingface");
+    if (!entry) {
+      throw new Error("Catalog fixture is missing");
+    }
+    registry.loadCatalog([entry]);
+    const results: unknown[] = [];
+    const resolved: string[] = [];
+    const harness = makeChatTurnHarness({
+      session: {
+        resolveExecutor: (node) => { resolved.push(node.type); return echoExecutor(node); },
+        resolveProvider: async () => fakeProvider({
+          generateLoop: async function* (args: GenerateLoopArgs) {
+            for (const [index, type] of [entry.node_type, "test.Echo"].entries()) {
+              results.push(await args.executeTool?.({ id: `dynamic-${index}`, name: "run_node", args: { node_type: type, inputs: { value: "continued" } } }));
+            }
+            yield { type: "chunk", content: "continued", done: true };
+          }
+        })
+      },
+      deps: {
+        beforeRunJob: async (graph) => {
+          const missing = await findMissingPacks(graph, registry);
+          if (missing) {
+            throw new MissingPackError(missing);
+          }
+        }
+      }
+    });
+    const stop = autoApprove(harness);
+    try {
+      await harness.handler.handleChatMessage(chatTurn("dynamic-missing-pack"));
+    } finally {
+      stop();
+    }
+    expect(JSON.parse(String(results[0]))).toMatchObject({ error: "missing_pack", packs: [{ id: "huggingface" }], nodeTypes: [entry.node_type], restartRequired: false });
+    expect(String(results[1])).toContain("continued");
+    expect(resolved).toEqual(["test.Echo"]);
   });
 
   it("runs a single node and returns its output to the provider", async () => {

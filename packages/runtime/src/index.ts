@@ -255,12 +255,14 @@ export {
   MIN_NODETOOL_CORE_VERSION
 } from "@nodetool-ai/protocol/bridge-protocol";
 export {
+  loadSharpOrThrow,
   encodeRawRgbaToPng,
   encodeRawImageRef,
   extractImageRegion,
   rasterizeSvg
 } from "./image-codec.js";
 export type { ImageRegion } from "./image-codec.js";
+export { loadCanvas } from "./canvas-codec.js";
 export { PythonNodeExecutor } from "./python-node-executor.js";
 export {
   connectPythonBridgeForGraph,

@@ -93,3 +93,40 @@ describe("findAttachableTab", () => {
     expect(await findAttachableTab()).toBeNull();
   });
 });
+
+describe("native-host ownership lifecycle", () => {
+  it("finishes a delayed attach before acknowledging its release", async () => {
+    const { CdpRelay } = await import("../cdp-relay.js");
+    let receive!: (frame: unknown) => void;
+    let finishAttach!: () => void;
+    const sent: unknown[] = [];
+    const detached = vi.fn().mockResolvedValue(undefined);
+    tabs = [{ id: 7, url: "https://chatgpt.com/", active: true }];
+    const port = {
+      onMessage: { addListener: (listener: typeof receive) => { receive = listener; } },
+      onDisconnect: { addListener: vi.fn() },
+      postMessage: (frame: unknown) => sent.push(frame)
+    };
+    Object.assign(chrome, {
+      runtime: { id: "own-extension-id", connectNative: () => port },
+      alarms: { create: vi.fn() },
+      debugger: {
+        onEvent: { addListener: vi.fn() }, onDetach: { addListener: vi.fn() },
+        attach: vi.fn(() => new Promise<void>((resolve) => { finishAttach = resolve; })),
+        detach: detached,
+        sendCommand: vi.fn().mockResolvedValue({})
+      }
+    });
+    const relay = new CdpRelay();
+    await relay.start();
+    receive({ kind: "attach", urlMatch: "chatgpt.com" });
+    await vi.waitFor(() => expect(finishAttach).toBeDefined());
+    await expect(relay.attachActiveTab()).rejects.toThrow("owns the tab");
+    receive({ kind: "detach" });
+    expect(detached).not.toHaveBeenCalled();
+    finishAttach();
+    await vi.waitFor(() => expect(sent).toContainEqual({ kind: "detach", reason: "Host detached" }));
+    expect(sent).toContainEqual({ kind: "attached", tabId: 7 });
+    expect(detached).toHaveBeenCalledOnce();
+  });
+});

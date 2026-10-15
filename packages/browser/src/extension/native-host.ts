@@ -10,9 +10,8 @@
  * multiplexes any number of clients onto the one extension:
  *
  *  - `cdp` ids are rewritten per client and restored on the `cdp_result`.
- *  - CDP events, `attached`, `detach` and `error` go to every client.
- *  - The debugger stays attached while any client is attached, and a client
- *    that disconnects counts as detached.
+ *  - Attach requests acquire exclusive ownership in FIFO order.
+ *  - Commands and events belong to that owner until detach or disconnect.
  *  - Heartbeat `ping` frames are answered here.
  */
 
@@ -53,7 +52,10 @@ export class NativeHost {
   private readonly clients = new Map<number, Client>();
   /** Rewritten cdp id → the client and id it came from. */
   private readonly routes = new Map<number, { clientId: number; id: number }>();
-  private lastAttached: Frame | null = null;
+  private owner: Client | null = null;
+  private readonly waiting: Array<{ client: Client; frame: Frame }> = [];
+  private releasing = false;
+  private releaseTimer: ReturnType<typeof setTimeout> | undefined;
   private nextClientId = 1;
   private nextRouteId = 1;
   private closed = false;
@@ -100,6 +102,7 @@ export class NativeHost {
   async close(): Promise<void> {
     if (this.closed) return;
     this.closed = true;
+    clearTimeout(this.releaseTimer);
     for (const client of this.clients.values()) client.socket.destroy();
     this.clients.clear();
     await new Promise<void>((resolve) => this.server.close(() => resolve()));
@@ -119,17 +122,21 @@ export class NativeHost {
         return;
       }
       case "attached":
-        this.lastAttached = frame;
-        this.broadcast(frame);
+        if (this.owner) {
+          this.owner.attached = true;
+          this.sendTo(this.owner.id, frame);
+        }
         return;
       case "detach":
       case "error":
-        this.lastAttached = null;
-        for (const client of this.clients.values()) client.attached = false;
-        this.broadcast(frame);
+        if (this.owner) this.sendTo(this.owner.id, frame);
+        this.owner = null;
+        clearTimeout(this.releaseTimer);
+        this.releasing = false;
+        this.attachNext();
         return;
       default:
-        this.broadcast(frame);
+        if (this.owner?.attached) this.sendTo(this.owner.id, frame);
     }
   }
 
@@ -162,24 +169,25 @@ export class NativeHost {
         this.sendTo(client.id, { kind: "pong", ts: frame.ts });
         return;
       case "cdp": {
+        if (client !== this.owner || !client.attached) {
+          this.sendTo(client.id, { kind: "cdp_result", id: frame.id, error: { message: "Client does not own the browser tab" } });
+          return;
+        }
         const routeId = this.nextRouteId++;
         this.routes.set(routeId, { clientId: client.id, id: frame.id });
         this.toChrome({ ...frame, id: routeId });
         return;
       }
       case "attach":
-        client.attached = true;
-        // A client that names a tab always asks the extension, which may
-        // re-attach; an unqualified attach reuses the live attachment.
-        if (this.lastAttached && frame.urlMatch === undefined) this.sendTo(client.id, this.lastAttached);
-        else this.toChrome(frame);
+        if (client === this.owner || this.waiting.some((entry) => entry.client === client)) return;
+        this.waiting.push({ client, frame });
+        this.attachNext();
         return;
       case "detach":
-        client.attached = false;
-        this.detachIfUnused(typeof frame.reason === "string" ? frame.reason : undefined);
+        this.release(client, typeof frame.reason === "string" ? frame.reason : undefined);
         return;
       default:
-        this.toChrome(frame);
+        if (client === this.owner && client.attached) this.toChrome(frame);
     }
   }
 
@@ -188,16 +196,31 @@ export class NativeHost {
     for (const [routeId, route] of this.routes) {
       if (route.clientId === client.id) this.routes.delete(routeId);
     }
-    if (client.attached) this.detachIfUnused("Client disconnected");
+    this.release(client, "Client disconnected");
   }
 
-  /** Release the debugger once no client wants it. */
-  private detachIfUnused(reason?: string): void {
-    for (const client of this.clients.values()) if (client.attached) return;
-    this.lastAttached = null;
-    const frame: { kind: string; reason?: string } = { kind: "detach" };
-    if (reason) { frame.reason = reason; }
-    this.toChrome(frame);
+  private release(client: Client, reason?: string): void {
+    for (let i = this.waiting.length - 1; i >= 0; i--) {
+      if (this.waiting[i].client === client) this.waiting.splice(i, 1);
+    }
+    if (client !== this.owner || this.releasing) return;
+    this.releasing = true;
+    client.attached = false;
+    this.toChrome({ kind: "detach", reason });
+    this.releaseTimer = setTimeout(() => {
+      for (const entry of this.waiting.splice(0)) {
+        this.sendTo(entry.client.id, { kind: "error", message: "Browser extension did not acknowledge tab release. Update the NodeTool extension and reconnect it." });
+      }
+    }, 5_000);
+    this.releaseTimer.unref();
+  }
+
+  private attachNext(): void {
+    if (this.owner || this.releasing) return;
+    const next = this.waiting.shift();
+    if (!next) return;
+    this.owner = next.client;
+    this.toChrome(next.frame);
   }
 
   private toChrome(frame: unknown): void {
@@ -206,11 +229,6 @@ export class NativeHost {
 
   private sendTo(clientId: number, frame: unknown): void {
     this.clients.get(clientId)?.socket.write(`${JSON.stringify(frame)}\n`);
-  }
-
-  private broadcast(frame: unknown): void {
-    const line = `${JSON.stringify(frame)}\n`;
-    for (const client of this.clients.values()) client.socket.write(line);
   }
 }
 

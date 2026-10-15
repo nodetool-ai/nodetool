@@ -17,4 +17,23 @@ describe("OpenMenu height", () => {
     const paper = screen.getByRole("menu").closest(".MuiPaper-root");
     expect(paper).toHaveStyle({ maxHeight: "calc(100vh - 64px)" });
   });
+
+  it("stops above the status bar", () => {
+    jest
+      .spyOn(document.body, "getBoundingClientRect")
+      .mockReturnValue({ bottom: 47.5 } as DOMRect);
+    const statusBar = document.createElement("div");
+    statusBar.className = "panel-tabbar";
+    statusBar.getBoundingClientRect = () => ({ top: 680 }) as DOMRect;
+    document.body.appendChild(statusBar);
+
+    try {
+      renderOpenMenu();
+
+      const paper = screen.getByRole("menu").closest(".MuiPaper-root");
+      expect(paper).toHaveStyle({ maxHeight: "616px" });
+    } finally {
+      statusBar.remove();
+    }
+  });
 });
