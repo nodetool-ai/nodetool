@@ -173,7 +173,6 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const providers = modelData.providers ?? providersFromModels;
 
-  const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);
   const storedSizeBucket = useModelFiltersStore((s) => s.sizeBucket);
   // The cloud version hides the size filter, so a bucket persisted from a
   // local session must not silently filter its list.
@@ -191,7 +190,6 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const filteredModelsAdvanced = useMemo(() => {
     const filtered = applyAdvancedModelFilters<TModel>(baseModels, {
-      selectedTypes,
       sizeBucket,
       families: []
     });
@@ -204,7 +202,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             : 0;
       return rank(left) - rank(right);
     });
-  }, [baseModels, selectedTypes, sizeBucket]);
+  }, [baseModels, sizeBucket]);
 
   const handleSelectModel = useCallback(
     (model: TModel) => {
