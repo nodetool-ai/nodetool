@@ -11,6 +11,7 @@ import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../stores/NotificationStore";
 import {
   creationProjectId,
+  LOOSE_PROJECT_ID,
   useWorkspaceTabsStore
 } from "../stores/WorkspaceTabsStore";
 import type { Asset, Graph } from "../stores/ApiTypes";
@@ -20,7 +21,7 @@ import { requestFitNode } from "./useFitNodeEvent";
 
 export interface OpenAssetWorkflow {
   /** Open the saved workflow named by `asset.workflow_id`. */
-  openWorkflow: (asset: Asset) => void;
+  openWorkflow: (asset: Asset) => Promise<void>;
   /** Open the run's graph as a new unsaved workflow. */
   openSnapshot: (asset: Asset, snapshot: JobSnapshot) => Promise<void>;
 }
@@ -39,37 +40,47 @@ export const snapshotWorkflowName = (
 export const useOpenAssetWorkflow = (): OpenAssetWorkflow => {
   const navigate = useNavigate();
   const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
+  const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
   const createNew = useWorkflowManager((state) => state.createNew);
-  const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const openForegroundTab = useWorkspaceTabsStore(
     (state) => state.openForegroundTab
   );
-  const setActiveTab = useWorkspaceTabsStore((state) => state.setActiveTab);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
 
+  // The tab must carry the workflow's project and come to the foreground. A
+  // tab opened without a project while another project is active is out of
+  // scope, so the workspace shows nothing and the click looks dead. The
+  // workflow is usually not loaded yet, so fetch it to learn its project.
   const openWorkflow = useCallback(
-    (asset: Asset) => {
+    async (asset: Asset) => {
       const workflowId = asset.workflow_id;
       if (!workflowId) {
         return;
       }
-      const workflow = getWorkflow(workflowId);
-      const tabId = openTab({
+      const workflow = await fetchWorkflow(workflowId, { makeCurrent: false });
+      if (!workflow) {
+        addNotification({
+          type: "warning",
+          alert: true,
+          content: "The workflow that made this asset no longer exists."
+        });
+        return;
+      }
+      openForegroundTab({
         type: "workflow",
         ref: workflowId,
         mode: "edit",
-        ...(workflow?.name && { title: workflow.name }),
-        ...(workflow?.project_id && { projectId: workflow.project_id })
+        title: workflow.name,
+        projectId: workflow.project_id ?? LOOSE_PROJECT_ID
       });
-      setActiveTab(tabId);
       navigate("/workspace");
       if (asset.node_id) {
         requestFitNode({ workflowId, nodeId: asset.node_id });
       }
     },
-    [getWorkflow, navigate, openTab, setActiveTab]
+    [addNotification, fetchWorkflow, navigate, openForegroundTab]
   );
 
   const openSnapshot = useCallback(
