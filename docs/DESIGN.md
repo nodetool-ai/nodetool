@@ -970,6 +970,25 @@ a shadow or lift as the only hover cue, or a second selected treatment. The
 one exception is `SelectableListItem`, whose left bar marks a second,
 dashed state such as a comparison target in version history.
 
+### Cards
+
+A card is always `Card` (from `ui_primitives`), never a hand-built `div` with a
+border, radius and background. One card has one radius, one background
+(`background.paper`) and one `divider` border.
+
+| Use | Primitive |
+|---|---|
+| Content tile or panel | `Card` (`variant="outlined"` for a frame; `radius` is `md` by default, `sm` or `lg` when the surface needs it) |
+| Clickable tile | `Card hoverable clickable`, or `component="button"` for a native button |
+| Card in the chat message stream (approvals, requests, summaries) | `Card variant="inline"`: `lg` radius, no padding, so the rows carry their own. Build it from `CardHeader` (icon, title, subtitle, trailing), `CardBody` and `CardActions` (divider above, wraps) |
+| Tint that carries meaning | `tone="info"` (a proposal to review) or `tone="warning"` (a decision is needed, 3px edge). Never decorative |
+| Labelled figure (costs, storage) | `StatCard`: `label`, `value`, optional `decimal`, `icon`, `delta`, `hint`. `layout="plain"` is the bare stack for a toolbar or hero |
+
+Do not write a card container with `borderRadius`, `border` and
+`backgroundColor` by hand, override a card with `grey[*]` colours, or define
+your own `stat-value` and `stat-label` styles. Row lists inside a dialog
+(`ProviderOnboardingCard`) are rows, not cards.
+
 ---
 
 ## 13. Forms

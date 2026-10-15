@@ -5,8 +5,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import UnfoldLessRoundedIcon from "@mui/icons-material/UnfoldLessRounded";
 import {
-  BORDER_RADIUS,
   Caption,
+  Card,
   CollapsibleSection,
   FlexRow,
   SPACING,
@@ -66,9 +66,6 @@ export const compactionSummary = (content: Message["content"]): string => {
 
 const styles = (theme: Theme) =>
   css({
-    border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
     ".compaction-title": {
       color: theme.vars.palette.text.secondary
     },
@@ -103,7 +100,12 @@ const CompactionCard: React.FC<CompactionCardProps> = ({ content }) => {
   const summary = compactionSummary(content);
 
   return (
-    <div css={cssStyles} className="compaction-card">
+    <Card
+      variant="inline"
+      css={cssStyles}
+      className="compaction-card"
+      sx={{ padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}` }}
+    >
       <CollapsibleSection
         compact
         defaultOpen={false}
@@ -127,7 +129,7 @@ const CompactionCard: React.FC<CompactionCardProps> = ({ content }) => {
           </Caption>
         )}
       </CollapsibleSection>
-    </div>
+    </Card>
   );
 };
 

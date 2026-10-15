@@ -228,8 +228,10 @@ export { Container } from "./Container";
 export type { ContainerProps } from "./Container";
 
 // Surface primitives
-export { Card } from "./Card";
-export type { CardProps } from "./Card";
+export { Card, CardHeader, CardBody, CardActions } from "./Card";
+export type { CardProps, CardHeaderProps } from "./Card";
+export { StatCard } from "./StatCard";
+export type { StatCardProps } from "./StatCard";
 
 export { Panel } from "./Panel";
 export type { PanelProps } from "./Panel";
