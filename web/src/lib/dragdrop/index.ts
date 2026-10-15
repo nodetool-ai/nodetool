@@ -5,6 +5,7 @@ export type {
   SketchDragPayload,
   TimelineDragPayload,
   ExampleDocumentDragPayload,
+  ExampleWorkflowDragPayload,
   DragData,
   DragMetadata,
   DropZoneConfig,

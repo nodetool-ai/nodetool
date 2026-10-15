@@ -3,7 +3,8 @@ import { renderHook, act } from "@testing-library/react";
 import { asMock, stub } from "../../../test-utils/doubles";
 import { useDropHandler } from "../useDropHandler";
 import { useReactFlow } from "@xyflow/react";
-import { useNodes } from "../../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
+import { insertGraphFragment } from "../insertGraphFragment";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import useAuth from "../../../stores/useAuth";
@@ -33,17 +34,24 @@ jest.mock("../../../stores/useAuth");
 jest.mock("../addNodeFromAsset");
 jest.mock("../../../stores/RecentNodesStore");
 jest.mock("../dropHandlerUtils");
+jest.mock("../insertGraphFragment");
 jest.mock("../../../stores/MetadataStore");
 const mockAddExampleModelAsset = jest.fn();
 jest.mock("../../useAddExampleModelAsset", () => ({
   useAddExampleModelAsset: () => mockAddExampleModelAsset
 }));
 const mockInstallExampleTimeline = jest.fn();
+const mockInstallExampleStoryboard = jest.fn();
 jest.mock("../../../trpc/client", () => ({
   trpcClient: {
     timeline: {
       installExample: {
         mutate: (...args: unknown[]) => mockInstallExampleTimeline(...args)
+      }
+    },
+    storyboards: {
+      installExample: {
+        mutate: (...args: unknown[]) => mockInstallExampleStoryboard(...args)
       }
     }
   }
@@ -466,5 +474,105 @@ describe("useDropHandler", () => {
     });
     expect(node.data.title).toBe("Launch Cutdown");
     expect(mockAddNode).toHaveBeenCalledWith(node);
+  });
+  it("installs a dropped example storyboard and adds a node for the copy", async () => {
+    const node = {
+      id: "node-1",
+      data: { properties: {} as Record<string, unknown>, title: "" }
+    };
+    mockGetMetadata.mockReturnValue({ node_type: "nodetool.constant.Storyboard" });
+    mockCreateNode.mockReturnValue(node);
+    mockInstallExampleStoryboard.mockResolvedValue({
+      id: "board-copy",
+      name: "Night Market"
+    });
+    const { result } = renderHook(() => useDropHandler());
+
+    await act(async () => {
+      await result.current.onDrop(
+        exampleDrop({
+          type: "example-storyboard",
+          payload: { slug: "night-market", name: "Night Market" }
+        })
+      );
+    });
+
+    expect(mockInstallExampleStoryboard).toHaveBeenCalledWith({
+      slug: "night-market",
+      projectId: "personal:test"
+    });
+    expect(node.data.properties.value).toEqual({
+      type: "storyboard",
+      id: "board-copy"
+    });
+    expect(node.data.title).toBe("Night Market");
+    expect(mockAddNode).toHaveBeenCalledWith(node);
+  });
+
+  it("pastes a dropped example workflow's nodes and edges at the drop point", async () => {
+    const nodeStore = { getState: () => ({ workflow: { id: "wf-open" } }) };
+    asMock(useNodeStoreRef).mockReturnValue(nodeStore);
+    Object.assign(useMetadataStore, {
+      getState: () => ({ metadata: {}, getMetadata: () => undefined })
+    });
+    const graph = {
+      nodes: [
+        { id: "a", type: "nodetool.constant.String", data: {} },
+        { id: "b", type: "nodetool.output.Output", data: {} }
+      ],
+      edges: [
+        {
+          id: "e1",
+          source: "a",
+          sourceHandle: "output",
+          target: "b",
+          targetHandle: "value"
+        }
+      ]
+    };
+    const { result } = renderHook(() => useDropHandler());
+
+    await act(async () => {
+      await result.current.onDrop(
+        exampleDrop({
+          type: "example-workflow",
+          payload: { name: "Echo", graph }
+        })
+      );
+    });
+
+    expect(insertGraphFragment).toHaveBeenCalledTimes(1);
+    const [store, fragment, at] = asMock(insertGraphFragment).mock.calls[0];
+    expect(store).toBe(nodeStore);
+    expect(fragment.nodes.map((node: { id: string }) => node.id)).toEqual([
+      "a",
+      "b"
+    ]);
+    expect(fragment.edges).toHaveLength(1);
+    expect(at).toEqual({ x: 0, y: 0 });
+  });
+
+  it("accepts copy-only drags such as examples with a copy drop effect", () => {
+    const { result } = renderHook(() => useDropHandler());
+    const dragOver = (effectAllowed: DataTransfer["effectAllowed"]) => {
+      const dataTransfer: Pick<
+        DataTransfer,
+        "types" | "effectAllowed" | "dropEffect"
+      > = {
+        types: ["application/x-nodetool-drag"],
+        effectAllowed,
+        dropEffect: "none"
+      };
+      result.current.onDragOver(
+        stub<React.DragEvent<HTMLDivElement>>({
+          preventDefault: jest.fn(),
+          dataTransfer
+        })
+      );
+      return dataTransfer.dropEffect;
+    };
+
+    expect(dragOver("copy")).toBe("copy");
+    expect(dragOver("all")).toBe("move");
   });
 });

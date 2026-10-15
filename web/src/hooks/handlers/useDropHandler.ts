@@ -7,7 +7,7 @@ import { useFileHandlers } from "./dropHandlerUtils";
 import useAuth from "../../stores/useAuth";
 import { useAddNodeFromAsset } from "./addNodeFromAsset";
 import { FileHandlerResult } from "./dropHandlerUtils";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import {
   deserializeDragData,
   hasExternalFiles,
@@ -24,6 +24,13 @@ import { trpcClient } from "../../trpc/client";
 import { EXAMPLE_SKETCHES } from "../../utils/exampleSketches";
 import { installExampleSketch } from "../../utils/installExampleSketch";
 import { notifyMutationError } from "../../utils/notifyMutationError";
+import { migrateGraphNodeTypes, pruneGraphLinks } from "@nodetool-ai/protocol";
+import type { Graph } from "../../stores/ApiTypes";
+import type { NodeStore } from "../../stores/NodeStore";
+import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
+import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
+import { sanitizeGraph } from "../../core/workflow/graphMapping";
+import { insertGraphFragment } from "./insertGraphFragment";
 
 /** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -33,6 +40,29 @@ const MULTI_NODE_VERTICAL_SPACING = 250;
 const NODES_PER_ROW = 2;
 const CONSTANT_SKETCH_NODE_TYPE = "nodetool.constant.Sketch";
 const CONSTANT_TIMELINE_NODE_TYPE = "nodetool.constant.Timeline";
+const CONSTANT_STORYBOARD_NODE_TYPE = "nodetool.constant.Storyboard";
+
+/** Paste a copy of an example workflow's graph with its first node at `at`. */
+const pasteExampleGraph = (
+  nodeStore: NodeStore,
+  graph: Graph,
+  at: { x: number; y: number }
+): void => {
+  const migrated = migrateGraphNodeTypes(graph);
+  const { workflow } = nodeStore.getState();
+  const { nodes, edges } = sanitizeGraph(
+    (migrated.nodes ?? []).map((node) =>
+      graphNodeToReactFlowNode(workflow, node)
+    ),
+    (migrated.edges ?? []).map(graphEdgeToReactFlowEdge),
+    useMetadataStore.getState().metadata
+  );
+  const links = pruneGraphLinks(
+    new Set(nodes.map((node) => node.id)),
+    migrated.links ?? []
+  );
+  insertGraphFragment(nodeStore, { nodes, edges, links }, at);
+};
 
 function detectFileType(file: File): string {
   const fileName = file.name.toLowerCase();
@@ -110,6 +140,7 @@ export const useDropHandler = (): UseDropHandlerResult => {
   const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addExampleModelAsset = useAddExampleModelAsset();
+  const nodeStore = useNodeStoreRef();
 
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -161,11 +192,11 @@ export const useDropHandler = (): UseDropHandlerResult => {
           return;
         }
 
-        // Sketches and timelines enter the graph as constant nodes that
-        // reference the saved document by id.
+        // Sketches, timelines and storyboards enter the graph as constant
+        // nodes that reference the saved document by id.
         const addDocumentNode = (
           nodeType: string,
-          kind: "sketch" | "timeline",
+          kind: "sketch" | "timeline" | "storyboard",
           id: string,
           title: string
         ): void => {
@@ -257,6 +288,29 @@ export const useDropHandler = (): UseDropHandlerResult => {
           } catch (error) {
             notifyMutationError("add the example timeline", error);
           }
+          return;
+        }
+
+        if (dragData.type === "example-storyboard") {
+          try {
+            const created = await trpcClient.storyboards.installExample.mutate({
+              slug: dragData.payload.slug,
+              projectId: creationProjectId()
+            });
+            addDocumentNode(
+              CONSTANT_STORYBOARD_NODE_TYPE,
+              "storyboard",
+              created.id,
+              created.name
+            );
+          } catch (error) {
+            notifyMutationError("add the example storyboard", error);
+          }
+          return;
+        }
+
+        if (dragData.type === "example-workflow") {
+          pasteExampleGraph(nodeStore, dragData.payload.graph, position);
           return;
         }
 
@@ -408,7 +462,8 @@ export const useDropHandler = (): UseDropHandlerResult => {
       handleGenericFile,
       addNotification,
       getMetadata,
-      addExampleModelAsset
+      addExampleModelAsset,
+      nodeStore
     ]
   );
 
@@ -417,8 +472,10 @@ export const useDropHandler = (): UseDropHandlerResult => {
     event.preventDefault();
     // Use "copy" for external file drops since source apps (like Eagle)
     // may only allow "copy", causing a forbidden cursor if we force "move"
+    // Examples allow only "copy"; a "move" drop effect would refuse them.
     const hasFiles = Array.from(event.dataTransfer.types).includes("Files");
-    event.dataTransfer.dropEffect = hasFiles ? "copy" : "move";
+    const copyOnly = event.dataTransfer.effectAllowed === "copy";
+    event.dataTransfer.dropEffect = hasFiles || copyOnly ? "copy" : "move";
   }, []);
 
   return { onDrop, onDragOver };
