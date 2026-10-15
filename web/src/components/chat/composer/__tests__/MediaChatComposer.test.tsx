@@ -350,6 +350,38 @@ describe("MediaChatComposer", () => {
     );
   });
 
+  it("replaces an untouched seed instead of stacking a second one", async () => {
+    renderComposer(jest.fn());
+
+    act(() => {
+      useChatDraftStore.getState().setDraft(THREAD_ID, "first opener ");
+    });
+    await waitFor(() => expect(promptBox().value).toBe("first opener "));
+
+    act(() => {
+      useChatDraftStore.getState().setDraft(THREAD_ID, "second opener ");
+    });
+    await waitFor(() => expect(promptBox().value).toBe("second opener "));
+  });
+
+  it("keeps an edited seed and adds the next one below it", async () => {
+    const user = userEvent.setup();
+    renderComposer(jest.fn());
+
+    act(() => {
+      useChatDraftStore.getState().setDraft(THREAD_ID, "first opener ");
+    });
+    await waitFor(() => expect(promptBox().value).toBe("first opener "));
+    await user.keyboard("shoes");
+
+    act(() => {
+      useChatDraftStore.getState().setDraft(THREAD_ID, "second opener ");
+    });
+    await waitFor(() =>
+      expect(promptBox().value).toBe("first opener shoes\nsecond opener ")
+    );
+  });
+
   it("ignores a seed parked for another thread", async () => {
     renderComposer(jest.fn());
 

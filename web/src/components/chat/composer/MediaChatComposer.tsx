@@ -362,7 +362,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // A seed parked for this thread lands in the box, whether it was parked
   // before the composer mounted or while it sits open. An empty box takes the
   // seed as-is; a half-written prompt keeps what the user typed and gets the
-  // seed on the next line.
+  // seed on the next line. A box still holding the last seed, untouched, is
+  // replaced, so picking a second starter swaps it instead of stacking both.
+  const lastSeed = useRef<string | null>(null);
   const takeDraft = useChatDraftStore((s) => s.takeDraft);
   const pendingDraft = useChatDraftStore((s) =>
     threadId ? s.drafts[threadId] : undefined
@@ -375,7 +377,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (draft === undefined) {
       return;
     }
-    setPrompt((current) => (current ? `${current}\n${draft}` : draft));
+    setPrompt((current) => {
+      const next =
+        current && current !== lastSeed.current ? `${current}\n${draft}` : draft;
+      lastSeed.current = next;
+      return next;
+    });
     seedCaretPending.current = true;
   }, [pendingDraft, threadId, takeDraft]);
 

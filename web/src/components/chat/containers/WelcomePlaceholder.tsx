@@ -126,6 +126,14 @@ const SUGGESTIONS = [
   "Build a workflow that renders an ad for every …"
 ];
 
+/**
+ * The chip trails off with "…" to show it is unfinished, but the composer gets
+ * the opener without it: the caret lands at the end, and whatever the user
+ * types would otherwise follow the ellipsis.
+ */
+const starterPrompt = (suggestion: string): string =>
+  suggestion.replace(/…$/, "");
+
 // Cloud LLM providers we point first-time users at. Each maps to an API key
 // they can add on the Settings → Models & Providers tab.
 const SETUP_PROVIDERS = [
@@ -163,7 +171,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
 
   const handleClick = useCallback(
     (suggestion: string) => {
-      onSuggestionClick?.(suggestion);
+      onSuggestionClick?.(starterPrompt(suggestion));
     },
     [onSuggestionClick]
   );

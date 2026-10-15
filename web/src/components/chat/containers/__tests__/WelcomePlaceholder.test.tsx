@@ -89,9 +89,11 @@ describe("WelcomePlaceholder", () => {
       screen.getByText("Build a workflow that renders an ad for every …")
     ).toBeInTheDocument();
 
+    // The composer gets the opener without the trailing ellipsis, so what
+    // the user types follows the opener directly.
     fireEvent.click(screen.getByText("Storyboard a 30-second ad for …"));
     expect(onSuggestionClick).toHaveBeenCalledWith(
-      "Storyboard a 30-second ad for …"
+      "Storyboard a 30-second ad for "
     );
   });
 
