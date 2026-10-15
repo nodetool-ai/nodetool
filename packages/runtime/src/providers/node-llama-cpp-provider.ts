@@ -15,7 +15,7 @@ import type {
   ProviderTool,
   ToolCall
 } from "./types.js";
-import { MissingRuntimePackageError, isString } from "@nodetool-ai/protocol";
+import { missingRuntimePackageError, isString } from "@nodetool-ai/protocol";
 
 /**
  * Minimal typed surface of the optional `node-llama-cpp` native binding. The
@@ -163,13 +163,7 @@ async function loadNodeLlamaCpp(): Promise<{
         };
       } catch (err) {
         _modulePromise = null;
-        throw new MissingRuntimePackageError(
-          "The local llama.cpp provider requires the optional 'node-llama-cpp' " +
-            "package, which is not installed. Install it from the Package " +
-            "Manager to run GGUF models in-process.",
-          "node-llama-cpp",
-          { cause: err }
-        );
+        throw missingRuntimePackageError("node-llama-cpp", "node-llama-cpp", err);
       }
     })();
   }

@@ -35,6 +35,7 @@ const SERVER_RUNTIME_LABELS: Record<string, string> = {
 };
 
 interface RuntimePackageStatus {
+  bundled?: boolean;
   id: string;
   name: string;
   description: string;

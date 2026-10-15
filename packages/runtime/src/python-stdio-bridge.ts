@@ -50,8 +50,10 @@ import {
   createLogger,
   getByteLimitEnv,
   safeProcessEnv,
-  safeProcessPlatform
+  safeProcessPlatform,
+  runtimeLocations
 } from "@nodetool-ai/config";
+import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 
 import { PythonBridgeBase } from "./python-bridge-base.js";
 import {
@@ -119,9 +121,7 @@ export class PythonStdioBridge extends PythonBridgeBase {
 
   protected override _assertCanConnect(): void {
     if (isProductionMode() && !PYTHON_BRIDGE_ALLOWED_IN_PRODUCTION) {
-      throw new Error(
-        "Python bridge is disabled in production. Python workers are a local-only feature."
-      );
+      throw missingRuntimePackageError("Python worker", "python");
     }
   }
 
@@ -141,14 +141,9 @@ export class PythonStdioBridge extends PythonBridgeBase {
       }
     }
 
-    throw (
-      lastError ??
-      new Error(
-        candidates.length === 0
-          ? "No Python interpreter found — Python nodes will not be available"
-          : "Failed to start Python worker (stdio)"
-      )
-    );
+    throw missingRuntimePackageError("Python worker", "python", lastError, {
+      reason: lastError && !("code" in lastError && lastError.code === "ENOENT") ? "broken" : "missing"
+    });
   }
 
   /**
@@ -470,21 +465,37 @@ export class PythonStdioBridge extends PythonBridgeBase {
       return [{ command: explicitPythonPath, source: "NODETOOL_PYTHON" }];
     }
 
-    const condaPrefix = safeProcessEnv().CONDA_PREFIX;
+    const env = safeProcessEnv();
+    const candidates: PythonLaunchCandidate[] = [];
+    const condaPrefix = env.CONDA_PREFIX;
     if (condaPrefix && this._looksLikeNodeToolEnv(condaPrefix)) {
       const activeEnvPython =
         safeProcessPlatform() === "win32"
           ? join(condaPrefix, "python.exe")
           : join(condaPrefix, "bin", "python");
       if (existsSync(activeEnvPython)) {
-        return [{ command: activeEnvPython, source: "active CONDA_PREFIX" }];
+        candidates.push({ command: activeEnvPython, source: "active CONDA_PREFIX" });
       }
     }
 
-    return this._getManagedPythonPaths().map((command) => ({
+    const configuredEnv = runtimeLocations().condaEnv;
+    const configuredPython = configuredEnv === null ? null : safeProcessPlatform() === "win32"
+      ? join(configuredEnv, "python.exe") : join(configuredEnv, "bin", "python");
+    if (configuredPython && existsSync(configuredPython)) {
+      const candidate = { command: configuredPython, source: "configured NodeTool env" };
+      if (env.NODETOOL_HOST === "source") { candidates.push(candidate); }
+      else { candidates.unshift(candidate); }
+    }
+    candidates.push(...this._getManagedPythonPaths().map((command) => ({
       command,
       source: "NodeTool-managed env"
-    }));
+    })));
+    const seen = new Set<string>();
+    return candidates.filter((candidate) => {
+      if (seen.has(candidate.command)) { return false; }
+      seen.add(candidate.command);
+      return true;
+    });
   }
 
   private _looksLikeNodeToolEnv(envPath: string): boolean {
@@ -492,6 +503,7 @@ export class PythonStdioBridge extends PythonBridgeBase {
     const envName = basename(envPath).toLowerCase();
     return (
       envName === "nodetool" ||
+      envName === "nodetool_env" ||
       envName === "conda_env" ||
       normalized.includes("/nodetool/conda_env")
     );

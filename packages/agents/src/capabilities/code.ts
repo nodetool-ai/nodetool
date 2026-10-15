@@ -22,6 +22,7 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { MissingRuntimeDetails } from "@nodetool-ai/protocol";
 import { withSpan, recordTraceEvent } from "@nodetool-ai/runtime";
 import { SpanStatusCode } from "@opentelemetry/api";
 import type { RunSandboxOptions } from "../js-sandbox.js";
@@ -112,12 +113,18 @@ async function runCodeBodyImpl(
   const { runInSandbox } = await import("../js-sandbox.js");
 
   const started = Date.now();
-  const fail = (error: string, logs: string[] = []): HarnessRunResult => ({
-    ok: false,
-    error,
-    logs,
-    duration_ms: Date.now() - started
-  });
+  const fail = (error: string, logs: string[] = [], missingRuntime?: MissingRuntimeDetails): HarnessRunResult => {
+    const result: HarnessRunResult = {
+      ok: false,
+      error,
+      logs,
+      duration_ms: Date.now() - started
+    };
+    if (missingRuntime) {
+      result.missingRuntime = missingRuntime;
+    }
+    return result;
+  };
 
   // The same deadline reaches both the guest and in-flight capabilities.
   // Aborting this invocation must not cancel or copy the caller's context.
@@ -226,7 +233,7 @@ async function runCodeBodyImpl(
 
     const logs = result.logs ?? [];
     if (!result.success) {
-      return fail(result.error ?? "Code execution failed", logs);
+      return fail(result.error ?? "Code execution failed", logs, result.missingRuntime);
     }
     if (emitContract) {
       // Without a sink the host accumulates the emits and hands them back in

@@ -22,22 +22,22 @@ function allEnabled(): Record<string, boolean> {
 }
 
 describe("registerBuiltInNodes", () => {
-  it("catalog and registrars cover every built-in pack", () => {
+  it("catalog and registrars cover every built-in pack", async () => {
     const registry = new NodeRegistry();
     // Throws if a catalog id has no registrar.
-    registerBuiltInNodes(registry, { enabledOverrides: allEnabled() });
+    await registerBuiltInNodes(registry, { enabledOverrides: allEnabled() });
     expect(registry.list().length).toBeGreaterThan(0);
     expect(registry.listNodePackageIds()).toEqual(
       expect.arrayContaining(["base", "elevenlabs"])
     );
   });
 
-  it("only registers required and default-enabled packs out of the box", () => {
+  it("only registers required and default-enabled packs out of the box", async () => {
     const everything = new NodeRegistry();
-    registerBuiltInNodes(everything, { enabledOverrides: allEnabled() });
+    await registerBuiltInNodes(everything, { enabledOverrides: allEnabled() });
 
     const defaults = new NodeRegistry();
-    registerBuiltInNodes(defaults, { enabledOverrides: {} });
+    await registerBuiltInNodes(defaults, { enabledOverrides: {} });
 
     // Defaults are a strict subset: opt-in packs (e.g. ElevenLabs) are absent…
     const elevenlabsTypes = everything
@@ -55,24 +55,24 @@ describe("registerBuiltInNodes", () => {
     expect(defaults.list().length).toBeLessThan(everything.list().length);
   });
 
-  it("user overrides enable opt-in packs and disable default ones", () => {
+  it("user overrides enable opt-in packs and disable default ones", async () => {
     const registry = new NodeRegistry();
-    registerBuiltInNodes(registry, {
+    await registerBuiltInNodes(registry, {
       enabledOverrides: { elevenlabs: true, fal: false }
     });
     expect(registry.list().some((t) => t.startsWith("elevenlabs."))).toBe(true);
     expect(registry.list().some((t) => t.startsWith("fal."))).toBe(false);
   });
 
-  it("ignores disabling required packs", () => {
+  it("ignores disabling required packs", async () => {
     const registry = new NodeRegistry();
-    registerBuiltInNodes(registry, { enabledOverrides: { base: false } });
+    await registerBuiltInNodes(registry, { enabledOverrides: { base: false } });
     expect(
       registry.list().some((t) => t.startsWith("nodetool."))
     ).toBe(true);
   });
 
-  it("base pack is marked required in the catalog", () => {
+  it("base pack is marked required in the catalog", async () => {
     expect(
       BUILTIN_NODE_PACKS.find((p) => p.id === "base")?.required
     ).toBe(true);
@@ -80,58 +80,58 @@ describe("registerBuiltInNodes", () => {
 });
 
 describe("applyBuiltinPackEnabled", () => {
-  it("registers and unregisters exactly the pack's node types", () => {
+  it("registers and unregisters exactly the pack's node types", async () => {
     const registry = new NodeRegistry();
-    registerBuiltInNodes(registry, { enabledOverrides: {} });
+    await registerBuiltInNodes(registry, { enabledOverrides: {} });
     const before = registry.list().length;
 
-    applyBuiltinPackEnabled(registry, "elevenlabs", true);
+    await applyBuiltinPackEnabled(registry, "elevenlabs", true);
     const elevenlabsTypes = registry
       .list()
       .filter((t) => t.startsWith("elevenlabs."));
     expect(elevenlabsTypes.length).toBeGreaterThan(0);
 
-    applyBuiltinPackEnabled(registry, "elevenlabs", false);
+    await applyBuiltinPackEnabled(registry, "elevenlabs", false);
     expect(
       registry.list().some((t) => t.startsWith("elevenlabs."))
     ).toBe(false);
     expect(registry.list().length).toBe(before);
   });
 
-  it("disabling kie leaves base's kie.* nodes intact", () => {
+  it("disabling kie leaves base's kie.* nodes intact", async () => {
     // base-nodes also registers types under the `kie.` namespace; live
     // disable must remove only what kie-nodes itself registers.
     const registry = new NodeRegistry();
-    registerBuiltInNodes(registry, { enabledOverrides: { kie: false } });
+    await registerBuiltInNodes(registry, { enabledOverrides: { kie: false } });
     const baseKieTypes = registry
       .list()
       .filter((t) => t.startsWith("kie."));
 
-    applyBuiltinPackEnabled(registry, "kie", true);
-    applyBuiltinPackEnabled(registry, "kie", false);
+    await applyBuiltinPackEnabled(registry, "kie", true);
+    await applyBuiltinPackEnabled(registry, "kie", false);
     expect(registry.list().filter((t) => t.startsWith("kie."))).toEqual(
       baseKieTypes
     );
   });
 
-  it("enabling is idempotent", () => {
+  it("enabling is idempotent", async () => {
     const registry = new NodeRegistry();
-    registerBuiltInNodes(registry, { enabledOverrides: {} });
-    applyBuiltinPackEnabled(registry, "minimax", true);
+    await registerBuiltInNodes(registry, { enabledOverrides: {} });
+    await applyBuiltinPackEnabled(registry, "minimax", true);
     const count = registry.list().length;
-    applyBuiltinPackEnabled(registry, "minimax", true);
+    await applyBuiltinPackEnabled(registry, "minimax", true);
     expect(registry.list().length).toBe(count);
   });
 
-  it("throws for unknown pack ids", () => {
-    expect(() =>
+  it("throws for unknown pack ids", async () => {
+    await expect(
       applyBuiltinPackEnabled(new NodeRegistry(), "nope", true)
-    ).toThrow(/No registrar/);
+    ).rejects.toThrow(/No registrar/);
   });
 });
 
 describe("mergePythonBridgeMetadata", () => {
-  it("adds bridge-only Python nodes with current dynamic and streaming flags", () => {
+  it("adds bridge-only Python nodes with current dynamic and streaming flags", async () => {
     const registry = new NodeRegistry();
     const beforeRevision = registry.revision;
 
@@ -181,7 +181,7 @@ describe("mergePythonBridgeMetadata", () => {
     );
   });
 
-  it("does not overwrite metadata already in the registry", () => {
+  it("does not overwrite metadata already in the registry", async () => {
     const registry = new NodeRegistry();
     registry.loadMetadata("shared.Node", {
       title: "Authoritative TypeScript node",
@@ -224,9 +224,9 @@ describe("applyCloudNodePolicy", () => {
     else process.env[NODE_ENV_VAR] = originalEnv;
   });
 
-  function fullRegistry(): NodeRegistry {
+  async function fullRegistry(): Promise<NodeRegistry> {
     const registry = new NodeRegistry();
-    registerBuiltInNodes(registry, {
+    await registerBuiltInNodes(registry, {
       enabledOverrides: Object.fromEntries(
         BUILTIN_NODE_PACKS.map((p) => [p.id, true])
       )
@@ -297,10 +297,10 @@ describe("applyCloudNodePolicy", () => {
     expect(offenders).toEqual([]);
   }
 
-  it("is a no-op when the cloud profile is off", () => {
+  it("is a no-op when the cloud profile is off", async () => {
     delete process.env[CLOUD_PROFILE_ENV];
     delete process.env[NODE_ENV_VAR];
-    const registry = fullRegistry();
+    const registry = await fullRegistry();
     const before = registry.list().length;
     applyCloudNodePolicy(registry);
     expect(registry.list().length).toBe(before);
@@ -310,26 +310,26 @@ describe("applyCloudNodePolicy", () => {
     );
   });
 
-  it("prunes to the curated surface under NODETOOL_NODE_PROFILE=cloud", () => {
+  it("prunes to the curated surface under NODETOOL_NODE_PROFILE=cloud", async () => {
     delete process.env[NODE_ENV_VAR];
     process.env[CLOUD_PROFILE_ENV] = "cloud";
-    const registry = fullRegistry();
+    const registry = await fullRegistry();
     applyCloudNodePolicy(registry);
     expectCuratedSurface(registry);
   });
 
-  it("prunes to the curated surface in production mode", () => {
+  it("prunes to the curated surface in production mode", async () => {
     delete process.env[CLOUD_PROFILE_ENV];
     process.env[NODE_ENV_VAR] = "production";
-    const registry = fullRegistry();
+    const registry = await fullRegistry();
     applyCloudNodePolicy(registry);
     expectCuratedSurface(registry);
   });
 
-  it("leaves no native file/folder picker in the cloud surface", () => {
+  it("leaves no native file/folder picker in the cloud surface", async () => {
     delete process.env[CLOUD_PROFILE_ENV];
     process.env[NODE_ENV_VAR] = "production";
-    const registry = fullRegistry();
+    const registry = await fullRegistry();
     // The pickers exist before the policy runs — otherwise this guard would
     // pass for the wrong reason.
     expect(registry.list()).toContain("nodetool.input.DocumentFileInput");
@@ -339,7 +339,7 @@ describe("applyCloudNodePolicy", () => {
 });
 
 describe("shared built-in host policy", () => {
-  it("preserves the CLI pack catalog and matches the server for equivalent policy", () => {
+  it("preserves the CLI pack catalog and matches the server for equivalent policy", async () => {
     const cli = new NodeRegistry();
     registerBuiltinPacks(cli, CLI_BUILTIN_PACK_POLICY);
     expect(cli.listNodePackageIds()).toEqual([
@@ -355,7 +355,7 @@ describe("shared built-in host policy", () => {
       "whisper-cpp"
     ]);
     const server = new NodeRegistry();
-    registerBuiltInNodes(server, {
+    await registerBuiltInNodes(server, {
       enabledOverrides: Object.fromEntries(
         BUILTIN_NODE_PACKS.map((pack) => [
           pack.id,
@@ -366,7 +366,7 @@ describe("shared built-in host policy", () => {
     expect(server.list().sort()).toEqual(cli.list().sort());
   });
 
-  it("detects catalog entries without registrars even when disabled", () => {
+  it("detects catalog entries without registrars even when disabled", async () => {
     const pack = {
       id: "missing-test-registrar",
       name: "test",
@@ -385,16 +385,16 @@ describe("shared built-in host policy", () => {
     }
   });
 
-  it("disables a pack using recorded membership without invoking a registrar", () => {
+  it("disables a pack using recorded membership without invoking a registrar", async () => {
     const registry = new NodeRegistry();
-    applyBuiltinPackEnabled(registry, "elevenlabs", true);
+    await applyBuiltinPackEnabled(registry, "elevenlabs", true);
     const registrar = vi.spyOn(registry, "registerPackage");
-    applyBuiltinPackEnabled(registry, "elevenlabs", false);
+    await applyBuiltinPackEnabled(registry, "elevenlabs", false);
     expect(registrar).not.toHaveBeenCalled();
     expect(registry.listNodePackageIds()).not.toContain("elevenlabs");
   });
 
-  it("loads only curated packs for cloud and applies production exclusions", () => {
+  it("loads only curated packs for cloud and applies production exclusions", async () => {
     const registry = new NodeRegistry();
     registerBuiltinPacks(registry, {
       includeOptionalPacks: true,

@@ -80,6 +80,10 @@ describe.skipIf(!shouldRun)("render_animation integration", () => {
     const node = new RenderAnimationNode();
     node.model = triangleModelProp();
     node.__node_id = "anim-node";
+    node.camera_mode = "orbit";
+    node.engine = "eevee";
+    node.samples = 1;
+    node.denoise = false;
     node.width = 160;
     node.height = 120;
     node.frame_start = 1;
@@ -101,19 +105,10 @@ describe.skipIf(!shouldRun)("render_animation integration", () => {
       .filter((msg) => msg.type === "node_progress");
     expect(progress).toHaveLength(5);
 
-    // Re-run through runBlenderJob for the byte-level probe (the node
-    // already proved the same job above).
-    const probed = await runBlenderJob(
-      helper!.context,
-      Buffer.from(triangleModelProp().data, "base64"),
-      animationOp({}),
-      { video: "anim.mp4" },
-      { timeoutMs: 300_000 }
-    );
     const dir = mkdtempSync(join(tmpdir(), "blender-anim-"));
     try {
       const file = join(dir, "anim.mp4");
-      writeFileSync(file, probed.outputs["video"]!);
+      writeFileSync(file, mp4);
       const probe = probeVideo(file);
       expect(probe.frames).toBe(5);
       expect(probe.fps).toBeCloseTo(24, 0);

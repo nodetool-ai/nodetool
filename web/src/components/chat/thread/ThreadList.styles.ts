@@ -131,13 +131,12 @@ export const createStyles = (theme: Theme) =>
       opacity: 0,
       padding: getSpacingPx(SPACING.xs),
       minWidth: "unset",
-      color: theme.vars.palette.grey[200],
-      transition: `${MOTION.opacity}, ${MOTION.transform}`,
+      color: theme.vars.palette.text.secondary,
+      transition: `${MOTION.opacity}, ${MOTION.background}`,
 
       "&:hover": {
         color: theme.vars.palette.error.main,
-        backgroundColor: theme.vars.palette.grey[500],
-        transform: "scale(1.05)"
+        backgroundColor: `rgb(${theme.vars.palette.error.mainChannel} / 0.12)`
       },
 
       svg: { fontSize: FONT_SIZE_SANS.body }

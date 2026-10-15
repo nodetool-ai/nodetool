@@ -22,6 +22,7 @@ import { getTsxWatchCommand } from "./dev-commands.mjs";
 import { ensurePortsFree, findListenerPids } from "./dev-ports.mjs";
 
 const mode = process.argv[2] ?? "server";
+process.env.NODETOOL_HOST ??= "source";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(scriptDir, "..");
 
@@ -76,7 +77,7 @@ const host = process.env.HOST ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? 7777);
 
 const entrypoints = {
-  server: resolve(rootDir, "packages", "websocket", "src", "server.ts"),
+  server: resolve(rootDir, "packages", "server", "src", "main.ts"),
   "test-ui": resolve(rootDir, "packages", "websocket", "src", "test-ui-server.ts"),
 };
 

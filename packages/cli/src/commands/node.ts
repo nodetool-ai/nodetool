@@ -6,7 +6,7 @@
  * Heavy deps (registry + runtime) load lazily inside the action.
  */
 import type { Command } from "commander";
-import { printCommandError } from "../command-errors.js";
+import { printCommandError, commandMissingRuntime } from "../command-errors.js";
 
 interface NodeRunCliOptions {
   props?: string;
@@ -68,6 +68,9 @@ export function registerNodeCommands(program: Command): void {
           runOptions.secretResolver = secretResolver;
         }
         const result = await runSingleNode(nodeType, runOptions);
+        if (!result.ok && commandMissingRuntime(result)) {
+          process.exit(printCommandError(result, opts.json));
+        }
 
         const { printRunJson, previewJson } = await import("../run-json.js");
         if (opts.json) {
@@ -89,8 +92,7 @@ export function registerNodeCommands(program: Command): void {
         }
         process.exit(result.ok ? 0 : 1);
       } catch (e) {
-        printCommandError(e, opts.json);
-        process.exit(1);
+        process.exit(printCommandError(e, opts.json));
       }
     });
 }

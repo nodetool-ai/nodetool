@@ -392,7 +392,7 @@ jobs:
             },
             {
               "check": "harness-gate",
-              "command": "if [ -n \"$CI_BASE_SHA\" ]; then npm run dev:nodetool -- harness gate --base \"$CI_BASE_SHA\" --json --timeout 900; else npm run dev:nodetool -- harness gate --all --json --timeout 900; fi",
+              "command": "if [ -n \"$CI_BASE_SHA\" ]; then npm run dev:nodetool -- harness gate --base \"$CI_BASE_SHA\" --json --jobs 2 --timeout 900 $NODETOOL_HARNESS_INCLUDE_SUITES; else npm run dev:nodetool -- harness gate --all --json --jobs 2 --timeout 900 $NODETOOL_HARNESS_INCLUDE_SUITES; fi",
               "mobile-deps": "false",
               "extra-apt": "mesa-vulkan-drivers ffmpeg",
               "is-test": "false",
@@ -737,7 +737,8 @@ jobs:
           TURBO_SCM_BASE: ${{ inputs.base-sha }}
           TURBO_AFFECTED: ${{ inputs.base-sha != '' && needs.changes.outputs.turbo-affected == 'true' && '--affected' || '' }}
           CI_BASE_SHA: ${{ inputs.base-sha }}
-          # Keep deadline-sensitive harness fixtures isolated from parallel test files.
+          NODETOOL_HARNESS_INCLUDE_SUITES: ${{ inputs.skip-tests && '--include-suites' || '' }}
+          # Each of the two gate jobs runs its test files serially.
           NODETOOL_TEST_WORKERS: ${{ matrix.check == 'harness-gate' && '1' || '' }}
           NODETOOL_CHECK_COMMAND: ${{ matrix.command }}
           NODETOOL_GAME_GOLDEN_ARTIFACTS: ${{ matrix.check == 'harness-gate' && format('{0}/native-game-golden-diagnostics', runner.temp) || '' }}

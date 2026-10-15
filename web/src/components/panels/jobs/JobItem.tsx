@@ -9,8 +9,11 @@ import {
   Tooltip,
   ToolbarIconButton,
   Box,
+  ProgressBar,
   MOTION,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  selectableRowStyles
 } from "../../ui_primitives";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import BoltIcon from "@mui/icons-material/Bolt";
@@ -353,19 +356,24 @@ const JobItem = ({ job }: { job: Job }) => {
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      sx={{
-        px: 1,
-        py: 1,
-        mb: 0.5,
-        borderRadius: BORDER_RADIUS.md,
+      sx={(theme) => ({
+        ...selectableRowStyles(theme),
+        position: "relative",
+        overflow: "hidden",
+        px: SPACING.md,
+        py: SPACING.md,
         cursor: "pointer",
-        backgroundColor: isActive ? "action.selected" : "transparent",
-        transition: `background-color ${MOTION.fast}`,
-        "&:hover": { backgroundColor: "action.hover" }
-      }}
+        // Failed runs keep a faint error wash so they stand out in history.
+        ...(isError && {
+          backgroundColor: alpha(theme.palette.error.main, 0.08),
+          "&:hover": {
+            backgroundColor: alpha(theme.palette.error.main, 0.14)
+          }
+        })
+      })}
     >
       <StatusTile job={job} cancelling={cancelling} />
-      <FlexColumn gap={0.5} sx={{ flex: "0 1 240px", minWidth: 0 }}>
+      <FlexColumn gap={SPACING.micro} sx={{ flex: "1 1 auto", minWidth: 0 }}>
         <FlexRow align="baseline" gap={1} sx={{ minWidth: 0 }}>
           <Text size="small" weight={500} truncate sx={{ minWidth: 0 }}>
             {workflowName}
@@ -376,12 +384,22 @@ const JobItem = ({ job }: { job: Job }) => {
             sx={{ flex: "0 0 auto" }}>{shortId}</Text>
           </Tooltip>
         </FlexRow>
-        <Text size="smaller" color={isError ? "error" : "secondary"} truncate>{metaText}</Text>
+        {isError ? (
+          <Tooltip title={metaText}>
+            <Text size="smaller" color="error" truncate>
+              {metaText}
+            </Text>
+          </Tooltip>
+        ) : (
+          <Text size="smaller" color="secondary" truncate>
+            {metaText}
+          </Text>
+        )}
       </FlexColumn>
-      {/* All outputs, shown inline across the available width. */}
+      {/* Outputs, right-aligned; scrolls sideways when there are many. */}
       <FlexRow
-        gap={0.5}
-        sx={{ flex: "1 1 auto", minWidth: 0, overflowX: "auto", py: 0.5 }}
+        gap={SPACING.micro}
+        sx={{ flex: "0 1 auto", minWidth: 0, overflowX: "auto" }}
       >
         {assets?.map((asset) => (
           <AssetThumb key={asset.id} asset={asset} />
@@ -414,13 +432,21 @@ const JobItem = ({ job }: { job: Job }) => {
           }
           sx={{
             flex: "0 0 auto",
-            color: "error.main",
-            "&:hover": {
-              backgroundColor: "error.light",
-              color: "error.contrastText"
-            }
+            color: "text.secondary",
+            "&:hover": { color: "error.main" }
           }}
         />
+      )}
+      {job.status === "running" && !cancelling && (
+        <Box sx={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
+          <ProgressBar
+            value={0}
+            progressVariant="indeterminate"
+            showValue={false}
+            size="small"
+            aria-label={`Running ${workflowName}`}
+          />
+        </Box>
       )}
     </FlexRow>
   );

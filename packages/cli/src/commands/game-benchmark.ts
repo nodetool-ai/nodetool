@@ -25,6 +25,7 @@ export interface GameBenchmarkReport {
   readonly tickMs: GameBenchmarkPercentiles;
   readonly scriptMs: GameBenchmarkPercentiles;
   readonly scriptCalls: number;
+  readonly physicsCounts: { readonly bodies: GameBenchmarkPercentiles; readonly contacts: GameBenchmarkPercentiles };
   readonly perSystemMs: Readonly<Record<string, GameBenchmarkPercentiles>>;
   readonly perSystemUnavailableReason: null;
   readonly heapDeltaBytes: number;
@@ -51,6 +52,8 @@ export async function benchmarkNativeGame(document: AnyGameDocument, ticks = 120
     const tickSamples: number[] = [];
     const scriptSamples: number[] = [];
     const systemSamples = new Map<string, number[]>();
+    const bodySamples: number[] = [];
+    const contactSamples: number[] = [];
     let scriptCalls = 0;
     for (let index = 0; index < ticks; index++) {
       const start = performance.now();
@@ -59,6 +62,11 @@ export async function benchmarkNativeGame(document: AnyGameDocument, ticks = 120
       if (!result.timings) {
         throw new Error("Missing system timings for measured benchmark tick");
       }
+      if (!result.physics) {
+        throw new Error("Missing physics counts for measured benchmark tick");
+      }
+      bodySamples.push(result.physics.bodies);
+      contactSamples.push(result.physics.contacts);
       for (const timing of result.timings.systems) {
         const samples = systemSamples.get(timing.system);
         if (samples) {
@@ -88,6 +96,7 @@ export async function benchmarkNativeGame(document: AnyGameDocument, ticks = 120
     }
     return { documentId: document.id, seed, ticks, warmupTicks, tickMs: gameBenchmarkPercentiles(tickSamples), scriptMs: gameBenchmarkPercentiles(scriptSamples), scriptCalls,
       perSystemMs: Object.fromEntries([...systemSamples].map(([name, samples]) => [name, gameBenchmarkPercentiles(samples)])), perSystemUnavailableReason: null, heapDeltaBytes,
+      physicsCounts: { bodies: gameBenchmarkPercentiles(bodySamples), contacts: gameBenchmarkPercentiles(contactSamples) },
       allocations: { sampledBytes, ticks: allocationTicks, samplingIntervalBytes, method: "V8 sampling heap profiler with collected allocations included. Statistical byte estimate, excludes WASM allocations" },
       machine: { platform: platform(), architecture: arch(), cpu: cpus()[0]?.model ?? "unknown", node: process.version } };
   } finally {

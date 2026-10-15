@@ -40,6 +40,7 @@ import { useSystemStatsStore } from "../../stores/systemStatsHandler";
 import { useProviderOnboardingStore } from "../../stores/ProviderOnboardingStore";
 import { DIALOG_PREVIEWS } from "./DialogPreviews";
 import PreviewProgressStates from "./ProgressPreviews";
+import PreviewModelPicker from "./ModelPickerPreview";
 
 const CostsDashboard = React.lazy(() => import("../costs/CostsDashboard"));
 const ModelListIndex = React.lazy(
@@ -185,6 +186,12 @@ const PREVIEWS: PreviewEntry[] = [
     label: "Progress States",
     description: "Spinners, progress bars and running steps with sample data",
     viewport: { width: 1440, height: 1100 }
+  },
+  {
+    id: "model-picker",
+    label: "Model Picker",
+    description: "Model picker opened under its select button with sample models",
+    viewport: { width: 760, height: 720 }
   },
   ...Object.entries(DIALOG_PREVIEWS).map(([id, { label }]) => ({
     id,
@@ -788,6 +795,7 @@ const COMPONENT_MAP: Record<string, React.FC> = {
   "provider-onboarding": PreviewProviderOnboarding,
   "form-controls": PreviewFormControls,
   "progress-states": PreviewProgressStates,
+  "model-picker": PreviewModelPicker,
   ...Object.fromEntries(
     Object.entries(DIALOG_PREVIEWS).map(([id, { component }]) => [id, component])
   )

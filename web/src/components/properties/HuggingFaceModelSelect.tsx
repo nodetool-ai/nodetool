@@ -151,7 +151,7 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
     }
 
     return {
-      repoId: "Select HuggingFace Model",
+      repoId: "Select HuggingFace model",
       path: undefined
     };
   }, [currentSelectedModelDetails, value]);
@@ -195,7 +195,7 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
         active={!!(value?.repo_id || value?.id)}
         label={displayInfo.repoId}
         secondaryLabel={displayInfo.path}
-        subLabel="Select HuggingFace Model"
+        subLabel="Select HuggingFace model"
         onClick={handleClick}
       />
       <HuggingFaceModelMenuDialog

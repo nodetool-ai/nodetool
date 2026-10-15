@@ -241,6 +241,9 @@ export async function runOnServer(
     summary,
     trace
   };
+  if (result.missingRuntime) {
+    report.missingRuntime = result.missingRuntime;
+  }
   if (supervisor) {
     report.supervised = {
       provider: supervisor.providerId,

@@ -19,6 +19,7 @@ export interface RuntimeContext {
 }
 
 export interface RuntimeStatus {
+  bundled?: boolean;
   installed: boolean;
   installedVersion?: string;
   latestVersion?: string;
