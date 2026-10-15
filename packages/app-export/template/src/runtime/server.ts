@@ -10,6 +10,8 @@ export interface RunRequest {
   /** What to run: a workflow's or a script's key in `app.bundle.json`. */
   target: { workflow: string } | { script: string };
   params: Record<string, unknown>;
+  operationId: string;
+  propertyOverrides: Record<string, { value: unknown }>;
   jobId: string;
   signal: AbortSignal;
   onMessage: (message: RunMessage) => void;
@@ -23,6 +25,8 @@ export async function runOperation(request: RunRequest): Promise<void> {
     body: JSON.stringify({
       ...request.target,
       params: request.params,
+      operation_id: request.operationId,
+      property_overrides: request.propertyOverrides,
       job_id: request.jobId
     }),
     signal: request.signal

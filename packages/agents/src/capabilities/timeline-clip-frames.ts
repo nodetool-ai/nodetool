@@ -1,4 +1,4 @@
-import { createCanvas, ImageData } from "@napi-rs/canvas";
+import { loadCanvas } from "@nodetool-ai/runtime";
 import {
   loadMediaRefBytes,
   type ProcessingContext
@@ -91,6 +91,7 @@ export async function inspectTimelineClipFrames(
     dataUrl: string;
     complete: boolean;
   }> = [];
+  const { createCanvas, ImageData } = await loadCanvas();
   await forEachVideoFrame(bytes, timestamps, (frame) => {
     const height = Math.max(
       1,

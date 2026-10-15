@@ -4,12 +4,35 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { importWorkflowFile } from "../src/workflow-file.js";
+import { spawnSync } from "node:child_process";
+import { resolve } from "node:path";
 
 let root: string;
 beforeEach(async () => { root = await mkdtemp(join(tmpdir(), "nodetool-dsl-")); });
 afterEach(async () => { vi.restoreAllMocks(); await rm(root, { recursive: true, force: true }); });
 
 describe("in-process DSL loading", () => {
+  it("maps a DSL import of an absent catalog package to missing_pack JSON and exit3", async () => {
+    const file = join(root, "missing-fal.ts");
+    const hook = join(root, "hide-fal.mjs");
+    await writeFile(file, 'import "@nodetool-ai/fal-nodes"; export default { nodes: [], edges: [] };');
+    await writeFile(hook, `import { registerHooks } from 'node:module';
+registerHooks({ resolve(specifier, context, next) {
+  if (specifier === '@nodetool-ai/fal-nodes') {
+    const error = new Error("Cannot find package '@nodetool-ai/fal-nodes' imported from " + context.parentURL);
+    error.code = 'ERR_MODULE_NOT_FOUND'; throw error;
+  }
+  return next(specifier, context);
+} });`);
+    const code = `import { importWorkflowFile } from './packages/cli/src/workflow-file.ts';
+import { printCommandError } from './packages/cli/src/command-errors.ts';
+try { await importWorkflowFile(${JSON.stringify(file)}); } catch (error) { process.exit(printCommandError(error, true)); }`;
+    const child = spawnSync(process.execPath, ["--import", hook, "--import", "tsx", "--input-type=module", "--eval", code], {
+      cwd: resolve(import.meta.dirname, "../../.."), encoding: "utf8", timeout: 30_000
+    });
+    expect(child.status, child.stderr).toBe(3);
+    expect(JSON.parse(child.stdout)).toMatchObject({ error: "missing_pack", packs: [{ id: "fal" }] });
+  }, 40_000);
   it("loads TypeScript exports from paths containing shell syntax", async () => {
     const file = join(root, 'workflow $(echo unsafe).ts');
     await writeFile(file, 'const nodes: unknown[] = []; export default { nodes, edges: [] };');

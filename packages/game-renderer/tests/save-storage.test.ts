@@ -6,10 +6,11 @@ import { createIndexedDbGameSaveStorage, createLocalGameSaveStorage, loadQuickSa
 /** The IndexedDB surface the adapter uses, backed by one shared map per database name. Callbacks fire asynchronously. */
 function fakeIndexedDb(): { factory: IDBFactory; rows: Map<string, unknown> } {
   const rows = new Map<string, unknown>();
-  const request = <T>(produce: () => T, transaction?: { pending: number; done(): void }) => {
+  let tail = Promise.resolve();
+  const request = <T>(produce: () => T, transaction?: { ready: Promise<void>; pending: number; done(): void }) => {
     const handle = { result: undefined as T | undefined, error: null, onsuccess: null as null | (() => void), onerror: null as null | (() => void) };
     if (transaction) { transaction.pending += 1; }
-    queueMicrotask(() => {
+    void (transaction?.ready ?? Promise.resolve()).then(() => {
       handle.result = produce();
       handle.onsuccess?.();
       if (transaction) { transaction.pending -= 1; transaction.done(); }
@@ -19,9 +20,12 @@ function fakeIndexedDb(): { factory: IDBFactory; rows: Map<string, unknown> } {
   const database = {
     createObjectStore: () => undefined,
     transaction: () => {
+      const ready = tail;
+      let release = (): void => undefined;
+      tail = new Promise<void>(resolve => { release = resolve; });
       const transaction = {
-        pending: 0, oncomplete: null as null | (() => void), onerror: null, onabort: null, error: null,
-        done() { if (this.pending === 0) { queueMicrotask(() => transaction.oncomplete?.()); } },
+        ready, pending: 0, oncomplete: null as null | (() => void), onerror: null, onabort: null, error: null,
+        done() { if (this.pending === 0) { queueMicrotask(() => { transaction.oncomplete?.(); release(); }); } },
         objectStore: () => ({
           get: (key: string) => request(() => structuredClone(rows.get(key)), transaction),
           put: (value: unknown, key: string) => request(() => { rows.set(key, structuredClone(value)); return key; }, transaction),
@@ -75,6 +79,16 @@ describe.each([
     expect(await first.load("progress", "main")).toBeNull();
     expect(await first.slots("settings")).toEqual(["main"]);
     expect(await second.slots("progress")).toEqual(["main"]);
+  });
+
+  it("enforces the slot limit across independent players sharing storage", async () => {
+    const backing = shared();
+    const first = new GamePlayerSaves(create("concurrent", backing as never));
+    const second = new GamePlayerSaves(create("concurrent", backing as never));
+    for (let i = 0; i < 15; i++) { await first.save("progress", `slot${i}`, {}); }
+    const results = await Promise.allSettled([first.save("progress", "first", {}), second.save("progress", "second", {})]);
+    expect(results.filter(result => result.status === "fulfilled")).toHaveLength(1);
+    expect(await first.slots("progress")).toHaveLength(16);
   });
 
   it("delivers a script load through the host loop on the next frame", async () => {
@@ -167,4 +181,24 @@ describe("quick save migration", () => {
     await expect(loadQuickSave(saves, "quicksave", { storage: web, key: legacyKey })).rejects.toThrow(SyntaxError);
     expect(web.getItem(legacyKey)).toBe("{not json");
   });
+});
+
+it("limits slots across local storage player instances", async () => {
+  const web = memoryWebStorage();
+  const first = new GamePlayerSaves(createLocalGameSaveStorage("g", web));
+  const second = new GamePlayerSaves(createLocalGameSaveStorage("g", web));
+  for (let i = 0; i < 15; i++) { await first.save("progress", `slot${i}`, {}); }
+  const results = await Promise.allSettled([first.save("progress", "first", {}), second.save("progress", "second", {})]);
+  expect(results.filter(result => result.status === "fulfilled")).toHaveLength(1);
+  expect(await first.slots("progress")).toHaveLength(16);
+});
+
+it("does not overwrite an acknowledged save during legacy migration", async () => {
+  const web = memoryWebStorage();
+  web.setItem("legacy", JSON.stringify({ tick: 42 }));
+  const saves = new GamePlayerSaves(createLocalGameSaveStorage("g", web));
+  const loading = loadQuickSave(saves, "quicksave", { storage: web, key: "legacy" });
+  await saves.save("progress", "quicksave", { level: 999 });
+  expect((await loading)?.data).toEqual({ level: 999 });
+  expect(web.getItem("legacy")).not.toBeNull();
 });

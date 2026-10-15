@@ -1,14 +1,6 @@
 import React, { memo } from "react";
-import { useTheme } from "@mui/material/styles";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
-import {
-  Box,
-  FlexRow,
-  FlexColumn,
-  Text,
-  BORDER_RADIUS,
-  SPACING
-} from "../ui_primitives";
+import { Box, StatCard, BORDER_RADIUS } from "../ui_primitives";
 
 interface CostStatCardProps {
   label: string;
@@ -32,116 +24,37 @@ interface CostStatCardProps {
 
 const CostStatCardInternal: React.FC<CostStatCardProps> = ({
   label,
-  icon: Icon,
+  icon,
   value,
   decimal,
   valueDotColor,
   caption,
   badge,
   valueVariant = "metric"
-}) => {
-  const isLabel = valueVariant === "label";
-  const theme = useTheme();
-  return (
-    <FlexColumn
-      gap={SPACING.sm}
-      sx={{
-        flex: "1 1 0",
-        minWidth: 200,
-        padding: theme.spacing(4, 6),
-        borderRadius: BORDER_RADIUS.xxl,
-        backgroundColor: theme.vars.palette.background.paper,
-        border: `1px solid ${theme.vars.palette.divider}`
-      }}
-    >
-      <FlexRow justify="space-between" align="center">
-        <Text
-          size="smaller"
-          weight={600}
+}) => (
+  <StatCard
+    label={label}
+    icon={icon}
+    value={value}
+    decimal={decimal}
+    valueVariant={valueVariant}
+    valueAdornment={
+      valueDotColor ? (
+        <Box
           sx={{
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: theme.vars.palette.text.secondary
+            width: 11,
+            height: 11,
+            borderRadius: BORDER_RADIUS.sm,
+            backgroundColor: valueDotColor,
+            flexShrink: 0
           }}
-        >
-          {label}
-        </Text>
-        <FlexRow
-          align="center"
-          justify="center"
-          sx={{
-            width: 26,
-            height: 26,
-            borderRadius: BORDER_RADIUS.lg,
-            backgroundColor: theme.vars.palette.action.hover,
-            color: theme.vars.palette.text.disabled
-          }}
-        >
-          <Icon sx={{ fontSize: 15 }} />
-        </FlexRow>
-      </FlexRow>
-
-      <FlexRow
-        gap={SPACING.xs}
-        align={isLabel ? "flex-start" : "center"}
-        sx={{ minWidth: 0 }}
-      >
-        {valueDotColor && (
-          <Box
-            sx={{
-              width: 11,
-              height: 11,
-              borderRadius: BORDER_RADIUS.sm,
-              backgroundColor: valueDotColor,
-              flexShrink: 0,
-              mt: isLabel ? SPACING.md : 0
-            }}
-          />
-        )}
-        <Text
-          component="span"
-          sx={{
-            fontSize: isLabel ? "1.25rem" : "2rem",
-            lineHeight: isLabel ? 1.2 : 1.05,
-            fontWeight: 600,
-            color: theme.vars.palette.text.primary,
-            minWidth: 0,
-            ...(isLabel && {
-              wordBreak: "break-word",
-              overflowWrap: "anywhere"
-            })
-          }}
-        >
-          {value}
-          {decimal && (
-            <Text
-              component="span"
-              sx={{
-                fontSize: "var(--fontSizeBig)",
-                fontWeight: 600,
-                color: theme.vars.palette.text.disabled
-              }}
-            >
-              {decimal}
-            </Text>
-          )}
-        </Text>
-      </FlexRow>
-
-      <FlexRow
-        gap={SPACING.xs}
-        align="center"
-        sx={{ rowGap: SPACING.micro }}
-        wrap
-      >
-        {badge}
-        <Text size="small" color="secondary">
-          {caption}
-        </Text>
-      </FlexRow>
-    </FlexColumn>
-  );
-};
+        />
+      ) : undefined
+    }
+    delta={badge}
+    hint={caption}
+  />
+);
 
 export const CostStatCard = memo(CostStatCardInternal);
 CostStatCard.displayName = "CostStatCard";

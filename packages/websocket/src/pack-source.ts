@@ -1,6 +1,15 @@
-import { randomUUID } from "node:crypto";
-import type { BuiltinNodePack } from "@nodetool-ai/protocol";
-import type { BuiltinPackPolicy, NodeRegistry } from "@nodetool-ai/node-sdk";
+import { BUILTIN_NODE_PACKS, type BuiltinNodePack } from "@nodetool-ai/protocol";
+import { builtinPackUnavailableReason, type BuiltinPackPolicy, type NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  catalogPackIdsForBuiltin,
+  importPack,
+  MissingPackError,
+  readCatalogNodes,
+  registerAvailablePacks,
+  registerCatalogPack
+} from "@nodetool-ai/node-catalog";
+import { createLogger } from "@nodetool-ai/config";
+import * as agentsModule from "@nodetool-ai/agents";
 
 export interface PackSource {
   readonly register: (
@@ -20,7 +29,8 @@ export interface PackSource {
   readonly registerProviders: (policy: BuiltinPackPolicy) => void | Promise<void>;
 }
 
-let bundledSource: Promise<PackSource> | undefined;
+const log = createLogger("nodetool.websocket.pack-source");
+let catalogSource: PackSource | undefined;
 let hostSource: PackSource | undefined;
 
 /** Share the host's source with headless services that create their own registry. */
@@ -28,38 +38,75 @@ export function setDefaultPackSource(source: PackSource): void {
   hostSource = source;
 }
 
-function importAttemptUrl(resolved: string): string {
-  const url = new URL(resolved);
-  // Node retains failed ESM initialization jobs. A retry needs a fresh entry.
-  url.searchParams.set("nodetool-source-attempt", randomUUID());
-  return url.href;
-}
-
-async function importBundledSource(): Promise<PackSource> {
-  let resolved: string;
+async function optionalPack<T extends object>(id: string, specifier?: string): Promise<T | undefined> {
   try {
-    // Resolve only this package here. Errors in a resolved source must propagate.
-    resolved = import.meta.resolve("@nodetool-ai/server");
+    return await importPack<T>(id, specifier);
   } catch (error) {
-    if (!(error instanceof Error && "code" in error && error.code === "ERR_MODULE_NOT_FOUND")) {
+    if (!(error instanceof MissingPackError)) {
       throw error;
     }
-    const fallback = import.meta.resolve("@nodetool-ai/base-nodes/server-pack-source");
-    const module: { readonly createBundledPackSource: () => PackSource } = await import(importAttemptUrl(fallback));
-    return module.createBundledPackSource();
+    log.info("Optional node pack is unavailable", { ...error.details, message: error.message });
+    return undefined;
   }
-  const module: { readonly bundledPackSource: PackSource } = await import(importAttemptUrl(resolved));
-  return module.bundledPackSource;
 }
 
-/** Temporary compatibility source until the catalog-backed entry lands in A2. */
+/** Standalone servers load resolvable packs. Bundled servers inject their source. */
+export function createCatalogPackSource(): PackSource {
+  const missing = new Set<string>();
+  const refreshAvailability = (registry: NodeRegistry): void => {
+    missing.clear();
+    for (const entry of readCatalogNodes()) {
+      if (registry.availability(entry.node_type) === "catalog") {
+        missing.add(entry.pack);
+      }
+    }
+  };
+  return {
+    register: async (registry, policy, onSkipped): Promise<void> => {
+      for (const pack of BUILTIN_NODE_PACKS) {
+        const reason = builtinPackUnavailableReason(pack, policy);
+        if (reason) onSkipped?.(pack, reason);
+      }
+      await registerAvailablePacks(registry, policy);
+      refreshAvailability(registry);
+    },
+    setEnabled: async (registry, id, enabled): Promise<void> => {
+      const ids = new Set(catalogPackIdsForBuiltin(id));
+      if (enabled) {
+        for (const packId of ids) {
+          await registerCatalogPack(registry, packId);
+        }
+      } else {
+        for (const metadata of registry.listMetadata()) {
+          const packageId = registry.getNodePackageId(metadata.node_type);
+          if (packageId && ids.has(packageId)) {
+            registry.unregister(metadata.node_type);
+          }
+        }
+      }
+      refreshAvailability(registry);
+    },
+    unavailableReason: (pack, policy): string | undefined =>
+      builtinPackUnavailableReason(pack, policy) ??
+      (catalogPackIdsForBuiltin(pack.id).some((id) => missing.has(id)) ? "node pack is not installed" : undefined),
+    registerProviders: async (policy): Promise<void> => {
+      const code = await optionalPack<typeof import("@nodetool-ai/code-nodes")>("code");
+      code?.setCodeNodeAgentsModule(agentsModule);
+      if (!policy.production) {
+        const transformers = await optionalPack<typeof import("@nodetool-ai/transformers-js-provider")>("transformers-js", "@nodetool-ai/transformers-js-provider");
+        transformers?.registerTransformersJsProvider();
+        const whisper = await optionalPack<typeof import("@nodetool-ai/whisper-cpp")>("whisper-cpp");
+        whisper?.registerWhisperCppProviders();
+      }
+    }
+  };
+}
+
+/** Retained public name for hosts that request the default source. */
 export function loadBundledPackSource(): Promise<PackSource> {
   if (hostSource) {
     return Promise.resolve(hostSource);
   }
-  bundledSource ??= importBundledSource().catch((error: unknown) => {
-    bundledSource = undefined;
-    throw error;
-  });
-  return bundledSource;
+  catalogSource ??= createCatalogPackSource();
+  return Promise.resolve(catalogSource);
 }

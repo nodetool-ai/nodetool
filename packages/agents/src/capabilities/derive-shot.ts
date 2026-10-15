@@ -10,7 +10,7 @@
  * directly above the source clip, over the same span.
  */
 
-import { createCanvas, ImageData } from "@napi-rs/canvas";
+import { loadCanvas } from "@nodetool-ai/runtime";
 import {
   loadMediaRefBytes,
   type ProcessingContext
@@ -64,6 +64,7 @@ export async function captureDerivedFrames(
   if (!bytes?.length) {
     throw new Error(`Could not load the footage of clip "${clip.name}".`);
   }
+  const { createCanvas, ImageData } = await loadCanvas();
   const timesMs = derivedFrameTimesMs(clip, count);
   const frames: DerivedFrame[] = [];
   await forEachVideoFrame(

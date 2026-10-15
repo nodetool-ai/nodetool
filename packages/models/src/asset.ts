@@ -371,6 +371,20 @@ export class Asset extends DBModel {
     return rows.map((row) => new Asset(row));
   }
 
+  /** All saved outputs for one node and job, newest first. */
+  static async listByJobNode(
+    userId: string,
+    workflowId: string,
+    nodeId: string,
+    jobId: string
+  ): Promise<Asset[]> {
+    const rows = await getPortableDb().select().from(assets).where(and(
+      eq(assets.user_id, userId), eq(assets.workflow_id, workflowId),
+      eq(assets.node_id, nodeId), eq(assets.job_id, jobId)
+    )).orderBy(desc(assets.created_at));
+    return rows.map((row) => new Asset(row));
+  }
+
   /** Get children of a folder. */
   static async getChildren(
     userId: string,

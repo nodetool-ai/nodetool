@@ -42,6 +42,12 @@ export const RUNTIME_NPM_PACKAGES = {
     description: "JavaScript and TypeScript sandbox dependency builds.",
     bundledHosts: ["desktop", "docker"]
   },
+  rapier: {
+    npmPackages: ["@dimforge/rapier3d-compat@0.19.3"],
+    packageNames: ["@dimforge/rapier3d-compat"],
+    description: "Physics simulation for 3D games.",
+    bundledHosts: ["desktop", "docker"]
+  },
   "transformers-js": {
     // 3.x, not 4.x: kokoro-js 1.2.1 requires @huggingface/transformers
     // ^3.5.1. With 4.x installed npm nested a second 3.x copy under

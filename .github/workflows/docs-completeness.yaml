@@ -36,6 +36,7 @@ jobs:
         run: node .github/scripts/agent-preflight.mjs --name docs-completeness --title "$TITLE_PATTERN"
 
   docs-completeness:
+    cache-mode: read
     needs: preflight
     if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest

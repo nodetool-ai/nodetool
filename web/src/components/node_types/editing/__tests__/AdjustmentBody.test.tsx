@@ -60,7 +60,7 @@ jest.mock("../../../ui_primitives", () => ({
         data-step={props.step as number}
         data-value={props.value as number}
         data-changed={String(props.changed)}
-        data-track={String(props.track)}
+        data-origin={String(props.origin)}
       />
     );
   }
@@ -210,22 +210,9 @@ describe("AdjustmentBody", () => {
         .getAllByTestId("node-slider")
         .find((s) => s.getAttribute("aria-label") === label)!;
 
-    const brightness = byLabel("Brightness adjustment");
-    expect(brightness.getAttribute("data-track")).toBe("false"); // native fill off
-    const brightnessWrap = brightness.closest(".slider-wrap")!;
-    expect(brightnessWrap.classList.contains("is-bipolar")).toBe(true);
-
-    // value 0.5 in [-1,1] → centre at 50%, thumb at 75% → fill left 50% width 25%.
-    const fill = brightnessWrap.querySelector(".bipolar-fill") as HTMLElement;
-    expect(fill.style.left).toBe("50%");
-    expect(fill.style.width).toBe("25%");
-    expect(brightnessWrap.querySelector(".center-tick")).not.toBeNull();
-
-    const contrast = byLabel("Contrast adjustment");
-    expect(contrast.getAttribute("data-track")).toBe("normal");
-    const contrastWrap = contrast.closest(".slider-wrap")!;
-    expect(contrastWrap.classList.contains("is-bipolar")).toBe(false);
-    expect(contrastWrap.querySelector(".bipolar-fill")).toBeNull();
+    // Bipolar: the primitive fills outward from the neutral 0.
+    expect(byLabel("Brightness adjustment").getAttribute("data-origin")).toBe("0");
+    expect(byLabel("Contrast adjustment").getAttribute("data-origin")).toBe("undefined");
     expect(container).toBeTruthy();
   });
 

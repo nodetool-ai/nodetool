@@ -28,7 +28,8 @@ import type {
   ApprovalRequest,
   PermissionGateOptions
 } from "@nodetool-ai/agents";
-import { registerAgentMcpTools } from "../src/mcp-agent-tools.js";
+import { registerAgentMcpTools, toToolResponse } from "../src/mcp-agent-tools.js";
+import { createMissingPackError } from "@nodetool-ai/node-catalog";
 
 const scope = { userId: "1", source: "stdio-local" as const };
 
@@ -201,4 +202,14 @@ describe("MCP capability renderer routing", () => {
       }
     });
   }
+});
+describe("MCP missing-pack transport", () => {
+  it("returns structured error content and requests a running MCP server restart", () => {
+    const missing = createMissingPackError("fal", ["fal.Fixture"]);
+    const response = toToolResponse(missing);
+    expect(response.isError).toBe(true);
+    expect(response.structuredContent).toMatchObject({ error: "missing_pack", packs: [{ id: "fal" }], nodeTypes: ["fal.Fixture"], restartRequired: true });
+    expect(JSON.parse(response.content[0].text)).toEqual(response.structuredContent);
+    expect(toToolResponse({ ok: true, result: missing.details })).toEqual(response);
+  });
 });

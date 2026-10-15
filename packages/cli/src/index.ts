@@ -30,12 +30,13 @@ import {
   DEFAULT_MODELS,
   KNOWN_PROVIDERS
 } from "./providers.js";
-import { initDb } from "@nodetool-ai/models";
+import { initDb, migrateSqliteDb } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { buildFullRegistry } from "./node-registry.js";
 import { initializeCliRuntime } from "./runtime-env.js";
+import { configureCliPackHost } from "./packs/host.js";
 
 // Configure logging: in interactive mode, suppress non-error logs to a file
 // so they don't interfere with the Ink TUI. Env vars can still override.
@@ -55,6 +56,7 @@ if (!process.env["NODETOOL_LOG_FILE"]) {
 configureLogging();
 // Optional imports fall back to the root `nodetool runtime add` installs into.
 initializeCliRuntime(import.meta.url);
+configureCliPackHost(import.meta.url);
 
 program
   .name("nodetool-chat")
@@ -176,7 +178,9 @@ function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
 }
 
 try {
-  initDb(getDefaultDbPath());
+  const dbPath = getDefaultDbPath();
+  await migrateSqliteDb(dbPath);
+  initDb(dbPath);
 } catch {
   // DB unavailable — secret lookups will fall back to env vars
 }
@@ -235,7 +239,7 @@ const enabledTools = opts.tools
 // when running locally (no --url): the server has its own.
 const cliRegistry: NodeRegistry | undefined = opts.url
   ? undefined
-  : buildFullRegistry();
+  : await buildFullRegistry();
 
 // Build configured providers unconditionally so `find_model` and the
 // media-generation tools (generate_image, generate_speech, etc.) are

@@ -1,6 +1,5 @@
 import { FileUserManager } from "@nodetool-ai/auth";
 
-const manager = new FileUserManager();
 
 /**
  * Check if a user ID has admin privileges: user "1" (the Local-mode user),
@@ -18,5 +17,5 @@ export async function isAdmin(userId: string): Promise<boolean> {
   ) {
     return true;
   }
-  return (await manager.getUserById(userId))?.role === "admin";
+  return (await new FileUserManager().getUserById(userId))?.role === "admin";
 }

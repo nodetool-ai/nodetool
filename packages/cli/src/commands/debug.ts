@@ -21,9 +21,11 @@ import {
   type SupervisorCliOptions
 } from "../supervisor.js";
 import { numericOptionParser } from "../numeric-options.js";
-import { printCommandError, commandMissingRuntime } from "../command-errors.js";
+import { printCommandError, commandMissingRuntime, commandMissingPack } from "../command-errors.js";
+import { installMissingPacksAndReexec } from "./install-missing-packs.js";
 
 interface DebugCliOptions extends SupervisorCliOptions {
+  installMissing?: boolean;
   server?: boolean;
   browser?: boolean;
   trace?: boolean;
@@ -43,6 +45,7 @@ export function registerDebugCommands(program: Command): void {
         "Run a workflow end-to-end (server and/or browser) and collect a full debug bundle"
       )
       .option("--no-server", "Skip the headless server surface")
+      .option("--install-missing", "Authorize missing node pack installation, then re-execute once")
       .option(
         "--browser",
         "Also run the workflow in a real browser (Playwright) — expensive"
@@ -125,7 +128,9 @@ export function registerDebugCommands(program: Command): void {
         });
 
       const report = await runOnce();
-      if (!report.verdict.ok && commandMissingRuntime(report)) {
+      if (!report.verdict.ok && (commandMissingRuntime(report) || commandMissingPack(report))) {
+        const exit = await installMissingPacksAndReexec(report, { command: "debug", installMissing: opts.installMissing });
+        if (exit !== null) { process.exit(exit); }
         process.exit(printCommandError(report, opts.json));
       }
       if (opts.json) {
@@ -158,6 +163,8 @@ export function registerDebugCommands(program: Command): void {
       });
       process.exit(0);
     } catch (e) {
+      const exit = await installMissingPacksAndReexec(e, { command: "debug", installMissing: opts.installMissing });
+      if (exit !== null) { process.exit(exit); }
       process.exit(printCommandError(e, opts.json));
     }
   });

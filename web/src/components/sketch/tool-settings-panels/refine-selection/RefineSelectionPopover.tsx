@@ -23,7 +23,6 @@ import {
   Slider
 } from "../../../ui_primitives";
 import type { PopoverProps } from "../../../ui_primitives";
-import { sketchSliderSx } from "../../sketchStyles";
 import { cloneSelectionMask, MAX_SELECTION_FEATHER_RADIUS } from "../../selection";
 import type { SelectSettings, Selection } from "../../types";
 import { useSketchStore } from "../../state";
@@ -79,7 +78,6 @@ const RefineRow = memo(function RefineRow({
       {value !== null && min !== undefined && max !== undefined && onChange ? (
         <>
           <Slider
-            sx={sketchSliderSx}
             size="small"
             min={min}
             max={max}

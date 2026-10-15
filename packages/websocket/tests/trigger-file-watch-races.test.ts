@@ -82,6 +82,15 @@ describe("file-watch listener races", () => {
     return listener;
   }
 
+  it("skips self-referential symlinks without escaping the watch callback", async () => {
+    const service = new TriggerWakeupService();
+    const deliver = vi.spyOn(service, "deliverTriggerInput").mockResolvedValue(undefined as never);
+    const listener = await watchWithListener(service);
+    fs.symlinkSync("loop", path.join(tmpDir, "loop"));
+    expect(() => listener("rename", "loop")).not.toThrow();
+    expect(deliver).not.toHaveBeenCalled();
+  });
+
   it("treats a file removed before the stat as deleted instead of throwing", async () => {
     const wakeupService = new TriggerWakeupService();
     const deliverSpy = vi

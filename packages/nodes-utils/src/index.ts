@@ -60,3 +60,5 @@ export type {
   SaveTargetOptions,
   SaveWorkspace
 } from "./save-target.js";
+
+export * from "./file-watch-match.js";

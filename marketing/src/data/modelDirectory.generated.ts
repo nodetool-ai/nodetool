@@ -1260,182 +1260,6 @@ export const canonicalModels: CanonicalModel[] = [
     "kind": "image"
   },
   {
-    "canonical": "ideogram-v2",
-    "name": "Ideogram v2",
-    "creator": "Ideogram",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/ideogram/v2"
-      },
-      {
-        "provider": "replicate",
-        "id": "ideogram-ai/ideogram-v2"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "ideogram-v2-turbo",
-    "name": "Ideogram v2 Turbo",
-    "creator": "Ideogram",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/ideogram/v2/turbo"
-      },
-      {
-        "provider": "replicate",
-        "id": "ideogram-ai/ideogram-v2-turbo"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "ideogram-v2a",
-    "name": "Ideogram v2a",
-    "creator": "Ideogram",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/ideogram/v2a"
-      },
-      {
-        "provider": "replicate",
-        "id": "ideogram-ai/ideogram-v2a"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "ideogram-v2a-turbo",
-    "name": "Ideogram v2a Turbo",
-    "creator": "Ideogram",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/ideogram/v2a/turbo"
-      },
-      {
-        "provider": "replicate",
-        "id": "ideogram-ai/ideogram-v2a-turbo"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "image-01",
-    "name": "Image-01",
-    "creator": "MiniMax",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/minimax/image-01"
-      },
-      {
-        "provider": "minimax",
-        "id": "image-01"
-      },
-      {
-        "provider": "replicate",
-        "id": "minimax/image-01"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "google-imagen_imagen-4-fast",
-    "name": "Imagen 4 Fast",
-    "creator": "Google",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "kie",
-        "id": "google/imagen4-fast"
-      },
-      {
-        "provider": "replicate",
-        "id": "google/imagen-4-fast"
-      },
-      {
-        "provider": "together",
-        "id": "google/imagen-4.0-fast"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "google-imagen_imagen-4-ultra",
-    "name": "Imagen 4 Ultra",
-    "creator": "Google",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "kie",
-        "id": "google/imagen4-ultra"
-      },
-      {
-        "provider": "replicate",
-        "id": "google/imagen-4-ultra"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "imagineart-1-5-preview",
-    "name": "ImagineArt 1.5 Preview",
-    "creator": "ImagineArt",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "imagineart/imagineart-1.5-preview/text-to-image"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "imagineart-2-0",
-    "name": "ImagineArt 2.0",
-    "creator": "ImagineArt",
-    "tasks": [
-      "image_to_image",
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "imagineart/imagineart-2.0-edit-preview/image-to-image"
-      },
-      {
-        "provider": "fal_ai",
-        "id": "imagineart/imagineart-2.0-preview/text-to-image"
-      }
-    ],
-    "kind": "image"
-  },
-  {
     "canonical": "kling-1-6-pro",
     "name": "Kling 1.6 Pro",
     "creator": "KlingAI",
@@ -1545,21 +1369,6 @@ export const canonicalModels: CanonicalModel[] = [
       }
     ],
     "kind": "video"
-  },
-  {
-    "canonical": "kling-image-3-0",
-    "name": "Kling Image 3.0",
-    "creator": "KlingAI",
-    "tasks": [
-      "image_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/kling-image/v3/image-to-image"
-      }
-    ],
-    "kind": "image"
   },
   {
     "canonical": "kling-image-o1",
@@ -1741,21 +1550,6 @@ export const canonicalModels: CanonicalModel[] = [
       {
         "provider": "replicate",
         "id": "luma/photon-flash"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "lumina-image-v2",
-    "name": "Lumina Image v2",
-    "creator": "OpenGVLab",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/lumina-image/v2"
       }
     ],
     "kind": "image"
@@ -2242,21 +2036,6 @@ export const canonicalModels: CanonicalModel[] = [
     "kind": "image"
   },
   {
-    "canonical": "qwen_qwen-image-2512",
-    "name": "Qwen Image Max 2512",
-    "creator": "Alibaba",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "replicate",
-        "id": "qwen/qwen-image-2512"
-      }
-    ],
-    "kind": "image"
-  },
-  {
     "canonical": "qwen-image-3-0",
     "name": "Qwen-Image-3.0",
     "creator": "Alibaba",
@@ -2343,101 +2122,6 @@ export const canonicalModels: CanonicalModel[] = [
     "kind": "audio"
   },
   {
-    "canonical": "recraft-20b",
-    "name": "Recraft 20B",
-    "creator": "Recraft",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/recraft-20b"
-      },
-      {
-        "provider": "replicate",
-        "id": "recraft-ai/recraft-20b"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "recraft-v3",
-    "name": "Recraft V3",
-    "creator": "Recraft",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/recraft-v3"
-      },
-      {
-        "provider": "replicate",
-        "id": "recraft-ai/recraft-v3"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "recraft-v4",
-    "name": "Recraft V4",
-    "creator": "Recraft",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/recraft/v4/text-to-image"
-      },
-      {
-        "provider": "replicate",
-        "id": "recraft-ai/recraft-v4"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "recraft-v4-pro",
-    "name": "Recraft V4 Pro",
-    "creator": "Recraft",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/recraft/v4/pro/text-to-image"
-      },
-      {
-        "provider": "replicate",
-        "id": "recraft-ai/recraft-v4-pro"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "recraft-v4-1",
-    "name": "Recraft V4.1",
-    "creator": "Recraft",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/recraft/v4.1/text-to-image"
-      },
-      {
-        "provider": "replicate",
-        "id": "recraft-ai/recraft-v4.1"
-      }
-    ],
-    "kind": "image"
-  },
-  {
     "canonical": "recraft-v4-1-flash",
     "name": "Recraft V4.1 Flash",
     "creator": "Recraft",
@@ -2448,25 +2132,6 @@ export const canonicalModels: CanonicalModel[] = [
       {
         "provider": "fal_ai",
         "id": "recraft/v4.1/flash/text-to-image"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "recraft-v4-1-pro",
-    "name": "Recraft V4.1 Pro",
-    "creator": "Recraft",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/recraft/v4.1/pro/text-to-image"
-      },
-      {
-        "provider": "replicate",
-        "id": "recraft-ai/recraft-v4.1-pro"
       }
     ],
     "kind": "image"
@@ -2510,36 +2175,6 @@ export const canonicalModels: CanonicalModel[] = [
     "kind": "image"
   },
   {
-    "canonical": "sana-sprint-1-6b",
-    "name": "Sana Sprint 1.6B",
-    "creator": "NVIDIA",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "replicate",
-        "id": "nvidia/sana-sprint-1.6b"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "sdxl-lightning",
-    "name": "SDXL Lightning",
-    "creator": "Bytedance",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "replicate",
-        "id": "prunaai/sdxl-lightning"
-      }
-    ],
-    "kind": "image"
-  },
-  {
     "canonical": "seedance-1-5-pro",
     "name": "Seedance 1.5 pro",
     "creator": "ByteDance Seed",
@@ -2565,69 +2200,6 @@ export const canonicalModels: CanonicalModel[] = [
       }
     ],
     "kind": "video"
-  },
-  {
-    "canonical": "seedream-3-0-byteplus",
-    "name": "Seedream 3.0",
-    "creator": "ByteDance Seed",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/bytedance/seedream/v3/text-to-image"
-      },
-      {
-        "provider": "kie",
-        "id": "bytedance/seedream"
-      },
-      {
-        "provider": "replicate",
-        "id": "bytedance/seedream-3"
-      },
-      {
-        "provider": "together",
-        "id": "ByteDance-Seed/Seedream-3.0"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "bytedance-seed_seedream-4-0",
-    "name": "Seedream 4.0",
-    "creator": "ByteDance Seed",
-    "tasks": [
-      "image_to_image",
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/bytedance/seedream/v4/edit"
-      },
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/bytedance/seedream/v4/text-to-image"
-      },
-      {
-        "provider": "kie",
-        "id": "bytedance/seedream-v4-edit"
-      },
-      {
-        "provider": "kie",
-        "id": "bytedance/seedream-v4-text-to-image"
-      },
-      {
-        "provider": "replicate",
-        "id": "bytedance/seedream-4"
-      },
-      {
-        "provider": "together",
-        "id": "ByteDance-Seed/Seedream-4.0"
-      }
-    ],
-    "kind": "image"
   },
   {
     "canonical": "seedream-4-5",
@@ -2937,70 +2509,6 @@ export const canonicalModels: CanonicalModel[] = [
       {
         "provider": "fal_ai",
         "id": "fal-ai/flux/srpo"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "stable-diffusion-3-medium",
-    "name": "Stable Diffusion 3 Medium",
-    "creator": "Stability.ai",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/stable-diffusion-v3-medium"
-      },
-      {
-        "provider": "together",
-        "id": "stabilityai/stable-diffusion-3-medium"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "stable-diffusion-3-5-large",
-    "name": "Stable Diffusion 3.5 Large",
-    "creator": "Stability.ai",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "replicate",
-        "id": "stability-ai/stable-diffusion-3.5-large"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "stable-diffusion-3-5-large-turbo",
-    "name": "Stable Diffusion 3.5 Large Turbo",
-    "creator": "Stability.ai",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "replicate",
-        "id": "stability-ai/stable-diffusion-3.5-large-turbo"
-      }
-    ],
-    "kind": "image"
-  },
-  {
-    "canonical": "stable-diffusion-3-5-medium",
-    "name": "Stable Diffusion 3.5 Medium",
-    "creator": "Stability.ai",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "replicate",
-        "id": "stability-ai/stable-diffusion-3.5-medium"
       }
     ],
     "kind": "image"
@@ -4416,7 +3924,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 945,
+    "total": 996,
     "providers": [
       {
         "provider": "fal_ai",
@@ -4564,6 +4072,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/bria/text-to-image/hd"
+          },
+          {
+            "id": "fal-ai/bytedance/seedream/v3/text-to-image"
+          },
+          {
+            "id": "fal-ai/bytedance/seedream/v4/edit"
+          },
+          {
+            "id": "fal-ai/bytedance/seedream/v4/text-to-image"
           },
           {
             "id": "fal-ai/cartoonify"
@@ -5121,10 +4638,16 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/ideogram/upscale"
           },
           {
+            "id": "fal-ai/ideogram/v2"
+          },
+          {
             "id": "fal-ai/ideogram/v2/edit"
           },
           {
             "id": "fal-ai/ideogram/v2/remix"
+          },
+          {
+            "id": "fal-ai/ideogram/v2/turbo"
           },
           {
             "id": "fal-ai/ideogram/v2/turbo/edit"
@@ -5133,7 +4656,13 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/ideogram/v2/turbo/remix"
           },
           {
+            "id": "fal-ai/ideogram/v2a"
+          },
+          {
             "id": "fal-ai/ideogram/v2a/remix"
+          },
+          {
+            "id": "fal-ai/ideogram/v2a/turbo"
           },
           {
             "id": "fal-ai/ideogram/v2a/turbo/remix"
@@ -5358,6 +4887,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/kling-image/o3/text-to-image"
           },
           {
+            "id": "fal-ai/kling-image/v3/image-to-image"
+          },
+          {
             "id": "fal-ai/kling-image/v3/text-to-image"
           },
           {
@@ -5416,6 +4948,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/luma-photon/reframe"
+          },
+          {
+            "id": "fal-ai/lumina-image/v2"
+          },
+          {
+            "id": "fal-ai/minimax/image-01"
           },
           {
             "id": "fal-ai/minimax/image-01/subject-reference"
@@ -5670,6 +5208,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/realistic-vision"
           },
           {
+            "id": "fal-ai/recraft-20b"
+          },
+          {
+            "id": "fal-ai/recraft-v3"
+          },
+          {
             "id": "fal-ai/recraft/upscale/creative"
           },
           {
@@ -5679,13 +5223,25 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/recraft/v3/image-to-image"
           },
           {
+            "id": "fal-ai/recraft/v4.1/pro/text-to-image"
+          },
+          {
             "id": "fal-ai/recraft/v4.1/pro/text-to-vector"
+          },
+          {
+            "id": "fal-ai/recraft/v4.1/text-to-image"
           },
           {
             "id": "fal-ai/recraft/v4.1/text-to-vector"
           },
           {
+            "id": "fal-ai/recraft/v4/pro/text-to-image"
+          },
+          {
             "id": "fal-ai/recraft/v4/pro/text-to-vector"
+          },
+          {
+            "id": "fal-ai/recraft/v4/text-to-image"
           },
           {
             "id": "fal-ai/recraft/v4/text-to-vector"
@@ -5776,6 +5332,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/stable-diffusion-v15"
+          },
+          {
+            "id": "fal-ai/stable-diffusion-v3-medium"
           },
           {
             "id": "fal-ai/stable-diffusion-v3-medium/image-to-image"
@@ -5916,7 +5475,16 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "ideogram/v4/tiling/lora"
           },
           {
+            "id": "imagineart/imagineart-1.5-preview/text-to-image"
+          },
+          {
             "id": "imagineart/imagineart-1.5-pro-preview/text-to-image"
+          },
+          {
+            "id": "imagineart/imagineart-2.0-edit-preview/image-to-image"
+          },
+          {
+            "id": "imagineart/imagineart-2.0-preview/text-to-image"
           },
           {
             "id": "luma/agent/uni-1/v1/edit"
@@ -6170,6 +5738,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "bytedance/sdxl-lightning-4step"
           },
           {
+            "id": "bytedance/seedream-3"
+          },
+          {
+            "id": "bytedance/seedream-4"
+          },
+          {
             "id": "catacolabs/sdxl-ad-inpaint"
           },
           {
@@ -6386,6 +5960,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "google/imagen-4"
           },
           {
+            "id": "google/imagen-4-fast"
+          },
+          {
+            "id": "google/imagen-4-ultra"
+          },
+          {
             "id": "google/nano-banana"
           },
           {
@@ -6408,6 +5988,18 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "ideogram-ai/ideogram-character"
+          },
+          {
+            "id": "ideogram-ai/ideogram-v2"
+          },
+          {
+            "id": "ideogram-ai/ideogram-v2-turbo"
+          },
+          {
+            "id": "ideogram-ai/ideogram-v2a"
+          },
+          {
+            "id": "ideogram-ai/ideogram-v2a-turbo"
           },
           {
             "id": "ideogram-ai/ideogram-v3-balanced"
@@ -6509,6 +6101,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "microsoft/bringing-old-photos-back-to-life"
           },
           {
+            "id": "minimax/image-01"
+          },
+          {
             "id": "moonshotai/kimi-k2-thinking"
           },
           {
@@ -6519,6 +6114,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "nightmareai/real-esrgan"
+          },
+          {
+            "id": "nvidia/sana-sprint-1.6b"
           },
           {
             "id": "openai/clip"
@@ -6587,6 +6185,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "prunaai/p-image-upscale"
           },
           {
+            "id": "prunaai/sdxl-lightning"
+          },
+          {
             "id": "prunaai/wan-2.2-image"
           },
           {
@@ -6617,6 +6218,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "qwen/qwen-image-2-pro"
           },
           {
+            "id": "qwen/qwen-image-2512"
+          },
+          {
             "id": "qwen/qwen-image-edit-plus"
           },
           {
@@ -6624,6 +6228,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "qwen/qwen-image-lora-trainer-legacy"
+          },
+          {
+            "id": "recraft-ai/recraft-20b"
           },
           {
             "id": "recraft-ai/recraft-20b-svg"
@@ -6638,13 +6245,28 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "recraft-ai/recraft-remove-background"
           },
           {
+            "id": "recraft-ai/recraft-v3"
+          },
+          {
             "id": "recraft-ai/recraft-v3-svg"
+          },
+          {
+            "id": "recraft-ai/recraft-v4"
+          },
+          {
+            "id": "recraft-ai/recraft-v4-pro"
           },
           {
             "id": "recraft-ai/recraft-v4-pro-svg"
           },
           {
             "id": "recraft-ai/recraft-v4-svg"
+          },
+          {
+            "id": "recraft-ai/recraft-v4.1"
+          },
+          {
+            "id": "recraft-ai/recraft-v4.1-pro"
           },
           {
             "id": "recraft-ai/recraft-v4.1-pro-svg"
@@ -6714,6 +6336,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "stability-ai/stable-diffusion"
+          },
+          {
+            "id": "stability-ai/stable-diffusion-3.5-large"
+          },
+          {
+            "id": "stability-ai/stable-diffusion-3.5-large-turbo"
+          },
+          {
+            "id": "stability-ai/stable-diffusion-3.5-medium"
           },
           {
             "id": "stability-ai/stable-diffusion-inpainting"
@@ -6795,6 +6426,179 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "zylim0702/remove_bg"
+          }
+        ]
+      },
+      {
+        "provider": "kie",
+        "models": [
+          {
+            "id": "4o-image-api",
+            "name": "Generate 4o Image"
+          },
+          {
+            "id": "bytedance/seedream",
+            "name": "Seedream3.0 - Text to Image"
+          },
+          {
+            "id": "bytedance/seedream-v4-edit",
+            "name": "Seedream4.0 - Edit"
+          },
+          {
+            "id": "bytedance/seedream-v4-text-to-image",
+            "name": "Seedream4.0 - Text to Image"
+          },
+          {
+            "id": "flux1-kontext",
+            "name": "Generate or Edit Image"
+          },
+          {
+            "id": "google/imagen4",
+            "name": "Google - imagen4"
+          },
+          {
+            "id": "google/imagen4-fast",
+            "name": "Google - imagen4-fast"
+          },
+          {
+            "id": "google/imagen4-ultra",
+            "name": "Google - imagen4-ultra"
+          },
+          {
+            "id": "google/nano-banana",
+            "name": "Google - Nano Banana"
+          },
+          {
+            "id": "google/nano-banana-edit",
+            "name": "Google - Nano Banana Edit"
+          },
+          {
+            "id": "gpt-image-2-5-flare-image-to-image",
+            "name": "GPT Image 2.5 Flare - Image To Image"
+          },
+          {
+            "id": "gpt-image-2-5-flare-text-to-image",
+            "name": "GPT Image 2.5 Flare - Text to Image"
+          },
+          {
+            "id": "gpt-image-2-5-sunburst-image-to-image",
+            "name": "GPT Image 2.5 Sunburst - Image To Image"
+          },
+          {
+            "id": "gpt-image-2-5-sunburst-text-to-image",
+            "name": "GPT Image 2.5 Sunburst - Text to Image"
+          },
+          {
+            "id": "grok-imagine-image-2-0/image-edit",
+            "name": "Grok Imagine Image 2.0 Image Edit"
+          },
+          {
+            "id": "grok-imagine-image-2-0/segment-edit",
+            "name": "Grok Imagine Image 2.0 Segment Edit"
+          },
+          {
+            "id": "grok-imagine-image-2-0/segment-map",
+            "name": "Grok Imagine Image 2.0 Segment Map"
+          },
+          {
+            "id": "grok-imagine/image-to-image",
+            "name": "Grok Imagine - image to image"
+          },
+          {
+            "id": "grok-imagine/text-to-image",
+            "name": "Grok Imagine - Text to Image"
+          },
+          {
+            "id": "ideogram/character",
+            "name": "Ideogram - Character"
+          },
+          {
+            "id": "ideogram/character-edit",
+            "name": "Ideogram - Character Edit"
+          },
+          {
+            "id": "ideogram/character-remix",
+            "name": "Ideogram - Character Remix"
+          },
+          {
+            "id": "ideogram/v3-edit",
+            "name": "Ideogram V3 Edit"
+          },
+          {
+            "id": "ideogram/v3-remix",
+            "name": "Ideogram V3 Remix"
+          },
+          {
+            "id": "ideogram/v3-text-to-image",
+            "name": "Ideogram V3 Text to Image"
+          },
+          {
+            "id": "nano-banana-pro",
+            "name": "Google - Nano Banana Pro"
+          },
+          {
+            "id": "qwen/image-to-image",
+            "name": "Qwen - Image to Image"
+          },
+          {
+            "id": "qwen/text-to-image",
+            "name": "Qwen - Text to Image"
+          },
+          {
+            "id": "qwen2-1/image-to-image",
+            "name": "Qwen 2.1 - Image to Image"
+          },
+          {
+            "id": "qwen2-1/text-to-image",
+            "name": "Qwen 2.1 - Text to Image"
+          },
+          {
+            "id": "qwen2/image-edit",
+            "name": "Qwen2 - Image Edit"
+          },
+          {
+            "id": "qwen3/image-to-image",
+            "name": "Qwen3 Image to Image"
+          },
+          {
+            "id": "qwen3/pro-image-to-image",
+            "name": "Qwen3 Pro Image to Image"
+          },
+          {
+            "id": "qwen3/pro-text-to-image",
+            "name": "Qwen3 Pro Text to Image"
+          },
+          {
+            "id": "qwen3/text-to-image",
+            "name": "Qwen3 Text to Image"
+          },
+          {
+            "id": "recraft/crisp-upscale",
+            "name": "Recraft - Crisp Upscale"
+          },
+          {
+            "id": "recraft/remove-background",
+            "name": "Recraft - Remove Background"
+          },
+          {
+            "id": "seedream/5-pro-layer-decomposition",
+            "name": "Seedream 5.0 Pro -  Layer Decomposition"
+          },
+          {
+            "id": "topaz/image-upscale",
+            "name": "Topaz - Image Upscale"
+          },
+          {
+            "id": "wan/2-7-image",
+            "name": "Wan 2.7 Image"
+          },
+          {
+            "id": "wan/2-7-image-pro",
+            "name": "Wan 2.7 Image Pro"
+          },
+          {
+            "id": "z-image",
+            "name": "Z-Image"
           }
         ]
       },
@@ -6956,159 +6760,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "youchuan/v8.2/text-to-image",
             "name": "Youchuan v8.2 — Text to Image"
-          }
-        ]
-      },
-      {
-        "provider": "kie",
-        "models": [
-          {
-            "id": "4o-image-api",
-            "name": "Generate 4o Image"
-          },
-          {
-            "id": "flux1-kontext",
-            "name": "Generate or Edit Image"
-          },
-          {
-            "id": "google/imagen4",
-            "name": "Google - imagen4"
-          },
-          {
-            "id": "google/nano-banana",
-            "name": "Google - Nano Banana"
-          },
-          {
-            "id": "google/nano-banana-edit",
-            "name": "Google - Nano Banana Edit"
-          },
-          {
-            "id": "gpt-image-2-5-flare-image-to-image",
-            "name": "GPT Image 2.5 Flare - Image To Image"
-          },
-          {
-            "id": "gpt-image-2-5-flare-text-to-image",
-            "name": "GPT Image 2.5 Flare - Text to Image"
-          },
-          {
-            "id": "gpt-image-2-5-sunburst-image-to-image",
-            "name": "GPT Image 2.5 Sunburst - Image To Image"
-          },
-          {
-            "id": "gpt-image-2-5-sunburst-text-to-image",
-            "name": "GPT Image 2.5 Sunburst - Text to Image"
-          },
-          {
-            "id": "grok-imagine-image-2-0/image-edit",
-            "name": "Grok Imagine Image 2.0 Image Edit"
-          },
-          {
-            "id": "grok-imagine-image-2-0/segment-edit",
-            "name": "Grok Imagine Image 2.0 Segment Edit"
-          },
-          {
-            "id": "grok-imagine-image-2-0/segment-map",
-            "name": "Grok Imagine Image 2.0 Segment Map"
-          },
-          {
-            "id": "grok-imagine/image-to-image",
-            "name": "Grok Imagine - image to image"
-          },
-          {
-            "id": "grok-imagine/text-to-image",
-            "name": "Grok Imagine - Text to Image"
-          },
-          {
-            "id": "ideogram/character",
-            "name": "Ideogram - Character"
-          },
-          {
-            "id": "ideogram/character-edit",
-            "name": "Ideogram - Character Edit"
-          },
-          {
-            "id": "ideogram/character-remix",
-            "name": "Ideogram - Character Remix"
-          },
-          {
-            "id": "ideogram/v3-edit",
-            "name": "Ideogram V3 Edit"
-          },
-          {
-            "id": "ideogram/v3-remix",
-            "name": "Ideogram V3 Remix"
-          },
-          {
-            "id": "ideogram/v3-text-to-image",
-            "name": "Ideogram V3 Text to Image"
-          },
-          {
-            "id": "nano-banana-pro",
-            "name": "Google - Nano Banana Pro"
-          },
-          {
-            "id": "qwen/image-to-image",
-            "name": "Qwen - Image to Image"
-          },
-          {
-            "id": "qwen/text-to-image",
-            "name": "Qwen - Text to Image"
-          },
-          {
-            "id": "qwen2-1/image-to-image",
-            "name": "Qwen 2.1 - Image to Image"
-          },
-          {
-            "id": "qwen2-1/text-to-image",
-            "name": "Qwen 2.1 - Text to Image"
-          },
-          {
-            "id": "qwen2/image-edit",
-            "name": "Qwen2 - Image Edit"
-          },
-          {
-            "id": "qwen3/image-to-image",
-            "name": "Qwen3 Image to Image"
-          },
-          {
-            "id": "qwen3/pro-image-to-image",
-            "name": "Qwen3 Pro Image to Image"
-          },
-          {
-            "id": "qwen3/pro-text-to-image",
-            "name": "Qwen3 Pro Text to Image"
-          },
-          {
-            "id": "qwen3/text-to-image",
-            "name": "Qwen3 Text to Image"
-          },
-          {
-            "id": "recraft/crisp-upscale",
-            "name": "Recraft - Crisp Upscale"
-          },
-          {
-            "id": "recraft/remove-background",
-            "name": "Recraft - Remove Background"
-          },
-          {
-            "id": "seedream/5-pro-layer-decomposition",
-            "name": "Seedream 5.0 Pro -  Layer Decomposition"
-          },
-          {
-            "id": "topaz/image-upscale",
-            "name": "Topaz - Image Upscale"
-          },
-          {
-            "id": "wan/2-7-image",
-            "name": "Wan 2.7 Image"
-          },
-          {
-            "id": "wan/2-7-image-pro",
-            "name": "Wan 2.7 Image Pro"
-          },
-          {
-            "id": "z-image",
-            "name": "Z-Image"
           }
         ]
       },
@@ -7288,6 +6939,47 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
+        "provider": "together",
+        "models": [
+          {
+            "id": "ByteDance-Seed/Seedream-3.0",
+            "name": "Seedream 3.0 — Text to Image"
+          },
+          {
+            "id": "ByteDance-Seed/Seedream-4.0",
+            "name": "Seedream 4.0 — Text to Image"
+          },
+          {
+            "id": "black-forest-labs/FLUX.1-schnell",
+            "name": "FLUX.1 Schnell — Text to Image"
+          },
+          {
+            "id": "google/flash-image-2.5",
+            "name": "Flash Image 2.5 — Text to Image"
+          },
+          {
+            "id": "google/gemini-3-pro-image",
+            "name": "Gemini 3 Pro Image — Text to Image"
+          },
+          {
+            "id": "google/imagen-4.0-fast",
+            "name": "Imagen 4.0 Fast — Text to Image"
+          },
+          {
+            "id": "google/imagen-4.0-preview",
+            "name": "Imagen 4.0 Preview — Text to Image"
+          },
+          {
+            "id": "ideogram/ideogram-3.0",
+            "name": "Ideogram 3.0 — Text to Image"
+          },
+          {
+            "id": "stabilityai/stable-diffusion-3-medium",
+            "name": "Stable Diffusion 3 Medium — Text to Image"
+          }
+        ]
+      },
+      {
         "provider": "topaz",
         "models": [
           {
@@ -7325,31 +7017,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "topaz/image/sharpen-gen",
             "name": "Topaz Sharpen Image (Generative)"
-          }
-        ]
-      },
-      {
-        "provider": "together",
-        "models": [
-          {
-            "id": "black-forest-labs/FLUX.1-schnell",
-            "name": "FLUX.1 Schnell — Text to Image"
-          },
-          {
-            "id": "google/flash-image-2.5",
-            "name": "Flash Image 2.5 — Text to Image"
-          },
-          {
-            "id": "google/gemini-3-pro-image",
-            "name": "Gemini 3 Pro Image — Text to Image"
-          },
-          {
-            "id": "google/imagen-4.0-preview",
-            "name": "Imagen 4.0 Preview — Text to Image"
-          },
-          {
-            "id": "ideogram/ideogram-3.0",
-            "name": "Ideogram 3.0 — Text to Image"
           }
         ]
       },
@@ -7500,6 +7167,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "gemini-web-image",
             "name": "Gemini Images (web)"
+          }
+        ]
+      },
+      {
+        "provider": "minimax",
+        "models": [
+          {
+            "id": "image-01",
+            "name": "MiniMax Image-01"
           }
         ]
       }

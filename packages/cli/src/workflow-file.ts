@@ -127,6 +127,20 @@ export function importWorkflowFile(file: string): Promise<unknown> {
       }
       module = commonJs ? cjs.require(absolutePath, import.meta.url)
         : await esm.import(moduleUrl.href, import.meta.url);
+    } catch (error) {
+      if (error instanceof Error && "code" in error && (error.code === "ERR_MODULE_NOT_FOUND" || error.code === "MODULE_NOT_FOUND")) {
+        const match = /Cannot find (?:package|module) ['"]([^'"]+)['"]/.exec(error.message);
+        const specifier = match?.[1];
+        if (specifier?.startsWith("@nodetool-ai/")) {
+          const { readCatalogIndex, createMissingPackError, loadPackLoaderContext } = await import("@nodetool-ai/node-catalog");
+          const pack = readCatalogIndex().packs.find((entry) => [entry.npm.name, ...entry.provides].some((name) => specifier === name || specifier.startsWith(`${name}/`)));
+          if (pack && pack.kind === "node-pack") {
+            await loadPackLoaderContext();
+            throw createMissingPackError(pack.id);
+          }
+        }
+      }
+      throw error;
     } finally {
       if (commonJs) {
         rememberLocalDependencies(absolutePath, previousModules);

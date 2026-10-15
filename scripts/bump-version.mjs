@@ -105,6 +105,7 @@ export function bumpCatalogVersion(index, version) {
   return {
     ...index,
     coreVersion: version,
+    installPins: cohortChanged ? [] : (index.installPins ?? []),
     packs: index.packs.map((pack) => {
       if (!cohortChanged && pack.npm.version === version) {
         return pack;

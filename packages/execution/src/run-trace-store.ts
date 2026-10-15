@@ -10,7 +10,8 @@ import {
   initTelemetry,
   type RunTraceStore
 } from "@nodetool-ai/runtime";
-import type { StoredRunTraceUpdate } from "@nodetool-ai/protocol";
+import { missingRuntimeDetailsOf, RUNTIME_NPM_PACKAGES, type StoredRunTraceUpdate } from "@nodetool-ai/protocol";
+import { safeProcessEnv } from "@nodetool-ai/config";
 
 export type RunTraceUpdateListener = (
   userId: string,
@@ -68,11 +69,38 @@ const adapter: RunTraceStore = {
   async flush() { /* Writes are awaited by the processor before this hook. */ }
 };
 
-/** Install the database bridge even if an external sink initialized telemetry first. */
+function hasExplicitTraceSink(): boolean {
+  const env = safeProcessEnv();
+  return Boolean(env["TRACELOOP_API_KEY"] || env["OTEL_EXPORTER_OTLP_ENDPOINT"] || env["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] || env["NODETOOL_TRACE_FILE"])
+    || env["OTEL_TRACES_EXPORTER"] === "console"
+    || ["pretty", "json", "1", "true"].some((value) => env["NODETOOL_TRACE_STDOUT"] === value);
+}
+
+function isAbsentTracingPeer(error: unknown): boolean {
+  const details = missingRuntimeDetailsOf(error);
+  if (details?.runtimePackage !== "tracing" || !RUNTIME_NPM_PACKAGES.tracing.packageNames.some((name) => name === details.missing)) {
+    return false;
+  }
+  if (!(error instanceof Error) || !(error.cause instanceof Error) || !("code" in error.cause)) {
+    return false;
+  }
+  const cause = error.cause;
+  return (cause.code === "ERR_MODULE_NOT_FOUND" && cause.message.startsWith(`Cannot find package '${details.missing}'`))
+    || (cause.code === "MODULE_NOT_FOUND" && cause.message.startsWith(`Cannot find module '${details.missing}'`));
+}
+
+/** Enable durable tracing when installed, while keeping core execution available without it. */
 export async function ensureRunTraceTelemetry(): Promise<void> {
   if (!configured) {
     configureRunTraceStore(adapter);
     configured = true;
   }
-  await initTelemetry();
+  try {
+    await initTelemetry();
+  } catch (error) {
+    // An absent optional peer disables automatic recording. Explicit sinks and broken installs still fail.
+    if (hasExplicitTraceSink() || !isAbsentTracingPeer(error)) {
+      throw error;
+    }
+  }
 }

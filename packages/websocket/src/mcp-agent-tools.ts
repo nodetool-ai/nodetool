@@ -63,6 +63,7 @@ import {
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { uiToolSchemas } from "@nodetool-ai/protocol";
+import { missingPackDetailsOf } from "@nodetool-ai/protocol";
 import { loadConfiguredProviders } from "./configured-providers.js";
 import { mcpToolHostDeps } from "./mcp-tool-deps.js";
 import type { SketchLoader, TimelineLoader } from "@nodetool-ai/agents";
@@ -84,7 +85,7 @@ import { tmpdir } from "node:os";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-import sharp from "sharp";
+import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { getAssetAdapter } from "./lib/storage.js";
 import { normalizeAssetContentType } from "./lib/asset-paths.js";
 import {
@@ -274,7 +275,12 @@ function isErrorResult(result: unknown): boolean {
   return Boolean(r["error"]) || r["success"] === false;
 }
 
-function toToolResponse(result: unknown) {
+export function toToolResponse(result: unknown) {
+  const missing = missingPackDetailsOf(result) ?? (isRecord(result) ? missingPackDetailsOf(result["result"]) : null);
+  if (missing) {
+    const payload = { ...missing, restartRequired: true };
+    return { content: [{ type: "text" as const, text: JSON.stringify(payload) }], isError: true as const, structuredContent: payload };
+  }
   const isObject = isRecord(result);
   const isError = isErrorResult(result);
   const base = {
@@ -313,6 +319,8 @@ async function toImageToolResponse(
 }
 
 function errorResponse(err: unknown) {
+  const missing = missingPackDetailsOf(err);
+  if (missing) { return toToolResponse(missing); }
   return {
     content: [
       {
@@ -950,6 +958,7 @@ export function registerAgentMcpTools(
               ? fileURLToPath(imageId)
               : imageId;
             const bytes = await readFile(path);
+            const sharp = await loadSharpOrThrow();
             await sharp(bytes).metadata();
             const mime = isSvgBytes(bytes)
               ? "image/svg+xml"

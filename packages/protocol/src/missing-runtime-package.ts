@@ -32,6 +32,7 @@ export type RuntimePackageId =
   | "imaging"
   | "typescript"
   | "tracing"
+  | "rapier"
   | "esbuild";
 
 /** Display names for the runtime packages, as the Package Manager lists them. */
@@ -58,6 +59,7 @@ export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> =
   imaging: "Image & Canvas Libraries",
   typescript: "TypeScript",
   tracing: "Execution Tracing",
+  rapier: "3D Game Physics",
   esbuild: "Sandbox Compiler"
 };
 

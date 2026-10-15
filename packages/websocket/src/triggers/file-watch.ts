@@ -11,7 +11,7 @@
  * watcher for any registration that is no longer enabled, no longer exists,
  * or whose watched path/recursion setting changed. Pattern/ignore-pattern
  * matching and debounce reuse `FileWatchTriggerNode`'s own logic via the
- * shared `@nodetool-ai/automation-nodes` helper, so the adapter and the
+ * shared `@nodetool-ai/nodes-utils` helper, so the adapter and the
  * in-editor live-test path can never drift apart.
  *
  * Follows `scheduler.ts`'s shape: a pure-ish sweep function callers can drive
@@ -32,7 +32,7 @@ import {
   shouldProcessFileWatchPath,
   isWatchedFileEvent,
   type FileWatchFilter
-} from "@nodetool-ai/automation-nodes";
+} from "@nodetool-ai/nodes-utils";
 import {
   isFunctionValue,
   isString
@@ -286,7 +286,13 @@ function attachWatcher(
       const fullPath = path.join(watchPath, filename.toString());
       // One stat, not existsSync then statSync: a file removed between the
       // two made statSync throw inside the watcher and crash the server.
-      const stats = fs.statSync(fullPath, { throwIfNoEntry: false });
+      let stats: fs.Stats | undefined;
+      try {
+        stats = fs.statSync(fullPath, { throwIfNoEntry: false });
+      } catch (error) {
+        log.warn(`Unable to inspect watched path ${fullPath}`, error instanceof Error ? error : new Error(String(error)));
+        return;
+      }
       const exists = stats !== undefined;
       const isDirectory = stats?.isDirectory() ?? false;
 

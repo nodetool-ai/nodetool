@@ -13,6 +13,7 @@ import type { Theme } from "@mui/material/styles";
 import {
   FlexRow,
   Caption,
+  StatusBar,
   ZoomControls,
   StatusIndicator,
   BORDER_RADIUS,
@@ -27,11 +28,6 @@ import ComputerIcon from "@mui/icons-material/Computer";
 
 const styles = (theme: Theme) =>
   css({
-    height: 32,
-    borderTop: `1px solid ${theme.vars.palette.divider}`,
-    backgroundColor: theme.vars.palette.background.paper,
-    padding: `0 ${theme.spacing(1.5)}`,
-    flexShrink: 0,
     ".count-badge": {
       display: "inline-flex",
       alignItems: "center",
@@ -99,12 +95,7 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
     const ModeIcon = mode === "cloud" ? CloudIcon : ComputerIcon;
 
     return (
-      <FlexRow
-        align="center"
-        justify="space-between"
-        fullWidth
-        css={styles(theme)}
-      >
+      <StatusBar css={styles(theme)} sx={{ justifyContent: "space-between" }}>
         {/* Left: panel toggle + local/cloud + counts */}
         <FlexRow gap={2} align="center" sx={{ minWidth: 0 }}>
           {actionSlot}
@@ -151,7 +142,7 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
             tooltipPlacement="top"
           />
         </FlexRow>
-      </FlexRow>
+      </StatusBar>
     );
   }
 );

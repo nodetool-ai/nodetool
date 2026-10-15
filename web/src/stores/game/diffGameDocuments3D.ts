@@ -17,6 +17,7 @@ function hasRemovedProperty(from: unknown, to: unknown): boolean {
 }
 
 export function diffGameDocuments3D(from: GameDocument3D, to: GameDocument3D): GameDocumentOp3D[] {
+  if (!changed(from, to)) { return []; }
   const ops: GameDocumentOp3D[] = [];
   for (const [slot, binding] of Object.entries(to.assets)) {
     if (changed(from.assets[slot], binding)) { ops.push({ op: "bind_asset", slot, binding }); }
@@ -129,6 +130,7 @@ export function diffGameDocuments3D(from: GameDocument3D, to: GameDocument3D): G
   for (const slot of Object.keys(from.assets)) {
     if (!(slot in to.assets)) { ops.push({ op: "unbind_asset", slot }); }
   }
+  if (ops.length > 0 && ops.every((op) => op.op === "set_animation_graph" || op.op === "remove_animation_graph")) { return ops; }
   const applied = applyGameOps3D(from, ops);
   return [...ops, ...diffGameOwnership(from, to, applied).map((op) => gameDocumentOp3D.parse(op))];
 }

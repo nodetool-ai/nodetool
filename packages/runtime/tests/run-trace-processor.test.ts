@@ -38,8 +38,8 @@ function scope(id: string, origin: RunTraceScope["origin"] = "ui"): RunTraceScop
 beforeAll(async () => {
   _resetTelemetryForTest();
   for (const name of ["TRACELOOP_API_KEY", "OTEL_EXPORTER_OTLP_ENDPOINT", "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "OTEL_TRACES_EXPORTER", "NODETOOL_TRACE_FILE", "NODETOOL_TRACE_STDOUT", "NODETOOL_TRACE_INCLUDE_CONTENT"]) { vi.stubEnv(name, ""); }
-  await initTelemetry({ silent: true });
   configureRunTraceStore(adapter);
+  await initTelemetry({ silent: true });
 }, 30_000);
 beforeEach(() => { registrations.clear(); records.clear(); incomplete.length = 0; failWrites = false; });
 afterAll(async () => { await shutdownTelemetry(); _resetTelemetryForTest(); vi.unstubAllEnvs(); }, 30_000);
@@ -277,7 +277,7 @@ describe("always-on durable run processor", () => {
     if (!ended) { throw new Error("No test span"); }
     expect(Object.hasOwn(ended, "duration")).toBe(false);
     const exporter = new ContentFilteringSpanExporter(new ConsoleSpanExporter());
-    expect(() => exporter.export([ended], () => {})).not.toThrow();
+    await new Promise<void>((resolve, reject) => exporter.export([ended], (result) => result.code === 0 ? resolve() : reject(result.error)));
     const info = output.mock.calls[0][0];
     expect(info.duration).toBeGreaterThanOrEqual(0);
     output.mockRestore();
@@ -335,7 +335,7 @@ describe("always-on durable run processor", () => {
       ended = span as unknown as ReadableSpan;
     }));
     if (!ended) { throw new Error("No test span"); }
-    wrapped.export([ended], () => {});
+    await new Promise<void>((resolve, reject) => wrapped.export([ended], (result) => result.code === 0 ? resolve() : reject(result.error)));
     expect(JSON.stringify(exported.map((span) => ({ name: span.name, attributes: span.attributes, events: span.events, status: span.status })))).not.toContain("private");
     expect(exported[0].attributes["llm.provider"]).toBe("test");
     await flushTelemetry();

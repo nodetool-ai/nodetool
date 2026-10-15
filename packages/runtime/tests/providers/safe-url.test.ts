@@ -288,6 +288,18 @@ describe("safeFetch", () => {
     expect(secondInit.body).toBe("payload");
   });
 
+  it("converts POST to GET after 303 and removes entity headers", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(null, { status: 303, headers: { location: "/completed" } }))
+      .mockResolvedValueOnce(new Response("done"));
+    await safeFetch("https://fal.media/start", { method: "POST", body: "payload", headers: { "Content-Type": "application/json", Authorization: "Bearer token" } });
+    const next = fetchMock.mock.calls[1][1]!;
+    expect(next.method).toBe("GET");
+    expect(next.body).toBeUndefined();
+    expect(new Headers(next.headers).has("content-type")).toBe(false);
+    expect(new Headers(next.headers).get("authorization")).toBe("Bearer token");
+  });
+
   it("throws on a redirect loop exceeding the limit", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(null, {

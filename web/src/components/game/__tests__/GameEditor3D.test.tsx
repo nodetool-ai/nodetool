@@ -37,6 +37,12 @@ const mockSave = jest.fn(async (request: { id: string; baseUpdatedAt: string; op
 const mockSaveDocument = jest.fn(async (request: { id: string; baseUpdatedAt: string; document: unknown }) => ({ document: request.document, game: { draftUpdatedAt: mockSavedToken } }));
 const mockRestore = jest.fn(async (request: { id: string; baseUpdatedAt: string; revision: string }) => ({ document: { ...mockDocument, id: request.id }, game: { draftUpdatedAt: mockRestoredToken } }));
 
+jest.mock("../panels/animation/AnimationGraphPanel", () => ({
+  __esModule: true,
+  default: ({ onOps }: { onOps: (ops: unknown[], label: string) => void }) => <button onClick={() => onOps([{ op: "set_animation_graph", graph_id: "keyboard",
+    graph: { parameters: {}, layers: [{ id: "base", mode: "override", weight: 1, initialState: "idle", states: { idle: { motion: { kind: "clip", clip: "idle" }, speed: 1, loop: true } }, transitions: [] }] } }], "Add Animation State")}>Animation canvas node</button>
+}));
+
 jest.mock("../../../trpc/client", () => ({
   trpc: {
     games: {
@@ -538,4 +544,20 @@ it("retries only the submitted movement after undo during a rejected save and th
       game: { draftUpdatedAt: mockSavedToken } }));
     mockGetDraftQuery.mockReset();
   }
+});
+
+it("routes undo and redo from a focused animation canvas node through the editor shell", async () => {
+  const user = userEvent.setup();
+  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  act(() => { getGamePanelLayoutStore(useAuth.getState().user?.id ?? null).getState().dispatch({ type: "reveal", panelId: "animation-graph" }); });
+  await user.click(screen.getByRole("button", { name: "Animation canvas node" }));
+  const store = getGameDraftStore(mockDocument.id);
+  const document = store.getState().document;
+  expect(document?.schemaVersion === 3 && document.animationGraphs?.keyboard).toBeDefined();
+  await user.keyboard("{Control>}z{/Control}");
+  const undone = store.getState().document;
+  expect(undone?.schemaVersion === 3 && undone.animationGraphs?.keyboard).toBeUndefined();
+  await user.keyboard("{Control>}{Shift>}z{/Shift}{/Control}");
+  const redone = store.getState().document;
+  expect(redone?.schemaVersion === 3 && redone.animationGraphs?.keyboard).toBeDefined();
 });

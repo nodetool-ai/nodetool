@@ -65,6 +65,7 @@ jobs:
         run: node .github/scripts/agent-preflight.mjs --name crash-fuzzer --title "$TITLE_PATTERN"
 
   crash-fuzzer:
+    cache-mode: read
     needs: preflight
     if: github.event_name == 'workflow_dispatch' || needs.preflight.outputs.skip != 'true'
     runs-on: ubuntu-latest

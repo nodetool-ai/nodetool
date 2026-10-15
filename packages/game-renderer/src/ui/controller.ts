@@ -97,7 +97,8 @@ export class GameUiController {
     this.padButtons.clear();
     for (const index of down) { this.padButtons.add(index); }
     return list.map((pad) => pad && {
-      ...pad,
+      axes: pad.axes,
+      connected: pad.connected,
       buttons: pad.buttons.map((button, index) => index === CONFIRM || DPAD.has(index) ? { pressed: false, value: 0 } : button)
     });
   }

@@ -86,8 +86,8 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const { data: revisions } = trpc.games.revisions.useQuery({ id: refId }, { staleTime: 15_000 });
   const { data: changeEntries } = trpc.games.draftChanges.useQuery({ id: refId });
   const savingRef = useRef<Promise<void> | null>(null);
-  const onOps = useCallback((ops: AnyGameDocumentOp[], label?: string): void => {
-    getGameDraftStore(refId).getState().apply(ops, label === undefined ? undefined : { label });
+  const onOps = useCallback((ops: AnyGameDocumentOp[], label?: string): boolean => {
+    return getGameDraftStore(refId).getState().apply(ops, label === undefined ? undefined : { label });
   }, [refId]);
   const onViewportOps = useCallback((ops: AnyGameDocumentOp[], gestureId?: number, action?: GameViewportAction3D): void => {
     const updates = ops.flatMap((op) => op.op === "update_entity" ? [op] : []);
@@ -350,7 +350,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
       { id: "profiler",
         node: <GameProfilerPanel profiler={host.profiler} document={document}
           source={{ gameId: refId, name, dimension: "3d", tickRate: document.tickRate }} /> },
-      { id: "animation-graph",
+      { id: "animation-graph", keyboardScope: true,
         node: <AnimationGraphPanel document={document} diagnostics={diagnostics3D} sceneId={activeSceneId} selectedEntityId={selected?.id}
           inspection={host.playDocument ? host.inspection : null} onOps={onOps} /> },
       { id: "inspector",

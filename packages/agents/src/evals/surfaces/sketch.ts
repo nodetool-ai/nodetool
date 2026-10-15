@@ -30,7 +30,8 @@
  * or {@link getLastSketchToolBridge} when the eval runner owns the instance).
  */
 
-import { createCanvas, type Canvas, type SKRSContext2D } from "@napi-rs/canvas";
+import type { Canvas, SKRSContext2D } from "@napi-rs/canvas";
+import { loadCanvas } from "@nodetool-ai/runtime";
 import {
   DEFAULT_BRUSH_SETTINGS,
   DEFAULT_ERASER_SETTINGS,
@@ -76,17 +77,6 @@ import {
   findImageUseCase
 } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import { isString } from "../../utils/type-guards.js";
-
-/**
- * Point the paint core at skia. Idempotent and process-wide: the engine only
- * uses it to allocate its brush-stamp scratch bitmaps, so every bridge in this
- * process shares one factory.
- */
-setPaintSurfaceFactory((w: number, h: number) =>
-  // SAFETY: the engine only draws brush stamps on the surface, and a skia
-  // canvas provides every member `PaintSurface` names for that.
-  createCanvas(w, h) as PaintSurface
-);
 
 export type SketchBlendMode =
   | "normal"
@@ -396,7 +386,7 @@ interface StrokePoint extends Point {
  * what makes a semi-transparent stroke a single even wash instead of a chain of
  * overlapping dabs.
  */
-function renderStroke(options: {
+function renderStroke(createCanvas: typeof import("@napi-rs/canvas")["createCanvas"], options: {
   width: number;
   height: number;
   tool: "brush" | "pencil" | "eraser";
@@ -509,9 +499,11 @@ export function getLastSketchToolBridge(): SketchToolBridge | null {
  * `ui_sketch_*` contract but run headlessly, against a layer stack of real
  * skia bitmaps driven by the editor's own paint engine.
  */
-export function createSketchToolBridge(
+export async function createSketchToolBridge(
   initial: SketchBridgeInitialState = {}
-): SketchToolBridge {
+): Promise<SketchToolBridge> {
+  const { createCanvas } = await loadCanvas();
+  setPaintSurfaceFactory((w: number, h: number) => createCanvas(w, h) as unknown as PaintSurface);
   const name = initial.name ?? "Untitled";
   let width = initial.width ?? 1024;
   let height = initial.height ?? 1024;
@@ -1049,7 +1041,7 @@ export function createSketchToolBridge(
         const results = resolved.map(({ layer, stroke }) => {
           const strokeTool = stroke.tool ?? "brush";
           const opacity = stroke.opacity ?? 1;
-          const { buffer, dirty } = renderStroke({
+          const { buffer, dirty } = renderStroke(createCanvas, {
             width,
             height,
             tool: strokeTool,

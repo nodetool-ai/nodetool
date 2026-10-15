@@ -14,7 +14,8 @@ import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import {
   buildBuiltinRegistry,
-  createExecutorResolver
+  createExecutorResolver,
+  assertNodePackAvailable
 } from "../registry.js";
 import type { SecretResolver } from "../core.js";
 
@@ -96,6 +97,7 @@ export function abortErrorFrom(signal: AbortSignal): Error {
  * them to callers.
  */
 export interface FlowRuntime extends Flow {
+  assertNodeAvailable(nodeType: string): Promise<void>;
   /** Rejects with {@link FlowClosedError} once `close()` has run. */
   assertOpen(): void;
   /** The flow signal combined with a per-call one (either may be absent). */
@@ -196,6 +198,11 @@ class FlowImpl implements FlowRuntime {
     return resolve(descriptor);
   }
 
+  async assertNodeAvailable(nodeType: string): Promise<void> {
+    this.assertOpen();
+    assertNodePackAvailable(nodeType, this.opts, await this.builtinRegistry);
+  }
+
   emitCallEvent(event: FlowCallEvent): void {
     this.opts.onCall?.(event);
   }
@@ -259,6 +266,11 @@ export function resolveFlow(opts?: CallOptions): FlowRuntime {
   if (ambient) return ambient;
   processDefaultFlow ??= new FlowImpl({});
   return processDefaultFlow;
+}
+
+/** Check catalog availability before opening a lazy stream, without running the node. */
+export async function assertNodeAvailable(nodeType: string, opts?: CallOptions): Promise<void> {
+  await resolveFlow(opts).assertNodeAvailable(nodeType);
 }
 
 /** Drop the process-default flow. Test-only: nothing else should need it. */
@@ -337,12 +349,14 @@ async function openScope(
   nodeType: string,
   inputs: Record<string, unknown>
 ): Promise<CallScope> {
-  const executor = await call.flow.resolveExecutor({
+  const resolved = await call.flow.resolveExecutor({
     id: call.nodeId,
     type: nodeType,
     properties: inputs
   });
   const context = call.flow.contextFor(call.signal);
+  const guard = context.nodeExecutorGuard;
+  const executor = guard ? guard(resolved, nodeType, inputs) : resolved;
   await executor.initialize?.();
   return {
     executor,

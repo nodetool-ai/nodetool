@@ -1,3 +1,4 @@
+import { importPack } from "@nodetool-ai/node-catalog";
 /**
  * `browse_native_game_assets`: the asset browser's view of a game draft for an
  * agent. It returns the same catalog the editor panel shows (assets with
@@ -43,7 +44,7 @@ async function draftFor(run: CapabilityRun, id: unknown): Promise<GameDraft | nu
 /** A recorded or derived binding for one staged candidate, shaped for the draft's dimension. */
 async function candidateBinding(run: CapabilityRun, draft: GameDraft, digest: string, slot: string | undefined): Promise<
   { candidate: Record<string, unknown>; binding: AnyGameAssetBinding } | { error: string }> {
-  const { listStagedGameCandidates, derivedStagedBinding2D } = await import("@nodetool-ai/game-nodes");
+  const { listStagedGameCandidates, derivedStagedBinding2D } = await importPack<typeof import("@nodetool-ai/game-nodes")>("game", "@nodetool-ai/game-nodes");
   const candidate = (await listStagedGameCandidates(draft.workspace, draft.game.source_root)).find((entry) => entry.digest === digest);
   if (!candidate) { return { error: "No staged candidate has that digest" }; }
   const summary = { digest: candidate.digest, extension: candidate.extension, media_kind: candidate.mediaKind, path: candidate.path,
@@ -58,7 +59,7 @@ async function candidateBinding(run: CapabilityRun, draft: GameDraft, digest: st
   if (!bytes) { return { error: "Staged candidate bytes are unavailable" }; }
   if (candidate.mediaKind === "model") {
     if (!is3D) { return { error: "Model candidates require a 3D game" }; }
-    const { prepareGameModelBinding3D } = await import("@nodetool-ai/game-renderer/preparation3d");
+    const { prepareGameModelBinding3D } = await importPack<typeof import("@nodetool-ai/game-renderer/preparation3d")>("game", "@nodetool-ai/game-renderer/preparation3d");
     const prepared = await prepareGameModelBinding3D(bytes, { assetId: `staged:${digest}`, expectedDigest: digest, signal: run.context.signal });
     if (!prepared.ok) { return { error: prepared.diagnostics.map((issue) => issue.message).join("; ") }; }
     return { candidate: summary, binding: prepared.binding };
@@ -90,7 +91,7 @@ export async function browseGameAssets(run: CapabilityRun, args: Record<string, 
   const kind = KINDS.find((entry): entry is GameAssetMediaKind => entry === args["kind"]);
   const catalog = gameAssetCatalog(draft.document);
   const filtered = filterGameAssetCatalog(catalog, { query, kind });
-  const { listStagedGameCandidates, gameTemplateSlot } = await import("@nodetool-ai/game-nodes");
+  const { listStagedGameCandidates, gameTemplateSlot } = await importPack<typeof import("@nodetool-ai/game-nodes")>("game", "@nodetool-ai/game-nodes");
   const candidates = await listStagedGameCandidates(draft.workspace, draft.game.source_root);
   const slotsByDigest = new Map<string, string[]>();
   for (const [boundSlot, binding] of Object.entries(draft.document.assets)) {

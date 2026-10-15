@@ -81,3 +81,42 @@ it("keeps the same candidate for unrelated edits and copies 3D prefab source cha
   expect(candidate.prefabs.actor.entities[0].behaviors[0]).toMatchObject({ source: behavior.source });
   expect(candidate.scenes[0].name).toBe("Level");
 });
+
+for (const change of ["remove", "reorder"] as const) {
+  it(`keeps running script identities after a behavior ${change}`, () => {
+    const current = document("() => ({ state: 'a' })");
+    const player = current.scenes[0].entities.find((entity) => entity.id === "player")!;
+    player.behaviors.push({ kind: "script", source: "() => ({ state: 'b' })", maxCommands: 16, maxTickMs: 30 });
+    const draft = structuredClone(current);
+    const edited = draft.scenes[0].entities.find((entity) => entity.id === "player")!;
+    if (change === "remove") { edited.behaviors.shift(); } else { edited.behaviors.reverse(); }
+    expect(gameSourceEditDocument(current, draft)).toBe(current);
+  });
+}
+
+it("publishes a reload diagnostic when the failed session cannot snapshot", async () => {
+  const current = document("() => ({})");
+  const session = { snapshot: jest.fn(() => { throw new Error("Session failed"); }),
+    reloadScripts: jest.fn(async () => ({ ok: false as const, error: "Session failed" })) };
+  const logs = jest.fn();
+  const scriptLogs = createGameScriptLogChannel();
+  scriptLogs.subscribe(logs);
+  const view = renderHook(() => useGameScriptReload({ draft: document("() => ({ state: 2 })"), playDocument: current,
+    sessionRef: { current: session }, effectiveDocumentRef: { current }, readyGeneration: 1, scriptLogs, checkpoint: jest.fn(), lastCommittedTick: 12 }));
+  await act(async () => { await Promise.resolve(); });
+  expect(logs).toHaveBeenCalledTimes(1);
+  expect(logs.mock.calls[0][0][0]).toMatchObject({ tick: 12, level: "error" });
+  expect(session.snapshot).not.toHaveBeenCalled();
+  view.unmount();
+});
+
+it("suppresses structurally edited lists even when every reordered script source was also edited", () => {
+  const current = document("() => ({ state: 'a' })");
+  const player = current.scenes[0].entities.find((entity) => entity.id === "player")!;
+  player.behaviors.push({ kind: "script", source: "() => ({ state: 'b' })", maxCommands: 16, maxTickMs: 30 });
+  const draft = structuredClone(current);
+  const edited = draft.scenes[0].entities.find((entity) => entity.id === "player")!;
+  edited.behaviors.reverse();
+  for (const behavior of edited.behaviors) { if (behavior.kind === "script") { behavior.source += " "; } }
+  expect(gameSourceEditDocument(current, draft, new Set(["player"]))).toBe(current);
+});

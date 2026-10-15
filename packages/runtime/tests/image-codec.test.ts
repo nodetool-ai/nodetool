@@ -117,20 +117,20 @@ describe("extractImageRegion", () => {
 
 /**
  * Graceful-degradation tests for the sharp loader. These mock `@nodetool-ai/config`
- * so `importHidden("sharp")` is driven per-test, and re-import the codec module
+ * so `importOptionalModule("sharp")` is driven per-test, and re-import the codec module
  * fresh (resetting its module-local `_sharpPromise` cache) on every case.
  */
 describe("encodeRawRgbaToPng without a working sharp", () => {
-  // Per-test handler for the mocked importHidden. Reassigned by each test.
-  let importHiddenImpl: (name: string) => Promise<unknown>;
+  // Per-test handler for the mocked importOptionalModule. Reassigned by each test.
+  let importOptionalModuleImpl: (name: string) => Promise<unknown>;
 
   beforeEach(() => {
     vi.resetModules();
-    importHiddenImpl = async () => null;
+    importOptionalModuleImpl = async () => null;
     vi.doMock("@nodetool-ai/config", async (importOriginal) => ({
       // The codec's tracing import needs the real config exports.
       ...(await importOriginal<typeof import("@nodetool-ai/config")>()),
-      importHidden: (name: string) => importHiddenImpl(name)
+      importOptionalModule: (name: string) => importOptionalModuleImpl(name)
     }));
   });
 
@@ -139,10 +139,10 @@ describe("encodeRawRgbaToPng without a working sharp", () => {
   }
 
   it("rejects with an actionable sharp/install message (or returns PNG via OffscreenCanvas) when sharp fails to load", async () => {
-    // importHidden THROWS on Node when the native addon is missing/broken —
+    // importOptionalModule THROWS on Node when the native addon is missing/broken —
     // the loader must swallow it (resolve null), never surface an opaque
     // module-load error.
-    importHiddenImpl = async () => {
+    importOptionalModuleImpl = async () => {
       throw new Error(
         "Cannot find module '@img/sharp-linux-x64' (native addon missing)"
       );
@@ -177,7 +177,7 @@ describe("encodeRawRgbaToPng without a working sharp", () => {
     // With sharp unavailable the bytes are returned un-re-encoded. Labeling
     // them image/png when they are actually JPEG makes a vision provider reject
     // the image — so the caller's known sourceMime must be preserved.
-    importHiddenImpl = async () => null; // sharp unavailable
+    importOptionalModuleImpl = async () => null; // sharp unavailable
     const { extractImageRegion: extract } = await freshCodec();
     const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00]);
     const out = await extract(jpegBytes, {
@@ -191,10 +191,10 @@ describe("encodeRawRgbaToPng without a working sharp", () => {
   });
 
   it("does not cache a rejected load attempt: a later working sharp succeeds", async () => {
-    // First attempt: importHidden throws (addon broken) → loadSharp resolves
+    // First attempt: importOptionalModule throws (addon broken) → loadSharp resolves
     // null → encode rejects (no Canvas) or falls back to Canvas.
     let calls = 0;
-    importHiddenImpl = async () => {
+    importOptionalModuleImpl = async () => {
       calls += 1;
       if (calls === 1) {
         throw new Error("Cannot find module '@img/sharp-linux-x64'");

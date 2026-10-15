@@ -1,4 +1,6 @@
 import { sanitizeChatHtmlTree } from "../rehypeSanitizeChatHtml";
+import { spawnSync } from "node:child_process";
+import path from "node:path";
 
 interface HastNode {
   type: string;
@@ -23,6 +25,34 @@ const sanitize = (...children: HastNode[]): HastNode[] => {
 };
 
 describe("sanitizeChatHtmlTree", () => {
+  it("keeps every description target from the actual GFM Markdown pipeline", () => {
+    const plugin = path.resolve(__dirname, "../rehypeSanitizeChatHtml.ts");
+    const source = `
+      import { unified } from 'unified';
+      import remarkParse from 'remark-parse';
+      import remarkGfm from 'remark-gfm';
+      import remarkRehype from 'remark-rehype';
+      import rehypeRaw from 'rehype-raw';
+      import sanitize from ${JSON.stringify(plugin)};
+      import assert from 'node:assert/strict';
+      const processor = unified().use(remarkParse).use(remarkGfm).use(remarkRehype).use(rehypeRaw).use(sanitize);
+      const tree = processor.runSync(processor.parse('A note[^1].\\n\\n[^1]: Explanation.'));
+      const ids = new Set(); const targets = [];
+      function visit(node) { if (node.properties?.id) ids.add(node.properties.id); if (node.properties?.ariaDescribedBy) targets.push(...node.properties.ariaDescribedBy); for (const child of node.children ?? []) visit(child); }
+      visit(tree); assert.ok(targets.length); for (const target of targets) assert.ok(ids.has(target), target);
+    `;
+    const result = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", source], { encoding: "utf8" });
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+  });
+  it("preserves the GFM footnote description relationship with a safe id", () => {
+    const [reference, heading] = sanitize(
+      el("a", { ariaDescribedBy: ["footnote-label"], dataFootnoteRef: true }),
+      el("h2", { id: "footnote-label" }, [text("Footnotes")])
+    );
+    expect(heading.properties?.id).toBe("user-content-footnote-label");
+    expect(reference.properties?.ariaDescribedBy).toEqual([heading.properties?.id]);
+  });
   it("removes script, style and iframe elements with their content", () => {
     const result = sanitize(
       el("script", {}, [text("alert(1)")]),
