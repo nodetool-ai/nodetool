@@ -13,6 +13,8 @@
  */
 import { readFileSync } from "node:fs";
 import {
+  isRecord,
+  isString,
   operationTarget,
   serializeApplicationBundle,
   WIDGET_CATALOG,
@@ -60,7 +62,7 @@ export interface StandaloneProject {
 
 /** Template files the exporter writes itself or leaves out. */
 const GENERATED_PATHS = new Set(["app.bundle.json"]);
-const RENAMED_PATHS: Readonly<Record<string, string>> = { gitignore: ".gitignore" };
+const RENAMED_PATHS: ReadonlyMap<string, string> = new Map([["gitignore", ".gitignore"]]);
 
 /** Widgets the exported UI renders as a pointer back to NodeTool. */
 const NODETOOL_ONLY_WIDGETS = new Set([
@@ -85,10 +87,8 @@ const TYPESCRIPT_VERSION = "^5.9.0";
  */
 export function exporterVersion(): string {
   try {
-    const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
-      version?: unknown;
-    };
-    return typeof manifest.version === "string" && manifest.version ? manifest.version : "latest";
+    const manifest: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    return isRecord(manifest) && isString(manifest.version) && manifest.version ? manifest.version : "latest";
   } catch {
     return "latest";
   }
@@ -113,9 +113,6 @@ interface RegistryLike {
   getMetadata: (nodeType: string) => { required_settings?: string[] } | null | undefined;
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
 /**
  * The credential names an app's graphs need: every `required_settings` entry
  * of the node types they use, plus the key of every provider a model
@@ -136,9 +133,9 @@ export function requiredSecretNames(
     }
     if (!isRecord(value)) return;
     if (
-      typeof value.type === "string" &&
+      isString(value.type) &&
       value.type.endsWith("_model") &&
-      typeof value.provider === "string" &&
+      isString(value.provider) &&
       value.provider !== ""
     ) {
       const key = providerSecretKey(value.provider);
@@ -149,7 +146,7 @@ export function requiredSecretNames(
   for (const workflow of bundle.workflows) {
     for (const node of workflow.graph.nodes) {
       if (!isRecord(node)) continue;
-      const type = typeof node.type === "string" ? node.type : "";
+      const type = isString(node.type) ? node.type : "";
       if (type && registry.has(type)) {
         for (const key of registry.getMetadata(type)?.required_settings ?? []) {
           if (key) names.add(key);
@@ -160,10 +157,11 @@ export function requiredSecretNames(
   }
   // A script reads only the secrets its document declares.
   for (const script of bundle.scripts) {
-    const declared: unknown = (script.document as { secrets?: unknown }).secrets;
+    const document: unknown = script.document;
+    const declared: unknown = isRecord(document) ? document.secrets : undefined;
     if (!Array.isArray(declared)) continue;
     for (const key of declared) {
-      if (typeof key === "string" && key) names.add(key);
+      if (isString(key) && key) names.add(key);
     }
   }
   return [...names].sort();
@@ -175,8 +173,8 @@ export function hasUnsetModel(bundle: ApplicationBundle): boolean {
     if (depth > 8) return false;
     if (Array.isArray(value)) return value.some((item) => visit(item, depth + 1));
     if (!isRecord(value)) return false;
-    if (typeof value.type === "string" && value.type.endsWith("_model") && "id" in value) {
-      return typeof value.id !== "string" || value.id === "";
+    if (isString(value.type) && value.type.endsWith("_model") && "id" in value) {
+      return !isString(value.id) || value.id === "";
     }
     return Object.values(value).some((entry) => visit(entry, depth + 1));
   };
@@ -190,7 +188,7 @@ function collectWidgetTypes(value: unknown, into: Set<string>, depth = 0): void 
     return;
   }
   if (!isRecord(value)) return;
-  if (typeof value.type === "string" && isRecord(value.props)) into.add(value.type);
+  if (isString(value.type) && isRecord(value.props)) into.add(value.type);
   for (const entry of Object.values(isRecord(value.props) ? value.props : value)) {
     collectWidgetTypes(entry, into, depth + 1);
   }
@@ -356,9 +354,9 @@ export function buildStandaloneProject(
       `${missing.length} sample file(s) from NodeTool's packages were not found and load as empty: ${missing.join(", ")}`
     );
   }
-  for (const [path, content] of Object.entries(TEMPLATE_FILES)) {
+  for (const [path, content] of TEMPLATE_FILES) {
     if (GENERATED_PATHS.has(path)) continue;
-    files.push({ path: RENAMED_PATHS[path] ?? path, content });
+    files.push({ path: RENAMED_PATHS.get(path) ?? path, content });
   }
   files.push(
     { path: "package.json", content: packageJson(name, options.nodetoolVersion ?? exporterVersion()) },

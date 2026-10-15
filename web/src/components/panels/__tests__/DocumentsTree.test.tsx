@@ -12,6 +12,18 @@ const mockOpenApplication = jest.fn();
 const mockNavigate = jest.fn();
 const mockUseDocumentTreeData = useDocumentTreeData as jest.Mock;
 
+// Counts row renders: every row draws one DeleteButton.
+const mockDeleteButtonRender = jest.fn();
+jest.mock("../../ui_primitives/DeleteButton", () => {
+  const actual = jest.requireActual("../../ui_primitives/DeleteButton");
+  const { createElement } = jest.requireActual("react");
+  const CountedDeleteButton = (props: Record<string, unknown>) => {
+    mockDeleteButtonRender(props.ariaLabel);
+    return createElement(actual.DeleteButton, props);
+  };
+  return { ...actual, DeleteButton: CountedDeleteButton };
+});
+
 jest.mock("../../../hooks/useDocumentTreeData", () => ({
   useDocumentTreeData: jest.fn()
 }));
@@ -398,4 +410,23 @@ it("opens the row menu without a pointer position, as Shift+F10 does", async () 
   expect(
     await screen.findByRole("menuitem", { name: "Rename" })
   ).toBeInTheDocument();
+});
+
+// A save refetches the index. The hook keeps an unchanged document's leaf, so
+// its row must not re-render; a project has hundreds of them.
+it("does not re-render a row whose document a refetch did not change", () => {
+  const { rerender } = renderTree();
+  mockDeleteButtonRender.mockClear();
+
+  mockUseDocumentTreeData.mockReturnValue({
+    ...data,
+    groups: data.groups.map((group) => ({ ...group }))
+  });
+  rerender(
+    <ThemeProvider theme={mockTheme}>
+      <DocumentsTree projectId="project-a" />
+    </ThemeProvider>
+  );
+
+  expect(mockDeleteButtonRender).not.toHaveBeenCalled();
 });

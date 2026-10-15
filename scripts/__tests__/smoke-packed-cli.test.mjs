@@ -10,65 +10,77 @@ import { afterEach, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 
 import { assertInstalledSelection, assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, probeServe, REQUIRED_COMMANDS } from "../smoke-packed-cli.mjs";
+import { partitionPlan } from "../packed-verification.mjs";
+import { fullPlan, readPackages } from "../test-affected.mjs";
 
 const fixtures = [];
 afterEach(() => { for (const root of fixtures.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
 
-it("keeps core-smoke dependent on affected tests, verification, and the independent packed install", () => {
+it("keeps the required core-smoke status dependent on verification and the independent packed install", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
   const guard = workflow.jobs["core-smoke"];
-  expect(guard.needs).toEqual(["affected-tests", "verification", "packed-install"]);
+  expect(guard.needs).toEqual(["verification-plan", "verification", "packed-install"]);
   expect(guard.if).toBe("always()");
-  const checks = [workflow.jobs["affected-tests"], workflow.jobs.verification].flatMap(job => job.steps.map(step => step.run));
-  expect(workflow.jobs["affected-tests"]["timeout-minutes"]).toBe(150);
-  expect(workflow.jobs.verification["timeout-minutes"]).toBe(45);
-  expect(workflow.jobs["affected-tests"].needs).toBeUndefined();
-  expect(workflow.jobs.verification.needs).toBeUndefined();
-  for (const command of ["npm run test:affected", "npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base origin/main --jobs 1", "npm run backend:smoke"]) {
+  const scripts = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")).scripts;
+  const jobs = partitionPlan(fullPlan(), readPackages({}), scripts);
+  const checks = jobs.flatMap(({ commands }) => commands).map(({ command, args }) => [command, ...args].join(" "));
+  expect(workflow.jobs.verification.needs).toBe("verification-plan");
+  expect(workflow.jobs.verification.strategy.matrix).toBe("${{ fromJSON(needs.verification-plan.outputs.matrix) }}");
+  expect(workflow.jobs.verification.steps.map(step => step.run)).toContain('node scripts/packed-verification.mjs run "$RUNNER_TEMP/packed-verification.json" "$PACKED_TASK"');
+  expect(jobs.filter(({ id }) => id.startsWith("test-packages-")).length).toBeGreaterThan(0);
+  for (const command of ["npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base origin/main --jobs 1", "npm run backend:smoke"]) {
     expect(checks).toContain(command);
   }
   expect(workflow.jobs["packed-install"].needs).toBeUndefined();
   const packedChecks = workflow.jobs["packed-install"].steps.map(step => step.run);
+  expect(packedChecks).toContain("node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts");
   expect(packedChecks.indexOf("node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts")).toBeLessThan(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts"));
   expect(packedChecks).toContain("node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts");
   expect(packedChecks).toContain("node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts");
   expect(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts")).toBeGreaterThan(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts"));
-  for (const job of ["affected-tests", "verification", "packed-install", "release-pins"]) {
+  for (const job of ["verification", "packed-install", "release-pins"]) {
     expect(workflow.jobs[job].steps.find(step => step.uses === "./.github/actions/setup-build").with.cache).toBe("read-only");
   }
-  for (const [affected, verification, installed, expected] of [["success", "success", "success", 0], ["failure", "success", "success", 1], ["cancelled", "success", "success", 1], ["skipped", "success", "success", 1], ["success", "failure", "success", 1], ["success", "success", "cancelled", 1], ["success", "skipped", "success", 1]]) {
-    const result = spawnSync("bash", ["-c", guard.steps[0].run], {
-      env: { ...process.env, AFFECTED_TESTS_RESULT: affected, VERIFICATION_RESULT: verification, PACKED_INSTALL_RESULT: installed }
-    });
-    expect(result.status).toBe(expected);
+  for (const planned of ["success", "failure", "cancelled", "skipped"]) {
+    for (const verification of ["success", "failure", "cancelled", "skipped"]) {
+      for (const installed of ["success", "failure", "cancelled", "skipped"]) {
+        const result = spawnSync("bash", ["-c", guard.steps[0].run], {
+          env: { ...process.env, PLAN_RESULT: planned, VERIFICATION_RESULT: verification, PACKED_INSTALL_RESULT: installed }
+        });
+        expect(result.status).toBe(planned === "success" && verification === "success" && installed === "success" ? 0 : 1);
+      }
+    }
   }
 });
 
-it.each([["affected-tests", "npm run test:affected"], ["verification", "npm run dev:nodetool -- harness gate --base origin/main --jobs 1"]])("prepares native, mobile, and sandboxed browser dependencies for %s", (job, command) => {
+it("prepares sandboxed Chromium before packed verification runs browser suites", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
-  const steps = workflow.jobs[job].steps;
-  const affectedIndex = steps.findIndex(step => step.run === command);
+  const steps = workflow.jobs.verification.steps;
+  const affectedIndex = steps.findIndex(step => step.name === "Run the selected verification bucket");
   const installIndex = steps.findIndex(step => step.run === "npx playwright install --with-deps chromium");
   const sandboxIndex = steps.findIndex(step => step.name === "Enable and verify the Chromium sandbox");
   expect(affectedIndex).toBeGreaterThan(0);
   expect(installIndex).toBeGreaterThanOrEqual(0);
   expect(sandboxIndex).toBeGreaterThan(installIndex);
   expect(affectedIndex).toBeGreaterThan(sandboxIndex);
-  expect(steps.find(step => step.uses === "./.github/actions/setup-build").with["extra-apt"]).toBe("ffmpeg mesa-vulkan-drivers");
-  expect(steps.slice(0, affectedIndex).some(step => step.run === "npm --prefix mobile ci")).toBe(true);
   expect(steps[sandboxIndex].run).toContain("chromiumSandbox: true");
   expect(steps[sandboxIndex].run).toContain("sudo apparmor_parser -r");
+  const mobileIndex = steps.findIndex(step => step.run === "npm --prefix mobile ci");
+  expect(mobileIndex).toBeGreaterThanOrEqual(0);
+  expect(mobileIndex).toBeLessThan(affectedIndex);
+  expect(steps.find(step => step.uses === "./.github/actions/setup-build").with["extra-apt"]).toBe("ffmpeg mesa-vulkan-drivers");
 });
 
 it("bounds verification test concurrency without changing build scheduling", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
-  const job = workflow.jobs["affected-tests"];
+  const job = workflow.jobs.verification;
   expect(job.env?.NODETOOL_TURBO_CONCURRENCY).toBeUndefined();
-  const affected = job.steps.find(step => step.name === "Verify affected tests");
+  const affected = job.steps.find(step => step.name === "Run the selected verification bucket");
   expect(affected.env).toMatchObject({ NODETOOL_TURBO_CONCURRENCY: "1", NODETOOL_TEST_WORKERS: "1" });
-  const harness = workflow.jobs.verification.steps.find(step => step.name === "Verify harnesses");
-  expect(harness.env).toMatchObject({ NODETOOL_TEST_WORKERS: "1" });
-  expect(harness.run).toBe("npm run dev:nodetool -- harness gate --base origin/main --jobs 1");
+  const scripts = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")).scripts;
+  const fixed = partitionPlan(fullPlan(), readPackages({}), scripts).find(({ id }) => id === "fixed-checks");
+  const harness = fixed.commands.find(({ label }) => label === "harnesses");
+  expect([harness.command, ...harness.args].join(" ")).toBe("npm run dev:nodetool -- harness gate --base origin/main --jobs 1");
 });
 
 function releaseTarball(root, filename, name, version) {

@@ -8,6 +8,13 @@ on:
       - 'scripts/packed-*.mjs'
       - 'scripts/fixtures/packed-fal-preload.mjs'
       - 'scripts/__tests__/packed-*.test.mjs'
+      - 'scripts/packed-verification.mjs'
+      - 'scripts/test-affected.mjs'
+      - 'scripts/ci-plan.mjs'
+      - 'scripts/run-turbo.mjs'
+      - 'scripts/__tests__/packed-verification.test.mjs'
+      - 'web/jest.config.ts'
+      - 'scripts/__tests__/jest-worker-memory.test.mjs'
       - 'scripts/fixtures/codec-identity.mp4'
       - 'scripts/node-catalog/tiers.mjs'
       - 'scripts/prepare-publish.mjs'
@@ -31,13 +38,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  affected-tests:
+  verification-plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 90
+    outputs:
+      sha: ${{ steps.plan.outputs.sha }}
+      matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .nvmrc
+      - name: Freeze the canonical affected selection
+        id: plan
+        run: node scripts/packed-verification.mjs plan "$RUNNER_TEMP/packed-verification.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packed-verification-plan
+          path: ${{ runner.temp }}/packed-verification.json
+          if-no-files-found: error
+  verification:
+    needs: verification-plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.verification-plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.verification-plan.outputs.sha }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packed-verification-plan
+          path: ${{ runner.temp }}
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .nvmrc
+      - name: Restore the frozen selection base
+        run: node scripts/packed-verification.mjs prepare "$RUNNER_TEMP/packed-verification.json"
       - uses: ./.github/actions/setup-build
         with:
           cache: read-only
@@ -71,61 +113,13 @@ jobs:
 
       - name: Install mobile check dependencies
         run: npm --prefix mobile ci
-      - name: Verify affected tests
+      - name: Run the selected verification bucket
         env:
+          NODETOOL_WEB_TEST_RECYCLE_WORKERS: "1"
           NODETOOL_TURBO_CONCURRENCY: "1"
           NODETOOL_TEST_WORKERS: "1"
-        run: npm run test:affected
-  verification:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/setup-build
-        with:
-          cache: read-only
-          extra-apt: ffmpeg mesa-vulkan-drivers
-      - name: Install Chromium for native 3D tests
-        run: npx playwright install --with-deps chromium
-
-      # Ubuntu restricts user namespaces for downloaded Chromium binaries.
-      # Allow only Playwright's browser paths so capture keeps its sandbox.
-      # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
-      - name: Enable and verify the Chromium sandbox
-        run: |
-          sudo tee /etc/apparmor.d/nodetool-playwright > /dev/null <<'PROFILE'
-          abi <abi/4.0>,
-          include <tunables/global>
-
-          profile nodetool-playwright-chromium /@{HOME}/.cache/ms-playwright/chromium-*/chrome-linux*/chrome flags=(unconfined) {
-            userns,
-          }
-
-          profile nodetool-playwright-headless /@{HOME}/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux*/chrome-headless-shell flags=(unconfined) {
-            userns,
-          }
-          PROFILE
-          sudo apparmor_parser -r /etc/apparmor.d/nodetool-playwright
-          node --input-type=module <<'JS'
-          import { chromium } from "playwright";
-          const browser = await chromium.launch({ headless: true, chromiumSandbox: true });
-          await browser.close();
-          JS
-
-      - name: Install mobile check dependencies
-        run: npm --prefix mobile ci
-      - name: Verify types
-        run: npm run typecheck
-      - name: Verify lint
-        run: npm run lint
-      - name: Verify harnesses
-        env:
-          NODETOOL_TEST_WORKERS: "1"
-        run: npm run dev:nodetool -- harness gate --base origin/main --jobs 1
-      - name: Verify the packaged backend
-        run: npm run backend:smoke
+          PACKED_TASK: ${{ matrix.task }}
+        run: node scripts/packed-verification.mjs run "$RUNNER_TEMP/packed-verification.json" "$PACKED_TASK"
   packed-install:
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -143,19 +137,19 @@ jobs:
       - name: Smoke-test the packed full CLI
         run: node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts
   core-smoke:
-    needs: [affected-tests, verification, packed-install]
+    needs: [verification-plan, verification, packed-install]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require complete verification and packed installation
         env:
-          AFFECTED_TESTS_RESULT: ${{ needs.affected-tests.result }}
+          PLAN_RESULT: ${{ needs.verification-plan.result }}
           VERIFICATION_RESULT: ${{ needs.verification.result }}
           PACKED_INSTALL_RESULT: ${{ needs.packed-install.result }}
         run: |
-          if [ "$AFFECTED_TESTS_RESULT" != "success" ] || [ "$VERIFICATION_RESULT" != "success" ] || [ "$PACKED_INSTALL_RESULT" != "success" ]; then
-            echo "Packed CLI tests, verification, or installation did not pass."
+          if [ "$PLAN_RESULT" != "success" ] || [ "$VERIFICATION_RESULT" != "success" ] || [ "$PACKED_INSTALL_RESULT" != "success" ]; then
+            echo "Packed CLI verification or installation did not pass."
             exit 1
           fi
   release-pins:

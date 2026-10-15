@@ -1,7 +1,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ImageRef, AudioRef } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
-import { safeFetch } from "@nodetool-ai/runtime";
+import { loadMediaRefBytes, safeFetch } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { sleep } from "@nodetool-ai/runtime/provider-transport";
 import {
@@ -20,24 +20,20 @@ function getGeminiApiKey(secrets: Record<string, string>): string {
 
 type MediaRefLike = { uri?: string; asset_id?: string | null; data?: unknown };
 
-function getAudioBytes(audio: MediaRefLike): Uint8Array {
-  if (isString(audio.data)) {
-    return Uint8Array.from(Buffer.from(audio.data, "base64"));
-  }
-  if (audio.data instanceof Uint8Array) {
-    return audio.data;
-  }
-  throw new Error("Audio data is required");
-}
-
-function getImageBytes(image: MediaRefLike): Uint8Array | null {
-  if (isNonEmptyString(image.data)) {
-    return Uint8Array.from(Buffer.from(image.data, "base64"));
-  }
-  if (image.data instanceof Uint8Array) {
-    return image.data;
-  }
-  return null;
+/**
+ * Bytes behind a media ref: inline `data`, an `asset://` URI or bare
+ * `asset_id`, a storage URI, or an http(s) URL. Empty when nothing resolves.
+ */
+async function getMediaBytes(
+  ref: MediaRefLike,
+  type: "image" | "audio",
+  context?: ProcessingContext
+): Promise<Uint8Array | null> {
+  const bytes = await loadMediaRefBytes(
+    { data: ref.data, uri: ref.uri, asset_id: ref.asset_id, type },
+    context
+  );
+  return bytes && bytes.length > 0 ? bytes : null;
 }
 
 function isRefSet(ref: unknown): boolean {
@@ -324,7 +320,9 @@ export class ImageGenerationNode extends BaseNode {
   })
   declare resolution: string;
 
-  async process(): Promise<ImageGenerationNodeOutputs> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<ImageGenerationNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
     const prompt = this.prompt;
     const model = this.model;
@@ -337,7 +335,12 @@ export class ImageGenerationNode extends BaseNode {
     if (model.startsWith("gemini-")) {
       const contentParts: Array<Record<string, unknown>> = [{ text: prompt }];
 
-      const imageBytes = getImageBytes(image);
+      const imageBytes = isRefSet(image)
+        ? await getMediaBytes(image, "image", context)
+        : null;
+      if (isRefSet(image) && !imageBytes) {
+        throw new Error("Input image could not be resolved");
+      }
       if (imageBytes) {
         contentParts.push({
           inlineData: {
@@ -657,7 +660,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
 
     if (!isRefSet(image)) throw new Error("Input image is required");
 
-    const imageBytes = getImageBytes(image);
+    const imageBytes = await getMediaBytes(image, "image", context);
     if (!imageBytes) throw new Error("Image data is required");
 
     const parameters: Record<string, unknown> = {};
@@ -1025,7 +1028,9 @@ export class TranscribeGeminiNode extends BaseNode {
   })
   declare prompt: string;
 
-  async process(): Promise<TranscribeGeminiNodeOutputs> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<TranscribeGeminiNodeOutputs> {
     const apiKey = getGeminiApiKey(this._secrets);
     const audio = this.audio;
     const model = this.model;
@@ -1034,7 +1039,8 @@ export class TranscribeGeminiNode extends BaseNode {
     if (!isRefSet(audio))
       throw new Error("Audio file is required for transcription");
 
-    const audioBytes = getAudioBytes(audio);
+    const audioBytes = await getMediaBytes(audio, "audio", context);
+    if (!audioBytes) throw new Error("Audio data is required");
 
     // Detect MIME type from first bytes (simple magic-number check)
     const mimeType = detectAudioMime(audioBytes);

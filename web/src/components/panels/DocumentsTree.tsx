@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { SvgIconComponent } from "@mui/icons-material";
@@ -138,14 +138,16 @@ const ROW_ACTION_CLASSES = [
   ".documents-tree-rename"
 ];
 
-const DocumentTreeRow = ({
+// Memoized: a save refetches the document index, and a project has hundreds of
+// rows. `useDocumentTreeData` keeps the leaf of an unchanged document.
+const DocumentTreeRow = memo(function DocumentTreeRow({
   leaf,
   active,
   onOpen,
   onDelete,
   onDuplicate,
   onRename
-}: DocumentTreeRowProps) => {
+}: DocumentTreeRowProps) {
   const Icon = LEAF_ICONS[leaf.type];
   const [editing, setEditing] = useState(false);
   const handleClick = useCallback(() => onOpen(leaf), [leaf, onOpen]);
@@ -316,7 +318,7 @@ const DocumentTreeRow = ({
       )}
     </FlexRow>
   );
-};
+});
 
 interface DocumentTreeGroupRowProps {
   readonly group: DocumentTreeGroup;
@@ -511,10 +513,13 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
   );
 
   const duplicateWorkflow = useDuplicateWorkflowDocument();
+  // Read through a ref, so a refetch does not hand every row a new callback.
+  const groupsRef = useRef(groups);
+  groupsRef.current = groups;
   const handleDuplicate = useCallback(
     (document: DocumentTreeLeaf) => {
       const siblingNames =
-        groups
+        groupsRef.current
           .find((group) => group.id === "workflows")
           ?.children.map((child) => child.name) ?? [];
       duplicateWorkflow(document.id, siblingNames)
@@ -534,7 +539,7 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
           })
         );
     },
-    [addNotification, duplicateWorkflow, groups, location.pathname, navigate]
+    [addNotification, duplicateWorkflow, location.pathname, navigate]
   );
 
   const renameDocument = useRenameDocument();
