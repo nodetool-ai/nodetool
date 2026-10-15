@@ -465,9 +465,11 @@ export async function run(argv: string[], io: Io = defaultIo, runner?: CommandRu
     maxWorkers: options.maxWorkers,
     baselines,
     log,
-    shard: options.shard,
-    ...(observer ? { observer } : {})
+    shard: options.shard
   };
+  if (observer) {
+    ctx.observer = observer;
+  }
   const cleanup = () => {
     pool.dispose();
     process.exit(130);
