@@ -115,6 +115,28 @@ describe("useDocumentTreeData", () => {
     expect(result.current.groups[0]?.children[0]?.entity).toEqual(entity);
   });
 
+  // A save refetches the index. Each refetch arrives as new objects, and a new
+  // leaf object re-renders its row, so an unchanged document keeps its leaf.
+  it("keeps the leaf object of a document the refetch did not change", () => {
+    mockIndex([
+      entry("w1", "workflow", "Pipeline", "2024-05-01T00:00:00.000Z"),
+      entry("w2", "workflow", "Render", "2024-04-01T00:00:00.000Z")
+    ]);
+    const { result, rerender } = renderHook(() => useDocumentTreeData("p1"));
+    const [pipeline, render] = result.current.groups[0]?.children ?? [];
+
+    mockIndex([
+      entry("w1", "workflow", "Pipeline", "2024-05-02T00:00:00.000Z"),
+      entry("w2", "workflow", "Render 2", "2024-04-01T00:00:00.000Z")
+    ]);
+    rerender();
+
+    const [nextPipeline, nextRender] = result.current.groups[0]?.children ?? [];
+    expect(nextPipeline).toBe(pipeline);
+    expect(nextRender).not.toBe(render);
+    expect(nextRender?.name).toBe("Render 2");
+  });
+
   it("reports the index's loading and error state", () => {
     useIndexQuery.mockReturnValue({
       data: undefined,

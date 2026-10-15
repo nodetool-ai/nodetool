@@ -6,8 +6,10 @@
  * Chrome/Chromium binary can be found (CHROME_PATH or well-known locations),
  * so CI environments without a browser still pass.
  */
+import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { fileURLToPath } from "node:url";
+import { afterAll, describe, expect, it, vi } from "vitest";
 
 import {
   computeFraming,
@@ -18,8 +20,27 @@ import {
   type Model3DRenderFrame,
   type Model3DSessionOptions
 } from "../src/nodes/model3d/render3d-core.js";
-import { renderGlbFramesHeadless } from "../src/nodes/model3d/render3d-headless.js";
+import {
+  closeHeadlessRenderer,
+  renderGlbFramesHeadless
+} from "../src/nodes/model3d/render3d-headless.js";
 import { RenderToImageNode } from "../src/nodes/model3d/render.js";
+
+// Counts Chrome launches; every launch still starts a real browser.
+const chromeLaunches = vi.hoisted(() => ({ pids: [] as number[] }));
+vi.mock("chrome-launcher", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("chrome-launcher")>();
+  return {
+    ...actual,
+    launch: async (...args: Parameters<typeof actual.launch>) => {
+      const chrome = await actual.launch(...args);
+      chromeLaunches.pids.push(chrome.pid);
+      return chrome;
+    }
+  };
+});
+
+afterAll(() => closeHeadlessRenderer());
 
 function pad4(length: number): number {
   return (4 - (length % 4)) % 4;
@@ -394,5 +415,78 @@ describe.skipIf(!chromePath)("Model3D render session, headless", () => {
     );
     expect(samePng(first, again)).toBe(true);
     expect(samePng(first, wrapped)).toBe(false);
+  }, 180_000);
+});
+
+// Launching Chrome and drawing its first SwiftShader frame took seconds, and a
+// browser per call paid that on every render.
+describe.skipIf(!chromePath)("headless render browser reuse", () => {
+  const glb = createTriangleGlb();
+  const render = () =>
+    renderGlbFramesHeadless(glb, sessionOptions({ loop: false, speed: 1 }), [
+      frameAt(0)
+    ]);
+
+  it("renders again on the browser the last render launched", async () => {
+    process.env.CHROME_PATH = chromePath!;
+    await closeHeadlessRenderer();
+    chromeLaunches.pids.length = 0;
+
+    const [first] = await render();
+    const [second] = await render();
+
+    expect(chromeLaunches.pids).toHaveLength(1);
+    expect(samePng(first, second)).toBe(true);
+  }, 180_000);
+
+  it("launches a new browser after the shared one closes", async () => {
+    process.env.CHROME_PATH = chromePath!;
+    await render();
+    await closeHeadlessRenderer();
+    chromeLaunches.pids.length = 0;
+
+    await render();
+
+    expect(chromeLaunches.pids).toHaveLength(1);
+  }, 180_000);
+
+  // The browser closes after a minute idle. Until then it must not hold the
+  // event loop, or every CLI run would wait that minute before it exits.
+  it("lets the process exit while the shared browser is idle", async () => {
+    const headless = fileURLToPath(
+      new URL("../src/nodes/model3d/render3d-headless.ts", import.meta.url)
+    );
+    const script = `
+      const { renderGlbFramesHeadless } = await import(${JSON.stringify(headless)});
+      const glb = new Uint8Array(${JSON.stringify([...glb])});
+      await renderGlbFramesHeadless(glb, ${JSON.stringify(
+        sessionOptions({ loop: false, speed: 1 })
+      )}, [${JSON.stringify(frameAt(0))}]);
+    `;
+    const started = Date.now();
+    await new Promise<void>((resolve, reject) =>
+      execFile(
+        process.execPath,
+        ["--import", "tsx", "--input-type=module", "-e", script],
+        { env: { ...process.env, CHROME_PATH: chromePath! }, timeout: 50_000 },
+        (error) => (error ? reject(error) : resolve())
+      )
+    );
+    expect(Date.now() - started).toBeLessThan(50_000);
+  }, 60_000);
+
+  it("recovers when the shared browser died while idle", async () => {
+    process.env.CHROME_PATH = chromePath!;
+    await closeHeadlessRenderer();
+    chromeLaunches.pids.length = 0;
+    await render();
+    const [pid] = chromeLaunches.pids;
+    process.kill(pid, "SIGKILL");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const [png] = await render();
+
+    expect([...png.slice(0, 4)]).toEqual(PNG_SIGNATURE);
+    expect(chromeLaunches.pids.at(-1)).not.toBe(pid);
   }, 180_000);
 });

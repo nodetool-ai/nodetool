@@ -198,7 +198,14 @@ function initializePermissionHandlers(): void {
         callback({ responseHeaders: details.responseHeaders });
         return;
       }
-      const responseHeaders = { ...details.responseHeaders };
+      // Drop the server's own CORS headers first. Header keys keep the
+      // server's case, so `access-control-allow-origin` would survive next to
+      // ours, and Chromium rejects a response with two Allow-Origin values.
+      const responseHeaders = Object.fromEntries(
+        Object.entries(details.responseHeaders ?? {}).filter(
+          ([name]) => !/^access-control-allow-(origin|methods|headers)$/i.test(name)
+        )
+      );
       responseHeaders["Access-Control-Allow-Origin"] = ["*"];
       responseHeaders["Access-Control-Allow-Methods"] = ["GET, POST, PUT, DELETE, OPTIONS"];
       responseHeaders["Access-Control-Allow-Headers"] = ["*"];

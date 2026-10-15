@@ -24,7 +24,6 @@ import {
 
 const NODE_ONLY: readonly Platform[] = ["node"];
 import {
-  audioBytes,
   audioBytesAsync,
   audioRefFromBytes,
   audioRefFromWav,
@@ -396,16 +395,16 @@ export class SaveAudioNode extends BaseNode {
   })
   declare name: string;
 
-  async process(): Promise<SaveAudioNodeOutputs> {
-    const audio = this.audio;
+  async process(context?: ProcessingContext): Promise<SaveAudioNodeOutputs> {
+    const bytes = await audioBytesAsync(this.audio, context);
     const folder = resolveFolderPath(this.folder) || ".";
     const name = dateName(String(this.name || "audio.wav"));
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
     const full = path.resolve(folder, name);
     await fs.mkdir(path.dirname(full), { recursive: true });
-    await fs.writeFile(full, audioBytes(audio));
-    return { output: audioRefFromBytes(audioBytes(audio), `file://${full}`) };
+    await fs.writeFile(full, bytes);
+    return { output: audioRefFromBytes(bytes, `file://${full}`) };
   }
 }
 
@@ -467,14 +466,14 @@ export class SaveAudioFileNode extends BaseNode {
   declare filename: string;
 
   async process(context?: ProcessingContext): Promise<SaveAudioFileNodeOutputs> {
-    const audio = this.audio;
+    const bytes = await audioBytesAsync(this.audio, context);
     const p = await writeSavedFile({
       folder: this.folder,
       filename: dateName(String(this.filename || "audio.wav")),
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
-      bytes: audioBytes(audio)
+      bytes
     });
     return { output: p };
   }

@@ -4,10 +4,12 @@
  * No API key: requests run on the user's Google account and its Gemini plan.
  *
  * A turn is submitted through the page's own composer, so the site computes
- * its anti-abuse tokens itself. The page script records the response of the
- * page's own `StreamGenerate` request, and this module parses it. The tab
- * renders nothing while it is hidden, so the response is the only reliable
- * place to read the result.
+ * its anti-abuse tokens itself. The page streams the turn over a WebChannel
+ * of base64 protobuf frames, which this module does not parse. The composer's
+ * stop button shows while the turn runs. When it goes away, the provider reads
+ * the stored turn with the read call the page itself uses (`hNvQHb`). The tab
+ * renders no reply text while it is hidden, so the read is the only reliable
+ * place to get the result.
  *
  * The tab stays in the background. Chrome can freeze a background tab, and
  * a frozen Gemini runs a send click only when the tab is shown, which starts
@@ -18,7 +20,7 @@
  * one does a single step, and every wait polls from here ({@link pollTab}).
  *
  * A video finishes minutes after its turn ends. The provider polls the chat
- * with the read call the page itself uses (`hNvQHb`) until the video appears.
+ * with the same read until the video appears.
  *
  * Generated media need the user's Google cookies and send no CORS headers for
  * the page, so the browser itself downloads them ({@link ExtensionTab.download}).
@@ -57,12 +59,14 @@ const HOST = "gemini.google.com";
 const BASE_URL = `https://${HOST}`;
 /** The model id that keeps the mode the user picked last in Gemini. */
 export const GEMINI_WEB_AUTO_MODEL = "auto";
-/** The image model: Gemini's own image tool, run by the current mode. */
+/** The image model: Gemini's own image tool, run by the current mode. `gemini-web-image:<mode id>` picks a mode. */
 export const GEMINI_WEB_IMAGE_MODEL = "gemini-web-image";
 /** The video model: Gemini's video tool (Veo). */
 export const GEMINI_WEB_VIDEO_MODEL = "gemini-web-video";
 const COMPOSER = "rich-textarea .ql-editor";
 const SUBMIT = "gem-icon-button.send-button button";
+/** The send button turns into a stop button while a turn runs. */
+const STOP = "gem-icon-button.send-button.stop";
 const ATTACHMENT = "uploader-file-preview";
 const INPUT_AREA = "input-area-v2";
 const TOOLS_BUTTON = "gem-icon-button.menu-button button";
@@ -81,6 +85,8 @@ const APP_SETTLE_TIMEOUT_MS = 10_000;
 const SEND_READY_TIMEOUT_MS = 75_000;
 /** How long after the send click the page has to start its request. */
 const SEND_START_TIMEOUT_MS = 10_000;
+/** How long the chat read may lag behind the end of a turn. */
+const TURN_STORED_TIMEOUT_MS = 30_000;
 /** How long a background tab may take to render a composer menu button. */
 const MENU_TIMEOUT_MS = 10_000;
 /** How long an opened menu may take to show its items. */
@@ -102,7 +108,7 @@ let tab: ExtensionTab | null = null;
 /** Replace the tab. Tests use this to avoid a real browser. */
 export function setGeminiWebTab(next: ExtensionTab | null): void {
   tab = next;
-  liveModels = null;
+  liveModes = null;
 }
 
 function currentTab(): ExtensionTab {
@@ -122,8 +128,31 @@ function serialized<T>(run: () => Promise<T>): Promise<T> {
   return next;
 }
 
+interface GeminiMode {
+  /** The stable `data-mode-id` of the mode picker item. */
+  id: string;
+  name: string;
+}
+
+/**
+ * The modes of the Gemini mode picker, listed before any call has read the
+ * live picker. An account can offer more, or fewer. Picking a mode the
+ * account lacks fails with the list of the modes it has.
+ */
+const KNOWN_MODES: readonly GeminiMode[] = [
+  { id: "8c46e95b1a07cecc", name: "3.5 Flash-Lite" },
+  { id: "56fdd199312815e2", name: "3.8 Flash" },
+  { id: "e6fa609c3fa255c0", name: "3.1 Pro" },
+  { id: "95a4c0abcba24364", name: "4 Argon" }
+];
+
 /** Modes read from the page during an earlier call, so listing never attaches. */
-let liveModels: { at: number; models: LanguageModel[] } | null = null;
+let liveModes: { at: number; modes: GeminiMode[] } | null = null;
+
+/** The live modes when a call has read them, else {@link KNOWN_MODES}. */
+function listedModes(): readonly GeminiMode[] {
+  return liveModes?.modes ?? KNOWN_MODES;
+}
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -267,10 +296,7 @@ async function selectMode(modeId: string): Promise<void> {
     await sleep(300);
   }
   if (modes.length > 0) {
-    liveModels = {
-      at: Date.now(),
-      models: modes.filter((m) => m.id).map((m) => ({ id: m.id, name: `Gemini ${m.name || m.id}`, provider: PROVIDER_IDS.GEMINI_WEB }))
-    };
+    liveModes = { at: Date.now(), modes: modes.filter((m) => m.id).map((m) => ({ id: m.id, name: m.name || m.id })) };
   }
   if (modeId !== GEMINI_WEB_AUTO_MODEL && !modes.some((m) => m.id === modeId)) {
     throw new Error(`Gemini has no mode ${modeId}. Its modes are: ${modes.map((m) => `${m.id} (${m.name})`).join(", ") || "none found"}`);
@@ -315,32 +341,13 @@ async function attachImages(images: Uint8Array[]): Promise<void> {
 class NotSentError extends Error {}
 
 /**
- * Record the page's `StreamGenerate` responses in `window.__ntGemini`, type
- * the text and click send once. The click waits for the attachment previews
- * and an enabled button, then the page must start a request.
+ * Type the text and click send once. The click waits for the attachment
+ * previews and an enabled button. Then the page must show the new turn: a
+ * new user query or the stop button.
  */
 async function submit(text: string, attachments: number): Promise<void> {
   await evaluate(`/*nt:send*/ (() => {
-    if (!window.__ntGeminiHooked) {
-      window.__ntGeminiHooked = true;
-      const open = XMLHttpRequest.prototype.open;
-      const send = XMLHttpRequest.prototype.send;
-      XMLHttpRequest.prototype.open = function (method, url) {
-        this.__ntUrl = String(url);
-        return open.apply(this, arguments);
-      };
-      XMLHttpRequest.prototype.send = function () {
-        const state = window.__ntGemini;
-        if (state && /StreamGenerate/.test(this.__ntUrl || "")) {
-          state.started = true;
-          this.addEventListener("loadend", () => {
-            state.response = { status: this.status, body: String(this.responseText || "") };
-          });
-        }
-        return send.apply(this, arguments);
-      };
-    }
-    window.__ntGemini = { started: false, response: null };
+    window.__ntGemini = { queries: document.querySelectorAll("user-query").length };
     const composer = document.querySelector(${JSON.stringify(COMPOSER)});
     composer.focus();
     document.execCommand("insertText", false, ${JSON.stringify(text)});
@@ -357,46 +364,65 @@ async function submit(text: string, attachments: number): Promise<void> {
   })()`, SEND_READY_TIMEOUT_MS);
   if (!ready) throw new Error("Gemini did not accept the message: the send button stayed disabled or the upload did not finish");
   await evaluate(`/*nt:click*/ (() => { document.querySelector(${JSON.stringify(SUBMIT)}).click(); return true; })()`);
-  const started = await poll<boolean>(`/*nt:sent*/ !!(window.__ntGemini && window.__ntGemini.started)`, SEND_START_TIMEOUT_MS);
+  const started = await poll<boolean>(`/*nt:sent*/ !!window.__ntGemini && (document.querySelectorAll("user-query").length > window.__ntGemini.queries || !!document.querySelector(${JSON.stringify(STOP)}))`, SEND_START_TIMEOUT_MS);
   if (!started) throw new NotSentError("Gemini did not start a request after the send click");
 }
 
-interface RecordedResponse {
-  status: number;
-  body: string;
+/** The chat id in the page path, or null on a new chat that has none yet. */
+async function currentChatId(): Promise<string | null> {
+  const pathname = await evaluate<string>(`/*nt:location*/ location.pathname`);
+  const id = /^\/app\/([0-9a-f]+)$/.exec(pathname)?.[1];
+  return id ? `c_${id}` : null;
 }
 
-/** Poll until the page's `StreamGenerate` request ends and return its response. */
-async function waitForResponse(timeoutMs: number, signal?: AbortSignal): Promise<RecordedResponse> {
+/**
+ * Wait until the turn after `priorTurnId` ends, then read it from the chat.
+ * The stop button shows while the turn runs. The read finds the turn only
+ * once Gemini has stored it, a moment after the button goes away.
+ */
+async function waitForReply(priorTurnId: string | null, timeoutMs: number, signal?: AbortSignal): Promise<GeminiWebReply> {
   const started = Date.now();
+  let endedAt: number | null = null;
   let failures = 0;
   for (;;) {
     await sleep(POLL_INTERVAL_MS, signal);
     try {
-      const state = await evaluate<{ started: boolean; response: RecordedResponse | null } | null>(`/*nt:result*/ (window.__ntGemini ?? null)`);
+      const running = await evaluate<boolean>(`/*nt:running*/ !!document.querySelector(${JSON.stringify(STOP)})`);
+      const conversationId = running ? null : await currentChatId();
+      if (conversationId) {
+        const reply = parseChatTurn(await readChat(conversationId));
+        if (reply.turnId && reply.turnId !== priorTurnId) return reply;
+      }
       failures = 0;
-      if (!state) throw new Error("The Gemini tab navigated away during the turn");
-      if (state.response) return state.response;
+      if (running) endedAt = null;
+      else endedAt ??= Date.now();
     } catch (error) {
-      if (error instanceof Error && error.message.startsWith("The Gemini tab navigated")) throw error;
       log.warn("Gemini poll failed", { failures: failures + 1, error: error instanceof Error ? error.message : String(error) });
       if (++failures > MAX_POLL_FAILURES) throw error;
+    }
+    if (endedAt !== null && Date.now() - endedAt > TURN_STORED_TIMEOUT_MS) {
+      const conversationId = await currentChatId().catch(() => null);
+      throw new Error(`Gemini ended the turn, but its chat shows no reply.${chatLink(conversationId)}`);
     }
     if (Date.now() - started > timeoutMs) throw new Error(`Gemini did not finish within ${timeoutMs / 1000}s`);
   }
 }
 
 /**
- * Prepare the page with `setup`, paste the images, send the text, and parse
+ * Prepare the page with `setup`, paste the images, send the text, and read
  * the reply. When the click starts no request, `setup` runs again, which
  * reloads the page and drops the pending click, and the send is retried once.
  */
 async function sendAndRead(setup: () => Promise<void>, text: string, images: Uint8Array[], timeoutMs: number, signal?: AbortSignal): Promise<GeminiWebReply> {
   activeSignal = signal;
+  let priorTurnId: string | null;
   for (let attempt = 1; ; attempt++) {
     activeSignal?.throwIfAborted();
     await setup();
     activeSignal?.throwIfAborted();
+    // A continued chat already has turns. The reply is the next one.
+    const conversationId = await currentChatId();
+    priorTurnId = conversationId ? parseChatTurn(await readChat(conversationId)).turnId : null;
     await attachImages(images);
     try {
       activeSignal?.throwIfAborted();
@@ -409,9 +435,7 @@ async function sendAndRead(setup: () => Promise<void>, text: string, images: Uin
     }
   }
   log.info("Gemini turn submitted", { images: images.length });
-  const response = await waitForResponse(timeoutMs, signal);
-  if (response.status !== 200) throw new Error(`Gemini request failed: HTTP ${response.status}`);
-  return parseStreamGenerate(response.body);
+  return waitForReply(priorTurnId, timeoutMs, signal);
 }
 
 /** Read a chat the way the page does, with the `hNvQHb` call. Returns the raw response body. */
@@ -439,10 +463,12 @@ async function readChat(conversationId: string): Promise<string> {
   })()`);
 }
 
-/** The result of one Gemini turn, read from its `StreamGenerate` response. */
+/** The newest turn of a chat, read from its `hNvQHb` response. */
 export interface GeminiWebReply {
-  /** The chat id (`c_…`), or null when the response carried none. */
+  /** The chat id (`c_…`), or null when the read found no turn. */
   conversationId: string | null;
+  /** The turn's response id (`r_…`), or null when the read found no turn. */
+  turnId: string | null;
   /** The reply text without the media placeholders. */
   text: string;
   /** Generated image URLs, preview size. */
@@ -451,7 +477,7 @@ export interface GeminiWebReply {
   videoPending: boolean;
 }
 
-/** Each `wrb.fr` entry's payload in a batchexecute-style body, one JSON frame per line. */
+/** Each `wrb.fr` entry's payload in a batchexecute body, one JSON frame per line. */
 function payloads(body: string): unknown[][] {
   const found: unknown[][] = [];
   for (const line of body.split("\n")) {
@@ -480,6 +506,8 @@ function contains(value: unknown, match: (text: string) => boolean): boolean {
   return false;
 }
 
+const VIDEO_PLACEHOLDER = /https?:\/\/googleusercontent\.com\/generated_video_content\//;
+
 /** A candidate's reply text, without the placeholders Gemini puts where media go. */
 function candidateText(candidate: unknown[]): string {
   const parts = Array.isArray(candidate[1]) ? candidate[1] : [];
@@ -491,57 +519,65 @@ function candidateText(candidate: unknown[]): string {
 }
 
 /**
- * Parse a `StreamGenerate` response body. A payload holds the ids at `[1]`
- * and the reply candidates at `[4]`. Later frames repeat the candidate with
- * more content, so the last one wins. Generated images sit under the
- * candidate's `[12]` as `gg-dl` URLs. A started video tool shows as a
- * `video_generation` entry in a status payload.
+ * The newest turn in an `hNvQHb` chat read and its first candidate. The
+ * payload lists the turns at `[0]`, newest first. A turn holds its ids at
+ * `[0]` and its candidates at `[3][0]`. A read of a chat that Gemini has not
+ * stored yet carries an error entry and no payload.
  */
-export function parseStreamGenerate(body: string): GeminiWebReply {
-  let conversationId: string | null = null;
-  let candidate: unknown[] | null = null;
-  let videoPending = false;
-  for (const payload of payloads(body)) {
-    const ids = payload[1];
-    if (Array.isArray(ids) && typeof ids[0] === "string") conversationId = ids[0];
-    const candidates = payload[4];
-    if (Array.isArray(candidates) && Array.isArray(candidates[0])) candidate = candidates[0] as unknown[];
-    if (contains(payload, (text) => text === "video_generation")) videoPending = true;
-  }
-  if (!candidate) return { conversationId, text: "", images: [], videoPending };
+function newestTurn(body: string): { turn: unknown[]; candidate: unknown[] | null } | null {
+  const payload = payloads(body)[0];
+  const turn = Array.isArray(payload?.[0]) ? (payload[0] as unknown[])[0] : null;
+  if (!Array.isArray(turn)) return null;
+  const candidates = Array.isArray(turn[3]) ? turn[3][0] : null;
+  const candidate = Array.isArray(candidates) && Array.isArray(candidates[0]) ? (candidates[0] as unknown[]) : null;
+  return { turn, candidate };
+}
+
+/**
+ * Parse the newest turn of an `hNvQHb` chat read. Generated images sit under
+ * the candidate's `[12]` as `lh3.googleusercontent.com/gg/` URLs. A started
+ * video shows as a video placeholder in the text or a `video_generation` entry.
+ */
+export function parseChatTurn(body: string): GeminiWebReply {
+  const found = newestTurn(body);
+  if (!found) return { conversationId: null, turnId: null, text: "", images: [], videoPending: false };
+  const ids = Array.isArray(found.turn[0]) ? found.turn[0] : [];
+  const conversationId = typeof ids[0] === "string" ? ids[0] : null;
+  const turnId = typeof ids[1] === "string" ? ids[1] : null;
+  const candidate = found.candidate;
+  const videoPending =
+    contains(found.turn, (text) => text === "video_generation") ||
+    (candidate !== null && contains(candidate[1], (text) => VIDEO_PLACEHOLDER.test(text)));
+  if (!candidate) return { conversationId, turnId, text: "", images: [], videoPending };
   const images = new Set<string>();
   const walk = (value: unknown): void => {
     if (typeof value === "string") {
-      if (/^https:\/\/lh3\.googleusercontent\.com\/gg-dl\//.test(value)) images.add(value);
+      if (/^https:\/\/lh3\.googleusercontent\.com\/gg(-dl)?\//.test(value)) images.add(value);
     } else if (Array.isArray(value)) {
       value.forEach(walk);
     }
   };
   walk(candidate[12]);
-  return { conversationId, text: candidateText(candidate), images: [...images], videoPending };
+  return { conversationId, turnId, text: candidateText(candidate), images: [...images], videoPending };
 }
 
 /**
- * Find the generated video in an `hNvQHb` chat read. The payload lists the
- * chat's turns at `[0]`, newest first, and a turn's candidates at `[3][0]`.
- * A finished video is an array that holds `"video/mp4"` and, at `[7]`, its
+ * Find the generated video in the newest turn of an `hNvQHb` chat read. A
+ * finished video is an array that holds `"video/mp4"` and, at `[7]`, its
  * URLs: thumbnails on lh3 and the file itself on
  * `contribution.usercontent.google.com`.
  */
 export function findGeneratedVideo(body: string): { url: string | null; text: string } {
-  const payload = payloads(body)[0];
-  const turn = Array.isArray(payload?.[0]) ? (payload[0] as unknown[])[0] : null;
-  if (!Array.isArray(turn)) return { url: null, text: "" };
-  const candidates = Array.isArray(turn[3]) ? turn[3][0] : null;
-  const candidate = Array.isArray(candidates) && Array.isArray(candidates[0]) ? (candidates[0] as unknown[]) : null;
-  const text = candidate ? candidateText(candidate) : "";
+  const found = newestTurn(body);
+  if (!found) return { url: null, text: "" };
+  const text = found.candidate ? candidateText(found.candidate) : "";
   let entry: unknown[] | null = null;
   const walk = (value: unknown): void => {
     if (entry || !Array.isArray(value)) return;
     if (value.includes("video/mp4")) entry = value;
     else value.forEach(walk);
   };
-  walk(turn);
+  walk(found.turn);
   const urls = entry && Array.isArray(entry[7]) ? (entry[7] as unknown[]).filter((u): u is string => typeof u === "string") : [];
   const url = urls.find((u) => u.startsWith("https://contribution.usercontent.google.com/download")) ?? null;
   return { url, text };
@@ -592,7 +628,7 @@ async function runChatTurnHoldingTab(turn: ChatTurn): Promise<{ conversationId: 
     } else {
       await openNewChat();
     }
-    if (turn.model !== GEMINI_WEB_AUTO_MODEL || !liveModels || Date.now() - liveModels.at > MODELS_TTL_MS) {
+    if (turn.model !== GEMINI_WEB_AUTO_MODEL || !liveModes || Date.now() - liveModes.at > MODELS_TTL_MS) {
       await selectMode(turn.model);
     }
   };
@@ -617,22 +653,27 @@ export class GeminiWebProvider extends BaseProvider {
 
   /**
    * Listing never attaches to the tab: it returns `auto` plus the modes read
-   * during an earlier call. A mode id from the Gemini mode picker also works
-   * as a model id.
+   * during an earlier call, or the known public modes before any call. A mode
+   * id from the Gemini mode picker also works as a model id.
    */
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     const auto: LanguageModel = { id: GEMINI_WEB_AUTO_MODEL, name: "Gemini (current mode)", provider: PROVIDER_IDS.GEMINI_WEB };
-    return [auto, ...(liveModels?.models ?? [])];
+    return [auto, ...listedModes().map((m) => ({ id: m.id, name: `Gemini ${m.name}`, provider: PROVIDER_IDS.GEMINI_WEB }))];
   }
 
+  /** One image model for the current mode, and one for each listed mode. */
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return [{
-      id: GEMINI_WEB_IMAGE_MODEL,
-      name: "Gemini Images (web)",
+    const image = (id: string, name: string): ImageModel => ({
+      id,
+      name,
       provider: PROVIDER_IDS.GEMINI_WEB,
       supportedTasks: ["text_to_image", "image_to_image"],
       aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4"]
-    }];
+    });
+    return [
+      image(GEMINI_WEB_IMAGE_MODEL, "Gemini Images (web)"),
+      ...listedModes().map((m) => image(`${GEMINI_WEB_IMAGE_MODEL}:${m.id}`, `Gemini Images (${m.name})`))
+    ];
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
@@ -744,8 +785,14 @@ export class GeminiWebProvider extends BaseProvider {
   private async generateImage(
     prompt: string,
     images: Uint8Array[],
-    params: { aspectRatio?: string | null; width?: number | null; height?: number | null; negativePrompt?: string | null; signal?: AbortSignal }
+    params: { model?: { id: string }; aspectRatio?: string | null; width?: number | null; height?: number | null; negativePrompt?: string | null; signal?: AbortSignal }
   ): Promise<Uint8Array> {
+    // `gemini-web-image:<mode id>` runs the image tool in that mode.
+    const modeId = params.model?.id.startsWith(`${GEMINI_WEB_IMAGE_MODEL}:`) ? params.model.id.slice(GEMINI_WEB_IMAGE_MODEL.length + 1) : null;
+    const setup = async (): Promise<void> => {
+      await openNewChat();
+      if (modeId) await selectMode(modeId);
+    };
     const text = [
       images.length > 0
         ? "Edit the attached image(s) as described and reply with one image. Do not ask questions."
@@ -757,7 +804,7 @@ export class GeminiWebProvider extends BaseProvider {
     // The download runs in the same turn on the tab, so no other call can
     // navigate the tab away in between.
     return serialized(async () => {
-      const reply = await sendAndRead(openNewChat, text, images, IMAGE_TIMEOUT_MS, params.signal);
+      const reply = await sendAndRead(setup, text, images, IMAGE_TIMEOUT_MS, params.signal);
       const url = reply.images.at(-1);
       if (!url) {
         throw new Error(`Gemini finished without an image${reply.text ? `: ${reply.text.slice(0, 300)}` : ""}.${chatLink(reply.conversationId)}`);

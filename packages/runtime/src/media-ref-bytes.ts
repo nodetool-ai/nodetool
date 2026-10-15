@@ -119,6 +119,37 @@ function decodeDataUri(uri: string): Uint8Array | null {
   }
 }
 
+/**
+ * Resolve an `asset://` ref. Without a storage adapter or an asset table (a
+ * browser run), the only byte source is `/api/storage/<id>.<ext>`, which a bare
+ * id cannot address, so a miss on a bare id retries the file names its type uses.
+ */
+async function resolveAssetRefBytes(
+  uri: string,
+  type: string | undefined,
+  context: MediaRefContext
+): Promise<Uint8Array | null> {
+  if (!context.resolveAssetBytes) {
+    return null;
+  }
+  const options = { requireOwnedAsset: true };
+  const { bytes } = await context.resolveAssetBytes(uri, options);
+  if (bytes) {
+    return bytes;
+  }
+  const lastSegment = uri.slice("asset://".length).split("/").pop() ?? "";
+  if (lastSegment === "" || /[.?#]/.test(lastSegment)) {
+    return null;
+  }
+  for (const extension of ASSET_ID_EXTENSION_CANDIDATES[(type ?? "").toLowerCase()] ?? []) {
+    const named = await context.resolveAssetBytes(`${uri}.${extension}`, options);
+    if (named.bytes) {
+      return named.bytes;
+    }
+  }
+  return null;
+}
+
 async function readUriBytes(uri: string): Promise<Uint8Array | null> {
   if (uri.startsWith("data:")) {
     return decodeDataUri(uri);
@@ -169,21 +200,23 @@ export async function loadMediaRefBytes(
     return null;
   }
 
-  if (
-    uri && (uri.startsWith("asset://") || isPackageAssetUri(uri)) &&
-    context?.resolveAssetBytes
-  ) {
+  if (uri && isPackageAssetUri(uri) && context?.resolveAssetBytes) {
     const { bytes } = await context.resolveAssetBytes(uri, {
       requireOwnedAsset: true
     });
     return bytes;
   }
 
+  if (uri && uri.startsWith("asset://") && context?.resolveAssetBytes) {
+    return resolveAssetRefBytes(uri, value.type, context);
+  }
+
   if (!uri && value.asset_id && context?.resolveAssetBytes) {
-    const { bytes } = await context.resolveAssetBytes(`asset://${value.asset_id}`, {
-      requireOwnedAsset: true
-    });
-    return bytes;
+    return resolveAssetRefBytes(
+      `asset://${value.asset_id}`,
+      value.type,
+      context
+    );
   }
 
   // A storage adapter may read local paths itself. Reject before consulting it.
