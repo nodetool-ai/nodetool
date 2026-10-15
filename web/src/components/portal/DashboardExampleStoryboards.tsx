@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ExampleStoryboardSummary } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import { useExampleStoryboards, useInstallExampleStoryboard } from "../../hooks/storyboard/useStoryboards";
@@ -20,7 +20,7 @@ import {
   selectableTileStyles,
   Tooltip
 } from "../ui_primitives";
-import { storyboardNeeds } from "../../utils/exampleNeeds";
+import { runsAsIsFirst, storyboardNeeds } from "../../utils/exampleNeeds";
 import { DashboardSectionHeader, useSectionWrap } from "./dashboardChrome";
 import ExampleNeedsPill from "./ExampleNeedsPill";
 
@@ -190,7 +190,10 @@ const DashboardExampleStoryboards = () => {
     [addNotification, install, navigate, openTab]
   );
 
-  const storyboards = data ?? [];
+  const storyboards = useMemo(
+    () => runsAsIsFirst(data ?? [], storyboardNeeds),
+    [data]
+  );
   return (
     <section css={styles(theme)} aria-label="Example storyboards">
       <div css={sectionWrap}>

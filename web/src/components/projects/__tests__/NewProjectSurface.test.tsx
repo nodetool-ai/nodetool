@@ -578,6 +578,17 @@ beforeEach(() => {
 });
 
 describe("NewProjectSurface", () => {
+  // UX research study 4: newcomers read the home box as a document builder
+  // and went looking for a chat to ask their question.
+  it("says the home box answers questions as well as making things", () => {
+    renderSurface();
+
+    expect(screen.getByPlaceholderText(/^Ask a question/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Ask a question and get an answer/)
+    ).toBeInTheDocument();
+  });
+
   it("offers every skill as a starter, the user's own and the shipped ones", () => {
     renderSurface();
     expect(useSkillsOptions).toHaveBeenCalledWith({ includeSystem: true });

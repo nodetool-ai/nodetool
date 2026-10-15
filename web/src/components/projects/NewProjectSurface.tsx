@@ -2062,8 +2062,9 @@ const NewProjectSurface = ({
                 color="secondary"
                 sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
               >
-                An agent plans the documents and builds them while you watch.
-                Everything it makes stays editable.
+                Ask a question and get an answer, or describe something to make.
+                An agent plans it and builds it while you watch, and
+                everything it makes stays editable.
               </Text>
             </FlexColumn>
 
@@ -2088,7 +2089,7 @@ const NewProjectSurface = ({
                 label="Chat prompt"
                 hideLabel
                 inputRef={promptRef}
-                placeholder="A 30-second launch spot for our desk lamp — warm, minimal, night-time mood. Type / for a skill, @ for an asset or entity."
+                placeholder="Ask a question, or describe what to make: a 30-second launch spot for our desk lamp. Type / for a skill, @ for a file or entity."
                 onChange={(event) => setPrompt(event.target.value)}
                 onKeyDown={handlePromptKeyDown}
                 slotProps={{ input: { disableUnderline: true } }}
