@@ -14,7 +14,8 @@ import { loadSnapshots, scoreTable, survivors } from "./mutation-score.mjs";
 
 export const TARGETS = ["agents", "auth", "config", "kernel", "mutator", "node-sdk", "runtime", "security", "storage"]
   .map((name) => `packages/${name}/src`);
-const COUNT = 2;
+const COUNT = 8;
+const SHARD_INDICES = Array.from({ length: COUNT }, (_, index) => index + 1);
 const hash = (value) => createHash("sha256").update(value).digest("hex");
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 function writeJson(path, data) {
@@ -31,6 +32,10 @@ function unique(ids, label) {
 }
 function shardIds(ids, shard) {
   return ids.filter((id) => belongsToShard(id, shard));
+}
+function verifyShard(shard) {
+  assert.equal(shard.count, COUNT);
+  assert(Number.isSafeInteger(shard.index) && shard.index >= 1 && shard.index <= COUNT, "Invalid shard index");
 }
 function selectionContext(root, base) {
   const empty = join(root, ".metrics", "mutation-ci-empty-history");
@@ -79,10 +84,11 @@ function verifyPlan(root, plan) {
 
 export async function executeShard(root, plan, shard, output) {
   verifyPlan(root, plan);
-  assert.equal(shard.count, COUNT);
-  assert([1, 2].includes(shard.index));
+  verifyShard(shard);
   assert(!existsSync(output), "Refusing preexisting shard metrics or receipts");
   mkdirSync(output, { recursive: true });
+  const journal = join(output, "completed.ndjson");
+  writeFileSync(journal, "");
   const metrics = join(output, "metrics");
   const assignedIds = shardIds(plan.selectedIds, shard);
   const observed = [];
@@ -96,7 +102,7 @@ export async function executeShard(root, plan, shard, output) {
       selection: (_file, ids) => observed.push(...ids),
       completed: (id, outcome) => {
         completed.push({ id, outcome });
-        appendFileSync(join(output, "completed.ndjson"), `${JSON.stringify({ id, outcome })}\n`);
+        appendFileSync(journal, `${JSON.stringify({ id, outcome })}\n`);
         console.log(`Shard ${shard.index}/${shard.count} completed ${completed.length}/${assignedIds.length}`);
       }
     });
@@ -132,8 +138,7 @@ export function aggregate(root, plan, outputs) {
     assert.equal(receipt.complete, true, "Shard is incomplete");
     assert([0, 3].includes(receipt.code), "Shard baseline or execution failed");
     assert.deepEqual(receipt.plan, plan, "Shard plan/pins do not match");
-    assert.equal(receipt.shard.count, COUNT);
-    assert([1, 2].includes(receipt.shard.index));
+    verifyShard(receipt.shard);
     indices.push(receipt.shard.index);
     const expectedIds = shardIds(plan.selectedIds, receipt.shard);
     assert.deepEqual(receipt.assignedIds, expectedIds, "Shard assignment differs from canonical partition");
@@ -164,7 +169,7 @@ export function aggregate(root, plan, outputs) {
     assert.deepEqual(sorted(actualForms), sorted(expectedForms), "Shard snapshot tallies differ from actual terminal outcomes");
     snapshots.push(...partial);
   }
-  assert.deepEqual(indices.sort(), [1, 2], "Missing or duplicate shard indices");
+  assert.deepEqual(indices.sort((a, b) => a - b), SHARD_INDICES, "Missing or duplicate shard indices");
   assert.deepEqual(unique(allAssigned, "all assignments"), unique(plan.selectedIds, "canonical selection"));
   assert.deepEqual(unique(allCompleted, "all completions"), unique(plan.selectedIds, "canonical selection"));
   return { snapshots, score: scoreTable(snapshots, []), survivors: survivors(snapshots, [], (file) => readFileSync(join(root, file), "utf8")) };
@@ -187,7 +192,7 @@ async function main(args) {
     assert.notEqual(options, "help");
     await executeShard(root, readJson(rest[0]), options.shard, resolve(rest[2]));
   } else if (command === "aggregate") {
-    assert.equal(rest.length, 3, "Usage: mutation-ci.mjs aggregate PLAN SHARD_1 SHARD_2");
+    assert.equal(rest.length, COUNT + 1, `Usage: mutation-ci.mjs aggregate PLAN SHARD_1 ... SHARD_${COUNT}`);
     const result = aggregate(root, readJson(rest[0]), rest.slice(1));
     const shown = result.survivors.slice(0, 60);
     const remainder = result.survivors.length > shown.length ? `\n…and ${result.survivors.length - shown.length} more.\n` : "";

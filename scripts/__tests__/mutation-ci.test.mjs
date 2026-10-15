@@ -4,9 +4,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
-import { aggregate, createPlan, TARGETS } from "../mutation-ci.mjs";
+import { aggregate, createPlan, executeShard, TARGETS } from "../mutation-ci.mjs";
 
 const helper = new URL("../mutation-ci.mjs", import.meta.url).pathname;
+const shardIndices = [1, 2, 3, 4, 5, 6, 7, 8];
 let root;
 let plan;
 let outputs;
@@ -36,13 +37,14 @@ beforeAll(() => {
   git("add", ".");
   git("-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-qm", "add functions");
   plan = createPlan(root, base);
+  expect(plan.shardCount).toBe(8);
   expect(plan.selectedIds).toHaveLength(4);
   const path = join(root, ".metrics/plan.json");
   mkdirSync(dirname(path), { recursive: true });
   put(path, plan);
-  outputs = [1, 2].map((index) => join(root, `.metrics/shard-${index}`));
+  outputs = shardIndices.map((index) => join(root, `.metrics/shard-${index}`));
   for (const [offset, output] of outputs.entries()) {
-    execFileSync(process.execPath, [helper, "run", path, `${offset + 1}/2`, output], { cwd: root, encoding: "utf8" });
+    execFileSync(process.execPath, [helper, "run", path, `${offset + 1}/8`, output], { cwd: root, encoding: "utf8" });
   }
 });
 
@@ -66,26 +68,64 @@ describe("mutation CI exact union", () => {
     expect(result.survivors).toHaveLength(2);
     const receipts = outputs.map((output) => json(join(output, "receipt.json")));
     for (const [index, output] of outputs.entries()) {
-      const journal = readFileSync(join(output, "completed.ndjson"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
+      const rawJournal = readFileSync(join(output, "completed.ndjson"), "utf8");
+      const journal = rawJournal.split("\n").filter(Boolean).map((line) => JSON.parse(line));
       expect(journal).toEqual(receipts[index].completed);
+      if (receipts[index].assignedIds.length === 0) {
+        expect(rawJournal).toBe("");
+      }
     }
     const assigned = receipts.flatMap((receipt) => receipt.assignedIds);
-    expect(receipts.every((receipt) => receipt.assignedIds.length > 0)).toBe(true);
+    expect(receipts.some((receipt) => receipt.assignedIds.length > 0)).toBe(true);
+    expect(receipts.some((receipt) => receipt.assignedIds.length === 0)).toBe(true);
     expect(assigned).toHaveLength(4);
     expect(new Set(assigned).size).toBe(4);
     expect(assigned.sort()).toEqual([...plan.selectedIds].sort());
     expect(receipts.flatMap((receipt) => receipt.completed).map((item) => item.id).sort()).toEqual(assigned);
+    expect(receipts.flatMap((receipt) => receipt.completed).filter((item) => item.outcome === "killed")).toHaveLength(2);
+    expect(receipts.flatMap((receipt) => receipt.completed).filter((item) => item.outcome === "survived")).toHaveLength(2);
   });
 
   it("rejects missing, repeated, cancelled, and baseline-failed shards", () => {
     expect(() => aggregate(root, plan, outputs.slice(1))).toThrow(/Missing/);
-    expect(() => aggregate(root, plan, [outputs[0], outputs[0]])).toThrow(/duplicate|indices/);
+    expect(() => aggregate(root, plan, [...outputs.slice(0, -1), outputs[0]])).toThrow(/duplicate|indices/);
     for (const mutate of [
       (receipt) => { receipt.complete = false; },
       (receipt) => { receipt.code = 2; },
-      (receipt) => { receipt.plan.base = "0".repeat(40); }
+      (receipt) => { receipt.plan.base = "0".repeat(40); },
+      (receipt) => { receipt.shard.count = 2; },
+      (receipt) => { receipt.shard.index = 0; },
+      (receipt) => { receipt.shard.index = 9; },
+      (receipt) => { receipt.shard.index = 1.5; },
+      (receipt) => { receipt.shard.index = "1"; }
     ]) {
       changeReceipt(0, mutate, () => expect(() => aggregate(root, plan, outputs)).toThrow());
+    }
+  });
+
+  it("rejects invalid shard requests before executing mutations", async () => {
+    for (const shard of [
+      { index: 1, count: 2 },
+      { index: 1, count: "8" },
+      { index: 0, count: 8 },
+      { index: 9, count: 8 },
+      { index: 1.5, count: 8 },
+      { index: "1", count: 8 },
+      { index: NaN, count: 8 },
+      { index: Infinity, count: 8 }
+    ]) {
+      await expect(executeShard(root, plan, shard, join(root, ".metrics/invalid-shard"))).rejects.toThrow();
+    }
+  });
+
+  it("requires all eight result paths at the public CLI boundary", () => {
+    const path = join(root, ".metrics/plan.json");
+    const result = execFileSync(process.execPath, [helper, "aggregate", path, ...outputs], { cwd: root, encoding: "utf8" });
+    expect(result).toContain("50.00%** | **2 / 4**");
+    for (const selected of [outputs.slice(1), [...outputs, outputs[0]]]) {
+      const invalid = spawnSync(process.execPath, [helper, "aggregate", path, ...selected], { cwd: root, encoding: "utf8" });
+      expect(invalid.status).not.toBe(0);
+      expect(invalid.stderr).toContain("Usage: mutation-ci.mjs aggregate");
     }
   });
 
@@ -106,11 +146,22 @@ describe("mutation CI exact union", () => {
     const reduced = structuredClone(plan);
     reduced.selectedIds = [];
     reduced.files = [];
-    changeReceipt(0, (receipt) => { receipt.plan = reduced; receipt.assignedIds = []; receipt.completed = []; }, () => {
-      changeReceipt(1, (receipt) => { receipt.plan = reduced; receipt.assignedIds = []; receipt.completed = []; }, () => {
-        expect(() => aggregate(root, reduced, outputs)).toThrow(/Frozen/);
-      });
-    });
+    const paths = outputs.map((output) => join(output, "receipt.json"));
+    const receiptsBefore = paths.map((path) => readFileSync(path, "utf8"));
+    try {
+      for (const [index, path] of paths.entries()) {
+        const receipt = JSON.parse(receiptsBefore[index]);
+        receipt.plan = reduced;
+        receipt.assignedIds = [];
+        receipt.completed = [];
+        put(path, receipt);
+      }
+      expect(() => aggregate(root, reduced, outputs)).toThrow(/Frozen/);
+    } finally {
+      for (const [index, path] of paths.entries()) {
+        writeFileSync(path, receiptsBefore[index]);
+      }
+    }
     const source = join(root, plan.files[0].file);
     const before = readFileSync(source, "utf8");
     try {
@@ -122,10 +173,12 @@ describe("mutation CI exact union", () => {
   });
 
   it("rejects altered partial snapshot outcomes and tallies", () => {
-    const receipt = json(join(outputs[0], "receipt.json"));
+    const index = outputs.findIndex((output) => json(join(output, "receipt.json")).completed.length > 0);
+    expect(index).toBeGreaterThanOrEqual(0);
+    const receipt = json(join(outputs[index], "receipt.json"));
     const result = aggregate(root, plan, outputs);
     expect(result.snapshots.length).toBeGreaterThan(0);
-    const snapshot = join(outputs[0], "metrics/packages.agents.src.math.json");
+    const snapshot = join(outputs[index], "metrics/packages.agents.src.math.json");
     const before = readFileSync(snapshot, "utf8");
     try {
       const data = JSON.parse(before);
@@ -145,7 +198,14 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/mutation-changed.yml", import.meta.url), "utf8"));
   expect(workflow.permissions).toEqual({ contents: "read" });
   const jobs = workflow.jobs;
-  expect(jobs["mutate-changed"].strategy).toEqual({ "fail-fast": false, matrix: { shard: [1, 2] } });
+  expect(jobs["mutate-changed"].strategy).toEqual({ "fail-fast": false, matrix: { shard: shardIndices } });
+  expect(jobs["mutate-changed"].steps.find((step) => step.name === "Mutate every assigned changed-function site").run)
+    .toBe('node scripts/mutation-ci.mjs run .metrics/mutation-ci/plan.json "$SHARD/8" ".metrics/mutation-ci/shard-$SHARD"');
+  const aggregateCommand = jobs["mutation-complete"].steps.find((step) => step.name === "Verify the exact union and report survivors").run;
+  expect(aggregateCommand.trim().split(/\s+/)).toEqual([
+    "node", "scripts/mutation-ci.mjs", "aggregate", ".metrics/mutation-ci/plan.json",
+    ...shardIndices.map((index) => `.metrics/mutation-ci/results/mutation-result-shard-${index}`)
+  ]);
   for (const job of Object.values(jobs)) {
     expect(job["timeout-minutes"]).toBe(45);
     const checkout = job.steps.find((step) => step.uses?.startsWith("actions/checkout@"));

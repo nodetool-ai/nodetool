@@ -71,7 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -86,7 +86,7 @@ jobs:
       - name: Mutate every assigned changed-function site
         env:
           SHARD: ${{ matrix.shard }}
-        run: node scripts/mutation-ci.mjs run .metrics/mutation-ci/plan.json "$SHARD/2" ".metrics/mutation-ci/shard-$SHARD"
+        run: node scripts/mutation-ci.mjs run .metrics/mutation-ci/plan.json "$SHARD/8" ".metrics/mutation-ci/shard-$SHARD"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -133,3 +133,9 @@ jobs:
           node scripts/mutation-ci.mjs aggregate .metrics/mutation-ci/plan.json
           .metrics/mutation-ci/results/mutation-result-shard-1
           .metrics/mutation-ci/results/mutation-result-shard-2
+          .metrics/mutation-ci/results/mutation-result-shard-3
+          .metrics/mutation-ci/results/mutation-result-shard-4
+          .metrics/mutation-ci/results/mutation-result-shard-5
+          .metrics/mutation-ci/results/mutation-result-shard-6
+          .metrics/mutation-ci/results/mutation-result-shard-7
+          .metrics/mutation-ci/results/mutation-result-shard-8
