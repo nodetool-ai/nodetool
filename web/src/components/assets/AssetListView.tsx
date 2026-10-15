@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, useRef, useState, useEffect, memo } from "react";
+import React, { useCallback, useMemo, useRef, useEffect, memo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
@@ -9,13 +9,22 @@ import { formatFileSize } from "../../utils/formatUtils";
 import { assetTypeLabel } from "./assetTypeLabels";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { IconForType } from "../../config/IconForType";
-import { getAssetCategory } from "./assetGridUtils";
+import {
+  ASSET_GROUP_KEYS,
+  getAssetCategory,
+  getAssetGroup
+} from "./assetGridUtils";
+import { AssetGroupIcon } from "./assetGroupIcons";
+import { colorForType } from "../../config/data_types";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FolderIcon from "@mui/icons-material/Folder";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  ExpandCollapseButton,
+  Caption,
   EmptyState,
+  MOTION,
   Text,
   Box,
   BORDER_RADIUS,
@@ -43,11 +52,6 @@ const ROW_HEIGHT = 40;
 const TYPE_SECTION_HEIGHT = 36;
 
 // Hoisted so a fresh literal per render does not defeat the memo on IconForType.
-const HEADER_ICON_STYLE = {
-  width: "24px",
-  height: "24px",
-  marginRight: getSpacingPx(SPACING.md)
-};
 const ROW_ICON_STYLE = {
   width: "24px",
   height: "24px",
@@ -118,11 +122,13 @@ const styles = (theme: Theme) =>
     ".asset-content-type-header": {
       display: "flex",
       alignItems: "center",
+      gap: getSpacingPx(SPACING.sm),
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
       marginBottom: getSpacingPx(SPACING.md),
       backgroundColor: "transparent",
-      borderBottom: "2px solid ",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       cursor: "pointer",
+      userSelect: "none",
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
       },
@@ -130,9 +136,7 @@ const styles = (theme: Theme) =>
     },
     ".asset-content-type-title": {
       ...EYEBROW,
-      color: theme.vars.palette.text.secondary,
-      marginLeft: getSpacingPx(SPACING.md),
-      flex: 1
+      color: theme.vars.palette.text.secondary
     },
     ".asset-list-item": {
       display: "flex",
@@ -278,46 +282,36 @@ const AssetListView: React.FC<AssetListViewProps> = ({
     selectedAssetIdsRef.current = selectedAssetIds;
   }, [selectedAssetIds]);
 
+  // Folders lead, then the type groups in the type filter's order.
   const assetsByType = useMemo(() => {
-    const grouped: Record<string, Asset[]> = {};
-
+    const grouped = new Map<string, Asset[]>([
+      ["folder", []],
+      ...ASSET_GROUP_KEYS.map((key): [string, Asset[]] => [key, []])
+    ]);
     assets.forEach((asset) => {
       const type =
         asset.content_type === "folder"
           ? "folder"
-          : getAssetCategory(asset.content_type);
-
-      if (!grouped[type]) {
-        grouped[type] = [];
-      }
-      grouped[type].push(asset);
+          : getAssetGroup(asset.content_type);
+      grouped.get(type)?.push(asset);
     });
-
-    return grouped;
+    return [...grouped.entries()].filter(([, group]) => group.length > 0);
   }, [assets]);
 
-  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
-    new Set(["folder", "image", "audio", "video", "model_3d", "text", "other"])
+  // Shared with the grid view and remembered across reloads.
+  const collapsedAssetGroups = useAssetGridStore(
+    (state) => state.collapsedAssetGroups
   );
-
-  const toggleExpanded = useCallback((type: string) => {
-    setExpandedTypes((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(type)) {
-        newSet.delete(type);
-      } else {
-        newSet.add(type);
-      }
-      return newSet;
-    });
-  }, []);
+  const toggleExpanded = useAssetGridStore(
+    (state) => state.toggleAssetGroupCollapsed
+  );
 
   // Create a flat list of items for virtualization (alternating headers and assets)
   const virtualListItems = useMemo(() => {
     const items: VirtualListItemData[] = [];
     
-    Object.entries(assetsByType).forEach(([type, typeAssets]) => {
-      const isExpanded = expandedTypes.has(type);
+    assetsByType.forEach(([type, typeAssets]) => {
+      const isExpanded = !collapsedAssetGroups.includes(type);
 
       items.push({
         type: 'header',
@@ -337,7 +331,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
     });
     
     return items;
-  }, [assetsByType, expandedTypes]);
+  }, [assetsByType, collapsedAssetGroups]);
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent, assetId?: string) => {
@@ -380,7 +374,6 @@ const AssetListView: React.FC<AssetListViewProps> = ({
   const showDate = assetsOrder === "date" || containerWidth > dateThreshold;
 
   // Empty callback for disabled button - prevents new function creation on each render
-  const emptyCallback = useCallback(() => {}, []);
 
   const virtualizer = useVirtualizer({
     count: virtualListItems.length,
@@ -395,7 +388,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
 
   useEffect(() => {
     virtualizer.measure();
-  }, [virtualListItems.length, expandedTypes, virtualizer]);
+  }, [virtualListItems.length, collapsedAssetGroups, virtualizer]);
 
   const renderRow = useCallback((index: number, key: React.Key, style: React.CSSProperties) => {
     const item = virtualListItems[index];
@@ -425,21 +418,28 @@ const AssetListView: React.FC<AssetListViewProps> = ({
             }
           }}
         >
-          <IconForType
-            iconName={type}
-            showTooltip={false}
-            containerStyle={HEADER_ICON_STYLE}
+          <ExpandMoreIcon
+            sx={{
+              fontSize: 16,
+              color: "text.secondary",
+              transform: isExpanded ? "none" : "rotate(-90deg)",
+              transition: MOTION.transform
+            }}
           />
-          <Text className="asset-content-type-title">
-            {assetTypeLabel(type)} ({count})
+          {type === "folder" ? (
+            <FolderIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+          ) : (
+            <AssetGroupIcon
+              group={type}
+              sx={{ fontSize: 16, color: colorForType(type) }}
+            />
+          )}
+          <Text component="span" className="asset-content-type-title">
+            {assetTypeLabel(type)}
           </Text>
-          <ExpandCollapseButton
-            expanded={isExpanded}
-            onClick={emptyCallback}
-            size="small"
-            nodrag={false}
-            sx={{ pointerEvents: 'none' }}
-          />
+          <Caption component="span" color="muted">
+            {count}
+          </Caption>
         </div>
       );
     }
@@ -547,7 +547,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
         )}
       </div>
     );
-  }, [virtualListItems, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate, emptyCallback, formatDate]);
+  }, [virtualListItems, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate, formatDate]);
 
   if (assets.length === 0) {
     return (
