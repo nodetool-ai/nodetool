@@ -74,7 +74,7 @@ describe("agent example games", () => {
     expect(await Game.listByProject(USER, PROJECT)).toHaveLength(1);
   });
 
-  it.each(["kindle", "blacksite"])("installs the complete shipped %s bundle through the agent capability", async (slug) => {
+  it.each(["kindle", "blacksite", "signal-forge"])("installs the complete shipped %s bundle through the agent capability", async (slug) => {
     const agent = run(USER, new InMemoryStorageAdapter());
     const source = await agent.invoke("get_example_game", { slug, view: "full" }) as { document: GameDocument };
     const result = await agent.invoke("install_example_game", { project_id: PROJECT, slug }) as { game: { id: string }; document: GameDocument };
@@ -85,6 +85,9 @@ describe("agent example games", () => {
     for (const [slot, binding] of Object.entries(result.document.assets)) {
       expect(binding).toEqual({ ...source.document.assets[slot], assetId: expect.stringMatching(/^[a-f0-9]{32}$/) });
       expect(await Asset.find(USER, binding.assetId)).toMatchObject({ project_id: PROJECT });
+      if (binding.mediaKind === "model") {
+        expect(await Asset.find(USER, binding.sourceAssetId ?? binding.assetId)).toMatchObject({ project_id: PROJECT });
+      }
     }
     expect(await agent.invoke("get_native_game", { game_id: result.game.id.slice(0, 12), view: "full" })).toMatchObject({ document: result.document });
   });
