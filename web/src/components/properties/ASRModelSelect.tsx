@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import useModelSelectMenu from "./shared/useModelSelectMenu";
 import { modelLabelFromId } from "../../utils/modelNormalization";
+import { getProviderDisplayName } from "../../utils/providerDisplay";
 interface ASRModelSelection {
   type: "asr_model";
   id: string;
@@ -52,10 +53,12 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
         active={!!value}
         label={
           currentSelectedModelDetails?.name ||
-          (value ? modelLabelFromId(value) : "Select Model")
+          (value ? modelLabelFromId(value) : "Select model")
         }
-        secondaryLabel={currentSelectedModelDetails?.provider ?? provider}
-        subLabel="Select ASR Model"
+        secondaryLabel={getProviderDisplayName(
+          currentSelectedModelDetails?.provider ?? provider
+        )}
+        subLabel="Select ASR model"
         onClick={handleClick}
       />
       <ASRModelMenuDialog

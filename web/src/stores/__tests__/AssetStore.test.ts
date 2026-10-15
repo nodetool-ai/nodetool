@@ -207,6 +207,17 @@ describe("AssetStore", () => {
       expect(result).toEqual(mockAsset);
     });
 
+    it.each([
+      ["3e53f6cbb3a34f949de988183791cd14", "3e53f6cbb3a34f949de988183791cd14"],
+      ["3e53f6cbb3a3", "3e53f6cbb3a3"],
+      ["asset://3e53f6cbb3a3", "3e53f6cbb3a3"],
+      ["asset://3e53f6cbb3a3.jpg", "3e53f6cbb3a3"]
+    ])("asks the endpoint for %s by its bare id", async (ref, id) => {
+      getQuery.mockResolvedValueOnce({ id, name: "still.jpg" });
+      await useAssetStore.getState().get(ref);
+      expect(getQuery).toHaveBeenLastCalledWith({ id });
+    });
+
     it("should handle API errors", async () => {
       getQuery.mockRejectedValueOnce(new Error("Asset not found"));
       const { get } = useAssetStore.getState();

@@ -139,4 +139,4 @@ A node must not be able to tell which tier ran it. Both tiers therefore:
 
 Blender must be on `PATH`, at `BLENDER_PATH`, or in a well-known location, and
 must be 5.2 or newer. `NODETOOL_REQUIRE_BLENDER=1` turns a missing binary into
-a failure instead of a skip; CI sets it.
+a failure instead of a skip. CI installs no Blender, so these suites skip there.

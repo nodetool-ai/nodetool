@@ -88,15 +88,18 @@ describe("NodeLlamaCppProvider", () => {
   });
 
   it("throws an actionable error when node-llama-cpp is not installed", async () => {
+    vi.stubEnv("NODETOOL_HOST", "source");
     const provider = new NodeLlamaCppProvider({
       NODE_LLAMA_CPP_MODELS_DIR: modelsDir
     });
-    await expect(
-      provider.generateMessage({
+    const error = await provider.generateMessage({
         messages: [{ role: "user", content: "hi" }],
         model: "model.gguf"
-      })
-    ).rejects.toThrow(/node-llama-cpp/);
+      }).catch((failure: unknown) => failure);
+    vi.unstubAllEnvs();
+    expect(error).toMatchObject({ details: { missing: "node-llama-cpp", runtimePackage: "node-llama-cpp" } });
+    expect(String(error)).toContain("npm run dev:nodetool -- runtime add node-llama-cpp");
+    expect(String(error)).not.toContain("Package Manager");
   });
 
   it("flags context-size errors as context-length errors", () => {

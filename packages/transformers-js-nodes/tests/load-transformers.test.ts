@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { missingRuntimePackageOf } from "@nodetool-ai/protocol";
 
 const importOptionalModule = vi.hoisted(() => vi.fn());
@@ -9,14 +9,18 @@ vi.mock("@nodetool-ai/config", async (importOriginal) => ({
 }));
 
 const { loadTransformers } = await import("../src/transformers-base.js");
+afterEach(() => { vi.unstubAllEnvs(); });
 
 describe("loadTransformers", () => {
   it("loads the package after a failed import, without a restart", async () => {
-    importOptionalModule.mockRejectedValueOnce(
-      new Error("Cannot find module '@huggingface/transformers'")
-    );
+    vi.stubEnv("NODETOOL_HOST", "source");
+    const cause = new Error("Cannot find module '@huggingface/transformers'");
+    importOptionalModule.mockRejectedValueOnce(cause);
     const failure = await loadTransformers().catch((err: unknown) => err);
     expect(missingRuntimePackageOf(failure)).toBe("transformers-js");
+    expect(failure).toMatchObject({ cause, details: { missing: "@huggingface/transformers" } });
+    expect(String(failure)).toContain("npm run dev:nodetool -- runtime add transformers-js");
+    expect(String(failure)).not.toContain("Package Manager");
 
     const installed = { pipeline: vi.fn() };
     importOptionalModule.mockResolvedValueOnce(installed);

@@ -1,0 +1,66 @@
+{
+  "name": "@nodetool-ai/server",
+  "version": "0.8.3",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@llamaindex/liteparse": "^1.5.2",
+    "@napi-rs/canvas": "^0.1.65",
+    "@nodetool-ai/agents": "*",
+    "@nodetool-ai/base-nodes": "*",
+    "@nodetool-ai/code-nodes": "*",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/transformers-js-provider": "*",
+    "@nodetool-ai/websocket": "*",
+    "@nodetool-ai/whisper-cpp": "*",
+    "@opentelemetry/core": "^2.10.0",
+    "@opentelemetry/resources": "^2.10.0",
+    "@opentelemetry/sdk-trace-base": "^2.10.0",
+    "@tensorflow-models/coco-ssd": "^2.2.3",
+    "@tensorflow-models/mobilenet": "^2.1.1",
+    "@tensorflow-models/qna": "^1.0.2",
+    "@tensorflow/tfjs": "^4.22.0",
+    "docx": "^9.6.0",
+    "epub2": "^3.0.2",
+    "esbuild": "^0.28.0",
+    "exceljs": "^4.4.0",
+    "fabric": "^7.4.0",
+    "imapflow": "^1.7.1",
+    "js-tiktoken": "^1.0.21",
+    "mailparser": "^3.9.15",
+    "mammoth": "^1.11.0",
+    "node-llama-cpp": "^3.0.0",
+    "office-text-extractor": "^4.0.0",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^2.4.5",
+    "pptxgenjs": "^4.0.1",
+    "sharp": "^0.35.3",
+    "tesseract.js": "^7.0.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "vitest": "^5.0.1",
+    "typescript": "npm:@typescript/typescript6@6.0.2"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  }
+}

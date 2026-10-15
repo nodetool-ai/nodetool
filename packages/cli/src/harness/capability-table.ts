@@ -2729,6 +2729,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
       "packages/agents/tests/capabilities-game.test.ts",
       "packages/agents/tests/capabilities-game3d.test.ts",
       "packages/agents/tests/capabilities-game-asset-browser.test.ts",
+      "packages/agents/tests/game-asset-pipeline.test.ts",
     ],
   },
   {
@@ -2741,6 +2742,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
       "packages/agents/tests/capabilities-game.test.ts",
       "packages/agents/tests/capabilities-game3d.test.ts",
       "packages/agents/tests/capabilities-game-autoplay.test.ts",
+      "packages/agents/tests/game-asset-pipeline.test.ts",
     ],
   },
   {
@@ -2758,7 +2760,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "9ac735b3ddd5",
+    contract: "00d48f5390cf",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
@@ -2770,6 +2772,10 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
         cases: ["game-whole-document-save"],
+      },
+      {
+        file: "packages/agents/src/evals/surfaces/game.ts",
+        cases: ["audio-mixer-buses", "cascaded-shadows", "collision-layer-matrix", "entity-tags-properties", "forces-and-torques-3d", "hud-widget-tree", "hud-widget-tree-3d", "input-bindings", "lifecycle-timer-script", "material-system-3d", "particle-emitter", "particle-rendering", "particle-rendering-3d", "physics-materials", "player-saves-script", "post-processing", "procedural-sky", "render-culling", "script-parameters", "spatial-audio-source", "typed-event-script"],
       },
     ],
   },
@@ -2783,17 +2789,19 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
       "packages/agents/tests/capabilities-game.test.ts",
       "packages/agents/tests/capabilities-game3d.test.ts",
       "packages/agents/tests/capabilities-game-autoplay.test.ts",
+      "packages/agents/tests/game-asset-pipeline.test.ts",
     ],
   },
   {
     name: "generate_game_asset",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "2e7bc4c2b6b8",
+    contract: "cbf61bed04a8",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
       "packages/agents/tests/capabilities-game3d.test.ts",
+      "packages/agents/tests/game-asset-pipeline.test.ts",
     ],
   },
   {

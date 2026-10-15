@@ -184,7 +184,8 @@ describe("runManimgx against a fake manimgx", () => {
     try {
       const error = await run(scene("ok")).catch((err: unknown) => err);
       expect(missingRuntimePackageOf(error)).toBe("manimgx");
-      expect(String(error)).toMatch(/Package Manager[\s\S]*uv tool install manimgx/);
+      expect(String(error)).toContain("uv tool install manimgx");
+      expect(String(error)).toContain("MANIMGX_PATH=");
     } finally {
       process.env["PATH"] = savedPath;
       process.env["HOME"] = savedHome;

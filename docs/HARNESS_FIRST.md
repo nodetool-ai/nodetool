@@ -189,11 +189,24 @@ it. A selfcheck marked `suiteOnly` only re-runs workspace suites that
 `test:affected` already runs in full for the same diff, so the gate skips it
 unless `--include-suites` is passed. The registry test derives `suiteOnly`
 from the real workspace graph and fails when an entry claims it wrongly.
+For a diff containing a global file, the gate also skips commands that only
+run workspace test suites covered by the full `test:affected` selection.
+Commands containing other work or unknown workspaces still run. This assumes
+`test:affected` runs for the same diff. Use `--include-suites` to run those
+checks again. `--all` alone does not establish that coverage.
+CI adds `--include-suites` when its `skip-tests` input disables package tests.
 `--deps` also touches a surface when one of its paths sits in a workspace
 downstream of a changed one. It is opt-in because the hub workspaces (`cli`,
 `agents`, `websocket`) depend on nearly everything, so most package changes
 then select most of the registry. The plan step loads no built package, so
 `--dry-run`, `list`, and `audit` work before `npm run build:packages`.
+
+CI runs cheap selfchecks two at a time with `--jobs 2`, while
+`NODETOOL_TEST_WORKERS=1` keeps each check's test files serial. Expensive
+checks remain serial. Each check reports its start and completion on stderr,
+including with `--json`, and its result includes `durationMs`. JSON results
+stay on stdout so logs can show progress without changing machine-readable
+output. The per-check timeout and CI job deadline still apply.
 
 Exit code: non-zero when any selfcheck fails, when a capability's declared
 contract moved without its coverage mapping moving with it, or — with

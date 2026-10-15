@@ -32,6 +32,9 @@
       "path": "../kernel"
     },
     {
+      "path": "../node-catalog"
+    },
+    {
       "path": "../node-sdk"
     },
     {

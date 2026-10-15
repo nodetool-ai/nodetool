@@ -9,6 +9,7 @@
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { PERMISSION_GATE_CONTEXT_KEY, ProcessingContext, headlessGate } from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
+import { missingRuntimeDetailsOf, type MissingRuntimeDetails } from "@nodetool-ai/protocol";
 import { buildFullRegistry } from "../node-registry.js";
 
 interface NodeRunResult {
@@ -16,6 +17,7 @@ interface NodeRunResult {
   title: string | null;
   ok: boolean;
   error: string | null;
+  missingRuntime?: MissingRuntimeDetails;
   durationMs: number;
   /** Every record emitted by the node (one entry for a one-shot process()). */
   chunks: Array<Record<string, unknown>>;
@@ -98,7 +100,8 @@ export async function runSingleNode(
       outputs
     };
   } catch (err) {
-    return {
+    const missingRuntime = missingRuntimeDetailsOf(err);
+    const result: NodeRunResult = {
       nodeType,
       title,
       ok: false,
@@ -107,5 +110,9 @@ export async function runSingleNode(
       chunks,
       outputs
     };
+    if (missingRuntime) {
+      result.missingRuntime = missingRuntime;
+    }
+    return result;
   }
 }

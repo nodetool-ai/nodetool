@@ -23,6 +23,15 @@ export default 42;
 `;
 
 describe("shared QuickJS engine", () => {
+  it("settles an asynchronous host callback with the selected WASM variant", async () => {
+    const engine = await loadSandboxEngine(variant);
+    const result = await engine.runSandboxed(
+      async ({ evalCode }) => evalCode("export default await env.callback();"),
+      { env: { callback: async () => 42 } }
+    );
+    expect(result).toEqual({ ok: true, data: 42 });
+  });
+
   it("releases property handles after returning descriptors and symbols", async () => {
     const handles: QuickJSHandle[] = [];
     const getProp = QuickJSContext.prototype.getProp;

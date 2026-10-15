@@ -99,7 +99,7 @@ export function registerRuntimeCommands(program: Command): void {
   const runtime = program
     .command("runtime")
     .description(
-      "Install optional libraries (llama.cpp, Transformers.js, PDF, Office, …) on demand"
+      "Install runtime libraries by id. Node packs use `nodetool packs add`."
     );
 
   runtime
@@ -133,7 +133,7 @@ export function registerRuntimeCommands(program: Command): void {
         await runNpm(root, ["install", ...specs], { mode: "local", scriptPolicy: "user", onWarning: (warning) => console.error(warning) });
       }, { onWait: (path) => console.error(`Waiting for the install lock at ${path}`) });
       console.error(
-        "Installed. Restart a running `nodetool serve` or MCP server to load it."
+        "Installed. Run the command again."
       );
     });
 

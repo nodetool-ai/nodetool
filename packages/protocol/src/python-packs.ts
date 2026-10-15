@@ -37,6 +37,14 @@ export interface PythonNodePack {
   platformRequirement?: string;
 }
 
+/** A declared Python-pack namespace, including its node type suffix. */
+export function isPythonNodeType(nodeType: string): boolean {
+  const qualified = nodeType.startsWith("nodetool.nodes.") ? nodeType : `nodetool.nodes.${nodeType}`;
+  return PYTHON_NODE_PACKS.some((pack) => pack.namespaces.some((namespace) =>
+    qualified === namespace || qualified.startsWith(`${namespace}.`)
+  ));
+}
+
 export const PYTHON_NODE_PACKS: readonly PythonNodePack[] = [
   {
     name: "Core",

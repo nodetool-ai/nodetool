@@ -33,6 +33,7 @@ export { mp4DurationSeconds } from "./video-duration.js";
 import { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";
+import { AntigravityProvider } from "./antigravity-provider.js";
 import { DreaminaProvider } from "./dreamina-provider.js";
 import { ChatGPTProvider } from "./chatgpt-provider.js";
 import { GeminiWebProvider } from "./gemini-web-provider.js";
@@ -234,6 +235,7 @@ export { HiggsfieldProvider };
 export { UseapiProvider };
 export { VgenvProvider };
 export { ClaudeAgentProvider };
+export { AntigravityProvider };
 export { DreaminaProvider, setDreaminaPageRunner, type DreaminaPageRunner } from "./dreamina-provider.js";
 export { ChatGPTProvider, setChatGPTTab } from "./chatgpt-provider.js";
 export { GeminiWebProvider, setGeminiWebTab } from "./gemini-web-provider.js";
@@ -524,13 +526,24 @@ registerBuiltinProvider(PROVIDER_IDS.CODEX, CodexProvider, {
 registerBuiltinProvider(PROVIDER_IDS.ANTHROPIC, AnthropicProvider, {
   ANTHROPIC_API_KEY: ""
 });
-// Claude Agent SDK: Claude via the logged-in `claude` CLI subscription (no API
-// key). Registered with no credential kwargs — auth lives in the CLI's own
-// store, so the provider is always "configured"; a missing CLI or a missing
-// optional `@anthropic-ai/claude-agent-sdk` package (a soft dependency the user
-// installs themselves) surfaces at call time. Pruned from the cloud profile
-// (in NON_CLOUD_PROVIDER_IDS) since it needs a local executable and subscription.
-registerBuiltinProvider(PROVIDER_IDS.CLAUDE_AGENT_SDK, ClaudeAgentProvider, {});
+// Claude Agent: Claude via the logged-in `claude` CLI subscription (no API
+// key), run headless. Registered with no credential kwargs — auth lives in the
+// CLI's own store, so the provider is always "configured"; a missing CLI
+// surfaces at call time. CLAUDE_CLI_PATH is optional: unset, the provider finds
+// the CLI on PATH or in the usual install locations. Pruned from the cloud
+// profile (in NON_CLOUD_PROVIDER_IDS) since it needs a local executable and
+// subscription.
+registerBuiltinProvider(
+  PROVIDER_IDS.CLAUDE_AGENT_SDK,
+  ClaudeAgentProvider,
+  {},
+  { CLAUDE_CLI_PATH: "" }
+);
+// Antigravity: Google's `agy` CLI in headless mode, on the machine's signed-in
+// Antigravity account (no API key). A missing CLI surfaces through
+// unavailableReason and at call time. Pruned from the cloud profile
+// (NON_CLOUD_PROVIDER_IDS) since it needs a local executable and account.
+registerBuiltinProvider(PROVIDER_IDS.ANTIGRAVITY, AntigravityProvider, {});
 // Dreamina: image, video and music generation through the user's logged-in Dreamina tab, driven
 // by the NodeTool Chrome extension. No credentials; it lists no models until an
 // extension is attached. Pruned from the cloud profile (NON_CLOUD_PROVIDER_IDS).

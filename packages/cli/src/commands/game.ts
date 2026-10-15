@@ -286,8 +286,7 @@ export function registerGameCommands(program: Command): void {
         }
         if (!report.valid) process.exitCode = 1;
       } catch (error) {
-        printCommandError(error, options.json);
-        process.exitCode = 1;
+        process.exitCode = printCommandError(error, options.json);
       }
     });
 
@@ -303,7 +302,7 @@ export function registerGameCommands(program: Command): void {
         if (!validated.valid || !validated.document) { throw new Error(validated.errors.join("\n")); }
         const report = await benchmarkNativeGame(validated.document, Number(options.ticks), Number(options.warmup), Number(options.seed));
         process.stdout.write(`${JSON.stringify(report, null, options.json ? undefined : 2)}\n`);
-      } catch (error) { printCommandError(error, options.json); process.exitCode = 1; }
+      } catch (error) { process.exitCode = printCommandError(error, options.json); }
     });
 
   game
@@ -418,8 +417,7 @@ export function registerGameCommands(program: Command): void {
           session.dispose();
         }
       } catch (error) {
-        printCommandError(error, options.json);
-        process.exitCode = 1;
+        process.exitCode = printCommandError(error, options.json);
       }
     });
 
@@ -487,8 +485,7 @@ export function registerGameCommands(program: Command): void {
           session.dispose();
         }
       } catch (error) {
-        printCommandError(error, options.json);
-        process.exitCode = 1;
+        process.exitCode = printCommandError(error, options.json);
       }
     });
 
@@ -539,8 +536,7 @@ export function registerGameCommands(program: Command): void {
         });
         process.stdout.write(options.json ? `${JSON.stringify(result)}\n` : `Built game in ${result.outputDir}\n`);
       } catch (error) {
-        printCommandError(error, options.json);
-        process.exitCode = 1;
+        process.exitCode = printCommandError(error, options.json);
       }
     });
 }

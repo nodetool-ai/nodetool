@@ -132,7 +132,7 @@ describe("Tauri desktop export", () => {
     await writeFile(join(directory, "Cargo.toml"), "");
     const metadata = tauriAppMetadata(createTopDownRoomGame("game-tauri"));
     const spawnFailure = compileTauriGameProject({ tauriDir: directory, metadata }, { cargo: join(directory, "no-such-cargo") });
-    await expect(spawnFailure).rejects.toThrow("cargo was not found");
+    await expect(spawnFailure).rejects.toThrow("cargo is not installed or not on PATH");
     expect(missingRuntimePackageOf(await spawnFailure.catch((error: unknown) => error))).toBe("rust");
     const env = { PATH: join(directory, "empty"), CARGO_HOME: join(directory, "no-cargo-home") };
     const lookupFailure = await compileTauriGameProject({ tauriDir: directory, metadata }, { env }).catch((error: unknown) => error);

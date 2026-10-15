@@ -25,6 +25,18 @@ vi.mock("imapflow", () => {
 });
 
 // Mock mailparser
+vi.mock("@nodetool-ai/config", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@nodetool-ai/config")>();
+  return {
+    ...original,
+    importOptionalModule: async (specifier: string, options?: Parameters<typeof original.importOptionalModule>[1]): Promise<unknown> => {
+      if (specifier === "imapflow") { return import("imapflow"); }
+      if (specifier === "mailparser") { return import("mailparser"); }
+      return original.importOptionalModule(specifier, options);
+    }
+  };
+});
+
 vi.mock("mailparser", () => ({
   simpleParser: vi.fn().mockResolvedValue({
     subject: "Test Subject",

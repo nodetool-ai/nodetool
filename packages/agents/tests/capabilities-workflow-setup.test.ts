@@ -15,7 +15,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingContext, ProviderId } from "@nodetool-ai/runtime";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { Workflow, WorkflowVersion, initTestDb } from "@nodetool-ai/models";
 import { readWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
@@ -60,11 +60,11 @@ const METADATA: Record<string, unknown> = {
   }
 };
 
-const registry = {
+const registry = Object.assign(new NodeRegistry(), {
   has: (type: string) => type in METADATA,
   getMetadata: (type: string) => METADATA[type],
   validateNode: () => []
-} as unknown as NodeRegistry;
+});
 
 const context = { userId: "u1" } as unknown as ProcessingContext;
 

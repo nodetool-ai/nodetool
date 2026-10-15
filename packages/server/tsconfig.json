@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "outDir": "dist", "rootDir": "src" },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../config" },
+    { "path": "../runtime" },
+    { "path": "../agents" },
+    { "path": "../base-nodes" },
+    { "path": "../code-nodes" },
+    { "path": "../transformers-js-provider" },
+    { "path": "../websocket" },
+    { "path": "../whisper-cpp" }
+  ]
+}
