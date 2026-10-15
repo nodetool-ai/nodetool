@@ -304,7 +304,8 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               value={state.labInputs.a}
               onChange={(e) => handlers.handleLabChange("a", e.target.value)}
               size="small"
-              inputProps={{ min: -128, max: 127 }}
+              min={-128}
+              max={127}
             />
             <NumberField
               className="color-input component-input"
@@ -312,7 +313,8 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               value={state.labInputs.b}
               onChange={(e) => handlers.handleLabChange("b", e.target.value)}
               size="small"
-              inputProps={{ min: -128, max: 127 }}
+              min={-128}
+              max={127}
             />
             <NumberField
               className="color-input component-input"
