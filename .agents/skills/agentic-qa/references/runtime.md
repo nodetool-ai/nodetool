@@ -24,7 +24,8 @@ A participant tool response may contain only:
 - A screenshot ID, the address bar URL, and the tab title.
 - A neutral receipt: the action performed, the action count, and browser
   events that a person would see (a new tab, a dismissed dialog, a file picker,
-  a blocked navigation outside the permitted origins, the number of open tabs).
+  a downloaded file, a blocked navigation outside the permitted origins, the
+  number of open tabs).
 
 It must never contain DOM, page text extraction, element locators, an
 accessibility tree, console output, network data, storage, or full-page captures.
