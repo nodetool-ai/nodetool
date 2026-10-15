@@ -89,12 +89,11 @@ jobs:
   #
   # Notes on the legs, kept beside their definitions:
   #
-  # `deps`:
-  #   Workspace, circular-dependency, key-boundary, coupled-dependency,
-  #   and lockfile-sync guards (run on source, no build).
-  #
   # `lint`:
-  #   oxlint + web design-token lint. Neither needs package dist.
+  #   oxlint + web design-token lint, then the workspace, circular-dependency,
+  #   key-boundary, coupled-dependency, and lockfile-sync guards. None needs
+  #   package dist, and the guards alone would spend most of a runner's time
+  #   on setup.
   #
   # `typescript-6-fallback`:
   #   Keep the JavaScript compiler rollback exercised after the native
@@ -102,7 +101,7 @@ jobs:
   #   static leg so it remains visible in the required quality gate.
   #
   # `typecheck`:
-  #   Three cheap checks in one leg:
+  #   Cheap checks in one leg:
   #     1. `npm run typecheck` — web, electron, mobile.
   #     2. The web design-token lint plus the base-nodes parity/contract
   #        suite (Python-parity + example-workflow contracts). These
@@ -150,6 +149,12 @@ jobs:
   #        `build` job's artifact; nothing else ran it, so the invariant
   #        packages/agents/AGENTS.md documents held only when someone
   #        remembered to run it by hand.
+  #     9. `npm run check:node-catalog` and `npm run backend:smoke` (see
+  #        `backend:smoke` below).
+  #    10. When the plan selects electron or mobile and tests are on, their
+  #        suites through `scripts/ci-plan.mjs run electron mobile`. The jq
+  #        filter above appends this step, so it follows skip-tests like the
+  #        test legs do.
   #
   # `test-packages-websocket`:
   #   The five backend test shards. Each runs `turbo run test` over a
@@ -198,7 +203,7 @@ jobs:
   #   GPU-less runner took about 20 s a frame and the render suites
   #   timed out. Run them locally with BLENDER_PATH set.
   #
-  # `bundle`:
+  # `backend:smoke` (in the `typecheck` leg):
   #   The packaged-backend release gate: `npm run backend:smoke` stages
   #   the packaged backend and boots it. Nothing outside the release
   #   workflow used to build the bundle, so a packaging regression only
@@ -208,24 +213,24 @@ jobs:
   #   that killed server.mjs on import with every other check green.
   #   `nodetool harness gate`'s `backend-smoke` selfcheck runs the same
   #   command but is `cost: "expensive"`, so the default gate (below)
-  #   skips it — this leg is what keeps it on every PR. The Ring 0
+  #   skips it — this step is what keeps it on every PR. The Ring 0
   #   golden journeys used to run here too
   #   (docs/RELIABILITY_TASKS.md Track F, task F2); they moved to the
   #   `harness-gate` leg's `reliability-ring0` selfcheck, which runs on
   #   any diff touching `packages/kernel/` (or the other
   #   `workflow-execution` surface paths) without hand-listing them here.
-  #   is-test:false — a release gate, not a unit suite, so it stays
-  #   required even when skip-tests drops the bulk test legs.
+  #   A release gate, not a unit suite, so it stays required even when
+  #   skip-tests drops the bulk test legs.
   #
   # `harness-gate`:
   #   `nodetool harness gate` — see the `built` job's header comment
   #   below for what it does and why the old `reliability:ring0` half of
-  #   `bundle` and the standalone `app-build` leg both folded into it.
+  #   the `bundle` leg and the standalone `app-build` leg both folded into it.
   #   `$CI_BASE_SHA` is set on the `built` Run step, so no `${{ }}`
   #   templating is needed inside the matrix command. `--json` for a
   #   machine-readable log (rule 6, docs/HARNESS_FIRST.md). is-test:false
   #   for the same reason as
-  #   `bundle`: this is a gate, not a unit suite.
+  #   `typecheck`: this is a gate, not a unit suite.
   #
   changes:
     name: changes
@@ -245,6 +250,7 @@ jobs:
         id: legs
         env:
           PLAN: ${{ inputs.plan }}
+          SKIP_TESTS: ${{ inputs.skip-tests }}
         run: |
           set -euo pipefail
           if ! jq -e 'type == "object"' <<<"${PLAN:-null}" >/dev/null 2>&1; then
@@ -252,26 +258,23 @@ jobs:
             PLAN='{"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"packages_game":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true}'
           fi
           select_legs() {
-            jq -c --argjson p "$PLAN" '
+            jq -c --argjson p "$PLAN" --arg skip "${SKIP_TESTS:-false}" '
               def on($w): $w == "always" or $p[$w] == true
                 or ($w == "web_full" and $p.web == "full")
                 or ($w == "web_related" and $p.web == "related")
                 or ($w == "electron_or_mobile" and ($p.electron == true or $p.mobile == true));
               map(select(on(.when)) | del(.when)
-                | if .check == "test-electron-mobile" then .["mobile-deps"] = ($p.mobile == true | tostring) else . end
+                | if .check == "typecheck" and on("electron_or_mobile") and $skip != "true"
+                  then .command += " && node scripts/ci-plan.mjs run electron mobile ${CI_BASE_SHA:+--base \"$CI_BASE_SHA\"}"
+                  else . end
                 | if .check == "test-packages-nodes" then .blender = ($p.blender != false | tostring) else . end)
               | {include: .}'
           }
           static=$(select_legs <<'JSON'
           [
             {
-              "check": "deps",
-              "command": "node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs && node scripts/check-key-boundaries.mjs && node scripts/check-coupled-deps.mjs && node scripts/check-lockfile-sync.mjs && node scripts/check-execution-boundary.mjs && npm run check:lockfile-libc && npm run check:document-sync && npm run check:agents-docs",
-              "when": "always"
-            },
-            {
               "check": "lint",
-              "command": "npm run lint && npm run lint:anti-slop:check",
+              "command": "npm run lint && npm run lint:anti-slop:check && node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs && node scripts/check-key-boundaries.mjs && node scripts/check-coupled-deps.mjs && node scripts/check-lockfile-sync.mjs && node scripts/check-execution-boundary.mjs && npm run check:lockfile-libc && npm run check:document-sync && npm run check:agents-docs",
               "when": "always"
             },
             {
@@ -286,7 +289,7 @@ jobs:
           [
             {
               "check": "typecheck",
-              "command": "npm run typecheck && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run build:example-apps:check && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples && npm run capabilities:check && npm run check:node-catalog",
+              "command": "npm run typecheck && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run build:example-apps:check && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples && npm run capabilities:check && npm run check:node-catalog && npm run backend:smoke",
               "mobile-deps": "true",
               "extra-apt": "mesa-vulkan-drivers ffmpeg",
               "is-test": "false",
@@ -382,26 +385,6 @@ jobs:
               "is-test": "true",
               "fetch-depth": "1",
               "when": "web_related",
-              "jest-cache": ""
-            },
-            {
-              "check": "test-electron-mobile",
-              "command": "node scripts/ci-plan.mjs run electron mobile ${CI_BASE_SHA:+--base \"$CI_BASE_SHA\"}",
-              "mobile-deps": "false",
-              "extra-apt": "",
-              "is-test": "true",
-              "fetch-depth": "1",
-              "when": "electron_or_mobile",
-              "jest-cache": ""
-            },
-            {
-              "check": "bundle",
-              "command": "npm run backend:smoke",
-              "mobile-deps": "false",
-              "extra-apt": "",
-              "is-test": "false",
-              "fetch-depth": "1",
-              "when": "always",
               "jest-cache": ""
             },
             {
@@ -518,7 +501,7 @@ jobs:
       # separately so its own directory structure survives the round trip
       # (mixing it into `packages/*/dist` would change upload-artifact's
       # common-ancestor computation and break both globs' download paths).
-      # Only the `bundle` leg of the `built` job below downloads it.
+      # Only the `harness-gate` leg of the `built` job below downloads it.
       - name: Upload reliability harness dist
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -529,7 +512,7 @@ jobs:
 
   # Checks that need the built packages on disk. They download the dist artifact
   # and set build-packages:false, so they skip the redundant per-leg build. The
-  # app legs (typecheck, test-web*, test-electron-mobile) and parity/base-nodes
+  # app legs (typecheck, test-web*) and parity/base-nodes
   # run plain tsc/jest/vitest
   # against the prebuilt dist; test-packages runs Turbo and rides the warm
   # per-SHA Turbo cache the `build` job populated.
@@ -538,16 +521,16 @@ jobs:
   # its real work, and the account-wide runner cap (~20 concurrent jobs) makes
   # each extra leg queue time for the whole PR. The cheap checks are therefore
   # chained inside one leg — `typecheck` runs typecheck + parity + examples,
-  # `bundle` runs the packaged-backend smoke. Chained with `&&`, mirroring the
-  # `deps` leg: the first failure stops the chain, so a red leg names one
-  # problem at a time.
+  # the packaged-backend smoke, and the electron and mobile suites; `lint`
+  # carries the dependency guards. Chained with `&&`: the first failure stops
+  # the chain, so a red leg names one problem at a time.
   #
   # `harness-gate` runs `nodetool harness gate` (docs/HARNESS_FIRST.md § The
   # gate): it maps the diff against `inputs.base-sha` onto the surfaces in
   # `packages/cli/src/harness/registry.ts` and runs the keyless selfcheck of
   # every harness covering a touched surface — the diff selects the checks,
   # not this file. This is what replaced the old `reliability:ring0` half of
-  # the `bundle` leg (still runs on any diff touching `packages/kernel/` —
+  # the old `bundle` leg (still runs on any diff touching `packages/kernel/` —
   # see the `workflow-execution` surface in the registry) and the standalone
   # `app-build` leg (its two deterministic cases are the `app-build`
   # harness's selfcheck, run when a diff touches `packages/agents/src/app-build/`).
@@ -561,7 +544,7 @@ jobs:
   # leg runs every selfcheck instead (`--all`). Either way the
   # gate skips `cost: "expensive"` selfchecks (Blender render, the packaged
   # backend, …) unless `--expensive` is passed, so `backend:smoke` stays a
-  # leg of its own rather than folding into this one.
+  # step of the `typecheck` leg rather than folding into this one.
   #
   # `suiteOnly` selfchecks (they only re-run workspace test suites) are skipped
   # by the gate unless `--include-suites` is passed. No flag here: the
@@ -584,7 +567,7 @@ jobs:
   # same way, three `--shard`s, when a package it depends on changed. When
   # only files under web/src changed, one `test-web` leg runs the tests
   # related to them (`scripts/ci-plan.mjs run web`). Electron and mobile are
-  # small suites and share one leg.
+  # small suites and run at the end of the `typecheck` leg.
   built:
     name: ${{ matrix.check }}
     needs: [changes, build]
@@ -918,37 +901,22 @@ jobs:
         if: always()
         run: docker rm -f nodetool-smoke || true
 
-  # Heavy jobs that start with the other legs (they wait only on the
+  # Heavy job that starts with the other legs (it waits only on the
   # seconds-long `changes` job) rather than after them, so the critical path is
-  # max(legs, integration, e2e). They build packages themselves instead of
-  # waiting for the `build` artifact. Both feed the `quality` job below, so a
-  # failure blocks the required check.
+  # max(legs, integration). It builds packages itself instead of waiting for
+  # the `build` artifact, and feeds the `quality` job below, so a failure
+  # blocks the required check.
+  #
+  # One runner carries both suites that need their own package build: the
+  # shipped-workflow execution tests, when the diff reaches base-nodes, and
+  # the workflow-runner browser E2E, when it reaches workflow-runner. Each
+  # suite's steps run on `!cancelled()`, so a failure in one still reports
+  # the other.
   integration:
-    name: Workflow Integration Tests
+    name: Workflow integration and runner E2E
     needs: changes
-    # Runs when the diff reaches base-nodes, whose shipped workflows it
-    # executes. Skipped with `changes` for prose-only and marketing-only diffs.
-    if: ${{ !inputs.skip-tests && needs.changes.outputs.integration == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Set up Node, install deps, build packages
-        uses: ./.github/actions/setup-build
-        with:
-          extra-apt: mesa-vulkan-drivers ffmpeg
-
-      - name: Run shipped-workflow execution tests
-        run: npm run test:integration
-
-  workflow-runner-e2e:
-    name: Workflow Runner Browser E2E
-    needs: changes
-    # Runs when the diff reaches the workflow-runner package it drives.
-    if: ${{ !inputs.skip-tests && needs.changes.outputs.workflow-runner-e2e == 'true' }}
+    # Skipped with `changes` for prose-only and marketing-only diffs.
+    if: ${{ !inputs.skip-tests && (needs.changes.outputs.integration == 'true' || needs.changes.outputs.workflow-runner-e2e == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -964,9 +932,14 @@ jobs:
         # the server uses on Node/Dawn.
         uses: ./.github/actions/setup-build
         with:
-          extra-apt: mesa-vulkan-drivers
+          extra-apt: mesa-vulkan-drivers ffmpeg
+
+      - name: Run shipped-workflow execution tests
+        if: ${{ !cancelled() && needs.changes.outputs.integration == 'true' }}
+        run: npm run test:integration
 
       - name: Cache Playwright browsers
+        if: ${{ !cancelled() && needs.changes.outputs.workflow-runner-e2e == 'true' }}
         id: playwright-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -976,17 +949,20 @@ jobs:
             ${{ runner.os }}-playwright-
 
       - name: Install Playwright Chromium browser
+        if: ${{ !cancelled() && needs.changes.outputs.workflow-runner-e2e == 'true' }}
         run: npx playwright install --with-deps chromium
         working-directory: packages/workflow-runner
 
       - name: Type-check workflow-runner browser suite
+        if: ${{ !cancelled() && needs.changes.outputs.workflow-runner-e2e == 'true' }}
         run: npm run typecheck:e2e --workspace=@nodetool-ai/workflow-runner
 
       - name: Run workflow-runner browser E2E tests
+        if: ${{ !cancelled() && needs.changes.outputs.workflow-runner-e2e == 'true' }}
         run: npm run test:e2e --workspace=@nodetool-ai/workflow-runner
 
       - name: Upload Playwright diagnostics
-        if: always()
+        if: ${{ always() && needs.changes.outputs.workflow-runner-e2e == 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: workflow-runner-playwright-report
@@ -1045,7 +1021,7 @@ jobs:
   # — fails the gate.
   quality:
     name: quality
-    needs: [changes, static, build, built, docker, integration, workflow-runner-e2e, node-catalog]
+    needs: [changes, static, build, built, docker, integration, node-catalog]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1064,7 +1040,6 @@ jobs:
             "built:${{ needs.built.result }}" \
             "docker:${{ needs.docker.result }}" \
             "integration:${{ needs.integration.result }}" \
-            "workflow-runner-e2e:${{ needs.workflow-runner-e2e.result }}" \
             "node-catalog:${{ needs.node-catalog.result }}"; do
             name="${leg%%:*}"
             result="${leg#*:}"

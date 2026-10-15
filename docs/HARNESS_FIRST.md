@@ -219,8 +219,8 @@ contract moved without its coverage mapping moving with it, or — with
 key, or model are printed as manual work; the gate never silently narrows what
 "checked" means (rule 7).
 
-The Quality Gate's `examples`, `reliability`, `app-build`, and `bundle` legs
-are hand-instantiated selfchecks from this registry; the direction of travel
+The Quality Gate's `examples`, `reliability`, `app-build`, and `backend:smoke`
+steps are hand-instantiated selfchecks from this registry; the direction of travel
 is for CI to converge on `harness gate` so the workflow file stops being a
 second, driftable copy of the selection logic.
 

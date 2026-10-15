@@ -42,7 +42,7 @@ jobs:
           args: --offline --no-progress --include-fragments "**/*.md"
           fail: false
 
-  # The quality gate's `deps` leg runs the same check, but the gate skips
+  # The quality gate's `lint` leg runs the same check, but the gate skips
   # every leg for a prose-only diff, which is exactly when AGENTS.md pairing,
   # reachability and the .agents/skills links can break.
   agents-docs:

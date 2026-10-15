@@ -88,7 +88,7 @@ describe("quality check matrix exit status", () => {
     const install = staticJob.match(/      - name: Install Chromium for agentic QA checks\n        if: matrix.check == 'lint'\n        run: npx playwright install --with-deps chromium\n/g);
     expect(install).toHaveLength(1);
     expect(staticJob.indexOf(install[0])).toBeLessThan(staticJob.indexOf(guard[0]));
-    expect(source).toMatch(/"check": "lint",\s*"command": "npm run lint && npm run lint:anti-slop:check",\s*"when": "always"/);
+    expect(source).toMatch(/"check": "lint",\s*"command": "npm run lint && npm run lint:anti-slop:check && [^"]*",\s*"when": "always"/);
   });
 
   it.each([
