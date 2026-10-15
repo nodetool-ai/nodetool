@@ -11,7 +11,8 @@
     "blacksite",
     "kindle",
     "lumen",
-    "neon-drift"
+    "neon-drift",
+    "signal-forge"
   ],
   "backends": {
     "2d": "webgpu",
