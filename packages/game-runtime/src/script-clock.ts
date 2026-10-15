@@ -9,14 +9,11 @@ type ThreadCpuUsage = () => { readonly user: number; readonly system: number };
 export const wallScriptCallClock: ScriptCallClock = { kind: "wall", now: () => performance.now() };
 
 /**
- * The calling thread's CPU time on hosts with sufficiently current accounting.
- * Linux getrusage can advance in scheduler-tick-sized steps, so it cannot enforce
- * the supported 1 ms limit or reliably separate adjacent calls. Linux uses wall time.
+ * The CPU time of the calling thread, so time spent waiting for a processor does not count.
+ * Node reports it through `process.threadCpuUsage`, in microseconds. Browsers have no thread CPU clock.
  */
 export function threadCpuScriptCallClock(): ScriptCallClock | undefined {
-  const host = (globalThis as { process?: { platform?: string; threadCpuUsage?: ThreadCpuUsage } }).process;
-  if (host?.platform === "linux") { return undefined; }
-  const usage = host?.threadCpuUsage;
+  const usage = (globalThis as { process?: { threadCpuUsage?: ThreadCpuUsage } }).process?.threadCpuUsage;
   if (typeof usage !== "function") { return undefined; }
   const now = (): number => { const { user, system } = usage(); return (user + system) / 1000; };
   try { now(); } catch {
@@ -30,8 +27,8 @@ export const defaultScriptCallClock: ScriptCallClock = threadCpuScriptCallClock(
 
 /**
  * Starts the per-call limit. A thread's CPU time cannot exceed the wall time that passed, so the
- * wall check skips the clock read for most calls. The CPU source must include current work, since
- * a stale cumulative reading can charge a previous call's work to this one.
+ * wall check skips the clock read for most calls. It also stops coarse CPU accounting from ending a
+ * call before `limitMs` of wall time has passed.
  */
 export function startScriptCallTimer(clock: ScriptCallClock, limitMs: number): () => boolean {
   const wallStarted = performance.now();

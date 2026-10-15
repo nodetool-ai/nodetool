@@ -2530,7 +2530,7 @@ Check starts and completions print to stderr, including with `--json`.
 Each result includes `durationMs`, while stdout keeps the JSON output.
 CI uses `--jobs 1` and `NODETOOL_TEST_WORKERS=1` to run selfchecks and their
 test files serially. This prevents competing selfchecks from exhausting
-the game runtime’s wall-clock script budgets. Timeouts still apply.
+the game runtime’s wall-clock script batch budgets. Timeouts still apply.
 
 ```bash
 nodetool harness gate --base main

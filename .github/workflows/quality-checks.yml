@@ -738,8 +738,8 @@ jobs:
           TURBO_AFFECTED: ${{ inputs.base-sha != '' && needs.changes.outputs.turbo-affected == 'true' && '--affected' || '' }}
           CI_BASE_SHA: ${{ inputs.base-sha }}
           NODETOOL_HARNESS_INCLUDE_SUITES: ${{ inputs.skip-tests && '--include-suites' || '' }}
-          # Game script budgets measure wall time on Linux. Run harnesses and
-          # their test files serially so other selfchecks cannot steal that budget.
+          # Game script batches have a 50 ms wall-clock budget on every host.
+          # Run harnesses and test files serially to avoid competing for it.
           NODETOOL_TEST_WORKERS: ${{ matrix.check == 'harness-gate' && '1' || '' }}
           NODETOOL_CHECK_COMMAND: ${{ matrix.command }}
           NODETOOL_GAME_GOLDEN_ARTIFACTS: ${{ matrix.check == 'harness-gate' && format('{0}/native-game-golden-diagnostics', runner.temp) || '' }}
