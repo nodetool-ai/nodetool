@@ -61,10 +61,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.verification-plan.outputs.matrix) }}
-    env:
-      NODETOOL_WEB_TEST_RECYCLE_WORKERS: "1"
-      NODETOOL_TURBO_CONCURRENCY: "1"
-      NODETOOL_TEST_WORKERS: "1"
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -116,6 +112,9 @@ jobs:
         run: npm --prefix mobile ci
       - name: Run the selected verification bucket
         env:
+          NODETOOL_WEB_TEST_RECYCLE_WORKERS: "1"
+          NODETOOL_TURBO_CONCURRENCY: "1"
+          NODETOOL_TEST_WORKERS: "1"
           PACKED_TASK: ${{ matrix.task }}
         run: node scripts/packed-verification.mjs run "$RUNNER_TEMP/packed-verification.json" "$PACKED_TASK"
   packed-install:
