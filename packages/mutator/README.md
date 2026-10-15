@@ -129,6 +129,18 @@ values are used unchanged. Baseline durations and the resulting numeric
 mutant deadlines can change with scheduling. The timeout factor and minimum
 remain unchanged.
 
+`--shard 1/2` and `--shard 2/2` divide the canonical selected mutation IDs
+deterministically. Each shard reports only its own sites and outcomes. Give
+each shard a separate `--metrics-dir` and run concurrent shards in separate
+checkouts. Startup cleanup removes old worker overlays within a checkout.
+
+The changed-function CI workflow freezes the source commit and base before
+running shards on separate machines. `scripts/mutation-ci.mjs` verifies that
+their actual completed outcomes cover the complete selection exactly once
+before reporting a global score. Missing, cancelled, duplicate, or incomplete
+shards fail that check. Each job retains the original time limit and test
+command.
+
 ## Differences from unclebob/mutator
 
 - TypeScript and JavaScript only, parsed with the TypeScript compiler API
