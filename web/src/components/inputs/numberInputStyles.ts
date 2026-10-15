@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, numberFieldSurfaceStyles, numberFieldPaddingX } from "../ui_primitives";
 
 /**
  * Styles for the NumberInput component.
@@ -46,14 +46,18 @@ export const numberInputStyles = (theme: Theme) =>
       marginTop: `-${getSpacingPx(SPACING.micro)}` // was -1px
     },
 
+    // The value row is the shared number-field surface (compact density).
     ".value-container": {
+      ...numberFieldSurfaceStyles(theme, "compact", false),
       position: "relative",
       display: "flex",
       alignItems: "center",
       width: "100%",
       minWidth: "30px",
-      minHeight: "20px" // Ensure stable height
+      padding: `0 ${numberFieldPaddingX(theme)}`
     },
+
+    "&.focused .value-container": numberFieldSurfaceStyles(theme, "compact", true),
 
     ".slider-value .property-label": {
       width: "100%",

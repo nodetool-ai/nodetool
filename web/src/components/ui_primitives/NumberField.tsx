@@ -1,8 +1,48 @@
 import { forwardRef, memo, useCallback, useRef, type ChangeEvent, type PointerEvent } from "react";
 import { InputAdornment } from "@mui/material";
 
+import type { Theme } from "@mui/material/styles";
+
 import { TextInput, type TextInputProps } from "./TextInput";
-import { TYPOGRAPHY } from "./tokens";
+import type { FieldDensity } from "./fieldDensity";
+import { BORDER_RADIUS, CONTROL, MOTION, TYPOGRAPHY } from "./tokens";
+import { SPACING } from "./spacing";
+
+/** Control height of a number field: the small token on a compact surface, else the large one. */
+export const numberFieldHeight = (density: FieldDensity): number =>
+  density === "compact" ? CONTROL.height.sm : CONTROL.height.lg;
+
+/**
+ * The shared number-field surface: height per density, field background,
+ * border, radius and the focus ring (a primary border). NumberField gets the
+ * same look from TextInput; InspectorValueInput and inputs/NumberInput draw
+ * their own wrapper with this so all three read as one control.
+ */
+export const numberFieldSurfaceStyles = (theme: Theme, density: FieldDensity, focused: boolean) => ({
+  boxSizing: "border-box" as const,
+  height: numberFieldHeight(density),
+  backgroundColor: density === "compact" ? theme.vars.palette.background.default : theme.vars.palette.Paper.overlay,
+  border: `1px solid ${focused ? theme.vars.palette.primary.main : theme.vars.palette.c_overlay}`,
+  borderRadius: BORDER_RADIUS.sm,
+  transition: `border-color ${MOTION.fast}`,
+  "&:hover": { borderColor: focused ? theme.vars.palette.primary.main : theme.vars.palette.divider }
+});
+
+/** Value text of a number field (the compact field label size). */
+export const numberFieldTextStyles = (theme: Theme) => ({
+  ...TYPOGRAPHY.sans.label,
+  color: theme.vars.palette.text.primary
+});
+
+/** Unit or suffix text: mono label, secondary colour. */
+export const numberFieldUnitStyles = (theme: Theme) => ({
+  ...TYPOGRAPHY.mono.label,
+  color: theme.vars.palette.text.secondary,
+  flexShrink: 0
+});
+
+/** Horizontal inset of the value inside the surface. */
+export const numberFieldPaddingX = (theme: Theme): string => theme.spacing(SPACING.md);
 
 export interface NumberFieldProps
   extends Omit<TextInputProps, "type" | "value" | "onChange" | "inputProps" | "InputProps"> {
