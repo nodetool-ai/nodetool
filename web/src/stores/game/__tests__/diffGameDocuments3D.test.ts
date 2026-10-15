@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { gameAuthoring, gameParticles, type GameDocument3D } from "@nodetool-ai/protocol";
+import { gameAuthoring, gameMaterial3D, gameParticles, type GameDocument3D } from "@nodetool-ai/protocol";
 import { anyGameDocumentOp, applyAnyGameOps, applyGameOps3D, createNative3DGame, gameDocumentOp3D } from "@nodetool-ai/game-runtime";
 import { diffAnyGameDocuments } from "../diffAnyGameDocuments";
 
@@ -306,4 +306,51 @@ it("round-trips physics materials and a collider's material reference through JS
   ]);
   expect(after.physicsMaterials?.rubber).toMatchObject({ restitution: 0.85, restitutionCombine: "max" });
   roundTrip(before, after);
+});
+
+
+it("round-trips named material additions, edits and removal with granular wire operations", () => {
+  const before = createNative3DGame("diff3d-materials");
+  const added = { ...before, materials: { gold: gameMaterial3D.parse({ color: "#ffaa00" }) } };
+  roundTrip(before, added);
+  expect(diffAnyGameDocuments(before, added)).toContainEqual({ op: "set_material", material_id: "gold", material: added.materials.gold });
+  const edited = { ...added, materials: { gold: gameMaterial3D.parse({ color: "#ffbb00" }) } };
+  roundTrip(added, edited);
+  roundTrip(edited, before);
+  expect(diffAnyGameDocuments(edited, before)).toContainEqual({ op: "remove_material", material_id: "gold" });
+});
+
+it("round-trips named material references in scene and prefab primitives and models", () => {
+  const before = createNative3DGame("diff3d-material-refs");
+  const after = structuredClone(before);
+  after.materials = { gold: gameMaterial3D.parse({ color: "#ffaa00" }) };
+  const visual = after.scenes[0].entities.find((entity) => entity.id === "player-visual");
+  if (!visual?.primitive) { throw new Error("Fixture primitive missing"); }
+  visual.primitive.materialId = "gold";
+  const prefabEntity = structuredClone(visual);
+  delete prefabEntity.parentId;
+  after.prefabs.visual = { rootId: prefabEntity.id, entities: [prefabEntity], externalAssets: [], externalScenes: [] };
+  after.assets.hero = { mediaKind: "model", assetId: "hero", digest: "hero-digest", required: true, format: "glb", preparationVersion: "1",
+    bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } }, nodeIds: ["node:0"], clipIds: [],
+    geometryBytes: 1, textureBytes: 0, triangles: 1, supportedExtensions: [] };
+  const modelVisual = { ...structuredClone(visual), id: "model-visual",
+    model: { assetId: "hero", castShadow: true, receiveShadow: true, materialId: "gold" } };
+  delete modelVisual.primitive;
+  after.scenes[0].entities.push(modelVisual);
+  roundTrip(before, after);
+  const unassigned = structuredClone(after);
+  for (const entity of [...unassigned.scenes[0].entities, ...unassigned.prefabs.visual.entities]) {
+    if (entity.primitive) { delete entity.primitive.materialId; }
+    if (entity.model) { delete entity.model.materialId; }
+  }
+  delete unassigned.materials;
+  roundTrip(after, unassigned);
+});
+
+it("round-trips explicit empty named material tables separately from omitted tables", () => {
+  const omitted = createNative3DGame("diff3d-empty-materials");
+  const empty = { ...omitted, materials: {} };
+  roundTrip(omitted, empty);
+  const populated = { ...omitted, materials: { gold: gameMaterial3D.parse({ color: "#ffaa00" }) } };
+  roundTrip(populated, empty);
 });

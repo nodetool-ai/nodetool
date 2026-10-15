@@ -11,7 +11,7 @@ afterEach(() => { vi.clearAllMocks(); });
 
 it("aggregates only measured stage durations, excluding warmup and allocation ticks", async () => {
   const document = createTopDownRoomGame("timing-samples");
-  const session = createGameSession(document, 7);
+  const session = createGameSession(document, 7, undefined, undefined, { recordTimings: true });
   const dispose = vi.fn(() => session.dispose());
   let index = 0;
   vi.mocked(createScriptedGameSession).mockResolvedValue({
