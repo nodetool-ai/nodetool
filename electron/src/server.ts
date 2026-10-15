@@ -13,13 +13,14 @@ import {
 /**
  * Resolves the path to the Node.js-based backend server entry point.
  * In packaged mode: resources/backend/server.mjs
- * In dev mode: ../../packages/websocket/src/server.ts (run via tsx)
+ * In dev mode: ../../packages/server/src/main.ts (run via tsx), the source of
+ * the entry that server.mjs bundles
  */
 function getNodeBackendPath(): string {
   if (app.isPackaged) {
     return path.join(process.resourcesPath, "backend", "server.mjs");
   }
-  return path.join(__dirname, "..", "..", "packages", "websocket", "src", "server.ts");
+  return path.join(__dirname, "..", "..", "packages", "server", "src", "main.ts");
 }
 
 /** In dev mode we need tsx to run TypeScript source directly. */

@@ -22,6 +22,10 @@ jest.mock('electron', () => ({
   },
 }));
 
+// Electron adds process.getSystemVersion. Jest runs on plain Node, which has
+// none, and the pack platform check calls it on macOS.
+process.getSystemVersion ??= () => '15.0';
+
 // Real collaborator modules; only the calls that would read the filesystem or
 // a Python/conda install are stubbed on them.
 jest.spyOn(config, 'getProcessEnv').mockReturnValue({});
