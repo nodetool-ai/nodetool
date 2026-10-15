@@ -41,8 +41,9 @@ export function normalizeGlobalBootstrap(plan: InstallPlan, pins: readonly Globa
   for (const pin of pins) { byName.set(pin.name, [...(byName.get(pin.name) ?? []), pin]); }
   const replayed = new Set<string>();
   return { ...plan, change: plan.change.filter(raw => {
-    if (typeof raw === "string") {
-      const match = /^change (\S+) (\S+) => (\S+)$/.exec(raw);
+    const text = z.string().safeParse(raw);
+    if (text.success) {
+      const match = /^change (\S+) (\S+) => (\S+)$/.exec(text.data);
       const candidates = match ? byName.get(match[1]) : undefined;
       if (!match || candidates?.length !== 1) { return true; }
       const pin = candidates[0];
