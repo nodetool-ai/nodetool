@@ -423,6 +423,7 @@ because they only render pages and never run a node.
   Ignored when `NODETOOL_ENV=production`.
 
 ```bash
+cd web
 NODETOOL_FAKE_PROVIDERS=1 NODETOOL_FAKE_DEBUG=1 npm run test:journeys
 ```
 

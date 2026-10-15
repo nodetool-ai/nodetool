@@ -3,7 +3,7 @@
 ## Release rings
 
 Validation is three rings; a release is a promotion through rings, not a
-tag plus hope. Full definition: [`docs/RELIABILITY_ARCHITECTURE.md` §11](../../docs/RELIABILITY_ARCHITECTURE.md#11-release-engineering).
+tag plus hope.
 
 - **Ring 0 — PR gate (minutes).** Runs on every pull request. Hermetic, no
   network. **Flake budget: zero** — a Ring 0 job that flakes is a bug in
