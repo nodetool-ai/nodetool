@@ -1,51 +1,7 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useImperativeHandle, useRef } from "react";
-import type { KeyboardEvent, Ref } from "react";
-import SearchIcon from "@mui/icons-material/Search";
-import ClearIcon from "@mui/icons-material/Clear";
+import { memo, useCallback } from "react";
+import type { Ref } from "react";
 
-import { ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
-
-const styles = (theme: Theme) =>
-  css({
-    "&.qa-search": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(1),
-      padding: theme.spacing(1, 1),
-      borderRadius: BORDER_RADIUS.md,
-      background: theme.vars.palette.background.paper,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      transition: `border-color ${MOTION.fast}`,
-      "&:focus-within": {
-        borderColor: theme.vars.palette.primary.main
-      },
-      // Keyboard focus on the inner input gets a visible ring on the wrapper
-      // (the input itself strips its outline below).
-      "&:has(input:focus-visible)": {
-        outline: "2px solid var(--palette-primary-main)",
-        outlineOffset: "1px"
-      }
-    },
-    "& input": {
-      flex: 1,
-      minWidth: 0,
-      background: "transparent",
-      border: "none",
-      outline: "none",
-      color: theme.vars.palette.text.primary,
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal,
-      padding: theme.spacing(0.5, 0.5)
-    },
-    "& svg.search-glyph": {
-      fontSize: 16,
-      color: theme.vars.palette.text.secondary
-    }
-  });
+import { SearchInput } from "../ui_primitives";
 
 interface CategorySearchBarProps {
   value: string;
@@ -61,51 +17,23 @@ interface CategorySearchBarProps {
 const CategorySearchBar = memo(function CategorySearchBar({
   value,
   onChange,
-  placeholder = "Filter...",
+  placeholder = "Filter",
   ref
 }: CategorySearchBarProps) {
-  const theme = useTheme();
-  const inputRef = useRef<HTMLInputElement>(null);
-  useImperativeHandle(ref, () => inputRef.current as HTMLInputElement, []);
-
-  const handleClear = useCallback(() => {
-    onChange("");
-    // Keep the cursor in the field so users can keep typing after clearing.
-    inputRef.current?.focus();
-  }, [onChange]);
-
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Escape" && value) {
-        e.stopPropagation();
-        onChange("");
-      }
-    },
-    [value, onChange]
-  );
+  const handleClear = useCallback(() => onChange(""), [onChange]);
 
   return (
-    <div css={styles(theme)} className="qa-search">
-      <SearchIcon className="search-glyph" />
-      <input
-        ref={inputRef}
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        aria-label="Filter category"
-      />
-      {value && (
-        <ToolbarIconButton
-          tabIndex={-1}
-          tooltip="Clear filter"
-          ariaLabel="Clear filter"
-          onClick={handleClear}
-          icon={<ClearIcon />}
-        />
-      )}
-    </div>
+    <SearchInput
+      ref={ref}
+      className="qa-search"
+      value={value}
+      onChange={onChange}
+      onClear={handleClear}
+      placeholder={placeholder}
+      ariaLabel="Filter category"
+      clearTooltip="Clear filter"
+      fullWidth
+    />
   );
 });
 

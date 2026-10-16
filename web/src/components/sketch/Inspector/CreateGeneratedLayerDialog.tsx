@@ -242,7 +242,7 @@ const CreateGeneratedLayerDialogBody: React.FC<{
               would cover the workflow list below. */}
           <SearchInput
             autoFocus={autoFocusEnabled}
-            placeholder="Search workflows…"
+            placeholder="Search workflows"
             ariaLabel="Search workflows"
             value={filter}
             onChange={setFilter}

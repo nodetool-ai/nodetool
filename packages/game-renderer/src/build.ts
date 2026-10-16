@@ -5,11 +5,11 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { resolvePackageAssetPath } from "@nodetool-ai/config";
-import { GlobalFonts } from "@napi-rs/canvas";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { validateGame } from "@nodetool-ai/game-runtime";
 import type { GameDocument } from "@nodetool-ai/protocol";
 import { gameBuildFingerprint } from "./build-fingerprint.js";
+import { validateExportAudio, validateExportFont, validateExportImage } from "./export-media.js";
 
 const PLAYER_VERSION = 1;
 const PLAYER_FILE = `player-v${PLAYER_VERSION}.js`;
@@ -22,7 +22,8 @@ export interface StandaloneAsset {
 export interface BuildStandaloneGameOptions {
   readonly document: GameDocument;
   readonly outputDir: string;
-  readonly resolveAsset: (sourceAssetId: string) => Promise<StandaloneAsset | null>;
+  readonly resolveAsset: (sourceAssetId: string, signal?: AbortSignal) => Promise<StandaloneAsset | null>;
+  readonly signal?: AbortSignal;
 }
 
 export interface StandaloneGameBuild {
@@ -71,7 +72,7 @@ function html(): string {
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#000000">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob:; media-src 'self' blob:; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' blob:; img-src 'self' blob:; media-src 'self' blob:; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'">
   <title>NodeTool Game</title>
   <link rel="stylesheet" href="./style.css">
 </head>
@@ -164,6 +165,7 @@ export async function standaloneGameRuntimeFingerprint(): Promise<string> {
 
 /** Builds a self-contained web player with local content-addressed media. */
 export async function buildStandaloneGame(options: BuildStandaloneGameOptions): Promise<StandaloneGameBuild> {
+  options.signal?.throwIfAborted();
   const validation = validateGame(options.document);
   if (!validation.valid || !validation.document) {
     throw new Error(`Invalid game document: ${validation.errors.join("; ")}`);
@@ -180,6 +182,7 @@ export async function buildStandaloneGame(options: BuildStandaloneGameOptions): 
     const assetPaths: Record<string, string> = {};
     await mkdir(join(staging, "assets"));
     for (const [logicalId, binding] of Object.entries(document.assets)) {
+      options.signal?.throwIfAborted();
       const exportedBinding: GameDocument["assets"][string] = {
         assetId: binding.assetId,
         digest: binding.digest,
@@ -202,7 +205,8 @@ export async function buildStandaloneGame(options: BuildStandaloneGameOptions): 
         exportedAssets[logicalId] = exportedBinding;
         continue;
       }
-      const asset = await options.resolveAsset(binding.assetId);
+      const asset = await options.resolveAsset(binding.assetId, options.signal);
+      options.signal?.throwIfAborted();
       if (!asset) {
         throw new Error(`Missing asset for ${logicalId}`);
       }
@@ -215,10 +219,14 @@ export async function buildStandaloneGame(options: BuildStandaloneGameOptions): 
       if (kind === "font" && binding.fontFormat !== extension) {
         throw new Error(`Font format does not match ${logicalId}`);
       }
+      if (extension === "png" || extension === "jpg" || extension === "webp") {
+        await validateExportImage(asset.bytes, extension === "jpg" ? "jpeg" : extension, options.signal);
+      }
       if (kind === "font") {
-        const key = GlobalFonts.register(Buffer.from(asset.bytes), `ntg-export-check-${logicalId}`);
-        if (!key) throw new Error(`Invalid font bytes for ${logicalId}`);
-        GlobalFonts.remove(key);
+        validateExportFont(asset.bytes, logicalId, options.signal);
+      }
+      if (extension === "wav" || extension === "ogg" || extension === "mp3") {
+        await validateExportAudio(asset.bytes, extension, options.signal);
       }
       const lut = document.renderEffects?.find((effect) => effect.kind === "lut" && effect.assetId === logicalId);
       if (lut?.kind === "lut") {
@@ -264,6 +272,7 @@ export async function buildStandaloneGame(options: BuildStandaloneGameOptions): 
     if (existing && existing.length > 0) {
       throw new Error(`Output directory is not empty: ${outputDir}`);
     }
+    options.signal?.throwIfAborted();
     if (existing) {
       await rmdir(outputDir);
     }

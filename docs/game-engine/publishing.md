@@ -26,7 +26,9 @@ nodetool game build game.json --out game-build --assets-dir game-assets
 nodetool game smoke game-build --json
 ```
 
-The build contains the player, document, runtime, and resolved assets. It does not include provider API keys. Preparation and digest checks happen before the output is accepted. Serve it over HTTPS or loopback HTTP so required browser security APIs are available. Opening an HTML file directly is not the supported distribution path.
+The build contains the player, document, runtime, and resolved assets. It does not include provider API keys. Preparation, digest checks, and media decoding happen before the output is accepted. Exporting bound images or audio requires FFmpeg on the export host’s PATH. Built-in assets do not require this decoder. Missing FFmpeg or undecodable media stops the build before publication. Serve it over HTTPS or loopback HTTP so required browser security APIs are available. Opening an HTML file directly is not the supported distribution path.
+
+The player verifies local asset paths and content digests before use. Audio receives a local Blob URL backed by the verified bytes, so playback cannot fetch a different response from the original asset URL. Streamed music retains its encoded source for the player’s lifetime and avoids a decoded PCM buffer. Closing the player stops audio and releases its media URLs.
 
 Editor and agent exports cache a revision with its generated player, runtime, and template fingerprint. Each cache hit checks every output file against its recorded size and SHA-256 digest. Missing or changed files trigger a rebuild. A runtime upgrade creates a separate output directory even when the game revision is unchanged.
 

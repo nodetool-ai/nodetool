@@ -20,6 +20,7 @@ import {
   AlertBanner,
   Caption,
   Card,
+  Code,
   CopyButton,
   EditorButton,
   ExternalLink,
@@ -197,7 +198,7 @@ const ConnectedAccountsSettings = () => {
             ) : (
               <Caption>
                 This server does not know its bot&apos;s username, so there is
-                no link to open. Send the bot <code>/start {showPending.code}</code>{" "}
+                no link to open. Send the bot <Code>/start {showPending.code}</Code>{" "}
                 yourself.
               </Caption>
             )}

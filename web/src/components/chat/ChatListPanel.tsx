@@ -207,7 +207,7 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
           ref={searchRef}
           value={filterValue}
           onChange={setFilterValue}
-          placeholder="Search conversations..."
+          placeholder="Search conversations"
         />
       </FlexColumn>
 

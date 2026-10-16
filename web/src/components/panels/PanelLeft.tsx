@@ -20,9 +20,14 @@ import {
   getSpacingPx,
   reducedMotion,
   thinScrollbarStyles,
-  PanelHeader
+  PanelHeader,
+  ResizeHandle
 } from "../ui_primitives";
-import { useResizePanel } from "../../hooks/handlers/useResizePanel";
+import {
+  useResizePanel,
+  PANEL_MIN_SIZE,
+  PANEL_MAX_SIZE
+} from "../../hooks/handlers/useResizePanel";
 import isEqual from "../../utils/isEqual";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -88,7 +93,6 @@ import ContextMenus from "../context_menus/ContextMenus";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   TOOLBAR_WIDTH,
-  PANEL_RESIZE_HANDLE_WIDTH,
   LEFT_PANEL_MIN_DRAWER_WIDTH
 } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
@@ -159,30 +163,6 @@ const styles = (
       willChange: "transform, opacity"
     },
 
-    ".panel-resize-handle": {
-      width: `${PANEL_RESIZE_HANDLE_WIDTH}px`,
-      position: "absolute",
-      right: 0,
-      top: 0,
-      height: "100%",
-      backgroundColor: "transparent",
-      border: 0,
-      borderRadius: 0,
-      cursor: "ew-resize",
-      zIndex: Z_INDEX.dropdown,
-      transition: MOTION.all,
-
-      "&:hover": {
-        backgroundColor: theme.vars.palette.primary.main,
-        boxShadow: `0 0 8px ${theme.vars.palette.primary.main}40`,
-        transform: "scaleX(1.5)"
-      },
-      "&:active": {
-        backgroundColor: theme.vars.palette.primary.main,
-        boxShadow: `0 0 12px ${theme.vars.palette.primary.main}60`,
-        transform: "scaleX(2)"
-      }
-    },
 
     ".vertical-toolbar": {
       pointerEvents: "auto",
@@ -1037,9 +1017,11 @@ const PanelLeft: React.FC = () => {
     size: panelSize,
     isVisible,
     isDragging,
-    handleMouseDown,
+    handleResizeStart,
+    handleResize,
+    handleResizeEnd,
     handlePanelToggle
-  } = useResizePanel("left");
+  } = useResizePanel();
 
   const hasHeader = !isStandaloneMode;
   const panelLeftStyles = useMemo(
@@ -1180,15 +1162,16 @@ const PanelLeft: React.FC = () => {
             }
           }}
         >
-          <div
-            className="panel-resize-handle"
-            onMouseDown={handleMouseDown}
-            role="slider"
-            aria-label="Resize panel"
-            aria-valuenow={panelSize}
-            aria-valuemin={60}
-            aria-valuemax={800}
-            tabIndex={-1}
+          <ResizeHandle
+            orientation="vertical"
+            edge="end"
+            value={panelSize}
+            min={PANEL_MIN_SIZE}
+            max={PANEL_MAX_SIZE}
+            ariaLabel="Resize panel"
+            onResize={handleResize}
+            onResizeStart={handleResizeStart}
+            onResizeEnd={handleResizeEnd}
           />
           <div className="panel-inner-content">
             <PanelContent

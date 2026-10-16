@@ -53,7 +53,7 @@ export interface AutocompleteProps<
  * // Basic usage with options
  * <Autocomplete
  *   options={[{ label: "Option 1", value: "1" }, { label: "Option 2", value: "2" }]}
- *   placeholder="Search..."
+ *   placeholder="Search"
  *   onChange={(e, value) => setValue(value)}
  * />
  *

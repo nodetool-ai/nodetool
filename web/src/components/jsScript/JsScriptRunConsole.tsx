@@ -14,17 +14,16 @@ import { usesStreamInputContract } from "@nodetool-ai/node-sdk/code-body";
 
 import {
   AlertBanner,
-  Box,
   Chip,
+  CodeBlock,
   EditorButton,
   FlexColumn,
   FlexRow,
   Label,
+  LogView,
   ScrollArea,
   Text,
-  BORDER_RADIUS,
-  SPACING,
-  TYPOGRAPHY
+  SPACING
 } from "../ui_primitives";
 import {
   useJsScriptCode,
@@ -60,19 +59,9 @@ const json = (value: unknown): string => {
 };
 
 const Mono = ({ children }: { children: string }) => (
-  <Box
-    component="pre"
-    sx={{
-      ...TYPOGRAPHY.mono.code,
-      margin: 0,
-      padding: SPACING.sm,
-      overflowX: "auto",
-      borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: "var(--palette-action-hover)"
-    }}
-  >
+  <CodeBlock maxHeight="none" wrap={false}>
     {children}
-  </Box>
+  </CodeBlock>
 );
 
 const CaseReport = ({ report }: { report: JsScriptTestCaseReport }) => (
@@ -228,7 +217,7 @@ const JsScriptRunConsole = ({
               {lastRun.logs.length > 0 && (
                 <>
                   <Label>Logs</Label>
-                  <Mono>{lastRun.logs.join("\n")}</Mono>
+                  <LogView lines={lastRun.logs} />
                 </>
               )}
               {lastRun.streamed && lastRun.streamed.length > 0 && (

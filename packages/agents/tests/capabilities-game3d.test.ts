@@ -29,13 +29,18 @@ async function agent(user = USER, sourceAssets: ReadonlyMap<string, Uint8Array> 
   if (!workspace) { throw new Error("Workspace missing"); }
   return { workspace, run: createCapabilityRun({ context: { userId: user, workspace, assetStorage: new InMemoryStorageAdapter(), resolveAssetBytes: async (uri: string) => ({ bytes: sourceAssets.get(uri) ?? null }) } as ProcessingContext, gate: UNGATED }) };
 }
-function closedGlb(): Uint8Array {
-  const raw = new TextEncoder().encode(JSON.stringify({ asset: { version: "2.0" }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ name: "Visual" }] }));
+function closedGlb(animated = false): Uint8Array {
+  const binary = new Float32Array([0, 2, 0, 0, 0, 2, 0, 0]);
+  const raw = new TextEncoder().encode(JSON.stringify({ asset: { version: "2.0" }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ name: "Visual" }],
+    ...(animated ? { buffers: [{ byteLength: binary.byteLength }], bufferViews: [{ buffer: 0, byteLength: 8 }, { buffer: 0, byteOffset: 8, byteLength: 24 }],
+      accessors: [{ bufferView: 0, componentType: 5126, count: 2, type: "SCALAR" }, { bufferView: 1, componentType: 5126, count: 2, type: "VEC3" }],
+      animations: [{ samplers: [{ input: 0, output: 1 }], channels: [{ sampler: 0, target: { node: 0, path: "translation" } }] }] } : {}) }));
   const padded = Math.ceil(raw.length / 4) * 4;
-  const bytes = new Uint8Array(20 + padded); bytes.fill(32, 20);
+  const bytes = new Uint8Array(20 + padded + (animated ? 8 + binary.byteLength : 0)); bytes.fill(32, 20);
   const view = new DataView(bytes.buffer);
   view.setUint32(0, 0x46546c67, true); view.setUint32(4, 2, true); view.setUint32(8, bytes.length, true);
   view.setUint32(12, padded, true); view.setUint32(16, 0x4e4f534a, true); bytes.set(raw, 20);
+  if (animated) { view.setUint32(20 + padded, binary.byteLength, true); view.setUint32(24 + padded, 0x004e4942, true); bytes.set(new Uint8Array(binary.buffer), 28 + padded); }
   return bytes;
 }
 
@@ -189,6 +194,17 @@ describe("native game tools in 3D", () => {
     expect(installed.document.assets.character).toMatchObject({ mediaKind: "model", nodeIds: ["node:0", "node:1"] });
     expect(installed.document.assets.character.assetId).toHaveLength(32);
     expect(await run.invoke("generate_game_asset", { game_id: created.document.id, slot: "character", kind: "model", input_file: "../private.glb" })).toMatchObject({ error: expect.stringContaining("workspace-relative") });
+  });
+
+  it("derives clip durations during generation and rederives them when installing a candidate", async () => {
+    const { run, workspace } = await agent();
+    const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Animated import", dimension: "3d" }));
+    await workspace.write("animated.glb", closedGlb(true), "model/gltf-binary");
+    const candidate = readRecord(await run.invoke("generate_game_asset", { game_id: created.document.id, slot: "character", kind: "model", input_file: "animated.glb" }));
+    expect(candidate).toMatchObject({ installed: false, binding: { clipDurations: { "clip:0": 2 } } });
+    const binding = readRecord(candidate.binding);
+    const installed = replyDocument(await run.invoke("install_native_game_asset", { game_id: created.document.id, slot: "character", binding: { ...binding, clipDurations: { "clip:0": 999 } } }));
+    expect(installed.document.assets.character).toMatchObject({ clipDurations: { "clip:0": 2 } });
   });
 
   it("stages the model_3d ref a TextTo3D node returns", async () => {

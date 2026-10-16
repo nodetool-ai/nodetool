@@ -69,27 +69,40 @@ export type GameAnimationGraph3D = z.infer<typeof gameAnimationGraph3D>;
 
 export const gameAnimationGraphs3D = boundedRecord(gameAnimationGraph3D, 64);
 
-/** Per-entity graph state stored in 3D snapshots. Transition progress is derived from `enteredTick` and `transitionTicks`. */
+/** A normalized phase at the simulation tick, with the increment over its preceding interval. */
+const gameAnimationPhase3D = z.strictObject({
+  tick, value: finite.min(0).max(1), previousValue: finite.min(0).max(1), increment: finite.min(0).max(64 / (60 * 2 ** -149))
+});
+
+const layerInterval = z.strictObject({
+  state: id, enteredTick: tick, transitionIndex: tick.optional(), previousState: id.optional(), previousEnteredTick: tick.optional(), transitionTicks: tick.max(600).optional(),
+  phase: gameAnimationPhase3D.optional(), previousPhase: gameAnimationPhase3D.optional()
+});
+
+/** Per-entity graph state stored in 3D snapshots. Prior intervals are bounded and never recursive. */
 export const gameAnimationGraphRuntime3D = z.strictObject({
   graphId: id,
   parameters: z.record(id, z.union([finite, z.boolean()])),
-  layers: z.array(z.strictObject({
-    state: id, enteredTick: tick, transitionIndex: tick.optional(), previousState: id.optional(), previousEnteredTick: tick.optional(), transitionTicks: tick.max(600).optional()
-  })).max(8)
+  layers: z.array(layerInterval.extend({ priorInterval: layerInterval.extend({ endTick: tick }).optional() })).max(8)
 });
 
 export type GameAnimationGraphRuntime3D = z.infer<typeof gameAnimationGraphRuntime3D>;
 
 const gameAnimationMotionSample3D = z.strictObject({
   startTick: tick, rate: finite.min(0).max(64), loop: z.boolean(),
-  clips: z.array(z.strictObject({ clipId: id, weight: finite.min(0).max(1) })).min(1).max(16)
+  phase: gameAnimationPhase3D.optional(),
+  clips: z.array(z.strictObject({ clipId: id, weight: finite.min(0).max(1), duration: finite.min(0).max((2 - 2 ** -23) * 2 ** 127).optional() })).min(1).max(16)
+});
+
+const poseInterval = z.strictObject({
+  current: gameAnimationMotionSample3D, previous: gameAnimationMotionSample3D.optional(), transitionTicks: tick.max(600).optional()
 });
 
 /** Render-frame pose request resolved from graph state. The renderer samples it at the interpolated tick. */
 export const gameAnimationPose3D = z.strictObject({
-  layers: z.array(z.strictObject({
+  layers: z.array(poseInterval.extend({
     mode: z.enum(["override", "additive"]), weight: finite.min(0).max(1), mask: z.array(id).max(256).optional(),
-    current: gameAnimationMotionSample3D, previous: gameAnimationMotionSample3D.optional(), transitionTicks: tick.max(600).optional()
+    priorInterval: poseInterval.extend({ endTick: tick }).optional()
   })).max(8)
 });
 
