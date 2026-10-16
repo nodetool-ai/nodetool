@@ -23,7 +23,7 @@ for (let y = 0; y < 512; y++) {
 }
 const marble = await sharp(stonePixels, { raw: { width: 512, height: 512, channels: 3 } }).png().toBuffer();
 const entities = [];
-const script = (source) => ({ kind: "script", maxCommands: 32, maxTickMs: 50, source });
+const script = (source) => ({ kind: "script", maxCommands: 32, maxTickMs: 20, source });
 const islands = [
   [0, 0, 4, 8, 8], [0, 0.5, -4, 3.2, 3.2], [2, 1, -11, 2.6, 2.6],
   [-1, 1.5, -18, 5, 5], [0, 2, -25, 4, 4], [0, 2, -39, 5, 5],

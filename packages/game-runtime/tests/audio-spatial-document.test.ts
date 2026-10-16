@@ -8,7 +8,7 @@ import { validateGame } from "../src/validate.js";
 import { validateGame3D } from "../src/validate3d.js";
 
 const sound = { assetId: "builtin:sfx.collect", digest: "builtin:sfx.collect-v1", mediaKind: "audio" } as const;
-const hum = { kind: "script", maxTickMs: 50, source: "input => ({ state: {}, commands: input.tick === 0 ? [{ kind: 'emit', event: 'hum' }] : [] })" };
+const hum = { kind: "script", maxTickMs: 20, source: "input => ({ state: {}, commands: input.tick === 0 ? [{ kind: 'emit', event: 'hum' }] : [] })" };
 
 function game2D(audioSource: Record<string, unknown>): GameDocument {
   return gameDocument.parse({ id: "spatial", revision: "one", entrySceneId: "room", tickRate: 60, inputActions: [],

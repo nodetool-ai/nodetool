@@ -2373,7 +2373,7 @@
               "kind": "script",
               "source": "i => ({ state: null, commands: [{ kind: 'setKinematicPose', position: { x: 0, y: 2, z: -32 + Math.sin((i.tick + 1) / 90) * 3.5 } }] })",
               "maxCommands": 32,
-              "maxTickMs": 50
+              "maxTickMs": 20
             }
           ]
         },
@@ -2450,7 +2450,7 @@
               "kind": "script",
               "source": "i => ({ state: null, commands: [{ kind: 'setKinematicPose', position: { x: Math.sin((i.tick+1)/65)*2, y: 6.4, z: -100 + Math.sin((i.tick + 1) / 80) * 3.5 } }] })",
               "maxCommands": 32,
-              "maxTickMs": 50
+              "maxTickMs": 20
             }
           ]
         },
@@ -2541,7 +2541,7 @@
               "kind": "script",
               "source": "i => {\n    const s=i.state||{collapse:0,rebuild:0};\n    const p=i.world.find(e=>e.id==='player');\n    if(!s.collapse && p.grounded && Math.abs(p.position.x-(3))<1.4 && Math.abs(p.position.z-(-74))<1.4 && Math.abs(p.position.y-6.3100000000000005)<0.2) {s.collapse=i.tick+42;s.rebuild=i.tick+240;}\n    if(s.rebuild && i.tick>=s.rebuild){s.collapse=0;s.rebuild=0;}\n    const down=s.collapse && i.tick>=s.collapse;\n    return {state:s,commands:[{kind:'setKinematicPose',position:{x:3,y:down?-25:5.3,z:-74}}]};\n  }",
               "maxCommands": 32,
-              "maxTickMs": 50
+              "maxTickMs": 20
             }
           ]
         },
@@ -2676,7 +2676,7 @@
               "kind": "script",
               "source": "i => {\n    const s=i.state||{collapse:0,rebuild:0};\n    const p=i.world.find(e=>e.id==='player');\n    if(!s.collapse && p.grounded && Math.abs(p.position.x-(-1))<1.4 && Math.abs(p.position.z-(-80))<1.4 && Math.abs(p.position.y-6.609999999999999)<0.2) {s.collapse=i.tick+42;s.rebuild=i.tick+240;}\n    if(s.rebuild && i.tick>=s.rebuild){s.collapse=0;s.rebuild=0;}\n    const down=s.collapse && i.tick>=s.collapse;\n    return {state:s,commands:[{kind:'setKinematicPose',position:{x:-1,y:down?-25:5.6,z:-80}}]};\n  }",
               "maxCommands": 32,
-              "maxTickMs": 50
+              "maxTickMs": 20
             }
           ]
         },
@@ -2811,7 +2811,7 @@
               "kind": "script",
               "source": "i => {\n    const s=i.state||{collapse:0,rebuild:0};\n    const p=i.world.find(e=>e.id==='player');\n    if(!s.collapse && p.grounded && Math.abs(p.position.x-(2))<1.4 && Math.abs(p.position.z-(-86))<1.4 && Math.abs(p.position.y-6.91)<0.2) {s.collapse=i.tick+42;s.rebuild=i.tick+240;}\n    if(s.rebuild && i.tick>=s.rebuild){s.collapse=0;s.rebuild=0;}\n    const down=s.collapse && i.tick>=s.collapse;\n    return {state:s,commands:[{kind:'setKinematicPose',position:{x:2,y:down?-25:5.8999999999999995,z:-86}}]};\n  }",
               "maxCommands": 32,
-              "maxTickMs": 50
+              "maxTickMs": 20
             }
           ]
         },
@@ -4465,7 +4465,7 @@
               "kind": "script",
               "source": "i => {\n  const s = i.state || { checkpoint: { x: 0, y: 0.82, z: 5 }, section: 0, falls: 0, prisms: 0, won: false, notice: 0, started: 0, finish: 0 };\n  const c = [], p = i.entity.position;\n  let laserHit = false;\n  for (const event of i.events) {\n    if(event.kind !== 'contact' || event.phase === 'exit') continue;\n    const other = event.entityId === 'player' ? event.otherId : event.otherId === 'player' ? event.entityId : '';\n    if(!other.startsWith('laser-')) continue;\n    const phase=(i.tick+Number(other.slice(6))*17)%180;\n    if(phase>=90&&phase<165) laserHit=true;\n  }\n  s.prisms += i.events.filter(e => e.kind === 'collected' && e.byId === 'player').length;\n  for (const cp of [{\"index\":3,\"x\":-1,\"y\":2.32,\"z\":-18},{\"index\":8,\"x\":-1,\"y\":5.220000000000001,\"z\":-60},{\"index\":13,\"x\":0,\"y\":7.220000000000001,\"z\":-93},{\"index\":18,\"x\":0,\"y\":9.32,\"z\":-134}]) {\n    if (cp.index > s.section && i.entity.grounded && Math.abs(p.x - cp.x) < 2.7 && Math.abs(p.z - cp.z) < 2.7 && Math.abs(p.y - cp.y) < 0.2) {\n      s.checkpoint = { x: cp.x, y: cp.y, z: cp.z }; s.section = cp.index; s.notice = i.tick + 120;\n      c.push({ kind: 'emit', event: 'checkpoint' });\n    }\n  }\n  if (!s.started && (Math.abs(i.axes.moveX || 0) + Math.abs(i.axes.moveZ || 0) > 0)) s.started = i.tick;\n  if (i.events.some(e => e.kind === 'win')) { s.won = true; s.finish = i.tick; c.push({kind:'emit',event:'victory'}); }\n  if (p.y < -9 || i.justPressed.includes('respawn') || laserHit) { s.falls++; c.push({ kind: 'teleport', position: s.checkpoint }, {kind:'emit',event:'return'}); if(laserHit)c.push({kind:'emit',event:'laser-hit'}); }\n  if (i.justPressed.includes('jump') && i.entity.grounded) c.push({kind:'emit',event:'leap'});\n  const hud = (id,text,x,y,size,color,align='left') => c.push({kind:'hud',id,text,x,y,size,color,align});\n  hud('title','A E T H E R',40,42,27,'#fff3e9');\n  hud('subtitle','S K Y B O U N D   /   THE CELESTIAL OBSERVATORY',42,70,11,'#e5cbd8');\n  hud('score',s.prisms+' / 5  AETHER PRISMS',1240,42,13,'#bdfff0','right');\n  hud('stage',s.section>=18?'05  /  THE FINAL GAUNTLET':s.section>=13?'04  /  CROSSWINDS':s.section>=8?'03  /  FRACTURE RUN':s.section>=3?'02  /  THE SKY FERRY':'01  /  FIRST LIGHT',40,642,15,'#fff3e9');\n  hud('help','WASD  MOVE     SPACE  JUMP     DRAG  LOOK     R  CHECKPOINT',40,680,12,'#e5cbd8');\n  hud('challenge',s.section>=18?'NARROW LANDINGS / WATCH THE LAST LASER':s.section>=13?'FERRY DRIFTS SIDEWAYS / LEAD YOUR JUMP':s.section>=8?'AMBER STEPS COLLAPSE / KEEP MOVING':s.section>=3?'LASERS PULSE / WAIT FOR A CLEAR LANDING':'PRECISION JUMPS / BRAKE BEFORE THE EDGE',40,614,11,'#ffdaa5');\n  hud('returns',s.falls+' RETURNS',1240,680,12,'#e5cbd8','right');\n  hud('timer',(s.started?((Math.max(0,(s.won?s.finish:i.tick)-s.started))/60).toFixed(1):'0.0')+' s',1240,642,24,'#fff3e9','right');\n  hud('notice',i.tick<s.notice?'CHECKPOINT ATTUNED':'',640,118,18,'#bdfff0','center');\n  hud('win',s.won?'THE SKY REMEMBERS':'',640,290,44,'#fff3e9','center');\n  hud('finish',s.won?'ALL FIVE PRISMS RESTORED  /  OBSERVATORY ONLINE':'',640,334,15,'#bdfff0','center');\n  return {state:s,commands:c};\n}",
               "maxCommands": 32,
-              "maxTickMs": 50
+              "maxTickMs": 20
             }
           ]
         },
@@ -4515,7 +4515,7 @@
               "kind": "script",
               "source": "i => {\n  const p = i.world.find(e => e.id === 'player'), s = i.state || {yaw:0, grounded:true, landing:0};\n  const speed = Math.hypot(p.velocity.x,p.velocity.z);\n  if (speed > 0.5) {\n    const target = Math.atan2(-p.velocity.x,-p.velocity.z), delta = Math.atan2(Math.sin(target-s.yaw),Math.cos(target-s.yaw));\n    s.yaw += Math.max(-0.22,Math.min(0.22,delta));\n  }\n  if (p.grounded && !s.grounded) s.landing = i.tick + 10;\n  s.grounded = p.grounded;\n  const clip = !p.grounded ? (p.velocity.y > 0 ? 'jump' : 'fall') : i.tick < s.landing ? 'land' : speed > 0.5 ? 'run' : 'idle';\n  return {state:s,commands:[{kind:'setVisual',rotation:[0,Math.sin(s.yaw/2),0,Math.cos(s.yaw/2)]},{kind:'playAnimation',clip}]};\n}",
               "maxCommands": 32,
-              "maxTickMs": 50
+              "maxTickMs": 20
             }
           ]
         },

@@ -9,7 +9,7 @@ function fixture(source: string, props: Record<string, unknown> = { removable: 1
     schemaVersion: 4,
     engineVersion: "3",
     scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "player"
-      ? { ...entity, tags: ["hero"], props, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 30 }] }
+      ? { ...entity, tags: ["hero"], props, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 20 }] }
       : entity) }))
   });
 }

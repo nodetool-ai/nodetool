@@ -17,7 +17,7 @@ function fixture(sources: readonly string[]): GameDocument {
   return gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: [
     ...scene.entities.map((entity) => ({ ...entity, behaviors: [] })),
     ...sources.map((source, index) => ({ id: `worker-${index}`, transform2d: { x: 0, y: 0 },
-      behaviors: [{ kind: "script", source, maxTickMs: 50, maxCommands: 8 }] }))
+      behaviors: [{ kind: "script", source, maxTickMs: 20, maxCommands: 8 }] }))
   ] })) });
 }
 
@@ -26,7 +26,7 @@ function call(index: number, state: GameScriptCall["state"] = null): GameScriptC
   const key = scriptSourceKey("room", entityId, 0);
   return { sourceKey: key, stateKey: key, entityId, source: entityId, state,
     x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false },
-    maxTickMs: 50, maxCommands: 8 };
+    maxTickMs: 20, maxCommands: 8 };
 }
 
 describe("script realm ownership", () => {
@@ -149,7 +149,7 @@ describe("script realm ownership", () => {
   it.each(["2d", "3d"])("releases a successful script realm when the %s session fails afterward", async (dimension) => {
     const source = "input => ({ state: 1, commands: [{ kind: 'spawn', prefabId: 'missing' }] })";
     const document3D = blockout();
-    document3D.scenes[0].entities[1].behaviors = [{ kind: "script", source, maxTickMs: 50, maxCommands: 8 }];
+    document3D.scenes[0].entities[1].behaviors = [{ kind: "script", source, maxTickMs: 20, maxCommands: 8 }];
     // The first runner in a process warms the call path in its own contexts. Pay that before counting this session's realms.
     (dimension === "2d" ? await prepareGameScripts(fixture([source])) : await prepareGameScripts3D(document3D)).dispose();
     const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");

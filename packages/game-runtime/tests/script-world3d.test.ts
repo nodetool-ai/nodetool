@@ -5,7 +5,7 @@ import { scriptSourceKey } from "../src/scripts.js";
 
 it("queries frozen 3D entity centers in document order with source filtering before limits", async () => {
   const document = blockout();
-  document.scenes[0].entities[1].behaviors = [{ kind: "script", maxCommands: 8, maxTickMs: 50, source: `input => {
+  document.scenes[0].entities[1].behaviors = [{ kind: "script", maxCommands: 8, maxTickMs: 20, source: `input => {
     const before = world.get("first");
     before.velocity.x = 99;
     return { state: {
@@ -26,7 +26,7 @@ it("queries frozen 3D entity centers in document order with source filtering bef
   ];
   try {
     const result = runner.run([{ sourceKey: key, stateKey: key, entityId: "player", source: "player", state: null,
-      position: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 }, grounded: false, maxCommands: 8, maxTickMs: 50
+      position: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 }, grounded: false, maxCommands: 8, maxTickMs: 20
     }], { tick: 0, pressed: [], justPressed: [], axes: {}, look: { x: 0, y: 0 }, camera: { yaw: 0, pitch: 0 }, events: [], queries: [], world }, 1);
     expect(result.results[0].state).toEqual({ ids: ["first", "second"], boundary: ["first"], outside: [], value: world[0], changed: 99 });
     expect(velocity.x).toBe(1);

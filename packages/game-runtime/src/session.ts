@@ -1,5 +1,5 @@
 import { createGameScriptReloader, type GameScriptReloadResult } from "./script-reload.js";
-import { frameFor } from "./systems/presentation2d.js";
+import { frameFor, type GamePresentationView2D } from "./systems/presentation2d.js";
 import { contactKey } from "./systems/collision2d.js";
 import type { GameSystemContext2D } from "./systems/context2d.js";
 import type { EntityState, ContactPair, WorldTransform, ScriptVisual } from "./systems/state2d.js";
@@ -70,10 +70,12 @@ export interface GameInspection {
   readonly entities: readonly GameSnapshot["entities"][number][];
 }
 
+export type { GamePresentationView2D } from "./systems/presentation2d.js";
+
 export interface GameSession {
   takePresentationEvents(): readonly (GameEvent | GameParticleEmission)[];
   step(input: GameInputFrame): GameStepResult;
-  frame(): GameRenderFrame;
+  frame(view?: GamePresentationView2D): GameRenderFrame;
   inspect(query?: { entityId?: string }): GameInspection;
   snapshot(): GameSnapshot;
   /** Replaces existing script sources atomically, preserving tick and state and returning the document for saves. */
@@ -612,14 +614,14 @@ function createGameSessionWithRunner(
       return pending;
     },
     step,
-    frame(): GameRenderFrame {
+    frame(view?: GamePresentationView2D): GameRenderFrame {
       if (disposed) {
         throw new Error("Game session is disposed");
       }
       if (failed) {
         throw new Error("Game session stopped after a failed step");
       }
-      return frameFor(document, scene, states, tick, score, won, hud, ui);
+      return frameFor(document, scene, states, tick, score, won, hud, ui, view);
     },
     inspect(query): GameInspection {
       const current = snapshot();

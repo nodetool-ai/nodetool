@@ -499,7 +499,7 @@ it("delivers edited scene audio settings to the retained audio player", async ()
 
 function hotReloadDocument(source: string): GameDocument {
   return gameDocument.parse({ ...document, scenes: document.scenes.map((scene) => ({ ...scene, entities: [
-    ...scene.entities, { id: "reload-logger", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source, maxTickMs: 50 }] }
+    ...scene.entities, { id: "reload-logger", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source, maxTickMs: 20 }] }
   ] })) });
 }
 
@@ -598,6 +598,33 @@ it("hot reloads source during play, retains state, and keeps the last compiled s
     await user.click(screen.getByRole("button", { name: "Step" }));
     expect(store.getState().groups.at(-1)?.message).toBe("speed 9 state 0");
   } finally { view.unmount(); animation.mockRestore(); jest.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession); }
+});
+
+it("presents remote tiles and entity lights after editor camera pan without changing the game camera", async () => {
+  const base = createTopDownRoomGame("editor-view-pan");
+  const game = gameDocument.parse({ ...base, schemaVersion: 2, scenes: [{ ...base.scenes[0],
+    lighting: { ambient: { color: "#ffffff", intensity: 0.1 }, points: [] },
+    entities: [...base.scenes[0].entities, { id: "remote", transform2d: { x: 40, y: 0 },
+      sprite: { assetId: "gem", width: 1, height: 1 }, tilemap: { assetId: "wall", tiles: [{ x: 0, y: 0, width: 1, height: 1 }] },
+      light2d: { color: "#ff0000", intensity: 1, radius: 1 } }]
+  }] });
+  function CameraHarness() {
+    const host = useGamePlaySession({ refId: "editor-view-pan", document: game, active: true });
+    return <><canvas ref={host.canvasRef} /><button onClick={() => host.onCamera({ x: 40, y: 0, zoom: 1 })}>Frame remote</button>
+      <output aria-label="Camera backend">{host.backend}</output></>;
+  }
+  const view = render(<CameraHarness />);
+  try {
+    await waitFor(() => expect(screen.getByLabelText("Camera backend")).toHaveTextContent("Canvas 2D"));
+    const renderer = mockRenderers[mockRenderers.length - 1];
+    await userEvent.setup().click(screen.getByRole("button", { name: "Frame remote" }));
+    const shown = renderer.render.mock.calls.at(-1)?.[0] as GameRenderFrame;
+    expect(shown.camera).toMatchObject({ x: 40, y: 0, zoom: 1 });
+    expect(shown.sprites.some((sprite) => sprite.entityId === "remote")).toBe(true);
+    expect(shown.tiles.some((tile) => tile.entityId === "remote")).toBe(true);
+    expect(shown.lighting?.points.some((point) => point.x === 40)).toBe(true);
+    expect(game.scenes[0].entities.find((entity) => entity.camera2d)?.transform2d.x).toBe(0);
+  } finally { view.unmount(); }
 });
 
 it("produces authored 2D mouse and touch actions through the actual shared player session hook", async () => {
