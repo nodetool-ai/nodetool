@@ -189,7 +189,9 @@ export class GameParticlePass3D {
     for (const [order, batch] of packed.batches.entries()) {
       if (batch.shape === "quad") { this.updateQuads(batch); } else { this.updateMeshes(batch, batch.shape); }
       // Three otherwise sorts each run by its object's origin, not its instance depths.
-      this.draws.get(batch.key)!.mesh.renderOrder = order;
+      const draw = this.draws.get(batch.key);
+      if (!draw) { throw new Error(`Particle run ${batch.key} was not prepared`); }
+      draw.mesh.renderOrder = order;
     }
     for (const [key, draw] of this.draws) {
       if (draw.frame !== this.frame) { this.release(draw); this.draws.delete(key); }

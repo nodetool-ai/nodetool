@@ -119,7 +119,8 @@ describe("3D particles beside a session", () => {
     expect(packed.batches.filter(batch => batch.shape === "quad").reduce((sum, batch) => sum + batch.count, 0)).toBe(first.samples.length - 4);
     expect(packed.batches.filter(batch => batch.shape === "box").reduce((sum, batch) => sum + batch.count, 0)).toBe(4);
     expect(packed.soft).toBe(true);
-    const burst = packed.batches.find(batch => batch.shape === "box")!;
+    const burst = packed.batches.find(batch => batch.shape === "box");
+    if (!burst) { throw new Error("Burst mesh batch missing"); }
     expect(particle(burst.data, 0).slice(0, 3)).toEqual([1, 2, 3]);
   });
 
@@ -240,7 +241,7 @@ describe("3D particle batches", () => {
     const data = batch.data;
     const similar = packParticleBatches3D(field(many.slice(0, 100)), VIEWER, first.batches);
     expect(similar.batches[0]).toBe(batch);
-    expect(similar.batches[0]!.data).toBe(data);
+    expect(similar.batches[0]?.data).toBe(data);
     const second = packParticleBatches3D(field(many.slice(0, 10)), VIEWER, first.batches);
     expect(second.batches[0]).toBe(batch);
     // A large historical run must not retain its peak capacity after becoming a small run.
@@ -305,7 +306,8 @@ describe("3D particle render pass", () => {
   it("packs local particles at the same interpolation as the rendered owner", async () => {
     const particles = new GameParticles3D(60);
     const frame = blockoutFrame();
-    const owner = frame.entities[0]!;
+    const owner = frame.entities[0];
+    if (!owner) { throw new Error("Fixture owner missing"); }
     const definition = gameParticles.parse({ emitters: [{ id: "attached", space: "local", rate: 0, speed: 0, lifetime: 10, bursts: [{ count: 1 }], loop: false }] });
     const initial = { ...owner, entityId: "attached", particles: definition,
       transform: { ...owner.transform, position: { x: 0, y: 0, z: 0 } } };
