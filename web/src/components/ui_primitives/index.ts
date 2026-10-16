@@ -36,6 +36,10 @@ export type {
   SaveStateValue
 } from "./StatusBar";
 export type { ToolbarIconButtonProps } from "./ToolbarIconButton";
+export { PageLayout } from "./PageLayout";
+export type { PageLayoutProps } from "./PageLayout";
+export { PageHeader } from "./PageHeader";
+export type { PageHeaderProps, PageHeaderVariant } from "./PageHeader";
 
 // Export shortcut hint component
 export { ShortcutHint } from "./ShortcutHint";
@@ -68,6 +72,12 @@ export type { SelectionControlsProps } from "./SelectionControls";
 // New action buttons
 export { CopyButton } from "./CopyButton";
 export type { CopyButtonProps } from "./CopyButton";
+export { Code } from "./Code";
+export type { CodeProps } from "./Code";
+export { CodeBlock } from "./CodeBlock";
+export type { CodeBlockProps } from "./CodeBlock";
+export { LogView, LOG_LINE_STYLE, logLevelColor } from "./LogView";
+export type { LogViewProps, LogLine, LogLevel } from "./LogView";
 
 export { CloseButton } from "./CloseButton";
 export type { CloseButtonProps } from "./CloseButton";

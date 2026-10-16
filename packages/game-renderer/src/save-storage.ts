@@ -22,14 +22,24 @@ function settle<T>(request: IDBRequest<T>): Promise<T> {
 }
 
 /** IndexedDB storage for the standalone player. Saves outlive the page and stay per game. */
-export function createIndexedDbGameSaveStorage(gameId: string, factory: IDBFactory = globalThis.indexedDB): GameSaveStorage {
+export function createIndexedDbGameSaveStorage(gameId: string, factory?: IDBFactory): GameSaveStorage {
   let opened: Promise<IDBDatabase> | undefined;
-  const database = (): Promise<IDBDatabase> => opened ??= new Promise((resolve, reject) => {
-    const request = factory.open(DATABASE, 1);
-    request.onupgradeneeded = () => { request.result.createObjectStore(STORE); };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => { opened = undefined; reject(request.error ?? new Error("Game save storage could not open")); };
-  });
+  const database = (): Promise<IDBDatabase> => {
+    if (opened) { return opened; }
+    const pending = Promise.resolve().then(() => new Promise<IDBDatabase>((resolve, reject) => {
+      const storage = factory ?? globalThis.indexedDB;
+      if (!storage) { throw new Error("IndexedDB is not available"); }
+      const request = storage.open(DATABASE, 1);
+      request.onupgradeneeded = () => { request.result.createObjectStore(STORE); };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error("IndexedDB could not open"));
+    })).catch((cause: unknown) => {
+      throw new Error("Game save storage is unavailable", { cause });
+    });
+    opened = pending;
+    void pending.catch(() => { if (opened === pending) { opened = undefined; } });
+    return pending;
+  };
   const run = async <T>(mode: IDBTransactionMode, action: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> => {
     const transaction = (await database()).transaction(STORE, mode);
     const result = settle(action(transaction.objectStore(STORE)));

@@ -19,6 +19,7 @@ import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import {
   BORDER_RADIUS,
   Box,
+  CodeBlock,
   FlexColumn,
   FlexRow,
   LoadingSpinner,
@@ -344,20 +345,6 @@ const treeStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmall)"
     },
 
-    ".tl-inspector-code": {
-      margin: 0,
-      color: theme.vars.palette.text.primary,
-      whiteSpace: "pre-wrap",
-      wordBreak: "break-word",
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmall)",
-      background: theme.vars.palette.background.default,
-      padding: theme.spacing(0.75, 1),
-      borderRadius: BORDER_RADIUS.sm,
-      maxHeight: "20rem",
-      overflow: "auto"
-    },
-
     ".tl-inspector-tool": {
       display: "flex",
       flexDirection: "column",
@@ -446,9 +433,9 @@ const StepToolCallRow: React.FC<{ call: StepToolCallEntry }> = memo(({ call }) =
       {/* A CodeAct action's one argument is a JavaScript program — show the
           program, not its JSON-escaped string. */}
       {codeArg !== null ? (
-        <pre className="tl-inspector-code">{codeArg}</pre>
+        <CodeBlock>{codeArg}</CodeBlock>
       ) : argsText !== null ? (
-        <pre className="tl-inspector-code">{argsText}</pre>
+        <CodeBlock>{argsText}</CodeBlock>
       ) : null}
     </div>
   );
@@ -491,16 +478,14 @@ const StepInspector: React.FC<{ step: StepState }> = memo(({ step }) => {
       {resultText ? (
         <div className="tl-inspector-section">
           <span className="tl-inspector-label">Result</span>
-          <pre className="tl-inspector-code">{resultText}</pre>
+          <CodeBlock>{resultText}</CodeBlock>
         </div>
       ) : null}
 
       {step.error ? (
         <div className="tl-inspector-section">
           <span className="tl-inspector-label tl-inspector-error">Error</span>
-          <pre className="tl-inspector-code tl-inspector-error">
-            {step.error}
-          </pre>
+          <CodeBlock tone="error">{step.error}</CodeBlock>
         </div>
       ) : null}
     </div>
