@@ -29,7 +29,7 @@ The package needs Node 22 or newer when it runs on Node. It exports two entries:
 | `runWorkflow(options)` | Runs a graph and yields each `ProcessingMessage` live. The generator's return value is the final `RunResult` |
 | `createWorkflowHandler(options)` | Returns a `(Request) => Promise<Response>` handler that streams a run as Server-Sent Events |
 | `envSecretResolver(env)` | Turns an environment-variable object into a secret resolver for a context |
-| `createBrowserRegistry(nodeClasses)` | Builds a registry that keeps only classes that support the `browser` platform |
+| `createBrowserRegistry(nodeClasses, platform?)` | Builds a registry that keeps only classes that support `platform`, which defaults to `browser` |
 | `runBrowserWorkflow(options)` | Like `runWorkflow`, checked against the `browser` platform, with every message stamped with `job_id` and `workflow_id` |
 | `graphRunsInRegistry(graph, registry)` | True when every node in the graph is in the registry, so the graph can run client-side |
 
@@ -78,7 +78,7 @@ while (!next.done) {
 console.log(next.value.status, next.value.outputs);
 ```
 
-`for await` also works, but it discards the final `RunResult`. Pass `params` to set the values of input nodes, `signal` to cancel the run, and `workflowId` or `jobId` to label it.
+`for await` also works, but it discards the final `RunResult`. Pass `params` to set the values of input nodes, `signal` to cancel the run, and `workflowId` or `jobId` to label it. `platform` rejects graphs that contain nodes that do not support it before any node starts. `onRunner` receives the kernel `WorkflowRunner` right after construction, so you can call `runner.updateNodeProperties` on a running graph. The package also exports the `GraphData`, `RunWorkflowOptions`, `CreateWorkflowHandlerOptions`, `WorkflowRequestBody`, and `RunBrowserWorkflowOptions` types.
 
 `runWorkflow` builds a minimal context unless you pass one. To supply your own pieces without building a context, pass `storage`, `workspaceStorage`, `cache`, `environment`, `secretResolver`, or `sandboxModuleCatalog`. These are ignored when you pass a full `context`.
 

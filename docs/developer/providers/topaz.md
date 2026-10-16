@@ -40,7 +40,7 @@ The build script (`package.json` `build`) compiles the TypeScript and then copie
 
 **Image nodes** call a single multipart POST → poll status → download flow implemented in `topazExecuteImageTask` (`topaz-base.ts`).
 
-**Video nodes** drive a five-step pipeline: create job → accept (get presigned upload URLs) → PUT bytes → complete-upload → poll status → download. This requires `ffprobe` installed locally to probe the source video's resolution, frame rate, and duration before the job is created.
+**Video nodes** drive a multi-step pipeline: create job → accept (get presigned upload URLs) → PUT bytes → complete-upload → poll status → download. This requires `ffprobe` installed locally to probe the source video's resolution, frame rate, and duration before the job is created.
 
 ---
 
@@ -142,10 +142,10 @@ The factory detects `outputType === "video"` and routes through `topazExecuteVid
 After editing the manifest, run these commands in order:
 
 ```bash
-# 1. Build the package (compiles TS and copies manifest to dist/)
+# 1. Build the package (compiles TS, which type-checks it, and copies manifest to dist/)
 npm run build:packages
 
-# 2. Type-check the whole repo
+# 2. Type-check web, electron and mobile
 npm run typecheck
 
 # 3. Lint

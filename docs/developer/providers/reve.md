@@ -214,10 +214,10 @@ No other files need to change. The node automatically appears in the registry be
 Run these commands in order after any change:
 
 ```bash
-# 1. Compile src/ → dist/ (required — the package loads from dist/)
+# 1. Compile src/ → dist/ (required — the package loads from dist/; the build is tsc, so it type-checks)
 npm run build:packages
 
-# 2. Type-check the whole repo
+# 2. Type-check web, electron and mobile
 npm run typecheck
 
 # 3. Lint

@@ -220,7 +220,8 @@ async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
 
   // Access injected secrets (requires static requiredSettings).
   // The base class resolves keys from context and exposes them on this._secrets.
-  const apiKey = this._secrets.MY_API_KEY ?? process.env.MY_API_KEY ?? "";
+  // The server's resolver already falls back to the environment.
+  const apiKey = this._secrets.MY_API_KEY ?? "";
 
   // Run a provider prediction (image generation, TTS, etc.)
   if (context) {
@@ -304,6 +305,7 @@ static readonly isStreamingInput = true;
 //   forward   — output carries the source input's correlation token unchanged
 //   iteration — each emitted value is a fresh correlated item
 //   aggregate — collapse a stream into one value
+//   chunk     — a chunk of one logical item (token streams), inherits the invocation's lineage
 //   single    — one value per invocation, not correlated to a source
 static readonly outputCorrelation = {
   output: { kind: "forward", source: "value" },
@@ -317,6 +319,14 @@ static readonly effect = "pure";       // "pure" | "read" | "write" | "external"
 static readonly cacheTtl = "forever";  // reuse results of partial runs: "forever" or seconds
 static readonly retrySafe = true;      // re-running with identical inputs is safe
 static readonly platforms = ["node"];  // deployment targets (default ["node"])
+
+// Lifecycle and discovery flags
+static readonly deprecated = true;     // mark as deprecated
+static readonly replacedBy = "mypackage.example.NewNode"; // successor node type
+static readonly hidden = true;         // stay runnable, hide from node discovery UIs
+static readonly primaryOutput = "output"; // output slot saved and previewed as the main result
+static readonly isTrigger = true;      // trigger node (see Suspendable Nodes)
+static readonly requiredRuntimes = ["ffmpeg"]; // host binaries or runtimes the node needs
 ```
 
 > There is no `isStreamingOutput`, `syncMode`, `isDynamic`, or `basicFields`
