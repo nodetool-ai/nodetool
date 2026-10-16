@@ -79,7 +79,7 @@ const NODETOOL_ONLY_WIDGETS = new Set([
 const REACT_VERSION = "^19.2.0";
 const VITE_VERSION = "^8.0.0";
 const VITE_REACT_VERSION = "^6.0.0";
-const TYPESCRIPT_VERSION = "^5.9.0";
+const TYPESCRIPT_VERSION = "npm:@typescript/typescript6@6.0.2";
 
 /**
  * This package's version, read from its manifest (one level above both `src/`
@@ -221,7 +221,7 @@ export function exportWarnings(bundle: ApplicationBundle): string[] {
 }
 
 function packageJson(name: string, version: string): string {
-  const nodetool = version === "latest" ? version : `^${version}`;
+  const nodetool = version;
   return `${JSON.stringify(
     {
       name,
