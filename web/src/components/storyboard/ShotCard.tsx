@@ -22,6 +22,7 @@ import type {
   VideoRef
 } from "@nodetool-ai/protocol";
 import {
+  isAspectRatio,
   resolveEffectiveProductionRequirement,
   shotRenderMode
 } from "@nodetool-ai/protocol";
@@ -185,6 +186,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const theme = useTheme();
   const shotRenderContext =
     typeof renderContext === "function" ? renderContext(shot) : renderContext;
+  const boardAspectRatio = shotRenderContext?.aspect_ratio;
   // The still or clip the fullscreen viewer shows; null when it is closed.
   const [viewerMedia, setViewerMedia] = useState<ImageRef | VideoRef | null>(
     null
@@ -501,10 +503,11 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         justify="center"
         sx={{
           ...mediaSx,
-          aspectRatio: (shotRenderContext?.aspect_ratio ?? "16:9").replace(
-            ":",
-            " / "
-          )
+          // A stored ratio that is not "W:H" is invalid CSS, which would
+          // leave the box with no height and the still invisible.
+          aspectRatio: isAspectRatio(boardAspectRatio)
+            ? boardAspectRatio.trim().replace(":", " / ")
+            : mediaSx.aspectRatio
         }}
         onDoubleClick={previewMedia ? handleOpenViewer : undefined}
       >

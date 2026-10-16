@@ -920,6 +920,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                   title={chatProviderLabel}
                   picker={{
                     kind: "language",
+                    selected: chatModel,
                     allowedProviders,
                     requireToolSupport,
                     onPick: (model) => onModelChange?.(model)

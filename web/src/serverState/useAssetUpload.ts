@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { Asset } from "../stores/ApiTypes";
 import { useAssetStore } from "../stores/AssetStore";
+import { useRecentAssetsStore } from "../stores/RecentAssetsStore";
 import { UploadSource } from "../utils/imageUploadValidation";
 import { creationProjectId } from "../stores/WorkspaceTabsStore";
 
@@ -115,6 +116,7 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
     )
       .then((asset: Asset) => {
         get().updateStatus(nextUploadIndex, 100, "completed");
+        useRecentAssetsStore.getState().addRecentAsset(asset);
         uploadFile.onCompleted?.(asset);
       })
       .catch((err) => {
