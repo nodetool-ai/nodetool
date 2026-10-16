@@ -411,7 +411,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search nodes…"
+            placeholder="Search nodes"
             aria-label="Search nodes"
           />
           {query && (

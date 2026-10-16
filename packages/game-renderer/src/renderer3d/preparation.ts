@@ -45,6 +45,7 @@ export interface PreparedGameModel {
   readonly preparationVersion: "1";
   readonly nodeIds: readonly string[];
   readonly clipIds: readonly string[];
+  readonly clipDurations: Readonly<Record<string, number>>;
   readonly extensions: readonly string[];
   readonly geometryBytes: number;
   readonly textureBytes: number;
@@ -313,13 +314,35 @@ export async function prepareGameModel(
     };
     roots.forEach((index) => expandBounds(index, new Matrix4()));
     if (worldBounds.isEmpty()) { worldBounds.set(new Vector3(0, 0, 0), new Vector3(0, 0, 0)); }
+    const clipDurations: Record<string, number> = {};
+    const inputDurations = new Map<number, number>();
+    if (parsed.animations.length > 256) { fail("model.animation", "animations", "At most 256 prepared clips are supported"); }
     for (const [animationIndex, animation] of parsed.animations.entries()) {
+      let duration = 0;
       for (const sampler of animation.samplers) {
         if (!parsed.accessors[sampler.input] || !parsed.accessors[sampler.output]) { fail("model.animation", `animations.${animationIndex}`, "Animation accessor is missing"); }
       }
       for (const channel of animation.channels) {
         if (!animation.samplers[channel.sampler] || channel.target.node === undefined || !parsed.nodes[channel.target.node]) { fail("model.animation", `animations.${animationIndex}`, "Animation target or sampler is missing"); }
+        const sampler = animation.samplers[channel.sampler];
+        const times = sampler && parsed.accessors[sampler.input];
+        if (!times || times.type !== "SCALAR" || times.componentType !== 5126 || times.normalized || times.count === 0) {
+          fail("model.animationTime", `animations.${animationIndex}`, "Animation input requires nonempty FLOAT seconds");
+          continue;
+        }
+        if (diagnostics.length > 0) { continue; }
+        const cachedDuration = inputDurations.get(sampler.input);
+        if (cachedDuration !== undefined) { duration = Math.max(duration, cachedDuration); continue; }
+        let previous = -1;
+        for (let key = 0; key < times.count; key += 1) {
+          const seconds = readValue(times, key, 0);
+          if (seconds < 0 || seconds <= previous) { fail("model.animationTime", `animations.${animationIndex}`, "Animation times must be nonnegative and strictly increasing"); break; }
+          previous = seconds;
+        }
+        duration = Math.max(duration, previous);
+        inputDurations.set(sampler.input, previous);
       }
+      clipDurations[`clip:${animationIndex}`] = duration;
     }
     options.signal?.throwIfAborted();
     const digestBytes = await crypto.subtle.digest("SHA-256", bytes);
@@ -327,7 +350,7 @@ export async function prepareGameModel(
     options.signal?.throwIfAborted();
     if (options.expectedDigest !== undefined && digest !== options.expectedDigest) { fail("model.digest", "", "Prepared model digest does not match the binding"); }
     if (diagnostics.length) { return { ok: false, diagnostics }; }
-    return { ok: true, model: { bytes, digest, preparationVersion: "1", nodeIds: parsed.nodes.flatMap((_, index) => visibleNodes.has(index) ? [`node:${index}`] : []), clipIds: parsed.animations.map((_, index) => `clip:${index}`), extensions: parsed.extensionsUsed, geometryBytes, textureBytes, triangles, bounds: { min: { x: worldBounds.min.x, y: worldBounds.min.y, z: worldBounds.min.z }, max: { x: worldBounds.max.x, y: worldBounds.max.y, z: worldBounds.max.z } } } };
+    return { ok: true, model: { bytes, digest, preparationVersion: "1", nodeIds: parsed.nodes.flatMap((_, index) => visibleNodes.has(index) ? [`node:${index}`] : []), clipIds: parsed.animations.map((_, index) => `clip:${index}`), clipDurations, extensions: parsed.extensionsUsed, geometryBytes, textureBytes, triangles, bounds: { min: { x: worldBounds.min.x, y: worldBounds.min.y, z: worldBounds.min.z }, max: { x: worldBounds.max.x, y: worldBounds.max.y, z: worldBounds.max.z } } } };
   } catch (error) {
     if (options.signal?.aborted) { options.signal.throwIfAborted(); }
     return { ok: false, diagnostics: [...diagnostics, { code: "model.malformed", path: "", message: error instanceof Error ? error.message : "Malformed model" }] };
@@ -348,7 +371,7 @@ export async function prepareGameModelBinding3D(bytes: Uint8Array, options: {
   const model = result.model;
   const binding: Extract<GameAssetBinding3D, { readonly mediaKind: "model" }> = {
     mediaKind: "model", assetId: options.assetId, digest: model.digest, required: true, format: "glb", preparationVersion: model.preparationVersion,
-    bounds: model.bounds, nodeIds: [...model.nodeIds], clipIds: [...model.clipIds], geometryBytes: model.geometryBytes,
+    bounds: model.bounds, nodeIds: [...model.nodeIds], clipIds: [...model.clipIds], clipDurations: { ...model.clipDurations }, geometryBytes: model.geometryBytes,
     textureBytes: model.textureBytes, triangles: model.triangles, supportedExtensions: [...model.extensions]
   };
   if (options.provenance !== undefined) { binding.provenance = options.provenance; }

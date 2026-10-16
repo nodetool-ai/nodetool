@@ -73,6 +73,25 @@ const SCRUB_THRESHOLD_PX = 3;
 
 const decimalsOf = (step: number): number => (String(step).split(".")[1] ?? "").length;
 
+/** Scrub and arrow-key step multiplier: Shift is coarse (x10), Alt is fine (x0.1). */
+export const stepMultiplier = (event: { shiftKey: boolean; altKey: boolean }): number =>
+  event.shiftKey ? 10 : event.altKey ? 0.1 : 1;
+
+/**
+ * Decimals to format a stepped value with: the base step's, plus one for the
+ * Alt x0.1 step so the fine step is not rounded away.
+ */
+export const stepDecimals = (step: number, multiplier: number): number =>
+  decimalsOf(step) + (multiplier < 1 ? 1 : 0);
+
+/** Clamp to an optional min and max. */
+export const clampToRange = (value: number, min?: number, max?: number): number => {
+  let clamped = value;
+  if (min != null) clamped = Math.max(min, clamped);
+  if (max != null) clamped = Math.min(max, clamped);
+  return clamped;
+};
+
 /**
  * NumberField - the one number input.
  *
@@ -119,11 +138,9 @@ export const NumberField = memo(
           drag.moved = true;
         }
         const base = step ?? 1;
-        const multiplier = event.shiftKey ? 10 : event.altKey ? 0.1 : 1;
-        let next = drag.startValue + dx * base * multiplier;
-        if (min !== undefined) next = Math.max(min, next);
-        if (max !== undefined) next = Math.min(max, next);
-        onValueChange(next.toFixed(decimalsOf(base) + (multiplier < 1 ? 1 : 0)));
+        const multiplier = stepMultiplier(event);
+        const next = clampToRange(drag.startValue + dx * base * multiplier, min, max);
+        onValueChange(next.toFixed(stepDecimals(base, multiplier)));
       },
       [onValueChange, step, min, max]
     );

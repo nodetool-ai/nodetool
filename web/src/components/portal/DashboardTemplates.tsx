@@ -360,7 +360,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
             ref={searchRef}
             value={query}
             onChange={setQuery}
-            placeholder="Search templates by name, tag…"
+            placeholder="Search templates by name, tag"
             kbd="/"
             aria-label="Search templates"
           />

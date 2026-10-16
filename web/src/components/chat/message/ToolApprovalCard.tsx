@@ -9,6 +9,7 @@ import {
   Caption,
   Card,
   CardActions,
+  CodeBlock,
   CollapsibleSection,
   FlexColumn,
   FlexRow,
@@ -81,19 +82,6 @@ const styles = (theme: Theme) =>
           color: theme.vars.palette.error.main
         }
       }
-    },
-    ".approval-detail": {
-      ...TYPOGRAPHY.mono.code,
-      margin: 0,
-      padding: theme.spacing(SPACING.md, SPACING.lg),
-      borderRadius: BORDER_RADIUS.md,
-      background: theme.vars.palette.background.default,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      color: theme.vars.palette.text.secondary,
-      whiteSpace: "pre-wrap",
-      wordBreak: "break-word",
-      maxHeight: 320,
-      overflow: "auto"
     }
   });
 
@@ -176,7 +164,7 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
               </Caption>
             }
           >
-            <pre className="approval-detail approval-code">{code}</pre>
+            <CodeBlock>{code}</CodeBlock>
           </CollapsibleSection>
         )}
         {argsText && (
@@ -190,7 +178,7 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
               </Caption>
             }
           >
-            <pre className="approval-detail approval-args">{argsText}</pre>
+            <CodeBlock>{argsText}</CodeBlock>
           </CollapsibleSection>
         )}
       </FlexColumn>

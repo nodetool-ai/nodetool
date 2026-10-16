@@ -29,7 +29,8 @@ import {
   SPACING,
   Z_INDEX,
   getSpacingPx,
-  reducedMotion
+  reducedMotion,
+  StatusDot
 } from "../ui_primitives";
 import type { SxProps } from "@mui/material/styles";
 import TheatersIcon from "@mui/icons-material/Theaters";
@@ -126,18 +127,6 @@ const cardSx: SxProps<Theme> = {
   py: SPACING.xs
 };
 
-const Dot = ({ color = "primary.main" }: { color?: string }) => (
-  <Box
-    sx={{
-      width: getSpacingPx(SPACING.md),
-      height: getSpacingPx(SPACING.md),
-      flex: "0 0 auto",
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: color
-    }}
-  />
-);
-
 const KindTag = ({ kind }: { kind: ShotJobKind }) => (
   <Caption
     color="secondary"
@@ -167,7 +156,7 @@ const RequestCard = memo(function RequestCard({
   return (
     <Box sx={cardSx}>
       <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
-        <Dot color={row.status === "failed" ? "error.main" : "primary.main"} />
+        <StatusDot tone={row.status === "failed" ? "error" : "primary"} size="medium" />
         <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
           {row.name}
         </Text>
@@ -341,7 +330,7 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
       <Box css={overlayStyles(theme)}>
         <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.sm }}>
           <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
-            <Dot color={counts.failed > 0 ? "error.main" : "primary.main"} />
+            <StatusDot tone={counts.failed > 0 ? "error" : "primary"} size="medium" />
             <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
               {summary}
             </Text>

@@ -362,7 +362,7 @@ export async function buildTauriGameProject(options: BuildTauriGameOptions): Pro
       await buildStandaloneGame3D({ document: options.document, outputDir: webDir, resolveAsset: options.resolveAsset, signal: options.signal });
     } else {
       const { buildStandaloneGame } = await import("./build.js");
-      await buildStandaloneGame({ document: options.document, outputDir: webDir, resolveAsset: (assetId) => options.resolveAsset(assetId, options.signal) });
+      await buildStandaloneGame({ document: options.document, outputDir: webDir, signal: options.signal, resolveAsset: (assetId) => options.resolveAsset(assetId, options.signal) });
     }
     options.signal?.throwIfAborted();
     const files: Record<string, string | Uint8Array> = { ...tauriProjectFiles(metadata) };

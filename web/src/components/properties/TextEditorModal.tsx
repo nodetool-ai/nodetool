@@ -24,7 +24,7 @@ import TextDecreaseIcon from "@mui/icons-material/TextDecrease";
 import TextIncreaseIcon from "@mui/icons-material/TextIncrease";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, reducedMotion, SHADOW } from "../ui_primitives";
+import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, reducedMotion, SHADOW, ResizeHandle } from "../ui_primitives";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -660,38 +660,6 @@ const styles = (theme: Theme) =>
         background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.1)`
       }
     },
-    ".resize-handle": {
-      position: "relative",
-      height: "18px",
-      width: "100%",
-      cursor: "row-resize",
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
-      borderTop: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.04)`,
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      transition: MOTION.all,
-      "&:hover": {
-        backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.05)`
-      },
-      "&:hover .resize-handle-thumb": {
-        backgroundColor: theme.vars.palette.primary.main,
-        width: "72px",
-        height: "4px",
-        boxShadow: `0 0 12px rgba(${theme.vars.palette.primary.mainChannel} / 0.35)`
-      }
-    },
-    ".resize-handle-thumb": {
-      position: "absolute",
-      width: "40px",
-      height: "3px",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.15)`,
-      borderRadius: BORDER_RADIUS.pill,
-      transition: MOTION.all
-    },
     ".loading-container": {
       display: "flex",
       justifyContent: "center",
@@ -734,7 +702,7 @@ const styles = (theme: Theme) =>
         border: "none",
         animation: "none"
       },
-      ".resize-handle": { display: "none" },
+      ".modal-resize-handle": { display: "none" },
       ".breadcrumb": { display: "none" }
     }
   });
@@ -795,7 +763,7 @@ const TextEditorModal = ({
     }
   }, [isCodeEditor, loadMonacoIfNeeded]);
 
-  const { modalHeight, handleResizeMouseDown } = useModalResize({
+  const { modalHeight, resizeBy, minHeight, maxHeight } = useModalResize({
     storageKey: "textEditorModal_height"
   });
 
@@ -1676,9 +1644,17 @@ const TextEditorModal = ({
               cursor={isCodeEditor ? cursor : null}
             />
           )}
-          <div className="resize-handle" onMouseDown={handleResizeMouseDown}>
-            <span className="resize-handle-thumb"></span>
-          </div>
+          <ResizeHandle
+            className="modal-resize-handle"
+            orientation="horizontal"
+            value={modalHeight}
+            min={minHeight}
+            max={maxHeight}
+            thickness={SPACING.md}
+            grip
+            ariaLabel="Resize text editor height"
+            onResize={resizeBy}
+          />
         </div>
       </div>
     </div>

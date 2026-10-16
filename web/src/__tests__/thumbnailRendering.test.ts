@@ -81,8 +81,14 @@ describe("thumb-sized surfaces render thumbnails", () => {
     } else if (via === "thumbnail-hook") {
       expect(source).toContain("useResolvedThumbnailUri");
     } else {
-      expect(source).toContain("thumb_url");
+      // MediaThumbnail reads `thumb_url` from the asset it is given.
+      expect(source).toMatch(/thumb_url|<MediaThumbnail\s+asset=/);
     }
+  });
+
+  it("MediaThumbnail paints stills from thumb_url", () => {
+    const source = read("components/ui_primitives/MediaThumbnail.tsx");
+    expect(source).toContain("asset.thumb_url");
   });
 
   it("never paints a PDF tile from the document itself", () => {

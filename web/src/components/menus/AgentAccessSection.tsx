@@ -17,6 +17,8 @@ import type { agentAccess } from "@nodetool-ai/protocol/api-schemas";
 import {
   AlertBanner,
   Caption,
+  Code,
+  CodeBlock,
   CopyButton,
   Dialog,
   FlexColumn,
@@ -27,7 +29,6 @@ import {
   SelectField,
   Text,
   TextInput,
-  BORDER_RADIUS,
   getSpacingPx,
   SPACING,
   LoadingSpinner
@@ -178,18 +179,6 @@ const AgentAccessSection = () => {
     [url, freshToken]
   );
 
-  const codeBox = {
-    fontFamily: "var(--fontFamily2)",
-    fontSize: theme.fontSizeSmall,
-    background: theme.palette.background.default,
-    border: `1px solid ${theme.palette.divider}`,
-    borderRadius: BORDER_RADIUS.sm,
-    padding: getSpacingPx(SPACING.sm),
-    whiteSpace: "pre-wrap" as const,
-    wordBreak: "break-all" as const,
-    overflowX: "auto" as const
-  };
-
   return (
     <div className="settings-section" style={{ marginTop: getSpacingPx(SPACING.xxl) }}>
       <SectionHeader size="small" title="Connect an agent remotely" />
@@ -200,8 +189,8 @@ const AgentAccessSection = () => {
 
       {connection && !connection.enabled && (
         <AlertBanner severity="warning" sx={{ mb: 1 }}>
-          This server does not serve <code>/mcp</code>. Set{" "}
-          <code>{connection.enable_flag}=1</code> in its environment and restart
+          This server does not serve <Code>/mcp</Code>. Set{" "}
+          <Code>{connection.enable_flag}=1</Code> in its environment and restart
           it.
         </AlertBanner>
       )}
@@ -216,9 +205,7 @@ const AgentAccessSection = () => {
 
       <FormField label="Server URL" sx={{ mb: 2 }}>
         <FlexRow align="center" gap={1}>
-          <div css={codeBox} style={{ flex: 1 }}>
-            {url}
-          </div>
+          <CodeBlock sx={{ flex: 1 }}>{url}</CodeBlock>
           <CopyButton value={url} tooltip="Copy the server URL" />
         </FlexRow>
       </FormField>
@@ -254,25 +241,19 @@ const AgentAccessSection = () => {
             Copy this now — it is shown once and cannot be retrieved again.
           </AlertBanner>
           <FlexRow align="center" gap={1}>
-            <div css={codeBox} style={{ flex: 1 }}>
-              {freshToken}
-            </div>
+            <CodeBlock sx={{ flex: 1 }}>{freshToken}</CodeBlock>
             <CopyButton value={freshToken} tooltip="Copy the token" />
           </FlexRow>
 
           <Caption>Claude Code — run this</Caption>
           <FlexRow align="center" gap={1}>
-            <div css={codeBox} style={{ flex: 1 }}>
-              {snippets.cli}
-            </div>
+            <CodeBlock sx={{ flex: 1 }}>{snippets.cli}</CodeBlock>
             <CopyButton value={snippets.cli} tooltip="Copy the command" />
           </FlexRow>
 
           <Caption>Or paste into an MCP client config file</Caption>
           <FlexRow align="flex-start" gap={1}>
-            <div css={codeBox} style={{ flex: 1 }}>
-              {snippets.json}
-            </div>
+            <CodeBlock sx={{ flex: 1 }}>{snippets.json}</CodeBlock>
             <CopyButton
               value={snippets.json}
               tooltip="Copy the configuration"

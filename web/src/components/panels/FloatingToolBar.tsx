@@ -12,7 +12,7 @@ import React, {
 } from "react";
 import { useMediaQuery } from "@mui/material";
 import { EditorMenu } from "../ui_primitives";
-import { Tooltip, AlertBanner, FlexRow, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, menuPaperStyles, reducedMotion } from "../ui_primitives";
+import { CountBadge, Tooltip, AlertBanner, FlexRow, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, menuPaperStyles, reducedMotion } from "../ui_primitives";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -309,25 +309,6 @@ const actionStyles = (theme: Theme) =>
       "&.running": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[100]
-      },
-      ".run-queue-badge": {
-        position: "absolute",
-        top: "-3px",
-        right: "-3px",
-        minWidth: "16px",
-        height: "16px",
-        padding: `0 ${getSpacingPx(SPACING.xs)}`,
-        boxSizing: "border-box",
-        borderRadius: BORDER_RADIUS.pill,
-        backgroundColor: theme.vars.palette.primary.main,
-        color: theme.vars.palette.primary.contrastText,
-        border: `2px solid ${theme.vars.palette.grey[900]}`,
-        fontSize: "var(--fontSizeSmaller)",
-        fontWeight: 600,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        lineHeight: 1
       }
     },
 
@@ -882,9 +863,19 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             ) : null}
             <span className="composer-run-label">{runControlLabel}</span>
             {pendingRunCount > 0 && (
-              <span className="run-queue-badge" aria-hidden>
-                {pendingRunCount}
-              </span>
+              <CountBadge
+                count={pendingRunCount}
+                color="primary"
+                size="small"
+                max={Infinity}
+                sx={{
+                  position: "absolute",
+                  top: `-${getSpacingPx(SPACING.micro)}`,
+                  right: `-${getSpacingPx(SPACING.micro)}`,
+                  border: "2px solid",
+                  borderColor: "grey.900"
+                }}
+              />
             )}
           </button>
         </Tooltip>

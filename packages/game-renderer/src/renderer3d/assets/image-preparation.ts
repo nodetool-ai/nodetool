@@ -35,7 +35,14 @@ function jpegExifOrientation(bytes: Uint8Array): number | undefined {
   }
   return undefined;
 }
-function dimensions(bytes: Uint8Array): { format: ImageFormat3D; width: number; height: number } {
+export interface GameImageContainerInspection {
+  readonly format: ImageFormat3D;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** Inspects encoded structure and dimensions without setting an allocation policy or decoding pixels. */
+export function inspectGameImageContainer(bytes: Uint8Array): GameImageContainerInspection {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   if (bytes.length >= 33 && view.getUint32(0) === 0x89504e47 && view.getUint32(4) === 0x0d0a1a0a &&
     view.getUint32(8) === 13 && view.getUint32(12) === 0x49484452) {
@@ -60,22 +67,31 @@ function dimensions(bytes: Uint8Array): { format: ImageFormat3D; width: number; 
     let cursor = 2;
     let size: { width: number; height: number } | undefined;
     let orientation = 1;
+    let sawScan = false;
     while (cursor + 2 <= bytes.length) {
       if (bytes[cursor] !== 255) { throw new Error("Malformed JPEG marker"); }
       while (cursor + 1 < bytes.length && bytes[cursor + 1] === 255) { cursor++; }
       if (cursor + 2 > bytes.length) { throw new Error("Truncated JPEG marker"); }
       const marker = bytes[cursor + 1];
-      if (marker === 217 || marker === 218) { break; }
+      if (marker === 217) { break; }
       if (cursor + 4 > bytes.length) { throw new Error("Truncated JPEG segment"); }
       const length = view.getUint16(cursor + 2);
       if (length < 2 || length > bytes.length - cursor - 2) { throw new Error("Truncated JPEG segment"); }
+      if (marker === 218) {
+        const components = length >= 8 ? view.getUint8(cursor + 4) : 0;
+        if (components === 0 || length !== 6 + components * 2 || cursor + 2 + length >= bytes.length - 2) {
+          throw new Error("Malformed JPEG image scan");
+        }
+        sawScan = true;
+        break;
+      }
       if (marker === 225) { orientation = jpegExifOrientation(bytes.subarray(cursor + 4, cursor + 2 + length)) ?? orientation; }
       if (marker !== undefined && [192, 193, 194].includes(marker) && length >= 8) {
         size = { width: view.getUint16(cursor + 7), height: view.getUint16(cursor + 5) };
       }
       cursor += length + 2;
     }
-    if (size) { return { format: "jpeg", width: orientation >= 5 ? size.height : size.width, height: orientation >= 5 ? size.width : size.height }; }
+    if (size && sawScan) { return { format: "jpeg", width: orientation >= 5 ? size.height : size.width, height: orientation >= 5 ? size.width : size.height }; }
   }
   if (bytes.length >= 30 && view.getUint32(0) === 0x52494646 && view.getUint32(8) === 0x57454250 && view.getUint32(4, true) === bytes.length - 8) {
     const kind = view.getUint32(12);
@@ -106,7 +122,7 @@ export async function prepareGameImage3D(source: Uint8Array, options: { readonly
   try {
     if (source.length === 0 || source.length > GAME_IMAGE_MAX_SOURCE_BYTES_3D) { throw new Error("Image source exceeds byte bounds"); }
     const bytes = new Uint8Array(source);
-    const size = dimensions(bytes);
+    const size = inspectGameImageContainer(bytes);
     if (size.width < 1 || size.height < 1 || size.width > GAME_IMAGE_MAX_DIMENSION_3D || size.height > GAME_IMAGE_MAX_DIMENSION_3D ||
       size.width * size.height * 4 > GAME_IMAGE_MAX_TEXTURE_BYTES_3D) { throw new Error("Image dimensions exceed texture allocation bounds"); }
     const digestBytes = await crypto.subtle.digest("SHA-256", bytes);

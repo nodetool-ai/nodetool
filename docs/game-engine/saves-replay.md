@@ -26,7 +26,7 @@ Scripts return `save {slot, data, scope?}` and `load {slot, scope?}` commands. S
 
 Loads arrive on later input frames. Empty or failed loads return null data. Keep the values needed for play in script state. Recorded loaded frames replay without contacting storage.
 
-Standalone players use IndexedDB. Editor play uses localStorage, and CLI simulation keeps saves in memory. A progress save may request `snapshot: true` in the player. Settings saves cannot include snapshots, and the editor retains the data without the snapshot. Saves are local to that host and browser, not automatic cloud synchronization.
+Standalone players use IndexedDB. Browser permissions and storage quota can make saves unavailable. The player reports a save error and continues play when storage is blocked. A failed write is not a durable save. Editor play uses localStorage, and CLI simulation keeps saves in memory. A progress save may request `snapshot: true` in the player. Settings saves cannot include snapshots, and the editor retains the data without the snapshot. Saves are local to that host and browser, not automatic cloud synchronization.
 
 ## Restore the simulation
 

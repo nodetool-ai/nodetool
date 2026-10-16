@@ -33,4 +33,6 @@ Transitions can require parameter conditions, a minimum `exitTicks`, and a cross
 
 Graph state and parameter values survive session snapshots. The renderer samples the resolved pose at the interpolated tick. Use replay verification to check the graph state, then captures to inspect the pose and crossfade.
 
+Newly prepared models include verified clip durations. Their graph phases advance once per simulation tick, so changing blend parameters changes playback speed without restarting the accumulated phase. Snapshots retain those phases and the preceding crossfade interval when transitions chain. Existing model bindings without duration metadata keep legacy elapsed-time sampling. Reprepare and install the model through the asset tools to enable continuous phase for unequal-duration blends. Validation reports this limitation for legacy blend graphs.
+
 The pose sampler blends node translation, rotation, and scale. It does not blend morph targets. Root motion, retargeting, and ragdolls are outside the current engine. Changing a visual animation does not automatically change physics or a character controller.

@@ -1,13 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useRef, useState } from "react";
-import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   ContextMenu,
   ListSubheader,
-  BORDER_RADIUS,
-  MenuItemPrimitive
+  MenuItemPrimitive,
+  StatusDot
 } from "../../ui_primitives";
 import MediaControlChip from "./MediaControlChip";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
@@ -49,15 +48,12 @@ const dotColor = (theme: Theme, tone: ModeItem["tone"]): string => {
   return theme.vars.palette.grey[400];
 };
 
-const dotCss = (color: string) =>
-  css({
-    width: 8,
-    height: 8,
-    borderRadius: BORDER_RADIUS.circle,
-    flexShrink: 0,
-    backgroundColor: color,
-    boxShadow: `0 0 6px ${color}`
-  });
+const ModeDot = ({ color }: { color: string }) => (
+  <StatusDot
+    size="medium"
+    sx={{ bgcolor: color, boxShadow: `0 0 6px ${color}` }}
+  />
+);
 
 /**
  * Compact composer-footer dropdown for the per-thread permission mode. The
@@ -100,7 +96,7 @@ const PermissionSelector: React.FC<PermissionSelectorProps> = ({
       <MediaControlChip
         ref={buttonRef}
         className="permission-selector-trigger"
-        icon={<span css={dotCss(dotColor(theme, activeMode.tone))} />}
+        icon={<ModeDot color={dotColor(theme, activeMode.tone)} />}
         label={compact ? undefined : activeMode.label}
         title={`Permission: ${activeMode.label} — ${activeMode.description}`}
         active={open}
@@ -125,7 +121,7 @@ const PermissionSelector: React.FC<PermissionSelectorProps> = ({
               key={m.id}
               label={m.label}
               secondary={m.description}
-              icon={<span css={dotCss(dotColor(theme, m.tone))} />}
+              icon={<ModeDot color={dotColor(theme, m.tone)} />}
               checkable="radio"
               checked={selected}
               onClick={() => handleSelect(m.id)}

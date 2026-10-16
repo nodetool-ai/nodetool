@@ -10,7 +10,6 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import ReportBugButton from "../support/ReportBugButton";
-import ManagerPageLayout from "../panels/ManagerPageLayout";
 import {
   AlertBanner,
   EditorButton,
@@ -22,6 +21,7 @@ import {
   LoadingSpinner,
   SearchInput,
   Text,
+  PageLayout,
   SPACING
 } from "../ui_primitives";
 import { trpc } from "../../trpc/client";
@@ -143,7 +143,7 @@ const MemoryPage: React.FC = () => {
   })();
 
   return (
-    <ManagerPageLayout
+    <PageLayout
       icon={<PsychologyOutlinedIcon sx={{ fontSize: 22 }} />}
       title="Memory"
       subtitle="What the agent remembers across every conversation — project notes and the resources they refer to."
@@ -208,7 +208,7 @@ const MemoryPage: React.FC = () => {
         confirmText="Delete"
         cancelText="Cancel"
       />
-    </ManagerPageLayout>
+    </PageLayout>
   );
 };
 
