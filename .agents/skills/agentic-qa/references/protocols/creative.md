@@ -165,9 +165,10 @@ playback that shows the second photo after the first.
 
 **Known behavior.** Until UX study 6, a photo dropped on an empty timeline
 landed one track-header width (3.4 s at 100 %) after the drop point, because
-the header column had no width with no tracks. Fixed in the study 6 PR. A drop
-onto part of an existing clip overwrites that part without a message
-(study-6-I4, open). The guided flow's "Drop your media" places dropped photos
+the header column had no width with no tracks. Fixed in the study 6 PR. A
+Library drop in the second half of a clip now lands at that clip's end, so the
+first clip keeps its length (study-6-I4). In Overlap mode, and in a clip's
+first half, the drop keeps the pointer's time. The guided flow's "Drop your media" places dropped photos
 in order without a drag (study-6-I5).
 
 **Fakes.** Uploaded photos are real files, so this goal can complete. The

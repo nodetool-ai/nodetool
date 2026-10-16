@@ -72,6 +72,7 @@ import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import { layoutTrackRows } from "./trackWindow";
+import { snapAssetDropMs } from "./dropSnap";
 
 /** Two bars of 4/4 at 120 BPM — what an empty midi clip is sized to. */
 const DEFAULT_MIDI_CLIP_DURATION_MS = 4000;
@@ -405,11 +406,17 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       // coordinates are already content-space — no scroll offset needed.
       const rect = e.currentTarget.getBoundingClientRect();
       const dropX = e.clientX - rect.left;
-      const startMs = Math.max(0, Math.round(dropX * msPerPx));
+      const pointerMs = Math.max(0, Math.round(dropX * msPerPx));
+      const dropMode = useTimelineUIStore.getState().dropMode;
+      // Overlap mode stacks clips on purpose, so only the other modes snap a
+      // drop in a clip's second half to its end.
+      const startMs =
+        dropMode === "overlap"
+          ? pointerMs
+          : snapAssetDropMs(timelineStore.getState().clips, track.id, pointerMs);
 
       // Video dropped on a video track: also create a linked audio clip from
       // the video's audio track. Everything else imports as a single clip.
-      const dropMode = useTimelineUIStore.getState().dropMode;
       if (mediaType === "video" && track.type === "video") {
         void importVideoWithAudio(asset, track.id, startMs, dropMode);
       } else {

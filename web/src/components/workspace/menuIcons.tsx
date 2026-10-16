@@ -22,6 +22,7 @@ import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined
 import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
 import VolumeUpOutlinedIcon from "@mui/icons-material/VolumeUpOutlined";
+import WebOutlinedIcon from "@mui/icons-material/WebOutlined";
 
 import type { EntryFlowId } from "../setup/entryCards";
 
@@ -33,5 +34,6 @@ export const GUIDED_FLOW_ICONS: Record<EntryFlowId, ReactNode> = {
   speech: <VolumeUpOutlinedIcon fontSize="small" />,
   image: <ImageOutlinedIcon fontSize="small" />,
   workflow: <AddRoundedIcon fontSize="small" />,
-  game: <SportsEsportsOutlinedIcon fontSize="small" />
+  game: <SportsEsportsOutlinedIcon fontSize="small" />,
+  app: <WebOutlinedIcon fontSize="small" />
 };

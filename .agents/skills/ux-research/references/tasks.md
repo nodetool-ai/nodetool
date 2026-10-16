@@ -141,6 +141,11 @@ real language model when the question is what the chat does with the request.
 A participant kept the `keep-answer` note in the conversation list, which the
 end state counts.
 
+The home screen's "App" guided flow (study-6-I1) calls the app build endpoint,
+which `serveApp.ts`'s test server does not serve: there the flow reports "Not
+found". Validate `make-tool` through that flow against the real server with a
+real language model.
+
 ## Adding a task
 
 Add a row to both tables in the same change as the study that first uses it.

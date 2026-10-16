@@ -135,6 +135,7 @@ import VideoSetupHost from "../setup/video/VideoSetupHost";
 import ScriptSetupHost from "../setup/script/ScriptSetupHost";
 import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
 import GameSetupHost from "../setup/game/GameSetupHost";
+import AppSetupHost, { type BuiltApp } from "../setup/app/AppSetupHost";
 import type { GameStartAlternative } from "../setup/game/IdeaStep";
 import type { BuildGameResult } from "../../hooks/game/useBuildGame";
 import EntitySetupHost from "../setup/entity/EntitySetupHost";
@@ -186,7 +187,8 @@ const ENTRY_BACKGROUNDS: Partial<Record<EntryFlowId, string>> = {
   speech: scriptBackground,
   image: imageBackground,
   workflow: workflowBackground,
-  game: gameBackground
+  game: gameBackground,
+  app: workflowBackground
 };
 
 /** Width of the centered column, per the new-project mockup. */
@@ -236,7 +238,8 @@ const SETUP_TARGET_KINDS: ReadonlySet<string> = new Set([
   "video",
   "script",
   "workflow",
-  "game"
+  "game",
+  "app"
 ]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -266,7 +269,9 @@ const readSetupTarget = (): SetupTarget | null => {
       typeof value["name"] !== "string" ||
       typeof value["ownsProject"] !== "boolean" ||
       (value["initialAssetId"] !== undefined &&
-        typeof value["initialAssetId"] !== "string")
+        typeof value["initialAssetId"] !== "string") ||
+      (value["initialDescriptor"] !== undefined &&
+        typeof value["initialDescriptor"] !== "string")
     ) {
       return null;
     }
@@ -278,6 +283,9 @@ const readSetupTarget = (): SetupTarget | null => {
       ownsProject: value["ownsProject"],
       ...(typeof value["initialAssetId"] === "string" && {
         initialAssetId: value["initialAssetId"]
+      }),
+      ...(typeof value["initialDescriptor"] === "string" && {
+        initialDescriptor: value["initialDescriptor"]
       })
     };
   } catch {
@@ -309,7 +317,8 @@ const SETUP_TAB_TYPE = {
   video: "timeline",
   script: "script",
   workflow: "workflow",
-  game: "game"
+  game: "game",
+  app: "application"
 } as const;
 
 /** What a flow makes, in the creator's words. */
@@ -319,7 +328,8 @@ const SETUP_KIND_NOUN: Record<SetupTarget["kind"], string> = {
   video: "video",
   script: "script",
   workflow: "workflow",
-  game: "game"
+  game: "game",
+  app: "app"
 };
 
 /**
@@ -366,7 +376,8 @@ const uploadComposerReferences = async (
 
 /** Drop the draft document an entry card made. */
 const deleteSetupDocument = async (target: SetupTarget): Promise<void> => {
-  if (target.kind === "entity") {
+  // Neither flow writes a document before it finishes.
+  if (target.kind === "entity" || target.kind === "app") {
     return;
   }
   if (target.kind === "storyboard") {
@@ -502,6 +513,7 @@ const NewProjectSurface = ({
   const [heldFinish, setHeldFinish] = useState<{
     result?: BuildFromPlanResult | null;
     game?: BuildGameResult;
+    app?: BuiltApp;
   } | null>(null);
   const [finishError, setFinishError] = useState<string | null>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
@@ -1294,6 +1306,24 @@ const NewProjectSurface = ({
     ]
   );
 
+  // Nothing is created until the build is green, so the flow's target names
+  // the project and carries the description.
+  const startAppFlow = useCallback(
+    async (projectId: string) => {
+      const text = flowPrompt.trim();
+      noteUncarriedContext("app", { entities: false, references: false });
+      applySetupTarget({
+        kind: "app",
+        id: crypto.randomUUID(),
+        projectId,
+        name: text.length > 0 ? projectNameFromPrompt(text, null) : "New app",
+        ownsProject: false,
+        initialDescriptor: text
+      });
+    },
+    [applySetupTarget, flowPrompt, noteUncarriedContext]
+  );
+
   const startGameFlow = useCallback(
     async (projectId: string) => {
       if (starting) {
@@ -1448,7 +1478,8 @@ const NewProjectSurface = ({
         speech: startSpeechFlow,
         image: startImageProject,
         workflow: startWorkflowFlow,
-        game: startGameFlow
+        game: startGameFlow,
+        app: startAppFlow
       };
       // Marked before the first await, so the card reads as busy on the click
       // rather than on the create's first render.
@@ -1456,6 +1487,7 @@ const NewProjectSurface = ({
       void starters[id](creationProjectId()).finally(() => setPendingFlow(null));
     },
     [
+      startAppFlow,
       startEntityFlow,
       startGameFlow,
       startImageProject,
@@ -1483,12 +1515,19 @@ const NewProjectSurface = ({
     [isUploading, pendingFlow, runDestinationFlow, starting]
   );
 
+  const handleMakeGame = useCallback(
+    () => handleEntryCard("game"),
+    [handleEntryCard]
+  );
+
   // The chosen card says what it is doing; the other cards are off, because a
   // second flow started over the first would create an unwanted draft.
   const entryOptions = useMemo<readonly OptionCardItem[]>(() => {
     const cards = ENTRY_CARDS.filter((card) =>
       showMoreFlows ||
-      ["storyboard", "image", "speech", "workflow"].includes(card.id)
+      ["storyboard", "image", "speech", "workflow", "game", "app"].includes(
+        card.id
+      )
     ).map((card) => ({
       ...card,
       description: card.id === "game" && gameDimension === "3d"
@@ -1532,9 +1571,17 @@ const NewProjectSurface = ({
    * here, because this tab is the last place that holds them.
    */
   const handleSetupFinished = useCallback(
-    async (result?: BuildFromPlanResult | null, game?: BuildGameResult) => {
+    async (
+      result?: BuildFromPlanResult | null,
+      game?: BuildGameResult,
+      app?: BuiltApp
+    ) => {
       const target = setupTargetRef.current;
       if (!target || target.kind === "entity") {
+        return;
+      }
+      // The App flow makes its app only when the build is green.
+      if (target.kind === "app" && !app) {
         return;
       }
       // The Game flow's document is the workflow that carried the setup; the
@@ -1547,13 +1594,13 @@ const NewProjectSurface = ({
       // project then would pull them away, so the hand-off waits until this
       // tab is in view again.
       if (!guidedTabActiveRef.current) {
-        setHeldFinish({ result, game });
+        setHeldFinish({ result, game, app });
         return;
       }
       if (!(await showDocumentProject(target.projectId, target.name))) {
         // The document is done, so the flow has no step left to show. The
         // hand-off is kept with a way to try it again.
-        setHeldFinish({ result, game });
+        setHeldFinish({ result, game, app });
         setFinishError(
           `Your ${SETUP_KIND_NOUN[target.kind]} is ready, but its project did not open.`
         );
@@ -1574,9 +1621,9 @@ const NewProjectSurface = ({
       }
       openTab({
         type: SETUP_TAB_TYPE[target.kind],
-        ref: game ? game.gameId : target.id,
+        ref: game ? game.gameId : app ? app.appId : target.id,
         mode: "edit",
-        title: game ? game.name : target.name,
+        title: game ? game.name : app ? app.name : target.name,
         projectId: target.projectId
       });
       if (game) {
@@ -1594,7 +1641,11 @@ const NewProjectSurface = ({
   useEffect(() => {
     if (heldFinish && guidedTabActive && finishError === null) {
       setHeldFinish(null);
-      void handleSetupFinished(heldFinish.result, heldFinish.game);
+      void handleSetupFinished(
+        heldFinish.result,
+        heldFinish.game,
+        heldFinish.app
+      );
     }
   }, [finishError, guidedTabActive, handleSetupFinished, heldFinish]);
 
@@ -1602,8 +1653,15 @@ const NewProjectSurface = ({
     const held = heldFinish;
     setHeldFinish(null);
     setFinishError(null);
-    void handleSetupFinished(held?.result, held?.game);
+    void handleSetupFinished(held?.result, held?.game, held?.app);
   }, [handleSetupFinished, heldFinish]);
+
+  const handleAppFinished = useCallback(
+    (app: BuiltApp) => {
+      void handleSetupFinished(null, undefined, app);
+    },
+    [handleSetupFinished]
+  );
 
   const handleGameFinished = useCallback(
     (game: BuildGameResult) => {
@@ -2018,6 +2076,16 @@ const NewProjectSurface = ({
         />
       );
     }
+    if (setupTarget.kind === "app") {
+      return (
+        <AppSetupHost
+          projectId={setupTarget.projectId}
+          initialBrief={setupTarget.initialDescriptor ?? flowPrompt.trim()}
+          onFinish={handleAppFinished}
+          onChangeFlow={handleChangeFlow}
+        />
+      );
+    }
     if (setupTarget.kind === "workflow") {
       return (
         <WorkflowSetupHost
@@ -2392,7 +2460,10 @@ const NewProjectSurface = ({
 
           {/* Examples come after the flows: they are a place to browse, not
               the first thing to do. */}
-          <StartExamples onBrowseAll={handleOpenExamples} />
+          <StartExamples
+            onBrowseAll={handleOpenExamples}
+            onMakeGame={handleMakeGame}
+          />
         </FlexColumn>
 
         <Box sx={{ flex: 1, minHeight: SPACING.xxxl }} />

@@ -38,7 +38,14 @@ jest.mock("../../portal/DashboardExampleTimelines", () => ({
 
 jest.mock("../../portal/DashboardExampleGames", () => ({
   __esModule: true,
-  default: () => <div>Game examples</div>
+  default: ({ onMakeGame }: { onMakeGame?: () => void }) => (
+    <div>
+      Game examples
+      <button type="button" onClick={onMakeGame}>
+        Make a game
+      </button>
+    </div>
+  )
 }));
 
 const createProject = jest.fn(async () => ({
@@ -327,6 +334,27 @@ jest.mock("../../setup/workflow/WorkflowSetupHost", () => ({
       </button>
       <button type="button" onClick={() => onFinish(null)}>
         Build
+      </button>
+    </div>
+  )
+}));
+
+jest.mock("../../setup/app/AppSetupHost", () => ({
+  __esModule: true,
+  default: ({
+    initialBrief,
+    onFinish
+  }: {
+    initialBrief: string;
+    onFinish: (app: { appId: string; name: string }) => void;
+  }) => (
+    <div data-testid="app-setup-flow">
+      {initialBrief}
+      <button
+        type="button"
+        onClick={() => onFinish({ appId: "app-1", name: "Blurb page" })}
+      >
+        Finish app
       </button>
     </div>
   )
@@ -1500,7 +1528,8 @@ describe("NewProjectSurface", () => {
       "Script",
       "Image",
       "Workflow",
-      "Game"
+      "Game",
+      "App"
     ]) {
       expect(
         within(cards).getByRole("button", {
@@ -1650,6 +1679,51 @@ describe("NewProjectSurface", () => {
     );
     expect(createGame).not.toHaveBeenCalled();
     expect(createProject).not.toHaveBeenCalled();
+  });
+
+  // Study 6 (I1): a page with a box, a button and a result had no entry on
+  // home, and the blank app builder ran nothing.
+  it("starts the App flow with the brief and opens the built app", async () => {
+    const user = userEvent.setup();
+    renderSurface(null, false);
+    await user.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A page that writes a product blurb"
+    );
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^App / }));
+
+    expect(await screen.findByTestId("app-setup-flow")).toHaveTextContent(
+      "A page that writes a product blurb"
+    );
+    await user.click(screen.getByRole("button", { name: "Finish app" }));
+    await waitFor(() =>
+      expect(openTab).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "application", ref: "app-1" })
+      )
+    );
+  });
+
+  // Study 6 (I6): people looking for the game maker tried the Games examples
+  // tab and missed the Game card behind "More formats".
+  it("shows the Game card on the first screen and starts it from the Games tab", async () => {
+    const user = userEvent.setup();
+    renderSurface(null, false);
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    expect(
+      within(cards).getByRole("button", { name: /^Game / })
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Games" }));
+    await user.click(await screen.findByRole("button", { name: "Make a game" }));
+
+    expect(await screen.findByTestId("game-setup-flow")).toHaveTextContent(
+      "wf-new"
+    );
   });
 
   it.each(["Workflow", "Game"])(
@@ -2238,15 +2312,15 @@ describe("NewProjectSurface", () => {
   });
 });
 
-it("starts with four formats and reveals other formats on request", async () => {
+it("starts with six formats and reveals other formats on request", async () => {
     renderSurface(null, false);
     const cards = screen.getByRole("group", { name: "Guided creation flows" });
-    expect(within(cards).getAllByRole("button")).toHaveLength(4);
+    expect(within(cards).getAllByRole("button")).toHaveLength(6);
     expect(
       within(cards).getByRole("button", { name: /Read aloud/ })
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "More formats" }));
-    expect(within(cards).getAllByRole("button")).toHaveLength(8);
+    expect(within(cards).getAllByRole("button")).toHaveLength(9);
     await userEvent.click(screen.getByRole("combobox", { name: "Game dimension" }));
     await userEvent.click(screen.getByRole("option", { name: "3D exploration" }));
     expect(within(cards).getByRole("button", { name: /Game Start with a playable 3D exploration scene/ })).toBeInTheDocument();
