@@ -326,6 +326,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   }, [document, playDocument, renderDocument]);
 
   useEffect(() => {
+    profiler.setPlaybackActive(active && playing);
     if (!active || !playing) audioRef.current?.pause();
     else audioRef.current?.resume();
     // Paused input is dropped, not queued for the next tick (F23).
@@ -337,7 +338,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
         setFrame(presentation.frame);
       }
     }
-  }, [active, playing, playDocument]);
+  }, [active, playing, playDocument, profiler]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
