@@ -36,6 +36,10 @@ export type {
   SaveStateValue
 } from "./StatusBar";
 export type { ToolbarIconButtonProps } from "./ToolbarIconButton";
+export { PageLayout } from "./PageLayout";
+export type { PageLayoutProps } from "./PageLayout";
+export { PageHeader } from "./PageHeader";
+export type { PageHeaderProps, PageHeaderVariant } from "./PageHeader";
 
 // Export shortcut hint component
 export { ShortcutHint } from "./ShortcutHint";
@@ -68,6 +72,12 @@ export type { SelectionControlsProps } from "./SelectionControls";
 // New action buttons
 export { CopyButton } from "./CopyButton";
 export type { CopyButtonProps } from "./CopyButton";
+export { Code } from "./Code";
+export type { CodeProps } from "./Code";
+export { CodeBlock } from "./CodeBlock";
+export type { CodeBlockProps } from "./CodeBlock";
+export { LogView, LOG_LINE_STYLE, logLevelColor } from "./LogView";
+export type { LogViewProps, LogLine, LogLevel } from "./LogView";
 
 export { CloseButton } from "./CloseButton";
 export type { CloseButtonProps } from "./CloseButton";
@@ -147,8 +157,14 @@ export type { BreadcrumbsProps, BreadcrumbItem } from "./Breadcrumbs";
 export { WarningBanner } from "./WarningBanner";
 export type { WarningBannerProps, BannerVariant } from "./WarningBanner";
 
-export { NotificationBadge } from "./NotificationBadge";
-export type { NotificationBadgeProps } from "./NotificationBadge";
+export { CountBadge } from "./CountBadge";
+export type { CountBadgeProps } from "./CountBadge";
+
+export { StatusDot } from "./StatusDot";
+export type { StatusDotProps, StatusDotTone } from "./StatusDot";
+
+export { MediaLabel } from "./MediaLabel";
+export type { MediaLabelProps, MediaLabelCorner } from "./MediaLabel";
 
 export { UndoRedoButtons } from "./UndoRedoButtons";
 export type { UndoRedoButtonsProps } from "./UndoRedoButtons";
@@ -378,6 +394,13 @@ export type { OverlayProps } from "./Overlay";
 
 export { ResponsiveImage } from "./ResponsiveImage";
 export type { ResponsiveImageProps } from "./ResponsiveImage";
+
+export { MediaThumbnail, mediaKindFromContentType } from "./MediaThumbnail";
+export type {
+  MediaThumbnailProps,
+  MediaThumbnailAsset,
+  MediaThumbnailKind
+} from "./MediaThumbnail";
 
 // Phase 3 - Additional primitives
 

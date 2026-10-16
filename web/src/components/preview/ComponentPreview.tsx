@@ -20,6 +20,7 @@ import {
   Surface,
   Box,
   FlexColumn,
+  Code,
   FlexRow,
   Panel,
   TextInput,
@@ -716,7 +717,7 @@ const PreviewIndex: React.FC = () => {
       </Text>
       <Text size="small" color="secondary" sx={{ mb: 4, display: "block" }}>
         Isolated component views for documentation screenshots. Navigate to{" "}
-        <code>/preview/:id</code> to render a component in isolation.
+        <Code>/preview/:id</Code> to render a component in isolation.
       </Text>
 
       <Box

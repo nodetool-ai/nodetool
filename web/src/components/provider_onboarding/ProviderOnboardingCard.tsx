@@ -11,6 +11,7 @@ import {
   AlertBanner,
   Box,
   Caption,
+  Card,
   EditorButton,
   FlexColumn,
   FlexRow,
@@ -240,14 +241,17 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
   const storedStatus = storedCredentialStatus ?? "configured";
 
   return (
-    <FlexColumn
+    <Card
       component="article"
       aria-label={provider.name}
+      padding={SPACING.xl}
       sx={{
-        p: SPACING.xl,
+        display: "flex",
+        flexDirection: "column",
+        // Rows of one framed list: the list owns the frame and corners.
+        borderRadius: 0,
         borderBottom: `1px solid ${theme.vars.palette.divider}`,
-        "&:last-child": { borderBottom: 0 },
-        backgroundColor: theme.vars.palette.background.paper
+        "&:last-child": { borderBottom: 0 }
       }}
     >
       <FlexColumn gap={SPACING.sm}>
@@ -493,7 +497,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
         onSubmit={oauth.submitManualCode}
         onCancel={oauth.cancelManual}
       />
-    </FlexColumn>
+    </Card>
   );
 };
 

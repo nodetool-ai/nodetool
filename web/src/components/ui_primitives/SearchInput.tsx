@@ -7,8 +7,10 @@ import { CONTROL, MOTION } from "./tokens";
 import { useFieldDensity } from "./fieldDensity";
 import { IconButton, InputAdornment, TextField } from "@mui/material";
 import { Tooltip } from "./Tooltip";
+import { LoadingSpinner } from "./LoadingSpinner";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
+import type { InputHTMLAttributes, ReactNode } from "react";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 
@@ -41,8 +43,29 @@ export interface SearchInputProps {
   className?: string;
   /** Full width */
   fullWidth?: boolean;
-  /** Tooltip for clear button */
-  clearTooltip?: string;
+  /** Tooltip for clear button. A string also names the button for assistive
+   * tech. A node (for example a keyboard hint) falls back to "Clear search". */
+  clearTooltip?: ReactNode;
+  /** Replaces the leading search icon, e.g. with a mode toggle button. */
+  startAdornment?: ReactNode;
+  /** Shows a spinner in place of the clear button while a search runs. */
+  loading?: boolean;
+  /** Key handler that runs before the built-in Enter and Escape handling.
+   * Calling `preventDefault()` skips the built-in handling for that key. */
+  onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  /** Escape clears a non-empty query and stops propagation (default). Pass
+   * false when a host such as a menu owns Escape. */
+  escapeClears?: boolean;
+  /** Extra attributes for the native input, such as `id`, `role` or
+   * `data-testid`. */
+  inputProps?: InputHTMLAttributes<HTMLInputElement> & {
+    "data-testid"?: string;
+  };
+  /** Shown at the end while the field is empty, e.g. a keyboard shortcut
+   * hint. Replaced by the clear button once there is a value. */
+  endHint?: ReactNode;
+  /** `data-testid` for the clear button. */
+  clearTestId?: string;
   /** Tooltip placement */
   tooltipPlacement?: "top" | "bottom" | "left" | "right";
   /** Additional sx applied to the underlying TextField root. */
@@ -128,7 +151,7 @@ const styles = (theme: Theme, dense: boolean) => css`
 export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>(({
   value,
   onChange,
-  placeholder = "Search...",
+  placeholder = "Search",
   ariaLabel,
   showClear = true,
   size = "small",
@@ -141,6 +164,13 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
   fullWidth = false,
   clearTooltip = "Clear search",
   tooltipPlacement = "top",
+  startAdornment,
+  loading = false,
+  onKeyDown,
+  escapeClears = true,
+  inputProps,
+  endHint,
+  clearTestId,
   sx
 }, ref) => {
   const theme = useTheme();
@@ -148,6 +178,18 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
   const autoFocusEnabled = useAutoFocusEnabled();
   const [localValue, setLocalValue] = useState(value);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const setInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      inputRef.current = node;
+      if (typeof ref === "function") {
+        ref(node);
+      } else if (ref) {
+        ref.current = node;
+      }
+    },
+    [ref]
+  );
   
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -175,19 +217,27 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
     setLocalValue("");
     onChange("");
     onClear?.();
+    // Keep the cursor in the field so typing can continue after a clear.
+    inputRef.current?.focus();
   }, [onChange, onClear]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    onKeyDown?.(e);
+    if (e.defaultPrevented) {
+      return;
+    }
     if (e.key === "Enter" && onSubmit) {
       onSubmit(localValue);
     }
-    if (e.key === "Escape" && localValue) {
+    if (escapeClears && e.key === "Escape" && localValue) {
       // Escape clears the query first; a second Escape reaches the menu or
       // dialog around us and closes it. One key press must not do both.
       e.stopPropagation();
       handleClear();
     }
-  }, [localValue, onSubmit, handleClear]);
+  }, [localValue, onSubmit, handleClear, onKeyDown, escapeClears]);
+  const clearLabel =
+    typeof clearTooltip === "string" ? clearTooltip : "Clear search";
   
   React.useEffect(() => {
     setLocalValue(value);
@@ -214,16 +264,22 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
         autoFocus={autoFocus && autoFocusEnabled}
         fullWidth={fullWidth}
         sx={sx}
-        inputRef={ref}
+        inputRef={setInputRef}
         slotProps={{
-          htmlInput: { "aria-label": ariaLabel ?? placeholder },
+          htmlInput: { "aria-label": ariaLabel ?? placeholder, ...inputProps },
           input: {
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon className="search-icon" fontSize="small" />
+                {startAdornment ?? (
+                  <SearchIcon className="search-icon" fontSize="small" />
+                )}
               </InputAdornment>
             ),
-            endAdornment: showClear && localValue ? (
+            endAdornment: loading ? (
+              <InputAdornment position="end">
+                <LoadingSpinner size="small" />
+              </InputAdornment>
+            ) : showClear && localValue ? (
               <InputAdornment position="end">
                 <Tooltip 
                   title={clearTooltip} 
@@ -232,7 +288,8 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
                 >
                   <IconButton
                     className="clear-button"
-                    aria-label={clearTooltip}
+                    aria-label={clearLabel}
+                    data-testid={clearTestId}
                     onClick={handleClear}
                     size="small"
                   >
@@ -240,6 +297,8 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
                   </IconButton>
                 </Tooltip>
               </InputAdornment>
+            ) : endHint ? (
+              <InputAdornment position="end">{endHint}</InputAdornment>
             ) : null
           }
         }}

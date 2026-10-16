@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
-import ManagerPageLayout from "../../panels/ManagerPageLayout";
+import { PageLayout } from "../../ui_primitives";
 import ModelListIndex from "./ModelListIndex";
 
 /**
@@ -8,7 +8,7 @@ import ModelListIndex from "./ModelListIndex";
  * model list in the shared manager chrome (header + back button).
  */
 const ModelsPage: React.FC = () => (
-  <ManagerPageLayout
+  <PageLayout
     icon={<ViewInArOutlinedIcon sx={{ fontSize: 22 }} />}
     title="Model Manager"
     subtitle="Browse, download, and manage local AI models."
@@ -16,7 +16,7 @@ const ModelsPage: React.FC = () => (
     padded={false}
   >
     <ModelListIndex />
-  </ManagerPageLayout>
+  </PageLayout>
 );
 
 ModelsPage.displayName = "ModelsPage";

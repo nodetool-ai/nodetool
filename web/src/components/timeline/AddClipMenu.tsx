@@ -855,7 +855,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
               <SearchInput
                 value={searchQuery}
                 onChange={setSearchQuery}
-                placeholder="Search…"
+                placeholder="Search"
                 autoFocus
                 fullWidth
                 debounceMs={150}

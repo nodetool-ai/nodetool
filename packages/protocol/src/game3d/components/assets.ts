@@ -13,9 +13,14 @@ export type GameModelImportSettings3D = z.infer<typeof gameModelImportSettings3D
 
 const assetIdentity = { assetId: id, digest: id, required: z.boolean().default(true), provenance: z.string().optional() };
 
+/** glTF animation time accessors use nonnegative IEEE-754 FLOAT seconds. */
+export const gameClipDurations3D = z.record(z.string().max(8).regex(/^clip:\d+$/), z.union([
+  z.literal(0), z.number().finite().min(2 ** -149).max((2 - 2 ** -23) * 2 ** 127)
+])).refine(value => Object.keys(value).length <= 256, { message: "At most 256 clip durations are allowed" });
+
 export const gameAssetBinding3D = z.discriminatedUnion("mediaKind", [
   z.strictObject({ mediaKind: z.literal("model"), ...assetIdentity, format: z.literal("glb").default("glb"),
-    preparationVersion: id.default("1"), bounds, nodeIds: z.array(id).max(4096), clipIds: z.array(id).max(256),
+    preparationVersion: id.default("1"), bounds, nodeIds: z.array(id).max(4096), clipIds: z.array(id).max(256), clipDurations: gameClipDurations3D.optional(),
     geometryBytes: tick, textureBytes: tick, triangles: tick, supportedExtensions: z.array(id).default([]),
     importSettings: gameModelImportSettings3D.optional(), sourceDigest: id.optional(), sourceAssetId: id.optional() }),
   z.strictObject({ mediaKind: z.literal("collider"), ...assetIdentity, preparationVersion: id.default("1"),

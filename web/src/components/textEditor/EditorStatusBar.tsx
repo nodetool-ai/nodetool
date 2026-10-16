@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
-import { BORDER_RADIUS, getSpacingPx, SPACING, StatusBar } from "../ui_primitives";
+import { BORDER_RADIUS, Chip, getSpacingPx, SPACING, StatusBar } from "../ui_primitives";
 import LockIcon from "@mui/icons-material/Lock";
 
 interface EditorStatusBarProps {
@@ -58,23 +58,6 @@ const styles = (theme: Theme) =>
       ".info-item": {
         whiteSpace: "nowrap"
       }
-    },
-    ".read-only-badge": {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.xs),
-      padding: theme.spacing(0.5, 2),
-      borderRadius: BORDER_RADIUS.md,
-      fontSize: theme.fontSizeSmaller,
-      fontWeight: 500,
-      letterSpacing: "0.03em",
-      textTransform: "uppercase",
-      color: theme.vars.palette.warning.main,
-      backgroundColor: `rgba(${theme.vars.palette.warning.mainChannel} / 0.08)`,
-      border: `1px solid rgba(${theme.vars.palette.warning.mainChannel} / 0.15)`,
-      svg: {
-        fontSize: "var(--fontSizeSmaller)"
-      }
     }
   });
 
@@ -126,10 +109,7 @@ const EditorStatusBar = ({
       </div>
       <div className="status-info">
         {readOnly && (
-          <span className="read-only-badge">
-            <LockIcon />
-            Read-only
-          </span>
+          <Chip compact color="warning" icon={<LockIcon />} label="Read-only" />
         )}
         {cursor && (
           <span className="info-item">

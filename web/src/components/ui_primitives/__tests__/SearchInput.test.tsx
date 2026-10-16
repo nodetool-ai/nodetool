@@ -86,4 +86,94 @@ describe("SearchInput", () => {
 
     expect(onEscape).toHaveBeenCalled();
   });
+
+  it("runs onKeyDown first and skips built-in handling when it prevents default", async () => {
+    const user = userEvent.setup();
+    const onSubmit = jest.fn();
+    renderWithTheme(
+      <SearchInput
+        value="abc"
+        onChange={jest.fn()}
+        onSubmit={onSubmit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+          }
+        }}
+      />
+    );
+    await user.click(screen.getByRole("textbox"));
+    await user.keyboard("{Enter}");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("leaves Escape to the host when escapeClears is false", async () => {
+    const user = userEvent.setup();
+    const onChange = jest.fn();
+    const onEscape = jest.fn();
+    renderWithTheme(
+      <div onKeyDown={onEscape}>
+        <SearchInput value="abc" onChange={onChange} escapeClears={false} />
+      </div>
+    );
+    await user.click(screen.getByRole("textbox"));
+    await user.keyboard("{Escape}");
+    expect(onChange).not.toHaveBeenCalled();
+    expect(onEscape).toHaveBeenCalled();
+  });
+
+  it("replaces the search icon with startAdornment", () => {
+    renderWithTheme(
+      <SearchInput
+        value=""
+        onChange={jest.fn()}
+        startAdornment={<button type="button">mode</button>}
+      />
+    );
+    expect(screen.getByRole("button", { name: "mode" })).toBeInTheDocument();
+    expect(document.querySelector(".search-icon")).toBeNull();
+  });
+
+  it("shows endHint only while empty and a spinner instead of clear while loading", () => {
+    const { rerender } = renderWithTheme(
+      <SearchInput value="" onChange={jest.fn()} endHint={<span>/</span>} />
+    );
+    expect(screen.getByText("/")).toBeInTheDocument();
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <SearchInput value="abc" onChange={jest.fn()} endHint={<span>/</span>} />
+      </ThemeProvider>
+    );
+    expect(screen.queryByText("/")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <SearchInput value="abc" onChange={jest.fn()} loading />
+      </ThemeProvider>
+    );
+    expect(screen.queryByRole("button", { name: "Clear search" })).not.toBeInTheDocument();
+  });
+
+  it("passes inputProps to the input and refocuses it after clear", async () => {
+    const user = userEvent.setup();
+    renderWithTheme(
+      <SearchInput
+        value="abc"
+        onChange={jest.fn()}
+        inputProps={{ id: "q", "data-testid": "q-field" }}
+        clearTestId="q-clear"
+      />
+    );
+    const input = screen.getByTestId("q-field");
+    expect(input).toHaveAttribute("id", "q");
+    await user.click(screen.getByTestId("q-clear"));
+    expect(input).toHaveFocus();
+  });
+
+  it("falls back to a text aria-label when clearTooltip is a node", () => {
+    renderWithTheme(
+      <SearchInput value="abc" onChange={jest.fn()} clearTooltip={<kbd>Ctrl</kbd>} />
+    );
+    expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
+  });
 });
