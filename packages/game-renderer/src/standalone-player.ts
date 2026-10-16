@@ -1,5 +1,5 @@
 import { createScriptedGameSession, GamePlayerSaves, validateGame } from "@nodetool-ai/game-runtime";
-import { gameInputFrame, gameSnapshot, type GameInputFrame, type GameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
+import { gameInputFrame, gameSnapshot, type GameDocument, type GameInputFrame, type GameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "./audio.js";
 import { mountTouchControls, touchLayout } from "./touch-controls.js";
@@ -10,6 +10,7 @@ import { resolveGameInputBindings } from "@nodetool-ai/protocol";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
 import { GameParticles2D } from "./particles/render2d.js";
 import { createIndexedDbGameSaveStorage, loadQuickSave } from "./save-storage.js";
+import { VerifiedStandaloneAssets } from "./standalone-assets.js";
 import type { GamePlayerRenderedFrame } from "./standalone-frame.js";
 
 declare global {
@@ -62,8 +63,17 @@ async function start(): Promise<void> {
   if (!PLAYER_VERSIONS.includes(game.engineVersion)) {
     throw new Error(`This player supports engine versions ${PLAYER_VERSIONS.join(" and ")}`);
   }
-  const fonts = await loadBrowserGameFonts(game, async (assetId) =>
-    assetId.startsWith("./assets/") ? assetId : null);
+  const verifiedAssets = new VerifiedStandaloneAssets(game.assets,
+    Object.fromEntries(Object.entries(game.assets).map(([id, binding]) => [id, binding.assetId])));
+  try { await startPlayer(game, verifiedAssets); }
+  catch (error: unknown) { verifiedAssets.dispose(); throw error; }
+}
+
+async function startPlayer(game: GameDocument, verifiedAssets: VerifiedStandaloneAssets): Promise<void> {
+  const fonts = await loadBrowserGameFonts(game, async (assetId) => {
+    const logicalId = Object.keys(game.assets).find((id) => game.assets[id]?.assetId === assetId);
+    return logicalId === undefined ? null : verifiedAssets.url(logicalId);
+  });
   const canvas = element("game");
   if (!(canvas instanceof HTMLCanvasElement)) {
     throw new Error("Game viewport is not a canvas");
@@ -72,7 +82,7 @@ async function start(): Promise<void> {
     assets: game.assets,
     scenes: game.scenes,
     tickRate: game.tickRate,
-    resolveAsset: async (binding) => binding.assetId.startsWith("./assets/") ? binding.assetId : null,
+    resolveAsset: (binding) => verifiedAssets.bindingUrl(binding),
     status: showStatus,
     mixer: game.audio?.mixer
   });
@@ -83,15 +93,8 @@ async function start(): Promise<void> {
   const renderer = await createGameRenderer({
     canvas,
     assets: async (logicalId) => {
-      const ref = game.assets[logicalId]?.assetId;
-      if (!ref || !ref.startsWith("./assets/")) {
-        return null;
-      }
-      const assetResponse = await fetch(ref, { cache: "force-cache" });
-      if (!assetResponse.ok) {
-        return null;
-      }
-      return createImageBitmap(await assetResponse.blob(), { premultiplyAlpha: "none" });
+      const bytes = await verifiedAssets.bytes(logicalId);
+      return bytes ? createImageBitmap(new Blob([bytes]), { premultiplyAlpha: "none" }) : null;
     },
   });
   const effects = game.renderEffects ?? [];
@@ -374,6 +377,7 @@ async function start(): Promise<void> {
     renderer.dispose();
     fonts.dispose();
     audio.dispose();
+    verifiedAssets.dispose();
   });
   window.nativeGamePlayer = Object.freeze({
     pause: () => setPaused(true),

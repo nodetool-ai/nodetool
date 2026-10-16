@@ -115,7 +115,7 @@ export class GameAudioPlayer {
     }
     const pending: Promise<AudioBuffer | null> = this.options.resolveAsset(binding).then(async (url) => {
       if (!url) throw new Error("asset URL is unavailable");
-      const response = await fetch(url, { cache: "force-cache" });
+      const response = await fetch(url, { cache: "no-cache" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return this.context.decodeAudioData(await response.arrayBuffer());
     }).catch((error: unknown) => {

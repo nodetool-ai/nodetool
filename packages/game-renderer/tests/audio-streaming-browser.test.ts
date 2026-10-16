@@ -107,9 +107,10 @@ it.each(["2D", "3D"])("plays exported %s streaming music after a gesture and loo
     await canvas.click({ position: { x: 10, y: 10 } });
     await page.waitForFunction(() => window.streamingTestMedia.length === 1 && !window.streamingTestMedia[0].paused && window.streamingTestMedia[0].currentTime > 0);
     const startup = await page.evaluate(() => ({ decodes: window.streamingTestDecodes, encodedFetches: window.streamingTestAudioFetches,
-      mediaSources: window.streamingTestMediaSources, duration: window.streamingTestMedia[0].duration }));
+      mediaSources: window.streamingTestMediaSources, mediaUrl: window.streamingTestMedia[0].src, duration: window.streamingTestMedia[0].duration }));
     expect(startup).toMatchObject({ decodes: 0, mediaSources: 1, duration: 120 });
-    if (dimension === "2D") { expect(startup.encodedFetches).toBe(0); }
+    expect(startup.encodedFetches).toBe(1);
+    expect(startup.mediaUrl).toMatch(/^blob:/);
     console.info(`${dimension} streaming music startup`, startup);
     await page.evaluate(() => { window.streamingTestMedia[0].currentTime = 19.95; });
     await page.waitForFunction(() => window.streamingTestMedia[0].currentTime >= 10 && window.streamingTestMedia[0].currentTime < 11);
