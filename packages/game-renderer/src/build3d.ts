@@ -10,6 +10,7 @@ import { validateGame3D, decodePreparedGameCollider3D } from "@nodetool-ai/game-
 import { prepareGameImage3D } from "./renderer3d/assets/image-preparation.js";
 import { prepareGameModel } from "./renderer3d/preparation.js";
 import type { StandaloneAsset, StandaloneGameBuild } from "./build.js";
+import { validateExportImage, validateExportAudio, validateExportFont } from "./export-media.js";
 import { TOUCH_CONTROLS_CSS } from "./touch-controls.js";
 
 export interface BuildStandaloneGame3DOptions {
@@ -19,7 +20,7 @@ export interface BuildStandaloneGame3DOptions {
   readonly signal?: AbortSignal;
 }
 const PLAYER_FILE = "game3d-player.js";
-const HTML = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; connect-src \'self\' blob:; script-src \'self\' \'wasm-unsafe-eval\'; img-src \'self\' blob:; font-src \'self\'; style-src \'self\'"><title>NodeTool 3D Game</title><link rel="stylesheet" href="./style.css"></head><body><main><canvas id="game" aria-label="3D game viewport"></canvas><nav aria-label="Game controls"><button id="pause" type="button">Pause</button><button id="reset" type="button">Reset</button></nav><p id="status" role="status" aria-live="polite">Loading game</p></main><script type="module" src="./game3d-player.js"></script></body></html>';
+const HTML = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; connect-src \'self\' blob:; script-src \'self\' \'wasm-unsafe-eval\'; img-src \'self\' blob:; media-src \'self\' blob:; font-src \'self\'; style-src \'self\'"><title>NodeTool 3D Game</title><link rel="stylesheet" href="./style.css"></head><body><main><canvas id="game" aria-label="3D game viewport"></canvas><nav aria-label="Game controls"><button id="pause" type="button">Pause</button><button id="reset" type="button">Reset</button></nav><p id="status" role="status" aria-live="polite">Loading game</p></main><script type="module" src="./game3d-player.js"></script></body></html>';
 const CSS = 'html,body{margin:0;background:#202838;color:#fff;font:16px system-ui,sans-serif}main{max-width:1280px;margin:auto}canvas{display:block;width:100%;height:auto;touch-action:none}nav{display:flex;gap:8px;padding:8px;position:relative;z-index:3}button{font:inherit}#status{padding:8px}' +
   // The export CSP allows only same-origin styles, so the touch controls are styled here rather than by the player.
   TOUCH_CONTROLS_CSS;
@@ -75,6 +76,7 @@ export async function buildStandaloneGame3D(options: BuildStandaloneGame3DOption
         if (!prepared.ok) { throw new Error(`Export image ${logicalId} failed preparation: ${prepared.diagnostics.map((entry) => entry.message).join("; ")}`); }
         const actual = prepared.image.binding;
         if (actual.width !== binding.width || actual.height !== binding.height || actual.format !== binding.format || actual.byteLength !== binding.byteLength) { throw new Error(`Export image metadata changed for ${logicalId}`); }
+        await validateExportImage(prepared.image.bytes, binding.format, options.signal);
         extension = binding.format;
       } else if (binding.mediaKind === "collider") {
         await decodePreparedGameCollider3D(asset.bytes, binding);
@@ -82,10 +84,13 @@ export async function buildStandaloneGame3D(options: BuildStandaloneGame3DOption
       } else if (binding.mediaKind === "font") {
         const view = new DataView(asset.bytes.buffer, asset.bytes.byteOffset, asset.bytes.byteLength);
         if (asset.bytes.length < 4 || (binding.fontFormat === "ttf" ? view.getUint32(0) !== 0x00010000 : view.getUint32(0) !== 0x4f54544f)) { throw new Error(`Invalid export font ${logicalId}`); }
+        validateExportFont(asset.bytes, logicalId, options.signal);
         extension = binding.fontFormat;
       } else {
-        extension = asset.mimeType === "audio/wav" ? "wav" : asset.mimeType === "audio/ogg" ? "ogg" : asset.mimeType === "audio/mpeg" ? "mp3" : "";
-        if (!extension) { throw new Error(`Unsupported export audio ${logicalId}`); }
+        const audioFormat = asset.mimeType === "audio/wav" ? "wav" : asset.mimeType === "audio/ogg" ? "ogg" : asset.mimeType === "audio/mpeg" ? "mp3" : "";
+        if (!audioFormat) { throw new Error(`Unsupported export audio ${logicalId}`); }
+        await validateExportAudio(asset.bytes, audioFormat, options.signal);
+        extension = audioFormat;
       }
       const path = `assets/${digest}.${extension}`;
       await stage(path, asset.bytes);

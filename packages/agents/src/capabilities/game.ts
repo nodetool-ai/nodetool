@@ -1120,7 +1120,7 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
       await buildStandaloneGame3D({ document, outputDir: output, resolveAsset, signal: request.signal });
     } else {
       const { buildStandaloneGame } = await importPack<typeof import("@nodetool-ai/game-renderer/build")>("game", "@nodetool-ai/game-renderer/build");
-      await buildStandaloneGame({ document, outputDir: output, resolveAsset });
+      await buildStandaloneGame({ document, outputDir: output, resolveAsset, signal: request.signal });
     }
     const files: Array<{ path: string; bytes: Uint8Array }> = [];
     const pending = [""];
