@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { gameDocument, gameDocument3D } from "@nodetool-ai/protocol";
 import { validateAnyGame } from "@nodetool-ai/game-runtime";
 
-const script = { kind: "script", source: "input => ({ state: (input.state || 0) + 1, commands: [] })", maxTickMs: 50 };
+const script = { kind: "script", source: "input => ({ state: (input.state || 0) + 1, commands: [] })", maxTickMs: 20 };
 const imageId = "1".repeat(32);
 const modelId = "2".repeat(32);
 const image = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jr1sAAAAASUVORK5CYII=", "base64");

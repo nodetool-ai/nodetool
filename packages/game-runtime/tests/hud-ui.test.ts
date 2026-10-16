@@ -25,7 +25,7 @@ function game(script: string, extra: Partial<GameDocument> = {}): GameDocument {
       { id: "main", name: "Main", entities: [
         { id: "camera", transform2d: { x: 0, y: 0 }, camera2d: { width: 16, height: 9 } },
         { id: "player", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "health", maximum: 5 },
-          { kind: "script", maxTickMs: 50, source: script }] }
+          { kind: "script", maxTickMs: 20, source: script }] }
       ] },
       { id: "second", name: "Second", entities: [
         { id: "camera", transform2d: { x: 0, y: 0 }, camera2d: { width: 16, height: 9 } },

@@ -31,18 +31,33 @@ vi.mock("../src/ui/controller.js", async (importOriginal) => ({
   browserGameUiMeasure: () => () => 0,
   browserGameUiInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 })
 }));
+const animationCallbacks = new Map<number, FrameRequestCallback>();
+let nextAnimationId = 0;
 beforeEach(() => {
   vi.resetModules(); observed.rendered.length = 0; observed.nextRender = undefined; observed.failure = undefined;
   Reflect.deleteProperty(window, "nativeGame3DPlayer");
+  animationCallbacks.clear(); nextAnimationId = 0;
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    animationCallbacks.set(++nextAnimationId, callback);
+    return nextAnimationId;
+  });
+  vi.stubGlobal("cancelAnimationFrame", (id: number) => { animationCallbacks.delete(id); });
 });
 afterEach(() => { window.dispatchEvent(new Event("beforeunload")); vi.unstubAllGlobals(); });
-async function start(): Promise<void> {
+async function start(dispatchStartupFrame = false): Promise<void> {
   const game = createNative3DGame("render acknowledgement");
   document.body.innerHTML = '<canvas id="game"></canvas><div id="status"></div><button id="pause"></button><button id="reset"></button>';
   vi.stubGlobal("matchMedia", () => ({ matches: false }));
   vi.stubGlobal("fetch", async (url: string) => ({ ok: true, json: async () => url.endsWith("manifest.json") ? { assets: {} } : game }));
   await import("../src/standalone-player3d.js");
   await vi.waitFor(() => expect(window.nativeGame3DPlayer).toBeDefined());
+  if (dispatchStartupFrame) {
+    await vi.waitFor(() => expect(animationCallbacks.size).toBe(1));
+    const [id, callback] = animationCallbacks.entries().next().value!;
+    animationCallbacks.delete(id);
+    callback(performance.now());
+    await vi.waitFor(() => expect(observed.rendered).toEqual([0, 0]));
+  }
   window.nativeGame3DPlayer.pause();
 }
 const input = () => gameInputFrame3D.parse({ pressed: [] });
@@ -73,4 +88,9 @@ it("serializes concurrent explicit commands and reports reset and advance render
   expect(observed.rendered).toEqual([1, 2]);
   expect(await window.nativeGame3DPlayer.reset()).toMatchObject({ tick: 0 });
   expect(await window.nativeGame3DPlayer.advance([input(), input()])).toMatchObject({ tick: 2 });
+});
+
+it("credits a deliberately dispatched startup animation frame", async () => {
+  await start(true);
+  expect(await window.nativeGame3DPlayer.step(input())).toEqual({ tick: 1, frameNumber: 3 });
 });

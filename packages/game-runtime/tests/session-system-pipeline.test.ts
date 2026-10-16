@@ -213,7 +213,7 @@ it("keeps scripted sessions and their replay identical with timings on, off or t
   const base = createTopDownRoomGame("timed-scripts");
   const flatDocument = gameDocument.parse({ ...base, schemaVersion: 4, engineVersion: "3",
     scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "player"
-      ? { ...entity, behaviors: [...entity.behaviors, { kind: "script", maxCommands: 8, maxTickMs: 30,
+      ? { ...entity, behaviors: [...entity.behaviors, { kind: "script", maxCommands: 8, maxTickMs: 20,
         source: "({tick, random}) => ({ state: { roll: random() }, commands: tick % 10 === 0 ? [{kind:'setProp',key:'count',value:tick}] : [] })" }] }
       : entity) })) });
   const sessions = {
@@ -414,7 +414,7 @@ it("preserves script animation commands and their transition start ticks", async
             {
               kind: "script",
               source: `(input) => ({ state: null, commands: [{ kind: "playAnimation", clip: input.tick < 2 ? "run" : "idle" }] })`,
-              maxTickMs: 50
+              maxTickMs: 20
             }
           ]
         };

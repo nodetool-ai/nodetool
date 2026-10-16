@@ -47,7 +47,7 @@ const SAVER = `(input) => {
   }
   return { state, commands };
 }`;
-const saver = { id: "saver", behaviors: [{ kind: "script", source: SAVER, maxCommands: 8, maxTickMs: 50 }] };
+const saver = { id: "saver", behaviors: [{ kind: "script", source: SAVER, maxCommands: 8, maxTickMs: 20 }] };
 
 it.each([
   ["2D", () => {

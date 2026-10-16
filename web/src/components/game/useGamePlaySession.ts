@@ -125,11 +125,10 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     lastTickRef.current = state.tick;
     const presentationState = { tick: state.tick, score: state.score, won: state.won, sceneId: state.sceneId };
     setPlayState(presentationState);
-    const rawFrame = session.frame();
-    const current = !playDocument
-      ? { ...rawFrame, camera: editorCameraRef.current ?? rawFrame.camera,
-        width: editorAspectRef.current ? rawFrame.height * editorAspectRef.current : rawFrame.width }
-      : rawFrame;
+    const current = session.frame(!playDocument ? {
+      camera: editorCameraRef.current ?? undefined,
+      aspectRatio: editorAspectRef.current ?? undefined
+    } : undefined);
     lastPresentationRef.current = { state: presentationState, frame: current };
     setFrame(current);
     void renderFrame(current, 1).catch((cause: unknown) => {

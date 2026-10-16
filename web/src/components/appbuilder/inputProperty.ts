@@ -4,7 +4,11 @@
  * Ported from the mini-app inputs form so appbuilder is self-contained.
  */
 import { Property } from "../../stores/ApiTypes";
-import { clampNumber, WorkflowInputKind } from "./inputKinds";
+import {
+  clampNumber,
+  INPUT_KIND_PROPERTY_TYPE,
+  WorkflowInputKind
+} from "./inputKinds";
 import { WorkflowInputIO } from "./workflowIO";
 import { isNumber, isString } from "../../utils/typePredicates";
 
@@ -19,39 +23,6 @@ export const MODEL_INPUT_KINDS: ReadonlySet<WorkflowInputKind> = new Set([
   "embedding_model",
   "huggingface_model"
 ]);
-
-const KIND_TO_PROPERTY_TYPE = {
-  string: "str",
-  integer: "int",
-  float: "float",
-  boolean: "bool",
-  color: "color",
-  image: "image",
-  video: "video",
-  audio: "audio",
-  document: "document",
-  dataframe: "dataframe",
-  file_path: "str",
-  folder_path: "str",
-  folder: "folder",
-  select: "enum",
-  language_model: "language_model",
-  image_model: "image_model",
-  video_model: "video_model",
-  tts_model: "tts_model",
-  asr_model: "asr_model",
-  music_model: "music_model",
-  embedding_model: "embedding_model",
-  image_list: "list",
-  video_list: "list",
-  audio_list: "list",
-  text_list: "list",
-  // The node types these kinds come from: Model3DInput emits `model_3d`,
-  // ImageSizeInput `image_size`, HuggingFaceModelInput `hf.model`.
-  model3d: "model_3d",
-  image_size: "image_size",
-  huggingface_model: "hf.model"
-} satisfies Record<WorkflowInputKind, Property["type"]["type"]>;
 
 const getTypeArgsForKind = (kind: WorkflowInputKind) => {
   switch (kind) {
@@ -115,7 +86,7 @@ export const createPropertyForInput = (input: WorkflowInputIO): Property => {
   const property: Property = {
     name: input.name,
     type: {
-      type: KIND_TO_PROPERTY_TYPE[input.kind],
+      type: INPUT_KIND_PROPERTY_TYPE[input.kind],
       optional: true,
       values: enumValues,
       type_args: getTypeArgsForKind(input.kind),

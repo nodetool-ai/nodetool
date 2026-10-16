@@ -8,7 +8,7 @@ describe("script host world", () => {
     const base = createTopDownRoomGame("a".repeat(32));
     return gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene,
       entities: scene.entities.map((entity) => entity.id === "player" ? { ...entity,
-        behaviors: [{ kind: "script", source, maxTickMs: 50, maxCommands: 8 }] } : entity) })) });
+        behaviors: [{ kind: "script", source, maxTickMs: 20, maxCommands: 8 }] } : entity) })) });
   }
 
   it("keeps the lazy legacy copy writable and private between calls", async () => {
@@ -119,7 +119,7 @@ describe("script host world", () => {
     state.infinity = Infinity;
     try {
       const calls = [{ sourceKey: key, stateKey: key, entityId: "player", source: "player", state,
-        x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxCommands: 8, maxTickMs: 50
+        x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxCommands: 8, maxTickMs: 20
       }];
       const input = { tick: 0, pressed: [], justPressed: [], events: [], world: [] };
       const result = runner.run(calls, input, 1);
@@ -185,7 +185,7 @@ describe("script host world", () => {
               legacy: Array.isArray(input.world)
             }, commands: [] })`,
             maxCommands: 8,
-            maxTickMs: 50
+            maxTickMs: 20
           }]
         } : entity)
       }))
@@ -197,7 +197,7 @@ describe("script host world", () => {
         sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state: null,
         x: 0, y: 0, velocityX: 0, velocityY: 0,
         touching: { down: false, up: false, left: false, right: false },
-        maxCommands: 8, maxTickMs: 50
+        maxCommands: 8, maxTickMs: 20
       }], {
         tick: 3, pressed: [], justPressed: [], events: [],
         world: [

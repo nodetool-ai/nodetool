@@ -237,7 +237,7 @@ describe("particles from a session", () => {
         { id: "camera", transform3d: {}, camera3d: { projection: { kind: "perspective" } } },
         { id: "torch", transform3d: { position: { x: 1, y: 2, z: 3 } },
           particles: { emitters: [{ id: "burst", playOnStart: false, rate: 0, lifetime: 10, speed: 0 }] },
-          behaviors: [{ kind: "script", maxTickMs: 50, source: "({tick}) => ({ state: null, commands: tick === 0 ? [{ kind: 'emitParticles', count: 6 }] : [] })" }] }
+          behaviors: [{ kind: "script", maxTickMs: 20, source: "({tick}) => ({ state: null, commands: tick === 0 ? [{ kind: 'emitParticles', count: 6 }] : [] })" }] }
       ] }]
     });
     const session = await createGameSession3D(document, 1);

@@ -255,7 +255,7 @@ describe("native game capabilities", () => {
       scenes: created.document.scenes.map((scene) => ({
         ...scene,
         entities: scene.entities.map((entity) => entity.id === "player"
-          ? { ...entity, behaviors: [{ kind: "script" as const, source: "({state}) => ({state: {ticks: (state?.ticks ?? 0) + 1}, commands: [{kind: 'setVelocity', x: 3, y: 0}]})", maxCommands: 8, maxTickMs: 30 }] }
+          ? { ...entity, behaviors: [{ kind: "script" as const, source: "({state}) => ({state: {ticks: (state?.ticks ?? 0) + 1}, commands: [{kind: 'setVelocity', x: 3, y: 0}]})", maxCommands: 8, maxTickMs: 20 }] }
           : entity)
       }))
     };
@@ -281,7 +281,7 @@ describe("native game capabilities", () => {
       + " return { state: next, commands: [{ kind: 'setVelocity', x: next.speed, y: 0 },"
       + " ...(tick === 0 ? [{ kind: 'save', slot: 'main', data: { speed: 6 } }] : []), ...(tick === 1 ? [{ kind: 'load', slot: 'main' }] : [])] }; }";
     const document = { ...created.document, scenes: created.document.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "player"
-      ? { ...entity, behaviors: [{ kind: "script" as const, source, maxCommands: 8, maxTickMs: 30 }] } : entity) })) };
+      ? { ...entity, behaviors: [{ kind: "script" as const, source, maxCommands: 8, maxTickMs: 20 }] } : entity) })) };
     const published = await agent.invoke("publish_native_game", { game_id: created.game.id, base_revision: created.game.revision,
       base_updated_at: (await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as GameReply).draft_updated_at, document }) as GameReply;
     const played = await agent.invoke("playtest_native_game", { game_id: created.game.id, revision: published.game.revision,
