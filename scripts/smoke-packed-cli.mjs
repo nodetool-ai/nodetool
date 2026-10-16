@@ -570,7 +570,7 @@ project and global consumers, each with an empty HOME.
     const globalHome = join(work, "global-home");
     const globalCwd = join(work, "global-consumer");
     for (const directory of [globalHome, globalCwd]) { mkdirSync(directory, { recursive: true }); }
-    writeFileSync(join(globalHome, ".npmrc"), `registry=${registry.url}\nprefix=${prefix}\ncache=${join(work, "npm-cache")}\n`);
+    writeFileSync(join(globalHome, ".npmrc"), `registry=${registry.url}\nprefix=${prefix}\ncache=${join(globalHome, ".npm")}\n`);
     const globalEnv = { ...cleanEnv(globalHome), SECRETS_MASTER_KEY: randomBytes(32).toString("base64") };
     run("npm", ["install", "--global", "--prefix", prefix, "--no-audit", "--no-fund", `${CLI_NAME}@${cli.version}`], { cwd: globalCwd, env: globalEnv, timeout: 900_000 });
     const globalRoot = join(prefix, process.platform === "win32" ? "node_modules" : "lib/node_modules", "@nodetool-ai/cli");
