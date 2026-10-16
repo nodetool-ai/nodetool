@@ -44,6 +44,7 @@ import {
 } from "../../../serverState/useStylePresets";
 import { useImageModelsByProvider } from "../../../hooks/useModelsByProvider";
 import { useLastModelStore } from "../../../stores/lastModelStore";
+import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import { estimateGenerationCost } from "../../../utils/generationCostEstimate";
 import { useGenerateVariations } from "../../../hooks/sketch/useGenerateVariations";
@@ -116,6 +117,9 @@ export function useLookStep(): LookStepControls {
   const setSetup = useSketchStore((state) => state.setSetup);
   const remembered = useLastModelStore((state) => state.byKind.image);
   const remember = useLastModelStore((state) => state.remember);
+  const imageDefault = useModelPreferencesStore(
+    (state) => state.defaults["image_model"]
+  );
   // The tiles are shipped presets filed under project "default", so the
   // active project's entities alone would never find the chosen one.
   const { data: projectEntities, isLoading: entitiesLoading } = useEntities();
@@ -134,8 +138,11 @@ export function useLookStep(): LookStepControls {
   const persisted = useMemo(() => readLookSelection(setup), [setup]);
   // The document wins over the remembered pick: it is what this image was set
   // up with, while `lastModelStore` is what the creator used somewhere else.
-  const provider = persisted.provider || (remembered?.provider ?? "");
-  const model = persisted.model || (remembered?.model ?? "");
+  // With neither, the Settings default image model applies, which connecting
+  // a provider fills in.
+  const provider =
+    persisted.provider || remembered?.provider || imageDefault?.provider || "";
+  const model = persisted.model || remembered?.model || imageDefault?.id || "";
 
   const setStyleChoice = useCallback(
     (choice: string) => setSetup(styleChoicePatch(choice)),

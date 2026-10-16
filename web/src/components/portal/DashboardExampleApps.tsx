@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import useOnboardingStore from "../../stores/OnboardingStore";
@@ -11,6 +11,7 @@ import {
   listExampleApps,
   type ExampleAppSummary
 } from "../../utils/exampleApps";
+import { runsAsIsFirst } from "../../utils/exampleNeeds";
 import {
   AutoGrid,
   EditorButton,
@@ -212,7 +213,10 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
     staleTime: Infinity
   });
 
-  const apps = data ?? [];
+  const apps = useMemo(
+    () => runsAsIsFirst(data ?? [], (app) => app.needs),
+    [data]
+  );
   const countLabel = `${apps.length} app${apps.length === 1 ? "" : "s"}`;
   const visibleApps = compact ? apps.slice(0, 4) : apps;
 

@@ -242,9 +242,13 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
           align="center"
           sx={{ flex: 1, px: 2 }}
         >
+          {/* UX research study 4: this line used to point at another menu,
+              and newcomers lost several actions finding "New chat". */}
           <EmptyState
             title="No conversations yet"
-            description="Start a chat from the workspace New menu."
+            description="Ask a question to start one."
+            actionText="New chat"
+            onAction={() => void handleNewThread()}
           />
         </FlexColumn>
       ) : (

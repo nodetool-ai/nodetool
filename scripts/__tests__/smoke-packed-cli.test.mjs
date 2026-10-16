@@ -44,12 +44,34 @@ it("keeps the required core-smoke status dependent on verification and the indep
   for (const planned of ["success", "failure", "cancelled", "skipped"]) {
     for (const verification of ["success", "failure", "cancelled", "skipped"]) {
       for (const installed of ["success", "failure", "cancelled", "skipped"]) {
-        const result = spawnSync("bash", ["-c", guard.steps[0].run], {
-          env: { ...process.env, PLAN_RESULT: planned, VERIFICATION_RESULT: verification, PACKED_INSTALL_RESULT: installed }
-        });
-        expect(result.status).toBe(planned === "success" && verification === "success" && installed === "success" ? 0 : 1);
+        for (const qualityGate of ["false", "true"]) {
+          const result = spawnSync("bash", ["-c", guard.steps[0].run], {
+            env: { ...process.env, PLAN_RESULT: planned, VERIFICATION_RESULT: verification, PACKED_INSTALL_RESULT: installed, QUALITY_GATE_VERIFIES: qualityGate }
+          });
+          const verified = (planned === "success" && verification === "success")
+            || (qualityGate === "true" && planned === "skipped" && verification === "skipped");
+          expect(result.status, `${planned} ${verification} ${installed} ${qualityGate}`).toBe(installed === "success" && verified ? 0 : 1);
+        }
       }
     }
+  }
+});
+
+it("leaves verification to the Quality Gate only on pull requests into main", () => {
+  const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
+  expect(workflow.jobs["verification-plan"].if).toBe("github.event_name != 'pull_request' || github.base_ref != 'main'");
+  expect(workflow.jobs.verification.needs).toBe("verification-plan");
+  expect(workflow.jobs.verification.if).toBeUndefined();
+  expect(workflow.jobs["core-smoke"].steps[0].env.QUALITY_GATE_VERIFIES)
+    .toBe("${{ github.event_name == 'pull_request' && github.base_ref == 'main' }}");
+  // The skip is safe only while Test runs on every pull request into main
+  // and its Quality Gate runs each command verification would.
+  const test = yaml.load(readFileSync(new URL("../../.github/workflows/test.yml", import.meta.url), "utf8"));
+  expect(test.on.pull_request).toEqual({ branches: ["main"] });
+  expect(test.jobs.quality.uses).toBe("./.github/workflows/quality-checks.yml");
+  const quality = readFileSync(new URL("../../.github/workflows/quality-checks.yml", import.meta.url), "utf8");
+  for (const command of ["npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base", "npm run backend:smoke", "npm run test:scripts", "npx turbo run test"]) {
+    expect(quality, command).toContain(command);
   }
 });
 

@@ -38,7 +38,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # A pull request into `main` also runs the Test workflow, whose Quality
+  # Gate runs these same checks in parallel shards: the affected suites,
+  # typecheck, lint, harness gate and backend smoke. Running them again
+  # here costs a second set of runners for the same selection. Stacked pull
+  # requests into other branches get no Test run, so they still verify
+  # here, as do manual runs. Skipping the plan skips the verification
+  # matrix that needs it.
   verification-plan:
+    if: github.event_name != 'pull_request' || github.base_ref != 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     outputs:
@@ -147,9 +155,18 @@ jobs:
           PLAN_RESULT: ${{ needs.verification-plan.result }}
           VERIFICATION_RESULT: ${{ needs.verification.result }}
           PACKED_INSTALL_RESULT: ${{ needs.packed-install.result }}
+          QUALITY_GATE_VERIFIES: ${{ github.event_name == 'pull_request' && github.base_ref == 'main' }}
         run: |
-          if [ "$PLAN_RESULT" != "success" ] || [ "$VERIFICATION_RESULT" != "success" ] || [ "$PACKED_INSTALL_RESULT" != "success" ]; then
-            echo "Packed CLI verification or installation did not pass."
+          if [ "$PACKED_INSTALL_RESULT" != "success" ]; then
+            echo "Packed CLI installation did not pass."
+            exit 1
+          fi
+          if [ "$PLAN_RESULT" = "skipped" ] && [ "$VERIFICATION_RESULT" = "skipped" ] && [ "$QUALITY_GATE_VERIFIES" = "true" ]; then
+            echo "The Test workflow's Quality Gate verifies this pull request into main."
+            exit 0
+          fi
+          if [ "$PLAN_RESULT" != "success" ] || [ "$VERIFICATION_RESULT" != "success" ]; then
+            echo "Packed CLI verification did not pass."
             exit 1
           fi
   release-pins:
