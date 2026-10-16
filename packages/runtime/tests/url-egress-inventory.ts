@@ -679,6 +679,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "Every gemini.google.com request runs in the user's Gemini tab, and the browser itself loads generated images (lh3.googleusercontent.com/gg-dl) and videos (contribution.usercontent.google.com) that the Gemini response named. A chat input image given as a URL is fetched server-side through fetchExternalMedia, which checks each redirect hop."
   },
   {
+    file: "packages/game-renderer/src/standalone-assets.ts",
+    owner: "verified standalone game media",
+    inputSource: "fixed",
+    schemes: ["relative"],
+    authScope: "the page's own cookies",
+    redirects: "none",
+    dnsRebinding: "n/a",
+    policy: "browser",
+    guardedBy: [],
+    note: "The browser fetches only ./assets/<binding SHA-256>.<allowed media extension>, rejects redirects, and verifies the response digest before supplying bytes or Blob URLs to player consumers. No server socket opens."
+  },
+  {
     file: "packages/game-renderer/src/standalone-player.ts",
     owner: "standalone game player assets",
     inputSource: "fixed",

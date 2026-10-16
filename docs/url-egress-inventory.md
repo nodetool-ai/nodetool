@@ -237,6 +237,9 @@ at 24 hours.
 - `packages/deploy/src/admin-client.ts` — the server being deployed.
 
 **Browser-side.** The socket belongs to the viewer's browser, not the server:
+`packages/game-renderer/src/standalone-assets.ts` (only digest-named
+`./assets/` paths with allowed media extensions, redirects rejected and response
+bytes verified against the binding's SHA-256 before use),
 `packages/game-renderer/src/standalone-player.ts` (fixed relative game document
 and bundled `./assets/` paths),
 `packages/game-renderer/src/standalone-player3d.ts` (fixed relative `game.json`
@@ -248,9 +251,9 @@ app, or bundled `./assets/` paths in a standalone export),
 `packages/image-nodes/src/nodes/image-io.ts` (behind `!IS_NODE`),
 `packages/core-nodes/src/nodes/fake-media.ts`,
 `packages/browser/src/capture.ts` (inside `page.evaluate`).
-The standalone 3D export applies `connect-src 'self'` CSP. The browser follows
-redirects subject to that same-origin policy and its own network restrictions.
-These fetches open no server-side socket.
+The standalone 3D export applies `connect-src 'self'` CSP. Where redirects are
+allowed, the browser follows them subject to that policy and its own network
+restrictions. These fetches open no server-side socket.
 
 ## Adding a surface
 
