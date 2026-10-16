@@ -4,6 +4,8 @@ import { GameParticlePass3D } from "../../src/particles/pass3d.js";
 import type { ParticleView } from "../../src/particles/simulator.js";
 import { RenderPipeline3D } from "../../src/renderer3d/pipeline.js";
 import { GamePostProcessor3D } from "../../src/renderer3d/passes/post-processing.js";
+import { createGameRenderer3D, createGameEditorPasses3D } from "../../src/renderer3d/index.js";
+import { blockoutFrame } from "./game3d.js";
 
 export async function compareParticleOrder(): Promise<{
   comparisons: { mode: string; reverse: boolean; cameraSide: number; differences: number; referenceLitPixels: number; calls: number }[];
@@ -109,4 +111,50 @@ export async function compareParticleOrder(): Promise<{
         backend: { userAgent: navigator.userAgent, renderer: String(gl.getParameter(debug?.UNMASKED_RENDERER_WEBGL ?? gl.RENDERER)) } };
     } finally { pass.dispose(); geometry.dispose(); material.dispose(); }
   } finally { referencePostProcessor.dispose(); postProcessor.dispose(); renderer.dispose(); }
+}
+
+/** Holds the real render pipeline while the submitted source field changes. */
+export async function checkSubmittedParticles(): Promise<{ differences: number; triangles: number; alphas: number[] }> {
+  const canvas = document.createElement("canvas");
+  let enter = (): void => {};
+  let release = (): void => {};
+  const entered = new Promise<void>(resolve => { enter = resolve; });
+  const held = new Promise<void>(resolve => { release = resolve; });
+  let first = true;
+  const renderer = await createGameRenderer3D({ canvas, preserveDrawingBuffer: true, editorPasses: (pipeline, host) => {
+    pipeline.register({ name: "hold-submitted-frame", order: -2, render: async () => {
+      if (first) { first = false; enter(); await held; }
+    } });
+    return createGameEditorPasses3D(pipeline, host);
+  } });
+  renderer.resize(64, 64);
+  const frame = { ...blockoutFrame(), entities: [] };
+  const particle: ParticleView = { entityId: "fx", emitterId: "one", emitter: gameParticleEmitter.parse({ id: "one", unlit: true }),
+    x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, size: 2, rotation: 0, r: 1, g: 0, b: 0, opacity: 1, life: 0 };
+  let live = true;
+  const alphas: number[] = [];
+  const field = { forEachParticle: (visit: (particle: Readonly<ParticleView>) => void, alpha = 1): void => {
+    alphas.push(alpha);
+    if (live) { visit({ ...particle, x: alpha - 0.5 }); }
+  } };
+  const read = (): Uint8Array => {
+    const gl = canvas.getContext("webgl2");
+    if (!gl) { throw new Error("Submitted-particle control has no WebGL2 context"); }
+    const bytes = new Uint8Array(64 * 64 * 4);
+    gl.readPixels(0, 0, 64, 64, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
+    return bytes;
+  };
+  try {
+    const pending = renderer.render(frame, 0.5, field);
+    await entered;
+    live = false;
+    release();
+    const stats = await pending;
+    const actual = read();
+    await renderer.render(frame, 1, { forEachParticle: visit => visit(particle) });
+    const reference = read();
+    let differences = 0;
+    for (let index = 0; index < actual.length; index++) { if (actual[index] !== reference[index]) { differences++; } }
+    return { differences, triangles: stats.triangles, alphas };
+  } finally { release(); renderer.dispose(); }
 }

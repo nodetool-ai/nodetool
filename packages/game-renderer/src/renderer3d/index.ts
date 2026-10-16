@@ -14,6 +14,7 @@ import { GamePostProcessor3D } from "./passes/post-processing.js";
 import type { GameEditorPasses3D, GameEditorPassesFactory3D, GameEditorView3D } from "./passes/editor.js";
 import { GameShadows3D } from "./shadows/index.js";
 import { GameParticlePass3D } from "../particles/pass3d.js";
+import { gameParticleFieldFromSamples3D, gameParticleSamples3D } from "../particles/particles3d.js";
 import type { GameParticleField } from "../particles/render2d.js";
 export { interpolateGameTransform3D } from "./scene-sync.js";
 export { sampleGameAnimation3D, sampleGameAnimationPose3D } from "./animation/index.js";
@@ -247,7 +248,8 @@ class ThreeGameRenderer implements GameRenderer3D {
     return null;
   }
   render(frame: GameRenderFrame3D, interpolation = 1, particles?: GameParticleField): Promise<GameRendererStats3D> {
-    const promise = this.renderTail.then(() => this.renderFrame(frame, interpolation, particles ?? null));
+    const submitted = particles ? gameParticleFieldFromSamples3D(gameParticleSamples3D(particles, interpolation), frame) : null;
+    const promise = this.renderTail.then(() => this.renderFrame(frame, interpolation, submitted));
     this.renderTail = promise.then(() => undefined, () => undefined);
     return promise;
   }

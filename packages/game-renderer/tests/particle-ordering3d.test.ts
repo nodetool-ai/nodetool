@@ -4,12 +4,12 @@ import { join, resolve } from "node:path";
 import { build } from "esbuild";
 import { chromium } from "@playwright/test";
 import { expect, it } from "vitest";
-import type { compareParticleOrder } from "./fixtures/particle-ordering3d.js";
+import type { compareParticleOrder, checkSubmittedParticles } from "./fixtures/particle-ordering3d.js";
 
-declare global { interface Window { compareParticleOrder: typeof compareParticleOrder; } }
+declare global { interface Window { compareParticleOrder: typeof compareParticleOrder; checkSubmittedParticles: typeof checkSubmittedParticles; } }
 
 it("matches individually sorted WebGL particle draws and counts submitted soft depth work", async () => {
-  const bundle = await build({ stdin: { contents: 'import {compareParticleOrder} from "./tests/fixtures/particle-ordering3d.ts"; window.compareParticleOrder = compareParticleOrder;',
+  const bundle = await build({ stdin: { contents: 'import {compareParticleOrder,checkSubmittedParticles} from "./tests/fixtures/particle-ordering3d.ts"; window.compareParticleOrder = compareParticleOrder; window.checkSubmittedParticles = checkSubmittedParticles;',
     resolveDir: resolve("."), sourcefile: "particle-ordering3d.ts" }, bundle: true, format: "iife", platform: "browser", write: false, conditions: ["nodetool-dev"] });
   const script = bundle.outputFiles?.[0];
   if (!script) { throw new Error("Particle renderer bundle is missing"); }
@@ -31,6 +31,7 @@ it("matches individually sorted WebGL particle draws and counts submitted soft d
       expect(comparison.calls).toBe(comparison.mode === "billboards" ? 1 : 3);
     }
     expect(result.soft).toEqual({ calls: 3, triangles: 26 });
+    expect(await page.evaluate(() => window.checkSubmittedParticles())).toEqual({ differences: 0, triangles: 4, alphas: [0.5] });
     expect(errors).toEqual([]);
   } finally { await browser.close(); }
 });

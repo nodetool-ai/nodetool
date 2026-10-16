@@ -67,13 +67,13 @@ export interface GameParticleSample3D {
 }
 
 /** Copies every live particle of a field, in the field's order. */
-export function gameParticleSamples3D(field: GameParticleField): GameParticleSample3D[] {
+export function gameParticleSamples3D(field: GameParticleField, interpolation = 1): GameParticleSample3D[] {
   const samples: GameParticleSample3D[] = [];
   field.forEachParticle((particle) => {
     samples.push({ emitter: particle.emitter, entityId: particle.entityId, emitterId: particle.emitterId, x: particle.x, y: particle.y, z: particle.z,
       vx: particle.vx, vy: particle.vy, vz: particle.vz, size: particle.size, rotation: particle.rotation,
       r: particle.r, g: particle.g, b: particle.b, opacity: particle.opacity, life: particle.life });
-  });
+  }, interpolation);
   return samples;
 }
 
@@ -83,9 +83,11 @@ export function gameParticleSamples3D(field: GameParticleField): GameParticleSam
  */
 export function gameParticleFieldFromSamples3D(samples: readonly GameParticleSample3D[], frame: GameRenderFrame3D): GameParticleField {
   const emitters = new Map<string, GameParticleEmitter>();
-  for (const entity of frame.entities) {
-    for (const emitter of entity.particles?.emitters ?? []) {
-      emitters.set(`${entity.entityId}\u0000${emitter.id}`, emitter);
+  if (samples.some(sample => sample.emitter === undefined)) {
+    for (const entity of frame.entities) {
+      for (const emitter of entity.particles?.emitters ?? []) {
+        emitters.set(`${entity.entityId}\u0000${emitter.id}`, emitter);
+      }
     }
   }
   return {
