@@ -128,18 +128,27 @@ describe("game export download", () => {
     }
   });
 
-  it.skipIf(process.platform === "win32")("streams cargo's output and copies the executable into the build", async () => {
+  it.skipIf(process.platform === "win32").each([true, false])("streams Cargo output and requires its executable artifact (reported=%s)", async (reported) => {
     const created = await createCaller(makeCtx(USER_ID)).games.create({ projectId: PROJECT_ID, name: "Cave Run" });
     const bin = join(workspaceDir, "bin");
     await mkdir(bin);
-    await writeFile(join(bin, "cargo"), [
-      "#!/bin/sh",
-      "echo '   Compiling cave-run v1.0.0'",
-      "echo 'warning: unused variable' >&2",
-      "mkdir -p \"$CARGO_TARGET_DIR/release\"",
-      "printf 'game binary' > \"$CARGO_TARGET_DIR/release/cave-run\"",
-      "echo '    Finished release'"
-    ].join("\n"));
+    await writeFile(join(bin, "cargo"), `#!${process.execPath}
+      const {mkdir,realpath,writeFile} = require("node:fs/promises");
+      const {join} = require("node:path");
+      (async () => {
+        console.log("   Compiling cave-run v1.0.0");
+        console.error("warning: unused variable");
+        const output = join(process.env.CARGO_TARGET_DIR, "release");
+        await mkdir(output, {recursive:true});
+        const executable = join(output, "cave-run");
+        await writeFile(executable, "game binary");
+        if (${reported}) {
+          console.log(JSON.stringify({reason:"compiler-artifact",manifest_path:await realpath("Cargo.toml"),
+            target:{name:"cave-run",kind:["bin"]},executable}));
+        }
+        console.log("    Finished release");
+      })().catch(error => { console.error(error); process.exitCode = 1; });
+    `);
     await chmod(join(bin, "cargo"), 0o755);
     process.env["PATH"] = `${bin}:${savedEnv["PATH"] ?? ""}`;
     const app = await buildServer(USER_ID);
@@ -152,6 +161,11 @@ describe("game export download", () => {
       const lines = events.filter((event) => event.type === "log").map((event) => event.line);
       expect(lines).toEqual(expect.arrayContaining(["   Compiling cave-run v1.0.0", "warning: unused variable", "    Finished release"]));
       const done = events.at(-1)!;
+      if (!reported) {
+        expect(done).toMatchObject({ type: "error", detail: expect.stringContaining("executable") });
+        expect(events.some((event) => event.type === "done")).toBe(false);
+        return;
+      }
       expect(done).toMatchObject({ type: "done" });
       expect(done.binary_path).toBe(join(done.project_path!, "bin", "cave-run"));
       expect(await readFile(done.binary_path!, "utf8")).toBe("game binary");
