@@ -50,6 +50,16 @@ export interface TouchControlsOptions {
   readonly onChange: (state: TouchInputState) => void;
   /** Called with drag movement in pixels on the look zone. */
   readonly onLook?: (x: number, y: number) => void;
+  readonly active?: () => boolean;
+  /** A HUD press owns the whole pointer sequence before a zone or action button captures it. */
+  readonly claimPointer?: (event: PointerEvent) => boolean;
+  readonly releasePointer?: (pointerId: number) => void;
+}
+
+export interface GameTouchControls {
+  /** Drops held fingers without unmounting the controls. */
+  release(): void;
+  dispose(): void;
 }
 
 /** Styles for the touch layer, for players whose page does not already define them. */
@@ -69,12 +79,55 @@ export const TOUCH_CONTROLS_CSS = ".touch-layer{position:fixed;inset:0;z-index:2
  * A floating stick on the left half of the screen and action buttons on the right.
  * The stick appears where the thumb lands, so it works for any hand position.
  */
-export function mountTouchControls(root: HTMLElement, options: TouchControlsOptions): () => void {
+export function mountTouchControls(root: HTMLElement, options: TouchControlsOptions): GameTouchControls {
   const { layout } = options;
   let stick: { x: number; y: number } | undefined;
   const held = new Set<string>();
   const emit = (): void => { options.onChange({ stick, buttons: new Set(held) }); };
   const cleanups: Array<() => void> = [];
+  const resets: Array<() => void> = [];
+  const ends: Array<(event: PointerEvent) => void> = [];
+  const hudPointers = new Set<number>();
+  const release = (): void => {
+    for (const pointerId of hudPointers) { options.releasePointer?.(pointerId); }
+    hudPointers.clear();
+    for (const reset of resets) { reset(); }
+    held.clear();
+    stick = undefined;
+    emit();
+  };
+  const claim = (event: PointerEvent): void => {
+    if (event.pointerType === "mouse") { return; }
+    if (options.active?.() === false) {
+      release();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (!options.claimPointer?.(event)) { return; }
+    hudPointers.add(event.pointerId);
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof root.setPointerCapture === "function") {
+      try { root.setPointerCapture(event.pointerId); } catch {
+        // Window release still ends the HUD hold if the pointer lifted before capture.
+      }
+    }
+  };
+  const end = (event: PointerEvent): void => {
+    if (hudPointers.delete(event.pointerId)) { options.releasePointer?.(event.pointerId); }
+    for (const finish of ends) { finish(event); }
+  };
+  root.addEventListener("pointerdown", claim, { capture: true });
+  window.addEventListener("pointerup", end);
+  window.addEventListener("pointercancel", end);
+  for (const type of ["blur", "resize", "orientationchange"] as const) { window.addEventListener(type, release); }
+  cleanups.push(() => {
+    root.removeEventListener("pointerdown", claim, { capture: true });
+    window.removeEventListener("pointerup", end);
+    window.removeEventListener("pointercancel", end);
+    for (const type of ["blur", "resize", "orientationchange"] as const) { window.removeEventListener(type, release); }
+  });
   // A mouse that moves over the page switches the layer to pass-through. The next touch or pen switches it back.
   const pointerMode = (event: PointerEvent): void => {
     const mode = event.pointerType === "mouse" ? "mouse" : "touch";
@@ -88,8 +141,12 @@ export function mountTouchControls(root: HTMLElement, options: TouchControlsOpti
     delete root.dataset.pointer;
   });
   const listen = <K extends keyof HTMLElementEventMap>(target: HTMLElement, type: K, handler: (event: HTMLElementEventMap[K]) => void): void => {
-    target.addEventListener(type, handler, { passive: false });
-    cleanups.push(() => target.removeEventListener(type, handler));
+    const guarded = (event: HTMLElementEventMap[K]): void => {
+      if (options.active?.() === false) { release(); return; }
+      handler(event);
+    };
+    target.addEventListener(type, guarded, { passive: false });
+    cleanups.push(() => target.removeEventListener(type, guarded));
   };
 
   if (layout.look && options.onLook) {
@@ -101,6 +158,8 @@ export function mountTouchControls(root: HTMLElement, options: TouchControlsOpti
     let lastX = 0;
     let lastY = 0;
     const end = (event: PointerEvent): void => { if (event.pointerId === pointerId) pointerId = undefined; };
+    resets.push(() => { pointerId = undefined; });
+    ends.push(end);
     listen(zone, "pointerdown", (event) => {
       if (event.pointerType === "mouse") return;
       event.preventDefault();
@@ -155,6 +214,12 @@ export function mountTouchControls(root: HTMLElement, options: TouchControlsOpti
       stick = undefined;
       emit();
     };
+    resets.push(() => {
+      pointerId = undefined;
+      base.classList.remove("active");
+      knob.style.transform = "";
+    });
+    ends.push(release);
     listen(zone, "pointerdown", (event) => {
       if (event.pointerType === "mouse") return;
       event.preventDefault();
@@ -184,15 +249,19 @@ export function mountTouchControls(root: HTMLElement, options: TouchControlsOpti
     button.className = "touch-button";
     button.textContent = label;
     button.setAttribute("aria-label", action);
-    const up = (): void => {
-      button.classList.remove("active");
-      held.delete(action);
+    const pointers = new Set<number>();
+    const up = (event: PointerEvent): void => {
+      if (!pointers.delete(event.pointerId)) { return; }
+      if (pointers.size === 0) { button.classList.remove("active"); held.delete(action); }
       emit();
     };
+    resets.push(() => { pointers.clear(); button.classList.remove("active"); });
+    ends.push(up);
     listen(button, "pointerdown", (event) => {
       if (event.pointerType === "mouse") return;
       event.preventDefault();
       button.setPointerCapture(event.pointerId);
+      pointers.add(event.pointerId);
       button.classList.add("active");
       held.add(action);
       emit();
@@ -203,10 +272,12 @@ export function mountTouchControls(root: HTMLElement, options: TouchControlsOpti
     buttons.append(button);
   }
   root.append(buttons);
-  return () => {
-    cleanups.forEach((cleanup) => cleanup());
-    root.replaceChildren();
-    held.clear();
-    stick = undefined;
+  return {
+    release,
+    dispose: () => {
+      release();
+      cleanups.forEach((cleanup) => cleanup());
+      root.replaceChildren();
+    }
   };
 }
