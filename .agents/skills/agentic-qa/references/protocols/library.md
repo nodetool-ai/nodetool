@@ -182,7 +182,10 @@ participant grouped with a project or a Library folder.
 - A project: the project selector's "New project" asks for a name and makes
   the project active. Documents made there belong to it.
 
-**Known behavior.** Library folders hold files, and the Documents panel lists
+**Known behavior.** Until UX study 6, a folder made from the Library panel
+stayed hidden after "Create" behind a "Show folders" toggle, and the default
+name "New Folder" was not selected. The study 6 PR shows the folder tree after
+"Create" and selects the name. Library folders hold files, and the Documents panel lists
 documents by project. A grouping that mixes a workflow and a text file
 therefore spans two surfaces.
 

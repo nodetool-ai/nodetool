@@ -1386,6 +1386,31 @@ describe("NewProjectSurface", () => {
     expect(createProject).not.toHaveBeenCalled();
   });
 
+  // Study 6: a pill then a guided card put "/game-direction" in the flow's
+  // idea field and its tab name. The flow takes the ask, not the command.
+  it("leaves a starter's command out of the idea a guided card carries", async () => {
+    renderSurface();
+    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    await userEvent.type(prompt, "A spot for our desk lamp");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Launch commercial" })
+    );
+    expect(prompt).toHaveValue("/launch-commercial A spot for our desk lamp");
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: /^Storyboard From a sentence to a rendered board/
+      })
+    );
+
+    await waitFor(() => expect(createStoryboard).toHaveBeenCalled());
+    expect(createStoryboard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "A spot for our desk lamp",
+        document: expect.objectContaining({ brief: "A spot for our desk lamp" })
+      })
+    );
+  });
+
   it("opens the storyboard flow on the card, carrying the typed prompt", async () => {
     renderSurface();
     await userEvent.type(

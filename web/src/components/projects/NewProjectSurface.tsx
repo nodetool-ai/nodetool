@@ -165,6 +165,7 @@ import {
   formatEstimate,
   invokedStarter,
   projectNameFromPrompt,
+  promptWithoutStarter,
   rankStarters,
   starterLabel,
   toggleStarterInPrompt,
@@ -631,6 +632,14 @@ const NewProjectSurface = ({
     [prompt, starters]
   );
 
+  // A guided flow takes the prompt as its idea, without the `/name` a starter
+  // pill wrote: the flow has no use for it, and it would land in the idea
+  // field and the tab name.
+  const flowPrompt = useMemo(
+    () => (starter ? promptWithoutStarter(prompt, starter.name) : prompt),
+    [prompt, starter]
+  );
+
   // The folded row still shows the picked starter, wherever it ranks, so the
   // pill that is lit is never one that is hidden.
   const visibleStarters = useMemo(() => {
@@ -991,7 +1000,7 @@ const NewProjectSurface = ({
       if (starting) {
         return;
       }
-      const text = prompt.trim();
+      const text = flowPrompt.trim();
       const name =
         text.length > 0 ? projectNameFromPrompt(text, null) : "New storyboard";
       setStarting(true);
@@ -1028,7 +1037,7 @@ const NewProjectSurface = ({
       createStoryboard,
       entityIds,
       noteUncarriedContext,
-      prompt,
+      flowPrompt,
       reportEntryFailure,
       starting
     ]
@@ -1041,7 +1050,7 @@ const NewProjectSurface = ({
       if (starting) {
         return;
       }
-      const text = prompt.trim();
+      const text = flowPrompt.trim();
       const name =
         text.length > 0 ? projectNameFromPrompt(text, null) : "New video";
       setStarting(true);
@@ -1118,7 +1127,7 @@ const NewProjectSurface = ({
       droppedFiles,
       entityIds,
       noteUncarriedContext,
-      prompt,
+      flowPrompt,
       reportEntryFailure,
       seedTimelineDetail,
       selectedEntities,
@@ -1131,7 +1140,7 @@ const NewProjectSurface = ({
       if (starting) {
         return;
       }
-      const text = prompt.trim();
+      const text = flowPrompt.trim();
       const name =
         text.length > 0 ? projectNameFromPrompt(text, null) : "New script";
       setStarting(true);
@@ -1169,7 +1178,7 @@ const NewProjectSurface = ({
       droppedFiles,
       entityIds,
       noteUncarriedContext,
-      prompt,
+      flowPrompt,
       reportEntryFailure,
       starting
     ]
@@ -1183,7 +1192,7 @@ const NewProjectSurface = ({
       if (starting) {
         return;
       }
-      const text = prompt.trim();
+      const text = flowPrompt.trim();
       const name =
         text.length > 0 ? projectNameFromPrompt(text, null) : "New image";
       setStarting(true);
@@ -1233,7 +1242,7 @@ const NewProjectSurface = ({
       hasHomeTab,
       noteUncarriedContext,
       openTab,
-      prompt,
+      flowPrompt,
       reportEntryFailure,
       showDocumentProject,
       starting
@@ -1245,7 +1254,7 @@ const NewProjectSurface = ({
       if (starting) {
         return;
       }
-      const text = prompt.trim();
+      const text = flowPrompt.trim();
       const name =
         text.length > 0 ? projectNameFromPrompt(text, null) : "New workflow";
       setStarting(true);
@@ -1279,7 +1288,7 @@ const NewProjectSurface = ({
       applySetupTarget,
       createWorkflow,
       noteUncarriedContext,
-      prompt,
+      flowPrompt,
       reportEntryFailure,
       starting
     ]
@@ -1290,7 +1299,7 @@ const NewProjectSurface = ({
       if (starting) {
         return;
       }
-      const text = prompt.trim();
+      const text = flowPrompt.trim();
       const name =
         text.length > 0 ? projectNameFromPrompt(text, null) : "New game";
       setStarting(true);
@@ -1356,7 +1365,7 @@ const NewProjectSurface = ({
       gameDimension,
       noteUncarriedContext,
       openTab,
-      prompt,
+      flowPrompt,
       reportEntryFailure,
       showDocumentProject,
       starting
@@ -1368,7 +1377,7 @@ const NewProjectSurface = ({
       if (starting) {
         return;
       }
-      const text = prompt.trim();
+      const text = flowPrompt.trim();
       const name =
         text.length > 0 ? projectNameFromPrompt(text, null) : "New entity";
       setStarting(true);
@@ -1405,7 +1414,7 @@ const NewProjectSurface = ({
       applySetupTarget,
       droppedFiles,
       noteUncarriedContext,
-      prompt,
+      flowPrompt,
       reportEntryFailure,
       starting
     ]
@@ -1414,7 +1423,7 @@ const NewProjectSurface = ({
   const startSpeechFlow = useCallback(
     async (projectId: string) => {
       try {
-        await openSpeechChat(projectId, prompt.trim());
+        await openSpeechChat(projectId, flowPrompt.trim());
         noteUncarriedContext("chat", { entities: false, references: false });
         closeTab(
           tabId(flowRef ? "guided-flow" : "project-new", flowRef ?? PROJECT_NEW_REF)
@@ -1423,7 +1432,7 @@ const NewProjectSurface = ({
         reportEntryFailure("chat", error);
       }
     },
-    [closeTab, flowRef, noteUncarriedContext, prompt, reportEntryFailure]
+    [closeTab, flowRef, flowPrompt, noteUncarriedContext, reportEntryFailure]
   );
 
   const runDestinationFlow = useCallback(
@@ -1959,7 +1968,7 @@ const NewProjectSurface = ({
           <EntitySetupHost
             projectId={setupTarget.projectId}
             draftKey={flowRef}
-            initialDescriptor={setupTarget.initialDescriptor ?? prompt.trim()}
+            initialDescriptor={setupTarget.initialDescriptor ?? flowPrompt.trim()}
             initialAssetId={setupTarget.initialAssetId}
             onFinish={handleEntityFinished}
             onChangeFlow={handleChangeFlow}
@@ -1970,7 +1979,7 @@ const NewProjectSurface = ({
         <EntitySetupHost
           projectId={setupTarget.projectId}
           draftKey={flowRef}
-          initialDescriptor={setupTarget.initialDescriptor ?? prompt.trim()}
+          initialDescriptor={setupTarget.initialDescriptor ?? flowPrompt.trim()}
           onFinish={handleEntityFinished}
           onChangeFlow={handleChangeFlow}
         />

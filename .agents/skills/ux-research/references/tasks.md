@@ -57,9 +57,15 @@ never put it in a packet.
 | `draw-by-hand` | You want a simple drawing of a house with the sun above it, drawn by your own hand, not made by the app. Draw it here, then close it and open it again. | empty | 20 | Drawing by hand and keeping it |
 | `continue-chat` | Some time ago, someone on this computer asked the app for meal ideas without meat. Find that conversation and ask one more question in it, until you see the answer. | seeded-demo | 15 | Finding and continuing an old conversation |
 | `separate-work` | You are about to start work for a new client, a flower shop. Keep their work apart from everything already here, and start one thing for them. | seeded-demo | 15 | Keeping a new piece of work apart |
+| `make-tool` | A colleague keeps asking you to turn product names into a one-line description for the shop's website. Make a small page they can use on their own: they type a product name, press a button, and read a description. Then try it once with a product of your own. | empty | 30 | Making a tool for someone else |
+| `photo-video` | You have two photos from a weekend away. Put them one after the other in a short video, and play the video from the start. | empty | 25 | Putting your own photos into a video |
+| `make-game` | You want a small game you can play here, made with the app's help. Make one, then play it for a moment. | empty | 25 | Making a game |
+| `keep-answer` | Ask the app to write a short thank-you note to a neighbour who watered your plants. Keep the note somewhere in the app so you can find it again later, then open it from there. | empty | 15 | Keeping an answer from the assistant |
+| `sort-photos` | You have three photos: two from a beach trip and one from a forest walk. Put them into this app so that the two beach photos are kept together on their own, apart from the forest photo, under a name you choose. | empty | 20 | Grouping your own files under a name |
 
-`add-key` and `read-aloud` need a test key in `credentials`. `add-photo` and `change-photo`
-need an image in `assets`, and `ask-file` a text file. `switch-model` on `seeded-demo` has every provider connected, so it
+`add-key`, `read-aloud`, `make-tool`, `make-game` and `keep-answer` need a test key in
+`credentials`. `add-photo` and `change-photo` need an image in `assets`, `photo-video` two
+photos of different scenes, `sort-photos` three photos of two trips, and `ask-file` a text file. `switch-model` on `seeded-demo` has every provider connected, so it
 studies the choice and not the setup.
 
 ## End states and routes
@@ -95,6 +101,11 @@ studies the choice and not the setup.
 | `draw-by-hand` | A sketch with strokes the participant drew is open again after its tab was closed. | Whether it found a blank drawing surface or a generator first, the first stroke's visibility, and where it reopened the drawing. | [sketch](../../agentic-qa/references/protocols/creative.md#sketch) |
 | `continue-chat` | A new reply under the participant's question in "Vegan recipe suggestions". | Which list it searched, and whether it matched the title without the task's words. | [chat-find](../../agentic-qa/references/protocols/chat.md#chat-find) |
 | `separate-work` | A new project exists, and something started in it (a document or a chat) is open. | Whether it read "Project" or "Personal" as the place to separate work, or made a folder or a tag instead. | [projects](../../agentic-qa/references/protocols/library.md#projects) |
+| `make-tool` | A mini app with a text input, a button bound to a run, and an output, run once from its own run view with the participant's product name. | Whether it found "New app", and whether it bound the button to a workflow without help. | [build-app](../../agentic-qa/references/protocols/creative.md#build-app) |
+| `photo-video` | A timeline with both photos in order, and a screenshot during or after playback from the start. | Where the first drop landed, and whether a drop cut the clip under it. | [timeline](../../agentic-qa/references/protocols/creative.md#timeline) |
+| `make-game` | A game view that changed in response to the participant's keys or clicks. | Where it looked first, and whether it used "Start with a blank room" or an example. | [game](../../agentic-qa/references/protocols/creative.md#game) |
+| `keep-answer` | The note reopened from a list, a conversation or a file. Record which. | Whether it looked for a save action on the reply, or trusted the conversation list. | [chat](../../agentic-qa/references/protocols/chat.md#chat) |
+| `sort-photos` | Both beach photos inside one named folder (or another named group), and the forest photo outside it. | Whether the new folder was on screen after it was made, and whether it used a folder or a project. | [organize](../../agentic-qa/references/protocols/library.md#organize) |
 
 Study 2 found two tasks whose end state asks more than their text:
 `switch-model` ("Change it") lets a participant stop at the picker without
@@ -120,6 +131,15 @@ model: every participant added an output on the Agent, which a model fills
 only through that tool. `read-aloud` on an empty account spends 4 to 6 of its
 20 actions on the key, and no participant reached a clip in 20. Give it 25
 when it validates study-5-I3.
+
+Study 6 found that the key takes 6 or 7 actions on `empty`, so a key task
+needs its budget plus 7. `keep-answer` and `sort-photos` together need 40.
+`make-tool` and `make-game` meet fixed replies from the chat and the App
+Builder, the fixed capitalise plan, and a game design that reads "fake", which
+participants read as the product failing. Judge both on mechanics, and use a
+real language model when the question is what the chat does with the request.
+A participant kept the `keep-answer` note in the conversation list, which the
+end state counts.
 
 ## Adding a task
 

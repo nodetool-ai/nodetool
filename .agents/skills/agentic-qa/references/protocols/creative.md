@@ -163,6 +163,13 @@ playback that shows the second photo after the first.
   inspect a saved file.
 - Timelines are listed under Documents, "Creative documents".
 
+**Known behavior.** Until UX study 6, a photo dropped on an empty timeline
+landed one track-header width (3.4 s at 100 %) after the drop point, because
+the header column had no width with no tracks. Fixed in the study 6 PR. A drop
+onto part of an existing clip overwrites that part without a message
+(study-6-I4, open). The guided flow's "Drop your media" places dropped photos
+in order without a drag (study-6-I5).
+
 **Fakes.** Uploaded photos are real files, so this goal can complete. The
 "Timeline" guided flow and generated clips need a video model. A generated
 video or audio clip from a faked node is a 1 × 1 PNG labelled as video or
