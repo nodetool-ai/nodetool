@@ -28,6 +28,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { WorkflowList, Workflow } from "../../stores/ApiTypes";
 import { useActivateOnKey } from "../../hooks/useActivateOnKey";
 import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
+import { useAssetProjectScope } from "../../hooks/assets/useAssetProjectScope";
 
 // Show the inline search field once the list grows past this many workflows.
 const SEARCH_THRESHOLD = 8;
@@ -132,7 +133,7 @@ const searchInputSx = {
 
 /**
  * Sibling of the FOLDERS tree shown in the fullscreen asset navigator. Lists
- * every workflow as a leaf; selecting one scopes the asset grid to that
+ * the workflows of the explorer's project filter as leaves; selecting one scopes the asset grid to that
  * workflow's assets (mutually exclusive with folder browsing).
  */
 const WorkflowTree: React.FC = () => {
@@ -149,10 +150,12 @@ const WorkflowTree: React.FC = () => {
     (state) => state.setSelectedFolderIds
   );
 
+  // Follow the explorer's project filter; "All projects" lists every workflow.
+  const { projectId } = useAssetProjectScope();
   const load = useWorkflowManager((state) => state.load);
   const { data, isLoading } = useQuery<WorkflowList, Error>({
-    queryKey: workflowListQueryKey(200),
-    queryFn: async () => load("", 200)
+    queryKey: workflowListQueryKey(200, "", projectId),
+    queryFn: async () => load("", 200, projectId)
   });
 
   const workflows = useMemo(() => {

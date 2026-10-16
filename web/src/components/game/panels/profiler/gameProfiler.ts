@@ -70,8 +70,6 @@ const MAX_ID_LENGTH = 128;
 export const GAME_PROFILER_OTHER_ENTITIES = "(other entities)";
 /** The upper bound of a capture's memory, whatever the entity count. `GameProfileBuffer.bytes()` stays below it. */
 export const GAME_PROFILER_CAPTURE_BYTE_LIMIT = 8 * 1024 * 1024;
-/** A longer gap between rendered frames is a pause, not a slow frame. */
-const FRAME_GAP_MS = 1000;
 
 /** Float32 columns in a ring. Without `overwrite` it stops accepting rows when full. */
 class ColumnRing {
@@ -280,9 +278,11 @@ export interface GameProfiler {
   readonly recording: () => boolean;
   readonly recordStep: (step: GameProfilerStep, now?: number) => void;
   readonly recordRender: (stats: GameProfilerRender, now?: number) => void;
+  /** Paused renders retain resource statistics without adding a playback interval. */
+  readonly setPlaybackActive: (active: boolean) => void;
   /** Keeps recording on while the returned function has not been called. */
   readonly attach: () => () => void;
-  /** Increases with every recorded step and every capture or clear. */
+  /** Increases with every recorded step, completed render, capture or clear. */
   readonly version: () => number;
   /** The live window: the newest ticks and frames, up to its capacity. */
   readonly live: () => GameProfileData;
@@ -306,12 +306,14 @@ export function createGameProfiler(liveTicks = GAME_PROFILER_LIVE_TICKS, capture
   let captureStartedAt: number | null = null;
   let finished: GameProfileCapture | null = null;
   let lastRenderAt: number | null = null;
+  let playbackActive = true;
   const recording = (): boolean => attached > 0 || captureStartedAt !== null;
   const finish = (now: number, full: boolean): GameProfileCapture | null => {
     if (captureStartedAt === null || !captured) { return finished; }
     finished = { startedAt: captureStartedAt, endedAt: now, data: captured.data(), full };
     captureStartedAt = null;
     captured = null;
+    if (!recording()) { lastRenderAt = null; }
     version += 1;
     return finished;
   };
@@ -328,10 +330,15 @@ export function createGameProfiler(liveTicks = GAME_PROFILER_LIVE_TICKS, capture
         lastRenderAt = null;
         return;
       }
-      const frameMs = lastRenderAt !== null && now - lastRenderAt <= FRAME_GAP_MS ? now - lastRenderAt : undefined;
-      lastRenderAt = now;
+      const frameMs = playbackActive && lastRenderAt !== null ? now - lastRenderAt : undefined;
+      lastRenderAt = playbackActive ? now : null;
       live.addFrame(frameMs, stats);
       if (captured && !captured.addFrame(frameMs, stats)) { finish(Date.now(), true); }
+      version += 1;
+    },
+    setPlaybackActive(active) {
+      if (playbackActive !== active) { lastRenderAt = null; }
+      playbackActive = active;
     },
     attach() {
       attached += 1;
@@ -340,6 +347,7 @@ export function createGameProfiler(liveTicks = GAME_PROFILER_LIVE_TICKS, capture
         if (detached) { return; }
         detached = true;
         attached -= 1;
+        if (!recording()) { lastRenderAt = null; }
       };
     },
     version: () => version,
