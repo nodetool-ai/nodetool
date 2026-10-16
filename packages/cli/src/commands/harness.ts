@@ -32,7 +32,11 @@ import {
   type GateCheck,
   type GatePlan
 } from "../harness/registry.js";
-import { readWorkspacePackages, type PackageInfo } from "../affected/affected.js";
+import {
+  computeAffected,
+  readWorkspacePackages,
+  type PackageInfo
+} from "../affected/affected.js";
 import {
   auditCapabilityCoverage,
   planCapabilityMappingGate,
@@ -318,15 +322,14 @@ export function registerHarnessCommands(program: Command): void {
               opts.deps ? readWorkspacePackages(repoRoot) : undefined
             );
 
-        const { toRun, skippedExpensive, skippedSuites } = selectChecks(
+        const { toRun, skippedExpensive, skippedSuites, prunedSuites } = selectChecks(
           plan.checks,
           {
             expensive: opts.expensive,
             includeSuites: opts.includeSuites,
             globalFiles: plan.globalFiles,
-            workspaces: plan.globalFiles.length > 0
-              ? readWorkspacePackages(repoRoot)
-              : []
+            changedFiles: plan.changedFiles,
+            workspaces: readWorkspacePackages(repoRoot)
           }
         );
         // A directory recorded in UNCLAIMED_PATHS has already been judged: no
@@ -345,6 +348,14 @@ export function registerHarnessCommands(program: Command): void {
             skippedSuites,
             opts.all
           );
+          if (prunedSuites.length > 0) {
+            console.log(
+              "\nSteps left out because `npm run test:affected` runs their whole suite:"
+            );
+            for (const p of prunedSuites) {
+              for (const c of p.commands) console.log(`  ${p.harnessId}: ${c}`);
+            }
+          }
           if (unmappedCodeFiles.length > 0) {
             console.log(
               "\nCode files no surface claims (the gate fails on these):"
@@ -362,6 +373,7 @@ export function registerHarnessCommands(program: Command): void {
                 {
                   plan,
                   skippedSuites: skippedSuiteIds,
+                  prunedSuites,
                   mappingViolations,
                   unmappedCodeFiles
                 },
@@ -396,6 +408,7 @@ export function registerHarnessCommands(program: Command): void {
                 plan,
                 results,
                 skippedSuites: skippedSuiteIds,
+                prunedSuites,
                 mappingViolations,
                 unmappedCodeFiles
               },
@@ -437,6 +450,15 @@ export function registerHarnessCommands(program: Command): void {
  * A suite-only check is skipped (and named) rather than silently dropped:
  * `npm run test:affected` runs the same suites for the same diff, so running
  * them here again is pure repetition unless `--include-suites` asks for it.
+ *
+ * The same holds for one `npm run test --workspace=<pkg>` step of a chained
+ * selfcheck when `test:affected` runs that package's whole suite for this
+ * diff: every backend package `computeAffected` returns for `changedFiles`
+ * (the CI `test-packages-*` shards run the same set), or every workspace on a
+ * global diff. Such a step is pruned from the command and listed in
+ * `prunedSuites`, and a check left with no step is skipped. Web and electron
+ * steps are kept outside a global diff, because `test:affected` may run only
+ * the tests related to their own changed files.
  */
 export function selectChecks(
   checks: readonly GateCheck[],
@@ -444,44 +466,115 @@ export function selectChecks(
     expensive?: boolean;
     includeSuites?: boolean;
     globalFiles?: readonly string[];
+    changedFiles?: readonly string[];
     workspaces?: readonly PackageInfo[];
   }
 ): {
   toRun: GateCheck[];
   skippedExpensive: GateCheck[];
   skippedSuites: GateCheck[];
+  prunedSuites: PrunedSuites[];
 } {
-  const fullPass = opts.globalFiles?.some(isGlobalGateFile) ?? false;
-  const workspaces = new Set(
-    (opts.workspaces ?? [])
-      .filter((p) => /^(packages|reliability)\/[^/]+$/.test(p.dir) ||
-        p.dir === "web" || p.dir === "electron")
-      .flatMap((p) => [p.name, p.dir])
-  );
-  const skippedSuites = checks.filter((c) => !opts.includeSuites &&
-    (c.suiteOnly || (fullPass && isCoveredWorkspaceTest(c.command, workspaces)))
-  );
-  const skipped = new Set(skippedSuites);
-  const rest = checks.filter((c) => !skipped.has(c));
+  const covered = opts.includeSuites
+    ? new Set<string>()
+    : coveredWorkspaces(opts);
+  const skippedSuites: GateCheck[] = [];
+  const prunedSuites: PrunedSuites[] = [];
+  const rest: GateCheck[] = [];
+  for (const c of checks) {
+    if (!opts.includeSuites && c.suiteOnly) {
+      skippedSuites.push(c);
+      continue;
+    }
+    const pruned = pruneCoveredSuites(c.command, covered);
+    if (pruned.command === null) {
+      skippedSuites.push(c);
+    } else if (pruned.removed.length > 0) {
+      prunedSuites.push({ harnessId: c.harnessId, commands: pruned.removed });
+      rest.push({ ...c, command: pruned.command });
+    } else {
+      rest.push(c);
+    }
+  }
   return {
     toRun: rest.filter((c) => opts.expensive || c.cost === "cheap"),
     skippedExpensive: rest.filter((c) => !opts.expensive && c.cost === "expensive"),
-    skippedSuites
+    skippedSuites,
+    prunedSuites
   };
 }
 
-/** Recognize a restricted shell grammar, retaining every command we cannot prove covered. */
-function isCoveredWorkspaceTest(
-  command: string,
-  workspaces: ReadonlySet<string>
-): boolean {
-  // Quotes may protect filter expressions such as 'one|two'. Shell expansion,
-  // redirection and operators other than an AND between test commands are rejected.
-  if (/[$`\\\n\r;<>%!^]/.test(command)) {
-    return false;
+export interface PrunedSuites {
+  harnessId: string;
+  /** The test steps left out because `test:affected` runs them in full. */
+  commands: string[];
+}
+
+/**
+ * Workspaces, by name and directory, whose whole test suite `npm run
+ * test:affected` runs for this diff. A global gate file selects the full
+ * pass, so every package plus web and electron. Otherwise the backend
+ * packages `computeAffected` returns: `test:affected` runs exactly those
+ * through turbo, and `scripts/ci-plan.mjs` starts the shard of each of them.
+ */
+function coveredWorkspaces(opts: {
+  globalFiles?: readonly string[];
+  changedFiles?: readonly string[];
+  workspaces?: readonly PackageInfo[];
+}): Set<string> {
+  const isBackend = (p: PackageInfo): boolean =>
+    /^(packages|reliability)\/[^/]+$/.test(p.dir);
+  const workspaces = opts.workspaces ?? [];
+  if (opts.globalFiles?.some(isGlobalGateFile)) {
+    return new Set(
+      workspaces
+        .filter((p) => isBackend(p) || p.dir === "web" || p.dir === "electron")
+        .flatMap((p) => [p.name, p.dir])
+    );
   }
-  const segments: string[][] = [];
+  if (!opts.changedFiles?.length) return new Set();
+  const affected = new Set(computeAffected(opts.changedFiles, workspaces).affected);
+  return new Set(
+    workspaces
+      .filter((p) => isBackend(p) && affected.has(p.name))
+      .flatMap((p) => [p.name, p.dir])
+  );
+}
+
+/**
+ * Remove the `npm run test --workspace=…` steps whose workspaces are all
+ * covered from a `&&` chain. Returns `command: null` when no step is left,
+ * and the command unchanged when it is outside the restricted grammar below.
+ */
+function pruneCoveredSuites(
+  command: string,
+  covered: ReadonlySet<string>
+): { command: string | null; removed: string[] } {
+  const steps = covered.size > 0 ? splitAndChain(command) : null;
+  if (!steps) return { command, removed: [] };
+  const removed = steps.filter((s) => isCoveredTestStep(s.tokens, covered));
+  if (removed.length === 0) return { command, removed: [] };
+  const kept = steps.filter((s) => !removed.includes(s));
+  return {
+    command: kept.length > 0 ? kept.map((s) => s.text).join(" && ") : null,
+    removed: removed.map((s) => s.text)
+  };
+}
+
+/**
+ * Split a command into its `&&` steps, each with its source text and words.
+ * Quotes may protect filter expressions such as 'one|two'. Shell expansion,
+ * redirection and every operator other than `&&` reject the whole command.
+ */
+function splitAndChain(
+  command: string
+): Array<{ text: string; tokens: string[] }> | null {
+  if (/[$`\\\n\r;<>%!^]/.test(command)) {
+    return null;
+  }
+  const steps: Array<{ text: string; tokens: string[] }> = [];
   let segment: string[] = [];
+  let segmentStart = 0;
   let token = "";
   let quote = "";
   const flush = (): void => {
@@ -489,6 +582,13 @@ function isCoveredWorkspaceTest(
       segment.push(token);
     }
     token = "";
+  };
+  const close = (end: number): boolean => {
+    flush();
+    if (segment.length === 0) return false;
+    steps.push({ text: command.slice(segmentStart, end).trim(), tokens: segment });
+    segment = [];
+    return true;
   };
   for (let i = 0; i < command.length; i++) {
     const char = command.charAt(i);
@@ -503,54 +603,57 @@ function isCoveredWorkspaceTest(
     } else if (/\s/.test(char)) {
       flush();
     } else if (char === "&" && command[i + 1] === "&") {
-      flush();
-      segments.push(segment);
-      segment = [];
+      if (!close(i)) return null;
       i++;
+      segmentStart = i + 1;
     } else if (";&|<>()*?{}[]#".includes(char)) {
-      return false;
+      return null;
     } else {
       token += char;
     }
   }
-  if (quote) {
+  if (quote || !close(command.length)) {
+    return null;
+  }
+  return steps;
+}
+
+/** `npm [run] test --workspace=<covered>… [-- <file filters>]`. */
+function isCoveredTestStep(
+  tokens: readonly string[],
+  covered: ReadonlySet<string>
+): boolean {
+  let i = 0;
+  if (tokens[i++] !== "npm") {
     return false;
   }
-  flush();
-  segments.push(segment);
-  return segments.every((tokens) => {
-    let i = 0;
-    if (tokens[i++] !== "npm") {
+  if (tokens[i] === "run") {
+    i++;
+  }
+  if (tokens[i++] !== "test") {
+    return false;
+  }
+  let count = 0;
+  while (tokens[i]?.startsWith("--workspace=")) {
+    const workspace = tokens[i];
+    if (!workspace || !covered.has(workspace.slice("--workspace=".length))) {
       return false;
     }
-    if (tokens[i] === "run") {
-      i++;
-    }
-    if (tokens[i++] !== "test") {
-      return false;
-    }
-    let count = 0;
-    while (tokens[i]?.startsWith("--workspace=")) {
-      const workspace = tokens[i];
-      if (!workspace || !workspaces.has(workspace.slice("--workspace=".length))) {
-        return false;
-      }
-      i++;
-      count++;
-    }
-    if (count === 0) {
-      return false;
-    }
-    if (i === tokens.length) {
-      return true;
-    }
-    if (tokens[i++] !== "--") {
-      return false;
-    }
-    return tokens.slice(i).every((arg) => !arg.startsWith("-") ||
-      arg === "--runInBand" || /^(--testPathPattern|--testNamePattern)=.+/.test(arg)
-    );
-  });
+    i++;
+    count++;
+  }
+  if (count === 0) {
+    return false;
+  }
+  if (i === tokens.length) {
+    return true;
+  }
+  if (tokens[i++] !== "--") {
+    return false;
+  }
+  return tokens.slice(i).every((arg) => !arg.startsWith("-") ||
+    arg === "--runInBand" || /^(--testPathPattern|--testNamePattern)=.+/.test(arg)
+  );
 }
 
 export interface GateCheckResult {

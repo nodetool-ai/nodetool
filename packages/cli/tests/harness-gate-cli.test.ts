@@ -18,7 +18,7 @@ import {
   selectChecks,
   type ExecuteChecksOptions
 } from "../src/commands/harness.js";
-import { HARNESSES, planGate, type GateCheck, type GatePlan } from "../src/harness/registry.js";
+import { HARNESSES, SURFACES, planGate, type GateCheck, type GatePlan } from "../src/harness/registry.js";
 import { computeAffected, readWorkspacePackages } from "../src/affected/affected.js";
 
 describe("collectChangedFiles", () => {
@@ -264,9 +264,110 @@ describe("selectChecks", () => {
     expect(selectChecks(cases, opts).toRun.map(c => c.harnessId)).toEqual([
       "mixed", "unknown", "demo", "other-script", "substitution", "config", "project", "broken-quote", "empty-segment", "env", "redirect", "cmd-env", "cmd-delayed-env", "cmd-escape", "quoted-operator", "operator"
     ]);
+    expect(selectChecks(cases, opts).toRun.find(c => c.harnessId === "mixed")?.command).toBe("npm run lint");
+    expect(selectChecks(cases, opts).prunedSuites).toEqual([
+      { harnessId: "mixed", commands: ["npm run test --workspace=packages/runtime"] }
+    ]);
     expect(selectChecks(cases, { ...opts, globalFiles: [] }).toRun).toEqual(cases);
     expect(selectChecks(cases, { ...opts, globalFiles: ["README.md"] }).toRun).toEqual(cases);
     expect(selectChecks(cases, { ...opts, includeSuites: true }).toRun).toEqual(cases);
+  });
+
+  it("prunes the backend suite steps the diff's affected packages already run in full", () => {
+    const graph = [
+      { name: "@nodetool-ai/protocol", dir: "packages/protocol", internalDeps: [] },
+      { name: "@nodetool-ai/runtime", dir: "packages/runtime", internalDeps: ["@nodetool-ai/protocol"] },
+      { name: "@nodetool-ai/models", dir: "packages/models", internalDeps: [] },
+      { name: "nodetool", dir: "web", internalDeps: ["@nodetool-ai/runtime"] }
+    ];
+    const flow = check(
+      "flow",
+      "npm run test --workspace=packages/protocol -- game && " +
+        "npm run test --workspace=packages/runtime && " +
+        "npm run test --workspace=packages/models -- durable && " +
+        "npm run test --workspace=web -- src/stores/game"
+    );
+    const r = selectChecks([flow], { changedFiles: ["packages/protocol/src/game.ts"], workspaces: graph });
+    expect(r.toRun.map(c => c.command)).toEqual([
+      "npm run test --workspace=packages/models -- durable && npm run test --workspace=web -- src/stores/game"
+    ]);
+    expect(r.prunedSuites).toEqual([{
+      harnessId: "flow",
+      commands: ["npm run test --workspace=packages/protocol -- game", "npm run test --workspace=packages/runtime"]
+    }]);
+    expect(r.skippedSuites).toEqual([]);
+
+    const own = selectChecks([check("own", "npm run test --workspace=packages/models -- durable")], {
+      changedFiles: ["packages/models/src/a.ts"],
+      workspaces: graph
+    });
+    expect(own.toRun).toEqual([]);
+    expect(own.skippedSuites.map(c => c.harnessId)).toEqual(["own"]);
+
+    // A web file makes web affected, but test:affected may run only its related tests.
+    expect(selectChecks([flow], { changedFiles: ["web/src/stores/game.ts"], workspaces: graph }).toRun).toEqual([flow]);
+    expect(selectChecks([flow], { changedFiles: ["docs/x.md"], workspaces: graph }).toRun).toEqual([flow]);
+    expect(selectChecks([flow], { changedFiles: ["packages/protocol/src/game.ts"], workspaces: graph, includeSuites: true }).toRun).toEqual([flow]);
+  });
+
+  it("prunes a step only when test:affected and the CI shards run that package for every surface path", async () => {
+    const root = fileURLToPath(new URL("../../../", import.meta.url));
+    const { buildPlan } = await import(new URL("../../../scripts/test-affected.mjs", import.meta.url).href);
+    const { buildCiPlan, shardOf } = await import(new URL("../../../scripts/ci-plan.mjs", import.meta.url).href);
+    const packages = readWorkspacePackages(root);
+    const dirOf = new Map(packages.map(p => [p.name, p.dir]));
+    const nameOf = new Map(packages.flatMap(p => [[p.name, p.name], [p.dir, p.name]]));
+    const legOf: Record<string, string> = {
+      "test-packages-websocket": "packages_websocket",
+      "test-packages-agents": "packages_agents",
+      "test-packages-nodes": "packages_nodes",
+      "test-packages-core": "packages_core",
+      "test-packages-game": "packages_game"
+    };
+    const files = [...new Set(SURFACES.flatMap(s => s.paths))]
+      .map(p => (p.endsWith("/") ? `${p}index.ts` : p));
+    expect(files.length).toBeGreaterThan(100);
+    let pruned = 0;
+    for (const file of files) {
+      const plan = planGate([file]);
+      const r = selectChecks(plan.checks, { changedFiles: [file], globalFiles: plan.globalFiles, workspaces: packages });
+      const steps = r.prunedSuites.flatMap(p => p.commands);
+      if (steps.length === 0) continue;
+      const testPlan = buildPlan([file], packages, computeAffected);
+      const ciPlan = buildCiPlan([file], packages, computeAffected);
+      const turboArgs: string[] = testPlan.steps
+        .filter((s: { args: string[] }) => s.args.includes("test") && s.args.some(a => a.startsWith("--filter=")))
+        .flatMap((s: { args: string[] }) => s.args);
+      for (const step of steps) {
+        for (const [, ws] of step.matchAll(/--workspace=(\S+)/g)) {
+          const name = nameOf.get(ws!);
+          expect(name, `${file}: ${step}`).toBeDefined();
+          expect(turboArgs, `${file}: test:affected runs ${name}`).toContain(`--filter=${name}`);
+          const leg = legOf[shardOf(name, dirOf.get(name!) ?? "")];
+          expect(leg, `${file}: ${name} has a CI shard`).toBeDefined();
+          expect(ciPlan[leg!], `${file}: CI starts the ${leg} shard`).toBe(true);
+          pruned++;
+        }
+      }
+    }
+    expect(pruned).toBeGreaterThan(0);
+  }, 120_000);
+
+  it("keeps the web step of game-flow and drops the game package suites for a game-runtime diff", () => {
+    const root = fileURLToPath(new URL("../../../", import.meta.url));
+    const file = "packages/game-runtime/src/scripts.ts";
+    const plan = planGate([file]);
+    const r = selectChecks(plan.checks, { changedFiles: [file], globalFiles: plan.globalFiles, workspaces: readWorkspacePackages(root) });
+    const flow = r.toRun.find(c => c.harnessId === "game-flow");
+    expect(flow?.command).toContain("--workspace=web");
+    expect(flow?.command).not.toContain("--workspace=packages/game-runtime");
+    expect(flow?.command).not.toContain("--workspace=packages/game-renderer");
+    expect(r.prunedSuites.find(p => p.harnessId === "game-flow")?.commands).toEqual(
+      expect.arrayContaining([
+        "npm run test --workspace=packages/game-runtime",
+        "npm run test --workspace=packages/game-renderer"
+      ])
+    );
   });
 
   it("selects a large global plan without changing check order", () => {

@@ -189,11 +189,16 @@ it. A selfcheck marked `suiteOnly` only re-runs workspace suites that
 `test:affected` already runs in full for the same diff, so the gate skips it
 unless `--include-suites` is passed. The registry test derives `suiteOnly`
 from the real workspace graph and fails when an entry claims it wrongly.
-For a diff containing a global file, the gate also skips commands that only
-run workspace test suites covered by the full `test:affected` selection.
-Commands containing other work or unknown workspaces still run. This assumes
+The gate also drops each `npm run test --workspace=<pkg>` step of a `&&`
+chain whose whole suite `test:affected` runs for the same diff: every
+workspace on a global-file diff, otherwise the backend packages
+`computeAffected` returns, which are also the packages whose CI
+`test-packages-*` shard runs. Web and electron steps stay outside a global
+diff, because `test:affected` may run only their related tests. A check left
+with no step is skipped, the dropped steps are listed as `prunedSuites`, and
+commands with shell syntax or unknown workspaces run unchanged. This assumes
 `test:affected` runs for the same diff. Use `--include-suites` to run those
-checks again. `--all` alone does not establish that coverage.
+steps again. `--all` alone does not establish that coverage.
 CI adds `--include-suites` when its `skip-tests` input disables package tests.
 `--deps` also touches a surface when one of its paths sits in a workspace
 downstream of a changed one. It is opt-in because the hub workspaces (`cli`,
@@ -214,8 +219,8 @@ contract moved without its coverage mapping moving with it, or — with
 key, or model are printed as manual work; the gate never silently narrows what
 "checked" means (rule 7).
 
-The Quality Gate's `examples`, `reliability`, `app-build`, and `bundle` legs
-are hand-instantiated selfchecks from this registry; the direction of travel
+The Quality Gate's `examples`, `reliability`, `app-build`, and `backend:smoke`
+steps are hand-instantiated selfchecks from this registry; the direction of travel
 is for CI to converge on `harness gate` so the workflow file stops being a
 second, driftable copy of the selection logic.
 

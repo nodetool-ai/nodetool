@@ -48,14 +48,19 @@ on:
     - cron: "17 2 * * *"
   workflow_dispatch:
 
-# Cancel superseded runs of the same PR or of main; the latest push is what
-# matters. A push to main diffs against the last main commit whose Test run
-# passed (see the `changes` job), not the previous push, so a cancelled run
-# leaves nothing untested: the next run's diff covers its changes. Merge queue,
-# scheduled and manual runs get a group of their own and are never cancelled.
+# A new push to a PR cancels its running Test run: the latest push is what
+# matters. A push to main does not cancel the running main run. It waits as the
+# group's one pending run, and a later push replaces it while it waits, so main
+# still runs at most one Test run at a time. Cancelling there discarded the
+# run's work and the test-result and Jest caches only main runs publish to
+# every PR, and most main runs were cancelled before they finished. A push to
+# main diffs against the last main commit whose Test run passed (see the
+# `changes` job), so a replaced pending run leaves nothing untested. Merge
+# queue, scheduled and manual runs get a group of their own and are never
+# cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ (github.event_name == 'pull_request' || github.event_name == 'push') && github.ref || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # Does this push touch anything but prose? A documentation-only change has
@@ -121,6 +126,13 @@ jobs:
       # cancelled or failed. A scheduled or manual run has none and runs
       # everything. Fails open: if the base lookup or the planner errors, the
       # plan is every leg.
+      #
+      # Once branch protection merges through the merge queue, the repository
+      # variable MERGE_QUEUE is set to `true`. A pull request run then leaves
+      # the legs in QUEUE_ONLY_LEGS (scripts/ci-plan.mjs) to the queue's
+      # `merge_group` run, which plans every leg its diff needs before the
+      # merge. Without the variable every pull request runs them, because
+      # nothing else would run them before the merge.
       - name: Plan the legs this diff needs
         id: plan
         env:
@@ -129,6 +141,7 @@ jobs:
             || github.event.merge_group.base_sha
             || '' }}
           IS_PUSH: ${{ github.event_name == 'push' }}
+          DEFER_TO_QUEUE: ${{ github.event_name == 'pull_request' && vars.MERGE_QUEUE == 'true' }}
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
@@ -140,9 +153,11 @@ jobs:
           [[ "$BASE" =~ ^[0-9a-f]{40}$ ]] || BASE=""
           [[ "$BASE" =~ ^0+$ ]] && BASE=""
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
-          if ! node scripts/ci-plan.mjs plan ${BASE:+--base "$BASE"}; then
+          DEFER=""
+          [[ "$DEFER_TO_QUEUE" == true ]] && DEFER="--defer-to-queue"
+          if ! node scripts/ci-plan.mjs plan ${BASE:+--base "$BASE"} $DEFER; then
             echo "::warning::ci-plan failed; running every leg."
-            echo 'plan={"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true}' >> "$GITHUB_OUTPUT"
+            echo 'plan={"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"packages_game":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true}' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Detect non-documentation changes

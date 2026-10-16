@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 
 import { computeAffected } from "../../packages/cli/src/affected/affected.ts";
-import { buildCiPlan, fullCiPlan } from "../ci-plan.mjs";
+import { QUEUE_ONLY_LEGS, buildCiPlan, deferToQueue, fullCiPlan } from "../ci-plan.mjs";
 import { MOBILE_DEPS } from "../test-affected.mjs";
 
 const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url));
@@ -75,6 +75,7 @@ describe("buildCiPlan", () => {
       packages_agents: false,
       packages_nodes: false,
       packages_core: false,
+      packages_game: false,
       integration: false,
       workflow_runner_e2e: false,
       tsc6: false,
@@ -210,7 +211,9 @@ describe("buildCiPlan", () => {
   });
 
   it("selects nothing for documentation outside every workspace", () => {
-    const { turbo_affected: _, ...legs } = plan(["docs/index.md", "AGENTS.md"]);
+    // The node catalog check runs for every non-docs-only change; test.yml's
+    // docs-only input turns it off, as it did before the plan carried it.
+    const { turbo_affected: _, node_catalog: __, ...legs } = plan(["docs/index.md", "AGENTS.md"]);
     expect(Object.values(legs).filter((v) => v === true || v === "full" || v === "related")).toEqual([]);
   });
 });
@@ -278,6 +281,53 @@ describe("ci-plan run", () => {
     } finally {
       process.argv = originalArgv;
       vi.doUnmock("node:child_process");
+      vi.restoreAllMocks();
+      vi.resetModules();
+    }
+  });
+});
+
+describe("deferToQueue", () => {
+  it("turns off only the queue-only legs and names the ones it turned off", () => {
+    const full = fullCiPlan();
+    const deferred = deferToQueue(full);
+    expect(deferred.deferred_to_queue).toEqual(QUEUE_ONLY_LEGS);
+    for (const leg of QUEUE_ONLY_LEGS) {
+      expect(full[leg], leg).toBe(true);
+      expect(deferred[leg], leg).toBe(false);
+    }
+    const { deferred_to_queue: _, ...rest } = deferred;
+    for (const [leg, value] of Object.entries(rest)) {
+      if (!QUEUE_ONLY_LEGS.includes(leg)) expect(value, leg).toEqual(full[leg]);
+    }
+  });
+
+  it("keeps every required test leg on the pull request", () => {
+    for (const leg of ["web", "electron", "mobile", "packages_websocket", "packages_agents", "packages_nodes", "packages_core", "blender"]) {
+      expect(QUEUE_ONLY_LEGS).not.toContain(leg);
+    }
+  });
+
+  it("lists only legs the diff did not already leave off", () => {
+    const p = plan(["web/src/components/Foo.tsx"]);
+    expect(p.node_catalog).toBe(true);
+    expect(deferToQueue(p).deferred_to_queue).toEqual(["node_catalog"]);
+  });
+
+  it("is applied by the plan command only with --defer-to-queue", async () => {
+    const originalArgv = process.argv;
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => {});
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      for (const [flag, expected] of [[[], fullCiPlan()], [["--defer-to-queue"], deferToQueue(fullCiPlan())]]) {
+        vi.resetModules();
+        process.argv = [process.execPath, fileURLToPath(new URL("../ci-plan.mjs", import.meta.url)), "plan", ...flag];
+        await import("../ci-plan.mjs");
+        expect(JSON.parse(log.mock.calls.at(-1)[0])).toEqual(expected);
+        expect(exit).toHaveBeenLastCalledWith(0);
+      }
+    } finally {
+      process.argv = originalArgv;
       vi.restoreAllMocks();
       vi.resetModules();
     }

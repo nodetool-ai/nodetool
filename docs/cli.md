@@ -2508,8 +2508,8 @@ need a target or a key are printed as manual work rather than silently skipped.
 - `--deps` — also touch surfaces whose paths sit in a workspace downstream of a
   changed one.
 - `--include-suites` — also run `suiteOnly` selfchecks, which only re-run
-  suites `npm run test:affected` runs for the same diff, and workspace test
-  commands skipped when a global-file diff selects the full test suite.
+  suites `npm run test:affected` runs for the same diff, and the workspace
+  test steps dropped because `test:affected` runs their whole suite.
 - `--jobs <n>` — run cheap selfchecks `n` at a time (default 1). Each check's
   output prints as one block when it finishes. Expensive checks run serially
   afterwards.
@@ -2520,10 +2520,13 @@ A changed root manifest, lockfile, root `tsconfig*.json`, `turbo.json`,
 plan step loads no built package, so `--dry-run` works before
 `npm run build:packages`.
 
-For global-file diffs, commands that only run workspace test suites covered
-by the full `test:affected` selection are skipped by default. Commands with
-other work or unknown workspaces still run. This assumes `test:affected`
-runs for the same diff. `--all` alone does not enable those extra skips.
+A workspace test step (`npm run test --workspace=<pkg> [-- filters]`) is
+dropped from a selfcheck's `&&` chain when `test:affected` runs that
+workspace's whole suite for the diff: any workspace on a global-file diff,
+otherwise an affected backend package. The JSON output lists the dropped
+steps as `prunedSuites`. Steps with other work, shell syntax, or unknown
+workspaces still run. This assumes `test:affected` runs for the same diff.
+`--all` alone does not enable these skips.
 CI adds `--include-suites` when its `skip-tests` input disables package tests.
 
 Check starts and completions print to stderr, including with `--json`.
