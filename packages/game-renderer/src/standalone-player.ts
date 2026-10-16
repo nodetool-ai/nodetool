@@ -148,6 +148,27 @@ async function start(): Promise<void> {
       if (document.fullscreenElement && latest.width > latest.height) void orientation.lock?.("landscape").catch(() => undefined);
     }).catch(() => showStatus("Fullscreen is unavailable"));
   });
+  let disposed = false;
+  let replacement = new AbortController();
+  function beginReplacement(): AbortSignal {
+    if (disposed) { throw new DOMException("Game player is disposed", "AbortError"); }
+    replacement.abort();
+    replacement = new AbortController();
+    return replacement.signal;
+  }
+  async function replaceSession(signal: AbortSignal, snapshot?: GameSnapshot): Promise<boolean> {
+    const restored = await createScriptedGameSession(game, 1, snapshot);
+    if (signal.aborted || disposed) { restored.dispose(); return false; }
+    session.dispose();
+    session = restored;
+    saves.clear();
+    audio.reset(session.snapshot());
+    latest = session.frame();
+    particles.clear();
+    releaseAll();
+    accumulator = 0;
+    return true;
+  }
   let rendering: Promise<unknown> | undefined;
   let accumulator = 0;
   let lastTime = performance.now();
@@ -166,7 +187,13 @@ async function start(): Promise<void> {
   const saves = new GamePlayerSaves(createIndexedDbGameSaveStorage(game.id), { onError: (error) => showStatus(error.message) });
   const QUICK_SAVE = "quicksave";
   // Quick saves from before IndexedDB storage, moved into the quicksave slot on the first load.
-  const legacyQuickSave = { storage: localStorage, key: `nodetool-game:${game.id}:${game.revision}:save` };
+  const legacyQuickSave = {
+    get storage(): Storage {
+      try { return localStorage; }
+      catch (cause: unknown) { throw new Error("Legacy game save storage is unavailable", { cause }); }
+    },
+    key: `nodetool-game:${game.id}:${game.revision}:save`
+  };
   function stepSession(frame: GameInputFrame, replay = false) {
     const result = session.step(replay ? frame : saves.withLoaded(frame));
     if (!replay) { saves.handle(result.saveRequests, () => session.snapshot()); }
@@ -251,18 +278,18 @@ async function start(): Promise<void> {
     }
   });
   element("reset").addEventListener("click", () => {
-    void createScriptedGameSession(game, 1).then((restored) => {
-      session.dispose();
-      session = restored;
-      saves.clear();
-      audio.reset(session.snapshot());
-      latest = session.frame();
-      particles.clear();
-      releaseAll();
-      accumulator = 0;
+    if (disposed) { return; }
+    const wasPaused = paused;
+    const signal = beginReplacement();
+    setPaused(true);
+    void replaceSession(signal).then((replaced) => {
+      if (!replaced) { return; }
+      setPaused(wasPaused);
       showStatus("Game reset");
       render(1);
-    }).catch((error) => showStatus(error instanceof Error ? error.message : "Game could not reset"));
+    }).catch((error: unknown) => {
+      if (!signal.aborted && !disposed) { showStatus(error instanceof Error ? error.message : "Game could not reset"); }
+    });
   });
   element("save").addEventListener("click", () => {
     void saves.save("progress", QUICK_SAVE, {}, session.snapshot())
@@ -270,24 +297,32 @@ async function start(): Promise<void> {
       .catch((error) => showStatus(error instanceof Error ? error.message : "Game could not be saved"));
   });
   element("load").addEventListener("click", () => {
+    if (disposed) { return; }
+    const wasPaused = paused;
+    const signal = beginReplacement();
+    setPaused(true);
     void loadQuickSave(saves, QUICK_SAVE, legacyQuickSave).then(async (record) => {
+      if (signal.aborted || disposed) { return; }
       if (record?.snapshot === undefined) {
+        setPaused(wasPaused);
         showStatus("No saved game");
         return;
       }
-      const restored = await createScriptedGameSession(game, 1, gameSnapshot.parse(record.snapshot));
-      session.dispose();
-      session = restored;
-      saves.clear();
-      audio.reset(session.snapshot());
-      latest = session.frame();
-      particles.clear();
-      accumulator = 0;
+      if (!await replaceSession(signal, gameSnapshot.parse(record.snapshot))) { return; }
+      setPaused(wasPaused);
       showStatus("Game loaded");
       render(1);
-    }).catch((error) => showStatus(error instanceof Error ? error.message : "Save could not be loaded"));
+    }).catch((error: unknown) => {
+      if (!signal.aborted && !disposed) {
+        setPaused(wasPaused);
+        showStatus(error instanceof Error ? error.message : "Save could not be loaded");
+      }
+    });
   });
   window.addEventListener("beforeunload", () => {
+    if (disposed) { return; }
+    disposed = true;
+    replacement.abort();
     cancelAnimationFrame(animationFrame);
     session.dispose();
     renderer.dispose();
@@ -297,15 +332,16 @@ async function start(): Promise<void> {
   window.nativeGamePlayer = Object.freeze({
     pause: () => setPaused(true),
     reset: async () => {
-      paused = true;
-      const replacement = await createScriptedGameSession(game, 1);
-      session.dispose(); session = replacement; saves.clear();
-      audio.reset(session.snapshot()); latest = session.frame(); particles.clear(); releaseAll(); accumulator = 0;
+      const signal = beginReplacement();
+      setPaused(true);
+      if (!await replaceSession(signal)) { throw new DOMException("Game reset was superseded", "AbortError"); }
       await rendering;
+      if (signal.aborted || disposed) { throw new DOMException("Game reset was superseded", "AbortError"); }
       await renderer.render(latest, 1, particles);
     },
     step: async (input: GameInputFrame) => {
-      paused = true;
+      if (disposed) { throw new DOMException("Game player is disposed", "AbortError"); }
+      setPaused(true);
       const result = stepSession(input, true);
       latest = result.frame;
       particles.tick(result.frame, session.takePresentationEvents());
