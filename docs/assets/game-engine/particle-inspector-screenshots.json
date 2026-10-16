@@ -1,0 +1,33 @@
+{
+  "method": "Actual isolated NodeTool editor captured through collaborative browser recording. Each PNG is the first extracted frame, without compositing or retouching.",
+  "cssViewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "gameSimulationTick": 0,
+  "mainPlayInvoked": false,
+  "captures": [
+    {
+      "file": "editor-particle-preview.png",
+      "frontendCommit": "a2f8345ae75195aecd41540c62e2b9f1b4e39a29",
+      "frontendTree": "647e6f1ac558072fba7e0ee62bd43314f1cb81b7",
+      "backendCommit": "f9c74475cda0b8b8f8abbb72cbeee52f464d45c9",
+      "sha256": "573b99c304cc1016dc86a0a2150c563d069eb61aea8eac5eede7d2bfcf29eeb8",
+      "bytes": 1389792,
+      "recordingSha256": "9af1cef334d75c8c6200f4c9dd77a2a665ccd6b64b3150d047237867830ec140",
+      "recordingBytes": 3242431,
+      "limits": "Inspector configuration and isolated preview evidence. This does not establish main editor 3D particle ticking, gameplay performance, or 3D sprite texture support."
+    },
+    {
+      "file": "editor-particle-curves.png",
+      "frontendCommit": "f9c74475cda0b8b8f8abbb72cbeee52f464d45c9",
+      "frontendTree": "5770d5ceffc77b4900d65a53d6a2367fbc4b9775",
+      "backendCommit": "f9c74475cda0b8b8f8abbb72cbeee52f464d45c9",
+      "sha256": "8c43448cd1c0ee8966f9ed198be483d36118ad8062b71cfab693bcfb731759a9",
+      "bytes": 1497812,
+      "recordingSha256": "f15a8dd46a1d2c510e5d5f606989441ba9c6e14fcab54f1c1f6cf5d8112b4947",
+      "recordingBytes": 134938,
+      "limits": "Inspector configuration and isolated preview evidence. This does not establish main editor 3D particle ticking, gameplay performance, or 3D sprite texture support."
+    }
+  ]
+}
