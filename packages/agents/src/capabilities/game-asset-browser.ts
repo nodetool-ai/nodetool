@@ -68,7 +68,7 @@ async function candidateBinding(run: CapabilityRun, draft: GameDraft, digest: st
   if (is3D && candidate.mediaKind === "image") {
     const { prepareGameImage3D } = await importPack<typeof import("@nodetool-ai/game-renderer/preparation3d")>("game", "@nodetool-ai/game-renderer/preparation3d");
     const prepared = await prepareGameImage3D(bytes, { assetId: `staged:${digest}`, expectedDigest: digest, signal: run.context.signal });
-    if (!prepared.ok) { return { error: "Image preparation failed" }; }
+    if (!prepared.ok) { return { error: prepared.diagnostics.map((issue) => issue.message).join("; ") }; }
     return { candidate: summary, binding: prepared.image.binding };
   }
   const previous = slot ? draft.document.assets[slot] : undefined;

@@ -152,6 +152,6 @@ describe("browse_native_game_assets", () => {
     const digest = sha(bytes);
     await workspace.write(`games/${created.game.id}/assets/${digest}.png`, bytes, "image/png");
     expect(await agent.invoke("browse_native_game_assets", { game_id: created.game.id, digest, slot: "graffiti" }))
-      .toMatchObject({ error: "Image preparation failed" });
+      .toMatchObject({ error: expect.stringMatching(/complete.*image/i) });
   });
 });
