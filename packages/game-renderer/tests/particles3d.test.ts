@@ -302,6 +302,30 @@ function recordingContext(scene: THREE.Scene, camera: THREE.PerspectiveCamera): 
 }
 
 describe("3D particle render pass", () => {
+  it("packs local particles at the same interpolation as the rendered owner", async () => {
+    const particles = new GameParticles3D(60);
+    const frame = blockoutFrame();
+    const owner = frame.entities[0]!;
+    const definition = gameParticles.parse({ emitters: [{ id: "attached", space: "local", rate: 0, speed: 0, lifetime: 10, bursts: [{ count: 1 }], loop: false }] });
+    const initial = { ...owner, entityId: "attached", particles: definition,
+      transform: { ...owner.transform, position: { x: 0, y: 0, z: 0 } } };
+    particles.tick({ ...frame, entities: [initial] }, []);
+    particles.tick({ ...frame, entities: [{ ...initial, transform: { ...initial.transform, position: { x: 2, y: 0, z: 0 } } }] }, []);
+    const scene = new THREE.Scene();
+    const pipeline = new RenderPipeline3D();
+    const pass = new GameParticlePass3D(pipeline, { scene, particles: () => particles });
+    const context = recordingContext(scene, new THREE.PerspectiveCamera()).context;
+    try {
+      for (const interpolation of [0, 0.5, 1]) {
+        await pipeline.render({ ...context, interpolation });
+        const draw = scene.getObjectByName("particles:quad:normal");
+        if (!(draw instanceof THREE.Mesh)) { throw new Error("Particle draw missing"); }
+        expect(draw.geometry.getAttribute("particlePosition").getX(0)).toBe(interpolation * 2);
+      }
+      expect(packParticleBatches3D(particles, VIEWER).batches[0]?.data[0]).toBe(2);
+    } finally { pass.dispose(); }
+  });
+
   it.each(["quad", "mesh"])("retires oversized %s draw buffers after a run contracts", async (kind) => {
     const definition = emitter(kind === "mesh" ? { render: { kind: "mesh", shape: "box" } } : {});
     let current = field(Array.from({ length: 200 }, () => view(definition)));

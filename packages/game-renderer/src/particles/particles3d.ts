@@ -159,7 +159,7 @@ function batchKey(emitter: GameParticleEmitter): { key: string; shape: ParticleB
  * A material may occur in multiple runs: joining those runs would move it across another transparent material.
  * Previous run buffers are reused, and no particles are dropped to reduce the draw count.
  */
-export function packParticleBatches3D(field: GameParticleField, viewer: ParticleViewer3D, previous: readonly ParticleBatch3D[] = []): PackedParticles3D {
+export function packParticleBatches3D(field: GameParticleField, viewer: ParticleViewer3D, previous: readonly ParticleBatch3D[] = [], interpolation = 1): PackedParticles3D {
   const batches: ParticleBatch3D[] = [];
   const kinds: ReturnType<typeof batchKey>[] = [];
   const emitterKinds = new Map<GameParticleEmitter, ReturnType<typeof batchKey>>();
@@ -201,7 +201,7 @@ export function packParticleBatches3D(field: GameParticleField, viewer: Particle
     sortOrder[drawn] = drawn;
     drawn += 1;
     soft ||= softness > 0;
-  });
+  }, interpolation);
   const order = sortOrder.subarray(0, drawn).sort((first, second) => sortDepths[second] - sortDepths[first] || first - second);
   const reusable = new Map(previous.map(batch => [batch.key, batch]));
   const occurrences = new Map<string, number>();

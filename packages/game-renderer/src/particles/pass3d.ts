@@ -174,14 +174,14 @@ export class GameParticlePass3D {
     this.depthTarget = null;
   }
 
-  private prepare({ renderer, scene, camera }: RenderContext3D): void {
+  private prepare({ renderer, scene, camera, interpolation = 1 }: RenderContext3D): void {
     if (this.group.parent !== scene) { scene.add(this.group); }
     const field = this.host.particles();
     camera.getWorldPosition(this.cameraPosition);
     camera.getWorldDirection(this.cameraForward);
     const packed = field
       ? packParticleBatches3D(field, { x: this.cameraPosition.x, y: this.cameraPosition.y, z: this.cameraPosition.z,
-        forwardX: this.cameraForward.x, forwardY: this.cameraForward.y, forwardZ: this.cameraForward.z }, this.batches)
+        forwardX: this.cameraForward.x, forwardY: this.cameraForward.y, forwardZ: this.cameraForward.z }, this.batches, interpolation)
       : { batches: [], drawn: 0, soft: false };
     this.batches = packed.batches;
     this.drawn = packed.drawn;
