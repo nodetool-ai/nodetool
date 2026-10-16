@@ -106,7 +106,7 @@ describe("animation graph pose sampling", () => {
     visual.model = { assetId: "rig", castShadow: false, receiveShadow: false };
     // The fixture rig has idle (still), run (x from 0 to 1.5) and jump (y from 0 to 1). Jump stands in for walk.
     visual.animator3d = { clips: { idle: "clip:0", walk: "clip:2", run: "clip:1" }, playbackRate: 1, loop: true, transitionTicks: 6, graph: "locomotion" };
-    visual.behaviors = [{ kind: "script", maxTickMs: 50, maxCommands: 4,
+    visual.behaviors = [{ kind: "script", maxTickMs: 20, maxCommands: 4,
       source: "input=>({state:null,commands:[{kind:'setAnimParam',name:'speed',value:input.tick<60?1:input.tick<120?4:6}]})" }];
     const gltf = await new GLTFLoader().parseAsync(new Uint8Array(prepared.bytes).buffer, "");
     const joint = gltf.scene.getObjectByName("joint");

@@ -11,7 +11,7 @@ function scriptedGame(source: string) {
     scenes: base.scenes.map((scene) => ({
       ...scene,
       entities: scene.entities.map((entity) => entity.id === "player"
-        ? { ...entity, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 30 }] }
+        ? { ...entity, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 20 }] }
         : entity)
     }))
   });
@@ -118,7 +118,7 @@ describe("game scripts", () => {
     if (!player) {
       throw new Error("Missing scripted player");
     }
-    player.behaviors.push({ kind: "script", source: "({ pressed, events, world }) => ({ state: { pressed: pressed.length, events: events.length, x: world[0].x, leak: globalThis.leak ?? null }, commands: [] })", maxCommands: 8, maxTickMs: 30 });
+    player.behaviors.push({ kind: "script", source: "({ pressed, events, world }) => ({ state: { pressed: pressed.length, events: events.length, x: world[0].x, leak: globalThis.leak ?? null }, commands: [] })", maxCommands: 8, maxTickMs: 20 });
     const session = await createScriptedGameSession(game, 1);
     session.step({ pressed: [] });
     expect(session.snapshot().scriptState['["room","player",1]']).toEqual({ pressed: 0, events: 0, x: 0, leak: null });
@@ -136,7 +136,7 @@ describe("game scripts", () => {
     const state = { text: 'Unicode 🔥 \"quotes\" \u0000 \u2028', nested: { value: null } };
     const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state,
       x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false },
-      tags: [], props: {}, rotation: 0, active: true, maxCommands: 8, maxTickMs: 30 };
+      tags: [], props: {}, rotation: 0, active: true, maxCommands: 8, maxTickMs: 20 };
     try {
       const result = runner.run([call, call], { tick: 3, pressed: [], justPressed: [], events: [], world: [] }, 1);
       expect(result.results.map(item => item.state)).toEqual([state, state]);
@@ -148,7 +148,7 @@ describe("game scripts", () => {
   it("measures script input and output limits in UTF-8 bytes", async () => {
     const sourceKey = scriptSourceKey("room", "player", 0);
     const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state: null,
-      x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 30 };
+      x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 20 };
     const input = { tick: 3, pressed: [], justPressed: [], events: [], world: [] };
     const inputRunner = await prepareGameScripts(scriptedGame("({state}) => ({state, commands: []})"));
     expect(() => inputRunner.run([call], { ...input, pressed: ["🔥".repeat(17_000)] }, 1)).toThrow(/input exceeds 64 KiB.*bytes.*tick 3/);
@@ -168,7 +168,7 @@ describe("game scripts", () => {
     const runner = await prepareGameScripts(game);
     const sourceKey = scriptSourceKey("room", "player", 0);
     const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state: null,
-      x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 30 };
+      x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 20 };
     // The first batch has a larger allowance, so the 50 ms budget applies from the second.
     runner.run([call], { tick: 2, pressed: [], justPressed: [], events: [], world: [] }, 1);
     let clock = 0;
@@ -188,7 +188,7 @@ describe("game scripts", () => {
     const runner = await prepareGameScripts(scriptedGame("({state}) => ({state, commands: []})"));
     const sourceKey = scriptSourceKey("room", "player", 0);
     const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state: null,
-      x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 30 };
+      x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 20 };
     let clock = 0;
     const now = vi.spyOn(performance, "now").mockImplementation(() => clock);
     const slowInput = (tick: number) => ({ tick, pressed: [], justPressed: [], events: [{ toJSON: () => { clock += 60; return "event"; } }], world: [] });
@@ -206,7 +206,7 @@ describe("game scripts", () => {
     const runner = await prepareGameScripts(scriptedGame("({state}) => ({state, commands: []})"), { callClock: wallScriptCallClock });
     const sourceKey = scriptSourceKey("room", "player", 0);
     const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state: null,
-      x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 30 };
+      x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 20 };
     let clock = 0;
     let serializations = 0;
     const now = vi.spyOn(performance, "now").mockImplementation(() => clock);
@@ -218,7 +218,7 @@ describe("game scripts", () => {
         }
         return "event";
       } }], world: [] };
-      expect(() => runner.run([call], input, 1)).toThrow(/interrupted.*call 30 ms.*player.*tick 3/i);
+      expect(() => runner.run([call], input, 1)).toThrow(/interrupted.*call 20 ms.*player.*tick 3/i);
     } finally {
       now.mockRestore();
       runner.dispose();
@@ -229,7 +229,7 @@ describe("game scripts", () => {
     const runner = await prepareGameScripts(scriptedGame("({state}) => ({state, commands: []})"));
     const sourceKey = scriptSourceKey("room", "player", 0);
     const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state: null,
-      x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 30 };
+      x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 20 };
     const input = { tick: 3, pressed: [], justPressed: [], events: [], world: [] };
     // The first batch has a larger allowance, so the 50 ms budget applies from the second.
     runner.run([call], { ...input, tick: 2 }, 1);
@@ -259,7 +259,7 @@ describe("game scripts", () => {
     const game = scriptedGame(source);
     const sourceKey = scriptSourceKey("room", "player", 0);
     const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state: null,
-      x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 30 };
+      x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 20 };
     const input = { tick: 0, pressed: [], justPressed: [], events: [], world: [] };
     const next = (state: number): number => (Math.imul(1664525, state) + 1013904223) >>> 0;
     const runner = await prepareGameScripts(game);

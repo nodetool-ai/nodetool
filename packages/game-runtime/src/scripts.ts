@@ -11,6 +11,7 @@ import { gameScriptValue, scriptHandleResult } from "./script-transport.js";
 import { ScriptWorldSnapshot, type ScriptWorldEntity } from "./script-world.js";
 
 const encoder = new TextEncoder();
+const MAX_SCRIPT_CALL_MS = 20;
 const finite = z.number().finite();
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 export const gameScriptCommand = z.discriminatedUnion("kind", [
@@ -182,7 +183,7 @@ function assertBeforeDeadline(deadline: number, budget: string): void {
 
 export interface GameScriptOptions {
   /**
-   * Measures each call against its `maxTickMs`. The default is the thread's CPU time where the host
+   * Measures each call against its `maxTickMs`, capped at 20 ms. The default is the thread's CPU time where the host
    * reports it (Node), otherwise wall time. The batch budget and preparation limits use wall time.
    */
   readonly callClock?: ScriptCallClock;
@@ -535,6 +536,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       const byEntity: Record<string, { durationMs: number; calls: number }> = Object.create(null);
       const results: { entityId: string; state: GameSnapshot["scriptState"][string]; commands: Command[] }[] = [];
       for (const call of calls) {
+        const callBudgetMs = Number.isFinite(call.maxTickMs) ? Math.min(MAX_SCRIPT_CALL_MS, call.maxTickMs) : MAX_SCRIPT_CALL_MS;
         assertBeforeDeadline(batchDeadline, batchBudget);
         const source = sources.get(call.sourceKey);
         if (source === undefined) {
@@ -544,7 +546,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         let callExceeded = (): boolean => false;
         const checkCallDeadline = (): void => {
           assertBeforeDeadline(batchDeadline, batchBudget);
-          if (callExceeded()) { throw interrupted(`call ${call.maxTickMs} ms for ${call.entityId} at tick ${input.tick}`); }
+          if (callExceeded()) { throw interrupted(`call ${callBudgetMs} ms for ${call.entityId} at tick ${input.tick}`); }
         };
         runtime.setInterruptHandler(() => performance.now() >= batchDeadline);
         const persistent = persistentSources.has(call.sourceKey);
@@ -566,7 +568,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           if (!realm) { shell = createRealmShell(nextRngState, persistent, hooks); }
           assertBeforeDeadline(batchDeadline, batchBudget);
           callStarted = performance.now();
-          callExceeded = startScriptCallTimer(callClock, call.maxTickMs);
+          callExceeded = startScriptCallTimer(callClock, callBudgetMs);
           runtime.setInterruptHandler(() => performance.now() >= batchDeadline || callExceeded());
           if (shell) {
             const loading = shell;

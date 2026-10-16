@@ -88,7 +88,7 @@ describe("native 3D game CLI commands", () => {
     delete visual.primitive;
     visual.model = { assetId: "hero", castShadow: true, receiveShadow: true };
     visual.animator3d = { clips: { idle: "clip:0", walk: "clip:1", run: "clip:2" }, playbackRate: 1, loop: true, transitionTicks: 6, graph: "locomotion" };
-    visual.behaviors = [{ kind: "script", maxTickMs: 50, maxCommands: 4,
+    visual.behaviors = [{ kind: "script", maxTickMs: 20, maxCommands: 4,
       source: "input=>({state:null,commands:[{kind:'setAnimParam',name:'speed',value:Math.min(6,input.tick/10)},...(input.tick%20===10?[{kind:'setAnimParam',name:'jump',value:true}]:[])]})" }];
     await writeFile(gamePath, JSON.stringify(document));
     const report = await run("simulate", "--ticks", "60", "--verify-replay");
