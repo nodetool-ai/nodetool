@@ -1013,8 +1013,9 @@ border, radius and background. One card has one radius, one background
 
 Do not write a card container with `borderRadius`, `border` and
 `backgroundColor` by hand, override a card with `grey[*]` colours, or define
-your own `stat-value` and `stat-label` styles. Row lists inside a dialog
-(`ProviderOnboardingCard`) are rows, not cards.
+your own `stat-value` and `stat-label` styles. A row in a framed dialog list
+(`ProviderOnboardingCard`) is a `Card` with `borderRadius: 0` and a divider
+between rows, because the list owns the frame.
 
 ---
 
