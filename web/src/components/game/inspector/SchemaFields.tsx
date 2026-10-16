@@ -11,6 +11,7 @@ import InspectorAddMenu from "./InspectorAddMenu";
 import { AddButton, FieldGroup, RowAction } from "./InspectorParts";
 import type { FieldSchema } from "./schemaForm";
 import { schemaDefault, schemaVariant } from "./schemaForm";
+import type { GameComponentEditorProps, GameComponentEditors } from "./componentEditors";
 
 interface SchemaFieldsProps {
   schema: FieldSchema;
@@ -25,6 +26,9 @@ interface SchemaFieldsProps {
   physicsMaterials?: readonly string[];
   /** Render this object's nested objects as full-width component sections, as in an engine inspector. */
   componentSections?: boolean;
+  readonly componentEditors?: GameComponentEditors;
+  readonly componentName?: string;
+  readonly dimension?: GameComponentEditorProps["dimension"];
   /** Text of the menu button that adds an absent optional component section. */
   addLabel?: string;
   /** Content placed after this object's value rows and before its component sections. */
@@ -235,8 +239,13 @@ function withColliderReference(path: string, record: Record<string, unknown>, ke
   return { ...record, [key]: next };
 }
 
-export default function SchemaFields({ schema, value, onChange, path = "", issuePath = [], issues = [], assets, collisionLayers, physicsMaterials, componentSections = false, addLabel, beforeSections, trailing, hideAdd = false }: SchemaFieldsProps) {
-  const shared = { issues, assets, collisionLayers, physicsMaterials };
+export default function SchemaFields({ schema, value, onChange, path = "", issuePath = [], issues = [], assets, collisionLayers, physicsMaterials, componentSections = false, componentEditors, componentName, dimension = "2d", addLabel, beforeSections, trailing, hideAdd = false }: SchemaFieldsProps) {
+  const shared = { issues, assets, collisionLayers, physicsMaterials, componentEditors, dimension };
+  const Editor = componentName ? componentEditors?.[componentName] : undefined;
+  if (Editor) {
+    return <Editor schema={schema} value={value} onChange={onChange} path={path} issuePath={issuePath}
+      issues={issues} dimension={dimension} {...(assets ? { assets } : {})} />;
+  }
   const references: ColliderReferences = { collisionLayers, physicsMaterials };
   const selected = schemaVariant(schema, value);
   if (selected !== schema) {
@@ -295,7 +304,8 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
       const group = isGroupSchema(child);
       const childChange = (next: unknown): void => onChange(withColliderReference(path, record, key, next));
       const nested = group && !componentSections;
-      const field = <SchemaFields schema={child} value={record[key]} path={label} issuePath={[...issuePath, key]} {...shared}
+      const editorProps = componentSections && group ? { componentName: key } : {};
+      const field = <SchemaFields schema={child} value={record[key]} path={label} issuePath={[...issuePath, key]} {...shared} {...editorProps}
         trailing={group ? undefined : removeAction} hideAdd={nested} onChange={childChange} />;
       if (!group) {
         rows.push(<Box key={key} sx={FIELD_WIDTH}>{field}</Box>);

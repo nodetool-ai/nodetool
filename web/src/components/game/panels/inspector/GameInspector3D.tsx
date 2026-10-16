@@ -12,6 +12,7 @@ import { diffGameDocuments3D } from "../../../../stores/game/diffGameDocuments3D
 import { Box, Caption, CONTROL, FieldDensityContext, FlexColumn, FlexRow, FONT_SIZE_SANS, InspectorFieldRow, InspectorSection, InspectorValueInput, Label, SPACING, Text, TextInput, ToolbarIconButton } from "../../../ui_primitives";
 import ReportBugButton from "../../../support/ReportBugButton";
 import SchemaFields from "../../inspector/SchemaFields";
+import { GAME_COMPONENT_EDITORS } from "../../inspector/componentEditors";
 import GameOverrideFields from "../../GameOverrideFields";
 import ScriptParamsEditor from "../../inspector/editors/ScriptParamsEditor";
 import CollisionMatrixEditor from "../../inspector/editors/CollisionMatrixEditor";
@@ -122,6 +123,7 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
     </FlexRow>
     <GameOverrideFields document={document} sceneId={sceneId} entityId={entity.id} onOps={onOps} />
     <SchemaFields schema={ENTITY_FIELDS} value={components} path="entity" assets={document.assets} componentSections
+      componentEditors={GAME_COMPONENT_EDITORS} dimension="3d"
       collisionLayers={document.collisionLayers} physicsMaterials={physicsMaterialNames} beforeSections={<InspectorSection title="Transform">
         {transformField("position", position)}
         {transformField("rotation", rotation)}
