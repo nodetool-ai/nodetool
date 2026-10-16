@@ -54,7 +54,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ children }) => {
       <Command label="Command Menu" className="command-menu">
         <CommandInput
           ref={input}
-          placeholder="Type a command or search…"
+          placeholder="Type a command or search"
           aria-label="Command menu search"
         />
         <Command.List>

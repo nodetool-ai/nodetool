@@ -119,7 +119,7 @@ describe("ChatListPanel", () => {
     renderPanel(<ChatListPanel projectId="default" />);
 
     await user.type(
-      screen.getByPlaceholderText("Search conversations..."),
+      screen.getByPlaceholderText("Search conversations"),
       "storyboard"
     );
 

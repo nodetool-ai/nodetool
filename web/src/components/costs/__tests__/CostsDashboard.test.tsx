@@ -124,7 +124,7 @@ describe("CostsDashboard", () => {
     const user = userEvent.setup();
     renderDashboard();
     await user.type(
-      screen.getByPlaceholderText("Filter nodes, models…"),
+      screen.getByPlaceholderText("Filter nodes, models"),
       "generate"
     );
     expect(screen.getByText("GenerateText")).toBeInTheDocument();

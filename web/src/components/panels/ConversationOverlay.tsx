@@ -544,7 +544,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
           <div className="convo-threads-panel">
             <div className="convo-threads-head">
               <SearchInput
-                placeholder="Search threads…"
+                placeholder="Search threads"
                 value={searchQuery}
                 onChange={setSearchQuery}
                 fullWidth

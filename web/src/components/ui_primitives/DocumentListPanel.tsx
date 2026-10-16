@@ -115,7 +115,7 @@ export function DocumentListPanel<T extends DocumentListPanelDocument>({
           ref={searchRef}
           value={filterValue}
           onChange={setFilterValue}
-          placeholder={`Search ${plural}...`}
+          placeholder={`Search ${plural}`}
         />
       </div>
 
