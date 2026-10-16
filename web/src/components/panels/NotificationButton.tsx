@@ -6,7 +6,7 @@ import { Popover, getSpacingPx, SPACING } from "../ui_primitives";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
-import { CopyButton, Text, Caption, NotificationBadge, ToolbarIconButton, Box, MOTION, BORDER_RADIUS, SHADOW } from "../ui_primitives";
+import { CopyButton, Text, Caption, CountBadge, ToolbarIconButton, Box, MOTION, BORDER_RADIUS, SHADOW } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 import ReportBugButton from "../support/ReportBugButton";
 
@@ -67,7 +67,7 @@ const NotificationButton: React.FC = React.memo(() => {
 
   return (
     <div className="notifications-container">
-      <NotificationBadge
+      <CountBadge
         count={unreadCount}
         color="secondary"
         dot
@@ -81,7 +81,7 @@ const NotificationButton: React.FC = React.memo(() => {
           onClick={handleNotificationClick}
           ariaLabel={getNotificationButtonLabel(unreadCount)}
         />
-      </NotificationBadge>
+      </CountBadge>
       <Popover
         css={popoverStyles}
         className="notification-popover"

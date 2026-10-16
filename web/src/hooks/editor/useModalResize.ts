@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type React from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { debounce } from "../../utils/lodashAlternatives";
 
 interface UseModalResizeOptions {
@@ -55,37 +54,9 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
     [minHeight, maxHeight, saveHeightToStorage]
   );
 
-  const dragStartY = useRef(0);
-  const startHeight = useRef(0);
-  const dragHandlersRef = useRef<{
-    handleMouseMove?: ((e: MouseEvent) => void);
-    handleMouseUp?: (() => void);
-  }>({});
-
-  const handleResizeMouseDown = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      dragStartY.current = event.clientY;
-      startHeight.current = modalHeight;
-
-      const handleMouseMove = (e: MouseEvent) => {
-        const delta = e.clientY - dragStartY.current;
-        const newHeight = startHeight.current + delta;
-        updateModalHeight(newHeight);
-      };
-
-      const handleMouseUp = () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-        dragHandlersRef.current = {};
-      };
-
-      dragHandlersRef.current = { handleMouseMove, handleMouseUp };
-
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-
-      event.preventDefault();
-    },
+  /** Grow or shrink the modal by `delta` px, clamped and persisted. */
+  const resizeBy = useCallback(
+    (delta: number) => updateModalHeight(modalHeight + delta),
     [modalHeight, updateModalHeight]
   );
 
@@ -96,16 +67,8 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
       } catch {
         /* empty */
       }
-      // Clean up any remaining drag event listeners on unmount
-      const { handleMouseMove, handleMouseUp } = dragHandlersRef.current;
-      if (handleMouseMove) {
-        document.removeEventListener("mousemove", handleMouseMove);
-      }
-      if (handleMouseUp) {
-        document.removeEventListener("mouseup", handleMouseUp);
-      }
     };
   }, [saveHeightToStorage]);
 
-  return { modalHeight, setModalHeight, handleResizeMouseDown } as const;
+  return { modalHeight, setModalHeight, resizeBy, minHeight, maxHeight } as const;
 }

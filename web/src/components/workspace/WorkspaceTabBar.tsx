@@ -184,13 +184,6 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap",
       minWidth: 0
     },
-    "& .dirty-dot": {
-      width: "8px",
-      height: "8px",
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: theme.vars.palette.warning.main,
-      flexShrink: 0
-    },
     "& .tab-close": {
       flexShrink: 0,
       width: "16px",

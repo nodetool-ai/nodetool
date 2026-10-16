@@ -25,6 +25,7 @@ import {
   MobileBottomSheet,
   MOTION,
   SPACING,
+  StatusDot,
   getSpacingPx
 } from "../ui_primitives";
 import { tabDisplayTitle } from "./tabTypeIdentity";
@@ -101,13 +102,6 @@ const sheetStyles = (theme: Theme) =>
       width: "20px",
       textAlign: "center"
     },
-    "& .dirty-dot": {
-      width: "8px",
-      height: "8px",
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: theme.vars.palette.warning.main,
-      flexShrink: 0
-    },
     "& .row-close": {
       flexShrink: 0,
       width: "44px",
@@ -144,7 +138,7 @@ const DocumentStatus = memo(function DocumentStatus({
         />
       )}
       {isDirty && (
-        <span className="dirty-dot" role="img" aria-label="unsaved changes" />
+        <StatusDot tone="warning" size="medium" label="unsaved changes" />
       )}
     </>
   );

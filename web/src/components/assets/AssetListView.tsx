@@ -27,6 +27,7 @@ import {
   MOTION,
   Text,
   Box,
+  MediaThumbnail,
   BORDER_RADIUS,
   EYEBROW,
   TYPOGRAPHY,
@@ -253,12 +254,15 @@ const AssetRowThumbnail: React.FC<{
   return (
     <div
       className="asset-item-thumbnail"
-      style={{
-        backgroundImage: `url(${src})`,
-        backgroundSize: isSvg ? "contain" : undefined
-      }}
       title={`${asset.content_type} thumbnail`}
-    />
+    >
+      <MediaThumbnail
+        asset={{ content_type: asset.content_type, thumb_url: src }}
+        alt={asset.name ?? "Thumbnail"}
+        fit={isSvg ? "contain" : "cover"}
+        borderRadius={0}
+      />
+    </div>
   );
 };
 

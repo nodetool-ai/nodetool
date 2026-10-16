@@ -350,7 +350,7 @@ const WorkflowList = ({ projectId }: WorkflowListProps) => {
           ref={searchRef}
           value={filterValue}
           onChange={setFilterValue}
-          placeholder="Search workflows..."
+          placeholder="Search workflows"
         />
         <FlexRow
           className="toolbar-header"

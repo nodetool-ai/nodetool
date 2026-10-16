@@ -118,7 +118,7 @@ describe("SettingsPage", () => {
       screen.getByRole("textbox", { name: "Search settings" })
     ).toBeInTheDocument();
     expect(
-      screen.queryByPlaceholderText("Search providers...")
+      screen.queryByPlaceholderText("Search providers")
     ).not.toBeInTheDocument();
   });
 

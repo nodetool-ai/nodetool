@@ -1,12 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
 import { css } from "@emotion/react";
-import { MOTION } from "./tokens";
 import { Badge, BadgeProps } from "@mui/material";
+import { Box } from "./Box";
+import type { BoxProps } from "./Box";
+import { SPACING, getSpacingPx } from "./spacing";
+import { BORDER_RADIUS, MOTION } from "./tokens";
 import { Tooltip } from "./Tooltip";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
-export interface NotificationBadgeProps {
+export interface CountBadgeProps {
   /** The count to display */
   count: number;
   /** Maximum count to show (displays "max+" for higher values) */
@@ -25,8 +28,13 @@ export interface NotificationBadgeProps {
   size?: "small" | "medium";
   /** Whether to animate on change */
   animate?: boolean;
-  /** Children to wrap */
-  children: React.ReactNode;
+  /**
+   * Element to anchor the badge to. Without children the badge is a
+   * standalone pill: place it with `sx`, e.g. absolute at a button's corner.
+   */
+  children?: React.ReactNode;
+  /** Style overrides, applied to a standalone badge (no children). */
+  sx?: BoxProps["sx"];
   /** Additional className */
   className?: string;
   /** Custom aria-label to override the default generated one */
@@ -67,7 +75,7 @@ const styles = (animate: boolean) => css`
   }
 `;
 
-const NotificationBadgeInternal: React.FC<NotificationBadgeProps> = ({
+const CountBadgeInternal: React.FC<CountBadgeProps> = ({
   count,
   max = 99,
   color = "error",
@@ -78,6 +86,7 @@ const NotificationBadgeInternal: React.FC<NotificationBadgeProps> = ({
   size = "medium",
   animate = true,
   children,
+  sx,
   className,
   ariaLabel
 }) => {
@@ -101,6 +110,45 @@ const NotificationBadgeInternal: React.FC<NotificationBadgeProps> = ({
     return `${count > max ? `${max}+` : count} notification${count === 1 ? "" : "s"}`;
   };
   
+  if (children === undefined) {
+    if (!showZero && count === 0) {
+      return null;
+    }
+    const side = getSpacingPx(
+      dot ? SPACING.md : size === "small" ? SPACING.xl : SPACING.xl + SPACING.xs
+    );
+    return (
+      <Box
+        component="span"
+        className={className}
+        role={ariaLabel ? "img" : undefined}
+        aria-label={ariaLabel}
+        aria-hidden={ariaLabel ? undefined : true}
+        sx={[
+          {
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxSizing: "border-box",
+            minWidth: side,
+            height: side,
+            px: dot ? SPACING.none : SPACING.xs,
+            borderRadius: BORDER_RADIUS.pill,
+            bgcolor: `${color}.main`,
+            color: `${color}.contrastText`,
+            fontSize: "var(--fontSizeSmaller)",
+            fontWeight: 600,
+            lineHeight: 1,
+            flexShrink: 0
+          },
+          ...(Array.isArray(sx) ? sx : [sx])
+        ]}
+      >
+        {dot ? null : count > max ? `${max}+` : count}
+      </Box>
+    );
+  }
+
   const badgeContent = (
     <Badge
       className={`notification-badge ${size} ${dot ? "dot" : ""}`}
@@ -134,9 +182,9 @@ const NotificationBadgeInternal: React.FC<NotificationBadgeProps> = ({
   );
 };
 
-const NotificationBadge = memo(NotificationBadgeInternal);
+const CountBadge = memo(CountBadgeInternal);
 
-NotificationBadge.displayName = "NotificationBadge";
+CountBadge.displayName = "CountBadge";
 
-export { NotificationBadge };
-export default NotificationBadge;
+export { CountBadge };
+export default CountBadge;

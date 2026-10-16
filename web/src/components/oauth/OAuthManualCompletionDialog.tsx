@@ -16,6 +16,7 @@
 import { useCallback, useState } from "react";
 
 import {
+  Code,
   Dialog,
   FlexColumn,
   SPACING,
@@ -80,7 +81,7 @@ export const OAuthManualCompletionDialog = ({
         ) : (
           <Text size="small">
             {label} sends the browser to{" "}
-            <code>{prompt.redirectUri ?? "a local address"}</code>, which only
+            <Code>{prompt.redirectUri ?? "a local address"}</Code>, which only
             exists on your own machine — so this server never sees it. Approve
             the sign-in, then copy the whole address the browser ends up on (an
             error page is expected) and paste it below.

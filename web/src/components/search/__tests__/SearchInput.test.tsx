@@ -13,6 +13,7 @@ jest.mock("../../ui_primitives", () => ({
   MOTION: jest.requireActual("../../ui_primitives/tokens").MOTION,
   BORDER_RADIUS: jest.requireActual("../../ui_primitives/tokens").BORDER_RADIUS,
   Z_INDEX: jest.requireActual("../../ui_primitives/tokens").Z_INDEX,
+  SearchInput: jest.requireActual("../../ui_primitives/SearchInput").SearchInput,
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }));
 
