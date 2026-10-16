@@ -37,4 +37,46 @@ describe("standalone save storage availability", () => {
     await expect(storage.read("progress", "main")).rejects.toThrow();
     expect(attempts).toBe(2);
   });
+
+  it("retries an asynchronous open rejection without caching the failed database", async () => {
+    let attempts = 0;
+    Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: { open: () => {
+      attempts += 1;
+      const request: { error: DOMException; onerror: (() => void) | null } = {
+        error: new DOMException("Open denied", "SecurityError"), onerror: null
+      };
+      queueMicrotask(() => request.onerror?.());
+      return request;
+    } } });
+    const storage = createIndexedDbGameSaveStorage("open-error-game");
+    await expect(storage.read("progress", "main")).rejects.toThrow(/save storage.*unavailable/i);
+    await expect(storage.read("progress", "main")).rejects.toThrow(/save storage.*unavailable/i);
+    expect(attempts).toBe(2);
+  });
+
+  it("rejects a write when its request and transaction fail", async () => {
+    const failure = new DOMException("Save quota exceeded", "QuotaExceededError");
+    type FailedRequest = { error: DOMException; onerror: (() => void) | null };
+    type FailedTransaction = { error: DOMException; onabort: (() => void) | null; onerror: (() => void) | null;
+      objectStore: () => { put: () => FailedRequest } };
+    let aborted = false;
+    const transaction: FailedTransaction = {
+      error: failure, onabort: null, onerror: null,
+      objectStore: () => ({ put: () => {
+        const request: FailedRequest = { error: failure, onerror: null };
+        queueMicrotask(() => { request.onerror?.(); aborted = true; transaction.onabort?.(); });
+        return request;
+      } })
+    };
+    const database = { transaction: () => transaction };
+    Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: { open: () => {
+      const request: { result: typeof database; onsuccess: (() => void) | null } = { result: database, onsuccess: null };
+      queueMicrotask(() => request.onsuccess?.());
+      return request;
+    } } });
+    const storage = createIndexedDbGameSaveStorage("write-error-game");
+    await expect(storage.write("progress", "main", { version: 1, data: {} })).rejects.toThrow("Save quota exceeded");
+    expect(aborted).toBe(true);
+  });
+
 });
