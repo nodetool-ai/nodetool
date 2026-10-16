@@ -15,6 +15,7 @@ import type {
 import useModelPreferencesStore from "./ModelPreferencesStore";
 import React from "react";
 import { rankModels } from "../utils/modelRanking";
+import { isLocalProvider } from "../utils/providerDisplay";
 import { useRecommendedModelKeys } from "../hooks/useRecommendedModelKeys";
 
 type SidebarTab = "favorites" | "recent";
@@ -61,10 +62,28 @@ const isAkiProviderIdentifier = (provider: string): boolean => {
   }
 };
 
+/**
+ * Providers that need no API key: they use the user's signed-in account or
+ * browser tab, or they run on this computer. The substring checks below
+ * would otherwise give `gemini_web` the Gemini key and `huggingface-local`
+ * the Hugging Face token.
+ */
+const KEYLESS_PROVIDERS: ReadonlySet<string> = new Set([
+  PROVIDER_IDS.GEMINI_WEB,
+  PROVIDER_IDS.CHATGPT,
+  PROVIDER_IDS.DREAMINA,
+  PROVIDER_IDS.CLAUDE_AGENT_SDK,
+  PROVIDER_IDS.CODEX,
+  PROVIDER_IDS.ANTIGRAVITY
+]);
+
 export const requiredSecretForProvider = (
   provider?: ProviderId
 ): string | null => {
   const p = (provider || "").toLowerCase();
+  if (KEYLESS_PROVIDERS.has(p) || isLocalProvider(p)) {
+    return null;
+  }
   // Canonical IDs come from PROVIDER_IDS; the extra literals below ("google",
   // "fal", "kimi", "hf_", 3D providers, …) are aliases / Python-side IDs that
   // aren't part of the TS provider registry but still map to a secret.

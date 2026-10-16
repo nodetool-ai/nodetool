@@ -332,14 +332,24 @@ type ThinkingPolicy =
 
 function thinkingPolicy(model: string): ThinkingPolicy {
   const id = model.toLowerCase();
+  // Opus 5.5 and Sonnet 5.5 reject `thinking: disabled`; check them before
+  // the "claude-opus-5" and "claude-sonnet-5" substrings they contain.
   if (
     id.includes("claude-fable-5") ||
     id.includes("claude-mythos-5") ||
-    id.includes("claude-mythos-preview")
+    id.includes("claude-mythos-preview") ||
+    id.includes("claude-opus-5-5") ||
+    id.includes("claude-sonnet-5-5")
   ) {
     return "adaptive_required";
   }
-  if (id.includes("claude-sonnet-5")) return "adaptive_default";
+  if (
+    id.includes("claude-opus-5") ||
+    id.includes("claude-sonnet-5") ||
+    id.includes("claude-haiku-5-5")
+  ) {
+    return "adaptive_default";
+  }
   if (id.includes("claude-opus-4-7") || id.includes("claude-opus-4-8")) {
     return "adaptive_optional";
   }

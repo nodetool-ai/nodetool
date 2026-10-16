@@ -1364,6 +1364,43 @@ describe("AnthropicProvider – buildRequest", () => {
       expect(request.thinking).toEqual({ type: "disabled" });
     });
 
+    it.each(["claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-1"])(
+      "rejects disabling thinking on %s, which always thinks",
+      async (model) => {
+        const { provider } = providerWithSpy();
+        await expect(
+          provider.generateMessage({
+            model,
+            messages: [{ role: "user", content: "hi" }],
+            thinking: { type: "disabled" }
+          })
+        ).rejects.toThrow("does not allow thinking to be disabled");
+      }
+    );
+
+    it.each(["claude-opus-5", "claude-sonnet-5", "claude-haiku-5-5"])(
+      "thinks by default on %s and still lets the caller disable it",
+      async (model) => {
+        // The model thinks on its own, so the request leaves `thinking` out
+        // and drops the sampling parameters an adaptive model rejects.
+        const byDefault = await requestFor({ model, temperature: 0.3 });
+        expect(byDefault.thinking).toBeUndefined();
+        expect(byDefault.temperature).toBeUndefined();
+        // A forced tool choice switches the default thinking off explicitly.
+        const forced = await requestFor({
+          model,
+          tools: [{ name: "lookup" }],
+          toolChoice: "any"
+        });
+        expect(forced.thinking).toEqual({ type: "disabled" });
+        const disabled = await requestFor({
+          model,
+          thinking: { type: "disabled" }
+        });
+        expect(disabled.thinking).toEqual({ type: "disabled" });
+      }
+    );
+
     it("sends no thinking at all on a manual model that asked for none", async () => {
       const request = await requestFor({ model: "claude-sonnet" });
       expect(request.thinking).toBeUndefined();

@@ -88,9 +88,15 @@ function resolveAdapterTarget(
     );
   }
 
-  const repoId = adapter.artifact_ref?.repo_id;
+  const repoIds = [adapter.artifact_ref, ...(adapter.extra_artifact_refs ?? [])]
+    .map((ref) => ref?.repo_id)
+    .filter((repoId): repoId is string => Boolean(repoId));
   const provider = target.provider ? providers.get(target.provider) : undefined;
-  if (repoId && cachedRepoIds.has(repoId.toLowerCase())) {
+  const filesPresent =
+    adapter.files_present ??
+    (repoIds.length > 0 &&
+      repoIds.every((repoId) => cachedRepoIds.has(repoId.toLowerCase())));
+  if (filesPresent) {
     return {
       kind: "server",
       state: "ready",

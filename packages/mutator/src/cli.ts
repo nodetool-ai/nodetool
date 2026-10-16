@@ -94,6 +94,7 @@ Default test command: a Vitest package runs
   npx --no-install vitest related --run --passWithNoTests --maxWorkers=1 {file}
 and any other package runs npm test. Default coverage for a Vitest package is
 a V8 coverage run of its suite.
+Only generated Vitest mutant commands add --bail=1 after the full baseline passes.
 
 Mutants of one file run at the same time in worker overlays under
 target/mutation-workers: the owning package is copied, and everything else is
@@ -459,7 +460,7 @@ export async function run(argv: string[], io: Io = defaultIo, runner?: CommandRu
       base === null
         ? null
         : (path, source) => formsChangedSince(options.root, base, path, relativeKey(options.root, path), source),
-    testCommand: (packageDir) => options.testCommand ?? defaultTestCommand(packageDir),
+    testCommand: (packageDir, phase) => options.testCommand ?? defaultTestCommand(packageDir, phase),
     timeoutFactor: options.timeoutFactor,
     mutationWarning: options.mutationWarning,
     maxWorkers: options.maxWorkers,

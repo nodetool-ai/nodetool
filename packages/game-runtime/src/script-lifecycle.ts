@@ -279,7 +279,15 @@ export function commitScriptHooks(value: unknown, plan: GameScriptHookPlan, tick
  * Guest code for the dispatcher, compiled into each lifecycle-object context, so it stays small. It runs the
  * planned hooks and returns `{state: [state, scheduled], commands}`, which `commitScriptHooks` turns into a record.
  */
-export const SCRIPT_LIFECYCLE_DISPATCH = `((hasOwn, isArray, isInteger, defineProperty, copy, hookNames) => (hooks, payload, steps) => {
+export const SCRIPT_SYNCHRONOUS_RESULT = `(value, name) => {
+  if (value !== null && (typeof value === "object" || typeof value === "function")
+    && (typeof value.then === "function" || typeof value.next === "function")) {
+    throw new Error(name + " must return synchronously, not a promise or iterator");
+  }
+  return value;
+}`;
+
+export const SCRIPT_LIFECYCLE_DISPATCH = `((hasOwn, isArray, isInteger, defineProperty, copy, hookNames, tag, synchronousResult) => (hooks, payload, steps) => {
   let state = payload.state;
   // A shallow copy, so a hook that reorders or empties input.events cannot change what a later onEvent receives.
   const commands = [], scheduled = [], events = isArray(payload.events) ? copy(payload.events) : [];
@@ -293,8 +301,9 @@ export const SCRIPT_LIFECYCLE_DISPATCH = `((hasOwn, isArray, isInteger, definePr
   for (const [name, argument] of steps) {
     const hook = hooks[name];
     if (typeof hook !== "function") { continue; }
+    if (tag(hook) !== "[object Function]") { throw new Error(name + " must be a synchronous function, not async or a generator"); }
     payload.state = state;
-    const result = argument === undefined ? hook.call(hooks, payload) : hook.call(hooks, payload, name === "onEvent" ? events[argument] : argument);
+    const result = synchronousResult(argument === undefined ? hook.call(hooks, payload) : hook.call(hooks, payload, name === "onEvent" ? events[argument] : argument), name);
     if (result === undefined) { continue; }
     if (result === null || typeof result !== "object" || isArray(result)) { throw new Error(name + " must return an object or undefined"); }
     if (hasOwn(result, "state")) { state = result.state; }
@@ -304,4 +313,4 @@ export const SCRIPT_LIFECYCLE_DISPATCH = `((hasOwn, isArray, isInteger, definePr
     }
   }
   return { state: [state, scheduled], commands };
-})(Object.hasOwn, Array.isArray, Number.isInteger, Object.defineProperty, Function.prototype.call.bind(Array.prototype.slice), ${JSON.stringify(GAME_SCRIPT_HOOKS)})`;
+})(Object.hasOwn, Array.isArray, Number.isInteger, Object.defineProperty, Function.prototype.call.bind(Array.prototype.slice), ${JSON.stringify(GAME_SCRIPT_HOOKS)}, Function.prototype.call.bind(Object.prototype.toString), ${SCRIPT_SYNCHRONOUS_RESULT})`;

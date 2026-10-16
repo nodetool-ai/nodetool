@@ -64,8 +64,8 @@ it("real empty-global-desired rollback explicitly prunes additions and restores 
   expect(await snapshotInstallTree(f.root)).toEqual(before);
 }, 30000);
 
-async function actualGlobalFixture() {
-  const f = await setup(); const prefix = join(f.directory, "global-prefix");
+async function actualGlobalFixture(olderTransitiveDependency = false) {
+  const f = await setup(false, { olderTransitiveDependency }); const prefix = join(f.directory, "global-prefix");
   await exec(process.execPath, [f.npm, "install", "--global", `--prefix=${prefix}`, `--registry=${f.registry}`, `--cache=${join(f.directory, "cache")}`,
     "--ignore-scripts", "--strict-peer-deps", "--legacy-peer-deps=false", "--package-lock=false", "--no-audit", "--no-fund", "@nodetool-ai/cli@1.0.0"]);
   const modules = process.platform === "win32" ? join(prefix, "node_modules") : join(prefix, "lib/node_modules");
@@ -76,6 +76,19 @@ async function actualGlobalFixture() {
   const before = await readInstallTree(cliRoot, true); expect(before.missingLock).toBe(true); expect(before.packages).toHaveLength(1);
   return { ...f, request: { ...f.request, mode }, cliRoot, before };
 }
+it("global pack addition keeps a newer installed dependency when the pack needs an older compatible copy", async () => {
+  const f = await actualGlobalFixture(true);
+  expect(f.before.packages[0].version).toBe("1.1.0");
+  vi.stubEnv("npm_config_prefer_dedupe", "true");
+  await installPacks(f.request, f.operations);
+  const after = await snapshotInstallTree(f.cliRoot);
+  const previous = after.filter(entry => entry.path === f.before.packages[0].path);
+  expect(installTreeRestored(f.before.packages, previous, true)).toBe(true);
+  expect(after.find(entry => entry.path === "node_modules/fixture-extractor/node_modules/fixture-baseline")?.version).toBe("1.0.0");
+  expect(after.find(entry => entry.name === "@nodetool-ai/fixture-nodes")?.integrity).toBe(f.request.catalog.packs[0].npm.integrity);
+  await expect(readFile(join(f.cliRoot, "node_modules/fixture-extractor/SCRIPT_RAN"))).rejects.toMatchObject({ code: "ENOENT" });
+}, 30000);
+
 it("actual npm global prefix without hidden lock bootstraps an additive verified pack install", async () => {
   const f = await actualGlobalFixture(); await installPacks(f.request, f.operations);
   const after = await snapshotInstallTree(f.cliRoot);

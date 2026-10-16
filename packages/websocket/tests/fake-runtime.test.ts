@@ -292,6 +292,34 @@ describe("FakeProvider as a stand-in provider", () => {
     ).toEqual([]);
   });
 
+  it("calls an Agent node's submit_result tool, as a real model does", async () => {
+    const provider = new FakeProvider({}, "openai");
+    const calls: unknown[] = [];
+    for await (const item of provider.generateMessages({
+      messages: [{ role: "user", content: "Lisbon trip notes" }],
+      model: "test-chat-model",
+      tools: [
+        {
+          name: "submit_result",
+          description: "Submit the dynamic outputs",
+          inputSchema: {
+            type: "object",
+            properties: { summary: { type: "string" } },
+            required: ["summary"]
+          }
+        }
+      ]
+    })) {
+      calls.push(item);
+    }
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
+      name: "submit_result",
+      args: { summary: expect.any(String) }
+    });
+  });
+
   it("lists models only for the providers in its catalog", async () => {
     expect(await new FakeProvider({}, "openai").getAvailableLanguageModels()).toEqual([
       { id: "test-chat-model", name: "Test Chat Model", provider: "openai" }

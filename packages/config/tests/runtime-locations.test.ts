@@ -18,13 +18,14 @@ describe("runtime locations", () => {
       const locations = runtimeLocations(env, { platform, desktopUserData: paths.join(home, "desktop"), settings: {} });
       expect(locations.host).toBe(host);
       if (host === "docker") {
-        expect(locations).toEqual({ host, optionalNodeRoot: null, uvTools: null, micromambaRoot: null, condaEnv: null });
+        expect(locations).toEqual({ host, optionalNodeRoot: null, uvTools: null, sdCpp: null, micromambaRoot: null, condaEnv: null });
         continue;
       }
       const owned = host === "desktop" ? paths.join(home, "desktop") : data;
       expect(locations.optionalNodeRoot).toBe(paths.join(owned, "optional-node"));
       expect(locations.condaEnv).toBe(paths.join(data, "conda_env"));
       expect(locations.uvTools?.bin).toBe(paths.join(owned, "uv-tools", "bin"));
+      expect(locations.sdCpp).toBe(paths.join(owned, "sd-cpp"));
       expect(runtimeBinPath(locations, platform)).toContain(paths.join(data, "conda_env", platform === "win32" ? "Scripts" : "bin"));
       expect(runtimeLocations(env, { platform, desktopUserData: owned, settings: { CONDA_ENV: paths.join(home, "existing") } }).condaEnv)
         .toBe(paths.join(home, "existing"));
@@ -97,7 +98,7 @@ describe("runtime locations", () => {
     expect(declarations.length).toBeGreaterThan(0);
     const declaredHost = declarations.map(([entry]) => entry).join(" ").match(/\bNODETOOL_HOST=([^\s\\]+)/)?.[1];
     const env = { NODETOOL_HOST: declaredHost, PATH: "/image/bin", NODETOOL_OPTIONAL_NODE_MODULES: "/image/node_modules" };
-    expect(runtimeLocations(env)).toEqual({ host: "docker", optionalNodeRoot: null, uvTools: null, micromambaRoot: null, condaEnv: null });
+    expect(runtimeLocations(env)).toEqual({ host: "docker", optionalNodeRoot: null, uvTools: null, sdCpp: null, micromambaRoot: null, condaEnv: null });
     const original = { ...env };
     applyRuntimeEnv(env);
     expect(env).toEqual(original);

@@ -4,13 +4,14 @@ import { gameDocument3D, resolveGameInputBindings, type GameInputFrame3D, type G
 import { createGameRenderer3D } from "./browser3d.js";
 import { GameInput3D } from "./input3d.js";
 import { browserGamepads } from "./input-bindings.js";
-import { mountTouchControls, touchLayout } from "./touch-controls.js";
+import { attachGameMouseInput } from "./mouse-input.js";
+import { mountTouchControls, touchLayout, type GameTouchControls } from "./touch-controls.js";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "./audio.js";
 import { FixedTickClock } from "./fixed-tick-host.js";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
 import { GameParticles3D } from "./particles/particles3d.js";
 import { createIndexedDbGameSaveStorage } from "./save-storage.js";
-import { attachGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
+import { attachGameUiPointer, claimGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
 import { gameUiViewport3D } from "./ui/hud3d.js";
 
 declare global {
@@ -103,17 +104,16 @@ async function start(): Promise<void> {
   // A locked pointer has no position, so HUD hits wait until the mouse is released.
   const hud = new GameUiController(input, browserGameUiMeasure(game.id));
   const hudViewport = gameUiViewport3D(game);
-  const detachHud = attachGameUiPointer(canvas, hud, () => hudViewport, () => document.pointerLockElement !== canvas);
+  const detachHud = attachGameUiPointer(canvas, hud, () => hudViewport, () => !paused && !contextPaused && document.pointerLockElement !== canvas);
   let hudInsets = browserGameUiInsets(canvas, hudViewport);
   window.addEventListener("resize", () => { hudInsets = browserGameUiInsets(canvas, hudViewport); }, { signal: controller.signal });
-  let dragging = false;
-  const release = (): void => { hud.release(); input.release(); dragging = false; };
+  let touchControls: GameTouchControls | undefined;
+  const release = (): void => { touchControls?.release(); hud.release(); input.release(); };
   window.addEventListener("keydown", (event) => {
     input.keyDown(event.code, event.key);
     if (input.handlesKey(game, event.code, event.key)) { event.preventDefault(); }
   }, { signal: controller.signal });
   window.addEventListener("keyup", (event) => { input.keyUp(event.code); }, { signal: controller.signal });
-  const mouseFire = game.inputActions.includes("fire");
   const bindings = resolveGameInputBindings(game);
   const mouseLook = bindings.look.some((binding) => binding.kind === "mouse");
   let unmountTouch: (() => void) | undefined;
@@ -123,28 +123,33 @@ async function start(): Promise<void> {
     const layer = document.createElement("div");
     layer.className = "touch-layer";
     document.body.append(layer);
-    const unmount = mountTouchControls(layer, { layout: touchLayout(bindings), onChange: (state) => input.setTouch(state), onLook: (x, y) => input.touchLook(x, y) });
-    unmountTouch = () => { unmount(); layer.remove(); };
+    const controls = mountTouchControls(layer, {
+      layout: touchLayout(bindings), onChange: (state) => input.setTouch(state), onLook: (x, y) => input.touchLook(x, y),
+      active: () => !paused && !contextPaused && !document.hidden,
+      claimPointer: (event) => document.pointerLockElement !== canvas && claimGameUiPointer(canvas, hud, hudViewport, event),
+      releasePointer: (id) => hud.pointerUp(id)
+    });
+    touchControls = controls;
+    unmountTouch = () => { controls.dispose(); touchControls = undefined; layer.remove(); };
   };
   if (window.matchMedia("(pointer: coarse)").matches) { enableTouch(); }
   window.addEventListener("touchstart", enableTouch, { passive: true, signal: controller.signal });
-  // A touch that reaches the canvas, outside the touch zones or before they appear, fires on tap and turns the camera on drag.
-  canvas.addEventListener("pointerdown", (event) => {
-    // A press on a HUD button stays with the HUD.
-    if (event.defaultPrevented) { return; }
-    dragging = true;
-    canvas.setPointerCapture(event.pointerId);
-    input.mouseDown(event.button);
-    if (event.pointerType !== "touch" && (mouseFire || mouseLook) && document.pointerLockElement !== canvas) {
-      void canvas.requestPointerLock().catch(() => { status(mouseFire ? "Mouse capture unavailable. Hold and drag to aim, or press F to fire." : "Mouse capture unavailable. Drag to turn the camera."); });
-    }
-  }, { signal: controller.signal });
-  window.addEventListener("pointerup", (event) => { dragging = false; input.mouseUp(event.button); }, { signal: controller.signal });
-  canvas.addEventListener("pointercancel", release, { signal: controller.signal });
-  document.addEventListener("pointerlockchange", () => { if (document.pointerLockElement !== canvas) { release(); } }, { signal: controller.signal });
-  canvas.addEventListener("pointermove", (event) => { if (dragging || document.pointerLockElement === canvas) { input.look(event.movementX, event.movementY); } }, { signal: controller.signal });
+  const detachMouse = attachGameMouseInput(canvas, input, {
+    active: () => !paused && !contextPaused && !document.hidden,
+    lookEnabled: () => mouseLook,
+    onLockFailure: () => status("Mouse capture unavailable. Drag to turn the camera.")
+  });
   window.addEventListener("blur", release, { signal: controller.signal });
   const clock = new FixedTickClock(game.tickRate);
+  function setPaused(next: boolean): void {
+    paused = next;
+    release();
+    input.setEnabled(!next);
+    clock.reset();
+    const pause = document.getElementById("pause");
+    if (pause) { pause.textContent = next ? "Resume" : "Pause"; }
+    if (next) { audio.pause(); } else { audio.resume(); }
+  }
   let animationId = 0;
   let rendering = false;
   let disposed = false;
@@ -157,7 +162,7 @@ async function start(): Promise<void> {
       const stats = await renderer.render(hud.annotate(frame), interpolation, particles);
       budget.observe({ drawCalls: stats.drawCalls, triangles: stats.triangles, particles: particles.count, voices: gameAudioVoiceCount(audio.mixerState()) });
     }
-    catch (error) { if (renderer.capabilities.deviceStatus !== "lost") { paused = true; } status(error instanceof Error ? error.message : "Rendering failed"); }
+    catch (error) { if (renderer.capabilities.deviceStatus !== "lost") { setPaused(true); } status(error instanceof Error ? error.message : "Rendering failed"); }
     finally { rendering = false; }
   };
   document.addEventListener("visibilitychange", () => { release(); clock.reset(); }, { signal: controller.signal });
@@ -167,21 +172,14 @@ async function start(): Promise<void> {
       try {
         const interpolation = clock.advance(now, () => { input.pollGamepads(hud.pollGamepads(browserGamepads())); step(input.sample(game)); });
         void render(interpolation);
-      } catch (error) { paused = true; clock.reset(); status(error instanceof Error ? error.message : "Game script failed"); }
+      } catch (error) { setPaused(true); status(error instanceof Error ? error.message : "Game script failed"); }
     } else if (contextPaused && renderer.capabilities.deviceStatus === "ready") {
       void render(1);
     }
     if (paused || contextPaused || document.hidden) { clock.reset(); }
     animationId = requestAnimationFrame(tick);
   };
-  document.getElementById("pause")?.addEventListener("click", (event) => {
-    paused = !paused;
-    // Input pressed while paused is dropped rather than delivered on resume (F23).
-    input.setEnabled(!paused);
-    if (event.currentTarget instanceof HTMLButtonElement) { event.currentTarget.textContent = paused ? "Resume" : "Pause"; }
-    release(); clock.reset();
-    if (paused) { audio.pause(); } else { audio.resume(); }
-  }, { signal: controller.signal });
+  document.getElementById("pause")?.addEventListener("click", () => setPaused(!paused), { signal: controller.signal });
   document.getElementById("reset")?.addEventListener("click", () => {
     paused = true;
     void open().then((replacement) => {
@@ -199,13 +197,14 @@ async function start(): Promise<void> {
     cancelAnimationFrame(animationId);
     controller.abort();
     unmountTouch?.();
+    detachMouse();
     detachHud();
     session.dispose();
     renderer.dispose();
     audio.dispose();
   }, { once: true });
   window.nativeGame3DPlayer = Object.freeze({
-    pause: () => { paused = true; release(); clock.reset(); },
+    pause: () => setPaused(true),
     step: async (nextInput: GameInputFrame3D) => { paused = true; step(nextInput, true); await render(1); },
     reset: async () => { paused = true; const replacement = await open(); session.dispose(); session = replacement; saves.clear(); audio.reset(session.snapshot()); frame = session.frame(); particles.clear(); release(); clock.reset(); await render(1); },
     advance: async (inputs: readonly GameInputFrame3D[]) => {
@@ -221,8 +220,8 @@ async function start(): Promise<void> {
     })
   });
   // A static HTTP host is required for browser modules and WASM.
-  status(mouseFire ? "Ready. Click to capture the mouse and fire. WASD moves, F fires, Space jumps, Escape releases the mouse."
-    : "Ready. Move with WASD, arrows or a gamepad, jump with Space. Click to capture the mouse for looking, Escape releases it.");
+  status(mouseLook ? "Ready. Use the game's controls. Click for mouse look, Escape releases the mouse."
+    : "Ready. Use the game's controls. Mouse buttons work without pointer capture.");
   await render(1);
   animationId = requestAnimationFrame(tick);
 }

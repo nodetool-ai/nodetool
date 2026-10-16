@@ -18,8 +18,9 @@ The TypeScript DSL (`@nodetool-ai/dsl`) provides type-safe factory functions for
 8. [Building the Workflow Graph](#building-the-workflow-graph)
 9. [Namespaces](#namespaces)
 10. [Code Generation](#code-generation)
-11. [Best Practices](#best-practices)
-12. [Canonical source and visual editing](#canonical-source-and-visual-editing)
+11. [Calling nodes directly (flow API)](#calling-nodes-directly-flow-api)
+12. [Best Practices](#best-practices)
+13. [Canonical source and visual editing](#canonical-source-and-visual-editing)
 
 ---
 
@@ -421,6 +422,66 @@ Generated files are committed to git. The root scripts `npm run codegen:dsl` and
 | `game_slot` | `GameSlotSpec` |
 | `slot_fill` | `SlotFill` |
 | `any` and any unmapped type (models, messages, 3D refs) | `unknown` |
+
+---
+
+## Calling nodes directly (flow API)
+
+`@nodetool-ai/dsl/flow` runs a single node as an async function. There is no graph, no `WorkflowRunner`, and no sandbox: a call resolves the node in the registry and runs its `process()`. You write the control flow in plain JavaScript.
+
+This is an internal surface. Its users in the repository are the exported-script generator (`packages/dsl/src/script-export.ts`, which emits `import { startFlow, invoke, invokeStream } from "@nodetool-ai/dsl/flow"`) and the sandbox `flow` capability (`packages/agents/src/capabilities/flow.ts`), which loads it through `importHidden`. [docs/harnesses.md](../harnesses.md) calls it internal. A program that must open in the editor, be validated, or run on the server should build a graph with `workflow()` and `run()` instead. The `./flow` export in `packages/dsl/package.json` exists so those two callers can resolve it. Design record: [dsl-native-flow-design](../dsl-native-flow-design.md).
+
+### Host API
+
+All names below are exported from `@nodetool-ai/dsl/flow` (`packages/dsl/src/flow/index.ts`).
+
+| Export | Signature and behavior |
+|--------|------------------------|
+| `startFlow(opts?)` | `(opts?: FlowOptions) => Promise<Flow>`. Creates a flow with its own `ProcessingContext` (job id `flow-<uuid>`, user id `"1"` unless `opts.userId` is set). |
+| `createFlowForContext(context, opts?)` | `(context: ProcessingContext, opts?: Omit<FlowOptions, "userId" \| "secretResolver">) => Promise<Flow>`. Runs on a context the caller owns, so cost, secrets and storage stay with that run. |
+| `invoke(nodeType, inputs, opts?)` | `Promise<Record<string, unknown>>`. Runs the node and returns its outputs. A node that yields several records is drained and folded to the last value per output slot. |
+| `invokeStream(nodeType, inputs, opts?)` | `AsyncGenerator<Record<string, unknown> \| StreamEmission>`. Yields one record per `genProcess` yield, or one `{ slot, value }` emission per `emit()` for a node that implements the `run(inputs, outputs, context)` contract. |
+| `invokeGenStream`, `invokeRunStream` | The two paths behind `invokeStream`, with the same arguments. The first yields records only, the second yields `StreamEmission` only. |
+| `foldEmissions(emissions)` | `(AsyncIterable<StreamEmission>) => Promise<Record<string, unknown>>`. Folds emissions to the last value per slot. |
+| `assertNodeAvailable(nodeType, opts?)` | `Promise<void>`. Checks that the node's pack is available without running the node. |
+| `resolveFlow(opts?)` | Returns the flow a call would use: `opts.flow`, else the ambient flow from an enclosing `flow.run()`, else a process-default flow (environment-variable secrets only, never closed automatically). |
+| `resetDefaultFlow()` | Closes and drops the process-default flow. Intended for tests. |
+| `FlowClosedError`, `FlowAbortError`, `EmissionCancelledError` | Thrown for a call on a closed flow, an abort with no reason of its own (`name` is `"AbortError"`), and a node's pending `emit()` when the consumer stops reading. |
+| `DEFAULT_EMISSION_QUEUE_LIMIT` | `1024`. |
+
+Types: `Flow`, `FlowOptions`, `FlowCallEvent`, `FlowCallPhase` (`"start" | "end" | "error"`), `CallOptions`, `StreamEmission`, `StreamSource<T>` (`AsyncIterable<T> | ReadonlyArray<T> | T`, what a caller may pass for a stream-typed input).
+
+`FlowOptions`: `userId`, `secretResolver`, `registry` (custom `NodeRegistry`, consulted before the global and builtin ones), `bridgeOptions` (Python worker bridge), `signal` (aborts every call), `onCall(event)` (receives `{ type, phase, durationMs, error? }`), and `maxQueuedEmissions` (default 1024).
+
+`CallOptions`: `flow` (use this flow instead of the ambient one), `signal` (aborts this call, combined with the flow's signal), and `maxQueuedEmissions`.
+
+`Flow` has `run(body)` (makes the flow ambient for every call inside `body`), `context` (the `ProcessingContext`), `close()` (idempotent), and `[Symbol.asyncDispose]()`, so `await using` closes it.
+
+```ts
+import { startFlow, invoke, invokeStream } from "@nodetool-ai/dsl/flow";
+
+await using flow = await startFlow({
+  onCall: (e) => console.log(e.type, e.phase)
+});
+
+await flow.run(async () => {
+  const { output } = await invoke("nodetool.text.Concat", {
+    a: "Hello, ",
+    b: "world"
+  });
+  console.log(output); // "Hello, world"
+
+  // For a node with streaming output, take items as they arrive.
+  // "my.pack.Tokens" is a placeholder type name.
+  for await (const item of invokeStream("my.pack.Tokens", { prompt: "hi" })) {
+    console.log(item);
+  }
+});
+```
+
+### Relation to the sandbox guest
+
+`packages/dsl/src/flow/generated/` holds typed per-namespace callables, such as `text.concat(inputs)` and `text.concat.stream(inputs)`. Codegen writes them (`npm run codegen --workspace=packages/dsl`, or `--flow` for this tree only). They are not host functions. `guest-core.ts` is the runtime behind them and runs only inside the QuickJS guest, as part of the `@nodetool-ai/sandbox-flow` pack. It calls four host capabilities from the `flow` capability module: `invoke_node`, `open_node_stream`, `take_node_stream` and `close_node_stream`. The host runs each one through the API above, on the invoking run's `ProcessingContext`. Guest authors should read the `nodetool-js-scripting` skill (`packages/system-skills/nodetool-js-scripting/SKILL.md`) rather than this section.
 
 ---
 

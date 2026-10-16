@@ -7,7 +7,7 @@ TypeScript SDK for the NodeTool server.
   no separate API definition to maintain.
 - **`ChatSocket`** — typed event-emitter wrapper around the chat
   WebSocket protocol (msgpack frames, with JSON fallback).
-- Works in browsers and Node ≥18. In Node, pass a `WebSocket`
+- Works in browsers and Node ≥22. In Node, pass a `WebSocket`
   constructor from the [`ws`](https://www.npmjs.com/package/ws) package.
 
 ## Install

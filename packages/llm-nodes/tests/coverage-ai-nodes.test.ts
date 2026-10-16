@@ -13,6 +13,7 @@ import {
   ExtractorNode,
   ClassifierNode,
   AgentNode,
+  structuredResultText,
   AGENT_NODES
 } from "../src/nodes/agents.js";
 import {
@@ -995,6 +996,46 @@ describe("AgentNode", () => {
     const last = streamed[streamed.length - 1];
     expect(last.answer).toBe("ready");
     expect(last.score).toBe(7);
+  });
+
+  it("gives Text the submitted answer when the model writes no prose", async () => {
+    const n = new (AgentNode as any)();
+    n._dynamic_outputs = {
+      answer: { type: "str" },
+      score: { type: "int" }
+    };
+    const mockProvider = withAgentLoop({
+      async *generateMessages(args: {
+        tools?: Array<{ name: string }>;
+      }): AsyncGenerator<Record<string, unknown>> {
+        const resultTool = args.tools?.find((tool) =>
+          tool.name.startsWith("submit_result")
+        );
+        yield {
+          id: "call_result",
+          name: resultTool?.name ?? "submit_result",
+          args: { answer: "ready", score: 7 }
+        };
+      }
+    });
+    n.assign({
+      model: { provider: "test", id: "m1" },
+      prompt: "Return JSON"
+    });
+    const result = await n.process({
+      emit: () => {},
+      getProvider: async () => mockProvider
+    } as any);
+    expect(result).toMatchObject({
+      text: "answer: ready\nscore: 7",
+      answer: "ready",
+      score: 7
+    });
+  });
+
+  it("reads one submitted value as Text on its own", () => {
+    expect(structuredResultText({ answer: "ready" })).toBe("ready");
+    expect(structuredResultText({ items: ["a", "b"] })).toBe('["a","b"]');
   });
 
   it("continues after non-executable tool calls until dynamic result is submitted", async () => {
