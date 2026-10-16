@@ -20,6 +20,8 @@ import type {
   ImageToImageParams,
   ImageToVideoParams,
   LanguageModel,
+  ImageModel,
+  VideoModel,
   LipSyncParams,
   Message,
   MessageTextContent,
@@ -166,6 +168,8 @@ type CustomResponseFn = (
 ) => string | ToolCall[];
 
 export interface FakeProviderOptions {
+  /** Hide test chat models when only fake media was explicitly requested. */
+  includeLanguageModels?: boolean;
   textResponse?: string;
   toolCalls?: ToolCall[];
   shouldStream?: boolean;
@@ -218,6 +222,7 @@ function defaultToolArgs(
 }
 
 export class FakeProvider extends BaseProvider {
+  private readonly includeLanguageModels: boolean;
   textResponse: string;
   toolCalls: ToolCall[];
   shouldStream: boolean;
@@ -235,6 +240,7 @@ export class FakeProvider extends BaseProvider {
 
   constructor(options: FakeProviderOptions = {}) {
     super("fake");
+    this.includeLanguageModels = options.includeLanguageModels ?? true;
     this.textResponse =
       options.textResponse ?? "Hello, this is a fake response!";
     this.toolCalls = options.toolCalls ?? [];
@@ -285,6 +291,11 @@ export class FakeProvider extends BaseProvider {
 
   protected override declaredCapabilities(): readonly ProviderCapability[] {
     return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
       "upscale_image",
       "remove_background",
       "relight_image",
@@ -295,11 +306,29 @@ export class FakeProvider extends BaseProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    if (!this.includeLanguageModels) {
+      return [];
+    }
     return [
       { id: "fake-model-v1", name: "Fake Model v1", provider: "fake" },
       { id: "fake-model-v2", name: "Fake Model v2", provider: "fake" },
       { id: "fake-fast-model", name: "Fake Fast Model", provider: "fake" }
     ];
+  }
+
+  override async getAvailableImageModels(): Promise<ImageModel[]> {
+    return [{
+      id: "fake-image", name: "Fake Image (no-cost test PNG)", provider: "fake",
+      supportedTasks: ["text_to_image", "image_to_image"]
+    }];
+  }
+
+  override async getAvailableVideoModels(): Promise<VideoModel[]> {
+    return [{
+      id: "fake-video", name: "Fake Video (no-cost test MP4)", provider: "fake",
+      supportedTasks: ["text_to_video", "image_to_video", "reference_to_video", "video_to_video"],
+      durations: [2]
+    }];
   }
 
   async generateMessage(args: {

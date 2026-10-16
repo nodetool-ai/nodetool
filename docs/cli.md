@@ -1895,6 +1895,12 @@ nodetool models download-hf --repo-id Qwen/Qwen3-0.6B-GGUF -a "*.gguf"
 
 ### `nodetool generate <provider> <model> <prompt...>`
 
+Local and self-hosted installs expose `fake-image` and `fake-video` on provider
+`fake` for no-cost tests without credentials. They produce a fixed PNG or a
+two-second MP4. Select fake explicitly with `find_model({provider_hint: "fake", ...})`.
+Automatic model selection excludes fake media. Storyboards can use these refs as
+`image_model` and `video_model` board defaults.
+
 Generate an image from any registered provider straight to a file, with no
 workflow in between. Use it to try a model, check that a provider's key resolves,
 or produce one image from a script.
@@ -1926,6 +1932,9 @@ environment; when it is missing the error names the variable to set.
 
 ```bash
 # Discover model ids for a provider
+nodetool generate fake --list-models
+nodetool generate fake fake-image "test fixture" -o fixture.png
+
 nodetool generate fal-ai --list-models
 
 # Text to image

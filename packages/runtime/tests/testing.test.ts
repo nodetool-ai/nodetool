@@ -133,6 +133,17 @@ describe("stubGlobalFetch", () => {
 });
 
 describe("FakeProvider media capabilities", () => {
+  it("lists explicit image and video test models with matching capabilities", async () => {
+    const provider = new FakeProvider({ includeLanguageModels: false });
+    expect(await provider.getAvailableLanguageModels()).toEqual([]);
+    expect(await provider.getAvailableImageModels()).toEqual([expect.objectContaining({ id: "fake-image", provider: "fake" })]);
+    expect(await provider.getAvailableVideoModels()).toEqual([expect.objectContaining({ id: "fake-video", provider: "fake" })]);
+    expect(provider.getCapabilities()).toEqual(expect.arrayContaining([
+      "text_to_image", "image_to_image", "text_to_video", "image_to_video", "reference_to_video"
+    ]));
+    expect(await new FakeProvider().getAvailableLanguageModels()).not.toEqual([]);
+  });
+
   it("textToImage returns PNG-magic bytes", async () => {
     const p = new FakeProvider();
     const bytes = await p.textToImage({
