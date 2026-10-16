@@ -72,6 +72,7 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
       </FlexRow>
       {scene && <InspectorSection title="Environment preset"><EnvironmentPresetEditor sceneId={scene.id} onOps={onOps} /></InspectorSection>}
       {scene && <SchemaFields componentSections addLabel="Add setting" schema={SCENE_FIELDS}
+        componentEditors={GAME_COMPONENT_EDITORS} dimension="3d"
         value={settings} assets={document.assets} onChange={(value) => {
           const updated = gameScene3D.parse({ ...gameScene3D.omit({ id: true, entities: true }).parse(value), id: scene.id, entities: scene.entities });
           applyDocument({ ...document, scenes: document.scenes.map((item) => item.id === sceneId ? updated : item) }, "Change Scene Settings");
