@@ -5,7 +5,7 @@ import { createGameSession3D } from "../src/session3d.js";
 import { createTopDownRoomGame } from "../src/sample.js";
 import { blockout } from "./fixtures-game3d.js";
 
-const script = (source: string) => ({ kind: "script", source, maxCommands: 8, maxTickMs: 50 });
+const script = (source: string) => ({ kind: "script", source, maxCommands: 8, maxTickMs: 20 });
 const input = { pressed: [] };
 const emitted = (events: readonly GameEvent[]) => events.flatMap((event) => event.kind === "trigger" ? [event.event] : []);
 const destroy = `({

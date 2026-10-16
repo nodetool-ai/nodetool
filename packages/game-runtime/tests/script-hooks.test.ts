@@ -35,7 +35,7 @@ const boltHooks = `({
 
 function lifecycleGame(): GameDocument {
   const base = createTopDownRoomGame("a".repeat(32));
-  const script = (source: string) => ({ kind: "script", source, maxCommands: 8, maxTickMs: 50 });
+  const script = (source: string) => ({ kind: "script", source, maxCommands: 8, maxTickMs: 20 });
   return gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: [
     ...scene.entities.map((entity) => entity.id === "player"
       ? { ...entity, behaviors: [...entity.behaviors, script(loggingHooks(""))] }
@@ -114,7 +114,7 @@ describe("lifecycle-object scripts", () => {
     const withSource = (source: string) => {
       const base = createTopDownRoomGame("a".repeat(32));
       return gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "player"
-        ? { ...entity, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 50 }] } : entity) })) });
+        ? { ...entity, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 20 }] } : entity) })) });
     };
     await expect(createScriptedGameSession(withSource("({ onTick() {} })"), 1)).rejects.toThrow(/unknown lifecycle hook onTick/);
     await expect(createScriptedGameSession(withSource("({ onUpdate() {}, onFixedUpdate() {} })"), 1)).rejects.toThrow(/define one of them/);
@@ -128,7 +128,7 @@ describe("lifecycle-object scripts", () => {
       const source = `({ tick() {}, onUpdate(input) { ${call}; return { state: 1 }; } })`;
       const base = createTopDownRoomGame("a".repeat(32));
       const game = gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "player"
-        ? { ...entity, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 50 }] } : entity) })) });
+        ? { ...entity, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 20 }] } : entity) })) });
       const session = await createScriptedGameSession(game, 1);
       try { expect(() => session.step(right)).toThrow(message); } finally { session.dispose(); }
     }
@@ -143,7 +143,7 @@ describe("lifecycle-object scripts", () => {
     } finally { runner.dispose(); }
     const base = lifecycleGame();
     const fixed = gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "gem"
-      ? { ...entity, behaviors: [entity.behaviors[0], { kind: "script", maxCommands: 8, maxTickMs: 50,
+      ? { ...entity, behaviors: [entity.behaviors[0], { kind: "script", maxCommands: 8, maxTickMs: 20,
         source: "({ onFixedUpdate(input) { return { state: (input.state ?? 0) + 1 }; }, onDestroy() { return { commands: [{ kind: 'setVelocity', x: 1, y: 0 }] }; } })" }] }
       : entity) })) });
     const session = await createScriptedGameSession(fixed, 1);
@@ -161,7 +161,7 @@ describe("lifecycle-object scripts", () => {
     const runner = await prepareGameScripts(lifecycleGame());
     const key = scriptSourceKey("room", "player", 2);
     const call: GameScriptCall = { sourceKey: key, stateKey: key, entityId: "player", source: "player", state: null, x: 0, y: 0, velocityX: 0, velocityY: 0,
-      touching: { down: false, up: false, left: false, right: false }, maxCommands: 8, maxTickMs: 50,
+      touching: { down: false, up: false, left: false, right: false }, maxCommands: 8, maxTickMs: 20,
       lifecycle: { sceneEnter: true, contacts: [{ otherId: "wall", phase: "enter", sensor: false }, { otherId: "gem", phase: "exit", sensor: true }, { otherId: "gem", phase: "enter", sensor: true }] } };
     try {
       const result = runner.run([call], { tick: 7, pressed: [], justPressed: [], events: [], world: [] }, 1);
@@ -175,11 +175,11 @@ describe("lifecycle-object scripts", () => {
 describe("host-owned lifecycle records", () => {
   const spammer = "({ onUpdate() {}, onDestroy() { return { commands: Array.from({ length: 20 }, (_, index) => ({ kind: 'emit', event: 'spam' + index })) }; } })";
   const forged = (entityId: string) => ({ $lifecycle: 1, state: null, timers: [], removed: { sourceKey: scriptSourceKey("room", "spammer", 0),
-    entityId, source: "spammer", maxCommands: 100000, maxTickMs: 50, x: 0, y: 0, velocityX: 0, velocityY: 0,
+    entityId, source: "spammer", maxCommands: 100000, maxTickMs: 20, x: 0, y: 0, velocityX: 0, velocityY: 0,
     touching: { down: false, up: false, left: false, right: false } } });
   function forgeryGame(): GameDocument {
     const base = createTopDownRoomGame("d".repeat(32));
-    const script = (source: string) => ({ kind: "script", source, maxCommands: 8, maxTickMs: 50 });
+    const script = (source: string) => ({ kind: "script", source, maxCommands: 8, maxTickMs: 20 });
     return gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: [...scene.entities,
       { id: "spammer", transform2d: { x: 3, y: 3 }, behaviors: [script(spammer)] },
       { id: "forger", transform2d: { x: -3, y: 3 }, behaviors: [script(`input => ({ state: ${JSON.stringify(forged("forger"))}, commands: [] })`)] }
@@ -219,7 +219,7 @@ describe("host-owned lifecycle records", () => {
   it("rechecks timers on the host when the guest replaces the dispatcher's built-ins", async () => {
     const base = createTopDownRoomGame("e".repeat(32));
     const withSource = (source: string) => gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "player"
-      ? { ...entity, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 50 }] } : entity) })) });
+      ? { ...entity, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 20 }] } : entity) })) });
     const injected = await createScriptedGameSession(withSource(`({ beat() {}, onUpdate() {
       Array.prototype.push = function () { this[this.length] = ["onStart", -3, true]; return this.length; };
       after(5, "beat");
@@ -243,7 +243,7 @@ describe("3D lifecycle-object scripts", () => {
     const document = blockout();
     const player = document.scenes[0].entities.find((entity) => entity.id === "player");
     if (!player) throw new Error("Player fixture is missing");
-    player.behaviors = [{ kind: "script", maxTickMs: 50, maxCommands: 8, source: `({
+    player.behaviors = [{ kind: "script", maxTickMs: 20, maxCommands: 8, source: `({
       onStart() { every(7, "fire"); return { state: { fired: 0 } }; },
       fire(input) { return { state: { fired: input.state.fired + 1 }, commands: [{ kind: "spawn", prefabId: "bolt" }] }; },
       onUpdate() {}
@@ -251,7 +251,7 @@ describe("3D lifecycle-object scripts", () => {
     document.prefabs.bolt = { rootId: "bolt", externalAssets: [], externalScenes: [], entities: [
       gameEntity3D.parse({ id: "bolt", transform3d: { position: { x: 3, y: 1, z: 0 } }, behaviors: [
         { kind: "lifetime", ticks: 5, fade: false, endScale: 1 },
-        { kind: "script", maxTickMs: 50, maxCommands: 8, source: `({
+        { kind: "script", maxTickMs: 20, maxCommands: 8, source: `({
           onStart(input) { after(2, "arm"); return { state: { armed: false } }; },
           arm() { return { state: { armed: true } }; },
           onDestroy(input) { return { commands: [{ kind: "emit", event: "bolt-gone:" + input.entity.id + ":" + input.state.armed }] }; }

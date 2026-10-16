@@ -1,5 +1,5 @@
 import type { EntityState } from "./state2d.js";
-import { resolveGameUiFrame, type GameDocument, type GameHudLabel, type GameRenderFrame, type GameScene, type GameUiOverride } from "@nodetool-ai/protocol";
+import { gameRenderFrame, resolveGameUiFrame, type GameDocument, type GameHudLabel, type GameRenderFrame, type GameScene, type GameUiOverride } from "@nodetool-ai/protocol";
 import { projectGameplayHud } from "../gameplay/lifecycle.js";
 import { evaluateVisual } from "../visual-animation.js";
 import type { GameSystemContext2D } from "./context2d.js";
@@ -41,6 +41,12 @@ function animationFrame(state: EntityState, tick: number): GameRenderFrame["spri
   const index = Math.floor(Math.max(0, age) / clip.ticksPerFrame);
   return clip.frames[clip.loop ? index % clip.frames.length : Math.min(index, clip.frames.length - 1)];
 }
+/** A read-only presentation view. It does not replace the scene camera or enter snapshots. */
+export interface GamePresentationView2D {
+  readonly camera?: GameRenderFrame["camera"];
+  readonly aspectRatio?: number;
+}
+
 export function frameFor(
   document: GameDocument,
   scene: GameScene,
@@ -49,7 +55,8 @@ export function frameFor(
   score: number,
   won: boolean,
   hud: ReadonlyMap<string, GameHudLabel>,
-  ui: ReadonlyMap<string, GameUiOverride>
+  ui: ReadonlyMap<string, GameUiOverride>,
+  view?: GamePresentationView2D
 ): GameRenderFrame {
   const cameraState = states.find((state) => state.active && state.definition.camera2d);
   const camera = cameraState?.definition.camera2d;
@@ -57,11 +64,18 @@ export function frameFor(
   const tiles: GameRenderFrame["tiles"] = [];
   const particles: NonNullable<GameRenderFrame["particles"]> = [];
   const audioEmitters: NonNullable<GameRenderFrame["audioEmitters"]> = [];
-  const cameraX = cameraState?.x ?? 0;
-  const cameraY = cameraState?.y ?? 0;
+  const height = camera?.height ?? 9;
+  const width = view?.aspectRatio !== undefined ? height * view.aspectRatio : camera?.width ?? 16;
+  const shownCamera = view?.camera ? gameRenderFrame.shape.camera.parse(view.camera) : {
+    x: cameraState?.x ?? 0, y: cameraState?.y ?? 0,
+    previousX: cameraState?.previousX ?? 0, previousY: cameraState?.previousY ?? 0, zoom: camera?.zoom ?? 1
+  };
+  if (view && (!Number.isFinite(width) || width <= 0)) { throw new Error("Presentation aspect ratio must produce a finite positive width"); }
+  const cameraX = shownCamera.x;
+  const cameraY = shownCamera.y;
   // Tiles and lights outside the view plus a margin never reach the renderer, so large levels stay cheap.
-  const viewHalfWidth = (camera?.width ?? 16) / (2 * (camera?.zoom ?? 1));
-  const viewHalfHeight = (camera?.height ?? 9) / (2 * (camera?.zoom ?? 1));
+  const viewHalfWidth = width / (2 * shownCamera.zoom);
+  const viewHalfHeight = height / (2 * shownCamera.zoom);
   const cullHalfWidth = viewHalfWidth * 1.5 + 2;
   const cullHalfHeight = viewHalfHeight * 1.5 + 2;
   const entityLights: {
@@ -235,16 +249,10 @@ export function frameFor(
     gameId: document.id,
     fonts: Object.fromEntries(Object.entries(document.assets).filter(([, binding]) => binding.mediaKind === "font")),
     tick,
-    width: camera?.width ?? 16,
-    height: camera?.height ?? 9,
+    width,
+    height,
     pixelsPerUnit: document.pixelsPerUnit,
-    camera: {
-      x: cameraState?.x ?? 0,
-      y: cameraState?.y ?? 0,
-      previousX: cameraState?.previousX ?? 0,
-      previousY: cameraState?.previousY ?? 0,
-      zoom: camera?.zoom ?? 1
-    },
+    camera: shownCamera,
     sprites,
     tiles,
     backgrounds: (scene.backgrounds ?? []).map((layer) =>

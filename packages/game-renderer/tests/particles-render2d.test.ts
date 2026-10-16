@@ -172,7 +172,7 @@ describe("2D particles beside a session", () => {
     const document = gameDocument.parse({ ...base, schemaVersion: 2, scenes: base.scenes.map((scene, index) => index === 0 ? { ...scene, entities: [...scene.entities, {
       id: "torch", transform2d: { x: 1, y: 2 },
       particles: { emitters: [{ id: "burst", playOnStart: false, rate: 0, lifetime: 10, speed: 0, blend: "additive" }] },
-      behaviors: [{ kind: "script", maxTickMs: 50, source: "({tick}) => ({ state: null, commands: tick === 0 ? [{ kind: 'emitParticles', count: 6 }] : [] })" }]
+      behaviors: [{ kind: "script", maxTickMs: 20, source: "({tick}) => ({ state: null, commands: tick === 0 ? [{ kind: 'emitParticles', count: 6 }] : [] })" }]
     }] } : scene) });
     const session = await createScriptedGameSession(document, 1);
     const plain = await createScriptedGameSession(document, 1);
