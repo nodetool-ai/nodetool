@@ -379,6 +379,13 @@ export type { OverlayProps } from "./Overlay";
 export { ResponsiveImage } from "./ResponsiveImage";
 export type { ResponsiveImageProps } from "./ResponsiveImage";
 
+export { MediaThumbnail, mediaKindFromContentType } from "./MediaThumbnail";
+export type {
+  MediaThumbnailProps,
+  MediaThumbnailAsset,
+  MediaThumbnailKind
+} from "./MediaThumbnail";
+
 // Phase 3 - Additional primitives
 
 export { Tooltip } from "./Tooltip";

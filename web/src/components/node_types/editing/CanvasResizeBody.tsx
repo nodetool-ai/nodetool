@@ -10,17 +10,15 @@ import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import ImageIcon from "@mui/icons-material/Image";
 
 import { SPACING,
-  CheckerDropzone,
   FlexColumn,
   FlexRow,
   NodeSlider,
   ToggleGroup,
   ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageRefPreview from "../../node/ImageRefPreview";
+import ImagePreview from "./ImagePreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import NumberInput from "../../inputs/NumberInput";
@@ -153,15 +151,6 @@ function computeLayout(
   };
 }
 
-const PreviewImage: React.FC<{ value: unknown }> = ({ value }) => (
-  <ImageRefPreview
-    value={value}
-    placeholder={
-      <CheckerDropzone message="Connect an image, then run" icon={<ImageIcon />} />
-    }
-  />
-);
-
 interface CanvasResizeBodyProps {
   id: string;
   nodeType: string;
@@ -257,7 +246,7 @@ const CanvasResizeBodyInner: React.FC<CanvasResizeBodyProps> = ({
   return (
     <div css={cssStyles} className="canvas-resize-body" data-bespoke-body="CanvasResize">
       <div className="preview-area">
-        <PreviewImage value={previewValue ?? sourceValue} />
+        <ImagePreview value={previewValue ?? sourceValue} />
         {overlayRect && (
           <div
             className="overlay-rect"

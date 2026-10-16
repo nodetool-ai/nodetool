@@ -13,11 +13,10 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
-import ImageIcon from "@mui/icons-material/Image";
 
-import { SPACING, CheckerDropzone, FlexRow, StateIconButton, BORDER_RADIUS } from "../../ui_primitives";
+import { SPACING, FlexRow, StateIconButton, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageRefPreview from "../../node/ImageRefPreview";
+import ImagePreview from "./ImagePreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import NumberInput from "../../inputs/NumberInput";
@@ -108,15 +107,6 @@ const extractDims = (
     data: v.data
   };
 };
-
-const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
-  <ImageRefPreview
-    value={value}
-    placeholder={
-      <CheckerDropzone message="Connect an image, then run" icon={<ImageIcon />} />
-    }
-  />
-);
 
 interface ResizeBodyProps {
   id: string;

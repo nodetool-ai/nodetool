@@ -17,17 +17,15 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import ImageIcon from "@mui/icons-material/Image";
 
 import { SPACING,
-  CheckerDropzone,
   FlexColumn,
   FlexRow,
   RunModelButton,
   ToggleGroup,
   ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageRefPreview from "../../node/ImageRefPreview";
+import ImagePreview from "./ImagePreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
@@ -111,17 +109,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-const ImagePreview: React.FC<{ value: unknown; placeholder: string }> = memo(({
-  value,
-  placeholder
-}) => (
-  <ImageRefPreview
-    value={value}
-    placeholder={<CheckerDropzone message={placeholder} icon={<ImageIcon />} />}
-  />
-));
-ImagePreview.displayName = "ImagePreview";
-
 interface MasksExtractorBodyProps {
   id: string;
   nodeType: string;
@@ -188,12 +175,12 @@ const MasksExtractorBodyInner: React.FC<MasksExtractorBodyProps> = ({
         {tab === "image" ? (
           <ImagePreview
             value={imageTabValue}
-            placeholder="Connect an image"
+            message="Connect an image"
           />
         ) : (
           <ImagePreview
             value={maskTabValue}
-            placeholder="Run the node to extract a mask"
+            message="Run the node to extract a mask"
           />
         )}
       </div>
