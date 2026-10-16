@@ -1,6 +1,6 @@
 import { Profiler } from "react";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createTopDownRoomGame, createScriptedGameSession, withGameScriptLogs, type GameSession } from "@nodetool-ai/game-runtime";
 import { useGamePlaySession } from "../useGamePlaySession";
@@ -681,4 +681,34 @@ it("produces authored 2D mouse and touch actions through the actual shared playe
     expect(sampledInput?.sample2D(game).justPressed).toEqual([]);
   } finally { view.unmount(); window.matchMedia = matchMedia; }
   expect(window.document.querySelector("[data-game-touch-controls]")).toBeNull();
+});
+
+
+it("marks paused and resumed profiler frame intervals from actual 2D playback state", async () => {
+  const animation = jest.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+  const hook = renderHook(({ active }) => useGamePlaySession({ refId: "profile-pause", active, document }), { initialProps: { active: true } });
+  let detach: (() => void) | undefined;
+  try {
+    await act(async () => { hook.result.current.beginPlay(); });
+    expect(hook.result.current.playing).toBe(true);
+    const profiler = hook.result.current.profiler;
+    detach = profiler.attach();
+    profiler.clearLive();
+    profiler.recordRender({ drawCalls: 1, textureBytes: 0 }, 1000);
+    profiler.recordRender({ drawCalls: 2, textureBytes: 0 }, 2501);
+    await act(async () => { hook.rerender({ active: false }); });
+    profiler.recordRender({ drawCalls: 7, textureBytes: 0 }, 3000);
+    profiler.recordRender({ drawCalls: 8, textureBytes: 0 }, 3500);
+    await act(async () => { hook.rerender({ active: true }); });
+    profiler.recordRender({ drawCalls: 9, textureBytes: 0 }, 4000);
+    profiler.recordRender({ drawCalls: 10, textureBytes: 0 }, 4016);
+    await act(async () => { hook.result.current.beginPlay(); });
+    expect(hook.result.current.playing).toBe(false);
+    profiler.recordRender({ drawCalls: 3, textureBytes: 0 }, 5000);
+    profiler.recordRender({ drawCalls: 4, textureBytes: 0 }, 9000);
+    await act(async () => { hook.result.current.beginPlay(); });
+    profiler.recordRender({ drawCalls: 5, textureBytes: 0 }, 12000);
+    profiler.recordRender({ drawCalls: 6, textureBytes: 0 }, 12016);
+    expect(Array.from(profiler.live().frames.frameMs)).toEqual([Number.NaN, 1501, Number.NaN, Number.NaN, Number.NaN, 16, Number.NaN, Number.NaN, Number.NaN, 16]);
+  } finally { detach?.(); hook.unmount(); animation.mockRestore(); }
 });
