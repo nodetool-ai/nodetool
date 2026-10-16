@@ -1154,6 +1154,28 @@ import { Chip } from "../ui_primitives";
 | Not a chip | A count or a value with no border is `Text`. A render state on a thumbnail is `StatusPill`. A command is a button, even when it is pill-shaped |
 | Hand-built | Do not build a pill from a `Box`, `span` or `button` with `BORDER_RADIUS.pill`. Use `Chip` with `icon` for a leading dot, spinner or icon |
 
+### Badges, dots and media labels
+
+Three primitives cover the small marks that sit beside or on top of other
+content. A text badge is a `Chip`, see "Chips and pills".
+
+```tsx
+import { CountBadge, StatusDot, MediaLabel } from "../ui_primitives";
+
+<CountBadge count={unread} max={99}><BellIcon /></CountBadge>
+<StatusDot tone="warning" label="Unsaved changes" />
+<StatusDot tone="primary" pulse />
+<MediaLabel corner="bottom-right">{width} × {height}</MediaLabel>
+```
+
+| Part | Rule |
+|---|---|
+| `CountBadge` | A number on an icon or button. With children it anchors to them (MUI `Badge`). Without children it is a standalone 16px pill, positioned through `sx`. `max` caps the number as "99+", `dot` drops the number, `size` is `small` or `medium` |
+| `StatusDot` | A filled circle that carries a state by colour: unsaved, generating, failed, connected. `tone` is a palette tone or `neutral`, `size` is `small` (6px) or `medium` (8px). `pulse` breathes it on `MOTION.pulse` for ongoing work and stops under reduced motion. Pass `label` when the dot is the only signal, otherwise it is `aria-hidden` |
+| `MediaLabel` | A readout on an image or video, such as dimensions or duration: mono caption, white on `c_scrim`. `corner` pins it to a corner of the positioned parent and disables pointer events. Never put it on a surface that is not media |
+| Text badge | `Chip compact`, never a styled `span` |
+| Hand-built | Do not draw a dot from a `Box`, `span` or `::before` with `BORDER_RADIUS.circle`, copy a `.dirty-dot` or `.dimensions-badge` rule, or write a `@keyframes` for a pulsing dot. A custom colour goes in `sx={{ bgcolor }}` on `StatusDot`. A dot with a label is `SaveState` or `StatusIndicator` |
+
 ### Buttons
 
 A command is a button. Draw a text command with `EditorButton`, an icon-only

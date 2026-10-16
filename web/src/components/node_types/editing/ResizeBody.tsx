@@ -15,7 +15,7 @@ import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { SPACING, CheckerDropzone, FlexRow, StateIconButton, BORDER_RADIUS } from "../../ui_primitives";
+import { SPACING, MediaLabel, CheckerDropzone, FlexRow, StateIconButton, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -65,18 +65,6 @@ const styles = (theme: Theme) =>
         width: "100%",
         height: "100%",
         objectFit: "contain"
-      },
-      ".dimensions-badge": {
-        position: "absolute",
-        bottom: theme.spacing(SPACING.micro),
-        right: theme.spacing(SPACING.micro),
-        padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`,
-        background: theme.vars.palette.c_scrim,
-        color: theme.vars.palette.common.white,
-        fontFamily: theme.fontFamily2,
-        fontSize: theme.fontSizeSmaller,
-        borderRadius: BORDER_RADIUS.sm,
-        pointerEvents: "none"
       }
     },
     ".controls-row": {
@@ -219,9 +207,9 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
       <div className="preview-area">
         <ImagePreview value={previewValue} />
         {previewDims.width != null && previewDims.height != null && (
-          <span className="dimensions-badge">
+          <MediaLabel corner="bottom-right">
             {previewDims.width} × {previewDims.height}
-          </span>
+          </MediaLabel>
         )}
         <HandleColumn id={id} properties={imageProperty} />
       </div>

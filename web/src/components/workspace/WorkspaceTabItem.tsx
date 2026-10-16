@@ -17,6 +17,7 @@ import {
   InlineEditableText,
   LoadingSpinner,
   MenuItemPrimitive,
+  StatusDot,
   Tooltip
 } from "../ui_primitives";
 import { tabDisplayTitle } from "./tabTypeIdentity";
@@ -219,11 +220,7 @@ const WorkspaceTabItem = ({
               </span>
             </Tooltip>
             {isWorkflowDirty && (
-              <span
-                className="dirty-dot"
-                role="img"
-                aria-label="unsaved changes"
-              />
+              <StatusDot tone="warning" size="medium" label="unsaved changes" />
             )}
           </>
         )}

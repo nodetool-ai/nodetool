@@ -14,7 +14,7 @@ import {
   BORDER_RADIUS,
   TYPOGRAPHY,
   MOTION,
-  getSpacingPx
+  StatusDot
 } from "../ui_primitives";
 import {
   useScriptStore,
@@ -40,16 +40,7 @@ const voiceFromStudio = (value: TTSModelValue): VoiceBinding => ({
 });
 
 const SpeakerDot = ({ color }: { color: string | undefined }) => (
-  <Box
-    aria-hidden
-    sx={{
-      width: getSpacingPx(SPACING.md),
-      height: getSpacingPx(SPACING.md),
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: color ?? "action.disabled",
-      flexShrink: 0
-    }}
-  />
+  <StatusDot size="medium" sx={{ bgcolor: color ?? "action.disabled" }} />
 );
 
 export interface ScriptSpeakerPickerProps {

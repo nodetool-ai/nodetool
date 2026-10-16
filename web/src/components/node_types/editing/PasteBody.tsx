@@ -14,7 +14,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { SPACING, CheckerDropzone, FlexRow, BORDER_RADIUS } from "../../ui_primitives";
+import { SPACING, MediaLabel, CheckerDropzone, FlexRow, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -69,18 +69,6 @@ const styles = (theme: Theme) =>
         boxSizing: "border-box",
         border: `1px dashed ${theme.vars.palette.primary.main}`,
         background: `color-mix(in srgb, ${theme.vars.palette.primary.main} 12%, transparent)`,
-        pointerEvents: "none"
-      },
-      ".dimensions-badge": {
-        position: "absolute",
-        bottom: theme.spacing(SPACING.micro),
-        right: theme.spacing(SPACING.micro),
-        padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`,
-        background: theme.vars.palette.c_scrim,
-        color: theme.vars.palette.common.white,
-        fontFamily: theme.fontFamily2,
-        fontSize: theme.fontSizeSmaller,
-        borderRadius: BORDER_RADIUS.sm,
         pointerEvents: "none"
       }
     },
@@ -225,9 +213,9 @@ const PasteBodyInner: React.FC<PasteBodyProps> = ({
           />
         )}
         {previewRef?.width != null && previewRef.height != null && (
-          <span className="dimensions-badge">
+          <MediaLabel corner="bottom-right">
             {previewRef.width} × {previewRef.height}
-          </span>
+          </MediaLabel>
         )}
       </div>
 

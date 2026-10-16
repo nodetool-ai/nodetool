@@ -17,7 +17,8 @@ import {
   SPACING,
   getSpacingPx,
   Drawer,
-  PanelHeader
+  PanelHeader,
+  StatusDot
 } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import {
@@ -256,19 +257,6 @@ export const styles = (theme: Theme) =>
         padding: `0 ${getSpacingPx(SPACING.xl)}`, // was 0 14px
         flexShrink: 0,
         whiteSpace: "nowrap"
-      },
-
-      "& .status-dot": {
-        width: getSpacingPx(SPACING.sm),
-        height: getSpacingPx(SPACING.sm),
-        borderRadius: BORDER_RADIUS.circle,
-        backgroundColor: theme.vars.palette.success.main,
-        flexShrink: 0,
-        boxShadow: SHADOW(theme).sm,
-        "&.disconnected": {
-          backgroundColor: theme.vars.palette.text.disabled,
-          boxShadow: "none"
-        }
       },
 
       "& .sep": {
@@ -611,9 +599,13 @@ const PanelBottom: React.FC = () => {
               role="status"
               aria-label={`Worker ${wsStatus}`}
             >
-              <span
-                className={`status-dot ${isConnected ? "" : "disconnected"}`}
-                aria-hidden
+              <StatusDot
+                size="medium"
+                sx={{
+                  bgcolor: isConnected ? "success.main" : "text.disabled",
+                  boxShadow: (theme) =>
+                    isConnected ? SHADOW(theme).sm : "none"
+                }}
               />
               <span>{wsStatus}</span>
               <span className="sep" aria-hidden>·</span>

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { css, keyframes } from "@emotion/react";
+import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import React, { memo, useMemo } from "react";
@@ -9,12 +9,11 @@ import {
   BORDER_RADIUS,
   FlexRow,
   LoadingSpinner,
-  MOTION,
   SPACING,
   Text,
   ToolbarIconButton,
   Z_INDEX,
-  reducedMotion
+  StatusDot
 } from "../../../ui_primitives";
 import { RecordingWaveform } from "./RecordingWaveform";
 
@@ -33,11 +32,6 @@ export function formatDuration(durationMs: number): string {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-const pulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.25; }
-`;
-
 const styles = (theme: Theme) =>
   css({
     position: "absolute",
@@ -51,15 +45,6 @@ const styles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.c_overlay_strong,
     backdropFilter: "blur(10px)",
 
-    ".recording-dot": {
-      width: 8,
-      height: 8,
-      flexShrink: 0,
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: theme.vars.palette.error.main,
-      animation: `${pulse} ${MOTION.pulse} infinite`,
-      ...reducedMotion({ animation: "none" })
-    },
     ".wave-slot": {
       flex: 1,
       minWidth: 0,
@@ -123,7 +108,7 @@ export const VoiceRecordingBar = memo(function VoiceRecordingBar({
       <div className="wave-slot">
         <RecordingWaveform levelsRef={levelsRef} />
       </div>
-      <span className="recording-dot" aria-hidden />
+      <StatusDot tone="error" size="medium" pulse />
       <Text size="small" className="duration">
         {formatDuration(durationMs)}
       </Text>
