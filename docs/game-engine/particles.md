@@ -13,6 +13,10 @@ Particles provide visual effects without creating gameplay entities. They cannot
 
 ## Configure an emitter
 
+![Kindle's Add component menu with the Particles entry enabled](/assets/game-engine/editor-particles-menu.png)
+
+*In a 2D document using schema 2 or later, select an entity and choose Add component → Particles. This is the generic component menu, not a dedicated preset inspector. [Capture revision and provenance](/game-engine/screenshots).*
+
 Add `particles` to an entity with an `emitters` array. Each emitter needs a unique ID. Set its rate, bursts, duration, looping, start behavior, and maximum population. Shapes include point, circle, sphere, cone, box, and edge. Cone, box, and edge emit along local +Y.
 
 Lifetime, speed, size, rotation, and angular velocity accept a fixed value or a minimum/maximum range. Curves control size, speed, and opacity over normalized lifetime. A gradient controls color. Add gravity and drag, or use local space to make the field follow its entity.

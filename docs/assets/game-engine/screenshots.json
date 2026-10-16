@@ -150,6 +150,22 @@
       "recordingSha256": "5a1ed57cde243f1c7d432e6b29c7e387a4914e80bc897f3863e8b536b282d253",
       "recordingBytes": 206658,
       "frameIndex": 0
+    },
+    {
+      "file": "docs/assets/game-engine/editor-particles-menu.png",
+      "source": "isolated local editor with shipped Kindle example",
+      "sourceCommit": "8e749f65f0cf0606168fc6b1d488d81ddab9076c",
+      "backendSourceCommit": "f328d856addeffd49f5d19c233957cab7b1ccb45",
+      "sha256": "ba01659ad4e74f4934e1a3f44503630249f98d6b61e3896ef5de156c53be5c62",
+      "width": 2560,
+      "height": 1600,
+      "tick": 0,
+      "backend": "webgpu",
+      "captureTime": "2026-10-16T05:59:33.155Z",
+      "captureMethod": "first frame extracted from T3 collaborative preview recording",
+      "recordingSha256": "e213dac2839b852ed4a1dbb595135aca0b9f6e98002d81c2b76adb349fa78ce8",
+      "recordingBytes": 216375,
+      "frameIndex": 0
     }
   ]
 }

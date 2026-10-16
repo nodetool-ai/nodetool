@@ -30,7 +30,9 @@ These frames establish appearance under their capture conditions. They do not pr
 
 ## Editor captures
 
-The following images show the actual editor running source revision `f328d856addeffd49f5d19c233957cab7b1ccb45` with shipped examples installed into an isolated local workspace. They were captured on 16 October 2026 through the collaborative preview. Each PNG is the first frame extracted from a compressed preview recording, without compositing or retouching. The games remain at tick 0.
+The first five images show the actual editor running source revision `f328d856addeffd49f5d19c233957cab7b1ccb45` with shipped examples installed into an isolated local workspace. The particle-menu image uses frontend revision `8e749f65f0cf0606168fc6b1d488d81ddab9076c`, which adds the generic particle component entry, against the same isolated backend and example. It does not show the separate particle preset inspector.
+
+The editor images were captured on 16 October 2026 through the collaborative preview. Each PNG is the first frame extracted from a compressed preview recording, without compositing or retouching. The games remain at tick 0.
 
 | Image | Example | What it illustrates |
 |---|---|---|
@@ -39,6 +41,7 @@ The following images show the actual editor running source revision `f328d856add
 | [3D environment](/assets/game-engine/editor-3d.png) | AETHER | Scene hierarchy, environment preset, ambient light, and linear fog |
 | [Model animation](/assets/game-engine/editor-animation.png) | AETHER | Initial clip and model animation settings. The example has no animation graph |
 | [Script editor](/assets/game-engine/editor-script.png) | AETHER | An existing behavior open in the Scripts panel |
+| [Particle component menu](/assets/game-engine/editor-particles-menu.png) | Kindle | The enabled Particles entry for a schema 2 or later 2D entity |
 
 The image record includes each recording's SHA-256 and capture time alongside the extracted PNG's hash. These are editor configuration views, not evidence of completed gameplay, audible playback, or performance measurements. The visible editing grid and helpers are not exported game effects.
 
