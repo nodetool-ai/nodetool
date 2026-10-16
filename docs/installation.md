@@ -38,7 +38,7 @@ Linux. Exact steps for each are below: [macOS](#macos), [Windows](#windows),
 
 On Apple Silicon Macs with macOS 14 or newer, local models can run on Apple's
 [MLX framework](models.md#mlx-framework-apple-silicon). MLX is an optional
-Python pack: install **MLX** from **Tools → Package Manager → Python packs**,
+Python pack: install **MLX** from **Tools → Package Manager → Python nodes**,
 which sets up Python first if it is missing. Intel Macs and Macs on macOS 13
 or older cannot run MLX or the HuggingFace pack. They run cloud providers,
 Ollama, and llama.cpp.
@@ -145,18 +145,18 @@ pieces arrive only when you install them:
 
 - **Python and Conda.** Some nodes are written in Python rather than
   JavaScript, and they need this to run. Install it from **Tools → Package
-  Manager → Software**, or accept the **Install required runtimes** prompt
+  Manager → Engines & tools**, or accept the **Install required runtimes** prompt
   that appears when a workflow contains nodes that need a runtime. The prompt
   installs runtimes only. A workflow with no Python nodes never needs Python.
   Allow several GB of disk space.
 - **Python node packs.** HuggingFace, MLX, and Wan2GP nodes come in packs you
-  install from **Tools → Package Manager → Python packs**. Installing a pack
+  install from **Tools → Package Manager → Python nodes**. Installing a pack
   sets up Python first if it is missing. The
   HuggingFace pack downloads a PyTorch build for your graphics card, which
-  takes several GB. See [Node Packs](node-packs.md#included-python-packs-third-party-and-software).
+  takes several GB. See [Node Packs](node-packs.md#engines--tools-built-in-nodes-python-nodes-and-community-nodes).
 - **In-process model runners.** llama.cpp (the `llama.cpp local` provider)
   and whisper.cpp run inside NodeTool. Install them from **Package Manager →
-  Software**.
+  Engines & tools**.
 - **Ollama** is a separate program. Download it from
   [ollama.com](https://ollama.com) and keep it running. NodeTool does not ship
   or start it. A `llama-server` you run yourself connects through

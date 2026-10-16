@@ -63,6 +63,21 @@ export {
 } from "./runtime-locations.js";
 
 export {
+  SD_CPP_RELEASE_TAG,
+  sdCppAsset,
+  sdCppAssetUrl,
+  sdServerPath,
+  sdCppInstallStatus,
+  installSdCpp,
+  uninstallSdCpp,
+  readZipEntries,
+  type SdCppAsset,
+  type SdCppInstallEvent,
+  type SdCppInstallOptions,
+  type SdCppInstallStatus
+} from "./sd-cpp-runtime.js";
+
+export {
   PACKAGE_RUNTIME_ASSETS,
   PACKAGE_RUNTIME_ASSET_DIRS,
   SHIPPED_SANDBOX_PACKS_SOURCE_DIR,

@@ -1,13 +1,15 @@
 /**
  * PackageRail — the Package Manager's left navigation.
  *
- * One list of categories, each with a live count and an active accent.
+ * One list of categories, each with a hint line, a count and an active
+ * accent. A list with updates shows the update count instead of its size.
  * Selecting a category drives the right pane.
  */
 import { memo } from "react";
 
 import {
   Box,
+  Caption,
   FlexColumn,
   Text,
   BORDER_RADIUS,
@@ -106,26 +108,43 @@ const PackageRail = ({
                 })}
               />
             )}
-            <Text
-              size="small"
-              sx={{ color: active ? "text.primary" : "text.secondary" }}
-            >
-              {c.label}
-            </Text>
+            <FlexColumn sx={{ minWidth: 0 }}>
+              <Text
+                size="small"
+                sx={{ color: active ? "text.primary" : "text.secondary" }}
+              >
+                {c.label}
+              </Text>
+              <Caption
+                color="secondary"
+                sx={{ display: { xs: "none", sm: "block" } }}
+              >
+                {c.hint}
+              </Caption>
+            </FlexColumn>
             <Box
               sx={(theme) => ({
                 marginLeft: { xs: 0, sm: "auto" },
+                flexShrink: 0,
                 fontFamily: theme.fontFamily2,
                 fontSize: "var(--fontSizeSmaller)",
                 fontWeight: 500,
-                color: theme.vars.palette.text.secondary,
-                backgroundColor: theme.vars.palette.action.selected,
+                color:
+                  c.updates > 0
+                    ? theme.vars.palette.primary.contrastText
+                    : theme.vars.palette.text.secondary,
+                backgroundColor:
+                  c.updates > 0
+                    ? theme.vars.palette.primary.main
+                    : theme.vars.palette.action.selected,
                 py: SPACING.micro,
                 px: SPACING.md,
                 borderRadius: BORDER_RADIUS.sm
               })}
             >
-              {c.count}
+              {c.updates > 0
+                ? `${c.updates} ${c.updates === 1 ? "update" : "updates"}`
+                : c.count}
             </Box>
           </Box>
         );

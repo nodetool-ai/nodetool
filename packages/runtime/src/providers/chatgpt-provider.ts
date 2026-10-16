@@ -23,6 +23,7 @@ import { fetchExternalMedia } from "../external-media-fetch.js";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { createExtensionTab, pollTab, stageBytesInTab, type ExtensionTab } from "./extension-tab.js";
 import { detectImageMime } from "./image-mime.js";
+import { parseToolCalls, toolCallText, toolsPromptSection, toToolSpecs } from "./text-tool-calls.js";
 import type {
   ImageModel,
   ImageToImageParams,
@@ -32,6 +33,7 @@ import type {
   MessageImageContent,
   ProviderSession,
   ProviderStreamItem,
+  ProviderTool,
   TextToImageParams
 } from "./types.js";
 
@@ -407,33 +409,82 @@ function imagesOf(content: Message["content"]): MessageImageContent[] {
   return Array.isArray(content) ? content.filter((part): part is MessageImageContent => part.type === "image_url") : [];
 }
 
+/** The name of each earlier tool call, by call id, so a result can name its tool. */
+function toolNames(messages: Message[]): Map<string, string> {
+  const names = new Map<string, string>();
+  for (const m of messages) {
+    for (const call of m.toolCalls ?? []) names.set(call.id, call.name);
+  }
+  return names;
+}
+
+/** One turn of the transcript. A tool call is written back as the block the tools prompt asks for. */
+function transcriptLine(m: Message, names: Map<string, string>): string {
+  if (m.role === "tool") {
+    const name = m.toolCallId ? names.get(m.toolCallId) : undefined;
+    return `${name ? `Tool result (${name})` : "Tool result"}: ${textOf(m.content)}`.trimEnd();
+  }
+  if (m.role === "assistant") {
+    const calls = m.toolCalls ?? [];
+    const text = [textOf(m.content), calls.length > 0 ? toolCallText(calls) : ""].filter(Boolean).join("\n");
+    return `Assistant: ${text}`.trimEnd();
+  }
+  return `User: ${textOf(m.content)}`.trimEnd();
+}
+
 /**
  * Flatten a conversation into one composer message. A single user message goes
  * as it is. Otherwise the system prompt and the earlier turns become a
- * transcript that ends with the last user message.
+ * transcript that ends with the last message. With `tools`, the instructions
+ * list them and ask for `<tool_call>` blocks (see text-tool-calls.ts).
  */
-export function composePrompt(messages: Message[]): string {
-  const system = messages.filter((m) => m.role === "system").map((m) => textOf(m.content)).filter(Boolean).join("\n\n");
+export function composePrompt(messages: Message[], tools: ProviderTool[] = []): string {
+  const system = [
+    ...messages.filter((m) => m.role === "system").map((m) => textOf(m.content)),
+    tools.length > 0 ? toolsPromptSection(toToolSpecs(tools)) : ""
+  ].filter(Boolean).join("\n\n");
   const turns = messages.filter((m) => m.role !== "system");
   if (!system && turns.length === 1 && turns[0].role === "user") return textOf(turns[0].content);
-  const label = (m: Message): string => (m.role === "user" ? "User" : m.role === "assistant" ? "Assistant" : "Tool result");
-  const transcript = turns.map((m) => `${label(m)}: ${textOf(m.content)}`.trimEnd()).join("\n\n");
+  const names = toolNames(messages);
+  const transcript = turns.map((m) => transcriptLine(m, names)).join("\n\n");
+  const last = turns.at(-1);
+  const reply = last?.role === "tool" ? "Continue from the last Tool result." : "Reply to the last User message.";
   return [
     system ? `Instructions:\n${system}` : "",
-    turns.length > 1 ? `Conversation so far:\n${transcript}\n\nReply to the last User message.` : textOf(turns[0]?.content ?? "")
+    turns.length > 1 ? `Conversation so far:\n${transcript}\n\n${reply}` : last?.role === "user" ? textOf(last.content) : last ? transcriptLine(last, names) : ""
   ].filter(Boolean).join("\n\n");
 }
 
-/** The new messages of a continued thread: ChatGPT already holds its own replies and the system prompt. */
+/**
+ * The new messages of a continued thread: ChatGPT already holds its own
+ * replies, the system prompt and the tool list. Tool results name their tool.
+ */
 export function composeDelta(delta: Message[]): string {
   const turns = delta.filter((m) => m.role !== "assistant" && m.role !== "system");
-  if (turns.length === 1) return textOf(turns[0].content);
-  return turns.map((m) => `${m.role === "tool" ? "Tool result" : "User"}: ${textOf(m.content)}`.trimEnd()).join("\n\n");
+  if (turns.length === 1 && turns[0].role === "user") return textOf(turns[0].content);
+  const names = toolNames(delta);
+  return turns.map((m) => transcriptLine(m, names)).join("\n\n");
 }
 
-function hashSystemPrompt(messages: Message[]): string {
+/** The reply as a message, with its tool calls parsed when the turn offered tools. */
+export function replyMessage(text: string, tools: ProviderTool[]): Message {
+  if (tools.length === 0) return { role: "assistant", content: text };
+  const parsed = parseToolCalls(text);
+  if (parsed.toolCalls.length === 0) return { role: "assistant", content: text };
+  return { role: "assistant", content: parsed.content.trim(), toolCalls: parsed.toolCalls };
+}
+
+/** Yield a reply message as stream items: its tool calls, then one done chunk. */
+export function* replyStreamItems(reply: Message): Generator<ProviderStreamItem> {
+  yield* reply.toolCalls ?? [];
+  yield { type: "chunk", content: textOf(reply.content), content_type: "text", done: true };
+}
+
+/** Hash the system prompt and the tool names: a change to either starts a new thread. */
+export function hashSystemPrompt(messages: Message[], tools: ProviderTool[] = []): string {
   const system = messages.filter((m) => m.role === "system").map((m) => textOf(m.content)).join("\n\n");
-  return createHash("sha256").update(system).digest("hex").slice(0, 16);
+  const names = tools.map((tool) => tool.name).join(",");
+  return createHash("sha256").update(names ? `${system}\n\ntools:${names}` : system).digest("hex").slice(0, 16);
 }
 
 function aspectHint(aspectRatio?: string | null, width?: number | null, height?: number | null): string {
@@ -478,15 +529,20 @@ export class ChatGPTProvider extends BaseProvider {
   /** Threads by conversation thread id, for callers that do not persist the session themselves. */
   private readonly sessions = new Map<string, ProviderSession>();
 
+  /** Chat models write tool calls as text. See text-tool-calls.ts. */
+  override async hasToolSupport(_model: string): Promise<boolean> {
+    return true;
+  }
+
   override async generateMessage(args: Parameters<BaseProvider["generateMessage"]>[0]): Promise<Message> {
     const { result } = await this.chatTurn(args);
-    return { role: "assistant", content: result.text };
+    return replyMessage(result.text, args.tools ?? []);
   }
 
   override async *generateMessages(args: Parameters<BaseProvider["generateMessages"]>[0]): AsyncGenerator<ProviderStreamItem> {
     const { result, session } = await this.chatTurn(args);
     if (args.threadId) yield { type: "session", session };
-    yield { type: "chunk", content: result.text, content_type: "text", done: true };
+    yield* replyStreamItems(replyMessage(result.text, args.tools ?? []));
   }
 
   /**
@@ -498,16 +554,14 @@ export class ChatGPTProvider extends BaseProvider {
   private async chatTurn(args: {
     messages: Message[];
     model: string;
-    tools?: unknown[];
+    tools?: ProviderTool[];
     threadId?: string | null;
     providerSession?: ProviderSession | null;
     loadFullHistory?: () => Promise<Message[]>;
     signal?: AbortSignal;
   }): Promise<{ result: TurnResult; session: ProviderSession }> {
-    if (args.tools && args.tools.length > 0) {
-      log.warn("ChatGPT in the browser cannot call tools; sending the conversation without them", { tools: args.tools.length });
-    }
-    const systemHash = hashSystemPrompt(args.messages);
+    const tools = args.tools ?? [];
+    const systemHash = hashSystemPrompt(args.messages, tools);
     const threadId = args.threadId ?? null;
     const prior = args.providerSession ?? (threadId ? this.sessions.get(threadId) ?? null : null);
     const canResume =
@@ -531,7 +585,7 @@ export class ChatGPTProvider extends BaseProvider {
     if (!result) {
       // The caller may have sent only the delta; a new thread needs the whole conversation.
       const messages = args.loadFullHistory ? await args.loadFullHistory() : args.messages;
-      const request = await this.turnRequest(args.model, composePrompt(messages), messages, args.signal);
+      const request = await this.turnRequest(args.model, composePrompt(messages, tools), messages, args.signal);
       result = await serialized(() => runTurnHoldingTab(request));
     }
     const session: ProviderSession = {

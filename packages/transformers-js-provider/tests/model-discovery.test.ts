@@ -25,6 +25,16 @@ vi.mock("@nodetool-ai/transformers-js-nodes", async () => {
         "tjs.depth_estimation": [
           { repo_id: "onnx-community/depth-anything-v2-small" }
         ],
+        "tjs.text_to_image": [
+          { repo_id: "onnx-community/Janus-Pro-1B-ONNX" }
+        ],
+        "tjs.image_segmentation": [
+          { repo_id: "Xenova/segformer-b0-finetuned-ade-512-512" }
+        ],
+        "tjs.image_to_image": [
+          { repo_id: "Xenova/swin2SR-classical-sr-x2-64" }
+        ],
+        "tjs.text_to_music": [{ repo_id: "Xenova/musicgen-small" }],
         "tjs.text_ranking": [
           { repo_id: "mixedbread-ai/mxbai-rerank-xsmall-v1" }
         ]
@@ -43,6 +53,7 @@ import {
   discoverEmbeddingModels,
   discoverImageModels,
   discoverLanguageModels,
+  discoverMusicModels,
   discoverRerankModels,
   discoverTTSModels
 } from "../src/model-discovery.js";
@@ -58,6 +69,26 @@ describe("model-discovery", () => {
     for (const m of models) {
       expect(m.provider).toBe("transformers_js");
     }
+  });
+
+  it("music models offer MusicGen with a download adapter", async () => {
+    const models = await discoverMusicModels();
+    expect(models).toEqual([
+      {
+        id: "Xenova/musicgen-small",
+        name: "Xenova/musicgen-small",
+        provider: "transformers_js",
+        supportedTasks: ["text_to_music"],
+        adapter: {
+          state: "installed",
+          artifactRef: {
+            source: "huggingface",
+            repoId: "Xenova/musicgen-small",
+            modelType: "tjs.text_to_music"
+          }
+        }
+      }
+    ]);
   });
 
   it("TTS models populate Kokoro voices", async () => {
@@ -85,11 +116,26 @@ describe("model-discovery", () => {
     expect(
       models.map((m) => [m.id, m.supportedTasks, m.adapter?.artifactRef?.modelType])
     ).toEqual([
+      [
+        "onnx-community/Janus-Pro-1B-ONNX",
+        ["text_to_image"],
+        "tjs.text_to_image"
+      ],
       ["briaai/RMBG-1.4", ["remove_background"], "tjs.background_removal"],
       [
         "onnx-community/depth-anything-v2-small",
         ["estimate_depth"],
         "tjs.depth_estimation"
+      ],
+      [
+        "Xenova/segformer-b0-finetuned-ade-512-512",
+        ["segment"],
+        "tjs.image_segmentation"
+      ],
+      [
+        "Xenova/swin2SR-classical-sr-x2-64",
+        ["upscale"],
+        "tjs.image_to_image"
       ]
     ]);
   });

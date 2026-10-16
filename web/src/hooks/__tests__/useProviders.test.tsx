@@ -185,5 +185,30 @@ describe("useProviders", () => {
         "transformers_js"
       ]);
     });
+
+    it("useImageModelProviders keeps only providers that run the picker task", async () => {
+      mockQuery.mockResolvedValueOnce([
+        { provider: "fal", capabilities: ["text_to_image", "upscale_image"] },
+        { provider: "transformers_js", capabilities: ["upscale_image", "segment_image"] }
+      ] as never);
+
+      const { result } = renderHook(
+        () => ({
+          textToImage: useImageModelProviders(["text_to_image"]),
+          upscale: useImageModelProviders(["upscale"])
+        }),
+        { wrapper: createWrapper() }
+      );
+
+      await waitFor(() => {
+        expect(result.current.upscale.isLoading).toBe(false);
+      });
+
+      expect(result.current.textToImage.providers.map((p) => p.provider)).toEqual(["fal"]);
+      expect(result.current.upscale.providers.map((p) => p.provider)).toEqual([
+        "fal",
+        "transformers_js"
+      ]);
+    });
   });
 });

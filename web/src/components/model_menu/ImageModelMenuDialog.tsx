@@ -1,7 +1,8 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { ImageModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useImageModelMenuStore } from "../../stores/ModelMenuStore";
+import { imageTaskCapabilities } from "../../hooks/useProviders";
 import {
   useImageModelsByProvider,
   type ImageModelTask
@@ -30,6 +31,10 @@ function ImageModelMenuDialog({
   selectedModel
 }: ImageModelMenuDialogProps) {
   const modelData = useImageModelsByProvider({ task });
+  const localCapabilities = useMemo(
+    () => imageTaskCapabilities(task === undefined ? undefined : [task].flat()),
+    [task]
+  );
   return (
     <ModelMenuDialogBase<ImageModel>
       open={open}
@@ -41,6 +46,7 @@ function ImageModelMenuDialog({
       searchPlaceholder="Search image models"
       storeHook={useImageModelMenuStore}
       modelType="image_model"
+      localCapabilities={localCapabilities}
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
       selectedModel={selectedModel}

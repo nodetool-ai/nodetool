@@ -5,7 +5,10 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
 import ModelList from "../ModelList";
-import type { ModelSelectorModel } from "../../../utils/modelNormalization";
+import {
+  modelRowKey,
+  type ModelSelectorModel
+} from "../../../utils/modelNormalization";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 
 jest.mock("../../../hooks/useModelAvailability", () => ({
@@ -33,11 +36,26 @@ const bark = {
   }
 } as unknown as ModelSelectorModel;
 
-const renderList = (onModelDownload?: (m: ModelSelectorModel) => void) =>
+const zImage = {
+  ...bark,
+  id: "z-image-turbo",
+  name: "Z-Image Turbo",
+  provider: "stable_diffusion_cpp",
+  adapter: {
+    state: "installed",
+    artifact_ref: { source: "huggingface", repo_id: "acme/diffusion" },
+    extra_artifact_refs: [{ source: "huggingface", repo_id: "acme/encoder" }]
+  }
+} as unknown as ModelSelectorModel;
+
+const renderList = (
+  onModelDownload?: (m: ModelSelectorModel) => void,
+  model: ModelSelectorModel = bark
+) =>
   render(
     <ThemeProvider theme={mockTheme}>
       <ModelList
-        models={[bark]}
+        models={[model]}
         onSelect={jest.fn()}
         onModelDownload={onModelDownload}
       />
@@ -65,8 +83,18 @@ afterAll(() => {
   }
 });
 
+const progress = (id: string, status: string) => ({
+  id,
+  status,
+  downloadedBytes: 1,
+  totalBytes: 2,
+  totalFiles: 1,
+  downloadedFiles: 0,
+  currentFiles: []
+});
+
 beforeEach(() => {
-  useModelDownloadStore.setState({ downloads: {} });
+  useModelDownloadStore.setState({ downloads: {}, requestedModels: {} });
 });
 
 describe("ModelList — models that need their files", () => {
@@ -84,5 +112,32 @@ describe("ModelList — models that need their files", () => {
     expect(
       screen.queryByRole("button", { name: /^Download suno\/bark/ })
     ).not.toBeInTheDocument();
+  });
+
+  it("names every repository of a model that loads files from several", async () => {
+    renderList(jest.fn(), zImage);
+    expect(
+      screen.getByRole("button", { name: /^Download acme\/diffusion and 1 more repository/ })
+    ).toBeInTheDocument();
+  });
+
+  it("keeps showing progress while any of the model's repositories downloads", () => {
+    useModelDownloadStore.setState({
+      downloads: { "acme/encoder": progress("acme/encoder", "progress") } as never,
+      requestedModels: { [modelRowKey(zImage)]: true }
+    });
+    renderList(jest.fn(), zImage);
+    expect(screen.queryByRole("button", { name: /^Download/ })).not.toBeInTheDocument();
+  });
+
+  it("ignores a shared repository that another model downloaded", () => {
+    // Another row's click fetched the encoder this model also loads.
+    useModelDownloadStore.setState({
+      downloads: { "acme/encoder": progress("acme/encoder", "completed") } as never,
+      requestedModels: { "stable_diffusion_cpp:other-model": true }
+    });
+    renderList(jest.fn(), zImage);
+    expect(screen.getByRole("button", { name: /^Download acme\/diffusion/ })).toBeInTheDocument();
+    expect(screen.queryByText("Done")).not.toBeInTheDocument();
   });
 });

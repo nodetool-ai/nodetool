@@ -33,6 +33,25 @@ describe("Transformers.js pipeline nodes", () => {
     __setTransformersModuleForTesting(null);
   });
 
+  it("loads a recommended model with its pinned dtype unless the caller names one", async () => {
+    const factory = vi.fn(async () => vi.fn());
+    __setTransformersModuleForTesting({
+      pipeline: factory as unknown as (
+        task: string,
+        model?: string,
+        options?: Record<string, unknown>
+      ) => Promise<unknown>
+    });
+    const qwen = "onnx-community/Qwen3-1.7B-ONNX";
+    await getPipeline({ task: "text-generation", model: qwen });
+    await getPipeline({ task: "text-generation", model: qwen, dtype: "fp16" });
+    await getPipeline({ task: "text-generation", model: "onnx-community/Qwen3-4B-ONNX" });
+    const dtypes = (factory.mock.calls as unknown as Array<[string, string, Record<string, unknown>]>).map(
+      ([, , options]) => options.dtype
+    );
+    expect(dtypes).toEqual(["q4", "fp16", undefined]);
+  });
+
   it("falls back to CPU for devices onnxruntime-node does not offer", async () => {
     expect(resolveDevice("webgpu", "linux", "x64")).toBeUndefined();
     expect(resolveDevice("wasm", "win32", "x64")).toBeUndefined();
