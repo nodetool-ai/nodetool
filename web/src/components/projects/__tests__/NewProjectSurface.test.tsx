@@ -2213,12 +2213,15 @@ describe("NewProjectSurface", () => {
   });
 });
 
-it("starts with three formats and reveals other formats on request", async () => {
+it("starts with four formats and reveals other formats on request", async () => {
     renderSurface(null, false);
     const cards = screen.getByRole("group", { name: "Guided creation flows" });
-    expect(within(cards).getAllByRole("button")).toHaveLength(3);
+    expect(within(cards).getAllByRole("button")).toHaveLength(4);
+    expect(
+      within(cards).getByRole("button", { name: /Read aloud/ })
+    ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "More formats" }));
-    expect(within(cards).getAllByRole("button")).toHaveLength(7);
+    expect(within(cards).getAllByRole("button")).toHaveLength(8);
     await userEvent.click(screen.getByRole("combobox", { name: "Game dimension" }));
     await userEvent.click(screen.getByRole("option", { name: "3D exploration" }));
     expect(within(cards).getByRole("button", { name: /Game Start with a playable 3D exploration scene/ })).toBeInTheDocument();

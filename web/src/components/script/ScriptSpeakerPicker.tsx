@@ -56,11 +56,18 @@ export interface ScriptSpeakerPickerProps {
    * setter, so its edits and `ui_script_set_speaker` stay one path.
    */
   onAssign?: (speakerId: string | null) => void;
+  /**
+   * A colour dot and the name in sentence case, instead of the portrait and
+   * the uppercase screenplay name. The setup review uses it, where the words
+   * matter more than who reads them.
+   */
+  quiet?: boolean;
 }
 
 /**
  * The line's speaker as the screenplay prints it: the speaker's portrait and
- * name in the speaker's colour, opening a menu of the cast.
+ * name in the speaker's colour, opening a menu of the cast. `quiet` reduces it
+ * to a dot and the name.
  */
 export const ScriptSpeakerPicker = ({
   scriptId,
@@ -69,7 +76,8 @@ export const ScriptSpeakerPicker = ({
   cast,
   readOnly,
   mobile,
-  onAssign
+  onAssign,
+  quiet = false
 }: ScriptSpeakerPickerProps) => {
   const theme = useTheme();
   const inStudio = useInStudio();
@@ -157,8 +165,9 @@ export const ScriptSpeakerPicker = ({
             flexShrink: 0,
             display: "inline-flex",
             alignItems: "center",
-            gap: SPACING.md,
-            width: mobile ? "auto" : SPEAKER_GUTTER,
+            gap: quiet ? SPACING.sm : SPACING.md,
+            width: mobile || quiet ? "auto" : SPEAKER_GUTTER,
+            maxWidth: "100%",
             minWidth: 0,
             padding: SPACING.none,
             border: "none",
@@ -166,11 +175,20 @@ export const ScriptSpeakerPicker = ({
             textAlign: "left",
             cursor: canOpen ? "pointer" : "default",
             ...TYPOGRAPHY.sans.label,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: speaker ? speaker.color ?? "text.primary" : "text.disabled",
+            ...(quiet
+              ? {
+                  color: speaker ? "text.secondary" : "text.disabled",
+                  "&:hover:not(:disabled)": { color: "text.primary" }
+                }
+              : {
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: speaker
+                    ? speaker.color ?? "text.primary"
+                    : "text.disabled",
+                  "&:hover:not(:disabled)": { filter: "brightness(1.2)" }
+                }),
             transition: MOTION.fast,
-            "&:hover:not(:disabled)": { filter: "brightness(1.2)" },
             "&:focus-visible": {
               outline: "2px solid",
               outlineColor: "primary.main",
@@ -179,10 +197,14 @@ export const ScriptSpeakerPicker = ({
             }
           }}
         >
-          <ScriptSpeakerAvatar
-            speaker={speaker}
-            size={mobile ? CONTROL.height.xs : CONTROL.height.md}
-          />
+          {quiet ? (
+            <SpeakerDot color={speaker?.color} />
+          ) : (
+            <ScriptSpeakerAvatar
+              speaker={speaker}
+              size={mobile ? CONTROL.height.xs : CONTROL.height.md}
+            />
+          )}
           <TruncatedText
             component="span"
             sx={{

@@ -792,6 +792,33 @@ toolbar of controls, or its content.
 | Drag | A tab drags after 4px of travel. `DockDropOverlay` previews the drop: the center adds a tab, an edge splits the group. Escape cancels |
 | Panel toolbar | `CONTROL.height.md` (32px), `SPACING.sm` inset, controls right-aligned, 1px `divider` below. Omit it when the panel has no controls |
 
+### Resize handles
+
+Every draggable split, dock edge and resizable window edge uses
+`ResizeHandle`. It renders a `role="separator"` strip with pointer capture,
+arrow-key resizing (Home and End jump to the bounds) and a focus ring. It
+reports deltas through `onResize` and the caller keeps the size.
+
+| Prop | Rule |
+|---|---|
+| `orientation` | The axis of the bar itself. `vertical` sits between side-by-side panes, `horizontal` between stacked panes |
+| `edge` | Omit for an in-flow flex item between panes. `start` or `end` pins the strip to that edge of a positioned parent, as a dock edge or window edge |
+| `invert` | Set when the pane's handle is on its leading edge (right dock, bottom dock), so dragging toward the handle's start grows it |
+| `thickness` | A `SPACING` step. Default `SPACING.sm` (6px). Use `SPACING.md` for window edges and `SPACING.xxl` for a phone touch target |
+| `grip` | Draws a centred pill so a horizontal strip reads as a control at rest. Use it on bottom docks, modal bottoms and phone splits |
+| `invisible` | Hit area only, no hover fill. Use it on floating windows with rounded corners (node menu, conversation overlay) |
+| `getValue` | Measure the size on grab when it comes from the DOM instead of state |
+
+One look: transparent at rest, `primary.main` while hovered or dragged,
+2px `primary` focus ring. A handle does not glow, scale or change its pill
+colour on its own.
+
+Do not hand-build a handle from a `div` with `cursor: *-resize`, a
+`mousedown` listener and a hover colour. Corner grips that move two axes at
+once are the one exception, because `ResizeHandle` has one axis. Canvas
+gizmos (crop, transform, rulers) are not panel handles and keep their own
+code.
+
 ### Dialogs
 
 Dialogs are not panels. Every modal dialog uses the `Dialog` primitive. It
@@ -1013,8 +1040,33 @@ border, radius and background. One card has one radius, one background
 
 Do not write a card container with `borderRadius`, `border` and
 `backgroundColor` by hand, override a card with `grey[*]` colours, or define
-your own `stat-value` and `stat-label` styles. Row lists inside a dialog
-(`ProviderOnboardingCard`) are rows, not cards.
+your own `stat-value` and `stat-label` styles. A row in a framed dialog list
+(`ProviderOnboardingCard`) is a `Card` with `borderRadius: 0` and a divider
+between rows, because the list owns the frame.
+
+### Media thumbnails
+
+A tile that shows stored media is `MediaThumbnail` (from `ui_primitives`),
+never a switch on `content_type.startsWith("image" | "video" | "audio")` that
+picks an `<img>`, a `<video>` or an icon by hand.
+
+| Use | Primitive |
+|---|---|
+| Thumbnail of an `Asset` record | `MediaThumbnail asset={asset} alt="…"`: image uses `thumb_url` then `get_url`, video its `thumb_url` poster, anything else a type icon |
+| Thumbnail of a media ref or locator | `MediaThumbnail locator={ref} alt="…"`: resolved through the media-resolution boundary. Pass `kind` or `contentType` when known, otherwise the asset row decides |
+| Playable tile | add `interactive`: video renders `VideoPlayer`, audio `AudioPlayback` |
+| Caption on the tile | `label` slot (bottom scrim, pointer events off). Pass a `MediaLabel` or any node |
+| Remove or open controls | `actions` slot (top right, revealed on hover and keyboard focus) |
+| Node-body image preview with a checker empty state | `ImagePreview` from `node_types/editing/ImagePreview` |
+
+The tile keeps its aspect ratio (`aspectRatio`, default `1/1`), fills with
+`fit="cover"` or `"contain"`, and falls back to an icon (`icon` overrides it).
+Never put an `asset://` string in `src`, and never use a video file as an image
+source.
+
+Do not hand-build a media tile with an `<img>`, a `background-image` or a
+scrim `div`, and do not paste an `ImageRefPreview` with a `CheckerDropzone`
+placeholder into a node body.
 
 ---
 
@@ -1053,6 +1105,15 @@ import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from ".
 | Field chrome | Fields keep their primitive look. Do not override `.MuiOutlinedInput-*`, `.MuiInputBase-*`, `.MuiSelect-*` or `.MuiInputLabel-*` from a form's `css` or `sx`. A form may set a field's width only |
 | Variant | Outlined fields everywhere. A dense panel sets `FieldDensityContext` once (see [Panel composition](#panel-composition)) |
 | Text | Labels and options are sentence case ("Tool name", "Ask every time"). Acronyms keep their case ("API key", "ID") |
+
+### Search fields
+
+Use `SearchInput` from `ui_primitives` for every search or filter box. It owns the look (36px field, 28px with `size="small"`), the search icon, the clear button, optional debounce, and Escape-to-clear.
+
+- Wrap it, do not rebuild it. Hosts that need their own debounce, arrow-key navigation or a mode switch pass `onKeyDown`, `escapeClears={false}`, `startAdornment`, `loading`, `endHint` and `inputProps` instead of drawing a second field. `components/search/SearchInput.tsx` (node menu) and `assets/AssetSearchInput.tsx` are wrappers of this kind.
+- Do not build a search box from a raw `<input>`, a MUI `TextField` or a bare `InputBase`. Find/replace fields that carry validation state keep `NodeTextField`.
+- The clear button appears only when there is a value, and focus returns to the field after a clear.
+- Placeholders name what is searched in sentence case: "Search workflows", "Search nodes", "Filter models". No trailing "..." or "…". Give a field with no visible label an accessible name (`ariaLabel` defaults to the placeholder).
 
 ### Sliders
 

@@ -24,17 +24,22 @@ describe("useModalResize", () => {
     // initial default
     expect(result.current.modalHeight).toBe(200);
 
-    // simulate drag via handler
-    const event = { clientY: 300, preventDefault: jest.fn() } as any;
-
     act(() => {
-      result.current.handleResizeMouseDown(event);
+      result.current.resizeBy(50);
     });
+    expect(result.current.modalHeight).toBe(250);
 
-    // Move listeners will run in real DOM; we instead directly set via localStorage debounce
-    // Trigger a direct update through storage write by invoking the returned handler chain
-    // Not easily accessible; validate that handler calls preventDefault
-    expect(event.preventDefault).toHaveBeenCalled();
+    // Clamped to the max and the min.
+    act(() => {
+      result.current.resizeBy(1000);
+    });
+    expect(result.current.modalHeight).toBe(500);
+    act(() => {
+      result.current.resizeBy(-1000);
+    });
+    expect(result.current.modalHeight).toBe(100);
+    expect(result.current.minHeight).toBe(100);
+    expect(result.current.maxHeight).toBe(500);
   });
 
   test("respects min/max when updating programmatically", () => {

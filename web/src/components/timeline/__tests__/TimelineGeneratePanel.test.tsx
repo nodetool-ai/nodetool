@@ -126,7 +126,7 @@ async function chooseSpeech() {
   await userEvent.click(screen.getByRole("button", { name: "Video" }));
   expect(screen.getAllByRole("menuitemradio")).toHaveLength(3);
   await userEvent.click(
-    screen.getByRole("menuitemradio", { name: "Generate speech" })
+    screen.getByRole("menuitemradio", { name: "Read aloud" })
   );
 }
 

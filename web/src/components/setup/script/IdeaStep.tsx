@@ -43,7 +43,6 @@ import {
   useScriptStore,
   useScriptSetup
 } from "../../../stores/script/ScriptStore";
-import ScriptCreativeContextFields from "./ScriptCreativeContextFields";
 import {
   readScriptSource,
   scriptSourcePatch,
@@ -234,10 +233,6 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
 }) => {
   const setup = useScriptSetup(scriptId);
   const setSetup = useScriptStore((state) => state.setSetup);
-  const creativeContext = useScriptStore(
-    (state) => state.scripts[scriptId]?.creativeContext
-  );
-  const setCreativeContext = useScriptStore((state) => state.setCreativeContext);
   const imports = useScriptFileImport(scriptId);
   useEffect(() => {
     onImportingChange?.(imports.importing);
@@ -408,12 +403,6 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                 : "Text entered here is a writing brief and may be rewritten. Use Paste your script or Upload a file to preserve existing words."
           }
           onChange={handleChange}
-        />
-
-        <ScriptCreativeContextFields
-          value={creativeContext}
-          readOnly={readOnly}
-          onChange={(next) => setCreativeContext(scriptId, next)}
         />
 
         {imports.error ? (

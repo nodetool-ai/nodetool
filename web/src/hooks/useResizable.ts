@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
 
 interface ResizableSize {
@@ -101,6 +101,85 @@ export function useResizable(
     },
     [targetRef]
   );
+}
+
+/** Props one edge `ResizeHandle` takes from {@link useResizableEdges}. */
+interface ResizableEdgeProps {
+  getValue: () => number;
+  min: number;
+  max: number;
+  onResize: (delta: number) => void;
+  onResizeStart: () => void;
+  onResizeEnd: () => void;
+}
+
+/**
+ * `ResizeHandle` props for the right and bottom edges of a target element,
+ * with the same behaviour as {@link useResizable}: the size is measured on
+ * grab, written to the element imperatively (no per-move React render) and
+ * reported once through `onResizeEnd` when the gesture ends. A keyboard step
+ * has no gesture, so it reports straight away.
+ */
+export function useResizableEdges(
+  targetRef: RefObject<HTMLElement | null>,
+  options: UseResizableOptions
+): { right: ResizableEdgeProps; bottom: ResizableEdgeProps } {
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+  const draggingRef = useRef(false);
+
+  const hasWindow = typeof window !== "undefined";
+  const maxWidth =
+    options.maxWidth ?? (hasWindow ? window.innerWidth - 24 : Infinity);
+  const maxHeight =
+    options.maxHeight ?? (hasWindow ? window.innerHeight - 24 : Infinity);
+  const minWidth = options.minWidth ?? 0;
+  const minHeight = options.minHeight ?? 0;
+
+  return useMemo(() => {
+    const report = () => {
+      const node = targetRef.current;
+      if (node) {
+        optionsRef.current.onResizeEnd?.({
+          width: node.offsetWidth,
+          height: node.offsetHeight
+        });
+      }
+    };
+    const edge = (
+      dimension: "width" | "height",
+      min: number,
+      max: number
+    ): ResizableEdgeProps => ({
+      getValue: () =>
+        targetRef.current?.getBoundingClientRect()[dimension] ?? 0,
+      min,
+      max,
+      onResizeStart: () => {
+        draggingRef.current = true;
+      },
+      onResize: (delta: number) => {
+        const node = targetRef.current;
+        if (!node) {
+          return;
+        }
+        node.style[dimension] = `${
+          node.getBoundingClientRect()[dimension] + delta
+        }px`;
+        if (!draggingRef.current) {
+          report();
+        }
+      },
+      onResizeEnd: () => {
+        draggingRef.current = false;
+        report();
+      }
+    });
+    return {
+      right: edge("width", minWidth, maxWidth),
+      bottom: edge("height", minHeight, maxHeight)
+    };
+  }, [targetRef, minWidth, maxWidth, minHeight, maxHeight]);
 }
 
 export default useResizable;

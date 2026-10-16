@@ -193,6 +193,10 @@ at 24 hours.
   on the configured server, ignoring response-provided URLs. The cloud profile
   excludes `lib.stable_diffusion_cpp.GenerateImage` by default.
 
+- `packages/runtime/src/providers/sdcpp-provider.ts` — the stable-diffusion.cpp
+  provider calls only the `sd-server` it starts on `127.0.0.1`, at a port it
+  picked. Requests send no credentials and reject redirects. Job polling uses
+  URLs built from the job id. The cloud profile excludes this provider.
 - `packages/runtime/src/comfy-executor.ts` — a ComfyUI server, normally
   localhost or the LAN, so screening private addresses would refuse the ordinary
   case. The address is the node's `endpoint` property, so the graph author picks

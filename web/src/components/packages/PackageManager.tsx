@@ -2,8 +2,8 @@
  * PackageManager — the unified "install everything here" surface, as a two-pane
  * workspace.
  *
- * The left {@link PackageRail} picks one of four lists: Included, Python
- * packs, Third-party and Software. The right pane shows that list with one
+ * The left {@link PackageRail} picks one of four lists: Engines & tools,
+ * Built-in nodes, Python nodes and Community nodes. The right pane shows that list with one
  * search box and one status filter. Search and filter stay set when the user
  * picks another list. Data and derivation live in {@link usePackageManager}. Rendered
  * full-screen by {@link PackagesPage} (title/back live in the page hero).
@@ -58,7 +58,7 @@ const isCategory = (value: unknown): value is PMCategory =>
 const loadCategory = (): PMCategory => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return "included";
+    if (!raw) return "runtimes";
     const parsed = JSON.parse(raw) as { tab?: string; cat?: string };
     if (isCategory(parsed.cat)) return parsed.cat;
     // Older saves held a Software tab with runtime groups as categories.
@@ -66,7 +66,7 @@ const loadCategory = (): PMCategory => {
   } catch {
     // Corrupt/blocked storage — fall back to the default landing spot.
   }
-  return "included";
+  return "runtimes";
 };
 
 const saveCategory = (cat: PMCategory) => {
@@ -314,7 +314,7 @@ function PackageManager() {
                     ref={searchRef}
                     value={q}
                     onChange={setQ}
-                    placeholder="Search…  (press /)"
+                    placeholder="Search (press /)"
                     showClear
                   />
                 </Box>

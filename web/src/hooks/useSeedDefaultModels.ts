@@ -3,29 +3,33 @@
  * everywhere.
  *
  * Runs once at the app root. When the Settings "Default Models" list has no
- * `language_model` (or `image_model`), it pins the first usable model of a
+ * `language_model` (or `image_model`, or `tts_model`), it pins the first usable model of a
  * connected API or cloud provider. Local models come second, and a model that
  * is not installed or whose provider has no key is never picked. A default the
  * user set is never overwritten.
  *
  * It then starts the chat on that default (the chat store otherwise holds an
- * unsendable placeholder) and fills the empty model properties of nodes in the
+ * unsendable placeholder), starts the composer's speech mode on the speech
+ * default, and fills the empty model properties of nodes in the
  * open workflows, so connecting a key does not leave a node on "Select model".
  */
 
 import { useEffect } from "react";
 import { isModelSelected } from "@nodetool-ai/protocol";
 import useGlobalChatStore from "../stores/GlobalChatStore";
+import useMediaGenerationStore from "../stores/MediaGenerationStore";
 import useMetadataStore from "../stores/MetadataStore";
 import useModelPreferencesStore from "../stores/ModelPreferencesStore";
 import type { DefaultModel } from "../stores/ModelPreferencesStore";
-import type { LanguageModel } from "../stores/ApiTypes";
+import type { LanguageModel, TTSModel } from "../stores/ApiTypes";
+import { audioModelPatch } from "../components/chat/composer/modelSelection";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { isLocalProvider } from "../utils/providerDisplay";
 import { useWorkflowManagerStore } from "../contexts/WorkflowManagerContext";
 import {
   useImageModelsByProvider,
-  useLanguageModelsByProvider
+  useLanguageModelsByProvider,
+  useTTSModelsByProvider
 } from "./useModelsByProvider";
 import { useModelAvailability } from "./useModelAvailability";
 import {
@@ -92,6 +96,9 @@ export const useSeedDefaultModels = (): void => {
   const setSelectedModel = useGlobalChatStore((s) => s.setSelectedModel);
   const language = useLanguageModelsByProvider();
   const image = useImageModelsByProvider({ task: "text_to_image" });
+  const tts = useTTSModelsByProvider();
+  const ttsDefault = useModelPreferencesStore((s) => s.defaults["tts_model"]);
+  const speechModel = useMediaGenerationStore((s) => s.audio.model);
   const getAvailability = useModelAvailability();
   const recommendedKeys = useRecommendedModelKeys();
 
@@ -123,6 +130,16 @@ export const useSeedDefaultModels = (): void => {
         seeded = true;
       }
     }
+    if (!preferences.defaults["tts_model"] && !tts.isLoading) {
+      const pick = pickSeedModel(
+        tts.models,
+        (m) => getAvailability(m).available
+      );
+      if (pick) {
+        preferences.setDefault("tts_model", toDefault(pick));
+        seeded = true;
+      }
+    }
     if (seeded) {
       fillOpenWorkflows(workflowManager);
     }
@@ -131,6 +148,8 @@ export const useSeedDefaultModels = (): void => {
     language.models,
     image.isLoading,
     image.models,
+    tts.isLoading,
+    tts.models,
     getAvailability,
     recommendedKeys,
     workflowManager
@@ -147,6 +166,21 @@ export const useSeedDefaultModels = (): void => {
       } as LanguageModel);
     }
   }, [languageDefault, selectedModel, setSelectedModel]);
+
+  // Speech starts on the Settings default too, with that model's voices.
+  useEffect(() => {
+    if (!ttsDefault || isModelSelected(speechModel)) {
+      return;
+    }
+    const model = tts.models.find(
+      (m: TTSModel) =>
+        m.provider === ttsDefault.provider && m.id === ttsDefault.id
+    );
+    if (model) {
+      const { setAudioParams, audio } = useMediaGenerationStore.getState();
+      setAudioParams(audioModelPatch(model, audio.voice));
+    }
+  }, [ttsDefault, speechModel, tts.models]);
 };
 
 /** Fill empty model properties of every node in the open workflows. */

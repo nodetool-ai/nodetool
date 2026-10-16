@@ -11,17 +11,15 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
-import ImageIcon from "@mui/icons-material/Image";
 
 import { SPACING,
-  CheckerDropzone,
   FlexRow,
   NodeSlider,
   StateIconButton,
   ToggleGroup,
   ToggleOption, BORDER_RADIUS, MediaLabel } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageRefPreview from "../../node/ImageRefPreview";
+import ImagePreview from "./ImagePreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import NumberInput from "../../inputs/NumberInput";
@@ -141,20 +139,6 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto"
     }
   });
-
-const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
-  // The shared ladder — it resolves an `asset://` locator to the asset's
-  // `get_url`, which a hand-rolled copy of this branch chain did not.
-  <ImageRefPreview
-    value={value}
-    placeholder={
-      <CheckerDropzone
-        message="Connect an image, then run"
-        icon={<ImageIcon />}
-      />
-    }
-  />
-);
 
 interface ResizeImageBodyProps {
   id: string;

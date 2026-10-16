@@ -2,9 +2,10 @@ import { createScriptedGameSession, GamePlayerSaves, validateGame } from "@nodet
 import { gameSnapshot, type GameInputFrame, type GameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "./audio.js";
-import { mountTouchControls, touchLayout } from "./touch-controls.js";
+import { mountTouchControls, touchLayout, type GameTouchControls } from "./touch-controls.js";
 import { browserGamepads, GameInput } from "./input-bindings.js";
-import { attachGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
+import { attachGameMouseInput } from "./mouse-input.js";
+import { attachGameUiPointer, claimGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
 import { gameUiViewport2D } from "./ui/hud2d.js";
 import { resolveGameInputBindings } from "@nodetool-ai/protocol";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
@@ -115,10 +116,13 @@ async function start(): Promise<void> {
   const input = new GameInput();
   // HUD buttons press their input actions on the same input, by pointer, touch or gamepad focus.
   const hud = new GameUiController(input, browserGameUiMeasure(game.id));
-  attachGameUiPointer(canvas, hud, () => gameUiViewport2D(latest));
+  const detachHud = attachGameUiPointer(canvas, hud, () => gameUiViewport2D(latest), () => !paused);
+  const detachMouse = attachGameMouseInput(canvas, input, { active: () => !paused && !document.hidden });
   let hudInsets = browserGameUiInsets(canvas, gameUiViewport2D(latest));
   window.addEventListener("resize", () => { hudInsets = browserGameUiInsets(canvas, gameUiViewport2D(latest)); });
+  let touchControls: GameTouchControls | undefined;
   function releaseAll(): void {
+    touchControls?.release();
     hud.release();
     input.release();
   }
@@ -134,7 +138,12 @@ async function start(): Promise<void> {
     }
     element("pause").setAttribute("aria-label", "Pause");
     element("pause").textContent = pauseLabel(paused);
-    mountTouchControls(touchRoot, { layout: touchLayout(resolveGameInputBindings(game)), onChange: (state) => input.setTouch(state) });
+    touchControls = mountTouchControls(touchRoot, {
+      layout: touchLayout(resolveGameInputBindings(game)), onChange: (state) => input.setTouch(state),
+      active: () => !paused && !document.hidden,
+      claimPointer: (event) => claimGameUiPointer(canvas, hud, gameUiViewport2D(latest), event),
+      releasePointer: (id) => hud.pointerUp(id)
+    });
   }
   if (window.matchMedia("(pointer: coarse)").matches) enableTouch();
   window.addEventListener("touchstart", enableTouch, { passive: true });
@@ -153,6 +162,15 @@ async function start(): Promise<void> {
   let lastTime = performance.now();
   let animationFrame = 0;
   const tickMs = 1000 / game.tickRate;
+  function setPaused(next: boolean): void {
+    paused = next;
+    releaseAll();
+    input.setEnabled(!next);
+    accumulator = 0;
+    lastTime = performance.now();
+    if (next) { audio.pause(); } else { audio.resume(); }
+    element("pause").textContent = pauseLabel(next);
+  }
   // Script saves and the Save button share per-game IndexedDB storage. Loaded data reaches scripts on the next frame.
   const saves = new GamePlayerSaves(createIndexedDbGameSaveStorage(game.id), { onError: (error) => showStatus(error.message) });
   const QUICK_SAVE = "quicksave";
@@ -191,8 +209,7 @@ async function start(): Promise<void> {
       audio.sync(session.snapshot());
       return true;
     } catch (error) {
-      paused = true;
-      element("pause").textContent = pauseLabel(true);
+      setPaused(true);
       showStatus(error instanceof Error ? error.message : "Game script failed");
       return false;
     }
@@ -234,13 +251,7 @@ async function start(): Promise<void> {
     lastTime = performance.now();
   });
   element("pause").addEventListener("click", () => {
-    paused = !paused;
-    // Input pressed while paused is dropped rather than delivered on resume.
-    input.setEnabled(!paused);
-    if (paused) audio.pause();
-    else audio.resume();
-    element("pause").textContent = pauseLabel(paused);
-    lastTime = performance.now();
+    setPaused(!paused);
   });
   element("step").addEventListener("click", () => {
     if (paused) {
@@ -286,6 +297,9 @@ async function start(): Promise<void> {
     }).catch((error) => showStatus(error instanceof Error ? error.message : "Save could not be loaded"));
   });
   window.addEventListener("beforeunload", () => {
+    touchControls?.dispose();
+    detachMouse();
+    detachHud();
     cancelAnimationFrame(animationFrame);
     session.dispose();
     renderer.dispose();
@@ -293,7 +307,7 @@ async function start(): Promise<void> {
     audio.dispose();
   });
   window.nativeGamePlayer = Object.freeze({
-    pause: () => { paused = true; releaseAll(); accumulator = 0; },
+    pause: () => setPaused(true),
     reset: async () => {
       paused = true;
       const replacement = await createScriptedGameSession(game, 1);

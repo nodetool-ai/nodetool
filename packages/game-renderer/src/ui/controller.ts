@@ -123,6 +123,39 @@ export class GameUiController {
   }
 }
 
+/** Maps a client point into the rendered HUD, excluding centered contain letterboxes. */
+export function gameUiPointerPosition(element: HTMLElement, viewport: GameUiViewport,
+  clientX: number, clientY: number): { x: number; y: number } | null {
+  const rect = element.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) { return null; }
+  let left = rect.left;
+  let top = rect.top;
+  let width = rect.width;
+  let height = rect.height;
+  if (getComputedStyle(element).objectFit === "contain") {
+    const intrinsic = typeof HTMLCanvasElement !== "undefined" && element instanceof HTMLCanvasElement
+      ? { width: element.width, height: element.height } : viewport;
+    if (intrinsic.width <= 0 || intrinsic.height <= 0) { return null; }
+    const scale = Math.min(width / intrinsic.width, height / intrinsic.height);
+    const contentWidth = intrinsic.width * scale;
+    const contentHeight = intrinsic.height * scale;
+    left += (width - contentWidth) / 2;
+    top += (height - contentHeight) / 2;
+    width = contentWidth;
+    height = contentHeight;
+  }
+  if (clientX < left || clientY < top || clientX >= left + width || clientY >= top + height) { return null; }
+  return { x: (clientX - left) * viewport.width / width, y: (clientY - top) * viewport.height / height };
+}
+
+/** Claims a HUD button using the canvas content rectangle, including calls from touch overlays. */
+export function claimGameUiPointer(element: HTMLElement, controller: GameUiController, viewport: GameUiViewport | undefined,
+  event: Pick<PointerEvent, "pointerId" | "clientX" | "clientY">): boolean {
+  if (!viewport) { return false; }
+  const point = gameUiPointerPosition(element, viewport, event.clientX, event.clientY);
+  return point !== null && controller.pointerDown(event.pointerId, point.x, point.y);
+}
+
 /**
  * Forwards pointer events on `element` that land on HUD buttons to the controller, in HUD pixels.
  * Events that hit a button stop there, so they do not also reach touch look or canvas focus handlers.
@@ -132,21 +165,17 @@ export function attachGameUiPointer(element: HTMLElement, controller: GameUiCont
   const down = (event: PointerEvent): void => {
     const size = viewport();
     if (!active()) { return; }
-    const rect = element.getBoundingClientRect();
-    if (!size || rect.width <= 0 || rect.height <= 0) { return; }
-    const x = (event.clientX - rect.left) * size.width / rect.width;
-    const y = (event.clientY - rect.top) * size.height / rect.height;
-    if (controller.pointerDown(event.pointerId, x, y)) {
+    if (claimGameUiPointer(element, controller, size, event)) {
       event.preventDefault();
       event.stopPropagation();
     }
   };
   const up = (event: PointerEvent): void => { controller.pointerUp(event.pointerId); };
-  element.addEventListener("pointerdown", down);
+  element.addEventListener("pointerdown", down, { capture: true });
   window.addEventListener("pointerup", up);
   window.addEventListener("pointercancel", up);
   return () => {
-    element.removeEventListener("pointerdown", down);
+    element.removeEventListener("pointerdown", down, { capture: true });
     window.removeEventListener("pointerup", up);
     window.removeEventListener("pointercancel", up);
   };

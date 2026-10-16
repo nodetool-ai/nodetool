@@ -57,6 +57,7 @@ import {
   type ScriptAgentHandler
 } from "../../../../components/script/scriptAgentBridge";
 import { resetVoiceSamples } from "../../../../hooks/script/useVoiceSamples";
+import useModelPreferencesStore from "../../../../stores/ModelPreferencesStore";
 import { useScriptStore } from "../../../../stores/script/ScriptStore";
 import { VoicesStep } from "../VoicesStep";
 
@@ -157,6 +158,7 @@ beforeEach(() => {
     useScriptStore.getState().updateSpeaker(SCRIPT_ID, speakerId, { voice });
   });
   resetVoiceSamples();
+  useModelPreferencesStore.setState({ defaults: {} });
   useScriptStore.setState({ scripts: {}, history: {} } as never);
   seed();
   setScriptAgentHandler(SCRIPT_ID, {
@@ -169,6 +171,22 @@ afterEach(() => {
 });
 
 describe("VoicesStep", () => {
+  it("gives every unvoiced speaker the first voice of the Settings speech model", () => {
+    useModelPreferencesStore.getState().setDefault("tts_model", {
+      provider: "openai",
+      id: "gpt-4o-mini-tts",
+      name: "GPT-4o mini TTS"
+    });
+    renderStep();
+    expect(setSpeakerVoice).toHaveBeenCalledWith("spk_host", {
+      provider: "openai",
+      model: "gpt-4o-mini-tts",
+      voice: "alloy"
+    });
+    expect(screen.getByText("Voice for Host: alloy")).toBeInTheDocument();
+    expect(screen.getByText("Voice for Guest: alloy")).toBeInTheDocument();
+  });
+
   it("gives every speaker the shared TTS model select", () => {
     renderStep();
     expect(screen.getByText("TTS model for Host")).toBeInTheDocument();

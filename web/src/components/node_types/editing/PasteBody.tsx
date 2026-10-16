@@ -12,11 +12,10 @@ import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import ImageIcon from "@mui/icons-material/Image";
 
-import { SPACING, MediaLabel, CheckerDropzone, FlexRow, BORDER_RADIUS } from "../../ui_primitives";
+import { SPACING, MediaLabel, FlexRow, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageRefPreview from "../../node/ImageRefPreview";
+import ImagePreview from "./ImagePreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import NumberInput from "../../inputs/NumberInput";
@@ -86,16 +85,6 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto"
     }
   });
-
-const PreviewImage: React.FC<{ value: unknown; placeholder: string }> = ({
-  value,
-  placeholder
-}) => (
-  <ImageRefPreview
-    value={value}
-    placeholder={<CheckerDropzone message={placeholder} icon={<ImageIcon />} />}
-  />
-);
 
 interface PasteBodyProps {
   id: string;
@@ -197,9 +186,9 @@ const PasteBodyInner: React.FC<PasteBodyProps> = ({
     <div css={cssStyles} className="paste-body" data-bespoke-body="Paste">
       <HandleColumn id={id} properties={imageHandles} />
       <div className="preview-area">
-        <PreviewImage
+        <ImagePreview
           value={previewValue ?? baseValue}
-          placeholder="Connect Image and Paste, then run"
+          message="Connect Image and Paste, then run"
         />
         {overlayRect && (
           <div

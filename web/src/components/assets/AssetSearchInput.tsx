@@ -1,137 +1,13 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
-import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
-import BackspaceIcon from "@mui/icons-material/Backspace";
+import React, { useCallback, useEffect, useRef, useState, memo } from "react";
 import Public from "@mui/icons-material/Public";
 import Folder from "@mui/icons-material/Folder";
 import { registerTypeToFocus } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
-import { Tooltip, FlexRow, LoadingSpinner, MOTION, BORDER_RADIUS, reducedMotion, getSpacingPx, SPACING } from "../ui_primitives";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
+import { SearchInput, ToolbarIconButton } from "../ui_primitives";
 import { isNumber } from "../../utils/typePredicates";
 
-
-const styles = (theme: Theme) =>
-  css({
-    "&": {
-      width: "100%",
-      position: "relative",
-      gap: getSpacingPx(SPACING.micro),
-      margin: "0",
-      padding: 0,
-      overflow: "hidden"
-    },
-    ".search-box": {
-      border: 0,
-      position: "relative"
-    },
-    ".search-input": {
-      width: "100%",
-      flexShrink: "0"
-    },
-    "input[type='text']": {
-      border: 0,
-      outline: "none",
-      padding: `0 ${getSpacingPx(SPACING.xxxl)}`,
-      margin: "0",
-      height: getSpacingPx(SPACING.xxxl),
-      fontSize: "var(--fontSizeSmall)",
-      WebkitAppearance: "none",
-      MozAppearance: "none",
-      appearance: "none",
-      color: "var(--palette-text-primary)",
-      backgroundColor: "var(--palette-grey-800)",
-      borderRadius: BORDER_RADIUS.md,
-      transition: MOTION.all,
-      ...reducedMotion({ transition: MOTION.none })
-    },
-    "input[type='text']:focus": {
-      backgroundColor: "var(--palette-grey-700)",
-      borderColor: "var(--palette-primary-main)",
-      outline: "none"
-    },
-    // Keyboard focus needs a visible ring; inset offset avoids clipping by the
-    // container's overflow: hidden.
-    "input[type='text']:focus-visible": {
-      outline: "2px solid var(--palette-primary-main)",
-      outlineOffset: "-2px"
-    },
-    "button:focus-visible": {
-      outline: "2px solid var(--palette-primary-main)",
-      outlineOffset: "-2px",
-      borderRadius: BORDER_RADIUS.md
-    },
-    ".clear-search-btn": {
-      position: "absolute",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: getSpacingPx(SPACING.xxl),
-      height: "100%",
-      top: 0,
-      right: getSpacingPx(SPACING.md),
-      border: 0,
-      backgroundColor: "transparent",
-      color: theme.vars.palette.grey[400],
-      transition: `color ${MOTION.normal}, ${MOTION.opacity}`,
-      ...reducedMotion({ transition: MOTION.none }),
-      padding: 0,
-      "& svg": {
-        fontSize: "var(--fontSizeBig)"
-      },
-      "&:hover": {
-        backgroundColor: "transparent"
-      },
-      "&:not(.disabled):hover svg": {
-        color: "var(--palette-primary-main)",
-        backgroundColor: "transparent"
-      },
-      "&.disabled": {
-        opacity: 0,
-        pointerEvents: "none"
-      }
-    },
-    ".search-loading-indicator": {
-      position: "absolute",
-      width: getSpacingPx(SPACING.xxl),
-      height: "100%",
-      top: 0,
-      right: getSpacingPx(SPACING.md),
-      padding: 0
-    },
-    ".search-mode-toggle": {
-      position: "absolute",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: getSpacingPx(SPACING.xxl),
-      height: "100%",
-      top: 0,
-      left: getSpacingPx(SPACING.sm),
-      border: 0,
-      backgroundColor: "transparent",
-      color: theme.vars.palette.grey[400],
-      transition: `color ${MOTION.normal}`,
-      ...reducedMotion({ transition: MOTION.none }),
-      padding: 0,
-      "& svg": {
-        fontSize: "var(--fontSizeBig)"
-      },
-      "&:hover": {
-        backgroundColor: "transparent",
-        color: "var(--palette-primary-main)"
-      },
-      "&.global-mode": {
-        color: "var(--palette-primary-main)"
-      }
-    }
-  });
 
 interface AssetSearchInputProps {
   onLocalSearchChange: (_value: string) => void;
@@ -150,8 +26,6 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   debounceTime = 500,
   width
 }) => {
-  const theme = useTheme();
-  const rootStyles = useMemo(() => styles(theme), [theme]);
   const inputRef = useRef<HTMLInputElement>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   // Global search state and hooks
@@ -304,8 +178,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
 
   // Handle input changes with debouncing
   const handleInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = event.target.value;
+    (newValue: string) => {
       // Update local state immediately for UI responsiveness
       setLocalSearchTerm(newValue);
       debouncedSetSearchTerm(newValue);
@@ -361,81 +234,55 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   }, [focusOnTyping, debouncedSetSearchTerm]);
 
   const effectivePlaceholder = isGlobalSearchMode
-    ? "Search all assets..."
-    : "Search current folder...";
+    ? "Search all assets"
+    : "Search current folder";
+
+  const toggleLabel = isGlobalSearchMode
+    ? "Switch to local search"
+    : "Switch to global search";
 
   return (
-    <FlexRow
-      align="center"
+    <div
       className={`asset-search-input-container with-global-search ${
         isGlobalSearchMode ? "global-mode" : "local-mode"
       }`}
-      css={rootStyles}
       style={{
         width: "100%",
-        maxWidth:
-          isNumber(width)
-            ? `${width}px`
-            : width
+        maxWidth: isNumber(width) ? `${width}px` : width
       }}
     >
-      <Tooltip
-        title={
-          isGlobalSearchMode
-            ? "Switch to local search"
-            : "Switch to global search"
-        }
-      >
-        <button
-          type="button"
-          className={`search-mode-toggle ${
-            isGlobalSearchMode ? "global-mode" : ""
-          }`}
-          onClick={toggleSearchMode}
-          data-testid="asset-search-mode-toggle"
-          aria-label={isGlobalSearchMode ? "Switch to local search" : "Switch to global search"}
-        >
-          {isGlobalSearchMode ? <Public /> : <Folder />}
-        </button>
-      </Tooltip>
-
-      <input
-        id="asset-search-input"
-        aria-label={isGlobalSearchMode ? "Search all assets" : "Search current folder"}
-        className="search-input"
+      <SearchInput
         ref={inputRef}
-        type="text"
-        placeholder={effectivePlaceholder}
         value={localSearchTerm}
         onChange={handleInputChange}
+        onClear={clearSearch}
         onKeyDown={handleInputKeyDown}
-        autoCorrect="off"
-        autoCapitalize="none"
-        spellCheck="false"
-        autoComplete="off"
-        data-testid="asset-search-input-field"
-        data-search-mode={isGlobalSearchMode ? "global" : "local"}
+        escapeClears={false}
+        placeholder={effectivePlaceholder}
+        fullWidth
+        loading={isSearching && isGlobalSearchMode && localSearchTerm.length >= 2}
+        clearTestId="asset-search-clear-btn"
+        startAdornment={
+          <ToolbarIconButton
+            icon={isGlobalSearchMode ? <Public /> : <Folder />}
+            tooltip={toggleLabel}
+            aria-label={toggleLabel}
+            active={isGlobalSearchMode}
+            onClick={toggleSearchMode}
+            data-testid="asset-search-mode-toggle"
+          />
+        }
+        inputProps={{
+          id: "asset-search-input",
+          autoCorrect: "off",
+          autoCapitalize: "none",
+          spellCheck: false,
+          autoComplete: "off",
+          "data-testid": "asset-search-input-field",
+          "data-search-mode": isGlobalSearchMode ? "global" : "local"
+        } as React.InputHTMLAttributes<HTMLInputElement>}
       />
-
-      {isSearching && isGlobalSearchMode && localSearchTerm.length >= 2 ? (
-        <FlexRow className="search-loading-indicator" align="center" justify="center">
-          <LoadingSpinner size="small" />
-        </FlexRow>
-      ) : (
-        <button
-          type="button"
-          className={`clear-search-btn ${
-            localSearchTerm.trim() === "" ? "disabled" : ""
-          }`}
-          disabled={localSearchTerm.trim() === ""}
-          aria-label="Clear search"
-          onClick={clearSearch}
-          data-testid="asset-search-clear-btn"
-        >
-          <BackspaceIcon />
-        </button>
-      )}
-    </FlexRow>
+    </div>
   );
 };
 

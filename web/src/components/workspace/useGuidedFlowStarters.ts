@@ -35,6 +35,7 @@ import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
 import { newVideoSetupDocument } from "../setup/video/useVideoSetupFlow";
 import { startImageFlow } from "../setup/image/startImageFlow";
 import { openPageTab } from "./openPageTab";
+import { openSpeechChat } from "../chat/openSpeechChat";
 
 export interface GuidedFlowStarter {
   id: EntryFlowId;
@@ -67,7 +68,7 @@ export interface GuidedFlowStarters {
 }
 
 /**
- * The seven guided starters, each reporting failure as a toast rather than a
+ * The eight guided starters, each reporting failure as a toast rather than a
  * dead click. `onStarted` lets the caller close its own menu when one lands.
  *
  * Clicking a starter creates its document in the selected project.
@@ -189,6 +190,14 @@ export const useGuidedFlowStarters = (
     [runStart, createScript, openTab]
   );
 
+  const startSpeech = useCallback(
+    (projectIdOverride?: string) =>
+      runStart("speech", () =>
+        openSpeechChat(projectIdOverride ?? creationProjectId())
+      ),
+    [runStart]
+  );
+
   const startImage = useCallback(
     (projectIdOverride?: string) =>
       runStart("image", async () => {
@@ -280,6 +289,7 @@ export const useGuidedFlowStarters = (
       storyboard: startStoryboard,
       video: startVideo,
       script: startScript,
+      speech: startSpeech,
       image: startImage,
       workflow: startWorkflow,
       game: startGame
@@ -300,6 +310,7 @@ export const useGuidedFlowStarters = (
     startGame,
     startImage,
     startScript,
+    startSpeech,
     startStoryboard,
     startVideo,
     startWorkflow

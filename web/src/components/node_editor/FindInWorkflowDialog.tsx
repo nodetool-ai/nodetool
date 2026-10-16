@@ -17,12 +17,12 @@ import {
   ListItem,
   ListItemButton,
   Tooltip,
-  EmptyState
+  EmptyState,
+  SearchInput
 } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import ClearIcon from "@mui/icons-material/Clear";
 import { CloseButton, SHADOW } from "../ui_primitives";
 import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
 
@@ -55,49 +55,9 @@ const styles = (theme: Theme) =>
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.action.hover
     },
-    "& .search-icon-wrapper": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: theme.vars.palette.text.secondary,
-      marginRight: getSpacingPx(SPACING.lg)
-    },
-    "& .search-input-wrapper": {
+    "& .find-search": {
       flex: 1,
       position: "relative"
-    },
-    "& .search-input": {
-      width: "100%",
-      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
-      fontSize: "var(--fontSizeNormal)",
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.lg,
-      backgroundColor: theme.vars.palette.background.default,
-      color: theme.vars.palette.text.primary,
-      outline: "none",
-      "&:focus": {
-        borderColor: theme.vars.palette.primary.main
-      },
-      "&::placeholder": {
-        color: theme.vars.palette.text.disabled
-      }
-    },
-    "& .clear-button": {
-      position: "absolute",
-      right: "8px",
-      top: "50%",
-      transform: "translateY(-50%)",
-      background: "none",
-      border: "none",
-      cursor: "pointer",
-      color: theme.vars.palette.text.disabled,
-      padding: getSpacingPx(SPACING.xs),
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      "&:hover": {
-        color: theme.vars.palette.text.primary
-      }
     },
     "& .results-count": {
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
@@ -273,13 +233,6 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
     useGlobalCombo("control+f", () => undefined, inInputs);
     useGlobalCombo("f+meta", () => undefined, inInputs);
 
-    const handleInputChange = useCallback(
-      (event: React.ChangeEvent<HTMLInputElement>) => {
-        performSearch(event.target.value);
-      },
-      [performSearch]
-    );
-
     const handleResultClick = useCallback(
       (event: React.MouseEvent<HTMLElement>) => {
         const index = Number(event.currentTarget.dataset.index);
@@ -288,11 +241,6 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       },
       [activateResult, closeFind]
     );
-
-    const handleClear = useCallback(() => {
-      clearSearch();
-      inputRef.current?.focus();
-    }, [clearSearch]);
 
     if (!isOpen) {
       return null;
@@ -313,29 +261,17 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
         css={cssStyles}
       >
         <Box className="find-header">
-          <Box className="search-icon-wrapper">
-            <SearchIcon fontSize="small" />
-          </Box>
-          <Box className="search-input-wrapper">
-            <input
+          <Box className="find-search">
+            <SearchInput
               ref={inputRef}
-              aria-label="Find nodes"
-              className="search-input"
-              type="text"
-              placeholder="Find nodes..."
+              ariaLabel="Find nodes"
+              placeholder="Find nodes"
               value={searchTerm}
-              onChange={handleInputChange}
+              onChange={performSearch}
+              onClear={clearSearch}
+              escapeClears={false}
+              fullWidth
             />
-            {searchTerm && (
-              <button
-                type="button"
-                className="clear-button"
-                aria-label="Clear search"
-                onClick={handleClear}
-              >
-                <ClearIcon fontSize="small" />
-              </button>
-            )}
           </Box>
           <Box className="navigation-buttons">
             <Tooltip

@@ -589,7 +589,6 @@ function createGameSessionWithRunner(
   }
 
   const reloadScripts = createGameScriptReloader({
-    initialRevision: document.revision,
     current: () => document,
     parse: (candidate: GameDocument) => {
       const checked = validateGame(candidate);
