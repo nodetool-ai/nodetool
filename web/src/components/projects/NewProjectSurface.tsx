@@ -157,6 +157,7 @@ import {
 import { newDocumentId } from "../../lib/newDocumentId";
 import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { stageChatTurn } from "../chat/pendingChatTurn";
+import { openSpeechChat } from "../chat/openSpeechChat";
 import { PROJECT_COLOR } from "./projectIdentity";
 import {
   composeFirstTurn,
@@ -181,6 +182,7 @@ const ENTRY_BACKGROUNDS: Partial<Record<EntryFlowId, string>> = {
   storyboard: storyboardBackground,
   video: videoBackground,
   script: scriptBackground,
+  speech: scriptBackground,
   image: imageBackground,
   workflow: workflowBackground,
   game: gameBackground
@@ -1409,6 +1411,21 @@ const NewProjectSurface = ({
     ]
   );
 
+  const startSpeechFlow = useCallback(
+    async (projectId: string) => {
+      try {
+        await openSpeechChat(projectId, prompt.trim());
+        noteUncarriedContext("chat", { entities: false, references: false });
+        closeTab(
+          tabId(flowRef ? "guided-flow" : "project-new", flowRef ?? PROJECT_NEW_REF)
+        );
+      } catch (error) {
+        reportEntryFailure("chat", error);
+      }
+    },
+    [closeTab, flowRef, noteUncarriedContext, prompt, reportEntryFailure]
+  );
+
   const runDestinationFlow = useCallback(
     (id: EntryFlowId) => {
       const starters: Record<
@@ -1419,6 +1436,7 @@ const NewProjectSurface = ({
         storyboard: startStoryboardFlow,
         video: startVideoFlow,
         script: startScriptFlow,
+        speech: startSpeechFlow,
         image: startImageProject,
         workflow: startWorkflowFlow,
         game: startGameFlow
@@ -1433,6 +1451,7 @@ const NewProjectSurface = ({
       startGameFlow,
       startImageProject,
       startScriptFlow,
+      startSpeechFlow,
       startStoryboardFlow,
       startVideoFlow,
       startWorkflowFlow
@@ -1459,7 +1478,8 @@ const NewProjectSurface = ({
   // second flow started over the first would create an unwanted draft.
   const entryOptions = useMemo<readonly OptionCardItem[]>(() => {
     const cards = ENTRY_CARDS.filter((card) =>
-      showMoreFlows || ["storyboard", "image", "workflow"].includes(card.id)
+      showMoreFlows ||
+      ["storyboard", "image", "speech", "workflow"].includes(card.id)
     ).map((card) => ({
       ...card,
       description: card.id === "game" && gameDimension === "3d"
