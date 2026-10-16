@@ -28,6 +28,16 @@ const POSTERS = process.argv.includes("--posters");
 
 const GAMES = [
   {
+    slug: "signal-forge",
+    name: "Signal Forge",
+    description: "Wake an industrial relay, ride its shuttle, raise a bridge over the coolant furnace, and restore the reactor beacon.",
+    controls: "WASD or arrows to move · Space to jump · E to pulse or use terminals · R to recover · Hold right mouse to look",
+    sourceDir: path.join(ROOT, "packages/game-runtime/samples/signal-forge"),
+    posterTick: 1,
+    inputs: "completion.inputs.json",
+    backend: "webgl2"
+  },
+  {
     slug: "aether",
     name: "AETHER // Skybound",
     description: "Cross 22 floating platforms, dodge pulsing lasers, escape collapsing steps, and ride two sky ferries to recover five aether prisms.",
@@ -118,6 +128,8 @@ for (const game of GAMES.filter((game) => !slug || game.slug === slug)) {
     const target = `${slot}${path.extname(file).toLowerCase()}`;
     copyFileSync(path.join(sourceDir, "assets", file), path.join(mediaDir, target));
     binding.assetId = `package://nodetool-base/games/${game.slug}/${target}`;
+    // Bundles include normalized media, not the owner's editable source assets.
+    delete binding.sourceAssetId;
   }
 
   if (!existsSync(poster)) await capturePoster(game, sourceDir, poster);

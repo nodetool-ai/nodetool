@@ -22,10 +22,15 @@ const PRESSES: readonly (readonly [string, string])[] = [
   ...Object.entries(US_KEYS), ["KeyY", "z"], ["KeyZ", "y"], ["Equal", "+"], ["Equal", "="], ["Numpad1", "1"], ["Numpad5", "5"], ["KeyQ", "Q"], ["KeyQ", "a"], ["KeyW", "z"]
 ];
 
-/** The 3D mapping before input bindings existed, kept as the oracle for generated defaults. */
-function legacyFrame3D(document: GameDocument3D, keys: ReadonlySet<string>, newlyPressed: ReadonlySet<string>, look: { x: number; y: number }): GameInputFrame3D {
-  const actionKeys = (action: string): readonly string[] => action === "fire" ? ["Mouse0", "KeyF"]
+/** Legacy defaults plus the physical key and mouse bindings authored by shipped 3D examples. */
+function expectedFrame3D(document: GameDocument3D, keys: ReadonlySet<string>, newlyPressed: ReadonlySet<string>, look: { x: number; y: number }): GameInputFrame3D {
+  const defaultActionKeys = (action: string): readonly string[] => action === "fire" ? ["Mouse0", "KeyF"]
     : action === "jump" ? ["Space"] : action === "respawn" ? ["KeyR"] : [`Key${action.toUpperCase()}`, action];
+  const actionKeys = (action: string): readonly string[] => {
+    const authored = document.inputBindings?.actions[action];
+    return authored ? authored.flatMap((binding) => binding.kind === "key" ? [binding.code]
+      : binding.kind === "mouseButton" ? [`Mouse${binding.button}`] : []) : defaultActionKeys(action);
+  };
   const actions = (held: ReadonlySet<string>): string[] => document.inputActions.filter((action) => actionKeys(action).some((code) => held.has(code)));
   const x = Number(keys.has("KeyD") || keys.has("ArrowRight")) - Number(keys.has("KeyA") || keys.has("ArrowLeft"));
   const z = Number(keys.has("KeyS") || keys.has("ArrowDown")) - Number(keys.has("KeyW") || keys.has("ArrowUp"));
@@ -48,7 +53,7 @@ function pad(buttons: readonly number[], axes: readonly number[]): GamepadLike {
 }
 
 describe("input bindings", () => {
-  it("reproduces the earlier keyboard and mouse frames for every shipped example game and any keyboard layout", () => {
+  it("preserves default and authored keyboard and mouse frames for every shipped example game and any keyboard layout", () => {
     const shipped = examples();
     expect(shipped.length).toBeGreaterThanOrEqual(5);
     // Also a 2D game whose actions are named after layout-dependent keys.
@@ -83,7 +88,7 @@ describe("input bindings", () => {
         if ("dimension" in document) {
           const look = { x: Math.round(next() * 20 - 10), y: Math.round(next() * 20 - 10) };
           input.look(look.x, look.y);
-          expect(input.sample(document), `${name} tick ${tick}`).toEqual(legacyFrame3D(document, keys, newly, { x: 0 + look.x, y: 0 + look.y }));
+          expect(input.sample(document), `${name} tick ${tick}`).toEqual(expectedFrame3D(document, keys, newly, { x: 0 + look.x, y: 0 + look.y }));
         } else {
           // The earlier 2D mapping listed actions in press order.
           expect(input.sample2D(document), `${name} tick ${tick}`).toEqual({ pressed: [...new Set(legacy2D.values())], justPressed: [...legacyNew2D] });
