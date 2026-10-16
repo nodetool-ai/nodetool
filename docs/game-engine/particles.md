@@ -67,4 +67,4 @@ Use a camera-facing billboard, a velocity-stretched billboard, or a mesh particl
 
 Billboard `softness` fades intersections against scene depth and adds a depth pass. Its submitted draw calls and triangles count toward rendering budgets. Enable it where that cost improves the effect. Mesh softness is not supported.
 
-3D particles work in editor Play, standalone players, and captures. Translucent particles sort across billboard and mesh types without writing depth. Interleaved types can require additional draw calls. 3D ignores particle sprite textures, sprite sheets, and 2D draw layers. Validation reports unsupported sprite and sheet settings.
+3D particles work in editor Play, standalone players, and captures. Translucent particles sort across billboard and mesh types without writing depth. Compatible particle batches split around ordinary transparent objects and can require additional draw calls. Ordinary transparent geometry retains Three.js object-center sorting. 3D ignores particle sprite textures, sprite sheets, and 2D draw layers. Validation reports unsupported sprite and sheet settings.
