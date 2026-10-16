@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 250" role="img" aria-labelledby="title desc">
+  <title id="title">Native game asset pipeline</title><desc id="desc">Source media is prepared and validated, installed into a logical binding, then packaged with the game for export.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0L0 6L8 3Z" fill="#70d9d0"/></marker></defs>
+  <rect width="1000" height="250" rx="12" fill="#141b26"/>
+  <g fill="#202e40" stroke="#70d9d0" stroke-width="2"><rect x="20" y="55" width="200" height="115" rx="8"/><rect x="270" y="55" width="210" height="115" rx="8"/><rect x="530" y="55" width="200" height="115" rx="8"/><rect x="780" y="55" width="200" height="115" rx="8"/></g>
+  <g fill="#f3f6fa" font-family="sans-serif" text-anchor="middle"><text x="120" y="100" font-size="22">Source media</text><text x="120" y="135" font-size="16">import or generation</text><text x="375" y="100" font-size="22">Preparation</text><text x="375" y="135" font-size="16">validated bytes + digest</text><text x="630" y="100" font-size="22">Game binding</text><text x="630" y="135" font-size="16">slot → installed asset</text><text x="880" y="100" font-size="22">Export</text><text x="880" y="135" font-size="16">document + assets</text><text x="500" y="215" font-size="17" fill="#a9bacd">A generated candidate is not an installed binding</text></g>
+  <g stroke="#70d9d0" stroke-width="3" marker-end="url(#arrow)"><path d="M220 112H260"/><path d="M480 112H520"/><path d="M730 112H770"/></g>
+</svg>
