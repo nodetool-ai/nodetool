@@ -94,7 +94,7 @@ studies the choice and not the setup.
 | `read-aloud` | An audio clip of the line exists and the participant played it or showed its player. | Where it looked first (chat, "+ New", a workflow), and which voice control it read as "say it out loud". | [voice-script](../../agentic-qa/references/protocols/creative.md#voice-script) |
 | `draw-by-hand` | A sketch with strokes the participant drew is open again after its tab was closed. | Whether it found a blank drawing surface or a generator first, the first stroke's visibility, and where it reopened the drawing. | [sketch](../../agentic-qa/references/protocols/creative.md#sketch) |
 | `continue-chat` | A new reply under the participant's question in "Vegan recipe suggestions". | Which list it searched, and whether it matched the title without the task's words. | [chat-find](../../agentic-qa/references/protocols/chat.md#chat-find) |
-| `separate-work` | A new project exists, and a document created in it is open. | Whether it read "Project" or "Personal" as the place to separate work, or made a folder or a tag instead. | [projects](../../agentic-qa/references/protocols/library.md#projects) |
+| `separate-work` | A new project exists, and something started in it (a document or a chat) is open. | Whether it read "Project" or "Personal" as the place to separate work, or made a folder or a tag instead. | [projects](../../agentic-qa/references/protocols/library.md#projects) |
 
 Study 2 found two tasks whose end state asks more than their text:
 `switch-model` ("Change it") lets a participant stop at the picker without
@@ -114,6 +114,12 @@ Use `fix-error` for run faults. `change-photo` and `ask-file` together do not
 fit 35 actions, so give each its own session or run `ask-file` first. On the
 fakes the chat never calls a tool, so a chat request for an edited photo only
 gets text back.
+
+Study 5 found that `add-step` needs the `submit_result` call in the fake
+model: every participant added an output on the Agent, which a model fills
+only through that tool. `read-aloud` on an empty account spends 4 to 6 of its
+20 actions on the key, and no participant reached a clip in 20. Give it 25
+when it validates study-5-I3.
 
 ## Adding a task
 
