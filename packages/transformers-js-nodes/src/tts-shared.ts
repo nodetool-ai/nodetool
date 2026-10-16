@@ -1,6 +1,7 @@
 import { importOptionalModule } from "@nodetool-ai/config";
 import { loadTransformers, resolveDevice } from "./transformers-base.js";
 import { ModelCache } from "./model-cache.js";
+import { trackModelLoad } from "./model-load-progress.js";
 import type { KokoroTTS } from "kokoro-js";
 
 /** Voices supported by kokoro-js v1.2.1 (English only). */
@@ -69,7 +70,12 @@ export async function getKokoro(
     const opts: Record<string, unknown> = {};
     if (dtype) opts.dtype = dtype;
     if (device) opts.device = device;
-    return KokoroTTS.from_pretrained(repoId, opts as never);
+    return trackModelLoad(repoId, (progress_callback) =>
+      KokoroTTS.from_pretrained(repoId, {
+        ...opts,
+        progress_callback
+      } as never)
+    );
   });
 }
 

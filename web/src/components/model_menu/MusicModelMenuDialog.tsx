@@ -4,6 +4,9 @@ import type { MusicModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes"
 import { useMusicModelMenuStore } from "../../stores/ModelMenuStore";
 import { useMusicModelsByProvider } from "../../hooks/useModelsByProvider";
 
+/** The provider capability this picker serves, for local providers to install. */
+const LOCAL_CAPABILITIES = ["text_to_music"];
+
 interface MusicModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
@@ -33,6 +36,7 @@ function MusicModelMenuDialog({
       searchPlaceholder="Search text-to-music models"
       storeHook={useMusicModelMenuStore}
       modelType="music_model"
+      localCapabilities={LOCAL_CAPABILITIES}
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
     />

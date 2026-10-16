@@ -1764,7 +1764,7 @@ nodetool settings show --json
 
 ### `nodetool models`
 
-List models and providers. Queries local providers and caches by default. `--api-url <url>` (default `NODETOOL_API_URL`) targets a remote server on `list`, `ollama`, and `huggingface`. Every subcommand takes `--json`.
+List models and providers. Queries local providers and caches by default. `providers`, `list` and `by-provider mlx` start the local Python worker for MLX when the Python environment exists, and stop it when the command ends. Without that environment the other providers still list. `--api-url <url>` (default `NODETOOL_API_URL`) targets a remote server on `list`, `ollama`, and `huggingface`. Every subcommand takes `--json`.
 
 **Subcommands:**
 

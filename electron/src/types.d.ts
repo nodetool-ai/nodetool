@@ -920,6 +920,7 @@ export type RuntimePackageId =
   | "yt-dlp"
   | "rust"
   | "manimgx"
+  | "sd-cpp"
   | "transformers-js"
   | "tensorflow-js"
   | "node-llama-cpp"

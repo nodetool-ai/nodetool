@@ -18,6 +18,15 @@ vi.mock("@nodetool-ai/config", async (importOriginal) => {
 });
 
 import { NodeLlamaCppProvider } from "../../src/providers/node-llama-cpp-provider.js";
+import {
+  RECOMMENDED_CHAT_GGUFS,
+  RECOMMENDED_EMBEDDING_GGUFS,
+  parseHfModelId
+} from "../../src/providers/node-llama-cpp-models.js";
+
+/** The GGUFs found on disk, without the recommended downloads listed first. */
+const onDisk = <T extends { id: string }>(models: T[]): T[] =>
+  models.filter((m) => !m.id.startsWith("hf:"));
 
 describe("NodeLlamaCppProvider", () => {
   let modelsDir: string;
@@ -61,7 +70,7 @@ describe("NodeLlamaCppProvider", () => {
     const provider = new NodeLlamaCppProvider({
       NODE_LLAMA_CPP_MODELS_DIR: modelsDir
     });
-    const models = await provider.getAvailableLanguageModels();
+    const models = onDisk(await provider.getAvailableLanguageModels());
 
     expect(models.map((m) => m.id)).toEqual(["model-a.gguf", "model-b.GGUF"]);
     expect(models.every((m) => m.provider === "node_llama_cpp")).toBe(true);
@@ -76,7 +85,7 @@ describe("NodeLlamaCppProvider", () => {
     const provider = new NodeLlamaCppProvider({
       NODE_LLAMA_CPP_MODELS_DIR: modelsDir
     });
-    const models = await provider.getAvailableEmbeddingModels();
+    const models = onDisk(await provider.getAvailableEmbeddingModels());
     expect(models.map((m) => m.id)).toEqual(["embed.gguf"]);
   });
 
@@ -84,7 +93,7 @@ describe("NodeLlamaCppProvider", () => {
     const provider = new NodeLlamaCppProvider({
       NODE_LLAMA_CPP_MODELS_DIR: join(modelsDir, "does-not-exist")
     });
-    await expect(provider.getAvailableLanguageModels()).resolves.toEqual([]);
+    expect(onDisk(await provider.getAvailableLanguageModels())).toEqual([]);
   });
 
   it("throws an actionable error when node-llama-cpp is not installed", async () => {
@@ -145,7 +154,7 @@ describe("NodeLlamaCppProvider – GGUF discovery", () => {
       const provider = new NodeLlamaCppProvider({
         NODE_LLAMA_CPP_MODELS_DIR: dir
       });
-      const models = await provider.getAvailableLanguageModels();
+      const models = onDisk(await provider.getAvailableLanguageModels());
       expect(models.map((m) => m.id)).toContain("linked.gguf");
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -169,7 +178,7 @@ describe("NodeLlamaCppProvider – GGUF discovery", () => {
       const provider = new NodeLlamaCppProvider({
         NODE_LLAMA_CPP_MODELS_DIR: emptyDir
       });
-      const models = await provider.getAvailableLanguageModels();
+      const models = onDisk(await provider.getAvailableLanguageModels());
 
       expect(models).toHaveLength(1);
       // Absolute id so the model loads from wherever the hub cache lives.
@@ -182,6 +191,38 @@ describe("NodeLlamaCppProvider – GGUF discovery", () => {
     }
   });
 
+  it("leaves diffusion GGUFs in the hub cache out of the chat list", async () => {
+    const snapshot = join(hubDir, "models--acme--flux-GGUF", "snapshots", "abc123");
+    await mkdir(snapshot, { recursive: true });
+    // A real GGUF header with an architecture but no context length.
+    const key = Buffer.from("general.architecture");
+    const value = Buffer.from("flux");
+    const u64 = (n: number) => {
+      const b = Buffer.alloc(8);
+      b.writeBigUInt64LE(BigInt(n));
+      return b;
+    };
+    const u32 = (n: number) => {
+      const b = Buffer.alloc(4);
+      b.writeUInt32LE(n);
+      return b;
+    };
+    await writeFile(
+      join(snapshot, "flux-Q4_0.gguf"),
+      Buffer.concat([Buffer.from("GGUF"), u32(3), u64(0), u64(1), u64(key.length), key, u32(8), u64(value.length), value])
+    );
+
+    const emptyDir = await mkdtemp(join(tmpdir(), "nlc-empty-"));
+    try {
+      const provider = new NodeLlamaCppProvider({ NODE_LLAMA_CPP_MODELS_DIR: emptyDir });
+      const ids = onDisk(await provider.getAvailableLanguageModels()).map((m) => m.id);
+      expect(ids.some((id) => id.includes("flux-Q4_0.gguf"))).toBe(false);
+    } finally {
+      await rm(emptyDir, { recursive: true, force: true });
+      await rm(join(hubDir, "models--acme--flux-GGUF"), { recursive: true, force: true });
+    }
+  });
+
   it("keeps bare filenames for models in the models directory", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nlc-flat-"));
     try {
@@ -189,7 +230,7 @@ describe("NodeLlamaCppProvider – GGUF discovery", () => {
       const provider = new NodeLlamaCppProvider({
         NODE_LLAMA_CPP_MODELS_DIR: dir
       });
-      const models = await provider.getAvailableLanguageModels();
+      const models = onDisk(await provider.getAvailableLanguageModels());
       // Relative ids keep already-saved workflow references working.
       expect(models.map((m) => m.id)).toEqual(["local.gguf"]);
     } finally {
@@ -208,9 +249,76 @@ describe("NodeLlamaCppProvider – GGUF discovery", () => {
       const provider = new NodeLlamaCppProvider({
         NODE_LLAMA_CPP_MODELS_DIR: emptyDir
       });
-      expect(await provider.getAvailableLanguageModels()).toEqual([]);
+      expect(onDisk(await provider.getAvailableLanguageModels())).toEqual([]);
     } finally {
       await rm(emptyDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("NodeLlamaCppProvider – recommended downloads", () => {
+  let hubDir: string;
+  let modelsDir: string;
+  let prevHubCache: string | undefined;
+
+  beforeEach(async () => {
+    hubDir = await mkdtemp(join(tmpdir(), "nlc-rec-hub-"));
+    modelsDir = await mkdtemp(join(tmpdir(), "nlc-rec-models-"));
+    prevHubCache = process.env.HF_HUB_CACHE;
+    process.env.HF_HUB_CACHE = hubDir;
+  });
+
+  afterEach(async () => {
+    if (prevHubCache === undefined) delete process.env.HF_HUB_CACHE;
+    else process.env.HF_HUB_CACHE = prevHubCache;
+    await rm(hubDir, { recursive: true, force: true });
+    await rm(modelsDir, { recursive: true, force: true });
+  });
+
+  it("lists recommended chat and embedding GGUFs with a download target", async () => {
+    const provider = new NodeLlamaCppProvider({ NODE_LLAMA_CPP_MODELS_DIR: modelsDir });
+    const chat = await provider.getAvailableLanguageModels();
+    expect(chat).toHaveLength(RECOMMENDED_CHAT_GGUFS.length);
+    expect(chat[0]).toEqual({
+      id: `hf:${RECOMMENDED_CHAT_GGUFS[0].repoId}/${RECOMMENDED_CHAT_GGUFS[0].file}`,
+      name: RECOMMENDED_CHAT_GGUFS[0].name,
+      provider: "node_llama_cpp",
+      adapter: {
+        state: "installed",
+        artifactRef: {
+          source: "huggingface",
+          repoId: RECOMMENDED_CHAT_GGUFS[0].repoId,
+          path: RECOMMENDED_CHAT_GGUFS[0].file
+        }
+      }
+    });
+    const embed = await provider.getAvailableEmbeddingModels();
+    expect(embed.map((m) => m.id)).toEqual(
+      RECOMMENDED_EMBEDDING_GGUFS.map((m) => `hf:${m.repoId}/${m.file}`)
+    );
+  });
+
+  it("lists a downloaded recommended GGUF once, under its hf: id", async () => {
+    const rec = RECOMMENDED_CHAT_GGUFS[0];
+    const repo = join(hubDir, `models--${rec.repoId.replace("/", "--")}`);
+    await mkdir(join(repo, "refs"), { recursive: true });
+    await writeFile(join(repo, "refs", "main"), "abc");
+    await mkdir(join(repo, "snapshots", "abc"), { recursive: true });
+    await writeFile(join(repo, "snapshots", "abc", rec.file), "x");
+
+    const provider = new NodeLlamaCppProvider({ NODE_LLAMA_CPP_MODELS_DIR: modelsDir });
+    const models = await provider.getAvailableLanguageModels();
+    expect(models.filter((m) => m.name.includes(rec.file) || m.id.includes(rec.file))).toHaveLength(1);
+    expect(onDisk(models)).toEqual([]);
+  });
+
+  it("parses hf: ids and refuses malformed ones", () => {
+    expect(parseHfModelId("hf:org/repo/sub/file.gguf")).toEqual({
+      repoId: "org/repo",
+      file: "sub/file.gguf"
+    });
+    expect(parseHfModelId("hf:org/file.gguf")).toBeNull();
+    expect(parseHfModelId("hf:org/repo/../x.gguf")).toBeNull();
+    expect(parseHfModelId("/abs/model.gguf")).toBeNull();
   });
 });

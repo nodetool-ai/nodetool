@@ -89,6 +89,17 @@ describe("ModelCache", () => {
     await running;
   });
 
+  it("calls a model whose prototype chain has no Function.prototype", async () => {
+    // Transformers.js pipelines are closures re-parented onto a plain class
+    // prototype, so they are callable but have no `apply` method.
+    const pipeline = Object.setPrototypeOf(async (text: string) => `ok:${text}`, {});
+    const cache = new ModelCache<object>(1, vi.fn());
+    const loaded = (await cache.get("a", async () => pipeline)) as (
+      text: string
+    ) => Promise<string>;
+    await expect(loaded("hi")).resolves.toBe("ok:hi");
+  });
+
   it("forgets a failed load so the next get retries", async () => {
     const cache = new ModelCache<object>(2, vi.fn());
     await expect(

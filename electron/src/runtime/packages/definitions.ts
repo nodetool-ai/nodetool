@@ -4,6 +4,7 @@ import { CondaRuntimePackage } from "./CondaRuntimePackage";
 import { NpmRuntimePackage } from "./NpmRuntimePackage";
 import { ElectronRuntimePackage } from "./ElectronRuntimePackage";
 import { UvToolRuntimePackage } from "./UvToolRuntimePackage";
+import { SdCppRuntimePackage } from "./SdCppRuntimePackage";
 import type { RuntimePackage } from "./types";
 import {
   RUNTIME_NPM_PACKAGES,
@@ -169,6 +170,8 @@ export const RUNTIME_PACKAGES = {
     approxSizeMB: 150,
     homepage: "https://github.com/academa-labs/manimgx",
   }),
+
+  "sd-cpp": new SdCppRuntimePackage(),
 
   "transformers-js": new NpmRuntimePackage({
     id: "transformers-js",

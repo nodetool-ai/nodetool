@@ -6,12 +6,22 @@
  * The specs are `RUNTIME_NPM_PACKAGES` from `@nodetool-ai/protocol`, the same
  * pinned list the desktop Package Manager installs. A feature that needs a
  * missing one fails with a message naming `nodetool runtime add <id>`.
+ *
+ * `sd-cpp` is the one binary here: the stable-diffusion.cpp `sd-server`
+ * release, unpacked into `runtimeLocations().sdCpp` by the installer the
+ * desktop app shares.
  */
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Command } from "commander";
 import { z } from "zod";
+import {
+  installSdCpp,
+  runtimeLocations,
+  sdCppInstallStatus,
+  uninstallSdCpp
+} from "@nodetool-ai/config";
 import {
   RUNTIME_NPM_PACKAGES,
   RUNTIME_PACKAGE_NAMES,
@@ -26,8 +36,10 @@ import { withInstallLock } from "../install-lock.js";
 
 const installedManifestSchema = z.object({ version: z.string() });
 
+const SD_CPP_ID = "sd-cpp";
+
 interface RuntimeRow {
-  id: RuntimeNpmPackageId;
+  id: RuntimeNpmPackageId | typeof SD_CPP_ID;
   name: string;
   installed: boolean;
   version: string;
@@ -51,9 +63,28 @@ async function installedVersion(packageName: string): Promise<string | null> {
   }
 }
 
+function sdCppDir(): string {
+  const dir = runtimeLocations().sdCpp;
+  if (!dir) {
+    throw new Error("This host has no sd-server install directory. Set SD_CPP_SERVER_PATH instead.");
+  }
+  return dir;
+}
+
+async function sdCppRow(): Promise<RuntimeRow> {
+  const status = await sdCppInstallStatus(sdCppDir(), process.platform);
+  return {
+    id: SD_CPP_ID,
+    name: RUNTIME_PACKAGE_NAMES[SD_CPP_ID],
+    installed: status.installed,
+    version: status.version ?? "",
+    description: "Local image generation server (sd-server) for the stable-diffusion.cpp provider."
+  };
+}
+
 async function runtimeRows(): Promise<RuntimeRow[]> {
   const ids = Object.keys(RUNTIME_NPM_PACKAGES).filter(isRuntimeNpmPackageId);
-  return Promise.all(
+  const npmRows = await Promise.all(
     ids.map(async (id) => {
       const spec = RUNTIME_NPM_PACKAGES[id];
       const versions = await Promise.all(spec.packageNames.map(installedVersion));
@@ -67,18 +98,19 @@ async function runtimeRows(): Promise<RuntimeRow[]> {
       };
     })
   );
+  return runtimeLocations().sdCpp ? [...npmRows, await sdCppRow()] : npmRows;
 }
 
 /** Parse the ids a user typed, failing on any id the catalog lacks. */
-function parseIds(ids: readonly string[]): RuntimeNpmPackageId[] {
-  const unknown = ids.filter((id) => !isRuntimeNpmPackageId(id));
+function parseIds(ids: readonly string[]): { npm: RuntimeNpmPackageId[]; sdCpp: boolean } {
+  const unknown = ids.filter((id) => id !== SD_CPP_ID && !isRuntimeNpmPackageId(id));
   if (unknown.length > 0) {
-    const known = Object.keys(RUNTIME_NPM_PACKAGES).join(", ");
+    const known = [...Object.keys(RUNTIME_NPM_PACKAGES), SD_CPP_ID].join(", ");
     throw new Error(
       `Unknown runtime package: ${unknown.join(", ")}. Known: ${known}.`
     );
   }
-  return ids.filter(isRuntimeNpmPackageId);
+  return { npm: ids.filter(isRuntimeNpmPackageId), sdCpp: ids.includes(SD_CPP_ID) };
 }
 
 /** Create the root with a private manifest, so npm installs into it. */
@@ -123,7 +155,24 @@ export function registerRuntimeCommands(program: Command): void {
     .description("Install one or more runtime packages by id")
     .argument("<ids...>", "Runtime package ids, from `nodetool runtime list`")
     .action(async (ids: string[]) => {
-      const parsed = parseIds(ids);
+      const { npm: parsed, sdCpp } = parseIds(ids);
+      if (sdCpp) {
+        const installDir = sdCppDir();
+        console.error(`Installing sd-cpp into ${installDir}`);
+        await installSdCpp({
+          installDir,
+          platform: process.platform,
+          arch: process.arch,
+          onEvent: (event) => {
+            if (event.type === "stage") {
+              console.error(event.label);
+            }
+          }
+        });
+      }
+      if (parsed.length === 0) {
+        return;
+      }
       const specs = parsed.flatMap((id) => RUNTIME_NPM_PACKAGES[id].npmPackages);
       const root = optionalNodeRoot();
       console.error(`Installing ${parsed.join(", ")} into ${root}`);
@@ -142,7 +191,13 @@ export function registerRuntimeCommands(program: Command): void {
     .description("Uninstall one or more runtime packages by id")
     .argument("<ids...>", "Runtime package ids")
     .action(async (ids: string[]) => {
-      const parsed = parseIds(ids);
+      const { npm: parsed, sdCpp } = parseIds(ids);
+      if (sdCpp) {
+        await uninstallSdCpp(sdCppDir());
+      }
+      if (parsed.length === 0) {
+        return;
+      }
       const names = parsed.flatMap((id) => RUNTIME_NPM_PACKAGES[id].packageNames);
       const root = optionalNodeRoot();
       if (!existsSync(join(root, "package.json"))) {

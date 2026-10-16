@@ -257,7 +257,9 @@ export type VideoModelTask =
  * task qualify. A model with no tasks never matches a specialized picker.
  */
 export const useImageModelsByProvider = (opts?: { task?: ImageModelTask | ImageModelTask[] }): ModelsByProviderResult<ImageModel> => {
-  const { providers, isLoading: providersLoading, error: providersError } = useImageModelProviders();
+  const task = opts?.task;
+  const { providers, isLoading: providersLoading, error: providersError } =
+    useImageModelProviders(task === undefined ? undefined : [task].flat());
 
   const fetchModels = useCallback(async (provider: string) => {
     try {
@@ -276,7 +278,6 @@ export const useImageModelsByProvider = (opts?: { task?: ImageModelTask | ImageM
     fetchModels
   );
 
-  const task = opts?.task;
   // Key by content so an inline task array doesn't recompute every render.
   const taskKey = Array.isArray(task) ? task.join(",") : task;
   const allModels = useMemo(() => {

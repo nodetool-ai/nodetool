@@ -17,6 +17,7 @@ import { ZERO_SHOT_IMAGE_CLASSIFICATION_NODES } from "./nodes/zero-shot-image-cl
 import { AUTOMATIC_SPEECH_RECOGNITION_NODES } from "./nodes/automatic-speech-recognition.js";
 import { AUDIO_CLASSIFICATION_NODES } from "./nodes/audio-classification.js";
 import { TEXT_TO_SPEECH_NODES } from "./nodes/text-to-speech.js";
+import { TEXT_TO_MUSIC_NODES } from "./nodes/text-to-music.js";
 
 export { TextClassificationNode } from "./nodes/text-classification.js";
 export { TokenClassificationNode } from "./nodes/token-classification.js";
@@ -75,6 +76,28 @@ export {
 } from "./tts-shared.js";
 
 export {
+  MUSICGEN_DEFAULT_GUIDANCE,
+  MUSICGEN_DEFAULT_SECONDS,
+  MUSICGEN_MAX_SECONDS,
+  clearMusicgenCache,
+  generateMusic,
+  getMusicgen,
+  isMusicgenRepo,
+  musicDuration,
+  type Musicgen,
+  type MusicOptions,
+  type MusicResult
+} from "./music-shared.js";
+
+export {
+  clearJanusCache,
+  generateJanusImage,
+  getJanus,
+  isJanusRepo,
+  type Janus
+} from "./janus-shared.js";
+
+export {
   decodeWav,
   encodeWav,
   resampleLinear,
@@ -87,6 +110,12 @@ export {
   type TjsDownloadOptions,
   type TjsDownloadProgress
 } from "./tjs-downloader.js";
+export {
+  trackModelLoad,
+  watchModelLoadEvents,
+  type TjsProgressCallback,
+  type TjsProgressInfo
+} from "./model-load-progress.js";
 
 /**
  * Every transformers.js node.
@@ -112,7 +141,8 @@ export const TRANSFORMERS_JS_NODES: readonly NodeClass[] = tagContentCardBodies(
     ...ZERO_SHOT_IMAGE_CLASSIFICATION_NODES,
     ...AUTOMATIC_SPEECH_RECOGNITION_NODES,
     ...AUDIO_CLASSIFICATION_NODES,
-    ...TEXT_TO_SPEECH_NODES
+    ...TEXT_TO_SPEECH_NODES,
+    ...TEXT_TO_MUSIC_NODES
   ]
 );
 

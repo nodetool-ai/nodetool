@@ -13,6 +13,10 @@ import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { ModelCache, type DisposableModel } from "./model-cache.js";
+import { trackModelLoad } from "./model-load-progress.js";
+import { recommendedDtypeFor } from "./recommended-models.js";
+import type { MusicgenModel, MusicgenTokenizer } from "./music-shared.js";
+import type { JanusModel, JanusProcessor } from "./janus-shared.js";
 
 const execFileP = promisify(execFile);
 const log = createLogger("transformers-js");
@@ -77,6 +81,32 @@ type TransformersModule = {
   ) => TransformersHandle;
   InterruptableStoppingCriteria?: new () => {
     interrupt(): void;
+  };
+  /** The two classes MusicGen loads through; it has no pipeline. */
+  AutoTokenizer?: {
+    from_pretrained(
+      repoId: string,
+      options: Record<string, unknown>
+    ): Promise<MusicgenTokenizer>;
+  };
+  MusicgenForConditionalGeneration?: {
+    from_pretrained(
+      repoId: string,
+      options: Record<string, unknown>
+    ): Promise<MusicgenModel>;
+  };
+  /** The two classes Janus text-to-image loads through; it has no pipeline. */
+  AutoProcessor?: {
+    from_pretrained(
+      repoId: string,
+      options: Record<string, unknown>
+    ): Promise<JanusProcessor>;
+  };
+  MultiModalityCausalLM?: {
+    from_pretrained(
+      repoId: string,
+      options: Record<string, unknown>
+    ): Promise<JanusModel>;
   };
 };
 
@@ -175,7 +205,9 @@ interface PipelineOptions {
 /**
  * Build (or reuse) a Transformers.js pipeline for the given task/model.
  *
- * Pipelines are cached by their (task, model, dtype, device, revision) tuple.
+ * A load with no dtype uses the one the recommended list pins for the model,
+ * if any. Pipelines are cached by their (task, model, dtype, device, revision)
+ * tuple.
  * Loading large models is expensive, so reusing pipelines across invocations
  * is essential for sensible performance. The cache keeps the most recently
  * used pipelines and disposes idle ones beyond `MAX_CACHED_PIPELINES`.
@@ -185,7 +217,8 @@ interface PipelineOptions {
 export async function getPipeline<TPipeline extends object>(
   options: PipelineOptions
 ): Promise<TPipeline> {
-  const { task, model, dtype, revision } = options;
+  const { task, model, revision } = options;
+  const dtype = options.dtype ?? (model ? recommendedDtypeFor(model) : undefined);
   const device = resolveDevice(options.device);
   const key: PipelineCacheKey = JSON.stringify([
     task,
@@ -200,7 +233,16 @@ export async function getPipeline<TPipeline extends object>(
     if (dtype) pipelineOptions.dtype = dtype;
     if (device) pipelineOptions.device = device;
     if (revision) pipelineOptions.revision = revision;
-    return transformers.pipeline<TPipeline>(task, model, pipelineOptions);
+    if (!model) {
+      // The task's default model: there is no repo to report the load under.
+      return transformers.pipeline<TPipeline>(task, model, pipelineOptions);
+    }
+    return trackModelLoad(model, (progress_callback) =>
+      transformers.pipeline<TPipeline>(task, model, {
+        ...pipelineOptions,
+        progress_callback
+      })
+    );
   });
   // SAFETY: the cache key encodes task, model, dtype, device and revision, so
   // an entry can only be the pipeline built for exactly these options. The

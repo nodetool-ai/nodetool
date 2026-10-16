@@ -26,7 +26,7 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 
 ### MLX Framework (Apple Silicon)
 
-**MLX** is Apple's open-source machine learning framework, optimized for Apple Silicon's unified memory. It runs through the Python worker and needs the optional MLX pack: in the desktop app, install **MLX** from **Tools → Package Manager → Python packs**, which sets up Python first if it is missing. The Package Manager offers the pack only on Apple Silicon Macs, and it needs macOS 14 or newer.
+**MLX** is Apple's open-source machine learning framework, optimized for Apple Silicon's unified memory. It runs through the Python worker and needs the optional MLX pack: in the desktop app, install **MLX** from **Tools → Package Manager → Python nodes**, which sets up Python first if it is missing. The Package Manager offers the pack only on Apple Silicon Macs, and it needs macOS 14 or newer.
 
 **Capabilities**:
 

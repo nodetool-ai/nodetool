@@ -3,9 +3,9 @@ layout: page
 title: "transformers Nodes"
 ---
 
-This namespace contains 16 node(s).
+This namespace contains 17 node(s).
 
-## Available Nodes
+## Nodes
 
 - **[Audio Classification](audioclassification.md)**
 - **[Automatic Speech Recognition](automaticspeechrecognition.md)**
@@ -18,8 +18,11 @@ This namespace contains 16 node(s).
 - **[Summarization](summarization.md)**
 - **[Text Classification](textclassification.md)**
 - **[Text Generation](textgeneration.md)**
+- **[Text to Music](texttomusic.md)**
 - **[Text to Speech](texttospeech.md)**
 - **[Token Classification (NER)](tokenclassificationner.md)**
 - **[Translation](translation.md)**
 - **[Zero-Shot Classification](zeroshotclassification.md)**
 - **[Zero-Shot Image Classification](zeroshotimageclassification.md)**
+
+[Back to all nodes](../)

@@ -6,6 +6,16 @@ import {
   importNodeBuiltin
 } from "@nodetool-ai/config";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import { ggufFileIsLanguageModel } from "./gguf-header.js";
+import { resolveHubFile } from "./hf-hub-file.js";
+import {
+  RECOMMENDED_CHAT_GGUFS,
+  RECOMMENDED_EMBEDDING_GGUFS,
+  parseHfModelId,
+  recommendedGgufAdapter,
+  recommendedGgufId,
+  type RecommendedGguf
+} from "./node-llama-cpp-models.js";
 import type {
   EmbeddingModel,
   LanguageModel,
@@ -367,8 +377,9 @@ export class NodeLlamaCppProvider extends BaseProvider {
     });
   }
 
-  /** Resolve a model id (absolute path, or a GGUF filename under the models
-   * directory) to a loaded model, shared process-wide. */
+  /** Resolve a model id (absolute path, `hf:<repo>/<file>`, or a GGUF
+   * filename under the models directory) to a loaded model, shared
+   * process-wide. */
   private async getOrLoadModel(model: string): Promise<NodeLlamaModel> {
     const path = await importNodeBuiltin<typeof import("node:path")>(
       "node:path"
@@ -376,9 +387,21 @@ export class NodeLlamaCppProvider extends BaseProvider {
     if (!path) {
       throw new Error("node-llama-cpp provider requires a Node.js runtime");
     }
-    const modelPath = path.isAbsolute(model)
-      ? model
-      : path.join(await this.resolveModelsDir(), model);
+    const hfModel = parseHfModelId(model);
+    let modelPath: string;
+    if (hfModel) {
+      const cached = await resolveHubFile(hfModel.repoId, hfModel.file);
+      if (!cached) {
+        throw new Error(
+          `${hfModel.file} is not downloaded. Download it from ${hfModel.repoId} in the model picker.`
+        );
+      }
+      modelPath = cached;
+    } else {
+      modelPath = path.isAbsolute(model)
+        ? model
+        : path.join(await this.resolveModelsDir(), model);
+    }
 
     return cacheOnce(
       _models,
@@ -663,13 +686,39 @@ export class NodeLlamaCppProvider extends BaseProvider {
   }
 
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const models = await this.scanGgufFiles();
-    return models.map((m) => ({ ...m, provider: "node_llama_cpp" }));
+    return this.withRecommended(RECOMMENDED_CHAT_GGUFS);
   }
 
   async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
-    const models = await this.scanGgufFiles();
-    return models.map((m) => ({ ...m, provider: "node_llama_cpp" }));
+    return this.withRecommended(RECOMMENDED_EMBEDDING_GGUFS);
+  }
+
+  /**
+   * The recommended models, which the picker offers to download, then every
+   * other GGUF on disk. A downloaded recommended file keeps its `hf:` id, so
+   * it is listed once.
+   */
+  private async withRecommended(
+    recommended: readonly RecommendedGguf[]
+  ): Promise<LanguageModel[]> {
+    const cachedPaths = new Set<string>();
+    const listed: LanguageModel[] = [];
+    for (const model of recommended) {
+      const cached = await resolveHubFile(model.repoId, model.file);
+      if (cached) cachedPaths.add(cached);
+      listed.push({
+        id: recommendedGgufId(model),
+        name: model.name,
+        provider: "node_llama_cpp",
+        adapter: recommendedGgufAdapter(model)
+      });
+    }
+    for (const model of await this.scanGgufFiles()) {
+      if (!cachedPaths.has(model.id)) {
+        listed.push({ ...model, provider: "node_llama_cpp" });
+      }
+    }
+    return listed;
   }
 
   /**
@@ -695,7 +744,11 @@ export class NodeLlamaCppProvider extends BaseProvider {
     const fsp = await importNodeBuiltin<typeof import("node:fs/promises")>(
       "node:fs/promises"
     );
-    if (!fsp) return [];
+    const pathModule = await importNodeBuiltin<typeof import("node:path")>(
+      "node:path"
+    );
+    if (!fsp || !pathModule) return [];
+    const { join } = pathModule;
     const dir = await this.resolveModelsDir();
     let entries: import("node:fs").Dirent[];
     try {
@@ -703,9 +756,12 @@ export class NodeLlamaCppProvider extends BaseProvider {
     } catch {
       return [];
     }
-    return entries
-      .filter((e) => isGgufEntry(e))
-      .map((e) => ({ id: e.name, name: e.name }));
+    const out: LocalGgufModel[] = [];
+    for (const entry of entries.filter((e) => isGgufEntry(e))) {
+      if ((await ggufFileIsLanguageModel(join(dir, entry.name))) === false) continue;
+      out.push({ id: entry.name, name: entry.name });
+    }
+    return out;
   }
 
   /**
@@ -739,6 +795,9 @@ export class NodeLlamaCppProvider extends BaseProvider {
       const label = repo.name.slice("models--".length).split("--").join("/");
       const snapshots = path.join(hubDir, repo.name, "snapshots");
       for (const file of await walkGgufFiles(fsp, path, snapshots)) {
+        // Diffusion weights and vision projectors share the cache and the
+        // file format. A chat picker must not offer them.
+        if ((await ggufFileIsLanguageModel(file)) === false) continue;
         out.push({
           id: file,
           name: `${path.basename(file)} (${label})`
