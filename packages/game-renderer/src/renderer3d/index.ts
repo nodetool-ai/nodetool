@@ -157,7 +157,8 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.sky = new GameSkyRenderer3D(renderer, options, this.controller.signal, this.diagnostics);
     this.postProcessor = new GamePostProcessor3D(renderer);
     this.particlePass = new GameParticlePass3D(this.pipeline, { scene: this.scene, particles: () => this.renderingParticles });
-    this.pipeline.register({ name: "height-fog", order: -0.25, render: ({ scene, camera }) => {
+    this.pipeline.register({ name: "environment-materials", order: -0.25, render: ({ scene, camera }) => {
+      this.shadows.bindMaterials(scene);
       const fog = this.renderingFrame?.environment.fog;
       this.heightFog.configure(scene, camera, fog && "kind" in fog ? fog : undefined);
     } });

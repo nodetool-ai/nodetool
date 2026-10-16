@@ -5,6 +5,9 @@ import type { GameImageSources3D } from "../assets/image-contract.js";
 import type { RenderInstance } from "../types.js";
 import { GAME_DECAL_LIMITS_3D, GameDecalProjectionError3D, gameDecalAttributeKey3D, gameDecalProjector3D, projectGameDecalGeometry3D, type GameDecalWork3D } from "./geometry.js";
 
+// Decal overlap ordering stays before ordinary transparent geometry, whose default order is zero.
+const DECAL_RENDER_ORDER_START = -(GAME_MAX_DECALS_3D * GAME_MAX_DECALS_3D);
+
 interface Receiver3D {
   readonly meshes: readonly THREE.Mesh[];
   readonly signature: string;
@@ -91,7 +94,7 @@ export class GameDecals3D {
         if (existing?.key === key) {
           existing.group.visible = true;
           if (existing.material) { existing.material.opacity = settings.opacity * (entity.opacity ?? 1); }
-          for (const child of existing.group.children) { child.renderOrder = settings.renderOrder * GAME_MAX_DECALS_3D + order; }
+          for (const child of existing.group.children) { child.renderOrder = DECAL_RENDER_ORDER_START + settings.renderOrder * GAME_MAX_DECALS_3D + order; }
           continue;
         }
         if (existing) { for (const geometry of existing.geometries) { work.outputVertices -= geometry.getAttribute("position").count; } }
@@ -100,7 +103,7 @@ export class GameDecals3D {
         catch (error) { this.release(entity.entityId, next); throw error; }
         if (existing) { this.release(entity.entityId, existing); }
         next.group.userData.gameEntityId = entity.entityId;
-        for (const object of next.group.children) { object.renderOrder = settings.renderOrder * GAME_MAX_DECALS_3D + order; }
+        for (const object of next.group.children) { object.renderOrder = DECAL_RENDER_ORDER_START + settings.renderOrder * GAME_MAX_DECALS_3D + order; }
         if (next.material) { next.material.opacity = settings.opacity * (entity.opacity ?? 1); }
         this.entries.set(entity.entityId, next);
         this.scene.add(next.group);

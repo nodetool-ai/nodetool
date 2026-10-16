@@ -33,6 +33,8 @@ Linear fog fades between `near` and `far`. Choose **Height** in the scene inspec
 
 Height fog uses `{kind: "height", color, density, baseHeight, heightFalloff, maxOpacity}`. Density controls attenuation through the fog. Base height sets its reference altitude, and height falloff reduces density above that altitude. Max opacity caps the result. Perspective and orthographic cameras are supported. Fog changes presentation without changing simulation state or replay.
 
+Height fog and cascaded shadows can be enabled, changed, or removed independently. Newly created lit mesh particles use the active cascaded lighting on their first rendered frame.
+
 HDRI schemas and renderer callbacks exist, but the standard editor, capture, and player hosts do not provide the complete loading path. Use a solid or procedural sky.
 
 ## Project image decals
@@ -43,13 +45,13 @@ A `decal3d` component specifies `assetId`, `receiverId`, `size: {x, y, z}`, `opa
 
 Position and rotate the projector so its volume intersects the receiving surface. Entity and parent transforms affect the projector, including scale. Parent it to a moving receiver to keep the marking attached. An unparented projector remains fixed in world space and projects onto surfaces that enter its volume.
 
-Decals test scene depth, do not write depth, and use polygon offset to avoid flicker against the receiving surface. Only the chosen receiver gets the image. Foreground geometry can still occlude it. Render order resolves overlaps deterministically.
+Decals test scene depth, do not write depth, and use polygon offset to avoid flicker against the receiving surface. Only the chosen receiver gets the image. Foreground geometry can still occlude it. Render order resolves decal overlaps deterministically before ordinary transparent foreground geometry is composited.
 
 Projection has bounded node, triangle, candidate, and output work. Large or unsupported receivers report diagnostics rather than allocating without a limit. Decals affect rendering, not collision geometry or replay state.
 
 ## Budget shadows
 
-One directional light can cast shadows. Its shadow map uses `mapSize` and `extent`, or two to four cascades when enabled. Cascades distribute resolution through the camera's depth range. Up to four point or spot lights can cast shadows in a scene. A point shadow renders six views, so use it selectively.
+Without cascades, each shadow-casting directional light uses `mapSize` and `extent`. Cascades select one directional light and distribute resolution through two to four ranges of camera depth. Up to four point or spot lights can cast shadows in a scene. A point shadow renders six views, so use it selectively.
 
 Start with the default bias. If a surface shows striped self-shadowing, adjust `shadowNormalBias` or `shadowBias` in small steps and capture the result. Excessive bias separates a shadow from its caster.
 

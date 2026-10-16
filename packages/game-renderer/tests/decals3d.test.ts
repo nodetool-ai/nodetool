@@ -139,13 +139,18 @@ it("bounds live projectors and retains deterministic overlap order when entities
     const groups = test.scene.children.filter((object) => object.name === "game-decal");
     expect(groups).toHaveLength(32);
     expect(test.diagnostics).toEqual(["Scene decal count limit exceeded"]);
-    expect(groups.map((group) => group.children[0]?.renderOrder)).toEqual(Array.from({ length: 32 }, (_, index) => index));
+    expect(groups.map((group) => group.children[0]?.renderOrder)).toEqual(Array.from({ length: 32 }, (_, index) => -1024 + index));
     test.frame.entities = test.frame.entities.filter((entity) => entity.entityId !== "projector-32").reverse();
     await test.manager.sync(test.frame, test.instances);
     const orders = new Map(test.scene.children.filter((object) => object.name === "game-decal")
       .map((group) => [group.userData.gameEntityId, group.children[0]?.renderOrder]));
-    expect(orders.get("projector-31")).toBe(0);
-    expect(orders.get("projector")).toBe(31);
+    expect(orders.get("projector-31")).toBe(-1024);
+    expect(orders.get("projector")).toBe(-993);
+    if (!original.decal3d) { throw new Error("Projector settings missing"); }
+    original.decal3d.renderOrder = 31;
+    await test.manager.sync(test.frame, test.instances);
+    const last = test.scene.children.find(object => object.userData.gameEntityId === "projector");
+    expect(last?.children[0]?.renderOrder).toBe(-1);
   } finally { test.dispose(); }
 });
 

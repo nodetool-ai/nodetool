@@ -100,6 +100,34 @@ it("projects onto transformed rigid GLB receiver nodes", async () => {
   expect(captured.stats.diagnostics).toEqual([]);
 }, 40_000);
 
+it("keeps a real GLB blend pane in front when decal order or unrelated entity order changes", async () => {
+  const { frame, bytes } = await decalFrame();
+  const projector = frame.entities.find(entity => entity.decal3d);
+  if (!projector?.decal3d) { throw new Error("Fixture projector is missing"); }
+  const transform = { ...projector.transform, position: { x: 0, y: 0, z: 2 } };
+  frame.entities.push({ entityId: "glass", transform, previousTransform: transform,
+    model: { assetId: "glass", castShadow: false, receiveShadow: false } });
+  const glass = triangleGlb({
+    meshes: [{ primitives: [{ attributes: { POSITION: 0 }, material: 0 }] }],
+    materials: [{ alphaMode: "BLEND", doubleSided: true, pbrMetallicRoughness: { baseColorFactor: [0, 1, 0, 0.5] },
+      extensions: { KHR_materials_unlit: {} } }], extensionsUsed: ["KHR_materials_unlit"]
+  });
+  const capture = () => captureGameFrame3D(frame, { resolveAsset: async id => id === "glass" ? glass : bytes });
+  const reference = await pixels((await capture()).png);
+  const center = (64 * 128 + 64) * 4;
+  expect(reference[center]).toBeGreaterThan(0);
+  expect(reference[center + 1]).toBeGreaterThan(0);
+  projector.decal3d.renderOrder = 1;
+  expect(await pixels((await capture()).png)).toEqual(reference);
+  projector.decal3d.renderOrder = 0;
+  const unrelated = structuredClone(projector);
+  unrelated.entityId = "unrelated-projector";
+  unrelated.transform.position.x = 40;
+  unrelated.previousTransform = structuredClone(unrelated.transform);
+  frame.entities.unshift(unrelated);
+  expect(await pixels((await capture()).png)).toEqual(reference);
+}, 40_000);
+
 it("uses world altitude for perspective and orthographic camera rays", async () => {
   for (const orthographic of [false, true]) {
     const frame = blockoutFrame();

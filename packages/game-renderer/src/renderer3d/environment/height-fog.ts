@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { GameHeightFog3D as GameHeightFogSettings3D, GameVector3 } from "@nodetool-ai/protocol";
+import { removeGameMaterialHook, setGameMaterialHook } from "../material-hooks.js";
 
 /** Analytic segment integral. Using its lower endpoint avoids subtracting two large exponentials. */
 export function heightFogOpacity3D(settings: GameHeightFogSettings3D, start: GameVector3, end: GameVector3): number {
@@ -44,14 +45,9 @@ const FOG_FRAGMENT = `
 #endif
 `;
 
-interface MaterialHook3D {
-  readonly compile: THREE.Material["onBeforeCompile"];
-  readonly cacheKey: THREE.Material["customProgramCacheKey"];
-}
-
 /** Owns reversible shader hooks. Configure after particle material creation and before the scene pass. */
 export class GameHeightFog3D {
-  private readonly hooks = new Map<THREE.Material, MaterialHook3D>();
+  private readonly materials = new Set<THREE.Material>();
   private readonly uniforms = {
     gameHeightFogCameraWorld: { value: new THREE.Matrix4() },
     gameHeightFogOrigin: { value: new THREE.Vector3() },
@@ -78,20 +74,17 @@ export class GameHeightFog3D {
       for (const material of materials) {
         if (!("fog" in material) || material.fog !== true) { continue; }
         present.add(material);
-        if (!this.hooks.has(material)) { this.attach(material); }
+        if (!this.materials.has(material)) { this.attach(material); }
       }
     });
-    for (const [material, hook] of this.hooks) {
-      if (!present.has(material)) { this.restore(material, hook); }
+    for (const material of this.materials) {
+      if (!present.has(material)) { this.restore(material); }
     }
   }
 
   private attach(material: THREE.Material): void {
-    const hook = { compile: material.onBeforeCompile, cacheKey: material.customProgramCacheKey };
-    const defaultKey = hook.cacheKey === THREE.Material.prototype.customProgramCacheKey ? hook.compile.toString() : undefined;
-    this.hooks.set(material, hook);
-    material.onBeforeCompile = (shader, renderer) => {
-      hook.compile.call(material, shader, renderer);
+    this.materials.add(material);
+    setGameMaterialHook(material, "heightFog", (shader) => {
       if (!shader.vertexShader.includes("#include <fog_vertex>") || !shader.vertexShader.includes("#include <fog_pars_vertex>")
         || !shader.fragmentShader.includes("#include <fog_fragment>") || !shader.fragmentShader.includes("#include <fog_pars_fragment>")) {
         throw new Error("Height fog requires the game material fog shader hooks");
@@ -101,19 +94,15 @@ export class GameHeightFog3D {
         .replace("#include <fog_vertex>", "#include <fog_vertex>\nvGameHeightFogPosition = (gameHeightFogCameraWorld * mvPosition).xyz;");
       shader.fragmentShader = shader.fragmentShader.replace("#include <fog_pars_fragment>", `#include <fog_pars_fragment>${FRAGMENT_DECLARATIONS}`)
         .replace("#include <fog_fragment>", FOG_FRAGMENT);
-    };
-    material.customProgramCacheKey = () => `${defaultKey ?? hook.cacheKey.call(material)}:nodetool-height-fog-1`;
-    material.needsUpdate = true;
+    }, ":nodetool-height-fog-1");
   }
 
-  private restore(material: THREE.Material, hook: MaterialHook3D): void {
-    material.onBeforeCompile = hook.compile;
-    material.customProgramCacheKey = hook.cacheKey;
-    material.needsUpdate = true;
-    this.hooks.delete(material);
+  private restore(material: THREE.Material): void {
+    removeGameMaterialHook(material, "heightFog");
+    this.materials.delete(material);
   }
 
   dispose(): void {
-    for (const [material, hook] of this.hooks) { this.restore(material, hook); }
+    for (const material of this.materials) { this.restore(material); }
   }
 }
