@@ -622,7 +622,6 @@ export async function createGameSession3D(
       frame
     };
     const reloadScripts = createGameScriptReloader({
-      initialRevision: document.revision,
       current: () => authoredDocument,
       parse: (candidate: GameDocument3D) => {
         const checked = validateGame3D(candidate);

@@ -52,4 +52,4 @@ Commands include movement, spawning, despawning, scene changes, animation, HUD/U
 
 Scripts run in a bounded QuickJS sandbox without host network or filesystem access. Source size, command count, input/output size, per-call execution, and the total tick are limited. A failed tick stops the session. Fix the source, reset, or replay from a prior state. Increasing a limit is not a substitute for finding runaway work.
 
-`log` writes to the editor Console without changing snapshots. **Run 10 s** diagnoses a draft in an independent session. Editing an existing script during play can hot-reload compatible source while preserving state. Switching between a function and lifecycle object requires restarting from tick 0.
+`log` writes to the editor Console without changing snapshots. **Run 10 s** diagnoses a draft in an independent session. Editing an existing script during play can hot-reload compatible source while preserving state. Reload revisions depend on the resulting document content, so a restored session can accept later source edits with the same identity as continuous play. Switching between a function and lifecycle object requires restarting from tick 0.
