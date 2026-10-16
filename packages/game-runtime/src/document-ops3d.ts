@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   gameAnimationGraph3D, gameAssetBinding3D, gameAudioMixer, gameBehavior3D, gameBody3D, gameCamera3D, gameCollider3D, gameCollisionMatrix3D, gameDocument3D, gamePhysicsMaterials3D,
-  gameEntity3D, gameInputBindings, gameLight3D, gameMaterial3D, gameMaterials3D, gamePerformance3D, gamePrefab3D, gameScene3D, gameScriptParamValue, gameScriptParams, gameTextureSlot3D, gameTransform3D, gameUiTree, gameVector3,
+  gameEntity3D, gameEnvironmentPresetId3D, gameInputBindings, gameLight3D, gameMaterial3D, gameMaterials3D, gamePerformance3D, gamePrefab3D, gameScene3D, gameScriptParamValue, gameScriptParams, gameTextureSlot3D, gameTransform3D, gameUiTree, gameVector3,
   type AnyGameDocument, type GameDocument, type GameDocument3D, type GameEntity3D, type GamePrefab3D, type GameTransform3D
 } from "@nodetool-ai/protocol";
 import { applyGameOwnershipOperation, authoringMembershipOp, createGameOwnershipDeltaState, overrideMembershipOp, reconcileGameOwnershipDeltas } from "./ownership-ops.js";
@@ -10,6 +10,7 @@ import { applyGameOps, gameDocumentOp, GameOpError, type GameDocumentOp } from "
 import { validateGame3D } from "./validate3d.js";
 import { editScriptParams } from "./script-params.js";
 import { gameAudioSourcePatch } from "./audio-source-ops.js";
+import { applyEnvironmentPreset3D } from "./environment-preset-ops3d.js";
 
 const id = z.string().min(1);
 const index = z.number().int().nonnegative();
@@ -74,6 +75,7 @@ export const gameDocumentOp3D = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("update_scene"), scene_id: id, set: preservingPatch(gameScene3D.omit({ id: true, entities: true }).partial()
     .extend({ music: gameScene3D.shape.music.nullable().optional() })) }),
   z.strictObject({ op: z.literal("remove_scene"), scene_id: id }),
+  z.strictObject({ op: z.literal("apply_environment_preset"), preset: gameEnvironmentPresetId3D, scene_id: id.optional() }),
   z.strictObject({ op: z.literal("set_prefab"), prefab_id: id, prefab: gamePrefab3D }),
   z.strictObject({ op: z.literal("remove_prefab"), prefab_id: id }),
   z.strictObject({ op: z.literal("instantiate_prefab"), scene_id: id, prefab_id: id, instance_id: id, transform: gameTransform3D.optional() }),
@@ -292,6 +294,11 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
       case "remove_scene": {
         findScene(op.scene_id, opIndex);
         draft.scenes = draft.scenes.filter((scene) => scene.id !== op.scene_id);
+        break;
+      }
+      case "apply_environment_preset": {
+        const scene = findScene(op.scene_id ?? draft.entrySceneId, opIndex);
+        Object.assign(scene, applyEnvironmentPreset3D(scene, op.preset));
         break;
       }
       case "set_prefab": draft.prefabs[op.prefab_id] = op.prefab; break;

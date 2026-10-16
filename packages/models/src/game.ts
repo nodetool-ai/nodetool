@@ -81,6 +81,7 @@ function summarizeOps(ops: readonly GameDocumentOp[]): string {
     update_scene: ["Changed scene", "Changed scenes"],
     remove_scene: ["Removed scene", "Removed scenes"],
     set_lighting: ["Changed lighting", "Changed lighting"],
+    apply_environment_preset: ["Applied environment preset", "Applied environment presets"],
     add_light: ["Added light", "Added lights"],
     update_light: ["Changed light", "Changed lights"],
     remove_light: ["Removed light", "Removed lights"],

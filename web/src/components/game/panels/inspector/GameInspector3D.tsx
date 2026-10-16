@@ -16,6 +16,7 @@ import GameOverrideFields from "../../GameOverrideFields";
 import ScriptParamsEditor from "../../inspector/editors/ScriptParamsEditor";
 import CollisionMatrixEditor from "../../inspector/editors/CollisionMatrixEditor";
 import PhysicsMaterialsEditor from "../../inspector/editors/PhysicsMaterialsEditor";
+import EnvironmentPresetEditor from "../../inspector/editors/EnvironmentPresetEditor";
 import { AddButton, RowAction } from "../../inspector/InspectorParts";
 import { gameSchemaFields } from "../../inspector/schemaForm";
 
@@ -68,6 +69,7 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
           <Caption>Scene settings. Select an entity to edit it.</Caption>
         </FlexColumn>
       </FlexRow>
+      {scene && <InspectorSection title="Environment preset"><EnvironmentPresetEditor sceneId={scene.id} onOps={onOps} /></InspectorSection>}
       {scene && <SchemaFields componentSections addLabel="Add setting" schema={SCENE_FIELDS}
         value={settings} assets={document.assets} onChange={(value) => {
           const updated = gameScene3D.parse({ ...gameScene3D.omit({ id: true, entities: true }).parse(value), id: scene.id, entities: scene.entities });

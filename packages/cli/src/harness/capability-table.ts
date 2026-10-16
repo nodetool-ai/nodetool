@@ -2760,7 +2760,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "00d48f5390cf",
+    contract: "6e41b4447fb4",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
@@ -2775,7 +2775,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
       },
       {
         file: "packages/agents/src/evals/surfaces/game.ts",
-        cases: ["audio-mixer-buses", "cascaded-shadows", "collision-layer-matrix", "entity-tags-properties", "forces-and-torques-3d", "hud-widget-tree", "hud-widget-tree-3d", "input-bindings", "lifecycle-timer-script", "material-system-3d", "particle-emitter", "particle-rendering", "particle-rendering-3d", "physics-materials", "player-saves-script", "post-processing", "procedural-sky", "render-culling", "script-parameters", "spatial-audio-source", "typed-event-script"],
+        cases: ["audio-mixer-buses", "cascaded-shadows", "collision-layer-matrix", "entity-tags-properties", "environment-preset-3d", "forces-and-torques-3d", "hud-widget-tree", "hud-widget-tree-3d", "input-bindings", "lifecycle-timer-script", "material-system-3d", "particle-emitter", "particle-rendering", "particle-rendering-3d", "physics-materials", "player-saves-script", "post-processing", "procedural-sky", "render-culling", "script-parameters", "spatial-audio-source", "typed-event-script"],
       },
     ],
   },

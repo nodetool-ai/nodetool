@@ -8,6 +8,7 @@ import { readCoverageDir, type CoverageMap } from "./coverage.js";
 import { mutateFile, type Baseline, type EngineContext, type RunResult } from "./engine.js";
 import { formDigests, formKey, findForms, sitesInFile } from "./forms.js";
 import { filesChangedSince, formsChangedSince, mergeBase, statusChangedFiles } from "./git.js";
+import type { MutationObserver, MutationShard } from "./shards.js";
 import { packageDirOf, quote, relativeKey, SOURCE_EXTENSIONS, defaultTestCommand, usesVitest, hasScript } from "./project.js";
 import { formatResults, formatScan, formatSiteLog } from "./report.js";
 import { ShellRunner, type CommandRunner } from "./runner.js";
@@ -77,6 +78,8 @@ Options:
                               once. Default: one per core.
   --exclude <text>            Skip source files whose path contains this text.
                               May be repeated.
+  --shard <index/count>       Run this one-based, deterministic shard. Use a
+                              separate metrics directory for each shard.
   --metrics-dir <path>        Write snapshots here instead of .metrics/mutate,
                               relative to the root. A run with a different
                               test oracle needs its own directory.
@@ -104,6 +107,7 @@ Exit codes:
 `;
 
 export interface Options {
+  shard: MutationShard | null;
   root: string;
   changed: boolean;
   base: string | null;
@@ -134,6 +138,7 @@ function positive(flag: string, value: string | undefined, integer: boolean): nu
 
 export function parseArgs(argv: string[], cwd = process.cwd()): Options | "help" {
   const options: Options = {
+    shard: null,
     root: cwd,
     changed: false,
     base: null,
@@ -207,6 +212,19 @@ export function parseArgs(argv: string[], cwd = process.cwd()): Options | "help"
       case "--max-workers":
         options.maxWorkers = positive(arg, value(), true);
         break;
+      case "--shard": {
+        const parts = value().split("/");
+        if (parts.length !== 2 || !parts.every((part) => /^[1-9]\d*$/.test(part))) {
+          throw new UsageError("--shard needs index/count with positive integers");
+        }
+        const index = Number(parts[0]);
+        const count = Number(parts[1]);
+        if (!Number.isSafeInteger(index) || !Number.isSafeInteger(count) || index > count) {
+          throw new UsageError("--shard index must not exceed count");
+        }
+        options.shard = { index, count };
+        break;
+      }
       case "--verbose":
         options.verbose = true;
         break;
@@ -389,7 +407,7 @@ export interface Io {
   err: (text: string) => void;
 }
 
-export async function run(argv: string[], io: Io = defaultIo, runner?: CommandRunner): Promise<number> {
+export async function run(argv: string[], io: Io = defaultIo, runner?: CommandRunner, observer?: MutationObserver): Promise<number> {
   let parsed: Options | "help";
   try {
     parsed = parseArgs(argv);
@@ -446,8 +464,12 @@ export async function run(argv: string[], io: Io = defaultIo, runner?: CommandRu
     mutationWarning: options.mutationWarning,
     maxWorkers: options.maxWorkers,
     baselines,
-    log
+    log,
+    shard: options.shard
   };
+  if (observer) {
+    ctx.observer = observer;
+  }
   const cleanup = () => {
     pool.dispose();
     process.exit(130);
@@ -476,6 +498,9 @@ export async function run(argv: string[], io: Io = defaultIo, runner?: CommandRu
     pool.dispose();
   }
   io.out(formatResults(results.flatMap((result) => result.forms)));
+  if (options.shard) {
+    io.out(`Results cover shard ${options.shard.index}/${options.shard.count} only.\n`);
+  }
   const survived = results.some((result) =>
     result.sites.some((site) => result.statuses.get(site.mutationId) === "survived")
   );

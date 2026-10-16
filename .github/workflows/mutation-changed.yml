@@ -21,6 +21,10 @@ on:
       - "packages/security/src/**"
       - "packages/storage/src/**"
       - ".github/workflows/mutation-changed.yml"
+      - "scripts/mutation-ci.mjs"
+      - "scripts/mutation-score.mjs"
+      - "scripts/__tests__/mutation-ci.test.mjs"
+      - "packages/mutator/tests/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -30,53 +34,108 @@ permissions:
   contents: read
 
 jobs:
-  mutate-changed:
+  plan:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    outputs:
+      head: ${{ steps.plan.outputs.head }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           filter: blob:none
-
-      - name: Set up Node, install deps, build packages
-        uses: ./.github/actions/setup-build
-
-      # Coverage is skipped: generating it reruns each touched package's whole
-      # suite, and a changed function no test reaches is exactly what this
-      # check should flag. Its mutants run against no tests and survive.
-      - name: Mutate changed functions
-        id: mutate
+      - uses: ./.github/actions/setup-build
+      - name: Freeze the complete changed-function selection
+        id: plan
         env:
-          BASE: origin/${{ github.base_ref }}
-        run: |
-          set +e
-          node packages/mutator/dist/cli.js --base "$BASE" --no-coverage \
-            packages/agents/src packages/auth/src packages/config/src packages/kernel/src \
-            packages/mutator/src packages/node-sdk/src packages/runtime/src \
-            packages/security/src packages/storage/src | tee mutation.log
-          CODE=${PIPESTATUS[0]}
-          echo "code=$CODE" >> "$GITHUB_OUTPUT"
-          exit 0
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/mutation-ci.mjs plan "$BASE" .metrics/mutation-ci/plan.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-plan-attempt-${{ github.run_attempt }}
+          path: .metrics/mutation-ci/plan.json
+          include-hidden-files: true
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-plan
+          overwrite: true
+          path: .metrics/mutation-ci/plan.json
+          include-hidden-files: true
+          if-no-files-found: error
 
-      - name: Report
+  mutate-changed:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.plan.outputs.head }}
+          fetch-depth: 0
+          filter: blob:none
+      - uses: ./.github/actions/setup-build
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: mutation-plan
+          path: .metrics/mutation-ci
+      - name: Mutate every assigned changed-function site
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: node scripts/mutation-ci.mjs run .metrics/mutation-ci/plan.json "$SHARD/8" ".metrics/mutation-ci/shard-$SHARD"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
+        with:
+          name: mutation-evidence-shard-${{ matrix.shard }}-attempt-${{ github.run_attempt }}
+          path: .metrics/mutation-ci/shard-${{ matrix.shard }}
+          include-hidden-files: true
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: mutation-result-shard-${{ matrix.shard }}
+          path: .metrics/mutation-ci/shard-${{ matrix.shard }}
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+
+  mutation-complete:
+    needs: [plan, mutate-changed]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Require every shard to finish
         env:
-          CODE: ${{ steps.mutate.outputs.code }}
-        run: |
-          {
-            echo "## 🧬 Mutants in changed functions"
-            echo ""
-            case "$CODE" in
-              0) echo "✅ Every mutant in the changed functions was killed." ;;
-              2) echo "⚠️ The baseline tests failed, so no mutant ran. See the job log." ;;
-              3) echo "Some mutants survived. Each one is a change to the code that no test noticed." ;;
-              *) echo "⚠️ nodetool-mutator exited $CODE. See the job log." ;;
-            esac
-            echo ""
-            node scripts/mutation-score.mjs --survivors --limit 60
-          } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$CODE" = "3" ]; then
-            echo "::warning::Mutants survived in changed functions. See the job summary."
-          fi
+          PLAN: ${{ needs.plan.result }}
+          MUTATIONS: ${{ needs.mutate-changed.result }}
+        run: test "$PLAN" = success && test "$MUTATIONS" = success
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.plan.outputs.head }}
+          fetch-depth: 0
+          filter: blob:none
+      - uses: ./.github/actions/setup-build
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: mutation-plan
+          path: .metrics/mutation-ci
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: mutation-result-shard-*
+          path: .metrics/mutation-ci/results
+      - name: Verify the exact union and report survivors
+        run: >-
+          node scripts/mutation-ci.mjs aggregate .metrics/mutation-ci/plan.json
+          .metrics/mutation-ci/results/mutation-result-shard-1
+          .metrics/mutation-ci/results/mutation-result-shard-2
+          .metrics/mutation-ci/results/mutation-result-shard-3
+          .metrics/mutation-ci/results/mutation-result-shard-4
+          .metrics/mutation-ci/results/mutation-result-shard-5
+          .metrics/mutation-ci/results/mutation-result-shard-6
+          .metrics/mutation-ci/results/mutation-result-shard-7
+          .metrics/mutation-ci/results/mutation-result-shard-8
