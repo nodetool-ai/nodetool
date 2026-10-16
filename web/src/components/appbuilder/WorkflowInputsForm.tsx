@@ -15,7 +15,7 @@ import {
   WorkflowInputDefinition,
   WorkflowInputFormValues
 } from "./workflowInputForm";
-import { WorkflowInputKind } from "./inputKinds";
+import { INPUT_KIND_PROPERTY_TYPE, WorkflowInputKind } from "./inputKinds";
 import { isNumber, isString } from "../../utils/typePredicates";
 
 interface WorkflowInputsFormProps {
@@ -25,37 +25,6 @@ interface WorkflowInputsFormProps {
   onInputChange: (name: string, value: unknown) => void;
   onError?: (message: string | null) => void;
 }
-
-const KIND_TO_PROPERTY_TYPE = {
-  string: "str",
-  integer: "int",
-  float: "float",
-  boolean: "bool",
-  color: "color",
-  image: "image",
-  video: "video",
-  audio: "audio",
-  document: "document",
-  dataframe: "dataframe",
-  file_path: "str",
-  folder_path: "str",
-  folder: "folder",
-  select: "enum",
-  language_model: "language_model",
-  image_model: "image_model",
-  video_model: "video_model",
-  tts_model: "tts_model",
-  asr_model: "asr_model",
-  music_model: "music_model",
-  embedding_model: "embedding_model",
-  image_list: "list",
-  video_list: "list",
-  audio_list: "list",
-  text_list: "list",
-  model3d: "model_3d",
-  image_size: "image_size",
-  huggingface_model: "hf.model"
-} satisfies Record<WorkflowInputKind, Property["type"]["type"]>;
 
 const createPropertyFromDefinition = (
   definition: WorkflowInputDefinition
@@ -111,7 +80,7 @@ const createPropertyFromDefinition = (
   const property: Property = {
     name: definition.data.name,
     type: {
-      type: KIND_TO_PROPERTY_TYPE[definition.kind],
+      type: INPUT_KIND_PROPERTY_TYPE[definition.kind],
       optional: true,
       values: enumValues,
       type_args: getTypeArgsForKind(definition.kind),

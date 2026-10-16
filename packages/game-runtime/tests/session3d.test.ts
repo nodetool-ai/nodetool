@@ -175,7 +175,7 @@ describe("3D fixed-step session", () => {
     expect(() => session.snapshot()).toThrow("failed step");
     expect(() => session.frame()).toThrow("failed step");
     session.dispose();
-    const illegal = await createGameSession3D(fixture([], { behaviors: [{ kind: "script", maxTickMs: 50, source: "input => ({state:null,commands:[{kind:'setVisual',scale:{x:2,y:2,z:2}}]})" }] }), 1);
+    const illegal = await createGameSession3D(fixture([], { behaviors: [{ kind: "script", maxTickMs: 20, source: "input => ({state:null,commands:[{kind:'setVisual',scale:{x:2,y:2,z:2}}]})" }] }), 1);
     try {
       expect(() => illegal.step(input())).toThrow("nonphysical");
       expect(() => illegal.frame()).toThrow("failed step");
@@ -199,7 +199,7 @@ describe("3D fixed-step session", () => {
 describe("3D controller boundaries", () => {
   it("lets script character intent suppress player jump input", async () => {
     const source = `input => ({state:null,commands:[{kind:'characterIntent',movement:{x:0,y:0,z:0},jump:false}]})`;
-    const session = await createGameSession3D(fixture([], { behaviors: [{ kind: "script", maxTickMs: 50, source }] }), 1);
+    const session = await createGameSession3D(fixture([], { behaviors: [{ kind: "script", maxTickMs: 20, source }] }), 1);
     try {
       stepTicks(session, 10);
       expect(session.inspect({ entityId: "player" }).entities[0].grounded).toBe(true);
@@ -318,7 +318,7 @@ describe("3D controller boundaries", () => {
 
   it("delivers query results and contact events to scripts on the next tick", async () => {
     const source = `(input) => ({state:{queries:input.queries,events:input.events},commands:input.tick===0?[{kind:'rayQuery',queryId:'ground',origin:{x:0,y:2,z:0},direction:{x:0,y:-1,z:0},maxDistance:10}]:[]})`;
-    const session = await createGameSession3D(fixture([{ id: "trigger", transform3d: { position: { x: 0, y: 0.8, z: 0 } }, body3d: { type: "static" }, collider3d: { kind: "sphere", radius: 2, sensor: true }, behaviors: [{ kind: "trigger", event: "inside" }] }], { behaviors: [{ kind: "script", maxTickMs: 50, source }] }), 1);
+    const session = await createGameSession3D(fixture([{ id: "trigger", transform3d: { position: { x: 0, y: 0.8, z: 0 } }, body3d: { type: "static" }, collider3d: { kind: "sphere", radius: 2, sensor: true }, behaviors: [{ kind: "trigger", event: "inside" }] }], { behaviors: [{ kind: "script", maxTickMs: 20, source }] }), 1);
     try {
       session.step(input());
       const first = Object.values(session.snapshot().scriptState)[0] as { queries: unknown[]; events: unknown[] };
@@ -336,7 +336,7 @@ describe("3D instance lifecycle", () => {
     const document = fixture();
     const player = document.scenes[0].entities.find((entity) => entity.id === "player")!;
     document.prefabs.actor = { rootId: "player", externalAssets: [], externalScenes: [], entities: [{ ...player, behaviors: [] }] };
-    player.behaviors = [{ kind: "script", maxTickMs: 50, maxCommands: 64,
+    player.behaviors = [{ kind: "script", maxTickMs: 20, maxCommands: 64,
       source: `input => ({state:null,commands:input.tick===0?[{kind:'spawn',prefabId:'actor',position:{x:5,y:10,z:0},velocity:{x:0,y:6,z:0}}]:[]})` }];
     const session = await createGameSession3D(document, 1);
     try {
@@ -351,12 +351,12 @@ describe("3D instance lifecycle", () => {
   });
 
   it("spawns a rooted prefab once, remaps children, restores scripts, and removes its subtree", async () => {
-    const document = fixture([], { behaviors: [{ kind: "script", maxTickMs: 50, source: `(input) => ({state: null,commands: input.tick===0 ? [{kind:'spawn',prefabId:'actor',position:{x:2,y:1,z:0}}] : input.tick===3 ? [{kind:'despawn',entityId:'actor#1/root'}] : []})` }] });
+    const document = fixture([], { behaviors: [{ kind: "script", maxTickMs: 20, source: `(input) => ({state: null,commands: input.tick===0 ? [{kind:'spawn',prefabId:'actor',position:{x:2,y:1,z:0}}] : input.tick===3 ? [{kind:'despawn',entityId:'actor#1/root'}] : []})` }] });
     document.prefabs.actor = { rootId: "root", externalAssets: [], externalScenes: [], entities: gameDocument3D.parse({ ...document, scenes: [{ ...document.scenes[0], entities: [
       ...document.scenes[0].entities.filter((entity) => entity.id === "camera" || entity.id === "player"),
       { id: "root", transform3d: {}, body3d: { type: "kinematic" }, collider3d: { kind: "box", halfExtents: { x: 0.4, y: 0.4, z: 0.4 } }, behaviors: [{ kind: "health", maximum: 4 }] },
       { id: "visual", parentId: "root", transform3d: { position: { x: 0, y: 1, z: 0 } }, primitive: { kind: "sphere", dimensions: { x: 0.5, y: 0.5, z: 0.5 } },
-        behaviors: [{ kind: "script", maxTickMs: 50, source: `(input) => ({state: {age:(input.state?.age||0)+1},commands:[]})` }] }
+        behaviors: [{ kind: "script", maxTickMs: 20, source: `(input) => ({state: {age:(input.state?.age||0)+1},commands:[]})` }] }
     ] }] }).scenes[0].entities.filter((entity) => entity.id === "root" || entity.id === "visual") };
     const session = await createGameSession3D(document, 3);
     try {
@@ -376,7 +376,7 @@ describe("3D instance lifecycle", () => {
   });
 
   it("resets camera and scene-entry age during a queued transition", async () => {
-    const document = fixture([], { behaviors: [{ kind: "script", maxTickMs: 50, source: `input => ({state:null,commands:input.tick===0?[{kind:'sceneTransition',sceneId:'next'}]:[]})` }] });
+    const document = fixture([], { behaviors: [{ kind: "script", maxTickMs: 20, source: `input => ({state:null,commands:input.tick===0?[{kind:'sceneTransition',sceneId:'next'}]:[]})` }] });
     document.scenes.push({ ...document.scenes[0], id: "next", name: "Next", entities: document.scenes[0].entities.map((entity) => entity.id === "player" ?
       { ...entity, transform3d: { ...entity.transform3d, position: { x: 4, y: 0.82, z: 0 } }, behaviors: [{ kind: "lifetime", ticks: 2, fade: true, endScale: 1 }] } : entity) });
     const session = await createGameSession3D(document, 3);
@@ -398,7 +398,7 @@ describe("bounded 3D shape queries", () => {
     const source = `(input) => ({ state: {queries:input.queries}, commands: input.tick===0 ? [{kind:'shapeQuery',queryId:'nearby',shape:{kind:'sphere',radius:3},position:{x:0,y:1,z:0},mask:2,maximumResults:2}] : [] })`;
     const props = ["a", "b", "c"].map((id, index) => ({ id, transform3d: { position: { x: index * 0.3, y: 1, z: -1 } }, body3d: { type: "static" }, collider3d: { kind: "box", halfExtents: { x: 0.1, y: 0.1, z: 0.1 }, category: 2 } }));
     const sensor = { id: "sensor", transform3d: { position: { x: 0, y: 1, z: 0 } }, body3d: { type: "static" }, collider3d: { kind: "sphere", radius: 0.5, sensor: true, category: 2 } };
-    const document = fixture([...props, sensor], { behaviors: [{ kind: "script", maxTickMs: 50, source }] });
+    const document = fixture([...props, sensor], { behaviors: [{ kind: "script", maxTickMs: 20, source }] });
     const session = await createGameSession3D(document, 1);
     try {
       session.step(input());
@@ -421,7 +421,7 @@ describe("bounded 3D shape queries", () => {
     ]:[]})`;
     const target = { id: "target", transform3d: { position: { x: 0, y: 2, z: 1.5 } }, body3d: { type: "static" }, collider3d: { kind: "sphere", radius: 0.1, sensor: true, category: 4 } };
     const center = { ...target, id: "center", transform3d: { position: { x: 0, y: 2.8, z: 0 } } };
-    const session = await createGameSession3D(fixture([target, center], { behaviors: [{ kind: "script", maxTickMs: 50, source }] }), 1);
+    const session = await createGameSession3D(fixture([target, center], { behaviors: [{ kind: "script", maxTickMs: 20, source }] }), 1);
     try {
       session.step(input());
       const queries = session.snapshot().queryResults;
@@ -433,13 +433,13 @@ describe("bounded 3D shape queries", () => {
 
   it("rejects unbounded result requests and query floods rather than publishing a failed tick", async () => {
     const tooManyResults = `input=>({state:null,commands:[{kind:'shapeQuery',queryId:'invalid',shape:{kind:'sphere',radius:1},position:{x:0,y:0,z:0},maximumResults:33}]})`;
-    const invalid = await createGameSession3D(fixture([], { behaviors: [{ kind: "script", maxTickMs: 50, source: tooManyResults }] }), 1);
+    const invalid = await createGameSession3D(fixture([], { behaviors: [{ kind: "script", maxTickMs: 20, source: tooManyResults }] }), 1);
     try {
       expect(() => invalid.step(input())).toThrow();
       expect(() => invalid.snapshot()).toThrow("failed step");
     } finally { invalid.dispose(); }
     const flood = `input => ({state:null,commands:Array.from({length:40},(_,i)=>({kind:'shapeQuery',queryId:input.entity.id+i,shape:{kind:'sphere',radius:1},position:{x:0,y:0,z:0}}))})`;
-    const document = fixture([{ id: "other", transform3d: {}, behaviors: [{ kind: "script", maxTickMs: 50, source: flood, maxCommands: 64 }] }], { behaviors: [{ kind: "script", maxTickMs: 50, source: flood, maxCommands: 64 }] });
+    const document = fixture([{ id: "other", transform3d: {}, behaviors: [{ kind: "script", maxTickMs: 20, source: flood, maxCommands: 64 }] }], { behaviors: [{ kind: "script", maxTickMs: 20, source: flood, maxCommands: 64 }] });
     const flooded = await createGameSession3D(document, 1);
     try {
       expect(() => flooded.step(input())).toThrow("query command limit");

@@ -19,13 +19,13 @@ function document2D(behavior: Record<string, unknown>, schemaVersion: 2 | 4 = 4,
   const base = createTopDownRoomGame("script-params");
   return gameDocument.parse({ ...base, schemaVersion, engineVersion: schemaVersion === 4 ? "3" : "1",
     scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((item) => item.id === entity
-      ? { ...item, behaviors: [{ kind: "script", maxCommands: 4, maxTickMs: 40, ...behavior }] } : item) })) });
+      ? { ...item, behaviors: [{ kind: "script", maxCommands: 4, maxTickMs: 20, ...behavior }] } : item) })) });
 }
 
 function document3D(behavior: Record<string, unknown>): GameDocument3D {
   const base = blockout();
   return gameDocument3D.parse({ ...base, assets: { theme: { mediaKind: "audio", assetId: "theme-asset", digest: "theme-digest" } },
-    scenes: [{ ...base.scenes[0], entities: [...base.scenes[0].entities, { id: "mover", transform3d: {}, behaviors: [{ kind: "script", maxTickMs: 40, ...behavior }] }] }] });
+    scenes: [{ ...base.scenes[0], entities: [...base.scenes[0].entities, { id: "mover", transform3d: {}, behaviors: [{ kind: "script", maxTickMs: 20, ...behavior }] }] }] });
 }
 
 async function playerX(document: GameDocument, ticks: number): Promise<number> {
@@ -105,7 +105,7 @@ describe("params in the 64 KiB logical script input", () => {
     try {
       const sourceKey = scriptSourceKey("room", "player", 0);
       const call = (entityId: string): GameScriptCall => ({ sourceKey, stateKey: entityId, entityId, source: "room", state: null,
-        x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxCommands: 4, maxTickMs: 40 });
+        x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxCommands: 4, maxTickMs: 20 });
       const calls = [call("player"), call("player-copy")];
       const resolved = JSON.stringify(values);
       const shared = { tick: 0, pressed: [], justPressed: [], events: [], world: [] };
