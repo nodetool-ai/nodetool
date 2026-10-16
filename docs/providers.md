@@ -54,6 +54,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | LM Studio | ✅ | | | | | | |
 | llama.cpp | ✅ | | | | | | |
 | llama.cpp local | ✅ | | | | | ✅ | |
+| stable-diffusion.cpp | | ✅ | | | | | |
 | Transformers.js | ✅ | | | ✅ | ✅ | ✅ | |
 | ElevenLabs | | | | ✅ | ✅³ | | |
 | Topaz | | ✅⁴ | | | | | |
@@ -238,6 +239,8 @@ llama.cpp points NodeTool at a local `llama-server` instance for chat. `llama-se
 
 llama.cpp local (provider id `node_llama_cpp`) runs GGUF models inside the NodeTool backend through the `node-llama-cpp` binding, with no separate server. It serves chat and embeddings. Models are GGUF files in `NODE_LLAMA_CPP_MODELS_DIR`, which defaults to the shared llama.cpp cache. `NODE_LLAMA_CPP_GPU_BACKEND` selects `auto`, `metal`, `cuda`, `vulkan`, or `cpu`. No key. Local only.
 
+The model picker also offers GGUF models to download: a curated list in `node-llama-cpp-models.ts`, then the trending models in `node-llama-cpp-trending.generated.ts`. A nightly workflow (`.github/workflows/gguf-trending-sync.yml`) runs `npm run sync:gguf-trending`, which reads the [trending GGUF repos](https://huggingface.co/models?library=gguf&sort=trending) and opens a PR when the list changes. It keeps chat models from the trusted publishers in `scripts/gguf/sources.json`, skips uncensored and merged variants, and picks one Q4 file of 20 GB or less from each repo. It keeps up to 50 models, one repo for each base model.
+
 whisper.cpp (`whisper_cpp`) transcribes audio inside the backend through the
 optional `@fugood/whisper.node@1.1.3` package. Install it from Package Manager.
 GGML models use the Hugging Face hub cache. `WHISPER_CPP_MODELS_DIR` adds a
@@ -250,13 +253,25 @@ whisper.cpp server (`whisper_cpp_server`) posts audio to a user-run
 `whisper-server` at `WHISPER_CPP_SERVER_URL`. Its model id is `default`.
 It requires no native package. Local only.
 
+## stable-diffusion.cpp
+
+stable-diffusion.cpp (provider id `stable_diffusion_cpp`) generates images locally: text-to-image and image-to-image. It starts the `sd-server` binary from the `sd-cpp` runtime package on the first generation and keeps it running while the same model is in use. Install the package in **Settings › Packages**, or run `nodetool runtime add sd-cpp`. `SD_CPP_SERVER_PATH` selects another `sd-server`. The model picker offers each model with a Download button. A model can load files from several Hugging Face repositories, and one click downloads all of them into the Hugging Face cache. Text encoders and VAEs that several models share download once.
+
+The catalog is in `packages/runtime/src/providers/sdcpp-models.ts`:
+
+- Text-to-image: SD-Turbo, Stable Diffusion 1.5 and 3.5 Medium, FLUX.1 schnell and dev, Z-Image and Z-Image Turbo, Z-Image L2P, Krea 2 Raw and Turbo, Ideogram 4, Iris 3B.
+- Text-to-image and editing with a reference image: FLUX.2 dev, FLUX.2 klein 4B and 9B (distilled and base), FLUX.3 Image Klein and Klein Base, Qwen Image 2.1, LLaDA-Image Turbo.
+- Editing only: FLUX.1 Kontext dev, Qwen Image Edit 2509 and 2511, LongCat Image Edit, Boogu Image Edit, Mage-Flow Edit Turbo, and the PiD 4× upscaler.
+
+An edit model receives the source image as a reference. Other models denoise from it, controlled by `strength`. Some weights have a non-commercial license, for example FLUX.1 dev, FLUX.2 klein 9B and PiD. The macOS build needs macOS 26 or later. Windows and Linux use the Vulkan build. No key. Local only. The `lib.stable_diffusion_cpp.GenerateImage` node is separate: it calls an `sd-server` that you start yourself.
+
 ## Transformers.js
 
-Transformers.js (provider id `transformers_js`) runs small ONNX models in-process: chat, TTS, ASR, and embeddings. Models download from the Hugging Face Hub on first use into `<data-dir>/transformers-js-cache`, or the directory in `TRANSFORMERS_JS_CACHE_DIR`. Tool calling is off. No key. Local only. The matching workflow nodes are the `transformers.*` nodes in [HuggingFace Integration](huggingface.md#transformersjs-nodes-local-onnx).
+Transformers.js (provider id `transformers_js`) runs small ONNX models in-process: chat, TTS, music (MusicGen, instrumental only), ASR, and embeddings. Models download from the Hugging Face Hub on first use into `<data-dir>/transformers-js-cache`, or the directory in `TRANSFORMERS_JS_CACHE_DIR`. Tool calling is off. No key. Local only. The matching workflow nodes are the `transformers.*` nodes in [HuggingFace Integration](huggingface.md#transformersjs-nodes-local-onnx).
 
 ## Local Python providers
 
-When the Python worker runs with the matching pack installed, it registers its own providers over the stdio bridge, such as MLX on Apple Silicon and local Hugging Face execution. Install the packs from **Package Manager → Python packs**, or see [Python nodes without the desktop app](installation.md#python-nodes-without-the-desktop-app). With `NODETOOL_PYTHON_ON_DEMAND=true`, these providers appear only after a workflow has started the worker. The worker's `huggingface` provider appears as `huggingface-local` because the TypeScript runtime already owns the `huggingface` id for the hosted API. These providers offer image, video, TTS, music, ASR, and embedding models from the worker's pack.
+When the Python worker runs with the matching pack installed, it registers its own providers over the stdio bridge, such as MLX on Apple Silicon and local Hugging Face execution. Install the packs from **Package Manager → Python nodes**, or see [Python nodes without the desktop app](installation.md#python-nodes-without-the-desktop-app). With `NODETOOL_PYTHON_ON_DEMAND=true`, these providers appear only after a workflow has started the worker. The worker's `huggingface` provider appears as `huggingface-local` because the TypeScript runtime already owns the `huggingface` id for the hosted API. These providers offer image, video, TTS, music, ASR, and embedding models from the worker's pack.
 
 ## NodeTool managed models
 

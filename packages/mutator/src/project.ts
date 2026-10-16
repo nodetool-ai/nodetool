@@ -65,12 +65,12 @@ export function quote(value: string): string {
 /**
  * The default test command for a package. unclebob/mutator runs `npm test`.
  * A Vitest package runs only the tests whose import graph reaches the mutated
- * file. Baseline and mutant commands allocate one inner Vitest worker to
- * avoid competing nested worker pools while mutants run in parallel.
+ * file. Both phases allocate one inner Vitest worker. Only mutant runs stop
+ * after the first failure, which already establishes that the mutant is killed.
  */
-export function defaultTestCommand(packageDir: string): string {
+export function defaultTestCommand(packageDir: string, phase: "baseline" | "mutant" = "baseline"): string {
   if (usesVitest(packageDir)) {
-    return "npx --no-install vitest related --run --passWithNoTests --maxWorkers=1 {file}";
+    return `npx --no-install vitest related --run --passWithNoTests --maxWorkers=1${phase === "mutant" ? " --bail=1" : ""} {file}`;
   }
   return "npm test";
 }

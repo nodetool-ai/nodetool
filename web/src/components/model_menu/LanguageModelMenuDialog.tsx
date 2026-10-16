@@ -4,6 +4,9 @@ import type { LanguageModel, ModelPack, UnifiedModel } from "../../stores/ApiTyp
 import { useLanguageModelMenuStore } from "../../stores/ModelMenuStore";
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 
+/** The provider capability this picker serves, for local providers to install. */
+const LOCAL_CAPABILITIES = ["generate_message"];
+
 interface LanguageModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
@@ -48,6 +51,7 @@ function LanguageModelMenuDialog({
       searchPlaceholder="Search language models"
       storeHook={useLanguageModelMenuStore}
       modelType="language_model"
+      localCapabilities={LOCAL_CAPABILITIES}
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
       selectedModel={selectedModel}

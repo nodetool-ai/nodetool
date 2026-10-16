@@ -242,6 +242,11 @@ s(
   "Directory containing local GGUF model files for in-process llama.cpp inference. Defaults to the platform llama.cpp cache directory."
 );
 s(
+  "SD_CPP_SERVER_PATH",
+  "StableDiffusionCpp",
+  "Path to an sd-server binary for the stable-diffusion.cpp provider. Unset, the provider uses the sd-server the stable-diffusion.cpp package installs, then PATH."
+);
+s(
   "NODE_LLAMA_CPP_GPU_BACKEND",
   "NodeLlamaCpp",
   "GPU backend for in-process llama.cpp inference. 'auto' lets node-llama-cpp detect the best backend.",

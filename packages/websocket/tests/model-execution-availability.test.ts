@@ -84,6 +84,53 @@ describe("resolveModelExecutionAvailability", () => {
     expect(resolvedCache.execution).toEqual(resolvedTarget.execution);
   });
 
+  it("needs every repository of a model that loads files from several", () => {
+    const target = model({
+      id: "z-image-turbo",
+      type: "image_model",
+      provider: "huggingface-local",
+      adapter: {
+        state: "installed",
+        artifact_ref: { source: "huggingface", repo_id: "acme/diffusion" },
+        extra_artifact_refs: [{ source: "huggingface", repo_id: "acme/encoder" }]
+      }
+    });
+    const cached = (repoId: string) =>
+      model({ id: repoId, repo_id: repoId, type: null, downloaded: true });
+
+    const [partial] = resolveModelExecutionAvailability(
+      [target, cached("acme/diffusion")],
+      providers
+    );
+    expect(partial.execution?.state).toBe("download_required");
+
+    const [complete] = resolveModelExecutionAvailability(
+      [target, cached("acme/diffusion"), cached("acme/encoder")],
+      providers
+    );
+    expect(complete.execution?.state).toBe("ready");
+  });
+
+  it("trusts an adapter that checked its own files over the repository cache", () => {
+    const adapter = {
+      state: "installed" as const,
+      artifact_ref: { source: "huggingface" as const, repo_id: "acme/shared" }
+    };
+    const cache = model({ id: "acme/shared", repo_id: "acme/shared", type: null, downloaded: true });
+
+    const [missing] = resolveModelExecutionAvailability(
+      [model({ provider: "huggingface-local", adapter: { ...adapter, files_present: false } }), cache],
+      providers
+    );
+    expect(missing.execution?.state).toBe("download_required");
+
+    const [present] = resolveModelExecutionAvailability(
+      [model({ provider: "huggingface-local", adapter: { ...adapter, files_present: true } })],
+      providers
+    );
+    expect(present.execution?.state).toBe("ready");
+  });
+
   it("keeps a cached model unavailable when its adapter dependency is missing", () => {
     const [resolved] = resolveModelExecutionAvailability(
       [

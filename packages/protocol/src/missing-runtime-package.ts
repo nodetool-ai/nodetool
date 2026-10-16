@@ -18,6 +18,7 @@ export type RuntimePackageId =
   | "yt-dlp"
   | "rust"
   | "manimgx"
+  | "sd-cpp"
   | "transformers-js"
   | "tensorflow-js"
   | "node-llama-cpp"
@@ -45,6 +46,7 @@ export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> =
   "yt-dlp": "yt-dlp",
   rust: "Rust",
   manimgx: "ManimGX",
+  "sd-cpp": "stable-diffusion.cpp",
   "transformers-js": "Transformers.js",
   "tensorflow-js": "TensorFlow.js Models",
   "node-llama-cpp": "llama.cpp (in-process)",
@@ -132,6 +134,10 @@ export function missingRuntimePackageDetails(
       managed = "curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash";
       if (env["NODETOOL_SERVER_PROCESS"] === "1") { restart = "Restart nodetool serve."; }
     }
+  } else if (runtimePackage === "sd-cpp") {
+    if (host === "cli") { managed = "nodetool runtime add sd-cpp"; }
+    if (host === "source") { managed = "npm run dev:nodetool -- runtime add sd-cpp"; }
+    bringYourOwn = "Or set SD_CPP_SERVER_PATH to an sd-server binary from https://github.com/leejet/stable-diffusion.cpp/releases.";
   } else if (runtimePackage === "manimgx") {
     bringYourOwn = "Or put manimgx on PATH (uv tool install manimgx).";
   } else if (runtimePackage === "rust") {
@@ -240,6 +246,7 @@ export function runtimePackageForBinary(binary: string): RuntimePackageId | null
     case "pdftotext": return "pdftotext";
     case "yt-dlp": return "yt-dlp";
     case "manimgx": return "manimgx";
+    case "sd-server": return "sd-cpp";
     default: return null;
   }
 }

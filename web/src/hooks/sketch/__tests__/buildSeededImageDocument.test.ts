@@ -73,4 +73,20 @@ describe("buildSeededImageDocument", () => {
     expect(result.layerBindings).toEqual([]);
     expect(result.sketch.layers).toHaveLength(1);
   });
+
+  it("sets every drawing tool to the given ink", () => {
+    const result = buildSeededImageDocument(makeBaseDoc(), {
+      imageUri: "asset://a.png",
+      width: 10,
+      height: 20,
+      name: "x",
+      ink: "#000000"
+    });
+
+    expect(result.sketch.toolSettings).toMatchObject({
+      brush: { color: "#000000" },
+      pencil: { color: "#000000" },
+      shape: { strokeColor: "#000000" }
+    });
+  });
 });

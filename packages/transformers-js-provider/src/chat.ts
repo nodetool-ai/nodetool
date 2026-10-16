@@ -3,28 +3,29 @@ import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   Message,
   ProviderStreamItem,
-  ProviderTool
+  ProviderTool,
+  ToolCall
 } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
+import {
+  ToolCallTextFilter,
+  parseToolCalls,
+  toToolSpecs
+} from "@nodetool-ai/runtime";
+import {
+  messageText,
+  templateSupportsTools,
+  toTemplateMessages,
+  type ChatTemplateOptions,
+  type ChatTokenizer,
+  type ToolResultRole
+} from "./tool-calls.js";
 
 const log = createLogger("nodetool.transformers-js-provider.chat");
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
-}
-
-function messageText(content: Message["content"]): string {
-  if (content == null) {
-    return "";
-  }
-  if (Array.isArray(content)) {
-    return content
-      .filter((c) => c?.type === "text")
-      .map((c) => c.text)
-      .join("");
-  }
-  return content;
 }
 
 /**
@@ -70,20 +71,84 @@ interface ChatPipelineOptions {
   top_p?: number;
   stopping_criteria?: Stopper["criteria"];
   streamer?: TextStreamer;
+  /** False for a prompt the chat template rendered: it has the special tokens. */
+  add_special_tokens?: boolean;
+  /** False to get only the new text for a prompt string. */
+  return_full_text?: boolean;
 }
 
 type ChatPipelineFn = (
-  input: ChatMessage[],
+  input: ChatMessage[] | string,
   options?: ChatPipelineOptions
 ) => Promise<PipelineOutput[]>;
 
-function warnIfTools(args: ChatArgs): void {
-  if (args.tools && args.tools.length > 0) {
-    log.warn("transformers_js: tool calls are not supported; ignoring tools", {
-      count: args.tools.length,
-      model: args.model
-    });
+/** What the pipeline receives: chat messages, or a prompt rendered here. */
+interface PreparedInput {
+  input: ChatMessage[] | string;
+  /** The input is a prompt string the chat template rendered. */
+  rendered: boolean;
+  /** The turn offered tools, so the reply is parsed for calls. */
+  withTools: boolean;
+}
+
+/**
+ * Render the prompt with the model's chat template. The pipeline's own
+ * rendering passes neither `tools` nor `enable_thinking`. Thinking is off:
+ * Qwen3 otherwise writes a long `<think>` block into the reply first, which is
+ * slow on a CPU and spends the token budget. A pipeline without a tokenizer
+ * gets the plain messages and no tools.
+ */
+function prepareInput(args: ChatArgs, pipeline: ChatPipelineFn): PreparedInput {
+  const tools = args.tools ?? [];
+  // SAFETY: the pipeline instance carries `.tokenizer`, which the SDK's
+  // pipeline type does not declare.
+  const tokenizer = (pipeline as TokenizerHolder).tokenizer as ChatTokenizer | undefined;
+  if (!tokenizer) {
+    if (tools.length > 0) {
+      log.warn("transformers_js: pipeline has no tokenizer; ignoring tools", {
+        count: tools.length,
+        model: args.model
+      });
+    }
+    return { input: normalizeMessages(args.messages), rendered: false, withTools: false };
   }
+  const options: ChatTemplateOptions = {
+    tokenize: false,
+    add_generation_prompt: true,
+    enable_thinking: false
+  };
+  if (tools.length === 0) {
+    const input = tokenizer.apply_chat_template(normalizeMessages(args.messages), options);
+    return { input, rendered: true, withTools: false };
+  }
+  const specs = toToolSpecs(tools);
+  const native = templateSupportsTools(tokenizer, specs);
+  if (native) {
+    options.tools = specs;
+  }
+  const render = (toolResultRole: ToolResultRole): string =>
+    tokenizer.apply_chat_template(
+      toTemplateMessages(args.messages, specs, native, toolResultRole),
+      options
+    );
+  try {
+    return { input: render("tool"), rendered: true, withTools: true };
+  } catch (error) {
+    if (native) {
+      throw error;
+    }
+    // The template rejects the `tool` role: send results as user messages.
+    return { input: render("user"), rendered: true, withTools: true };
+  }
+}
+
+function withPromptOptions(
+  opts: ChatPipelineOptions,
+  prepared: PreparedInput
+): ChatPipelineOptions {
+  return prepared.rendered
+    ? { ...opts, add_special_tokens: false, return_full_text: false }
+    : opts;
 }
 
 async function getChatPipeline(model: string): Promise<ChatPipelineFn> {
@@ -117,54 +182,70 @@ interface TokenizerHolder {
   tokenizer?: unknown;
 }
 
-async function generateAssistantText(args: ChatArgs): Promise<string> {
-  warnIfTools(args);
+interface AssistantReply {
+  content: string;
+  toolCalls: ToolCall[];
+}
+
+async function generateAssistantReply(args: ChatArgs): Promise<AssistantReply> {
   if (args.signal?.aborted) throw makeAbortError();
 
   const transformers = await loadTransformers();
   const pipeline = await getChatPipeline(args.model);
-  const messages = normalizeMessages(args.messages);
-  const opts = buildPipelineOpts(args);
+  const prepared = prepareInput(args, pipeline);
+  const opts = withPromptOptions(buildPipelineOpts(args), prepared);
 
   const stopper = makeStopper(transformers, args.signal);
   if (stopper.criteria) opts.stopping_criteria = stopper.criteria;
 
   try {
-    const out = await pipeline(messages, opts);
+    const out = await pipeline(prepared.input, opts);
     if (args.signal?.aborted) throw makeAbortError();
-    return extractAssistantText(out);
+    const text = extractAssistantText(out);
+    if (!prepared.withTools) {
+      return { content: text, toolCalls: [] };
+    }
+    const parsed = parseToolCalls(text);
+    return { content: parsed.content.trim(), toolCalls: parsed.toolCalls };
   } finally {
     stopper.cleanup();
   }
 }
 
 export async function generateMessage(args: ChatArgs): Promise<Message> {
-  return { role: "assistant", content: await generateAssistantText(args) };
+  const reply = await generateAssistantReply(args);
+  return reply.toolCalls.length > 0
+    ? { role: "assistant", content: reply.content, toolCalls: reply.toolCalls }
+    : { role: "assistant", content: reply.content };
+}
+
+/** The whole reply as stream items, for a runtime that cannot stream. */
+async function* replyAsStream(args: ChatArgs): AsyncGenerator<ProviderStreamItem> {
+  const reply = await generateAssistantReply(args);
+  yield* reply.toolCalls;
+  const chunk: Chunk = {
+    type: "chunk",
+    content_type: "text",
+    content: reply.content,
+    done: true
+  };
+  yield chunk;
 }
 
 export async function* generateMessages(
   args: ChatArgs
 ): AsyncGenerator<ProviderStreamItem> {
-  warnIfTools(args);
   if (args.signal?.aborted) throw makeAbortError();
 
   const transformers = await loadTransformers();
   const TextStreamerCtor = transformers.TextStreamer;
   if (!TextStreamerCtor) {
     // Fall back to non-streaming and yield as a single chunk.
-    const chunk: Chunk = {
-      type: "chunk",
-      content_type: "text",
-      content: await generateAssistantText(args),
-      done: true
-    };
-    yield chunk;
+    yield* replyAsStream(args);
     return;
   }
 
   const pipeline = await getChatPipeline(args.model);
-  const messages = normalizeMessages(args.messages);
-  const opts = buildPipelineOpts(args);
 
   let resolveToken: ((value: string | null) => void) | null = null;
   const pending: Array<string | null> = [];
@@ -184,15 +265,14 @@ export async function* generateMessages(
   const tokenizer: unknown = (pipeline as TokenizerHolder).tokenizer;
   if (!tokenizer) {
     // Pipeline missing tokenizer — fall back to non-streaming.
-    const chunk: Chunk = {
-      type: "chunk",
-      content_type: "text",
-      content: await generateAssistantText(args),
-      done: true
-    };
-    yield chunk;
+    yield* replyAsStream(args);
     return;
   }
+  const prepared = prepareInput(args, pipeline);
+  const opts = withPromptOptions(buildPipelineOpts(args), prepared);
+  // With tools, a `<tool_call>` block is held back and parsed at the end.
+  const filter = prepared.withTools ? new ToolCallTextFilter() : null;
+  let shown = "";
 
   const streamer = new TextStreamerCtor(tokenizer, {
     skip_prompt: true,
@@ -207,7 +287,7 @@ export async function* generateMessages(
   if (stopper.criteria) genOpts.stopping_criteria = stopper.criteria;
 
   // Kick off generation; resolve the iterator when complete.
-  const generation = pipeline(messages, genOpts)
+  const generation = pipeline(prepared.input, genOpts)
     .then(() => enqueue(null))
     .catch((err) => {
       enqueue(null);
@@ -226,10 +306,13 @@ export async function* generateMessages(
           : buffered;
       if (args.signal?.aborted) throw makeAbortError();
       if (next === null) break;
+      const text = filter ? filter.push(next) : next;
+      if (!text) continue;
+      shown += text;
       const chunk: Chunk = {
         type: "chunk",
         content_type: "text",
-        content: next,
+        content: text,
         done: false
       };
       yield chunk;
@@ -248,10 +331,21 @@ export async function* generateMessages(
     }
   }
 
+  let rest = "";
+  if (filter) {
+    const parsed = parseToolCalls(filter.output);
+    yield* parsed.toolCalls;
+    // Text the filter held back: a partial tag at the end, a malformed call,
+    // or text after the calls.
+    rest = parsed.content.startsWith(shown) ? parsed.content.slice(shown.length) : "";
+    if (parsed.toolCalls.length > 0) {
+      rest = rest.trim();
+    }
+  }
   const final: Chunk = {
     type: "chunk",
     content_type: "text",
-    content: "",
+    content: rest,
     done: true
   };
   yield final;

@@ -136,9 +136,12 @@ export class ModelCache<T extends object> {
     };
     const tracked = new Set(this.trackedMethods);
     return new Proxy(model, {
-      apply: (target, thisArg, args: ModelOutput[]): ModelOutput => {
+      apply: (target, _thisArg, args: ModelOutput[]): ModelOutput => {
+        // A plain call, not target.apply: a Transformers.js pipeline is a
+        // closure re-parented onto a plain class, so it has no `apply` method.
+        // The closure reads its own state, not `this`.
         const call = target as ModelMethod;
-        return counted(() => call.apply(thisArg, args));
+        return counted(() => call(...args));
       },
       get: (target, prop): ModelMember => {
         const value = (target as Record<PropertyKey, ModelMember>)[prop];

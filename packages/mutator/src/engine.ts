@@ -27,7 +27,7 @@ export interface EngineContext {
   lines: Set<number> | null;
   /** Form keys to restrict the run to, from `--base`. */
   changedForms: ((path: string, source: string) => Set<string> | null) | null;
-  testCommand: (packageDir: string) => string;
+  testCommand: (packageDir: string, phase: "baseline" | "mutant") => string;
   timeoutFactor: number;
   mutationWarning: number;
   maxWorkers: number | null;
@@ -274,14 +274,15 @@ export async function mutateFile(path: string, ctx: EngineContext): Promise<RunR
     ctx.log(`WARNING: ${selected.length} covered mutations selected in ${fileKey}.`);
   }
   if (selected.length > 0) {
-    const command = expandCommand(ctx.testCommand(packageDir), path, packageDir);
+    const command = expandCommand(ctx.testCommand(packageDir, "baseline"), path, packageDir);
     const baseline = await baselineFor(ctx, command, packageDir);
     if (!baseline.ok) {
       const message = `Baseline failed for ${fileKey}: ${command}${baseline.tail ? `\n${baseline.tail}` : ""}`;
       return emptyResult(fileKey, { baselineFailed: true, baselineMessage: message });
     }
     const timeout = Math.max(2, baseline.seconds * ctx.timeoutFactor);
-    await runMutants(ctx, path, source, selected, packageDir, command, timeout, outcomes);
+    const mutantCommand = expandCommand(ctx.testCommand(packageDir, "mutant"), path, packageDir);
+    await runMutants(ctx, path, source, selected, packageDir, mutantCommand, timeout, outcomes);
   }
   const forms = tallyForms(source, path, fileKey, found, covered, outcomes, ctx.lines);
   const written = ctx.store.write(fileKey, forms, outcomes);

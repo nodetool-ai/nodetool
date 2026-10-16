@@ -3,7 +3,11 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { TRPCError } from "@trpc/server";
 import type { Context } from "../context.js";
-import type { PythonBridge } from "@nodetool-ai/runtime";
+import type {
+  ModelAdapterInfo,
+  ModelArtifactRef,
+  PythonBridge
+} from "@nodetool-ai/runtime";
 import { createLogger, getHfHubCacheDir } from "@nodetool-ai/config";
 import { importPack, MissingPackError } from "@nodetool-ai/node-catalog";
 type WhisperModule = typeof import("@nodetool-ai/whisper-cpp");
@@ -78,7 +82,9 @@ const modelAdapterInfoSchema = z.object({
   state: z.enum(["installed", "missing_dependency", "unknown"]),
   reason_code: z.string().nullish(),
   reason: z.string().nullish(),
-  artifact_ref: modelArtifactRefSchema.nullish()
+  artifact_ref: modelArtifactRefSchema.nullish(),
+  extra_artifact_refs: z.array(modelArtifactRefSchema).nullish(),
+  files_present: z.boolean().nullish()
 });
 
 const modelExecutionAvailabilitySchema = z.object({
@@ -793,10 +799,19 @@ function toUnifiedLanguageModel(
     id: string;
     name: string;
     provider: string;
+    adapter?: Parameters<typeof toUnifiedModel>[0]["adapter"];
   },
   supportsTools?: boolean | null
 ): UnifiedModel {
   const registration = getRegisteredProvider(model.provider);
+  // A local model with files to download carries its adapter. The image
+  // conversion already maps it, so reuse that mapping.
+  if (model.adapter) {
+    return {
+      ...toUnifiedModel(model, "language_model"),
+      supports_tools: supportsTools ?? null
+    };
+  }
   return {
     id: model.id,
     type: "language_model",
@@ -813,6 +828,28 @@ function toUnifiedLanguageModel(
   };
 }
 
+function toUnifiedArtifactRef(ref: ModelArtifactRef) {
+  return {
+    source: ref.source,
+    repo_id: ref.repoId,
+    revision: ref.revision ?? null,
+    path: ref.path ?? null,
+    allow_patterns: ref.allowPatterns ?? null,
+    model_type: ref.modelType ?? null
+  };
+}
+
+function toUnifiedAdapter(adapter: ModelAdapterInfo): NonNullable<UnifiedModel["adapter"]> {
+  return {
+    state: adapter.state,
+    reason_code: adapter.reasonCode ?? null,
+    reason: adapter.reason ?? null,
+    artifact_ref: adapter.artifactRef ? toUnifiedArtifactRef(adapter.artifactRef) : null,
+    extra_artifact_refs: adapter.extraArtifactRefs?.map(toUnifiedArtifactRef) ?? null,
+    files_present: adapter.filesPresent ?? null
+  };
+}
+
 function toUnifiedModel(
   model: {
     id: string;
@@ -823,19 +860,7 @@ function toUnifiedModel(
     languages?: string[];
     sampleRate?: number;
     requiresReferenceText?: boolean;
-    adapter?: {
-      state: "installed" | "missing_dependency" | "unknown";
-      reasonCode?: string;
-      reason?: string;
-      artifactRef?: {
-        source: "huggingface";
-        repoId: string;
-        revision?: string;
-        path?: string;
-        allowPatterns?: string[];
-        modelType?: string;
-      };
-    };
+    adapter?: ModelAdapterInfo;
     supportedTasks?: string[];
     durations?: number[];
     resolutions?: string[];
@@ -862,23 +887,7 @@ function toUnifiedModel(
     languages: model.languages ?? null,
     sample_rate: model.sampleRate ?? null,
     requires_reference_text: model.requiresReferenceText ?? null,
-    adapter: model.adapter
-      ? {
-          state: model.adapter.state,
-          reason_code: model.adapter.reasonCode ?? null,
-          reason: model.adapter.reason ?? null,
-          artifact_ref: model.adapter.artifactRef
-            ? {
-                source: model.adapter.artifactRef.source,
-                repo_id: model.adapter.artifactRef.repoId,
-                revision: model.adapter.artifactRef.revision ?? null,
-                path: model.adapter.artifactRef.path ?? null,
-                allow_patterns: model.adapter.artifactRef.allowPatterns ?? null,
-                model_type: model.adapter.artifactRef.modelType ?? null
-              }
-            : null
-        }
-      : null,
+    adapter: model.adapter ? toUnifiedAdapter(model.adapter) : null,
     supported_tasks:
       (type === "image_model"
         ? imageModelTasks(model)
@@ -1580,7 +1589,13 @@ export const modelsRouter = router({
               instance.hasToolSupport(m.id).catch(() => null as boolean | null)
             )
           );
-          return models.map((m, i) => toUnifiedLanguageModel(m, toolFlags[i]));
+          const unified = models.map((m, i) =>
+            toUnifiedLanguageModel(m, toolFlags[i])
+          );
+          // Only a local model has files to download.
+          return unified.some((model) => model.adapter)
+            ? resolveProviderModelExecution(unified, [input.provider])
+            : unified;
         },
         []
       )

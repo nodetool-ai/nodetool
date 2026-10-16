@@ -18,7 +18,7 @@
  * rather than pretending the button applies it (F12).
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { ScriptPace } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
 import { formatUsd } from "@nodetool-ai/model-pricing";
@@ -39,6 +39,7 @@ import {
 import TTSModelSelect from "../../properties/TTSModelSelect";
 import ScriptSpeakerAvatar from "../../script/ScriptSpeakerAvatar";
 import { getScriptAgentHandler } from "../../../components/script/scriptAgentBridge";
+import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import {
   useScriptStore,
@@ -154,6 +155,26 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
   // A model with no preset voices hands back no voice to bind.
   const [noPresetVoice, setNoPresetVoice] = useState(false);
   const bound = speaker.voice;
+  const ttsDefault = useModelPreferencesStore((s) => s.defaults["tts_model"]);
+  // A speaker with no voice yet starts on the Settings speech model, so a
+  // connected provider is enough to hear the script.
+  useEffect(() => {
+    if (readOnly || bound || !ttsDefault) {
+      return;
+    }
+    const first = voices.find(
+      (voice) =>
+        voice.provider === ttsDefault.provider &&
+        voice.model === ttsDefault.id
+    );
+    if (first) {
+      getScriptAgentHandler(scriptId).setSpeakerVoice(speaker.id, {
+        provider: first.provider,
+        model: first.model,
+        voice: first.voice
+      });
+    }
+  }, [readOnly, bound, ttsDefault, voices, scriptId, speaker.id]);
   // A bound voice the list does not carry (still loading, or a provider that
   // dropped it) is still the speaker's voice, so it stays playable.
   const selectedVoice = useMemo<SetupVoice | undefined>(() => {
