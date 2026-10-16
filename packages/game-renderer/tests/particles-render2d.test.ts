@@ -84,6 +84,73 @@ describe("particles in the 2D sprite list", () => {
 });
 
 describe("Canvas2D particle fallback", () => {
+  it("reads a repeated particle source once and recomputes each tint from its original pixels", async () => {
+    const image = createCanvas(1, 1);
+    const source = image.getContext("2d");
+    const original = source.createImageData(1, 1);
+    original.data.set([255, 255, 255, 128]);
+    source.putImageData(original, 0, 0);
+    const scratch = createCanvas(1, 1);
+    const context = scratch.getContext("2d");
+    const reads = vi.spyOn(context, "getImageData");
+    const writes = vi.spyOn(context, "putImageData");
+    const output = createCanvas(64, 64);
+    vi.stubGlobal("document", { createElement: () => scratch });
+    vi.stubGlobal("HTMLImageElement", class {});
+    const renderer = new Canvas2DGameRenderer(output as unknown as HTMLCanvasElement,
+      new AssetCache(async () => image as unknown as HTMLImageElement));
+    try {
+      for (const reverse of [false, true]) {
+        await renderer.render(frame(), 1, field([
+          particle({ sprite: { assetId: "same" }, unlit: true }, { x: -2, r: reverse ? 0 : 1, g: reverse ? 1 : 0, b: 0 }),
+          particle({ sprite: { assetId: "same" }, unlit: true }, { x: 2, r: reverse ? 1 : 0, g: reverse ? 0 : 1, b: 0 })
+        ]));
+        expect([...output.getContext("2d").getImageData(16, 32, 1, 1).data]).toEqual(reverse ? [0, 255, 0, 128] : [255, 0, 0, 128]);
+        expect([...output.getContext("2d").getImageData(48, 32, 1, 1).data]).toEqual(reverse ? [255, 0, 0, 128] : [0, 255, 0, 128]);
+      }
+      expect(reads).toHaveBeenCalledTimes(1);
+      expect(writes).toHaveBeenCalledTimes(4);
+      expect(new Set(writes.mock.calls.map(call => call[0])).size).toBe(1);
+      renderer.invalidateAsset("same");
+      await renderer.render(frame(), 1, field([particle({ sprite: { assetId: "same" }, unlit: true }, { r: 1, g: 0, b: 0 })]));
+      expect(reads).toHaveBeenCalledTimes(2);
+    } finally { renderer.dispose(); reads.mockRestore(); writes.mockRestore(); vi.unstubAllGlobals(); }
+  });
+
+  it.each([
+    { rgba: [255, 0, 0, 128], expected: [0, 0, 0, 128] },
+    { rgba: [255, 0, 0, 255], expected: [0, 0, 0, 255] },
+    { rgba: [255, 255, 255, 128], expected: [0, 255, 0, 128] }
+  ])("multiplies straight RGB while preserving alpha for $rgba", async ({ rgba, expected }) => {
+    const image = createCanvas(1, 1);
+    const imageContext = image.getContext("2d");
+    const pixels = imageContext.createImageData(1, 1);
+    pixels.data.set(rgba);
+    imageContext.putImageData(pixels, 0, 0);
+    const output = createCanvas(64, 64);
+    vi.stubGlobal("document", { createElement: () => createCanvas(1, 1) });
+    vi.stubGlobal("HTMLImageElement", class {});
+    // The native canvas implements the browser image operations used by this CPU rendering control.
+    const renderer = new Canvas2DGameRenderer(output as unknown as HTMLCanvasElement,
+      new AssetCache(async () => image as unknown as HTMLImageElement));
+    try {
+      const particles = field([particle({ sprite: { assetId: "colored" }, unlit: true }, { r: 0, g: 1, b: 0 })]);
+      await renderer.render(frame(), 1, particles);
+      expect([...output.getContext("2d").getImageData(32, 32, 1, 1).data]).toEqual(expected);
+      const png = await captureGameFrame(frame(), { particles, resolveAsset: async () => image.toBuffer("image/png") });
+      expect(await pixel(png, 32, 32)).toEqual(expected);
+    } finally { renderer.dispose(); vi.unstubAllGlobals(); }
+  });
+
+  it("applies the same visible-particle cap in native Canvas capture", async () => {
+    const particles = field([
+      ...Array.from({ length: CANVAS2D_MAX_PARTICLES }, () => particle({ unlit: true }, { size: 0.1 })),
+      particle({ unlit: true }, { x: 3, y: 3, r: 0, g: 0, b: 1, size: 0.5 })
+    ]);
+    const png = await captureGameFrame(frame(), { particles, backend: "canvas2d" });
+    expect(await pixel(png, 56, 8)).toEqual([0, 0, 0, 0]);
+  });
+
   it("draws tinted dots and stops at the Canvas2D cap", async () => {
     const output = createCanvas(64, 64);
     vi.stubGlobal("document", { createElement: () => createCanvas(1, 1) });

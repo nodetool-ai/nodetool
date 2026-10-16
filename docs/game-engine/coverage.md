@@ -46,7 +46,7 @@ New 2D games use schema 4 with engine version `3`. Legacy schemas 1 and 2 use en
 The following limits matter when choosing a workflow:
 
 - 2D has static and kinematic physics. 3D has Rapier rigid bodies and a character controller. Triangle meshes are static-only.
-- 3D renders with WebGL2. Its particle field is ticked by standalone and capture hosts, not the current editor play session.
+- 3D renders with WebGL2. Its particle field is ticked by editor play, standalone, and capture hosts.
 - 3D particle sprite sheets, separate material textures, named material lookup, toon shading, and outlines are not completed renderer paths. Embedded supported GLB textures remain available.
 - HDRI callback contracts exist, but the standard hosts do not complete their preparation and loading path. Solid and procedural skies work.
 - Height fog, decals, and built-in localization are outside this guide's shipped baseline.

@@ -352,7 +352,7 @@ The isolated preview uses a fixed seed and restarts when edited. Pause and
 Restart affect the preview only. The 2D preview uses Canvas2D, including sprite
 sheets and blending. The 3D preview uses WebGL2, including stretched and mesh
 particles and depth softness. It does not run gameplay scripts or change the
-play session. The 3D editor play view limitation below still applies.
+play session.
 
 Agents and CLI document edits use the same `update_entity` operation as the
 inspector. Set the complete component with
@@ -480,12 +480,16 @@ take scene fog and post-processing such as bloom, so additive particles glow.
 behind it, so smoke and glows do not cut a hard line through the floor. The
 renderer then draws the scene's depth once more per frame, so set it only on
 emitters that touch geometry. That depth pass skips transparent materials,
-keeps alpha-tested cut-outs, and does not count toward the draw call and
+keeps alpha-tested cut-outs, and counts toward the draw call and
 triangle budgets. 3D particles ignore `sprite` and `layer`, and
 2D particles ignore `render` and `softness`. Validation warns about `render` or
-`softness` on a 2D emitter and `softness` on a mesh emitter, without failing. The 3D standalone player,
-`nodetool game capture` and `capture_native_game_frame` draw 3D particles. The
-editor's 3D play view does not yet.
+`softness` on a 2D emitter, `softness` on a mesh emitter, and `sprite` on a
+3D emitter, without failing. Editor Play, the 3D standalone player,
+`nodetool game capture` and `capture_native_game_frame` draw 3D particles.
+Translucent particles sort across render types without writing depth. Interleaved
+types can increase draw calls. A scene transition clears the particle field.
+Within a scene, detached world particles retain world-space death chains until
+they finish. Storage grows lazily within the scene particle limit.
 
 ## 3D collision layers
 

@@ -24,7 +24,7 @@ A game has one dimension. It cannot mix 2D and 3D scenes or change dimension aft
 | Models, scalar PBR materials, lights, shadows | Not applicable | Supported | [3D graphics](/game-engine/graphics-3d) |
 | Physics | Static and kinematic bodies | Rapier rigid bodies and character controller | [Physics](/game-engine/physics) |
 | Animation | Sprite clips and visual tracks | Prepared model clips and animation graphs | [Animation](/game-engine/animation) |
-| Particles | Presets, isolated preview, editor play, standalone, capture | Presets, isolated preview, standalone, capture. Editor play does not tick them | [Particles](/game-engine/particles) |
+| Particles | Presets, isolated preview, editor play, standalone, capture | Presets, isolated preview, editor play, standalone, capture | [Particles](/game-engine/particles) |
 | Audio, mixing, spatial effects | Supported | Supported, including directional cones | [Audio](/game-engine/audio) |
 | Keyboard, mouse, gamepad, touch | Actions | Actions, axes, camera look | [Input and cameras](/game-engine/input-cameras) |
 | Scripts, lifecycle hooks, events, parameters | Supported | Supported | [Scripts](/game-engine/scripts) |

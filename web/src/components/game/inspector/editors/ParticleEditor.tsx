@@ -87,7 +87,7 @@ export default function ParticleEditor({ value, onChange, schema, assets, dimens
       {emitter.colorOverLifetime ? <>
         <GradientEditor label="Particle color over lifetime" value={emitter.colorOverLifetime} onChange={(keys) => change({ colorOverLifetime: keys })} />
         <EditorButton onClick={() => { const next = { ...emitter }; delete next.colorOverLifetime; replaceEmitter(next); }}>Remove color over lifetime</EditorButton>
-      </> : <EditorButton onClick={() => change({ colorOverLifetime: [{ t: 0, color: typeof emitter.color === "string" ? emitter.color : emitter.color.min }] })}>Add color over lifetime</EditorButton>}
+      </> : <EditorButton onClick={() => change({ colorOverLifetime: [{ t: 0, color: "#ffffff" }] })}>Add color over lifetime</EditorButton>}
     </InspectorSection>
     {error && <>
       <Caption color="error" role="alert">{error}</Caption>
