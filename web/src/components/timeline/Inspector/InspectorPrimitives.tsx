@@ -9,7 +9,6 @@
 import React, {
   memo,
   useCallback,
-  useMemo,
 } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -22,12 +21,10 @@ import {
   Slider,
   ToolbarIconButton,
   CONTROL,
-  MOTION,
   BORDER_RADIUS,
   TYPOGRAPHY,
   SPACING,
   getSpacingPx,
-  reducedMotion,
   InspectorFieldRow,
   InspectorToggleRow as SharedInspectorToggleRow,
   type InspectorToggleRowProps,
