@@ -10,6 +10,8 @@ import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import useModelSelectMenu from "./shared/useModelSelectMenu";
 import { getProviderDisplayName } from "../../utils/providerDisplay";
+import { useProviderKeyMissing } from "../../hooks/useProviderKeyMissing";
+import { missingKeyWarning } from "./shared/missingKeyWarning";
 
 interface LanguageModelSelectProps {
   onChange: (value: LanguageModelValue) => void;
@@ -56,6 +58,11 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
     ) ?? null;
   }, [fetchedModels, value, provider]);
 
+  // A model whose provider is not set up is missing from the fetched list,
+  // so the field falls back to the provider stored with the value.
+  const selectedProvider = currentSelectedModelDetails?.provider ?? provider;
+  const missingKey = useProviderKeyMissing(value ? selectedProvider : undefined);
+
   const selectedModel = useMemo(
     () => (value ? { id: value, provider } : undefined),
     [value, provider]
@@ -67,7 +74,10 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
         ref={buttonRef}
         active={!!value}
         label={currentSelectedModelDetails?.name || value || placeholder}
-        secondaryLabel={getProviderDisplayName(currentSelectedModelDetails?.provider)}
+        secondaryLabel={getProviderDisplayName(selectedProvider)}
+        warning={
+          missingKey ? missingKeyWarning(selectedProvider, missingKey) : undefined
+        }
         subLabel={placeholder}
         onClick={handleClick}
         disabled={disabled}

@@ -42,6 +42,7 @@ import {
   getWorkflowCompatibility
 } from "./entryCompatibility";
 import ExampleNeedsPill from "./ExampleNeedsPill";
+import { runsAsIs } from "../../utils/exampleNeeds";
 
 /** Rows shown on the dashboard before the user searches or opens the Examples tab. */
 const MAX_VISIBLE = 18;
@@ -326,8 +327,12 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
         })
       : base;
 
-    // Surface getting-started picks first when browsing everything unfiltered.
+    // Examples that run as is come first. Getting-started picks lead within
+    // each group when browsing everything unfiltered.
     return [...searched].sort((a, b) => {
+      const ra = runsAsIs(a.needs) ? 0 : 1;
+      const rb = runsAsIs(b.needs) ? 0 : 1;
+      if (ra !== rb) return ra - rb;
       if (category === "all" && !q) {
         const ga = isGettingStarted(a) ? 0 : 1;
         const gb = isGettingStarted(b) ? 0 : 1;

@@ -13,6 +13,8 @@ import {
   type ImageModelTask
 } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import { missingKeyWarning } from "./shared/missingKeyWarning";
+import { useProviderKeyMissing } from "../../hooks/useProviderKeyMissing";
 import CuratedModelSelect from "./curated/CuratedModelSelect";
 import { useInStudio } from "../../studio/StudioContext";
 import { forTasks, STUDIO_STILL_MODELS } from "../../studio/curatedModels";
@@ -51,6 +53,9 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
       (m) => m.id === value && (!provider || m.provider === provider)
     );
   }, [fetchedModels, value, provider]);
+
+  const selectedProvider = currentSelectedModelDetails?.provider ?? provider;
+  const missingKey = useProviderKeyMissing(value ? selectedProvider : undefined);
 
   const displayInfo = useMemo(() => {
     if (currentSelectedModelDetails) {
@@ -157,6 +162,9 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
         active={!!value}
         label={displayInfo.label}
         secondaryLabel={displayInfo.secondaryLabel}
+        warning={
+          missingKey ? missingKeyWarning(selectedProvider, missingKey) : undefined
+        }
         subLabel="Select image generation model"
         onClick={handleClick}
         disabled={disabled}

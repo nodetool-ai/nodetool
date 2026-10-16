@@ -63,3 +63,24 @@ export const storyboardNeeds = (summary: {
   summary.clipCount < summary.shotCount
     ? { modelKinds: ["video_model"], requiredSettings: [] }
     : NO_EXAMPLE_NEEDS;
+
+/**
+ * Whether an example runs with no model and no key. Unknown needs count as
+ * not ready, so a card with no pill never sorts ahead of a "Runs as is" one.
+ */
+export const runsAsIs = (needs: ExampleNeeds | null | undefined): boolean =>
+  needs ? exampleNeedsLabel(needs).runsAsIs : false;
+
+/**
+ * The items that run as is first, each group in its original order. UX
+ * research study 4: every Apps card in view needed models, so a newcomer
+ * who wanted something to try right away opened one and never ran it.
+ */
+export const runsAsIsFirst = <T>(
+  items: readonly T[],
+  needsOf: (item: T) => ExampleNeeds | null | undefined
+): T[] => {
+  const ready = items.filter((item) => runsAsIs(needsOf(item)));
+  const rest = items.filter((item) => !runsAsIs(needsOf(item)));
+  return [...ready, ...rest];
+};
