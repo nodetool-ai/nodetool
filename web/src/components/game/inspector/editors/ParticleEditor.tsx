@@ -13,6 +13,8 @@ const CURVES = [
   { field: "opacityOverLifetime", label: "Opacity over lifetime" }
 ] as const;
 const CUSTOM_FIELDS = new Set<string>([...CURVES.map(({ field }) => field), "colorOverLifetime"]);
+// The multiplicative identity is game data and must not change with the editor theme.
+const IDENTITY_GRADIENT_COLOR = "#ffffff";
 
 export default function ParticleEditor({ value, onChange, schema, assets, dimension, path, issuePath, issues }: GameComponentEditorProps) {
   const parsed = useMemo(() => gameParticles.safeParse(value), [value]);
@@ -87,7 +89,7 @@ export default function ParticleEditor({ value, onChange, schema, assets, dimens
       {emitter.colorOverLifetime ? <>
         <GradientEditor label="Particle color over lifetime" value={emitter.colorOverLifetime} onChange={(keys) => change({ colorOverLifetime: keys })} />
         <EditorButton onClick={() => { const next = { ...emitter }; delete next.colorOverLifetime; replaceEmitter(next); }}>Remove color over lifetime</EditorButton>
-      </> : <EditorButton onClick={() => change({ colorOverLifetime: [{ t: 0, color: "#ffffff" }] })}>Add color over lifetime</EditorButton>}
+      </> : <EditorButton onClick={() => change({ colorOverLifetime: [{ t: 0, color: IDENTITY_GRADIENT_COLOR }] })}>Add color over lifetime</EditorButton>}
     </InspectorSection>
     {error && <>
       <Caption color="error" role="alert">{error}</Caption>
