@@ -21,6 +21,7 @@ import { previewGameAuthoring, applyGameAuthoring } from "../game-authoring.js";
 import { gameDocumentDigest } from "../game-code-bake.js";
 import { previewGameAuthoringSpec, applyGameAuthoringSpec, browseGameAssetsSpec } from "./game.specs.js";
 import { browseGameAssets } from "./game-asset-browser.js";
+import { GAME_BUILD_INTEGRITY_FILE, gameBuildIntegrityManifest, verifiedGameBuildCache } from "../game-build-integrity.js";
 
 const log = createLogger("capabilities.game");
 
@@ -1034,7 +1035,7 @@ const BUILD_CONTENT_TYPES: Readonly<Record<string, string>> = {
 
 /**
  * Builds an owned, published game revision into its project workspace: a static web player under
- * `game-builds/<game-id>/<revision>`, or a Tauri desktop project under `game-builds/<game-id>/<revision>-tauri-<settings>`.
+ * `game-builds/<game-id>/<revision>-<target>-<runtime-fingerprint>`.
  * The capability and the editor's export download share this path.
  */
 export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Promise<NativeGameBuildResult> {
@@ -1060,23 +1061,39 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
   if ([...expectedDigests.values()].some((digests) => digests.size !== 1)) {
     return { error: "One source asset has conflicting digests in this revision" };
   }
-  let buildPath = `game-builds/${game.id}/${revision}`;
-  let entryPath = `${buildPath}/index.html`;
   let tauriApp: { name: string } | undefined;
   let metadata: TauriAppMetadata | undefined;
-  if (target === "tauri") {
-    tauriApp = { name: game.name };
-    const { tauriAppMetadata } = await importPack<typeof import("@nodetool-ai/game-renderer/build-tauri")>("game", "@nodetool-ai/game-renderer/build-tauri");
-    try { metadata = tauriAppMetadata(document, tauriApp); }
-    catch (error) { return { error: error instanceof Error ? error.message : String(error) }; }
-    // The app name comes from the game row, which can change without a new revision.
-    const settings = createHash("sha256").update(JSON.stringify(metadata)).digest("hex").slice(0, 12);
-    buildPath = `game-builds/${game.id}/${revision}-tauri-${settings}`;
-    entryPath = `${buildPath}/src-tauri/tauri.conf.json`;
+  let fingerprint: string;
+  try {
+    request.signal?.throwIfAborted();
+    if (target === "tauri") {
+      tauriApp = { name: game.name };
+      const renderer = await importPack<typeof import("@nodetool-ai/game-renderer/build-tauri")>("game", "@nodetool-ai/game-renderer/build-tauri");
+      metadata = renderer.tauriAppMetadata(document, tauriApp);
+      fingerprint = await renderer.tauriGameRuntimeFingerprint(document, tauriApp);
+    } else if (document.schemaVersion === 3) {
+      const renderer = await importPack<typeof import("@nodetool-ai/game-renderer/build3d")>("game", "@nodetool-ai/game-renderer/build3d");
+      fingerprint = await renderer.standaloneGame3DRuntimeFingerprint();
+    } else {
+      const renderer = await importPack<typeof import("@nodetool-ai/game-renderer/build")>("game", "@nodetool-ai/game-renderer/build");
+      fingerprint = await renderer.standaloneGameRuntimeFingerprint();
+    }
+    request.signal?.throwIfAborted();
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
   }
+  const buildPath = `game-builds/${game.id}/${revision}-${target}-${fingerprint}`;
+  const entryFile = target === "web" ? "index.html" : "src-tauri/tauri.conf.json";
+  const entryPath = `${buildPath}/${entryFile}`;
   const done = { game_id: game.id, revision, target, build_path: buildPath, entry_path: entryPath, workspace, app: metadata ?? null };
-  if (await workspace.exists(entryPath)) {
-    return { ...done, cached: true };
+  try {
+    const cached = await verifiedGameBuildCache(workspace, buildPath, fingerprint, entryFile, { files: MAX_BUILD_FILES, bytes: MAX_BUILD_BYTES }, request.signal);
+    request.signal?.throwIfAborted();
+    if (cached) {
+      return { ...done, cached: true };
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
   }
   const storage = request.storage;
   const cache = new Map<string, { bytes: Uint8Array; mimeType: string }>();
@@ -1141,15 +1158,19 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
         }
       }
     }
-    const entryFile = entryPath.slice(buildPath.length + 1);
     const entry = files.find((file) => file.path === entryFile);
     if (!entry) throw new Error("Standalone build entry is missing");
+    const integrity = gameBuildIntegrityManifest(buildPath, fingerprint, entryFile, files);
+    if (files.length + 1 > MAX_BUILD_FILES || totalBytes + Buffer.byteLength(integrity) > MAX_BUILD_BYTES) {
+      throw new Error("Standalone build exceeds file or byte limits");
+    }
     const contentType = (path: string): string => BUILD_CONTENT_TYPES[path.slice(path.lastIndexOf(".") + 1)] ?? "application/octet-stream";
-    // The entry file is written last, so its presence marks a complete build for the cache check above.
+    // Publish the integrity manifest only after all of its files have been written successfully.
     for (const file of files.filter((item) => item !== entry)) {
       await workspace.write(`${buildPath}/${file.path}`, file.bytes, contentType(file.path));
     }
     await workspace.write(entryPath, entry.bytes, contentType(entry.path));
+    await workspace.write(`${buildPath}/${GAME_BUILD_INTEGRITY_FILE}`, integrity, "application/json");
     return { ...done, cached: false };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -284,5 +284,17 @@ describe("native game tools in 3D", () => {
     const manifest = JSON.parse(await readFile(join(directory, built.build_path, "manifest.json"), "utf8"));
     expect(manifest).toMatchObject({ dimension: "3d", sourceRevision: created.document.revision });
     expect(manifest.files["emscripten-module.wasm"]).toHaveLength(64);
+    const args = { game_id: created.document.id };
+    for (const name of ["game3d-player.js", "emscripten-module.wasm", "manifest.json"]) {
+      const path = join(directory, built.build_path, name);
+      const original = await readFile(path);
+      await rm(path);
+      expect(await run.invoke("build_native_game", args)).toMatchObject({ cached: false, build_path: built.build_path });
+      expect(await readFile(path)).toEqual(original);
+      await writeFile(path, new Uint8Array(original.byteLength));
+      expect(await run.invoke("build_native_game", args)).toMatchObject({ cached: false, build_path: built.build_path });
+      expect(await readFile(path)).toEqual(original);
+    }
+    expect(await run.invoke("build_native_game", args)).toMatchObject({ cached: true, build_path: built.build_path });
   });
 });

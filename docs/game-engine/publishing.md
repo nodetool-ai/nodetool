@@ -28,6 +28,8 @@ nodetool game smoke game-build --json
 
 The build contains the player, document, runtime, and resolved assets. It does not include provider API keys. Preparation and digest checks happen before the output is accepted. Serve it over HTTPS or loopback HTTP so required browser security APIs are available. Opening an HTML file directly is not the supported distribution path.
 
+Editor and agent exports cache a revision with its generated player, runtime, and template fingerprint. Each cache hit checks every output file against its recorded size and SHA-256 digest. Missing or changed files trigger a rebuild. A runtime upgrade creates a separate output directory even when the game revision is unchanged.
+
 The smoke command runs the exported player in Chromium with outside network access blocked. It checks rendered-frame progress and reports console errors, failed requests, page errors, and stalled ticks. Also test the controls and sound manually on the devices you intend to support.
 
 2D players can fall back to Canvas2D, with optional GPU effects omitted. A game that requires those effects may fail on an unsupported browser. 3D needs WebGL2. [Rendering support](/game-engine/) lists the current feature boundaries.

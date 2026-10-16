@@ -11,6 +11,7 @@ import { prepareGameImage3D } from "./renderer3d/assets/image-preparation.js";
 import { prepareGameModel } from "./renderer3d/preparation.js";
 import type { StandaloneAsset, StandaloneGameBuild } from "./build.js";
 import { TOUCH_CONTROLS_CSS } from "./touch-controls.js";
+import { gameBuildFingerprint } from "./build-fingerprint.js";
 
 export interface BuildStandaloneGame3DOptions {
   readonly document: GameDocument3D;
@@ -35,6 +36,14 @@ async function playerBundle(): Promise<Uint8Array> {
   const player = result.outputFiles?.[0];
   if (!player) { throw new Error("3D player bundle is empty"); }
   return player.contents;
+}
+
+/** Identifies the actual player, VM and export templates used by this installed renderer. */
+export async function standaloneGame3DRuntimeFingerprint(): Promise<string> {
+  return gameBuildFingerprint({
+    format: "nodetool-web-3d-v1", player: await playerBundle(), html: HTML, css: CSS,
+    wasm: await readFile(fileURLToPath(import.meta.resolve("@jitl/quickjs-ng-wasmfile-release-sync/wasm")))
+  });
 }
 
 /** Atomically exports verified asset content and all runtime code for static HTTP serving. */

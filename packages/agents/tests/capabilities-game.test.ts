@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -298,9 +298,9 @@ describe("native game capabilities", () => {
     expect(result).toMatchObject({
       game_id: created.game.id,
       revision: created.game.revision,
-      build_path: `game-builds/${created.game.id}/${created.game.revision}`,
       cached: false
     });
+    expect(result.build_path).toMatch(new RegExp(`^game-builds/${created.game.id}/${created.game.revision}-web-[a-f0-9]{64}$`));
     expect(await readFile(join(directory, result.entry_path), "utf8")).toContain("NodeTool Game");
     const builtDocument = JSON.parse(await readFile(join(directory, result.build_path, "game.json"), "utf8")) as GameDocument;
     expect(builtDocument.id).toBe(created.game.id);
@@ -315,7 +315,7 @@ describe("native game capabilities", () => {
     const result = await agent.invoke("build_native_game", { game_id: created.game.id, target: "tauri" }) as
       { target: string; build_path: string; entry_path: string; cached: boolean };
     expect(result).toMatchObject({ target: "tauri", cached: false });
-    expect(result.build_path).toMatch(new RegExp(`^game-builds/${created.game.id}/${created.game.revision}-tauri-[a-f0-9]{12}$`));
+    expect(result.build_path).toMatch(new RegExp(`^game-builds/${created.game.id}/${created.game.revision}-tauri-[a-f0-9]{64}$`));
     expect(result.entry_path).toBe(`${result.build_path}/src-tauri/tauri.conf.json`);
     const config = JSON.parse(await readFile(join(directory, result.entry_path), "utf8")) as { productName: string; identifier: string; build: { frontendDist: string } };
     expect(config).toMatchObject({ productName: "Room Escape", identifier: "ai.nodetool.game.room-escape", build: { frontendDist: "../dist" } });
@@ -324,6 +324,24 @@ describe("native game capabilities", () => {
     expect((await readFile(join(directory, result.build_path, "src-tauri", "icons", "icon.ico"))).subarray(0, 4)).toEqual(Buffer.from([0, 0, 1, 0]));
     expect(await agent.invoke("build_native_game", { game_id: created.game.id, target: "tauri" })).toMatchObject({ cached: true, build_path: result.build_path });
     expect(await agent.invoke("build_native_game", { game_id: created.game.id, target: "electron" })).toEqual({ error: "target must be web or tauri" });
+  });
+
+  it.each(["web", "tauri"] as const)("repairs missing and changed required files in a cached %s export", async (target) => {
+    const agent = run();
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Cache integrity" }) as GameReply;
+    const args = { game_id: created.game.id, target };
+    const built = await agent.invoke("build_native_game", args) as { build_path: string; entry_path: string };
+    expect(built.build_path).toBeTypeOf("string");
+    const relative = target === "web" ? "emscripten-module.wasm" : "src-tauri/Cargo.toml";
+    const file = join(directory, built.build_path, relative);
+    const original = await readFile(file);
+    await rm(file);
+    expect(await agent.invoke("build_native_game", args)).toMatchObject({ cached: false, build_path: built.build_path });
+    expect(await readFile(file)).toEqual(original);
+    await writeFile(file, Buffer.alloc(original.length, 0));
+    expect(await agent.invoke("build_native_game", args)).toMatchObject({ cached: false, build_path: built.build_path });
+    expect(await readFile(file)).toEqual(original);
+    expect(await agent.invoke("build_native_game", args)).toMatchObject({ cached: true, build_path: built.build_path });
   });
 
   it("installs a staged asset without replacing scene edits and rejects stale or foreign writes", async () => {
