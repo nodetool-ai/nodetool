@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { execFile as execFileCallback } from "node:child_process";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { promisify } from "node:util";
 import { Storyboard, initTestDb } from "@nodetool-ai/models";
 import { getProvider, getRegisteredProvider } from "@nodetool-ai/runtime";
 import {
@@ -8,6 +12,7 @@ import {
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 
+const execFile = promisify(execFileCallback);
 let handle: FakeContextHandle | undefined;
 beforeEach(() => initTestDb());
 afterEach(() => handle?.cleanup());
@@ -102,6 +107,18 @@ describe("explicit fake media storyboard rendering", () => {
       137, 80, 78, 71, 13, 10, 26, 10
     ]);
     expect(new TextDecoder().decode(video.bytes!.slice(4, 8))).toBe("ftyp");
+    for (const [filename, bytes] of [["still.png", image.bytes], ["clip.mp4", video.bytes]] as const) {
+      if (!bytes) {
+        throw new Error(`Missing ${filename} asset bytes`);
+      }
+      const file = join(handle.workspaceDir, filename);
+      await writeFile(file, bytes);
+      const decoded = await execFile("ffmpeg", [
+        "-v", "error", "-xerror", "-err_detect", "explode", "-i", file,
+        "-map", "0", "-f", "null", "-"
+      ]);
+      expect(decoded.stderr).toBe("");
+    }
     expect(handle.providers.size).toBe(1);
   });
 });
