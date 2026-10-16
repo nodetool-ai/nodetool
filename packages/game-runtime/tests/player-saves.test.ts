@@ -50,14 +50,14 @@ function game2D(source: string, maxCommands = 8): GameDocument {
   const base = createTopDownRoomGame("f".repeat(32));
   return gameDocument.parse({ ...base, schemaVersion: 4, engineVersion: "3", scenes: base.scenes.map((scene) => ({ ...scene, entities: [
     ...scene.entities,
-    { id: "saver", transform2d: { x: -5, y: 2 }, behaviors: [{ kind: "script", source, maxCommands, maxTickMs: 50 }] }
+    { id: "saver", transform2d: { x: -5, y: 2 }, behaviors: [{ kind: "script", source, maxCommands, maxTickMs: 20 }] }
   ] })) });
 }
 
 function game3D(source: string): GameDocument3D {
   const document = blockout();
   document.scenes[0].entities.push(gameEntity3D.parse({ id: "saver", transform3d: { position: { x: 4, y: 1, z: 0 } },
-    behaviors: [{ kind: "script", maxTickMs: 50, maxCommands: 8, source }] }));
+    behaviors: [{ kind: "script", maxTickMs: 20, maxCommands: 8, source }] }));
   return document;
 }
 

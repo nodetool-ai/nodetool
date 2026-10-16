@@ -42,7 +42,7 @@ function animatedDocument(source = "input=>({state:null,commands:[{kind:'setAnim
   if (!player) { throw new Error("Player fixture is missing"); }
   player.model = { assetId: "hero", castShadow: true, receiveShadow: true };
   player.animator3d = { clips: { idle: "clip:0", run: "clip:1", jump: "clip:2", walk: "clip:3", wave: "clip:3" }, playbackRate: 1, loop: true, transitionTicks: 6, graph: "locomotion" };
-  player.behaviors = [{ kind: "script", maxTickMs: 50, maxCommands: 16, source }];
+  player.behaviors = [{ kind: "script", maxTickMs: 20, maxCommands: 16, source }];
   return document;
 }
 

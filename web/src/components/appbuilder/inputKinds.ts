@@ -1,3 +1,5 @@
+import type { Property } from "../../stores/ApiTypes";
+
 /**
  * Input-kind detection for workflow InputNodes. Each kind maps to the UI
  * component that edits a value of that input's type.
@@ -162,6 +164,40 @@ export const isJsonScriptPortType = (portType: string): boolean => {
   const kind = getScriptPortInputKind(portType);
   return kind === "string" && portType !== "str" && portType !== "string";
 };
+
+/** The node property type each input kind is edited as. */
+export const INPUT_KIND_PROPERTY_TYPE = {
+  string: "str",
+  integer: "int",
+  float: "float",
+  boolean: "bool",
+  color: "color",
+  image: "image",
+  video: "video",
+  audio: "audio",
+  document: "document",
+  dataframe: "dataframe",
+  file_path: "str",
+  folder_path: "str",
+  folder: "folder",
+  select: "enum",
+  language_model: "language_model",
+  image_model: "image_model",
+  video_model: "video_model",
+  tts_model: "tts_model",
+  asr_model: "asr_model",
+  music_model: "music_model",
+  embedding_model: "embedding_model",
+  image_list: "list",
+  video_list: "list",
+  audio_list: "list",
+  text_list: "list",
+  // The node types these kinds come from: Model3DInput emits `model_3d`,
+  // ImageSizeInput `image_size`, HuggingFaceModelInput `hf.model`.
+  model3d: "model_3d",
+  image_size: "image_size",
+  huggingface_model: "hf.model"
+} satisfies Record<WorkflowInputKind, Property["type"]["type"]>;
 
 const KIND_NODE_TYPE = {
   string: "nodetool.input.StringInput",
