@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { GAME_LOCAL_SHADOW_LIGHT_BUDGET_3D, type GameLight3D, type GameRenderFrame3D } from "@nodetool-ai/protocol";
-import { GameCascadedShadows3D } from "./cascades.js";
+import { GameCascadedShadows3D, resizeGameShadowMap } from "./cascades.js";
 
 export interface GameShadowOverflow3D {
   /** Shadowed point and spot lights over the scene budget. */
@@ -59,7 +59,7 @@ export function applyGameShadowBias(shadow: THREE.LightShadow, definition: GameL
 
 export function configureDirectionalShadow(light: THREE.DirectionalLight, definition: Extract<GameLight3D, { kind: "directional" }>, environment: GameRenderFrame3D["environment"], casting = environment.shadows.enabled && definition.castShadow): void {
   light.castShadow = casting;
-  light.shadow.mapSize.set(environment.shadows.mapSize, environment.shadows.mapSize);
+  resizeGameShadowMap(light.shadow, environment.shadows.mapSize);
   const extent = environment.shadows.extent;
   Object.assign(light.shadow.camera, { left: -extent, right: extent, top: extent, bottom: -extent, near: 0.1, far: extent * 4 });
   light.shadow.camera.updateProjectionMatrix();

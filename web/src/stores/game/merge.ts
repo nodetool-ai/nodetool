@@ -3,7 +3,7 @@ import type { GameBehavior, GameDocument, GameEntity, GameScene } from "@nodetoo
 import type { DocumentMergeAdapter } from "../documentMerge";
 import { authoringMergeScalars } from "./authoringMerge";
 
-interface SceneUnit { id: string; name: string; music?: GameScene["music"] }
+interface SceneUnit { id: string; name: string; music?: GameScene["music"]; gravity?: GameScene["gravity"] }
 type EntityUnit = Omit<GameEntity, "behaviors"> & { sceneId: string };
 interface BehaviorUnit { sceneId: string; entityId: string; index: number; behavior: GameBehavior }
 interface BackgroundUnit { sceneId: string; id: string; layer: NonNullable<GameScene["backgrounds"]>[number] }
@@ -20,14 +20,14 @@ export const gameMergeAdapter: DocumentMergeAdapter<GameDocument> = {
   collections: [
     {
       kind: "scene",
-      read: (doc) => doc.scenes.map(({ id, name, music }): SceneUnit => ({ id, name, music })),
+      read: (doc) => doc.scenes.map(({ id, name, music, gravity }): SceneUnit => ({ id, name, music, gravity })),
       write: (doc, units) => ({ ...doc, scenes: (units as SceneUnit[]).map((unit) => {
         const existing = doc.scenes.find((scene) => scene.id === unit.id);
-        return { ...(existing ?? { id: unit.id, entities: [] }), name: unit.name, music: unit.music };
+        return { ...(existing ?? { id: unit.id, entities: [] }), name: unit.name, music: unit.music, gravity: unit.gravity };
       }) }),
       unitId: key,
       unitLabel: (unit) => `scene ${key(unit)}`,
-      unitFields: [{ field: "name" }, { field: "music" }]
+      unitFields: [{ field: "name" }, { field: "music" }, { field: "gravity" }]
     },
     {
       kind: "entity",

@@ -11,7 +11,7 @@ const actorBehaviors: GameBehavior[] = [{ kind: "health", maximum: 4 }];
 const managerBehaviors = [
   { kind: "winWhenCollected", count: 2 }, { kind: "spawn", prefabId: "spark", onEvent: "door" },
   { kind: "sceneTransition", sceneId: "next", onEvent: "advance" },
-  { kind: "script", maxTickMs: 50, source: `input => ({state:{events:input.events.map(event=>event.kind)}, commands: input.tick===0 ?
+  { kind: "script", maxTickMs: 20, source: `input => ({state:{events:input.events.map(event=>event.kind)}, commands: input.tick===0 ?
     [{kind:'hud',id:'status',text:'Ready',x:16,y:80}] : input.tick===4 ? [{kind:'emit',event:'advance'}] : []})` }
 ];
 const lifetime = [{ kind: "lifetime", ticks: 2, fade: true, endScale: 1 }];

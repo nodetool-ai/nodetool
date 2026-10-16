@@ -5,7 +5,7 @@ import { planScriptProps } from "../src/script-props.js";
 import { blockout } from "./fixtures-game3d.js";
 
 type Behavior = { kind: "script"; source: string; maxCommands: number; maxTickMs: number };
-const script = (source: string): Behavior => ({ kind: "script", source, maxCommands: 8, maxTickMs: 40 });
+const script = (source: string): Behavior => ({ kind: "script", source, maxCommands: 8, maxTickMs: 20 });
 const input = { pressed: [] };
 const input3D = gameInputFrame3D.parse({ pressed: [] });
 
@@ -50,7 +50,7 @@ describe("script input carries each entity's props once", () => {
   });
 
   it("fits 3D props that the self and world views both expose within 64 KiB", async () => {
-    const document = document3D({ props: { blob }, behaviors: [{ kind: "script", maxTickMs: 40,
+    const document = document3D({ props: { blob }, behaviors: [{ kind: "script", maxTickMs: 20,
       source: "({entity,world}) => ({state:{self:entity.props.blob.length,listed:world.find(item=>item.id===entity.id).props.blob.length},commands:[]})" }] });
     const session = await createGameSession3D(document, 1);
     try {
@@ -81,7 +81,7 @@ describe("script property commands are validated before mutation", () => {
   });
 
   it("names the entity and tick when a 3D setProp would exceed the props bound", async () => {
-    const document = document3D({ props: { a: "a".repeat(20_000) }, behaviors: [{ kind: "script", maxTickMs: 40,
+    const document = document3D({ props: { a: "a".repeat(20_000) }, behaviors: [{ kind: "script", maxTickMs: 20,
       source: "({tick}) => ({state:null,commands:tick===1?[{kind:'setProp',key:'b',value:'b'.repeat(50000)}]:[]})" }] });
     const session = await createGameSession3D(document, 1);
     try {
@@ -141,7 +141,7 @@ describe("world.get and tag queries carry entity metadata", () => {
   });
 
   it("returns 3D metadata from world.get and matches tags", async () => {
-    const document = document3D({ tags: ["observer"], props: { nested: { nullable: null } }, behaviors: [{ kind: "script", maxTickMs: 40,
+    const document = document3D({ tags: ["observer"], props: { nested: { nullable: null } }, behaviors: [{ kind: "script", maxTickMs: 20,
       source: "({entity,world:listed}) => ({state:{got:world.get(entity.id),hits:world.query({tag:'observer'}),listed:listed.find(item=>item.id===entity.id)},commands:[]})" }] });
     const session = await createGameSession3D(document, 1);
     try {

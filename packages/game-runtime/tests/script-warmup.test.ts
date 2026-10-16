@@ -42,13 +42,13 @@ function fixture(): GameDocument {
   const base = createTopDownRoomGame("a".repeat(32));
   return gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: [
     ...scene.entities.map((entity) => ({ ...entity, behaviors: [] })),
-    { id: "worker", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source: freshSource, maxTickMs: 50, maxCommands: 8 }] }
+    { id: "worker", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source: freshSource, maxTickMs: 20, maxCommands: 8 }] }
   ] })) });
 }
 
 const call: GameScriptCall = { sourceKey: scriptSourceKey("room", "worker", 0), stateKey: scriptSourceKey("room", "worker", 0), entityId: "worker",
   source: "worker", state: 1, x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false },
-  maxTickMs: 50, maxCommands: 8 };
+  maxTickMs: 20, maxCommands: 8 };
 const input = { tick: 0, pressed: [], justPressed: [], events: [], world: [] };
 
 describe("one-time script setup", () => {

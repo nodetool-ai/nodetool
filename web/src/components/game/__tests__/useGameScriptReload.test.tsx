@@ -8,7 +8,7 @@ import { gameSourceEditDocument, useGameScriptReload } from "../useGameScriptRel
 function document(source: string): GameDocument {
   const base = createTopDownRoomGame("source-filter");
   return gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) =>
-    entity.id === "player" ? { ...entity, behaviors: [{ kind: "script", source, maxTickMs: 30 }] } : entity) })) });
+    entity.id === "player" ? { ...entity, behaviors: [{ kind: "script", source, maxTickMs: 20 }] } : entity) })) });
 }
 
 it("copies existing script sources while retaining structural changes and script budgets until restart", () => {
@@ -20,7 +20,7 @@ it("copies existing script sources while retaining structural changes and script
   });
   const candidate = gameSourceEditDocument(current, draft);
   expect(candidate.scenes[0].name).toBe(current.scenes[0].name);
-  expect(candidate.scenes[0].entities.find((entity) => entity.id === "player")?.behaviors[0]).toMatchObject({ source: "() => ({ state: 1 })", maxTickMs: 30 });
+  expect(candidate.scenes[0].entities.find((entity) => entity.id === "player")?.behaviors[0]).toMatchObject({ source: "() => ({ state: 1 })", maxTickMs: 20 });
   expect(current.scenes[0].entities.find((entity) => entity.id === "player")?.behaviors[0]).toMatchObject({ source: "() => ({})" });
 });
 
@@ -86,7 +86,7 @@ for (const change of ["remove", "reorder"] as const) {
   it(`keeps running script identities after a behavior ${change}`, () => {
     const current = document("() => ({ state: 'a' })");
     const player = current.scenes[0].entities.find((entity) => entity.id === "player")!;
-    player.behaviors.push({ kind: "script", source: "() => ({ state: 'b' })", maxCommands: 16, maxTickMs: 30 });
+    player.behaviors.push({ kind: "script", source: "() => ({ state: 'b' })", maxCommands: 16, maxTickMs: 20 });
     const draft = structuredClone(current);
     const edited = draft.scenes[0].entities.find((entity) => entity.id === "player")!;
     if (change === "remove") { edited.behaviors.shift(); } else { edited.behaviors.reverse(); }
@@ -113,7 +113,7 @@ it("publishes a reload diagnostic when the failed session cannot snapshot", asyn
 it("suppresses structurally edited lists even when every reordered script source was also edited", () => {
   const current = document("() => ({ state: 'a' })");
   const player = current.scenes[0].entities.find((entity) => entity.id === "player")!;
-  player.behaviors.push({ kind: "script", source: "() => ({ state: 'b' })", maxCommands: 16, maxTickMs: 30 });
+  player.behaviors.push({ kind: "script", source: "() => ({ state: 'b' })", maxCommands: 16, maxTickMs: 20 });
   const draft = structuredClone(current);
   const edited = draft.scenes[0].entities.find((entity) => entity.id === "player")!;
   edited.behaviors.reverse();
