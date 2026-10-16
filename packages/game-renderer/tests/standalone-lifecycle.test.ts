@@ -95,13 +95,17 @@ beforeEach(() => {
   Reflect.deleteProperty(window, "nativeGamePlayer");
 });
 
-async function startPlayer(): Promise<void> {
+async function launchPlayer(): Promise<void> {
   const game = gameDocument.parse(createTopDownRoomGame("Save lifecycle"));
   document.body.innerHTML = '<canvas id="game"></canvas><div id="status"></div><div id="touch"></div>' +
     ["pause", "step", "reset", "save", "load", "fullscreen"].map((id) => `<button id="${id}">${id}</button>`).join("");
   vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => game })));
   vi.stubGlobal("matchMedia", () => ({ matches: false }));
   await import("../src/standalone-player.js");
+}
+
+async function startPlayer(): Promise<void> {
+  await launchPlayer();
   await vi.waitFor(() => expect(window.nativeGamePlayer).toBeDefined());
   window.nativeGamePlayer.pause();
 }
@@ -253,4 +257,51 @@ describe("standalone explicit frame rendering", () => {
     expect(window.nativeGamePlayer.snapshot().tick).toBe(0);
   });
 
+});
+
+
+describe("standalone startup presentation", () => {
+  it("does not announce readiness or schedule simulation before the first render succeeds", async () => {
+    const first = Promise.withResolvers<void>();
+    observed.nextRender = first.promise;
+    const animation = vi.spyOn(window, "requestAnimationFrame");
+    await launchPlayer();
+    await vi.waitFor(() => expect(observed.rendered).toContain(0));
+    expect(document.getElementById("status")?.textContent).not.toContain("Ready");
+    expect(animation).not.toHaveBeenCalled();
+    expect(observed.sessions[0]?.snapshot().tick).toBe(0);
+    first.resolve();
+    await vi.waitFor(() => expect(document.getElementById("status")?.textContent).toContain("Ready"));
+    expect(animation).toHaveBeenCalled();
+    window.nativeGamePlayer.pause();
+  });
+
+  it("never starts simulation when the initial render rejects", async () => {
+    const first = Promise.withResolvers<void>();
+    observed.nextRender = first.promise;
+    observed.renderFailure = new Error("Required effect presentation failed");
+    const animation = vi.spyOn(window, "requestAnimationFrame");
+    await launchPlayer();
+    await vi.waitFor(() => expect(observed.rendered).toContain(0));
+    const session = observed.sessions[0]!;
+    expect(session.snapshot().tick).toBe(0);
+    const step = vi.spyOn(session, "step");
+    first.resolve();
+    await vi.waitFor(() => expect(document.getElementById("status")?.textContent).toContain("Required effect presentation failed"));
+    expect(animation).not.toHaveBeenCalled();
+    expect(step).not.toHaveBeenCalled();
+    expect(() => session.snapshot()).toThrow(/disposed/);
+  });
+});
+
+it("keeps startup render ownership when Reset is clicked before readiness", async () => {
+  const first = Promise.withResolvers<void>();
+  observed.nextRender = first.promise;
+  await launchPlayer();
+  await vi.waitFor(() => expect(observed.rendered).toContain(0));
+  document.getElementById("reset")?.click();
+  first.resolve();
+  await vi.waitFor(() => expect(document.getElementById("status")?.textContent).toContain("Ready"));
+  expect(window.nativeGamePlayer.snapshot().tick).toBe(0);
+  window.nativeGamePlayer.pause();
 });

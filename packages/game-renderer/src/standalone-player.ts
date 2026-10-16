@@ -71,6 +71,8 @@ async function start(): Promise<void> {
 }
 
 async function startPlayer(game: GameDocument, verifiedAssets: VerifiedStandaloneAssets): Promise<void> {
+  const playbackControls = ["pause", "step", "reset", "save", "load"].map(element);
+  for (const control of playbackControls) { control.setAttribute("disabled", ""); }
   const fonts = await loadBrowserGameFonts(game, async (assetId) => {
     const logicalId = Object.keys(game.assets).find((id) => game.assets[id]?.assetId === assetId);
     return logicalId === undefined ? null : verifiedAssets.url(logicalId);
@@ -377,7 +379,7 @@ async function startPlayer(game: GameDocument, verifiedAssets: VerifiedStandalon
       }
     }).finally(() => finishReplacement(signal));
   });
-  window.addEventListener("beforeunload", () => {
+  function disposePlayer(): void {
     if (disposed) { return; }
     disposed = true;
     replacement.abort();
@@ -390,7 +392,16 @@ async function startPlayer(game: GameDocument, verifiedAssets: VerifiedStandalon
     fonts.dispose();
     audio.dispose();
     verifiedAssets.dispose();
-  });
+  }
+  window.addEventListener("beforeunload", disposePlayer);
+  try { await renderExplicit(replacement.signal); }
+  catch (error: unknown) {
+    setPaused(true);
+    disposePlayer();
+    throw error;
+  }
+  lastTime = performance.now();
+  for (const control of playbackControls) { control.removeAttribute("disabled"); }
   window.nativeGamePlayer = Object.freeze({
     pause: () => setPaused(true),
     reset: async () => {
@@ -426,7 +437,6 @@ async function startPlayer(game: GameDocument, verifiedAssets: VerifiedStandalon
     })
   });
   showStatus(`Ready (${renderer.backend})${effectNotice ? ` · ${effectNotice}` : ""}${fonts.diagnostics.length ? ` · ${fonts.diagnostics.join("; ")}` : ""}`);
-  render(1);
   animationFrame = requestAnimationFrame(tick);
 }
 
