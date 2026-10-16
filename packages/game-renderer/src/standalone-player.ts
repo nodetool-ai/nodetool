@@ -4,6 +4,7 @@ import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "./audio.js";
 import { mountTouchControls, touchLayout } from "./touch-controls.js";
 import { browserGamepads, GameInput } from "./input-bindings.js";
+import { attachGameMouseInput } from "./mouse-input.js";
 import { attachGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
 import { gameUiViewport2D } from "./ui/hud2d.js";
 import { resolveGameInputBindings } from "@nodetool-ai/protocol";
@@ -115,7 +116,8 @@ async function start(): Promise<void> {
   const input = new GameInput();
   // HUD buttons press their input actions on the same input, by pointer, touch or gamepad focus.
   const hud = new GameUiController(input, browserGameUiMeasure(game.id));
-  attachGameUiPointer(canvas, hud, () => gameUiViewport2D(latest));
+  const detachHud = attachGameUiPointer(canvas, hud, () => gameUiViewport2D(latest), () => !paused);
+  const detachMouse = attachGameMouseInput(canvas, input, { active: () => !paused && !document.hidden });
   let hudInsets = browserGameUiInsets(canvas, gameUiViewport2D(latest));
   window.addEventListener("resize", () => { hudInsets = browserGameUiInsets(canvas, gameUiViewport2D(latest)); });
   function releaseAll(): void {
@@ -288,6 +290,8 @@ async function start(): Promise<void> {
     }).catch((error) => showStatus(error instanceof Error ? error.message : "Save could not be loaded"));
   });
   window.addEventListener("beforeunload", () => {
+    detachMouse();
+    detachHud();
     cancelAnimationFrame(animationFrame);
     session.dispose();
     renderer.dispose();

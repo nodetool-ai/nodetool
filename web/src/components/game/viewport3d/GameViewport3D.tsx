@@ -5,7 +5,8 @@ import { BoxHelper, Box3, GridHelper, Matrix4, Object3D, OrthographicCamera, Per
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { FlyControls } from "three/addons/controls/FlyControls.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
-import type { GameDocument3D, GameRenderFrame3D } from "@nodetool-ai/protocol";
+import { resolveGameInputBindings, type GameDocument3D, type GameRenderFrame3D } from "@nodetool-ai/protocol";
+import { attachGameMouseInput } from "@nodetool-ai/game-renderer";
 import type { GameDocumentOp3D } from "@nodetool-ai/game-runtime";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
 import CenterFocusStrongOutlinedIcon from "@mui/icons-material/CenterFocusStrongOutlined";
@@ -431,6 +432,16 @@ export default function GameViewport3D({ document, host, selectedIds = NO_IDS, h
 
   useEffect(() => {
     const canvas = host.canvasRef.current;
+    if (!canvas || !host.playDocument || !host.playing) { return; }
+    const mouseLook = resolveGameInputBindings(host.playDocument).look.some((binding) => binding.kind === "mouse");
+    return attachGameMouseInput(canvas, host.inputRef.current, {
+      active: () => host.playing,
+      lookEnabled: () => mouseLook
+    });
+  }, [host.canvasRef, host.inputRef, host.playDocument, host.playing]);
+
+  useEffect(() => {
+    const canvas = host.canvasRef.current;
     if (!canvas || !host.playDocument) { return; }
     const lockChange = (): void => { if (window.document.pointerLockElement !== canvas) { host.inputRef.current.release(); } };
     window.document.addEventListener("pointerlockchange", lockChange);
@@ -581,19 +592,7 @@ export default function GameViewport3D({ document, host, selectedIds = NO_IDS, h
         }}
         onKeyUp={(event) => host.inputRef.current.keyUp(event.code)}
         onBlur={() => host.inputRef.current.release()}
-        onPointerDown={(event) => {
-          const canvas = host.canvasRef.current;
-          canvas?.focus();
-          if (!canvas || !host.playDocument || !host.playing) { return; }
-          if (window.document.pointerLockElement === canvas) { host.inputRef.current.mouseDown(event.button); return; }
-          void canvas.requestPointerLock()?.catch(() => undefined);
-        }}
-        onPointerUp={(event) => host.inputRef.current.mouseUp(event.button)}
-        onPointerMove={(event) => {
-          if (host.playDocument && (window.document.pointerLockElement === host.canvasRef.current || event.buttons === 2)) {
-            host.inputRef.current.look(event.movementX, event.movementY);
-          }
-        }}
+        onPointerDown={() => host.canvasRef.current?.focus()}
         onContextMenu={(event) => event.preventDefault()}
         sx={{ display: "block", width: "100%", height: "100%", touchAction: "none", outline: "none",
           "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: "-2px" } }} />

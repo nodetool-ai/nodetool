@@ -4,6 +4,7 @@ import { gameDocument3D, resolveGameInputBindings, type GameInputFrame3D, type G
 import { createGameRenderer3D } from "./browser3d.js";
 import { GameInput3D } from "./input3d.js";
 import { browserGamepads } from "./input-bindings.js";
+import { attachGameMouseInput } from "./mouse-input.js";
 import { mountTouchControls, touchLayout } from "./touch-controls.js";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "./audio.js";
 import { FixedTickClock } from "./fixed-tick-host.js";
@@ -103,11 +104,10 @@ async function start(): Promise<void> {
   // A locked pointer has no position, so HUD hits wait until the mouse is released.
   const hud = new GameUiController(input, browserGameUiMeasure(game.id));
   const hudViewport = gameUiViewport3D(game);
-  const detachHud = attachGameUiPointer(canvas, hud, () => hudViewport, () => document.pointerLockElement !== canvas);
+  const detachHud = attachGameUiPointer(canvas, hud, () => hudViewport, () => !paused && !contextPaused && document.pointerLockElement !== canvas);
   let hudInsets = browserGameUiInsets(canvas, hudViewport);
   window.addEventListener("resize", () => { hudInsets = browserGameUiInsets(canvas, hudViewport); }, { signal: controller.signal });
-  let dragging = false;
-  const release = (): void => { hud.release(); input.release(); dragging = false; };
+  const release = (): void => { hud.release(); input.release(); };
   window.addEventListener("keydown", (event) => {
     input.keyDown(event.code, event.key);
     if (input.handlesKey(game, event.code, event.key)) { event.preventDefault(); }
@@ -128,21 +128,11 @@ async function start(): Promise<void> {
   };
   if (window.matchMedia("(pointer: coarse)").matches) { enableTouch(); }
   window.addEventListener("touchstart", enableTouch, { passive: true, signal: controller.signal });
-  // A touch that reaches the canvas, outside the touch zones or before they appear, fires on tap and turns the camera on drag.
-  canvas.addEventListener("pointerdown", (event) => {
-    // A press on a HUD button stays with the HUD.
-    if (event.defaultPrevented) { return; }
-    dragging = true;
-    canvas.setPointerCapture(event.pointerId);
-    input.mouseDown(event.button);
-    if (event.pointerType !== "touch" && (mouseFire || mouseLook) && document.pointerLockElement !== canvas) {
-      void canvas.requestPointerLock().catch(() => { status(mouseFire ? "Mouse capture unavailable. Hold and drag to aim, or press F to fire." : "Mouse capture unavailable. Drag to turn the camera."); });
-    }
-  }, { signal: controller.signal });
-  window.addEventListener("pointerup", (event) => { dragging = false; input.mouseUp(event.button); }, { signal: controller.signal });
-  canvas.addEventListener("pointercancel", release, { signal: controller.signal });
-  document.addEventListener("pointerlockchange", () => { if (document.pointerLockElement !== canvas) { release(); } }, { signal: controller.signal });
-  canvas.addEventListener("pointermove", (event) => { if (dragging || document.pointerLockElement === canvas) { input.look(event.movementX, event.movementY); } }, { signal: controller.signal });
+  const detachMouse = attachGameMouseInput(canvas, input, {
+    active: () => !paused && !contextPaused && !document.hidden,
+    lookEnabled: () => mouseLook,
+    onLockFailure: () => status("Mouse capture unavailable. Drag to turn the camera.")
+  });
   window.addEventListener("blur", release, { signal: controller.signal });
   const clock = new FixedTickClock(game.tickRate);
   function setPaused(next: boolean): void {
@@ -201,6 +191,7 @@ async function start(): Promise<void> {
     cancelAnimationFrame(animationId);
     controller.abort();
     unmountTouch?.();
+    detachMouse();
     detachHud();
     session.dispose();
     renderer.dispose();

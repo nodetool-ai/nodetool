@@ -599,3 +599,28 @@ it("hot reloads source during play, retains state, and keeps the last compiled s
     expect(store.getState().groups.at(-1)?.message).toBe("speed 9 state 0");
   } finally { view.unmount(); animation.mockRestore(); jest.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession); }
 });
+
+it("produces authored 2D mouse actions through the actual shared player session hook", async () => {
+  const source = createTopDownRoomGame("mouse-hook");
+  const game = gameDocument.parse({ ...source, inputActions: [...source.inputActions, "fire"],
+    inputBindings: { actions: { fire: [{ kind: "mouseButton", button: 0 }] } } });
+  let sampledInput: import("@nodetool-ai/game-renderer").GameInput | undefined;
+  function MouseHarness() {
+    const host = useGamePlaySession({ refId: "mouse-hook", document: game, active: true });
+    sampledInput = host.inputRef.current;
+    return <><canvas ref={host.canvasRef} aria-label="Mouse game" /><button onClick={host.beginPlay}>Play</button>
+      <output aria-label="Mouse backend">{host.backend}</output><output aria-label="Mouse error">{host.error}</output></>;
+  }
+  const view = render(<MouseHarness />);
+  try {
+    await waitFor(() => expect(screen.getByLabelText("Mouse backend")).toHaveTextContent("Canvas 2D"));
+    await userEvent.setup().click(screen.getByRole("button", { name: "Play" }));
+    const canvas = screen.getByLabelText("Mouse game") as HTMLCanvasElement;
+    canvas.setPointerCapture = jest.fn();
+    act(() => {
+      canvas.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, button: 0, buttons: 1 }));
+      window.dispatchEvent(new MouseEvent("pointerup", { bubbles: true, button: 0, buttons: 0 }));
+    });
+    expect(sampledInput?.sample2D(game).justPressed).toEqual(["fire"]);
+  } finally { view.unmount(); }
+});

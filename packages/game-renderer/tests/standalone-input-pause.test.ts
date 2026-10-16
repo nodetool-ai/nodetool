@@ -69,7 +69,7 @@ afterEach(() => {
 it("drops a paused tap through the actual API and toolbar, then delivers one fresh resumed edge", async () => {
   const source = createTopDownRoomGame("Paused input");
   const game = gameDocument.parse({ ...source, inputActions: [...source.inputActions, "fire"],
-    inputBindings: { actions: { fire: [{ kind: "key", code: "KeyF" }] } } });
+    inputBindings: { actions: { fire: [{ kind: "key", code: "KeyF" }, { kind: "mouseButton", button: 0 }] } } });
   document.body.innerHTML = '<canvas id="game"></canvas><div id="status"></div><div id="touch"></div>' +
     ["pause", "step", "reset", "save", "load", "fullscreen"].map((id) => `<button id="${id}">${id}</button>`).join("");
   vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => game })));
@@ -90,4 +90,11 @@ it("drops a paused tap through the actual API and toolbar, then delivers one fre
   tap();
   await vi.waitFor(() => expect(observed.inputs.length).toBeGreaterThan(resumedAt + 1));
   expect(observed.inputs.slice(resumedAt).filter((input) => input.justPressed.includes("fire"))).toHaveLength(1);
+  const mouseAt = observed.inputs.length;
+  const canvas = document.getElementById("game") as HTMLCanvasElement;
+  canvas.setPointerCapture = vi.fn();
+  canvas.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, button: 0, buttons: 1 }));
+  window.dispatchEvent(new MouseEvent("pointerup", { bubbles: true, button: 0, buttons: 0 }));
+  await vi.waitFor(() => expect(observed.inputs.length).toBeGreaterThan(mouseAt));
+  expect(observed.inputs[mouseAt].justPressed).toEqual(["fire"]);
 });

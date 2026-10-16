@@ -5,7 +5,7 @@ import { gameDocument, gameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, gameScriptLogsOf, type GamePlayerSaves, type GameSession } from "@nodetool-ai/game-runtime";
 import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "@nodetool-ai/game-renderer/audio";
-import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, gameAudioVoiceCount, GameInput, GameParticles2D, GameUiController, gameUiViewport2D, type GameRenderer } from "@nodetool-ai/game-renderer";
+import { attachGameMouseInput, attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, gameAudioVoiceCount, GameInput, GameParticles2D, GameUiController, gameUiViewport2D, type GameRenderer } from "@nodetool-ai/game-renderer";
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
@@ -220,6 +220,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       const shown = lastPresentationRef.current?.frame;
       return shown ? gameUiViewport2D(shown) : undefined;
     }, () => playbackActiveRef.current);
+    const detachMouse = attachGameMouseInput(canvas, input, { active: () => playbackActiveRef.current });
     const audio = audioRef.current ?? new GameAudioPlayer({
       assets: sessionDocument.assets,
       scenes: sessionDocument.scenes,
@@ -294,6 +295,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     return () => {
       cancelled = true;
       sessionGenerationRef.current += 1;
+      detachMouse();
       detachHud();
       hud.release();
       if (hudRef.current === hud) { hudRef.current = null; }
