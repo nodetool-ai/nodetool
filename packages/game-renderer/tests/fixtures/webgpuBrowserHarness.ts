@@ -2,6 +2,7 @@ import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import { AssetCache, Canvas2DGameRenderer, type GameImage } from "../../src/canvas2d.js";
 import { WebGPUGameRenderer } from "../../src/webgpu.js";
 
+export { gameFontFamily } from "../../src/fonts.js";
 export { PARTICLE_DOT_ASSET } from "../../src/particles/render2d.js";
 
 export const SIZE = 64;
