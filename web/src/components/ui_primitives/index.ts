@@ -36,6 +36,10 @@ export type {
   SaveStateValue
 } from "./StatusBar";
 export type { ToolbarIconButtonProps } from "./ToolbarIconButton";
+export { PageLayout } from "./PageLayout";
+export type { PageLayoutProps } from "./PageLayout";
+export { PageHeader } from "./PageHeader";
+export type { PageHeaderProps, PageHeaderVariant } from "./PageHeader";
 
 // Export shortcut hint component
 export { ShortcutHint } from "./ShortcutHint";

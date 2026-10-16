@@ -891,6 +891,30 @@ render each rule at a docked width of 360px. Check a new panel against them.
 | Field rhythm | A label sits 4px above its field. Fields in a form are 12px apart (`gap={3}`), so each label reads with its own field. |
 | Tabs fit the panel | Small `TabGroup` tabs must all fit at 360px. Shorten the labels or drop the icons before the strip has to scroll. |
 
+### Page layout
+
+Every full page (a manager, a dashboard, a list surface) gets its title block
+from `PageHeader` in `ui_primitives`. Do not build a header from a raw `<h1>`,
+`Text size="big"` or a hand-written flex row with its own padding.
+
+| Primitive | Use |
+|---|---|
+| `PageLayout` | Full-screen chrome for a manager page: a `PageHeader` hero, then the rest of the viewport for the children. `padded` (default) pads and scrolls the content, `padded={false}` leaves a full-bleed layout to the child, `scrollable` scrolls without padding, `showHeader={false}` keeps the layout and drops the header. |
+| `PageHeader` | The page's `h1` with an optional `icon`, `subtitle`, `actions` and a docs button (`docsTopic` or `docsUrl`). `variant="hero"` (default) is the tinted icon chip over a gradient strip with a rule below. `variant="bar"` is the same strip without the gradient and with an unframed icon. `variant="plain"` has no padding, rule or background: place it in your own layout and set spacing through `sx`. |
+
+Rules:
+
+- A page with the manager look is a `PageLayout`. A page with its own body
+  layout (tutorials, a dashboard) renders `PageHeader` at the top of it.
+- A centred card or a one-screen consent flow is not a page layout. Use
+  `PageHeader variant="plain"` for its title, or no header.
+- A detail heading inside a page (a selected package or model) is not a page
+  header. Use `Text` with `size="big"`.
+- `subtitle` is one line. Use `hideSubtitleOnMobile` when the actions need the
+  room below `md`.
+- Section headings inside a page are `Text component="h2"` or `SectionHeader`,
+  never a raw `<h2>` or `<h3>` styled in a CSS block.
+
 ### Toolbars and status bars
 
 Every editor's top bar, bottom bar and floating bar comes from these

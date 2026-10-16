@@ -19,6 +19,7 @@ import {
   LoadingSpinner,
   NavButton,
   SPACING,
+  PageHeader,
   Text
 } from "../ui_primitives";
 import { trpcClient } from "../../trpc/client";
@@ -112,12 +113,11 @@ const OAuthConsentPage = () => {
   return (
     <FlexColumn align="center" justify="center" sx={{ minHeight: "60vh", padding: `${SPACING.xl}px` }}>
       <FlexColumn gap={2} sx={{ width: "100%", maxWidth: "480px" }}>
-        <Text size="big" sx={{ fontWeight: 500 }}>
-          {request.client_name}
-        </Text>
-        <Text className="description">
-          wants to connect to your NodeTool account.
-        </Text>
+        <PageHeader
+          variant="plain"
+          title={request.client_name}
+          subtitle="wants to connect to your NodeTool account."
+        />
 
         <FlexColumn gap={1} sx={{ mt: 1 }}>
           <FlexRow justify="space-between">

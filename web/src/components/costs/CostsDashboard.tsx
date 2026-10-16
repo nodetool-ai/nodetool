@@ -17,6 +17,7 @@ import {
   Box,
   FlexRow,
   FlexColumn,
+  PageHeader,
   Text,
   ToggleGroup,
   ToggleOption,
@@ -224,43 +225,35 @@ const CostsDashboard: React.FC = () => {
         }}
       >
         {/* header */}
-        <FlexRow
-          justify="space-between"
-          align="flex-start"
-          wrap
-          sx={{ rowGap: 2, mb: 3 }}
-        >
-          <FlexColumn gap={0.5}>
-            <Text
-              component="h1"
-              sx={{
-                fontSize: "var(--fontSizeBig)",
-                fontWeight: 600,
-                lineHeight: 1.1,
-                color: theme.vars.palette.text.primary
-              }}
-            >
-              Costs
-            </Text>
-            {view ? (
-              <Text size="normal" color="secondary">
+        <PageHeader
+          variant="plain"
+          title="Costs"
+          subtitle={
+            view ? (
+              <>
                 Spend per node execution across{" "}
                 <Text
                   component="span"
+                  size="small"
                   weight={600}
                   sx={{ color: theme.vars.palette.text.primary }}
                 >
                   {view.stats.workflowCount} workflows
                 </Text>{" "}
                 · {rangeLabel}
-              </Text>
+              </>
             ) : (
-              <Text size="normal" color="secondary">
-                Spend per node execution
-              </Text>
-            )}
-          </FlexColumn>
-
+              "Spend per node execution"
+            )
+          }
+          sx={{
+            flexWrap: "wrap",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            rowGap: 2,
+            mb: 3
+          }}
+          actions={
           <FlexRow gap={1.5} align="center" wrap sx={{ rowGap: 1 }}>
             <ToggleGroup
               exclusive
@@ -357,7 +350,8 @@ const CostsDashboard: React.FC = () => {
               </>
             )}
           </FlexRow>
-        </FlexRow>
+          }
+        />
 
         {isLoading ? (
           <StateMessage>
