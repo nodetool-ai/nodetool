@@ -16,7 +16,7 @@ import {
   type ModelLoadPhase,
   type ModelLoadUpdate
 } from "@nodetool-ai/runtime";
-import { getTransformersJsCacheDir } from "./transformers-base.js";
+import { getTransformersJsCacheDir } from "./cache-dir.js";
 
 /** One Transformers.js `progress_callback` event, as the library sends it. */
 export type TjsProgressInfo = Record<string, unknown>;

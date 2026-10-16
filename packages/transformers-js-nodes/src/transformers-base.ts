@@ -3,16 +3,13 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { tmpdir } from "node:os";
 import { join as joinPath } from "node:path";
-import {
-  createLogger,
-  getDefaultTransformersJsCacheDir,
-  importOptionalModule
-} from "@nodetool-ai/config";
+import { createLogger, importOptionalModule } from "@nodetool-ai/config";
 import { parseWavBytes } from "@nodetool-ai/audio-nodes";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { ModelCache, type DisposableModel } from "./model-cache.js";
+import { getTransformersJsCacheDir } from "./cache-dir.js";
 import { trackModelLoad } from "./model-load-progress.js";
 import { recommendedDtypeFor } from "./recommended-models.js";
 import type { MusicgenModel, MusicgenTokenizer } from "./music-shared.js";
@@ -111,23 +108,9 @@ type TransformersModule = {
 };
 
 let cachedModule: Promise<TransformersModule> | null = null;
-let cacheDirOverride: string | null = null;
-
-/**
- * Override the Transformers.js cache directory at runtime. Pass `null` to
- * revert to the default resolved by `getDefaultTransformersJsCacheDir()`.
- *
- * Must be called before the first `loadTransformers()` to take effect, since
- * `env.cacheDir` is set on the singleton module on first import.
- */
-export function setTransformersJsCacheDir(dir: string | null): void {
-  cacheDirOverride = dir;
-}
-
-/** Resolve the cache directory: explicit override → env var → data-dir default. */
-export function getTransformersJsCacheDir(): string {
-  return cacheDirOverride ?? getDefaultTransformersJsCacheDir();
-}
+// The cache directory lives in its own module, so model-load-progress.ts can
+// read it without importing this file.
+export { getTransformersJsCacheDir, setTransformersJsCacheDir } from "./cache-dir.js";
 
 /**
  * Lazily import `@huggingface/transformers`. Cached after first load.
