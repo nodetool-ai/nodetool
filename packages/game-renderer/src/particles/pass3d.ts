@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { RenderContext3D, RenderPipeline3D } from "../renderer3d/pipeline.js";
 import { PARTICLE_INSTANCE_STRIDE_3D, packParticleBatches3D, type ParticleBatch3D, type ParticleBatchShape3D } from "./particles3d.js";
 import type { GameParticleField } from "./render2d.js";
+import { ParticleTransparency3D } from "./transparency3d.js";
 
 /** Pass name in `RenderPipeline3D`. It runs before the scene pass so particles draw with the scene and its post-processing. */
 export const GAME_PARTICLE_PASS_3D = "particles";
@@ -123,14 +124,16 @@ type Draw = QuadDraw | MeshDraw;
 const UP = new THREE.Vector3(0, 1, 0);
 
 /**
- * Draws 3D particles: camera-facing and stretched billboards and instanced mesh shapes, one draw call per batch of
- * shape, blend and lighting. The pass runs before the scene pass and puts its meshes in the scene, so particles depth
+ * Draws 3D particles: camera-facing and stretched billboards and instanced mesh shapes, one draw call per contiguous
+ * compatible run between scene-transparency depths. The pass runs before the scene pass and puts its meshes in the scene, so particles depth
  * test against the scene and take its fog and post-processing. When a billboard has a softness distance, the pass
  * first renders the scene's depth into a texture and the billboard fades out where it nears the geometry behind it.
  */
 export class GameParticlePass3D {
   private readonly group = new THREE.Group();
   private readonly draws = new Map<string, Draw>();
+  private readonly transparency = new ParticleTransparency3D();
+  private renderer: THREE.WebGLRenderer | null = null;
   private batches: readonly ParticleBatch3D[] = [];
   private readonly quadGeometry = new THREE.PlaneGeometry(1, 1);
   /** Depth-only stand-ins for scene materials, so the depth pre-pass keeps each material's cut-outs and skips what never writes depth. */
@@ -164,6 +167,9 @@ export class GameParticlePass3D {
   }
 
   dispose(): void {
+    this.renderer?.setTransparentSort(null);
+    this.renderer = null;
+    this.transparency.clear();
     for (const draw of this.draws.values()) { this.release(draw); }
     this.draws.clear();
     this.group.removeFromParent();
@@ -175,23 +181,29 @@ export class GameParticlePass3D {
   }
 
   private prepare({ renderer, scene, camera, interpolation = 1 }: RenderContext3D): void {
+    if (this.renderer !== renderer) {
+      this.renderer?.setTransparentSort(null);
+      this.renderer = renderer;
+      renderer.setTransparentSort(this.transparency.compare);
+    }
+    this.transparency.clear();
     if (this.group.parent !== scene) { scene.add(this.group); }
     const field = this.host.particles();
     camera.getWorldPosition(this.cameraPosition);
     camera.getWorldDirection(this.cameraForward);
     const packed = field
       ? packParticleBatches3D(field, { x: this.cameraPosition.x, y: this.cameraPosition.y, z: this.cameraPosition.z,
-        forwardX: this.cameraForward.x, forwardY: this.cameraForward.y, forwardZ: this.cameraForward.z }, this.batches, interpolation)
+        forwardX: this.cameraForward.x, forwardY: this.cameraForward.y, forwardZ: this.cameraForward.z }, this.batches, interpolation,
+      () => this.transparency.depths(scene, camera, this.group))
       : { batches: [], drawn: 0, soft: false };
     this.batches = packed.batches;
     this.drawn = packed.drawn;
     this.frame += 1;
     for (const [order, batch] of packed.batches.entries()) {
       if (batch.shape === "quad") { this.updateQuads(batch); } else { this.updateMeshes(batch, batch.shape); }
-      // Three otherwise sorts each run by its object's origin, not its instance depths.
       const draw = this.draws.get(batch.key);
       if (!draw) { throw new Error(`Particle run ${batch.key} was not prepared`); }
-      draw.mesh.renderOrder = order;
+      this.transparency.add(draw.mesh, batch.depth, order, camera);
     }
     for (const [key, draw] of this.draws) {
       if (draw.frame !== this.frame) { this.release(draw); this.draws.delete(key); }

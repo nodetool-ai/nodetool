@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import type { RenderItem } from "three/src/renderers/webgl/WebGLRenderLists.js";
 import { describe, expect, it } from "vitest";
 import { gameDocument3D, gameInputFrame3D, gameParticleEmitter, gameParticles, type GameParticleEmitter, type GameRenderFrame3D } from "@nodetool-ai/protocol";
 import { createGameSession3D } from "@nodetool-ai/game-runtime";
@@ -264,10 +265,23 @@ describe("3D particle batches", () => {
   });
 });
 
+it("splits compatible particle runs around ordinary transparency without splitting equal-depth ties", () => {
+  const definition = emitter({});
+  const samples = [view(definition, { z: -7 }), view(definition, { z: -5 }), view(definition, { z: -3 }), view(definition, { z: -3 })];
+  let scans = 0;
+  const packed = packParticleBatches3D(field(samples), VIEWER, [], 1, () => { scans++; return [6, 3]; });
+  expect(packed.batches.map(batch => batch.count)).toEqual([1, 1, 2]);
+  expect(packed.batches.map(batch => batch.depth)).toEqual([7, 5, 3]);
+  expect(packed.drawn).toBe(4);
+  expect(new Set(packed.batches.map(batch => batch.key)).size).toBe(3);
+  expect(scans).toBe(1);
+  packParticleBatches3D(field([]), VIEWER, [], 1, () => { throw new Error("Empty fields must not scan scene geometry"); });
+});
+
 interface Recorded {
   readonly calls: string[];
   readonly context: RenderContext3D;
-  readonly renderer: { shadowMap: { autoUpdate: boolean }; target: unknown; info: { render: { calls: number; triangles: number } } };
+  readonly renderer: { transparentSort: ((a: RenderItem, b: RenderItem) => number) | null; shadowMap: { autoUpdate: boolean }; target: unknown; info: { render: { calls: number; triangles: number } } };
   /** The material each named scene mesh drew with in the depth pre-pass. */
   readonly depthMaterials: Map<string, THREE.Material>;
 }
@@ -277,6 +291,8 @@ function recordingContext(scene: THREE.Scene, camera: THREE.PerspectiveCamera): 
   const calls: string[] = [];
   const depthMaterials = new Map<string, THREE.Material>();
   const renderer = {
+    transparentSort: null as ((a: RenderItem, b: RenderItem) => number) | null,
+    setTransparentSort(compare: ((a: RenderItem, b: RenderItem) => number) | null) { this.transparentSort = compare; },
     shadowMap: { autoUpdate: true },
     info: { render: { calls: 5, triangles: 100 } },
     target: null as unknown,
@@ -388,7 +404,15 @@ describe("3D particle render pass", () => {
     expect(boxes.count).toBe(1);
     expect(boxes.material).toBeInstanceOf(THREE.MeshBasicMaterial);
     expect((boxes.material as THREE.Material).depthWrite).toBe(false);
-    expect(boxes.renderOrder).toBeLessThan(quads.renderOrder);
+    expect(boxes.renderOrder).toBe(0);
+    expect(quads.renderOrder).toBe(0);
+    const item = (object: THREE.Mesh): RenderItem => {
+      const material = Array.isArray(object.material) ? object.material[0] : object.material;
+      if (!material) { throw new Error("Particle draw control requires a material"); }
+      return { id: object.id, object, geometry: object.geometry, material, materialVariant: 0,
+        groupOrder: 0, renderOrder: object.renderOrder, z: 0, group: null };
+    };
+    expect(recorded.renderer.transparentSort?.(item(boxes), item(quads))).toBeLessThan(0);
     expect(boxes.geometry.getAttribute("particleOpacity").getX(0)).toBe(0.5);
     const matrix = new THREE.Matrix4();
     boxes.getMatrixAt(0, matrix);

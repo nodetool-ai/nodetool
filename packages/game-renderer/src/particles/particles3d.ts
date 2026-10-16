@@ -118,6 +118,8 @@ export interface ParticleBatch3D {
   readonly blend: "normal" | "additive";
   /** Mesh particles take scene lighting unless their emitter is `unlit`. Quads are always unlit. */
   readonly lit: boolean;
+  /** View depth of the first (farthest) particle, used to merge this run with scene transparency. */
+  depth: number;
   count: number;
   data: Float32Array;
 }
@@ -160,8 +162,10 @@ function batchKey(emitter: GameParticleEmitter): { key: string; shape: ParticleB
  * Sorts all visible particles before forming contiguous compatible runs. Equal depths retain field order.
  * A material may occur in multiple runs: joining those runs would move it across another transparent material.
  * Previous run buffers are reused, and no particles are dropped to reduce the draw count.
+ * Scene-depth boundaries split otherwise compatible runs so ordinary transparent objects can draw between them.
  */
-export function packParticleBatches3D(field: GameParticleField, viewer: ParticleViewer3D, previous: readonly ParticleBatch3D[] = [], interpolation = 1): PackedParticles3D {
+export function packParticleBatches3D(field: GameParticleField, viewer: ParticleViewer3D, previous: readonly ParticleBatch3D[] = [], interpolation = 1,
+  sceneDepths?: () => readonly number[]): PackedParticles3D {
   const batches: ParticleBatch3D[] = [];
   const kinds: ReturnType<typeof batchKey>[] = [];
   const emitterKinds = new Map<GameParticleEmitter, ReturnType<typeof batchKey>>();
@@ -207,19 +211,26 @@ export function packParticleBatches3D(field: GameParticleField, viewer: Particle
   const order = sortOrder.subarray(0, drawn).sort((first, second) => sortDepths[second] - sortDepths[first] || first - second);
   const reusable = new Map(previous.map(batch => [batch.key, batch]));
   const occurrences = new Map<string, number>();
+  // Query lazily: an empty field must not walk a potentially large scene.
+  const boundaries = drawn > 0 && sceneDepths ? [...sceneDepths()].sort((a, b) => b - a) : [];
+  let boundary = 0;
   for (let start = 0; start < drawn;) {
     const kind = kinds[order[start]];
+    const depth = sortDepths[order[start]];
+    while (boundary < boundaries.length && boundaries[boundary] >= depth) { boundary++; }
     let end = start + 1;
-    while (end < drawn && kinds[order[end]].key === kind.key) { end += 1; }
+    while (end < drawn && kinds[order[end]].key === kind.key
+      && (boundary === boundaries.length || sortDepths[order[end]] > boundaries[boundary])) { end += 1; }
     const occurrence = occurrences.get(kind.key) ?? 0;
     occurrences.set(kind.key, occurrence + 1);
     const key = occurrence === 0 ? kind.key : `${kind.key}:${occurrence}`;
     const count = end - start;
     const capacity = PARTICLE_INSTANCE_STRIDE_3D * 2 ** Math.ceil(Math.log2(count));
-    const batch = reusable.get(key) ?? { ...kind, key, count: 0, data: new Float32Array(capacity) };
+    const batch = reusable.get(key) ?? { ...kind, key, depth, count: 0, data: new Float32Array(capacity) };
     // Hysteresis avoids small size-change reallocations without retaining every run's historical peak.
     if (batch.data.length < capacity || batch.data.length > capacity * 4) { batch.data = new Float32Array(capacity); }
     batch.count = count;
+    batch.depth = depth;
     for (let index = start; index < end; index += 1) {
       const from = order[index] * PARTICLE_INSTANCE_STRIDE_3D;
       batch.data.set(sortData.subarray(from, from + PARTICLE_INSTANCE_STRIDE_3D), (index - start) * PARTICLE_INSTANCE_STRIDE_3D);
