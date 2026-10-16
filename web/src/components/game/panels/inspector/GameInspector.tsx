@@ -233,7 +233,7 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
       </InspectorSection>)}
       <FlexColumn sx={{ pt: SPACING.xs, pb: SPACING.sm, borderTop: 1, borderColor: "divider" }}>
         <InspectorAddMenu label="Add component" options={COMPONENTS.filter((component) => !entity[component]).map((component) => ({ value: component, label: displayKind(component),
-          disabled: ((component === "sprite" || component === "tilemap") && !firstSlot(document, "image")) || (component === "audioSource" && !firstSlot(document, "audio")) }))}
+          disabled: (component === "particles" && document.schemaVersion < 2) || ((component === "sprite" || component === "tilemap") && !firstSlot(document, "image")) || (component === "audioSource" && !firstSlot(document, "audio")) }))}
           onSelect={(component) => update({ [component]: newComponent(component as ComponentKind, document) } as Extract<GameDocumentOp, { op: "update_entity" }>["set"])} />
       </FlexColumn>
       <InspectorSection title="Behaviors">
