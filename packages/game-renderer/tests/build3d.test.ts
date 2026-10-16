@@ -57,7 +57,7 @@ describe("offline 3D export", () => {
     const directory = await root(); const output = join(directory, "game");
     const document = createNative3DGame("offline-replay");
     document.inputActions.push("e");
-    for (const scene of document.scenes) { for (const entity of scene.entities) { for (const behavior of entity.behaviors) { if (behavior.kind === "script") { behavior.maxTickMs = 50; } } } }
+    for (const scene of document.scenes) { for (const entity of scene.entities) { for (const behavior of entity.behaviors) { if (behavior.kind === "script") { behavior.maxTickMs = 20; } } } }
     const texture = createCanvas(2, 2);
     const context = texture.getContext("2d");
     context.fillStyle = "#ff6633";
