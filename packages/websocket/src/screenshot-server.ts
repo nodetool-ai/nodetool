@@ -1775,14 +1775,8 @@ const FAILING_RUN_WORKFLOW = makeWorkflow(
  * the run. UX research's `fix-error` task
  * starts here.
  */
-const OTHER_PROVIDER_WORKFLOW = makeWorkflow(
-  "wf-packing-list",
-  "Packing list",
-  "Turns trip notes into a packing list",
-  [],
-  "2026-01-05T09:00:00Z",
-  "private",
-  {
+function packingListGraph(model: Record<string, string>) {
+  return {
     nodes: [
       {
         id: "input-notes",
@@ -1798,12 +1792,7 @@ const OTHER_PROVIDER_WORKFLOW = makeWorkflow(
         id: "agent-packing",
         type: "nodetool.agents.Agent",
         data: {
-          model: {
-            type: "language_model",
-            provider: "anthropic",
-            id: "test-assistant-model",
-            name: "Test Assistant Model"
-          },
+          model,
           system: "Turn the trip notes into a short packing list."
         },
         ui_properties: { position: { x: 420, y: 0 }, width: 360 }
@@ -1831,19 +1820,77 @@ const OTHER_PROVIDER_WORKFLOW = makeWorkflow(
         targetHandle: "value"
       }
     ]
-  }
+  };
+}
+
+const OTHER_PROVIDER_WORKFLOW = makeWorkflow(
+  "wf-packing-list",
+  "Packing list",
+  "Turns trip notes into a packing list",
+  [],
+  "2026-01-05T09:00:00Z",
+  "private",
+  packingListGraph({
+    type: "language_model",
+    provider: "anthropic",
+    id: "test-assistant-model",
+    name: "Test Assistant Model"
+  })
 );
+
+/**
+ * The one document of the `working-run` state: the packing list workflow on
+ * the OpenAI test model, with an OpenAI key stored, so it runs as left. UX
+ * research's `add-step` task starts here: the participant extends a working
+ * graph on the canvas.
+ */
+const WORKING_RUN_WORKFLOW = makeWorkflow(
+  "wf-packing-list",
+  "Packing list",
+  "Turns trip notes into a packing list",
+  [],
+  "2026-01-05T09:00:00Z",
+  "private",
+  packingListGraph({
+    type: "language_model",
+    provider: "openai",
+    id: "test-chat-model",
+    name: "Test Chat Model"
+  })
+);
+
+async function seedOpenAiKey(): Promise<void> {
+  const now = new Date().toISOString();
+  await getPortableDb()
+    .insert(secrets)
+    .values({
+      id: "secret-openai-api-key",
+      user_id: USER_ID,
+      key: "OPENAI_API_KEY",
+      encrypted_value: encryptFernet(
+        getMasterKey(),
+        USER_ID,
+        "sk-screenshot-demo-openai-key"
+      ),
+      description: "OpenAI",
+      created_at: now,
+      updated_at: now
+    })
+    .onConflictDoNothing();
+}
 
 // `NODETOOL_QA_STATE=empty` starts with no workflows, threads, assets, or
 // secrets, as a new account does. First-time-user QA (agentic-qa) uses it.
 // `failing-run` is that account plus one workflow that fails until fixed.
 // `other-provider` is that account plus one workflow whose run fails because
-// it uses a provider the account has not connected.
+// it uses a provider the account has not connected. `working-run` is that
+// account plus a working workflow and a stored OpenAI key.
 const QA_STATE = process.env.NODETOOL_QA_STATE;
 const EMPTY_ACCOUNT =
   QA_STATE === "empty" ||
   QA_STATE === "failing-run" ||
-  QA_STATE === "other-provider";
+  QA_STATE === "other-provider" ||
+  QA_STATE === "working-run";
 
 async function seedForState(): Promise<void> {
   if (QA_STATE === "failing-run") {
@@ -1855,6 +1902,14 @@ async function seedForState(): Promise<void> {
     await Workflow.create(OTHER_PROVIDER_WORKFLOW);
     console.log(
       "[screenshot-server] Empty account with one workflow on an unconnected provider"
+    );
+    return;
+  }
+  if (QA_STATE === "working-run") {
+    await Workflow.create(WORKING_RUN_WORKFLOW);
+    await seedOpenAiKey();
+    console.log(
+      "[screenshot-server] Empty account with one working workflow and an OpenAI key"
     );
     return;
   }
@@ -1932,7 +1987,13 @@ if (HERMETIC) {
   // Serve `package://` assets (guided-flow previews, setup art) as the real
   // server does. The visual suites run without HERMETIC, so their baselines
   // keep the empty frames they were captured with.
-  const packageAssetsRoot = resolve(REPO_ROOT, "packages", "base-nodes", "nodetool", "assets");
+  const packageAssetsRoot = resolve(
+    REPO_ROOT,
+    "packages",
+    "base-nodes",
+    "nodetool",
+    "assets"
+  );
   if (existsSync(packageAssetsRoot)) {
     serverOptions.packageAssetsRoots = [packageAssetsRoot];
   }

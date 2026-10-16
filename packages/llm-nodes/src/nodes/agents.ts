@@ -1691,6 +1691,16 @@ export class AgentNode extends BaseNode {
     }
 
     if (structuredSchema && structuredResult) {
+      // A model that answers through submit_result writes no prose, which
+      // would leave the Text output empty next to the added outputs.
+      if (finalText.value === null) {
+        yield {
+          chunk: null,
+          thinking: null,
+          text: structuredResultText(structuredResult),
+          audio: null
+        };
+      }
       log.info("AgentNode yielding dynamic output tool result", {
         nodeId: this.__node_id ?? null,
         keys: Object.keys(structuredResult)
@@ -1735,7 +1745,7 @@ export class AgentNode extends BaseNode {
         nodeId: this.__node_id ?? null,
         keys: Object.keys(structuredResult)
       });
-      return structuredResult;
+      return { text: lastText, ...structuredResult };
     }
 
     log.info("AgentNode process() returning aggregate result", {
@@ -1752,6 +1762,20 @@ export class AgentNode extends BaseNode {
     };
   }
 
+}
+
+/**
+ * The Text output's reading of a submit_result call: a single value as is,
+ * several values as one `name: value` line each.
+ */
+export function structuredResultText(result: Record<string, unknown>): string {
+  const show = (value: unknown): string =>
+    isString(value) ? value : JSON.stringify(value);
+  const entries = Object.entries(result);
+  if (entries.length === 1) {
+    return show(entries[0][1]);
+  }
+  return entries.map(([key, value]) => `${key}: ${show(value)}`).join("\n");
 }
 
 export const AGENT_NODES = tagAsServer([

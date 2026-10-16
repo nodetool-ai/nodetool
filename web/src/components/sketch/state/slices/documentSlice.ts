@@ -242,6 +242,9 @@ export const createDocumentSlice: StateCreator<
       // Hydrate the separate toolSettings slice from the loaded document so
       // the runtime source of truth (store.toolSettings) matches what was saved.
       toolSettings: normalized.toolSettings,
+      // The swatch shows the ink the brush will draw with, so changing tools
+      // does not copy a different swatch color onto the brush.
+      foregroundColor: normalized.toolSettings.brush.color,
       ...initialHistory(normalized, get().selection),
       selectedLayerIds: [],
       layerShiftRangeAnchorId: null,
