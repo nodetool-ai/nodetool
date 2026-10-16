@@ -14,7 +14,7 @@ export async function decodePreparedGameCollider3D(bytes: Uint8Array, binding: E
   const digestBuffer = await globalThis.crypto.subtle.digest("SHA-256", buffer);
   const digest = Array.from(new Uint8Array(digestBuffer), (value) => value.toString(16).padStart(2, "0")).join("");
   if (digest !== binding.digest) throw new Error("Prepared collider digest mismatch");
-  const geometry = gamePreparedCollider3D.parse(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)));
+  const geometry = gamePreparedCollider3D.parse(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(buffer)));
   if (geometry.vertices.length / 3 !== binding.vertices || (geometry.indices?.length ?? 0) / 3 !== binding.triangles ||
     binding.shape === "triangleMesh" && !geometry.indices || binding.shape === "convexHull" && geometry.indices) {
     throw new Error("Prepared collider shape or geometry budget does not match its binding");
