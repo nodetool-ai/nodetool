@@ -114,13 +114,18 @@ export async function runInteractionSteps(
     }
     try {
       const result = await tool.execute(step.input);
+      const ok = !(isRecord(result) && result.ok === false);
+      const error = !ok && isRecord(result) && typeof result.error === "string"
+        ? result.error
+        : undefined;
       interactions.push({
         tool: step.tool,
         input: step.input,
-        ok: true,
-        result
+        ok,
+        result,
+        ...(error === undefined ? {} : { error })
       });
-      onLog?.(`✓ ${step.tool}`);
+      onLog?.(`${ok ? "✓" : "✗"} ${step.tool}${error ? `: ${error}` : ""}`);
     } catch (e) {
       const error = e instanceof Error ? e.message : String(e);
       interactions.push({

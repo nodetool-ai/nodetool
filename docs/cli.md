@@ -1084,11 +1084,27 @@ nodetool sketch versions delete <image_document_id> 3 --yes
 ### `nodetool jsscript`
 
 A JS script is a named, versioned script document: a body plus declared ports,
-secrets, a timeout, and saved test cases. The target of every
-subcommand is a script JSON file (a bare `JsScriptDocument` or anything carrying
-one under `document`) or a `js_scripts` row id.
+secrets, a timeout, and saved test cases. Commands that take a script target
+accept a script JSON file (a bare `JsScriptDocument` or anything carrying one
+under `document`) or a `js_scripts` row id.
 
-**Subcommands:** `validate`, `run`, `test`, `debug`, `versions`
+**Subcommands:** `schema`, `example`, `validate`, `run`, `test`, `debug`, `versions`
+
+#### `nodetool jsscript schema` and `example`
+
+Print the document JSON Schema or a runnable document with a saved test. Both
+write JSON to stdout and need no database or provider credentials.
+
+```bash
+nodetool jsscript schema
+nodetool jsscript example > script.json
+nodetool jsscript validate script.json --warnings-as-errors
+nodetool jsscript test script.json
+```
+
+Saved cases use `expect` for final output values and `expectedStreamed` for
+ordered `{name, value}` emissions. Unknown case fields, including `expected`,
+are errors so a misspelled assertion cannot pass without being graded.
 
 #### `nodetool jsscript validate <script_id_or_file>`
 
@@ -1111,10 +1127,11 @@ nodetool jsscript validate <js_script_id> --warnings-as-errors
 
 #### `nodetool jsscript run <script_id_or_file>`
 
-Execute the body once in the QuickJS sandbox and print its outputs, streamed
-emits, logs, and error. A body that reads its inputs with `stream` is fed with
-`--input-streams` instead of `--inputs`; a staged handle the script does not
-declare is refused.
+Validate the document, then execute the body once in the QuickJS sandbox and
+print its outputs, streamed emits, logs, and error. Declared outputs must use
+`await output(name, value)` or `await emit(name, value)`. A body that reads its
+inputs with `stream` is fed with `--input-streams` instead of `--inputs`. A
+staged handle the script does not declare is refused.
 
 **Options:**
 
@@ -1135,8 +1152,8 @@ nodetool jsscript run script.json --input-streams '{"numbers":[1,2,3]}'
 
 #### `nodetool jsscript test <script_id_or_file>`
 
-Run the document's own saved test cases and grade each one. Exits non-zero when
-any case fails, which makes it the regression check after an edit.
+Validate the document, then run its saved test cases and grade each one. Exit
+non-zero when validation or any case fails.
 
 **Options:**
 
@@ -1156,8 +1173,9 @@ nodetool jsscript test <js_script_id> --json
 #### `nodetool jsscript debug <script_id_or_file>`
 
 Replay each scripted step against the headless `ui_jsscript_*` bridge (the
-prefix is optional) and validate the document the session left behind. The
-editor, persistence of a debug session, and secret values are not simulated.
+prefix is optional) and validate the document the session left behind. A failed
+run or test result fails the interaction, report verdict, and command exit status.
+The editor, persistence of a debug session, and secret values are not simulated.
 
 **Options:**
 

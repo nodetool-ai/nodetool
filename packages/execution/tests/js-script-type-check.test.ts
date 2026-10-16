@@ -47,6 +47,15 @@ describe("validateJsScriptDoc packDtsSources", () => {
     expect(codes(validation)).toContain("js_script_type_error");
     expect(validation.errors.some((issue) => issue.message.includes("does-not-exist"))).toBe(true);
   });
+  it("accepts top-level await without requiring a forbidden export in the body", async () => {
+    const validation = await validateJsScriptDoc(
+      doc('await output("ok", true);'),
+      { packDtsSources }
+    );
+    expect(validation.ok).toBe(true);
+    expect(codes(validation)).not.toContain("js_script_type_error");
+  });
+
   it("fails naming caret when typewriter's caret option is the wrong shape", async () => {
     const validation = await validateJsScriptDoc(
       doc(`

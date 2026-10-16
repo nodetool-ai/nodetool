@@ -150,6 +150,8 @@ export interface CodeNodeValidationInput {
   connectedInputs?: readonly string[];
   /** Output handles the node declares (`dynamic_outputs` keys). */
   declaredOutputs: readonly string[];
+  /** Scripts always send outputs through emit/output, including non-streaming bodies. */
+  outputContract?: "emit";
   /** Output handles other nodes are wired to. A superset check on `keys`. */
   connectedOutputs?: readonly string[];
   /**
@@ -492,7 +494,7 @@ export function validateCodeNodeBody(
   // A body that calls `emit`/`output` names its handles, so the return-path
   // analysis below does not apply to it at all — its returns are control flow
   // and carry nothing.
-  if (usesEmitOutputContract(code)) {
+  if (input.outputContract === "emit" || usesEmitOutputContract(code)) {
     issues.push(...emitContractIssues(parsed.statements, declared, connected));
     return withUnusedInputs(issues, declaredInputsUnused);
   }

@@ -1039,6 +1039,8 @@ anything carrying one under `document`) or a `js_scripts` row id. A path that
 exists on disk wins over an id; file targets need no database.
 
 ```bash
+npm run dev:nodetool -- jsscript schema
+npm run dev:nodetool -- jsscript example > script.json
 npm run dev:nodetool -- jsscript validate <id|file.json> [--json] [--warnings-as-errors]
 npm run dev:nodetool -- jsscript run <id|file.json> --inputs '{"numbers":[1,2,3]}'
 npm run dev:nodetool -- jsscript run <id|file.json> --input-streams '{"numbers":[1,2,3]}'
@@ -1056,6 +1058,9 @@ and returns them instead of emitting them is an **error** — a script has no
 legacy return contract. Zero saved tests and a declared secret this install
 lacks are warnings.
 
+`run` and `test` validate the document before execution. Declared outputs must
+leave through `output` or `emit`. Saved test cases use `expect` for final values
+and `expectedStreamed` for ordered emissions. Unknown case fields are errors.
 `run` executes the body once in the QuickJS sandbox. A body that reads its
 inputs with `stream` is fed with `--input-streams '{handle: [item, …]}'` instead
 of `--inputs`; a staged handle the script does not declare is refused. `test`
@@ -1068,8 +1073,9 @@ imports a shipped sandbox pack. `run` and `test` open the database and install
 the sandbox pack catalog, so a body can import packs and save through
 `nodetool.*`. `debug` replays each
 `--interact` step against the headless `ui_jsscript_*` bridge (tool names with
-or without the prefix; a failing step is recorded and the script continues),
-validates the document the session left behind, and writes
+or without the prefix). A failed run or test result fails the interaction and
+report verdict. The session continues after failed steps, validates the document
+it left behind, and writes
 `nodetool-debug/jsscript-<id>-<ts>/` with `report.json`, `report.md` and
 `jsscript.json`. `versions restore` snapshots the pre-restore state first and
 re-validates against today's schema, so a restore that no longer validates exits
