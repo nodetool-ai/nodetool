@@ -9,7 +9,7 @@ import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
 import { getGameConsoleStore } from "../../../../stores/game/GameConsoleStore";
 import GamePanelHeader from "../../GamePanelHeader";
 import {
-  Box, BORDER_RADIUS, Caption, CONTROL, Divider, EditorButton, FieldDensityContext, FlexColumn, FlexRow, FONT_SIZE_SANS, ScrollArea,
+  Box, BORDER_RADIUS, Caption, CONTROL, Divider, EditorButton, FieldDensityContext, FlexColumn, FlexRow, FONT_SIZE_SANS, LOG_LINE_STYLE, logLevelColor, ScrollArea,
   SearchInput, SPACING, TextLink, Tooltip, ToolbarIconButton, TYPOGRAPHY
 } from "../../../ui_primitives";
 import { gameConsolePrompt } from "../../gameAssistantPrompt";
@@ -40,9 +40,7 @@ const LEVEL_LABEL: Readonly<Record<GameConsoleLevel, { readonly one: string; rea
 const NO_ENTRIES: readonly GameConsoleEntry[] = [];
 
 function levelColor(theme: Theme, level: GameConsoleLevel): string {
-  if (level === "error") { return theme.vars.palette.error.main; }
-  if (level === "warning") { return theme.vars.palette.warning.main; }
-  return theme.vars.palette.text.secondary;
+  return logLevelColor(theme, level === "log" ? "info" : level);
 }
 
 function LevelIcon({ level, color }: { readonly level: GameConsoleLevel; readonly color: string }): ReactNode {
@@ -130,7 +128,7 @@ export default function GameConsolePanel({ gameId, document, liveEntries = NO_EN
                 <LevelIcon level={group.level} color={levelColor(theme, group.level)} />
               </Box>
               <Box component="span" id={`${lineId}-${group.id}`} sx={{
-                ...TYPOGRAPHY.mono.code, flex: 1, minWidth: 0, color: "text.primary", overflowWrap: "anywhere", whiteSpace: "pre-wrap"
+                ...LOG_LINE_STYLE, flex: 1, minWidth: 0, color: "text.primary"
               }}>{group.message}</Box>
               <FlexRow gap={SPACING.sm} align="center" sx={{ flexShrink: 0, minHeight: "1.5em", ...TYPOGRAPHY.mono.code }}>
                 {group.count > 1 && <Caption component="span" color="secondary" aria-label={`Repeated ${group.count} times`} sx={{

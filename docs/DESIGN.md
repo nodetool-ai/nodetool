@@ -126,6 +126,21 @@ import { TYPOGRAPHY, Text, Label, Caption } from "../ui_primitives";
 ```
 {% endraw %}
 
+### Code and monospace text
+
+Mono type (`--fontFamily2`) is for code, values and logs. Three primitives cover it, so nothing sets `fontFamily2` or `monospace` by hand for these roles.
+
+| Need | Primitive |
+|---|---|
+| A command, path, flag or literal inside a sentence | `Code` |
+| Several lines of preformatted text (tool arguments, JSON, a stack trace) | `CodeBlock`, with `language` and `copyable` for a header, `tone="error"` for failures |
+| Streaming or accumulated output with levels | `LogView` (`debug`, `info`, `success`, `warning`, `error`; `autoScroll`, `copyable`) |
+
+- Never write a bare `<code>` or `<pre>` with local styles. Use `Code` and `CodeBlock`.
+- `CodeBlock` is plain text. Syntax highlighting and SVG preview belong to the chat markdown renderer.
+- A virtualised console keeps its own row layout and takes the line style from `LOG_LINE_STYLE` and the level colour from `logLevelColor`.
+- Mono text elsewhere (a value in a table cell, a key) uses `Text family="secondary"` or `TYPOGRAPHY.mono.*`.
+
 ### Heading Collapse Rule
 
 HTML headings map to two type styles only:
