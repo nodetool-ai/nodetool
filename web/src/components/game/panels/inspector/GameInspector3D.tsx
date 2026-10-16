@@ -18,6 +18,7 @@ import ScriptParamsEditor from "../../inspector/editors/ScriptParamsEditor";
 import CollisionMatrixEditor from "../../inspector/editors/CollisionMatrixEditor";
 import PhysicsMaterialsEditor from "../../inspector/editors/PhysicsMaterialsEditor";
 import EnvironmentPresetEditor from "../../inspector/editors/EnvironmentPresetEditor";
+import DecalEditor3D from "../../inspector/editors/DecalEditor3D";
 import { AddButton, RowAction } from "../../inspector/InspectorParts";
 import { gameSchemaFields } from "../../inspector/schemaForm";
 
@@ -32,7 +33,7 @@ interface GameInspector3DProps {
 
 const TRANSFORM_LABELS = { position: "Position", rotation: "Rotation", scale: "Scale" } as const;
 const TRANSFORM_UNITS = { position: "Position in meters", rotation: "Rotation in degrees", scale: "Scale factor" } as const;
-const ENTITY_FIELDS = gameSchemaFields(gameEntity3D.omit({ id: true, name: true, transform3d: true, behaviors: true }));
+const ENTITY_FIELDS = gameSchemaFields(gameEntity3D.omit({ id: true, name: true, transform3d: true, behaviors: true, decal3d: true }));
 const SCENE_FIELDS = gameSchemaFields(gameScene3D.omit({ id: true, entities: true }));
 const ICON_SX = { fontSize: FONT_SIZE_SANS.title, color: "text.secondary", flexShrink: 0 } as const;
 const ACTION_SX = { width: CONTROL.height.xs, height: CONTROL.height.xs, p: SPACING.none, flexShrink: 0, "& svg": { fontSize: "1.1em" } } as const;
@@ -123,6 +124,7 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
         onClick={() => onOps([{ op: "remove_entity", scene_id: sceneId, entity_id: entity.id }])} />
     </FlexRow>
     <GameOverrideFields document={document} sceneId={sceneId} entityId={entity.id} onOps={onOps} />
+    <DecalEditor3D key={entity.id} document={document} sceneId={sceneId} entityId={entity.id} onOps={onOps} />
     <SchemaFields schema={ENTITY_FIELDS} value={components} path="entity" assets={document.assets} componentSections
       componentEditors={GAME_COMPONENT_EDITORS} dimension="3d"
       collisionLayers={document.collisionLayers} physicsMaterials={physicsMaterialNames} beforeSections={<InspectorSection title="Transform">

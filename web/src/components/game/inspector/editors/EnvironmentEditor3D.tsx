@@ -29,7 +29,7 @@ export default function EnvironmentEditor3D({ value, onChange, path, issuePath, 
       }} /></InspectorFieldRow>
     {fog && <SchemaFields schema={mode === "height" ? HEIGHT_FIELDS : LINEAR_FIELDS} value={fog} path={fogPath}
       issuePath={[...issuePath, "fog"]} issues={issues} assets={assets} onChange={(value) => {
-        const edited = mode === "height" ? gameHeightFog3D.parse({ ...value as object, kind: "height" }) : value;
+        const edited = mode === "height" ? gameHeightFog3D.parse(value) : value;
         onChange(gameEnvironment3D.parse({ ...base, fog: edited }));
       }} />}
   </FlexColumn>;
