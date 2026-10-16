@@ -27,6 +27,7 @@ import {
   ProgressBar,
   reducedMotion,
   SPACING,
+  StatusDot,
   Z_INDEX
 } from "../ui_primitives";
 import type {
@@ -51,11 +52,6 @@ const treeStyles = (theme: Theme) =>
     fontSize: "var(--fontSizeSmall)",
     lineHeight: 1.5,
     userSelect: "text",
-
-    "@keyframes tlPulse": {
-      "0%, 100%": { opacity: 1 },
-      "50%": { opacity: 0.4 }
-    },
 
     ".plan-card": {
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -99,21 +95,7 @@ const treeStyles = (theme: Theme) =>
       gap: theme.spacing(0.5),
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
-      whiteSpace: "nowrap",
-      "&::before": {
-        content: '""',
-        width: 6,
-        height: 6,
-        borderRadius: BORDER_RADIUS.circle,
-        background: "currentColor"
-      }
-    },
-
-    ".plan-dot.completed::before": { background: theme.vars.palette.success.main },
-    ".plan-dot.running::before": { background: theme.vars.palette.info.main },
-    ".plan-dot.failed::before": { background: theme.vars.palette.error.main },
-    ".plan-dot.waiting::before": {
-      background: theme.vars.palette.action.disabled
+      whiteSpace: "nowrap"
     },
 
     ".plan-body": {
@@ -278,16 +260,7 @@ const treeStyles = (theme: Theme) =>
 
     ".tl-meta.running": {
       fontFamily: theme.fontFamily1,
-      color: theme.vars.palette.info.main,
-      "&::before": {
-        content: '""',
-        width: 6,
-        height: 6,
-        borderRadius: BORDER_RADIUS.circle,
-        background: "currentColor",
-        animation: `tlPulse ${MOTION.pulse} infinite`,
-        ...reducedMotion({ animation: "none" })
-      }
+      color: theme.vars.palette.info.main
     },
 
     ".tl-meta.waiting": {
@@ -582,7 +555,10 @@ const StepNode: React.FC<{
             <span className={`tl-name ${step.status}`}>{displayName}</span>
           </FlexRow>
           {step.status === "running" ? (
-            <span className="tl-meta running">In progress</span>
+            <span className="tl-meta running">
+              <StatusDot tone="info" pulse />
+              In progress
+            </span>
           ) : step.duration !== undefined ? (
             <span className="tl-meta">
               <AccessTimeRoundedIcon aria-hidden />
@@ -662,7 +638,10 @@ const TaskNode: React.FC<{
             )}
           </FlexRow>
           {task.status === "running" ? (
-            <span className="tl-meta running">In progress</span>
+            <span className="tl-meta running">
+              <StatusDot tone="info" pulse />
+              In progress
+            </span>
           ) : task.status === "waiting" ? (
             <span className="tl-meta waiting">waiting</span>
           ) : (
@@ -714,7 +693,10 @@ const PlanningLog: React.FC<{
             <div className="tl-content">
               <div className="tl-row">
                 <span className="planning-phase">Planning</span>
-                <span className="tl-meta running">In progress</span>
+                <span className="tl-meta running">
+              <StatusDot tone="info" pulse />
+              In progress
+            </span>
               </div>
             </div>
           </div>
@@ -748,7 +730,10 @@ const PlanningLog: React.FC<{
             <div className="tl-content">
               <div className="tl-row">
                 <span className="planning-phase">{entry.phase}</span>
-                {isRunning && <span className="tl-meta running">In progress</span>}
+                {isRunning && <span className="tl-meta running">
+              <StatusDot tone="info" pulse />
+              In progress
+            </span>}
               </div>
               {entry.content ? (
                 <div className="planning-content">{entry.content}</div>
@@ -812,16 +797,28 @@ const ExecutionTree: React.FC<ExecutionTreeProps> = ({ state, onToggleTask }) =>
             </span>
             <div className="plan-dots">
               {counts.completed > 0 && (
-                <span className="plan-dot completed">{counts.completed}</span>
+                <span className="plan-dot">
+                  <StatusDot tone="success" />
+                  {counts.completed}
+                </span>
               )}
               {counts.running > 0 && (
-                <span className="plan-dot running">{counts.running}</span>
+                <span className="plan-dot">
+                  <StatusDot tone="info" />
+                  {counts.running}
+                </span>
               )}
               {counts.failed > 0 && (
-                <span className="plan-dot failed">{counts.failed}</span>
+                <span className="plan-dot">
+                  <StatusDot tone="error" />
+                  {counts.failed}
+                </span>
               )}
               {counts.waiting > 0 && (
-                <span className="plan-dot waiting">{counts.waiting}</span>
+                <span className="plan-dot">
+                  <StatusDot sx={{ bgcolor: "action.disabled" }} />
+                  {counts.waiting}
+                </span>
               )}
             </div>
           </FlexRow>

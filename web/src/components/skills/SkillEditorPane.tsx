@@ -27,8 +27,8 @@ import {
   LoadingSpinner,
   TextInput,
   FormField,
-  BORDER_RADIUS,
   SPACING,
+  StatusDot,
   getSpacingPx
 } from "../ui_primitives";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
@@ -58,13 +58,6 @@ const styles = (theme: Theme) =>
       gap: getSpacingPx(SPACING.lg),
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.background.paper
-    },
-    ".dirty-dot": {
-      width: getSpacingPx(SPACING.md),
-      height: getSpacingPx(SPACING.md),
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: theme.vars.palette.warning.main,
-      flex: "0 0 auto"
     },
     ".editor-host": {
       flex: 1,
@@ -446,7 +439,7 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
         />
         <FlexRow align="center" gap={SPACING.micro} sx={{ px: SPACING.xs }}>
           {isDirty && (
-            <span className="dirty-dot" aria-label="Unsaved changes" />
+            <StatusDot tone="warning" size="medium" label="Unsaved changes" />
           )}
           {updateMutation.error && (
             <ReportBugButton

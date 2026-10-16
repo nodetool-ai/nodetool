@@ -157,8 +157,14 @@ export type { BreadcrumbsProps, BreadcrumbItem } from "./Breadcrumbs";
 export { WarningBanner } from "./WarningBanner";
 export type { WarningBannerProps, BannerVariant } from "./WarningBanner";
 
-export { NotificationBadge } from "./NotificationBadge";
-export type { NotificationBadgeProps } from "./NotificationBadge";
+export { CountBadge } from "./CountBadge";
+export type { CountBadgeProps } from "./CountBadge";
+
+export { StatusDot } from "./StatusDot";
+export type { StatusDotProps, StatusDotTone } from "./StatusDot";
+
+export { MediaLabel } from "./MediaLabel";
+export type { MediaLabelProps, MediaLabelCorner } from "./MediaLabel";
 
 export { UndoRedoButtons } from "./UndoRedoButtons";
 export type { UndoRedoButtonsProps } from "./UndoRedoButtons";

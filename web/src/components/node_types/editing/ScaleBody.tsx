@@ -12,7 +12,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { SPACING, NodeSlider, BORDER_RADIUS } from "../../ui_primitives";
+import { SPACING, MediaLabel, NodeSlider, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImagePreview from "./ImagePreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -61,18 +61,6 @@ const styles = (theme: Theme) =>
         maxWidth: "100%",
         maxHeight: "100%",
         objectFit: "contain"
-      },
-      ".dimensions-badge": {
-        position: "absolute",
-        bottom: theme.spacing(SPACING.micro),
-        right: theme.spacing(SPACING.micro),
-        padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`,
-        background: theme.vars.palette.c_scrim,
-        color: theme.vars.palette.common.white,
-        fontFamily: theme.fontFamily2,
-        fontSize: theme.fontSizeSmaller,
-        borderRadius: BORDER_RADIUS.sm,
-        pointerEvents: "none"
       }
     },
     ".controls": {
@@ -182,9 +170,9 @@ const ScaleBodyInner: React.FC<ScaleBodyProps> = ({
       <div className="preview-area">
         <ImagePreview value={previewValue} />
         {previewDims.width != null && previewDims.height != null && (
-          <span className="dimensions-badge">
+          <MediaLabel corner="bottom-right">
             {previewDims.width} × {previewDims.height}
-          </span>
+          </MediaLabel>
         )}
       </div>
 
