@@ -73,6 +73,7 @@ const GameCard = memo(function GameCard({
         alt={`${game.name} gameplay`}
         aspectRatio="16/9"
         loading="lazy"
+        showSkeleton
         preferThumbnail
       />
       <FlexColumn gap={SPACING.xs} padding={PADDING.normal}>

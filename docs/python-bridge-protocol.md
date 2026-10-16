@@ -27,7 +27,7 @@ The TypeScript runtime uses stdio instead of a localhost socket for the worker b
 - `stdin` / `stdout`: binary protocol traffic
 - `stderr`: worker logs and startup diagnostics
 
-The interpreter is the first match of: the `pythonPath` option or `NODETOOL_PYTHON`, the active `CONDA_PREFIX` when it looks like a NodeTool environment (named `nodetool` or `conda_env`), then the NodeTool-managed conda environments for the platform.
+The interpreter is the first match of: the `pythonPath` option or `NODETOOL_PYTHON`, the active `CONDA_PREFIX` when it looks like a NodeTool environment (named `nodetool`, `nodetool_env` or `conda_env`), then the configured NodeTool environment and the NodeTool-managed conda environments for the platform.
 
 In production (`NODETOOL_ENV=production`) the stdio bridge refuses to start unless `NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION=1`. The WebSocket bridge is allowed in production.
 
@@ -165,7 +165,7 @@ messages (each carrying partial `outputs`/`blobs`) followed by a terminal
 
 ### `cancel`
 
-Requests cooperative cancellation for an in-flight `execute` or streaming provider request.
+Requests cooperative cancellation for an in-flight request. The frame is `{"type": "cancel", "request_id": "<id of the request to cancel>", "data": {}}`.
 
 ### `provider.*`
 
@@ -335,6 +335,18 @@ The worker forwards `NodeProgress` messages from Python execution as protocol-le
     "total": 100,
     "message": "Downloading model"
   }
+}
+```
+
+### `update`
+
+Log, preview, and binary updates that a node posts while it runs, sent for `execute` and `execute.stream` requests. `data.type` discriminates the payload (`log_update`, `preview_update`, `binary_update`).
+
+```json
+{
+  "type": "update",
+  "request_id": "e1",
+  "data": { "type": "log_update", "...": "..." }
 }
 ```
 

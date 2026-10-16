@@ -7,6 +7,7 @@ import type { Asset } from "../../../../stores/ApiTypes";
 import type { Entity } from "@nodetool-ai/protocol";
 import {
   findMentionTrigger,
+  removeMentionToken,
   useTextareaAssetMention
 } from "../useTextareaAssetMention";
 import type { AssetMentionMenuProps } from "../../../node_types/editing/promptComposer/AssetMentionMenu";
@@ -151,6 +152,29 @@ const Harness: React.FC<{
   );
 };
 
+describe("removeMentionToken", () => {
+  const cut = (value: string, start: number, end: number) => {
+    const { head, tail } = removeMentionToken(value, { start, end });
+    return head + tail;
+  };
+
+  it("drops the space before a token that ends the text", () => {
+    expect(cut("according to @no", 13, 16)).toBe("according to");
+  });
+
+  it("keeps one space between the words around a mid-sentence token", () => {
+    expect(cut("according to @ my notes", 13, 14)).toBe("according to my notes");
+  });
+
+  it("drops the space after a token at the start of the text", () => {
+    expect(cut("@fox runs", 0, 4)).toBe("runs");
+  });
+
+  it("keeps a newline before the token", () => {
+    expect(cut("line1\n@foo", 6, 10)).toBe("line1\n");
+  });
+});
+
 describe("useTextareaAssetMention", () => {
   beforeEach(() => setActiveTab.mockClear());
 
@@ -187,9 +211,23 @@ describe("useTextareaAssetMention", () => {
 
     await user.keyboard("{Enter}");
     expect(onSelectAsset).toHaveBeenCalledWith(MOCK_ASSETS[1]);
-    // The `@fo` trigger text is removed, leaving just what preceded it.
-    await waitFor(() => expect(textarea.value).toBe("hi "));
+    // The `@fo` trigger text and the space before it are removed.
+    await waitFor(() => expect(textarea.value).toBe("hi"));
     expect(screen.queryByTestId("asset-mention-menu")).not.toBeInTheDocument();
+  });
+
+  it("leaves a single space when the sentence goes on after a picked asset", async () => {
+    const user = userEvent.setup();
+    render(<Harness onSelectAsset={jest.fn()} />);
+    const textarea = screen.getByLabelText("prompt") as HTMLTextAreaElement;
+
+    await user.type(textarea, "When is the next meeting, according to @");
+    await user.click(await screen.findByTestId("tile-a1"));
+    await user.type(textarea, " my notes?");
+
+    expect(textarea.value).toBe(
+      "When is the next meeting, according to my notes?"
+    );
   });
 
   it("selects on tile click", async () => {

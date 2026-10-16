@@ -655,6 +655,29 @@ describe("useFloatingToolbarActions", () => {
       expect(result.current.isWorkflowRunning).toBe(true);
     });
 
+    it("drops Error · Retry once the graph is edited after a failed run", () => {
+      mockUseWebsocketRunner.mockImplementation(runnerInState("error"));
+      let editGeneration = 4;
+      mockUseNodes.mockImplementation((selector) =>
+        selectFrom<NodeStoreState>({
+          workflow: mockWorkflow,
+          autoLayout: mockAutoLayout,
+          workflowJSON: mockWorkflowJSON,
+          editGeneration
+        })(selector)
+      );
+
+      const { result, rerender } = renderHook(() =>
+        useFloatingToolbarActions()
+      );
+      expect(result.current.runControlLabel).toBe("Error · Retry");
+
+      editGeneration = 5;
+      rerender();
+
+      expect(result.current.runControlLabel).toBe("Run entire workflow");
+    });
+
     it("exposes idle state", () => {
       mockUseWebsocketRunner.mockImplementation(runnerInState("idle"));
 

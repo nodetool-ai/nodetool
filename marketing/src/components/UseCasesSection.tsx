@@ -65,7 +65,7 @@ export default function UseCasesSection({
               }}
             >
               <Tilt3D className="h-full">
-                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
+                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-xs overflow-hidden transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
                   {/* Image */}
                   <div className="relative h-48 w-full overflow-hidden">
                     <Image
@@ -78,11 +78,11 @@ export default function UseCasesSection({
                   </div>
 
                   {/* Content */}
-                  <div className="p-6 flex-grow flex flex-col">
+                  <div className="p-6 grow flex flex-col">
                     <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-blue-200 transition-colors">
                       {item.name}
                     </h3>
-                    <p className="text-slate-400 leading-relaxed flex-grow">
+                    <p className="text-slate-400 leading-relaxed grow">
                       {item.description}
                     </p>
 

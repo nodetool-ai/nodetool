@@ -254,6 +254,27 @@ describe("useDirectScreenplay", () => {
     expect(result.current.error).toBeNull();
   });
 
+  // The ratio is the creator's input to the run, not something the Director
+  // chooses. The fake provider answers every free string with "fake", which
+  // left the Look step's select blank and every card's media box with no
+  // height (study 4, D2 and D3).
+  it("keeps the board's aspect ratio when the answer names another one", async () => {
+    const reply = answer(2);
+    rpcRequest.mockResolvedValue({
+      ...reply,
+      data: { ...reply.data, aspect_ratio: "fake" }
+    });
+    const { result } = renderHook(() => useDirectScreenplay());
+
+    await act(async () => {
+      await result.current.direct(BOARD, 2);
+    });
+
+    const board = useStoryboardStore.getState().getBoard(BOARD);
+    expect(board?.aspectRatio).toBe("9:16");
+    expect(board?.screenplay?.aspect_ratio).toBe("9:16");
+  });
+
   // F15: the record is what the genre step computes from the board the run
   // left. The answer's style bible replaces the board's style, so a record
   // read off the board before the answer landed would never match.

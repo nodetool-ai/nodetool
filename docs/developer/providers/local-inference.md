@@ -52,7 +52,7 @@ llama.cpp also accepts a `models` top-level key as a fallback (`payload.data ?? 
 2. Secret store / env var (`LMSTUDIO_API_URL` / `LLAMA_CPP_URL` / `VLLM_BASE_URL`)
 3. Hard-coded default (LM Studio only — `http://127.0.0.1:1234`; llama.cpp and vLLM throw if unset)
 
-Trailing slashes are stripped before `/v1` is appended.
+Trailing slashes and a trailing `/v1` are stripped (`localServerRoot()`) before `/v1` is appended.
 
 **Default ports:**
 
@@ -66,7 +66,7 @@ Trailing slashes are stripped before `/v1` is appended.
 
 ## Registration
 
-All three are registered in `packages/runtime/src/providers/index.ts` inside a guard that skips the cloud profile — `isCloudProfileActive()` reads `NODETOOL_NODE_PROFILE` and `NODETOOL_ENV`, so a self-hosted deployment setting `NODETOOL_NODE_PROFILE=full` keeps them registered while the commercial cloud does not:
+The three server providers and `node_llama_cpp` are registered in `packages/runtime/src/providers/index.ts` inside a guard that skips the cloud profile — `isCloudProfileActive()` reads `NODETOOL_NODE_PROFILE` and `NODETOOL_ENV`, so a self-hosted deployment setting `NODETOOL_NODE_PROFILE=full` keeps them registered while the commercial cloud does not:
 
 ```typescript
 if (!_cloudProfile) {
@@ -81,8 +81,15 @@ if (!_cloudProfile) {
     PROVIDER_IDS.LLAMA_CPP,
     LlamaProvider,
     { LLAMA_CPP_URL: "" },
-    {},
+    { LLAMA_API_KEY: "", LLAMA_CPP_CONTEXT_LENGTH: "" },
     { access: "local_service", displayName: "llama.cpp server" }
+  );
+  registerBuiltinProvider(
+    PROVIDER_IDS.NODE_LLAMA_CPP,
+    NodeLlamaCppProvider,
+    {},
+    { NODE_LLAMA_CPP_MODELS_DIR: "", NODE_LLAMA_CPP_GPU_BACKEND: "" },
+    { access: "in_process", displayName: "llama.cpp local" }
   );
   registerBuiltinProvider(
     PROVIDER_IDS.VLLM,
@@ -126,7 +133,8 @@ Tool calls are always reported as supported (`hasToolSupport` returns `true`); w
 ### llama.cpp
 
 **Env var / settings key:** `LLAMA_CPP_URL` (required — no default)  
-**API key:** none (`sk-no-key-required` is sent automatically)
+**API key:** optional `LLAMA_API_KEY` for a server started with `--api-key` (otherwise `sk-no-key-required` is sent)  
+**Context length:** optional `LLAMA_CPP_CONTEXT_LENGTH`. `llama-server` fixes its context size at launch and its API does not report it, so set this to the `--ctx-size` value for NodeTool to know the window.
 
 Start the llama.cpp HTTP server:
 

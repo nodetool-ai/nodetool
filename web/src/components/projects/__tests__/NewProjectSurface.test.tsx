@@ -415,12 +415,20 @@ jest.mock("../../model_menu/LanguageModelMenuDialog", () => ({
   __esModule: true,
   default: ({
     open,
-    onModelChange
+    onModelChange,
+    selectedModel: current
   }: {
     open: boolean;
     onModelChange?: (model: unknown) => void;
+    selectedModel?: { id: string; provider?: string };
   }) =>
     open ? (
+      <>
+      {current && (
+        <span data-testid="picker-current">
+          {`${current.provider}/${current.id}`}
+        </span>
+      )}
       <button
         type="button"
         onClick={() =>
@@ -434,6 +442,7 @@ jest.mock("../../model_menu/LanguageModelMenuDialog", () => ({
       >
         Pick Claude
       </button>
+      </>
     ) : null
 }));
 
@@ -1220,6 +1229,23 @@ describe("NewProjectSurface", () => {
     expect(
       screen.getByRole("button", { name: "Model · Claude Sonnet 5" })
     ).toBeInTheDocument();
+  });
+
+  // UX study 4 D6: the picker opened here marked the current model only with
+  // a pin, where a node's picker marks it with a check.
+  it("tells the picker which model is current", async () => {
+    selectedModel = {
+      provider: "anthropic",
+      id: "claude-sonnet-5",
+      name: "Claude Sonnet 5"
+    };
+    renderSurface();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Model · Claude Sonnet 5" })
+    );
+    expect(await screen.findByTestId("picker-current")).toHaveTextContent(
+      "anthropic/claude-sonnet-5"
+    );
   });
 
   it("keeps the compose tab when a chat cannot be created", async () => {

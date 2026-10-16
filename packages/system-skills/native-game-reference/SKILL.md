@@ -110,7 +110,8 @@ Waiting for a processor does not count. A call ends only when both its CPU time
 and its wall time reach the limit. Browsers have no thread CPU clock, so there
 the limit counts wall time. The 50 ms script budget for a whole tick and the
 100 ms limit for evaluating a source during preparation count wall time on
-every host. A script that loops forever still ends at its limit.
+every host. A session's first scripted tick has 1,000 ms instead of 50 ms,
+because it runs each script for the first time. A script that loops forever still ends at its limit.
 
 ### Script parameters
 

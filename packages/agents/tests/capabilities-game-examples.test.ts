@@ -1,13 +1,14 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { createCanvas } from "@napi-rs/canvas";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 import { Asset, Game, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
-import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
-import type { AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
+import { assetObjectKey, InMemoryStorageAdapter } from "@nodetool-ai/storage";
+import { gameDocument3D, type AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 
@@ -91,4 +92,24 @@ describe("agent example games", () => {
     }
     expect(await agent.invoke("get_native_game", { game_id: result.game.id.slice(0, 12), view: "full" })).toMatchObject({ document: result.document });
   });
+
+  it("plays and replays Signal Forge using its installed prepared collider bytes", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const agent = run(USER, storage);
+    const installed = z.object({ game: z.object({ id: z.string() }), document: gameDocument3D }).parse(
+      await agent.invoke("install_example_game", { project_id: PROJECT, slug: "signal-forge" }));
+    const binding = installed.document.assets["forge-static-collisions"];
+    if (binding?.mediaKind !== "collider") { throw new Error("Signal Forge prepared collider is missing"); }
+    expect(await agent.invoke("playtest_native_game", { game_id: installed.game.id.slice(0, 12), seed: 1,
+      inputs: [{ pressed: [], ticks: 120 }], restore_at_tick: 60,
+      assertions: [{ no_script_errors: true }, { replay_matches: true }] }))
+      .toMatchObject({ dimension: "3d", ticks: 120, replay_matches: true, route_complete: true, script_error: null });
+    expect(await Asset.find(USER, binding.assetId)).toMatchObject({ project_id: PROJECT, content_type: "application/json" });
+    const key = assetObjectKey(USER, `${binding.assetId}.json`);
+    const original = await readFile(new URL("../../game-runtime/samples/signal-forge/assets/4083a3fff3aeda59dc2b9d8bc35f2789.json", import.meta.url));
+    expect(await storage.retrieve(storage.uriForKey(key))).toEqual(new Uint8Array(original));
+    await storage.store(key, new Uint8Array([0]), "application/json");
+    expect(await agent.invoke("playtest_native_game", { game_id: installed.game.id.slice(0, 12), inputs: [{ pressed: [], ticks: 1 }] }))
+      .toMatchObject({ code: "game3d_preparation_failed", error: expect.stringContaining("missing or changed") });
+  }, 30_000);
 });
