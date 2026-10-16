@@ -12,7 +12,7 @@ async function fixture() {
   const runner = await prepareGameScripts(gameDocument.parse(document), { callClock: { kind: "thread-cpu", now: () => cpu } });
   const sourceKey = scriptSourceKey("room", "player", 0);
   const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state: null,
-    x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 50 };
+    x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxCommands: 8, maxTickMs: 50 };
   return { runner, call, setCpu: (value: number) => { cpu = value; } };
 }
 
