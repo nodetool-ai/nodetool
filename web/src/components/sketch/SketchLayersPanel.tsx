@@ -86,6 +86,10 @@ import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { shallow } from "zustand/shallow";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { getRememberedModel } from "../../stores/lastModelStore";
+import {
+  deriveImageSizePreset,
+  resolveImageSize
+} from "../../stores/MediaGenerationStore";
 import { useSketchStore } from "./state/useSketchStore";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { getMergeSelectedLayersPlan } from "./layerMergeSelection";
@@ -574,9 +578,22 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           (b) => b.kind === "text-to-image" || b.kind === "image-to-image"
         )
         .pop();
-      const sourceLayerId =
+      const sourceLayer =
         kind === "image-to-image"
-          ? (directGenSourceLayers(layers, layerId)[0]?.id ?? null)
+          ? directGenSourceLayers(layers, layerId)[0]
+          : undefined;
+      const sourceLayerId = sourceLayer?.id ?? null;
+      // Match the output shape to the source photo (nearest supported
+      // ratio), so a 3:2 photo does not come back as a centred square.
+      const sourceWidth =
+        sourceLayer?.imageReference?.naturalWidth ??
+        sourceLayer?.contentBounds.width;
+      const sourceHeight =
+        sourceLayer?.imageReference?.naturalHeight ??
+        sourceLayer?.contentBounds.height;
+      const sourceSize =
+        sourceWidth && sourceHeight
+          ? deriveImageSizePreset(sourceWidth, sourceHeight)
           : null;
       // Fall back to the cross-session remembered image model so the first
       // generated layer in a fresh document still preselects a model.
@@ -588,6 +605,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         provider: lastDirectGen?.provider ?? remembered?.provider ?? "",
         model: lastDirectGen?.model ?? remembered?.model ?? "",
         sourceLayerId,
+        ...(sourceSize && {
+          resolution: sourceSize.resolution,
+          aspectRatio: sourceSize.aspectRatio,
+          ...resolveImageSize(sourceSize.resolution, sourceSize.aspectRatio)
+        }),
         status: "draft",
         versions: []
       });

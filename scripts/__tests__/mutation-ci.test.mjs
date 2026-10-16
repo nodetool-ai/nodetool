@@ -235,3 +235,21 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
     expect(workflow.on.pull_request.paths).toContain(path);
   }
 });
+
+
+it("prepares sandboxed Chromium before mutation baselines execute browser tests", () => {
+  const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/mutation-changed.yml", import.meta.url), "utf8"));
+  const steps = workflow.jobs["mutate-changed"].steps;
+  const mutation = steps.findIndex(step => step.name === "Mutate every assigned changed-function site");
+  const install = steps.findIndex(step => step.run === "npx playwright install --with-deps chromium");
+  const sandbox = steps.findIndex(step => step.name === "Enable and verify the Chromium sandbox");
+  expect(install).toBeGreaterThanOrEqual(0);
+  expect(sandbox).toBeGreaterThan(install);
+  expect(mutation).toBeGreaterThan(sandbox);
+  expect(steps[install].if).toBeUndefined();
+  expect(steps[sandbox].if).toBeUndefined();
+  expect(steps[sandbox].run).toContain("sudo apparmor_parser -r");
+  expect(steps[sandbox].run).toContain("chromiumSandbox: true");
+  expect(steps[sandbox].run).toContain("await browser.close()");
+  expect(steps[sandbox].run).not.toContain("--no-sandbox");
+});

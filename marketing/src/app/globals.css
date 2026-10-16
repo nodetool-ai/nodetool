@@ -1,8 +1,35 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+@theme {
+  --default-ring-width: 3px;
+  --default-ring-color: var(--color-blue-500);
+}
 
 @layer base {
+  /* Preserve the v3 reset while adopting the v4 compiler. */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  dialog {
+    margin: auto;
+  }
+
   :root {
     /* Core Gradients */
     --gradient-primary: linear-gradient(
@@ -43,8 +70,8 @@
   }
 
   body {
-    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", 
-      "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", 
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
       "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   }
 
@@ -123,11 +150,11 @@
   }
 
   .section-alt {
-    @apply relative backdrop-blur-sm;
+    @apply relative backdrop-blur-xs;
   }
 
   .section-dark {
-    @apply relative backdrop-blur-sm;
+    @apply relative backdrop-blur-xs;
   }
 
   .section-header {
@@ -141,7 +168,7 @@
   }
 
   .feature-card {
-    @apply relative overflow-hidden rounded-xl p-6 backdrop-blur-sm 
+    @apply relative overflow-hidden rounded-xl p-6 backdrop-blur-xs
            transition-all duration-500 shadow-lg text-slate-800;
     background: linear-gradient(
       135deg,
@@ -175,9 +202,9 @@
   }
 
   .feature-modal-close {
-    @apply absolute top-6 right-6 p-2 text-white/80 hover:text-white 
+    @apply absolute top-6 right-6 p-2 text-white/80 hover:text-white
            bg-slate-900/50 hover:bg-slate-900/70 rounded-full transition-all duration-200
-           backdrop-blur-sm;
+           backdrop-blur-xs;
   }
 
   .feature-card::before {
@@ -259,7 +286,7 @@
   }
 
   .tooltip::after {
-    @apply absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 
+    @apply absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1
            text-sm text-white bg-slate-800 rounded shadow-lg
            opacity-0 transition-opacity duration-200 whitespace-nowrap;
     content: attr(data-tooltip);
@@ -342,10 +369,6 @@
   .shadow-soft {
     box-shadow: 0 20px 60px -28px rgba(2, 6, 23, 0.7),
       0 8px 24px -10px rgba(120, 53, 15, 0.35);
-  }
-  .shadow-strong {
-    box-shadow: 0 30px 90px -32px rgba(2, 6, 23, 0.8),
-      0 16px 40px -16px rgba(120, 53, 15, 0.45);
   }
 
   /* Reusable glass gradient */
@@ -593,4 +616,9 @@
   height: 100%;
   border-radius: 0;
   object-fit: contain;
+}
+
+@utility shadow-strong {
+  box-shadow: 0 30px 90px -32px rgba(2, 6, 23, 0.8),
+    0 16px 40px -16px rgba(120, 53, 15, 0.45);
 }

@@ -92,7 +92,7 @@ below.
 | `mutation-testing.yaml` | Weekly, differential `nodetool-mutator` report over the mutation-tested packages | none/maintenance | Advisory |
 | `opencode.yml` | Interactive assistant on `/oc` comments | none/maintenance | Advisory |
 | `performance-optimization.yaml` | Weekly agent fixes React perf issues (memo, selectors) | none/maintenance | Advisory (`continue-on-error`) |
-| `publish.yaml` | Publish npm packages on a `v*` tag | none/maintenance | Required for its own job |
+| `publish.yaml` | Publish npm packages on a `v*` tag or manual dispatch, or resume a published prerelease | none/maintenance | Required for its own job |
 | `packed-core-cli.yml` | Install the core-only CLI tarballs and verify workflows, MCP, HTTP startup, codecs and dependency isolation | 2 | Required for its own job |
 | `quality-assurance.yaml` | Daily agent fixes failing typecheck/lint/tests on `main` | none/maintenance | Advisory (`continue-on-error`) |
 | `quality-guard.yml` | Reusable pre/post quality-gate wrapper. No workflow calls it | none/maintenance | Unused |
@@ -352,3 +352,25 @@ gh workflow run agent-pr-report.yml
 gh workflow run example-smoke-debug.yml
 gh workflow run user-journeys.yml
 ```
+
+## Recover a published prerelease
+
+If `publish.yaml` published its entire prerelease cohort but failed during
+verification or promotion, resume from the original run:
+
+```bash
+gh workflow run publish.yaml --ref main \
+  -f version="<prerelease-version>" \
+  -f resume_original_run_id="<original-run-id>"
+```
+
+The original run must have passed packing, both packed CLI smokes, and
+publication. Recovery restores its exact published tarballs after checking
+their integrity and provenance against the original source commit, ref, run,
+and attempt. It reads the catalog from the verified original artifact and runs
+the ordinary staging checks before promoting the CLI last. Recovery does not
+rebuild, repack, or publish package versions.
+
+Registry reads use exact-version metadata and share a bounded readiness
+deadline. Integrity and provenance failures stop verification. The trusted
+publisher still needs dist-tag permission for every package in the cohort.

@@ -34,6 +34,7 @@ import {
   formatDocumentSpend,
   type ProjectDocument
 } from "./projectStatus";
+import { relativeTime } from "../../utils/formatDateAndTime";
 
 interface ProjectDocumentCardProps {
   document: ProjectDocument;
@@ -62,6 +63,12 @@ const ProjectDocumentCard = ({
 }: ProjectDocumentCardProps) => {
   const handleOpen = useCallback(() => onOpen(document), [onOpen, document]);
   const progress = documentProgress(document);
+  const editedLine = documentEditedLine(document);
+  // A compact card's second row falls below the fold on a short screen, so
+  // its edit time sits on the title row instead.
+  const metaLine = [documentStatusLine(document), compact ? "" : editedLine]
+    .filter(Boolean)
+    .join(" · ");
   const canRename = Boolean(onRename) && tabCanRename(document.type);
   const [menuPosition, setMenuPosition] = useState<{
     x: number;
@@ -149,31 +156,40 @@ const ProjectDocumentCard = ({
                 {progress.label}
               </StatusPill>
             )}
-          </FlexRow>
-          <FlexRow align="baseline" gap={SPACING.md}>
-            <Caption
-              color="secondary"
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap"
-              }}
-            >
-              {[documentStatusLine(document), documentEditedLine(document)]
-                .filter(Boolean)
-                .join(" · ")}
-            </Caption>
-            {!compact && (
-              <Box
-                component="span"
-                sx={{ ...TYPOGRAPHY.mono.caption, color: "text.secondary" }}
+            {compact && editedLine && (
+              <Caption
+                color="secondary"
+                title={editedLine}
+                sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
               >
-                {formatDocumentSpend(document)}
-              </Box>
+                {relativeTime(document.updatedAt)}
+              </Caption>
             )}
           </FlexRow>
+          {(metaLine || !compact) && (
+            <FlexRow align="baseline" gap={SPACING.md}>
+              <Caption
+                color="secondary"
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {metaLine}
+              </Caption>
+              {!compact && (
+                <Box
+                  component="span"
+                  sx={{ ...TYPOGRAPHY.mono.caption, color: "text.secondary" }}
+                >
+                  {formatDocumentSpend(document)}
+                </Box>
+              )}
+            </FlexRow>
+          )}
           {!compact && isCopyableDocument(document) && (
             <CopyProjectDocumentAction
               document={document}

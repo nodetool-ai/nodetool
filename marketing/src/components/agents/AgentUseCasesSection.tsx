@@ -179,7 +179,7 @@ export default function AgentUseCasesSection({
               }}
             >
               <Tilt3D className="h-full">
-                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-8 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
+                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-xs p-8 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
                   {/* Icon */}
                   <div
                     className={`mb-6 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br ${item.iconBgFrom} ${item.iconBgTo} shadow-lg ring-1 ring-white/10 group-hover:scale-110 transition-transform duration-300`}
@@ -191,7 +191,7 @@ export default function AgentUseCasesSection({
                   <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-amber-200 transition-colors">
                     {item.name}
                   </h3>
-                  <p className="text-slate-400 leading-relaxed mb-4 flex-grow">
+                  <p className="text-slate-400 leading-relaxed mb-4 grow">
                     {item.description}
                   </p>
 

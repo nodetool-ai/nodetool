@@ -80,7 +80,7 @@ export default function AppBuilderSection() {
           transition={{ duration: 0.3 }}
           className="scroll-fade relative"
         >
-          <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 overflow-hidden shadow-2xl shadow-emerald-900/20 ring-1 ring-white/5 backdrop-blur-sm">
+          <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 overflow-hidden shadow-2xl shadow-emerald-900/20 ring-1 ring-white/5 backdrop-blur-xs">
             <Image
               src="/screen_app_builder.png"
               alt="NodeTool's app builder in Design view: a palette of widgets (text input, slider, switch, select, date input, resource picker) on the left, a mini app screen in the middle with a prompt field and a Run button, and a page inspector with app title and theme on the right"

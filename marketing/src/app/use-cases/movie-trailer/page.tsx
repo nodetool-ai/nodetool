@@ -198,7 +198,7 @@ export default function MovieTrailerUseCase() {
                     "radial-gradient(ellipse at center, rgba(245,158,11,0.22), rgba(244,63,94,0.16) 45%, transparent 72%)",
                 }}
               />
-              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-2 shadow-2xl backdrop-blur-sm">
+              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-2 shadow-2xl backdrop-blur-xs">
                 <video
                   src="/movie_trailer_example.mp4"
                   poster="/trailer-shot-1-800.webp"
@@ -219,7 +219,7 @@ export default function MovieTrailerUseCase() {
               />
               <a
                 href="#how-it-works"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:border-white/25 hover:bg-white/5"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-xs transition-all hover:border-white/25 hover:bg-white/5"
               >
                 <Play className="h-4 w-4" />
                 See how it works
@@ -248,7 +248,7 @@ export default function MovieTrailerUseCase() {
               viewport={{ once: true, margin: "-80px" }}
               transition={{ duration: 0.6 }}
             >
-              <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 shadow-xl backdrop-blur-sm">
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 shadow-xl backdrop-blur-xs">
                 <div className="flex items-center gap-2 border-b border-white/5 bg-slate-900/80 px-4 py-3">
                   <div className="h-3 w-3 rounded-full bg-sky-500/40" />
                   <div className="h-3 w-3 rounded-full bg-amber-500/40" />
@@ -279,7 +279,7 @@ export default function MovieTrailerUseCase() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.5, delay: i * 0.05 }}
-                  className="rounded-2xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-sm"
+                  className="rounded-2xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-xs"
                 >
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-300">
                     <step.icon className="h-5 w-5" />
@@ -449,7 +449,7 @@ export default function MovieTrailerUseCase() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.5, delay: i * 0.05 }}
-                  className="rounded-2xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-sm transition-colors hover:border-white/20"
+                  className="rounded-2xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-xs transition-colors hover:border-white/20"
                 >
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-500/25 bg-violet-500/10 text-violet-300">
                     <tweak.icon className="h-5 w-5" />
@@ -469,7 +469,7 @@ export default function MovieTrailerUseCase() {
         {/* Models */}
         <section className="relative py-20">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
-            <div className="rounded-3xl border border-white/10 bg-slate-900/40 p-8 backdrop-blur-sm md:p-12">
+            <div className="rounded-3xl border border-white/10 bg-slate-900/40 p-8 backdrop-blur-xs md:p-12">
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
                 <div>
                   <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
@@ -539,7 +539,7 @@ export default function MovieTrailerUseCase() {
               />
               <a
                 href="/#use-cases"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:border-white/25 hover:bg-white/5"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-xs transition-all hover:border-white/25 hover:bg-white/5"
               >
                 More use cases
                 <ArrowRight className="h-4 w-4" />

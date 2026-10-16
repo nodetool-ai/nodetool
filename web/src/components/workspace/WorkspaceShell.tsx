@@ -18,7 +18,7 @@ import {
   TOOLBAR_WIDTH,
   LEFT_PANEL_MIN_DRAWER_WIDTH
 } from "../../config/constants";
-import { MOTION, reducedMotion } from "../ui_primitives";
+import { LoadingSpinner, MOTION, reducedMotion } from "../ui_primitives";
 import WorkspaceTabBar from "./WorkspaceTabBar";
 import TabContent from "./TabContent";
 import WorkspaceTabLayer from "./WorkspaceTabLayer";
@@ -241,7 +241,7 @@ const WorkspaceShell = () => {
             >
               {!activeTab && (
                 <div className="workspace-empty">
-                  <Suspense fallback={null}>
+                  <Suspense fallback={<LoadingSpinner />}>
                     <NewProjectSurface />
                   </Suspense>
                 </div>
@@ -271,7 +271,7 @@ const WorkspaceShell = () => {
           {/* Notification popups belong to every tab type, not only the
               workflow editor. */}
           <Suspense fallback={null}>
-            <Alert />
+            <Alert inspectorShown={showWorkflowEditChrome} />
           </Suspense>
         </div>
       </div>

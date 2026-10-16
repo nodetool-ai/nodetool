@@ -1,5 +1,6 @@
 export { evaluateParticleCurve, evaluateParticleGradient, parseParticleColor, sampleParticleRange, type ParticleColor } from "./curves.js";
 export { ParticleRandom, particleSeed } from "./random.js";
+export { createGameParticlePreview, PARTICLE_PREVIEW_TICK_RATE, PARTICLE_PREVIEW_WIDTH, PARTICLE_PREVIEW_HEIGHT, type GameParticlePreview } from "./preview.js";
 export { sampleParticleShape, type ParticleDimension, type ParticleShapeSample } from "./shapes.js";
 export {
   DEFAULT_MAX_SCENE_PARTICLES,

@@ -7,6 +7,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import SketchLayersPanel from "../SketchLayersPanel";
 import { createDefaultLayer } from "../types";
 import type { BlendMode } from "../types";
+import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 
 // Media sources resolve through TanStack Query; these suites render no
 // QueryClientProvider, so use the manual mock (resolution itself is covered
@@ -122,6 +123,33 @@ describe("SketchLayersPanel imported layer source line", () => {
     expect(line).toHaveTextContent("Variation 1 · source 1536×1024 · contain");
     expect(line).not.toHaveTextContent("/api/storage");
     expect(line).not.toHaveTextContent(".png");
+  });
+});
+
+describe("SketchLayersPanel From image layer", () => {
+  it("defaults the output aspect to the source photo's ratio", () => {
+    useSketchSessionStore.getState().reset();
+    const { theme, layer, props } = buildPanelProps();
+    layer.name = "holiday-photo.jpg";
+    layer.imageReference = {
+      uri: "/api/storage/1/holiday-photo.jpg",
+      naturalWidth: 1200,
+      naturalHeight: 800,
+      objectFit: "contain"
+    };
+    render(
+      <ThemeProvider theme={theme}>
+        <SketchLayersPanel {...props} />
+      </ThemeProvider>
+    );
+
+    fireEvent.click(screen.getByTestId("layers-panel-add-image-to-image"));
+
+    const binding = Object.values(useSketchSessionStore.getState().bindings)[0];
+    expect(binding.kind).toBe("image-to-image");
+    expect(binding.sourceLayerId).toBe(layer.id);
+    expect(binding.aspectRatio).toBe("3:2");
+    expect(binding.width! / binding.height!).toBeCloseTo(1.5, 2);
   });
 });
 

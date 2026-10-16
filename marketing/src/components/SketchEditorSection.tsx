@@ -79,7 +79,7 @@ export default function SketchEditorSection() {
           transition={{ duration: 0.3 }}
           className="scroll-fade relative"
         >
-          <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 overflow-hidden shadow-2xl shadow-violet-900/20 ring-1 ring-white/5 backdrop-blur-sm">
+          <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 overflow-hidden shadow-2xl shadow-violet-900/20 ring-1 ring-white/5 backdrop-blur-xs">
             <Image
               src="/screen_sketch_editor.webp"
               alt="NodeTool's built-in sketch editor: a layered canvas holding an AI-generated 'Kung Fu' movie poster, with a brush toolbar and brush settings across the top, a color picker and a layers panel with text-to-image layers on the right, and a 'Describe the image' generate bar with a Flux Schnell model selector and an Export PNG button"

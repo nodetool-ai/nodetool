@@ -48,9 +48,11 @@ Installing and removing run only in the desktop app. In the web UI, the lists ar
 Installing a third-party pack runs none of its code and no lifecycle scripts. What happens next depends on what the pack contains:
 
 - **Sandbox modules only.** The pack is active right away. Its modules run inside the sandbox with the capabilities of the node that imports them.
-- **Host nodes.** The pack stays inactive until you switch on **Trusted** for it in the Third-party list. Trusting runs the pack's lifecycle scripts against the artifact that was installed.
+- **Host nodes.** The pack stays inactive until you click **Trust and rebuild** for it in the Third-party list. That button checks the installed files against the recorded lockfile identity, then runs the lifecycle scripts of the pack and its dependencies. If the files changed since install, it refuses and asks you to reinstall.
 
 The Third-party list shows each pack's mode, either sandbox modules only, host nodes, or both, and whether it is active.
+
+Separately, each discovered pack has a **Trusted** switch. It adds the pack name to the `allow` list in `~/.config/nodetool/packs.json` and re-scans packs. The **Load packs that are not on the allowlist** switch sets `allowUnlisted` in the same file. A host-node pack loads only when it is active and passes the allowlist rules in [Installing Packs via CLI](#third-party-and-python-packs). In production, the server refuses changes to trust, so edit the file or set `NODETOOL_PACKS_ALLOWLIST` instead.
 
 ---
 
@@ -74,6 +76,13 @@ installation in a non-interactive terminal. Temporary npx installations and
 development checkouts support diagnostics but refuse installation changes.
 Restart running `nodetool serve` and `nodetool mcp serve` processes after
 adding or removing packs. See [CLI pack commands](cli.md#nodetool-packs).
+
+Other `nodetool packs` subcommands:
+
+- `nodetool packs remove <ids...>` removes packs and keeps the requirements of the packs that stay.
+- `nodetool packs doctor` checks install mode, versions, integrity, and registration. It takes `--json`, `--installed`, `--pack <ids...>`, and `--repair`.
+- `nodetool packs why <node_type|id>` explains which pack owns a node or runtime library.
+- `nodetool packs compile` builds the npm-backed [sandbox modules](sandbox-package-design.md) of installed packs.
 
 ### Third-party and Python packs
 
@@ -110,6 +119,7 @@ The full server and desktop application include these first-party packs. The ids
 | **Kie.ai** | On | `kie` image and video models |
 | **Replicate** | On | `replicate` community models |
 | **Hugging Face** | On | `huggingface` Inference Providers nodes |
+| **whisper.cpp** | Off | `whisper_cpp` local streaming transcription |
 | **ElevenLabs** | Off | `elevenlabs` text-to-speech and voice |
 | **MiniMax** | Off | `minimax` image, video, and audio |
 | **Transformers.js** | Off | `transformers` local ONNX models |

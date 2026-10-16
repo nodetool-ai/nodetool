@@ -13,7 +13,7 @@ const WorkflowOverlay: React.FC<WorkflowOverlayProps> = ({
 }) => {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30"
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xs bg-black/30"
       onClick={(e) => onClose && e.target === e.currentTarget && onClose()}
     >
       <div className="bg-slate-900 rounded-lg shadow-lg w-4/5 h-4/5 flex flex-col overflow-hidden">
@@ -47,7 +47,7 @@ const WorkflowOverlay: React.FC<WorkflowOverlayProps> = ({
           )}
         </div>
 
-        <div className="flex-grow overflow-hidden">
+        <div className="grow overflow-hidden">
           <SimpleReactFlowWrapperWithProvider
             workflow={workflow}
             className="w-full h-full"

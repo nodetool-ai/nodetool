@@ -69,8 +69,12 @@ NodeTool uses manual thinking on models that accept `budget_tokens`:
 { "thinking": { "type": "enabled", "budget_tokens": 4096 } }
 ```
 
-This shape is not valid for every current model. The provider uses adaptive
-thinking for models that require it. Anthropic's
+This shape is not valid for every current model. `thinkingPolicy()` in
+`anthropic-provider.ts` matches model ids by substring: Fable 5 and Mythos 5 or
+Preview are `adaptive_required`, Sonnet 5 is `adaptive_default`, Opus 4.7 and 4.8
+are `adaptive_optional`, and every other id, including `claude-opus-5`, falls back
+to `manual`. Add a new adaptive-only family to that function before recommending
+it. Anthropic's
 [extended thinking guide](https://platform.claude.com/docs/en/build-with-claude/extended-thinking)
 requires adaptive configuration for Claude Fable 5, Claude Mythos 5 and
 Preview, Claude Opus 5, Claude Opus 4.8 and 4.7, and Claude Sonnet 5. Opus 5 and
@@ -87,9 +91,9 @@ tools must preserve signed thinking blocks unchanged across the tool-result turn
 ### Sampling parameters
 
 Anthropic rejects non-default `temperature`, `top_p`, and `top_k` on current
-adaptive-only/default model families, including Claude Opus 4.7 and later,
-Sonnet 5, Fable 5, and Mythos. The provider omits incompatible sampling
-parameters according to Anthropic's
+adaptive-only/default model families. The provider omits them for every model
+whose `thinkingPolicy()` is not `manual` (`rejectsCustomSampling()`), following
+Anthropic's
 [parameter deprecation table](https://platform.claude.com/docs/en/about-claude/model-deprecations#api-parameter-deprecations).
 
 ### Stop reasons

@@ -33,7 +33,8 @@ This inventory covers the shipped document components and the authoring, runtime
 | [Runtime](https://github.com/nodetool-ai/nodetool/tree/main/packages/game-runtime/src) | Validation, document operations, fixed-step systems, physics, script execution, snapshots, restore |
 | [2D renderer](https://github.com/nodetool-ai/nodetool/tree/main/packages/game-renderer/src) | Canvas2D/WebGPU drawing, backgrounds, lighting, effect chain, fonts, UI, audio, standalone players |
 | [3D renderer](https://github.com/nodetool-ai/nodetool/tree/main/packages/game-renderer/src/renderer3d) | Model preparation and instances, scalar materials, animation, sky, shadows, post-processing, culling, editor passes |
-| [Particle consumers](https://github.com/nodetool-ai/nodetool/tree/main/packages/game-renderer/src/particles) | Seeded presentation simulation and dimension-specific rendering |
+| [Particle consumers](https://github.com/nodetool-ai/nodetool/tree/main/packages/game-renderer/src/particles) | Seeded presentation simulation, dimension-specific rendering, and isolated inspector previews |
+| [Particle inspector](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/game/inspector/editors/ParticleEditor.tsx) and [presets](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-particle-presets.ts) | Emitter controls, lifetime curves and gradients, deterministic preview, and Fire, Smoke, Sparks, Dust, Magic, Rain, Snow, and Explosion recipes |
 | [Editor](https://github.com/nodetool-ai/nodetool/tree/main/web/src/components/game) | Scene tree, selection/gizmos, inspector, asset browser, scripting, Console, Profiler, retained construction |
 | [Game tools](https://github.com/nodetool-ai/nodetool/blob/main/packages/system-skills/native-game/SKILL.md) | Agent creation, preparation, editing, playtesting, capture, and build |
 | [CLI](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/commands/game.ts) | Validate, simulate, benchmark, capture, build, and smoke commands |
@@ -48,7 +49,7 @@ The following limits matter when choosing a workflow:
 - 3D renders with WebGL2. Its particle field is ticked by standalone and capture hosts, not the current editor play session.
 - 3D particle sprite sheets, separate material textures, named material lookup, toon shading, and outlines are not completed renderer paths. Embedded supported GLB textures remain available.
 - HDRI callback contracts exist, but the standard hosts do not complete their preparation and loading path. Solid and procedural skies work.
-- Height fog, decals, the dedicated particle preset inspector, and built-in localization are outside this guide's shipped baseline.
+- Height fog, decals, and built-in localization are outside this guide's shipped baseline.
 - Multiplayer, navigation meshes, terrain streaming, vehicles, ragdolls, retargeting, and root motion are not supplied by the current engine.
 
 Feature screenshots and their exact source revision are recorded in [screenshot provenance](/game-engine/screenshots). The source links above follow main and may contain later additions than the captured guide baseline.
