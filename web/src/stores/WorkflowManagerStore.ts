@@ -358,7 +358,12 @@ export type WorkflowManagerState = {
     fromExamplePackage?: string,
     fromExampleName?: string
   ) => Promise<Workflow>;
-  load: (cursor?: string, limit?: number) => Promise<WorkflowList>;
+  /** Lists workflows; `projectId` limits them to one project, undefined lists every project. */
+  load: (
+    cursor?: string,
+    limit?: number,
+    projectId?: string
+  ) => Promise<WorkflowList>;
   loadTemplates: () => Promise<WorkflowList>;
   searchTemplates: (query: string) => Promise<WorkflowList>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
@@ -841,11 +846,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return data;
       },
 
-      load: async (cursor?: string, limit?: number) => {
+      load: async (cursor?: string, limit?: number, projectId?: string) => {
         try {
           const data = await trpcClient.workflows.list.query({
             limit: limit ?? 100,
-            cursor: cursor || undefined
+            cursor: cursor || undefined,
+            project_id: projectId
           });
           return data as WorkflowList;
         } catch (err) {
