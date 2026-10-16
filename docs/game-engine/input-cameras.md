@@ -43,4 +43,6 @@ A 2D camera defines width, height, and zoom. Its world dimensions combine with p
 
 A 3D camera uses perspective field of view or orthographic size, plus near and far planes. A fixed camera follows its authored transform. A follow camera names a target and provides position and look-at offsets, yaw, pitch limits, sensitivity, and collision radius. Keep near/far values appropriate to the scene to avoid clipping and depth precision problems.
 
+In 2D edit mode, tiles and entity lights are selected against the editor camera, zoom and viewport aspect ratio. Panning or framing a remote object displays its tiles and lights without changing the scene camera.
+
 The editor orbit camera is an inspection tool. The scene's active camera controls play and capture. Verify framing with the active camera and exported aspect ratio, not only the editor viewport.
