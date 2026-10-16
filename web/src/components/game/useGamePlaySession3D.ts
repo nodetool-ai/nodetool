@@ -303,6 +303,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
 
 
   useEffect(() => {
+    profiler.setPlaybackActive(active && playing);
     if (!playing || !active) {
       // Paused input is dropped, not queued for the next tick (F23).
       inputRef.current.setEnabled(false);
@@ -353,7 +354,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       hud.release();
       if (hudRef.current === hud) { hudRef.current = null; }
     };
-  }, [playing, active, playDocument, sessionDocument, step, display]);
+  }, [playing, active, playDocument, sessionDocument, step, display, profiler]);
 
   const cancelReload = useGameScriptReload({ draft: document, playDocument: restoring ? null : playDocument, sessionRef, effectiveDocumentRef, readyGeneration, scriptLogs, blockedEntities, lastCommittedTick: committedRef.current?.tick ?? 0,
     checkpoint: (session) => { historyRef.current.clear(session.snapshot()); setEffectivePlayDocument(effectiveDocumentRef.current); } });

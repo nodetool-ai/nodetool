@@ -84,10 +84,10 @@ describe("createGameProfiler", () => {
     profiler.recordRender({ drawCalls: 4, textureBytes: 1024 }, 1016);
     // A frame with no step in between is still a frame.
     profiler.recordRender({ drawCalls: 4, textureBytes: 1024 }, 1024);
-    // A gap longer than a second is a pause, not a slow frame.
+    // Active playback retains long stalls as completed frame intervals.
     profiler.recordRender({ drawCalls: 4, textureBytes: 1024 }, 5000);
     const data = profiler.live();
-    expect(Array.from(data.frames.frameMs)).toEqual([Number.NaN, 16, 8, Number.NaN]);
+    expect(Array.from(data.frames.frameMs)).toEqual([Number.NaN, 16, 8, 3976]);
     expect(Array.from(data.frames.drawCalls)).toEqual([3, 4, 4, 4]);
     expect(Array.from(data.steps.tick)).toEqual([1, 2]);
     expect(Array.from(data.steps.bodies)).toEqual([5, Number.NaN]);
@@ -122,4 +122,51 @@ describe("createGameProfiler", () => {
     expect(Array.from(profiler.stopCapture(100)?.data.steps.tick ?? [])).toEqual([1]);
     expect(profiler.recording()).toBe(false);
   });
+});
+
+it("retains a long completion interval during uninterrupted active playback", () => {
+  const profiler = createGameProfiler();
+  profiler.attach();
+  profiler.recordRender({ drawCalls: 1 }, 1000);
+  profiler.recordRender({ drawCalls: 2 }, 2501);
+  expect(Array.from(profiler.live().frames.frameMs)).toEqual([Number.NaN, 1501]);
+});
+
+
+it("excludes explicit pauses while retaining paused render statistics and resumed frame intervals", () => {
+  const profiler = createGameProfiler();
+  profiler.attach();
+  profiler.recordRender({ drawCalls: 1 }, 1000);
+  profiler.setPlaybackActive(false);
+  profiler.recordRender({ drawCalls: 2 }, 5000);
+  profiler.recordRender({ drawCalls: 3 }, 9000);
+  profiler.setPlaybackActive(true);
+  profiler.recordRender({ drawCalls: 4 }, 12000);
+  profiler.recordRender({ drawCalls: 5 }, 12016);
+  expect(Array.from(profiler.live().frames.frameMs)).toEqual([Number.NaN, Number.NaN, Number.NaN, Number.NaN, 16]);
+  expect(Array.from(profiler.live().frames.drawCalls)).toEqual([1, 2, 3, 4, 5]);
+});
+
+it("starts a fresh interval after recording detaches without a completion during the gap", () => {
+  const profiler = createGameProfiler();
+  const detach = profiler.attach();
+  profiler.recordRender({ drawCalls: 1 }, 1000);
+  detach();
+  profiler.attach();
+  profiler.recordRender({ drawCalls: 2 }, 5000);
+  profiler.recordRender({ drawCalls: 3 }, 5016);
+  expect(Array.from(profiler.live().frames.frameMs)).toEqual([Number.NaN, Number.NaN, 16]);
+});
+
+
+it("starts a new frame interval after a capture stops and restarts without an attached view", () => {
+  const profiler = createGameProfiler();
+  profiler.startCapture(0);
+  profiler.recordRender({ drawCalls: 1 }, 1000);
+  profiler.recordRender({ drawCalls: 2 }, 1016);
+  profiler.stopCapture(2000);
+  profiler.startCapture(3000);
+  profiler.recordRender({ drawCalls: 3 }, 5000);
+  profiler.recordRender({ drawCalls: 4 }, 5016);
+  expect(Array.from(profiler.stopCapture(6000)!.data.frames.frameMs)).toEqual([Number.NaN, 16]);
 });

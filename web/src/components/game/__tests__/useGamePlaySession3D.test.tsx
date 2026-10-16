@@ -550,3 +550,35 @@ it("mounts actual viewport-scoped 3D stick, look and action controls and release
   expect(window.document.querySelector("[data-game-touch-controls]")).toBeNull();
   expect(observers.every((observer) => observer.disconnected)).toBe(true);
 });
+
+
+it("marks paused and resumed profiler frame intervals from actual 3D playback state", async () => {
+  const animation = jest.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+  const document = fixture();
+  const hook = renderHook(({ active }) => useGamePlaySession3D({ refId: "profile-pause", active, document }), { initialProps: { active: true } });
+  let detach: (() => void) | undefined;
+  try {
+    await act(async () => { hook.result.current.beginPlay(); });
+    expect(hook.result.current.playing).toBe(true);
+    const profiler = hook.result.current.profiler;
+    if (!profiler) { throw new Error("Missing game profiler"); }
+    detach = profiler.attach();
+    profiler.clearLive();
+    profiler.recordRender({ drawCalls: 1 }, 1000);
+    profiler.recordRender({ drawCalls: 2 }, 2501);
+    await act(async () => { hook.rerender({ active: false }); });
+    profiler.recordRender({ drawCalls: 7 }, 3000);
+    profiler.recordRender({ drawCalls: 8 }, 3500);
+    await act(async () => { hook.rerender({ active: true }); });
+    profiler.recordRender({ drawCalls: 9 }, 4000);
+    profiler.recordRender({ drawCalls: 10 }, 4016);
+    await act(async () => { hook.result.current.beginPlay(); });
+    expect(hook.result.current.playing).toBe(false);
+    profiler.recordRender({ drawCalls: 3 }, 5000);
+    profiler.recordRender({ drawCalls: 4 }, 9000);
+    await act(async () => { hook.result.current.beginPlay(); });
+    profiler.recordRender({ drawCalls: 5 }, 12000);
+    profiler.recordRender({ drawCalls: 6 }, 12016);
+    expect(Array.from(profiler.live().frames.frameMs)).toEqual([Number.NaN, 1501, Number.NaN, Number.NaN, Number.NaN, 16, Number.NaN, Number.NaN, Number.NaN, 16]);
+  } finally { detach?.(); hook.unmount(); animation.mockRestore(); }
+});
