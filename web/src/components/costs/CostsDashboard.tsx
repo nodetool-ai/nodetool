@@ -542,7 +542,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
             <SearchInput
               value={search}
               onChange={setSearch}
-              placeholder="Filter nodes, models…"
+              placeholder="Filter nodes, models"
               fullWidth
             />
           </Box>

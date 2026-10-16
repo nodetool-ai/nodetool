@@ -405,7 +405,7 @@ const WriteBindingPicker: React.FC<{
       />
       <Autocomplete<BindingOption>
         label={label}
-        placeholder="Search inputs and node properties…"
+        placeholder="Search inputs and node properties"
         options={resolvedOptions}
         value={selectedOption}
         disabled={readOnly || !hasOptions}

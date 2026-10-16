@@ -26,7 +26,7 @@ function RerankModelMenuDialog({
       modelData={modelData}
       onModelChange={onModelChange}
       title="Select rerank model"
-      searchPlaceholder="Search reranking models…"
+      searchPlaceholder="Search reranking models"
       storeHook={useRerankModelMenuStore}
       modelType="rerank_model"
     />

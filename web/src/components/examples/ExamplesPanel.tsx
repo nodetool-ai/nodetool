@@ -246,7 +246,7 @@ const ExamplesPanel = () => {
         <CategorySearchBar
           value={query}
           onChange={setQuery}
-          placeholder="Search examples..."
+          placeholder="Search examples"
         />
       </div>
       <FlexRow

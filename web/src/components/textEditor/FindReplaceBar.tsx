@@ -199,7 +199,7 @@ const FindReplaceBar = ({
       <div className="search-group">
         <NodeTextField
           className="search-input"
-          placeholder="Find..."
+          placeholder="Find"
           value={searchTerm}
           onChange={handleSearchChange}
           onKeyDown={handleKeyDown}

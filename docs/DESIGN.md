@@ -1054,6 +1054,15 @@ import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from ".
 | Variant | Outlined fields everywhere. A dense panel sets `FieldDensityContext` once (see [Panel composition](#panel-composition)) |
 | Text | Labels and options are sentence case ("Tool name", "Ask every time"). Acronyms keep their case ("API key", "ID") |
 
+### Search fields
+
+Use `SearchInput` from `ui_primitives` for every search or filter box. It owns the look (36px field, 28px with `size="small"`), the search icon, the clear button, optional debounce, and Escape-to-clear.
+
+- Wrap it, do not rebuild it. Hosts that need their own debounce, arrow-key navigation or a mode switch pass `onKeyDown`, `escapeClears={false}`, `startAdornment`, `loading`, `endHint` and `inputProps` instead of drawing a second field. `components/search/SearchInput.tsx` (node menu) and `assets/AssetSearchInput.tsx` are wrappers of this kind.
+- Do not build a search box from a raw `<input>`, a MUI `TextField` or a bare `InputBase`. Find/replace fields that carry validation state keep `NodeTextField`.
+- The clear button appears only when there is a value, and focus returns to the field after a clear.
+- Placeholders name what is searched in sentence case: "Search workflows", "Search nodes", "Filter models". No trailing "..." or "…". Give a field with no visible label an accessible name (`ariaLabel` defaults to the placeholder).
+
 ### Sliders
 
 There is one slider: `Slider` from `ui_primitives`. It owns the rail, track and thumb look (rounded pill rail, primary fill, ring thumb). `NodeSlider` (adds `nodrag`, compact by default, `changed`) and `AdjustmentSlider` / `InspectorSliderRow` are thin wrappers over it.
