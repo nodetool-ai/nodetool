@@ -424,7 +424,7 @@ describe("script IdeaStep", () => {
     );
 
     expect(screen.getByRole("textbox", { name: "Notes for the writer" })).toBeDisabled();
-    expect(screen.getByRole("textbox", { name: "Audience" })).toBeDisabled();
+    expect(screen.getAllByRole("textbox")).toHaveLength(1);
     expect(screen.getByRole("button", { name: "Replace these words" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Remove them" })).toBeDisabled();
     expect(screen.queryByRole("group", { name: "Inspiration" })).toBeNull();

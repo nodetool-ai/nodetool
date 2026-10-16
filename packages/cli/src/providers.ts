@@ -110,7 +110,8 @@ const LOCAL_PROVIDERS: readonly string[] = [
   "mlx",
   "claude_agent_sdk",
   "antigravity",
-  "node_llama_cpp"
+  "node_llama_cpp",
+  "stable_diffusion_cpp"
 ];
 
 /**
@@ -170,10 +171,12 @@ const resolveForUser1: GetSecret = (key) => getSecret(key, "1");
  * unavailable.
  */
 let pythonProvidersPromise: Promise<void> | null = null;
+let pythonBridge: ReturnType<typeof createPythonBridge> | null = null;
 async function ensurePythonProvidersRegistered(): Promise<void> {
   if (!pythonProvidersPromise) {
     pythonProvidersPromise = (async () => {
       const bridge = createPythonBridge();
+      pythonBridge = bridge;
       await bridge.connect();
       for (const info of await bridge.listProviders()) {
         // Don't shadow a TS-native provider that owns the same id (e.g. the
@@ -187,10 +190,42 @@ async function ensurePythonProvidersRegistered(): Promise<void> {
       }
     })().catch((err) => {
       pythonProvidersPromise = null;
+      pythonBridge?.close();
+      pythonBridge = null;
       throw err;
     });
   }
   return pythonProvidersPromise;
+}
+
+/**
+ * Stop the Python worker if this process started one. The worker is a child
+ * process, so a command that leaves it running never exits.
+ */
+export function closePythonProviders(): void {
+  pythonBridge?.close();
+  pythonBridge = null;
+  pythonProvidersPromise = null;
+}
+
+/**
+ * Start the Python worker for a command that lists every provider, so MLX
+ * and the other Python providers appear. Without a Python environment the
+ * command still lists the rest, with a notice on stderr.
+ */
+async function tryPythonProviders(): Promise<void> {
+  if (PYTHON_ONLY_PROVIDERS.every((id) => listRegisteredProviderIds().includes(id))) {
+    return;
+  }
+  try {
+    await ensurePythonProvidersRegistered();
+  } catch (err) {
+    console.error(
+      `Python providers skipped: the Python worker could not start (${
+        err instanceof Error ? err.message : String(err)
+      }).`
+    );
+  }
 }
 
 /**
@@ -279,11 +314,14 @@ export function providerSecretKey(providerId: string): string | null {
  * provider whose required credentials resolve (local providers have none, so
  * they're always present). Construction failures are skipped silently.
  */
-export async function buildConfiguredProviders(): Promise<
-  Record<string, BaseProvider>
-> {
+export async function buildConfiguredProviders(
+  options: { includePython?: boolean } = {}
+): Promise<Record<string, BaseProvider>> {
   const result: Record<string, BaseProvider> = {};
   await ensureCustomProvidersRegistered();
+  if (options.includePython) {
+    await tryPythonProviders();
+  }
   for (const id of listRegisteredProviderIds()) {
     try {
       if (await isProviderConfigured(id, resolveForUser1)) {
@@ -307,7 +345,7 @@ export type ProviderModelKind =
 export async function listConfiguredProviderInfo(): Promise<
   Array<{ provider: string; capabilities: string[] }>
 > {
-  const providers = await buildConfiguredProviders();
+  const providers = await buildConfiguredProviders({ includePython: true });
   return Object.entries(providers).map(([provider, instance]) => ({
     provider,
     capabilities: instance.getCapabilities()
@@ -438,7 +476,7 @@ export async function listProviderModels(
 export async function listAllModels(): Promise<UnifiedModel[]> {
   const all: UnifiedModel[] = [...RECOMMENDED_MODELS];
 
-  const providers = await buildConfiguredProviders();
+  const providers = await buildConfiguredProviders({ includePython: true });
   const perProvider = await Promise.all(
     Object.values(providers).map(async (instance) => {
       try {

@@ -57,6 +57,10 @@ right}`, which names the sides of its collider that rest against a solid at the
 start of the tick. A spawned instance has the id `<prefab>#<n>`, its `source`
 is the prefab id, and it runs the prefab's script with its own state.
 
+Functions, lifecycle hooks, and timer methods must be synchronous. Async functions
+and generators fail preparation. Returning a promise, thenable, or iterator fails
+the call. Use tick timers for delayed work.
+
 Store persistent values in returned `state`. A function that the engine proves
 keeps no hidden state is compiled once and reused. Other sources evaluate in a
 fresh context each call, so closures and globals do not persist between calls.

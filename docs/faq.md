@@ -39,7 +39,7 @@ No. Cloud providers need no graphics card. For local models, NVIDIA cards run th
 Expect 4 to 20 GB per model. Models, Python, and model runners download only when you install them. See [What downloads later](installation.md#what-downloads-later) and [Models Manager](models-manager.md).
 
 ### Can I run Ollama or llama.cpp models?
-Yes. Install Ollama from [ollama.com](https://ollama.com), pull a model with `ollama pull <model>`, and it appears in NodeTool while Ollama runs. In-process llama.cpp installs from **Package Manager → Software**. A `llama-server` you run yourself connects through `LLAMA_CPP_URL`. See [Connect an AI provider](installation.md#connect-an-ai-provider).
+Yes. Install Ollama from [ollama.com](https://ollama.com), pull a model with `ollama pull <model>`, and it appears in NodeTool while Ollama runs. In-process llama.cpp installs from **Package Manager → Engines & tools**. A `llama-server` you run yourself connects through `LLAMA_CPP_URL`. See [Connect an AI provider](installation.md#connect-an-ai-provider).
 
 ## Data and privacy
 

@@ -241,13 +241,26 @@ export async function createGameColliderCandidate3D(preparedBytes: Uint8Array, o
   if (!checked.ok) { return checked; }
   try {
     const vertices: number[] = []; const indices: number[] = [];
+    const decoded = container(preparedBytes);
+    const document = sourceProfile.parse(decoded.json);
+    const roots = selectedGameModelSceneRoots3D(document);
+    const pending = [...roots];
+    while (pending.length > 0) {
+      const index = pending.pop();
+      const node = index === undefined ? undefined : document.nodes[index];
+      if (!node) { throw new Error("Collider model node is missing"); }
+      const mesh = node.mesh === undefined ? undefined : document.meshes[node.mesh];
+      if (mesh && node.skin !== undefined) { throw new Error("Skinned model collider preparation is not supported; provide separate rigid collision geometry"); }
+      if (mesh?.primitives.some((primitive) => (primitive.targets?.length ?? 0) > 0)) {
+        throw new Error("Morph-target model collider preparation is not supported; provide separate rigid collision geometry");
+      }
+      pending.push(...node.children);
+    }
     if (options.shape === "convexHull") {
       const bounds = checked.binding.bounds;
       for (const x of [bounds.min.x, bounds.max.x]) { for (const y of [bounds.min.y, bounds.max.y]) { for (const z of [bounds.min.z, bounds.max.z]) { vertices.push(x, y, z); } } }
       if (bounds.min.x === bounds.max.x || bounds.min.y === bounds.max.y || bounds.min.z === bounds.max.z) { throw new Error("Convex candidate requires three-dimensional model bounds"); }
     } else {
-      const decoded = container(preparedBytes); const document = sourceProfile.parse(decoded.json);
-      const roots = selectedGameModelSceneRoots3D(document);
       const visit = (index: number, parent: Matrix4): void => {
         const node = document.nodes[index]; if (!node) { throw new Error("Collider model node is missing"); }
         const local = node.matrix ? new Matrix4().fromArray(node.matrix) : new Matrix4().compose(new Vector3().fromArray(node.translation ?? [0, 0, 0]), new Quaternion().fromArray(node.rotation ?? [0, 0, 0, 1]), new Vector3().fromArray(node.scale ?? [1, 1, 1]));

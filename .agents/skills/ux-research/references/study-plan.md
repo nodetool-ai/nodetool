@@ -67,6 +67,7 @@ field. None names the product or its features.
 | `office` | You use email, spreadsheets, and shared documents at work every day. You have not used this product before. |
 | `developer` | You write software for a living and have used AI chat assistants. You have not used this product before. |
 | `cautious` | You use a few websites regularly and prefer to read before you click. You have not used this product before. |
+| `retired` | You are retired and use a laptop for email, photos, and video calls with family. You have not used this product before. |
 
 A persona changes how the participant reads the screen, not what it knows
 about NodeTool. Never put product knowledge in a persona.

@@ -13,6 +13,7 @@ vi.mock("../src/model-discovery.js", () => ({
   discoverEmbeddingModels: vi.fn(async () => [{ id: "emb" }]),
   discoverImageModels: vi.fn(async () => [{ id: "img" }]),
   discoverLanguageModels: mocks.discoverLanguageModels,
+  discoverMusicModels: vi.fn(async () => [{ id: "music" }]),
   discoverRerankModels: vi.fn(async () => [{ id: "rr" }]),
   discoverTTSModels: vi.fn(async () => [{ id: "tts" }])
 }));
@@ -37,5 +38,6 @@ describe("TransformersJsProvider availability", () => {
     const provider = new TransformersJsProvider();
     expect(await provider.unavailableReason()).toBeNull();
     expect(await provider.getAvailableLanguageModels()).toEqual([{ id: "m" }]);
+    expect(await provider.getAvailableMusicModels()).toEqual([{ id: "music" }]);
   });
 });

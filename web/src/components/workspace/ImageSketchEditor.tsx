@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { EmptyState, FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
@@ -19,8 +19,8 @@ interface ImageSketchEditorProps {
 /**
  * Edit-mode body for the workspace image tab: the sketch editor embedded inline
  * on the asset's backing sketch document (created and linked on first edit).
- * "Save to image" renders the composite back into the asset; "Done" returns the
- * tab to view mode. Both live in the editor's tool bar. The sketch document
+ * "Save to image" renders the composite back into the asset. "Done" saves the
+ * same way and returns the tab to view mode, or stays when the save fails. Both live in the editor's tool bar. The sketch document
  * autosaves independently.
  */
 const ImageSketchEditor = ({ asset, onClose }: ImageSketchEditorProps) => {
@@ -30,6 +30,11 @@ const ImageSketchEditor = ({ asset, onClose }: ImageSketchEditorProps) => {
   );
   const [error, setError] = useState<string | null>(null);
   const { save, saving } = useSaveSketchToAsset(asset.id);
+  const saveAndClose = useCallback(async () => {
+    if (await save()) {
+      onClose();
+    }
+  }, [save, onClose]);
 
   const headerActions = useMemo(
     () => (
@@ -50,12 +55,17 @@ const ImageSketchEditor = ({ asset, onClose }: ImageSketchEditorProps) => {
         >
           {saving ? "Saving…" : "Save to image"}
         </EditorButton>
-        <EditorButton variant="text" size="small" onClick={onClose}>
+        <EditorButton
+          variant="text"
+          size="small"
+          onClick={saveAndClose}
+          disabled={saving}
+        >
           Done
         </EditorButton>
       </FlexRow>
     ),
-    [save, saving, onClose]
+    [save, saving, saveAndClose]
   );
 
   useEffect(() => {

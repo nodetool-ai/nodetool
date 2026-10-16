@@ -1,8 +1,10 @@
 import { spawn } from "node:child_process";
-import { access, constants, mkdir, mkdtemp, readdir, rename, rm, rmdir, writeFile } from "node:fs/promises";
+import { access, constants, mkdir, mkdtemp, readdir, realpath, rename, rm, rmdir, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
+import { createInterface } from "node:readline";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { createCanvas, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
+import { z } from "zod";
 import type { AnyGameDocument } from "@nodetool-ai/protocol";
 import { missingRuntimePackageError } from "@nodetool-ai/protocol/missing-runtime-package";
 import type { StandaloneAsset } from "./build.js";
@@ -325,7 +327,9 @@ cd src-tauri
 cargo build --release
 \`\`\`
 
-It is written to \`src-tauri/target/release/${metadata.crateName}\` (\`.exe\` on Windows).
+By default it is written to \`src-tauri/target/release/${metadata.crateName}\` (\`.exe\` on Windows).
+Cargo target and target-directory settings can change this location. NodeTool uses
+Cargo’s executable artifact report to locate the compiled binary.
 
 ## Change the app
 
@@ -411,13 +415,22 @@ export async function findCargo(env: NodeJS.ProcessEnv = process.env, platform: 
 }
 
 
-/** Compiles an exported project into a release executable with `cargo build --release`. */
+const cargoExecutableArtifact = z.object({
+  reason: z.literal("compiler-artifact"),
+  manifest_path: z.string(),
+  target: z.object({ name: z.string(), kind: z.array(z.string()) }),
+  executable: z.string().nullable()
+});
+
+/** Compiles a release executable and locates it through Cargo's artifact messages. */
 export async function compileTauriGameProject(project: Pick<TauriGameProject, "tauriDir" | "metadata">, options: CompileTauriGameOptions = {}): Promise<{ binaryPath: string }> {
   const env = options.env ?? process.env;
   const cargo = options.cargo ?? await findCargo(env);
   if (!cargo) { throw missingRuntimePackageError("cargo", "rust"); }
+  const manifestPath = await realpath(join(project.tauriDir, "Cargo.toml"));
+  const executables = new Set<string>();
   await new Promise<void>((resolvePromise, reject) => {
-    const child = spawn(cargo, ["build", "--release"], { cwd: project.tauriDir, env, signal: options.signal,
+    const child = spawn(cargo, ["build", "--release", "--message-format=json-render-diagnostics"], { cwd: project.tauriDir, env, signal: options.signal,
       stdio: ["ignore", "pipe", "pipe"] });
     let tail = "";
     const collect = (chunk: Buffer): void => {
@@ -425,6 +438,18 @@ export async function compileTauriGameProject(project: Pick<TauriGameProject, "t
       tail = (tail + text).slice(-4000);
       options.onOutput?.(text);
     };
+    const messages = createInterface({ input: child.stdout, crlfDelay: Infinity });
+    messages.on("line", (line) => {
+      let parsed: unknown;
+      try { parsed = JSON.parse(line); }
+      catch { return; }
+      const artifact = cargoExecutableArtifact.safeParse(parsed);
+      if (artifact.success && artifact.data.executable !== null &&
+        resolve(artifact.data.manifest_path) === manifestPath &&
+        artifact.data.target.name === project.metadata.crateName && artifact.data.target.kind.includes("bin")) {
+        executables.add(resolve(project.tauriDir, artifact.data.executable));
+      }
+    });
     child.stdout.on("data", collect);
     child.stderr.on("data", collect);
     child.on("error", (error) => {
@@ -434,7 +459,10 @@ export async function compileTauriGameProject(project: Pick<TauriGameProject, "t
       if (code === 0) { resolvePromise(); } else { reject(new Error(`cargo build failed with exit code ${code}\n${tail}`)); }
     });
   });
-  const targetDir = env["CARGO_TARGET_DIR"] ? resolve(project.tauriDir, env["CARGO_TARGET_DIR"]) : join(project.tauriDir, "target");
-  const binaryName = process.platform === "win32" ? `${project.metadata.crateName}.exe` : project.metadata.crateName;
-  return { binaryPath: join(targetDir, "release", binaryName) };
+  if (executables.size !== 1) { throw new Error("cargo build did not report exactly one game executable"); }
+  const binaryPath = executables.values().next().value;
+  if (!binaryPath) { throw new Error("cargo build did not report a game executable"); }
+  const artifact = await stat(binaryPath).catch(() => null);
+  if (!artifact?.isFile()) { throw new Error(`cargo build reported an executable that does not exist: ${binaryPath}`); }
+  return { binaryPath };
 }

@@ -1,13 +1,22 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import DownloadIcon from "@mui/icons-material/Download";
 
 import { EditorButton, Tooltip } from "../../ui_primitives";
-import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
+import {
+  ACTIVE_DOWNLOAD_STATUSES,
+  useModelDownloadStore
+} from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../../hugging_face/DownloadProgress";
-import type { ModelDownloadTarget } from "../../../utils/modelNormalization";
+import {
+  modelDownloadId,
+  type ModelDownloadTarget
+} from "../../../utils/modelNormalization";
 
 interface ModelRowDownloadProps {
-  target: ModelDownloadTarget;
+  /** Every repository the model loads files from, the main one first. */
+  targets: ModelDownloadTarget[];
+  /** The row's `modelRowKey`. */
+  modelKey: string;
   onDownload: () => void;
   /** Human-readable download destination, shown in the tooltip. */
   targetLabel?: string;
@@ -19,18 +28,31 @@ interface ModelRowDownloadProps {
  * selectable once the model list refreshes after the download.
  */
 const ModelRowDownload: React.FC<ModelRowDownloadProps> = ({
-  target,
+  targets,
+  modelKey,
   onDownload,
   targetLabel
 }) => {
-  const downloadId = target.path
-    ? `${target.repoId}/${target.path}`
-    : target.repoId;
-  // Select the flag, not the `downloads` map: the map is replaced on every
-  // progress message, which would re-render every row in the list.
-  const isDownloading = useModelDownloadStore((s) =>
-    Boolean(s.downloads[downloadId])
-  );
+  const idKey = targets.map(modelDownloadId).join("\n");
+  const ids = useMemo(() => idKey.split("\n"), [idKey]);
+  // Select one id, not the `downloads` map: the map is replaced on every
+  // progress message, which would re-render every row in the list. Models
+  // share repositories, so a row follows only the downloads it asked for:
+  // a running one first, then a failed one, then its main repository.
+  const downloadingId = useModelDownloadStore((s) => {
+    if (!s.requestedModels[modelKey]) {
+      return null;
+    }
+    const statusOf = (id: string) => s.downloads[id]?.status;
+    return (
+      ids.find((id) => {
+        const status = statusOf(id);
+        return status !== undefined && ACTIVE_DOWNLOAD_STATUSES.has(status);
+      }) ??
+      ids.find((id) => statusOf(id) === "error") ??
+      (statusOf(ids[0]) ? ids[0] : null)
+    );
+  });
 
   const handleClick = useCallback(
     (event: React.MouseEvent) => {
@@ -40,12 +62,17 @@ const ModelRowDownload: React.FC<ModelRowDownloadProps> = ({
     [onDownload]
   );
 
-  if (isDownloading) {
-    return <DownloadProgress name={downloadId} minimal />;
+  if (downloadingId) {
+    return <DownloadProgress name={downloadingId} minimal />;
   }
 
+  const [main, ...rest] = targets;
+  const what =
+    rest.length === 0
+      ? main?.repoId
+      : `${main?.repoId} and ${rest.length} more ${rest.length === 1 ? "repository" : "repositories"}`;
   return (
-    <Tooltip title={`Download ${target.repoId} to ${targetLabel ?? "this computer"}`}>
+    <Tooltip title={`Download ${what} to ${targetLabel ?? "this computer"}`}>
       <EditorButton
         variant="outlined"
         onClick={handleClick}

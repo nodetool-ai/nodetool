@@ -94,6 +94,7 @@ vi.mock("@nodetool-ai/runtime", () => {
   const REGISTERED = new Set(Object.keys(SECRET_KEYS));
 
   class FakePythonBridge {
+    close = vi.fn();
     async connect() {}
     async listProviders() {
       return [{ id: "mlx" }];
@@ -674,5 +675,62 @@ describe("WebSocketProvider", () => {
     );
     await provider.generateMessage({ messages: [], model: "" });
     expect(capturedModel).toBe("my-default-model");
+  });
+});
+
+describe("the Python worker in CLI listings", () => {
+  // Earlier tests register mlx and start a worker. Stop that worker and
+  // hide mlx until the next worker registers it again.
+  let restore: (() => void) | null = null;
+
+  async function freshModules() {
+    const runtime = await import("@nodetool-ai/runtime");
+    const providers = await import("../src/providers.js");
+    providers.closePythonProviders();
+    const original = vi.mocked(runtime.listRegisteredProviderIds).getMockImplementation()!;
+    restore = () => vi.mocked(runtime.listRegisteredProviderIds).mockImplementation(original);
+    const ids = original();
+    let registered = false;
+    vi.mocked(runtime.listRegisteredProviderIds).mockImplementation(() =>
+      ids.filter((id) => id !== "mlx" || registered)
+    );
+    vi.mocked(runtime.registerProvider).mockImplementationOnce(() => {
+      registered = true;
+    });
+    vi.mocked(runtime.createPythonBridge).mockClear();
+    return { runtime, providers };
+  }
+
+  afterEach(() => {
+    restore?.();
+    restore = null;
+  });
+
+  it("starts the worker so `models providers` lists mlx, and stops it on close", async () => {
+    const { runtime, providers } = await freshModules();
+    const ids = (await providers.listConfiguredProviderInfo()).map((p) => p.provider);
+    expect(ids).toContain("mlx");
+    const bridge = vi.mocked(runtime.createPythonBridge).mock.results[0]!.value as {
+      close: ReturnType<typeof vi.fn>;
+    };
+    expect(bridge.close).not.toHaveBeenCalled();
+    providers.closePythonProviders();
+    expect(bridge.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("lists the other providers when the worker cannot start", async () => {
+    const { runtime, providers } = await freshModules();
+    vi.mocked(runtime.createPythonBridge).mockReturnValueOnce({
+      connect: async () => {
+        throw new Error("no Python environment");
+      },
+      close: vi.fn()
+    } as never);
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const ids = (await providers.listConfiguredProviderInfo()).map((p) => p.provider);
+    expect(ids).toContain("ollama");
+    expect(ids).not.toContain("mlx");
+    expect(error).toHaveBeenCalledWith(expect.stringMatching(/Python providers skipped.*no Python environment/));
+    error.mockRestore();
   });
 });

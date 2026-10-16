@@ -269,15 +269,54 @@ describe("usePackageManager", () => {
     ]);
   });
 
-  it("lists the four categories in the rail", () => {
+  it("lists the four categories in the rail, engines first", () => {
     const { result } = renderHook(() =>
       usePackageManager({ cat: "included", q: "", filter: "all" })
     );
-    expect(result.current.categories.map((c) => c.label)).toEqual([
-      "Included",
-      "Python packs",
-      "Third-party",
-      "Software"
+    expect(
+      result.current.categories.map((c) => [c.id, c.label, c.hint])
+    ).toEqual([
+      ["runtimes", "Engines & tools", "Local AI, media tools, languages"],
+      ["included", "Built-in nodes", "Show or hide node groups"],
+      ["python", "Python nodes", "Extra nodes from PyPI"],
+      ["thirdparty", "Community nodes", "Packs from other authors"]
     ]);
+  });
+
+  it("counts the updates of each list in the rail", () => {
+    useRuntimePackagesStore.setState({
+      available: true,
+      statuses: [
+        {
+          id: "sd-cpp",
+          name: "stable-diffusion.cpp",
+          description: "Images",
+          installed: true,
+          installing: false,
+          installedVersion: "master-967",
+          latestVersion: "master-968",
+          updateAvailable: true
+        },
+        {
+          id: "ffmpeg",
+          name: "FFmpeg",
+          description: "Media",
+          installed: true,
+          installing: false
+        }
+      ]
+    });
+    const { result } = renderHook(() =>
+      usePackageManager({ cat: "included", q: "", filter: "all" })
+    );
+    const updates = Object.fromEntries(
+      result.current.categories.map((c) => [c.id, c.updates])
+    );
+    expect(updates).toEqual({
+      runtimes: 1,
+      included: 0,
+      python: 0,
+      thirdparty: 0
+    });
   });
 });

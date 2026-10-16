@@ -12,15 +12,15 @@ import { useNotificationStore } from "../../stores/NotificationStore";
  * embedded workspace image tab. Reads pixels from whichever SketchEditor is
  * currently mounted (via the global canvas-ref store) and overwrites the
  * asset's bytes — metadata (the sketch link) is left untouched by the partial
- * update.
+ * update. Resolves true once the image holds the edits.
  */
 export function useSaveSketchToAsset(assetId: string | undefined) {
   const updateAsset = useAssetStore((state) => state.update);
   const invalidateQueries = useAssetStore((state) => state.invalidateQueries);
   const [saving, setSaving] = useState(false);
 
-  const save = useCallback(async () => {
-    if (!assetId) return;
+  const save = useCallback(async (): Promise<boolean> => {
+    if (!assetId) return false;
     const flatten = useSketchCanvasRefStore.getState().flattenToDataUrl;
     const dataUrl = flatten?.();
     if (!dataUrl) {
@@ -28,7 +28,7 @@ export function useSaveSketchToAsset(assetId: string | undefined) {
         type: "error",
         content: "Nothing to save yet — the canvas is still loading."
       });
-      return;
+      return false;
     }
     const base64 = dataUrl.split(",")[1] ?? "";
     setSaving(true);
@@ -43,6 +43,7 @@ export function useSaveSketchToAsset(assetId: string | undefined) {
         type: "success",
         content: "Saved edits to image."
       });
+      return true;
     } catch (error) {
       useNotificationStore.getState().addNotification({
         type: "error",
@@ -51,6 +52,7 @@ export function useSaveSketchToAsset(assetId: string | undefined) {
           error instanceof Error ? error.message : String(error)
         }`
       });
+      return false;
     } finally {
       setSaving(false);
     }

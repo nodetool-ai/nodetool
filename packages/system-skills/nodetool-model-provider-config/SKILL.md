@@ -51,7 +51,7 @@ the user's own. Every other provider bills the user's own account.
 | **vLLM** | Local | `VLLM_BASE_URL` (required) | Self-hosted, OpenAI-compatible |
 | **LM Studio** | Local | `LMSTUDIO_API_URL` | Models loaded in LM Studio's local server |
 | **llama.cpp server** (`llama_cpp`) | Local | `LLAMA_CPP_URL` (required) | A `llama-server` you run |
-| **llama.cpp local** (`node_llama_cpp`) | Local | — | GGUF files in-process; runtime from Package Manager → Software |
+| **llama.cpp local** (`node_llama_cpp`) | Local | — | GGUF files in-process; runtime from Package Manager → Engines & tools |
 | **MLX** | Local | — | MLX Python pack, Apple Silicon only |
 
 Other registered chat providers (any of these is valid for the CLI's `-p/--provider`):
@@ -194,7 +194,7 @@ Unset, NodeTool uses the model's own value, capped at 32768.
 Local Diffusers/Transformers models, MLX models and Wan2GP video run in the
 Python worker, and each needs its pack.
 
-- Desktop app: **Tools → Package Manager → Python packs**. Installing a pack
+- Desktop app: **Tools → Package Manager → Python nodes**. Installing a pack
   sets up Python first if it is missing. The HuggingFace pack pulls a PyTorch
   2.14 build matched to the GPU. MLX is offered only on Apple Silicon Macs.
   On a Mac, both packs need Apple Silicon and macOS 14 or newer.
@@ -229,7 +229,7 @@ in Flatpak) but that cache already holds models.
 ## llama.cpp
 
 Two providers. `node_llama_cpp` loads GGUF files in-process after the runtime
-is installed from Package Manager → Software. `llama_cpp` calls a
+is installed from Package Manager → Engines & tools. `llama_cpp` calls a
 `llama-server` the user runs, at `LLAMA_CPP_URL`. Best for CPU inference and
 quantized models.
 

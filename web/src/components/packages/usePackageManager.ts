@@ -23,10 +23,10 @@ import { getRequiredKeyForBuiltinPack } from "../../utils/providerPacks";
 export type PMCategory = "included" | "python" | "thirdparty" | "runtimes";
 
 export const PM_CATEGORIES: readonly PMCategory[] = [
+  "runtimes",
   "included",
   "python",
-  "thirdparty",
-  "runtimes"
+  "thirdparty"
 ];
 
 /**
@@ -50,6 +50,7 @@ const RUNTIME_GROUP: Record<string, RuntimeGroup> = {
   "tensorflow-js": "ai",
   "node-llama-cpp": "ai",
   "whisper-cpp": "ai",
+  "sd-cpp": "ai",
   "tesseract-ocr": "ai",
   playwright: "media"
 };
@@ -65,18 +66,20 @@ const RUNTIME_GROUP_LABEL: Record<RuntimeGroup, string> = {
  *  distinct from builtin pack ids. */
 const OPTIONAL_PREFIX = "optional:";
 
+/** Rail names say what the user does with a list, not where it comes from. */
 const LABELS: Record<PMCategory, string> = {
-  included: "Included",
-  python: "Python packs",
-  thirdparty: "Third-party",
-  runtimes: "Software"
+  runtimes: "Engines & tools",
+  included: "Built-in nodes",
+  python: "Python nodes",
+  thirdparty: "Community nodes"
 };
 
-const TITLES: Record<PMCategory, string> = {
-  included: "Included packs",
-  python: "Python packs",
-  thirdparty: "Third-party packs",
-  runtimes: "Software"
+/** One line under each rail name, so a first-time user can pick a list. */
+const HINTS: Record<PMCategory, string> = {
+  runtimes: "Local AI, media tools, languages",
+  included: "Show or hide node groups",
+  python: "Extra nodes from PyPI",
+  thirdparty: "Packs from other authors"
 };
 
 const SUBTITLES: Record<PMCategory, string> = {
@@ -87,7 +90,7 @@ const SUBTITLES: Record<PMCategory, string> = {
   thirdparty:
     "Third-party packs run in-process as the server user. Only trust packs you know.",
   runtimes:
-    "Interpreters and tools NodeTool installs into your environment. Each runtime powers its own node types."
+    "Programs that run on this computer: local AI engines such as llama.cpp and stable-diffusion.cpp, media tools such as FFmpeg, and languages. Local models and some nodes need them."
 };
 
 /** Filter labels per list. Included packs are switched, not installed. */
@@ -99,7 +102,10 @@ const FILTER_LABELS: Record<"switch" | "install", Record<PMFilter, string>> = {
 export interface PMCount {
   id: string;
   label: string;
+  hint: string;
   count: number;
+  /** Installed packages in the list with a newer version. */
+  updates: number;
 }
 
 export interface PMRow {
@@ -363,10 +369,20 @@ export function usePackageManager(params: {
       thirdparty: thirdPartyPacks.length,
       runtimes: statuses.length
     };
+    const categoryUpdates: Record<PMCategory, number> = {
+      included: 0,
+      python: pythonPacks.filter((p) => p.installed?.hasUpdate).length,
+      thirdparty: 0,
+      runtimes: statuses.filter(
+        (rt) => !rt.bundled && rt.installed && rt.updateAvailable
+      ).length
+    };
     const categories: PMCount[] = PM_CATEGORIES.map((id) => ({
       id,
       label: LABELS[id],
-      count: categoryCounts[id]
+      hint: HINTS[id],
+      count: categoryCounts[id],
+      updates: categoryUpdates[id]
     }));
 
     let rows: PMRow[] = [];
@@ -535,7 +551,7 @@ export function usePackageManager(params: {
       isSoftware,
       isThirdParty,
       categories,
-      title: TITLES[cat],
+      title: LABELS[cat],
       subtitle: SUBTITLES[cat],
       count: baseCount,
       filters: notice ? [] : filters,

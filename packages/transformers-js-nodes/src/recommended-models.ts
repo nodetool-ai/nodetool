@@ -17,6 +17,12 @@ export interface TjsModelRef {
   repo_id: string;
   /** Optional sub-path / file selector (rare for Transformers.js). */
   path?: string | null;
+  /**
+   * The dtype a load uses when the caller names none. Set only for a repo
+   * whose config declares no default: Transformers.js then loads fp32, which
+   * for a chat model is a multi-gigabyte download and slow on a CPU.
+   */
+  dtype?: string;
 }
 
 const MODELS: Record<string, readonly TjsModelRef[]> = {
@@ -55,12 +61,13 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
   ],
 
   // transformers.js 3.x supports qwen3, gemma3_text, smollm3 and llama, but
-  // not qwen3_5 or gemma4.
+  // not qwen3_5 or gemma4. Qwen3 comes first: its chat template renders tool
+  // definitions, so chat tool calls use the model's trained format.
   "tjs.text_generation": [
-    { repo_id: "onnx-community/Qwen3-1.7B-ONNX" },
-    { repo_id: "onnx-community/Qwen3-0.6B-ONNX" },
+    { repo_id: "onnx-community/Qwen3-1.7B-ONNX", dtype: "q4" },
+    { repo_id: "onnx-community/Qwen3-0.6B-ONNX", dtype: "q4" },
     { repo_id: "onnx-community/Qwen3-4B-ONNX" },
-    { repo_id: "onnx-community/gemma-3-1b-it-ONNX" },
+    { repo_id: "onnx-community/gemma-3-1b-it-ONNX", dtype: "q4" },
     { repo_id: "HuggingFaceTB/SmolLM3-3B-ONNX" },
     { repo_id: "HuggingFaceTB/SmolLM2-1.7B-Instruct" },
     { repo_id: "HuggingFaceTB/SmolLM2-360M-Instruct" },
@@ -117,6 +124,24 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
     { repo_id: "onnx-community/depth-anything-v2-small" }
   ],
 
+  // Transformers.js has no text-to-image pipeline. Janus generates 384×384
+  // images through MultiModalityCausalLM.
+  "tjs.text_to_image": [{ repo_id: "onnx-community/Janus-Pro-1B-ONNX" }],
+
+  "tjs.image_segmentation": [
+    { repo_id: "Xenova/segformer-b0-finetuned-ade-512-512" },
+    { repo_id: "Xenova/detr-resnet-50-panoptic" },
+    { repo_id: "jonathandinu/face-parsing" }
+  ],
+
+  // The image-to-image pipeline loads only Swin2SR super-resolution models in
+  // transformers.js 3.x. Each model fixes its own scale factor.
+  "tjs.image_to_image": [
+    { repo_id: "Xenova/swin2SR-classical-sr-x2-64" },
+    { repo_id: "Xenova/swin2SR-classical-sr-x4-64" },
+    { repo_id: "Xenova/swin2SR-realworld-sr-x4-64-bsrgan-psnr" }
+  ],
+
   // The image-to-text pipeline loads only vision-encoder-decoder, idefics3 and
   // smolvlm models in transformers.js 3.x. Florence-2 and BLIP do not load.
   "tjs.image_to_text": [
@@ -150,7 +175,11 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
     { repo_id: "onnx-community/Kokoro-82M-v1.0-ONNX" },
     { repo_id: "Xenova/mms-tts-fra" },
     { repo_id: "Xenova/mms-tts-deu" }
-  ]
+  ],
+
+  // Transformers.js runs MusicGen only. Stable Audio and ACE-Step ONNX exports
+  // need pipelines the library does not have.
+  "tjs.text_to_music": [{ repo_id: "Xenova/musicgen-small" }]
 };
 
 /** All known `tjs.*` model types. */
@@ -159,6 +188,17 @@ export const TJS_MODEL_TYPES: readonly string[] = Object.keys(MODELS);
 /** Recommended models for a given `tjs.*` type, or empty if unknown. */
 export function recommendedFor(modelType: string): readonly TjsModelRef[] {
   return MODELS[modelType] ?? [];
+}
+
+/** The dtype pinned for a recommended repo, if any. */
+export function recommendedDtypeFor(repoId: string): string | undefined {
+  for (const list of Object.values(MODELS)) {
+    const ref = list.find((r) => r.repo_id === repoId);
+    if (ref?.dtype) {
+      return ref.dtype;
+    }
+  }
+  return undefined;
 }
 
 /**

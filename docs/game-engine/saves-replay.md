@@ -32,6 +32,8 @@ Standalone players use IndexedDB. Browser permissions and storage quota can make
 
 Snapshots include gameplay state such as entity state, script state, timers, UI overrides, and animation graph state. Restoration checks engine build and document digest. A snapshot from an incompatible document is not a migration mechanism.
 
+Script state retains JSON property order. A script can observe that order with `Object.keys`, so 3D snapshot hashes distinguish states with different property order even when their key/value pairs match.
+
 Particles, mixer graphs, and render resources are not gameplay snapshot data. Their hosts rebuild or resume presentation from the accepted session.
 
 ## Verify a route

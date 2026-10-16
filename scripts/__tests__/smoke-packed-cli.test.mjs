@@ -32,6 +32,7 @@ it("keeps the required core-smoke status dependent on verification and the indep
     expect(checks).toContain(command);
   }
   expect(workflow.jobs["packed-install"].needs).toBeUndefined();
+  expect(workflow.jobs["packed-install"].steps.find(step => step.uses === "./.github/actions/setup-build").with["extra-apt"]?.split(/\s+/)).toContain("libsecret-1-dev");
   const packedChecks = workflow.jobs["packed-install"].steps.map(step => step.run);
   expect(packedChecks).toContain("node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts");
   expect(packedChecks.indexOf("node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts")).toBeLessThan(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts"));

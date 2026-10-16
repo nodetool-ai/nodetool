@@ -556,6 +556,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "The graph author selects a local or LAN sd-server. Redirects are rejected. This node is excluded by the cloud profile's default allowlist."
   },
   {
+    file: "packages/runtime/src/providers/sdcpp-provider.ts",
+    owner: "stable-diffusion.cpp provider",
+    inputSource: "fixed",
+    schemes: ["http"],
+    authScope: "none",
+    redirects: "manual-none",
+    dnsRebinding: "n/a",
+    policy: "fixed-host",
+    guardedBy: [],
+    note: "Calls only the sd-server it spawned on 127.0.0.1 at a port it picked. Redirects are rejected. Job URLs are built from the job id, never from a response URL. The provider is excluded from the cloud profile."
+  },
+  {
     file: "packages/runtime/src/comfy-executor.ts",
     owner: "ComfyUI executor",
     inputSource: "workflow",

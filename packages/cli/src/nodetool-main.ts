@@ -99,6 +99,7 @@ import { registerResourceReadCommands } from "./commands/resource-read.js";
 import { createApiClient } from "./api-client.js";
 import {
   listAllModels,
+  closePythonProviders,
   listConfiguredProviderInfo,
   listOllamaModels,
   listProviderModels,
@@ -283,6 +284,11 @@ program
     "--no-trace-stdout",
     "Disable stdout span output (overrides NODETOOL_TRACE_STDOUT)"
   )
+  // A command that started the Python worker must stop it, or the worker
+  // child process keeps the CLI alive after the output.
+  .hook("postAction", () => {
+    closePythonProviders();
+  })
   .hook("preAction", async (thisCommand, actionCommand) => {
     // With `--trace`, the `debug` command owns telemetry: it routes spans into
     // its bundle's trace.jsonl via its own initTelemetry call. Initializing here
