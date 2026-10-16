@@ -11,9 +11,11 @@ describe("installer npm policy", () => {
     expect(global).toContain("--dry-run=false");
     expect(global).toContain("--workspaces=false");
     expect(global).toContain("--no-save");
+    expect(global).toContain("--prefer-dedupe=false");
     const local = npmInstallFlags("local");
     expect(local).not.toContain("--no-save");
-    expect(local).toEqual([...global.slice(0, -1), "--save", "--save-exact", "--save-prod"]);
+    expect(local).toContain("--prefer-dedupe");
+    expect(local).toEqual([...global.slice(0, -1).map(flag => flag === "--prefer-dedupe=false" ? "--prefer-dedupe" : flag), "--save", "--save-exact", "--save-prod"]);
   });
 
   it("keeps legacy runtime scripts subject to user npm configuration", () => {

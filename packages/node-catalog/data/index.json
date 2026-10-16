@@ -3289,6 +3289,7 @@
     "transformers.Summarization": "transformers-js",
     "transformers.TextClassification": "transformers-js",
     "transformers.TextGeneration": "transformers-js",
+    "transformers.TextToMusic": "transformers-js",
     "transformers.TextToSpeech": "transformers-js",
     "transformers.TokenClassification": "transformers-js",
     "transformers.Translation": "transformers-js",
@@ -3781,7 +3782,7 @@
       "id": "transformers-js",
       "installBytes": 0,
       "kind": "node-pack",
-      "nodeCount": 16,
+      "nodeCount": 17,
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/transformers-js-nodes",

@@ -126,6 +126,22 @@ describe("ChatGPTProvider", () => {
     expect((await provider.getAvailableLanguageModels()).map((m) => m.id)).toEqual(["auto", "gpt-6"]);
   });
 
+  it("lists the tools in the prompt and returns the reply's tool calls", async () => {
+    const reply = 'Checking.\n```xml\n<tool_call>[{"name": "get_weather", "arguments": {"city": "Paris"}}]</tool_call>\n```';
+    const page = fakeTab([[node("user", "x"), node("assistant", reply, { endTurn: true })]]);
+    const pending = new ChatGPTProvider().generateMessage({
+      model: "auto",
+      messages: [{ role: "user", content: "Weather in Paris?" }],
+      tools: [{ name: "get_weather", description: "Weather for a city", inputSchema: { type: "object" } }]
+    });
+    await vi.advanceTimersByTimeAsync(5_000);
+    const message = await pending;
+    expect(page.sent[0]).toContain('"name":"get_weather"');
+    expect(page.sent[0]).toContain("Weather in Paris?");
+    expect(message.content).toBe("Checking.");
+    expect(message.toolCalls).toMatchObject([{ name: "get_weather", args: { city: "Paris" } }]);
+  });
+
   it("sends the default model without a model parameter", async () => {
     const page = fakeTab([[node("user", "hi"), node("assistant", "hello", { endTurn: true })]]);
     const pending = new ChatGPTProvider().generateMessage({ model: "auto", messages: [{ role: "user", content: "hi" }] });
@@ -309,12 +325,36 @@ describe("ChatGPTProvider", () => {
 });
 
 describe("composeDelta", () => {
+  it("names the tool of each result", () => {
+    expect(composeDelta([
+      { role: "assistant", content: "", toolCalls: [{ id: "c1", name: "get_weather", args: { city: "Paris" } }] },
+      { role: "tool", toolCallId: "c1", content: "sunny" }
+    ])).toBe("Tool result (get_weather): sunny");
+  });
+
+
   it("sends a lone new user message as it is and skips ChatGPT's own reply", () => {
     expect(composeDelta([{ role: "assistant", content: "hello" }, { role: "user", content: "and you?" }])).toBe("and you?");
   });
 });
 
 describe("composePrompt", () => {
+  it("writes earlier tool calls back as tool_call blocks and lists the tools", () => {
+    const prompt = composePrompt(
+      [
+        { role: "user", content: "Weather in Paris?" },
+        { role: "assistant", content: "", toolCalls: [{ id: "c1", name: "get_weather", args: { city: "Paris" } }] },
+        { role: "tool", toolCallId: "c1", content: "sunny" }
+      ],
+      [{ name: "get_weather", inputSchema: { type: "object" } }]
+    );
+    expect(prompt).toContain("<tools>");
+    expect(prompt).toContain('Assistant: <tool_call>[{"name":"get_weather","arguments":{"city":"Paris"}}]</tool_call>');
+    expect(prompt).toContain("Tool result (get_weather): sunny");
+    expect(prompt).toContain("Continue from the last Tool result.");
+  });
+
+
   it("sends a lone user message as it is", () => {
     expect(composePrompt([{ role: "user", content: "hello" }])).toBe("hello");
   });

@@ -1,6 +1,12 @@
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { openGameSession, validateAnyGame } from "../src/index.js";
+import { gameSnapshot, gameSnapshot3D, type GameSnapshot, type GameSnapshot3D } from "@nodetool-ai/protocol";
+import { hashGameSnapshot3D, openGameSession, validateAnyGame } from "../src/index.js";
+
+async function snapshotHash(snapshot: GameSnapshot | GameSnapshot3D): Promise<string> {
+  return "dimension" in snapshot ? hashGameSnapshot3D(snapshot) : createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
+}
 
 describe("benchmark fixture workloads", () => {
   it("runs all approved workloads serially for 120 ticks and replays from tick 60", async () => {
@@ -11,23 +17,29 @@ describe("benchmark fixture workloads", () => {
       if (!opened.ok) { throw new Error(opened.diagnostics.map((issue) => issue.message).join(", ")); }
       const session = opened.opened.session;
       const input = { pressed: [], justPressed: [], axes: {}, look: { x: 0, y: 0 } };
-      let saved;
-      let final;
       try {
-        for (let tick = 0; tick < 120; tick += 1) {
-          session.step(input);
-          if (tick === 59) { saved = session.snapshot(); }
-        }
-        final = session.snapshot();
-        expect(final.tick).toBe(120);
+        for (let tick = 0; tick < 60; tick += 1) { session.step(input); }
+        // Exercise serialized storage and keep both public sessions live without retaining 60 large snapshots.
+        const checkpoint = session.snapshot();
+        const stored: unknown = JSON.parse(JSON.stringify(checkpoint));
+        const saved = "dimension" in checkpoint ? gameSnapshot3D.parse(stored) : gameSnapshot.parse(stored);
+        expect(saved.tick).toBe(60);
+        const restored = await openGameSession(validation.document, { seed: 1, snapshot: saved });
+        if (!restored.ok) { throw new Error(restored.diagnostics.map((issue) => issue.message).join(", ")); }
+        try {
+          for (let tick = 60; tick < 120; tick += 1) {
+            const live = session.step(input);
+            const replay = restored.opened.session.step(input);
+            const snapshot = session.snapshot();
+            const replaySnapshot = restored.opened.session.snapshot();
+            expect(replay.events).toEqual(live.events);
+            expect(replaySnapshot).toEqual(snapshot);
+            expect(await snapshotHash(replaySnapshot)).toBe(await snapshotHash(snapshot));
+          }
+          expect(session.snapshot().tick).toBe(120);
+          expect(restored.opened.session.snapshot().tick).toBe(120);
+        } finally { restored.opened.session.dispose(); }
       } finally { session.dispose(); }
-      if (!saved) { throw new Error("Missing tick-60 snapshot"); }
-      const restored = await openGameSession(validation.document, { seed: 1, snapshot: saved });
-      if (!restored.ok) { throw new Error(restored.diagnostics.map((issue) => issue.message).join(", ")); }
-      try {
-        for (let tick = 60; tick < 120; tick += 1) { restored.opened.session.step(input); }
-        expect(restored.opened.session.snapshot()).toEqual(final);
-      } finally { restored.opened.session.dispose(); }
     }
   }, 30_000);
 

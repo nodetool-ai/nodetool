@@ -26,6 +26,8 @@ import FavoriteStar from "./FavoriteStar";
 import DefaultModelPin from "./DefaultModelPin";
 import RecommendedDownloadRow from "./shared/RecommendedDownloadRow";
 import ModelRowDownload from "./shared/ModelRowDownload";
+import ModelRowInstall from "./shared/ModelRowInstall";
+import type { LocalProviderInstallInfo } from "../../hooks/useLocalProviderInstalls";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import { ModelSelectorModel } from "../../stores/ModelMenuStore";
 import type { UnifiedModel } from "../../stores/ApiTypes";
@@ -34,7 +36,8 @@ import { useModelAvailability } from "../../hooks/useModelAvailability";
 import { openSettingsTab } from "../workspace/openPageTab";
 import {
   executionForDisplay,
-  modelDownloadTarget
+  modelDownloadTargets,
+  modelRowKey
 } from "../../utils/modelNormalization";
 import { getProviderDisplayName } from "../../utils/providerDisplay";
 
@@ -206,6 +209,11 @@ interface ModelListProps<TModel extends ModelSelectorModel> {
   /** Close the picker. Called after Open Settings opens the Settings tab. */
   onClose?: () => void;
   /**
+   * Local providers whose package is not installed, by provider id. Their
+   * rows offer the install instead of a download.
+   */
+  pendingInstalls?: ReadonlyMap<string, LocalProviderInstallInfo>;
+  /**
    * The model the control currently holds. Its row is marked with a check.
    * Without a provider, any provider's model of that id matches.
    */
@@ -225,7 +233,8 @@ function ModelList<TModel extends ModelSelectorModel>({
   modelType,
   downloadTargetLabel,
   onClose,
-  selectedModel
+  selectedModel,
+  pendingInstalls
 }: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const getAvailability = useModelAvailability();
@@ -298,15 +307,23 @@ function ModelList<TModel extends ModelSelectorModel>({
   const renderRow = useCallback(
     ({ m, index }: { m: TModel; index: number }) => {
       const fav = isFavorite(m.provider || "", m.id || "");
-      const { available, providerEnabled, hasKey } = getAvailability(m);
+      const pendingInstall = pendingInstalls?.get(m.provider ?? "");
+      const availability = getAvailability(m);
+      const { providerEnabled, hasKey } = availability;
+      // A model whose provider package is missing cannot run yet.
+      const available = availability.available && !pendingInstall;
       const execution = executionForDisplay(m);
-      const downloadTarget = onModelDownload ? modelDownloadTarget(m) : null;
+      const downloadTargets =
+        onModelDownload && !pendingInstall ? modelDownloadTargets(m) : [];
+      const needsDownload = downloadTargets.length > 0;
       const isActive = index === activeIndex;
       const isCurrent =
         !!selectedModel &&
         m.id === selectedModel.id &&
         (!selectedModel.provider || m.provider === selectedModel.provider);
-      const tooltipTitle = downloadTarget
+      const tooltipTitle = pendingInstall
+        ? `Install ${pendingInstall.spec.installLabel} to use this model.`
+        : needsDownload
         ? ""
         : execution.state !== "ready"
           ? (execution.reason ?? "This model is not ready to use.")
@@ -382,9 +399,12 @@ function ModelList<TModel extends ModelSelectorModel>({
                 size="small"
               />
             </FlexRow>
-            {downloadTarget ? (
+            {pendingInstall ? (
+              <ModelRowInstall info={pendingInstall} />
+            ) : needsDownload ? (
               <ModelRowDownload
-                target={downloadTarget}
+                targets={downloadTargets}
+                modelKey={modelRowKey(m)}
                 onDownload={() => onModelDownload?.(m)}
                 targetLabel={downloadTargetLabel}
               />
@@ -418,7 +438,8 @@ function ModelList<TModel extends ModelSelectorModel>({
       modelType,
       onModelDownload,
       downloadTargetLabel,
-      selectedModel
+      selectedModel,
+      pendingInstalls
     ]
   );
 

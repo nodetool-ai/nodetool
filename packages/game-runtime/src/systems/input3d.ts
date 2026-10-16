@@ -1,6 +1,6 @@
 import type { GameSystemContext3D } from "./context3d.js";
 import { gameInputFrame3D } from "@nodetool-ai/protocol";
-import { applyCameraLook3D } from "../spatial3d/camera.js";
+import { applyCameraLook3D, updateFixedCameraAngles3D } from "../spatial3d/camera.js";
 export function stepInput3D(context: GameSystemContext3D): void {
   context.input = gameInputFrame3D.parse(context.input);
   if (
@@ -14,5 +14,6 @@ export function stepInput3D(context: GameSystemContext3D): void {
     state.previousTransform = structuredClone(state.transform);
   }
   context.previousCamera = structuredClone(context.camera.transform);
+  updateFixedCameraAngles3D(context.camera, context.currentCameraEntity());
   applyCameraLook3D(context.camera, context.currentCameraEntity(), context.input);
 }

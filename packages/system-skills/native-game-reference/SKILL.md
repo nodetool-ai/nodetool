@@ -57,6 +57,10 @@ right}`, which names the sides of its collider that rest against a solid at the
 start of the tick. A spawned instance has the id `<prefab>#<n>`, its `source`
 is the prefab id, and it runs the prefab's script with its own state.
 
+Functions, lifecycle hooks, and timer methods must be synchronous. Async functions
+and generators fail preparation. Returning a promise, thenable, or iterator fails
+the call. Use tick timers for delayed work.
+
 Store persistent values in returned `state`. A function that the engine proves
 keeps no hidden state is compiled once and reused. Other sources evaluate in a
 fresh context each call, so closures and globals do not persist between calls.
@@ -731,8 +735,12 @@ axis is a validation error.
 Bindings only turn physical input into input frames. They never enter the
 simulation, so playtests, replays and snapshots use the same `pressed`,
 `justPressed`, `axes` and `look` frames. Gamepads are polled once per tick. The
-3D players capture the mouse for look on click. On a touch screen both
-standalone players show a stick when an action or axis has a touch stick
+3D players request mouse capture on click only when mouse look is bound.
+Mouse actions work on the acquisition click and when capture is unavailable or
+rejected. Explicit `look: []` disables capture. HUD buttons own their presses
+before gameplay mouse or touch controls, and letterbox bars do not hit the HUD.
+On a touch screen, editor play, public players and both standalone players
+show a stick when an action or axis has a touch stick
 binding and one button per action with a touch button binding. The 3D player
 also turns the camera by dragging on the right half. Input pressed while play
 is paused is dropped. Player-facing rebinding is not stored yet.

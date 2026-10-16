@@ -9,6 +9,25 @@ import {
 
 describe("ModelMenuStore", () => {
   describe("requiredSecretForProvider", () => {
+    it("asks no key from providers that sign in or run on this computer", () => {
+      for (const id of [
+        "gemini_web",
+        "chatgpt",
+        "dreamina",
+        "claude_agent_sdk",
+        "codex",
+        "antigravity",
+        "huggingface-local",
+        "mlx",
+        "node_llama_cpp",
+        "stable_diffusion_cpp",
+        "transformers_js"
+      ]) {
+        expect([id, requiredSecretForProvider(id)]).toEqual([id, null]);
+      }
+      expect(requiredSecretForProvider("huggingface")).toBe("HF_TOKEN");
+    });
+
     it("returns OPENAI_API_KEY for OpenAI provider", () => {
       expect(requiredSecretForProvider("openai")).toBe("OPENAI_API_KEY");
       expect(requiredSecretForProvider("OpenAI")).toBe("OPENAI_API_KEY");

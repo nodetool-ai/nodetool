@@ -26,7 +26,8 @@ describe("registerTransformersJsNodes", () => {
       "transformers.ZeroShotImageClassification",
       "transformers.AutomaticSpeechRecognition",
       "transformers.AudioClassification",
-      "transformers.TextToSpeech"
+      "transformers.TextToSpeech",
+      "transformers.TextToMusic"
     ];
     for (const nodeType of expected) {
       expect(registry.has(nodeType)).toBe(true);

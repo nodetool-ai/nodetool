@@ -565,3 +565,57 @@ it("places the active pivot on a selected child that follows its selected parent
     expect(fixture.controls.object?.position.toArray().map((value) => Number(value.toFixed(6)))).toEqual([x, y, z]);
   } finally { fixture.view.unmount(); fixture.session.dispose(); }
 });
+
+it.each(["missing", "void", "denied", "disabled-look"] as const)("delivers authored mouse actions when pointer lock is %s", async (mode) => {
+  const document = createNative3DGame("viewport-mouse-actions");
+  if (!document.inputActions.includes("fire")) { document.inputActions.push("fire"); }
+  document.inputActions.push("alternate");
+  document.inputBindings = { actions: { fire: [{ kind: "mouseButton", button: 0 }], alternate: [{ kind: "mouseButton", button: 2 }] }, axes: {},
+    look: mode === "disabled-look" ? [] : [{ kind: "mouse", sensitivity: 1, invertY: false }] };
+  const canvasRef = createRef<HTMLCanvasElement>();
+  const input = new GameInput3D();
+  const host: GamePlaySession3D = {
+    canvasRef, inputRef: { current: input }, rendererRef: { current: null }, playing: true, playDocument: document,
+    frame: null, inspection: null, backend: "webgl2", error: null, beginPlay: jest.fn(), restart: jest.fn(), stop: jest.fn(), step: jest.fn(),
+    save: jest.fn(), load: jest.fn().mockResolvedValue(undefined), replayBeforeError: jest.fn().mockResolvedValue(undefined)
+  };
+  const view = render(<ThemeProvider theme={createTheme({ cssVariables: true })}>
+    <GameViewport3D document={document} host={host} sceneId={document.entrySceneId} playerOnly />
+  </ThemeProvider>);
+  try {
+    const canvas = screen.getByLabelText("3D game viewport") as HTMLCanvasElement;
+    const request = jest.fn(() => mode === "denied" ? Promise.reject(new Error("Denied")) : undefined);
+    Object.defineProperty(canvas, "requestPointerLock", { configurable: true, value: mode === "missing" ? undefined : request });
+    canvas.setPointerCapture = jest.fn();
+    const click = () => act(() => {
+      canvas.dispatchEvent(new MouseEvent("pointerdown", { buttons: 1, button: 0, bubbles: true }));
+      window.dispatchEvent(new MouseEvent("pointerup", { buttons: 0, button: 0, bubbles: true }));
+    });
+    click();
+    expect(input.sample(document).justPressed).toEqual(["fire"]);
+    expect(input.sample(document).justPressed).toEqual([]);
+    click();
+    expect(input.sample(document).justPressed).toEqual(["fire"]);
+    const move = (type: string, buttons: number) => act(() => {
+      canvas.dispatchEvent(new MouseEvent(type, { buttons, button: type === "pointerdown" && buttons === 2 ? 2 : 0, bubbles: true }));
+    });
+    move("pointerdown", 1);
+    expect(input.sample(document).pressed).toEqual(["fire"]);
+    move("pointermove", 3);
+    expect(input.sample(document).pressed).toEqual(["fire", "alternate"]);
+    move("pointermove", 2);
+    expect(input.sample(document).pressed).toEqual(["alternate"]);
+    move("pointerup", 0);
+    expect(input.sample(document).pressed).toEqual([]);
+    move("pointerdown", 2);
+    expect(input.sample(document).pressed).toEqual(["alternate"]);
+    move("pointermove", 3);
+    expect(input.sample(document).pressed).toEqual(["fire", "alternate"]);
+    move("pointermove", 1);
+    expect(input.sample(document).pressed).toEqual(["fire"]);
+    move("pointerup", 0);
+    expect(input.sample(document).pressed).toEqual([]);
+    await act(async () => {});
+    if (mode === "disabled-look") { expect(request).not.toHaveBeenCalled(); }
+  } finally { view.unmount(); }
+});

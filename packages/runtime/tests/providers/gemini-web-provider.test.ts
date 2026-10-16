@@ -387,6 +387,19 @@ describe("GeminiWebProvider", () => {
     expect(page.scripts.filter((op) => op === "read")).toHaveLength(3);
   });
 
+  it("returns the tool calls of a reply when the turn offers tools", async () => {
+    fakeTab({ turns: [{ text: '<tool_call>{"name": "get_weather", "arguments": {"city": "Paris"}}</tool_call>' }] });
+    const pending = new GeminiWebProvider().generateMessage({
+      model: "auto",
+      messages: [{ role: "user", content: "Weather in Paris?" }],
+      tools: [{ name: "get_weather", inputSchema: { type: "object" } }]
+    });
+    await vi.advanceTimersByTimeAsync(10_000);
+    const message = await pending;
+    expect(message.content).toBe("");
+    expect(message.toolCalls).toMatchObject([{ name: "get_weather", args: { city: "Paris" } }]);
+  });
+
   it("fails with the chat link when the turn ends but the chat shows no reply", async () => {
     fakeTab({ unstoredReads: 999 });
     const pending = new GeminiWebProvider().generateMessage({ model: "auto", messages: [{ role: "user", content: "hi" }] });

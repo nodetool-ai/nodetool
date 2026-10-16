@@ -6,6 +6,9 @@ import {
 } from "../../stores/ModelMenuStore";
 import { useTTSModelsByProvider } from "../../hooks/useModelsByProvider";
 
+/** The provider capability this picker serves, for local providers to install. */
+const LOCAL_CAPABILITIES = ["text_to_speech"];
+
 interface TTSModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
@@ -35,6 +38,7 @@ function TTSModelMenuDialog({
       searchPlaceholder="Search text-to-speech models"
       storeHook={useTTSModelMenuStore}
       modelType="tts_model"
+      localCapabilities={LOCAL_CAPABILITIES}
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
     />

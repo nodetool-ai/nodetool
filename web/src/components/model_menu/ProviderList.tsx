@@ -23,8 +23,9 @@ import ModelMenuNavItem from "./shared/ModelMenuNavItem";
 import {
   isHuggingFaceProvider,
   formatGenericProviderName,
-  getProviderDisplayName,
-  getProviderUrl
+  getProviderUrl,
+  groupProvidersBySite,
+  type ProviderEntry
 } from "../../utils/providerDisplay";
 import {
   requiredSecretForProvider,
@@ -590,24 +591,22 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
     return counts;
   }, [models]);
 
-  // Sort providers: enabled first (alphabetical), then disabled (alphabetical).
-  // The label and icon URL are resolved here as well: both are pure functions of
-  // the provider id, and resolving them inside the render loop re-ran a
-  // substring scan over ~45 icon names per provider on every re-render.
-  const { enabledList, disabledList } = React.useMemo(() => {
-    // Use enabledProviders map directly to avoid expensive re-computation via selector functions
-    const map = enabledProviders || {};
-    const withLabels = providers.map((p) => ({
-      p,
-      label: getProviderDisplayName(p),
-      iconUrl: getProviderIconUrl(p),
-      enabled: map[p] !== false // default enabled
-    }));
-    const byLabel = (a: { label: string }, b: { label: string }) =>
-      a.label.localeCompare(b.label);
+  // Group providers: enabled cloud, enabled local, then disabled, each by
+  // name. The icon URL is resolved here as well: it is a pure function of the
+  // provider id, and resolving it inside the render loop re-ran a substring
+  // scan over ~45 icon names per provider on every re-render.
+  const { cloudList, localList, disabledList } = React.useMemo(() => {
+    const groups = groupProvidersBySite(providers, enabledProviders || {});
+    const withIcons = (list: ProviderEntry[]) =>
+      list.map(({ provider, label }) => ({
+        p: provider,
+        label,
+        iconUrl: getProviderIconUrl(provider)
+      }));
     return {
-      enabledList: withLabels.filter((x) => x.enabled).sort(byLabel),
-      disabledList: withLabels.filter((x) => !x.enabled).sort(byLabel)
+      cloudList: withIcons(groups.cloud),
+      localList: withIcons(groups.local),
+      disabledList: withIcons(groups.disabled)
     };
   }, [providers, enabledProviders]);
 
@@ -719,9 +718,9 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
         count={models.length}
       />
       {quickViews}
-      {!isHorizontal && (
+      {!isHorizontal && cloudList.length > 0 && (
         <SectionHeader
-          title="Providers"
+          title="Cloud"
           size="small"
           sx={{ px: SPACING.md, pt: SPACING.md, pb: SPACING.xs }}
         />
@@ -736,7 +735,15 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
           <EmptyState variant="error" size="small" title="Providers did not load" />
         </Box>
       )}
-      {enabledList.map(renderProvider)}
+      {cloudList.map(renderProvider)}
+      {localList.length > 0 && !isHorizontal && (
+        <SectionHeader
+          title="Local"
+          size="small"
+          sx={{ px: SPACING.md, pt: SPACING.md, pb: SPACING.xs }}
+        />
+      )}
+      {localList.map(renderProvider)}
       {disabledList.length > 0 && !isHorizontal && (
         <SectionHeader
           title="Disabled"
