@@ -116,10 +116,10 @@ describe("3D particles beside a session", () => {
     const second = await run();
     expect(second.samples).toEqual(first.samples);
     const packed = packParticleBatches3D(gameParticleFieldFromSamples3D(first.samples, first.frame), VIEWER);
-    expect(packed.batches.map((batch) => [batch.key, batch.count])).toEqual([
-      ["quad:additive", first.samples.length - 4], ["box:normal:lit", 4]]);
+    expect(packed.batches.filter(batch => batch.shape === "quad").reduce((sum, batch) => sum + batch.count, 0)).toBe(first.samples.length - 4);
+    expect(packed.batches.filter(batch => batch.shape === "box").reduce((sum, batch) => sum + batch.count, 0)).toBe(4);
     expect(packed.soft).toBe(true);
-    const burst = packed.batches[1]!;
+    const burst = packed.batches.find(batch => batch.shape === "box")!;
     expect(particle(burst.data, 0).slice(0, 3)).toEqual([1, 2, 3]);
   });
 
@@ -148,6 +148,22 @@ describe("3D particles beside a session", () => {
 });
 
 describe("3D particle batches", () => {
+  it.each([false, true])("preserves global order across repeated material runs (reverse input %s)", (reverse) => {
+    const quad = emitter({});
+    const mesh = emitter({ render: { kind: "mesh", shape: "box" }, unlit: true });
+    const glow = emitter({ blend: "additive" });
+    const samples = [view(quad, { z: -5 }), view(mesh, { z: -4 }), view(quad, { z: -3 }), view(glow, { z: -2 }), view(quad, { z: -1 })];
+    if (reverse) { samples.reverse(); }
+    const packed = packParticleBatches3D(field(samples), VIEWER);
+    expect(packed.batches.map(batch => [batch.shape, batch.blend, batch.count, batch.data[2]])).toEqual([
+      ["quad", "normal", 1, -5], ["box", "normal", 1, -4], ["quad", "normal", 1, -3],
+      ["quad", "additive", 1, -2], ["quad", "normal", 1, -1]
+    ]);
+    expect(new Set(packed.batches.map(batch => batch.key)).size).toBe(5);
+    const reversedCamera = packParticleBatches3D(field(samples), { ...VIEWER, z: -6, forwardZ: 1 }, packed.batches);
+    expect(reversedCamera.batches.map(batch => batch.data[2])).toEqual([-1, -2, -3, -4, -5]);
+  });
+
   it("groups by shape, blend and lighting and packs each particle's draw settings", () => {
     const stretched = emitter({ id: "streak", render: { kind: "stretched", length: 3, speedScale: 0.25 }, softness: 0.75, blend: "additive" });
     const aligned = emitter({ id: "debris", render: { kind: "mesh", shape: "tetrahedron", align: "velocity" }, softness: 2 });
@@ -191,7 +207,7 @@ describe("3D particle batches", () => {
     expect(packed.soft).toBe(false);
   });
 
-  it("sorts alpha-blended particles farthest first and keeps additive particles in field order", () => {
+  it("sorts globally, keeps equal-depth field order and reuses run buffers", () => {
     const normal = emitter({ id: "smoke" });
     const additive = emitter({ id: "glow", blend: "additive" });
     const depths = [-1, -5, -3, -5];
@@ -199,18 +215,18 @@ describe("3D particle batches", () => {
       ...depths.map((z, index) => view(normal, { z, rotation: index })),
       ...depths.map((z, index) => view(additive, { z, rotation: index }))
     ]), VIEWER);
-    const order = (index: number): number[] => Array.from({ length: 4 }, (_, item) => packed.batches[index]!.data[item * PARTICLE_INSTANCE_STRIDE_3D + 11]!);
-    // Equal depths keep their field order.
-    expect(order(0)).toEqual([1, 3, 2, 0]);
-    expect(order(1)).toEqual([0, 1, 2, 3]);
-    // The next frame sorts into the batch's spare buffer instead of allocating one.
-    const first = packed.batches[0]!;
-    const buffers = [first.data, first.spare];
-    const again = packParticleBatches3D(field(depths.map((z, index) => view(normal, { z, rotation: index }))), VIEWER, packed.batches);
-    expect(again.batches[0]).toBe(first);
-    expect(buffers).toContain(again.batches[0]!.data);
-    expect(buffers).toContain(again.batches[0]!.spare);
-    expect(order(0)).toEqual([1, 3, 2, 0]);
+    expect(packed.batches.map(batch => [batch.blend, Array.from({ length: batch.count }, (_, index) => batch.data[index * PARTICLE_INSTANCE_STRIDE_3D + 11])])).toEqual([
+      ["normal", [1, 3]], ["additive", [1, 3]], ["normal", [2]], ["additive", [2]], ["normal", [0]], ["additive", [0]]
+    ]);
+    const buffers = packed.batches.map(batch => batch.data);
+    const again = packParticleBatches3D(field([
+      ...depths.map((z, index) => view(normal, { z, rotation: index })),
+      ...depths.map((z, index) => view(additive, { z, rotation: index }))
+    ]), VIEWER, packed.batches);
+    for (const [index, batch] of again.batches.entries()) {
+      expect(batch).toBe(packed.batches[index]);
+      expect(batch.data).toBe(buffers[index]);
+    }
   });
 
   it("grows a batch past its first capacity and reuses it on the next frame", () => {
@@ -222,10 +238,28 @@ describe("3D particle batches", () => {
     expect(batch.data.length).toBeGreaterThanOrEqual(200 * PARTICLE_INSTANCE_STRIDE_3D);
     expect(Array.from({ length: 200 }, (_, index) => batch.data[index * PARTICLE_INSTANCE_STRIDE_3D])).toEqual(many.map((value) => value.x));
     const data = batch.data;
+    const similar = packParticleBatches3D(field(many.slice(0, 100)), VIEWER, first.batches);
+    expect(similar.batches[0]).toBe(batch);
+    expect(similar.batches[0]!.data).toBe(data);
     const second = packParticleBatches3D(field(many.slice(0, 10)), VIEWER, first.batches);
     expect(second.batches[0]).toBe(batch);
-    expect(second.batches[0]!.data).toBe(data);
+    // A large historical run must not retain its peak capacity after becoming a small run.
+    expect(second.batches[0]!.data).not.toBe(data);
+    expect(second.batches[0]!.data.length).toBe(16 * PARTICLE_INSTANCE_STRIDE_3D);
     expect(second.batches[0]!.count).toBe(10);
+  });
+
+  it("keeps all 8192 alternating particles in distinct bounded runs", () => {
+    const quad = emitter({});
+    const mesh = emitter({ render: { kind: "mesh", shape: "box" } });
+    const samples = Array.from({ length: 8192 }, (_, index) => view(index % 2 ? mesh : quad, { z: -index }));
+    const packed = packParticleBatches3D(field(samples), VIEWER);
+    expect(packed.drawn).toBe(8192);
+    expect(packed.batches).toHaveLength(8192);
+    expect(new Set(packed.batches.map(batch => batch.key)).size).toBe(8192);
+    expect(packed.batches.reduce((sum, batch) => sum + batch.data.byteLength, 0)).toBe(8192 * PARTICLE_INSTANCE_STRIDE_3D * 4);
+    const again = packParticleBatches3D(field(samples), VIEWER, packed.batches);
+    expect(again.batches.every((batch, index) => batch === packed.batches[index] && batch.count === 1)).toBe(true);
   });
 });
 
@@ -255,7 +289,7 @@ function recordingContext(scene: THREE.Scene, camera: THREE.PerspectiveCamera): 
       const group = renderedScene.getObjectByName("game-particles");
       calls.push(`depth-render background=${renderedScene.background !== null} particles=${group?.visible} shadows=${this.shadowMap.autoUpdate}`);
       renderedScene.traverse((object) => { if (object instanceof THREE.Mesh && object.name && !Array.isArray(object.material)) { depthMaterials.set(object.name, object.material); } });
-      // A real renderer counts the pre-pass draws. The pass must take them back out.
+      // A real renderer counts the pre-pass draws as submitted frame work.
       this.info.render.calls += 3;
       this.info.render.triangles += 36;
     }
@@ -268,6 +302,38 @@ function recordingContext(scene: THREE.Scene, camera: THREE.PerspectiveCamera): 
 }
 
 describe("3D particle render pass", () => {
+  it.each(["quad", "mesh"])("retires oversized %s draw buffers after a run contracts", async (kind) => {
+    const definition = emitter(kind === "mesh" ? { render: { kind: "mesh", shape: "box" } } : {});
+    let current = field(Array.from({ length: 200 }, () => view(definition)));
+    const scene = new THREE.Scene();
+    const pipeline = new RenderPipeline3D();
+    const pass = new GameParticlePass3D(pipeline, { scene, particles: () => current });
+    const context = recordingContext(scene, new THREE.PerspectiveCamera()).context;
+    const mesh = (): THREE.Mesh => {
+      const value = scene.getObjectByName("game-particles")?.children[0];
+      if (!(value instanceof THREE.Mesh)) { throw new Error("Particle draw is missing"); }
+      return value;
+    };
+    try {
+      await pipeline.render(context);
+      const first = mesh();
+      let disposed = false;
+      first.geometry.addEventListener("dispose", () => { disposed = true; });
+      current = field(Array.from({ length: 100 }, () => view(definition)));
+      await pipeline.render(context);
+      expect(mesh()).toBe(first);
+      current = field(Array.from({ length: 10 }, () => view(definition)));
+      await pipeline.render(context);
+      const small = mesh();
+      expect(small).not.toBe(first);
+      expect(disposed).toBe(true);
+      const position = small.geometry.getAttribute("particlePosition");
+      const capacity = small instanceof THREE.InstancedMesh ? small.instanceMatrix.count
+        : position instanceof THREE.InterleavedBufferAttribute ? position.data.count : 0;
+      expect(capacity).toBe(16);
+    } finally { pass.dispose(); }
+  });
+
   it("runs before the scene pass and builds one draw per batch inside the scene", async () => {
     const pipeline = new RenderPipeline3D();
     const scene = new THREE.Scene();
@@ -295,6 +361,8 @@ describe("3D particle render pass", () => {
     const boxes = group?.children.find((child) => child.name === "particles:box:normal:unlit") as THREE.InstancedMesh;
     expect(boxes.count).toBe(1);
     expect(boxes.material).toBeInstanceOf(THREE.MeshBasicMaterial);
+    expect((boxes.material as THREE.Material).depthWrite).toBe(false);
+    expect(boxes.renderOrder).toBeLessThan(quads.renderOrder);
     expect(boxes.geometry.getAttribute("particleOpacity").getX(0)).toBe(0.5);
     const matrix = new THREE.Matrix4();
     boxes.getMatrixAt(0, matrix);
@@ -360,7 +428,7 @@ describe("3D particle render pass", () => {
     await pipeline.render(recorded.context);
     expect(recorded.calls).toEqual(["target:depth", "clear", "depth-render background=false particles=false shadows=false",
       "target:canvas", "scene particles=1", "clearDepth", "hud"]);
-    expect(recorded.renderer.info.render).toEqual({ calls: 5, triangles: 100 });
+    expect(recorded.renderer.info.render).toEqual({ calls: 8, triangles: 136 });
     const depth = (name: string): THREE.MeshBasicMaterial => {
       const material = recorded.depthMaterials.get(name);
       if (!(material instanceof THREE.MeshBasicMaterial)) { throw new Error(`${name} drew without a depth material`); }

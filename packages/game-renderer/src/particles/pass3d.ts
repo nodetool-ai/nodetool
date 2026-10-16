@@ -186,8 +186,10 @@ export class GameParticlePass3D {
     this.batches = packed.batches;
     this.drawn = packed.drawn;
     this.frame += 1;
-    for (const batch of packed.batches) {
+    for (const [order, batch] of packed.batches.entries()) {
       if (batch.shape === "quad") { this.updateQuads(batch); } else { this.updateMeshes(batch, batch.shape); }
+      // Three otherwise sorts each run by its object's origin, not its instance depths.
+      this.draws.get(batch.key)!.mesh.renderOrder = order;
     }
     for (const [key, draw] of this.draws) {
       if (draw.frame !== this.frame) { this.release(draw); this.draws.delete(key); }
@@ -208,8 +210,8 @@ export class GameParticlePass3D {
   /**
    * Renders the scene's depth without particles into a texture, keeping every renderer and scene setting it changes.
    * Each mesh draws with a depth-only copy of its material, so alpha-tested cut-outs keep their holes, and transparent
-   * or non-depth-writing materials are skipped as they write no depth in the scene pass either. The pre-pass draws are
-   * taken back out of the renderer's counters, so frame stats and budgets count only what the player sees.
+   * or non-depth-writing materials are skipped as they write no depth in the scene pass either. Its submitted work
+   * remains in the renderer counters so frame stats and budgets include this pass.
    */
   private renderDepth(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera): THREE.DepthTexture {
     const size = renderer.getDrawingBufferSize(this.size);
@@ -221,9 +223,6 @@ export class GameParticlePass3D {
     const target = renderer.getRenderTarget();
     const background = scene.background;
     const shadowUpdate = renderer.shadowMap.autoUpdate;
-    const counters = renderer.info.render;
-    const calls = counters.calls;
-    const triangles = counters.triangles;
     try {
       // The scene pass renders this frame's shadow maps. Depth needs none.
       renderer.shadowMap.autoUpdate = false;
@@ -240,8 +239,6 @@ export class GameParticlePass3D {
       this.group.visible = true;
       scene.background = background;
       renderer.setRenderTarget(target);
-      counters.calls = calls;
-      counters.triangles = triangles;
     }
     const depth = this.depthTarget.depthTexture;
     if (!depth) { throw new Error("Particle depth target has no depth texture"); }
@@ -281,7 +278,9 @@ export class GameParticlePass3D {
 
   private updateQuads(batch: ParticleBatch3D): void {
     let draw = this.draws.get(batch.key);
-    if (draw?.kind === "quad" && draw.buffer.array.length < batch.data.length) { this.release(draw); this.draws.delete(batch.key); draw = undefined; }
+    if (draw?.kind === "quad" && draw.buffer.array.length !== batch.data.length) {
+      this.release(draw); this.draws.delete(batch.key); draw = undefined;
+    }
     if (!draw) {
       draw = this.createQuads(batch);
       this.draws.set(batch.key, draw);
@@ -329,7 +328,10 @@ export class GameParticlePass3D {
 
   private updateMeshes(batch: ParticleBatch3D, shape: Exclude<ParticleBatchShape3D, "quad">): void {
     let draw = this.draws.get(batch.key);
-    if (draw?.kind === "mesh" && draw.mesh.instanceMatrix.count < batch.count) { this.release(draw); this.draws.delete(batch.key); draw = undefined; }
+    const capacity = batch.data.length / PARTICLE_INSTANCE_STRIDE_3D;
+    if (draw?.kind === "mesh" && draw.mesh.instanceMatrix.count !== capacity) {
+      this.release(draw); this.draws.delete(batch.key); draw = undefined;
+    }
     if (!draw) {
       draw = this.createMeshes(batch, shape);
       this.draws.set(batch.key, draw);
@@ -368,7 +370,7 @@ export class GameParticlePass3D {
     const opacity = new THREE.InstancedBufferAttribute(new Float32Array(capacity), 1);
     opacity.setUsage(THREE.DynamicDrawUsage);
     geometry.setAttribute("particleOpacity", opacity);
-    const options = { transparent: true, depthWrite: batch.blend === "normal",
+    const options = { transparent: true, depthWrite: false,
       blending: batch.blend === "additive" ? THREE.AdditiveBlending : THREE.NormalBlending };
     const material = batch.lit ? new THREE.MeshStandardMaterial({ ...options, roughness: 0.8, metalness: 0 }) : new THREE.MeshBasicMaterial(options);
     withInstanceOpacity(material);
