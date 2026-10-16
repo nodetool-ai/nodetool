@@ -39,6 +39,7 @@ import ProviderList from "../ProviderList";
 import ModelMenuNavItem from "./ModelMenuNavItem";
 import ModelList from "../ModelList";
 import type { DownloadableModel } from "../ModelList";
+import { downloadMatchesProvider } from "./downloadMatchesProvider";
 import ModelPackCard from "../../hugging_face/ModelPackCard";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
@@ -300,11 +301,18 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     return set;
   }, [models]);
 
+  // A provider filter or the Favorites and Recent views show only their own
+  // models, so downloads from other providers stay out of them.
   const downloadCandidates = useMemo<UnifiedModel[]>(() => {
-    if (!hasDownloads) return [];
+    if (!hasDownloads || customView !== null) return [];
     const q = search.trim().toLowerCase();
     return recommendedModels
       .filter((m) => isHfModel(m) || m.type === "llama_model")
+      .filter(
+        (m) =>
+          selectedProvider === null ||
+          downloadMatchesProvider(m, selectedProvider)
+      )
       .filter(
         (m) =>
           !selectableIds.has((m.repo_id || m.id || "").toLowerCase()) &&
@@ -319,7 +327,14 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           (m.tags?.some((tag) => tag.toLowerCase().includes(q)) ?? false)
         );
       });
-  }, [hasDownloads, recommendedModels, selectableIds, search]);
+  }, [
+    hasDownloads,
+    customView,
+    recommendedModels,
+    selectableIds,
+    search,
+    selectedProvider
+  ]);
 
   React.useEffect(() => {
     const requests = downloadCandidates
