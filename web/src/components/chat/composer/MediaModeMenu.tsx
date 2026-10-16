@@ -75,7 +75,7 @@ const MODES: ModeItem[] = [
   },
   {
     id: "audio",
-    label: "Generate speech",
+    label: "Read aloud",
     icon: <RecordVoiceOverIcon fontSize="small" />,
     enabled: true
   },

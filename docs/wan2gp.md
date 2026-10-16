@@ -34,7 +34,7 @@ on a trusted network or behind an authenticated reverse proxy.
 
 ## 2. Install the pack
 
-- **Desktop app:** open **Tools → Package Manager → Python packs** and install
+- **Desktop app:** open **Tools → Package Manager → Python nodes** and install
   **Wan2GP**. Python is set up first if it is missing.
 - **Without the desktop app:** run `pip install nodetool-wan2gp` in the Python
   environment NodeTool uses. See

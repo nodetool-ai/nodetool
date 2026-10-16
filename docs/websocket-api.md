@@ -935,6 +935,7 @@ user does not own. Clients must render the readout only once a frame arrives.
 | `job_resumed`, `chat_resumed`, `chat_turn_active` | Replies to `reconnect_job`, `resume_chat`, `list_chat_turns` | See those commands |
 | `rpc_response` | Reply to an RPC command | `request_id`, `command`, `result` or `error` |
 | `resource_change` | A stored resource changed, from any tab, agent, or CLI call | `event` (`created`, `updated`, or `deleted`), `resource_type`, `resource`, and optional `ops` |
+| `model_load_progress` | A local model loads inside a run, such as a Transformers.js model on its first use. A connecting client first gets the loads already in progress. Gated like `system_stats` | `repo_id`, `runtime`, `phase` (`downloading`, `loading`, `ready`, or `error`), `loaded_bytes`, `total_bytes`, optional `error` |
 | `ping`, `pong` | Heartbeat | `ts` |
 | `sdk_execution_target` | Connection open, when the server runs the SDK execution registry | `runner_id` |
 

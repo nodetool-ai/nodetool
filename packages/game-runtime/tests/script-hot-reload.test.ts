@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { QuickJSContext } from "quickjs-emscripten-core";
-import { gameDocument, gameEntity3D, gameInputFrame3D, type AnyGameDocument, type GameSnapshot, type GameSnapshot3D } from "@nodetool-ai/protocol";
+import { gameDocument, gameEntity3D, gameInputFrame3D, gameSnapshot, gameSnapshot3D, type AnyGameDocument, type GameSnapshot, type GameSnapshot3D } from "@nodetool-ai/protocol";
 import type { GameScriptReloadResult } from "../src/script-reload.js";
 import { createGameSession3D } from "../src/session3d.js";
 import { blockout } from "./fixtures-game3d.js";
@@ -22,7 +22,8 @@ async function verifyReloadReplay<Document extends AnyGameDocument, Snapshot ext
     snapshot(): Snapshot;
     reloadScripts(candidate: Document): Promise<GameScriptReloadResult<Document>>;
     dispose(): void;
-  }>
+  }>,
+  parseSnapshot: (value: unknown) => Snapshot
 ): Promise<void> {
   const session = await open(document, 1);
   const input = gameInputFrame3D.parse({ pressed: [] });
@@ -38,15 +39,30 @@ async function verifyReloadReplay<Document extends AnyGameDocument, Snapshot ext
     if (!accepted.ok) { throw new Error(accepted.error); }
     expect(accepted.changed).toBe(true);
     for (let tick = 30; tick < 60; tick += 1) { session.step(input); }
-    const checkpoint = session.snapshot();
+    // The restore boundary receives serialized storage data, rather than a live snapshot object.
+    const checkpoint = parseSnapshot(JSON.parse(JSON.stringify(session.snapshot())));
     expect(checkpoint.tick).toBe(60);
     const restored = await open(accepted.document, 1, checkpoint);
     try {
       let divergentSnapshots = 0;
       let divergentEvents = 0;
       for (let tick = 60; tick < 120; tick += 1) {
+        if (tick === 90) {
+          const secondEdit = structuredClone(accepted.document);
+          for (const entity of secondEdit.scenes[0].entities) {
+            for (const behavior of entity.behaviors) {
+              if (behavior.kind === "script") { behavior.source = behavior.source.replace("+ 10 +", "+ 20 +"); }
+            }
+          }
+          const originalReload = await session.reloadScripts(secondEdit);
+          const replayReload = await restored.reloadScripts(secondEdit);
+          expect(originalReload.ok).toBe(true);
+          expect(replayReload).toEqual(originalReload);
+        }
         const live = session.step(input);
         const replay = restored.step(input);
+        expect(replay.events).toEqual(live.events);
+        expect(restored.snapshot()).toEqual(session.snapshot());
         if (JSON.stringify(live.events) !== JSON.stringify(replay.events)) { divergentEvents += 1; }
         if (JSON.stringify(session.snapshot()) !== JSON.stringify(restored.snapshot())) { divergentSnapshots += 1; }
       }
@@ -57,16 +73,16 @@ async function verifyReloadReplay<Document extends AnyGameDocument, Snapshot ext
 }
 
 describe("live script reload", () => {
-  it("replays the 2D source edit at tick 30 through tick 120 from checkpoint 60 with seed 1", async () => {
+  it("replays both 2D edits at ticks 30 and 90 through tick 120 from serialized checkpoint 60 with seed 1", async () => {
     const document = fixture();
     document.scenes[0].entities[0].behaviors[0] = { kind: "script", source: "input => ({ state: (input.state || 0) + 1 + input.random(), commands: [{ kind: 'emit', event: 'step' }] })", maxTickMs: 20, maxCommands: 16 };
-    await verifyReloadReplay(document, createScriptedGameSession);
+    await verifyReloadReplay(document, createScriptedGameSession, gameSnapshot.parse);
   });
 
-  it("replays the 3D source edit at tick 30 through tick 120 from checkpoint 60 with seed 1", async () => {
+  it("replays both 3D edits at ticks 30 and 90 through tick 120 from serialized checkpoint 60 with seed 1", async () => {
     const document = blockout();
     document.scenes[0].entities[1].behaviors = [{ kind: "script", source: "input => ({ state: (input.state || 0) + 1 + input.random(), commands: [{ kind: 'emit', event: 'step' }] })", maxTickMs: 20, maxCommands: 16 }];
-    await verifyReloadReplay(document, createGameSession3D);
+    await verifyReloadReplay(document, createGameSession3D, gameSnapshot3D.parse);
   });
 
   it("continues from the current tick and state and restores against the accepted source document", async () => {

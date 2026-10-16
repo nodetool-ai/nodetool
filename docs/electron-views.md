@@ -18,7 +18,7 @@ It shows the NodeTool logo and the latest boot message from the backend, for exa
 
 If the backend fails to start, the splash shows "Backend failed to start" with the error and three buttons: **Retry start**, **Open logs**, and **Reinstall environment**.
 
-There is no separate install wizard. Python is an optional runtime. You install it from the Runtimes panel of the **Package Manager**, and it is also installed automatically the first time you install a Python package there. Node packs and runtimes are managed from the **Package Manager**.
+There is no separate install wizard. Python is an optional runtime. You install it from the **Engines & tools** list of the **Package Manager**, and it is also installed automatically the first time you install a Python package there. Node packs and runtimes are managed from the **Package Manager**.
 
 ---
 
@@ -26,12 +26,9 @@ There is no separate install wizard. Python is an optional runtime. You install 
 
 The Package Manager is a page inside the main window, not a native window. Open it from **Tools → Package Manager** in the menu bar or from the logo menu (**Package Manager**, which shows only when the app is served from localhost). It opens as a workspace tab on the `/packages` route.
 
-The left rail switches between two tabs:
+The left rail has four lists, each with a one-line hint: **Engines & tools** (local AI engines, media tools and languages), **Built-in nodes**, **Python nodes** and **Community nodes**. A list with updates shows the number of updates. See [Node Packs](node-packs.md#engines--tools-built-in-nodes-python-nodes-and-community-nodes).
 
-- **Software**: system runtimes, grouped as All runtimes, Languages, Media & docs, and AI runtimes.
-- **Node Packs**: grouped as Included, Registry, and Third-party.
-
-Each list is searchable (press `/`) and has status filters such as Installed, Not installed, Updates, Enabled, and Disabled. The page remembers the last tab and category.
+Each list is searchable (press `/`) and has a status filter. The page opens on Engines & tools and remembers the last list.
 
 ![Package Manager on the Node Packs tab](assets/screenshots/packages-manager.png)
 

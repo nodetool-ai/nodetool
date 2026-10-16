@@ -62,7 +62,8 @@ export function npmInstallFlags(
   return [
     ...(scriptPolicy === "ignore" ? ["--ignore-scripts"] : []), "--omit=dev", "--include=prod", "--include=optional",
     "--strict-peer-deps", "--legacy-peer-deps=false", "--install-strategy=hoisted",
-    "--prefer-dedupe", "--package-lock=true", "--global=false", "--workspaces=false",
+    mode === "global" ? "--prefer-dedupe=false" : "--prefer-dedupe",
+    "--package-lock=true", "--global=false", "--workspaces=false",
     "--force=false", "--dry-run=false", "--no-audit", "--no-fund", "--update-notifier=false",
     ...(mode === "global" ? ["--no-save"] : ["--save", "--save-exact", "--save-prod"])
   ];

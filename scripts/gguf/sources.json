@@ -1,0 +1,40 @@
+{
+  "$comment": "Selection rules for scripts/sync-gguf-trending.mjs. Only repos from these publishers are considered. A repo whose id contains a blocked word is skipped. Edit this file to admit a publisher or to drop a noisy one.",
+  "publishers": [
+    "unsloth",
+    "bartowski",
+    "ggml-org",
+    "lmstudio-community",
+    "Qwen",
+    "google",
+    "mistralai",
+    "microsoft",
+    "ibm-granite",
+    "LiquidAI",
+    "openbmb",
+    "nvidia",
+    "JetBrains",
+    "meta-llama",
+    "deepseek-ai",
+    "HuggingFaceTB",
+    "allenai",
+    "NousResearch",
+    "zai-org",
+    "MiniMaxAI",
+    "moonshotai"
+  ],
+  "blockedWords": [
+    "uncensored",
+    "abliterated",
+    "heretic",
+    "obliterated",
+    "nsfw",
+    "lora",
+    "embedding",
+    "reranker"
+  ],
+  "pipelineTags": ["text-generation", "image-text-to-text"],
+  "quantPreference": ["Q4_K_M", "Q4_K_S", "IQ4_XS", "Q4_0"],
+  "maxSizeGb": 20,
+  "maxModels": 50
+}

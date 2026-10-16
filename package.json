@@ -208,6 +208,7 @@
     "check:agents-docs": "node scripts/check-agents-docs.mjs",
     "sync:genspend": "node scripts/sync-genspend-pricing.mjs",
     "sync:genspend:check": "node scripts/sync-genspend-pricing.mjs --check",
+    "sync:gguf-trending": "node scripts/sync-gguf-trending.mjs",
     "sync:model-rankings": "node scripts/sync-model-rankings.mjs",
     "sync:model-rankings:check": "node scripts/sync-model-rankings.mjs --check",
     "check": "npm run check:deps && npm run check:circular && npm run check:keys && npm run check:coupled-deps && npm run check:lockfile && npm run check:lockfile-libc && npm run check:typescript && npm run check:execution-boundary && npm run check:document-sync && npm run check:agents-docs && npm run build:packages && npm run typecheck && npm run lint && npm run test:packages && npm run test",

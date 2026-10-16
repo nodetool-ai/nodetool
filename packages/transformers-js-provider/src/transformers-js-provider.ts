@@ -7,27 +7,39 @@ import type {
   EncodedAudioResult,
   EstimateDepthParams,
   ImageModel,
+  ImageSegmentationMask,
   LanguageModel,
   Message,
+  MusicModel,
   ProviderCapability,
   ProviderStreamItem,
   RemoveBackgroundParams,
   RerankModel,
   RerankParams,
   RerankResult,
+  SegmentImageParams,
+  TextToMusicParams,
   TTSModel
 } from "@nodetool-ai/runtime";
 import { generateMessage, generateMessages } from "./chat.js";
 import { textToSpeechEncoded } from "./tts.js";
+import { textToMusic } from "./music.js";
 import { automaticSpeechRecognition } from "./asr.js";
 import { generateEmbedding } from "./embeddings.js";
-import { estimateDepth, removeBackground } from "./image-ops.js";
+import {
+  estimateDepth,
+  removeBackground,
+  segmentImage,
+  textToImage,
+  upscaleImage
+} from "./image-ops.js";
 import { rerank } from "./rerank.js";
 import {
   discoverASRModels,
   discoverEmbeddingModels,
   discoverImageModels,
   discoverLanguageModels,
+  discoverMusicModels,
   discoverRerankModels,
   discoverTTSModels
 } from "./model-discovery.js";
@@ -44,16 +56,21 @@ export class TransformersJsProvider extends BaseProvider {
   protected override declaredCapabilities(): readonly ProviderCapability[] {
     return [
       "text_to_speech",
+      "text_to_music",
       "automatic_speech_recognition",
       "generate_embedding",
       "remove_background",
       "estimate_depth",
+      "segment_image",
+      "text_to_image",
+      "upscale_image",
       "rerank"
     ];
   }
 
   override async hasToolSupport(_model: string): Promise<boolean> {
-    return false;
+    // Chat models write tool calls as text. See tool-calls.ts.
+    return true;
   }
 
   // ── Discovery ─────────────────────────────────────────────────────
@@ -79,6 +96,10 @@ export class TransformersJsProvider extends BaseProvider {
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
     return this.discover(discoverTTSModels);
+  }
+
+  override async getAvailableMusicModels(): Promise<MusicModel[]> {
+    return this.discover(discoverMusicModels);
   }
 
   override async getAvailableASRModels(): Promise<ASRModel[]> {
@@ -123,6 +144,14 @@ export class TransformersJsProvider extends BaseProvider {
     return textToSpeechEncoded(args);
   }
 
+  // ── Music ─────────────────────────────────────────────────────────
+
+  override async textToMusic(
+    params: TextToMusicParams
+  ): Promise<EncodedAudioResult> {
+    return textToMusic(params);
+  }
+
   // ── ASR ───────────────────────────────────────────────────────────
 
   override async automaticSpeechRecognition(args: {
@@ -148,6 +177,16 @@ export class TransformersJsProvider extends BaseProvider {
 
   // ── Image ─────────────────────────────────────────────────────────
 
+  override async textToImage(
+    params: Parameters<BaseProvider["textToImage"]>[0]
+  ): Promise<Uint8Array> {
+    return textToImage({
+      prompt: params.prompt,
+      model: params.model.id,
+      signal: params.signal
+    });
+  }
+
   override async removeBackground(
     image: Uint8Array,
     params: RemoveBackgroundParams
@@ -161,6 +200,31 @@ export class TransformersJsProvider extends BaseProvider {
   ): Promise<Uint8Array> {
     params.signal?.throwIfAborted();
     return estimateDepth({ image, model: params.model.id });
+  }
+
+  override async segmentImage(
+    image: Uint8Array,
+    params: SegmentImageParams
+  ): Promise<ImageSegmentationMask[]> {
+    params.signal?.throwIfAborted();
+    if (params.prompt || params.points?.length || params.box) {
+      throw new Error(
+        "Transformers.js segmentation models segment the whole image and take no prompt, points or box."
+      );
+    }
+    return segmentImage({
+      image,
+      model: params.model.id,
+      maxMasks: params.maxMasks,
+      minConfidence: params.minConfidence
+    });
+  }
+
+  override async upscaleImage(
+    image: Uint8Array,
+    params: Parameters<BaseProvider["upscaleImage"]>[1]
+  ): Promise<Uint8Array> {
+    return upscaleImage({ image, model: params.model.id });
   }
 
   // ── Reranking ─────────────────────────────────────────────────────

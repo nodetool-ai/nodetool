@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 import { ProviderInfo } from "../stores/ApiTypes";
+import type { ImageModelTask } from "./useModelsByProvider";
 
 interface UseProvidersResult {
   providers: ProviderInfo[];
@@ -72,16 +73,50 @@ const IMAGE_MODEL_CAPABILITIES = [
   "estimate_depth"
 ];
 
-export const useImageModelProviders = (): UseProvidersResult => {
+/** The provider capability that runs each image picker task. */
+const IMAGE_TASK_CAPABILITY: Record<ImageModelTask, string> = {
+  text_to_image: "text_to_image",
+  image_to_image: "image_to_image",
+  image_edit: "image_to_image",
+  inpainting: "inpainting",
+  outpaint: "outpaint_image",
+  upscale: "upscale_image",
+  remove_background: "remove_background",
+  relight: "relight_image",
+  vectorize: "vectorize_image",
+  segment: "segment_image",
+  estimate_depth: "estimate_depth"
+};
+
+/** The provider capabilities that run the given image picker tasks, or all of them. */
+export const imageTaskCapabilities = (
+  tasks?: readonly ImageModelTask[]
+): string[] =>
+  tasks && tasks.length > 0
+    ? tasks.map((t) => IMAGE_TASK_CAPABILITY[t])
+    : IMAGE_MODEL_CAPABILITIES;
+
+/**
+ * Providers for the image picker. With `tasks`, keep only providers that
+ * declare a capability for one of them, so a picker never offers a provider
+ * that has no model for its task.
+ */
+export const useImageModelProviders = (
+  tasks?: readonly ImageModelTask[]
+): UseProvidersResult => {
   const { providers, isLoading, isFetching, error } = useProviders();
 
-  const filteredProviders = useMemo(
-    () =>
-      providers.filter((p) =>
-        IMAGE_MODEL_CAPABILITIES.some((c) => p.capabilities.includes(c))
-      ),
-    [providers]
-  );
+  const taskKey = tasks?.join(",") ?? "";
+  const filteredProviders = useMemo(() => {
+    const capabilities = taskKey
+      ? taskKey
+          .split(",")
+          .map((t) => IMAGE_TASK_CAPABILITY[t as ImageModelTask])
+      : IMAGE_MODEL_CAPABILITIES;
+    return providers.filter((p) =>
+      capabilities.some((c) => p.capabilities.includes(c))
+    );
+  }, [providers, taskKey]);
 
   return {
     providers: filteredProviders,

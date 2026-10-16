@@ -28,10 +28,11 @@ echo "Starting web Vite server on ${WEB_DEV_SERVER_URL}..."
 npm --prefix web run dev &
 WEB_SERVER_PID=$!
 
-# Only rebuild electron if source changed since last build
+# Only rebuild electron if source changed since last build. The main bundle
+# inlines the config and node-sdk builds, so their output counts as source.
 ELECTRON_MARKER="electron/dist-electron/main.js"
 if [[ ! -f "${ELECTRON_MARKER}" ]] || \
-   [[ -n "$(find electron/src electron/vite.config.ts -newer "${ELECTRON_MARKER}" -print -quit 2>/dev/null)" ]]; then
+   [[ -n "$(find electron/src electron/vite.config.ts packages/config/dist packages/node-sdk/dist -newer "${ELECTRON_MARKER}" -print -quit 2>/dev/null)" ]]; then
   echo "Building Electron main/preload bundle (parallel)..."
   npm --prefix electron run vite:build &
   ELECTRON_BUILD_PID=$!

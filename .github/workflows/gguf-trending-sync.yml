@@ -1,0 +1,107 @@
+name: Trending GGUF Sync
+
+# Nightly: pull the trending GGUF repos on Hugging Face
+# (https://huggingface.co/models?library=gguf&sort=trending) into
+# `packages/runtime/src/providers/node-llama-cpp-trending.generated.ts`, and
+# open a PR when the list changed.
+#
+# The llama.cpp provider offers these models in the model picker with a
+# Download button, so a new entry is a diff a human should see before it
+# ships. This opens a PR and never pushes to main. When the list did not
+# change the script rewrites nothing and no PR is opened.
+#
+# The sync needs no API key and no build: the script uses only Node built-ins
+# and the public Hugging Face API. The selection rules are in
+# `scripts/gguf/sources.json`.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # 04:20 UTC nightly.
+    - cron: "20 4 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: gguf-trending-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Refresh the trending GGUF list
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Sync trending GGUF models
+        run: node scripts/sync-gguf-trending.mjs --report gguf-trending-report.json
+
+      - name: Upload selection report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gguf-trending-report
+          path: gguf-trending-report.json
+          if-no-files-found: warn
+
+      - name: Detect changes
+        id: diff
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- packages/runtime/src/providers/node-llama-cpp-trending.generated.ts; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "summary<<EOF"
+              node -e "
+                const report = require('./gguf-trending-report.json');
+                console.log('| Model | Repository | File |');
+                console.log('| --- | --- | --- |');
+                for (const m of report.models) {
+                  console.log(\`| \${m.name} | [\${m.repoId}](https://huggingface.co/\${m.repoId}) | \\\`\${m.file}\\\` |\`);
+                }
+                const counts = {};
+                for (const s of report.skipped) counts[s.reason] = (counts[s.reason] ?? 0) + 1;
+                const parts = Object.entries(counts).map(([reason, n]) => \`\${n} \${reason}\`);
+                if (parts.length > 0) console.log(\`\nSkipped repos: \${parts.join(', ')}. See the run report.\`);
+              "
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open PR
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          branch: chore/gguf-trending-sync
+          base: main
+          add-paths: packages/runtime/src/providers/node-llama-cpp-trending.generated.ts
+          commit-message: "chore(runtime): sync trending GGUF models"
+          title: "chore(runtime): sync trending GGUF models"
+          body: |
+            Nightly refresh of the trending GGUF models that the llama.cpp
+            provider offers in the model picker, from
+            [Hugging Face](https://huggingface.co/models?library=gguf&sort=trending).
+
+            ${{ steps.diff.outputs.summary }}
+
+            Users download these models from the picker, so read the diff
+            before merging:
+
+            - [ ] Each repository is the publisher's own model or a known
+                  quantizer's copy of it, not a merge or a fine-tune
+            - [ ] Each model is a chat model that llama.cpp can run
+            - [ ] Each name matches the model it downloads
+
+            Admit or drop a publisher, or block a word, in
+            `scripts/gguf/sources.json`.
+          delete-branch: true

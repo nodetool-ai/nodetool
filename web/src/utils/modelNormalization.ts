@@ -63,15 +63,15 @@ export interface ModelDownloadTarget {
 }
 
 /**
- * Where to download a model that reports `download_required`, or null when it
- * names nothing to download. A local adapter names its own artifact, which can
- * differ from the model id the picker shows.
+ * What to download for a model that reports `download_required`: one target
+ * per repository, empty when it names nothing to download. A local adapter
+ * names its own artifacts, which can differ from the model id the picker shows.
  */
-export function modelDownloadTarget(
+export function modelDownloadTargets(
   model: ModelSelectorModel
-): ModelDownloadTarget | null {
+): ModelDownloadTarget[] {
   if (model.execution?.state !== "download_required") {
-    return null;
+    return [];
   }
   // Picker rows are the server's unified models: the fields beyond the
   // modality type ride along.
@@ -79,10 +79,10 @@ export function modelDownloadTarget(
   const artifact = unified.adapter?.artifact_ref;
   const repoId = artifact?.repo_id ?? unified.repo_id ?? null;
   if (!repoId) {
-    return null;
+    return [];
   }
   const path = artifact ? (artifact.path ?? null) : (unified.path ?? null);
-  return {
+  const primary: ModelDownloadTarget = {
     repoId,
     path,
     allowPatterns: path
@@ -91,6 +91,26 @@ export function modelDownloadTarget(
     ignorePatterns: path ? null : (unified.ignore_patterns ?? null),
     modelType: artifact?.model_type ?? null
   };
+  const extras = (unified.adapter?.extra_artifact_refs ?? []).map(
+    (ref): ModelDownloadTarget => ({
+      repoId: ref.repo_id,
+      path: ref.path ?? null,
+      allowPatterns: ref.path ? null : (ref.allow_patterns ?? null),
+      ignorePatterns: null,
+      modelType: ref.model_type ?? null
+    })
+  );
+  return [primary, ...extras];
+}
+
+/** The key the download store remembers a picker row's Download click under. */
+export function modelRowKey(model: ModelSelectorModel): string {
+  return `${model.provider ?? ""}:${model.id ?? ""}`;
+}
+
+/** The id the download store tracks a target under. */
+export function modelDownloadId(target: ModelDownloadTarget): string {
+  return target.path ? `${target.repoId}/${target.path}` : target.repoId;
 }
 
 export function executionLabelsByProvider(

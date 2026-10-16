@@ -40,6 +40,7 @@ import { GeminiWebProvider } from "./gemini-web-provider.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
 import { NodeLlamaCppProvider } from "./node-llama-cpp-provider.js";
+import { StableDiffusionCppProvider } from "./sdcpp-provider.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { CodexProvider } from "./codex-provider.js";
 import { OllamaProvider } from "./ollama-provider.js";
@@ -239,10 +240,21 @@ export { AntigravityProvider };
 export { DreaminaProvider, setDreaminaPageRunner, type DreaminaPageRunner } from "./dreamina-provider.js";
 export { ChatGPTProvider, setChatGPTTab } from "./chatgpt-provider.js";
 export { GeminiWebProvider, setGeminiWebTab } from "./gemini-web-provider.js";
+export {
+  ToolCallTextFilter,
+  parseToolCalls,
+  toToolSpecs,
+  toolCallText,
+  toolsPromptSection,
+  type ParsedOutput,
+  type ToolSpec
+} from "./text-tool-calls.js";
 export type { ExtensionTab } from "./extension-tab.js";
 export { GeminiProvider };
 export { LlamaProvider };
 export { NodeLlamaCppProvider };
+export { StableDiffusionCppProvider };
+export { SD_CPP_MODELS, type SdCppModelSpec } from "./sdcpp-models.js";
 export { OpenAIProvider };
 export { snapToGptImage2Size } from "./gpt-image-size.js";
 export { CodexProvider };
@@ -751,6 +763,15 @@ if (!_cloudProfile) {
       NODE_LLAMA_CPP_GPU_BACKEND: ""
     },
     { access: "in_process", displayName: "llama.cpp local" }
+  );
+  // stable-diffusion.cpp: starts the `sd-cpp` runtime package's sd-server on
+  // demand. No secret; SD_CPP_SERVER_PATH points at another sd-server.
+  registerBuiltinProvider(
+    PROVIDER_IDS.STABLE_DIFFUSION_CPP,
+    StableDiffusionCppProvider,
+    {},
+    { SD_CPP_SERVER_PATH: "" },
+    { access: "local_service", displayName: "stable-diffusion.cpp" }
   );
   // vLLM — base URL from Settings / env; optional API key defaults like LM Studio.
   registerBuiltinProvider(

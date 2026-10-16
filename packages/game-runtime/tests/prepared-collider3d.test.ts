@@ -12,6 +12,20 @@ function artifact(vertices = [0, 0, 0, 1, 0, 0, 0, 1, 0], indices = [0, 1, 2]) {
 }
 
 describe("prepared collider decoding", () => {
+  it("decodes the same private bytes whose digest was verified when the caller mutates its buffer", async () => {
+    const original = artifact([0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0], [0, 1, 2]);
+    const replacement = artifact([0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0], [1, 2, 3]);
+    const binding = { ...original.binding, vertices: 4 };
+    expect(original.bytes.byteLength).toBe(56);
+    expect(replacement.bytes.byteLength).toBe(original.bytes.byteLength);
+    const pending = decodePreparedGameCollider3D(original.bytes, binding);
+    original.bytes.set(replacement.bytes);
+    const decoded = await pending;
+    expect(decoded.digest).toBe(binding.digest);
+    expect(decoded.indices).toEqual(new Uint32Array([0, 1, 2]));
+    expect(decoded.vertices).toEqual(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0]));
+  });
+
   it("verifies geometry bytes, counts and bounds before exposing typed arrays", async () => {
     const { bytes, binding } = artifact();
     const decoded = await decodePreparedGameCollider3D(bytes, binding);

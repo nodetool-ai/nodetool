@@ -24,6 +24,7 @@ A custom node lives in a standalone npm package — a **pack** — that the serv
 10. [`ProcessingContext` — the runtime surface](#10-processingcontext--the-runtime-surface)
 11. [Streaming nodes (`genProcess`)](#11-streaming-nodes-genprocess)
 12. [Lifecycle hooks](#12-lifecycle-hooks)
+    - [Advanced node features](#12a-advanced-node-features): triggers, `primaryOutput`, `autoSaveAsset`, dynamic slots, `appendStaticInputs`, `requiredRuntimes`
 13. [Registering nodes](#13-registering-nodes)
 14. [Building the pack](#14-building-the-pack)
 15. [Testing nodes](#15-testing-nodes)
@@ -640,6 +641,92 @@ async finalize(): Promise<void>    { /* once when the node finishes, even after 
 ```
 
 `initialize` runs for every node in the graph before any node executes. If one node's `initialize` throws, the run fails and the nodes already initialized are finalized. Use it for expensive one-time setup (e.g. opening a connection) and reset of per-run state, and use `finalize` to release it. `preProcess` does not run before each `process()` call, and it is rarely needed. A `finalize` error is swallowed so it cannot hide the original failure.
+
+---
+
+## 12a. Advanced node features
+
+These statics are optional. Each one changes how the kernel, the websocket runner, or the editor treats the node.
+
+### Trigger nodes (`isTrigger`, `emitTriggerEvent`)
+
+Set `static readonly isTrigger = true` to mark a node that starts runs from outside events. When a run carries a `trigger_event` addressed to the node, the kernel calls `emitTriggerEvent(event, outputs)` instead of `genProcess()` (`packages/node-sdk/src/base-node.ts:356`, `:696`). A run with no event keeps the normal streaming path, which is what an editor test uses.
+
+`TriggerEvent` is `{ node_id: string; payload: unknown; input_id: string }` (`packages/runtime/src/node-executor.ts:148`). The base `emitTriggerEvent` copies each key of an object `payload` onto the declared output of the same name and drops the rest. Override it to shape the payload yourself, as `ManualTriggerNode` does (`packages/automation-nodes/src/nodes/triggers.ts:155`):
+
+```ts
+import { BaseNode } from "@nodetool-ai/node-sdk";
+import type { StreamingOutputs, TriggerEvent } from "@nodetool-ai/node-sdk";
+
+export class PingTriggerNode extends BaseNode {
+  static readonly nodeType = "mypack.triggers.Ping";
+  static readonly isTrigger = true;
+  static readonly metadataOutputTypes = { data: "any", received_at: "str" };
+
+  async process(): Promise<Record<string, unknown>> {
+    return {}; // a trigger emits from emitTriggerEvent
+  }
+
+  async emitTriggerEvent(event: TriggerEvent, outputs: StreamingOutputs): Promise<void> {
+    await outputs.emit("data", event.payload);
+    await outputs.emit("received_at", new Date().toISOString());
+  }
+}
+```
+
+To start a run with an event from the CLI, pass `--trigger-event '{"node_id":"<id>","payload":{...}}'` to `nodetool workflows run` (`packages/cli/src/nodetool-main.ts:514`). `node_id` is required and `input_id` defaults to a generated value. On a server, an activated workflow receives events through `POST /api/webhooks/:token` (`packages/websocket/src/triggers/webhook-route.ts:151`), which `WebhookTriggerNode` consumes. See [Suspendable Nodes](suspendable-nodes.md#writing-a-trigger-node) and [Triggers design](../triggers-design.md).
+
+### `primaryOutput`
+
+`static readonly primaryOutput = "<output name>"` names the output that carries the node's main result. The saved generation and the content-card preview use it. Without it, the first declared output is used (`packages/execution/src/partial-run.ts:316`, `packages/websocket/src/session/asset-autosave.ts:89`). Set it when the main result is not the first output. `DirectorNode` sets `primaryOutput = "screenplay"` (`packages/llm-nodes/src/nodes/director.ts:192`).
+
+### `autoSaveAsset`
+
+`static readonly autoSaveAsset = true` is a static, not a property. It is published as `auto_save_asset` in node metadata (`packages/node-sdk/src/node-metadata.ts:298`). The websocket runner then saves the node's generated outputs as assets after each generation, rewriting the media refs to `asset://` URIs, and the primary output is also saved when it is text. This happens only in runs with `assetPersistence` set to `"auto"` (`packages/websocket/src/session/job-execution.ts:2299`, `autoSaveAssets` in `packages/websocket/src/session/asset-autosave.ts:284`). The node returns the media ref as usual and writes no asset itself.
+
+```ts
+// packages/elevenlabs-nodes/src/nodes/text-to-speech.ts:46
+static readonly metadataOutputTypes = { output: "audio" };
+static readonly autoSaveAsset = true;
+```
+
+### Dynamic inputs and outputs
+
+A node opts in with `supportsDynamicInputs` and `supportsDynamicOutputs`, which are published as `supports_dynamic_inputs` and `supports_dynamic_outputs`. There is no `isDynamic` static. `isDynamic` is only the name of an editor component prop that receives `supports_dynamic_inputs` (`web/src/components/node/NodeContent.tsx:180`). When either flag is set, the editor shows a form where the user adds slots.
+
+Dynamic inputs are stored on the graph node in two maps: `dynamic_properties` holds values and `dynamic_inputs` holds optional type declarations (`packages/protocol/src/graph.ts:125`). On a node with `supportsDynamicInputs`, `assign()` puts every undeclared, non-`_` property into `this.dynamicProps` (`packages/node-sdk/src/base-node.ts:566`). Read them with `getDynamic(key)`, set them with `setDynamic(key, value)`, or iterate `this.dynamicProps` in a subclass. Keys starting with `_` are framework internals and never appear in `dynamicProps`.
+
+```ts
+// packages/image-nodes/src/nodes/image.ts:881
+export class ImagesToListNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.ImagesToList";
+  static readonly metadataOutputTypes = { output: "list[image]" };
+  static readonly supportsDynamicInputs = true;
+
+  async process(): Promise<Record<string, unknown>> {
+    const out: unknown[] = [];
+    for (const [, value] of this.dynamicProps) {
+      if (value != null) out.push(value);
+    }
+    return { output: out };
+  }
+}
+```
+
+Dynamic outputs are stored in the graph node's `dynamic_outputs`, a map from handle name to type. The kernel treats those handles as outputs even though `metadataOutputTypes` does not list them, so return a key with the handle's name from `process()`. `CodeNode` does this: its sandbox emits values under whatever handles the user declared (`packages/code-nodes/src/nodes/code-node.ts:483`, `:874`). `supportsDynamicOutputs` does not require `supportsDynamicInputs`. `allowedDynamicSlotTypes` restricts the types a user can pick.
+
+### `appendStaticInputs`
+
+`static readonly appendStaticInputs = ["value"]` lists list properties whose own items are kept when an edge feeds the same handle. The node then receives the connected items followed by its own items. Without it, the edge value replaces the property (`packages/kernel/src/actor.ts:1278`). The list constants use it (`packages/core-nodes/src/nodes/constant.ts:196`):
+
+```ts
+static readonly metadataOutputTypes = { output: "list[str]" };
+static readonly appendStaticInputs = ["value"];
+```
+
+### `requiredRuntimes`
+
+`static readonly requiredRuntimes = ["ffmpeg"]` declares host binaries or runtimes the node needs. It is metadata only. It does not install or check anything when the node runs. The editor shows a missing-runtime warning on the node (`web/src/components/node/NodeDependencyWarning.tsx:79`) and the SDK preflight reports it as a `runtime` requirement (`packages/websocket/src/sdk/sdk-static-preflight-service.ts:320`). `RenderTimelineNode` declares it (`packages/video-nodes/src/nodes/timeline.ts:1129`). Your `process()` still has to fail clearly when the binary is absent.
 
 ---
 

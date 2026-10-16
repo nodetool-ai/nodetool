@@ -4,7 +4,7 @@ import {
   applyAdvancedModelFilters,
   executionForDisplay,
   executionLabelsByProvider,
-  modelDownloadTarget,
+  modelDownloadTargets,
   modelLabelFromId,
   type ModelSelectorModel
 } from "../modelNormalization";
@@ -333,7 +333,7 @@ describe("modelNormalization", () => {
     });
   });
 
-  describe("modelDownloadTarget", () => {
+  describe("modelDownloadTargets", () => {
     const needsDownload = {
       kind: "server" as const,
       state: "download_required" as const,
@@ -361,13 +361,37 @@ describe("modelNormalization", () => {
       }) as ModelSelectorModel;
 
     it("downloads the adapter's artifact with its file patterns", () => {
-      expect(modelDownloadTarget(bark())).toEqual({
-        repoId: "suno/bark",
-        path: null,
-        allowPatterns: ["*.bin", "*.json", "*.txt"],
-        ignorePatterns: null,
-        modelType: null
+      expect(modelDownloadTargets(bark())).toEqual([
+        {
+          repoId: "suno/bark",
+          path: null,
+          allowPatterns: ["*.bin", "*.json", "*.txt"],
+          ignorePatterns: null,
+          modelType: null
+        }
+      ]);
+    });
+
+    it("downloads every repository a model loads files from", () => {
+      const zImage = bark({
+        adapter: {
+          state: "installed",
+          artifact_ref: {
+            source: "huggingface",
+            repo_id: "acme/diffusion",
+            allow_patterns: ["model.gguf"]
+          },
+          extra_artifact_refs: [
+            { source: "huggingface", repo_id: "acme/encoder", allow_patterns: ["te.gguf"] }
+          ]
+        }
       });
+      expect(
+        modelDownloadTargets(zImage).map((t) => [t.repoId, t.allowPatterns])
+      ).toEqual([
+        ["acme/diffusion", ["model.gguf"]],
+        ["acme/encoder", ["te.gguf"]]
+      ]);
     });
 
     it("downloads with the artifact's model type when it names one", () => {
@@ -384,21 +408,21 @@ describe("modelNormalization", () => {
           }
         }
       });
-      expect(modelDownloadTarget(whisper)?.modelType).toBe(
+      expect(modelDownloadTargets(whisper)[0]?.modelType).toBe(
         "tjs.automatic_speech_recognition"
       );
     });
 
     it("offers nothing for a model that is ready", () => {
       expect(
-        modelDownloadTarget(
+        modelDownloadTargets(
           bark({ execution: { ...needsDownload, state: "ready" } })
         )
-      ).toBeNull();
+      ).toEqual([]);
     });
 
     it("offers nothing when the model names no repository", () => {
-      expect(modelDownloadTarget(bark({ adapter: null }))).toBeNull();
+      expect(modelDownloadTargets(bark({ adapter: null }))).toEqual([]);
     });
   });
 
