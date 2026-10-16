@@ -23,6 +23,9 @@
  * `dist/` is not built (see ../nodetool.ts).
  */
 import type { Command } from "commander";
+import { existsSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { printCommandError } from "../command-errors.js";
 import {
   HARNESSES,
   SURFACES,
@@ -67,6 +70,26 @@ const SELFCHECK_MAX_BUFFER = 256 * 1024 * 1024;
 const CAPABILITY_TABLE_PATH =
   "packages/cli/src/harness/capability-table.ts";
 
+function harnessRequiresCheckout(command: string): boolean {
+  return !/^(?:nodetool(?:-chat)?\b|echo .*\| nodetool-chat\b)/.test(command) ||
+    command.startsWith("nodetool affected");
+}
+
+function harnessRepositoryRoot(): string | null {
+  let directory = resolve(process.cwd());
+  for (;;) {
+    if (existsSync(join(directory, ".git")) &&
+      existsSync(join(directory, "packages/cli/src/harness/registry.ts"))) {
+      return directory;
+    }
+    const parent = dirname(directory);
+    if (parent === directory) {
+      return null;
+    }
+    directory = parent;
+  }
+}
+
 export function registerHarnessCommands(program: Command): void {
   const harness = program
     .command("harness")
@@ -74,11 +97,14 @@ export function registerHarnessCommands(program: Command): void {
 
   harness
     .command("list")
-    .description("List every headless harness and its capabilities")
+    .description("List CLI commands and repository checks, marking checks that require a NodeTool checkout")
     .option("--json", "Print the registry as JSON")
     .action((opts: { json?: boolean }) => {
       if (opts.json) {
-        console.log(JSON.stringify(HARNESSES, null, 2));
+        console.log(JSON.stringify(HARNESSES.map((harness) => ({
+          ...harness,
+          requiresCheckout: harnessRequiresCheckout(harness.command)
+        })), null, 2));
         return;
       }
       console.log(`\n${HARNESSES.length} harnesses:\n`);
@@ -88,10 +114,11 @@ export function registerHarnessCommands(program: Command): void {
           : "";
         const tool = h.agentTool ? `  (agent tool: ${h.agentTool})` : "";
         console.log(`  ${h.id.padEnd(18)} ${h.kind.padEnd(9)} ${h.title}`);
-        console.log(`  ${"".padEnd(18)} ${h.command}${caps}${tool}`);
+        const availability = harnessRequiresCheckout(h.command) ? " [NodeTool checkout required]" : " [installed CLI]";
+        console.log(`  ${"".padEnd(18)} ${h.command}${availability}${caps}${tool}`);
         console.log("");
       }
-      console.log("Docs: docs/HARNESS_FIRST.md\n");
+      console.log("Docs: https://github.com/nodetool-ai/nodetool/blob/main/docs/HARNESS_FIRST.md\n");
     });
 
   harness
@@ -262,12 +289,12 @@ export function registerHarnessCommands(program: Command): void {
           jobs?: string;
         }
       ) => {
-        const { fileURLToPath } = await import("node:url");
-        const { dirname, resolve } = await import("node:path");
-
-        const here = dirname(fileURLToPath(import.meta.url));
-        // dist layout: packages/cli/dist/commands → repo root is four up.
-        const repoRoot = resolve(here, "..", "..", "..", "..");
+        const repoRoot = harnessRepositoryRoot();
+        if (!repoRoot) {
+          process.exit(printCommandError(new Error(
+            "harness gate requires a NodeTool Git checkout with repository test scripts. Run it from the checkout root. For a local document, use nodetool validate, jsscript test, app debug, or timeline debug."
+          ), opts.json));
+        }
 
         const timeoutSeconds = Number(opts.timeout ?? "900");
         const timeoutMs =

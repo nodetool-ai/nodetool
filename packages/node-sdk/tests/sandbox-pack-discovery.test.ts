@@ -226,6 +226,20 @@ describe("sandbox package discovery", () => {
     rmSync(oversized, { recursive: true, force: true });
   });
 
+  it("reads longer shipped guides while retaining the third-party cap", () => {
+    const directory = pack(jsManifest(), {
+      "sandbox/index.js": "export default 1",
+      "SKILL.md": "---\nname: pack-guide\ndescription: Pack guide\n---\n" +
+        "x".repeat(SANDBOX_PACKAGE_LIMITS.skillBytes + 1)
+    });
+    expect(discoverSandboxPack(directory)?.skill).toBeUndefined();
+    expect(discoverSandboxPack(directory, { shipped: true })?.skill?.name).toBe("pack-guide");
+    writeFileSync(join(directory, "SKILL.md"), "---\nname: pack-guide\ndescription: Pack guide\n---\n" +
+      "x".repeat(SANDBOX_PACKAGE_LIMITS.shippedSkillBytes + 1));
+    expect(discoverSandboxPack(directory, { shipped: true })?.skill).toBeUndefined();
+    rmSync(directory, { recursive: true, force: true });
+  });
+
   it("computes a stable graph digest independent of manifest ordering", () => {
     const files = {
       "sandbox/index.js": "import { helper } from './helper.js'; export default helper",

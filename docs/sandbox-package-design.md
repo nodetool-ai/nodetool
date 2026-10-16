@@ -268,7 +268,7 @@ executing pack code:
 - WASM binaries get a section-level parse; declared `exports` are checked
   against the export section, and the memory rule below is validated
   before compilation is ever attempted.
-- SKILL.md is validated (frontmatter, 16 KB cap) — but an invalid or
+- SKILL.md is validated (frontmatter, 16 KB cap for installed packs and 64 KB for shipped packs) — but an invalid or
   missing skill only disables agent discoverability with a warning. It
   never disables the module: a frontmatter typo must not break a workflow
   that imports working code.
@@ -614,7 +614,7 @@ skill with a section per module.
 | JS module source (npm-bundled) | 1 MB (validated in M-1) | compiler + admission probe |
 | WASM binary | 4 MB | pack discovery |
 | Per-pack total | 8 MB | pack discovery |
-| SKILL.md | 16 KB | pack discovery (warning-grade) |
+| SKILL.md | 16 KB for installed packs, 64 KB for shipped packs | pack discovery (warning-grade) |
 | Guest eval of modules | existing 64 MB / deadline / interrupt | engine |
 | WASM memory | binary-declared max ≤ `memoryPagesMax` ≤ host ceiling (4096 pages); no shared, no imported memory (v1) | binary validation |
 | WASM signatures | `i32`/`f32`/`f64` only, ≤1 return, ≤8 args; no `i64`/`v128`/ref types/multi-value | binary validation |

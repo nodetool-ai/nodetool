@@ -2461,7 +2461,10 @@ the registry with its harness — or with its debt written down.
 
 #### `nodetool harness list`
 
-List every harness and its capabilities. Takes `--json` to print the registry.
+List every harness and its capabilities. Each command is marked as available
+in the installed CLI or requiring a NodeTool checkout. `--json` adds a
+`requiresCheckout` flag to each registry entry. Repository checks need the
+checkout's scripts and workspace dependencies.
 
 ```bash
 nodetool harness list
@@ -2540,6 +2543,10 @@ touched. Refresh the table with `npm run capabilities:sync` and say which case
 covers the new contract.
 
 #### `nodetool harness gate [files...]`
+
+Run from a NodeTool Git checkout. Outside a checkout, the command exits with an
+explanation and supports `--json` errors. For local documents in an installed
+CLI, use `validate`, `jsscript test`, `app debug`, or `timeline debug`.
 
 Map a diff onto surfaces by path and run the selfcheck of every harness covering
 a touched surface. The diff selects the checks, not the author. Harnesses that

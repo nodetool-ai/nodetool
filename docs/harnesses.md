@@ -2093,6 +2093,11 @@ note; one without it fails `audit` and the registry test. Shipping a new
 surface means adding it to `packages/cli/src/harness/registry.ts` — with its
 harness or its debt written down.
 
+`harness list` distinguishes commands available in an installed CLI from
+checks that require a NodeTool checkout. Its JSON entries carry
+`requiresCheckout`. `gate` requires the checkout's Git metadata, scripts, and
+workspace dependencies. Outside a checkout it returns an actionable error.
+
 `gate` makes the registry executable: it maps a diff onto surfaces by path
 and runs the selfcheck of every harness covering a touched surface — keyless,
 deterministic invocations like `validate:examples`, the Ring 0 reliability
