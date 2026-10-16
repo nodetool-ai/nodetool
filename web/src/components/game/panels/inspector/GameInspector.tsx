@@ -118,8 +118,7 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
   const [localEffectIssues, setLocalEffectIssues] = useState<readonly GameValidationIssue[]>([]);
   const [newSlot, setNewSlot] = useState("");
   const selectedId = selectedIds[0];
-  const selectedScene = document.scenes.find((entry) => entry.entities.some((entity) => entity.id === selectedId));
-  const scene = selectedScene ?? document.scenes.find((entry) => entry.id === activeSceneId) ?? document.scenes[0];
+  const scene = document.scenes.find((entry) => entry.id === activeSceneId);
   const sceneIndex = document.scenes.findIndex((entry) => entry.id === scene?.id);
   const entity = scene?.entities.find((entry) => entry.id === selectedId);
   const entityIndex = scene?.entities.findIndex((entry) => entry.id === selectedId) ?? -1;

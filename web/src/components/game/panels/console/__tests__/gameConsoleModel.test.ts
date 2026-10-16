@@ -90,10 +90,11 @@ describe("entity links", () => {
     ]);
   });
 
-  it("resolves the line's own scene first, then any scene holding the entity, and nothing for a deleted entity", () => {
+  it("resolves an exact scene or a unique unqualified entity, without namesake fallback", () => {
     expect(gameConsoleEntityScene(document, "player", "level-1")).toBe("level-1");
-    expect(gameConsoleEntityScene(document, "player")).toBe("intro");
-    expect(gameConsoleEntityScene(document, "door", "intro")).toBe("level-1");
+    expect(gameConsoleEntityScene(document, "player")).toBeUndefined();
+    expect(gameConsoleEntityScene(document, "door", "intro")).toBeUndefined();
+    expect(gameConsoleEntityScene(document, "door")).toBe("level-1");
     expect(gameConsoleEntityScene(document, "ghost")).toBeUndefined();
   });
 });
@@ -102,4 +103,15 @@ it("describes a collapsed line for the assistant", () => {
   const [group] = append([{ ...hit, tick: 3, sceneId: "level-1" }, { ...hit, tick: 8, sceneId: "level-1" }]);
   expect(gameConsolePrompt(group, "Hero")).toBe(
     "Help with this game console log. Scene: level-1. Entity: Hero (player). Ticks: 3 to 8. Repeated 2 times. Message: hit");
+});
+
+it("does not navigate to a namesake when an explicit console scene is invalid (E1)", () => {
+  const document = { scenes: [{ id: "room", entities: [{ id: "player" }] }] };
+  expect(gameConsoleEntityScene(document, "player", "removed-scene")).toBeUndefined();
+});
+
+it("does not guess an unqualified console target shared by two scenes (E1)", () => {
+  const document = { scenes: [{ id: "room", entities: [{ id: "player" }] }, { id: "second", entities: [{ id: "player" }] }] };
+  expect(gameConsoleEntityScene(document, "player")).toBeUndefined();
+  expect(gameConsoleEntityScene(document, "player", "second")).toBe("second");
 });
