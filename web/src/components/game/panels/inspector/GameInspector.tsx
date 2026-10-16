@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { gameAssetBinding, gameBehavior, gameDocument, gameEntity, gameRenderEffect, gameScene, type GameDocument, type GameEntity, type GameRenderEffect } from "@nodetool-ai/protocol/game.js";
+import { gameParticles } from "@nodetool-ai/protocol";
 import { validateGame, type GameDocumentOp, type GameValidationIssue } from "@nodetool-ai/game-runtime";
 
 import AddIcon from "@mui/icons-material/Add";
@@ -10,6 +11,7 @@ import CodeIcon from "@mui/icons-material/Code";
 
 import { Caption, Divider, FieldDensityContext, FlexColumn, InspectorFieldRow, InspectorSection, InspectorSelect, SPACING, TabGroup, Text, TextInput } from "../../../ui_primitives";
 import SchemaFields from "../../inspector/SchemaFields";
+import { GAME_COMPONENT_EDITORS } from "../../inspector/componentEditors";
 import InspectorAddMenu from "../../inspector/InspectorAddMenu";
 import { AddButton, FieldGroup, RowAction } from "../../inspector/InspectorParts";
 import GameOverrideFields from "../../GameOverrideFields";
@@ -34,7 +36,7 @@ const DOCUMENT_SCHEMA = gameSchemaFields(gameDocument);
 const BEHAVIOR_SCHEMA = gameSchemaFields(gameBehavior);
 const EFFECT_SCHEMA = gameSchemaFields(gameRenderEffect);
 const ASSET_SCHEMA = gameSchemaFields(gameAssetBinding);
-const COMPONENTS = ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d"] as const;
+const COMPONENTS = ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d", "particles"] as const;
 const BEHAVIORS = ["movement", "patrol", "collectible", "health", "trigger", "spawn", "sceneTransition", "winWhenCollected", "lifetime", "script"] as const;
 const EFFECTS = ["bloom", "lut", "brightnessContrast"] as const;
 const DEFAULT_GAME_LIGHT_COLOR = "#ffffff";
@@ -67,6 +69,7 @@ function newComponent(kind: ComponentKind, document: GameDocument): GameEntity[C
     case "visualAnimation": return { tracks: [] };
     case "audioSource": return { assetId: audio, onEvent: "play", volume: 1 };
     case "light2d": return { color: DEFAULT_GAME_LIGHT_COLOR, intensity: 1, radius: 3, falloff: 1 };
+    case "particles": return gameParticles.parse({ emitters: [{ id: "emitter" }] });
   }
 }
 
@@ -224,6 +227,7 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
       {COMPONENTS.map((component) => entity[component] && <InspectorSection key={component} title={displayKind(component)}
         action={{ icon: <CloseIcon />, label: `Remove ${displayKind(component)}`, onClick: () => update({ [component]: null } as Extract<GameDocumentOp, { op: "update_entity" }>["set"]) }}>
         <SchemaFields schema={ENTITY_SCHEMA.properties?.[component] ?? { type: "object" }} value={entity[component]} path={component}
+          componentName={component} componentEditors={GAME_COMPONENT_EDITORS} dimension="2d"
           issuePath={[...entityPath, component]} issues={issues} assets={document.assets} collisionLayers={document.collisionLayers}
           onChange={(value) => update({ [component]: value } as Extract<GameDocumentOp, { op: "update_entity" }>["set"])} />
       </InspectorSection>)}
