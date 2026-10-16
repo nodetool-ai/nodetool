@@ -314,7 +314,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.controller.signal.throwIfAborted();
     this.renderingFrame = frame;
     this.renderingParticles = particles;
-    await this.pipeline.render({ renderer: this.renderer, scene: this.scene, camera: activeCamera,
+    await this.pipeline.render({ renderer: this.renderer, scene: this.scene, camera: activeCamera, interpolation,
       hudScene: this.hudScene, hudCamera: this.hudCamera, postProcessor: this.postProcessor });
     if (this.renderer.getContext().isContextLost()) { throw new Error("WebGL2 context was lost during render"); }
     this.successful = true;

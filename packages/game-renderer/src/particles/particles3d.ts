@@ -11,6 +11,7 @@ import { ParticleSimulator, particleSourcesFromFrame, type ParticleView } from "
 export class GameParticles3D implements GameParticleField {
   readonly simulator: ParticleSimulator;
   private readonly tickSeconds: number;
+  private identity: string | null = null;
 
   constructor(tickRate: number, maxSceneParticles?: number) {
     if (!(tickRate > 0)) {
@@ -26,17 +27,22 @@ export class GameParticles3D implements GameParticleField {
   }
 
   tick(frame: GameRenderFrame3D, events: readonly (GameEvent3D | GameParticleEmission)[]): void {
+    const identity = JSON.stringify([frame.gameId, frame.sceneId]);
+    if (identity !== this.identity || events.some((event) => event.kind === "sceneTransition")) {
+      this.clear(); this.identity = identity;
+    }
     this.simulator.sync(particleSourcesFromFrame(frame));
     this.simulator.emit(events);
     this.simulator.step(this.tickSeconds);
   }
 
-  forEachParticle(visit: (particle: Readonly<ParticleView>) => void): void {
-    this.simulator.forEachParticle(visit);
+  forEachParticle(visit: (particle: Readonly<ParticleView>) => void, interpolation = 1): void {
+    this.simulator.forEachParticle(visit, interpolation);
   }
 
   clear(): void {
     this.simulator.clear();
+    this.identity = null;
   }
 }
 
