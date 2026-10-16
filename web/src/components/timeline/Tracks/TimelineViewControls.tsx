@@ -133,28 +133,12 @@ const stepButtonStyles = (theme: Theme) =>
     }
   });
 
-const sliderStyles = (theme: Theme) => ({
-  color: theme.vars.palette.text.primary,
+/** Layout only: the slider fills the step-button row height. The look is Slider's. */
+const sliderLayoutSx = (theme: Theme) => ({
   height: theme.spacing(6),
   padding: 0,
   margin: 0,
-  boxSizing: "border-box",
-  "& .MuiSlider-rail": {
-    height: 3,
-    opacity: 1,
-    backgroundColor: theme.vars.palette.action.disabledBackground
-  },
-  "& .MuiSlider-track": {
-    height: 3,
-    backgroundColor: theme.vars.palette.text.secondary
-  },
-  "& .MuiSlider-thumb": {
-    width: 12,
-    height: 12,
-    backgroundColor: theme.vars.palette.text.primary,
-    border: `2px solid ${theme.vars.palette.background.paper}`,
-    boxShadow: theme.shadows[1]
-  }
+  boxSizing: "border-box"
 });
 
 interface TimelineViewControlsProps {
@@ -225,7 +209,7 @@ export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
                 </button>
                 <Slider
                   density="compact"
-                  sx={sliderStyles(theme)}
+                  sx={sliderLayoutSx(theme)}
                   min={0}
                   max={100}
                   step={1}
@@ -283,7 +267,7 @@ export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
                 </button>
                 <Slider
                   density="compact"
-                  sx={sliderStyles(theme)}
+                  sx={sliderLayoutSx(theme)}
                   min={MIN_VERTICAL_ZOOM}
                   max={MAX_VERTICAL_ZOOM}
                   step={0.05}
