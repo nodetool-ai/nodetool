@@ -209,7 +209,7 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
           <RowAction icon={<AddIcon />} label="Add binding" disabled={!slotName || Boolean(document.assets[slotName]) || Object.keys(document.assets).length === 0} onClick={addBinding} />
         </InspectorFieldRow>
       </InspectorSection>
-    </> : entity && target ? <>
+    </> : entity && target && scene ? <>
       <GameOverrideFields document={document} sceneId={scene.id} entityId={entity.id} onOps={onOps} />
       <SchemaFields schema={ENTITY_SCHEMA.properties?.name ?? { type: "string" }} value={entity.name} path="Name"
         issuePath={[...entityPath, "name"]} issues={issues} onChange={(value) => update({ name: String(value) })} />
