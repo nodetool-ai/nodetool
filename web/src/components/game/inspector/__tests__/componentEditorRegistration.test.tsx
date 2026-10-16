@@ -18,6 +18,22 @@ jest.mock("../componentEditors", () => ({
 }));
 
 describe("registered component editors in game inspectors", () => {
+  it("disables particles for schema-1 documents", async () => {
+    const user = userEvent.setup();
+    const document = gameDocument.parse({
+      schemaVersion: 1, engineVersion: "1", id: "legacy", revision: "saved", entrySceneId: "scene",
+      pixelsPerUnit: 16, tickRate: 60, inputActions: [], assets: {},
+      scenes: [{ id: "scene", name: "Scene", entities: [{ id: "emitter", transform2d: { x: 0, y: 0 } }] }]
+    });
+    const onOps = jest.fn();
+    render(<ThemeProvider theme={mockTheme}><GameInspector document={document} activeSceneId="scene" selectedIds={["emitter"]}
+      onOps={onOps} onSceneChange={() => undefined} onEditScript={() => undefined} /></ThemeProvider>);
+    await user.click(screen.getByRole("button", { name: "Add component" }));
+    const particles = screen.getByRole("menuitem", { name: "Particles" });
+    expect(particles).toHaveAttribute("aria-disabled", "true");
+    expect(onOps).not.toHaveBeenCalled();
+  });
+
   it("adds valid 2D particles and retains the inspector's remove operation", async () => {
     const user = userEvent.setup();
     const initial = gameDocument.parse({
