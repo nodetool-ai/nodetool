@@ -851,7 +851,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           const data = await trpcClient.workflows.list.query({
             limit: limit ?? 100,
             cursor: cursor || undefined,
-            ...(projectId !== undefined ? { project_id: projectId } : {})
+            project_id: projectId
           });
           return data as WorkflowList;
         } catch (err) {
