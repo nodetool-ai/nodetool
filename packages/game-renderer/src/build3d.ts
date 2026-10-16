@@ -10,6 +10,7 @@ import { validateGame3D, decodePreparedGameCollider3D } from "@nodetool-ai/game-
 import { prepareGameImage3D } from "./renderer3d/assets/image-preparation.js";
 import { prepareGameModel } from "./renderer3d/preparation.js";
 import type { StandaloneAsset, StandaloneGameBuild } from "./build.js";
+import { validateExportImage, validateExportAudio, validateExportFont } from "./export-media.js";
 import { TOUCH_CONTROLS_CSS } from "./touch-controls.js";
 
 export interface BuildStandaloneGame3DOptions {
@@ -74,6 +75,7 @@ export async function buildStandaloneGame3D(options: BuildStandaloneGame3DOption
         if (!prepared.ok) { throw new Error(`Export image ${logicalId} failed preparation: ${prepared.diagnostics.map((entry) => entry.message).join("; ")}`); }
         const actual = prepared.image.binding;
         if (actual.width !== binding.width || actual.height !== binding.height || actual.format !== binding.format || actual.byteLength !== binding.byteLength) { throw new Error(`Export image metadata changed for ${logicalId}`); }
+        await validateExportImage(prepared.image.bytes, binding.format, options.signal);
         extension = binding.format;
       } else if (binding.mediaKind === "collider") {
         await decodePreparedGameCollider3D(asset.bytes, binding);
@@ -81,10 +83,13 @@ export async function buildStandaloneGame3D(options: BuildStandaloneGame3DOption
       } else if (binding.mediaKind === "font") {
         const view = new DataView(asset.bytes.buffer, asset.bytes.byteOffset, asset.bytes.byteLength);
         if (asset.bytes.length < 4 || (binding.fontFormat === "ttf" ? view.getUint32(0) !== 0x00010000 : view.getUint32(0) !== 0x4f54544f)) { throw new Error(`Invalid export font ${logicalId}`); }
+        validateExportFont(asset.bytes, logicalId, options.signal);
         extension = binding.fontFormat;
       } else {
-        extension = asset.mimeType === "audio/wav" ? "wav" : asset.mimeType === "audio/ogg" ? "ogg" : asset.mimeType === "audio/mpeg" ? "mp3" : "";
-        if (!extension) { throw new Error(`Unsupported export audio ${logicalId}`); }
+        const audioFormat = asset.mimeType === "audio/wav" ? "wav" : asset.mimeType === "audio/ogg" ? "ogg" : asset.mimeType === "audio/mpeg" ? "mp3" : "";
+        if (!audioFormat) { throw new Error(`Unsupported export audio ${logicalId}`); }
+        await validateExportAudio(asset.bytes, audioFormat, options.signal);
+        extension = audioFormat;
       }
       const path = `assets/${digest}.${extension}`;
       await stage(path, asset.bytes);
