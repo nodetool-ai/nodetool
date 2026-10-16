@@ -15,7 +15,27 @@ Particles provide visual effects without creating gameplay entities. They cannot
 
 ![Kindle's Add component menu with the Particles entry enabled](/assets/game-engine/editor-particles-menu.png)
 
-*In a 2D document using schema 2 or later, select an entity and choose Add component → Particles. This is the generic component menu, not a dedicated preset inspector. [Capture revision and provenance](/game-engine/screenshots).*
+*In a 2D document using schema 2 or later, select an entity and choose Add component → Particles. The same component is available in the 3D inspector. [Menu capture provenance](/game-engine/screenshots).*
+
+## Presets and live preview
+
+![Fire preset and isolated WebGL2 preview in the 3D particle inspector](/assets/game-engine/editor-particle-preview.png)
+
+*The particle inspector previews the selected effect while the game stays at tick 0. [Capture revision and provenance](/assets/game-engine/particle-inspector-screenshots.json).*
+
+Choose Fire, Smoke, Sparks, Dust, Magic, Rain, Snow, or Explosion, then select **Apply preset**. Applying a preset replaces the particle component's emitters and preserves the entity's other components. Undo restores the previous configuration.
+
+Select an emitter to edit its settings, or use **Add emitter** and **Remove emitter**. Emitter IDs must be unique. Renaming an emitter updates its sub-emitter references, and removing it removes references that would otherwise point to a missing emitter.
+
+The isolated preview uses Canvas2D for 2D and WebGL2 for 3D. **Pause preview** stops its presentation clock. **Restart preview** recreates the effect with the same seed. Editing settings restarts it, without starting or changing the game's simulation. The 3D preview renders mesh particles and depth softness, but sprite textures and sheets remain 2D-only.
+
+![Particle size and opacity curves with the color gradient editor](/assets/game-engine/editor-particle-curves.png)
+
+*Size, speed, and opacity curves control normalized lifetime. The color gradient edits the effect's lifetime colors. [Capture provenance](/assets/game-engine/particle-inspector-screenshots.json).*
+
+Add or remove lifetime curves and the color gradient in their inspector sections. Agent and CLI authors can apply the same canonical preset data through document operations using the [particle recipes](https://github.com/nodetool-ai/nodetool/blob/main/packages/system-skills/native-game-reference/SKILL.md#particle-preset-recipes).
+
+## Emission and behavior
 
 Add `particles` to an entity with an `emitters` array. Each emitter needs a unique ID. Set its rate, bursts, duration, looping, start behavior, and maximum population. Shapes include point, circle, sphere, cone, box, and edge. Cone, box, and edge emit along local +Y.
 
@@ -45,4 +65,4 @@ Use a camera-facing billboard, a velocity-stretched billboard, or a mesh particl
 
 Billboard `softness` fades intersections against scene depth and adds a depth pass. Enable it where that cost improves the effect. Mesh softness is not supported.
 
-3D particles work in standalone players and captures. The current editor's 3D play session does not tick them. 3D also ignores particle sprite textures, sprite sheets, and 2D draw layers. Use capture or an exported player to review 3D effects. The dedicated particle preset inspector is not part of this shipped guide.
+3D particles work in standalone players and captures. The current editor's 3D play session does not tick them. 3D also ignores particle sprite textures, sprite sheets, and 2D draw layers. Use the isolated inspector preview, capture, or an exported player to review 3D effects.
