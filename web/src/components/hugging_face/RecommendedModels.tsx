@@ -106,7 +106,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
       >
         <SearchInput
           className="search-models-input"
-          placeholder="Search models..."
+          placeholder="Search models"
           size="small"
           value={searchQuery}
           onChange={setSearchQuery}

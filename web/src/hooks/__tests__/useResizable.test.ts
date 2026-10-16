@@ -1,6 +1,6 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { stub } from "../../test-utils/doubles";
-import { useResizable } from "../useResizable";
+import { useResizable, useResizableEdges } from "../useResizable";
 import type React from "react";
 import type { RefObject } from "react";
 
@@ -158,5 +158,53 @@ describe("useResizable", () => {
         expect.any(Function)
       );
     });
+  });
+});
+
+describe("useResizableEdges", () => {
+  const makeTarget = (width: number, height: number) => {
+    const node = document.createElement("div");
+    node.getBoundingClientRect = () =>
+      ({ width, height }) as DOMRect;
+    Object.defineProperty(node, "offsetWidth", { value: width });
+    Object.defineProperty(node, "offsetHeight", { value: height });
+    return node;
+  };
+
+  it("applies deltas to the element and reports once at the end", () => {
+    const node = makeTarget(600, 400);
+    const onResizeEnd = jest.fn();
+    const { result } = renderHook(() =>
+      useResizableEdges({ current: node }, { minWidth: 560, onResizeEnd })
+    );
+
+    expect(result.current.right.getValue()).toBe(600);
+    expect(result.current.right.min).toBe(560);
+
+    act(() => {
+      result.current.right.onResizeStart();
+      result.current.right.onResize(40);
+    });
+    expect(node.style.width).toBe("640px");
+    expect(onResizeEnd).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.right.onResizeEnd();
+    });
+    expect(onResizeEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports straight away for a keyboard step", () => {
+    const node = makeTarget(600, 400);
+    const onResizeEnd = jest.fn();
+    const { result } = renderHook(() =>
+      useResizableEdges({ current: node }, { onResizeEnd })
+    );
+
+    act(() => {
+      result.current.bottom.onResize(16);
+    });
+    expect(node.style.height).toBe("416px");
+    expect(onResizeEnd).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,71 +1,48 @@
-import CloudDoneOutlinedIcon from "@mui/icons-material/CloudDoneOutlined";
-import SyncProblemIcon from "@mui/icons-material/SyncProblem";
 import HistoryIcon from "@mui/icons-material/History";
-import CircleIcon from "@mui/icons-material/Circle";
 import {
+  Box,
   FlexRow,
+  SaveState,
   Text,
   Tooltip,
-  LoadingSpinner,
   SPACING
 } from "../ui_primitives";
+import type { SaveStateValue } from "../ui_primitives";
 import { useScriptSaveStatus } from "../../stores/script/ScriptStore";
 
 interface ScriptSaveIndicatorProps {
   scriptId: string;
 }
 
+const SAVE_STATE: Record<string, SaveStateValue> = {
+  unsaved: "dirty",
+  saving: "saving",
+  error: "error"
+};
+
+const TOOLTIPS: Record<string, string> = {
+  unsaved: "Unsaved changes — saving shortly",
+  error: "Couldn't sync with the server. Your changes are kept locally.",
+  saved: "All changes saved"
+};
+
 /**
  * Toolbar readout of the autosave lifecycle. The server sync is otherwise
  * invisible: edits save silently and a CAS conflict silently replaces local
  * work with the server copy. This surfaces those transitions so the author
  * knows whether their changes are safe.
+ *
+ * The lifecycle is drawn by the shared `SaveState`. "Reloaded" has no
+ * counterpart there, so it stays a warning readout of its own.
  */
 const ScriptSaveIndicator = ({ scriptId }: ScriptSaveIndicatorProps) => {
   const status = useScriptSaveStatus(scriptId);
-
-  if (status === "unsaved") {
-    return (
-      <Tooltip title="Unsaved changes — saving shortly">
-        <FlexRow align="center" gap={SPACING.xs}>
-          <CircleIcon sx={{ fontSize: 10, color: "text.disabled" }} />
-          <Text size="smaller" sx={{ color: "text.secondary" }}>
-            Unsaved changes
-          </Text>
-        </FlexRow>
-      </Tooltip>
-    );
-  }
-
-  if (status === "saving") {
-    return (
-      <FlexRow align="center" gap={SPACING.xs} aria-live="polite">
-        <LoadingSpinner inline size={14} />
-        <Text size="smaller" sx={{ color: "text.secondary" }}>
-          Saving…
-        </Text>
-      </FlexRow>
-    );
-  }
-
-  if (status === "error") {
-    return (
-      <Tooltip title="Couldn't sync with the server. Your changes are kept locally.">
-        <FlexRow align="center" gap={SPACING.xs} aria-live="polite">
-          <SyncProblemIcon color="warning" sx={{ fontSize: 16 }} />
-          <Text size="smaller" color="warning">
-            Save failed
-          </Text>
-        </FlexRow>
-      </Tooltip>
-    );
-  }
 
   if (status === "reloaded") {
     return (
       <Tooltip title="This script was edited elsewhere, so the newer server version was loaded.">
         <FlexRow align="center" gap={SPACING.xs} aria-live="polite">
-          <HistoryIcon color="warning" sx={{ fontSize: 16 }} />
+          <HistoryIcon color="warning" fontSize="small" />
           <Text size="smaller" color="warning">
             Reloaded newer version
           </Text>
@@ -74,17 +51,14 @@ const ScriptSaveIndicator = ({ scriptId }: ScriptSaveIndicatorProps) => {
     );
   }
 
-  return (
-    <Tooltip title="All changes saved">
-      <FlexRow align="center" gap={SPACING.xs} aria-live="polite">
-        <CloudDoneOutlinedIcon
-          sx={{ fontSize: 16, color: "text.disabled" }}
-        />
-        <Text size="smaller" sx={{ color: "text.secondary" }}>
-          Saved
-        </Text>
-      </FlexRow>
+  const tooltip = TOOLTIPS[status];
+  const readout = <SaveState state={SAVE_STATE[status] ?? "saved"} />;
+  return tooltip ? (
+    <Tooltip title={tooltip}>
+      <Box component="span" sx={{ display: "inline-flex" }}>{readout}</Box>
     </Tooltip>
+  ) : (
+    readout
   );
 };
 

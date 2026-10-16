@@ -7,6 +7,7 @@ import { chromium } from "@playwright/test";
 import { createNative3DGame, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 import { expect, it } from "vitest";
 import { gameUiTree } from "@nodetool-ai/protocol";
+import { musicWav } from "./fixtures/music-wav.js";
 import { buildStandaloneGame } from "../src/build.js";
 import { buildStandaloneGame3D } from "../src/build3d.js";
 
@@ -19,27 +20,6 @@ declare global {
   }
 }
 
-/** A two-minute PCM track. Its sample data stays on the browser's media path. */
-function musicWav(): Buffer {
-  const samples = 120 * 8000;
-  const bytes = Buffer.alloc(44 + samples * 2);
-  bytes.write("RIFF", 0);
-  bytes.writeUInt32LE(bytes.length - 8, 4);
-  bytes.write("WAVEfmt ", 8);
-  bytes.writeUInt32LE(16, 16);
-  bytes.writeUInt16LE(1, 20);
-  bytes.writeUInt16LE(1, 22);
-  bytes.writeUInt32LE(8000, 24);
-  bytes.writeUInt32LE(16000, 28);
-  bytes.writeUInt16LE(2, 32);
-  bytes.writeUInt16LE(16, 34);
-  bytes.write("data", 36);
-  bytes.writeUInt32LE(samples * 2, 40);
-  for (let index = 0; index < samples; index++) {
-    bytes.writeInt16LE(Math.round(Math.sin(index * Math.PI * 2 * 220 / 8000) * 2000), 44 + index * 2);
-  }
-  return bytes;
-}
 
 it.each(["2D", "3D"])("plays exported %s streaming music after a gesture and loops without PCM decoding", async (dimension) => {
   const directory = await mkdtemp(join(tmpdir(), "game-streaming-music-"));
@@ -127,9 +107,10 @@ it.each(["2D", "3D"])("plays exported %s streaming music after a gesture and loo
     await canvas.click({ position: { x: 10, y: 10 } });
     await page.waitForFunction(() => window.streamingTestMedia.length === 1 && !window.streamingTestMedia[0].paused && window.streamingTestMedia[0].currentTime > 0);
     const startup = await page.evaluate(() => ({ decodes: window.streamingTestDecodes, encodedFetches: window.streamingTestAudioFetches,
-      mediaSources: window.streamingTestMediaSources, duration: window.streamingTestMedia[0].duration }));
+      mediaSources: window.streamingTestMediaSources, mediaUrl: window.streamingTestMedia[0].src, duration: window.streamingTestMedia[0].duration }));
     expect(startup).toMatchObject({ decodes: 0, mediaSources: 1, duration: 120 });
-    if (dimension === "2D") { expect(startup.encodedFetches).toBe(0); }
+    expect(startup.encodedFetches).toBe(1);
+    expect(startup.mediaUrl).toMatch(/^blob:/);
     console.info(`${dimension} streaming music startup`, startup);
     await page.evaluate(() => { window.streamingTestMedia[0].currentTime = 19.95; });
     await page.waitForFunction(() => window.streamingTestMedia[0].currentTime >= 10 && window.streamingTestMedia[0].currentTime < 11);

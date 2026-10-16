@@ -14,6 +14,7 @@ import {
   MOTION,
   reducedMotion,
   BORDER_RADIUS,
+  StatusDot,
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
@@ -86,18 +87,6 @@ const cardSx: SxProps<Theme> = {
   px: 1.5,
   py: 1
 };
-
-const Dot = ({ color = "primary.main" }: { color?: string }) => (
-  <Box
-    sx={{
-      width: 8,
-      height: 8,
-      flex: "0 0 auto",
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: color
-    }}
-  />
-);
 
 const IconButton = ({
   icon,
@@ -177,7 +166,7 @@ const RunningCard = memo(function RunningCard({
       }}
     >
       <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
-        <Dot color={isFocused ? "primary.main" : undefined} />
+        <StatusDot tone="primary" size="medium" />
         <Text size="small" weight={500} truncate sx={{ flex: 1, minWidth: 0 }}>
           {name}
         </Text>
@@ -285,7 +274,7 @@ const CancelledCard = memo(function CancelledCard({ job }: { job: Job }) {
   return (
     <Box sx={{ ...cardSx, opacity: 0.55 }}>
       <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
-        <Dot color="grey.600" />
+        <StatusDot tone="neutral" size="medium" />
         <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
           {name}
         </Text>
@@ -478,7 +467,7 @@ const QueueOverlay = memo(function QueueOverlay() {
       <Box css={[overlayStyles(theme), mobileOverlayStyles(theme)]} data-state={hasJobs ? "open" : "closed"}>
         <FlexColumn gap={1} sx={{ p: 1.5 }}>
           <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
-            <Dot color={running.length ? "primary.main" : "grey.600"} />
+            <StatusDot tone={running.length ? "primary" : "neutral"} size="medium" />
             <Text
               size="small"
               weight={500}

@@ -7,7 +7,7 @@ import type { SerializedStyles } from "@emotion/react";
 import {
   MOTION,
   BORDER_RADIUS,
-  CONTROL,
+  SearchInput,
   SPACING,
   TYPOGRAPHY,
   focusRing,
@@ -87,58 +87,13 @@ export const DashboardSectionHeader = memo(function DashboardSectionHeader({
 
 const searchStyles = (theme: Theme) =>
   css({
-    display: "flex",
-    alignItems: "center",
-    gap: `${theme.spacing(1)}`,
-    height: CONTROL.height.md,
-    padding: `0 ${theme.spacing(SPACING.sm)}`,
-    background: theme.vars.palette.c_node_bg,
-    border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: BORDER_RADIUS.sm,
-    color: theme.vars.palette.text.secondary,
     minWidth: 240,
-    transition: MOTION.border,
-    ...reducedMotion({ transition: MOTION.none }),
-    "&:focus-within": {
-      borderColor: theme.vars.palette.primary.main
-    },
-    "& svg": { flexShrink: 0 },
-    input: {
-      flex: 1,
-      background: "transparent",
-      border: "none",
-      outline: "none",
-      color: theme.vars.palette.text.primary,
-      font: "inherit",
-      ...TYPOGRAPHY.sans.body,
-      "&::placeholder": { color: theme.vars.palette.text.disabled }
-    },
     ".kbd": {
       ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.text.secondary,
       padding: `${theme.spacing(SPACING.none)} ${theme.spacing(SPACING.xs)}`,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.xs
-    },
-    ".search-clear": {
-      display: "grid",
-      placeItems: "center",
-      width: 18,
-      height: 18,
-      flexShrink: 0,
-      padding: 0,
-      border: "none",
-      borderRadius: BORDER_RADIUS.xs,
-      background: "transparent",
-      color: theme.vars.palette.text.disabled,
-      cursor: "pointer",
-      transition: `color ${MOTION.fast}, ${MOTION.background}`,
-      ...reducedMotion({ transition: MOTION.none }),
-      "&:hover": {
-        color: theme.vars.palette.text.primary,
-        background: theme.vars.palette.action.hover
-      },
-      "&:focus-visible": focusRing(theme, 0)
     },
     [theme.breakpoints.down("sm")]: {
       minWidth: 0,
@@ -164,57 +119,18 @@ export const DashboardSearchBox = memo(function DashboardSearchBox({
   ref
 }: DashboardSearchBoxProps) {
   const theme = useTheme();
-  const hasValue = value.length > 0;
   return (
-    <label css={searchStyles(theme)}>
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <circle cx="7" cy="7" r="4.5" />
-        <path d="m10.5 10.5 3 3" />
-      </svg>
-      <input
+    <div css={searchStyles(theme)}>
+      <SearchInput
         ref={ref}
         value={value}
+        onChange={onChange}
         placeholder={placeholder}
-        aria-label={ariaLabel}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape" && hasValue) {
-            e.stopPropagation();
-            onChange("");
-          }
-        }}
+        ariaLabel={ariaLabel}
+        fullWidth
+        endHint={kbd ? <span className="kbd">{kbd}</span> : undefined}
       />
-      {hasValue ? (
-        <button
-          type="button"
-          className="search-clear"
-          aria-label="Clear search"
-          // Keep focus in the input so typing can continue immediately.
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onChange("")}
-        >
-          <svg
-            width="11"
-            height="11"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-          >
-            <path d="m4 4 8 8M12 4l-8 8" />
-          </svg>
-        </button>
-      ) : (
-        kbd && <span className="kbd">{kbd}</span>
-      )}
-    </label>
+    </div>
   );
 });
 

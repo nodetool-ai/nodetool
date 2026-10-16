@@ -712,3 +712,58 @@ describe("streamed scene music", () => {
     expect(context.mediaSources[0].outputs).toHaveLength(0);
   });
 });
+
+
+describe("decoded audio failure recovery", () => {
+  it.each(["gesture", "reset", "asset update"])("retries a failed decode after %s while retaining successful buffers", async (trigger) => {
+    const fetchAsset = vi.fn().mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockImplementation(async () => new Response(new Uint8Array([1])));
+    vi.stubGlobal("fetch", fetchAsset);
+    const context = new FakeContext();
+    context.state = "running";
+    const status = vi.fn();
+    const binding = gameAssetBinding.parse({ assetId: "./music.wav", digest: "d", mediaKind: "audio", width: 1, height: 1 });
+    const audio = new GameAudioPlayer({ context: context as unknown as AudioContext, tickRate: 60,
+      assets: { music: binding }, resolveAsset: async (asset) => asset.assetId, status });
+    audio.preload();
+    await vi.waitFor(() => expect(status).toHaveBeenCalledWith(expect.stringContaining("HTTP 503")));
+    for (let tick = 0; tick < 20; tick++) { audio.preload(); audio.sync(snapshot(tick, 0)); }
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(fetchAsset).toHaveBeenCalledTimes(1);
+    if (trigger === "gesture") { await audio.unlock(); }
+    else if (trigger === "reset") { audio.reset(snapshot(0, 0)); }
+    else { audio.updateAssets({ music: { ...binding } }); }
+    await vi.waitFor(() => expect(context.sources).toHaveLength(1));
+    expect(fetchAsset).toHaveBeenCalledTimes(2);
+    expect(context.sources[0]!.starts).toHaveLength(1);
+    audio.reset(snapshot(0, 0));
+    await audio.unlock();
+    await vi.waitFor(() => expect(context.sources).toHaveLength(2));
+    expect(fetchAsset).toHaveBeenCalledTimes(2);
+    audio.dispose();
+  });
+
+  it("does not evict a replacement buffer when an older binding fails", async () => {
+    const oldResponse = Promise.withResolvers<Response>();
+    const fetchAsset = vi.fn().mockImplementationOnce(() => oldResponse.promise)
+      .mockImplementation(async () => new Response(new Uint8Array([2])));
+    vi.stubGlobal("fetch", fetchAsset);
+    const context = new FakeContext();
+    context.state = "running";
+    const binding = gameAssetBinding.parse({ assetId: "./old.wav", digest: "old", mediaKind: "audio", width: 1, height: 1 });
+    const audio = new GameAudioPlayer({ context: context as unknown as AudioContext, tickRate: 60,
+      assets: { music: binding }, resolveAsset: async (asset) => asset.assetId, status: vi.fn() });
+    audio.preload();
+    await vi.waitFor(() => expect(fetchAsset).toHaveBeenCalledTimes(1));
+    audio.updateAssets({ music: { ...binding, assetId: "./new.wav", digest: "new" } });
+    audio.sync(snapshot(0, 0));
+    await vi.waitFor(() => expect(context.sources).toHaveLength(1));
+    oldResponse.resolve(new Response(null, { status: 503 }));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    audio.reset(snapshot(0, 0));
+    await vi.waitFor(() => expect(context.sources).toHaveLength(2));
+    expect(fetchAsset).toHaveBeenCalledTimes(2);
+    audio.dispose();
+  });
+
+});

@@ -19,8 +19,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { SPACING, CheckerDropzone, FlexRow, BORDER_RADIUS } from "../../ui_primitives";
-import ImageRefPreview from "../../node/ImageRefPreview";
+import { SPACING, FlexRow, BORDER_RADIUS } from "../../ui_primitives";
+import ImagePreview from "./ImagePreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
@@ -223,12 +223,7 @@ const GeneratorBodyInner: React.FC<GeneratorBodyProps> = ({
   return (
     <div css={cssStyles} className="generator-body" data-bespoke-body="Generator">
       <div className="preview-area">
-        <ImageRefPreview
-          value={previewValue}
-          placeholder={
-            <CheckerDropzone message="Run to preview" />
-          }
-        />
+        <ImagePreview value={previewValue} message="Run to preview" icon={null} />
       </div>
 
       {colorSpecs.map((spec) => (

@@ -36,12 +36,12 @@ describe("NodePickerDialog search focus", () => {
   it("focuses the search field on a fine pointer", () => {
     mockMatchMedia(false);
     renderDialog();
-    expect(screen.getByPlaceholderText("Search nodes...")).toHaveFocus();
+    expect(screen.getByPlaceholderText("Search nodes")).toHaveFocus();
   });
 
   it("leaves the search field unfocused on a coarse pointer", () => {
     mockMatchMedia(true);
     renderDialog();
-    expect(screen.getByPlaceholderText("Search nodes...")).not.toHaveFocus();
+    expect(screen.getByPlaceholderText("Search nodes")).not.toHaveFocus();
   });
 });

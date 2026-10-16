@@ -177,7 +177,7 @@ export function frameFor(
       if (opacity !== 1 || entity.sprite.opacity !== undefined) {
         sprite.opacity = Math.max(0, Math.min(1, opacity));
       }
-      if (previousOpacity !== 1 || entity.sprite.opacity !== undefined) {
+      if (previousOpacity !== 1 || previousOpacity !== opacity || entity.sprite.opacity !== undefined) {
         sprite.previousOpacity = Math.max(0, Math.min(1, previousOpacity));
       }
       if (entity.sprite.blend === "additive") {
