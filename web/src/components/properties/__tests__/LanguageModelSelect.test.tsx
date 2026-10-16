@@ -6,6 +6,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 import type { LanguageModel } from "../../../stores/ApiTypes";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import LanguageModelSelect from "../LanguageModelSelect";
+import { queryClient } from "../../../queryClient";
 
 const dialogProps: Record<string, unknown>[] = [];
 
@@ -93,5 +94,41 @@ describe("LanguageModelSelect", () => {
       name: "GPT-5.4 mini"
     });
     expect(dialogProps.at(-1)).toMatchObject({ open: false });
+  });
+
+  // UX research study 4: a node showed only "test-assistant-model", and the
+  // missing Anthropic key surfaced only when the run failed.
+  describe("a model whose provider has no key", () => {
+    afterEach(() => {
+      queryClient.removeQueries({ queryKey: ["secrets"] });
+    });
+
+    it("names the provider and warns before any run", async () => {
+      queryClient.setQueryData(
+        ["secrets"],
+        [{ key: "ANTHROPIC_API_KEY", is_configured: false }]
+      );
+      renderSelect({ value: "test-assistant-model", provider: "anthropic" });
+
+      const button = screen.getByRole("button", {
+        name: /test-assistant-model/i
+      });
+      expect(button).toHaveTextContent("Anthropic");
+      expect(
+        await screen.findByRole("img", { name: /needs ANTHROPIC_API_KEY/ })
+      ).toBeInTheDocument();
+    });
+
+    it("shows no warning once the key is set", () => {
+      queryClient.setQueryData(
+        ["secrets"],
+        [{ key: "ANTHROPIC_API_KEY", is_configured: true }]
+      );
+      renderSelect({ value: "test-assistant-model", provider: "anthropic" });
+
+      expect(
+        screen.queryByRole("img", { name: /needs ANTHROPIC_API_KEY/ })
+      ).not.toBeInTheDocument();
+    });
   });
 });

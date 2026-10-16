@@ -1768,16 +1768,94 @@ const FAILING_RUN_WORKFLOW = makeWorkflow(
   }
 );
 
+/**
+ * The one document of the `other-provider` state: its Agent step uses an
+ * Anthropic model, so on an account that connected only OpenAI the run stops
+ * at the credential pre-flight. Nothing on the canvas shows the fault before
+ * the run. UX research's `fix-error` task
+ * starts here.
+ */
+const OTHER_PROVIDER_WORKFLOW = makeWorkflow(
+  "wf-packing-list",
+  "Packing list",
+  "Turns trip notes into a packing list",
+  [],
+  "2026-01-05T09:00:00Z",
+  "private",
+  {
+    nodes: [
+      {
+        id: "input-notes",
+        type: "nodetool.input.StringInput",
+        data: {
+          name: "notes",
+          label: "Trip notes",
+          value: "Lisbon, 14 to 21 May. Hotel near Alfama. Beach day at Cascais. One dinner out."
+        },
+        ui_properties: { position: { x: 0, y: 0 }, width: 320 }
+      },
+      {
+        id: "agent-packing",
+        type: "nodetool.agents.Agent",
+        data: {
+          model: {
+            type: "language_model",
+            provider: "anthropic",
+            id: "test-assistant-model",
+            name: "Test Assistant Model"
+          },
+          system: "Turn the trip notes into a short packing list."
+        },
+        ui_properties: { position: { x: 420, y: 0 }, width: 360 }
+      },
+      {
+        id: "output-packing",
+        type: "nodetool.output.Output",
+        data: { name: "packing_list", description: "The packing list" },
+        ui_properties: { position: { x: 860, y: 0 }, width: 280 }
+      }
+    ],
+    edges: [
+      {
+        id: "edge-notes",
+        source: "input-notes",
+        sourceHandle: "output",
+        target: "agent-packing",
+        targetHandle: "prompt"
+      },
+      {
+        id: "edge-packing",
+        source: "agent-packing",
+        sourceHandle: "text",
+        target: "output-packing",
+        targetHandle: "value"
+      }
+    ]
+  }
+);
+
 // `NODETOOL_QA_STATE=empty` starts with no workflows, threads, assets, or
 // secrets, as a new account does. First-time-user QA (agentic-qa) uses it.
 // `failing-run` is that account plus one workflow that fails until fixed.
+// `other-provider` is that account plus one workflow whose run fails because
+// it uses a provider the account has not connected.
 const QA_STATE = process.env.NODETOOL_QA_STATE;
-const EMPTY_ACCOUNT = QA_STATE === "empty" || QA_STATE === "failing-run";
+const EMPTY_ACCOUNT =
+  QA_STATE === "empty" ||
+  QA_STATE === "failing-run" ||
+  QA_STATE === "other-provider";
 
 async function seedForState(): Promise<void> {
   if (QA_STATE === "failing-run") {
     await Workflow.create(FAILING_RUN_WORKFLOW);
     console.log("[screenshot-server] Empty account with one failing workflow");
+    return;
+  }
+  if (QA_STATE === "other-provider") {
+    await Workflow.create(OTHER_PROVIDER_WORKFLOW);
+    console.log(
+      "[screenshot-server] Empty account with one workflow on an unconnected provider"
+    );
     return;
   }
   if (EMPTY_ACCOUNT) {

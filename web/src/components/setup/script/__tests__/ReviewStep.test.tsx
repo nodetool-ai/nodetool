@@ -174,8 +174,8 @@ describe("script ReviewStep", () => {
     renderStep();
 
     // Untouched, the picker names the chat model — the one the writer has
-    // always used — rather than showing an empty control.
-    await user.click(screen.getByRole("button", { name: "gpt-oss:20b" }));
+    // always used — and its provider, rather than showing an empty control.
+    await user.click(screen.getByRole("button", { name: /^gpt-oss:20b/ }));
     await user.click(screen.getByRole("button", { name: "pick gemini" }));
 
     expect(useScriptStore.getState().scripts[SCRIPT_ID].setup?.writer_model).toEqual({

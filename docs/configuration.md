@@ -377,8 +377,10 @@ NODETOOL_TEST_CHROME=/opt/chrome-for-testing/chrome \
 - `NODETOOL_QA_STATE` — read by the test-suite backend (`screenshot-server.ts`)
   only. `empty` starts with no workflows, threads, assets, or secrets, as a new
   account does. `failing-run` is that account plus one workflow that fails until
-  fixed. Any other value, or none, seeds the usual demo data. First-time-user QA
-  (the `agentic-qa` skill) uses it.
+  fixed. `other-provider` is that account plus one workflow whose model needs
+  an Anthropic key, so its run fails at the credential check. Any other
+  value, or none, seeds the usual demo data. First-time-user QA (the
+  `agentic-qa` skill) uses it.
 
 The graph, output directory, and run params come from `NODETOOL_DEBUG_GRAPH`,
 `NODETOOL_DEBUG_OUT`, and `NODETOOL_DEBUG_PARAMS`:

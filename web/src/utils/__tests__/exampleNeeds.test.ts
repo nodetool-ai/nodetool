@@ -1,4 +1,8 @@
-import { exampleNeedsLabel, storyboardNeeds } from "../exampleNeeds";
+import {
+  exampleNeedsLabel,
+  runsAsIsFirst,
+  storyboardNeeds
+} from "../exampleNeeds";
 
 describe("exampleNeedsLabel", () => {
   it("says Runs as is when nothing is needed", () => {
@@ -44,5 +48,33 @@ describe("storyboardNeeds", () => {
       "video_model"
     ]);
     expect(storyboardNeeds({ shotCount: 4, clipCount: 4 }).modelKinds).toEqual([]);
+  });
+});
+
+describe("runsAsIsFirst", () => {
+  const ready = { modelKinds: [], requiredSettings: [] };
+  const model = { modelKinds: ["image_model"], requiredSettings: [] };
+  const key = { modelKinds: [], requiredSettings: ["FAL_API_KEY"] };
+
+  it("moves ready items ahead and keeps each group's order", () => {
+    const items = [
+      { id: "a", needs: model },
+      { id: "b", needs: ready },
+      { id: "c", needs: key },
+      { id: "d", needs: ready }
+    ];
+    expect(runsAsIsFirst(items, (item) => item.needs).map((i) => i.id)).toEqual(
+      ["b", "d", "a", "c"]
+    );
+  });
+
+  it("keeps items with unknown needs after the ready ones", () => {
+    const items = [
+      { id: "a", needs: null },
+      { id: "b", needs: ready }
+    ];
+    expect(runsAsIsFirst(items, (item) => item.needs).map((i) => i.id)).toEqual(
+      ["b", "a"]
+    );
   });
 });

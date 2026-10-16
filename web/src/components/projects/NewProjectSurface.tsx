@@ -32,6 +32,7 @@ import { createTopDownRoomGame, createNative3DGame } from "@nodetool-ai/game-run
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 
 import {
@@ -515,6 +516,9 @@ const NewProjectSurface = ({
     getFileContents
   } = useFileHandling();
   const { uploadFiles, isUploading } = useComposerAssetUpload(addDroppedFiles);
+  const referenceImageCount = droppedFiles.filter((file) =>
+    file.type.startsWith("image/")
+  ).length;
   const { data: entities } = useEntities();
   // Both the user's own skills and the ones NodeTool ships: either is a
   // starter, and either is invoked the same way.
@@ -2058,8 +2062,9 @@ const NewProjectSurface = ({
                 color="secondary"
                 sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
               >
-                An agent plans the documents and builds them while you watch.
-                Everything it makes stays editable.
+                Ask a question and get an answer, or describe something to make.
+                An agent plans it and builds it while you watch, and
+                everything it makes stays editable.
               </Text>
             </FlexColumn>
 
@@ -2084,7 +2089,7 @@ const NewProjectSurface = ({
                 label="Chat prompt"
                 hideLabel
                 inputRef={promptRef}
-                placeholder="A 30-second launch spot for our desk lamp — warm, minimal, night-time mood. Type / for a skill, @ for an asset or entity."
+                placeholder="Ask a question, or describe what to make: a 30-second launch spot for our desk lamp. Type / for a skill, @ for a file or entity."
                 onChange={(event) => setPrompt(event.target.value)}
                 onKeyDown={handlePromptKeyDown}
                 slotProps={{ input: { disableUnderline: true } }}
@@ -2095,7 +2100,17 @@ const NewProjectSurface = ({
 
               {droppedFiles.length > 0 && (
                 <FlexRow gap={SPACING.md} wrap sx={{ px: SPACING.xl }}>
-                  {droppedFiles.map((file) => (
+                  {droppedFiles.map((file) =>
+                    // A text file or a document has no picture to show, so
+                    // it reads as its name rather than a broken thumbnail.
+                    !file.type.startsWith("image/") ? (
+                      <Chip
+                        key={file.id}
+                        icon={<InsertDriveFileOutlinedIcon />}
+                        label={file.name}
+                        onDelete={() => removeFile(file.id)}
+                      />
+                    ) : (
                     <Box key={file.id} sx={{ position: "relative" }}>
                       <ResponsiveImage
                         locator={file.dataUri}
@@ -2117,7 +2132,8 @@ const NewProjectSurface = ({
                         }}
                       />
                     </Box>
-                  ))}
+                    )
+                  )}
                 </FlexRow>
               )}
 
@@ -2137,9 +2153,9 @@ const NewProjectSurface = ({
                   onClick={() => refInputRef.current?.click()}
                   sx={composerToolSx}
                 >
-                  {droppedFiles.length === 0
+                  {referenceImageCount === 0
                     ? "Reference images"
-                    : `Ref images · ${droppedFiles.length}`}
+                    : `Ref images · ${referenceImageCount}`}
                 </EditorButton>
                 <input
                   ref={refInputRef}

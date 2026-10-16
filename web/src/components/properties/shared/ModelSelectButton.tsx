@@ -1,6 +1,7 @@
 import React, { memo } from "react";
 import type { SxProps, Theme } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useEditorScope } from "../../editor_ui";
 import {
   FlexColumn,
@@ -20,6 +21,8 @@ interface ModelSelectButtonProps {
   label: React.ReactNode;
   secondaryLabel?: string;
   subLabel?: string; // "Select model", "Select image model", etc.
+  /** Why the selected model cannot run yet, such as a missing API key. */
+  warning?: string;
   onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
   active?: boolean;
   disabled?: boolean;
@@ -38,6 +41,7 @@ function ModelSelectButton({
   label,
   secondaryLabel,
   subLabel,
+  warning,
   onClick,
   active,
   disabled,
@@ -57,6 +61,9 @@ function ModelSelectButton({
               {label}
             </Text>
             {secondaryLabel && <Caption>{secondaryLabel}</Caption>}
+            {warning && (
+              <Caption sx={{ color: "warning.main" }}>{warning}</Caption>
+            )}
             {subLabel && (
               <Caption sx={{ color: "text.secondary" }}>{subLabel}</Caption>
             )}
@@ -129,6 +136,14 @@ function ModelSelectButton({
             </Caption>
           )}
         </FlexRow>
+        {warning && (
+          <WarningAmberIcon
+            className="model-select-button-warning"
+            titleAccess={warning}
+            fontSize="small"
+            sx={{ color: "warning.main", flexShrink: 0 }}
+          />
+        )}
         <ExpandMoreIcon
           fontSize="small"
           sx={{ color: "text.secondary", flexShrink: 0 }}
