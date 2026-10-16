@@ -62,7 +62,9 @@ export class VerifiedStandaloneAssets {
   async verify(logicalId: string): Promise<void> { await this.load(logicalId); }
 
   async bytes(logicalId: string): Promise<Uint8Array<ArrayBuffer> | null> {
-    return (await this.load(logicalId))?.slice() ?? null;
+    const bytes = await this.load(logicalId);
+    this.controller.signal.throwIfAborted();
+    return bytes?.slice() ?? null;
   }
 
   async url(logicalId: string): Promise<string | null> {

@@ -78,3 +78,13 @@ it("fails explicitly if the verified Blob URL cannot be created", async () => {
   vi.spyOn(URL, "createObjectURL").mockImplementation(() => { throw new Error("Blob URLs unavailable"); });
   await expect(owner().url("audio")).rejects.toThrow(/Verified media URL/);
 });
+
+
+it("does not deliver already cached bytes after disposal interrupts their consumer", async () => {
+  vi.stubGlobal("fetch", async () => response());
+  const assets = owner();
+  await assets.verify("audio");
+  const pending = assets.bytes("audio");
+  assets.dispose();
+  await expect(pending).rejects.toThrow(/abort/i);
+});
