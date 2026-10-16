@@ -26,7 +26,7 @@ export function hudWidgetsGame2D(): GameDocument {
     scenes: [{ id: "main", name: "Main", entities: [
       { id: "camera", transform2d: { x: 0, y: 0 }, camera2d: { width: 16, height: 9 } },
       { id: "player", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "health", maximum: 4 },
-        { kind: "script", maxTickMs: 50, source: HUD_SCRIPT }] }
+        { kind: "script", maxTickMs: 20, source: HUD_SCRIPT }] }
     ] }]
   });
 }
@@ -44,7 +44,7 @@ export function hudWidgetsGame3D(): GameDocument3D {
       entities: [
         { id: "camera", transform3d: { position: { x: 0, y: 2, z: 6 } }, camera3d: { projection: { kind: "perspective", fov: 60 } } },
         { id: "player", transform3d: {}, primitive: { kind: "box", dimensions: { x: 1, y: 1, z: 1 }, material: { color: "#47dfb5" } },
-          behaviors: [{ kind: "health", maximum: 4 }, { kind: "script", maxTickMs: 50, source: HUD_SCRIPT }] }
+          behaviors: [{ kind: "health", maximum: 4 }, { kind: "script", maxTickMs: 20, source: HUD_SCRIPT }] }
       ] }]
   });
 }
