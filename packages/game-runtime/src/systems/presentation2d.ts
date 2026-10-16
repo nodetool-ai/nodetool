@@ -233,6 +233,7 @@ export function frameFor(
   tiles.sort((a, b) => a.layer - b.layer);
   const frame: GameRenderFrame = {
     gameId: document.id,
+    sceneId: scene.id,
     fonts: Object.fromEntries(Object.entries(document.assets).filter(([, binding]) => binding.mediaKind === "font")),
     tick,
     width: camera?.width ?? 16,

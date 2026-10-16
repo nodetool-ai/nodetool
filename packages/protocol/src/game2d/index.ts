@@ -136,6 +136,7 @@ export type GameHudLabel = z.infer<typeof gameHudLabel>;
 
 export const gameRenderFrame = z.object({
   gameId: z.string().optional(),
+  sceneId: z.string().optional(),
   fonts: z.record(z.string(), gameAssetBinding).optional(),
   tick: z.number().int().nonnegative(),
   width: positive,
