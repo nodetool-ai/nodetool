@@ -153,6 +153,15 @@ async function start(): Promise<void> {
   let lastTime = performance.now();
   let animationFrame = 0;
   const tickMs = 1000 / game.tickRate;
+  function setPaused(next: boolean): void {
+    paused = next;
+    releaseAll();
+    input.setEnabled(!next);
+    accumulator = 0;
+    lastTime = performance.now();
+    if (next) { audio.pause(); } else { audio.resume(); }
+    element("pause").textContent = pauseLabel(next);
+  }
   // Script saves and the Save button share per-game IndexedDB storage. Loaded data reaches scripts on the next frame.
   const saves = new GamePlayerSaves(createIndexedDbGameSaveStorage(game.id), { onError: (error) => showStatus(error.message) });
   const QUICK_SAVE = "quicksave";
@@ -191,8 +200,7 @@ async function start(): Promise<void> {
       audio.sync(session.snapshot());
       return true;
     } catch (error) {
-      paused = true;
-      element("pause").textContent = pauseLabel(true);
+      setPaused(true);
       showStatus(error instanceof Error ? error.message : "Game script failed");
       return false;
     }
@@ -234,13 +242,7 @@ async function start(): Promise<void> {
     lastTime = performance.now();
   });
   element("pause").addEventListener("click", () => {
-    paused = !paused;
-    // Input pressed while paused is dropped rather than delivered on resume.
-    input.setEnabled(!paused);
-    if (paused) audio.pause();
-    else audio.resume();
-    element("pause").textContent = pauseLabel(paused);
-    lastTime = performance.now();
+    setPaused(!paused);
   });
   element("step").addEventListener("click", () => {
     if (paused) {
@@ -293,7 +295,7 @@ async function start(): Promise<void> {
     audio.dispose();
   });
   window.nativeGamePlayer = Object.freeze({
-    pause: () => { paused = true; releaseAll(); accumulator = 0; },
+    pause: () => setPaused(true),
     reset: async () => {
       paused = true;
       const replacement = await createScriptedGameSession(game, 1);

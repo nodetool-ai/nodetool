@@ -145,6 +145,15 @@ async function start(): Promise<void> {
   canvas.addEventListener("pointermove", (event) => { if (dragging || document.pointerLockElement === canvas) { input.look(event.movementX, event.movementY); } }, { signal: controller.signal });
   window.addEventListener("blur", release, { signal: controller.signal });
   const clock = new FixedTickClock(game.tickRate);
+  function setPaused(next: boolean): void {
+    paused = next;
+    release();
+    input.setEnabled(!next);
+    clock.reset();
+    const pause = document.getElementById("pause");
+    if (pause) { pause.textContent = next ? "Resume" : "Pause"; }
+    if (next) { audio.pause(); } else { audio.resume(); }
+  }
   let animationId = 0;
   let rendering = false;
   let disposed = false;
@@ -157,7 +166,7 @@ async function start(): Promise<void> {
       const stats = await renderer.render(hud.annotate(frame), interpolation, particles);
       budget.observe({ drawCalls: stats.drawCalls, triangles: stats.triangles, particles: particles.count, voices: gameAudioVoiceCount(audio.mixerState()) });
     }
-    catch (error) { if (renderer.capabilities.deviceStatus !== "lost") { paused = true; } status(error instanceof Error ? error.message : "Rendering failed"); }
+    catch (error) { if (renderer.capabilities.deviceStatus !== "lost") { setPaused(true); } status(error instanceof Error ? error.message : "Rendering failed"); }
     finally { rendering = false; }
   };
   document.addEventListener("visibilitychange", () => { release(); clock.reset(); }, { signal: controller.signal });
@@ -167,21 +176,14 @@ async function start(): Promise<void> {
       try {
         const interpolation = clock.advance(now, () => { input.pollGamepads(hud.pollGamepads(browserGamepads())); step(input.sample(game)); });
         void render(interpolation);
-      } catch (error) { paused = true; clock.reset(); status(error instanceof Error ? error.message : "Game script failed"); }
+      } catch (error) { setPaused(true); status(error instanceof Error ? error.message : "Game script failed"); }
     } else if (contextPaused && renderer.capabilities.deviceStatus === "ready") {
       void render(1);
     }
     if (paused || contextPaused || document.hidden) { clock.reset(); }
     animationId = requestAnimationFrame(tick);
   };
-  document.getElementById("pause")?.addEventListener("click", (event) => {
-    paused = !paused;
-    // Input pressed while paused is dropped rather than delivered on resume (F23).
-    input.setEnabled(!paused);
-    if (event.currentTarget instanceof HTMLButtonElement) { event.currentTarget.textContent = paused ? "Resume" : "Pause"; }
-    release(); clock.reset();
-    if (paused) { audio.pause(); } else { audio.resume(); }
-  }, { signal: controller.signal });
+  document.getElementById("pause")?.addEventListener("click", () => setPaused(!paused), { signal: controller.signal });
   document.getElementById("reset")?.addEventListener("click", () => {
     paused = true;
     void open().then((replacement) => {
@@ -205,7 +207,7 @@ async function start(): Promise<void> {
     audio.dispose();
   }, { once: true });
   window.nativeGame3DPlayer = Object.freeze({
-    pause: () => { paused = true; release(); clock.reset(); },
+    pause: () => setPaused(true),
     step: async (nextInput: GameInputFrame3D) => { paused = true; step(nextInput, true); await render(1); },
     reset: async () => { paused = true; const replacement = await open(); session.dispose(); session = replacement; saves.clear(); audio.reset(session.snapshot()); frame = session.frame(); particles.clear(); release(); clock.reset(); await render(1); },
     advance: async (inputs: readonly GameInputFrame3D[]) => {
