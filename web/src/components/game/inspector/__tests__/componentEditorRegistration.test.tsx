@@ -12,12 +12,33 @@ import type { GameComponentEditorProps } from "../componentEditors";
 
 jest.mock("../componentEditors", () => ({
   GAME_COMPONENT_EDITORS: {
+    environment: ({ dimension, value, onChange }: GameComponentEditorProps) =>
+      <button onClick={() => onChange({ ...value as object, background: "#123456" })}>Set {dimension} environment</button>,
     particles: ({ dimension, onChange }: GameComponentEditorProps) =>
       <button onClick={() => onChange({ emitters: [{ id: "edited", rate: 7 }] })}>Set {dimension} particles</button>
   }
 }));
 
 describe("registered component editors in game inspectors", () => {
+  it("routes 3D environment edits through scene document operations", async () => {
+    const user = userEvent.setup();
+    const initial = gameDocument3D.parse({
+      schemaVersion: 3, engineVersion: "2", dimension: "3d", id: "game", revision: "saved", entrySceneId: "scene",
+      tickRate: 60, inputActions: [], assets: {}, presentation: { aspectRatio: 1, hudWidth: 100, hudHeight: 100 },
+      scenes: [{ id: "scene", name: "Scene", activeCameraId: "camera", entities: [
+        { id: "camera", transform3d: {}, camera3d: { projection: { kind: "perspective" } } }
+      ] }]
+    });
+    let edited = initial;
+    render(<ThemeProvider theme={mockTheme}><GameInspector3D document={initial} sceneId="scene"
+      onOps={(ops) => { edited = applyGameOps3D(edited, ops); }} onScript={() => undefined}
+      onOperationError={(message) => { throw new Error(message); }} /></ThemeProvider>);
+    await user.click(screen.getByRole("button", { name: "Set 3d environment" }));
+    expect(edited.scenes[0].environment.background).toBe("#123456");
+    expect(edited.scenes[0].entities).toEqual(initial.scenes[0].entities);
+    expect(edited.scenes[0].environment.ambient).toEqual(initial.scenes[0].environment.ambient);
+  });
+
   it("disables particles for schema-1 documents", async () => {
     const user = userEvent.setup();
     const document = gameDocument.parse({

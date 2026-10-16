@@ -4,6 +4,7 @@ export function configureGameEnvironment(scene: THREE.Scene, ambient: THREE.Ambi
     scene.background = new THREE.Color(environment.background);
     ambient.color.set(environment.ambient.color);
     ambient.intensity = environment.ambient.intensity;
-    scene.fog = environment.fog ? new THREE.Fog(environment.fog.color, environment.fog.near, environment.fog.far) : null;
+    const fog = environment.fog;
+    scene.fog = !fog ? null : "kind" in fog ? new THREE.FogExp2(fog.color, 0) : new THREE.Fog(fog.color, fog.near, fog.far);
     renderer.shadowMap.enabled = environment.shadows.enabled;
 }

@@ -573,3 +573,45 @@ for (const dimension of ["2d", "3d"] as const) {
     expect(predicate.test(incomplete)).toBe(false);
   });
 }
+
+it("authors height fog and a validated receiver decal through public game edits", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item => item.id === "height-fog-and-decals-3d");
+  if (!candidate) { throw new Error("Height fog and decals eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  const edit = bridge.tools.find(tool => tool.name === "edit_native_game");
+  if (!predicate || !edit) { throw new Error("R6 eval must expose public editing and scoring"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const document = gameDocument3D.parse(bridge.finalState());
+  const scene = document.scenes[0];
+  expect(await edit.execute({ ops: [
+    { op: "update_scene", scene_id: scene.id, set: { environment: { ...scene.environment,
+      fog: { kind: "height", color: "#cad9e4", density: 0.08, baseHeight: 2, heightFalloff: 0.5, maxOpacity: 0.95 } } } },
+    { op: "add_entity", scene_id: scene.id, entity: { id: "graffiti", parentId: "crate", transform3d: { position: { x: 0, y: 0, z: 0.4 } },
+      decal3d: { assetId: "paint", receiverId: "crate", size: { x: 1, y: 1, z: 0.25 }, opacity: 0.8, renderOrder: 2 } } }
+  ] })).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+  const before = bridge.finalState();
+  expect(await edit.execute({ ops: [{ op: "update_entity", entity_id: "graffiti", set: { decal3d: { receiverId: "missing" } } }] }))
+    .toHaveProperty("error");
+  expect(bridge.finalState()).toEqual(before);
+  const authored = gameDocument3D.parse(bridge.finalState());
+  const session = await createGameSession3D(authored, 1);
+  let replay: Awaited<ReturnType<typeof createGameSession3D>> | undefined;
+  try {
+    for (let tick = 0; tick < 120; tick++) {
+      const result = session.step({ pressed: [] });
+      const receiver = result.frame.entities.find(entity => entity.entityId === "crate");
+      const projector = result.frame.entities.find(entity => entity.entityId === "graffiti");
+      if (!receiver || !projector) { throw new Error("Receiver and projector must survive"); }
+      const offset = Math.hypot(projector.transform.position.x - receiver.transform.position.x,
+        projector.transform.position.y - receiver.transform.position.y, projector.transform.position.z - receiver.transform.position.z);
+      expect(offset).toBeCloseTo(0.4, 6);
+      if (tick === 59) { replay = await createGameSession3D(authored, 1, session.snapshot()); }
+      else if (replay) {
+        expect(replay.step({ pressed: [] }).events).toEqual(result.events);
+        expect(replay.snapshot()).toEqual(session.snapshot());
+      }
+    }
+  } finally { replay?.dispose(); session.dispose(); }
+});

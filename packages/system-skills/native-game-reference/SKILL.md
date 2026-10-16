@@ -608,6 +608,35 @@ Set every `environment` field with `update_scene`. It replaces the whole
 `sky` and `postProcessing` with the changed field. Capture the scene and view
 the frames to review a change.
 
+`environment.fog` accepts either linear `{ color, near, far }` or height
+`{ kind: "height", color, density, baseHeight, heightFalloff, maxOpacity }`.
+Height fog replaces linear fog and integrates exponential density along the
+camera ray. `density` (0.000001 to 10, default 0.02) is extinction per world
+unit at `baseHeight` (-10000 to 10000, default 0). `heightFalloff` (0.000001
+to 100, default 0.2) reduces density above that height. `maxOpacity` (0 to 1,
+default 1) limits coverage. Omit `fog` to disable it. Both camera projections,
+rigid and animated models, and 3D particles receive scene fog.
+
+Add an image projection with `decal3d: { assetId, receiverId, size: { x, y, z },
+opacity, renderOrder }`. `assetId` names a verified PNG, JPEG or WebP image
+slot. Browse a staged image with `browse_native_game_assets`, then use its
+binding with `install_native_game_asset`. `receiverId` names one existing
+non-template primitive or rigid model entity in the same scene. Use a separate
+projector entity whose `transform3d` positions and rotates the projection box.
+Its scale multiplies `size`. Parent the projector to the receiver to keep the
+decal attached as it moves. Otherwise the projection volume stays in world
+space. Each size axis is 0.001 to 1000 world units,
+`opacity` is 0 to 1 (default 1), and integer `renderOrder` is 0 to 31 (default
+0). Higher order draws later. Ties follow entity order.
+
+A scene accepts at most 32 authored decals. Projection follows moving rigid
+receivers and selected visible model nodes, respects foreground depth, and
+supports image transparency. Skinned, morphed or instanced receivers, and
+transparent or alpha-masked receiver materials, report a diagnostic instead of
+projecting. A receiver with `animator3d` is invalid. Projection also reports a
+diagnostic when its bounded node, triangle or output work exceeds the renderer
+limit. Decals affect presentation only and never add collision surfaces.
+
 `environment.shadows` is `{ enabled, mapSize, extent, cascades? }`. Without
 `cascades`, the one shadow-casting directional light draws a single map that
 covers `extent` meters around the light. For scenes deeper than about 30 m, add

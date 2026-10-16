@@ -97,6 +97,7 @@ describe("cascade material hooks", () => {
     material.onBeforeCompile = ownHook;
     material.customProgramCacheKey = ownKey;
     const plain = new THREE.MeshStandardMaterial();
+    const plainKey = plain.customProgramCacheKey();
     const scene = new THREE.Scene();
     scene.add(new THREE.Mesh(new THREE.BoxGeometry(), material), new THREE.Mesh(new THREE.BoxGeometry(), plain));
     const sunLight = new THREE.DirectionalLight();
@@ -115,7 +116,7 @@ describe("cascade material hooks", () => {
     expect(Object.keys(shader.uniforms).sort()).toEqual(["CSM_cascades", "cameraNear", "ownTint", "shadowFar"]);
     expect(shader.fragmentShader).not.toContain("#include <lights_fragment_begin>");
     expect(material.customProgramCacheKey()).toBe("own-key|game-shadow-cascades");
-    expect(plain.customProgramCacheKey()).toBe(`${THREE.Material.prototype.customProgramCacheKey.call(plain)}|game-shadow-cascades`);
+    expect(plain.customProgramCacheKey()).toBe(`${plainKey}|game-shadow-cascades`);
     expect(material.defines).toMatchObject({ USE_CSM: 1, CSM_CASCADES: 2 });
     cascades.detach();
     expect(material.onBeforeCompile).toBe(ownHook);
