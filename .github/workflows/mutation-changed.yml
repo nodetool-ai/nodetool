@@ -81,9 +81,29 @@ jobs:
       - uses: ./.github/actions/setup-build
         with:
           # The baseline runs every test related to a mutated file, including
-          # real-Chromium 3D captures, which need the CPU Vulkan driver the
-          # package test legs install.
+          # real-Chromium 3D captures, which need Chromium and the CPU Vulkan
+          # driver the package test legs install.
           extra-apt: mesa-vulkan-drivers ffmpeg
+      - name: Install Chromium for native 3D tests
+        run: npx playwright install --with-deps chromium
+      # Ubuntu restricts user namespaces for downloaded Chromium binaries.
+      # Allow only Playwright's browser paths so capture keeps its sandbox.
+      # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
+      - name: Enable the Chromium sandbox
+        run: |
+          sudo tee /etc/apparmor.d/nodetool-playwright > /dev/null <<'PROFILE'
+          abi <abi/4.0>,
+          include <tunables/global>
+
+          profile nodetool-playwright-chromium /@{HOME}/.cache/ms-playwright/chromium-*/chrome-linux*/chrome flags=(unconfined) {
+            userns,
+          }
+
+          profile nodetool-playwright-headless /@{HOME}/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux*/chrome-headless-shell flags=(unconfined) {
+            userns,
+          }
+          PROFILE
+          sudo apparmor_parser -r /etc/apparmor.d/nodetool-playwright
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: mutation-plan
