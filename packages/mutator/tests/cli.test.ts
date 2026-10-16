@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stripVTControlCharacters } from "node:util";
 import { describe, expect, it } from "vitest";
 import { isSourceFile, parseArgs, type Options, run, selectFiles, UsageError } from "../src/cli.js";
 import { ShellRunner, type CommandResult, type CommandRunner } from "../src/runner.js";
@@ -68,8 +69,8 @@ describe("run", () => {
     expect(code).toBe(survives ? 3 : 0);
     expect(results).toHaveLength(2);
     expect(results[0]?.code).toBe(0);
-    expect(results[0]?.output).toMatch(/Tests\s+2 passed/);
-    expect(results[1]?.output).toMatch(survives ? /Tests\s+2 passed/ : /Tests\s+1 failed \(2\)/);
+    expect(stripVTControlCharacters(results[0]?.output ?? "")).toMatch(/Tests\s+2 passed/);
+    expect(stripVTControlCharacters(results[1]?.output ?? "")).toMatch(survives ? /Tests\s+2 passed/ : /Tests\s+1 failed \(2\)/);
     expect(output.out).toContain(survives ? "SURVIVED" : "KILLED");
   });
 
