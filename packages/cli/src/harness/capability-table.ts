@@ -245,7 +245,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "export_workflow_digraph",
     module: "workflows",
     impl: "packages/agents/src/capabilities/workflows.ts",
-    contract: "adbf4387177b",
+    contract: "e77dc5f2c0d1",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/mcp-tools.test.ts",
