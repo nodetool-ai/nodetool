@@ -7,7 +7,7 @@ import { isFunction } from "../../utils/typePredicates";
 import { SPACING, getSpacingPx } from "./spacing";
 import { CONTROL } from "./tokens";
 import { useFieldDensity, type FieldDensity } from "./fieldDensity";
-import { numberFieldPaddingX, numberFieldSurfaceStyles, numberFieldTextStyles, numberFieldUnitStyles } from "./NumberField";
+import { clampToRange, numberFieldPaddingX, stepDecimals, stepMultiplier, numberFieldSurfaceStyles, numberFieldTextStyles, numberFieldUnitStyles } from "./NumberField";
 
 export interface InspectorValueScrub {
   step: number;
@@ -73,28 +73,7 @@ const inputStyles = (theme: Theme, scrubbable: boolean, focused: boolean) => css
   cursor: scrubbable && !focused ? "ew-resize" : undefined
 });
 
-const clampToScrub = (next: number, scrub: InspectorValueScrub): number => {
-  let clamped = next;
-  if (scrub.min != null) clamped = Math.max(scrub.min, clamped);
-  if (scrub.max != null) clamped = Math.min(scrub.max, clamped);
-  return clamped;
-};
-
 const unitStyles = (theme: Theme) => css(numberFieldUnitStyles(theme));
-
-/** Scrub and arrow-key step multiplier: Shift is coarse, Alt is fine. */
-const stepMultiplier = (event: { shiftKey: boolean; altKey: boolean }): number =>
-  event.shiftKey ? 10 : event.altKey ? 0.1 : 1;
-
-/**
- * Decimals to format a stepped value with: the base step's, plus one for the
- * Alt ×0.1 step so the fine step is not rounded away. Shift keeps the base
- * precision.
- */
-const stepDecimals = (step: number, multiplier: number): number => {
-  const base = (String(step).split(".")[1] ?? "").length;
-  return multiplier < 1 ? base + 1 : base;
-};
 
 /**
  * A buffered inspector value with optional drag scrubbing supplied by the
@@ -158,7 +137,7 @@ export const InspectorValueInput = memo(function InspectorValueInput({
     }
     const multiplier = stepMultiplier(event);
     const next = drag.startValue + dx * scrub.step * multiplier;
-    const formatted = clampToScrub(next, scrub).toFixed(stepDecimals(scrub.step, multiplier));
+    const formatted = clampToRange(next, scrub.min, scrub.max).toFixed(stepDecimals(scrub.step, multiplier));
     drag.lastValue = formatted;
     setDraft(formatted);
     scrubGesture?.schedule(formatted);
@@ -201,7 +180,7 @@ export const InspectorValueInput = memo(function InspectorValueInput({
     const direction = event.key === "ArrowUp" ? 1 : -1;
     const multiplier = stepMultiplier(event);
     const next = base + direction * scrub.step * multiplier;
-    const formatted = clampToScrub(next, scrub).toFixed(stepDecimals(scrub.step, multiplier));
+    const formatted = clampToRange(next, scrub.min, scrub.max).toFixed(stepDecimals(scrub.step, multiplier));
     setDraft(formatted);
     steppedValueRef.current = formatted;
     if (scrubGesture) {

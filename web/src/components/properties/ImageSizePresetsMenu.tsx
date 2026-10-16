@@ -111,7 +111,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
         <NodeTextField
           className="presets-search-field"
           fullWidth
-          placeholder="Search presets..."
+          placeholder="Search presets"
           value={searchQuery}
           onChange={handleSearchChange}
           onKeyDown={handleSearchKeyDown}

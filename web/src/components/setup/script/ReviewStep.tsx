@@ -1,8 +1,8 @@
 /**
  * Step 2's review — the script before anything is voiced (PRD § 9.2, D4).
  *
- * The script laid out the way the editor prints it: one card per section, and
- * in it each line's speaker in the gutter, its direction in italics and its
+ * The script laid out the way the editor prints it: a plain page, a heading
+ * per section when there is more than one, and each line's speaker in the gutter, its direction in italics and its
  * words beside them, all editable in place. Text and speaker edits go through
  * the same handler the `ui_script_set_line_text` and `ui_script_set_speaker`
  * tools call, so what a creator can fix here an agent can fix headlessly and
@@ -41,14 +41,12 @@ import type {
   ScriptSpeaker
 } from "../../../stores/script/ScriptStore";
 import { getScriptAgentHandler } from "../../../components/script/scriptAgentBridge";
-import {
-  ScriptSpeakerPicker,
-  SPEAKER_GUTTER
-} from "../../../components/script/ScriptSpeakerPicker";
+import { ScriptSpeakerPicker } from "../../../components/script/ScriptSpeakerPicker";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import ReportBugButton from "../../support/ReportBugButton";
 import {
   AlertBanner,
+  BORDER_RADIUS,
   Box,
   Caption,
   EditorButton,
@@ -67,7 +65,6 @@ import {
 import type { LanguageModelValue } from "../../../stores/ApiTypes";
 import { readScriptSource } from "../../../lib/script/importedScript";
 import { GenerationEstimateLine } from "../GenerationSummary";
-import { REVIEW_SCENE } from "../reviewStyles";
 
 /** A duration as the review states it: seconds under a minute, else m:ss. */
 const spokenLength = (seconds: number): string => {
@@ -90,6 +87,9 @@ const REWRITE_MAX_TOKENS = 8192;
  */
 const SCRIPT_REVIEW_WIDTH = 880;
 
+/** The speaker column: a dot and a name, which truncates past this width. */
+const SPEAKER_COLUMN = 112;
+
 /** Below this card width the speaker sits above the words. */
 const STACK_BELOW = 560;
 
@@ -100,12 +100,11 @@ const plural = (count: number, noun: string): string =>
   `${count} ${count === 1 ? noun : `${noun}s`}`;
 
 /**
- * A field that reads as part of the page until it is pointed at: the box
- * shows on hover and focus. Used for the direction only. The words keep their
- * box at rest, because a review whose text does not look editable is never
- * edited (see `reviewStyles`).
+ * A field that reads as part of the page until its line is pointed at: the
+ * box shows when the pointer is on the line and when the field has focus. A
+ * box on every line at rest made the script read as a form, not a page.
  */
-const quietField = {
+const quietOutline = {
   "& .MuiOutlinedInput-root.MuiInputBase-root": {
     backgroundColor: "transparent",
     "& .MuiOutlinedInput-notchedOutline": {
@@ -116,7 +115,11 @@ const quietField = {
     "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
       borderColor: "primary.main"
     }
-  },
+  }
+} as const;
+
+const directionFieldSx = {
+  ...quietOutline,
   "& .MuiOutlinedInput-input": {
     ...TYPOGRAPHY.sans.label,
     fontStyle: "italic",
@@ -125,6 +128,7 @@ const quietField = {
 } as const;
 
 const lineFieldSx = {
+  ...quietOutline,
   "& .MuiOutlinedInput-input": {
     ...TYPOGRAPHY.sans.body,
     color: "text.primary"
@@ -136,12 +140,11 @@ interface ReviewLineProps {
   line: ScriptLine;
   cast: readonly ScriptSpeaker[];
   locked: boolean;
-  first: boolean;
 }
 
 /** One line of the script: speaker, direction, words, and its two actions. */
 const ReviewLine: React.FC<ReviewLineProps> = memo(
-  ({ scriptId, line, cast, locked, first }) => {
+  ({ scriptId, line, cast, locked }) => {
     const [directionOpen, setDirectionOpen] = useState(false);
     const speaker = cast.find((entry) => entry.id === line.speakerId) ?? null;
     const hasDirection = line.direction !== undefined && line.direction !== "";
@@ -196,17 +199,19 @@ const ReviewLine: React.FC<ReviewLineProps> = memo(
         data-line-id={line.id}
         sx={{
           display: "grid",
-          gridTemplateColumns: `${SPEAKER_GUTTER}px minmax(0, 1fr) auto`,
+          gridTemplateColumns: `${SPEAKER_COLUMN}px minmax(0, 1fr) auto`,
           columnGap: `${SPACING_PX.lg}px`,
           rowGap: SPACING.sm,
           alignItems: "start",
-          paddingX: SPACING.lg,
-          paddingY: SPACING.md,
-          borderTop: first ? "none" : "1px solid",
-          borderColor: "divider",
+          paddingX: SPACING.md,
+          paddingY: SPACING.xs,
+          borderRadius: BORDER_RADIUS.sm,
           transition: MOTION.background,
           ...reducedMotion({ transition: MOTION.none }),
           "&:hover": { backgroundColor: "action.hover" },
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: "divider"
+          },
           "& .review-line-actions": {
             opacity: 0,
             transition: MOTION.opacity
@@ -234,6 +239,7 @@ const ReviewLine: React.FC<ReviewLineProps> = memo(
             readOnly={locked}
             mobile={false}
             onAssign={setSpeaker}
+            quiet
           />
           {/* A subtitle import brought its own timing, and the take has to
               hit it — so it shows beside the words it belongs to rather than
@@ -261,7 +267,7 @@ const ReviewLine: React.FC<ReviewLineProps> = memo(
               compact
               fullWidth
               slotProps={{ input: { readOnly: locked } }}
-              sx={quietField}
+              sx={directionFieldSx}
             />
           ) : null}
           <TextInput
@@ -315,11 +321,13 @@ interface ReviewSectionProps {
   cast: readonly ScriptSpeaker[];
   pace: ScriptPaceId;
   locked: boolean;
+  /** One section repeats the step's own totals, so its header is left out. */
+  showHeader: boolean;
 }
 
-/** A section of the script as one card: its name and size, then its lines. */
+/** A section of the script: its name and size, then its lines. */
 const ReviewSection: React.FC<ReviewSectionProps> = memo(
-  ({ scriptId, section, cast, pace, locked }) => {
+  ({ scriptId, section, cast, pace, locked, showHeader }) => {
     const title = section.title ?? "Script";
     const words = wordsIn(section.lines);
 
@@ -339,47 +347,35 @@ const ReviewSection: React.FC<ReviewSectionProps> = memo(
         component="section"
         aria-label={title}
         sx={{
-          ...REVIEW_SCENE,
           containerType: "inline-size",
           containerName: "script-review"
         }}
       >
-        <FlexRow
-          gap={GAP.normal}
-          align="baseline"
-          wrap
-          sx={{
-            paddingX: SPACING.lg,
-            paddingY: SPACING.md,
-            borderBottom: "1px solid",
-            borderColor: "divider"
-          }}
-        >
-          <Text size="normal" weight={600} component="h3">
-            {title}
-          </Text>
-          <Caption color="muted">
-            {`${plural(section.lines.length, "line")} · about ${spokenLength(estimateSpokenSeconds(words, pace))}`}
-          </Caption>
-        </FlexRow>
-        {section.lines.map((line, index) => (
+        {showHeader ? (
+          <FlexRow
+            gap={GAP.normal}
+            align="baseline"
+            wrap
+            sx={{ paddingX: SPACING.md, paddingBottom: SPACING.sm }}
+          >
+            <Text size="normal" weight={600} component="h3">
+              {title}
+            </Text>
+            <Caption color="muted">
+              {`${plural(section.lines.length, "line")} · about ${spokenLength(estimateSpokenSeconds(words, pace))}`}
+            </Caption>
+          </FlexRow>
+        ) : null}
+        {section.lines.map((line) => (
           <ReviewLine
             key={line.id}
             scriptId={scriptId}
             line={line}
             cast={cast}
             locked={locked}
-            first={index === 0}
           />
         ))}
-        <Box
-          sx={{
-            paddingX: SPACING.lg,
-            paddingY: SPACING.sm,
-            borderTop: section.lines.length > 0 ? "1px solid" : "none",
-            borderColor: "divider"
-          }}
-        >
+        <Box sx={{ paddingX: SPACING.md, paddingTop: SPACING.xs }}>
           <EditorButton
             variant="text"
             size="small"
@@ -574,7 +570,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         </AlertBanner>
       ) : null}
 
-      <FlexColumn gap={GAP.comfortable}>
+      <FlexColumn gap={GAP.spacious}>
         {sections.map((section) => (
           <ReviewSection
             key={section.id}
@@ -583,21 +579,20 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             cast={cast}
             pace={pace}
             locked={locked}
+            showHeader={sections.length > 1}
           />
         ))}
         {lineCount === 0 && sections.length === 0 ? (
-          <FlexColumn gap={GAP.normal} align="flex-start" sx={REVIEW_SCENE}>
-            <Box sx={{ padding: SPACING.lg }}>
-              <EditorButton
-                variant="outlined"
-                startIcon={<AddIcon fontSize="small" />}
-                disabled={locked}
-                onClick={addFirstLine}
-              >
-                Add a line
-              </EditorButton>
-            </Box>
-          </FlexColumn>
+          <Box sx={{ paddingX: SPACING.md }}>
+            <EditorButton
+              variant="outlined"
+              startIcon={<AddIcon fontSize="small" />}
+              disabled={locked}
+              onClick={addFirstLine}
+            >
+              Add a line
+            </EditorButton>
+          </Box>
         ) : null}
       </FlexColumn>
 

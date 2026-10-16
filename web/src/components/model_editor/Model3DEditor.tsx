@@ -39,7 +39,6 @@ import PublicIcon from "@mui/icons-material/Public";
 import ControlCameraIcon from "@mui/icons-material/ControlCamera";
 import StraightenIcon from "@mui/icons-material/Straighten";
 import KeyboardIcon from "@mui/icons-material/Keyboard";
-import CircleIcon from "@mui/icons-material/Circle";
 import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
@@ -65,6 +64,7 @@ import {
   PanelHeader,
   BORDER_RADIUS,
   SPACING,
+  StatusDot,
   Z_INDEX,
   getSpacingPx
 } from "../ui_primitives";
@@ -280,10 +280,6 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.lg,
       border: `2px dashed ${theme.vars.palette.primary.main}`,
       backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`
-    },
-    ".dirty-dot": {
-      fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.warning.main
     },
     ".overlay": {
       position: "absolute",
@@ -1332,7 +1328,7 @@ const Model3DEditor = ({
           </Text>
           {isDirty && (
             <Tooltip title="Unsaved changes">
-              <CircleIcon className="dirty-dot" aria-label="Unsaved changes" />
+              <StatusDot tone="warning" label="Unsaved changes" />
             </Tooltip>
           )}
         </FlexRow>

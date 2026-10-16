@@ -1,11 +1,18 @@
 import { renderHook, act } from "@testing-library/react";
-import { stub } from "../../../test-utils/doubles";
-import { useResizePanel } from "../useResizePanel";
+import {
+  useResizePanel,
+  PANEL_MIN_SIZE,
+  PANEL_MAX_SIZE
+} from "../useResizePanel";
 import { usePanelStore } from "../../../stores/PanelStore";
 
 beforeEach(() => {
   usePanelStore.setState(usePanelStore.getInitialState());
 });
+
+const setPanel = (patch: Partial<ReturnType<typeof getPanel>>) =>
+  usePanelStore.setState({ panel: { ...getPanel(), ...patch } });
+const getPanel = () => usePanelStore.getState().panel;
 
 describe("useResizePanel", () => {
   it("returns initial state from store", () => {
@@ -15,19 +22,14 @@ describe("useResizePanel", () => {
     expect(result.current.isVisible).toBe(false);
     expect(result.current.isDragging).toBe(false);
     expect(result.current.ref).toBeDefined();
-    expect(result.current.handleMouseDown).toEqual(expect.any(Function));
+    expect(result.current.handleResizeStart).toEqual(expect.any(Function));
+    expect(result.current.handleResize).toEqual(expect.any(Function));
+    expect(result.current.handleResizeEnd).toEqual(expect.any(Function));
     expect(result.current.handlePanelToggle).toEqual(expect.any(Function));
   });
 
   it("reflects custom store state", () => {
-    usePanelStore.setState({
-      panel: {
-        ...usePanelStore.getState().panel,
-        panelSize: 600,
-        isVisible: true,
-        isDragging: true
-      }
-    });
+    setPanel({ panelSize: 600, isVisible: true, isDragging: true });
 
     const { result } = renderHook(() => useResizePanel());
 
@@ -36,308 +38,125 @@ describe("useResizePanel", () => {
     expect(result.current.isDragging).toBe(true);
   });
 
-  it("handleMouseDown sets isDragging to true", () => {
+  it("exposes the drag bounds", () => {
+    expect(PANEL_MIN_SIZE).toBe(160);
+    expect(PANEL_MAX_SIZE).toBe(800);
+  });
+
+  it("handleResizeStart sets isDragging to true", () => {
     const { result } = renderHook(() => useResizePanel());
-    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
-      clientX: 100,
-      preventDefault: jest.fn()
-    });
 
     act(() => {
-      result.current.handleMouseDown(mockMouseEvent);
+      result.current.handleResizeStart();
     });
 
-    expect(usePanelStore.getState().panel.isDragging).toBe(true);
-    expect(mockMouseEvent.preventDefault).toHaveBeenCalled();
-
-    act(() => {
-      document.dispatchEvent(new MouseEvent("mouseup"));
-    });
+    expect(getPanel().isDragging).toBe(true);
   });
 
-  it("mousemove during drag updates panel size for left panel", () => {
-    usePanelStore.setState({
-      panel: {
-        ...usePanelStore.getState().panel,
-        panelSize: 400
-      }
-    });
-
-    const { result } = renderHook(() => useResizePanel("left"));
-    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
-      clientX: 300,
-      preventDefault: jest.fn()
-    });
+  it("handleResize applies the delta to the stored size", () => {
+    setPanel({ panelSize: 400 });
+    const { result } = renderHook(() => useResizePanel());
 
     act(() => {
-      result.current.handleMouseDown(mockMouseEvent);
+      result.current.handleResizeStart();
+      result.current.handleResize(150);
     });
 
-    act(() => {
-      document.dispatchEvent(new MouseEvent("mousemove", { clientX: 450 }));
-    });
-
-    expect(usePanelStore.getState().panel.panelSize).toBe(550);
-
-    act(() => {
-      document.dispatchEvent(new MouseEvent("mouseup"));
-    });
-  });
-
-  it("mousemove during drag updates panel size for right panel", () => {
-    usePanelStore.setState({
-      panel: {
-        ...usePanelStore.getState().panel,
-        panelSize: 400
-      }
-    });
-
-    const { result } = renderHook(() => useResizePanel("right"));
-    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
-      clientX: 300,
-      preventDefault: jest.fn()
-    });
-
-    act(() => {
-      result.current.handleMouseDown(mockMouseEvent);
-    });
-
-    act(() => {
-      document.dispatchEvent(new MouseEvent("mousemove", { clientX: 200 }));
-    });
-
-    expect(usePanelStore.getState().panel.panelSize).toBe(500);
-
-    act(() => {
-      document.dispatchEvent(new MouseEvent("mouseup"));
-    });
+    expect(getPanel().panelSize).toBe(550);
   });
 
   it("clamps size to MAX_PANEL_SIZE", () => {
-    usePanelStore.setState({
-      panel: {
-        ...usePanelStore.getState().panel,
-        panelSize: 700
-      }
-    });
-
-    const { result } = renderHook(() => useResizePanel("left"));
-    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
-      clientX: 100,
-      preventDefault: jest.fn()
-    });
+    setPanel({ panelSize: 700 });
+    const { result } = renderHook(() => useResizePanel());
 
     act(() => {
-      result.current.handleMouseDown(mockMouseEvent);
+      result.current.handleResizeStart();
+      result.current.handleResize(400);
     });
 
-    act(() => {
-      document.dispatchEvent(new MouseEvent("mousemove", { clientX: 500 }));
-    });
-
-    expect(usePanelStore.getState().panel.panelSize).toBe(800);
-
-    act(() => {
-      document.dispatchEvent(new MouseEvent("mouseup"));
-    });
+    expect(getPanel().panelSize).toBe(800);
   });
 
   it("clamps size to MIN_PANEL_SIZE", () => {
-    usePanelStore.setState({
-      panel: {
-        ...usePanelStore.getState().panel,
-        panelSize: 200
-      }
-    });
-
-    const { result } = renderHook(() => useResizePanel("left"));
-    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
-      clientX: 300,
-      preventDefault: jest.fn()
-    });
+    setPanel({ panelSize: 200 });
+    const { result } = renderHook(() => useResizePanel());
 
     act(() => {
-      result.current.handleMouseDown(mockMouseEvent);
-    });
-
-    act(() => {
-      document.dispatchEvent(new MouseEvent("mousemove", { clientX: 0 }));
+      result.current.handleResizeStart();
+      result.current.handleResize(-300);
     });
 
     // 160px minimum; the panel clamps rather than collapsing.
-    expect(usePanelStore.getState().panel.panelSize).toBe(160);
-
-    act(() => {
-      document.dispatchEvent(new MouseEvent("mouseup"));
-    });
+    expect(getPanel().panelSize).toBe(160);
   });
 
-  it("mouseup without movement toggles view via handleViewChange", () => {
-    usePanelStore.setState({
-      panel: {
-        ...usePanelStore.getState().panel,
-        panelSize: 500,
-        isVisible: true,
-        activeView: "workflows"
-      }
-    });
-
+  it("flags hasDragged once the drag passes the threshold", () => {
+    setPanel({ panelSize: 400 });
     const { result } = renderHook(() => useResizePanel());
-    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
-      clientX: 300,
-      preventDefault: jest.fn()
-    });
 
     act(() => {
-      result.current.handleMouseDown(mockMouseEvent);
+      result.current.handleResizeStart();
+      result.current.handleResize(10);
     });
+    expect(getPanel().hasDragged).toBe(false);
 
     act(() => {
-      document.dispatchEvent(new MouseEvent("mouseup"));
+      result.current.handleResize(30);
     });
-
-    expect(usePanelStore.getState().panel.isVisible).toBe(false);
+    expect(getPanel().hasDragged).toBe(true);
   });
 
-  it("mouseup after drag below MIN_PANEL_SIZE clamps size and stays open", () => {
-    usePanelStore.setState({
-      panel: {
-        ...usePanelStore.getState().panel,
-        panelSize: 500,
-        isVisible: true
-      }
-    });
-
-    const { result } = renderHook(() => useResizePanel("left"));
-    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
-      clientX: 500,
-      preventDefault: jest.fn()
-    });
-
-    act(() => {
-      result.current.handleMouseDown(mockMouseEvent);
-    });
-
-    act(() => {
-      document.dispatchEvent(new MouseEvent("mousemove", { clientX: 100 }));
-    });
-
-    act(() => {
-      document.dispatchEvent(new MouseEvent("mouseup"));
-    });
-
-    expect(usePanelStore.getState().panel.panelSize).toBe(160);
-    expect(usePanelStore.getState().panel.isVisible).toBe(true);
-  });
-
-  it("mouseup after drag sets isDragging to false", () => {
+  it("release without movement toggles view via handleViewChange", () => {
+    setPanel({ panelSize: 500, isVisible: true, activeView: "workflows" });
     const { result } = renderHook(() => useResizePanel());
-    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
-      clientX: 100,
-      preventDefault: jest.fn()
-    });
 
     act(() => {
-      result.current.handleMouseDown(mockMouseEvent);
+      result.current.handleResizeStart();
+      result.current.handleResizeEnd();
     });
 
-    expect(usePanelStore.getState().panel.isDragging).toBe(true);
+    expect(getPanel().isVisible).toBe(false);
+  });
+
+  it("release after a drag keeps the panel open", () => {
+    setPanel({ panelSize: 500, isVisible: true });
+    const { result } = renderHook(() => useResizePanel());
 
     act(() => {
-      document.dispatchEvent(new MouseEvent("mousemove", { clientX: 200 }));
+      result.current.handleResizeStart();
+      result.current.handleResize(-400);
+      result.current.handleResizeEnd();
     });
+
+    expect(getPanel().panelSize).toBe(160);
+    expect(getPanel().isVisible).toBe(true);
+  });
+
+  it("release sets isDragging to false", () => {
+    const { result } = renderHook(() => useResizePanel());
 
     act(() => {
-      document.dispatchEvent(new MouseEvent("mouseup"));
+      result.current.handleResizeStart();
+    });
+    expect(getPanel().isDragging).toBe(true);
+
+    act(() => {
+      result.current.handleResize(100);
+      result.current.handleResizeEnd();
     });
 
-    expect(usePanelStore.getState().panel.isDragging).toBe(false);
+    expect(getPanel().isDragging).toBe(false);
   });
 
   it("handlePanelToggle delegates to store handleViewChange", () => {
-    usePanelStore.setState({
-      panel: {
-        ...usePanelStore.getState().panel,
-        activeView: "workflows",
-        isVisible: false
-      }
-    });
-
+    setPanel({ activeView: "workflows", isVisible: false });
     const { result } = renderHook(() => useResizePanel());
 
     act(() => {
       result.current.handlePanelToggle("assets");
     });
 
-    const state = usePanelStore.getState().panel;
-    expect(state.activeView).toBe("assets");
-    expect(state.isVisible).toBe(true);
-  });
-
-  it("defaults panelPosition to left", () => {
-    usePanelStore.setState({
-      panel: {
-        ...usePanelStore.getState().panel,
-        panelSize: 400
-      }
-    });
-
-    const { result } = renderHook(() => useResizePanel());
-    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
-      clientX: 200,
-      preventDefault: jest.fn()
-    });
-
-    act(() => {
-      result.current.handleMouseDown(mockMouseEvent);
-    });
-
-    act(() => {
-      document.dispatchEvent(new MouseEvent("mousemove", { clientX: 300 }));
-    });
-
-    expect(usePanelStore.getState().panel.panelSize).toBe(500);
-
-    act(() => {
-      document.dispatchEvent(new MouseEvent("mouseup"));
-    });
-  });
-
-  it("cleanup removes event listeners on unmount", () => {
-    const addSpy = jest.spyOn(document, "addEventListener");
-    const removeSpy = jest.spyOn(document, "removeEventListener");
-
-    const { result, unmount } = renderHook(() => useResizePanel());
-    const mockMouseEvent = stub<React.MouseEvent<HTMLElement>>({
-      clientX: 100,
-      preventDefault: jest.fn()
-    });
-
-    act(() => {
-      result.current.handleMouseDown(mockMouseEvent);
-    });
-
-    const mousemoveCalls = addSpy.mock.calls.filter(
-      ([event]) => event === "mousemove"
-    );
-    const mouseupCalls = addSpy.mock.calls.filter(
-      ([event]) => event === "mouseup"
-    );
-    expect(mousemoveCalls.length).toBeGreaterThan(0);
-    expect(mouseupCalls.length).toBeGreaterThan(0);
-
-    unmount();
-
-    const removeMoveCalls = removeSpy.mock.calls.filter(
-      ([event]) => event === "mousemove"
-    );
-    const removeUpCalls = removeSpy.mock.calls.filter(
-      ([event]) => event === "mouseup"
-    );
-    expect(removeMoveCalls.length).toBeGreaterThan(0);
-    expect(removeUpCalls.length).toBeGreaterThan(0);
-
-    addSpy.mockRestore();
-    removeSpy.mockRestore();
+    expect(getPanel().activeView).toBe("assets");
+    expect(getPanel().isVisible).toBe(true);
   });
 });

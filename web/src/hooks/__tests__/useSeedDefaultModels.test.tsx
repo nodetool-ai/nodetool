@@ -1,5 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import type { LanguageModel } from "../../stores/ApiTypes";
+import useMediaGenerationStore from "../../stores/MediaGenerationStore";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import { pickSeedModel, useSeedDefaultModels } from "../useSeedDefaultModels";
 
@@ -19,6 +20,10 @@ const mockImage = {
   models: [] as Array<Record<string, unknown>>,
   isLoading: false
 };
+const mockTts = {
+  models: [] as Array<Record<string, unknown>>,
+  isLoading: false
+};
 const mockUnavailable = new Set<string>();
 const nodeUpdate = jest.fn();
 let mockNodes: Array<Record<string, unknown>> = [];
@@ -29,7 +34,8 @@ jest.mock("../../stores/GlobalChatStore", () => ({
 }));
 jest.mock("../useModelsByProvider", () => ({
   useLanguageModelsByProvider: () => mockLanguage,
-  useImageModelsByProvider: () => mockImage
+  useImageModelsByProvider: () => mockImage,
+  useTTSModelsByProvider: () => mockTts
 }));
 jest.mock("../useModelAvailability", () => ({
   useModelAvailability: () => (m: { provider: string; id: string }) => ({
@@ -72,6 +78,11 @@ beforeEach(() => {
   mockLanguage.isLoading = false;
   mockImage.models = [];
   mockImage.isLoading = false;
+  mockTts.models = [];
+  mockTts.isLoading = false;
+  useMediaGenerationStore.setState((state) => ({
+    audio: { ...state.audio, model: null, voice: "alloy" }
+  }));
   mockUnavailable.clear();
   mockNodes = [];
 });
@@ -161,5 +172,42 @@ describe("useSeedDefaultModels", () => {
         model: expect.objectContaining({ provider: "openai", id: "gpt-5" })
       })
     );
+  });
+
+  it("seeds the speech model and starts the speech composer on its first voice", () => {
+    mockTts.models = [
+      { provider: "openai", id: "tts-1", name: "TTS 1", voices: ["verse", "alloy"] }
+    ];
+    renderHook(() => useSeedDefaultModels());
+    expect(defaults()["tts_model"]).toMatchObject({ provider: "openai", id: "tts-1" });
+    expect(useMediaGenerationStore.getState().audio).toMatchObject({
+      model: { type: "tts_model", provider: "openai", id: "tts-1" },
+      voice: "verse"
+    });
+  });
+
+  it("keeps a speech model the user already picked", () => {
+    mockTts.models = [
+      { provider: "openai", id: "tts-1", name: "TTS 1", voices: ["verse"] }
+    ];
+    useMediaGenerationStore.setState((state) => ({
+      audio: {
+        ...state.audio,
+        model: {
+          type: "tts_model",
+          provider: "elevenlabs",
+          id: "v3",
+          name: "v3",
+          voices: [],
+          selected_voice: "rachel"
+        },
+        voice: "rachel"
+      }
+    }));
+    renderHook(() => useSeedDefaultModels());
+    expect(useMediaGenerationStore.getState().audio).toMatchObject({
+      model: { id: "v3" },
+      voice: "rachel"
+    });
   });
 });

@@ -11,16 +11,14 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import ImageIcon from "@mui/icons-material/Image";
 
 import { SPACING,
-  CheckerDropzone,
   FlexColumn,
   FlexRow,
   ToggleGroup,
   ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageRefPreview from "../../node/ImageRefPreview";
+import ImagePreview from "./ImagePreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
@@ -94,16 +92,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-const ImagePreview: React.FC<{ value: unknown; placeholder: string }> = memo(
-  ({ value, placeholder }) => (
-    <ImageRefPreview
-      value={value}
-      placeholder={<CheckerDropzone message={placeholder} icon={<ImageIcon />} />}
-    />
-  )
-);
-ImagePreview.displayName = "MaskImagePreview";
-
 interface MaskBodyProps {
   id: string;
   nodeType: string;
@@ -174,7 +162,7 @@ const MaskBodyInner: React.FC<MaskBodyProps> = ({
     <div css={cssStyles} className="mask-body" data-bespoke-body="Mask">
       <HandleColumn id={id} properties={imageHandles} />
       <div className="preview-area">
-        <ImagePreview value={tabValue} placeholder={TAB_PLACEHOLDERS[tab]} />
+        <ImagePreview value={tabValue} message={TAB_PLACEHOLDERS[tab]} />
       </div>
 
       <FlexColumn className="controls" gap={0.5}>

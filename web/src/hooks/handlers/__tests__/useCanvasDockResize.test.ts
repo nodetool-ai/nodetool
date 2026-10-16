@@ -2,7 +2,10 @@ import { renderHook } from "@testing-library/react";
 import { stub } from "../../../test-utils/doubles";
 import { act } from "react";
 
-import { useCanvasDockResize } from "../useCanvasDockResize";
+import {
+  useCanvasDockResize,
+  useCanvasDockEdgeResize
+} from "../useCanvasDockResize";
 import useCanvasChatDockStore, {
   DEFAULT_OVERLAY_HEIGHT
 } from "../../../stores/CanvasChatDockStore";
@@ -73,5 +76,45 @@ describe("useCanvasDockResize", () => {
     act(() => {
       document.dispatchEvent(new MouseEvent("mouseup"));
     });
+  });
+});
+
+describe("useCanvasDockEdgeResize", () => {
+  beforeEach(() => {
+    useCanvasChatDockStore.setState({
+      overlayHeight: DEFAULT_OVERLAY_HEIGHT,
+      dockWidth: null
+    });
+  });
+
+  it("grows the height by the reported delta from the measured start", () => {
+    const ref = { current: makeOverlay(600, 400) };
+    const { result } = renderHook(() => useCanvasDockEdgeResize(ref));
+
+    act(() => {
+      result.current.top.onResizeStart();
+      result.current.top.onResize(30);
+      result.current.top.onResize(20);
+      result.current.top.onResizeEnd();
+    });
+
+    expect(useCanvasChatDockStore.getState().overlayHeight).toBe(450);
+  });
+
+  it("changes the width by twice the delta and works in half-widths", () => {
+    const ref = { current: makeOverlay(600, 400) };
+    const { result } = renderHook(() => useCanvasDockEdgeResize(ref));
+
+    expect(result.current.side.getValue()).toBe(300);
+    expect(result.current.side.min).toBe(180);
+    expect(result.current.side.max).toBe(600);
+
+    act(() => {
+      result.current.side.onResizeStart();
+      result.current.side.onResize(30);
+      result.current.side.onResizeEnd();
+    });
+
+    expect(useCanvasChatDockStore.getState().dockWidth).toBe(660);
   });
 });

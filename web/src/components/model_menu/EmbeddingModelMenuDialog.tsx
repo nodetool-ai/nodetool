@@ -4,6 +4,9 @@ import type { EmbeddingModel, ModelPack, UnifiedModel } from "../../stores/ApiTy
 import { useEmbeddingModelsByProvider } from "../../hooks/useEmbeddingModels";
 import { useEmbeddingModelMenuStore } from "../../stores/ModelMenuStore";
 
+/** The provider capability this picker serves, for local providers to install. */
+const LOCAL_CAPABILITIES = ["generate_embedding"];
+
 interface EmbeddingModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
@@ -32,9 +35,10 @@ function EmbeddingModelMenuDialog({
       modelData={modelData}
       onModelChange={onModelChange}
       title="Select embedding model"
-      searchPlaceholder="Search embedding models…"
+      searchPlaceholder="Search embedding models"
       storeHook={useEmbeddingModelMenuStore}
       modelType="embedding_model"
+      localCapabilities={LOCAL_CAPABILITIES}
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
     />

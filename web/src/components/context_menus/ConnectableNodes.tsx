@@ -13,12 +13,9 @@ import {
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { rankSearchNodes } from "../../utils/nodeSearch";
 
-import ClearIcon from "@mui/icons-material/Clear";
-import SearchIcon from "@mui/icons-material/Search";
 import NodeItem from "../node_menu/NodeItem";
 import {
   Text,
-  ToolbarIconButton,
   Box,
   MOTION,
   Z_INDEX,
@@ -26,8 +23,7 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  TextField,
-  InputAdornment,
+  SearchInput,
   VirtualList
 } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
@@ -377,21 +373,13 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     ]
   );
 
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  }, []);
-
-  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
       hideMenu();
     } else {
       e.stopPropagation();
     }
   }, [hideMenu]);
-
-  const handleClearSearch = useCallback(() => {
-    setSearchTerm("");
-  }, []);
 
   const handleNodeClick = useCallback((nodeMetadata: NodeMetadata) => {
     createConnectableNode(nodeMetadata);
@@ -445,51 +433,19 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
       paperSx={menuPaperSx}
     >
       <Box css={fixedHeaderStyles} className="connectable-nodes-header">
-          <TextField
-            className="connectable-nodes-search"
-            size="small"
-            fullWidth
-            placeholder="Search nodes..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={handleSearchKeyDown}
-            autoFocus={isVisible && autoFocusEnabled}
-            inputRef={searchInputRef}
-            aria-label="Search nodes"
-            sx={{
-                "& .MuiOutlinedInput-root": {
-                    backgroundColor: "action.disabledBackground",
-                    borderRadius: BORDER_RADIUS.lg,
-                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "action.selected" },
-                    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "action.focus" },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: theme.vars.palette.primary.main },
-                }
-            }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon
-                      fontSize="small"
-                      sx={{ color: "action.disabled" }}
-                    />
-                  </InputAdornment>
-                ),
-                endAdornment: searchTerm ? (
-                  <InputAdornment position="end">
-                    <ToolbarIconButton
-                      aria-label="clear search"
-                      onClick={handleClearSearch}
-                      size="small"
-                      icon={<ClearIcon sx={{ fontSize: 16 }} />}
-                      nodrag={false}
-                    />
-                  </InputAdornment>
-                ) : null
-              }
-            }}
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <SearchInput
+              ref={searchInputRef}
+              className="connectable-nodes-search"
+              value={searchTerm}
+              onChange={setSearchTerm}
+              onKeyDown={handleSearchKeyDown}
+              escapeClears={false}
+              placeholder="Search nodes"
+              autoFocus={isVisible}
+              fullWidth
+            />
+          </div>
       </Box>
 
       {totalCount === 0 ? (

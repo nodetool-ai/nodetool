@@ -26,20 +26,20 @@ See the [Custom Nodes Guide](developer/custom-nodes-guide.md) for the manifest a
 
 ### Open the Package Manager
 
-Open **Tools > Package Manager** in the desktop app, or go to `/packages` in the web UI. The left rail has four lists.
+Open **Tools > Package Manager** in the desktop app, or go to `/packages` in the web UI. The left rail has four lists. Each list shows a short hint under its name. A list with updates shows the number of updates instead of its size. The Package Manager opens on Engines & tools.
 
-### Included, Python packs, Third-party, and Software
+### Engines & tools, Built-in nodes, Python nodes, and Community nodes
 
-- **Included** lists the packs that ship with NodeTool. Switch a pack on or off, then restart the server. The base pack is always on. Provider packs that need an API key are not listed. Their nodes appear after you add the key in **Settings > Models & Providers**.
-- **Python packs** lists the Python node packs that NodeTool offers. They install from PyPI. Use **Install**, **Update**, or **Uninstall**, or **Update all** when several have updates. Installing a pack sets up Python first if it is missing.
+- **Engines & tools** manages programs that run on this computer: local AI engines such as llama.cpp and stable-diffusion.cpp, media tools such as FFmpeg, and languages such as Python. Local models and some nodes need them. The list shows them in groups for languages, media, and AI.
+- **Built-in nodes** lists the packs that ship with NodeTool. Switch a pack on or off, then restart the server. The base pack is always on. Provider packs that need an API key are not listed. Their nodes appear after you add the key in **Settings > Models & Providers**.
+- **Python nodes** lists the Python node packs that NodeTool offers. They install from PyPI. Use **Install**, **Update**, or **Uninstall**, or **Update all** when several have updates. Installing a pack sets up Python first if it is missing.
   - A pack installs at its newest stable release, not a version tied to the app version. Prereleases are skipped.
   - Each install or update resolves the new pack together with every Python pack already installed, so shared dependencies such as PyTorch stay at versions all of them accept.
   - The HuggingFace pack gets the PyTorch build that matches your graphics card. See [GPU requirements](installation.md#gpu-requirements).
   - A pack appears only where it can install. MLX needs an Apple Silicon Mac. HuggingFace runs on Windows, Linux, and Apple Silicon Macs. On a Mac, both need macOS 14 or newer.
-- **Third-party** installs npm packs. Paste a package name such as `@acme/cool-nodes` or `cool-nodes@1.2.3` and click **Install**. Restart the server to load it.
-- **Software** manages runtimes such as Python and FFmpeg, in groups for languages, media, and AI.
+- **Community nodes** installs npm packs from other authors. Paste a package name such as `@acme/cool-nodes` or `cool-nodes@1.2.3` and click **Install**. Restart the server to load it.
 
-Press `/` to focus the search box. It filters by name and description. The status filter next to it shows all packages, the installed ones, or the ones not installed. On the Included list, the options are On and Off. Installed includes packages that have an update. The search and the filter stay set when you open another list.
+Press `/` to focus the search box. It filters by name and description. The status filter next to it shows all packages, the installed ones, or the ones not installed. On the Built-in nodes list, the options are On and Off. Installed includes packages that have an update. The search and the filter stay set when you open another list.
 
 Installing and removing run only in the desktop app. In the web UI, the lists are status-only.
 
