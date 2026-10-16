@@ -71,7 +71,7 @@ describe("offline 3D export", () => {
     visual.transform3d.position.y = -0.8;
     visual.model = gameModel3D.parse({ assetId: "character", castShadow: true, receiveShadow: true });
     visual.animator3d = gameAnimator3D.parse({ clips: { idle: "clip:0", run: "clip:1", jump: "clip:2" }, initialClip: "idle" });
-    visual.behaviors.push(gameNonSpatialBehavior.parse({ kind: "script", maxTickMs: 50, source: `(input) => {
+    visual.behaviors.push(gameNonSpatialBehavior.parse({ kind: "script", maxTickMs: 20, source: `(input) => {
       const clip = input.justPressed.includes("jump") ? "jump" : Math.abs(input.axes.moveX || 0) + Math.abs(input.axes.moveZ || 0) > 0 ? "run" : "idle";
       const customPresses = (input.state && input.state.customPresses || 0) + Number(input.justPressed.includes("e"));
       return { state: { clip, customPresses }, commands: [{ kind: "playAnimation", clip }, ...(input.tick === 0 ? [{ kind: "save", slot: "replay", data: { written: true } }, { kind: "load", slot: "replay" }] : [])] };

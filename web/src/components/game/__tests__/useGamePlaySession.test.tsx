@@ -499,7 +499,7 @@ it("delivers edited scene audio settings to the retained audio player", async ()
 
 function hotReloadDocument(source: string): GameDocument {
   return gameDocument.parse({ ...document, scenes: document.scenes.map((scene) => ({ ...scene, entities: [
-    ...scene.entities, { id: "reload-logger", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source, maxTickMs: 50 }] }
+    ...scene.entities, { id: "reload-logger", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", source, maxTickMs: 20 }] }
   ] })) });
 }
 

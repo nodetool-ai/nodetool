@@ -24,7 +24,7 @@ const caller = `(input) => ({ state: null, commands:
 
 function eventsGame(callerSource = caller): GameDocument {
   const base = createTopDownRoomGame("f".repeat(32));
-  const script = (source: string) => ({ kind: "script", source, maxCommands: 8, maxTickMs: 50 });
+  const script = (source: string) => ({ kind: "script", source, maxCommands: 8, maxTickMs: 20 });
   return gameDocument.parse({ ...base, schemaVersion: 4, engineVersion: "3", scenes: base.scenes.map((scene) => ({ ...scene, entities: [
     ...scene.entities,
     { id: "caller", transform2d: { x: -5, y: 2 }, behaviors: [script(callerSource)] },
@@ -138,7 +138,7 @@ describe("typed script events", () => {
     const runner = await prepareGameScripts(eventsGame());
     const key = scriptSourceKey("room", "a", 0);
     const call: GameScriptCall = { sourceKey: key, stateKey: key, entityId: "a", source: "a", state: null, x: 0, y: 0, velocityX: 0, velocityY: 0,
-      touching: { down: false, up: false, left: false, right: false }, maxCommands: 8, maxTickMs: 50, lifecycle: { events: [1] } };
+      touching: { down: false, up: false, left: false, right: false }, maxCommands: 8, maxTickMs: 20, lifecycle: { events: [1] } };
     try {
       expect([...runner.eventSources ?? []]).toEqual([scriptSourceKey("room", "a", 0), scriptSourceKey("room", "b", 0)]);
       const events = [{ kind: "trigger", event: "skip", entityId: "x" }, { kind: "trigger", event: "hit", entityId: "x", payload: [7] }];
@@ -154,11 +154,11 @@ describe("typed script events", () => {
     })`;
     const base = createTopDownRoomGame("f".repeat(32));
     const game = gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "player"
-      ? { ...entity, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 50 }] } : entity) })) });
+      ? { ...entity, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 20 }] } : entity) })) });
     const mutating = await prepareGameScripts(game);
     const key = scriptSourceKey("room", "player", 0);
     const call: GameScriptCall = { sourceKey: key, stateKey: key, entityId: "player", source: "player", state: null, x: 0, y: 0, velocityX: 0, velocityY: 0,
-      touching: { down: false, up: false, left: false, right: false }, maxCommands: 8, maxTickMs: 50, lifecycle: { events: [0, 2] } };
+      touching: { down: false, up: false, left: false, right: false }, maxCommands: 8, maxTickMs: 20, lifecycle: { events: [0, 2] } };
     try {
       const events = [{ kind: "trigger", event: "first", entityId: "x", payload: 1 }, { kind: "win", score: 1 }, { kind: "trigger", event: "second", entityId: "x", payload: 2 }];
       const result = mutating.run([call], { tick: 4, pressed: [], justPressed: [], events, world: [] }, 1);
@@ -174,11 +174,11 @@ describe("3D typed script events", () => {
     const document = blockout();
     const player = document.scenes[0].entities.find((entity) => entity.id === "player");
     if (!player) throw new Error("Player fixture is missing");
-    player.behaviors = [{ kind: "script", maxTickMs: 50, maxCommands: 8, source: `(input) => ({ state: null, commands: input.tick % 10 === 1
+    player.behaviors = [{ kind: "script", maxTickMs: 20, maxCommands: 8, source: `(input) => ({ state: null, commands: input.tick % 10 === 1
       ? [{ kind: "emit", event: "alarm", payload: { level: input.tick }, target: { tag: "guard" } }] : [] })` }];
     document.scenes[0].entities.push(
-      gameEntity3D.parse({ id: "guard", tags: ["guard"], transform3d: { position: { x: 4, y: 1, z: 0 } }, behaviors: [{ kind: "script", maxTickMs: 50, maxCommands: 8, source: listener }] }),
-      gameEntity3D.parse({ id: "civilian", transform3d: { position: { x: -4, y: 1, z: 0 } }, behaviors: [{ kind: "script", maxTickMs: 50, maxCommands: 8, source: listener }] })
+      gameEntity3D.parse({ id: "guard", tags: ["guard"], transform3d: { position: { x: 4, y: 1, z: 0 } }, behaviors: [{ kind: "script", maxTickMs: 20, maxCommands: 8, source: listener }] }),
+      gameEntity3D.parse({ id: "civilian", transform3d: { position: { x: -4, y: 1, z: 0 } }, behaviors: [{ kind: "script", maxTickMs: 20, maxCommands: 8, source: listener }] })
     );
     return document;
   }

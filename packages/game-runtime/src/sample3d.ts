@@ -20,7 +20,7 @@ export function createNative3DGame(id: string): GameDocument3D {
           body3d: { type: "kinematic" }, collider3d: { kind: "capsule", radius: 0.3, halfHeight: 0.5 }, character3d: {},
           interactionActor: { collects: true, activatesTriggers: true }, behaviors: [
             { kind: "winWhenCollected", count: 2 },
-            { kind: "script", maxTickMs: 50, source: `(input) => {
+            { kind: "script", maxTickMs: 20, source: `(input) => {
               const state = input.state || { checkpoint: { x: 0, y: 1, z: 3 } };
               if (input.events.some(event => event.kind === "trigger" && event.event === "checkpoint")) {
                 state.checkpoint = { x: 0, y: 1, z: -7 };
@@ -39,7 +39,7 @@ export function createNative3DGame(id: string): GameDocument3D {
           primitive: { kind: "box", dimensions: { x: 2.2, y: 0.3, z: 4 }, material: { color: "#8d77ad" } } },
         { id: "moving-platform", transform3d: { position: { x: -3, y: 0.7, z: -6 } }, body3d: { type: "kinematic" },
           collider3d: { kind: "box", halfExtents: { x: 1, y: 0.15, z: 1 } }, primitive: { kind: "box", dimensions: { x: 2, y: 0.3, z: 2 }, material: { color: "#efbd58" } },
-          behaviors: [{ kind: "script", maxTickMs: 50, source: `(input) => ({ state: null, commands: [{ kind: "setKinematicPose", position: { x: -3 + Math.sin((input.tick + 1) / 60) * 1.5, y: 0.7, z: -6 } }] })` }] },
+          behaviors: [{ kind: "script", maxTickMs: 20, source: `(input) => ({ state: null, commands: [{ kind: "setKinematicPose", position: { x: -3 + Math.sin((input.tick + 1) / 60) * 1.5, y: 0.7, z: -6 } }] })` }] },
         { id: "crate", transform3d: { position: { x: 1.5, y: 0.5, z: 0 } }, body3d: { type: "dynamic", mass: 8, ccd: true },
           collider3d: { kind: "box", halfExtents: { x: 0.4, y: 0.4, z: 0.4 } }, primitive: { kind: "box", dimensions: { x: 0.8, y: 0.8, z: 0.8 }, material: { color: "#b77b46" } } },
         { id: "pickup", transform3d: { position: { x: 0, y: 0.8, z: -2 } }, body3d: { type: "static" }, collider3d: { kind: "sphere", radius: 0.55, sensor: true },
@@ -47,7 +47,7 @@ export function createNative3DGame(id: string): GameDocument3D {
         { id: "door-switch", transform3d: { position: { x: 0, y: 0.8, z: -4 } }, body3d: { type: "static" }, collider3d: { kind: "box", halfExtents: { x: 0.8, y: 1, z: 0.4 }, sensor: true },
           primitive: { kind: "box", dimensions: { x: 1.6, y: 0.1, z: 0.8 }, material: { color: "#59aaff" } }, behaviors: [{ kind: "trigger", event: "open-door" }] },
         { id: "door", transform3d: { position: { x: 0, y: 1.3, z: -5.5 } }, body3d: { type: "kinematic" }, collider3d: { kind: "box", halfExtents: { x: 1.5, y: 1.3, z: 0.2 } },
-          primitive: { kind: "box", dimensions: { x: 3, y: 2.6, z: 0.4 }, material: { color: "#477acd" } }, behaviors: [{ kind: "script", maxTickMs: 50, source: `(input) => {
+          primitive: { kind: "box", dimensions: { x: 3, y: 2.6, z: 0.4 }, material: { color: "#477acd" } }, behaviors: [{ kind: "script", maxTickMs: 20, source: `(input) => {
             const state = input.state || { open: false };
             if (input.events.some(event => event.kind === "trigger" && event.event === "open-door")) state.open = true;
             return { state, commands: state.open ? [{ kind: "setKinematicPose", position: { x: 0, y: 4.5, z: -5.5 } }] : [] };

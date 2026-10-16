@@ -396,7 +396,7 @@ it("delivers edited scenes to the retained 3D audio player", async () => {
 function hotReloadFixture3D(source: string): GameDocument3D {
   const base = fixture();
   return gameDocument3D.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) =>
-    entity.id === "floor" ? { ...entity, behaviors: [{ kind: "script", source, maxTickMs: 50 }] } : entity) })) });
+    entity.id === "floor" ? { ...entity, behaviors: [{ kind: "script", source, maxTickMs: 20 }] } : entity) })) });
 }
 
 it("hot reloads 3D source without recreating play, logs invalid edits, and restarts from the latest draft", async () => {

@@ -212,7 +212,7 @@
               "kind": "script",
               "source": "(input) => {\n  const state = input.state || { checkpoint: { x: 0, y: 1, z: 3 }, saved: false, finished: false };\n  for (const event of input.events) {\n    if (event.kind === 'win') state.finished = true;\n    if (event.kind === 'trigger' && event.event === 'checkpoint') {\n      state.saved = true;\n      state.checkpoint = { x: 0, y: 1, z: -7 };\n    }\n  }\n  const commands = [];\n  if (input.entity.position.y < -8 || input.justPressed.includes('respawn')) {\n    commands.push({ kind: 'teleport', position: state.checkpoint });\n  }\n  commands.push({ kind: 'hud', id: 'title', text: 'RELAY YARD', x: 24, y: 32, size: 26, color: '#eef5ff' });\n  commands.push({ kind: 'hud', id: 'score', text: state.finished ? 'Course complete' : 'Collect the two amber cells', x: 24, y: 61, size: 17, color: '#ffd273' });\n  commands.push({ kind: 'hud', id: 'win', text: state.finished ? 'Explore the test lanes, or Reset to run again.' : 'Follow the amber line through the blue gate.', x: 24, y: 86, size: 14, color: '#c1d4ea' });\n  commands.push({ kind: 'hud', id: 'checkpoint-status', text: state.saved ? 'CHECKPOINT SAVED' : 'CHECKPOINT AHEAD', x: 936, y: 32, size: 14, align: 'right', color: '#67e7c5' });\n  commands.push({ kind: 'hud', id: 'stations', text: 'LEFT: STEPS + LIFT     RIGHT: RAMP + CRATE', x: 480, y: 475, size: 14, align: 'center', color: '#c1d4ea' });\n  commands.push({ kind: 'hud', id: 'help', text: 'WASD / arrows: move     Space: jump     R: respawn     Drag: camera', x: 480, y: 510, size: 15, align: 'center', color: '#eef5ff' });\n  return { state, commands };\n}",
               "maxCommands": 16,
-              "maxTickMs": 50
+              "maxTickMs": 20
             }
           ]
         },
@@ -677,7 +677,7 @@
               "kind": "script",
               "source": "(input) => ({ state: null, commands: [{ kind: \"setKinematicPose\", position: { x: -3 + Math.sin((input.tick + 1) / 60) * 1.5, y: 0.7, z: -6 } }] })",
               "maxCommands": 16,
-              "maxTickMs": 50
+              "maxTickMs": 20
             }
           ]
         },
@@ -1024,7 +1024,7 @@
               "kind": "script",
               "source": "(input) => {\n            const state = input.state || { open: false };\n            if (input.events.some(event => event.kind === \"trigger\" && event.event === \"open-door\")) state.open = true;\n            return { state, commands: state.open ? [{ kind: \"setKinematicPose\", position: { x: 0, y: 4.5, z: -5.5 } }] : [] };\n          }",
               "maxCommands": 16,
-              "maxTickMs": 50
+              "maxTickMs": 20
             }
           ]
         },

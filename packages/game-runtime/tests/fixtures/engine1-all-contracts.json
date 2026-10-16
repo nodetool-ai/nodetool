@@ -140,7 +140,7 @@
                 "kind": "script",
                 "source": "(input)=>({state:{age:(input.state?.age||0)+1,random:input.random()},commands:input.tick===0?[\n      {kind:\"setVelocity\",x:0.5,y:0},{kind:\"setPosition\",x:0,y:0},\n      {kind:\"setVisual\",opacity:0.7,tint:\"#ff0000\",rotation:0.2,scaleX:1.2,scaleY:1.1,flipX:true},\n      {kind:\"playAnimation\",clip:\"run\"},{kind:\"hud\",id:\"custom\",text:\"hello\",x:3,y:4},\n      {kind:\"emit\",event:\"make\"},{kind:\"spawn\",prefabId:\"particle\",x:2,y:0,velocityX:0.3}]:input.tick===1?[\n      {kind:\"hud\",id:\"custom\",text:\"\",x:0,y:0},{kind:\"despawn\",entityId:\"particle#1\"},{kind:\"sceneTransition\",sceneId:\"next\"}]:[]})",
                 "maxCommands": 16,
-                "maxTickMs": 50
+                "maxTickMs": 20
               }
             ]
           },
