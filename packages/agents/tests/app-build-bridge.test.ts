@@ -193,8 +193,16 @@ describe("widget event authoring", () => {
         ?.fields.find((field) => field.name === "events")?.schema
     ).toMatchObject({
       type: "array",
-      items: { required: ["trigger", "kind"] }
+      items: { required: ["trigger"] }
     });
+  });
+
+  it.each([{ trigger: "click" }, { trigger: "click", kind: "" }])("preserves legacy default-run events: %j", async (event) => {
+    const bridge = createAppToolBridge();
+    await toolsOf(bridge).ui_app_add_component.execute({
+      application_id: APP, type: "Button", props: { events: [event] }
+    });
+    expect(bridge.document().content[0]?.props.events).toEqual([event]);
   });
 
   it.each([

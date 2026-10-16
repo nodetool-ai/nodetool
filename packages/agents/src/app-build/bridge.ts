@@ -246,6 +246,7 @@ function tool<TResult>(
 const appEventSchema = z.strictObject({
   trigger: z.enum(["click", "change"]),
   kind: z.enum([
+    "",
     "run",
     "cancel",
     "setVariable",
@@ -254,7 +255,7 @@ const appEventSchema = z.strictObject({
     "toggleState",
     "resourceCommand",
     "openResource"
-  ]),
+  ]).optional(),
   key: z.string().optional(),
   value: z.string().optional(),
   operationId: z.string().optional(),
