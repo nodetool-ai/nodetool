@@ -1,11 +1,5 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { MOTION, Tooltip, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../ui_primitives";
-import BackspaceIcon from "@mui/icons-material/Backspace";
-import SearchIcon from "@mui/icons-material/Search";
+import { SearchInput as SearchField } from "../ui_primitives";
 import {
   registerComboCallback,
   registerTypeToFocus
@@ -14,101 +8,6 @@ import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { isMac } from "../../utils/platform";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import type { NodeMetadata } from "../../stores/ApiTypes";
-
-const styles = (theme: Theme) =>
-  css({
-    "&": {
-      display: "flex",
-      position: "relative",
-      flexDirection: "row",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.micro),
-      margin: "0",
-      minWidth: "8em",
-      padding: 0,
-      overflow: "hidden"
-    },
-    ".search-icon": {
-      position: "absolute",
-      left: "0.4em",
-      top: "50%",
-      transform: "translateY(-50%)",
-      color: theme.vars.palette.text.disabled,
-      pointerEvents: "none",
-      zIndex: Z_INDEX.raised
-    },
-    ".search-box": {
-      position: "relative"
-    },
-    ".search-input": {
-      width: "100%",
-      flexShrink: "0"
-    },
-    "input[type='text']": {
-      outline: "none",
-      padding: "0 2.5em 0 2.8em",
-      margin: "0",
-      height: "36px",
-      WebkitAppearance: "none",
-      MozAppearance: "none",
-      appearance: "none",
-      color: theme.vars.palette.text.primary,
-      backgroundColor: theme.vars.palette.action.hover,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.lg,
-      transition: MOTION.all,
-      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-      fontSize: theme.fontSizeNormal,
-      "::placeholder": {
-        color: theme.vars.palette.text.disabled
-      }
-    },
-    "input[type='text']:hover": {
-      backgroundColor: theme.vars.palette.action.selected,
-      borderColor: theme.vars.palette.text.disabled
-    },
-    "input[type='text']:focus": {
-      backgroundColor: theme.vars.palette.action.selected,
-      borderColor: "var(--palette-primary-main)",
-      outline: "none",
-      boxShadow: `0 0 0 3px rgba(${theme.vars.palette.primary.mainChannel} / 0.15), inset 0 1px 2px rgba(0,0,0,0.05)`
-    },
-    // Keyboard focus gets a solid ring on top of the soft :focus glow; inset
-    // offset avoids clipping by the container's overflow: hidden.
-    "input[type='text']:focus-visible": {
-      outline: "2px solid var(--palette-primary-main)",
-      outlineOffset: "-2px"
-    },
-    ".clear-search-btn": {
-      position: "absolute",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: "2em",
-      height: "100%",
-      top: 0,
-      right: "0.5em",
-      border: 0,
-      backgroundColor: "transparent",
-      color: theme.vars.palette.text.disabled,
-      transition: `color ${MOTION.normal}`,
-      padding: 0,
-      "& svg": {
-        fontSize: "var(--fontSizeBig)"
-      },
-      "&:hover": {
-        backgroundColor: "transparent"
-      },
-      "&:not(.disabled):hover svg": {
-        color: "var(--palette-primary-main)",
-        backgroundColor: "transparent"
-      },
-      "&.disabled": {
-        color: theme.vars.palette.action.disabled
-      }
-    }
-  });
 
 interface SearchInputProps {
   onSearchChange: (value: string) => void;
@@ -141,14 +40,12 @@ const SearchInput: React.FC<SearchInputProps> = ({
   onPressSpaceWhenEmpty,
   focusSearchInput = true,
   focusOnTyping = false,
-  placeholder = "Search...",
+  placeholder = "Search",
   maxWidth = "unset",
   debounceTime = 50,
   searchTerm: externalSearchTerm = "",
   width = 150
 }) => {
-  const theme = useTheme();
-  const searchStyles = useMemo(() => styles(theme), [theme]);
   const inputRef = useRef<HTMLInputElement>(null);
   const autoFocusEnabled = useAutoFocusEnabled();
   const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
@@ -201,8 +98,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   }, [debouncedSetSearchTerm, onSearchChange]);
 
   const handleInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = event.target.value;
+    (newValue: string) => {
       // Update local state immediately for responsiveness; debounce the search.
       setLocalSearchTerm(newValue);
       debouncedSetSearchTerm(newValue);
@@ -334,57 +230,44 @@ const SearchInput: React.FC<SearchInputProps> = ({
     setLocalSearchTerm(externalSearchTerm);
   }, [externalSearchTerm]);
 
+  const clearHint = isMac() ? (
+    <span>
+      <kbd>⌘</kbd> + <kbd>⌫</kbd>
+    </span>
+  ) : (
+    <span>
+      <kbd>CTRL</kbd> + <kbd>⌫</kbd>
+    </span>
+  );
+
   return (
     <div
       className="search-input-container"
-      css={searchStyles}
       style={{ maxWidth: maxWidth, width: typeof width === 'number' ? `${width}px` : width }}
     >
-      <SearchIcon className="search-icon" />
-      <input
-        id="search-input"
-        className="search-input"
+      <SearchField
         ref={inputRef}
-        type="text"
-        role="searchbox"
-        aria-label={placeholder}
-        placeholder={placeholder}
         value={localSearchTerm}
         onChange={handleInputChange}
+        onClear={clearSearch}
         onKeyDown={handleInputKeyDown}
-        autoCorrect="off"
-        autoCapitalize="none"
-        spellCheck="false"
-        autoComplete="off"
-        data-testid="search-input-field"
+        escapeClears={false}
+        placeholder={placeholder}
+        size="medium"
+        fullWidth
+        clearTooltip={clearHint}
+        tooltipPlacement="bottom"
+        clearTestId="search-clear-btn"
+        inputProps={{
+          id: "search-input",
+          role: "searchbox",
+          autoCorrect: "off",
+          autoCapitalize: "none",
+          spellCheck: false,
+          autoComplete: "off",
+          "data-testid": "search-input-field"
+        }}
       />
-
-      <Tooltip
-        placement="bottom"
-        title={
-          isMac() ? (
-            <span>
-              <kbd>⌘</kbd> + <kbd>⌫</kbd>
-            </span>
-          ) : (
-            <span>
-              <kbd>CTRL</kbd> + <kbd>⌫</kbd>
-            </span>
-          )
-        }
-      >
-        <button
-          type="button"
-          className={`clear-search-btn ${localSearchTerm.trim() === "" ? "disabled" : ""
-            }`}
-          tabIndex={-1}
-          aria-label="Clear search"
-          onClick={clearSearch}
-          data-testid="search-clear-btn"
-        >
-          <BackspaceIcon />
-        </button>
-      </Tooltip>
     </div>
   );
 };

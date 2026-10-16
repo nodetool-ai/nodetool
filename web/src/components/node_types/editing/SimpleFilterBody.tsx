@@ -14,16 +14,14 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import ImageIcon from "@mui/icons-material/Image";
 
 import { SPACING,
-  CheckerDropzone,
   FlexColumn,
   FlexRow,
   ToggleGroup,
   ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageRefPreview from "../../node/ImageRefPreview";
+import ImagePreview from "./ImagePreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
@@ -122,25 +120,20 @@ const styles = (theme: Theme) =>
     }
   });
 
-const ImagePreview: React.FC<{
+const TabPreview: React.FC<{
   value: unknown;
   placeholder: string;
   tab: SimpleFilterTab;
 }> = memo(({ value, placeholder, tab }) => (
   <div className={`image-preview preview-${tab}`} data-preview-tab={tab}>
-    <ImageRefPreview
+    <ImagePreview
       value={value}
-      placeholder={
-        <CheckerDropzone
-          className="preview-empty"
-          message={placeholder}
-          icon={<ImageIcon />}
-        />
-      }
+      message={placeholder}
+      placeholderClassName="preview-empty"
     />
   </div>
 ));
-ImagePreview.displayName = "SimpleFilterImagePreview";
+TabPreview.displayName = "SimpleFilterImagePreview";
 
 interface SimpleFilterBodyProps {
   id: string;
@@ -196,13 +189,13 @@ const SimpleFilterBodyInner: React.FC<SimpleFilterBodyProps> = ({
       <HandleColumn id={id} properties={imageProperty} />
       <div className={`preview-area preview-${tab}`} data-preview-tab={tab}>
         {tab === "before" ? (
-          <ImagePreview
+          <TabPreview
             tab="before"
             value={beforeValue}
             placeholder="Connect an image"
           />
         ) : (
-          <ImagePreview
+          <TabPreview
             tab="after"
             value={afterValue}
             placeholder="Run the node to see the result"

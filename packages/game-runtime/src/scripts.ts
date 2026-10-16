@@ -5,7 +5,7 @@ import { gameBehavior, gameNonSpatialScriptCommand, gameUiScriptCommand, resolve
 import { GameScriptLogCollector, withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
 import { GameScriptSaveCollector, type GameSaveRequest } from "./script-saves.js";
 import { defaultScriptCallClock, startScriptCallTimer, type ScriptCallClock } from "./script-clock.js";
-import { commitScriptHooks, planScriptHooks, scriptHookIssue, SCRIPT_LIFECYCLE_DISPATCH, type GameScriptHookPlan, type GameScriptLifecycle } from "./script-lifecycle.js";
+import { commitScriptHooks, planScriptHooks, scriptHookIssue, SCRIPT_LIFECYCLE_DISPATCH, SCRIPT_SYNCHRONOUS_RESULT, type GameScriptHookPlan, type GameScriptLifecycle } from "./script-lifecycle.js";
 import { canPersistGameScript } from "./script-persistence.js";
 import { gameScriptValue, scriptHandleResult } from "./script-transport.js";
 import { ScriptWorldSnapshot, type ScriptWorldEntity } from "./script-world.js";
@@ -136,6 +136,22 @@ export function hasGameScripts(document: GameDocument): boolean {
 function evaluate(context: QuickJSContext, code: string): unknown {
   const value = scriptHandleResult(context, context.evalCode(code, "game-script.js", { type: "global" }));
   try { return context.dump(value); } finally { value.dispose(); }
+}
+
+function evaluateSourceKind(context: QuickJSContext, source: string): unknown {
+  return evaluate(context, `((tag) => {
+    globalThis.__gameScript = (${source});
+    const check = (value, name) => {
+      if (typeof value === "function" && tag(value) !== "[object Function]") {
+        throw new Error(name + " must be a synchronous function, not async or a generator");
+      }
+    };
+    check(__gameScript, "Game script");
+    if (__gameScript !== null && typeof __gameScript === "object") {
+      for (const key of Object.keys(__gameScript)) { check(__gameScript[key], key); }
+    }
+    return typeof __gameScript;
+  })(Function.prototype.call.bind(Object.prototype.toString))`);
 }
 
 function initializeContext(context: QuickJSContext, seed: number, helpers: string): QuickJSHandle {
@@ -368,16 +384,16 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         if (typeof json !== "string" || json.length > 4096) { throw new Error("world query arguments exceed 4096 characters or are not JSON"); }
         return json;
       })(JSON.stringify),
-      ((defineProperty${hooks ? ", dispatch" : ""}) => (data, getWorld, rngState) => {
+      ((defineProperty, synchronousResult${hooks ? ", dispatch" : ""}) => (data, getWorld, rngState) => {
         ${persistent ? "" : "data = JSON.parse(data);"}
         const payload = ${payloadExpression};
         ${persistent ? `defineProperty(payload, "world", {
           enumerable: true, configurable: true, get: getWorld,
           set(value) { defineProperty(this, "world", { value, writable: true, enumerable: true, configurable: true }); }
         });` : ""}
-        const value = ${hooks ? "dispatch(__gameScript, payload, data.call.steps)" : "__gameScript(payload)"};
+        const value = synchronousResult(${hooks ? "dispatch(__gameScript, payload, data.call.steps)" : "__gameScript(payload)"}, "Game script");
         return JSON.stringify({ value, rngState: ${persistent ? "rngState" : "__gameRandom.state"} });
-      })(Object.defineProperty${hooks ? `, ${SCRIPT_LIFECYCLE_DISPATCH}` : ""})]`);
+      })(Object.defineProperty, ${SCRIPT_SYNCHRONOUS_RESULT}${hooks ? `, ${SCRIPT_LIFECYCLE_DISPATCH}` : ""})]`);
       try {
         defineData = context.getProp(helpers, 0);
         queryJson = context.getProp(helpers, 1);
@@ -391,7 +407,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   /** Evaluates user source in the shell, which this takes ownership of. */
   const loadSource = (shell: RealmShell, sourceKey: string, source: string, hooks: boolean): ScriptRealm => {
     try {
-      if (evaluate(shell.context, `globalThis.__gameScript = (${source}); typeof __gameScript`) !== (hooks ? "object" : "function")) {
+      if (evaluateSourceKind(shell.context, source) !== (hooks ? "object" : "function")) {
         throw new Error(`Game script ${sourceKey} must be a ${hooks ? "lifecycle object" : "function expression"}`);
       }
       return { ...shell, sourceKey };
@@ -403,7 +419,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   const inspectSource = (sourceKey: string, source: string, persistent: boolean): { readonly realm: ScriptRealm; readonly hooks: boolean; readonly onEvent: boolean } => {
     const shell = createRealmShell(0, persistent);
     try {
-      const kind = evaluate(shell.context, `globalThis.__gameScript = (${source}); typeof __gameScript`);
+      const kind = evaluateSourceKind(shell.context, source);
       let onEvent = false;
       if (kind !== "function") {
         const shape = kind === "object" && !persistent ? evaluate(shell.context, `(() => { const hooks = __gameScript;

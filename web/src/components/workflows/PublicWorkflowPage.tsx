@@ -9,13 +9,11 @@
 import { useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  Caption,
   EditorButton,
   EmptyState,
   FlexColumn,
-  FlexRow,
   LoadingSpinner,
-  Text,
+  PageHeader,
   SPACING
 } from "../ui_primitives";
 import WorkflowGraphPreview from "../version/WorkflowGraphPreview";
@@ -99,23 +97,22 @@ const PublicWorkflowPage = () => {
       gap={SPACING.md}
       sx={{ height: "100vh", p: SPACING.lg, boxSizing: "border-box" }}
     >
-      <FlexRow gap={SPACING.md} align="center" justify="space-between">
-        <FlexColumn gap={SPACING.xs} sx={{ minWidth: 0 }}>
-          <Text size="big" truncate>
-            {workflow.name}
-          </Text>
-          {workflow.description && (
-            <Caption>{workflow.description}</Caption>
-          )}
-        </FlexColumn>
-        <EditorButton
-          variant="contained"
-          disabled={duplicate.isPending || authState === "loading"}
-          onClick={() => void handleDuplicate()}
-        >
-          {signedIn ? "Duplicate to my workflows" : "Sign in to duplicate"}
-        </EditorButton>
-      </FlexRow>
+      <PageHeader
+        variant="plain"
+        title={workflow.name}
+        subtitle={workflow.description || undefined}
+        truncateTitle
+        sx={{ justifyContent: "space-between", gap: SPACING.md }}
+        actions={
+          <EditorButton
+            variant="contained"
+            disabled={duplicate.isPending || authState === "loading"}
+            onClick={() => void handleDuplicate()}
+          >
+            {signedIn ? "Duplicate to my workflows" : "Sign in to duplicate"}
+          </EditorButton>
+        }
+      />
       <FlexColumn sx={{ flex: 1, minHeight: 0 }}>
         <WorkflowGraphPreview
           graph={workflow.graph}

@@ -2,14 +2,14 @@
 import { css } from "@emotion/react";
 import React, { memo } from "react";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
-import ManagerPageLayout from "../panels/ManagerPageLayout";
 import AssetGrid from "./AssetGrid";
 import StorageAnalytics from "./StorageAnalytics";
 import {
   Box,
   EmptyState,
   FlexColumn,
-  LoadingSpinner
+  LoadingSpinner,
+  PageLayout
 } from "../ui_primitives";
 import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -52,7 +52,7 @@ const AssetExplorer: React.FC = memo(() => {
     useAssets();
 
   return (
-    <ManagerPageLayout
+    <PageLayout
       icon={<PermMediaOutlinedIcon sx={{ fontSize: 22 }} />}
       title="Assets"
       subtitle="Browse, organize, and preview your images, audio, video, and other files."
@@ -88,7 +88,7 @@ const AssetExplorer: React.FC = memo(() => {
           </ContextMenuProvider>
         )}
       </Box>
-    </ManagerPageLayout>
+    </PageLayout>
   );
 });
 

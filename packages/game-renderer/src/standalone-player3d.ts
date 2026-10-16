@@ -1,25 +1,29 @@
 import { createGameSession3D, decodePreparedGameCollider3D, GamePlayerSaves } from "@nodetool-ai/game-runtime";
 import { z } from "zod";
-import { gameDocument3D, resolveGameInputBindings, type GameInputFrame3D, type GameSnapshot3D, type GameInspection3D } from "@nodetool-ai/protocol";
+import { gameDocument3D, gameInputFrame3D, resolveGameInputBindings, type GameDocument3D, type GameInputFrame3D, type GameSnapshot3D, type GameInspection3D } from "@nodetool-ai/protocol";
 import { createGameRenderer3D } from "./browser3d.js";
 import { GameInput3D } from "./input3d.js";
 import { browserGamepads } from "./input-bindings.js";
-import { mountTouchControls, touchLayout } from "./touch-controls.js";
+import { attachGameMouseInput } from "./mouse-input.js";
+import { mountTouchControls, touchLayout, type GameTouchControls } from "./touch-controls.js";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "./audio.js";
 import { FixedTickClock } from "./fixed-tick-host.js";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
 import { GameParticles3D } from "./particles/particles3d.js";
 import { createIndexedDbGameSaveStorage } from "./save-storage.js";
-import { attachGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
+import { attachGameUiPointer, claimGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
 import { gameUiViewport3D } from "./ui/hud3d.js";
+
+import { VerifiedStandaloneAssets } from "./standalone-assets.js";
+import type { GamePlayerRenderedFrame } from "./standalone-frame.js";
 
 declare global {
   interface Window {
     nativeGame3DPlayer: {
       readonly pause: () => void;
-      readonly step: (input: GameInputFrame3D) => Promise<void>;
-      readonly reset: () => Promise<void>;
-      readonly advance: (inputs: readonly GameInputFrame3D[]) => Promise<void>;
+      readonly step: (input: GameInputFrame3D) => Promise<GamePlayerRenderedFrame>;
+      readonly reset: () => Promise<GamePlayerRenderedFrame>;
+      readonly advance: (inputs: readonly GameInputFrame3D[]) => Promise<GamePlayerRenderedFrame>;
       readonly snapshot: () => GameSnapshot3D;
       readonly inspect: () => GameInspection3D;
       /** Progress and settings saves of this game in IndexedDB. */
@@ -43,22 +47,17 @@ async function start(): Promise<void> {
   const manifest = z.object({ assets: z.record(z.string(), z.string().regex(/^\.\/assets\/[0-9a-f]{64}\.[a-z0-9]+$/)) }).parse(await manifestResponse.json());
   const canvas = document.getElementById("game");
   if (!(canvas instanceof HTMLCanvasElement)) { throw new Error("Game viewport is missing"); }
-  const localAssets = new Map<string, Uint8Array>();
-  for (const [logicalId, binding] of Object.entries(game.assets)) {
-    const path = manifest.assets[logicalId];
-    if (!path || !path.startsWith(`./assets/${binding.digest}.`)) { throw new Error(`Export asset ${logicalId} has no verified local path`); }
-    const asset = await fetch(path, { signal: controller.signal });
-    if (!asset.ok) { throw new Error(`Export asset ${logicalId} could not load`); }
-    const bytes = new Uint8Array(await asset.arrayBuffer());
-    const hash = await crypto.subtle.digest("SHA-256", bytes);
-    const digest = Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("");
-    if (digest !== binding.digest) { throw new Error(`Export asset ${logicalId} failed its digest check`); }
-    localAssets.set(logicalId, bytes);
+  const verifiedAssets = new VerifiedStandaloneAssets(game.assets, manifest.assets);
+  try { await startPlayer(game, canvas, controller, verifiedAssets); }
+  catch (error: unknown) { verifiedAssets.dispose(); throw error; }
+}
 
-  }
+async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, controller: AbortController,
+  verifiedAssets: VerifiedStandaloneAssets): Promise<void> {
+  for (const logicalId of Object.keys(game.assets)) { await verifiedAssets.verify(logicalId); }
   const open = () => createGameSession3D(game, 1, undefined, { signal: controller.signal,
     resolveCollider: async (binding) => {
-      const bytes = localAssets.get(Object.entries(game.assets).find(([, entry]) => entry.assetId === binding.assetId)?.[0] ?? "");
+      const bytes = await verifiedAssets.bytes(Object.entries(game.assets).find(([, entry]) => entry.assetId === binding.assetId)?.[0] ?? "");
       if (!bytes) { throw new Error("Export collider is missing"); }
       return decodePreparedGameCollider3D(bytes, binding);
     } });
@@ -67,13 +66,13 @@ async function start(): Promise<void> {
   let contextPaused = false;
   const renderer = await createGameRenderer3D({ canvas, signal: controller.signal,
     resolveImage: async (logicalId) => {
-      const bytes = localAssets.get(logicalId);
+      const bytes = await verifiedAssets.bytes(logicalId);
       const binding = Object.hasOwn(game.assets, logicalId) ? game.assets[logicalId] : undefined;
       return bytes && binding?.mediaKind === "image" ? { bytes, binding } : null;
     },
-    resolveFont: async (logicalId) => { const bytes = localAssets.get(logicalId); return bytes ? { bytes, digest: game.assets[logicalId]?.digest } : null; },
+    resolveFont: async (logicalId) => { const bytes = await verifiedAssets.bytes(logicalId); return bytes ? { bytes, digest: game.assets[logicalId]?.digest } : null; },
     resolveModel: async (logicalId) => {
-      const bytes = localAssets.get(logicalId);
+      const bytes = await verifiedAssets.bytes(logicalId);
       return bytes ? { bytes, digest: game.assets[logicalId]?.digest } : null;
     },
     onContextState: (state) => {
@@ -83,7 +82,7 @@ async function start(): Promise<void> {
   renderer.resize(game.presentation.hudWidth, game.presentation.hudWidth / game.presentation.aspectRatio);
   let frame = session.frame();
   const audio = new GameAudioPlayer({ assets: game.assets, scenes: game.scenes, tickRate: game.tickRate,
-    resolveAsset: async (binding) => manifest.assets[Object.entries(game.assets).find(([, entry]) => entry.assetId === binding.assetId && entry.digest === binding.digest)?.[0] ?? ""] ?? null,
+    resolveAsset: (binding) => verifiedAssets.bindingUrl(binding),
     status, mixer: game.audio?.mixer });
   audio.preload(); audio.sync(session.snapshot());
   const budget = new GameFrameBudgetMonitor(game.performance?.budgets);
@@ -103,17 +102,16 @@ async function start(): Promise<void> {
   // A locked pointer has no position, so HUD hits wait until the mouse is released.
   const hud = new GameUiController(input, browserGameUiMeasure(game.id));
   const hudViewport = gameUiViewport3D(game);
-  const detachHud = attachGameUiPointer(canvas, hud, () => hudViewport, () => document.pointerLockElement !== canvas);
+  const detachHud = attachGameUiPointer(canvas, hud, () => hudViewport, () => !paused && !contextPaused && document.pointerLockElement !== canvas);
   let hudInsets = browserGameUiInsets(canvas, hudViewport);
   window.addEventListener("resize", () => { hudInsets = browserGameUiInsets(canvas, hudViewport); }, { signal: controller.signal });
-  let dragging = false;
-  const release = (): void => { hud.release(); input.release(); dragging = false; };
+  let touchControls: GameTouchControls | undefined;
+  const release = (): void => { touchControls?.release(); hud.release(); input.release(); };
   window.addEventListener("keydown", (event) => {
     input.keyDown(event.code, event.key);
     if (input.handlesKey(game, event.code, event.key)) { event.preventDefault(); }
   }, { signal: controller.signal });
   window.addEventListener("keyup", (event) => { input.keyUp(event.code); }, { signal: controller.signal });
-  const mouseFire = game.inputActions.includes("fire");
   const bindings = resolveGameInputBindings(game);
   const mouseLook = bindings.look.some((binding) => binding.kind === "mouse");
   let unmountTouch: (() => void) | undefined;
@@ -123,42 +121,81 @@ async function start(): Promise<void> {
     const layer = document.createElement("div");
     layer.className = "touch-layer";
     document.body.append(layer);
-    const unmount = mountTouchControls(layer, { layout: touchLayout(bindings), onChange: (state) => input.setTouch(state), onLook: (x, y) => input.touchLook(x, y) });
-    unmountTouch = () => { unmount(); layer.remove(); };
+    const controls = mountTouchControls(layer, {
+      layout: touchLayout(bindings), onChange: (state) => input.setTouch(state), onLook: (x, y) => input.touchLook(x, y),
+      active: () => !paused && !contextPaused && !document.hidden,
+      claimPointer: (event) => document.pointerLockElement !== canvas && claimGameUiPointer(canvas, hud, hudViewport, event),
+      releasePointer: (id) => hud.pointerUp(id)
+    });
+    touchControls = controls;
+    unmountTouch = () => { controls.dispose(); touchControls = undefined; layer.remove(); };
   };
   if (window.matchMedia("(pointer: coarse)").matches) { enableTouch(); }
   window.addEventListener("touchstart", enableTouch, { passive: true, signal: controller.signal });
-  // A touch that reaches the canvas, outside the touch zones or before they appear, fires on tap and turns the camera on drag.
-  canvas.addEventListener("pointerdown", (event) => {
-    // A press on a HUD button stays with the HUD.
-    if (event.defaultPrevented) { return; }
-    dragging = true;
-    canvas.setPointerCapture(event.pointerId);
-    input.mouseDown(event.button);
-    if (event.pointerType !== "touch" && (mouseFire || mouseLook) && document.pointerLockElement !== canvas) {
-      void canvas.requestPointerLock().catch(() => { status(mouseFire ? "Mouse capture unavailable. Hold and drag to aim, or press F to fire." : "Mouse capture unavailable. Drag to turn the camera."); });
-    }
-  }, { signal: controller.signal });
-  window.addEventListener("pointerup", (event) => { dragging = false; input.mouseUp(event.button); }, { signal: controller.signal });
-  canvas.addEventListener("pointercancel", release, { signal: controller.signal });
-  document.addEventListener("pointerlockchange", () => { if (document.pointerLockElement !== canvas) { release(); } }, { signal: controller.signal });
-  canvas.addEventListener("pointermove", (event) => { if (dragging || document.pointerLockElement === canvas) { input.look(event.movementX, event.movementY); } }, { signal: controller.signal });
+  const detachMouse = attachGameMouseInput(canvas, input, {
+    active: () => !paused && !contextPaused && !document.hidden,
+    lookEnabled: () => mouseLook,
+    onLockFailure: () => status("Mouse capture unavailable. Drag to turn the camera.")
+  });
   window.addEventListener("blur", release, { signal: controller.signal });
   const clock = new FixedTickClock(game.tickRate);
+  function setPaused(next: boolean): void {
+    paused = next;
+    release();
+    input.setEnabled(!next);
+    clock.reset();
+    const pause = document.getElementById("pause");
+    if (pause) { pause.textContent = next ? "Resume" : "Pause"; }
+    if (next) { audio.pause(); } else { audio.resume(); }
+  }
   let animationId = 0;
-  let rendering = false;
+  let rendering: Promise<unknown> | undefined;
   let disposed = false;
-  const render = async (interpolation: number): Promise<void> => {
-    if (rendering || disposed) { return; }
-    rendering = true;
+  let frameNumber = 0;
+  let replacement = new AbortController();
+  let commands = Promise.resolve();
+  function requireCurrent(signal: AbortSignal): void {
+    if (signal.aborted || disposed) { throw new DOMException("Game command was superseded", "AbortError"); }
+  }
+  function queueCommand(action: () => Promise<GamePlayerRenderedFrame>): Promise<GamePlayerRenderedFrame> {
+    const result = commands.then(action);
+    commands = result.then(() => undefined, () => undefined);
+    return result;
+  }
+  async function renderExplicit(signal: AbortSignal): Promise<GamePlayerRenderedFrame> {
+    while (rendering) { await rendering; }
+    requireCurrent(signal);
+    audio.updateSpatial(gameAudioSpatialView3D(frame, 1));
+    hud.update(frame.ui, hudViewport, hudInsets);
+    const renderedFrame = hud.annotate(frame);
+    const pending = renderer.render(renderedFrame, 1, particles);
+    rendering = pending;
     try {
-      audio.updateSpatial(gameAudioSpatialView3D(frame, interpolation));
-      hud.update(frame.ui, hudViewport, hudInsets);
-      const stats = await renderer.render(hud.annotate(frame), interpolation, particles);
+      const stats = await pending;
+      requireCurrent(signal);
+      frameNumber += 1;
       budget.observe({ drawCalls: stats.drawCalls, triangles: stats.triangles, particles: particles.count, voices: gameAudioVoiceCount(audio.mixerState()) });
+      return { tick: renderedFrame.tick, frameNumber };
+    } finally {
+      if (rendering === pending) { rendering = undefined; }
     }
-    catch (error) { if (renderer.capabilities.deviceStatus !== "lost") { paused = true; } status(error instanceof Error ? error.message : "Rendering failed"); }
-    finally { rendering = false; }
+  }
+  const render = (interpolation: number): void => {
+    if (rendering || disposed) { return; }
+    audio.updateSpatial(gameAudioSpatialView3D(frame, interpolation));
+    hud.update(frame.ui, hudViewport, hudInsets);
+    const pending = renderer.render(hud.annotate(frame), interpolation, particles)
+      .then((stats) => {
+        if (disposed) { return; }
+        frameNumber += 1;
+        budget.observe({ drawCalls: stats.drawCalls, triangles: stats.triangles, particles: particles.count, voices: gameAudioVoiceCount(audio.mixerState()) });
+      }).catch((error: unknown) => {
+        if (!disposed) {
+          if (renderer.capabilities.deviceStatus !== "lost") { setPaused(true); }
+          status(error instanceof Error ? error.message : "Rendering failed");
+        }
+      }).finally(() => { if (rendering === pending) { rendering = undefined; } });
+    rendering = pending;
   };
   document.addEventListener("visibilitychange", () => { release(); clock.reset(); }, { signal: controller.signal });
   const tick = (now: number): void => {
@@ -167,52 +204,78 @@ async function start(): Promise<void> {
       try {
         const interpolation = clock.advance(now, () => { input.pollGamepads(hud.pollGamepads(browserGamepads())); step(input.sample(game)); });
         void render(interpolation);
-      } catch (error) { paused = true; clock.reset(); status(error instanceof Error ? error.message : "Game script failed"); }
+      } catch (error) { setPaused(true); status(error instanceof Error ? error.message : "Game script failed"); }
     } else if (contextPaused && renderer.capabilities.deviceStatus === "ready") {
       void render(1);
     }
     if (paused || contextPaused || document.hidden) { clock.reset(); }
     animationId = requestAnimationFrame(tick);
   };
-  document.getElementById("pause")?.addEventListener("click", (event) => {
-    paused = !paused;
-    // Input pressed while paused is dropped rather than delivered on resume (F23).
-    input.setEnabled(!paused);
-    if (event.currentTarget instanceof HTMLButtonElement) { event.currentTarget.textContent = paused ? "Resume" : "Pause"; }
-    release(); clock.reset();
-    if (paused) { audio.pause(); } else { audio.resume(); }
-  }, { signal: controller.signal });
+  document.getElementById("pause")?.addEventListener("click", () => setPaused(!paused), { signal: controller.signal });
   document.getElementById("reset")?.addEventListener("click", () => {
-    paused = true;
-    void open().then((replacement) => {
-      session.dispose(); session = replacement; saves.clear(); audio.reset(session.snapshot()); frame = session.frame(); particles.clear(); clock.reset(); release();
-      // Reset resumes play, so input dropped by an earlier pause is accepted again.
-      paused = false; input.setEnabled(true);
-      const pause = document.getElementById("pause");
-      if (pause) { pause.textContent = "Pause"; }
-      void render(1);
-    })
-      .catch((error) => status(error instanceof Error ? error.message : "Reset failed"));
+    void window.nativeGame3DPlayer.reset().then(() => setPaused(false))
+      .catch((error: unknown) => status(error instanceof Error ? error.message : "Reset failed"));
   }, { signal: controller.signal });
   window.addEventListener("beforeunload", () => {
     disposed = true;
+    replacement.abort();
     cancelAnimationFrame(animationId);
-    controller.abort();
     unmountTouch?.();
+    detachMouse();
     detachHud();
     session.dispose();
     renderer.dispose();
     audio.dispose();
+    verifiedAssets.dispose();
+    controller.abort();
   }, { once: true });
   window.nativeGame3DPlayer = Object.freeze({
-    pause: () => { paused = true; release(); clock.reset(); },
-    step: async (nextInput: GameInputFrame3D) => { paused = true; step(nextInput, true); await render(1); },
-    reset: async () => { paused = true; const replacement = await open(); session.dispose(); session = replacement; saves.clear(); audio.reset(session.snapshot()); frame = session.frame(); particles.clear(); release(); clock.reset(); await render(1); },
+    pause: () => setPaused(true),
+    step: async (nextInput: GameInputFrame3D) => {
+      const parsed = gameInputFrame3D.parse(nextInput);
+      const signal = replacement.signal;
+      requireCurrent(signal);
+      setPaused(true);
+      return queueCommand(async () => {
+        requireCurrent(signal);
+        while (rendering) { await rendering; }
+        requireCurrent(signal);
+        step(parsed, true);
+        return renderExplicit(signal);
+      });
+    },
+    reset: async () => {
+      requireCurrent(replacement.signal);
+      replacement.abort();
+      replacement = new AbortController();
+      const signal = replacement.signal;
+      setPaused(true);
+      return queueCommand(async () => {
+        requireCurrent(signal);
+        const restored = await open();
+        if (signal.aborted || disposed) { restored.dispose(); requireCurrent(signal); }
+        while (rendering) {
+          try { await rendering; } catch { /* Reset can recover from an earlier failed render. */ }
+        }
+        if (signal.aborted || disposed) { restored.dispose(); requireCurrent(signal); }
+        session.dispose(); session = restored; saves.clear(); audio.reset(session.snapshot());
+        frame = session.frame(); particles.clear(); release(); clock.reset();
+        return renderExplicit(signal);
+      });
+    },
     advance: async (inputs: readonly GameInputFrame3D[]) => {
       if (inputs.length > 10_000) { throw new Error("Recorded route exceeds 10000 ticks"); }
-      paused = true;
-      for (const nextInput of inputs) { step(nextInput, true); }
-      await render(1);
+      const parsed = inputs.map((input) => gameInputFrame3D.parse(input));
+      const signal = replacement.signal;
+      requireCurrent(signal);
+      setPaused(true);
+      return queueCommand(async () => {
+        requireCurrent(signal);
+        while (rendering) { await rendering; }
+        requireCurrent(signal);
+        for (const nextInput of parsed) { step(nextInput, true); }
+        return renderExplicit(signal);
+      });
     },
     snapshot: () => session.snapshot(),
     inspect: () => session.inspect(),
@@ -221,10 +284,12 @@ async function start(): Promise<void> {
     })
   });
   // A static HTTP host is required for browser modules and WASM.
-  status(mouseFire ? "Ready. Click to capture the mouse and fire. WASD moves, F fires, Space jumps, Escape releases the mouse."
-    : "Ready. Move with WASD, arrows or a gamepad, jump with Space. Click to capture the mouse for looking, Escape releases it.");
-  await render(1);
-  animationId = requestAnimationFrame(tick);
+  status(mouseLook ? "Ready. Use the game's controls. Click for mouse look, Escape releases the mouse."
+    : "Ready. Use the game's controls. Mouse buttons work without pointer capture.");
+  const initialSignal = replacement.signal;
+  try { await renderExplicit(initialSignal); }
+  catch (error: unknown) { if (!initialSignal.aborted) { throw error; } }
+  if (!disposed) { animationId = requestAnimationFrame(tick); }
 }
 
 void start().catch((error) => status(error instanceof Error ? error.message : "Game could not start"));

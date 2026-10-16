@@ -162,7 +162,7 @@ describe("FindReplaceBar", () => {
   it("renders search input and navigation buttons", () => {
     renderWithTheme();
 
-    expect(screen.getByPlaceholderText("Find...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Find")).toBeInTheDocument();
     expect(screen.getByTestId("arrow-up-icon")).toBeInTheDocument();
     expect(screen.getByTestId("arrow-down-icon")).toBeInTheDocument();
   });
@@ -217,7 +217,7 @@ describe("FindReplaceBar", () => {
   it("calls onFind when search input changes with debounce", () => {
     renderWithTheme();
 
-    const searchInput = screen.getByPlaceholderText("Find...");
+    const searchInput = screen.getByPlaceholderText("Find");
     fireEvent.change(searchInput, { target: { value: "test" } });
 
     // Should not call immediately
@@ -232,7 +232,7 @@ describe("FindReplaceBar", () => {
   it("calls onNext when Enter key is pressed", () => {
     renderWithTheme();
 
-    const searchInput = screen.getByPlaceholderText("Find...");
+    const searchInput = screen.getByPlaceholderText("Find");
     fireEvent.keyDown(searchInput, { key: "Enter" });
     expect(mockOnNext).toHaveBeenCalledTimes(1);
   });
@@ -240,7 +240,7 @@ describe("FindReplaceBar", () => {
   it("calls onPrevious when Shift+Enter keys are pressed", () => {
     renderWithTheme();
 
-    const searchInput = screen.getByPlaceholderText("Find...");
+    const searchInput = screen.getByPlaceholderText("Find");
     fireEvent.keyDown(searchInput, { key: "Enter", shiftKey: true });
     expect(mockOnPrevious).toHaveBeenCalledTimes(1);
   });
@@ -248,14 +248,14 @@ describe("FindReplaceBar", () => {
   it("calls onClose when Escape key is pressed", () => {
     renderWithTheme();
 
-    const searchInput = screen.getByPlaceholderText("Find...");
+    const searchInput = screen.getByPlaceholderText("Find");
     fireEvent.keyDown(searchInput, { key: "Escape" });
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
   it("does not render when isVisible is false", () => {
     renderWithTheme({ isVisible: false });
-    expect(screen.queryByPlaceholderText("Find...")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Find")).not.toBeInTheDocument();
   });
 
   it("disables navigation buttons when there are no matches", () => {
@@ -293,11 +293,11 @@ describe("FindReplaceBar", () => {
       </ThemeProvider>
     );
 
-    const searchInput = screen.getByPlaceholderText("Find...");
+    const searchInput = screen.getByPlaceholderText("Find");
     fireEvent.keyDown(searchInput, { key: "Enter" });
     fireEvent.keyDown(searchInput, { key: "Escape" });
 
-    expect(screen.getByPlaceholderText("Find...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Find")).toBeInTheDocument();
   });
 
   it("maintains replace visibility state correctly", () => {

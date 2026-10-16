@@ -8,18 +8,30 @@ export const isHuggingFaceProvider = (provider?: string): boolean => {
   );
 };
 
+/** Providers that run on this computer or on a server the user hosts. */
+const LOCAL_PROVIDER_IDS: ReadonlySet<string> = new Set([
+  "huggingface-local",
+  "mlx",
+  "node_llama_cpp",
+  "stable_diffusion_cpp",
+  "transformers_js",
+  "whisper_cpp",
+  "whisper_cpp_server",
+  "lmstudio",
+  "vllm"
+]);
+
 export const isLocalProvider = (provider?: string): boolean => {
   if (!provider) {
     return false;
   }
   const providerLower = provider.toLowerCase().trim();
   return (
-    providerLower === "huggingface-local" ||
+    LOCAL_PROVIDER_IDS.has(providerLower) ||
     providerLower.includes("ollama") ||
     providerLower.includes("llama_cpp") ||
     providerLower.includes("llama-cpp") ||
-    providerLower.includes("llamacpp") ||
-    providerLower === "mlx"
+    providerLower.includes("llamacpp")
   );
 };
 
@@ -108,6 +120,9 @@ export const formatGenericProviderName = (provider?: string): string => {
   if (providerLower === "whisper_cpp_server") {
     return "whisper.cpp server";
   }
+  if (providerLower === "stable_diffusion_cpp") {
+    return "sd.cpp";
+  }
 
   if (PROVIDER_ALIAS_NAMES[providerLower]) {
     return PROVIDER_ALIAS_NAMES[providerLower];
@@ -116,14 +131,16 @@ export const formatGenericProviderName = (provider?: string): string => {
     providerLower === "node_llama_cpp" ||
     providerLower === "node-llama-cpp"
   ) {
-    return "Llama.cpp (local)";
+    return "llama.cpp";
   }
+  // This provider connects to a llama-server the user runs, so it takes the
+  // server's name. The in-process provider above is "llama.cpp".
   if (
     providerLower === "llama_cpp" ||
     providerLower === "llama-cpp" ||
     providerLower === "llamacpp"
   ) {
-    return "Llama.cpp";
+    return "llama-server";
   }
   if (providerLower === "google") {
     return "Gemini";
@@ -250,10 +267,41 @@ const PROVIDER_URLS: Record<string, string> = {
  * HuggingFace route ("huggingface_groq" reads "Groq"), the formatted id
  * otherwise.
  */
-export const getProviderDisplayName = (provider?: string): string =>
-  isHuggingFaceProvider(provider)
+export const getProviderDisplayName = (provider?: string): string => {
+  // The Python worker's Hugging Face provider runs Diffusers and Transformers
+  // on this computer. Its id would otherwise reduce to "Local". The picker
+  // lists it under Local, so the name needs no suffix.
+  if (provider?.toLowerCase() === "huggingface-local") {
+    return "Hugging Face";
+  }
+  return isHuggingFaceProvider(provider)
     ? getProviderBaseName(provider)
     : formatGenericProviderName(provider);
+};
+
+export interface ProviderEntry {
+  provider: string;
+  label: string;
+}
+
+/**
+ * The model picker's provider sections: enabled cloud providers, enabled
+ * local providers, then disabled ones. Each section is sorted by name.
+ */
+export const groupProvidersBySite = (
+  providers: readonly string[],
+  enabled: Readonly<Record<string, boolean>>
+): { cloud: ProviderEntry[]; local: ProviderEntry[]; disabled: ProviderEntry[] } => {
+  const entries = providers
+    .map((provider) => ({ provider, label: getProviderDisplayName(provider) }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  const isEnabled = (p: ProviderEntry) => enabled[p.provider] !== false;
+  return {
+    cloud: entries.filter((p) => isEnabled(p) && !isLocalProvider(p.provider)),
+    local: entries.filter((p) => isEnabled(p) && isLocalProvider(p.provider)),
+    disabled: entries.filter((p) => !isEnabled(p))
+  };
+};
 
 export const getProviderUrl = (provider?: string): string | null => {
   if (!provider) {

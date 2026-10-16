@@ -159,7 +159,7 @@ describe("ApplicationListPanel", () => {
     const user = userEvent.setup();
     renderPanel(<ApplicationListPanel projectId="default" />);
 
-    await user.type(screen.getByPlaceholderText("Search apps..."), "caption");
+    await user.type(screen.getByPlaceholderText("Search apps"), "caption");
 
     expect(screen.queryByText("Poster maker")).not.toBeInTheDocument();
     expect(screen.getByText("Caption writer")).toBeInTheDocument();

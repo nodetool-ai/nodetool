@@ -19,6 +19,14 @@ const DOWNLOAD_STATUSES = [
 
 type DownloadStatus = (typeof DOWNLOAD_STATUSES)[number];
 
+/** The statuses of a download that is still under way. */
+export const ACTIVE_DOWNLOAD_STATUSES: ReadonlySet<DownloadStatus> = new Set([
+  "running",
+  "progress",
+  "start",
+  "pending"
+]);
+
 interface DownloadProgressMessage {
   repo_id?: string;
   path?: string;
@@ -126,6 +134,12 @@ interface ModelDownloadStore {
    * can see the download is still out of reach.
    */
   cancelAndRemoveDownload: (id: string) => Promise<boolean>;
+  /**
+   * Picker rows whose Download button was clicked, by `modelRowKey`. Models
+   * share repositories, so a row shows only the downloads it asked for.
+   */
+  requestedModels: Record<string, true>;
+  markModelRequested: (key: string) => void;
   isDialogOpen: boolean;
   openDialog: () => void;
   closeDialog: () => void;
@@ -156,12 +170,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
 
   hasActiveDownloads: () => {
     const downloads = get().downloads;
-    return Object.values(downloads).some(
-      (d) =>
-        d.status === "running" ||
-        d.status === "progress" ||
-        d.status === "start" ||
-        d.status === "pending"
+    return Object.values(downloads).some((d) =>
+      ACTIVE_DOWNLOAD_STATUSES.has(d.status)
     );
   },
 
@@ -567,6 +577,13 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     }
     return reachedServer;
   },
+
+  requestedModels: {},
+
+  markModelRequested: (key: string) =>
+    set((state) => ({
+      requestedModels: { ...state.requestedModels, [key]: true }
+    })),
 
   isDialogOpen: false,
 

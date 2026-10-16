@@ -325,9 +325,12 @@ export class FakeProvider extends ScriptedProvider {
     // A caller that forces one tool wants structured output (`generate_text`
     // with a schema, the image flow's brief). Answer with a call whose
     // arguments satisfy that tool's schema, as a real model must.
-    const forced = (args.tools ?? []).find(
-      (t) => t.name === args.toolChoice && t.inputSchema
-    );
+    // An Agent node with added outputs offers a `submit_result` tool and
+    // tells the model to call it. A real model does, so the fake does too.
+    const tools = (args.tools ?? []).filter((t) => t.inputSchema);
+    const forced =
+      tools.find((t) => t.name === args.toolChoice) ??
+      tools.find((t) => /^submit_result/.test(t.name));
     if (forced) {
       yield {
         id: `fake-${forced.name}`,

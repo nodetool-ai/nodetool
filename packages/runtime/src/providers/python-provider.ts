@@ -33,6 +33,11 @@ import type {
 import type { PythonBridgeBase } from "../python-bridge-base.js";
 import { isRecord, isString } from "@nodetool-ai/protocol";
 import { sniffAudioMime } from "./audio-mime.js";
+import {
+  withMlxRepoAdapters,
+  withRecommendedMlxImageModels,
+  withRecommendedMlxModels
+} from "./mlx-models.js";
 
 type PythonProviderOptions = Record<string, unknown> & {
   _id: string;
@@ -155,16 +160,23 @@ export class PythonProvider extends BaseProvider {
   // ── Model discovery ───────────────────────────────────────────────
 
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    return this._getModels("language") as Promise<LanguageModel[]>;
+    const models = (await this._getModels("language")) as LanguageModel[];
+    return this._isMlx() ? withRecommendedMlxModels(this.provider, models) : models;
   }
 
   async getAvailableImageModels(): Promise<ImageModel[]> {
-    return this._getModels("image") as Promise<ImageModel[]>;
+    const models = (await this._getModels("image")) as ImageModel[];
+    return this._isMlx() ? withRecommendedMlxImageModels(this.provider, models) : models;
+  }
+
+  /** MLX gets downloadable recommendations and download targets. */
+  private _isMlx(): boolean {
+    return this._pythonProviderId === "mlx";
   }
 
   async getAvailableTTSModels(): Promise<TTSModel[]> {
     const models = await this._getModels("tts");
-    return models.map((raw) => {
+    const parsed = models.map((raw): TTSModel => {
       const model = raw as Record<string, unknown>;
       return {
         id: String(model.id ?? ""),
@@ -188,10 +200,12 @@ export class PythonProvider extends BaseProvider {
         adapter: parseModelAdapter(model.adapter)
       };
     });
+    return this._isMlx() ? withMlxRepoAdapters(parsed) : parsed;
   }
 
   async getAvailableASRModels(): Promise<ASRModel[]> {
-    return this._getModels("asr") as Promise<ASRModel[]>;
+    const models = (await this._getModels("asr")) as ASRModel[];
+    return this._isMlx() ? withMlxRepoAdapters(models) : models;
   }
 
   async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {

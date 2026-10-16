@@ -49,6 +49,15 @@ export {
   createLocalWorkspace
 } from "./storage-workspace.js";
 export { PrefixedStorageAdapter } from "./prefixed-storage-adapter.js";
+export {
+  publishModelLoad,
+  subscribeModelLoads,
+  activeModelLoads,
+  resetModelLoadsForTesting,
+  type ModelLoadPhase,
+  type ModelLoadUpdate,
+  type ModelLoadListener
+} from "./model-load-events.js";
 export type { SandboxModuleCatalog } from "./sandbox-module-catalog.js";
 export {
   getProcessSandboxModuleCatalog,

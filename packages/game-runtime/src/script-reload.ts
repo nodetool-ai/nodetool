@@ -8,7 +8,6 @@ export type GameScriptReloadResult<Document> =
 
 /** Serializes source-only reloads and commits their document identity with the compiled sources. */
 export function createGameScriptReloader<Document extends AnyGameDocument>(options: {
-  readonly initialRevision: string;
   readonly current: () => Document;
   readonly parse: (candidate: Document) => Document;
   readonly assertAvailable: () => void;
@@ -59,7 +58,8 @@ export function createGameScriptReloader<Document extends AnyGameDocument>(optio
         options.assertAvailable();
         signal?.throwIfAborted();
         if (updates.length === 0) { return { ok: true, changed: false, document: structuredClone(current) }; }
-        parsed.revision = options.initialRevision;
+        // Revision is derived from content, so a restored session must not seed it with its prior derived revision.
+        parsed.revision = "";
         parsed.revision = `script:${await digestGame3D(parsed)}`;
         const digest = await (options.snapshotDigest?.(parsed) ?? digestGame3D(parsed));
         options.assertAvailable();

@@ -2,15 +2,20 @@
  * Download a Transformers.js model into the TJS flat cache layout.
  *
  * Transformers.js itself decides which files (and which quantization variant)
- * a given task needs. We piggy-back on its loader: instantiating the pipeline
- * once writes every required file to `env.cacheDir` in the flat
+ * a given task needs. We piggy-back on its loader: loading the model once
+ * writes every required file to `env.cacheDir` in the flat
  * `{cacheDir}/{org}/{repo}/...` layout, after which subsequent inference runs
- * can load the model offline.
+ * can load the model offline. Kokoro repos load through kokoro-js and
+ * MusicGen repos through their own loader, as a run loads them.
  *
- * Progress is forwarded via `@huggingface/transformers`'s `progress_callback`.
+ * Progress is the loader's `progress_callback` events for this repo.
  */
 
-import { getPipeline, loadTransformers } from "./transformers-base.js";
+import { getPipeline } from "./transformers-base.js";
+import { getKokoro, isKokoroRepo } from "./tts-shared.js";
+import { getMusicgen, isMusicgenRepo } from "./music-shared.js";
+import { getJanus, isJanusRepo } from "./janus-shared.js";
+import { watchModelLoadEvents } from "./model-load-progress.js";
 
 /** Map a `tjs.<task>` model type to the Transformers.js pipeline task name. */
 export function tjsTypeToPipelineTask(modelType: string): string | null {
@@ -72,8 +77,8 @@ export async function downloadTransformersJsModel(
   }
 
   const onProgress = opts.onProgress;
-  const wrappedProgress = onProgress
-    ? (info: Record<string, unknown>) => {
+  const unwatch = onProgress
+    ? watchModelLoadEvents(repoId, (info) => {
         onProgress({
           status: typeof info.status === "string" ? info.status : "progress",
           file: typeof info.file === "string" ? info.file : undefined,
@@ -81,20 +86,23 @@ export async function downloadTransformersJsModel(
           total: typeof info.total === "number" ? info.total : undefined,
           progress: typeof info.progress === "number" ? info.progress : undefined
         });
-      }
-    : undefined;
+      })
+    : null;
 
-  // We intentionally bypass `getPipeline`'s internal caching by instantiating
-  // through the underlying transformers module directly — we want a fresh
-  // load that exposes its progress_callback, even if a pipeline for the same
-  // (task, model) already exists in the cache.
-  const transformers = await loadTransformers();
+  // The download goes through the same model cache as a run, under the key a
+  // run with default options uses. A run already loading the model is joined
+  // instead of fetching the same files a second time, and a model already in
+  // memory is on disk, so the download resolves at once.
+  const loadPromise = isKokoroRepo(repoId)
+    ? getKokoro(repoId, opts.dtype, undefined)
+    : isMusicgenRepo(repoId) || opts.modelType === "tjs.text_to_music"
+      ? getMusicgen(repoId, opts.dtype, undefined)
+      : isJanusRepo(repoId) || opts.modelType === "tjs.text_to_image"
+        ? getJanus(repoId, opts.dtype, undefined)
+        : getPipeline<object>({ task, model: repoId, dtype: opts.dtype });
 
-  const pipelineOptions: Record<string, unknown> = {};
-  if (opts.dtype) pipelineOptions.dtype = opts.dtype;
-  if (wrappedProgress) pipelineOptions.progress_callback = wrappedProgress;
-
-  // Cooperate with cancellation: poll the signal between awaits.
+  // Cooperate with cancellation: stop waiting. The shared load runs on, since
+  // a run may be waiting on it too.
   const abortPromise = opts.signal
     ? new Promise<never>((_, reject) => {
         const onAbort = () =>
@@ -107,12 +115,14 @@ export async function downloadTransformersJsModel(
       })
     : null;
 
-  const loadPromise = transformers.pipeline(task, repoId, pipelineOptions);
-
-  if (abortPromise) {
-    await Promise.race([loadPromise, abortPromise]);
-  } else {
-    await loadPromise;
+  try {
+    if (abortPromise) {
+      await Promise.race([loadPromise, abortPromise]);
+    } else {
+      await loadPromise;
+    }
+  } finally {
+    unwatch?.();
   }
 }
 

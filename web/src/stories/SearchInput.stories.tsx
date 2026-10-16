@@ -8,7 +8,7 @@ const meta = {
   args: {
     value: "",
     onChange: () => {},
-    placeholder: "Search…",
+    placeholder: "Search",
     showClear: true,
     size: "small"
   },

@@ -4,6 +4,9 @@ import type { RerankModel } from "../../stores/ApiTypes";
 import { useRerankModelsByProvider } from "../../hooks/useRerankModels";
 import { useRerankModelMenuStore } from "../../stores/ModelMenuStore";
 
+/** The provider capability this picker serves, for local providers to install. */
+const LOCAL_CAPABILITIES = ["rerank"];
+
 interface RerankModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
@@ -26,9 +29,10 @@ function RerankModelMenuDialog({
       modelData={modelData}
       onModelChange={onModelChange}
       title="Select rerank model"
-      searchPlaceholder="Search reranking models…"
+      searchPlaceholder="Search reranking models"
       storeHook={useRerankModelMenuStore}
       modelType="rerank_model"
+      localCapabilities={LOCAL_CAPABILITIES}
     />
   );
 }

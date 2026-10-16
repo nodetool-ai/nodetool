@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import { useState } from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 
@@ -27,6 +27,17 @@ function Harness({ initial = 200, ...props }: HarnessProps) {
       />
     </ThemeProvider>
   );
+}
+
+// jsdom has no PointerEvent, so build one with the fields the handle reads.
+function firePointer(
+  target: HTMLElement,
+  type: "pointerdown" | "pointermove" | "pointerup",
+  clientX: number
+) {
+  const event = new MouseEvent(type, { bubbles: true, button: 0, clientX });
+  Object.defineProperty(event, "pointerId", { value: 1 });
+  fireEvent(target, event);
 }
 
 describe("ResizeHandle", () => {
@@ -104,5 +115,86 @@ describe("ResizeHandle", () => {
     await user.keyboard("{ArrowRight}");
     expect(handle).toHaveAttribute("aria-valuenow", "200");
     expect(handle).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("pins to an edge of the parent when edge is set", () => {
+    render(<Harness edge="end" />);
+    const style = getComputedStyle(screen.getByRole("separator"));
+    expect(style.position).toBe("absolute");
+    expect(style.right).toBe("0px");
+  });
+
+  it("stays in flow without an edge", () => {
+    render(<Harness />);
+    expect(getComputedStyle(screen.getByRole("separator")).position).toBe(
+      "relative"
+    );
+  });
+
+  it("measures the size with getValue and omits aria-valuenow", async () => {
+    const user = userEvent.setup();
+    const onResize = jest.fn();
+    render(
+      <ThemeProvider theme={createTheme({ cssVariables: true })}>
+        <ResizeHandle
+          orientation="vertical"
+          min={100}
+          max={400}
+          getValue={() => 250}
+          onResize={onResize}
+          ariaLabel="Resize pane"
+        />
+      </ThemeProvider>
+    );
+    const handle = screen.getByRole("separator");
+    expect(handle).not.toHaveAttribute("aria-valuenow");
+    handle.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(onResize).toHaveBeenCalledWith(16);
+  });
+
+  it("reports start, deltas and end for a pointer drag", () => {
+    const onResize = jest.fn();
+    const onResizeStart = jest.fn();
+    const onResizeEnd = jest.fn();
+    render(
+      <ThemeProvider theme={createTheme({ cssVariables: true })}>
+        <ResizeHandle
+          orientation="vertical"
+          value={200}
+          min={100}
+          max={400}
+          invert
+          onResize={onResize}
+          onResizeStart={onResizeStart}
+          onResizeEnd={onResizeEnd}
+          ariaLabel="Resize pane"
+        />
+      </ThemeProvider>
+    );
+    const handle = screen.getByRole("separator");
+    handle.setPointerCapture = jest.fn();
+    handle.hasPointerCapture = jest.fn(() => true);
+    handle.releasePointerCapture = jest.fn();
+    firePointer(handle, "pointerdown", 100);
+    expect(onResizeStart).toHaveBeenCalledTimes(1);
+    // Dragging left grows an inverted handle.
+    firePointer(handle, "pointermove", 70);
+    expect(onResize).toHaveBeenLastCalledWith(30);
+    // Past the max: clamped, no slack.
+    firePointer(handle, "pointermove", -500);
+    expect(onResize).toHaveBeenLastCalledWith(170);
+    firePointer(handle, "pointerup", -500);
+    expect(onResizeEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onDoubleClick unless disabled", () => {
+    const onDoubleClick = jest.fn();
+    const { rerender } = render(<Harness onDoubleClick={onDoubleClick} />);
+    fireEvent.doubleClick(screen.getByRole("separator"));
+    expect(onDoubleClick).toHaveBeenCalledTimes(1);
+    rerender(<Harness onDoubleClick={onDoubleClick} disabled />);
+    fireEvent.doubleClick(screen.getByRole("separator"));
+    expect(onDoubleClick).toHaveBeenCalledTimes(1);
   });
 });

@@ -20,9 +20,16 @@ type ImageDocumentData = sketch.ImageDocumentData;
  */
 export function buildSeededImageDocument(
   base: ImageDocumentData,
-  params: { imageUri: string; width: number; height: number; name: string }
+  params: {
+    imageUri: string;
+    width: number;
+    height: number;
+    name: string;
+    /** Ink for the drawing tools, chosen to show on the image. */
+    ink?: string;
+  }
 ): ImageDocumentData {
-  const { imageUri, width, height, name } = params;
+  const { imageUri, width, height, name, ink } = params;
   const bounds = { x: 0, y: 0, width, height };
   const layers = base.sketch.layers as Array<Record<string, unknown>>;
   const [firstLayer, ...rest] = layers;
@@ -32,11 +39,23 @@ export function buildSeededImageDocument(
     data: serializeLayerData(imageUri, bounds),
     contentBounds: bounds
   };
+  const seededSketch: Record<string, unknown> = {
+    ...base.sketch,
+    layers: [seededLayer, ...rest]
+  };
+  if (ink) {
+    seededSketch.toolSettings = inkToolSettings(ink);
+  }
+  return { ...base, sketch: seededSketch } as ImageDocumentData;
+}
+
+/** The drawing tools' colors set to one ink. Normalization fills the rest. */
+function inkToolSettings(ink: string): Record<string, unknown> {
   return {
-    ...base,
-    sketch: {
-      ...base.sketch,
-      layers: [seededLayer, ...rest]
-    }
-  } as ImageDocumentData;
+    brush: { color: ink },
+    pencil: { color: ink },
+    fill: { color: ink },
+    shape: { strokeColor: ink },
+    gradient: { startColor: ink }
+  };
 }
