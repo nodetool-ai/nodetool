@@ -317,13 +317,18 @@ function motionSample(
     }
     resolved.set(clipId, (resolved.get(clipId) ?? 0) + weight);
   }
-  return {
+  const sample: MotionSample = {
     startTick,
     rate: playbackRate * node.speed,
     loop: node.loop,
-    ...(phase ? { phase: { ...phase } } : {}),
-    clips: [...resolved].map(([clipId, weight]) => ({ clipId, weight: Math.min(1, weight), ...(durations ? { duration: durations[clipId] } : {}) }))
+    clips: [...resolved].map(([clipId, weight]) => {
+      const clip: MotionSample["clips"][number] = { clipId, weight: Math.min(1, weight) };
+      if (durations) { clip.duration = durations[clipId]; }
+      return clip;
+    })
   };
+  if (phase) { sample.phase = { ...phase }; }
+  return sample;
 }
 
 /** Resolves graph state into the clip weights the renderer samples. The pose is presentation output only. */
