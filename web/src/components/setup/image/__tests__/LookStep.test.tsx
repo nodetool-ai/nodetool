@@ -55,6 +55,7 @@ import mockTheme from "../../../../__mocks__/themeMock";
 import { useProviderOnboardingStore } from "../../../../stores/ProviderOnboardingStore";
 import { useSketchStore } from "../../../sketch/state/useSketchStore";
 import { createDefaultDocument } from "../../../sketch/types";
+import useModelPreferencesStore from "../../../../stores/ModelPreferencesStore";
 
 beforeEach(() => {
   mockGenerateVariations.mockClear();
@@ -135,5 +136,26 @@ describe("LookStep when the model list fails", () => {
     );
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Report" })).toBeTruthy();
+  });
+});
+
+// UX research study 4: after a key was connected the Settings default image
+// model was set, but the picture flow's Look step still read "Select image
+// model" in 3 of 3 sessions.
+describe("useLookStep model", () => {
+  it("starts on the Settings default image model when nothing else chose one", () => {
+    const document = createDefaultDocument(1024, 1024);
+    document.setup = { stage: "look", brief: "a red bicycle" };
+    act(() => {
+      useSketchStore.getState().setDocument(document);
+      useModelPreferencesStore.getState().setDefault("image_model", {
+        provider: "prov",
+        id: "model-1",
+        name: "Model"
+      });
+    });
+    const { result } = renderHook(() => useLookStep());
+    expect(result.current.provider).toBe("prov");
+    expect(result.current.model).toBe("model-1");
   });
 });

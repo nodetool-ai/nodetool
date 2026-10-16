@@ -145,4 +145,25 @@ describe("ChatListPanel", () => {
       projectId: "project-a"
     });
   });
+
+  // UX research study 4: the empty panel pointed at another menu, and
+  // newcomers lost several actions finding "New chat".
+  it("starts a chat from the empty panel", async () => {
+    const user = userEvent.setup();
+    const saved = chatState.threads;
+    chatState.threads = {} as typeof chatState.threads;
+    try {
+      renderPanel(<ChatListPanel projectId="project-a" />);
+
+      expect(screen.getByText("No conversations yet")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "New chat" }));
+
+      await waitFor(() => expect(createNewThread).toHaveBeenCalled());
+      expect(openTab).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "chat", ref: "thread-new" })
+      );
+    } finally {
+      chatState.threads = saved;
+    }
+  });
 });

@@ -95,6 +95,28 @@ describe("DashboardExampleApps", () => {
     );
   });
 
+  // UX research study 4: every Apps card in view needed models, so a
+  // newcomer opened one and never ran anything.
+  it("lists apps that run as is before the ones that need models", async () => {
+    listExampleApps.mockResolvedValue([
+      {
+        ...APPS[0],
+        needs: { modelKinds: ["image_model"], requiredSettings: [] }
+      },
+      {
+        ...APPS[1],
+        needs: { modelKinds: [], requiredSettings: [] }
+      }
+    ]);
+    renderApps();
+
+    await screen.findByRole("button", { name: /vary image/i });
+    const names = screen
+      .getAllByTestId("example-needs")
+      .map((pill) => pill.textContent);
+    expect(names).toEqual(["Runs as is", "Needs an image model"]);
+  });
+
   it("lists only known app details without unavailable compatibility metadata", async () => {
     renderApps();
 
