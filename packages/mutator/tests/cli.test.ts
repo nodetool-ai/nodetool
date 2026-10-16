@@ -1,8 +1,9 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { isSourceFile, parseArgs, type Options, run, selectFiles, UsageError } from "../src/cli.js";
-import { ShellRunner, type CommandRunner } from "../src/runner.js";
+import { ShellRunner, type CommandResult, type CommandRunner } from "../src/runner.js";
 import { gitInit, MATH_PACKAGE, project } from "./fixture.js";
 
 function parsed(argv: string[]): Options {
@@ -40,18 +41,52 @@ class CountingRunner implements CommandRunner {
 const TEST = ["--no-coverage", "--test-command", "node tests/run.mjs"];
 
 describe("run", () => {
+  it.each([false, true])("runs the complete baseline and stops only an already killed Vitest mutant (survives=%s)", async (survives) => {
+    const root = project({
+      "packages/math/package.json": JSON.stringify({ name: "math", type: "module", scripts: { test: "vitest run" } }),
+      "packages/math/src/math.mjs": "export function compare(value, threshold) { return value > threshold; }\n",
+      "packages/math/tests/math.test.mjs": [
+        'import { it, expect } from "vitest";',
+        'import { compare } from "../src/math.mjs";',
+        `it("checks the comparison", () => expect(compare(${survives ? 2 : 1}, 1)).toBe(${survives}));`,
+        'it("runs the later control", () => expect(compare(3, 1)).toBe(true));'
+      ].join("\n")
+    });
+    symlinkSync(dirname(dirname(fileURLToPath(import.meta.resolve("vitest/package.json")))), join(root, "node_modules"), "junction");
+    const results: CommandResult[] = [];
+    const shell = new ShellRunner();
+    const runner: CommandRunner = {
+      verbose: false,
+      run: async (command, cwd, timeout) => {
+        const result = await shell.run(command, cwd, timeout);
+        results.push(result);
+        return result;
+      }
+    };
+    const output = capture();
+    const code = await run(["--root", root, "--no-coverage", join(root, "packages/math/src/math.mjs")], output.io, runner);
+    expect(code).toBe(survives ? 3 : 0);
+    expect(results).toHaveLength(2);
+    expect(results[0]?.code).toBe(0);
+    expect(results[0]?.output).toMatch(/Tests\s+2 passed/);
+    expect(results[1]?.output).toMatch(survives ? /Tests\s+2 passed/ : /Tests\s+1 failed \(2\)/);
+    expect(output.out).toContain(survives ? "SURVIVED" : "KILLED");
+  });
+
   it.each([
     {
       label: "the generated Vitest command",
       options: [],
-      expected: "npx --no-install vitest related --run --passWithNoTests --maxWorkers=1 src/math.mjs"
+      expected: "npx --no-install vitest related --run --passWithNoTests --maxWorkers=1 src/math.mjs",
+      mutant: "npx --no-install vitest related --run --passWithNoTests --maxWorkers=1 --bail=1 src/math.mjs"
     },
     {
       label: "an unchanged custom command",
       options: ["--test-command", "custom-oracle --workers=3 {file}"],
-      expected: "custom-oracle --workers=3 src/math.mjs"
+      expected: "custom-oracle --workers=3 src/math.mjs",
+      mutant: "custom-oracle --workers=3 src/math.mjs"
     }
-  ])("uses $label for the baseline and every selected mutant", async ({ options, expected }) => {
+  ])("uses $label for the baseline and every selected mutant", async ({ options, expected, mutant }) => {
     const root = project({
       ...MATH_PACKAGE,
       "packages/math/package.json": JSON.stringify({ name: "math", type: "module", scripts: { test: "vitest run" } })
@@ -72,7 +107,7 @@ describe("run", () => {
     );
 
     expect(code).toBe(3);
-    expect(commands).toEqual([expected, expected, expected, expected]);
+    expect(commands).toEqual([expected, mutant, mutant, mutant]);
   });
 
   it("kills, survives, records the snapshot, and leaves the source alone", async () => {
