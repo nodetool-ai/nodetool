@@ -2,63 +2,86 @@
 
 ## Start here
 
-The CLI pack-system implementation is merged, and A24.2 passed actual
-public-registry consumer verification. Final prerelease promotion is blocked
-by npm owner permission in the [publication run](https://github.com/nodetool-ai/nodetool/actions/runs/38880786460).
-A13 promotion and the postpublication smoke remain incomplete.
-Use [the plan](../docs/cli-pack-system-plan.md) and
+The CLI pack-system implementation and A13/A24 prerelease acceptance are complete.
+The [A24.3 publication](https://github.com/nodetool-ai/nodetool/actions/runs/38947131809)
+passed publication, public-consumer verification, CLI-last promotion and the
+postpublication smoke. The prerelease is `0.8.4-a24.3` under `a24`. Stable
+`latest` tags are unchanged. This does not authorize stable publication.
+
+Follow [the plan](../docs/cli-pack-system-plan.md) and
 [the design](../docs/cli-pack-system-design.md). Foundation
-[PR #6550](https://github.com/nodetool-ai/nodetool/pull/6550), runtime and
-installer [PR #6558](https://github.com/nodetool-ai/nodetool/pull/6558), and
-staging verifier [PR #6591](https://github.com/nodetool-ai/nodetool/pull/6591)
-have merged.
-
-Release corrections in
-[PR #6630](https://github.com/nodetool-ai/nodetool/pull/6630) are merged. They preserve
-original release artifacts while measuring prerelease dependencies through
-temporary tarballs, and keep shared media dependency versions equal to their
-install pins.
-
-The final CLI cut in
-[PR #6632](https://github.com/nodetool-ai/nodetool/pull/6632) is merged. It ships
-core nodes, enables authorized pack installs, and verifies original artifacts
-in isolated project and global consumers. The first global transaction binds
-same-version catalog root reinstallation to CLI authorization so npm can
-establish verified integrity records. See
-[global bootstrap](../docs/cli-pack-system-plan.md#d25-global-installation-baseline-without-a-hidden-lock).
+[PR #6550](https://github.com/nodetool-ai/nodetool/pull/6550), installer
+[PR #6558](https://github.com/nodetool-ai/nodetool/pull/6558), staging verifier
+[PR #6591](https://github.com/nodetool-ai/nodetool/pull/6591), release corrections
+[PR #6630](https://github.com/nodetool-ai/nodetool/pull/6630), and final CLI cut
+[PR #6632](https://github.com/nodetool-ai/nodetool/pull/6632) are merged.
+The CLI ships core nodes and enables authorized optional-pack installation.
+The [CLI](../docs/cli.md#nodetool-packs), [node-pack guide](../docs/node-packs.md)
+and [release note](../CHANGELOG.md#unreleased) cover `packs add --restore`.
 
 [PR #6650](https://github.com/nodetool-ai/nodetool/pull/6650) merged at
-`8b257ee125be53f03891f3de542bb1ef07e0ed50`. It waits for exact-version registry
-metadata and can recover original published artifacts for verification and
-promotion without rebuilding or republishing them.
-
+`8b257ee125be53f03891f3de542bb1ef07e0ed50`. It adds exact-version registry
+readiness and recovery using original published artifacts.
 [PR #6653](https://github.com/nodetool-ai/nodetool/pull/6653) merged at
-`75b625c690b8f33954ae7d734baadf5840328139` after mandatory local checks and
-remote CI passed. It forces `--prefer-dedupe=false` for global pack installs
-to preserve existing dependency versions and gives the global packed smoke
-an independent npm cache. Both fixes received independent Astra review.
+`75b625c690b8f33954ae7d734baadf5840328139`. It forces
+`--prefer-dedupe=false` for global pack installation and isolates the global
+smoke's npm cache. Mandatory checks and independent Astra reviews passed.
 
-The user authorized commits, pushes, green PR merges, and staging prerelease
-rehearsals. Preserve existing stable `latest` tags. The new node-catalog
-package retains its bootstrap `latest` value `0.8.4-a13.1`, because npm
-refuses removing its first `latest` tag. The organization owner confirmed
-deletion of `NPM_TOKEN`. Actual publication proved trusted publishing for
-the complete cohort. Stable publication remains outside this rehearsal. Use
-`nodetool packs` for management. Authorized project installs may update the
-project manifest and lockfile. FAL acceptance uses a real installed node with
-strict deterministic responses and no provider API spend.
+The user authorized commits, pushes, green PR merges and staging prerelease
+rehearsals. Preserve existing `latest` tags, including node-catalog's bootstrap
+value `0.8.4-a13.1`. npm refused removing that package's first `latest` tag.
+The owner confirmed deletion of `NPM_TOKEN`. Stable publication and provider
+API spend remain outside this rehearsal. Local project installation may update
+the authorized manifest and lockfile.
 
-Read [repository instructions](../AGENTS.md),
-[development standards](../docs/DEVELOPMENT_STANDARDS.md), and the touched area
-overlays. Use parallel agents and Astra for hard tasks and critical reviews.
-Do not run Linux Docker locally. Use remote CI for Docker verification.
-
-On another computer, fetch current `main`, run
-`scripts/setup-agent-env.sh`, use the Node version in `.nvmrc`, and run
-`npm run build:packages`. Dependency folders and local build outputs are not
+Read [repository instructions](../AGENTS.md), [development standards](../docs/DEVELOPMENT_STANDARDS.md)
+and the touched overlays. Use parallel agents and Astra for hard tasks and
+critical reviews. Do not run Linux Docker locally. On another computer, fetch
+current `main`, run `scripts/setup-agent-env.sh`, use the Node version in
+`.nvmrc`, and build packages. Dependency folders and build outputs are not
 transferred through Git.
 
 ## Current release acceptance
+
+The user selected trusted-publisher replacement through the npm API and a
+fresh prerelease. This supersedes the earlier A24.2-only recovery instruction.
+The complete publisher audit passed: 64 configurations were replaced and two
+already-correct configurations were retained. The required tag permission,
+claims and other permissions were verified, with independent review clearing
+the result. Publisher readiness is complete.
+
+The normal publication is `0.8.4-a24.3`, source
+`9ca83270d747446e77557ded2ceec4011a236253`, ref
+`refs/tags/cli-pack-rehearsal-a24.3`, attempt 1.
+[Run 38947131809](https://github.com/nodetool-ai/nodetool/actions/runs/38947131809)
+passed both jobs. It used the normal fresh publication path, with
+`resume_original_run_id` empty. No A24.2 artifact was republished.
+
+| A24.3 acceptance | Verified result |
+|---|---|
+| Original artifacts and publication | The [publication job](https://github.com/nodetool-ai/nodetool/actions/runs/38947131809/job/117128993127) passed the full and core-only packed smokes, then published all 66 packages through OIDC with zero failures. The verifier checked the original tarballs, exact registry pins and provenance. |
+| Public consumers | Project/global installation, npm signature audits, global doctor, actual `packs add fal`, deterministic installed FAL workflows, core purity and size assertions passed before promotion. No provider API spend. |
+| Size gate | Both packed smokes measured 851,008 KiB against the 892,097 KiB [Linux budget](../docs/cli-pack-system-design.md#84-budget). The public global size assertion also passed. Its exact measurement was buffered, so the packed measurement must not be reported as the public-global measurement. |
+| Final promotion | The job reported `Promoted 66 packages, CLI last`. Independent registry readback verified `a24` and `staging` at `0.8.4-a24.3` for every cohort package, SHA-512 metadata and provenance bound to the exact source, tag, run and attempt above. CI verified artifact bytes and npm signatures. |
+| Final smoke and stable tags | The [postpublication smoke](https://github.com/nodetool-ai/nodetool/actions/runs/38947131809/job/117143806700) installed the published CLI and verified its exact version and command surface. All 66 `latest` tags matched the saved pre-dispatch baseline, including node-catalog's bootstrap exception. |
+
+**A24.3 release result: passed.** A13 final-tag promotion and A24 public-consumer
+acceptance are complete. Stable publication remains outside this rehearsal.
+
+The [PR #6653 native matrix](https://github.com/nodetool-ai/nodetool/actions/runs/38873451163)
+passed. M13 establishes interruption during metadata fetch and repair of the
+unchanged baseline. It does not establish arbitrary partial-extraction recovery.
+Runtime-install migration steps 3–5 remain separate work. This CLI-pack plan
+depends on runtime steps 1 and 2.
+
+## Historical checkpoints
+
+Everything below records earlier implementation states. Statements about
+draft PRs, missing trusted-publisher setup, an undeleted token, no publication,
+or pending checks are historical and superseded by the current status above.
+They are not instructions to repeat work or evidence that a later check passed.
+
+### Earlier prerelease evidence
 
 The [A24.1 run](https://github.com/nodetool-ai/nodetool/actions/runs/38866952895)
 passed both prepublication smokes and published the complete prerelease cohort
@@ -87,39 +110,15 @@ enable Allow npm dist-tag." No final tag advanced. The
 [postpublication smoke](https://github.com/nodetool-ai/nodetool/actions/runs/38880786460/job/116920950614)
 was skipped.
 
-| Acceptance | Evidence or pending result |
-|---|---|
-| Core isolation and size gate | A24.2 prepublication core measured 850,956 KiB against the 892,097 KiB [Linux budget](../docs/cli-pack-system-design.md#84-budget). The public global install also passed its size assertion, but its exact measurement was buffered and is not recorded in the job log. |
-| Native npm matrix | [PR #6653 matrix](https://github.com/nodetool-ai/nodetool/actions/runs/38873451163) passed. M13 covers interruption during metadata fetch and repair of the unchanged baseline, not arbitrary partial extraction. |
-| CLI documentation and upgrade notice | [CLI commands](../docs/cli.md#nodetool-packs), [node packs](../docs/node-packs.md) and the [release note](../CHANGELOG.md#unreleased) document installation and `packs add --restore`. |
-| A13 original artifacts, pins and provenance | A24.2 passed registry verification and signature audits before execution. |
-| A24 public consumer installation | A24.2 passed project/global installation, clean global purity and size, actual `packs add fal`, global doctor and deterministic installed FAL workflows with the unmodified published CLI. |
-| A13 final-tag promotion | Blocked on the trusted publisher's `Allow npm dist-tag` permission. The first command failed before any final tag advanced. |
-| Postpublication acceptance | Pending successful recovery and public-install smoke, followed by stable-tag comparison against the baseline, including the node-catalog exception above. |
+A24.2 prepublication core measured 850,956 KiB against the 892,097 KiB
+[Linux budget](../docs/cli-pack-system-design.md#84-budget). The public global
+install passed its size assertion, but the exact measurement was buffered and
+is not recorded in the job log.
 
-Every cohort package's trusted publisher needs `Allow npm dist-tag` enabled.
-The failure confirms that the agents publisher lacks this permission. The
-coordinating agent has requested owner sign-in or this settings change.
-Package publication permission alone does not grant tag management.
-
-After the owner resolves permission, dispatch `publish.yaml` from the existing
-`cli-pack-rehearsal-a24.2` tag with `version=0.8.4-a24.2` and
-`resume_original_run_id=38880786460`. Recovery restores and verifies the
-original artifacts, then repeats staging verification before CLI-last
-promotion. Do not rebuild, repack, republish, or create another cohort to
-resolve this permission failure. The coordinating agent owns the dispatch.
-
-**Recovery result: pending.** Record its run URL, final-tag verification and
-postpublication smoke result before declaring the release complete.
-Runtime-install design migration steps 3–5 remain separate work. This
-CLI-pack plan depends on runtime steps 1 and 2.
-
-## Historical checkpoints
-
-Everything below records earlier implementation states. Statements about
-draft PRs, missing trusted-publisher setup, an undeleted token, no publication,
-or pending checks are historical and superseded by the current status above.
-They are not instructions to repeat work or evidence that a later check passed.
+The first publisher replacement attempt stopped on an npm HTTP 409 whose
+wording differed from the updater's expected response. That attempt performed
+no DELETE and preserved the original configuration. The corrected updater and
+complete publisher audit subsequently passed, as recorded above.
 
 ### Foundation merge
 
