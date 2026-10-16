@@ -200,7 +200,7 @@ const WorkflowTree: React.FC = () => {
             <SearchInput
               value={search}
               onChange={setSearch}
-              placeholder="Search workflows..."
+              placeholder="Search workflows"
               fullWidth
               size="small"
               sx={searchInputSx}

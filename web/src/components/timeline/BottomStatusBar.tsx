@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 /**
  * BottomStatusBar — Timeline Editor bottom status bar.
  *
@@ -8,15 +7,13 @@
 
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { css } from "@emotion/react";
-import type { Theme } from "@mui/material/styles";
 import {
   FlexRow,
   Caption,
   StatusBar,
   ZoomControls,
   StatusIndicator,
-  BORDER_RADIUS,
+  StatusDot,
   FONT_SIZE_SANS
 } from "../ui_primitives";
 import type { StatusType } from "../ui_primitives";
@@ -25,26 +22,6 @@ import CostEstimateLine, {
 } from "../costs/CostEstimateLine";
 import CloudIcon from "@mui/icons-material/Cloud";
 import ComputerIcon from "@mui/icons-material/Computer";
-
-const styles = (theme: Theme) =>
-  css({
-    ".count-badge": {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: theme.spacing(0.5)
-    },
-    ".dot": {
-      width: 6,
-      height: 6,
-      borderRadius: BORDER_RADIUS.circle
-    },
-    ".dot-generating": {
-      backgroundColor: theme.vars.palette.primary.main
-    },
-    ".dot-failed": {
-      backgroundColor: theme.vars.palette.error.main
-    }
-  });
 
 interface BottomStatusBarProps {
   /** Whether the session is local or cloud */
@@ -95,7 +72,7 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
     const ModeIcon = mode === "cloud" ? CloudIcon : ComputerIcon;
 
     return (
-      <StatusBar css={styles(theme)} sx={{ justifyContent: "space-between" }}>
+      <StatusBar sx={{ justifyContent: "space-between" }}>
         {/* Left: panel toggle + local/cloud + counts */}
         <FlexRow gap={2} align="center" sx={{ minWidth: 0 }}>
           {actionSlot}
@@ -109,15 +86,15 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
           </FlexRow>
 
           {generatingCount > 0 && (
-            <FlexRow gap={0.5} align="center" className="count-badge">
-              <span className="dot dot-generating" aria-hidden />
+            <FlexRow gap={0.5} align="center">
+              <StatusDot tone="primary" />
               <Caption>{generatingCount} generating</Caption>
             </FlexRow>
           )}
 
           {failedCount > 0 && (
-            <FlexRow gap={0.5} align="center" className="count-badge">
-              <span className="dot dot-failed" aria-hidden />
+            <FlexRow gap={0.5} align="center">
+              <StatusDot tone="error" />
               <Caption color="error">{failedCount} failed</Caption>
             </FlexRow>
           )}

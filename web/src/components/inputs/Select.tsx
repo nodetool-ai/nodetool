@@ -311,7 +311,7 @@ const Select: React.FC<SelectProps> = ({
                 setSearchQuery(e.target.value);
                 setHighlightedIndex(-1);
               }}
-              placeholder="Search..."
+              placeholder="Search"
               aria-label="Search options"
               onClick={(e) => e.stopPropagation()}
             />

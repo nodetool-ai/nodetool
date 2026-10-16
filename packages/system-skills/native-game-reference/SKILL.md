@@ -609,6 +609,15 @@ resolved pose at the interpolated tick. Blended clips share one normalized
 phase. The pose sampler blends node translation, rotation and scale. It does
 not blend morph targets.
 
+Model preparation derives `clipDurations` from verified GLB time accessors.
+Bindings with this metadata retain a normalized simulation phase when blend
+parameters change, including across save and restore. Do not invent or edit
+durations. For a legacy binding without them, regenerate a model candidate from
+its existing source with `generate_game_asset`, then explicitly install it with
+`install_native_game_asset`. Installation rederives the durations from its bytes.
+Until then, blends keep legacy elapsed-time sampling and validation reports
+`legacy_animation_phase`.
+
 ## 3D rendering
 
 Set every `environment` field with `update_scene`. It replaces the whole

@@ -43,7 +43,7 @@ it("clears a search by keyboard and returns focus to the input", async () => {
     </ThemeProvider>
   );
   const input = screen.getByRole("textbox", { name: "Search current folder" });
-  expect(screen.getByRole("button", { name: "Clear search" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Clear search" })).toBeNull();
   await user.tab();
   await user.tab();
   expect(input).toHaveFocus();
@@ -54,7 +54,7 @@ it("clears a search by keyboard and returns focus to the input", async () => {
   expect(input).toHaveValue("");
   expect(input).toHaveFocus();
   expect(onLocalSearchChange).toHaveBeenLastCalledWith("");
-  expect(screen.getByRole("button", { name: "Clear search" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Clear search" })).toBeNull();
   await user.tab();
   expect(document.body).toHaveFocus();
 });

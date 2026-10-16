@@ -12,7 +12,7 @@ import { IconForType } from "../../config/IconForType";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import OpenInNew from "@mui/icons-material/OpenInNew";
 import { NodeLogsDialog } from "./NodeLogs";
-import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
+import { BORDER_RADIUS, Chip, FlexRow, Tooltip, ToolbarIconButton, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 
 interface NodeHeaderProps {
   id: string;
@@ -102,21 +102,6 @@ const headerCss = css({
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap"
-  },
-  ".code-badge": {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "16px",
-    height: "16px",
-    borderRadius: BORDER_RADIUS.pill,
-    fontSize: "var(--fontSizeSmaller)",
-    fontWeight: 600,
-    letterSpacing: "0.02em",
-    color: "var(--palette-text-primary)",
-    backgroundColor: "var(--palette-c_overlay_strong)",
-    border: "1px solid var(--palette-c_overlay_strong)",
-    flexShrink: 0
   },
   ".node-title-input": {
     width: "100%",
@@ -309,7 +294,9 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
         >
           {showCodeBadge && (
             <Tooltip title={codeBadgeTooltip} placement="top">
-              <span className="code-badge">C</span>
+              <span style={{ display: "inline-flex", flexShrink: 0 }}>
+                <Chip compact label="C" />
+              </span>
             </Tooltip>
           )}
           {isEditingTitle ? (

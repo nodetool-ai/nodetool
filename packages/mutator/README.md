@@ -123,8 +123,9 @@ at the end of the run, and an interrupted run's overlays are removed at the
 start of the next.
 
 The default Vitest command allocates one inner test worker per mutation
-worker. The baseline uses the same command. This preserves the related test
-selection and avoids multiplying parallel test pools. Custom `--test-command`
+worker. The baseline runs the complete related test selection. Mutants add
+`--bail=1` to stop after the first failure establishes a killed outcome.
+Surviving mutants still run the complete selection. Custom `--test-command`
 values are used unchanged. Baseline durations and the resulting numeric
 mutant deadlines can change with scheduling. The timeout factor and minimum
 remain unchanged.

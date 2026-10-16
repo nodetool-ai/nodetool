@@ -37,6 +37,7 @@ export class GameAudioPlayer {
   private readonly context: AudioContext;
   private readonly mixer: GameAudioMixer;
   private readonly failedStreams = new Set<string>();
+  private readonly failedBuffers = new Set<string>();
   private readonly streamed = new Map<string, { voice: GameStreamingMusicVoice; assetId: string }>();
   private readonly deferredDecodedFades = new Map<Voice, number>();
   private readonly deferredFades = new Map<GameStreamingMusicVoice, number>();
@@ -106,18 +107,23 @@ export class GameAudioPlayer {
   private buffer(assetId: string): Promise<AudioBuffer | null> {
     const cached = this.buffers.get(assetId);
     if (cached) return cached;
+    if (this.failedBuffers.has(assetId)) return Promise.resolve(null);
     const binding = this.options.assets[assetId];
     if (!binding) {
       this.options.status(`Audio asset ${assetId} is missing`);
       return Promise.resolve(null);
     }
-    const pending = this.options.resolveAsset(binding).then(async (url) => {
+    const pending: Promise<AudioBuffer | null> = this.options.resolveAsset(binding).then(async (url) => {
       if (!url) throw new Error("asset URL is unavailable");
-      const response = await fetch(url, { cache: "force-cache" });
+      const response = await fetch(url, { cache: "no-cache" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return this.context.decodeAudioData(await response.arrayBuffer());
     }).catch((error: unknown) => {
-      this.options.status(`Audio ${assetId} could not be decoded: ${error instanceof Error ? error.message : String(error)}`);
+      if (this.buffers.get(assetId) === pending) {
+        this.buffers.delete(assetId);
+        this.failedBuffers.add(assetId);
+        this.options.status(`Audio ${assetId} could not be decoded: ${error instanceof Error ? error.message : String(error)}`);
+      }
       return null;
     });
     this.buffers.set(assetId, pending);
@@ -127,6 +133,7 @@ export class GameAudioPlayer {
   /** Keeps decoded audio for unchanged bindings when the editor document changes. */
   updateAssets(assets: GameAudioOptions["assets"]): void {
     if (this.disposed) return;
+    this.failedBuffers.clear();
     const changed = new Set<string>();
     for (const slot of new Set([...Object.keys(this.options.assets), ...Object.keys(assets)])) {
       if (JSON.stringify(this.options.assets[slot]) !== JSON.stringify(assets[slot])) {
@@ -169,6 +176,7 @@ export class GameAudioPlayer {
     if (this.disposed || this.paused) return;
     try {
       this.failedStreams.clear();
+      this.failedBuffers.clear();
       await this.context.resume();
       this.startDesiredMusic();
     } catch {
@@ -450,6 +458,7 @@ export class GameAudioPlayer {
     this.generation += 1;
     this.pending.clear();
     this.failedStreams.clear();
+    this.failedBuffers.clear();
     for (const id of this.streamed.keys()) this.stop(id, 0);
     for (const voice of this.streamingFades.keys()) voice.dispose();
     for (const id of this.voices.keys()) this.stop(id, 0);
@@ -467,6 +476,7 @@ export class GameAudioPlayer {
     this.generation += 1;
     this.pending.clear();
     this.failedStreams.clear();
+    this.failedBuffers.clear();
     for (const id of this.streamed.keys()) this.stop(id, 0);
     for (const voice of this.streamingFades.keys()) voice.dispose();
     for (const id of this.voices.keys()) this.stop(id, 0);

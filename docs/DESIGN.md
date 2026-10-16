@@ -126,6 +126,21 @@ import { TYPOGRAPHY, Text, Label, Caption } from "../ui_primitives";
 ```
 {% endraw %}
 
+### Code and monospace text
+
+Mono type (`--fontFamily2`) is for code, values and logs. Three primitives cover it, so nothing sets `fontFamily2` or `monospace` by hand for these roles.
+
+| Need | Primitive |
+|---|---|
+| A command, path, flag or literal inside a sentence | `Code` |
+| Several lines of preformatted text (tool arguments, JSON, a stack trace) | `CodeBlock`, with `language` and `copyable` for a header, `tone="error"` for failures |
+| Streaming or accumulated output with levels | `LogView` (`debug`, `info`, `success`, `warning`, `error`; `autoScroll`, `copyable`) |
+
+- Never write a bare `<code>` or `<pre>` with local styles. Use `Code` and `CodeBlock`.
+- `CodeBlock` is plain text. Syntax highlighting and SVG preview belong to the chat markdown renderer.
+- A virtualised console keeps its own row layout and takes the line style from `LOG_LINE_STYLE` and the level colour from `logLevelColor`.
+- Mono text elsewhere (a value in a table cell, a key) uses `Text family="secondary"` or `TYPOGRAPHY.mono.*`.
+
 ### Heading Collapse Rule
 
 HTML headings map to two type styles only:
@@ -792,6 +807,33 @@ toolbar of controls, or its content.
 | Drag | A tab drags after 4px of travel. `DockDropOverlay` previews the drop: the center adds a tab, an edge splits the group. Escape cancels |
 | Panel toolbar | `CONTROL.height.md` (32px), `SPACING.sm` inset, controls right-aligned, 1px `divider` below. Omit it when the panel has no controls |
 
+### Resize handles
+
+Every draggable split, dock edge and resizable window edge uses
+`ResizeHandle`. It renders a `role="separator"` strip with pointer capture,
+arrow-key resizing (Home and End jump to the bounds) and a focus ring. It
+reports deltas through `onResize` and the caller keeps the size.
+
+| Prop | Rule |
+|---|---|
+| `orientation` | The axis of the bar itself. `vertical` sits between side-by-side panes, `horizontal` between stacked panes |
+| `edge` | Omit for an in-flow flex item between panes. `start` or `end` pins the strip to that edge of a positioned parent, as a dock edge or window edge |
+| `invert` | Set when the pane's handle is on its leading edge (right dock, bottom dock), so dragging toward the handle's start grows it |
+| `thickness` | A `SPACING` step. Default `SPACING.sm` (6px). Use `SPACING.md` for window edges and `SPACING.xxl` for a phone touch target |
+| `grip` | Draws a centred pill so a horizontal strip reads as a control at rest. Use it on bottom docks, modal bottoms and phone splits |
+| `invisible` | Hit area only, no hover fill. Use it on floating windows with rounded corners (node menu, conversation overlay) |
+| `getValue` | Measure the size on grab when it comes from the DOM instead of state |
+
+One look: transparent at rest, `primary.main` while hovered or dragged,
+2px `primary` focus ring. A handle does not glow, scale or change its pill
+colour on its own.
+
+Do not hand-build a handle from a `div` with `cursor: *-resize`, a
+`mousedown` listener and a hover colour. Corner grips that move two axes at
+once are the one exception, because `ResizeHandle` has one axis. Canvas
+gizmos (crop, transform, rulers) are not panel handles and keep their own
+code.
+
 ### Dialogs
 
 Dialogs are not panels. Every modal dialog uses the `Dialog` primitive. It
@@ -890,6 +932,30 @@ render each rule at a docked width of 360px. Check a new panel against them.
 | One left edge | Labels, values, section titles and actions start on the content edge. A `CollapsibleSection` in a dense panel uses `iconPosition="end"`. |
 | Field rhythm | A label sits 4px above its field. Fields in a form are 12px apart (`gap={3}`), so each label reads with its own field. |
 | Tabs fit the panel | Small `TabGroup` tabs must all fit at 360px. Shorten the labels or drop the icons before the strip has to scroll. |
+
+### Page layout
+
+Every full page (a manager, a dashboard, a list surface) gets its title block
+from `PageHeader` in `ui_primitives`. Do not build a header from a raw `<h1>`,
+`Text size="big"` or a hand-written flex row with its own padding.
+
+| Primitive | Use |
+|---|---|
+| `PageLayout` | Full-screen chrome for a manager page: a `PageHeader` hero, then the rest of the viewport for the children. `padded` (default) pads and scrolls the content, `padded={false}` leaves a full-bleed layout to the child, `scrollable` scrolls without padding, `showHeader={false}` keeps the layout and drops the header. |
+| `PageHeader` | The page's `h1` with an optional `icon`, `subtitle`, `actions` and a docs button (`docsTopic` or `docsUrl`). `variant="hero"` (default) is the tinted icon chip over a gradient strip with a rule below. `variant="bar"` is the same strip without the gradient and with an unframed icon. `variant="plain"` has no padding, rule or background: place it in your own layout and set spacing through `sx`. |
+
+Rules:
+
+- A page with the manager look is a `PageLayout`. A page with its own body
+  layout (tutorials, a dashboard) renders `PageHeader` at the top of it.
+- A centred card or a one-screen consent flow is not a page layout. Use
+  `PageHeader variant="plain"` for its title, or no header.
+- A detail heading inside a page (a selected package or model) is not a page
+  header. Use `Text` with `size="big"`.
+- `subtitle` is one line. Use `hideSubtitleOnMobile` when the actions need the
+  room below `md`.
+- Section headings inside a page are `Text component="h2"` or `SectionHeader`,
+  never a raw `<h2>` or `<h3>` styled in a CSS block.
 
 ### Toolbars and status bars
 
@@ -1013,8 +1079,33 @@ border, radius and background. One card has one radius, one background
 
 Do not write a card container with `borderRadius`, `border` and
 `backgroundColor` by hand, override a card with `grey[*]` colours, or define
-your own `stat-value` and `stat-label` styles. Row lists inside a dialog
-(`ProviderOnboardingCard`) are rows, not cards.
+your own `stat-value` and `stat-label` styles. A row in a framed dialog list
+(`ProviderOnboardingCard`) is a `Card` with `borderRadius: 0` and a divider
+between rows, because the list owns the frame.
+
+### Media thumbnails
+
+A tile that shows stored media is `MediaThumbnail` (from `ui_primitives`),
+never a switch on `content_type.startsWith("image" | "video" | "audio")` that
+picks an `<img>`, a `<video>` or an icon by hand.
+
+| Use | Primitive |
+|---|---|
+| Thumbnail of an `Asset` record | `MediaThumbnail asset={asset} alt="…"`: image uses `thumb_url` then `get_url`, video its `thumb_url` poster, anything else a type icon |
+| Thumbnail of a media ref or locator | `MediaThumbnail locator={ref} alt="…"`: resolved through the media-resolution boundary. Pass `kind` or `contentType` when known, otherwise the asset row decides |
+| Playable tile | add `interactive`: video renders `VideoPlayer`, audio `AudioPlayback` |
+| Caption on the tile | `label` slot (bottom scrim, pointer events off). Pass a `MediaLabel` or any node |
+| Remove or open controls | `actions` slot (top right, revealed on hover and keyboard focus) |
+| Node-body image preview with a checker empty state | `ImagePreview` from `node_types/editing/ImagePreview` |
+
+The tile keeps its aspect ratio (`aspectRatio`, default `1/1`), fills with
+`fit="cover"` or `"contain"`, and falls back to an icon (`icon` overrides it).
+Never put an `asset://` string in `src`, and never use a video file as an image
+source.
+
+Do not hand-build a media tile with an `<img>`, a `background-image` or a
+scrim `div`, and do not paste an `ImageRefPreview` with a `CheckerDropzone`
+placeholder into a node body.
 
 ---
 
@@ -1053,6 +1144,15 @@ import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from ".
 | Field chrome | Fields keep their primitive look. Do not override `.MuiOutlinedInput-*`, `.MuiInputBase-*`, `.MuiSelect-*` or `.MuiInputLabel-*` from a form's `css` or `sx`. A form may set a field's width only |
 | Variant | Outlined fields everywhere. A dense panel sets `FieldDensityContext` once (see [Panel composition](#panel-composition)) |
 | Text | Labels and options are sentence case ("Tool name", "Ask every time"). Acronyms keep their case ("API key", "ID") |
+
+### Search fields
+
+Use `SearchInput` from `ui_primitives` for every search or filter box. It owns the look (36px field, 28px with `size="small"`), the search icon, the clear button, optional debounce, and Escape-to-clear.
+
+- Wrap it, do not rebuild it. Hosts that need their own debounce, arrow-key navigation or a mode switch pass `onKeyDown`, `escapeClears={false}`, `startAdornment`, `loading`, `endHint` and `inputProps` instead of drawing a second field. `components/search/SearchInput.tsx` (node menu) and `assets/AssetSearchInput.tsx` are wrappers of this kind.
+- Do not build a search box from a raw `<input>`, a MUI `TextField` or a bare `InputBase`. Find/replace fields that carry validation state keep `NodeTextField`.
+- The clear button appears only when there is a value, and focus returns to the field after a clear.
+- Placeholders name what is searched in sentence case: "Search workflows", "Search nodes", "Filter models". No trailing "..." or "…". Give a field with no visible label an accessible name (`ariaLabel` defaults to the placeholder).
 
 ### Sliders
 
@@ -1153,6 +1253,28 @@ import { Chip } from "../ui_primitives";
 | Text | Sentence case, a few words. Values such as a type name or a hex colour may use `TYPOGRAPHY.mono.caption` |
 | Not a chip | A count or a value with no border is `Text`. A render state on a thumbnail is `StatusPill`. A command is a button, even when it is pill-shaped |
 | Hand-built | Do not build a pill from a `Box`, `span` or `button` with `BORDER_RADIUS.pill`. Use `Chip` with `icon` for a leading dot, spinner or icon |
+
+### Badges, dots and media labels
+
+Three primitives cover the small marks that sit beside or on top of other
+content. A text badge is a `Chip`, see "Chips and pills".
+
+```tsx
+import { CountBadge, StatusDot, MediaLabel } from "../ui_primitives";
+
+<CountBadge count={unread} max={99}><BellIcon /></CountBadge>
+<StatusDot tone="warning" label="Unsaved changes" />
+<StatusDot tone="primary" pulse />
+<MediaLabel corner="bottom-right">{width} × {height}</MediaLabel>
+```
+
+| Part | Rule |
+|---|---|
+| `CountBadge` | A number on an icon or button. With children it anchors to them (MUI `Badge`). Without children it is a standalone 16px pill, positioned through `sx`. `max` caps the number as "99+", `dot` drops the number, `size` is `small` or `medium` |
+| `StatusDot` | A filled circle that carries a state by colour: unsaved, generating, failed, connected. `tone` is a palette tone or `neutral`, `size` is `small` (6px) or `medium` (8px). `pulse` breathes it on `MOTION.pulse` for ongoing work and stops under reduced motion. Pass `label` when the dot is the only signal, otherwise it is `aria-hidden` |
+| `MediaLabel` | A readout on an image or video, such as dimensions or duration: mono caption, white on `c_scrim`. `corner` pins it to a corner of the positioned parent and disables pointer events. Never put it on a surface that is not media |
+| Text badge | `Chip compact`, never a styled `span` |
+| Hand-built | Do not draw a dot from a `Box`, `span` or `::before` with `BORDER_RADIUS.circle`, copy a `.dirty-dot` or `.dimensions-badge` rule, or write a `@keyframes` for a pulsing dot. A custom colour goes in `sx={{ bgcolor }}` on `StatusDot`. A dot with a label is `SaveState` or `StatusIndicator` |
 
 ### Buttons
 

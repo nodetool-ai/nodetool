@@ -12,6 +12,7 @@ import { memo, useCallback, useEffect, useState } from "react";
 import {
   AlertBanner,
   Chip,
+  Code,
   EditorButton,
   FlexColumn,
   FlexRow,
@@ -410,8 +411,8 @@ const InstallPanel = memo(function InstallPanel({
         label="Package to install"
         helperText={
           <>
-            Paste an npm package name, e.g. <code>@acme/cool-nodes</code> or{" "}
-            <code>cool-nodes@1.2.3</code>. The server must be restarted to
+            Paste an npm package name, e.g. <Code>@acme/cool-nodes</Code> or{" "}
+            <Code>cool-nodes@1.2.3</Code>. The server must be restarted to
             load the new pack.
           </>
         }
@@ -566,7 +567,7 @@ function PackagesMenu() {
           >
             <Text size="small" color="secondary">
               No node packs discovered. Install one with{" "}
-              <code>npm install &lt;pack&gt;</code>
+              <Code>npm install &lt;pack&gt;</Code>
               {isElectron ? " or via the field above." : "."}
             </Text>
           </FlexRow>

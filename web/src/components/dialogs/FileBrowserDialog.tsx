@@ -833,7 +833,7 @@ function FileBrowserDialog({
             <SearchInput
               value={searchQuery}
               onChange={handleSearchQueryChange}
-              placeholder="Search in current folder..."
+              placeholder="Search in current folder"
               fullWidth
             />
           </div>
