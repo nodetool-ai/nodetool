@@ -69,7 +69,7 @@ describe("agent game routes", () => {
     const agent = run();
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Victory signal" }) as GameReply;
     const document = structuredClone(created.document);
-    document.scenes[0].entities.push({ id: "victory-script", transform2d: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }, behaviors: [{ kind: "script", source: '({tick}) => ({state: null, commands: tick === 3700 ? [{kind: "emit", event: "victory"}] : []})', maxTickMs: 30, maxCommands: 8 }] });
+    document.scenes[0].entities.push({ id: "victory-script", transform2d: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }, behaviors: [{ kind: "script", source: '({tick}) => ({state: null, commands: tick === 3700 ? [{kind: "emit", event: "victory"}] : []})', maxTickMs: 20, maxCommands: 8 }] });
     await agent.invoke("edit_native_game", { game_id: created.game.id, ops: [{ op: "set_document", document }] });
     const result = await agent.invoke("playtest_native_game", { game_id: created.game.id, inputs: [{ pressed: [], ticks: 3800 }], assertions: [{ event: "victory", before_tick: 3800 }, { event: "win", before_tick: 3800 }, { at_tick: 3700, entity_id: "player", near: { x: 0, y: 0 } }] });
     expect(result).toMatchObject({ ticks: 3800, route_complete: true, assertion_results: [{ passed: true }, { passed: true }, { passed: true }] });
@@ -86,7 +86,7 @@ describe("agent game routes", () => {
     const agent = run();
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Failing script" }) as GameReply;
     const document = structuredClone(created.document);
-    document.scenes[0].entities[0].behaviors.push({ kind: "script", source: '() => { throw new Error("route failed"); }', maxTickMs: 30, maxCommands: 8 });
+    document.scenes[0].entities[0].behaviors.push({ kind: "script", source: '() => { throw new Error("route failed"); }', maxTickMs: 20, maxCommands: 8 });
     await agent.invoke("edit_native_game", { game_id: created.game.id, ops: [{ op: "set_document", document }] });
     expect(await agent.invoke("playtest_native_game", { game_id: created.game.id, inputs: [{ pressed: [], ticks: 2 }], assertions: [{ no_script_errors: true }] })).toMatchObject({ ticks: 0, route_complete: false, script_error: { tick: 1, message: expect.stringContaining("route failed") }, assertion_results: [{ passed: false }] });
   });

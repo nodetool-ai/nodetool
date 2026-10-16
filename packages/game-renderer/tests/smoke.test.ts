@@ -22,7 +22,7 @@ it.each(["2d", "3d"])("smokes 300 rendered frames from an exported %s build", as
   if (dimension === "3d") {
     const document = createNative3DGame("smoke");
     for (const scene of document.scenes) for (const entity of scene.entities) for (const behavior of entity.behaviors) {
-      if (behavior.kind === "script") behavior.maxTickMs = 50;
+      if (behavior.kind === "script") behavior.maxTickMs = 20;
     }
     await buildStandaloneGame3D({ document, outputDir: output, resolveAsset: async () => null });
   } else {

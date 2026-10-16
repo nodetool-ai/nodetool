@@ -38,7 +38,7 @@ function document2D(withParticles: boolean): GameDocument {
       entities: [...scene.entities, {
         id: "torch", transform2d: { x: 1, y: 2 },
         ...(withParticles ? { particles } : {}),
-        behaviors: [{ kind: "script", maxTickMs: 50, source: emitScript }]
+        behaviors: [{ kind: "script", maxTickMs: 20, source: emitScript }]
       }]
     } : scene)
   });
@@ -51,7 +51,7 @@ function document3D(withParticles: boolean): GameDocument3D {
     scenes: [{ ...base.scenes[0], entities: [...base.scenes[0].entities, {
       id: "torch", transform3d: { position: { x: 1, y: 2, z: 3 } },
       ...(withParticles ? { particles } : {}),
-      behaviors: [{ kind: "script", maxTickMs: 50, source: emitScript }]
+      behaviors: [{ kind: "script", maxTickMs: 20, source: emitScript }]
     }] }]
   });
 }

@@ -55,7 +55,7 @@ function torchDocument() {
             render: { kind: "stretched", length: 2 }, softness: 0.5 },
           { id: "burst", playOnStart: false, rate: 0, lifetime: 10, speed: 0, render: { kind: "mesh", shape: "box" } }
         ] },
-        behaviors: [{ kind: "script", maxTickMs: 50, source: "({tick}) => ({ state: null, commands: tick === 0 ? [{ kind: 'emitParticles', emitter: 'burst', count: 4 }] : [] })" }] }
+        behaviors: [{ kind: "script", maxTickMs: 20, source: "({tick}) => ({ state: null, commands: tick === 0 ? [{ kind: 'emitParticles', emitter: 'burst', count: 4 }] : [] })" }] }
     ] }]
   });
 }
