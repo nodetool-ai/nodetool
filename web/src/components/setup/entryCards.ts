@@ -1,13 +1,14 @@
 /**
  * The creation-flow entry cards (PRD § 6.1) — one list, two hosts.
  *
- * New Project starts with Image, Storyboard, and Workflow and reveals the
- * other formats on request. Studio shows Storyboard, Video, and Script
+ * New Project starts with Image, Storyboard, Read aloud, and Workflow and
+ * reveals the other formats on request. Read aloud opens a chat whose
+ * composer speaks the next line (study-5-I3). Studio shows Storyboard, Video, and Script
  * (D24 and D30: Image, Workflow and Game are workspace flows). Shared copy
  * comes from PRD § 6.1 and game-prd Appendix A. Entity adds library creation.
  *
  * `disabled` with a `disabledReason` naming the phase is how a card waits for
- * its flow to be built. All seven are live now; the field stays on the type for
+ * its flow to be built. All eight are live now; the field stays on the type for
  * the next one.
  */
 
@@ -18,6 +19,7 @@ export type EntryFlowId =
   | "storyboard"
   | "video"
   | "script"
+  | "speech"
   | "image"
   | "workflow"
   | "game";
@@ -46,6 +48,11 @@ export const ENTRY_CARDS: readonly EntryCard[] = [
     id: "script",
     title: "Script",
     description: "From a topic to voiced lines, ready to place."
+  },
+  {
+    id: "speech",
+    title: "Read aloud",
+    description: "Type a line and hear it spoken."
   },
   {
     id: "image",

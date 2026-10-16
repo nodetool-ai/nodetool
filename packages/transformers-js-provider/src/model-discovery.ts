@@ -12,6 +12,7 @@ import type {
   ImageModel,
   LanguageModel,
   ModelAdapterInfo,
+  MusicModel,
   ProviderId,
   RerankModel,
   TTSModel
@@ -79,7 +80,8 @@ export async function discoverLanguageModels(): Promise<LanguageModel[]> {
   return entries.map((e) => ({
     id: e.repo_id,
     name: e.repo_id,
-    provider: PROVIDER_ID
+    provider: PROVIDER_ID,
+    adapter: adapterFor(e.repo_id, "tjs.text_generation")
   }));
 }
 
@@ -91,6 +93,17 @@ export async function discoverTTSModels(): Promise<TTSModel[]> {
     provider: PROVIDER_ID,
     voices: isKokoroRepo(e.repo_id) ? [...KOKORO_VOICES] : undefined,
     adapter: adapterFor(e.repo_id, "tjs.text_to_speech")
+  }));
+}
+
+export async function discoverMusicModels(): Promise<MusicModel[]> {
+  const entries = await unionRecommendedAndCache(["tjs.text_to_music"]);
+  return entries.map((e) => ({
+    id: e.repo_id,
+    name: e.repo_id,
+    provider: PROVIDER_ID,
+    supportedTasks: ["text_to_music"],
+    adapter: adapterFor(e.repo_id, "tjs.text_to_music")
   }));
 }
 
@@ -116,10 +129,13 @@ export async function discoverEmbeddingModels(): Promise<EmbeddingModel[]> {
   }));
 }
 
-/** The provider capability each image catalog type serves. */
+/** The model task each image catalog type serves, as the web pickers match it. */
 const IMAGE_TASKS: ReadonlyArray<readonly [string, string]> = [
+  ["tjs.text_to_image", "text_to_image"],
   ["tjs.background_removal", "remove_background"],
-  ["tjs.depth_estimation", "estimate_depth"]
+  ["tjs.depth_estimation", "estimate_depth"],
+  ["tjs.image_segmentation", "segment"],
+  ["tjs.image_to_image", "upscale"]
 ];
 
 export async function discoverImageModels(): Promise<ImageModel[]> {

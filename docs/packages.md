@@ -12,10 +12,10 @@ For the list of first-party workspace packages, see the [Package catalogue](#pac
 
 The **Package Manager** (**Tools > Package Manager** in the desktop app, or `/packages` in the web UI) has four lists:
 
-- **Included** shows the packs that ship with NodeTool. Each has an Enabled/Disabled switch, except the core pack, which is always on. Provider packs that need an API key are not listed here. Their nodes appear once you set the matching key.
-- **Python packs** lists the Python node packs that NodeTool offers, with Install, Update, and Uninstall buttons. They install from PyPI at their newest stable release, resolved together with the packs already installed. See [Node Packs](node-packs.md#included-python-packs-third-party-and-software).
-- **Third-party** installs an npm package by name and lists the packs the app has installed. See [Node Packs](node-packs.md).
-- **Software** manages runtimes such as Python and FFmpeg.
+- **Engines & tools** manages programs that run on this computer: local AI engines such as llama.cpp and stable-diffusion.cpp, media tools such as FFmpeg, and languages such as Python.
+- **Built-in nodes** shows the packs that ship with NodeTool. Each has an Enabled/Disabled switch, except the core pack, which is always on. Provider packs that need an API key are not listed here. Their nodes appear once you set the matching key.
+- **Python nodes** lists the Python node packs that NodeTool offers, with Install, Update, and Uninstall buttons. They install from PyPI at their newest stable release, resolved together with the packs already installed. See [Node Packs](node-packs.md#engines--tools-built-in-nodes-python-nodes-and-community-nodes).
+- **Community nodes** installs an npm package by name and lists the packs the app has installed. See [Node Packs](node-packs.md).
 
 Installing and removing run only in the desktop app. The web UI shows status.
 

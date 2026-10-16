@@ -25,20 +25,23 @@ export async function disposePackRegistryFixtures(): Promise<void> {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 }
 
-export async function setupPackRegistry(conflict = false, options: { readonly tls?: boolean; readonly optionalDependency?: boolean; readonly allowScript?: boolean; readonly globalCore?: boolean } = {}) {
+export async function setupPackRegistry(conflict = false, options: { readonly tls?: boolean; readonly optionalDependency?: boolean; readonly allowScript?: boolean; readonly globalCore?: boolean; readonly olderTransitiveDependency?: boolean } = {}) {
   const directory = await realpath(await mkdtemp(join(tmpdir(), "packs-registry-"))); roots.push(directory);
   const npm = findNpmCli(); if (!npm) { throw new Error("Local npm-cli.js required for integration fixture"); }
   const tarballs = new Map<string, { name: string; version: string; bytes: Buffer; integrity: string; dependencies: Record<string, string> }>();
   for (const [name, version, dependencies] of [
     ["fixture-baseline", "1.0.0", {}], ["fixture-baseline", "2.0.0", {}],
-    ["@nodetool-ai/fixture-nodes", "1.0.0", conflict ? { "fixture-baseline": "2.0.0" } : {}],
+    ["@nodetool-ai/fixture-nodes", "1.0.0", options.olderTransitiveDependency ? { "fixture-extractor": "1.0.0" } : conflict ? { "fixture-baseline": "2.0.0" } : {}],
     ["@nodetool-ai/fixture2-nodes", "1.0.0", {}],
-    ["@nodetool-ai/cli", "1.0.0", { "fixture-baseline": "1.0.0", ...(options.globalCore ? { "@nodetool-ai/fixture2-nodes": "1.0.0" } : {}) }],
+    ["@nodetool-ai/cli", "1.0.0", { "fixture-baseline": options.olderTransitiveDependency ? "^1.0.0" : "1.0.0", ...(options.globalCore ? { "@nodetool-ai/fixture2-nodes": "1.0.0" } : {}) }],
     ["@nodetool-ai/cli", "1.1.0", { "fixture-baseline": "1.0.0" }],
-    ["fixture-optional", "1.0.0", {}]
+    ["fixture-optional", "1.0.0", {}],
+    ...(options.olderTransitiveDependency ? [
+      ["fixture-baseline", "1.1.0", {}], ["fixture-extractor", "1.0.0", { "fixture-baseline": "1.0.0" }]
+    ] as const : [])
   ] as const) {
     const path = join(directory, `${name.replaceAll("/", "-")}-${version}`); await mkdir(path);
-    const isPack = name.endsWith("-nodes");
+    const isPack = name.endsWith("-nodes") && !options.olderTransitiveDependency;
     await writeFile(join(path, "package.json"), JSON.stringify({ name, version, main: "index.js", ...(isPack ? { peerDependencies: dependencies } : { dependencies }),
       ...(options.optionalDependency && name === "@nodetool-ai/fixture-nodes" ? { optionalDependencies: { "fixture-optional": "1.0.0" } } : {}),
       scripts: { postinstall: "node -e \"require('fs').writeFileSync('SCRIPT_RAN', 'bad')\"" } }));
@@ -70,7 +73,7 @@ export async function setupPackRegistry(conflict = false, options: { readonly tl
       if (!versions.length) { response.statusCode = 404; response.end('{}'); return; }
       response.setHeader("content-type", "application/json");
       response.end(JSON.stringify({ name, "dist-tags": { latest: versions.at(-1)!.version }, versions: Object.fromEntries(versions.map((entry) => [entry.version, {
-        name, version: entry.version, ...(name.endsWith("-nodes") ? { peerDependencies: entry.dependencies } : { dependencies: entry.dependencies }), scripts: { postinstall: "node -e \"require('fs').writeFileSync('SCRIPT_RAN', 'bad')\"" },
+        name, version: entry.version, ...(name.endsWith("-nodes") && !options.olderTransitiveDependency ? { peerDependencies: entry.dependencies } : { dependencies: entry.dependencies }), scripts: { postinstall: "node -e \"require('fs').writeFileSync('SCRIPT_RAN', 'bad')\"" },
         ...(options.optionalDependency && name === "@nodetool-ai/fixture-nodes" ? { optionalDependencies: { "fixture-optional": "1.0.0" } } : {}),
         dist: { tarball: `${registry}/tar/${name.replaceAll("/", "-")}-${entry.version}.tgz`, integrity: entry.integrity }
       }])) }));

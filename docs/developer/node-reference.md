@@ -329,6 +329,9 @@ static readonly isTrigger = true;      // trigger node (see Suspendable Nodes)
 static readonly requiredRuntimes = ["ffmpeg"]; // host binaries or runtimes the node needs
 ```
 
+> Triggers, `primaryOutput`, `autoSaveAsset`, dynamic slots, `appendStaticInputs`, and `requiredRuntimes` are explained in
+> [Advanced node features](custom-nodes-guide.md#12a-advanced-node-features).
+
 > There is no `isStreamingOutput`, `syncMode`, `isDynamic`, or `basicFields`
 > static field. Streaming is inferred from `outputCorrelation` (and from
 > defining `genProcess()`/`run()`); dynamic inputs use `supportsDynamicInputs`;

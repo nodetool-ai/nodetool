@@ -32,6 +32,7 @@ import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection"
 import useMetadataStore from "../../../stores/MetadataStore";
 import { NODE_COLLAPSED_LAYOUT } from "../../../styles/collapsedNodeTokens";
 import { isObjectLike } from "../../../utils/typePredicates";
+import { emptyOutputMessage } from "./emptyOutputMessage";
 
 const styles = (theme: Theme) =>
   css([
@@ -274,6 +275,9 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
     [current]
   );
   const result = streamBuffer !== undefined ? streamBuffer : settledValue;
+  const focusedRunState = useWorkflowRunsStore((s) =>
+    focusedJob ? s.runs[workflowId]?.[focusedJob]?.state : undefined
+  );
 
   const outputValue = useMemo(() => getOutputFromResult(result), [result]);
 
@@ -450,7 +454,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
         >
           {result === null || result === undefined ? (
             <CheckerDropzone
-              message="Run to see the output"
+              message={emptyOutputMessage(focusedRunState)}
               icon={<OutputIcon />}
             />
           ) : (

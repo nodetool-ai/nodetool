@@ -45,7 +45,7 @@ export interface OnboardingEngine {
   /** Platform restriction, when there is one (e.g. Apple Silicon only). */
   platform?: string;
   /**
-   * Runtime id in the desktop Package Manager's "Software" tab, when the engine
+   * Runtime id in the desktop Package Manager's "Engines & tools" list, when the engine
    * is installed as a runtime rather than bundled. Matches
    * {@link RuntimePackagesStore} status ids.
    */

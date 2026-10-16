@@ -68,6 +68,6 @@ export async function replayGame3D(...args: Parameters<typeof import("./session3
 
 /** Hash committed simulation data independently of renderer state. */
 export async function hashGameSnapshot3D(snapshot: GameSnapshot3D): Promise<string> {
-  const { digestGame3D } = await import("./spatial3d/digest.js");
-  return digestGame3D(snapshot);
+  const { digestGameSnapshot3D } = await import("./spatial3d/digest.js");
+  return digestGameSnapshot3D(snapshot);
 }

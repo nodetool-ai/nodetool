@@ -98,8 +98,9 @@ describe("nodetool runtime", () => {
       packages: Array<{ id: string; installed: boolean; version: string }>;
     };
 
+    // The npm packages plus sd-cpp, the one binary package.
     expect(listed.packages.map((row) => row.id).sort()).toEqual(
-      Object.keys(RUNTIME_NPM_PACKAGES).sort()
+      [...Object.keys(RUNTIME_NPM_PACKAGES), "sd-cpp"].sort()
     );
     const byId = new Map(listed.packages.map((row) => [row.id, row]));
     expect(byId.get("tokenizer")).toMatchObject({ installed: true, version: "1.0.21" });
