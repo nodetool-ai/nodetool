@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import type { AnyGameDocument } from "@nodetool-ai/protocol";
 import type { GameValidationIssue } from "@nodetool-ai/game-runtime";
 import type { FieldSchema } from "./schemaForm";
+import EnvironmentEditor3D from "./editors/EnvironmentEditor3D";
 
 export interface GameComponentEditorProps {
   readonly schema: FieldSchema;
@@ -17,4 +18,4 @@ export interface GameComponentEditorProps {
 export type GameComponentEditor = ComponentType<GameComponentEditorProps>;
 export type GameComponentEditors = Readonly<Partial<Record<string, GameComponentEditor>>>;
 
-export const GAME_COMPONENT_EDITORS: GameComponentEditors = {};
+export const GAME_COMPONENT_EDITORS: GameComponentEditors = { environment: EnvironmentEditor3D };

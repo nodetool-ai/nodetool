@@ -278,6 +278,7 @@ export { gameNonSpatialBehavior, type GameNonSpatialBehavior, gameBehavior3D, ty
 
 export { gameMaterial3D, gameTextureSlot3D, type GameMaterial3D, type GameTextureSlot3D } from "./components/material.js";
 export { GAME_MAX_DECALS_3D, gameDecal3D, type GameDecal3D } from "./components/decal.js";
+export { gameHeightFog3D, type GameHeightFog3D } from "./components/height-fog.js";
 
 export { gamePrimitive3D, type GamePrimitive3D } from "./components/primitive.js";
 

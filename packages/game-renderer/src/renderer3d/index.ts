@@ -7,6 +7,8 @@ import { releaseInstance } from "./assets/dispose.js";
 import type { RenderInstance } from "./types.js";
 import { syncGameLights, removeGameLight } from "./lights/index.js";
 import { configureGameEnvironment } from "./environment/index.js";
+import { GameHeightFog3D } from "./environment/height-fog.js";
+import { GameDecals3D } from "./decals/index.js";
 import { GameSkyRenderer3D, type GameSkySources3D } from "./environment/sky.js";
 import { paintGameHud } from "./hud/paint.js";
 import { applyDistanceCulling3D } from "./culling.js";
@@ -106,6 +108,8 @@ class ThreeGameRenderer implements GameRenderer3D {
   private readonly invalidatedAssets = new Set<string>();
   private readonly modelCache: GameModelCache3D;
   private readonly fonts: GameFonts3D;
+  private readonly heightFog = new GameHeightFog3D();
+  private readonly decals: GameDecals3D;
   private readonly diagnostics: string[] = [];
   private readonly lights = new Map<string, THREE.Light>();
   private readonly shadows = new GameShadows3D(this.diagnostics, (message) => this.options.onDiagnostic?.(message));
@@ -149,9 +153,14 @@ class ThreeGameRenderer implements GameRenderer3D {
   constructor(private readonly renderer: THREE.WebGLRenderer, private readonly options: CreateGameRenderer3DOptions) {
     this.modelCache = new GameModelCache3D(options, this.controller);
     this.fonts = new GameFonts3D(options, this.controller, this.diagnostics);
+    this.decals = new GameDecals3D(this.scene, options, this.controller.signal, this.diagnostics, options.onDiagnostic);
     this.sky = new GameSkyRenderer3D(renderer, options, this.controller.signal, this.diagnostics);
     this.postProcessor = new GamePostProcessor3D(renderer);
     this.particlePass = new GameParticlePass3D(this.pipeline, { scene: this.scene, particles: () => this.renderingParticles });
+    this.pipeline.register({ name: "height-fog", order: -0.25, render: ({ scene, camera }) => {
+      const fog = this.renderingFrame?.environment.fog;
+      this.heightFog.configure(scene, camera, fog && "kind" in fog ? fog : undefined);
+    } });
     this.editorPasses = options.editorPasses?.(this.pipeline, { scene: this.scene, frame: () => this.renderingFrame,
       entityObject: (entityId) => this.getEntityObject(entityId),
       entityObjects: () => [...this.instances.values()].map((instance) => instance.object),
@@ -285,14 +294,18 @@ class ThreeGameRenderer implements GameRenderer3D {
       }
       await this.modelCache.invalidate(slot);
       await this.sky.invalidate(slot);
+      await this.decals.invalidate(slot);
     }
     this.invalidatedAssets.clear();
     this.controller.signal.throwIfAborted();
     if (this.status === "lost") { throw new Error("WebGL2 context is lost; simulation must remain paused until recovery"); }
     if (this.presentation && (this.presentation.gameId !== frame.gameId || this.presentation.sceneId !== frame.sceneId || frame.tick < this.presentation.tick)) {
+      this.heightFog.dispose();
+      await this.decals.reset();
       this.instances.forEach(releaseInstance);
       this.instances.clear();
     }
+    if (this.restoring) { await this.decals.reset(); }
     this.presentation = { gameId: frame.gameId, sceneId: frame.sceneId, tick: frame.tick };
     await syncGameScene(this.scene, this.instances, this.modelCache, this.controller.signal, frame, interpolation);
     this.controller.signal.throwIfAborted();
@@ -300,6 +313,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     const activeCamera = this.editorCamera ?? this.camera;
     activeCamera.updateMatrixWorld(true);
     const culledEntities = applyDistanceCulling3D(this.instances, frame, this.editorCamera ? null : this.camera);
+    await this.decals.sync(frame, this.instances);
     syncGameLights(this.scene, this.lights, frame, this.shadows, activeCamera);
     configureGameEnvironment(this.scene, this.ambient, this.renderer, frame.environment);
     await this.sky.apply(this.scene, frame);
@@ -310,6 +324,8 @@ class ThreeGameRenderer implements GameRenderer3D {
     paintGameHud(this.hudCanvas, this.hudTexture, frame);
     this.renderer.info.autoReset = false;
     this.renderer.info.reset();
+    const fog = frame.environment.fog;
+    this.heightFog.configure(this.scene, activeCamera, fog && "kind" in fog ? fog : undefined);
     this.renderer.compile(this.scene, activeCamera);
     this.controller.signal.throwIfAborted();
     this.renderingFrame = frame;
@@ -319,8 +335,8 @@ class ThreeGameRenderer implements GameRenderer3D {
     if (this.renderer.getContext().isContextLost()) { throw new Error("WebGL2 context was lost during render"); }
     this.successful = true;
     if (this.restoring) { this.restoring = false; this.options.onContextState?.("ready"); }
-    let geometryBytes = 0;
-    let textureBytes = this.hudCanvas.width * this.hudCanvas.height * 4;
+    let geometryBytes = this.decals.geometryBytes;
+    let textureBytes = this.hudCanvas.width * this.hudCanvas.height * 4 + this.decals.textureBytes;
     for (const instance of this.instances.values()) {
       const geometry = instance.primitiveGeometry;
       if (geometry) {
@@ -344,6 +360,8 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.canvas.removeEventListener("webglcontextrestored", this.onRestored);
     this.instances.forEach(releaseInstance);
     this.instances.clear();
+    this.heightFog.dispose();
+    this.decals.dispose();
     this.modelCache.dispose();
     this.fonts.dispose();
     this.sky.dispose();
