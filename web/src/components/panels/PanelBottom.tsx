@@ -17,9 +17,14 @@ import {
   SPACING,
   getSpacingPx,
   Drawer,
-  PanelHeader
+  PanelHeader,
+  ResizeHandle
 } from "../ui_primitives";
-import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
+import {
+  useResizeBottomPanel,
+  BOTTOM_PANEL_MIN_DRAG_SIZE,
+  BOTTOM_PANEL_MAX_SIZE
+} from "../../hooks/handlers/useResizeBottomPanel";
 import {
   BOTTOM_PANEL_GROUPS,
   BottomPanelView,
@@ -177,51 +182,6 @@ export const styles = (theme: Theme) =>
       flexShrink: 0,
       position: "relative",
       backgroundColor: theme.vars.palette.background.default
-    },
-    ".panel-resize-button": {
-      height: getSpacingPx(SPACING.sm),
-      width: "100%",
-      position: "absolute",
-      zIndex: Z_INDEX.overlay,
-      top: getSpacingPx(-SPACING.xs),
-      left: "0",
-      backgroundColor: "transparent",
-      border: 0,
-      borderRadius: 0,
-      cursor: "ns-resize",
-      transition: MOTION.all,
-      ...reducedMotion({ transition: MOTION.none }),
-      "&::before": {
-        content: '""',
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        width: getSpacingPx(SPACING.xxxl),
-        height: getSpacingPx(SPACING.xs),
-        borderRadius: BORDER_RADIUS.xs,
-        backgroundColor: theme.vars.palette.grey[600],
-        opacity: 0.5,
-        transition: MOTION.all
-      },
-      "&:hover": {
-        backgroundColor: theme.vars.palette.primary.main,
-        boxShadow: SHADOW(theme).sm,
-        transform: "scaleY(1.5)",
-        "&::before": {
-          opacity: 1,
-          backgroundColor: theme.vars.palette.common.white
-        }
-      },
-      "&:active": {
-        backgroundColor: theme.vars.palette.primary.main,
-        boxShadow: SHADOW(theme).md,
-        transform: "scaleY(2)",
-        "&::before": {
-          opacity: 1,
-          backgroundColor: theme.vars.palette.common.white
-        }
-      }
     },
     ".panel-content": {
       display: "flex",
@@ -513,7 +473,9 @@ const PanelBottom: React.FC = () => {
     size: panelSize,
     isVisible,
     isDragging,
-    handleMouseDown,
+    handleResizeStart,
+    handleResize,
+    handleResizeEnd,
     handlePanelToggle
   } = useResizeBottomPanel();
 
@@ -592,16 +554,19 @@ const PanelBottom: React.FC = () => {
         open={true}
       >
         {isVisible && (
-          <div
-            className="panel-resize-button"
-            onMouseDown={handleMouseDown}
-            style={{ cursor: "ns-resize" }}
-            role="slider"
-            aria-label="Resize panel"
-            aria-valuenow={panelSize}
-            aria-valuemin={40}
-            aria-valuemax={600}
-            tabIndex={-1}
+          <ResizeHandle
+            orientation="horizontal"
+            edge="start"
+            invert
+            grip
+            value={panelSize}
+            min={BOTTOM_PANEL_MIN_DRAG_SIZE}
+            max={BOTTOM_PANEL_MAX_SIZE}
+            ariaLabel="Resize panel"
+            onResize={handleResize}
+            onResizeStart={handleResizeStart}
+            onResizeEnd={handleResizeEnd}
+            sx={{ top: getSpacingPx(-SPACING.xs), zIndex: Z_INDEX.overlay }}
           />
         )}
         <div className="panel-content">

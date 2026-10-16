@@ -12,7 +12,7 @@ import useNodeMenuStore, {
 } from "../../stores/NodeMenuStore";
 
 import { useDraggable } from "../../hooks/useDraggable";
-import { useResizable } from "../../hooks/useResizable";
+import { useResizable, useResizableEdges } from "../../hooks/useResizable";
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -26,7 +26,8 @@ import {
   SPACING,
   Z_INDEX,
   getSpacingPx,
-  SHADOW
+  SHADOW,
+  ResizeHandle
 } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 
@@ -64,25 +65,11 @@ const treeStyles = (theme: Theme) =>
     ".draggable-header:active": {
       cursor: "grabbing"
     },
-    // Resize handles (top-left anchored): right edge, bottom edge, corner.
+    // Resize corner (top-left anchored). The edges use ResizeHandle.
     ".nm-resize": {
       position: "absolute",
       zIndex: Z_INDEX.sticky,
       touchAction: "none"
-    },
-    ".nm-resize-right": {
-      top: "40px",
-      bottom: "12px",
-      right: 0,
-      width: "7px",
-      cursor: "ew-resize"
-    },
-    ".nm-resize-bottom": {
-      left: 0,
-      right: "12px",
-      bottom: 0,
-      height: "7px",
-      cursor: "ns-resize"
     },
     ".nm-resize-corner": {
       right: 0,
@@ -201,13 +188,15 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
 
   // Resize from the right / bottom / corner (top-left stays anchored). The
   // final size is persisted so it sticks across reopens within the session.
-  const startResize = useResizable(nodeRef, {
+  const resizeOptions = {
     minWidth: 560,
     minHeight: 360,
     maxHeight:
       typeof window !== "undefined" ? window.innerHeight * 0.9 : undefined,
     onResizeEnd: setMenuUserSize
-  });
+  };
+  const startResize = useResizable(nodeRef, resizeOptions);
+  const edgeResize = useResizableEdges(nodeRef, resizeOptions);
 
   const namespaceTree = useNamespaceTree();
   const theme = useTheme();
@@ -376,15 +365,21 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
           />
         </div>
       </Box>
-      <div
-        className="nm-resize nm-resize-right"
-        onPointerDown={startResize("right")}
-        aria-hidden
+      <ResizeHandle
+        orientation="vertical"
+        edge="end"
+        invisible
+        ariaLabel="Resize node menu width"
+        sx={{ top: "40px", bottom: "12px", zIndex: Z_INDEX.sticky }}
+        {...edgeResize.right}
       />
-      <div
-        className="nm-resize nm-resize-bottom"
-        onPointerDown={startResize("bottom")}
-        aria-hidden
+      <ResizeHandle
+        orientation="horizontal"
+        edge="end"
+        invisible
+        ariaLabel="Resize node menu height"
+        sx={{ left: 0, right: "12px", zIndex: Z_INDEX.sticky }}
+        {...edgeResize.bottom}
       />
       <div
         className="nm-resize nm-resize-corner"

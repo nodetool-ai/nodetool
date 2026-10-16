@@ -792,6 +792,33 @@ toolbar of controls, or its content.
 | Drag | A tab drags after 4px of travel. `DockDropOverlay` previews the drop: the center adds a tab, an edge splits the group. Escape cancels |
 | Panel toolbar | `CONTROL.height.md` (32px), `SPACING.sm` inset, controls right-aligned, 1px `divider` below. Omit it when the panel has no controls |
 
+### Resize handles
+
+Every draggable split, dock edge and resizable window edge uses
+`ResizeHandle`. It renders a `role="separator"` strip with pointer capture,
+arrow-key resizing (Home and End jump to the bounds) and a focus ring. It
+reports deltas through `onResize` and the caller keeps the size.
+
+| Prop | Rule |
+|---|---|
+| `orientation` | The axis of the bar itself. `vertical` sits between side-by-side panes, `horizontal` between stacked panes |
+| `edge` | Omit for an in-flow flex item between panes. `start` or `end` pins the strip to that edge of a positioned parent, as a dock edge or window edge |
+| `invert` | Set when the pane's handle is on its leading edge (right dock, bottom dock), so dragging toward the handle's start grows it |
+| `thickness` | A `SPACING` step. Default `SPACING.sm` (6px). Use `SPACING.md` for window edges and `SPACING.xxl` for a phone touch target |
+| `grip` | Draws a centred pill so a horizontal strip reads as a control at rest. Use it on bottom docks, modal bottoms and phone splits |
+| `invisible` | Hit area only, no hover fill. Use it on floating windows with rounded corners (node menu, conversation overlay) |
+| `getValue` | Measure the size on grab when it comes from the DOM instead of state |
+
+One look: transparent at rest, `primary.main` while hovered or dragged,
+2px `primary` focus ring. A handle does not glow, scale or change its pill
+colour on its own.
+
+Do not hand-build a handle from a `div` with `cursor: *-resize`, a
+`mousedown` listener and a hover colour. Corner grips that move two axes at
+once are the one exception, because `ResizeHandle` has one axis. Canvas
+gizmos (crop, transform, rulers) are not panel handles and keep their own
+code.
+
 ### Dialogs
 
 Dialogs are not panels. Every modal dialog uses the `Dialog` primitive. It

@@ -7,10 +7,19 @@ const MIN_DRAG_SIZE = 40;
 const MIN_PANEL_SIZE = 200;
 const MAX_PANEL_SIZE = 600;
 
+/** Smallest and largest height a drag can set. */
+export const BOTTOM_PANEL_MIN_DRAG_SIZE = MIN_DRAG_SIZE;
+export const BOTTOM_PANEL_MAX_SIZE = MAX_PANEL_SIZE;
+
+/**
+ * Drives the bottom panel's `ResizeHandle`. The handle reports clamped deltas,
+ * so this hook only applies them to the store and decides what a release
+ * means: a press with no movement toggles the current view, a drag below
+ * `MIN_PANEL_SIZE` collapses the panel.
+ */
 export const useResizeBottomPanel = () => {
   const panel = useBottomPanelStore(useShallow((state) => state.panel));
-  const startDragY = useRef(0);
-  const startDragSize = useRef(0);
+  const dragRef = useRef({ startSize: 0, moved: false });
 
   const actions = useBottomPanelStore(
     useShallow(
@@ -28,95 +37,77 @@ export const useResizeBottomPanel = () => {
   const lastSizeRef = useRef(
     Math.max(MIN_PANEL_SIZE, panel.panelSize || DEFAULT_PANEL_SIZE)
   );
-  const dragHandlersRef = useRef<{
-    handleMouseMove?: ((e: MouseEvent) => void);
-    handleMouseUp?: (() => void);
-  }>({});
   const hasDraggedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragThreshold = 20;
 
-  const handleMouseDown = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      startDragY.current = event.clientY;
-      startDragSize.current = panel.panelSize || DEFAULT_PANEL_SIZE;
-      actions.setIsDragging(true);
-      actions.setHasDragged(false);
+  const handleResizeStart = useCallback(() => {
+    dragRef.current = {
+      startSize:
+        useBottomPanelStore.getState().panel.panelSize || DEFAULT_PANEL_SIZE,
+      moved: false
+    };
+    actions.setIsDragging(true);
+    actions.setHasDragged(false);
+  }, [actions]);
 
-      let hasMoved = false;
+  const handleResize = useCallback(
+    (delta: number) => {
+      dragRef.current.moved = true;
+      const current =
+        useBottomPanelStore.getState().panel.panelSize || DEFAULT_PANEL_SIZE;
+      const newSize = Math.max(
+        MIN_DRAG_SIZE,
+        Math.min(current + delta, MAX_PANEL_SIZE)
+      );
+      actions.setSize(newSize);
 
-      const handleMouseMove = (event: MouseEvent) => {
-        hasMoved = true;
-        const deltaY = startDragY.current - event.clientY; // Inverted for bottom panel
-        let newSize = startDragSize.current + deltaY;
-
-        newSize = Math.max(MIN_DRAG_SIZE, Math.min(newSize, MAX_PANEL_SIZE));
-        actions.setSize(newSize);
-
-        if (Math.abs(deltaY) > dragThreshold) {
-          actions.setHasDragged(true);
-        }
-      };
-
-      const handleMouseUp = () => {
-        const currentSize = useBottomPanelStore.getState().panel.panelSize;
-
-        if (!hasMoved) {
-          // If we didn't move, treat it as a click and toggle the current view
-          actions.handleViewChange(panel.activeView);
-        } else {
-          // Ensure final size respects minimum and collapse if below threshold
-          let finalSize = Math.max(
-            MIN_DRAG_SIZE,
-            currentSize || DEFAULT_PANEL_SIZE
-          );
-
-          let visible = true;
-          if (finalSize < MIN_PANEL_SIZE) {
-            finalSize = MIN_DRAG_SIZE;
-            visible = false;
-          }
-
-          if (finalSize !== currentSize) {
-            actions.setSize(finalSize);
-          }
-          actions.setVisibility(visible);
-        }
-
-        actions.setIsDragging(false);
-        if (hasDraggedTimeoutRef.current !== null) {
-          clearTimeout(hasDraggedTimeoutRef.current);
-        }
-        hasDraggedTimeoutRef.current = setTimeout(() => actions.setHasDragged(false), 0);
-
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-        dragHandlersRef.current = {};
-      };
-
-      dragHandlersRef.current = { handleMouseMove, handleMouseUp };
-
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-
-      event.preventDefault();
+      if (Math.abs(newSize - dragRef.current.startSize) > dragThreshold) {
+        actions.setHasDragged(true);
+      }
     },
-    [panel.panelSize, panel.activeView, actions]
+    [actions]
   );
+
+  const handleResizeEnd = useCallback(() => {
+    const { panelSize: currentSize, activeView } =
+      useBottomPanelStore.getState().panel;
+
+    if (!dragRef.current.moved) {
+      // If we didn't move, treat it as a click and toggle the current view
+      actions.handleViewChange(activeView);
+    } else {
+      // Ensure final size respects minimum and collapse if below threshold
+      let finalSize = Math.max(
+        MIN_DRAG_SIZE,
+        currentSize || DEFAULT_PANEL_SIZE
+      );
+
+      let visible = true;
+      if (finalSize < MIN_PANEL_SIZE) {
+        finalSize = MIN_DRAG_SIZE;
+        visible = false;
+      }
+
+      if (finalSize !== currentSize) {
+        actions.setSize(finalSize);
+      }
+      actions.setVisibility(visible);
+    }
+
+    actions.setIsDragging(false);
+    if (hasDraggedTimeoutRef.current !== null) {
+      clearTimeout(hasDraggedTimeoutRef.current);
+    }
+    hasDraggedTimeoutRef.current = setTimeout(() => actions.setHasDragged(false), 0);
+  }, [actions]);
 
   if (panel.panelSize > MIN_DRAG_SIZE) {
     lastSizeRef.current = panel.panelSize;
   }
 
-  // Clean up any remaining drag event listeners and timeouts on unmount
+  // Clear the pending hasDragged reset on unmount
   useEffect(() => {
     return () => {
-      const { handleMouseMove, handleMouseUp } = dragHandlersRef.current;
-      if (handleMouseMove) {
-        document.removeEventListener("mousemove", handleMouseMove);
-      }
-      if (handleMouseUp) {
-        document.removeEventListener("mouseup", handleMouseUp);
-      }
       if (hasDraggedTimeoutRef.current !== null) {
         clearTimeout(hasDraggedTimeoutRef.current);
       }
@@ -128,7 +119,9 @@ export const useResizeBottomPanel = () => {
     size: panel.panelSize,
     isVisible: panel.isVisible,
     isDragging: panel.isDragging || false,
-    handleMouseDown,
+    handleResizeStart,
+    handleResize,
+    handleResizeEnd,
     handlePanelToggle: (view: BottomPanelView) => actions.handleViewChange(view),
   };
 };

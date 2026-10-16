@@ -17,7 +17,8 @@ import {
   SPACING,
   Z_INDEX,
   getSpacingPx,
-  InputAdornment
+  InputAdornment,
+  ResizeHandle
 } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
 import { removeDataframeColumn } from "../../utils/csvDataframe";
@@ -363,34 +364,6 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeNormal)",
       marginRight: getSpacingPx(SPACING.sm)
     },
-    ".resize-handle": {
-      position: "absolute",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: "12px",
-      cursor: "ns-resize",
-      backgroundColor: "transparent",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      transition: MOTION.background,
-      "&:hover": {
-        backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.05)`
-      },
-      "&:hover .resize-handle-thumb": {
-        opacity: 1,
-        width: "60px"
-      }
-    },
-    ".resize-handle-thumb": {
-      width: "40px",
-      height: "4px",
-      opacity: 0.5,
-      backgroundColor: theme.vars.palette.grey[600],
-      borderRadius: BORDER_RADIUS.pill,
-      transition: MOTION.all
-    },
     "@media (max-width: 1200px)": {
       ".modal-content": {
         width: "96%"
@@ -440,7 +413,7 @@ const DataframeEditorModal = ({
     storageKey: "dataframeEditorModal_fullscreen"
   });
 
-  const { modalHeight, handleResizeMouseDown } = useModalResize({
+  const { modalHeight, resizeBy, minHeight, maxHeight } = useModalResize({
     storageKey: "dataframeEditorModal_height",
     defaultHeight: Math.min(500, window.innerHeight - 200)
   });
@@ -638,9 +611,17 @@ const DataframeEditorModal = ({
             </div>
           </div>
 
-          <div className="resize-handle" onMouseDown={handleResizeMouseDown}>
-            <span className="resize-handle-thumb"></span>
-          </div>
+          <ResizeHandle
+            orientation="horizontal"
+            edge="end"
+            value={modalHeight}
+            min={minHeight}
+            max={maxHeight}
+            thickness={SPACING.md}
+            grip
+            ariaLabel="Resize dataframe editor height"
+            onResize={resizeBy}
+          />
         </div>
       </div>
     </div>
