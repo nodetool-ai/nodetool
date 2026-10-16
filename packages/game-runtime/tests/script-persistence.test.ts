@@ -1,3 +1,4 @@
+import { sceneScriptSourceKey } from "../src/script-source.js";
 import { describe, expect, it, vi } from "vitest";
 import { QuickJSContext } from "quickjs-emscripten-core";
 import { gameDocument } from "@nodetool-ai/protocol";
@@ -90,7 +91,7 @@ describe("persistent script proof", () => {
     })) });
     const runner = await prepareGameScripts3D(document);
     try {
-      const sourceKey = scriptSourceKey("inactive", "unused-0", 0);
+      const sourceKey = sceneScriptSourceKey("inactive", "unused-0", 0);
       const calls = ["instance-a", "instance-b"].map((entityId, index) => ({ sourceKey,
         stateKey: scriptSourceKey("scene", entityId, 0), entityId, source: "unused-0", state: index + 1,
         position: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 }, grounded: false, maxTickMs: 50, maxCommands: 8

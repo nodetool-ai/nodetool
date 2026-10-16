@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { blockout } from "./fixtures-game3d.js";
 import { prepareGameScripts3D } from "../src/scripts3d.js";
-import { scriptSourceKey } from "../src/scripts.js";
+import { scriptSourceKey, sceneScriptSourceKey } from "../src/script-source.js";
 
 it("queries frozen 3D entity centers in document order with source filtering before limits", async () => {
   const document = blockout();
@@ -25,7 +25,7 @@ it("queries frozen 3D entity centers in document order with source filtering bef
     { id: "third", source: "pick", position: { x: 0, y: 0, z: 0 }, velocity, grounded: false }
   ];
   try {
-    const result = runner.run([{ sourceKey: key, stateKey: key, entityId: "player", source: "player", state: null,
+    const result = runner.run([{ sourceKey: sceneScriptSourceKey("scene", "player", 0), stateKey: key, entityId: "player", source: "player", state: null,
       position: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 }, grounded: false, maxCommands: 8, maxTickMs: 50
     }], { tick: 0, pressed: [], justPressed: [], axes: {}, look: { x: 0, y: 0 }, camera: { yaw: 0, pitch: 0 }, events: [], queries: [], world }, 1);
     expect(result.results[0].state).toEqual({ ids: ["first", "second"], boundary: ["first"], outside: [], value: world[0], changed: 99 });

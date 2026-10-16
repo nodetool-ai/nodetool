@@ -6,7 +6,7 @@ import { applyGameplayCommand, queueGameplayBehavior, type GameplayCommand } fro
 import { assertDestroyCommands, awaitsDestroy, removedDestroyCall, scriptContacts, scriptEvents, scriptLifecycle } from "../script-lifecycle.js";
 import { planScriptProps } from "../script-props.js";
 import type { GameScriptCall3D } from "../scripts3d.js";
-import { scriptSourceKey } from "../scripts.js";
+import { parseScriptSourceKey, prefabScriptSourceKey, sceneScriptSourceKey, scriptSourceKey } from "../script-source.js";
 import { playAnimationGraphState3D, setAnimationParameter3D } from "./animation-graph3d.js";
 
 const NO_TAGS: readonly string[] = Object.freeze([]);
@@ -17,6 +17,11 @@ function scriptMetadata(state: EntityState3D): Pick<GameScriptCall3D, "tags" | "
   return { tags: state.definition.tags ?? NO_TAGS, active: state.active, rotation: [...state.transform.rotation] };
 }
 
+function sourceKey3D(sceneId: string, state: EntityState3D, index: number): string {
+  const keyOf = state.prefabId === undefined ? sceneScriptSourceKey : prefabScriptSourceKey;
+  return keyOf(state.prefabId ?? sceneId, state.sourceId ?? state.definition.id, index);
+}
+
 /** A script call without its state, built from the entity at the current point of the tick. */
 export function scriptCall3D(context: GameSystemContext3D, state: EntityState3D, index: number): Omit<GameScriptCall3D, "state"> {
   const behavior = state.definition.behaviors[index];
@@ -24,11 +29,7 @@ export function scriptCall3D(context: GameSystemContext3D, state: EntityState3D,
     throw new Error(`Behavior ${index} of ${state.definition.id} is not a script`);
   }
   return {
-    sourceKey: scriptSourceKey(
-      state.prefabId ? `prefab:${state.prefabId}` : context.currentScene().id,
-      state.sourceId ?? state.definition.id,
-      index
-    ),
+    sourceKey: sourceKey3D(context.currentScene().id, state, index),
     stateKey: scriptSourceKey(context.currentScene().id, state.definition.id, index),
     entityId: state.definition.id,
     source: state.sourceId ?? state.definition.id,
@@ -55,7 +56,7 @@ function destroyCalls3D(context: GameSystemContext3D, hookSources: ReadonlySet<s
         return;
       }
       const record = context.scriptState[scriptSourceKey(sceneId, state.definition.id, index)];
-      if (!awaitsDestroy(record) || !hookSources.has(scriptSourceKey(state.prefabId ? `prefab:${state.prefabId}` : sceneId, state.sourceId ?? state.definition.id, index))) {
+      if (!awaitsDestroy(record) || !hookSources.has(sourceKey3D(sceneId, state, index))) {
         return;
       }
       calls.push({ ...scriptCall3D(context, state, index), state: record as GameScriptCall3D["state"], lifecycle: { destroy: true } });
@@ -65,10 +66,11 @@ function destroyCalls3D(context: GameSystemContext3D, hookSources: ReadonlySet<s
   const destroyContext = {
     sceneId, hookSources, exists: (id: string) => ids.has(id), fields: REMOVED_FIELDS_3D,
     limitsOf: (sourceKey: string) => {
-      const [scope, sourceId, index] = JSON.parse(sourceKey) as [string, string, number];
-      const entities = scope.startsWith("prefab:") ? context.document.prefabs[scope.slice("prefab:".length)]?.entities
-        : scope === sceneId ? context.currentScene().entities : undefined;
-      const behavior = entities?.find((entity) => entity.id === sourceId)?.behaviors[index];
+      const source = parseScriptSourceKey(sourceKey);
+      if (!source) { return undefined; }
+      const entities = source.kind === "prefab" ? context.document.prefabs[source.scopeId]?.entities
+        : source.scopeId === sceneId ? context.currentScene().entities : undefined;
+      const behavior = entities?.find((entity) => entity.id === source.entityId)?.behaviors[source.behaviorIndex];
       return behavior?.kind === "script" ? behavior : undefined;
     }
   };
@@ -101,11 +103,7 @@ export function stepScripts3D(context: GameSystemContext3D): void {
     state.definition.behaviors.forEach((behavior, index) => {
       queueGameplayBehavior(behavior, state.definition.id, state.spawnTick, context.tick, context.previousEvents, context.queues, state.definition.tags);
       if (behavior.kind === "script") {
-        const sourceKey = scriptSourceKey(
-          state.prefabId ? `prefab:${state.prefabId}` : context.currentScene().id,
-          state.sourceId ?? state.definition.id,
-          index
-        );
+        const sourceKey = sourceKey3D(context.currentScene().id, state, index);
         const stateKey = scriptSourceKey(context.currentScene().id, state.definition.id, index);
         const lifecycle = hasHooks && hookSources.has(sourceKey)
           ? scriptLifecycle(sceneEnter, scriptContacts(state.definition.id, sceneContacts, (event) => event.sensor === true),

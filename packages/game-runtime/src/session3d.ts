@@ -1,3 +1,5 @@
+import { awaitsDestroy } from "./script-lifecycle.js";
+import { parseScriptSourceKey, scriptSourceKey } from "./script-source.js";
 import { createGameScriptReloader, type GameScriptReloadResult } from "./script-reload.js";
 import { frame3D } from "./systems/presentation3d.js";
 import {
@@ -193,6 +195,29 @@ export async function createGameSession3D(
   ) {
     throw new Error("Snapshot revision, source digest, or physics build does not match the game");
   }
+  if (saved) {
+    const presentIds = new Set(saved.entities.map(entity => entity.id));
+    // These legacy names detect incompatible records; they never select executable sources.
+    const legacySources = new Set<string>();
+    const scopes = [...document.scenes, ...Object.entries(document.prefabs).map(([id, prefab]) => ({ id: `prefab:${id}`, entities: prefab.entities }))];
+    for (const scope of scopes) {
+      for (const entity of scope.entities) {
+        entity.behaviors.forEach((behavior, index) => {
+          if (behavior.kind === "script") { legacySources.add(scriptSourceKey(scope.id, entity.id, index)); }
+        });
+      }
+    }
+    for (const [stateKey, record] of Object.entries(saved.scriptState)) {
+      const state = parseScriptSourceKey(stateKey);
+      if (!state?.legacy || state.scopeId !== saved.sceneId || presentIds.has(state.entityId) || !awaitsDestroy(record)
+        || !record.removed || typeof record.removed !== "object" || Array.isArray(record.removed)) { continue; }
+      const sourceKey = (record.removed as { readonly sourceKey?: unknown }).sourceKey;
+      const source = parseScriptSourceKey(sourceKey);
+      if (source?.legacy && source.behaviorIndex === state.behaviorIndex && typeof sourceKey === "string" && legacySources.has(sourceKey)) {
+        throw new Error("Snapshot contains an incompatible legacy script source identity for a pending destruction hook");
+      }
+    }
+  }
   const prepared = new Map<string, PreparedCollider3D>();
   for (const [slot, binding] of Object.entries(document.assets)) {
     if (binding.mediaKind !== "collider") continue;
@@ -223,18 +248,7 @@ export async function createGameSession3D(
         prefab.entities.some((entity) => entity.behaviors.some((behavior) => behavior.kind === "script"))
       )
     ) {
-      const scriptDocument = {
-        ...document,
-        scenes: [
-          ...document.scenes,
-          ...Object.entries(document.prefabs).map(([id, prefab]) => ({
-            ...document.scenes[0],
-            id: `prefab:${id}`,
-            entities: prefab.entities
-          }))
-        ]
-      };
-      runner = await prepareGameScripts3D(scriptDocument);
+      runner = await prepareGameScripts3D(document);
     }
     options.signal?.throwIfAborted();
     if (saved?.pendingCommands.length) throw new Error("Committed snapshots cannot contain unapplied commands");
