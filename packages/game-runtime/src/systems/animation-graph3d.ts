@@ -14,6 +14,8 @@ export const ANY_ANIMATION_STATE = "*";
 
 type AnimationParameters = GameAnimationGraphRuntime3D["parameters"];
 type MotionSample = GameAnimationPose3D["layers"][number]["current"];
+type RuntimeLayer = GameAnimationGraphRuntime3D["layers"][number];
+type Phase = NonNullable<RuntimeLayer["phase"]>;
 
 interface BoundGraph3D {
   readonly graph: GameAnimationGraph3D;
@@ -46,7 +48,46 @@ function readAnimationGraph3D(document: GameDocument3D, state: EntityState3D): B
   if (!bound) {
     return undefined;
   }
-  return { graph: bound.graph, runtime: state.animationGraph ?? initialAnimationGraph3D(bound.id, bound.graph, state.spawnTick) };
+  const runtime = state.animationGraph ?? initialAnimationGraph3D(bound.id, bound.graph, state.spawnTick);
+  if (!state.animationGraph && clipDurations(document, state)) {
+    for (const layer of runtime.layers) { layer.phase = { tick: state.spawnTick, value: 0, previousValue: 0, increment: 0 }; }
+  }
+  return { graph: bound.graph, runtime };
+}
+
+function clipDurations(document: GameDocument3D, state: EntityState3D): Readonly<Record<string, number>> | undefined {
+  const asset = state.definition.model && document.assets[state.definition.model.assetId];
+  return asset?.mediaKind === "model" ? asset.clipDurations : undefined;
+}
+
+function advancePhase(phase: Phase, node: GameAnimationGraphNode3D, parameters: AnimationParameters,
+  clips: Readonly<Record<string, string>>, durations: Readonly<Record<string, number>>, rate: number, tick: number): void {
+  if (tick <= phase.tick) { return; }
+  let duration = 0;
+  let total = 0;
+  for (const [alias, weight] of animationMotionWeights3D(node.motion, parameters)) {
+    const seconds = durations[clips[alias]];
+    if (seconds === undefined) { throw new Error(`Prepared animation duration is missing for ${alias}`); }
+    duration += seconds * weight;
+    total += weight;
+  }
+  phase.increment = duration > 0 && total > 0 ? rate * node.speed * total / (60 * duration) : 0;
+  const advance = (tick - phase.tick - 1) * phase.increment;
+  phase.previousValue = node.loop ? (phase.value + advance % 1) % 1 : Math.min(1, phase.value + advance);
+  phase.value = node.loop ? (phase.previousValue + phase.increment % 1) % 1 : Math.min(1, phase.previousValue + phase.increment);
+  phase.tick = tick;
+}
+
+function advanceLayer(document: GameDocument3D, state: EntityState3D, bound: BoundGraph3D, index: number, tick: number): void {
+  const layer = bound.runtime.layers[index];
+  const animator = state.definition.animator3d;
+  const durations = clipDurations(document, state);
+  if (!animator || !durations || !layer.phase) { return; }
+  const states = bound.graph.layers[index].states;
+  advancePhase(layer.phase, states[layer.state], bound.runtime.parameters, animator.clips, durations, animator.playbackRate, tick);
+  if (layer.previousState && layer.previousPhase) {
+    advancePhase(layer.previousPhase, states[layer.previousState], bound.runtime.parameters, animator.clips, durations, animator.playbackRate, tick);
+  }
 }
 
 function ensureAnimationGraph3D(document: GameDocument3D, state: EntityState3D): BoundGraph3D | undefined {
@@ -89,23 +130,30 @@ export function playAnimationGraphState3D(document: GameDocument3D, state: Entit
     throw new Error(`Unknown animation ${clip} for ${state.definition.id}`);
   }
   if (layer.state !== target) {
+    advanceLayer(document, state, bound, 0, tick);
     enterState(layer, target, tick, state.definition.animator3d?.transitionTicks ?? 0);
   }
   return true;
 }
 
 function enterState(layer: GameAnimationGraphRuntime3D["layers"][number], target: string, tick: number, durationTicks: number): void {
-  const previous = { state: layer.state, enteredTick: layer.enteredTick };
+  const { priorInterval: retained, ...previous } = layer;
+  if (layer.previousState !== undefined && tick - layer.enteredTick <= (layer.transitionTicks ?? 0) && retained?.endTick !== tick) {
+    layer.priorInterval = { ...structuredClone(previous), endTick: tick };
+  }
   delete layer.transitionIndex;
   delete layer.previousState;
   delete layer.previousEnteredTick;
   delete layer.transitionTicks;
+  delete layer.previousPhase;
   layer.state = target;
   layer.enteredTick = tick;
+  if (layer.phase) { layer.phase = { tick, value: 0, previousValue: 0, increment: 0 }; }
   if (durationTicks > 0) {
     layer.previousState = previous.state;
     layer.previousEnteredTick = previous.enteredTick;
     layer.transitionTicks = durationTicks;
+    if (previous.phase) { layer.previousPhase = previous.phase; }
   }
 }
 
@@ -152,6 +200,8 @@ export function stepAnimationGraphs3D(document: GameDocument3D, states: readonly
     const consumed = new Set<string>();
     bound.graph.layers.forEach((definition, index) => {
       const layer = bound.runtime.layers[index];
+      if (layer.priorInterval && layer.priorInterval.endTick < tick) { delete layer.priorInterval; }
+      advanceLayer(document, state, bound, index, tick);
       if (layer.previousState !== undefined) {
         const elapsed = tick - layer.enteredTick;
         if (elapsed < (layer.transitionTicks ?? 0)) {
@@ -163,6 +213,7 @@ export function stepAnimationGraphs3D(document: GameDocument3D, states: readonly
           delete layer.previousState;
           delete layer.previousEnteredTick;
           delete layer.transitionTicks;
+          delete layer.previousPhase;
         }
       }
       for (const [transitionIndex, transition] of definition.transitions.entries()) {
@@ -254,7 +305,9 @@ function motionSample(
   parameters: AnimationParameters,
   clips: Readonly<Record<string, string>>,
   startTick: number,
-  playbackRate: number
+  playbackRate: number,
+  phase?: Phase,
+  durations?: Readonly<Record<string, number>>
 ): MotionSample {
   const resolved = new Map<string, number>();
   for (const [alias, weight] of animationMotionWeights3D(node.motion, parameters)) {
@@ -268,7 +321,8 @@ function motionSample(
     startTick,
     rate: playbackRate * node.speed,
     loop: node.loop,
-    clips: [...resolved].map(([clipId, weight]) => ({ clipId, weight: Math.min(1, weight) }))
+    ...(phase ? { phase: { ...phase } } : {}),
+    clips: [...resolved].map(([clipId, weight]) => ({ clipId, weight: Math.min(1, weight), ...(durations ? { duration: durations[clipId] } : {}) }))
   };
 }
 
@@ -279,6 +333,7 @@ export function animationPose3D(document: GameDocument3D, state: EntityState3D):
   if (!bound || !animator) {
     return undefined;
   }
+  const durations = clipDurations(document, state);
   return {
     layers: bound.graph.layers.map((definition, index) => {
       const layer = bound.runtime.layers[index];
@@ -286,15 +341,26 @@ export function animationPose3D(document: GameDocument3D, state: EntityState3D):
       const entry: GameAnimationPose3D["layers"][number] = {
         mode: definition.mode,
         weight: definition.weight,
-        current: motionSample(current, bound.runtime.parameters, animator.clips, layer.enteredTick, animator.playbackRate)
+        current: motionSample(current, bound.runtime.parameters, animator.clips, layer.enteredTick, animator.playbackRate, layer.phase, durations)
       };
       if (definition.mask) {
         entry.mask = [...definition.mask];
       }
       const previous = layer.previousState === undefined ? undefined : definition.states[layer.previousState];
       if (previous && layer.previousEnteredTick !== undefined && layer.transitionTicks !== undefined) {
-        entry.previous = motionSample(previous, bound.runtime.parameters, animator.clips, layer.previousEnteredTick, animator.playbackRate);
+        entry.previous = motionSample(previous, bound.runtime.parameters, animator.clips, layer.previousEnteredTick, animator.playbackRate, layer.previousPhase, durations);
         entry.transitionTicks = layer.transitionTicks;
+      }
+      const prior = layer.priorInterval;
+      if (prior) {
+        entry.priorInterval = {
+          endTick: prior.endTick,
+          current: motionSample(definition.states[prior.state], bound.runtime.parameters, animator.clips, prior.enteredTick, animator.playbackRate, prior.phase, durations)
+        };
+        if (prior.previousState !== undefined && prior.previousEnteredTick !== undefined && prior.transitionTicks !== undefined) {
+          entry.priorInterval.previous = motionSample(definition.states[prior.previousState], bound.runtime.parameters, animator.clips, prior.previousEnteredTick, animator.playbackRate, prior.previousPhase, durations);
+          entry.priorInterval.transitionTicks = prior.transitionTicks;
+        }
       }
       return entry;
     })
