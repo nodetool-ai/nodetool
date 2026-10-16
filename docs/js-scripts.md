@@ -49,7 +49,7 @@ Media handles are valid only for the current run. Persist them before output, fo
 
 In the **Script** tab, the **Inputs** and **Outputs** lists declare the script's ports. Select **Add** to add a row, then enter a name and choose a type. Port names must be valid identifiers, because the body reads them as `inputs.<name>`.
 
-The available types are `str`, `int`, `float`, `bool`, `list`, `dict`, `image`, `audio`, `video`, `document`, and `any`.
+The editor offers `str`, `int`, `float`, `bool`, `list`, `dict`, `image`, `audio`, `video`, `document`, and `any`. The stored document accepts any type name.
 
 The ports are the only source for the run dialog, the test cases, and the validation checks. The same panel holds:
 
@@ -116,7 +116,7 @@ Two paths exist.
 | `nodetool jsscript run <script_id_or_file>` | Runs the body once. Pass `--inputs '{"a":1}'` or, for a body that uses `stream`, `--input-streams '{"nums":[1,2,3]}'`. |
 | `nodetool jsscript test <script_id_or_file>` | Runs and grades the saved cases. Exits non-zero if any case fails. |
 | `nodetool jsscript debug <script_id_or_file>` | Replays scripted `ui_jsscript_*` steps against the headless bridge and validates the result. |
-| `nodetool jsscript versions` | Lists, creates, and restores versions of a script. |
+| `nodetool jsscript versions` | Subcommands `list`, `show`, `create`, `restore`, and `delete` manage a script's version history. |
 
 ```bash
 nodetool jsscript validate script.json

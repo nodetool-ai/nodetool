@@ -2485,6 +2485,9 @@ const NewProjectSurface = ({
           setSelectedModel(model);
           setModelAnchor(null);
         }}
+        selectedModel={
+          isModelSelected(selectedModel) ? selectedModel : undefined
+        }
         requireToolSupport
       />
 

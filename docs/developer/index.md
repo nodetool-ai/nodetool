@@ -30,7 +30,7 @@ export class UppercaseTextNode extends BaseNode {
 }
 ```
 
-Export a `register(registry)` function and add a `nodetool` field to `package.json` (`{ "apiVersion": 1, "register": "register" }`). At startup the server scans installed packages for that field and calls the export. In production, only packs on the allowlist load.
+Export a `register(registry)` function and add a `nodetool` field to `package.json` (`{ "apiVersion": 1, "register": "register" }`). At startup the server scans installed packages for that field and calls the export. With `NODETOOL_ENV=production` or `NODETOOL_PACKS_REQUIRE_ALLOWLIST=1`, only packs on the allowlist load. `@prop` needs `experimentalDecorators` in `tsconfig.json`.
 
 **-> [Full Custom Nodes Guide (TypeScript)](custom-nodes-guide.md)** -- End-to-end walkthrough: packaging, governance, streaming, testing, distribution.
 
@@ -40,6 +40,7 @@ Export a `register(registry)` function and add a `nodetool` field to `package.js
 
 ### Provider & Model Guides
 
+- **[Custom Providers](../custom-providers.md)** -- Connect an OpenAI-compatible endpoint without writing code.
 - **[Provider Guides](providers/index.md)** -- **Add models & nodes to any provider.** Per-provider runbooks (OpenAI, Anthropic, Gemini, xAI, FAL, Replicate, KIE, Together, AtlasCloud, Topaz, MiniMax, Reve, ElevenLabs, HuggingFace, Ollama, local inference, OpenAI-compatible) with exact files, commands, and how past PRs did it. Written for coding agents and contributors.
 
 ### Custom Node Development (TypeScript)
@@ -65,6 +66,7 @@ Export a `register(registry)` function and add a `nodetool` field to `package.js
 
 - [TypeScript DSL Guide](ts-dsl-guide.md) -- Type-safe workflow definitions with auto-generated factory functions
 - [Portable Workflow Runner](workflow-runner.md) -- Run a workflow graph from a `(Request) => Response` handler on Node, Bun, Deno, Vercel, Cloudflare Workers, or in the browser
+- [Example Apps](example-apps.md) -- Runnable apps in `examples/`: a chat client and Next.js workflow apps for Vercel and Cloudflare
 
 ### Architecture
 
@@ -80,12 +82,16 @@ Export a `register(registry)` function and add a `nodetool` field to `package.js
 - [Headless Mode](../api-reference.md#headless-mode-running-workflows-via-cliapi) -- Run workflows via CLI and HTTP API
 - [Chat API](../chat-api.md) -- OpenAI-compatible chat endpoints
 - [Workflow API](../workflow-api.md) -- Execute workflows programmatically
+- [TypeScript SDK](sdk.md) -- `@nodetool-ai/sdk`: a typed tRPC client and the chat WebSocket
 
 ---
 
 ## Contributing
 
 Contribute to [NodeTool on GitHub](https://github.com/nodetool-ai/nodetool).
+
+- [Dev Environment](../dev-environment.md) -- Installing in locked-down containers and running WebGPU tests without a Vulkan driver.
+- [Harness Reference](../harnesses.md) -- `nodetool validate`, `debug`, `node run`, `harness gate` and the other checks contributors run.
 
 ### Share Custom Nodes
 

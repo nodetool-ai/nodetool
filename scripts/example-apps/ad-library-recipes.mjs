@@ -334,16 +334,18 @@ const layoutSteps = (bundle, concept) => {
   const startStep = {type: "Container", props: {id: "step-start", variant: "plain", visibleWhen: onStep("start"), content: [
     heading("start", "What you will make", `A ${concept.beats.length}-scene vertical ad, ${seconds(concept.duration_ms)} seconds long. You supply images and short lines of copy. The app builds an editable cut, not a generated video.`),
     {type: "Container", props: {id: "start-strip", variant: "plain", columns: concept.beats.length, content: concept.beats.map(beat => frame("start", beat.role))}},
-    model,
-    {...modelHelp, props: {...modelHelp.props, text: "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.", tone: "hint"}},
-    imageModel,
-    {...imageModelHelp, props: {...imageModelHelp.props, text: "Optional. Paints backgrounds and decoration for the layout. Saved for next time.", tone: "hint"}},
+    // The choice and its Next button come before the model pickers, so Next
+    // is in view at 1280 x 720 once a choice is made.
     {type: "ChoiceCards", props: {id: "fillPath", binding: "var:fillPath", label: "How do you want to start?", columns: 2, options: [
       {value: "web", title: "Fill from a website", description: "Paste a product page. AI suggests the copy and images."},
       {value: "self", title: "Fill in myself", description: `Go through ${content_steps.length} short steps.`}
     ], events: []}},
-    aiFill,
-    navRow("start-nav", null, button("start-next", `Next: ${first.title}`, [go(first.key)], {align: "end", visibleWhen: {binding: "var:fillPath", op: "notEmpty"}}))
+    navRow("start-nav", null, button("start-next", `Next: ${first.title}`, [go(first.key)], {align: "end", visibleWhen: {binding: "var:fillPath", op: "notEmpty"}})),
+    model,
+    {...modelHelp, props: {...modelHelp.props, text: "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.", tone: "hint"}},
+    imageModel,
+    {...imageModelHelp, props: {...imageModelHelp.props, text: "Optional. Paints backgrounds and decoration for the layout. Saved for next time.", tone: "hint"}},
+    aiFill
   ]}};
   const stepContainers = content_steps.map((step, index) => {
     const previous = steps[index];

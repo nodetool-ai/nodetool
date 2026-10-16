@@ -32,6 +32,7 @@ const bundleSchema = z.object({
 export type ExampleGameBundle = z.infer<typeof bundleSchema>;
 
 const CONTENT_TYPES: Record<string, string> = {
+  ".json": "application/json",
   ".glb": "model/gltf-binary",
   ".png": "image/png",
   ".jpg": "image/jpeg",

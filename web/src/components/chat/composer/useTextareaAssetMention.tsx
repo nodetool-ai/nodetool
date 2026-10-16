@@ -61,6 +61,26 @@ export const findMentionTrigger = (
   return null;
 };
 
+/**
+ * Cut the `@query` out of `value`. A picked asset is attached, not written into
+ * the text, so the space the person typed before `@` is dropped too when the
+ * token ends the text or a space follows it. Otherwise a space typed to carry
+ * on the sentence left an invisible double space.
+ */
+export const removeMentionToken = (
+  value: string,
+  trigger: Pick<MentionTrigger, "start" | "end">
+): { head: string; tail: string } => {
+  let head = value.slice(0, trigger.start);
+  let tail = value.slice(trigger.end);
+  if (/[ \t]$/.test(head) && (tail === "" || /^[ \t]/.test(tail))) {
+    head = head.slice(0, -1);
+  } else if (head === "" && /^[ \t]/.test(tail)) {
+    tail = tail.slice(1);
+  }
+  return { head, tail };
+};
+
 const readCaret = (el: HTMLTextAreaElement, value: string): number =>
   el.selectionStart ?? value.length;
 
@@ -242,8 +262,9 @@ export const useTextareaAssetMention = ({
   const selectAsset = useCallback(
     (asset: Asset) => {
       if (trigger) {
-        pendingCaretRef.current = trigger.start;
-        setValue(value.slice(0, trigger.start) + value.slice(trigger.end));
+        const { head, tail } = removeMentionToken(value, trigger);
+        pendingCaretRef.current = head.length;
+        setValue(head + tail);
       }
       onSelectAsset(asset);
       addRecentAsset(asset);

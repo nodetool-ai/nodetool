@@ -142,7 +142,7 @@ export default function AgentIntegrationsSection({
                 hidden: { opacity: 1, y: 0 },
                 show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
               }}
-              className="group relative rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-6 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10"
+              className="group relative rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-xs p-6 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10"
             >
               {/* Category Header */}
               <h3

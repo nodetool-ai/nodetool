@@ -18,7 +18,7 @@ Start from an installed example so you have a complete game with prepared assets
 3. Press **Play** in the editor. Click the 3D viewport before using mouse look. Follow the example's on-screen controls.
 4. Stop play before changing the level. Select an entity in the scene tree, change one visible property, and play again.
 
-Signal Forge's shipped scene has decorative geometry without complete collision coverage. It is useful for its models, interaction script, and objective HUD. Do not assume every visible pipe or column is solid.
+Signal Forge includes prepared collision for its authored static machinery and aligned column colliders. Small decorative details do not each have a collider. Its recorded route checks the objectives and recovery paths, but does not establish collision coverage for every visible detail.
 
 ## Make a small change
 

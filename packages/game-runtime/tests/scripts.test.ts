@@ -169,11 +169,32 @@ describe("game scripts", () => {
     const sourceKey = scriptSourceKey("room", "player", 0);
     const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state: null,
       x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 30 };
+    // The first batch has a larger allowance, so the 50 ms budget applies from the second.
+    runner.run([call], { tick: 2, pressed: [], justPressed: [], events: [], world: [] }, 1);
     let clock = 0;
     const now = vi.spyOn(performance, "now").mockImplementation(() => clock);
     try {
       const input = { tick: 3, pressed: [], justPressed: [], events: [{ toJSON: () => { clock = 51; return "event"; } }], world: [] };
       expect(() => runner.run([call], input, 1)).toThrow(/interrupted.*batch.*50 ms/i);
+    } finally {
+      now.mockRestore();
+      runner.dispose();
+    }
+  });
+
+  it("gives a runner's first batch a larger allowance than the 50 ms batch budget", async () => {
+    // The first batch compiles the document's scripts and host paths. In a slow browser AETHER // Skybound
+    // stopped at tick 0 with "batch 50 ms at tick 0 budget exceeded" (UX study 4, D10).
+    const runner = await prepareGameScripts(scriptedGame("({state}) => ({state, commands: []})"));
+    const sourceKey = scriptSourceKey("room", "player", 0);
+    const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state: null,
+      x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 30 };
+    let clock = 0;
+    const now = vi.spyOn(performance, "now").mockImplementation(() => clock);
+    const slowInput = (tick: number) => ({ tick, pressed: [], justPressed: [], events: [{ toJSON: () => { clock += 60; return "event"; } }], world: [] });
+    try {
+      expect(runner.run([call], slowInput(0), 1).results).toEqual([{ entityId: "player", state: null, commands: [] }]);
+      expect(() => runner.run([call], slowInput(1), 1)).toThrow(/interrupted.*batch 50 ms.*tick 1/i);
     } finally {
       now.mockRestore();
       runner.dispose();
@@ -210,6 +231,8 @@ describe("game scripts", () => {
     const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state: null,
       x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 30 };
     const input = { tick: 3, pressed: [], justPressed: [], events: [], world: [] };
+    // The first batch has a larger allowance, so the 50 ms budget applies from the second.
+    runner.run([call], { ...input, tick: 2 }, 1);
     let clock = 0;
     let encodes = 0;
     const originalEncode = TextEncoder.prototype.encode;

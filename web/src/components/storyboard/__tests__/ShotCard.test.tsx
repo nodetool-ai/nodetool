@@ -460,6 +460,25 @@ describe("ShotCard still", () => {
     );
   });
 
+  // A board whose ratio is not "W:H" (the fake Director's "fake") gave the
+  // media box an invalid CSS aspect-ratio and so no height: every finished
+  // still showed as an empty strip under its badge (UX study 4, D2).
+  it.each([
+    ["9:16", "9/16"],
+    ["fake", "16/9"]
+  ])("sizes the media box from the board ratio %s as %s", (ratio, css) => {
+    renderCard(makeShot(), {
+      renderContext: { aspect_ratio: ratio } as React.ComponentProps<
+        typeof ShotCard
+      >["renderContext"]
+    });
+
+    const box = screen.getByText("No still yet").parentElement as HTMLElement;
+    expect(
+      getComputedStyle(box).getPropertyValue("aspect-ratio").replace(/ /g, "")
+    ).toBe(css);
+  });
+
   it("says so when the shot has no still", () => {
     renderCard(makeShot());
 
