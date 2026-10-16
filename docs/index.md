@@ -155,6 +155,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
         <h3>Game</h3>
         <p>Build a 2D or 3D game and play it in the editor. Ask the agent for a new level, then export a web player.</p>
         <a href="{{ '/game-editor' | relative_url }}">Game Editor →</a>
+        <a href="{{ '/game-engine/' | relative_url }}">Game engine feature guide →</a>
       </div>
     </article>
     <article class="surface-card full">

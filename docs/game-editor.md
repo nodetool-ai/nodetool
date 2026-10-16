@@ -14,6 +14,8 @@ Build a game in a workspace tab, play it without leaving the editor, and ask the
 
 ## Overview
 
+For feature guides, document examples, rendering support, and runtime limits, read the [Native Game Engine guide](/game-engine/). This page covers the editor's controls and workflow.
+
 The Game Editor edits one game document. The built-in engine simulates it, renders it, and exports it as a standalone web player. A game is either 2D or 3D, and it keeps that dimension for its whole life.
 
 A game document holds:
@@ -48,7 +50,7 @@ The new-project screen has a **Start with a guided flow** row. The **Game** card
 
 ### From an example
 
-Open the Examples page from the logo menu and choose the **Games** tab. Each card shows a poster, a description, and the controls. **Play and edit** copies the game and its media into your current project and opens it.
+Open the Examples page from the logo menu and choose the **Games** tab. Each card shows a poster, a description, and the controls. **Play** opens the example. **Install game** copies the game and its media into your current project. Choose **Edit** to open its editor.
 
 | Example | Dimension | Summary |
 |---|---|---|
@@ -57,6 +59,7 @@ Open the Examples page from the logo menu and choose the **Games** tab. Each car
 | Neon Drift | 2D | An arena shooter with waves |
 | AETHER // Skybound | 3D | Floating platforms and lasers |
 | BLACKSITE | 3D | A first-person mission with drones |
+| Signal Forge | 3D | An industrial relay puzzle with a movable core, shuttle, bridge, and reactor beacon |
 
 The server reads example games from `*.game.json` files. Set `NODETOOL_EXAMPLE_GAMES_DIR` to point it at another folder. A folder that does not exist yields no examples. See [Configuration](configuration.md).
 

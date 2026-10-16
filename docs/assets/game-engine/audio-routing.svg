@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 300" role="img" aria-labelledby="title desc">
+  <title id="title">Game audio routing</title><desc id="desc">Scene music and entity effects route to music, sound effects, voice or custom buses, then through parent gains and the master limiter to output. Mix state remains presentation-only.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0L0 6L8 3Z" fill="#70d9d0"/></marker></defs>
+  <rect width="1000" height="300" rx="12" fill="#141b26"/>
+  <g fill="#202e40" stroke="#70d9d0" stroke-width="2"><rect x="25" y="35" width="210" height="80" rx="8"/><rect x="25" y="155" width="210" height="80" rx="8"/><rect x="320" y="80" width="240" height="115" rx="8"/><rect x="640" y="80" width="220" height="115" rx="8"/></g>
+  <g fill="#f3f6fa" font-family="sans-serif" text-anchor="middle"><text x="130" y="83" font-size="22">Scene music</text><text x="130" y="203" font-size="22">Entity effects</text><text x="440" y="125" font-size="22">Mixer buses</text><text x="440" y="160" font-size="16">music · sfx · voice · ui</text><text x="750" y="125" font-size="22">Master</text><text x="750" y="160" font-size="16">parent gain + limiter</text><text x="935" y="145" font-size="19">Output</text><text x="500" y="270" font-size="17" fill="#a9bacd">Snapshots and ducking change the mix, not gameplay</text></g>
+  <g fill="none" stroke="#70d9d0" stroke-width="3" marker-end="url(#arrow)"><path d="M235 75L310 115"/><path d="M235 195L310 160"/><path d="M560 137H630"/><path d="M860 137H895"/></g>
+</svg>
