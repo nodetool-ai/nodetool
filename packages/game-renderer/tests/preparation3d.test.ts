@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { prepareGameModel, prepareGameModelBinding3D, normalizeGameModel3D, createGameColliderCandidate3D } from "../src/preparation3d.js";
-import { triangleGlb, glb } from "./fixtures/game3d.js";
+import { triangleGlb, glb, skinnedGlb } from "./fixtures/game3d.js";
 
 describe("prepared GLB runtime profile", () => {
   it.each(["clearcoat", "transmission", "sheen", "specular", "ior", "volume"])("prepares declared KHR_materials_%s content", async (name) => {
@@ -86,6 +86,52 @@ describe("prepared GLB runtime profile", () => {
 
 
 describe("source import and prepared collider candidates", () => {
+  it.each([["mesh", "triangleMesh"], ["node", "triangleMesh"], ["mesh", "convexHull"], ["node", "convexHull"]] as const)("rejects base-pose collider candidates for default %s morph weights: %s", async (owner, shape) => {
+    const positions = new Float32Array([-1, 0, -1, 1, 0, -1, 0, 0, 1]);
+    const deltas = new Float32Array([3, 0, 0, 3, 0, 0, 3, 0, 0]);
+    const indices = new Uint16Array([0, 2, 1]);
+    const binary = new Uint8Array(78);
+    binary.set(new Uint8Array(positions.buffer));
+    binary.set(new Uint8Array(deltas.buffer), 36);
+    binary.set(new Uint8Array(indices.buffer), 72);
+    const model = glb({ asset: { version: "2.0" }, buffers: [{ byteLength: binary.byteLength }],
+      bufferViews: [{ buffer: 0, byteLength: 36 }, { buffer: 0, byteOffset: 36, byteLength: 36 }, { buffer: 0, byteOffset: 72, byteLength: 6 }],
+      accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: "VEC3", min: [-1, 0, -1], max: [1, 0, 1] },
+        { bufferView: 1, componentType: 5126, count: 3, type: "VEC3", min: [3, 0, 0], max: [3, 0, 0] },
+        { bufferView: 2, componentType: 5123, count: 3, type: "SCALAR" }],
+      meshes: [{ weights: owner === "mesh" ? [1] : undefined, primitives: [{ attributes: { POSITION: 0 }, indices: 2, targets: [{ POSITION: 1 }] }] }],
+      nodes: [{ mesh: 0, weights: owner === "node" ? [1] : undefined }], scenes: [{ nodes: [0] }] }, binary);
+    expect((await prepareGameModel(model)).ok).toBe(true);
+    const result = await createGameColliderCandidate3D(model, { assetId: "morphed-collider", shape });
+    expect(result.ok).toBe(false);
+    if (!result.ok) { expect(result.diagnostics).toContainEqual(expect.objectContaining({ code: "collider.preparation", message: expect.stringMatching(/morph.*not supported/i) })); }
+  });
+
+  it("retains every rigid receiver at the existing model node limit", async () => {
+    const nodes = Array.from({ length: 4096 }, () => ({ mesh: 0 }));
+    const model = triangleGlb({ nodes, scenes: [{ nodes: nodes.map((_, index) => index) }] });
+    const result = await createGameColliderCandidate3D(model, { assetId: "many-rigid-nodes", shape: "triangleMesh" });
+    expect(result.ok).toBe(true);
+    if (result.ok) { expect(result.binding.vertices).toBe(4096 * 3); expect(result.binding.triangles).toBe(4096); }
+  });
+
+  it("keeps rigid selected-scene collision geometry when another scene has a morph mesh", async () => {
+    const model = triangleGlb({ meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] },
+      { weights: [1], primitives: [{ attributes: { POSITION: 0 }, targets: [{ POSITION: 0 }] }] }],
+      nodes: [{ mesh: 0 }, { mesh: 1 }], scenes: [{ nodes: [0] }, { nodes: [1] }], scene: 0 });
+    const result = await createGameColliderCandidate3D(model, { assetId: "rigid-selected", shape: "triangleMesh" });
+    expect(result.ok).toBe(true);
+    if (result.ok) { expect(result.binding.vertices).toBe(3); expect(result.binding.bounds).toEqual({ min: { x: -1, y: -1, z: 0 }, max: { x: 1, y: 1, z: 0 } }); }
+  });
+
+  it("rejects a skinned rest-pose candidate instead of emitting undeformed triangles", async () => {
+    const model = skinnedGlb();
+    expect((await prepareGameModel(model)).ok).toBe(true);
+    const result = await createGameColliderCandidate3D(model, { assetId: "skinned-collider", shape: "triangleMesh" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) { expect(result.diagnostics).toContainEqual(expect.objectContaining({ code: "collider.preparation", message: expect.stringMatching(/skinned.*not supported/i) })); }
+  });
+
   it("normalizes self-contained glTF into GLB with recorded source identity", async () => {
     const bytes = triangleGlb(); const view = new DataView(bytes.buffer);
     const json = JSON.parse(new TextDecoder().decode(bytes.subarray(20, 20 + view.getUint32(12, true))).trim());

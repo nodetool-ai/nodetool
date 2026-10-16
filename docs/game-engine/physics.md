@@ -23,7 +23,7 @@ Use unsigned category and mask bitsets to filter collisions. A non-sensor body c
 
 Scene `gravity` is a vector in meters per second squared, defaulting to `{x: 0, y: -9.81, z: 0}`. A body's `gravityScale` scales its response. The 3D document fixes `tickRate` at 60, and physics advances by 1/60 second per tick.
 
-Prepared colliders carry a digest, preparation version, bounds, and geometry counts. Validation and loading check the binding against the bytes. Changing the visible model does not regenerate a collider automatically.
+Prepared colliders carry a digest, preparation version, bounds, and geometry counts. Validation and loading check the binding against the bytes. Changing the visible model does not regenerate a collider automatically. Collider generation accepts rigid meshes from the selected model scene. Skinned meshes and meshes with morph targets are rejected with a preparation diagnostic. Supply separate rigid collision geometry for those models.
 
 Signal Forge uses a prepared triangle mesh for authored static machinery, alongside separate colliders for moving gates, the shuttle, and the core. Its runtime regressions test four obstacle surfaces, the recorded objective route, snapshot restoration, and recovery. Small decorative details do not each have a collider.
 
