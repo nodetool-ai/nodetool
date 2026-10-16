@@ -343,14 +343,17 @@ The harness runs **every** declared operation, not just the first: each resolves
 its own graph, and state is keyed per operation.
 
 The verdict catches app-level failures a workflow-only run can't: bindings that
-reference missing inputs/outputs/variables, apps with no run trigger, and
+reference missing inputs/outputs/variables, apps with operations but no run
+trigger, and
 display widgets that never receive a value from a completed run. It also catches
 what the operation/variable layer makes mis-configurable — an output mapped to
 an undeclared variable, a mapping keyed on a node the workflow lacks, an event
 naming an operation the document never declares, a widget showing execution
 state of an operation nothing can run, and an elapsed `timeoutMs`. A
 `persist: true` variable that is `instance`-scoped warns rather than being
-silently downgraded.
+silently downgraded. Apps that declare no operations can pass after variable
+interactions without executing a workflow. Legacy workflow app documents retain
+their implicit operation.
 
 Three warnings cover the app an agent builds that wires up correctly and still
 fails a user. A run button with no `disabledWhen` on `op:<id>/exec#running` is
