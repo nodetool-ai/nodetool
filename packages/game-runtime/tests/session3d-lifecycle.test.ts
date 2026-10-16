@@ -16,12 +16,12 @@ function spawnedTree(removal: "despawn" | "lifetime"): GameDocument3D {
   const document = blockout();
   const player = document.scenes[0].entities.find((entity) => entity.id === "player");
   if (!player) throw new Error("Player fixture is missing");
-  player.behaviors = [{ kind: "script", maxTickMs: 50, maxCommands: 64,
+  player.behaviors = [{ kind: "script", maxTickMs: 20, maxCommands: 64,
     source: `input=>({state:null,commands:input.tick===0?[{kind:'spawn',prefabId:'tree'}]:input.tick===2&&'${removal}'==='despawn'?[{kind:'despawn',entityId:'tree#1/branch'}]:[]})` }];
-  const branchBehaviors: GameBehavior3D[] = [{ kind: "script", maxTickMs: 50, maxCommands: 64,
+  const branchBehaviors: GameBehavior3D[] = [{ kind: "script", maxTickMs: 20, maxCommands: 64,
     source: `input=>({state:{calls:(input.state?.calls||0)+1},commands:[{kind:'emit',event:'branch-called'}]})` }];
   if (removal === "lifetime") branchBehaviors.push({ kind: "lifetime", ticks: 1, fade: false, endScale: 1 });
-  const script = (event: string) => ({ kind: "script", maxTickMs: 50, maxCommands: 64,
+  const script = (event: string) => ({ kind: "script", maxTickMs: 20, maxCommands: 64,
     source: `input=>({state:{calls:(input.state?.calls||0)+1},commands:[{kind:'emit',event:'${event}'}]})` });
   document.prefabs.tree = { rootId: "root", externalAssets: [], externalScenes: [], entities: [
     gameEntity3D.parse({ id: "root", transform3d: { position: { x: 3, y: 1, z: 0 } } }),

@@ -30,7 +30,7 @@ function game(script: string): GameDocument3D {
   const withPlayer = (maximum: number, behaviors: unknown[]) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "player"
     ? gameEntity3D.parse({ ...entity, behaviors: [{ kind: "health", maximum }, ...behaviors] }) : entity) });
   return gameDocument3D.parse({ ...base, inputActions: ["jump", "pause", "next"], ui: HUD, scenes: [
-    withPlayer(5, [{ kind: "script", maxTickMs: 50, source: script }]),
+    withPlayer(5, [{ kind: "script", maxTickMs: 20, source: script }]),
     { ...withPlayer(3, []), id: "second", name: "Second" }
   ] });
 }
@@ -153,7 +153,7 @@ describe("HUD commands from onDestroy", () => {
     const base = createTopDownRoomGame("a".repeat(32));
     const document = gameDocument.parse({ ...base, ui: { nodes: [{ kind: "text", id: "banner", text: "here", visible: false }] },
       scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "gem"
-        ? { ...entity, behaviors: [...entity.behaviors, { kind: "script", maxTickMs: 50, source: destroyHooks }] } : entity) })) });
+        ? { ...entity, behaviors: [...entity.behaviors, { kind: "script", maxTickMs: 20, source: destroyHooks }] } : entity) })) });
     const session = await createScriptedGameSession(document, 1);
     try {
       const frames = Array.from({ length: 5 }, () => session.step({ pressed: [], justPressed: [] }).frame);
@@ -167,7 +167,7 @@ describe("HUD commands from onDestroy", () => {
     const base = blockout();
     const document = gameDocument3D.parse({ ...base, ui: { nodes: [{ kind: "text", id: "banner", text: "here", visible: false }] },
       scenes: base.scenes.map((scene) => ({ ...scene, entities: [...scene.entities,
-        { id: "gem", transform3d: { position: { x: 4, y: 1, z: 0 } }, behaviors: [{ kind: "script", maxTickMs: 50, source: destroyHooks }] }] })) });
+        { id: "gem", transform3d: { position: { x: 4, y: 1, z: 0 } }, behaviors: [{ kind: "script", maxTickMs: 20, source: destroyHooks }] }] })) });
     const session = await createGameSession3D(document, 1);
     try {
       const frames = Array.from({ length: 5 }, () => session.step(idle).frame);

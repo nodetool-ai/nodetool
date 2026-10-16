@@ -1,16 +1,65 @@
 import { describe, expect, it } from "@jest/globals";
-import type { GameDocument } from "@nodetool-ai/protocol/game.js";
-import { applyGameOps, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
+import { gameScene, type GameDocument } from "@nodetool-ai/protocol/game.js";
+import { applyGameOps, createTopDownRoomGame, gameDocumentOp } from "@nodetool-ai/game-runtime";
 
 import { mergeByUnits } from "../../documentMerge";
 import { diffGameDocuments } from "../diffGameDocuments";
 import { gameMergeAdapter } from "../merge";
+import { getGameDraftStore } from "../GameDraftStore";
 
 function copy(document: GameDocument): GameDocument {
   return JSON.parse(JSON.stringify(document)) as GameDocument;
 }
 
 describe("native game merge units", () => {
+  it.each([{ x: 0, y: -20 }, undefined])("preserves server gravity %j beside a pending local rename", gravity => {
+    const base = createTopDownRoomGame(`gravity-merge-${gravity ? "changed" : "removed"}`);
+    base.schemaVersion = 2;
+    base.scenes[0].gravity = { x: 0, y: -10 };
+    const store = getGameDraftStore(base.id);
+    store.getState().load(base, "base");
+    store.getState().apply([{ op: "update_entity", scene_id: "room", entity_id: "player", set: { name: "Local player" } }]);
+    const local = store.getState().document;
+    if (!local || local.schemaVersion === 3) { throw new Error("2D local draft missing"); }
+    const server = applyGameOps(base, [{ op: "update_scene", scene_id: "room", set: { gravity: gravity ?? null } }]);
+    const merged = mergeByUnits(base, local, server, gameMergeAdapter, { mergeWithoutOps: true });
+    expect(merged.conflicts).toEqual([]);
+    expect(merged.doc.scenes[0].gravity).toEqual(gravity);
+    expect(merged.doc.scenes[0].entities.find(entity => entity.id === "player")?.name).toBe("Local player");
+    store.getState().applyMerged(merged.doc, server, "server");
+    const pending = store.getState().pendingOps;
+    expect(pending.filter(op => op.op === "update_scene" && Object.hasOwn(op.set, "gravity"))).toEqual([]);
+    expect(applyGameOps(server, pending.map(op => gameDocumentOp.parse(op)))).toEqual(merged.doc);
+  });
+
+  it("offers concurrent gravity edits as a scene conflict", () => {
+    const base = createTopDownRoomGame("gravity-conflict");
+    base.schemaVersion = 2;
+    base.scenes[0].gravity = { x: 0, y: -10 };
+    const local = applyGameOps(base, [{ op: "update_scene", scene_id: "room", set: { gravity: { x: 0, y: -12 } } }]);
+    const server = applyGameOps(base, [{ op: "update_scene", scene_id: "room", set: { gravity: { x: 0, y: -20 } } }]);
+    const merged = mergeByUnits(base, local, server, gameMergeAdapter, { mergeWithoutOps: true });
+    expect(merged.conflicts).toEqual(expect.arrayContaining([expect.objectContaining({ unit: expect.objectContaining({ kind: "scene", id: "room" }) })]));
+    expect(merged.doc.scenes[0].gravity).toEqual({ x: 0, y: -12 });
+  });
+
+  it("assigns every scene schema field to a merge collection", () => {
+    const base = createTopDownRoomGame("merge-scene-fields");
+    const scene = gameMergeAdapter.collections.find(collection => collection.kind === "scene");
+    expect(scene).toBeDefined();
+    const units = scene?.read(base);
+    expect(units).toHaveLength(1);
+    const unit = units?.[0];
+    if (!unit) { throw new Error("Scene merge unit missing"); }
+    const fields = Object.keys(unit);
+    const separate = { entity: "entities", background: "backgrounds", lighting: "lighting", sceneUi: "ui" };
+    for (const [kind, field] of Object.entries(separate)) {
+      expect(gameMergeAdapter.collections.some(collection => collection.kind === kind)).toBe(true);
+      fields.push(field);
+    }
+    expect(fields.sort()).toEqual(Object.keys(gameScene.shape).sort());
+  });
+
   it("keeps a user move and an agent sprite edit on the same entity", () => {
     const base = createTopDownRoomGame("merge-game");
     const user = copy(base);
