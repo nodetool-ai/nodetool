@@ -33,7 +33,7 @@
  */
 
 import { z } from "zod";
-import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
+import { parseWithTypeCoercion, zodToJsonSchema } from "@nodetool-ai/runtime";
 import {
   EMPTY_DOC_META,
   addOperation,
@@ -161,12 +161,6 @@ export interface AppToolBridge {
   loadDocument: (doc: AppBridgeDocument) => void;
 }
 
-const EMPTY_WORKFLOW: BindableWorkflow = {
-  inputs: [],
-  outputs: [],
-  variables: []
-};
-
 /** Slot arrays present on a node, mirroring `slotArrays` in puckDataOps. */
 function slotArrays(
   node: ComponentNode
@@ -233,12 +227,14 @@ function tool<TResult>(
   parameters: z.ZodTypeAny,
   impl: (args: Record<string, unknown>) => Promise<TResult>
 ): HeadlessTool {
+  const schema =
+    parameters instanceof z.ZodObject ? parameters.strict() : parameters;
   return {
     name,
     description,
-    parameters,
+    parameters: schema,
     execute: (args) => {
-      const parsed = parseWithTypeCoercion(parameters, args ?? {}) as Record<
+      const parsed = parseWithTypeCoercion(schema, args ?? {}) as Record<
         string,
         unknown
       >;
@@ -246,6 +242,38 @@ function tool<TResult>(
     }
   };
 }
+
+const appEventSchema = z.strictObject({
+  trigger: z.enum(["click", "change"]),
+  kind: z.enum([
+    "run",
+    "cancel",
+    "setVariable",
+    "toggleVariable",
+    "setState",
+    "toggleState",
+    "resourceCommand",
+    "openResource"
+  ]),
+  key: z.string().optional(),
+  value: z.string().optional(),
+  operationId: z.string().optional(),
+  invocationId: z.string().optional(),
+  resourceBindingId: z.string().optional(),
+  command: z.enum(["read", "create", "update", "delete", "upload"]).optional(),
+  pace: z.enum(["live", "release", "debounce"]).optional()
+});
+
+const componentPropsSchema = z
+  .object({
+    events: z
+      .array(appEventSchema)
+      .optional()
+      .describe(
+        "Widget actions, e.g. [{trigger: 'click', kind: 'run', operationId: 'main'}]."
+      )
+  })
+  .catchall(z.unknown());
 
 const applicationIdParam = z
   .string()
@@ -309,9 +337,9 @@ export function createAppToolBridge(
   let finished = false;
   let finishSummary: string | null = null;
   const hostWorkflowId = initial.workflowId ?? "wf-app";
-  const hostWorkflow = initial.workflow ?? EMPTY_WORKFLOW;
+  const hostWorkflow = initial.workflow;
   const loadedWorkflows = new Map<string, BindableWorkflow>([
-    [hostWorkflowId, hostWorkflow],
+    ...(hostWorkflow ? [[hostWorkflowId, hostWorkflow] as const] : []),
     ...Object.entries(initial.workflows ?? {})
   ]);
 
@@ -393,10 +421,17 @@ export function createAppToolBridge(
         types: Object.entries(WIDGET_TYPES).map(([type, def]) => ({
           type,
           label: def.label,
-          fields: Object.entries(def.fields).map(([name, kind]) => ({
-            name,
-            type: kind
-          }))
+          fields: Object.entries(def.fields).map(([name, kind]) => {
+            const field: {
+              name: string;
+              type: typeof kind;
+              schema?: ReturnType<typeof zodToJsonSchema>;
+            } = { name, type: kind };
+            if (name === "events") {
+              field.schema = zodToJsonSchema(z.array(appEventSchema));
+            }
+            return field;
+          })
         }))
       })
     ),
@@ -416,8 +451,7 @@ export function createAppToolBridge(
         type: z
           .string()
           .describe("Widget type, e.g. 'Heading', 'TextInput', 'Button'."),
-        props: z
-          .record(z.string(), z.unknown())
+        props: componentPropsSchema
           .optional()
           .describe("Initial props (label, text, binding, events, ...)."),
         parent_id: z
@@ -505,7 +539,7 @@ export function createAppToolBridge(
           .describe(
             "Widget id from ui_app_get_snapshot — a component inside the app, not a workflow id."
           ),
-        props: z.record(z.string(), z.unknown()).describe("Props to merge.")
+        props: componentPropsSchema.describe("Props to merge.")
       }),
       async ({ application_id: _app, id, props }) => {
         let found = false;

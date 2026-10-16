@@ -377,7 +377,7 @@ export interface BindingTargets {
 export const bindingTargets = (
   meta: AppDocMeta,
   hostWorkflowId: string,
-  workflow: BindableWorkflow,
+  workflow: BindableWorkflow | undefined,
   scripts: ReadonlyMap<string, ScriptOperationDocument> = new Map(),
   workflows: ReadonlyMap<string, BindableWorkflow> = new Map()
 ): BindingTargets => {
@@ -453,7 +453,7 @@ export const bindingTargets = (
         }))
       };
     }),
-    variables: mergeVariables(meta.variables, workflow.variables).map((v) => ({
+    variables: mergeVariables(meta.variables, workflow?.variables ?? []).map((v) => ({
       id: v.id,
       name: v.name,
       scope: v.scope,

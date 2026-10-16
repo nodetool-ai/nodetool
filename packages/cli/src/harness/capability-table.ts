@@ -1285,7 +1285,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_app",
     module: "apps",
     impl: "packages/agents/src/capabilities/apps.ts",
-    contract: "80aab4b438b8",
+    contract: "5d71cf4b7e8e",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-apps.test.ts",

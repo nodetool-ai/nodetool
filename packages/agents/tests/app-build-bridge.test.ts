@@ -178,3 +178,42 @@ describe("ui_app_get_binding_targets", () => {
     expect(targets.operations[0]?.ioAvailable).toBe(false);
   });
 });
+
+describe("widget event authoring", () => {
+  it("publishes the executable event layout in the widget catalog", async () => {
+    const bridge = createAppToolBridge();
+    const result = (await toolsOf(bridge).ui_app_list_component_types.execute({
+      application_id: APP
+    })) as {
+      types: { type: string; fields: { name: string; schema?: unknown }[] }[];
+    };
+    expect(
+      result.types
+        .find((type) => type.type === "Button")
+        ?.fields.find((field) => field.name === "events")?.schema
+    ).toMatchObject({
+      type: "array",
+      items: { required: ["trigger", "kind"] }
+    });
+  });
+
+  it.each([
+    { events: [{ event: "click", action: "run" }] },
+    { events: [{ trigger: "click", action: "run" }] },
+    { events: [{ trigger: "click", kind: "rnu" }] },
+    { events: { click: { kind: "run" } } }
+  ])(
+    "rejects inert event layouts before adding a widget: %j",
+    async ({ events }) => {
+      const bridge = createAppToolBridge();
+      await expect(async () =>
+        toolsOf(bridge).ui_app_add_component.execute({
+          application_id: APP,
+          type: "Button",
+          props: { events }
+        })
+      ).rejects.toThrow();
+      expect(bridge.document().content).toEqual([]);
+    }
+  );
+});
