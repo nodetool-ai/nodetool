@@ -8,6 +8,7 @@ export interface CachedModel {
 export interface RenderInstance {
   modelAssetId?: string;
   sampledAnimationKey?: string;
+  sampledAnimationMode?: "graph" | "clip";
   readonly descriptor: string;
   readonly object: THREE.Object3D;
   readonly materials: readonly THREE.Material[];

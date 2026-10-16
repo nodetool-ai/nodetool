@@ -20,6 +20,33 @@ export function primitiveInstance(primitive: GamePrimitive3D): RenderInstance {
 export function modelInstance(model: GameModel3D, cached: CachedModel): RenderInstance {
   // SkeletonUtils duplicates the skin's bones and bind state while retaining immutable geometry/texture resources.
   const object = cloneSkeleton(cached.gltf.scene);
+  const originals: THREE.Object3D[] = [];
+  const cloneIds = new Map<string, string>();
+  cached.gltf.scene.traverse((node) => originals.push(node));
+  let nodeIndex = 0;
+  object.traverse((node) => {
+    const original = originals[nodeIndex++];
+    if (original) { cloneIds.set(original.uuid, node.uuid); }
+  });
+  const clips = cached.gltf.animations.map((clip) => {
+    let changed = false;
+    const tracks = clip.tracks.map((track) => {
+      const nodeName = THREE.PropertyBinding.parseTrackName(track.name).nodeName;
+      const cloneId = cloneIds.get(nodeName);
+      if (!cloneId) { return track; }
+      // Constructors retain typed keyframe arrays. Only target metadata belongs to the instance.
+      const copy: unknown = Reflect.construct(track.constructor, [track.name, track.times, track.values]);
+      if (!(copy instanceof THREE.KeyframeTrack)) { throw new Error("Animation track clone is invalid"); }
+      Object.assign(copy, { createInterpolant: Reflect.get(track, "createInterpolant") });
+      copy.name = track.name.replace(nodeName, cloneId);
+      changed = true;
+      return copy;
+    });
+    if (!changed) { return clip; }
+    const copy = new THREE.AnimationClip(clip.name, clip.duration, tracks, clip.blendMode);
+    copy.userData = clip.userData;
+    return copy;
+  });
   let selected: THREE.Object3D | undefined;
   if (model.nodeId !== undefined) {
     object.traverse((child) => { if (child.userData.gameNodeId === model.nodeId) { selected = child; } });
@@ -53,5 +80,5 @@ export function modelInstance(model: GameModel3D, cached: CachedModel): RenderIn
     });
     child.material = Array.isArray(child.material) ? cloned : cloned[0] ?? child.material;
   });
-  return { descriptor: JSON.stringify(model), object, materials, mixer: new THREE.AnimationMixer(object), clips: cached.gltf.animations };
+  return { descriptor: JSON.stringify(model), object, materials, mixer: new THREE.AnimationMixer(object), clips };
 }
