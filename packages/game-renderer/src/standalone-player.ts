@@ -2,9 +2,10 @@ import { createScriptedGameSession, GamePlayerSaves, validateGame } from "@nodet
 import { gameInputFrame, gameSnapshot, type GameDocument, type GameInputFrame, type GameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "./audio.js";
-import { mountTouchControls, touchLayout } from "./touch-controls.js";
+import { mountTouchControls, touchLayout, type GameTouchControls } from "./touch-controls.js";
 import { browserGamepads, GameInput } from "./input-bindings.js";
-import { attachGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
+import { attachGameMouseInput } from "./mouse-input.js";
+import { attachGameUiPointer, claimGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
 import { gameUiViewport2D } from "./ui/hud2d.js";
 import { resolveGameInputBindings } from "@nodetool-ai/protocol";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
@@ -119,10 +120,13 @@ async function startPlayer(game: GameDocument, verifiedAssets: VerifiedStandalon
   const input = new GameInput();
   // HUD buttons press their input actions on the same input, by pointer, touch or gamepad focus.
   const hud = new GameUiController(input, browserGameUiMeasure(game.id));
-  attachGameUiPointer(canvas, hud, () => gameUiViewport2D(latest));
+  const detachHud = attachGameUiPointer(canvas, hud, () => gameUiViewport2D(latest), () => !paused);
+  const detachMouse = attachGameMouseInput(canvas, input, { active: () => !paused && !document.hidden });
   let hudInsets = browserGameUiInsets(canvas, gameUiViewport2D(latest));
   window.addEventListener("resize", () => { hudInsets = browserGameUiInsets(canvas, gameUiViewport2D(latest)); });
+  let touchControls: GameTouchControls | undefined;
   function releaseAll(): void {
+    touchControls?.release();
     hud.release();
     input.release();
   }
@@ -138,7 +142,12 @@ async function startPlayer(game: GameDocument, verifiedAssets: VerifiedStandalon
     }
     element("pause").setAttribute("aria-label", "Pause");
     element("pause").textContent = pauseLabel(paused);
-    mountTouchControls(touchRoot, { layout: touchLayout(resolveGameInputBindings(game)), onChange: (state) => input.setTouch(state) });
+    touchControls = mountTouchControls(touchRoot, {
+      layout: touchLayout(resolveGameInputBindings(game)), onChange: (state) => input.setTouch(state),
+      active: () => !paused && !document.hidden,
+      claimPointer: (event) => claimGameUiPointer(canvas, hud, gameUiViewport2D(latest), event),
+      releasePointer: (id) => hud.pointerUp(id)
+    });
   }
   if (window.matchMedia("(pointer: coarse)").matches) enableTouch();
   window.addEventListener("touchstart", enableTouch, { passive: true });
@@ -372,6 +381,9 @@ async function startPlayer(game: GameDocument, verifiedAssets: VerifiedStandalon
     if (disposed) { return; }
     disposed = true;
     replacement.abort();
+    touchControls?.dispose();
+    detachMouse();
+    detachHud();
     cancelAnimationFrame(animationFrame);
     session.dispose();
     renderer.dispose();

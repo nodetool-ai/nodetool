@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { z } from "zod";
-import { gameDocument3D, gameAssetBinding, gameSnapshot3D, type GameDocument3D, type GameInspection3D, type GameInputFrame3D, type GameRenderFrame3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
+import { gameDocument3D, resolveGameInputBindings, gameAssetBinding, gameSnapshot3D, type GameDocument3D, type GameInspection3D, type GameInputFrame3D, type GameRenderFrame3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
 import { createGameSession3D, gameScriptLogsOf, type GamePlayerSaves, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
-import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, gameAudioVoiceCount, GameInput3D, GameUiController, gameUiViewport3D } from "@nodetool-ai/game-renderer";
+import { attachGameTouchInput, attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, gameAudioVoiceCount, GameInput3D, GameUiController, gameUiViewport3D } from "@nodetool-ai/game-renderer";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
 import { useGameDraft } from "../../stores/game/GameDraftStore";
@@ -323,6 +323,10 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     hudRef.current = hud;
     const detachHud = canvas ? attachGameUiPointer(canvas, hud, () => gameUiViewport3D(sessionDocument),
       () => window.document.pointerLockElement !== canvas) : undefined;
+    const detachTouch = canvas ? attachGameTouchInput(canvas, inputRef.current, {
+      bindings: resolveGameInputBindings(sessionDocument), active: () => playingRef.current,
+      hud, viewport: () => gameUiViewport3D(sessionDocument)
+    }) : undefined;
     const clock = new FixedTickClock(sessionDocument.tickRate);
     let request = 0;
     const animate = (now: number): void => {
@@ -344,6 +348,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       cancelAnimationFrame(request);
       window.document.removeEventListener("visibilitychange", release);
       window.removeEventListener("blur", release);
+      detachTouch?.();
       detachHud?.();
       hud.release();
       if (hudRef.current === hud) { hudRef.current = null; }

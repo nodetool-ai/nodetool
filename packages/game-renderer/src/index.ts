@@ -47,6 +47,8 @@ export interface GameRenderer {
   dispose(): void;
 }
 
+export { attachGameTouchInput, type GameTouchInputOptions } from "./touch-input.js";
+export { attachGameMouseInput, type GameMouseInputSink, type GameMouseInputOptions } from "./mouse-input.js";
 export { FixedTickClock } from "./fixed-tick-host.js";
 export { GameInput3D } from "./input3d.js";
 export { browserGamepads, GameInput, type GamepadLike, type TouchInputState } from "./input-bindings.js";
