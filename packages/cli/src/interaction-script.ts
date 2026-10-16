@@ -4,7 +4,7 @@
  * it, or without its `ui_<domain>_` prefix) and the input to call it with —
  * see each domain's `interactions.ts` for a worked example.
  */
-import { isNonBlankString, isRecord } from "./predicates.js";
+import { isNonBlankString, isRecord, isString } from "./predicates.js";
 
 export interface InteractionStep {
   tool: string;
@@ -115,16 +115,19 @@ export async function runInteractionSteps(
     try {
       const result = await tool.execute(step.input);
       const ok = !(isRecord(result) && result.ok === false);
-      const error = !ok && isRecord(result) && typeof result.error === "string"
+      const error = !ok && isRecord(result) && isString(result.error)
         ? result.error
         : undefined;
-      interactions.push({
+      const interaction: InteractionRecord = {
         tool: step.tool,
         input: step.input,
         ok,
-        result,
-        ...(error === undefined ? {} : { error })
-      });
+        result
+      };
+      if (error !== undefined) {
+        interaction.error = error;
+      }
+      interactions.push(interaction);
       onLog?.(`${ok ? "✓" : "✗"} ${step.tool}${error ? `: ${error}` : ""}`);
     } catch (e) {
       const error = e instanceof Error ? e.message : String(e);
