@@ -21,6 +21,7 @@ import { NodeLlamaCppProvider } from "../../src/providers/node-llama-cpp-provide
 import {
   RECOMMENDED_CHAT_GGUFS,
   RECOMMENDED_EMBEDDING_GGUFS,
+  listedChatGgufs,
   parseHfModelId
 } from "../../src/providers/node-llama-cpp-models.js";
 
@@ -275,10 +276,19 @@ describe("NodeLlamaCppProvider – recommended downloads", () => {
     await rm(modelsDir, { recursive: true, force: true });
   });
 
+  it("lists the trending GGUFs after the curated ones, without a curated model twice", () => {
+    const curated = RECOMMENDED_CHAT_GGUFS[0];
+    const fresh = { repoId: "acme/New-Model-GGUF", file: "New-Model-Q4_K_M.gguf", name: "New Model (4.0 GB)" };
+    // The same model from another publisher counts as a duplicate.
+    const otherPublisherCopy = { ...curated, repoId: `Other/${curated.repoId.split("/")[1]}` };
+    const listed = listedChatGgufs([otherPublisherCopy, fresh]);
+    expect(listed).toEqual([...RECOMMENDED_CHAT_GGUFS, fresh]);
+  });
+
   it("lists recommended chat and embedding GGUFs with a download target", async () => {
     const provider = new NodeLlamaCppProvider({ NODE_LLAMA_CPP_MODELS_DIR: modelsDir });
     const chat = await provider.getAvailableLanguageModels();
-    expect(chat).toHaveLength(RECOMMENDED_CHAT_GGUFS.length);
+    expect(chat).toHaveLength(listedChatGgufs().length);
     expect(chat[0]).toEqual({
       id: `hf:${RECOMMENDED_CHAT_GGUFS[0].repoId}/${RECOMMENDED_CHAT_GGUFS[0].file}`,
       name: RECOMMENDED_CHAT_GGUFS[0].name,

@@ -5,6 +5,7 @@
  * resolves to the cached file.
  */
 import type { ModelAdapterInfo } from "./types.js";
+import { TRENDING_CHAT_GGUFS } from "./node-llama-cpp-trending.generated.js";
 
 export interface RecommendedGguf {
   repoId: string;
@@ -34,6 +35,35 @@ export const RECOMMENDED_CHAT_GGUFS: readonly RecommendedGguf[] = [
     name: "Qwen3 8B (5.0 GB)"
   }
 ];
+
+/**
+ * The key two repos of one base model share: the repo name without the
+ * publisher, a `GGUF` or `MTP` suffix and case, so `Qwen/Qwen3-8B-GGUF` and
+ * `unsloth/Qwen3-8B-GGUF` match. The same rule as `modelKey` in
+ * `scripts/gguf/select.mjs`.
+ */
+function ggufModelKey(repoId: string): string {
+  const name = repoId.split("/")[1] ?? repoId;
+  return name
+    .replace(/[-_.]?gguf$/i, "")
+    .replace(/[-_.]?mtp$/i, "")
+    .toLowerCase();
+}
+
+/**
+ * The chat models the picker offers: the curated list, then the trending
+ * GGUFs the nightly sync picks. A trending model the curated list already
+ * holds, from any publisher, is left out.
+ */
+export function listedChatGgufs(
+  trending: readonly RecommendedGguf[] = TRENDING_CHAT_GGUFS
+): RecommendedGguf[] {
+  const curated = new Set(RECOMMENDED_CHAT_GGUFS.map((m) => ggufModelKey(m.repoId)));
+  return [
+    ...RECOMMENDED_CHAT_GGUFS,
+    ...trending.filter((m) => !curated.has(ggufModelKey(m.repoId)))
+  ];
+}
 
 export const RECOMMENDED_EMBEDDING_GGUFS: readonly RecommendedGguf[] = [
   {

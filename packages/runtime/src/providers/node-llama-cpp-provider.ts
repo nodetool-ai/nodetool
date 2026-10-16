@@ -9,7 +9,7 @@ import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { ggufFileIsLanguageModel } from "./gguf-header.js";
 import { resolveHubFile } from "./hf-hub-file.js";
 import {
-  RECOMMENDED_CHAT_GGUFS,
+  listedChatGgufs,
   RECOMMENDED_EMBEDDING_GGUFS,
   parseHfModelId,
   recommendedGgufAdapter,
@@ -686,7 +686,7 @@ export class NodeLlamaCppProvider extends BaseProvider {
   }
 
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    return this.withRecommended(RECOMMENDED_CHAT_GGUFS);
+    return this.withRecommended(listedChatGgufs());
   }
 
   async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
