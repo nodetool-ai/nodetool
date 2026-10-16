@@ -28,12 +28,18 @@ import {
   SearchInput,
   MOTION,
   BORDER_RADIUS,
-  Z_INDEX
+  Z_INDEX,
+  SPACING,
+  getSpacingPx,
+  ResizeHandle
 } from "../ui_primitives";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import useCanvasChatDockStore from "../../stores/CanvasChatDockStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useCanvasDockResize } from "../../hooks/handlers/useCanvasDockResize";
+import {
+  useCanvasDockResize,
+  useCanvasDockEdgeResize
+} from "../../hooks/handlers/useCanvasDockResize";
 import ChatThreadView from "../chat/thread/ChatThreadView";
 import ThreadList from "../chat/thread/ThreadList";
 import type { ThreadInfo } from "../chat/types/thread.types";
@@ -144,34 +150,13 @@ const styles = (theme: Theme) =>
       }
     },
 
-    // Resize handles around the overlay edges. The overlay grows upward from
-    // the composer, so only the top edge / top corners resize height; the side
-    // edges resize the whole dock width.
+    // Corner resize handles. The overlay grows upward from the composer, so
+    // only the top corners resize height; they also resize the dock width.
+    // The edges use ResizeHandle.
     ".convo-resize": {
       position: "absolute",
       zIndex: Z_INDEX.raised + 1,
       touchAction: "none"
-    },
-    ".convo-resize-top": {
-      top: 0,
-      left: 10,
-      right: 10,
-      height: 8,
-      cursor: "ns-resize"
-    },
-    ".convo-resize-left": {
-      top: 10,
-      bottom: 0,
-      left: 0,
-      width: 8,
-      cursor: "ew-resize"
-    },
-    ".convo-resize-right": {
-      top: 10,
-      bottom: 0,
-      right: 0,
-      width: 8,
-      cursor: "ew-resize"
     },
     ".convo-resize-tl": {
       top: 0,
@@ -215,6 +200,13 @@ interface ConversationOverlayProps {
   onCollapse: () => void;
 }
 
+/** Side edges stop short of the top corners, which have their own handles. */
+const sideEdgeSx = {
+  top: getSpacingPx(SPACING.lg),
+  bottom: 0,
+  zIndex: Z_INDEX.raised + 1
+};
+
 /**
  * Floating, auto-updating view of the active chat thread, shown above the
  * canvas composer. Reuses {@link ChatThreadView} so messages, media output and
@@ -231,6 +223,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const overlayRef = useRef<HTMLDivElement>(null);
   const startResize = useCanvasDockResize(overlayRef);
+  const edgeResize = useCanvasDockEdgeResize(overlayRef);
 
   const overlayHeight = useCanvasChatDockStore((s) => s.overlayHeight);
   const { threadsOpen, setThreadsOpen } = useCanvasChatDockStore(
@@ -414,21 +407,38 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
       style={{ height: `clamp(160px, ${overlayHeight}px, 78vh)` }}
     >
       {/* Edge / corner resize handles */}
-      <div
-        className="convo-resize convo-resize-top"
-        onMouseDown={startResize("top")}
-        role="separator"
-        aria-label="Resize conversation height"
+      <ResizeHandle
+        orientation="horizontal"
+        edge="start"
+        invert
+        invisible
+        thickness={SPACING.md}
+        ariaLabel="Resize conversation height"
+        sx={{
+          left: getSpacingPx(SPACING.lg),
+          right: getSpacingPx(SPACING.lg),
+          zIndex: Z_INDEX.raised + 1
+        }}
+        {...edgeResize.top}
       />
-      <div
-        className="convo-resize convo-resize-left"
-        onMouseDown={startResize("left")}
-        aria-hidden
+      <ResizeHandle
+        orientation="vertical"
+        edge="start"
+        invert
+        invisible
+        thickness={SPACING.md}
+        ariaLabel="Resize conversation width from the left"
+        sx={sideEdgeSx}
+        {...edgeResize.side}
       />
-      <div
-        className="convo-resize convo-resize-right"
-        onMouseDown={startResize("right")}
-        aria-hidden
+      <ResizeHandle
+        orientation="vertical"
+        edge="end"
+        invisible
+        thickness={SPACING.md}
+        ariaLabel="Resize conversation width from the right"
+        sx={sideEdgeSx}
+        {...edgeResize.side}
       />
       <div
         className="convo-resize convo-resize-tl"

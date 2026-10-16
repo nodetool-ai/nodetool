@@ -46,9 +46,7 @@ import {
   TabGroup,
   type TabItem,
   ToolbarIconButton,
-  BORDER_RADIUS,
-  MOTION,
-  getSpacingPx
+  ResizeHandle
 } from "../ui_primitives";
 import { isElectron, isLocalhost } from "../../lib/env";
 import ReportBugButton from "../support/ReportBugButton";
@@ -137,9 +135,8 @@ import { useWorkspaceHeaderActions } from "../workspace/WorkspaceHeaderActionsCo
 // globally so a session that never opens a timeline never fetches them.
 import "./fonts.css";
 
-const HANDLE_HEIGHT_PX = 6;
 /** Phone drag handle — 6px is under any reasonable touch target. */
-const TOUCH_HANDLE_HEIGHT_PX = 20;
+const TOUCH_HANDLE_HEIGHT_PX = SPACING.xxl * 4;
 const DEFAULT_TRACKS_HEIGHT_PX = 240;
 const MIN_TRACKS_HEIGHT_PX = 80;
 const MAX_TRACKS_HEIGHT_PX = 600;
@@ -223,49 +220,6 @@ const inspectorRegionStyles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.background.default,
     alignItems: "stretch",
     justifyContent: "flex-start"
-  });
-
-const dragHandleStyles = (theme: Theme, tall: boolean) =>
-  css({
-    height: tall ? TOUCH_HANDLE_HEIGHT_PX : HANDLE_HEIGHT_PX,
-    cursor: "ns-resize",
-    flexShrink: 0,
-    backgroundColor: theme.vars.palette.background.default,
-    boxShadow: `inset 0 1px ${theme.vars.palette.divider}`,
-    transition: MOTION.background,
-    outline: "none",
-    // The handle is a drag target, not a scroll surface: without this a touch
-    // drag scrolls the page instead of resizing (and the pointermove stream
-    // ends in a pointercancel).
-    touchAction: "none",
-    // Grip affordance — a bare 6px line reads as a border, not a control.
-    ...(tall
-      ? {
-          position: "relative",
-          backgroundColor: theme.vars.palette.background.paper,
-          borderTop: `1px solid ${theme.vars.palette.divider}`,
-          borderBottom: `1px solid ${theme.vars.palette.divider}`,
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: getSpacingPx(SPACING.xxxl),
-            height: getSpacingPx(SPACING.micro),
-            borderRadius: BORDER_RADIUS.sm,
-            backgroundColor: theme.vars.palette.text.disabled
-          }
-        }
-      : null),
-    "&:hover, &.dragging": {
-      backgroundColor: theme.vars.palette.primary.main
-    },
-    "&:focus-visible": {
-      backgroundColor: theme.vars.palette.primary.main,
-      outline: `2px solid ${theme.vars.palette.primary.main}`,
-      outlineOffset: 0
-    }
   });
 
 /** Human-readable label for the current export phase. */
@@ -862,38 +816,75 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   useEffect(() => {
     if (pianoRollOpen) setTracksHeight((height) => Math.min(height, DEFAULT_TRACKS_HEIGHT_PX));
   }, [pianoRollOpen]);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartYRef = useRef(0);
-  const dragStartHeightRef = useRef(DEFAULT_TRACKS_HEIGHT_PX);
-  const handleRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const latestHeightRef = useRef(effectiveTracksHeight);
+  latestHeightRef.current = effectiveTracksHeight;
   // Latest computed height + pending rAF id for the throttled resize below.
   const pendingHeightRef = useRef<number | null>(null);
   const resizeRafIdRef = useRef<number | null>(null);
 
-  /** Begin drag — capture start position and activate drag state. */
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      dragStartYRef.current = e.clientY;
-      dragStartHeightRef.current = effectiveTracksHeight;
-      setIsDragging(true);
-    },
-    [effectiveTracksHeight]
-  );
+  const cancelPendingFlush = useCallback(() => {
+    if (resizeRafIdRef.current !== null) {
+      cancelAnimationFrame(resizeRafIdRef.current);
+      resizeRafIdRef.current = null;
+    }
+  }, []);
 
   /**
-   * Register / unregister window-level pointer listeners for the duration of a
-   * drag. Cleanup runs on unmount, preventing listener leaks if the user
-   * navigates away mid-drag.
-   *
-   * Pointer events (not mouse) so the handle drags under touch as well as a
-   * mouse; `pointercancel` ends the drag when the OS takes the gesture over.
-   *
-   * `pointermove` fires far more often than the display refreshes, so it only
-   * records the latest height in a ref and schedules at most one
+   * `pointermove` fires far more often than the display refreshes, so a drag
+   * only records the latest height in a ref and schedules at most one
    * `setTracksHeight` per animation frame — otherwise every move tick
-   * re-rendered the whole shell.
+   * re-rendered the whole shell. Keyboard steps commit straight away.
    */
+  const handleTracksResize = useCallback(
+    (delta: number) => {
+      const next = clampTracksHeight(
+        (pendingHeightRef.current ?? latestHeightRef.current) + delta
+      );
+      if (!isDraggingRef.current) {
+        commitTracksHeight(next);
+        return;
+      }
+      pendingHeightRef.current = next;
+      if (resizeRafIdRef.current === null) {
+        resizeRafIdRef.current = requestAnimationFrame(() => {
+          resizeRafIdRef.current = null;
+          if (pendingHeightRef.current !== null) {
+            setTracksHeight(pendingHeightRef.current);
+          }
+        });
+      }
+    },
+    [commitTracksHeight]
+  );
+
+  const handleTracksResizeStart = useCallback(() => {
+    isDraggingRef.current = true;
+    pendingHeightRef.current = null;
+    // Prevent text selection in adjacent regions during drag.
+    document.body.style.userSelect = "none";
+  }, []);
+
+  const handleTracksResizeEnd = useCallback(() => {
+    cancelPendingFlush();
+    // Flush the final position synchronously so a pointerup landing between
+    // animation frames doesn't leave the panel at a stale height.
+    if (pendingHeightRef.current !== null) {
+      commitTracksHeight(pendingHeightRef.current);
+      pendingHeightRef.current = null;
+    }
+    isDraggingRef.current = false;
+    document.body.style.userSelect = "";
+  }, [cancelPendingFlush, commitTracksHeight]);
+
+  useEffect(
+    () => () => {
+      cancelPendingFlush();
+      document.body.style.userSelect = "";
+    },
+    [cancelPendingFlush]
+  );
+
   // Start the font fetch when the editor mounts, so the first title is drawn
   // with its real face instead of the fallback. `TextRasterizer` also refuses
   // to cache a bitmap until this resolves, which is what makes a slow fetch a
@@ -901,80 +892,6 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   useEffect(() => {
     void ensureBundledFontsLoaded();
   }, []);
-
-  useEffect(() => {
-    if (!isDragging) {
-      return;
-    }
-
-    // Prevent text selection in adjacent regions during drag.
-    document.body.style.userSelect = "none";
-    const handleEl = handleRef.current;
-    handleEl?.classList.add("dragging");
-
-    const flushPendingHeight = () => {
-      resizeRafIdRef.current = null;
-      if (pendingHeightRef.current !== null) {
-        setTracksHeight(pendingHeightRef.current);
-      }
-    };
-
-    const onPointerMove = (ev: PointerEvent) => {
-      const deltaY = dragStartYRef.current - ev.clientY; // drag up → taller
-      pendingHeightRef.current = clampTracksHeight(
-        dragStartHeightRef.current + deltaY
-      );
-      if (resizeRafIdRef.current === null) {
-        resizeRafIdRef.current = requestAnimationFrame(flushPendingHeight);
-      }
-    };
-
-    const onPointerUp = () => {
-      if (resizeRafIdRef.current !== null) {
-        cancelAnimationFrame(resizeRafIdRef.current);
-        resizeRafIdRef.current = null;
-      }
-      // Flush the final position synchronously so a mouseup landing between
-      // animation frames doesn't leave the panel at a stale height.
-      if (pendingHeightRef.current !== null) {
-        commitTracksHeight(pendingHeightRef.current);
-        pendingHeightRef.current = null;
-      }
-      setIsDragging(false);
-    };
-
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onPointerUp);
-
-    return () => {
-      if (resizeRafIdRef.current !== null) {
-        cancelAnimationFrame(resizeRafIdRef.current);
-        resizeRafIdRef.current = null;
-      }
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onPointerUp);
-      document.body.style.userSelect = "";
-      handleEl?.classList.remove("dragging");
-    };
-  }, [isDragging, commitTracksHeight]);
-
-  /** Keyboard resize: ↑ enlarges, ↓ shrinks the tracks panel. */
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        commitTracksHeight(
-          Math.min(maxTracksHeight, effectiveTracksHeight + KEYBOARD_RESIZE_STEP_PX)
-        );
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        commitTracksHeight(effectiveTracksHeight - KEYBOARD_RESIZE_STEP_PX);
-      }
-    },
-    [commitTracksHeight, effectiveTracksHeight, maxTracksHeight]
-  );
 
   /** Double-click the grip to return the tracks panel to its default height. */
   const handleResetTracksHeight = useCallback(
@@ -1179,19 +1096,20 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
 
       {/* ── Horizontal drag handle (pointer + keyboard resizable) ─── */}
       {!pianoRollFullScreen && (
-        <div
-          ref={handleRef}
-          role="separator"
-          aria-orientation="horizontal"
-          aria-label="Resize tracks panel"
-          aria-valuenow={effectiveTracksHeight}
-          aria-valuemin={MIN_TRACKS_HEIGHT_PX}
-          aria-valuemax={maxTracksHeight}
-          tabIndex={0}
-          css={dragHandleStyles(theme, isMobile)}
-          onPointerDown={handlePointerDown}
+        <ResizeHandle
+          orientation="horizontal"
+          invert
+          value={effectiveTracksHeight}
+          min={MIN_TRACKS_HEIGHT_PX}
+          max={maxTracksHeight}
+          thickness={isMobile ? SPACING.xxl : SPACING.sm}
+          grip={isMobile}
+          keyboardStep={KEYBOARD_RESIZE_STEP_PX}
+          ariaLabel="Resize tracks panel"
+          onResize={handleTracksResize}
+          onResizeStart={handleTracksResizeStart}
+          onResizeEnd={handleTracksResizeEnd}
           onDoubleClick={handleResetTracksHeight}
-          onKeyDown={handleKeyDown}
         />
       )}
 
