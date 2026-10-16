@@ -1,11 +1,18 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { gameDocument, type GameDocument, type GameInputFrame, type GameSnapshot } from "@nodetool-ai/protocol";
+import { gameDocument, gameInputFrame, type GameDocument, type GameRenderFrame, type GameInputFrame, type GameSnapshot } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame, type GameSession, type GameSaveRecord } from "@nodetool-ai/game-runtime";
 
-const observed = vi.hoisted(() => ({
-  sessions: [] as GameSession[], load: undefined as Promise<GameSaveRecord | null> | undefined,
-  nextOpen: undefined as Promise<void> | undefined
+interface LifecycleObservations {
+  readonly sessions: GameSession[];
+  load: Promise<GameSaveRecord | null> | undefined;
+  nextOpen: Promise<void> | undefined;
+  readonly rendered: number[];
+  nextRender: Promise<void> | undefined;
+  renderFailure: Error | undefined;
+}
+const observed = vi.hoisted((): LifecycleObservations => ({
+  sessions: [], load: undefined, nextOpen: undefined, rendered: [], nextRender: undefined, renderFailure: undefined
 }));
 
 vi.mock("@nodetool-ai/game-runtime", async (importOriginal) => {
@@ -35,7 +42,16 @@ vi.mock("../src/browser.js", () => ({
   loadBrowserGameFonts: async () => ({ dispose() {}, diagnostics: [] }),
   createGameRenderer: async () => ({
     backend: "Canvas2D", capabilities: { gpuEffects: false }, resize() {}, dispose() {},
-    render: async () => ({ drawCalls: 0, particles: 0 })
+    render: async (frame: GameRenderFrame) => {
+      observed.rendered.push(frame.tick);
+      const pending = observed.nextRender;
+      const failure = observed.renderFailure;
+      observed.nextRender = undefined;
+      observed.renderFailure = undefined;
+      if (pending) { await pending; }
+      if (failure) { throw failure; }
+      return { drawCalls: 0, particles: 0 };
+    }
   })
 }));
 vi.mock("../src/audio.js", () => ({
@@ -73,6 +89,9 @@ beforeEach(() => {
   observed.sessions.length = 0;
   observed.load = undefined;
   observed.nextOpen = undefined;
+  observed.rendered.length = 0;
+  observed.nextRender = undefined;
+  observed.renderFailure = undefined;
   Reflect.deleteProperty(window, "nativeGamePlayer");
 });
 
@@ -147,6 +166,63 @@ describe("standalone async save lifecycle", () => {
       if (descriptor) { Object.defineProperty(globalThis, "localStorage", descriptor); }
       else { Reflect.deleteProperty(globalThis, "localStorage"); }
     }
+  });
+
+});
+
+
+describe("standalone explicit frame rendering", () => {
+  it("renders each concurrently requested simulation tick in order", async () => {
+    await startPlayer();
+    observed.rendered.length = 0;
+    const input = gameInputFrame.parse({ pressed: [], justPressed: [] });
+    await Promise.all([window.nativeGamePlayer.step(input), window.nativeGamePlayer.step(input)]);
+    expect(observed.rendered).toEqual([1, 2]);
+  });
+
+  it("returns a successful render receipt bound to the stepped tick", async () => {
+    await startPlayer();
+    const receipt = await window.nativeGamePlayer.step(gameInputFrame.parse({ pressed: [], justPressed: [] }));
+    expect(receipt).toMatchObject({ tick: 1, frameNumber: expect.any(Number) });
+    expect(observed.rendered).toContain(1);
+  });
+
+  it("waits for the requested render before acknowledging its tick", async () => {
+    await startPlayer();
+    const rendered = Promise.withResolvers<void>();
+    observed.nextRender = rendered.promise;
+    let acknowledged = false;
+    const pending = window.nativeGamePlayer.step(gameInputFrame.parse({ pressed: [], justPressed: [] }))
+      .then((receipt) => { acknowledged = true; return receipt; });
+    await vi.waitFor(() => expect(observed.rendered).toContain(1));
+    expect(acknowledged).toBe(false);
+    rendered.resolve();
+    expect(await pending).toMatchObject({ tick: 1 });
+  });
+
+  it("rejects a failed render without crediting it or poisoning the next command", async () => {
+    await startPlayer();
+    const before = await window.nativeGamePlayer.reset();
+    observed.renderFailure = new Error("Deliberately rejected render");
+    const input = gameInputFrame.parse({ pressed: [], justPressed: [] });
+    await expect(window.nativeGamePlayer.step(input)).rejects.toThrow("Deliberately rejected render");
+    const after = await window.nativeGamePlayer.step(input);
+    expect(after.tick).toBe(2);
+    expect(after.frameNumber).toBe(before.frameNumber + 1);
+  });
+
+  it("rejects an in-flight frame superseded by reset, then acknowledges the new session", async () => {
+    await startPlayer();
+    const rendered = Promise.withResolvers<void>();
+    observed.nextRender = rendered.promise;
+    const pending = window.nativeGamePlayer.step(gameInputFrame.parse({ pressed: [], justPressed: [] }))
+      .catch((error: unknown) => error);
+    await vi.waitFor(() => expect(observed.rendered).toContain(1));
+    const reset = window.nativeGamePlayer.reset();
+    rendered.resolve();
+    expect(await pending).toMatchObject({ name: "AbortError" });
+    expect(await reset).toMatchObject({ tick: 0 });
+    expect(window.nativeGamePlayer.snapshot().tick).toBe(0);
   });
 
 });
