@@ -73,4 +73,54 @@ describe("DirectGenLayerPanel", () => {
       screen.getByTestId("direct-gen-generate")
     );
   });
+
+  // Study 4 E1-24: at 1440 × 900 a new layer from "From image" opened with
+  // Generate clipped at the inspector's bottom edge until the prompt took focus.
+  it("brings Generate into view when a new layer opens", () => {
+    const scrollIntoView = jest.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <DirectGenLayerPanel
+          layer={layer}
+          binding={{
+            layerId: "edit",
+            kind: "image-to-image",
+            provider: "",
+            model: "",
+            prompt: "",
+            status: "draft",
+            versions: []
+          }}
+        />
+      </ThemeProvider>
+    );
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+    expect(scrollIntoView.mock.contexts[0]).toBe(
+      screen.getByTestId("direct-gen-generate")
+    );
+  });
+
+  it("leaves the scroll alone when an existing layer is selected", () => {
+    const scrollIntoView = jest.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <DirectGenLayerPanel
+          layer={layer}
+          binding={{
+            layerId: "edit",
+            kind: "image-to-image",
+            provider: "openai",
+            model: "test-image-model",
+            prompt: "Watercolour painting style",
+            status: "generated",
+            currentAssetId: "abc",
+            versions: []
+          }}
+        />
+      </ThemeProvider>
+    );
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
 });

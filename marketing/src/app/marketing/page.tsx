@@ -182,7 +182,7 @@ export default function MarketingSegmentPage() {
                   />
                   <a
                     href="#example-timelines"
-                    className="inline-flex items-center gap-2.5 px-9 py-4 rounded-full border border-white/15 bg-[#0a0a14]/70 backdrop-blur-sm text-white font-semibold hover:bg-white/5 hover:border-white/25 transition-all"
+                    className="inline-flex items-center gap-2.5 px-9 py-4 rounded-full border border-white/15 bg-[#0a0a14]/70 backdrop-blur-xs text-white font-semibold hover:bg-white/5 hover:border-white/25 transition-all"
                   >
                     <Play className="w-5 h-5" />
                     Watch examples
@@ -439,7 +439,7 @@ export default function MarketingSegmentPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.08 }}
-                  className="flex items-start gap-4 rounded-2xl border border-white/10 bg-[#0a0a14]/70 backdrop-blur-sm p-6"
+                  className="flex items-start gap-4 rounded-2xl border border-white/10 bg-[#0a0a14]/70 backdrop-blur-xs p-6"
                 >
                   <div className="w-11 h-11 shrink-0 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                     <wf.icon className="w-5 h-5 text-emerald-400" />

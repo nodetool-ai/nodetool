@@ -1,11 +1,11 @@
 /**
- * RecentAssetsStore — session-scoped list of assets recently referenced from a
- * prompt composer.
+ * RecentAssetsStore — session-scoped list of assets recently uploaded or
+ * referenced from a prompt composer.
  *
  * The Prompt node never caches asset bytes; it stores `asset://<id>` URNs and
  * the runtime dereferences them. "Recent" is therefore purely a UI convenience:
- * the assets a user has just inserted or dragged into a prompt during this
- * session, surfaced first in the `@`-mention picker so they don't have to be
+ * the assets a user has just uploaded, inserted or dragged into a prompt during
+ * this session, surfaced first in the `@`-mention picker so they don't have to be
  * searched for again.
  *
  * In-memory only (newest first, de-duplicated by id, capped) — it resets on

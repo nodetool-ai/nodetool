@@ -2368,6 +2368,27 @@ Invalid Telegram bridge environment:
 setting `TELEGRAM_WEBHOOK_URL` makes `serve` refuse to start rather than
 silently polling. Design notes: [telegram-bot-design.md](telegram-bot-design.md).
 
+## Browser Extension
+
+### `nodetool extension`
+
+Set up and check the bridge between NodeTool and the [Chrome extension](chrome-extension.md). The bridge needs no server: Chrome starts the native messaging host when the extension connects, and local clients reach it over a unix socket.
+
+**Subcommands:** `install`, `status`
+
+Neither subcommand takes options.
+
+- `install` registers the native messaging host with Chrome, Chromium, Brave, Edge and Arc. It prints the wrapper path, each manifest it registered, and the extension ID.
+- `status` prints `connected` or `not connected`, followed by one `socket: <path>` line for each bridge socket it finds. It exits with code 1 when the extension is not connected.
+
+```bash
+# Register the native host, then load or reload the extension in chrome://extensions
+nodetool extension install
+
+# Check the connection
+nodetool extension status
+```
+
 ## Development Tooling
 
 ### `nodetool affected [files...]`
@@ -2556,9 +2577,9 @@ Manual harnesses (need a target/key — run yourself):
 ### `nodetool package`
 
 Manage TypeScript **node** packages — the packs that contribute node types to
-the registry. Not to be confused with `nodetool packs`, which handles the
-sandbox packs a Code node imports; the names are one letter apart and the
-subjects are unrelated.
+the registry. Not to be confused with [`nodetool packs`](#nodetool-packs),
+which installs, removes and diagnoses published node packs and runtime
+libraries, and compiles the sandbox packs a Code node imports.
 
 Reach for it when you are authoring a node pack: `init` scaffolds one, `list`
 tells you what this install has, and the three `*-docs` commands generate the

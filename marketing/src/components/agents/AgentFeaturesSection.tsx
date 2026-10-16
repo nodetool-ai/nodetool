@@ -132,7 +132,7 @@ export default function AgentFeaturesSection({
               }}
             >
               <Tilt3D className="h-full">
-                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-6 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
+                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-xs p-6 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
                   <div
                     className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 border
                     ${feature.color === "teal" ? "bg-teal-500/10 border-teal-500/20" : ""}

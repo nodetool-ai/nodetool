@@ -148,8 +148,8 @@ override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
 curl -s https://api.x.ai/v1/models \
   -H "Authorization: Bearer $XAI_API_KEY" | jq '.data[].id'
 
-# 2. Type check and lint
-npm run typecheck
+# 2. Compile the runtime package (tsc type-checks it), then lint
+npm run build --workspace=packages/runtime
 npm run lint
 
 # 3. Run the xAI provider tests

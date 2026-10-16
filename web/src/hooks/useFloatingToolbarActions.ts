@@ -73,6 +73,19 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const cancel = useWebsocketRunner((state) => state.cancel);
   const [isStopping, setIsStopping] = useState(false);
   const isWorkflowActive = isWorkflowBusy || isStopping;
+  // The edit count when the run failed. An edit after that (such as a new
+  // model on the failing node) returns the control to its normal Run state.
+  const editGeneration = useNodes((state) => state.editGeneration);
+  const [errorEditGeneration, setErrorEditGeneration] = useState<
+    number | null
+  >(null);
+  if (state === "error" && errorEditGeneration === null) {
+    setErrorEditGeneration(editGeneration);
+  } else if (state !== "error" && errorEditGeneration !== null) {
+    setErrorEditGeneration(null);
+  }
+  const editedSinceError =
+    errorEditGeneration !== null && editGeneration !== errorEditGeneration;
   const runControlLabel = useMemo(() => {
     if (isStopping) {
       return "Stopping";
@@ -88,11 +101,11 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
         ? `Running · ${pendingRunCount} queued`
         : "Running";
     }
-    if (state === "error") {
+    if (state === "error" && !editedSinceError) {
       return "Error · Retry";
     }
     return "Run entire workflow";
-  }, [isStopping, pendingRunCount, queuePosition, state]);
+  }, [editedSinceError, isStopping, pendingRunCount, queuePosition, state]);
 
   const getWorkflowById = useWorkflowManager((state) => state.getWorkflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
@@ -410,7 +423,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
       isWorkflowRunning,
       isWorkflowActive,
       runControlLabel,
-      runControlDetail: statusMessage,
+      runControlDetail: editedSinceError ? null : statusMessage,
       isStopping,
       queuePosition,
       pendingRunCount
@@ -428,6 +441,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
       isWorkflowRunning,
       isWorkflowActive,
       runControlLabel,
+      editedSinceError,
       statusMessage,
       isStopping,
       queuePosition,

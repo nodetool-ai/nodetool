@@ -257,6 +257,11 @@ const PREPARED_REALM_LIMIT = 64;
 const SCRIPT_BATCH_MS = 50;
 /** Prepare-time allowance for the warm-up batch, which runs before any tick budget starts. */
 const WARMUP_BATCH_MS = 1000;
+/**
+ * Allowance for a runner's first batch. It is the first run of the document's own scripts and command
+ * kinds, which the warm-up cannot cover, so a slow machine spent over 50 ms on it.
+ */
+const FIRST_BATCH_MS = 1000;
 const WARMUP_SOURCES = [
   ["warmup:fresh", "(input) => { const world = input.world; return { state: { tick: input.tick, entities: world.length, ids: world.map((entity) => entity.id) }, commands: [] }; }"],
   ["warmup:persistent", "(input) => ({ state: [input.state, input.world], commands: [] })"]
@@ -668,6 +673,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         for (const [key] of warmups) { sources.delete(key); persistentSources.delete(key); hookSources.delete(key); }
       }
     }
+    let firstBatch = true;
     return {
       reloadSources(updates): void {
         const candidates: { update: GameScriptSourceUpdate; persistent: boolean; onEvent: boolean }[] = [];
@@ -706,7 +712,9 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           if (calls.length === 0) {
             return { results: [], rngState, stats: { durationMs: 0, commands: 0, calls: 0, byEntity: {} } };
           }
-          return execute(calls, input, rngState, world, SCRIPT_BATCH_MS);
+          const batchMs = firstBatch ? FIRST_BATCH_MS : SCRIPT_BATCH_MS;
+          firstBatch = false;
+          return execute(calls, input, rngState, world, batchMs);
         } catch (error) {
           disposeRealms();
           throw error;

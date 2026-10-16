@@ -9,6 +9,7 @@ import { assertCoreOnlyInstall, assertCoreInstallSize, CORE_INSTALL_BUDGET_KIB, 
 import { runReleaseCommand, tarballIntegrity } from "./pin-catalog.mjs";
 import { runFalFixture } from "../packed-fal-fixture.mjs";
 import { validateInstallPin } from "./install-pins.mjs";
+import { loadRegistryDist, loadRegistryJson, REGISTRY_READINESS_MS } from "./registry.mjs";
 
 export const RELEASE_REPOSITORY = "https://github.com/nodetool-ai/nodetool";
 export const RELEASE_WORKFLOW = ".github/workflows/publish.yaml";
@@ -76,7 +77,7 @@ export function stagingPins(catalog, artifacts) {
 }
 
 /** npm's SLSA v1 payload binds these exact bytes to this repository/workflow. */
-export function hasReleaseProvenance(pin, response) {
+export function hasReleaseProvenance(pin, response, originalRun) {
   const digest = Buffer.from(pin.integrity.slice("sha512-".length), "base64").toString("hex");
   const subject = `pkg:npm/${pin.name.replace(/^@/, "%40")}@${pin.version}`;
   if (!Array.isArray(response?.attestations)) { return false; }
@@ -87,21 +88,20 @@ export function hasReleaseProvenance(pin, response) {
     let statement;
     try { statement = JSON.parse(Buffer.from(envelope.payload, "base64").toString("utf8")); }
     catch { return false; }
-    const workflow = statement.predicate?.buildDefinition?.externalParameters?.workflow;
+    const definition = statement.predicate?.buildDefinition;
+    const workflow = definition?.externalParameters?.workflow;
+    if (originalRun && (workflow?.ref !== originalRun.ref ||
+        definition?.internalParameters?.github?.event_name !== "workflow_dispatch" ||
+        !definition?.resolvedDependencies?.some(dependency =>
+          dependency.uri === `git+${RELEASE_REPOSITORY}@${originalRun.ref}` && dependency.digest?.gitCommit === originalRun.sha) ||
+        statement.predicate?.runDetails?.metadata?.invocationId !==
+          `${RELEASE_REPOSITORY}/actions/runs/${originalRun.id}/attempts/${originalRun.attempt}`)) {
+      return false;
+    }
     return statement._type === "https://in-toto.io/Statement/v1" && statement.predicateType === PROVENANCE_TYPE &&
       workflow?.repository === RELEASE_REPOSITORY && workflow.path === RELEASE_WORKFLOW &&
       Array.isArray(statement.subject) && statement.subject.some(item => item.name === subject && item.digest?.sha512 === digest);
   });
-}
-
-async function loadRegistryAttestations(url) {
-  const endpoint = new URL(url);
-  if (endpoint.protocol !== "https:" || endpoint.hostname !== "registry.npmjs.org") {
-    throw new Error(`Unexpected npm attestation endpoint: ${url}`);
-  }
-  const response = await fetch(endpoint, { signal: AbortSignal.timeout(30_000), redirect: "error" });
-  if (!response.ok) { throw new Error(`npm attestations returned HTTP ${response.status}`); }
-  return response.json();
 }
 
 /** Verify a fresh registry CLI through its authorized pack installer. */
@@ -167,17 +167,19 @@ if (registry.list().length !== ${pack.nodeCount} || registry.list().length === 0
 
 export async function verifyStaging(catalog, artifacts, {
   run = runReleaseCommand,
-  loadAttestations = loadRegistryAttestations,
+  loadDist = loadRegistryDist,
+  loadAttestations = loadRegistryJson,
   smoke = () => verifyRegistryInstall(catalog, { run })
 } = {}) {
   const pins = stagingPins(catalog, artifacts);
+  const readiness = { deadline: Date.now() + REGISTRY_READINESS_MS };
   for (const pin of pins) {
     const spec = `${pin.name}@${pin.version}`;
-    const dist = JSON.parse(await run("npm", ["view", spec, "dist", "--json", "--registry=https://registry.npmjs.org"], {}));
+    const dist = await loadDist(pin, readiness);
     if (dist.integrity !== pin.integrity) { throw new Error(`Registry integrity differs from release pin: ${spec}`); }
     if (pin.firstParty) {
       if (!dist.attestations?.url || dist.attestations.provenance?.predicateType !== PROVENANCE_TYPE ||
-          !hasReleaseProvenance(pin, await loadAttestations(dist.attestations.url))) {
+          !hasReleaseProvenance(pin, await loadAttestations(dist.attestations.url, readiness))) {
         throw new Error(`Missing matching ${RELEASE_REPOSITORY}/${RELEASE_WORKFLOW} provenance for ${spec}`);
       }
     }

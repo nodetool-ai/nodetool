@@ -240,7 +240,7 @@ Rules for refs (the repository's `packages/AGENTS.md` lists more):
 - `data` is raw base64 or a `Uint8Array`, never a `data:` URI. Put the MIME type in a field such as `mimeType`.
 - Always include `type` on a ref you emit. A bare `Uint8Array` output is an untyped value.
 - Check `data.length > 0` instead of truthiness when choosing between `data` and `uri`.
-- Audio and video have equivalent helpers in their packages, such as `audioBytesAsync` in `packages/audio-nodes/src/nodes/audio.ts`.
+- Audio and video have equivalent helpers in their packages, such as `audioBytesAsync` in `packages/audio-nodes/src/lib/audio-wav.ts`.
 
 ---
 
