@@ -4,13 +4,11 @@
 
 import type { SxProps, Theme } from "@mui/material/styles";
 import {
-  MOTION,
   BORDER_RADIUS,
   CONTROL,
   FONT_SIZE_SANS,
   SPACING,
   TYPOGRAPHY,
-  reducedMotion,
   getSpacingPx
 } from "../ui_primitives";
 
