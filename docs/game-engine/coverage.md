@@ -17,7 +17,7 @@ This inventory covers the shipped document components and the authoring, runtime
 |---|---|---|
 | [2D document](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game2d/index.ts) | Scenes, entry scene, assets, input actions, transform, template entities, metadata | [Scenes](/game-engine/scenes) |
 | [2D components](https://github.com/nodetool-ai/nodetool/tree/main/packages/protocol/src/game2d/components) | Sprite, tilemap, camera2d, body2d, collider2d, animator, visualAnimation, light2d, audioSource | [2D graphics](/game-engine/graphics-2d), [physics](/game-engine/physics), [animation](/game-engine/animation), [audio](/game-engine/audio) |
-| [3D document and components](https://github.com/nodetool-ai/nodetool/tree/main/packages/protocol/src/game3d) | Transform3d, primitive, model, body3d, collider3d, character3d, camera3d, light3d, animator3d, interactionActor, audioSource, particles, renderCulling | [3D graphics](/game-engine/graphics-3d), [physics](/game-engine/physics), [input](/game-engine/input-cameras), [animation](/game-engine/animation) |
+| [3D document and components](https://github.com/nodetool-ai/nodetool/tree/main/packages/protocol/src/game3d) | Transform3d, primitive, model, body3d, collider3d, character3d, camera3d, light3d, animator3d, interactionActor, audioSource, particles, renderCulling, decal3d | [3D graphics](/game-engine/graphics-3d), [physics](/game-engine/physics), [input](/game-engine/input-cameras), [animation](/game-engine/animation) |
 | [Entity metadata](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-entity-metadata.ts) | Tags, JSON properties, runtime property commands | [Scenes](/game-engine/scenes), [scripts](/game-engine/scripts) |
 | [Input bindings](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-input.ts) | Actions, axes, look, keyboard layouts, mouse, gamepad, touch | [Input and cameras](/game-engine/input-cameras) |
 | [Particle schema](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-particles.ts) | Emission, ranges, shapes, curves, gradients, sub-emitters, 2D and 3D render choices | [Particles](/game-engine/particles) |
@@ -32,7 +32,7 @@ This inventory covers the shipped document components and the authoring, runtime
 |---|---|
 | [Runtime](https://github.com/nodetool-ai/nodetool/tree/main/packages/game-runtime/src) | Validation, document operations, fixed-step systems, physics, script execution, snapshots, restore |
 | [2D renderer](https://github.com/nodetool-ai/nodetool/tree/main/packages/game-renderer/src) | Canvas2D/WebGPU drawing, backgrounds, lighting, effect chain, fonts, UI, audio, standalone players |
-| [3D renderer](https://github.com/nodetool-ai/nodetool/tree/main/packages/game-renderer/src/renderer3d) | Model preparation and instances, scalar materials, animation, sky, shadows, post-processing, culling, editor passes |
+| [3D renderer](https://github.com/nodetool-ai/nodetool/tree/main/packages/game-renderer/src/renderer3d) | Model preparation and instances, scalar materials, animation, sky, shadows, height fog, projected image decals, post-processing, culling, editor passes |
 | [Particle consumers](https://github.com/nodetool-ai/nodetool/tree/main/packages/game-renderer/src/particles) | Seeded presentation simulation and dimension-specific rendering |
 | [Editor](https://github.com/nodetool-ai/nodetool/tree/main/web/src/components/game) | Scene tree, selection/gizmos, inspector, asset browser, scripting, Console, Profiler, retained construction |
 | [Game tools](https://github.com/nodetool-ai/nodetool/blob/main/packages/system-skills/native-game/SKILL.md) | Agent creation, preparation, editing, playtesting, capture, and build |
@@ -48,7 +48,8 @@ The following limits matter when choosing a workflow:
 - 3D renders with WebGL2. Its particle field is ticked by standalone and capture hosts, not the current editor play session.
 - 3D particle sprite sheets, separate material textures, named material lookup, toon shading, and outlines are not completed renderer paths. Embedded supported GLB textures remain available.
 - HDRI callback contracts exist, but the standard hosts do not complete their preparation and loading path. Solid and procedural skies work.
-- Height fog, decals, the dedicated particle preset inspector, and built-in localization are outside this guide's shipped baseline.
+- Height fog and projected decals are available in 3D. Decals require prepared images and supported rigid receivers, with an authored scene limit and bounded projection work. See [3D graphics](/game-engine/graphics-3d).
+- The dedicated particle preset inspector and built-in localization are outside this guide's shipped baseline.
 - Multiplayer, navigation meshes, terrain streaming, vehicles, ragdolls, retargeting, and root motion are not supplied by the current engine.
 
 Feature screenshots and their exact source revision are recorded in [screenshot provenance](/game-engine/screenshots). The source links above follow main and may contain later additions than the captured guide baseline.
