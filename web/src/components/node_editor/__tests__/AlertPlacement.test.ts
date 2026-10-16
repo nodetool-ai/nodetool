@@ -1,18 +1,27 @@
 /**
- * Below 1440 wide, toasts move to the bottom right above the status bar, so
- * they no longer cover the home screen's getting-started checklist (UX study
- * 3, D7). jsdom does no layout, so this pins the rule that moves them.
+ * Toasts sit at the top right at every window width, left of the inspector
+ * when it is open. UX study 4 (D5) saw them cover the inspector's Model field
+ * at the top right, and the run button when narrower windows moved them to
+ * the bottom right. jsdom does no layout, so this pins the rules that place
+ * them.
  */
 import mockTheme from "../../../__mocks__/themeMock";
-import { TOAST_BOTTOM_BELOW_WIDTH, styles } from "../Alert";
+import { styles } from "../Alert";
 
 describe("toast placement", () => {
-  const css = styles(mockTheme).styles;
+  it("keeps one top-right placement at every desktop width", () => {
+    const css = styles(mockTheme).styles;
+    expect(css).toContain("top:68px");
+    expect(css).not.toMatch(/bottom:calc\(/);
+  });
 
-  it("anchors toasts at the bottom on narrower windows", () => {
-    const query = `@media (max-width: ${TOAST_BOTTOM_BELOW_WIDTH - 1}px)`;
-    const at = css.indexOf(query);
-    expect(at).toBeGreaterThan(-1);
-    expect(css.slice(at)).toMatch(/^[^}]*top:auto;bottom:calc\(/);
+  it("moves toasts left of an open inspector", () => {
+    const css = styles(mockTheme, 350).styles;
+    expect(css).toMatch(/right:calc\(350px \+ /);
+  });
+
+  it("keeps the default right gutter with no inspector", () => {
+    const css = styles(mockTheme, 0).styles;
+    expect(css).toContain("right:calc(2em + 24px)");
   });
 });

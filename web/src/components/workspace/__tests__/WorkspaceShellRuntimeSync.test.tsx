@@ -9,8 +9,7 @@ const workspaceTabsState = {
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   useWorkspaceTabsStore: (
     selector: (state: typeof workspaceTabsState) => unknown
-  ) =>
-    selector(workspaceTabsState)
+  ) => selector(workspaceTabsState)
 }));
 
 const workflowManagerState = {
@@ -64,6 +63,11 @@ jest.mock("@mui/material/styles", () => ({
   })
 }));
 
+// The real spinner styles itself from theme fields the mocked theme lacks.
+jest.mock("../../ui_primitives", () => ({
+  ...jest.requireActual("../../ui_primitives"),
+  LoadingSpinner: () => <div role="status" aria-label="Loading" />
+}));
 jest.mock("../../panels/FrontendToolRuntimeSync", () => ({
   __esModule: true,
   default: () => <div data-testid="frontend-tool-runtime-sync" />
@@ -104,12 +108,27 @@ jest.mock("../../node_editor/Alert", () => ({
 import WorkspaceShell from "../WorkspaceShell";
 import { TOOLBAR_WIDTH } from "../../../config/constants";
 
+// First in the file: the lazy home surface suspends only until it has loaded once.
+describe("WorkspaceShell first load", () => {
+  it("shows a loading indicator while the home surface loads", async () => {
+    render(<WorkspaceShell />);
+
+    expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
+    expect(await screen.findByText("New project")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("status", { name: "Loading" })
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("WorkspaceShell frontend tool runtime", () => {
   it("initializes the runtime while the New Project surface is active", async () => {
     render(<WorkspaceShell />);
 
     expect(await screen.findByText("New project")).toBeInTheDocument();
-    expect(screen.getByTestId("frontend-tool-runtime-sync")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("frontend-tool-runtime-sync")
+    ).toBeInTheDocument();
   });
 });
 

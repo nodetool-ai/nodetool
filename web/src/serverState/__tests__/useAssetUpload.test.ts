@@ -16,6 +16,7 @@ jest.mock("../../stores/WorkspaceTabsStore", () => ({
 }));
 
 import { useAssetUpload } from "../useAssetUpload";
+import { useRecentAssetsStore } from "../../stores/RecentAssetsStore";
 
 describe("useAssetUpload", () => {
   beforeEach(() => {
@@ -103,6 +104,20 @@ describe("useAssetUpload", () => {
       });
 
       expect(mockCreateAsset).toHaveBeenCalled();
+    });
+
+    it("lists a finished upload first in the @ picker's Recent assets", async () => {
+      useRecentAssetsStore.setState({ recentAssets: [] });
+      const uploaded = { id: "photo-1", name: "holiday-photo.jpg" };
+      mockCreateAsset.mockResolvedValue(uploaded);
+
+      await act(async () => {
+        useAssetUpload.getState().uploadAsset({
+          file: new File(["x"], "holiday-photo.jpg", { type: "image/jpeg" })
+        });
+      });
+
+      expect(useRecentAssetsStore.getState().recentAssets[0]).toBe(uploaded);
     });
 
     it("forwards the project scope to asset creation", () => {

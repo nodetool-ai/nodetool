@@ -9,7 +9,7 @@
  * live on the binding itself.
  */
 
-import React, { memo, useCallback, useMemo, useRef } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import TvIcon from "@mui/icons-material/Tv";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -80,6 +80,20 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
   const revealGenerate = useCallback(() => {
     generateRef.current?.scrollIntoView({ block: "nearest" });
   }, []);
+  // A layer just made from "From image" or "From text" opens with its
+  // Generate below the fold at 1440 × 900, so bring it into view once.
+  const isFreshDraft =
+    binding.status === "draft" &&
+    !binding.prompt &&
+    !binding.currentAssetId &&
+    binding.versions.length === 0;
+  const isFreshDraftRef = useRef(isFreshDraft);
+  isFreshDraftRef.current = isFreshDraft;
+  useEffect(() => {
+    if (isFreshDraftRef.current) {
+      revealGenerate();
+    }
+  }, [layer.id, revealGenerate]);
   // Written before the status flips to failed, so this render already has it.
   const failure =
     binding.status === "failed" ? directGenFailure(layer.id) : null;
