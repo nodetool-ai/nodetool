@@ -804,29 +804,21 @@ export class OpenAIProvider extends BaseProvider {
     durationSeconds?: number | null;
     numFrames?: number | null;
   }): number | null {
-    const durationSeconds = params.durationSeconds;
-    if (
-      durationSeconds != null &&
-      Number.isFinite(durationSeconds) &&
-      durationSeconds > 0
-    ) {
-      return SORA_VIDEO_DURATIONS.reduce(
-        (duration, candidate) =>
-          candidate <= durationSeconds ? candidate : duration,
+    const isPositive = (n: number | null | undefined): n is number =>
+      n != null && Number.isFinite(n) && n > 0;
+    const snap = (seconds: number): number =>
+      SORA_VIDEO_DURATIONS.reduce(
+        (duration, candidate) => (candidate <= seconds ? candidate : duration),
         SORA_VIDEO_DURATIONS[0]
       );
-    }
 
-    const numFrames = params.numFrames;
-    if (!numFrames || !Number.isFinite(numFrames) || numFrames <= 0) {
-      return null;
+    if (isPositive(params.durationSeconds)) {
+      return snap(params.durationSeconds);
     }
-
-    const estimated = Math.ceil(numFrames / 24);
-    return SORA_VIDEO_DURATIONS.reduce(
-      (duration, candidate) => (candidate <= estimated ? candidate : duration),
-      SORA_VIDEO_DURATIONS[0]
-    );
+    if (isPositive(params.numFrames)) {
+      return snap(Math.ceil(params.numFrames / 24));
+    }
+    return null;
   }
 
   static snapToValidVideoDimensions(width: number, height: number): string {
