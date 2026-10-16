@@ -13,7 +13,7 @@ describe("3D script metadata and committed world rotation", () => {
       ...base.scenes[0].entities,
       { id: "parent", transform3d: { rotation: [half, 0, 0, half] } },
       { id: "child", parentId: "parent", tags: ["observer"], props: { nested: { nullable: null } },
-        transform3d: { rotation: [0, half, 0, half] }, behaviors: [{ kind: "script", maxTickMs: 30,
+        transform3d: { rotation: [0, half, 0, half] }, behaviors: [{ kind: "script", maxTickMs: 20,
           source: `({tick,entity,world}) => ({state:{self:entity,world},commands:tick===0?[{kind:'setVisual',rotation:[0,0,0,1]}]:[]})` }] }
     ] }] });
     expect(validateAnyGame(document).valid).toBe(true);
@@ -39,11 +39,11 @@ describe("3D script metadata and committed world rotation", () => {
     const base = blockout();
     const document = gameDocument3D.parse({ ...base,
       scenes: [{ ...base.scenes[0], entities: base.scenes[0].entities.map((entity) => entity.id === "player" ? {
-        ...entity, behaviors: [{ kind: "script", maxTickMs: 30,
+        ...entity, behaviors: [{ kind: "script", maxTickMs: 20,
           source: `({tick})=>({state:null,commands:tick===0?[{kind:'spawn',prefabId:'actor'},{kind:'spawn',prefabId:'actor'}]:[]})` }]
       } : entity) }],
       prefabs: { actor: { rootId: "root", externalAssets: [], externalScenes: [], entities: [{
-        id: "root", transform3d: {}, props: { nested: { value: 1 } }, behaviors: [{ kind: "script", maxTickMs: 30,
+        id: "root", transform3d: {}, props: { nested: { value: 1 } }, behaviors: [{ kind: "script", maxTickMs: 20,
           source: `({entity})=>({state:entity.props,commands:entity.id==='actor#1/root'?[{kind:'setProp',key:'nested',value:{value:9}}]:[]})` }]
       }] } }
     });
@@ -65,7 +65,7 @@ describe("3D script metadata and committed world rotation", () => {
 it("isolates nested 3D inputs and preserves explicit empty properties on restore", async () => {
   const base = blockout();
   const document = gameDocument3D.parse({...base,scenes:[{...base.scenes[0],entities:base.scenes[0].entities.map(entity=>entity.id==='player'?{
-    ...entity,props:{nested:{value:1}},behaviors:[{kind:'script',maxTickMs:30,source:`({tick,entity,world})=>{
+    ...entity,props:{nested:{value:1}},behaviors:[{kind:'script',maxTickMs:20,source:`({tick,entity,world})=>{
       const value=entity.props.nested?.value ?? null;
       if(entity.props.nested) entity.props.nested.value=99;
       const other=world.find(item=>item.id===entity.id);
@@ -92,7 +92,7 @@ it("rejects cumulative 3D property maps beyond the supported key bound", async (
   const base = blockout();
   const props = Object.fromEntries(Array.from({length:64},(_,index)=>[`key${index}`,index]));
   const document = gameDocument3D.parse({...base,scenes:[{...base.scenes[0],entities:base.scenes[0].entities.map(entity=>entity.id==='player'?{
-    ...entity,props,behaviors:[{kind:'script',maxTickMs:30,source:"()=>({state:null,commands:[{kind:'setProp',key:'overflow',value:1}]})"}]}:entity)}]});
+    ...entity,props,behaviors:[{kind:'script',maxTickMs:20,source:"()=>({state:null,commands:[{kind:'setProp',key:'overflow',value:1}]})"}]}:entity)}]});
   const session = await createGameSession3D(document,1);
   try { expect(()=>session.step(input)).toThrow("Entity properties exceed 64 keys"); }
   finally { session.dispose(); }
@@ -103,7 +103,7 @@ it("reports physics-driven world rotation at the next script entry and replays i
   const base = blockout();
   const document = gameDocument3D.parse({...base,scenes:[{...base.scenes[0],entities:[...base.scenes[0].entities,
     {id:'spinner',transform3d:{position:{x:5,y:5,z:5}},body3d:{type:'dynamic',gravityScale:0,angularVelocity:{x:0,y:2,z:0}},
-      collider3d:{kind:'box',halfExtents:{x:0.5,y:0.5,z:0.5}},behaviors:[{kind:'script',maxTickMs:30,
+      collider3d:{kind:'box',halfExtents:{x:0.5,y:0.5,z:0.5}},behaviors:[{kind:'script',maxTickMs:20,
         source:"({entity,world})=>({state:{self:entity.rotation,world:world.find(item=>item.id===entity.id).rotation},commands:[]})"}]}
   ]}]});
   const session = await createGameSession3D(document,7);

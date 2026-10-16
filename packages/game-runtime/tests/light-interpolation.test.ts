@@ -66,3 +66,22 @@ it.each(["light", "camera"])("keeps lights visible earlier in the interval when 
     session.dispose();
   }
 });
+
+it("uses the displayed camera history to retain and cull attached lights", () => {
+  const input = structuredClone(document);
+  input.scenes[0].entities[0].transform2d.x = 0;
+  input.scenes[0].entities[0].camera2d = { width: 4, height: 4, zoom: 1 };
+  input.scenes[0].entities[1].transform2d.x = 100;
+  input.scenes[0].entities[1].body2d!.velocity = { x: 0, y: 0 };
+  input.scenes[0].entities[1].light2d!.offset = { x: 0, y: 0 };
+  const session = createGameSession(input, 1);
+  try {
+    const before = session.snapshot();
+    const crossing = session.frame({ camera: { x: 0, y: 0, previousX: 100, previousY: 0, zoom: 1 } });
+    expect(crossing.lighting?.points).toHaveLength(1);
+    expect(crossing.lighting?.points[0]?.x).toBe(100);
+    const stationary = session.frame({ camera: { x: 0, y: 0, previousX: 0, previousY: 0, zoom: 1 } });
+    expect(stationary.lighting?.points).toHaveLength(0);
+    expect(session.snapshot()).toEqual(before);
+  } finally { session.dispose(); }
+});

@@ -229,7 +229,7 @@
             {
               "kind": "script",
               "maxCommands": 48,
-              "maxTickMs": 50,
+              "maxTickMs": 20,
               "source": "(i) => {\n const s=i.state || {yaw:0,pitch:0,hp:100,ammo:18,reload:0,nextShot:0,kills:0,hit:0,damage:0,won:false,droneHp:{},charge:0};\n const c=[];\n s.yaw-=i.look.x*0.002;s.pitch=Math.max(-1.3,Math.min(1.3,s.pitch-i.look.y*0.002));\n if(i.tick===0){return {state:s,commands:[]};}\n for(const e of i.events){if(e.kind==='trigger'&&e.event==='damage'&&s.hp>0&&!s.won){s.hp=Math.max(0,s.hp-10);s.damage=i.tick+15;}}\n for(const q of i.queries){if(q.queryId==='rifle'&&q.entityId&&q.entityId.startsWith('drone-')){s.droneHp[q.entityId]=(s.droneHp[q.entityId]===undefined?3:s.droneHp[q.entityId])-1;s.hit=i.tick+8;if(s.droneHp[q.entityId]===0){s.kills++;c.push({kind:'despawn',entityId:q.entityId},{kind:'emit',event:'destroyed'});}}}\n for(const q of i.queries){if(q.queryId==='enemy-fire'&&!q.entityId&&s.hp>0&&!s.won){s.hp=Math.max(0,s.hp-10);s.damage=i.tick+15;}}\n if(s.hp>0&&!s.won&&(i.entity.position.z<4||s.ammo<18)){\n const index=Math.floor(i.tick/90)%5,enemy=i.world.find(e=>e.id==='drone-'+index);\n if(enemy){const p=i.entity.position,e=enemy.position,dx=p.x-e.x,dy=p.y+0.4-e.y,dz=p.z-e.z,dist=Math.hypot(dx,dy,dz);\n if(dist<20&&i.tick%90===50){s.charge=i.tick+40;}\n if(dist<20&&i.tick%90===89){c.push({kind:'rayQuery',queryId:'enemy-fire',origin:{x:e.x+dx/dist*0.8,y:e.y+dy/dist*0.8,z:e.z+dz/dist*0.8},direction:{x:dx,y:dy,z:dz},maxDistance:Math.max(0.1,dist-1.1)});}}\n }\n if(i.justPressed.includes('r')&&s.ammo<18&&s.reload===0){s.reload=i.tick+72;c.push({kind:'emit',event:'reload'});}\n if(s.reload>0&&i.tick>=s.reload){s.ammo=18;s.reload=0;}\n if(s.hp>0&&!s.won){\n const x=i.axes.moveX||0,z=i.axes.moveZ||0;\n c.push({kind:'characterIntent',movement:{x:x*Math.cos(s.yaw)+z*Math.sin(s.yaw),y:0,z:-x*Math.sin(s.yaw)+z*Math.cos(s.yaw)},jump:i.justPressed.includes('jump')});\n if(i.pressed.includes('fire')&&s.ammo>0&&s.reload===0&&i.tick>=s.nextShot){\n s.ammo--;s.nextShot=i.tick+9;c.push({kind:'emit',event:'shot'},{kind:'rayQuery',queryId:'rifle',origin:{x:i.entity.position.x,y:i.entity.position.y+0.65,z:i.entity.position.z},direction:{x:-Math.sin(s.yaw)*Math.cos(s.pitch),y:Math.sin(s.pitch),z:-Math.cos(s.yaw)*Math.cos(s.pitch)},maxDistance:70});\n }\n if(s.kills===5&&i.entity.position.z < -29){s.won=true;c.push({kind:'emit',event:'victory'});}\n }else{c.push({kind:'characterIntent',movement:{x:0,y:0,z:0},jump:false});}\n const hud=(id,text,x,y,size,color,align='left')=>c.push({kind:'hud',id,text,x,y,size,color,align});\n hud('score','',0,0,12,'#ffffff');\n hud('brand','B L A C K S I T E',36,38,22,'#eaf8ff');\n hud('mission','OPERATION  /  DEAD CIRCUIT',36,66,12,'#82a1ad');\n hud('objective',s.won?'OPERATION COMPLETE':s.kills===5?'REACTOR SECURED  /  REACH THE CYAN EXIT':'ELIMINATE SECURITY  /  '+s.kills+' OF 5',1244,40,14,'#70e5e5','right');\n hud('hp',String(s.hp).padStart(3,'0')+'  /  ARMOR',36,658,22,s.damage>i.tick?'#ff705a':'#cfe7ed');\n hud('ammo',String(s.ammo).padStart(2,'0')+' / 18',1244,651,30,'#eaf8ff','right');\n hud('weapon',s.reload?'RELOADING':'AR-09  /  PULSE RIFLE',1244,679,12,'#8db0bd','right');\n hud('cross',s.hit>i.tick?'×':'+',640,360,s.hit>i.tick?30:20,s.hit>i.tick?'#ffb35c':'#b7eeef','center');\n hud('help','WASD  MOVE     MOUSE  AIM     CLICK / F  FIRE     R  RELOAD     SPACE  JUMP',640,704,11,'#82a1ad','center');\n hud('warning',s.damage>i.tick?'INCOMING FIRE':s.charge>i.tick?'DRONE CHARGING':'',640,580,18,'#ff705a','center');\n hud('win',s.won?'SECTOR CLEAR':s.hp===0?'SIGNAL LOST':'',640,285,44,'#eaf8ff','center');\n hud('end',s.won?'EXTRACTION COMPLETE':s.hp===0?'PRESS RESET TO REDEPLOY':'',640,325,16,'#70e5e5','center');\n return {state:s,commands:c};\n}"
             }
           ]
@@ -258,7 +258,7 @@
           "behaviors": [
             {
               "kind": "script",
-              "maxTickMs": 50,
+              "maxTickMs": 20,
               "source": "(i)=>{const s=i.state||{yaw:0,pitch:0};s.yaw-=i.look.x*0.002;s.pitch=Math.max(-1.3,Math.min(1.3,s.pitch-i.look.y*0.002));const sy=Math.sin(s.yaw/2),cy=Math.cos(s.yaw/2),sp=Math.sin(s.pitch/2),cp=Math.cos(s.pitch/2);return{state:s,commands:[{kind:'setVisual',rotation:[cy*sp,sy*cp,-sy*sp,cy*cp]}]};}"
             }
           ]
@@ -292,7 +292,7 @@
             {
               "kind": "script",
               "maxCommands": 48,
-              "maxTickMs": 50,
+              "maxTickMs": 20,
               "source": "(i)=>({state:null,commands:[{kind:'setVisual',opacity:i.events.some(e=>e.kind==='trigger'&&e.event==='shot')?1:0}]})"
             }
           ]
@@ -1037,7 +1037,7 @@
             {
               "kind": "script",
               "maxCommands": 48,
-              "maxTickMs": 50,
+              "maxTickMs": 20,
               "source": "(i)=>{const s=i.state||{kick:0};if(i.events.some(e=>e.kind==='trigger'&&e.event==='shot')){s.kick=0.13;}s.kick*=0.65;return{state:s,commands:[{kind:'setVisual',rotation:[Math.sin(s.kick/2),0,0,Math.cos(s.kick/2)]}]};}"
             }
           ]
