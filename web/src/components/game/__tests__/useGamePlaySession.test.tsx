@@ -600,10 +600,10 @@ it("hot reloads source during play, retains state, and keeps the last compiled s
   } finally { view.unmount(); animation.mockRestore(); jest.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession); }
 });
 
-it("produces authored 2D mouse actions through the actual shared player session hook", async () => {
+it("produces authored 2D mouse and touch actions through the actual shared player session hook", async () => {
   const source = createTopDownRoomGame("mouse-hook");
   const game = gameDocument.parse({ ...source, inputActions: [...source.inputActions, "fire"],
-    inputBindings: { actions: { fire: [{ kind: "mouseButton", button: 0 }] } } });
+    inputBindings: { actions: { fire: [{ kind: "mouseButton", button: 0 }, { kind: "touchButton" }] } } });
   let sampledInput: import("@nodetool-ai/game-renderer").GameInput | undefined;
   function MouseHarness() {
     const host = useGamePlaySession({ refId: "mouse-hook", document: game, active: true });
@@ -611,6 +611,8 @@ it("produces authored 2D mouse actions through the actual shared player session 
     return <><canvas ref={host.canvasRef} aria-label="Mouse game" /><button onClick={host.beginPlay}>Play</button>
       <output aria-label="Mouse backend">{host.backend}</output><output aria-label="Mouse error">{host.error}</output></>;
   }
+  const matchMedia = window.matchMedia;
+  window.matchMedia = jest.fn(() => ({ matches: true }) as MediaQueryList);
   const view = render(<MouseHarness />);
   try {
     await waitFor(() => expect(screen.getByLabelText("Mouse backend")).toHaveTextContent("Canvas 2D"));
@@ -622,5 +624,34 @@ it("produces authored 2D mouse actions through the actual shared player session 
       window.dispatchEvent(new MouseEvent("pointerup", { bubbles: true, button: 0, buttons: 0 }));
     });
     expect(sampledInput?.sample2D(game).justPressed).toEqual(["fire"]);
-  } finally { view.unmount(); }
+    const zone = window.document.querySelector("[data-game-touch-controls] .touch-stick-zone");
+    if (!(zone instanceof HTMLElement)) { throw new Error("Actual React touch stick is missing"); }
+    zone.setPointerCapture = jest.fn();
+    const touch = (target: EventTarget, type: string, id: number, x: number, y: number) => act(() => {
+      const event = new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true });
+      Object.defineProperties(event, { pointerId: { value: id }, pointerType: { value: "touch" } });
+      target.dispatchEvent(event);
+    });
+    touch(zone, "pointerdown", 1, 100, 100);
+    touch(zone, "pointermove", 1, 156, 100);
+    expect(sampledInput?.sample2D(game).pressed).toEqual(["right"]);
+    const button = window.document.querySelector("[data-game-touch-controls] .touch-button[aria-label=fire]");
+    if (!(button instanceof HTMLElement)) { throw new Error("Actual React touch action is missing"); }
+    button.setPointerCapture = jest.fn();
+    touch(button, "pointerdown", 2, 400, 200);
+    expect(sampledInput?.sample2D(game).pressed).toEqual(["right", "fire"]);
+    touch(window, "pointercancel", 1, 156, 100);
+    expect(sampledInput?.sample2D(game).pressed).toEqual(["fire"]);
+    act(() => { window.dispatchEvent(new Event("orientationchange")); });
+    expect(sampledInput?.sample2D(game).pressed).toEqual([]);
+    touch(button, "pointermove", 2, 401, 200);
+    expect(sampledInput?.sample2D(game).pressed).toEqual([]);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Play" }));
+    expect(window.document.querySelector("[data-game-touch-controls]")).toBeNull();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Play" }));
+    expect(window.document.querySelector("[data-game-touch-controls] .touch-stick-zone")).not.toBe(zone);
+    touch(zone, "pointermove", 1, 200, 100);
+    expect(sampledInput?.sample2D(game).justPressed).toEqual([]);
+  } finally { view.unmount(); window.matchMedia = matchMedia; }
+  expect(window.document.querySelector("[data-game-touch-controls]")).toBeNull();
 });

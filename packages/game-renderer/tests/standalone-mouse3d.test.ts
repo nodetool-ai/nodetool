@@ -125,7 +125,7 @@ it.each([[1, 3, 2, 0], [2, 3, 1, 0]])("reconciles a real host mouse chord %j inc
 it("clears actual host mouse holds on blur, cancel, unlock and pause before accepting a fresh resumed click", async () => {
   const host = await openHost();
   try {
-    for (const stop of [() => window.dispatchEvent(new Event("blur")),
+    for (const stop of [() => window.dispatchEvent(new Event("blur")), () => host.canvas.dispatchEvent(new Event("blur")),
       () => pointer(host.canvas, "pointercancel", 0), () => host.unlock()]) {
       expect((await sampleAfter(() => pointer(host.canvas, "pointerdown", 1))).pressed).toEqual(["fire"]);
       expect((await sampleAfter(stop)).pressed).toEqual([]);

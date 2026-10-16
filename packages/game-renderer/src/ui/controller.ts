@@ -148,6 +148,14 @@ export function gameUiPointerPosition(element: HTMLElement, viewport: GameUiView
   return { x: (clientX - left) * viewport.width / width, y: (clientY - top) * viewport.height / height };
 }
 
+/** Claims a HUD button using the canvas content rectangle, including calls from touch overlays. */
+export function claimGameUiPointer(element: HTMLElement, controller: GameUiController, viewport: GameUiViewport | undefined,
+  event: Pick<PointerEvent, "pointerId" | "clientX" | "clientY">): boolean {
+  if (!viewport) { return false; }
+  const point = gameUiPointerPosition(element, viewport, event.clientX, event.clientY);
+  return point !== null && controller.pointerDown(event.pointerId, point.x, point.y);
+}
+
 /**
  * Forwards pointer events on `element` that land on HUD buttons to the controller, in HUD pixels.
  * Events that hit a button stop there, so they do not also reach touch look or canvas focus handlers.
@@ -157,9 +165,7 @@ export function attachGameUiPointer(element: HTMLElement, controller: GameUiCont
   const down = (event: PointerEvent): void => {
     const size = viewport();
     if (!active()) { return; }
-    if (!size) { return; }
-    const point = gameUiPointerPosition(element, size, event.clientX, event.clientY);
-    if (point && controller.pointerDown(event.pointerId, point.x, point.y)) {
+    if (claimGameUiPointer(element, controller, size, event)) {
       event.preventDefault();
       event.stopPropagation();
     }

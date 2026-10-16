@@ -5,13 +5,13 @@ import { createGameRenderer3D } from "./browser3d.js";
 import { GameInput3D } from "./input3d.js";
 import { browserGamepads } from "./input-bindings.js";
 import { attachGameMouseInput } from "./mouse-input.js";
-import { mountTouchControls, touchLayout } from "./touch-controls.js";
+import { mountTouchControls, touchLayout, type GameTouchControls } from "./touch-controls.js";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "./audio.js";
 import { FixedTickClock } from "./fixed-tick-host.js";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
 import { GameParticles3D } from "./particles/particles3d.js";
 import { createIndexedDbGameSaveStorage } from "./save-storage.js";
-import { attachGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
+import { attachGameUiPointer, claimGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
 import { gameUiViewport3D } from "./ui/hud3d.js";
 
 declare global {
@@ -107,13 +107,13 @@ async function start(): Promise<void> {
   const detachHud = attachGameUiPointer(canvas, hud, () => hudViewport, () => !paused && !contextPaused && document.pointerLockElement !== canvas);
   let hudInsets = browserGameUiInsets(canvas, hudViewport);
   window.addEventListener("resize", () => { hudInsets = browserGameUiInsets(canvas, hudViewport); }, { signal: controller.signal });
-  const release = (): void => { hud.release(); input.release(); };
+  let touchControls: GameTouchControls | undefined;
+  const release = (): void => { touchControls?.release(); hud.release(); input.release(); };
   window.addEventListener("keydown", (event) => {
     input.keyDown(event.code, event.key);
     if (input.handlesKey(game, event.code, event.key)) { event.preventDefault(); }
   }, { signal: controller.signal });
   window.addEventListener("keyup", (event) => { input.keyUp(event.code); }, { signal: controller.signal });
-  const mouseFire = game.inputActions.includes("fire");
   const bindings = resolveGameInputBindings(game);
   const mouseLook = bindings.look.some((binding) => binding.kind === "mouse");
   let unmountTouch: (() => void) | undefined;
@@ -123,8 +123,14 @@ async function start(): Promise<void> {
     const layer = document.createElement("div");
     layer.className = "touch-layer";
     document.body.append(layer);
-    const unmount = mountTouchControls(layer, { layout: touchLayout(bindings), onChange: (state) => input.setTouch(state), onLook: (x, y) => input.touchLook(x, y) });
-    unmountTouch = () => { unmount(); layer.remove(); };
+    const controls = mountTouchControls(layer, {
+      layout: touchLayout(bindings), onChange: (state) => input.setTouch(state), onLook: (x, y) => input.touchLook(x, y),
+      active: () => !paused && !contextPaused && !document.hidden,
+      claimPointer: (event) => document.pointerLockElement !== canvas && claimGameUiPointer(canvas, hud, hudViewport, event),
+      releasePointer: (id) => hud.pointerUp(id)
+    });
+    touchControls = controls;
+    unmountTouch = () => { controls.dispose(); touchControls = undefined; layer.remove(); };
   };
   if (window.matchMedia("(pointer: coarse)").matches) { enableTouch(); }
   window.addEventListener("touchstart", enableTouch, { passive: true, signal: controller.signal });
@@ -214,8 +220,8 @@ async function start(): Promise<void> {
     })
   });
   // A static HTTP host is required for browser modules and WASM.
-  status(mouseFire ? "Ready. Click to capture the mouse and fire. WASD moves, F fires, Space jumps, Escape releases the mouse."
-    : "Ready. Move with WASD, arrows or a gamepad, jump with Space. Click to capture the mouse for looking, Escape releases it.");
+  status(mouseLook ? "Ready. Use the game's controls. Click for mouse look, Escape releases the mouse."
+    : "Ready. Use the game's controls. Mouse buttons work without pointer capture.");
   await render(1);
   animationId = requestAnimationFrame(tick);
 }

@@ -597,7 +597,7 @@ it.each(["missing", "void", "denied", "disabled-look"] as const)("delivers autho
     click();
     expect(input.sample(document).justPressed).toEqual(["fire"]);
     const move = (type: string, buttons: number) => act(() => {
-      canvas.dispatchEvent(new MouseEvent(type, { buttons, button: 0, bubbles: true }));
+      canvas.dispatchEvent(new MouseEvent(type, { buttons, button: type === "pointerdown" && buttons === 2 ? 2 : 0, bubbles: true }));
     });
     move("pointerdown", 1);
     expect(input.sample(document).pressed).toEqual(["fire"]);
@@ -605,6 +605,14 @@ it.each(["missing", "void", "denied", "disabled-look"] as const)("delivers autho
     expect(input.sample(document).pressed).toEqual(["fire", "alternate"]);
     move("pointermove", 2);
     expect(input.sample(document).pressed).toEqual(["alternate"]);
+    move("pointerup", 0);
+    expect(input.sample(document).pressed).toEqual([]);
+    move("pointerdown", 2);
+    expect(input.sample(document).pressed).toEqual(["alternate"]);
+    move("pointermove", 3);
+    expect(input.sample(document).pressed).toEqual(["fire", "alternate"]);
+    move("pointermove", 1);
+    expect(input.sample(document).pressed).toEqual(["fire"]);
     move("pointerup", 0);
     expect(input.sample(document).pressed).toEqual([]);
     await act(async () => {});

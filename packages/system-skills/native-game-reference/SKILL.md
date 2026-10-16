@@ -623,8 +623,12 @@ axis is a validation error.
 Bindings only turn physical input into input frames. They never enter the
 simulation, so playtests, replays and snapshots use the same `pressed`,
 `justPressed`, `axes` and `look` frames. Gamepads are polled once per tick. The
-3D players capture the mouse for look on click. On a touch screen both
-standalone players show a stick when an action or axis has a touch stick
+3D players request mouse capture on click only when mouse look is bound.
+Mouse actions work on the acquisition click and when capture is unavailable or
+rejected. Explicit `look: []` disables capture. HUD buttons own their presses
+before gameplay mouse or touch controls, and letterbox bars do not hit the HUD.
+On a touch screen, editor play, public players and both standalone players
+show a stick when an action or axis has a touch stick
 binding and one button per action with a touch button binding. The 3D player
 also turns the camera by dragging on the right half. Input pressed while play
 is paused is dropped. Player-facing rebinding is not stored yet.

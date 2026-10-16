@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import type { GameDocument, GameInputFrame, GameRenderFrame, GameSnapshot } from "@nodetool-ai/protocol/game.js";
-import { gameDocument, gameSnapshot } from "@nodetool-ai/protocol/game.js";
+import { resolveGameInputBindings, gameDocument, gameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, gameScriptLogsOf, type GamePlayerSaves, type GameSession } from "@nodetool-ai/game-runtime";
 import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "@nodetool-ai/game-renderer/audio";
-import { attachGameMouseInput, attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, gameAudioVoiceCount, GameInput, GameParticles2D, GameUiController, gameUiViewport2D, type GameRenderer } from "@nodetool-ai/game-renderer";
+import { attachGameTouchInput, attachGameMouseInput, attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, gameAudioVoiceCount, GameInput, GameParticles2D, GameUiController, gameUiViewport2D, type GameRenderer } from "@nodetool-ai/game-renderer";
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
@@ -339,6 +339,19 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       }
     }
   }, [active, playing, playDocument]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const hud = hudRef.current;
+    if (!active || !playing || !sessionDocument || !canvas || !hud) { return; }
+    return attachGameTouchInput(canvas, inputRef.current, {
+      bindings: resolveGameInputBindings(sessionDocument), active: () => playbackActiveRef.current, hud,
+      viewport: () => {
+        const shown = lastPresentationRef.current?.frame;
+        return shown ? gameUiViewport2D(shown) : undefined;
+      }
+    });
+  }, [active, playing, sessionDocument]);
 
   useEffect(() => {
     if (!active || !playing || !sessionDocument) return;

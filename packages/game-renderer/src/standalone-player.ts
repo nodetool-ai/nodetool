@@ -2,10 +2,10 @@ import { createScriptedGameSession, GamePlayerSaves, validateGame } from "@nodet
 import { gameSnapshot, type GameInputFrame, type GameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "./audio.js";
-import { mountTouchControls, touchLayout } from "./touch-controls.js";
+import { mountTouchControls, touchLayout, type GameTouchControls } from "./touch-controls.js";
 import { browserGamepads, GameInput } from "./input-bindings.js";
 import { attachGameMouseInput } from "./mouse-input.js";
-import { attachGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
+import { attachGameUiPointer, claimGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
 import { gameUiViewport2D } from "./ui/hud2d.js";
 import { resolveGameInputBindings } from "@nodetool-ai/protocol";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
@@ -120,7 +120,9 @@ async function start(): Promise<void> {
   const detachMouse = attachGameMouseInput(canvas, input, { active: () => !paused && !document.hidden });
   let hudInsets = browserGameUiInsets(canvas, gameUiViewport2D(latest));
   window.addEventListener("resize", () => { hudInsets = browserGameUiInsets(canvas, gameUiViewport2D(latest)); });
+  let touchControls: GameTouchControls | undefined;
   function releaseAll(): void {
+    touchControls?.release();
     hud.release();
     input.release();
   }
@@ -136,7 +138,12 @@ async function start(): Promise<void> {
     }
     element("pause").setAttribute("aria-label", "Pause");
     element("pause").textContent = pauseLabel(paused);
-    mountTouchControls(touchRoot, { layout: touchLayout(resolveGameInputBindings(game)), onChange: (state) => input.setTouch(state) });
+    touchControls = mountTouchControls(touchRoot, {
+      layout: touchLayout(resolveGameInputBindings(game)), onChange: (state) => input.setTouch(state),
+      active: () => !paused && !document.hidden,
+      claimPointer: (event) => claimGameUiPointer(canvas, hud, gameUiViewport2D(latest), event),
+      releasePointer: (id) => hud.pointerUp(id)
+    });
   }
   if (window.matchMedia("(pointer: coarse)").matches) enableTouch();
   window.addEventListener("touchstart", enableTouch, { passive: true });
@@ -290,6 +297,7 @@ async function start(): Promise<void> {
     }).catch((error) => showStatus(error instanceof Error ? error.message : "Save could not be loaded"));
   });
   window.addEventListener("beforeunload", () => {
+    touchControls?.dispose();
     detachMouse();
     detachHud();
     cancelAnimationFrame(animationFrame);

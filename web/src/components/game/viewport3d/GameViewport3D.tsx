@@ -528,7 +528,10 @@ export default function GameViewport3D({ document, host, selectedIds = NO_IDS, h
   const groundShortcut = useGameCommandShortcut("edit.alignToGround");
   const projectionShortcut = useGameCommandShortcut("view.toggleOrthographic");
 
-  const hint = host.playDocument ? "WASD, arrows or a gamepad to move. Space to jump. Click to capture the mouse, Esc to release it."
+  const mouseLook = host.playDocument && resolveGameInputBindings(host.playDocument).look.some((binding) => binding.kind === "mouse");
+  const hint = host.playDocument ? mouseLook
+    ? "Use the game's controls. Click for mouse look, Esc to release it."
+    : "Use the game's controls. Mouse buttons work without pointer capture."
     : flyMode ? "WASD to fly. R/F to rise and descend. Drag to look."
       : "Drag to orbit. Shift-drag to pan. Scroll to zoom. Shift-click adds to the selection.";
   return <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>

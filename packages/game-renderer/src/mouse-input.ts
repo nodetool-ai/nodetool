@@ -85,6 +85,7 @@ export function attachGameMouseInput(canvas: HTMLCanvasElement, input: GameMouse
   };
   const lockChange = (): void => { if (!locked()) { release(); } };
   canvas.addEventListener("pointerdown", down);
+  canvas.addEventListener("blur", release);
   window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", up);
   window.addEventListener("pointercancel", release);
@@ -92,6 +93,7 @@ export function attachGameMouseInput(canvas: HTMLCanvasElement, input: GameMouse
   document.addEventListener("pointerlockchange", lockChange);
   return () => {
     canvas.removeEventListener("pointerdown", down);
+    canvas.removeEventListener("blur", release);
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", up);
     window.removeEventListener("pointercancel", release);
