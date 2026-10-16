@@ -240,17 +240,18 @@ export function frameFor(
         Math.max(previousRelativeX, x - cameraX) + light.radius >= -viewHalfWidth &&
         Math.min(previousRelativeY, y - cameraY) - light.radius <= viewHalfHeight &&
         Math.max(previousRelativeY, y - cameraY) + light.radius >= -viewHalfHeight) {
-        entityLights.push({
+        const projectedLight: (typeof entityLights)[number] = {
           x,
           y,
-          ...(previousX !== x ? { previousX } : {}),
-          ...(previousY !== y ? { previousY } : {}),
           color: light.color,
           intensity: light.intensity,
           radius: light.radius,
           falloff: light.falloff,
           distance: Math.hypot(x - cameraX, y - cameraY)
-        });
+        };
+        if (previousX !== x) { projectedLight.previousX = previousX; }
+        if (previousY !== y) { projectedLight.previousY = previousY; }
+        entityLights.push(projectedLight);
       }
     }
   }
