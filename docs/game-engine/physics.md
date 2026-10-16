@@ -33,6 +33,8 @@ Keep physics transforms unscaled and avoid multiple pose owners in one hierarchy
 
 `character3d` supplies speed, acceleration, jump speed, slope limit, step height, ground snap, coyote ticks, and jump-buffer ticks. It names the horizontal movement axes and jump action. A follow camera has its own offset, look limits, and collision radius.
 
+Character capsules remain upright. Yaw is supported, but spawn, teleport, and snapshot restoration reject roll or pitch. A supported rider follows a kinematic platform's translation and rotation around its pivot. The capsule's collision solve clips that carry against other solids, including ceilings and walls. A platform cannot force the rider through an obstructed gap.
+
 Test a flat surface, a slope, a step, a ledge, a low ceiling, and the recovery path before tuning jump feel. Preserve the same input route while comparing changes.
 
 ## Layers and surfaces
@@ -46,3 +48,7 @@ Test a flat surface, a slope, a step, a ledge, a low ceiling, and the recovery p
 ## Apply a load
 
 A 3D script can return `addForce`, `addTorque`, or `addForceAtPoint` on its own dynamic body. Vectors and points are world-space. Loads apply for one physics tick. Repeat a force command for sustained thrust. Use [recorded replay](/game-engine/saves-replay) to verify forces and collisions across restoration.
+
+## Snapshot compatibility
+
+The physics build identifier includes the runtime stepping revision. Snapshots from an earlier revision are rejected instead of replaying under changed collision behavior. Restore also checks entity handle sets, native object counts, body poses and velocities, collider parents, and primitive shapes against serialized entity state. These checks detect mismatched ownership maps. They do not authenticate the identity of native objects that have identical checked state.
