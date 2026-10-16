@@ -151,14 +151,23 @@ async function start(): Promise<void> {
   });
   let disposed = false;
   let replacement = new AbortController();
+  let replacing: AbortSignal | undefined;
   function beginReplacement(): AbortSignal {
     if (disposed) { throw new DOMException("Game player is disposed", "AbortError"); }
     replacement.abort();
     replacement = new AbortController();
+    replacing = replacement.signal;
     return replacement.signal;
+  }
+  function finishReplacement(signal: AbortSignal): void {
+    if (replacing === signal) { replacing = undefined; }
   }
   async function replaceSession(signal: AbortSignal, snapshot?: GameSnapshot): Promise<boolean> {
     const restored = await createScriptedGameSession(game, 1, snapshot);
+    if (signal.aborted || disposed) { restored.dispose(); return false; }
+    while (rendering) {
+      try { await rendering; } catch { /* A reset can recover from an earlier failed render. */ }
+    }
     if (signal.aborted || disposed) { restored.dispose(); return false; }
     session.dispose();
     session = restored;
@@ -270,7 +279,7 @@ async function start(): Promise<void> {
   }
 
   function tick(now: number): void {
-    if (!paused && !document.hidden) {
+    if (!paused && !replacing && !document.hidden) {
       accumulator += Math.min(250, now - lastTime);
       let steps = 0;
       while (accumulator >= tickMs && steps < 5) {
@@ -309,8 +318,9 @@ async function start(): Promise<void> {
   });
   element("step").addEventListener("click", () => {
     if (paused) {
-      step();
-      render(1);
+      void window.nativeGamePlayer.step(input.sample2D(game)).catch((error: unknown) => {
+        showStatus(error instanceof Error ? error.message : "Game could not step");
+      });
     }
   });
   element("reset").addEventListener("click", () => {
@@ -325,7 +335,7 @@ async function start(): Promise<void> {
       showStatus("Game reset");
     }).catch((error: unknown) => {
       if (!signal.aborted && !disposed) { showStatus(error instanceof Error ? error.message : "Game could not reset"); }
-    });
+    }).finally(() => finishReplacement(signal));
   });
   element("save").addEventListener("click", () => {
     void saves.save("progress", QUICK_SAVE, {}, session.snapshot())
@@ -353,7 +363,7 @@ async function start(): Promise<void> {
         setPaused(wasPaused);
         showStatus(error instanceof Error ? error.message : "Save could not be loaded");
       }
-    });
+    }).finally(() => finishReplacement(signal));
   });
   window.addEventListener("beforeunload", () => {
     if (disposed) { return; }
@@ -374,14 +384,17 @@ async function start(): Promise<void> {
         requireCurrent(signal);
         if (!await replaceSession(signal)) { throw new DOMException("Game reset was superseded", "AbortError"); }
         return renderExplicit(signal);
-      });
+      }).finally(() => finishReplacement(signal));
     },
     step: async (input: GameInputFrame) => {
       const frame = gameInputFrame.parse(input);
+      if (replacing) { throw new Error("Game session replacement is still loading"); }
       const signal = replacement.signal;
       requireCurrent(signal);
       setPaused(true);
       return queueCommand(async () => {
+        requireCurrent(signal);
+        while (rendering) { await rendering; }
         requireCurrent(signal);
         const result = stepSession(frame, true);
         latest = result.frame;

@@ -180,6 +180,34 @@ describe("standalone explicit frame rendering", () => {
     expect(observed.rendered).toEqual([1, 2]);
   });
 
+  it("rejects explicit steps while a toolbar load owns session replacement", async () => {
+    await startPlayer();
+    const completeLoad = delayedSave(window.nativeGamePlayer.snapshot());
+    const input = gameInputFrame.parse({ pressed: [], justPressed: [] });
+    await expect(window.nativeGamePlayer.step(input)).rejects.toThrow(/replacement|loading/i);
+    expect(window.nativeGamePlayer.snapshot().tick).toBe(0);
+    completeLoad();
+    await vi.waitFor(() => expect(window.nativeGamePlayer.snapshot().score).toBe(77));
+  });
+
+  it("waits for an in-flight explicit render before replacing its session", async () => {
+    await startPlayer();
+    const rendered = Promise.withResolvers<void>();
+    observed.nextRender = rendered.promise;
+    const pending = window.nativeGamePlayer.step(gameInputFrame.parse({ pressed: [], justPressed: [] }));
+    const outcome = pending.catch((error: unknown) => error);
+    await vi.waitFor(() => expect(observed.rendered).toContain(1));
+    const oldDispose = vi.spyOn(observed.sessions[0]!, "dispose");
+    observed.load = Promise.resolve({ version: 1, data: {}, snapshot: { ...window.nativeGamePlayer.snapshot(), score: 77 } });
+    document.getElementById("load")?.click();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(oldDispose).not.toHaveBeenCalled();
+    rendered.resolve();
+    expect(await outcome).toMatchObject({ name: "AbortError" });
+    await vi.waitFor(() => expect(window.nativeGamePlayer.snapshot().score).toBe(77));
+    expect(oldDispose).toHaveBeenCalledTimes(1);
+  });
+
   it("returns a successful render receipt bound to the stepped tick", async () => {
     await startPlayer();
     const receipt = await window.nativeGamePlayer.step(gameInputFrame.parse({ pressed: [], justPressed: [] }));
