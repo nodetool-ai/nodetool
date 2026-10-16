@@ -73,6 +73,15 @@ describe("sd-server release", () => {
     expect(sdCppAsset("linux", "arm64")).toBeNull();
   });
 
+  it("joins the executable to a directory with trailing separators", () => {
+    expect(sdServerPath("/opt/sd//", "darwin")).toBe("/opt/sd/sd-server");
+    expect(sdServerPath("C:\\sd\\", "win32")).toBe("C:\\sd\\sd-server.exe");
+    // A long run of slashes stays linear.
+    const start = performance.now();
+    expect(sdServerPath(`/a${"/".repeat(100_000)}b`, "linux")).toBe(`/a${"/".repeat(100_000)}b/sd-server`);
+    expect(performance.now() - start).toBeLessThan(1000);
+  });
+
   it("reads deflated zip entries", () => {
     const entries = readZipEntries(makeZip({ "a.txt": "alpha", "b/c.txt": "gamma" }), { inflateRawSync });
     expect(entries.map((e) => [e.name, Buffer.from(e.data).toString()])).toEqual([

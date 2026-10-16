@@ -61,7 +61,13 @@ export function sdCppAssetUrl(asset: SdCppAsset): string {
 export function sdServerPath(installDir: string, platform: string): string {
   const separator = platform === "win32" ? "\\" : "/";
   const name = platform === "win32" ? "sd-server.exe" : "sd-server";
-  return `${installDir.replace(/[\\/]+$/, "")}${separator}${name}`;
+  // Trim trailing separators with a loop: a `[\\/]+$` regex takes quadratic
+  // time on a path of many slashes.
+  let end = installDir.length;
+  while (end > 0 && (installDir[end - 1] === "/" || installDir[end - 1] === "\\")) {
+    end--;
+  }
+  return `${installDir.slice(0, end)}${separator}${name}`;
 }
 
 const MARKER_FILE = "nodetool-sd-cpp.json";
