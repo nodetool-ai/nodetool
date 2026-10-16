@@ -343,6 +343,37 @@ preserve those clocks and active contact pairs.
 
 ## Particles
 
+The particle inspector offers Fire, Smoke, Sparks, Dust, Magic, Rain, Snow and
+Explosion presets in both dimensions. Applying one replaces that entity's
+`particles` component and preserves its other components. Select an emitter
+to edit its fields, lifetime curves and color gradient. Renaming an emitter
+repairs its death-emitter references. Removing one removes references to it.
+The isolated preview uses a fixed seed and restarts when edited. Pause and
+Restart affect the preview only. The 2D preview uses Canvas2D, including sprite
+sheets and blending. The 3D preview uses WebGL2, including stretched and mesh
+particles and depth softness. It does not run gameplay scripts or change the
+play session. The 3D editor play view limitation below still applies.
+
+Agents and CLI document edits use the same `update_entity` operation as the
+inspector. Set the complete component with
+`{op: "update_entity", entity_id: "effect", set: {particles: {emitters: [...]}}}`.
+There is no preset-name operation. In repository TypeScript authoring,
+`getGameParticlePreset(name, dimension)` from `@nodetool-ai/protocol` returns
+fresh canonical data for any of the eight lower-case preset names. Otherwise,
+author emitter data directly. For example, this additive 3D fire emitter uses
+an upward cone and a warm gradient:
+
+```json
+{"emitters":[{"id":"flame","rate":48,"maxParticles":256,"lifetime":{"min":0.6,"max":1.2},"shape":{"kind":"cone","angle":15,"radius":0.15},"speed":{"min":1.2,"max":2.2},"size":{"min":0.15,"max":0.4},"gravity":{"x":0,"y":1.4,"z":0},"color":"#ff932d","blend":"additive","unlit":true,"opacityOverLifetime":[{"t":0,"value":0},{"t":0.12,"value":1},{"t":1,"value":0}],"sizeOverLifetime":[{"t":0,"value":0.5},{"t":0.3,"value":1},{"t":1,"value":0.1}],"colorOverLifetime":[{"t":0,"color":"#fff4a0"},{"t":0.5,"color":"#ff8326"},{"t":1,"color":"#a91c14"}]}]}
+```
+
+Both dimensions use world units and +Y upward. Match sizes and distances to
+the scene. Rain and snow use wide box emitters
+and downward gravity. An explosion uses `loop: false`, `rate: 0` and a burst
+at time 0. Sparks use short lifetimes and additive blending. Smoke and dust
+use normal blending with low opacity. Magic combines additive blending with
+a color gradient. The inspector presets provide starting points for each.
+
 Add particle effects with the `particles` component on any 2D (schema 2 or
 later) or 3D entity. It holds up to 8 `emitters`, each with a unique `id`. An
 emitter sets `rate` (particles per second), `bursts` (`time`, `count`,
