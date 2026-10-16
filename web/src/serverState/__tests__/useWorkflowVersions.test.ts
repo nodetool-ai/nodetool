@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../test-utils/doubles";
 import { workflowVersionsQueryKey } from "../useWorkflowVersions";
 
 jest.mock("@tanstack/react-query", () => ({
@@ -16,21 +17,25 @@ jest.mock("@tanstack/react-query", () => ({
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useWorkflowVersions } from "../useWorkflowVersions";
 
-const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
-const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>;
+const mockUseQuery = jest.mocked(useQuery);
+const mockUseMutation = jest.mocked(useMutation);
 
 describe("useWorkflowVersions", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseQuery.mockReturnValue({
+    mockUseQuery.mockReturnValue(
+        stub<ReturnType<typeof useQuery>>({
       data: undefined,
       isLoading: false,
       error: null
-    } as any);
-    mockUseMutation.mockReturnValue({
+    })
+      );
+    mockUseMutation.mockReturnValue(
+        stub<ReturnType<typeof useMutation>>({
       mutateAsync: jest.fn(),
       isPending: false
-    } as any);
+    })
+      );
   });
 
   describe("workflowVersionsQueryKey", () => {
@@ -103,10 +108,12 @@ describe("useWorkflowVersions", () => {
 
     it("exposes createVersion, restoreVersion, deleteVersion functions", () => {
       const mutateAsync = jest.fn();
-      mockUseMutation.mockReturnValue({
+      mockUseMutation.mockReturnValue(
+        stub<ReturnType<typeof useMutation>>({
         mutateAsync,
         isPending: false
-      } as any);
+      })
+      );
 
       const { result } = renderHook(() => useWorkflowVersions("wf-123"));
       expect(result.current.createVersion).toBeDefined();
@@ -115,10 +122,12 @@ describe("useWorkflowVersions", () => {
     });
 
     it("exposes pending state for all mutations", () => {
-      mockUseMutation.mockReturnValue({
+      mockUseMutation.mockReturnValue(
+        stub<ReturnType<typeof useMutation>>({
         mutateAsync: jest.fn(),
         isPending: true
-      } as any);
+      })
+      );
 
       const { result } = renderHook(() => useWorkflowVersions("wf-123"));
       expect(result.current.isCreatingVersion).toBe(true);

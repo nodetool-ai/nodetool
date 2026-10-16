@@ -16,9 +16,10 @@ jest.mock("../../trpc/client", () => ({
   },
 }));
 
+import { asMock } from "../../test-utils/doubles";
 import { trpcClient } from "../../trpc/client";
 
-const mockQuery = trpcClient.workflows.get.query as jest.Mock;
+const mockQuery = asMock(trpcClient.workflows.get.query);
 
 const createWrapper = () => {
   const queryClient = new QueryClient({

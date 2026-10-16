@@ -1,6 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { useAssetById } from "../useAssetById";
 import { useQuery } from "@tanstack/react-query";
+import { asMock } from "../../test-utils/doubles";
 import { mockAsset } from "../../__mocks__/fixtures";
 
 const mockGetAsset = jest.fn();
@@ -20,7 +21,7 @@ jest.mock("@tanstack/react-query", () => ({
 describe("useAssetById", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useQuery as jest.Mock).mockReturnValue({ data: mockAsset });
+    asMock(useQuery).mockReturnValue({ data: mockAsset });
   });
 
   it("returns asset when valid ID provided", () => {
@@ -46,7 +47,7 @@ describe("useAssetById", () => {
 
   it("throws error when queryFn is called without asset ID", async () => {
     let capturedQueryFn: (() => Promise<unknown>) | undefined;
-    (useQuery as jest.Mock).mockImplementation((config) => {
+    asMock(useQuery).mockImplementation((config) => {
       capturedQueryFn = config.queryFn;
       return { data: undefined };
     });
@@ -59,7 +60,7 @@ describe("useAssetById", () => {
   it("calls getAsset with correct ID", async () => {
     let capturedQueryFn: (() => Promise<unknown>) | undefined;
     mockGetAsset.mockResolvedValue(mockAsset);
-    (useQuery as jest.Mock).mockImplementation((config) => {
+    asMock(useQuery).mockImplementation((config) => {
       capturedQueryFn = config.queryFn;
       return { data: mockAsset };
     });
