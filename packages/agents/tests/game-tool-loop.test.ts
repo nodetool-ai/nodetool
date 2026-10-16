@@ -559,7 +559,7 @@ it("authors height fog and a validated receiver decal through public game edits"
   expect(await edit.execute({ ops: [
     { op: "update_scene", scene_id: scene.id, set: { environment: { ...scene.environment,
       fog: { kind: "height", color: "#cad9e4", density: 0.08, baseHeight: 2, heightFalloff: 0.5, maxOpacity: 0.95 } } } },
-    { op: "add_entity", scene_id: scene.id, entity: { id: "graffiti", transform3d: { position: { x: 0, y: 1, z: 0 } },
+    { op: "add_entity", scene_id: scene.id, entity: { id: "graffiti", parentId: "crate", transform3d: { position: { x: 0, y: 0, z: 0.4 } },
       decal3d: { assetId: "paint", receiverId: "crate", size: { x: 1, y: 1, z: 0.25 }, opacity: 0.8, renderOrder: 2 } } }
   ] })).not.toHaveProperty("error");
   expect(predicate.test(bridge.finalState())).toBe(true);
@@ -573,6 +573,12 @@ it("authors height fog and a validated receiver decal through public game edits"
   try {
     for (let tick = 0; tick < 120; tick++) {
       const result = session.step({ pressed: [] });
+      const receiver = result.frame.entities.find(entity => entity.entityId === "crate");
+      const projector = result.frame.entities.find(entity => entity.entityId === "graffiti");
+      if (!receiver || !projector) { throw new Error("Receiver and projector must survive"); }
+      const offset = Math.hypot(projector.transform.position.x - receiver.transform.position.x,
+        projector.transform.position.y - receiver.transform.position.y, projector.transform.position.z - receiver.transform.position.z);
+      expect(offset).toBeCloseTo(0.4, 6);
       if (tick === 59) { replay = await createGameSession3D(authored, 1, session.snapshot()); }
       else if (replay) {
         expect(replay.step({ pressed: [] }).events).toEqual(result.events);

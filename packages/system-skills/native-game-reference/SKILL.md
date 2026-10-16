@@ -544,7 +544,9 @@ slot. Browse a staged image with `browse_native_game_assets`, then use its
 binding with `install_native_game_asset`. `receiverId` names one existing
 non-template primitive or rigid model entity in the same scene. Use a separate
 projector entity whose `transform3d` positions and rotates the projection box.
-Its scale multiplies `size`. Each size axis is 0.001 to 1000 world units,
+Its scale multiplies `size`. Parent the projector to the receiver to keep the
+decal attached as it moves. Otherwise the projection volume stays in world
+space. Each size axis is 0.001 to 1000 world units,
 `opacity` is 0 to 1 (default 1), and integer `renderOrder` is 0 to 31 (default
 0). Higher order draws later. Ties follow entity order.
 

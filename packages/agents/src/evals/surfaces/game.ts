@@ -664,13 +664,13 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
 }, {
   id: "height-fog-and-decals-3d",
   description: "Author exponential height fog and a projected image decal through public 3D edits.",
-  objective: "Give the entry scene pale height fog (#cad9e4, density 0.08, baseHeight 2, heightFalloff 0.5, maxOpacity 0.95). Add graffiti at (0,1,0), projecting the verified paint image onto crate, size (1,1,0.25), opacity 0.8, renderOrder 2.",
+  objective: "Give the entry scene pale height fog (#cad9e4, density 0.08, baseHeight 2, heightFalloff 0.5, maxOpacity 0.95). Add graffiti as a child of crate at local (0,0,0.4), projecting the verified paint image onto crate, size (1,1,0.25), opacity 0.8, renderOrder 2.",
   createBridge: () => {
     const document = createNative3DGame("fog-decal-eval");
     document.assets.paint = { ...MATERIAL_EVAL_IMAGE_BINDING };
     return createGameToolBridge3D(document);
   },
-  systemPrompt: "Use edit_native_game. update_scene sets environment.fog; keep other environment fields. Height fog is {kind: height, color, density, baseHeight, heightFalloff, maxOpacity} and replaces linear fog. add_entity accepts transform3d and decal3d {assetId, receiverId, size:{x,y,z}, opacity, renderOrder}. Receivers are existing rigid primitive/model entity IDs. The paint asset slot is already verified.",
+  systemPrompt: "Use edit_native_game. update_scene sets environment.fog; keep other environment fields. Height fog is {kind: height, color, density, baseHeight, heightFalloff, maxOpacity} and replaces linear fog. add_entity accepts transform3d and decal3d {assetId, receiverId, size:{x,y,z}, opacity, renderOrder}. Receivers are existing rigid primitive/model entity IDs. Set parentId on the projector entity to follow its receiver. The paint asset slot is already verified.",
   expect: {
     requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
     finalState: [{ name: "heightFogAndDecal", detail: "The scene lacks the requested height fog or valid receiver decal.", test: state => {
@@ -682,7 +682,7 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
       const decal = entity?.decal3d;
       return Boolean(fog && "kind" in fog && fog.kind === "height" && fog.color === "#cad9e4" && fog.density === 0.08
         && fog.baseHeight === 2 && fog.heightFalloff === 0.5 && fog.maxOpacity === 0.95
-        && entity?.transform3d.position.x === 0 && entity.transform3d.position.y === 1 && entity.transform3d.position.z === 0
+        && entity?.parentId === "crate" && entity.transform3d.position.x === 0 && entity.transform3d.position.y === 0 && entity.transform3d.position.z === 0.4
         && decal?.assetId === "paint" && decal.receiverId === "crate" && decal.size.x === 1 && decal.size.y === 1
         && decal.size.z === 0.25 && decal.opacity === 0.8 && decal.renderOrder === 2);
     } }]
