@@ -73,7 +73,7 @@ function poseChannels(root: THREE.Object3D, clip: THREE.AnimationClip): PoseChan
       // KeyframeTrack assigns createInterpolant per interpolation mode, and GLTFLoader replaces it for cubic splines.
       const interpolant: unknown = "createInterpolant" in track && typeof track.createInterpolant === "function" ? track.createInterpolant() : undefined;
       if (!(interpolant instanceof THREE.Interpolant)) { throw new Error(`Animation track ${track.name} has no interpolant`); }
-      channels.push({ node, property, interpolant, reference: Array.from(track.values.slice(0, track.getValueSize())) });
+      channels.push({ node, property, interpolant, reference: Array.from(interpolant.evaluate(track.times[0] ?? 0)) });
     }
     byClip.set(clip, channels);
   }
@@ -127,15 +127,20 @@ function motionTimes(clips: readonly THREE.AnimationClip[], sample: GameAnimatio
   return resolved.map((entry) => ({ ...entry, time: entry.clip.duration * phase }));
 }
 
+/** Restore graph-owned child transforms while retaining the simulation root. */
+export function restoreGameAnimationPose3D(root: THREE.Object3D): void {
+  for (const [node, rest] of restPose(root)) {
+    node.position.copy(rest.position); node.quaternion.copy(rest.quaternion); node.scale.copy(rest.scale);
+  }
+}
+
 /**
  * Applies a graph pose from an explicit simulation tick. Each call starts from the rest pose captured when the
  * instance was first sampled. The root retains its simulation transform. Override layers blend toward their
  * sampled pose by layer weight. Additive layers add each clip's offset from its first keyframe.
  */
 export function sampleGameAnimationPose3D(root: THREE.Object3D, clips: readonly THREE.AnimationClip[], pose: GameAnimationPose3D, tick: number): void {
-  for (const [node, rest] of restPose(root)) {
-    node.position.copy(rest.position); node.quaternion.copy(rest.quaternion); node.scale.copy(rest.scale);
-  }
+  restoreGameAnimationPose3D(root);
   const value = new THREE.Vector3();
   const rotation = new THREE.Quaternion();
   const reference = new THREE.Quaternion();
