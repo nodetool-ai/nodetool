@@ -41,6 +41,6 @@ Look accepts mouse motion, a gamepad stick, or touch drag, with sensitivity and 
 
 A 2D camera defines width, height, and zoom. Its world dimensions combine with pixels-per-unit to determine HUD coordinates.
 
-A 3D camera uses perspective field of view or orthographic size, plus near and far planes. A fixed camera follows its authored transform. A follow camera names a target and provides position and look-at offsets, yaw, pitch limits, sensitivity, and collision radius. Keep near/far values appropriate to the scene to avoid clipping and depth precision problems.
+A 3D camera uses perspective field of view or orthographic size, plus near and far planes. A fixed camera follows its authored world transform. Its current orientation also supplies script camera angles and camera-relative character movement, including after scripted rotation of the camera or its parent. A follow camera names a target and provides position and look-at offsets, yaw, pitch limits, sensitivity, and collision radius. Keep near/far values appropriate to the scene to avoid clipping and depth precision problems.
 
 The editor orbit camera is an inspection tool. The scene's active camera controls play and capture. Verify framing with the active camera and exported aspect ratio, not only the editor viewport.
