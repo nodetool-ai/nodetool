@@ -139,8 +139,15 @@ The changed-function CI workflow freezes the source commit and base before
 running shards on separate machines. `scripts/mutation-ci.mjs` verifies that
 their actual completed outcomes cover the complete selection exactly once
 before reporting a global score. Missing, cancelled, duplicate, or incomplete
-shards fail that check. Each job retains the original time limit and test
-command.
+shards fail that check. CI gives sources dedicated jobs when possible and
+hashes their sites across the jobs allocated to that source. With more sources
+than jobs, it groups sources by selected-site count. This reduces repeated
+baselines without changing the selected sites or test commands. Allocation uses
+site counts, not previous mutation outcomes, and does not guarantee equal job
+durations. Each invocation keeps its own metrics, completion journal, and
+receipt. The aggregate checks them against the frozen source assignment. Each
+job retains the original cumulative time limit. Baseline timing and mutant
+deadlines are measured normally on that job.
 
 ## Differences from unclebob/mutator
 

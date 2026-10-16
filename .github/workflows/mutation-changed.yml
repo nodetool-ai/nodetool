@@ -24,6 +24,7 @@ on:
       - "scripts/mutation-ci.mjs"
       - "scripts/mutation-score.mjs"
       - "scripts/__tests__/mutation-ci.test.mjs"
+      - "scripts/__tests__/mutation-ci-source-affinity.test.mjs"
       - "packages/mutator/tests/**"
 
 concurrency:

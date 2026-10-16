@@ -37,6 +37,56 @@ function verifyShard(shard) {
   assert.equal(shard.count, COUNT);
   assert(Number.isSafeInteger(shard.index) && shard.index >= 1 && shard.index <= COUNT, "Invalid shard index");
 }
+/** Give sources dedicated jobs when possible, then hash sites within each source. */
+export function sourceWorkloads(files) {
+  const jobs = SHARD_INDICES.map((index) => ({ index, sources: [] }));
+  const ordered = [...files].sort((a, b) => a.file.localeCompare(b.file));
+  if (ordered.length > COUNT) {
+    const loads = jobs.map(() => 0);
+    for (const file of [...ordered].sort((a, b) => b.selectedIds.length - a.selectedIds.length || a.file.localeCompare(b.file))) {
+      const index = loads.indexOf(Math.min(...loads));
+      jobs[index].sources.push({ file: file.file, shard: { index: 1, count: 1 } });
+      loads[index] += Math.max(1, file.selectedIds.length);
+    }
+  } else {
+    const counts = ordered.map(() => 1);
+    for (let allocated = ordered.length; allocated < COUNT; allocated++) {
+      let best = -1;
+      for (let index = 0; index < ordered.length; index++) {
+        if (counts[index] >= Math.max(1, ordered[index].selectedIds.length)) { continue; }
+        if (best < 0 || ordered[index].selectedIds.length * (counts[best] + 1) >
+          ordered[best].selectedIds.length * (counts[index] + 1)) { best = index; }
+      }
+      if (best < 0) { break; }
+      counts[best]++;
+    }
+    let job = 0;
+    for (const [offset, file] of ordered.entries()) {
+      for (let index = 1; index <= counts[offset]; index++) {
+        jobs[job++].sources.push({ file: file.file, shard: { index, count: counts[offset] } });
+      }
+    }
+  }
+  for (const job of jobs) { job.sources.sort((a, b) => a.file.localeCompare(b.file)); }
+  return jobs;
+}
+
+function invocationsFor(plan, shard) {
+  const groups = new Map();
+  const files = new Map(plan.files.map((file) => [file.file, file]));
+  for (const source of plan.workloads[shard.index - 1].sources) {
+    const key = `${source.shard.index}/${source.shard.count}`;
+    const group = groups.get(key) ?? { shard: source.shard, files: [] };
+    group.files.push(source.file);
+    groups.set(key, group);
+  }
+  const units = [...groups.values()];
+  return units.map((unit, index) => ({ ...unit,
+    metrics: units.length === 1 ? "metrics" : `invocations/${index + 1}/metrics`,
+    assignedIds: unit.files.flatMap((name) => shardIds(files.get(name).selectedIds, unit.shard))
+  }));
+}
+
 function selectionContext(root, base) {
   const empty = join(root, ".metrics", "mutation-ci-empty-history");
   assert(!existsSync(empty), "CI mutation selection requires an absent history directory");
@@ -71,11 +121,11 @@ export function createPlan(root, base) {
   });
   const selectedIds = files.flatMap((file) => file.selectedIds);
   unique(selectedIds, "canonical selection");
-  return { version: 1, head, tree: git(root, "rev-parse", "HEAD^{tree}"), base: baseCommit, mergeBase, shardCount: COUNT, argv, files, selectedIds };
+  return { version: 2, workloads: sourceWorkloads(files), head, tree: git(root, "rev-parse", "HEAD^{tree}"), base: baseCommit, mergeBase, shardCount: COUNT, argv, files, selectedIds };
 }
 
 function verifyPlan(root, plan) {
-  assert.equal(plan.version, 1);
+  assert.equal(plan.version, 2);
   assert.equal(plan.shardCount, COUNT);
   assert.match(plan.base, /^[a-f0-9]{40}$/);
   assert.deepEqual(plan.argv, ["--base", plan.base, "--no-coverage", ...TARGETS]);
@@ -89,30 +139,56 @@ export async function executeShard(root, plan, shard, output) {
   mkdirSync(output, { recursive: true });
   const journal = join(output, "completed.ndjson");
   writeFileSync(journal, "");
-  const metrics = join(output, "metrics");
-  const assignedIds = shardIds(plan.selectedIds, shard);
-  const observed = [];
+  const units = invocationsFor(plan, shard);
+  const files = new Map(plan.files.map((file) => [file.file, file]));
+  const assignedIds = units.flatMap((unit) => unit.assignedIds);
   const completed = [];
+  const invocations = [];
   let code = null;
   let complete = false;
   try {
-    code = await run([
-      "--root", root, ...plan.argv, "--shard", `${shard.index}/${shard.count}`, "--metrics-dir", metrics
-    ], undefined, undefined, {
-      selection: (_file, ids) => observed.push(...ids),
-      completed: (id, outcome) => {
-        completed.push({ id, outcome });
-        appendFileSync(journal, `${JSON.stringify({ id, outcome })}\n`);
-        console.log(`Shard ${shard.index}/${shard.count} completed ${completed.length}/${assignedIds.length}`);
+    code = 0;
+    for (const [offset, unit] of units.entries()) {
+      const observed = [];
+      const terminal = [];
+      const unitDirectory = join(output, "invocations", String(offset + 1));
+      mkdirSync(unitDirectory, { recursive: true });
+      const unitJournal = join(unitDirectory, "completed.ndjson");
+      writeFileSync(unitJournal, "");
+      const receipt = { ...unit, completed: terminal, code: null, complete: false };
+      invocations.push(receipt);
+      const priorCode = code;
+      code = null;
+      try {
+        receipt.code = await run([
+          "--root", root, "--base", plan.base, "--no-coverage", ...unit.files,
+          "--shard", `${unit.shard.index}/${unit.shard.count}`, "--metrics-dir", join(output, unit.metrics)
+        ], undefined, undefined, {
+          selection: (file, ids) => observed.push({ file, ids }),
+          completed: (id, outcome) => {
+            const entry = { id, outcome };
+            terminal.push(entry);
+            completed.push(entry);
+            appendFileSync(unitJournal, `${JSON.stringify(entry)}\n`);
+            appendFileSync(journal, `${JSON.stringify(entry)}\n`);
+            console.log(`Shard ${shard.index}/${shard.count} completed ${completed.length}/${assignedIds.length}`);
+          }
+        });
+        code = receipt.code === 0 ? priorCode : receipt.code;
+        assert([0, 3].includes(receipt.code), `Shard did not complete: mutator exit ${receipt.code}`);
+        assert.deepEqual(observed, unit.files.map((name) => ({ file: name,
+          ids: files.get(name).selectedIds })), "Runtime canonical selection drifted");
+        assert.deepEqual(unique(terminal.map((item) => item.id), "completed"), unique(unit.assignedIds, "assigned"));
+        receipt.complete = true;
+      } finally {
+        writeJson(join(unitDirectory, "receipt.json"), receipt);
       }
-    });
-    assert([0, 3].includes(code), `Shard did not complete: mutator exit ${code}`);
-    assert.deepEqual(observed, plan.selectedIds, "Runtime canonical selection drifted");
+    }
     assert.deepEqual(unique(completed.map((item) => item.id), "completed"), unique(assignedIds, "assigned"));
     verifyPlan(root, plan);
     complete = true;
   } finally {
-    writeJson(join(output, "receipt.json"), { version: 1, plan, shard, assignedIds, completed, code, complete });
+    writeJson(join(output, "receipt.json"), { version: 1, plan, shard, assignedIds, completed, invocations, code, complete });
   }
 }
 
@@ -140,7 +216,8 @@ export function aggregate(root, plan, outputs) {
     assert.deepEqual(receipt.plan, plan, "Shard plan/pins do not match");
     verifyShard(receipt.shard);
     indices.push(receipt.shard.index);
-    const expectedIds = shardIds(plan.selectedIds, receipt.shard);
+    const units = invocationsFor(plan, receipt.shard);
+    const expectedIds = units.flatMap((unit) => unit.assignedIds);
     assert.deepEqual(receipt.assignedIds, expectedIds, "Shard assignment differs from canonical partition");
     const completedIds = unique(receipt.completed.map((item) => item.id), "completed");
     assert.deepEqual(completedIds, unique(expectedIds, "assigned"), "Missing or unexpected terminal outcomes");
@@ -149,25 +226,44 @@ export function aggregate(root, plan, outputs) {
     }
     allAssigned.push(...receipt.assignedIds);
     allCompleted.push(...completedIds);
-    const partial = loadSnapshots(join(output, "metrics"));
-    const outcomes = partial.flatMap((snapshot) => Object.entries(snapshot.outcomes));
-    assert.deepEqual(unique(outcomes.map(([id]) => id), "snapshot outcomes"), completedIds, "Snapshot outcomes differ from actual completions");
-    assert.deepEqual(Object.fromEntries(outcomes), Object.fromEntries(receipt.completed.map(({ id, outcome }) => [id, outcome])));
-    const context = selectionContext(root, plan.mergeBase);
-    const expectedForms = [];
-    for (const file of plan.files) {
-      const path = join(root, file.file);
-      const source = readFileSync(path, "utf8");
-      const { found, covered } = selectFileSites(path, source, context);
-      const owned = found.filter((site) => belongsToShard(site.mutationId, receipt.shard));
-      for (const form of tallyForms(source, path, file.file, owned, covered, new Map(outcomes), null)) {
-        expectedForms.push([form.namespace, renderedForm(form)]);
+    assert.deepEqual(readFileSync(join(output, "completed.ndjson"), "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line)),
+      receipt.completed, "Shard completion journal differs");
+    assert.equal(receipt.invocations.length, units.length, "Missing or extra source invocations");
+    for (const [offset, unit] of units.entries()) {
+      const invocation = receipt.invocations[offset];
+      const unitDirectory = join(output, "invocations", String(offset + 1));
+      assert.deepEqual(readJson(join(unitDirectory, "receipt.json")), invocation, "Invocation receipt differs");
+      for (const key of ["files", "shard", "metrics", "assignedIds"]) {
+        assert.deepEqual(invocation[key], unit[key], "Invocation differs from frozen source assignment");
       }
+      assert.equal(invocation.complete, true, "Source invocation is incomplete");
+      assert([0, 3].includes(invocation.code), "Source baseline or execution failed");
+      const ids = unique(invocation.completed.map(({ id }) => id), "invocation completions");
+      assert.deepEqual(ids, unique(unit.assignedIds, "invocation assignment"));
+      assert.deepEqual(readFileSync(join(unitDirectory, "completed.ndjson"), "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line)),
+        invocation.completed, "Invocation completion journal differs");
+      const partial = loadSnapshots(join(output, unit.metrics));
+      const outcomes = partial.flatMap((snapshot) => Object.entries(snapshot.outcomes));
+      assert.deepEqual(unique(outcomes.map(([id]) => id), "snapshot outcomes"), ids, "Snapshot outcomes differ from actual completions");
+      assert.deepEqual(Object.fromEntries(outcomes), Object.fromEntries(invocation.completed.map(({ id, outcome }) => [id, outcome])));
+      const context = selectionContext(root, plan.mergeBase);
+      const expectedForms = [];
+      for (const name of unit.files) {
+        const path = join(root, name);
+        const source = readFileSync(path, "utf8");
+        const { found, covered } = selectFileSites(path, source, context);
+        const owned = found.filter((site) => belongsToShard(site.mutationId, unit.shard));
+        for (const form of tallyForms(source, path, name, owned, covered, new Map(outcomes), null)) {
+          expectedForms.push([form.namespace, renderedForm(form)]);
+        }
+      }
+      const actualForms = partial.flatMap((snapshot) => snapshot.forms.map((form) => [snapshot.namespace, form]));
+      const sorted = (values) => values.map((item) => JSON.stringify(item)).sort();
+      assert.deepEqual(sorted(actualForms), sorted(expectedForms), "Shard snapshot tallies differ from actual terminal outcomes");
+      snapshots.push(...partial);
     }
-    const actualForms = partial.flatMap((snapshot) => snapshot.forms.map((form) => [snapshot.namespace, form]));
-    const sorted = (values) => values.map((item) => JSON.stringify(item)).sort();
-    assert.deepEqual(sorted(actualForms), sorted(expectedForms), "Shard snapshot tallies differ from actual terminal outcomes");
-    snapshots.push(...partial);
+    assert.deepEqual(receipt.invocations.flatMap((unit) => unit.completed), receipt.completed, "Source completions differ from shard journal");
+
   }
   assert.deepEqual(indices.sort((a, b) => a - b), SHARD_INDICES, "Missing or duplicate shard indices");
   assert.deepEqual(unique(allAssigned, "all assignments"), unique(plan.selectedIds, "canonical selection"));
