@@ -4,7 +4,7 @@
  *
  * Real database, real workspace and the real build path. What is pinned here
  * is the HTTP surface: the archive layout for each target, that another
- * owner's game is not found, and the build stream's events. A shell script
+ * owner's game is not found, and the build stream's events. A Node program
  * stands in for cargo, so the stream is tested without a Rust toolchain.
  */
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
