@@ -112,11 +112,18 @@ function maskedNodes(root: THREE.Object3D, mask: readonly string[]): ReadonlySet
 
 /** Clip times for one motion. Blended clips share one normalized phase so strides stay aligned. */
 function motionTimes(clips: readonly THREE.AnimationClip[], sample: GameAnimationPose3D["layers"][number]["current"], tick: number, scale: number) {
-  const resolved = sample.clips.map((entry) => ({ clip: preparedClip(clips, entry.clipId), weight: entry.weight * scale }));
+  const resolved = sample.clips.map((entry) => {
+    const clip = preparedClip(clips, entry.clipId);
+    if (sample.phase && entry.duration !== clip.duration) { throw new Error(`Prepared clip duration changed for ${entry.clipId}; reprepare the model`); }
+    return { clip, weight: entry.weight * scale };
+  });
   const elapsed = Math.max(0, tick - sample.startTick) / 60 * sample.rate;
   const total = resolved.reduce((sum, entry) => sum + entry.weight, 0);
   const duration = total > 0 ? resolved.reduce((sum, entry) => sum + entry.weight * entry.clip.duration, 0) / total : 0;
-  const phase = duration <= 0 ? 0 : sample.loop ? (elapsed / duration) % 1 : Math.min(1, elapsed / duration);
+  const accumulated = sample.phase ? sample.phase.previousValue + Math.max(0, tick - sample.phase.tick + 1) * sample.phase.increment : 0;
+  const phase = sample.phase
+    ? sample.loop ? accumulated % 1 : Math.min(1, accumulated)
+    : duration <= 0 ? 0 : sample.loop ? (elapsed / duration) % 1 : Math.min(1, elapsed / duration);
   return resolved.map((entry) => ({ ...entry, time: entry.clip.duration * phase }));
 }
 
@@ -133,8 +140,9 @@ export function sampleGameAnimationPose3D(root: THREE.Object3D, clips: readonly 
   const rotation = new THREE.Quaternion();
   const reference = new THREE.Quaternion();
   for (const layer of pose.layers) {
-    const alpha = layer.previous && layer.transitionTicks ? Math.max(0, Math.min(1, (tick - layer.current.startTick) / layer.transitionTicks)) : 1;
-    const contributions = [...motionTimes(clips, layer.current, tick, alpha), ...(layer.previous && alpha < 1 ? motionTimes(clips, layer.previous, tick, 1 - alpha) : [])];
+    const interval = layer.priorInterval && tick < layer.priorInterval.endTick ? layer.priorInterval : layer;
+    const alpha = interval.previous && interval.transitionTicks ? Math.max(0, Math.min(1, (tick - interval.current.startTick) / interval.transitionTicks)) : 1;
+    const contributions = [...motionTimes(clips, interval.current, tick, alpha), ...(interval.previous && alpha < 1 ? motionTimes(clips, interval.previous, tick, 1 - alpha) : [])];
     const mask = layer.mask ? maskedNodes(root, layer.mask) : undefined;
     const additive = layer.mode === "additive";
     const accumulators = new Map<THREE.Object3D, PoseAccumulator>();

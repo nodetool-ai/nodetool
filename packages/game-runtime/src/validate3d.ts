@@ -71,6 +71,9 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
         if (new Set(asset.nodeIds).size !== asset.nodeIds.length || new Set(asset.clipIds).size !== asset.clipIds.length) {
           add("ambiguous_selector", ["assets", slot], "Prepared node and clip IDs must be unique");
         }
+        if (asset.clipDurations && (Object.keys(asset.clipDurations).length !== asset.clipIds.length || asset.clipIds.some(id => asset.clipDurations?.[id] === undefined))) {
+          add("invalid_animation_duration", ["assets", slot, "clipDurations"], "Prepared clip durations must cover exactly the model clip IDs");
+        }
       }
     }
     for (const [graphId, graph] of Object.entries(document.animationGraphs ?? {})) {
@@ -183,6 +186,10 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
             add("missing_animation_clip", [...entityPath, "animator3d", "initialClip"], "Initial clip alias does not exist");
           }
           validateAnimatorGraph3D(document, entity, asset || undefined, [...entityPath, "animator3d"], add);
+          const graph = entity.animator3d.graph && document.animationGraphs?.[entity.animator3d.graph];
+          if (asset?.mediaKind === "model" && !asset.clipDurations && graph && graph.layers.some(layer => Object.values(layer.states).some(node => node.motion.kind !== "clip"))) {
+            warnings.push({ code: "legacy_animation_phase", path: [...entityPath, "animator3d"], message: "Reprepare the model to preserve blend phase when parameters change. Legacy bindings without clip durations use elapsed-time sampling." });
+          }
         }
         for (const [behaviorIndex, behavior] of entity.behaviors.entries()) {
           if (behavior.kind === "script") {

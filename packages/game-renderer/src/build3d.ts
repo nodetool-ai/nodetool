@@ -68,6 +68,7 @@ export async function buildStandaloneGame3D(options: BuildStandaloneGame3DOption
         const prepared = await prepareGameModel(asset.bytes, { expectedDigest: binding.digest, signal: options.signal });
         if (!prepared.ok) { throw new Error(`Export model ${logicalId} failed preparation: ${prepared.diagnostics.map((entry) => entry.message).join("; ")}`); }
         if (JSON.stringify(prepared.model.nodeIds) !== JSON.stringify(binding.nodeIds) || JSON.stringify(prepared.model.clipIds) !== JSON.stringify(binding.clipIds)) { throw new Error(`Prepared selectors changed for model ${logicalId}`); }
+        if (binding.clipDurations && (Object.keys(binding.clipDurations).length !== prepared.model.clipIds.length || prepared.model.clipIds.some(id => binding.clipDurations?.[id] !== prepared.model.clipDurations[id]))) { throw new Error(`Prepared clip durations changed for model ${logicalId}; reprepare the model`); }
         extension = "glb";
       } else if (binding.mediaKind === "image") {
         const prepared = await prepareGameImage3D(asset.bytes, { assetId: binding.assetId, expectedDigest: binding.digest, signal: options.signal });
