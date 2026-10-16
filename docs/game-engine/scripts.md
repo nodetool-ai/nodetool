@@ -38,6 +38,8 @@ Run the game to validate the script in its actual scene. Compilation alone canno
 
 Hooks include start, scene entry, trigger enter/exit, contact, event, fixed update, and destroy. `onUpdate` and `onFixedUpdate` are aliases. Define one. Contacts and events describe the previous tick.
 
+Script functions, hooks, and named timer methods must run synchronously. Async functions and generators are rejected during preparation. Returning a promise, thenable, or iterator fails the call instead of scheduling deferred work. Use tick timers for delayed actions.
+
 Use `after(ticks, method)` and `every(ticks, method)` for timers stored in snapshot state. Timer names refer to methods on the same lifecycle object. Scheduling the same name replaces its timer. Scene transitions discard the old scene's behavior state without calling destroy.
 
 `emit` can carry a bounded JSON payload and target an entity or tag. The event reaches listeners on the next tick. Omitting the target broadcasts. `input.events` still contains the previous event stream, while `onEvent` receives events addressed to that entity.
