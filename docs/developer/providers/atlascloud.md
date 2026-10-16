@@ -157,9 +157,9 @@ Open `packages/atlascloud-nodes/src/atlascloud-manifest.json`. Append an object 
 
 Use `"list[image]"` (not `image` with `"array": true`) for multi-image inputs. Use `"null"` as the default for optional enum fields without a sensible preselected value (e.g. `aspect_ratio` on Nano Banana models).
 
-**`pollInterval`**: milliseconds between poll requests. Existing entries use 3000 for image models and 5000 for video models.
+**`pollInterval`**: milliseconds between poll requests. Existing entries use 3000 for all image models and most video models, and 5000 for some video models. The factory defaults to 3000.
 
-**`maxAttempts`**: maximum polls before timing out. Existing entries use 300 for image and 600 for video.
+**`maxAttempts`**: maximum polls before timing out. Existing entries use 300 for image and 600 for video. The factory defaults to 600.
 
 **`wrapInto`**: set on a typed asset field (`reference_images`, `reference_videos`, `reference_audios`) when the API takes one mixed array such as `refers: [{url, type}]`. The factory appends each field's resolved URLs into that array in field order. The provider's generic `imageToVideo` reads the same flag.
 

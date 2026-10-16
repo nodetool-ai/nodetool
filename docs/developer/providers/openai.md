@@ -141,7 +141,7 @@ async getAvailableImageModels(): Promise<ImageModel[]> {
 ```
 
 `supportedTasks` is a free string array. Existing image entries use `"text_to_image"` and `"image_to_image"`.
-use whichever the model actually supports.
+Use whichever the model actually supports.
 
 ### 2. Add pricing if quality-based
 
@@ -230,8 +230,9 @@ dummy `MODEL_TO_TIER` key that maps to an existing tier.
 Run these in order after any edit:
 
 ```bash
-# 1. Type-check the runtime package (and all packages)
-npm run typecheck
+# 1. Compile the runtime package (the build is tsc, so it type-checks backend code)
+npm run build --workspace=packages/runtime
+npm run typecheck   # web, electron, mobile
 
 # 2. Smoke-test the model list (requires OPENAI_API_KEY in environment)
 npm run dev:nodetool -- models by-provider openai --kind llm

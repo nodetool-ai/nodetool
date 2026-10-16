@@ -64,14 +64,20 @@ registerBuiltinProvider(
   PROVIDER_IDS.OLLAMA,
   OllamaProvider,
   {},
-  { OLLAMA_API_URL: OLLAMA_DEFAULT_URL },
+  {
+    OLLAMA_API_URL: OLLAMA_DEFAULT_URL,
+    OLLAMA_CONTEXT_LENGTH: "",
+    OLLAMA_KEEP_ALIVE: ""
+  },
   { access: "local_service", displayName: "Ollama" }
 );
 ```
 
 Ollama is registered only when the cloud profile is inactive. The cloud profile is active when `NODETOOL_NODE_PROFILE=cloud`, or when `NODETOOL_NODE_PROFILE` is unset and `NODETOOL_ENV=production`. Self-hosted production servers that set `NODETOOL_NODE_PROFILE=full` keep Ollama, so they can point it at a sidecar container.
 
-The constructor also reads `OLLAMA_KEEP_ALIVE` from `process.env`. Default is `"10m"`. Set it to `"-1"` to keep models resident indefinitely, or `"0"` to unload immediately after each request.
+The constructor also reads `OLLAMA_KEEP_ALIVE` from the secret store, then `process.env`. Default is `"10m"`. Set it to `"-1"` to keep models resident indefinitely, or `"0"` to unload immediately after each request.
+
+`OLLAMA_CONTEXT_LENGTH` (secret store, then env) sets `num_ctx` for every chat request. When it is unset, the provider uses the Modelfile's `num_ctx`, else the model's trained context length capped at `OLLAMA_DEFAULT_NUM_CTX` (32768). See `resolveNumCtx` in `ollama-provider.ts`.
 
 ---
 
@@ -138,7 +144,9 @@ Change the default (currently `"10m"`) by editing the fallback in the constructo
 
 ```typescript
 // packages/runtime/src/providers/ollama-provider.ts
-const keepAlive = process.env.OLLAMA_KEEP_ALIVE?.trim();
+const keepAlive = (
+  secrets.OLLAMA_KEEP_ALIVE || process.env.OLLAMA_KEEP_ALIVE
+)?.trim();
 this.keepAlive = keepAlive && keepAlive.length > 0 ? keepAlive : "10m";
 ```
 
