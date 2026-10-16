@@ -79,7 +79,7 @@ export default function StoryboardSection() {
           transition={{ duration: 0.3 }}
           className="scroll-fade relative"
         >
-          <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 overflow-hidden shadow-2xl shadow-amber-900/20 ring-1 ring-white/5 backdrop-blur-sm">
+          <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 overflow-hidden shadow-2xl shadow-amber-900/20 ring-1 ring-white/5 backdrop-blur-xs">
             <Image
               src="/screen_storyboard.png"
               alt="NodeTool's storyboard surface: a grid of six shot cards, each with its still, its shot number and length, its status, and its action line, over the inspector for the selected shot, next to the assistant that directed them"
