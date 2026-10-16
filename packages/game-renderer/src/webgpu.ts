@@ -173,7 +173,7 @@ export class WebGPUGameRenderer implements GameRenderer {
     const dotTexture = device.createTexture({ size: [PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE], format: "rgba8unorm",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
     device.queue.writeTexture({ texture: dotTexture }, particleDotPixels(), { bytesPerRow: PARTICLE_DOT_SIZE * 4 }, [PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE]);
-    this.particleDot = this.textureEntry(dotTexture, PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE, "linear");
+    this.particleDot = this.textureEntry(dotTexture, PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE);
     void device.lost.then(() => { this.lost = true; });
   }
 
@@ -296,23 +296,25 @@ export class WebGPUGameRenderer implements GameRenderer {
     output.markWritten();
   }
 
-  private textureEntry(texture: GPUTexture, width: number, height: number, sampling: "nearest" | "linear" = "nearest"): TextureEntry {
+  private textureEntry(texture: GPUTexture, width: number, height: number): TextureEntry {
+    const view = texture.createView();
+    const bindGroup = (sampler: GPUSampler): GPUBindGroup => this.device.createBindGroup({
+      layout: this.pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: this.cameraBuffer } },
+        { binding: 1, resource: sampler },
+        { binding: 2, resource: view },
+      ],
+    });
     return {
       texture,
       width,
       height,
-      bindGroup: this.device.createBindGroup({
-        layout: this.pipeline.getBindGroupLayout(0),
-        entries: [
-          { binding: 0, resource: { buffer: this.cameraBuffer } },
-          { binding: 1, resource: sampling === "linear" ? this.linearSampler : this.sampler },
-          { binding: 2, resource: texture.createView() },
-        ],
-      }),
+      bindGroups: { nearest: bindGroup(this.sampler), linear: bindGroup(this.linearSampler) },
     };
   }
 
-  private upload(image: GameImage | HTMLCanvasElement, sampling: "nearest" | "linear" = "nearest"): TextureEntry {
+  private upload(image: GameImage | HTMLCanvasElement): TextureEntry {
     const width = image instanceof HTMLCanvasElement ? image.width : imageWidth(image);
     const height = image instanceof HTMLCanvasElement ? image.height : imageHeight(image);
     if (width <= 0 || height <= 0) {
@@ -322,10 +324,10 @@ export class WebGPUGameRenderer implements GameRenderer {
     const texture = this.device.createTexture({ size: [width, height], format: "rgba8unorm",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT });
     this.device.queue.copyExternalImageToTexture({ source: image }, { texture, premultipliedAlpha: false }, [width, height]);
-    return this.textureEntry(texture, width, height, sampling);
+    return this.textureEntry(texture, width, height);
   }
 
-  private async getTexture(assetId: string, sampling: "nearest" | "linear"): Promise<{ texture: TextureEntry; uploadedBytes: number }> {
+  private async getTexture(assetId: string): Promise<{ texture: TextureEntry; uploadedBytes: number }> {
     if (assetId === PARTICLE_DOT_ASSET) {
       return { texture: this.particleDot, uploadedBytes: 0 };
     }
@@ -337,7 +339,7 @@ export class WebGPUGameRenderer implements GameRenderer {
     if (!image) {
       return { texture: this.placeholder(assetId), uploadedBytes: 0 };
     }
-    const texture = this.upload(image, sampling);
+    const texture = this.upload(image);
     this.textures.set(assetId, texture);
     return { texture, uploadedBytes: texture.width * texture.height * 4 };
   }
@@ -364,7 +366,7 @@ export class WebGPUGameRenderer implements GameRenderer {
       }
       this.validatedLuts.add(assetId);
     }
-    const { texture } = await this.getTexture(assetId, "nearest");
+    const { texture } = await this.getTexture(assetId);
     return new LabeledTexture(texture.texture, { label: `game-lut-${assetId}`, format: "rgba8unorm",
       width: texture.width, height: texture.height,
       meta: { colorSpace: "srgb", alpha: "premultiplied", bindingKind: "texture_2d" } });
@@ -417,9 +419,8 @@ export class WebGPUGameRenderer implements GameRenderer {
     const overscanPixels = Math.ceil(bloomRadius * 2);
     const overscanWorld = overscanPixels * frame.width / (Math.max(1, this.canvas.width) * projectedCamera(frame, interpolation).zoom);
     const items = visibleItems(frame, interpolation, overscanWorld, particles && { field: particles });
-    const sampling = new Map(items.map((item) => [item.assetId, item.sampling]));
-    const assetIds = [...sampling.keys()];
-    const textureResults = await Promise.all(assetIds.map((assetId) => this.getTexture(assetId, sampling.get(assetId) ?? "nearest")));
+    const assetIds = [...new Set(items.map((item) => item.assetId))];
+    const textureResults = await Promise.all(assetIds.map((assetId) => this.getTexture(assetId)));
     const textureById = new Map(assetIds.map((assetId, index) => [assetId, textureResults[index]]));
     const hudTexture = this.updateHud(frame, await loadGameUiImages(frame, (assetId) => this.assets.get(assetId)));
     const count = items.length + (hudTexture ? 1 : 0);
@@ -445,14 +446,14 @@ export class WebGPUGameRenderer implements GameRenderer {
       writeInstance(instances, index, item.x, item.y, item.width, item.height,
         item.flipX ? u + du : u, item.flipY ? v + dv : v, item.flipX ? -du : du, item.flipY ? -dv : dv,
         tint[0], tint[1], tint[2], item.opacity, item.rotation, item.unlit ? 1 : 0);
-      appendBatch(batches, texture, item.blend, index);
+      appendBatch(batches, texture, item.blend, index, item.sampling);
     }
     if (hudTexture) {
       const scale = frame.camera.zoom;
       const projected = projectedCamera(frame, interpolation);
       writeInstance(instances, items.length, projected.x, projected.y,
         frame.width / scale, frame.height / scale, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1);
-      appendBatch(batches, hudTexture, "normal", items.length);
+      appendBatch(batches, hudTexture, "normal", items.length, "nearest");
     }
     const projected = projectedCamera(frame, interpolation);
     const camera = new Float32Array([projected.x, projected.y,
@@ -519,7 +520,7 @@ export class WebGPUGameRenderer implements GameRenderer {
                 ? hasEffects ? this.effectAdditivePipeline : this.additivePipeline
                 : hasEffects ? this.effectSpritePipeline : this.pipeline);
             }
-            pass.setBindGroup(0, batch.texture.bindGroup);
+            pass.setBindGroup(0, batch.bindGroup);
             pass.draw(6, batch.count, 0, batch.first);
       }
     }
