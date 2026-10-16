@@ -815,15 +815,7 @@ export class NodeActor {
     // entry — unless the handle's declared type is itself a list of lists.
     const aggregateListValues = (h: string, items: unknown[]): unknown[] => {
       if (isNestedListHandle(h)) return items;
-      const out: unknown[] = [];
-      for (const item of items) {
-        if (Array.isArray(item)) {
-          out.push(...item);
-        } else {
-          out.push(item);
-        }
-      }
-      return out;
+      return items.flatMap((item) => (Array.isArray(item) ? item : [item]));
     };
 
     for (const h of dataHandles) {
@@ -868,18 +860,12 @@ export class NodeActor {
             if (!stickyMap.has(parentKey)) return false;
           }
         } else {
-          // empty-scope sticky / list
-          if (isListInput(h)) {
-            // Multi-edge list at empty scope: wait for close to aggregate.
-            if (this.inbox.isOpen(h)) return false;
-          } else if (!emptySticky.has(h)) {
-            // Allow node properties / dynamic_properties to supply defaults:
-            // _executeWithInputs already merges them (and type-checks the
-            // ones with a declared slot in dynamic_inputs). So an empty-scope
-            // handle without an envelope is treated as "use the node's
-            // declared default" if the handle has no open upstream.
-            if (this.inbox.isOpen(h)) return false;
-          }
+          // Empty scope: a multi-edge list waits for close to aggregate. A
+          // sticky handle without an envelope falls back to the node's
+          // declared default (_executeWithInputs merges properties and
+          // dynamic_properties) once it has no open upstream.
+          const awaitsInput = isListInput(h) || !emptySticky.has(h);
+          if (awaitsInput && this.inbox.isOpen(h)) return false;
         }
       }
       return true;
