@@ -37,7 +37,9 @@ export function modelInstance(model: GameModel3D, cached: CachedModel): RenderIn
       // Constructors retain typed keyframe arrays. Only target metadata belongs to the instance.
       const copy: unknown = Reflect.construct(track.constructor, [track.name, track.times, track.values]);
       if (!(copy instanceof THREE.KeyframeTrack)) { throw new Error("Animation track clone is invalid"); }
-      Object.assign(copy, { createInterpolant: Reflect.get(track, "createInterpolant") });
+      if ("createInterpolant" in track && typeof track.createInterpolant === "function") {
+        Object.assign(copy, { createInterpolant: track.createInterpolant });
+      }
       copy.name = track.name.replace(nodeName, cloneId);
       changed = true;
       return copy;
