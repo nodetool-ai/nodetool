@@ -63,7 +63,7 @@ export default function ParticleEditor({ value, onChange, schema, assets, dimens
       <InspectorSelect grow label="Particle preset" value={preset} options={[
         { value: "", label: "Choose preset" }, ...GAME_PARTICLE_PRESET_IDS.map((id) => ({ value: id, label: id.charAt(0).toUpperCase() + id.slice(1) }))
       ]} onChange={setPreset} />
-      <EditorButton disabled={!preset} onClick={() => { commit(getGameParticlePreset(preset, dimension)); setSelected(0); }}>Apply preset</EditorButton>
+      <EditorButton disabled={!preset} sx={{ flexShrink: 0, whiteSpace: "nowrap" }} onClick={() => { commit(getGameParticlePreset(preset, dimension)); setSelected(0); }}>Apply preset</EditorButton>
     </InspectorFieldRow>
     <Caption>Applying a preset replaces this component's emitters. Other entity components stay unchanged.</Caption>
     <ParticlePreview particles={particles} dimension={dimension} assets={assets} />
