@@ -3,13 +3,14 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
+import { z } from "zod";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Game, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
-import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
+import { InMemoryStorageAdapter, assetObjectKey } from "@nodetool-ai/storage";
 import { workspaceFromRow } from "@nodetool-ai/execution/service";
 import { recordStagedGameCandidate } from "@nodetool-ai/game-nodes";
 import type { ProcessingContext, Workspace as RunWorkspace } from "@nodetool-ai/runtime";
-import type { GameDocument } from "@nodetool-ai/protocol";
+import { gameAssetBinding3D, gameDocument3D, type GameDocument } from "@nodetool-ai/protocol";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 
 const USER = "asset-browser-owner";
@@ -118,5 +119,39 @@ describe("browse_native_game_assets", () => {
       { binding: unknown; candidate: { slot: string } };
     expect(picked.binding).toEqual(binding);
     expect(picked.candidate.slot).toBe("gem");
+  });
+
+  it("prepares an unrecorded 3D image candidate and installs its exact bytes", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const agent = run(USER, storage);
+    const reply = z.object({ game: z.object({ id: z.string() }), document: gameDocument3D });
+    const created = reply.parse(await agent.invoke("create_native_game", { project_id: PROJECT, name: "Decals", dimension: "3d" }));
+    const workspace = await gameWorkspace(created.game.id);
+    const bytes = await png(48, 32);
+    const digest = sha(bytes);
+    await workspace.write(`games/${created.game.id}/assets/${digest}.png`, bytes, "image/png");
+    const picked = z.object({ binding: gameAssetBinding3D, draft_updated_at: z.string() }).parse(
+      await agent.invoke("browse_native_game_assets", { game_id: created.game.id, digest, slot: "graffiti" }));
+    expect(picked.binding).toEqual({ assetId: `staged:${digest}`, digest, mediaKind: "image", required: true,
+      format: "png", width: 48, height: 32, byteLength: bytes.length, preparationVersion: "1" });
+    const installed = reply.parse(await agent.invoke("install_native_game_asset", { game_id: created.game.id,
+      slot: "graffiti", binding: picked.binding, base_updated_at: picked.draft_updated_at }));
+    const binding = installed.document.assets.graffiti;
+    expect(binding).toMatchObject({ mediaKind: "image", digest, width: 48, height: 32, byteLength: bytes.length });
+    expect(binding?.assetId).toMatch(/^[a-f0-9]{32}$/);
+    if (!binding) { throw new Error("Installed image binding is missing"); }
+    expect(await storage.retrieve(storage.uriForKey(assetObjectKey(USER, `${binding.assetId}.png`)))).toEqual(new Uint8Array(bytes));
+  });
+
+  it("rejects corrupt unrecorded 3D image bytes during binding preparation", async () => {
+    const agent = run();
+    const created = z.object({ game: z.object({ id: z.string() }) }).parse(
+      await agent.invoke("create_native_game", { project_id: PROJECT, name: "Invalid decal", dimension: "3d" }));
+    const workspace = await gameWorkspace(created.game.id);
+    const bytes = new Uint8Array([137, 80, 78, 71]);
+    const digest = sha(bytes);
+    await workspace.write(`games/${created.game.id}/assets/${digest}.png`, bytes, "image/png");
+    expect(await agent.invoke("browse_native_game_assets", { game_id: created.game.id, digest, slot: "graffiti" }))
+      .toMatchObject({ error: "Image preparation failed" });
   });
 });
