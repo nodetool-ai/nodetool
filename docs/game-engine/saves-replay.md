@@ -32,7 +32,7 @@ Standalone players use IndexedDB. Editor play uses localStorage, and CLI simulat
 
 Snapshots include gameplay state such as entity state, script state, timers, UI overrides, and animation graph state. Restoration checks engine build and document digest. A snapshot from an incompatible document is not a migration mechanism.
 
-Particles, mixer graphs, render resources, and menu presentation state are not gameplay snapshot data. Their hosts rebuild or resume presentation from the accepted session.
+Particles, mixer graphs, and render resources are not gameplay snapshot data. Their hosts rebuild or resume presentation from the accepted session.
 
 ## Verify a route
 
