@@ -152,11 +152,16 @@
   stroke-width: 4;
   stroke-linecap: round;
 }
+/* Same rail and fill colours as ui_primitives Slider: action.selected rail,
+   primary fill. A coloured accent (oscillator, filter) still tints the arc. */
 .fs-k-track {
-  stroke: var(--palette-divider);
+  stroke: var(--palette-action-selected);
 }
 .fs-k-arc {
   stroke: var(--fs-accent);
+}
+.fs-knob[data-accent="n"] .fs-k-arc {
+  stroke: var(--palette-primary-main);
 }
 .fs-k-ptr {
   stroke: var(--palette-text-primary);

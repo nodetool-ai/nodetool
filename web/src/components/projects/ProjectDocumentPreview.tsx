@@ -20,6 +20,7 @@ import {
   SPACING,
   SPACING_PX,
   getSpacingPx,
+  StatusDot,
   TYPOGRAPHY
 } from "../ui_primitives";
 import { trackTypeAccent, trackTypeMeta } from "../timeline/Tracks/trackVisuals";
@@ -83,16 +84,7 @@ const ScriptLines = ({ preview }: { preview: ScriptPreview }) => (
     <FlexColumn gap={SPACING.md} sx={{ p: SPACING.lg, bgcolor: "background.paper" }}>
       {preview.lines.map((line, index) => (
         <FlexRow key={index} align="center" gap={SPACING.md} sx={{ minWidth: 0 }}>
-          <Box
-            aria-hidden
-            sx={{
-              width: getSpacingPx(SPACING.sm),
-              height: getSpacingPx(SPACING.sm),
-              flexShrink: 0,
-              borderRadius: BORDER_RADIUS.circle,
-              bgcolor: LINE_STATE_COLOR[line.state]
-            }}
-          />
+          <StatusDot sx={{ bgcolor: LINE_STATE_COLOR[line.state] }} />
           {line.speaker && (
             <Box
               component="span"
@@ -176,16 +168,7 @@ const TrackBars = ({ preview }: { preview: TimelinePreview }) => {
                 gap={SPACING.sm}
                 sx={{ flex: `0 0 ${TRACK_LABEL_WIDTH}`, minWidth: 0 }}
               >
-                <Box
-                  aria-hidden
-                  sx={{
-                    width: getSpacingPx(SPACING.sm),
-                    height: getSpacingPx(SPACING.sm),
-                    flexShrink: 0,
-                    borderRadius: BORDER_RADIUS.circle,
-                    bgcolor: accent
-                  }}
-                />
+                <StatusDot sx={{ bgcolor: accent }} />
                 <Box
                   component="span"
                   title={track.name || trackTypeMeta(track.type).label}

@@ -28,7 +28,9 @@ jest.mock("../../../hooks/handlers/useResizePanel", () => ({
     size: 300,
     isVisible: true,
     isDragging: false,
-    handleMouseDown: jest.fn(),
+    handleResizeStart: jest.fn(),
+    handleResize: jest.fn(),
+    handleResizeEnd: jest.fn(),
     handlePanelToggle: (view: string) =>
       usePanelStore.getState().setActiveView(view as never)
   })

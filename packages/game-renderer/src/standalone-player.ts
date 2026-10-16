@@ -1,5 +1,5 @@
 import { createScriptedGameSession, GamePlayerSaves, validateGame } from "@nodetool-ai/game-runtime";
-import { gameSnapshot, type GameInputFrame, type GameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
+import { gameInputFrame, gameSnapshot, type GameDocument, type GameInputFrame, type GameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "./audio.js";
 import { mountTouchControls, touchLayout, type GameTouchControls } from "./touch-controls.js";
@@ -11,13 +11,15 @@ import { resolveGameInputBindings } from "@nodetool-ai/protocol";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
 import { GameParticles2D } from "./particles/render2d.js";
 import { createIndexedDbGameSaveStorage, loadQuickSave } from "./save-storage.js";
+import { VerifiedStandaloneAssets } from "./standalone-assets.js";
+import type { GamePlayerRenderedFrame } from "./standalone-frame.js";
 
 declare global {
   interface Window {
     nativeGamePlayer: {
       readonly pause: () => void;
-      readonly reset: () => Promise<void>;
-      readonly step: (input: GameInputFrame) => Promise<void>;
+      readonly reset: () => Promise<GamePlayerRenderedFrame>;
+      readonly step: (input: GameInputFrame) => Promise<GamePlayerRenderedFrame>;
       readonly snapshot: () => GameSnapshot;
       /** Progress and settings saves of this game in IndexedDB. */
       readonly saves: Pick<GamePlayerSaves, "save" | "load" | "remove" | "slots">;
@@ -62,8 +64,19 @@ async function start(): Promise<void> {
   if (!PLAYER_VERSIONS.includes(game.engineVersion)) {
     throw new Error(`This player supports engine versions ${PLAYER_VERSIONS.join(" and ")}`);
   }
-  const fonts = await loadBrowserGameFonts(game, async (assetId) =>
-    assetId.startsWith("./assets/") ? assetId : null);
+  const verifiedAssets = new VerifiedStandaloneAssets(game.assets,
+    Object.fromEntries(Object.entries(game.assets).map(([id, binding]) => [id, binding.assetId])));
+  try { await startPlayer(game, verifiedAssets); }
+  catch (error: unknown) { verifiedAssets.dispose(); throw error; }
+}
+
+async function startPlayer(game: GameDocument, verifiedAssets: VerifiedStandaloneAssets): Promise<void> {
+  const playbackControls = ["pause", "step", "reset", "save", "load"].map(element);
+  for (const control of playbackControls) { control.setAttribute("disabled", ""); }
+  const fonts = await loadBrowserGameFonts(game, async (assetId) => {
+    const logicalId = Object.keys(game.assets).find((id) => game.assets[id]?.assetId === assetId);
+    return logicalId === undefined ? null : verifiedAssets.url(logicalId);
+  });
   const canvas = element("game");
   if (!(canvas instanceof HTMLCanvasElement)) {
     throw new Error("Game viewport is not a canvas");
@@ -72,7 +85,7 @@ async function start(): Promise<void> {
     assets: game.assets,
     scenes: game.scenes,
     tickRate: game.tickRate,
-    resolveAsset: async (binding) => binding.assetId.startsWith("./assets/") ? binding.assetId : null,
+    resolveAsset: (binding) => verifiedAssets.bindingUrl(binding),
     status: showStatus,
     mixer: game.audio?.mixer
   });
@@ -83,15 +96,8 @@ async function start(): Promise<void> {
   const renderer = await createGameRenderer({
     canvas,
     assets: async (logicalId) => {
-      const ref = game.assets[logicalId]?.assetId;
-      if (!ref || !ref.startsWith("./assets/")) {
-        return null;
-      }
-      const assetResponse = await fetch(ref, { cache: "force-cache" });
-      if (!assetResponse.ok) {
-        return null;
-      }
-      return createImageBitmap(await assetResponse.blob(), { premultiplyAlpha: "none" });
+      const bytes = await verifiedAssets.bytes(logicalId);
+      return bytes ? createImageBitmap(new Blob([bytes]), { premultiplyAlpha: "none" }) : null;
     },
   });
   const effects = game.renderEffects ?? [];
@@ -157,7 +163,65 @@ async function start(): Promise<void> {
       if (document.fullscreenElement && latest.width > latest.height) void orientation.lock?.("landscape").catch(() => undefined);
     }).catch(() => showStatus("Fullscreen is unavailable"));
   });
+  let disposed = false;
+  let replacement = new AbortController();
+  let replacing: AbortSignal | undefined;
+  function beginReplacement(): AbortSignal {
+    if (disposed) { throw new DOMException("Game player is disposed", "AbortError"); }
+    replacement.abort();
+    replacement = new AbortController();
+    replacing = replacement.signal;
+    return replacement.signal;
+  }
+  function finishReplacement(signal: AbortSignal): void {
+    if (replacing === signal) { replacing = undefined; }
+  }
+  async function replaceSession(signal: AbortSignal, snapshot?: GameSnapshot): Promise<boolean> {
+    const restored = await createScriptedGameSession(game, 1, snapshot);
+    if (signal.aborted || disposed) { restored.dispose(); return false; }
+    while (rendering) {
+      try { await rendering; } catch { /* A reset can recover from an earlier failed render. */ }
+    }
+    if (signal.aborted || disposed) { restored.dispose(); return false; }
+    session.dispose();
+    session = restored;
+    saves.clear();
+    audio.reset(session.snapshot());
+    latest = session.frame();
+    particles.clear();
+    releaseAll();
+    accumulator = 0;
+    return true;
+  }
   let rendering: Promise<unknown> | undefined;
+  let frameNumber = 0;
+  let commands = Promise.resolve();
+  function queueCommand(action: () => Promise<GamePlayerRenderedFrame>): Promise<GamePlayerRenderedFrame> {
+    const result = commands.then(action);
+    commands = result.then(() => undefined, () => undefined);
+    return result;
+  }
+  function requireCurrent(signal: AbortSignal): void {
+    if (signal.aborted || disposed) { throw new DOMException("Game command was superseded", "AbortError"); }
+  }
+  async function renderExplicit(signal: AbortSignal): Promise<GamePlayerRenderedFrame> {
+    while (rendering) { await rendering; }
+    requireCurrent(signal);
+    audio.updateSpatial(gameAudioSpatialView2D(latest, 1));
+    hud.update(latest.ui, gameUiViewport2D(latest), hudInsets);
+    const frame = hud.annotate(latest);
+    const pending = renderer.render(frame, 1, particles);
+    rendering = pending;
+    try {
+      const stats = await pending;
+      requireCurrent(signal);
+      frameNumber += 1;
+      budget.observe({ drawCalls: stats.drawCalls, particles: particles.count, voices: gameAudioVoiceCount(audio.mixerState()) });
+      return { tick: frame.tick, frameNumber };
+    } finally {
+      if (rendering === pending) { rendering = undefined; }
+    }
+  }
   let accumulator = 0;
   let lastTime = performance.now();
   let animationFrame = 0;
@@ -175,7 +239,13 @@ async function start(): Promise<void> {
   const saves = new GamePlayerSaves(createIndexedDbGameSaveStorage(game.id), { onError: (error) => showStatus(error.message) });
   const QUICK_SAVE = "quicksave";
   // Quick saves from before IndexedDB storage, moved into the quicksave slot on the first load.
-  const legacyQuickSave = { storage: localStorage, key: `nodetool-game:${game.id}:${game.revision}:save` };
+  const legacyQuickSave = {
+    get storage(): Storage {
+      try { return localStorage; }
+      catch (cause: unknown) { throw new Error("Legacy game save storage is unavailable", { cause }); }
+    },
+    key: `nodetool-game:${game.id}:${game.revision}:save`
+  };
   function stepSession(frame: GameInputFrame, replay = false) {
     const result = session.step(replay ? frame : saves.withLoaded(frame));
     if (!replay) { saves.handle(result.saveRequests, () => session.snapshot()); }
@@ -190,12 +260,19 @@ async function start(): Promise<void> {
     hud.update(latest.ui, gameUiViewport2D(latest), hudInsets);
     rendering = renderer.render(hud.annotate(latest), interpolation, particles)
       .then((stats) => {
+        if (disposed) { return; }
+        frameNumber += 1;
         budget.observe({ drawCalls: stats.drawCalls, particles: particles.count, voices: gameAudioVoiceCount(audio.mixerState()) });
         if (effects.some((effect) => !effect.required) && renderer.capabilities.fallbackReason) {
           showStatus("GPU effect omitted after WebGPU failure");
         }
       })
-      .catch((error) => showStatus(error instanceof Error ? error.message : "Rendering failed"))
+      .catch((error: unknown) => {
+        if (!disposed) {
+          setPaused(true);
+          showStatus(error instanceof Error ? error.message : "Rendering failed");
+        }
+      })
       .finally(() => { rendering = undefined; });
   }
 
@@ -216,7 +293,7 @@ async function start(): Promise<void> {
   }
 
   function tick(now: number): void {
-    if (!paused && !document.hidden) {
+    if (!paused && !replacing && !document.hidden) {
       accumulator += Math.min(250, now - lastTime);
       let steps = 0;
       while (accumulator >= tickMs && steps < 5) {
@@ -255,23 +332,24 @@ async function start(): Promise<void> {
   });
   element("step").addEventListener("click", () => {
     if (paused) {
-      step();
-      render(1);
+      void window.nativeGamePlayer.step(input.sample2D(game)).catch((error: unknown) => {
+        showStatus(error instanceof Error ? error.message : "Game could not step");
+      });
     }
   });
   element("reset").addEventListener("click", () => {
-    void createScriptedGameSession(game, 1).then((restored) => {
-      session.dispose();
-      session = restored;
-      saves.clear();
-      audio.reset(session.snapshot());
-      latest = session.frame();
-      particles.clear();
-      releaseAll();
-      accumulator = 0;
+    if (disposed) { return; }
+    const wasPaused = paused;
+    const signal = beginReplacement();
+    setPaused(true);
+    void replaceSession(signal).then(async (replaced) => {
+      if (!replaced) { return; }
+      await renderExplicit(signal);
+      setPaused(wasPaused);
       showStatus("Game reset");
-      render(1);
-    }).catch((error) => showStatus(error instanceof Error ? error.message : "Game could not reset"));
+    }).catch((error: unknown) => {
+      if (!signal.aborted && !disposed) { showStatus(error instanceof Error ? error.message : "Game could not reset"); }
+    }).finally(() => finishReplacement(signal));
   });
   element("save").addEventListener("click", () => {
     void saves.save("progress", QUICK_SAVE, {}, session.snapshot())
@@ -279,24 +357,32 @@ async function start(): Promise<void> {
       .catch((error) => showStatus(error instanceof Error ? error.message : "Game could not be saved"));
   });
   element("load").addEventListener("click", () => {
+    if (disposed) { return; }
+    const wasPaused = paused;
+    const signal = beginReplacement();
+    setPaused(true);
     void loadQuickSave(saves, QUICK_SAVE, legacyQuickSave).then(async (record) => {
+      if (signal.aborted || disposed) { return; }
       if (record?.snapshot === undefined) {
+        setPaused(wasPaused);
         showStatus("No saved game");
         return;
       }
-      const restored = await createScriptedGameSession(game, 1, gameSnapshot.parse(record.snapshot));
-      session.dispose();
-      session = restored;
-      saves.clear();
-      audio.reset(session.snapshot());
-      latest = session.frame();
-      particles.clear();
-      accumulator = 0;
+      if (!await replaceSession(signal, gameSnapshot.parse(record.snapshot))) { return; }
+      await renderExplicit(signal);
+      setPaused(wasPaused);
       showStatus("Game loaded");
-      render(1);
-    }).catch((error) => showStatus(error instanceof Error ? error.message : "Save could not be loaded"));
+    }).catch((error: unknown) => {
+      if (!signal.aborted && !disposed) {
+        setPaused(wasPaused);
+        showStatus(error instanceof Error ? error.message : "Save could not be loaded");
+      }
+    }).finally(() => finishReplacement(signal));
   });
-  window.addEventListener("beforeunload", () => {
+  function disposePlayer(): void {
+    if (disposed) { return; }
+    disposed = true;
+    replacement.abort();
     touchControls?.dispose();
     detachMouse();
     detachHud();
@@ -305,26 +391,45 @@ async function start(): Promise<void> {
     renderer.dispose();
     fonts.dispose();
     audio.dispose();
-  });
+    verifiedAssets.dispose();
+  }
+  window.addEventListener("beforeunload", disposePlayer);
+  try { await renderExplicit(replacement.signal); }
+  catch (error: unknown) {
+    setPaused(true);
+    disposePlayer();
+    throw error;
+  }
+  lastTime = performance.now();
+  for (const control of playbackControls) { control.removeAttribute("disabled"); }
   window.nativeGamePlayer = Object.freeze({
     pause: () => setPaused(true),
     reset: async () => {
-      paused = true;
-      const replacement = await createScriptedGameSession(game, 1);
-      session.dispose(); session = replacement; saves.clear();
-      audio.reset(session.snapshot()); latest = session.frame(); particles.clear(); releaseAll(); accumulator = 0;
-      await rendering;
-      await renderer.render(latest, 1, particles);
+      const signal = beginReplacement();
+      setPaused(true);
+      return queueCommand(async () => {
+        requireCurrent(signal);
+        if (!await replaceSession(signal)) { throw new DOMException("Game reset was superseded", "AbortError"); }
+        return renderExplicit(signal);
+      }).finally(() => finishReplacement(signal));
     },
     step: async (input: GameInputFrame) => {
-      paused = true;
-      const result = stepSession(input, true);
-      latest = result.frame;
-      particles.tick(result.frame, session.takePresentationEvents());
-      result.events.forEach(event => audio.handle(event));
-      audio.sync(session.snapshot());
-      await rendering;
-      await renderer.render(latest, 1, particles);
+      const frame = gameInputFrame.parse(input);
+      if (replacing) { throw new Error("Game session replacement is still loading"); }
+      const signal = replacement.signal;
+      requireCurrent(signal);
+      setPaused(true);
+      return queueCommand(async () => {
+        requireCurrent(signal);
+        while (rendering) { await rendering; }
+        requireCurrent(signal);
+        const result = stepSession(frame, true);
+        latest = result.frame;
+        particles.tick(result.frame, session.takePresentationEvents());
+        result.events.forEach(event => audio.handle(event));
+        audio.sync(session.snapshot());
+        return renderExplicit(signal);
+      });
     },
     snapshot: () => session.snapshot(),
     saves: Object.freeze({
@@ -332,7 +437,6 @@ async function start(): Promise<void> {
     })
   });
   showStatus(`Ready (${renderer.backend})${effectNotice ? ` · ${effectNotice}` : ""}${fonts.diagnostics.length ? ` · ${fonts.diagnostics.join("; ")}` : ""}`);
-  render(1);
   animationFrame = requestAnimationFrame(tick);
 }
 

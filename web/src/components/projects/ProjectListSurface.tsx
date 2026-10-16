@@ -20,11 +20,11 @@ import {
   FlexRow,
   Label,
   LoadingSpinner,
+  PageHeader,
   SPACING,
   ScrollArea,
   SearchInput,
   SectionHeader,
-  Text,
   TruncatedText,
   TYPOGRAPHY,
   activateOnKey,
@@ -249,16 +249,12 @@ const ProjectListSurface = () => {
           pb: SPACING.lg
         }}
       >
-        <FlexColumn gap={SPACING.xs} sx={{ minWidth: 0 }}>
-          <Text size="big">Projects</Text>
-          <Caption
-            color="secondary"
-            sx={{ display: { xs: "none", md: "block" } }}
-          >
-            One piece of work: the documents an agent built for it, what it
-            cost, where it stands.
-          </Caption>
-        </FlexColumn>
+        <PageHeader
+          variant="plain"
+          title="Projects"
+          subtitle="One piece of work: the documents an agent built for it, what it cost, where it stands."
+          hideSubtitleOnMobile
+        />
         <Box sx={{ flex: 1 }} />
         <Box
           sx={{

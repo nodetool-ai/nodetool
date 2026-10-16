@@ -657,7 +657,7 @@ function SettingsPage() {
           </div>
           <div className="settings-page-header__search">
             <SearchInput
-              placeholder="Search settings..."
+              placeholder="Search settings"
               value={searchTerm}
               onChange={setSearchTerm}
               size="medium"

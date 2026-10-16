@@ -467,7 +467,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                 <TextField
                   {...params}
                   size="small"
-                  placeholder="Search input type..."
+                  placeholder="Search input type"
                   inputProps={{
                     ...params.inputProps,
                     "aria-label": "Search input type"
@@ -510,7 +510,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                 <TextField
                   {...params}
                   size="small"
-                  placeholder="Search output type..."
+                  placeholder="Search output type"
                   inputProps={{
                     ...params.inputProps,
                     "aria-label": "Search output type"

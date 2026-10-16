@@ -1,3 +1,4 @@
+import { musicWav } from "./fixtures/music-wav.js";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFile, mkdtemp, readFile, readdir, rm, symlink } from "node:fs/promises";
@@ -81,7 +82,7 @@ describe("standalone game build", () => {
     const game = createTopDownRoomGame("music-export");
     game.schemaVersion = 2;
     game.scenes[0].music = { assetId: "music", volume: 0.5, fadeInTicks: 30, fadeOutTicks: 30 };
-    const bytes = Buffer.from("RIFF0000WAVE");
+    const bytes = musicWav();
     const sourceId = "b".repeat(32);
     const digest = createHash("sha256").update(bytes).digest("hex");
     game.assets.music = { assetId: sourceId, digest, mediaKind: "audio", width: 1, height: 1,

@@ -171,7 +171,7 @@ export function stepScripts2D(context: GameSystemContext2D): void {
     // Each active entity's props travel once; scripts read them on `entity`, `world` and `world.get`.
     const legacyInput: GameScriptInput = { tick: context.tick, pressed: [...context.pressed], justPressed: context.input.justPressed,
       events: context.previousEvents, world, ...(context.input.loaded === undefined ? undefined : { loaded: context.input.loaded }) };
-    const props: Record<string, GameEntityProps> = {};
+    const props: Record<string, GameEntityProps> = Object.create(null);
     for (const state of context.states) {
       if (supportsMetadata && state.active && state.props !== undefined && Object.keys(state.props).length > 0) { props[state.definition.id] = state.props; }
     }

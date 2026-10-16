@@ -131,7 +131,7 @@ export function stepScripts3D(context: GameSystemContext3D): void {
   context.runner?.retain?.(new Set(context.calls.map((call) => call.stateKey)));
   if (context.runner && context.calls.length > 0) {
     // Each active entity's props travel once; scripts read them on `entity`, `world` and `world.get`.
-    const props: Record<string, GameEntityProps> = {};
+    const props: Record<string, GameEntityProps> = Object.create(null);
     for (const state of context.states) {
       if (state.active && state.props !== undefined && Object.keys(state.props).length > 0) { props[state.definition.id] = state.props; }
     }

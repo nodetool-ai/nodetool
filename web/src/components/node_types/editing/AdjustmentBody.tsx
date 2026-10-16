@@ -20,11 +20,10 @@ import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import ImageIcon from "@mui/icons-material/Image";
 
-import { SPACING, CheckerDropzone, BORDER_RADIUS } from "../../ui_primitives";
+import { SPACING, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageRefPreview from "../../node/ImageRefPreview";
+import ImagePreview from "./ImagePreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
@@ -173,15 +172,7 @@ const AdjustmentBodyInner: React.FC<AdjustmentBodyProps> = ({
     <div css={cssStyles} className="adjustment-body" data-bespoke-body="Adjustment">
       <HandleColumn id={id} properties={imageProps} />
       <div className="preview-area">
-        <ImageRefPreview
-          value={previewValue}
-          placeholder={
-            <CheckerDropzone
-              message="Connect an image, then run"
-              icon={<ImageIcon />}
-            />
-          }
-        />
+        <ImagePreview value={previewValue} />
       </div>
 
       <div className="controls">
