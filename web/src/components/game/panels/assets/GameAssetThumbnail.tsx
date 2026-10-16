@@ -6,7 +6,7 @@ import WallpaperOutlinedIcon from "@mui/icons-material/WallpaperOutlined";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { GameAssetMediaKind } from "@nodetool-ai/protocol";
 
-import { BORDER_RADIUS, Box, Caption, FlexRow, ResponsiveImage, TYPOGRAPHY, getSpacingPx } from "../../../ui_primitives";
+import { BORDER_RADIUS, Box, Caption, FlexRow, MediaThumbnail, TYPOGRAPHY, getSpacingPx } from "../../../ui_primitives";
 import { asResolvedMediaUrl } from "../../../../utils/resolveMediaUri";
 import type { GameAssetSource } from "./gameAssetBrowserModel";
 import { audioWaveform, gameAssetLocator, gameFontFamily, modelThumbnail } from "./gameAssetMedia";
@@ -74,11 +74,11 @@ export default function GameAssetThumbnail({ source, mediaKind, digest, label, b
     bgcolor: "action.hover", color: "text.secondary",
     "& svg": { fontSize: size === "row" ? TYPOGRAPHY.sans.label.fontSize : TYPOGRAPHY.sans.title.fontSize } } as const;
   if (mediaKind === "image" && !builtin) {
-    return <ResponsiveImage locator={gameAssetLocator(source)} alt={label} preferThumbnail loading="lazy" fit="contain" sx={frame} />;
+    return <MediaThumbnail locator={gameAssetLocator(source)} kind="image" alt={label} aspectRatio="auto" borderRadius={BORDER_RADIUS.sm} fit="contain" sx={frame} />;
   }
   const modelUrl = asResolvedMediaUrl(rendered);
   if (mediaKind === "model" && modelUrl) {
-    return <ResponsiveImage src={modelUrl} alt={label} fit="contain" sx={frame} />;
+    return <MediaThumbnail asset={{ thumb_url: modelUrl }} kind="image" alt={label} aspectRatio="auto" borderRadius={BORDER_RADIUS.sm} fit="contain" loading="eager" sx={frame} />;
   }
   return <FlexRow align="center" justify="center" sx={frame} role="img" aria-label={label}>
     {mediaKind === "audio" && peaks ? <Box sx={{ width: "100%", height: "50%" }}><Waveform peaks={peaks} /></Box>

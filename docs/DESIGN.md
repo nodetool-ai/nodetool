@@ -1016,6 +1016,30 @@ Do not write a card container with `borderRadius`, `border` and
 your own `stat-value` and `stat-label` styles. Row lists inside a dialog
 (`ProviderOnboardingCard`) are rows, not cards.
 
+### Media thumbnails
+
+A tile that shows stored media is `MediaThumbnail` (from `ui_primitives`),
+never a switch on `content_type.startsWith("image" | "video" | "audio")` that
+picks an `<img>`, a `<video>` or an icon by hand.
+
+| Use | Primitive |
+|---|---|
+| Thumbnail of an `Asset` record | `MediaThumbnail asset={asset} alt="…"`: image uses `thumb_url` then `get_url`, video its `thumb_url` poster, anything else a type icon |
+| Thumbnail of a media ref or locator | `MediaThumbnail locator={ref} alt="…"`: resolved through the media-resolution boundary. Pass `kind` or `contentType` when known, otherwise the asset row decides |
+| Playable tile | add `interactive`: video renders `VideoPlayer`, audio `AudioPlayback` |
+| Caption on the tile | `label` slot (bottom scrim, pointer events off). Pass a `MediaLabel` or any node |
+| Remove or open controls | `actions` slot (top right, revealed on hover and keyboard focus) |
+| Node-body image preview with a checker empty state | `ImagePreview` from `node_types/editing/ImagePreview` |
+
+The tile keeps its aspect ratio (`aspectRatio`, default `1/1`), fills with
+`fit="cover"` or `"contain"`, and falls back to an icon (`icon` overrides it).
+Never put an `asset://` string in `src`, and never use a video file as an image
+source.
+
+Do not hand-build a media tile with an `<img>`, a `background-image` or a
+scrim `div`, and do not paste an `ImageRefPreview` with a `CheckerDropzone`
+placeholder into a node body.
+
 ---
 
 ## 13. Forms

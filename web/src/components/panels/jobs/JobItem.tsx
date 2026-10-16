@@ -9,6 +9,7 @@ import {
   Tooltip,
   ToolbarIconButton,
   Box,
+  MediaThumbnail,
   ProgressBar,
   MOTION,
   BORDER_RADIUS,
@@ -165,11 +166,6 @@ const StatusTile = memo(function StatusTile({
  * everything else as a small type tile. Clicking opens the asset.
  */
 const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
-  const isVisual =
-    asset.content_type?.startsWith("image/") ||
-    asset.content_type?.startsWith("video/");
-  const src = isVisual ? asset.thumb_url || asset.get_url || undefined : undefined;
-
   const handleOpen = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -216,17 +212,16 @@ const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
           cursor: asset.get_url ? "pointer" : "default"
         }}
       >
-        {src ? (
-          <Box
-            component="img"
-            src={src}
-            alt={asset.name || "Output"}
-            loading="lazy"
-            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        ) : (
-          <Text size="smaller" color="secondary" truncate sx={{ px: 0.5 }}>{asset.content_type?.split("/")[1] || "file"}</Text>
-        )}
+        <MediaThumbnail
+          asset={asset}
+          alt={asset.name || "Output"}
+          borderRadius={0}
+          icon={
+            <Text size="smaller" color="secondary" truncate sx={{ px: 0.5 }}>
+              {asset.content_type?.split("/")[1] || "file"}
+            </Text>
+          }
+        />
       </FlexRow>
     </Tooltip>
   );
