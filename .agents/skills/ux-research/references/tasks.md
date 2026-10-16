@@ -52,8 +52,13 @@ never put it in a packet.
 | `ask-file` | You have a file of notes from a meeting. Ask the app when the next meeting is, using the file, until you see an answer. | empty | 15 | Asking about your own file |
 | `fix-error` | Someone left something here that should turn trip notes into a packing list, but it stops with a problem when it runs. Make it work, until you see a packing list. | other-provider | 20 | Recovering from a run error |
 | `plan-video` | You want a short video advertising a small bakery. Have the app plan it scene by scene, with a picture for each scene, until you see the scenes with their pictures. | empty | 25 | Planning a multi-part creative piece |
+| `add-step` | Someone left something here that turns trip notes into a packing list. Make it also give you a short summary of the trip as a second result, then run it until you see both results. | working-run | 25 | Changing a process by hand on its canvas |
+| `read-aloud` | You wrote a welcome line for your podcast: "Welcome back to Morning Walks, the show about slow mornings." Have the app say it out loud, until you can play it. | empty | 20 | Making speech from your own words |
+| `draw-by-hand` | You want a simple drawing of a house with the sun above it, drawn by your own hand, not made by the app. Draw it here, then close it and open it again. | empty | 20 | Drawing by hand and keeping it |
+| `continue-chat` | Some time ago, someone on this computer asked the app for meal ideas without meat. Find that conversation and ask one more question in it, until you see the answer. | seeded-demo | 15 | Finding and continuing an old conversation |
+| `separate-work` | You are about to start work for a new client, a flower shop. Keep their work apart from everything already here, and start one thing for them. | seeded-demo | 15 | Keeping a new piece of work apart |
 
-`add-key` needs a test key in `credentials`. `add-photo` and `change-photo`
+`add-key` and `read-aloud` need a test key in `credentials`. `add-photo` and `change-photo`
 need an image in `assets`, and `ask-file` a text file. `switch-model` on `seeded-demo` has every provider connected, so it
 studies the choice and not the setup.
 
@@ -85,6 +90,11 @@ studies the choice and not the setup.
 | `ask-file` | A reply in a conversation whose question carries the notes file. | Where it attached the file, and whether the home composer read as a place to ask. | [chat](../../agentic-qa/references/protocols/chat.md#chat) |
 | `fix-error` | The run completes and its output is visible, after the participant changed the document. | Whether it read the error, and whether it added the named key or switched the model. | [run-failure](../../agentic-qa/references/protocols/workflows.md#run-failure) |
 | `plan-video` | A storyboard with more than one shot and a still on each shot is visible. | Where it expected the pictures to come from. | [storyboard](../../agentic-qa/references/protocols/creative.md#storyboard) |
+| `add-step` | The workflow has a second language-model step fed by the notes, a second output, and a run shows both outputs. | How it added a step (canvas menu, search, drag from a handle, the assistant), and whether it connected the new step without help. | [automation](../../agentic-qa/references/protocols/workflows.md#automation) |
+| `read-aloud` | An audio clip of the line exists and the participant played it or showed its player. | Where it looked first (chat, "+ New", a workflow), and which voice control it read as "say it out loud". | [voice-script](../../agentic-qa/references/protocols/creative.md#voice-script) |
+| `draw-by-hand` | A sketch with strokes the participant drew is open again after its tab was closed. | Whether it found a blank drawing surface or a generator first, the first stroke's visibility, and where it reopened the drawing. | [sketch](../../agentic-qa/references/protocols/creative.md#sketch) |
+| `continue-chat` | A new reply under the participant's question in "Vegan recipe suggestions". | Which list it searched, and whether it matched the title without the task's words. | [chat-find](../../agentic-qa/references/protocols/chat.md#chat-find) |
+| `separate-work` | A new project exists, and a document created in it is open. | Whether it read "Project" or "Personal" as the place to separate work, or made a folder or a tag instead. | [projects](../../agentic-qa/references/protocols/library.md#projects) |
 
 Study 2 found two tasks whose end state asks more than their text:
 `switch-model` ("Change it") lets a participant stop at the picker without
