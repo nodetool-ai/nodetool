@@ -106,11 +106,11 @@ export class Canvas2DGameRenderer implements GameRenderer {
         this.drawSprite(context, entry, image, frame, camera, pixelScale, sx, sy);
         continue;
       }
-      const targetWidth = entry.width * pixelScale * sx;
-      const targetHeight = entry.height * pixelScale * sy;
+      const targetWidth = entry.width * pixelScale;
+      const targetHeight = entry.height * pixelScale;
       const x = (frame.width / 2 + (entry.x - camera.x) * pixelScale) * sx;
       const y = (frame.height / 2 - (entry.y - camera.y) * pixelScale) * sy;
-      const bounds = spritePixelBounds(x, y, targetWidth, targetHeight, entry.rotation, this.canvas.width, this.canvas.height);
+      const bounds = spritePixelBounds(x, y, targetWidth, targetHeight, entry.rotation, this.canvas.width, this.canvas.height, sx, sy);
       if (!bounds) continue;
       lightContext.clearRect(bounds.x, bounds.y, bounds.width, bounds.height);
       this.drawSprite(lightContext, entry, image, frame, camera, pixelScale, sx, sy, true);
@@ -143,12 +143,15 @@ export class Canvas2DGameRenderer implements GameRenderer {
     normalBlend = false,
   ): void {
     const source = image ? sourceRect(entry, imageWidth(image), imageHeight(image)) : undefined;
-    const { x, y, width: targetWidth, height: targetHeight } = pixelRect(entry,
+    const { x, y, width: pixelWidth, height: pixelHeight } = pixelRect(entry,
       (frame.width / 2 + (entry.x - camera.x) * pixelScale) * sx, (frame.height / 2 - (entry.y - camera.y) * pixelScale) * sy,
       entry.width * pixelScale * sx, entry.height * pixelScale * sy);
+    const targetWidth = pixelWidth / sx;
+    const targetHeight = pixelHeight / sy;
     const tinted = image && source ? entry.particle ? this.tintParticle(image, source, entry.tint) : this.tint(image, entry.assetId, source, entry.tint) : undefined;
     context.save();
     context.translate(x, y);
+    context.scale(sx, sy);
     context.rotate(-entry.rotation);
     context.scale(entry.flipX ? -1 : 1, entry.flipY ? -1 : 1);
     context.globalAlpha = entry.opacity;

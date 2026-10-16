@@ -5,11 +5,11 @@ export interface PixelBounds { readonly x: number; readonly y: number; readonly 
 
 /** Conservative raster bounds for one rotated sprite, clipped to the viewport. */
 export function spritePixelBounds(x: number, y: number, width: number, height: number, rotation: number,
-  viewportWidth: number, viewportHeight: number): PixelBounds | null {
+  viewportWidth: number, viewportHeight: number, scaleX = 1, scaleY = 1): PixelBounds | null {
   const cosine = Math.abs(Math.cos(rotation));
   const sine = Math.abs(Math.sin(rotation));
-  const halfWidth = (cosine * width + sine * height) / 2;
-  const halfHeight = (sine * width + cosine * height) / 2;
+  const halfWidth = (cosine * width + sine * height) * scaleX / 2;
+  const halfHeight = (sine * width + cosine * height) * scaleY / 2;
   const left = Math.max(0, Math.floor(x - halfWidth - 1));
   const top = Math.max(0, Math.floor(y - halfHeight - 1));
   const right = Math.min(viewportWidth, Math.ceil(x + halfWidth + 1));
