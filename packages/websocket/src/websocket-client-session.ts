@@ -37,7 +37,13 @@ import {
   type DBModel
 } from "@nodetool-ai/models";
 import type { BaseProvider } from "@nodetool-ai/runtime";
-import { fetchExternalMedia, type Workspace } from "@nodetool-ai/runtime";
+import {
+  activeModelLoads,
+  fetchExternalMedia,
+  subscribeModelLoads,
+  type ModelLoadUpdate,
+  type Workspace
+} from "@nodetool-ai/runtime";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import type {
   UnifiedCommandType,
@@ -432,6 +438,7 @@ export class WebSocketClientSession implements ClientSession {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
   private statsPrimeTimer: NodeJS.Timeout | null = null;
+  private modelLoadUnsubscribe: (() => void) | null = null;
   /**
    * Abort controllers for RPC calls that are still waiting on a provider.
    * An RPC has no chat turn to hang off, so a `stop` command and a dropped
@@ -751,6 +758,7 @@ export class WebSocketClientSession implements ClientSession {
 
     this.startHeartbeat();
     this.startStatsBroadcast();
+    this.startModelLoadBroadcast();
     this.registerObserver();
     // A connection accepted just before the drain took effect gets the
     // callback immediately, so it closes like any older one.
@@ -764,6 +772,7 @@ export class WebSocketClientSession implements ClientSession {
     this.stopDrainTimer();
     this.stopHeartbeat();
     this.stopStatsBroadcast();
+    this.stopModelLoadBroadcast();
     this.unregisterObserver();
     if (this.frontendRendererId) {
       this.frontendRendererRegistry?.unregister(this.frontendRendererId);
@@ -1306,6 +1315,37 @@ export class WebSocketClientSession implements ClientSession {
       clearInterval(this.statsTimer);
       this.statsTimer = null;
     }
+  }
+
+  /**
+   * Forward local model loads, so a first run that downloads a model shows the
+   * download. Gated like `system_stats`: a load happens on this host, which on
+   * a server that enforces auth is shared with other users.
+   */
+  private startModelLoadBroadcast(): void {
+    this.stopModelLoadBroadcast();
+    if (!this.systemStatsEnabled) {
+      return;
+    }
+    const send = (update: ModelLoadUpdate) => {
+      this.sendMessage({ type: "model_load_progress", ...update }).catch(
+        (err) => {
+          log.warn("Failed to send model load progress", {
+            error: String(err)
+          });
+        }
+      );
+    };
+    // A client that connects mid-download starts from the current state.
+    for (const update of activeModelLoads()) {
+      send(update);
+    }
+    this.modelLoadUnsubscribe = subscribeModelLoads(send);
+  }
+
+  private stopModelLoadBroadcast(): void {
+    this.modelLoadUnsubscribe?.();
+    this.modelLoadUnsubscribe = null;
   }
 
   private registerObserver(): void {

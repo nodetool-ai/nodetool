@@ -527,3 +527,70 @@ it("hot reloads 3D source without recreating play, logs invalid edits, and resta
     expect(store.getState().groups.at(-1)?.message).toBe("speed 8 state 0");
   } finally { view.unmount(); animation.mockRestore(); jest.mocked(createGameSession3D).mockImplementation(actual.createGameSession3D); }
 });
+
+it("mounts actual viewport-scoped 3D stick, look and action controls and releases them on pause", async () => {
+  const game = gameDocument3D.parse({ ...fixture(), inputActions: ["fire"], inputAxes: ["moveX", "moveZ"],
+    inputBindings: { actions: { fire: [{ kind: "touchButton" }] }, look: [{ kind: "touchDrag" }] } });
+  let input: import("@nodetool-ai/game-renderer").GameInput3D | undefined;
+  function TouchHarness() {
+    const host = useGamePlaySession3D({ refId: "touch-hook3d", document: game, active: true });
+    input = host.inputRef.current;
+    return <><canvas ref={host.canvasRef} aria-label="Touch game" /><button onClick={host.beginPlay}>{host.playing ? "Pause" : "Play"}</button>
+      <output aria-label="Touch backend">{host.backend}</output></>;
+  }
+  const originalObserver = global.ResizeObserver;
+  const observers: Array<{ targets: Set<Element>; notify(): void; disconnected: boolean }> = [];
+  global.ResizeObserver = class implements ResizeObserver {
+    targets = new Set<Element>();
+    disconnected = false;
+    constructor(private readonly callback: ResizeObserverCallback) { observers.push(this); }
+    observe(target: Element) { this.targets.add(target); }
+    unobserve(target: Element) { this.targets.delete(target); }
+    disconnect() { this.disconnected = true; }
+    notify() { this.callback([], this); }
+  };
+  const matchMedia = window.matchMedia;
+  window.matchMedia = jest.fn(() => ({ matches: true }) as MediaQueryList);
+  const view = render(<TouchHarness />);
+  try {
+    await waitFor(() => expect(screen.getByLabelText("Touch backend")).toHaveTextContent("WebGL2"));
+    const canvas = screen.getByLabelText("Touch game") as HTMLCanvasElement;
+    let bounds = { left: 100, top: 50, width: 640, height: 360 };
+    jest.spyOn(canvas, "getBoundingClientRect").mockImplementation(() => bounds as DOMRect);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Play" }));
+    const root = window.document.querySelector("[data-game-touch-controls]") as HTMLElement | null;
+    expect(root?.style.left).toBe("100px");
+    expect(root?.style.width).toBe("640px");
+    const zones = [root?.querySelector(".touch-stick-zone"), root?.querySelector(".touch-look-zone"), root?.querySelector(".touch-button")];
+    const touch = (target: EventTarget, type: string, id: number, x: number, y: number) => act(() => {
+      const event = new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true });
+      Object.defineProperties(event, { pointerId: { value: id }, pointerType: { value: "touch" } });
+      target.dispatchEvent(event);
+    });
+    if (!zones.every((zone) => zone instanceof HTMLElement)) { throw new Error("Actual 3D touch controls are missing"); }
+    const [stick, look, fire] = zones as HTMLElement[];
+    for (const zone of [stick, look, fire]) { zone.setPointerCapture = jest.fn(); }
+    touch(stick, "pointerdown", 1, 200, 250);
+    touch(stick, "pointermove", 1, 256, 250);
+    touch(look, "pointerdown", 2, 600, 250);
+    touch(look, "pointermove", 2, 612, 258);
+    touch(fire, "pointerdown", 3, 700, 350);
+    expect(input?.sample(game)).toEqual({ pressed: ["fire"], justPressed: ["fire"], axes: { moveX: 1, moveZ: 0 }, look: { x: 12, y: 8 } });
+    bounds = { left: 160, top: 80, width: 480, height: 270 };
+    act(() => { for (const observer of observers) { if (observer.targets.has(canvas)) { observer.notify(); } } });
+    expect(root?.style.left).toBe("160px");
+    expect(root?.style.top).toBe("80px");
+    expect(root?.style.width).toBe("480px");
+    expect(root?.style.height).toBe("270px");
+    expect(input?.sample(game).pressed).toEqual([]);
+    touch(window, "pointercancel", 1, 256, 250);
+    expect(input?.sample(game).axes).toEqual({ moveX: 0, moveZ: 0 });
+    await userEvent.setup().click(screen.getByRole("button", { name: "Pause" }));
+    expect(window.document.querySelector("[data-game-touch-controls]")).toBeNull();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Play" }));
+    touch(look, "pointermove", 2, 630, 270);
+    expect(input?.sample(game)).toEqual({ pressed: [], justPressed: [], axes: { moveX: 0, moveZ: 0 }, look: { x: 0, y: 0 } });
+  } finally { view.unmount(); window.matchMedia = matchMedia; global.ResizeObserver = originalObserver; }
+  expect(window.document.querySelector("[data-game-touch-controls]")).toBeNull();
+  expect(observers.every((observer) => observer.disconnected)).toBe(true);
+});

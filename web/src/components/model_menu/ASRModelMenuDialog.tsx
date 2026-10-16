@@ -8,6 +8,9 @@ import {
 import { useASRModelsByProvider } from "../../hooks/useModelsByProvider";
 import { trpc } from "../../lib/trpc";
 
+/** The provider capability this picker serves, for local providers to install. */
+const LOCAL_CAPABILITIES = ["automatic_speech_recognition"];
+
 interface ASRModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
@@ -51,6 +54,7 @@ function ASRModelMenuDialog({
       searchPlaceholder="Search speech-to-text models"
       storeHook={useASRModelMenuStore}
       modelType="asr_model"
+      localCapabilities={LOCAL_CAPABILITIES}
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
     />

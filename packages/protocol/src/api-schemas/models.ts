@@ -13,7 +13,9 @@ export const modelAdapterInfo = z.object({
   state: z.enum(["installed", "missing_dependency", "unknown"]),
   reason_code: z.string().nullish(),
   reason: z.string().nullish(),
-  artifact_ref: modelArtifactRef.nullish()
+  artifact_ref: modelArtifactRef.nullish(),
+  extra_artifact_refs: z.array(modelArtifactRef).nullish(),
+  files_present: z.boolean().nullish()
 });
 
 export const modelExecutionAvailability = z.object({

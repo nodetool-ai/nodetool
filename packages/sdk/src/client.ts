@@ -23,7 +23,7 @@ export interface CreateNodetoolClientOptions {
   /**
    * `WebSocket` constructor for environments without a global one (e.g. Node).
    * Browsers: leave undefined to use the built-in `WebSocket`.
-   * Node 18+: pass `WebSocket` from the `ws` package.
+   * Node: pass `WebSocket` from the `ws` package.
    */
   WebSocket?: WebSocketCtor;
 }

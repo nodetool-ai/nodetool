@@ -717,16 +717,22 @@ Forced on every call as command-line flags, which take precedence over
 ```
 --ignore-scripts --omit=dev --include=prod --include=optional
 --strict-peer-deps --legacy-peer-deps=false --install-strategy=hoisted
---prefer-dedupe --package-lock=true --global=false --workspaces=false
+--package-lock=true --global=false --workspaces=false
 --force=false --dry-run=false --no-audit --no-fund --update-notifier=false
 ```
 
 Plus, by mode:
 
-- `global`: `--no-save`, working directory `cliRoot`, and every desired pack
+- `global`: `--no-save --prefer-dedupe=false`, working directory `cliRoot`, and every desired pack
   and runtime library spec in each call (E3).
-- `local`: `--save --save-exact --save-prod`, working directory the project
+- `local`: `--save --save-exact --save-prod --prefer-dedupe`, working directory the project
   root.
+
+Global installs may have no lockfile. Preferential deduplication can replace
+an existing dependency with an older compatible version when a new transitive
+dependency requires that version. Global calls explicitly disable this policy
+so npm can add a nested copy. The additive plan and snapshot checks still
+reject changes to existing packages.
 
 Honored user configuration: `registry`, scoped registries, auth tokens, `proxy`,
 `https-proxy`, `noproxy`, `ca`, `cafile`, `cert`, `key`, `strict-ssl`, `cache`,

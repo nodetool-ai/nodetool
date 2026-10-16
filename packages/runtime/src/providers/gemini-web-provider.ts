@@ -31,12 +31,11 @@
  * depends on interface text, so a localized Gemini works. One tab serves
  * every call, so calls run one at a time.
  */
-import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { fetchExternalMedia } from "../external-media-fetch.js";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
-import { composeDelta, composePrompt } from "./chatgpt-provider.js";
+import { composeDelta, composePrompt, hashSystemPrompt, replyMessage, replyStreamItems } from "./chatgpt-provider.js";
 import { createExtensionTab, pollTab, stageBytesInTab, type ExtensionTab } from "./extension-tab.js";
 import { detectImageMime } from "./image-mime.js";
 import type {
@@ -48,6 +47,7 @@ import type {
   MessageImageContent,
   ProviderSession,
   ProviderStreamItem,
+  ProviderTool,
   TextToImageParams,
   TextToVideoParams,
   VideoModel
@@ -593,14 +593,6 @@ function imagesOf(content: Message["content"]): MessageImageContent[] {
   return Array.isArray(content) ? content.filter((part): part is MessageImageContent => part.type === "image_url") : [];
 }
 
-function hashSystemPrompt(messages: Message[]): string {
-  const system = messages
-    .filter((m) => m.role === "system")
-    .map((m) => (typeof m.content === "string" ? m.content : JSON.stringify(m.content)))
-    .join("\n\n");
-  return createHash("sha256").update(system).digest("hex").slice(0, 16);
-}
-
 /** The chat to continue is gone, so the caller starts a new one. Thrown before anything is sent. */
 class ChatUnavailableError extends Error {}
 
@@ -689,15 +681,20 @@ export class GeminiWebProvider extends BaseProvider {
   /** Chats by conversation thread id, for callers that do not persist the session themselves. */
   private readonly sessions = new Map<string, ProviderSession>();
 
+  /** Chat models write tool calls as text. See text-tool-calls.ts. */
+  override async hasToolSupport(_model: string): Promise<boolean> {
+    return true;
+  }
+
   override async generateMessage(args: Parameters<BaseProvider["generateMessage"]>[0]): Promise<Message> {
     const { text } = await this.chatTurn(args);
-    return { role: "assistant", content: text };
+    return replyMessage(text, args.tools ?? []);
   }
 
   override async *generateMessages(args: Parameters<BaseProvider["generateMessages"]>[0]): AsyncGenerator<ProviderStreamItem> {
     const { text, session } = await this.chatTurn(args);
     if (args.threadId) yield { type: "session", session };
-    yield { type: "chunk", content: text, content_type: "text", done: true };
+    yield* replyStreamItems(replyMessage(text, args.tools ?? []));
   }
 
   /**
@@ -709,16 +706,14 @@ export class GeminiWebProvider extends BaseProvider {
   private async chatTurn(args: {
     messages: Message[];
     model: string;
-    tools?: unknown[];
+    tools?: ProviderTool[];
     threadId?: string | null;
     providerSession?: ProviderSession | null;
     loadFullHistory?: () => Promise<Message[]>;
     signal?: AbortSignal;
   }): Promise<{ text: string; session: ProviderSession }> {
-    if (args.tools && args.tools.length > 0) {
-      log.warn("Gemini in the browser cannot call tools; sending the conversation without them", { tools: args.tools.length });
-    }
-    const systemHash = hashSystemPrompt(args.messages);
+    const tools = args.tools ?? [];
+    const systemHash = hashSystemPrompt(args.messages, tools);
     const threadId = args.threadId ?? null;
     const prior = args.providerSession ?? (threadId ? this.sessions.get(threadId) ?? null : null);
     const canResume =
@@ -743,7 +738,7 @@ export class GeminiWebProvider extends BaseProvider {
       // The caller may have sent only the delta; a new chat needs the whole conversation.
       const messages = args.loadFullHistory ? await args.loadFullHistory() : args.messages;
       const images = await this.lastUserImages(messages, args.signal);
-      result = await serialized(() => runChatTurnHoldingTab({ model: args.model, text: composePrompt(messages), images, signal: args.signal }));
+      result = await serialized(() => runChatTurnHoldingTab({ model: args.model, text: composePrompt(messages, tools), images, signal: args.signal }));
     }
     const session: ProviderSession = {
       providerId: this.provider,

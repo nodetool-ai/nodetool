@@ -1215,6 +1215,7 @@ export const PROVIDER_IDS = {
   LMSTUDIO: "lmstudio",
   LLAMA_CPP: "llama_cpp",
   NODE_LLAMA_CPP: "node_llama_cpp",
+  STABLE_DIFFUSION_CPP: "stable_diffusion_cpp",
   WHISPER_CPP: "whisper_cpp",
   WHISPER_CPP_SERVER: "whisper_cpp_server",
   VLLM: "vllm",
@@ -1429,6 +1430,13 @@ export interface ModelAdapterInfo {
   reason_code?: string | null;
   reason?: string | null;
   artifact_ref?: ModelArtifactRef | null;
+  /** Further repositories the model loads files from. A download fetches each one. */
+  extra_artifact_refs?: ModelArtifactRef[] | null;
+  /**
+   * Set when the adapter checks its own files: whether every file it loads is
+   * on disk. It replaces the repository cache check, which cannot see single files.
+   */
+  files_present?: boolean | null;
 }
 
 export interface ModelExecutionAvailability {

@@ -79,6 +79,7 @@ const LOCAL_PROVIDER_IDS = new Set([
   "vllm",
   "llama_cpp",
   "node_llama_cpp",
+  "stable_diffusion_cpp",
   "whisper_cpp",
   "whisper_cpp_server"
 ]);

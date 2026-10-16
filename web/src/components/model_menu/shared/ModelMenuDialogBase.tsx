@@ -22,7 +22,10 @@ import {
   menuPaperStyles
 } from "../../ui_primitives";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
-import { getProviderDisplayName } from "../../../utils/providerDisplay";
+import {
+  getProviderDisplayName,
+  isLocalProvider
+} from "../../../utils/providerDisplay";
 import { capabilityForModelType, useModelProviderSetup } from "../../../hooks/useModelProviderSetup";
 import type { OnboardingCapability } from "../../../stores/ProviderOnboardingStore";
 import AddIcon from "@mui/icons-material/Add";
@@ -41,7 +44,10 @@ import ModelList from "../ModelList";
 import type { DownloadableModel } from "../ModelList";
 import { downloadMatchesProvider } from "./downloadMatchesProvider";
 import ModelPackCard from "../../hugging_face/ModelPackCard";
-import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
+import {
+  ACTIVE_DOWNLOAD_STATUSES,
+  useModelDownloadStore
+} from "../../../stores/ModelDownloadStore";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
 import { useWorkerCachedModelIds } from "../../../hooks/useWorkerCachedModels";
 import { useModelDownloadTarget } from "../../../hooks/useModelDownloadTarget";
@@ -54,7 +60,9 @@ import {
 import useModelFiltersStore from "../../../stores/ModelFiltersStore";
 import {
   applyAdvancedModelFilters,
-  modelDownloadTarget,
+  modelDownloadId,
+  modelDownloadTargets,
+  modelRowKey,
   ModelSelectorModel
 } from "../../../utils/modelNormalization";
 import {
@@ -63,6 +71,10 @@ import {
   useModelMenuData
 } from "../../../stores/ModelMenuStore";
 import { useModelAvailability } from "../../../hooks/useModelAvailability";
+import {
+  useLocalProviderInstalls,
+  type LocalProviderInstallInfo
+} from "../../../hooks/useLocalProviderInstalls";
 import {
   firstAvailableIndex,
   nextAvailableIndex
@@ -105,6 +117,12 @@ interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
    * usable model, so the route to a key is not only the footer link.
    */
   promptForApiKey?: boolean;
+  /**
+   * The provider capabilities this picker serves. A local provider that
+   * serves one of them is listed even before its package is installed, and
+   * offers the install in place.
+   */
+  localCapabilities?: readonly string[];
 }
 
 const EMPTY_MODELS: never[] = [];
@@ -131,7 +149,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   setupCapability,
   setupProviderIds,
   selectedModel,
-  promptForApiKey = false
+  promptForApiKey = false,
+  localCapabilities
 }: ModelMenuBaseProps<TModel>) {
   const {
     models,
@@ -187,7 +206,23 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     recentModels
   } = useModelMenuData<TModel>(models ?? EMPTY_MODELS, storeHook);
 
-  const providers = modelData.providers ?? providersFromModels;
+  // Local providers for this picker whose package is not installed yet.
+  const localInstalls = useLocalProviderInstalls();
+  const pendingInstalls = useMemo(() => {
+    const pending = new Map<string, LocalProviderInstallInfo>();
+    if (!localCapabilities) {
+      return pending;
+    }
+    for (const [provider, info] of localInstalls) {
+      if (
+        info.status !== "installed" &&
+        info.spec.capabilities.some((c) => localCapabilities.includes(c))
+      ) {
+        pending.set(provider, info);
+      }
+    }
+    return pending;
+  }, [localInstalls, localCapabilities]);
 
   // Providers that list at least one model. A provider chip with no models
   // gets an empty state instead of a list, and a change in this set clears a
@@ -196,6 +231,26 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     () => new Set((models ?? EMPTY_MODELS).map((m) => m.provider ?? "")),
     [models]
   );
+
+  const listedProviders = modelData.providers ?? providersFromModels;
+  const providers = useMemo(() => {
+    // A local provider with no models and nothing to install offers nothing
+    // to pick, such as a llama-server or Ollama that is not set up or not
+    // running. A cloud provider stays, because its empty state asks for a key.
+    // While models load, every provider stays, so the list does not jump.
+    const shown = listedProviders.filter(
+      (provider) =>
+        modelData.isLoading ||
+        !isLocalProvider(provider) ||
+        providersWithModels.has(provider) ||
+        pendingInstalls.has(provider)
+    );
+    const missing = [...pendingInstalls.keys()].filter(
+      (provider) => !shown.includes(provider)
+    );
+    return missing.length > 0 ? [...shown, ...missing] : shown;
+  }, [listedProviders, providersWithModels, pendingInstalls, modelData.isLoading]);
+
   const providerSetKey = useMemo(
     () => [...providersWithModels].sort().join("|"),
     [providersWithModels]
@@ -276,16 +331,23 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   // list refreshes when the download completes and the row turns selectable.
   const handleModelDownload = useCallback(
     (model: TModel) => {
-      const target = modelDownloadTarget(model);
-      if (!target) return;
-      startDownload(
-        target.repoId,
-        target.modelType ?? model.type ?? "",
-        target.path,
-        target.allowPatterns,
-        target.ignorePatterns,
-        downloadScope
-      );
+      // A model can load files from several repositories; fetch each one,
+      // skipping a repository another model is already downloading.
+      const { downloads, markModelRequested } =
+        useModelDownloadStore.getState();
+      markModelRequested(modelRowKey(model));
+      for (const target of modelDownloadTargets(model)) {
+        const status = downloads[modelDownloadId(target)]?.status;
+        if (status && ACTIVE_DOWNLOAD_STATUSES.has(status)) continue;
+        startDownload(
+          target.repoId,
+          target.modelType ?? model.type ?? "",
+          target.path,
+          target.allowPatterns,
+          target.ignorePatterns,
+          downloadScope
+        );
+      }
     },
     [startDownload, downloadScope]
   );
@@ -380,8 +442,14 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const [activeKey, setActiveKey] = useState<string | null>(null);
 
   const isRowAvailable = useCallback(
-    (index: number) => getAvailability(filteredModelsAdvanced[index]).available,
-    [filteredModelsAdvanced, getAvailability]
+    (index: number) => {
+      const model = filteredModelsAdvanced[index];
+      return (
+        getAvailability(model).available &&
+        !pendingInstalls.has(model?.provider ?? "")
+      );
+    },
+    [filteredModelsAdvanced, getAvailability, pendingInstalls]
   );
 
   const activeIndex = useMemo(() => {
@@ -435,10 +503,10 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const handleEnter = useCallback(() => {
     const model = filteredModelsAdvanced[activeIndex];
-    if (model && getAvailability(model).available) {
+    if (model && isRowAvailable(activeIndex)) {
       handleSelectModel(model);
     }
-  }, [filteredModelsAdvanced, activeIndex, getAvailability, handleSelectModel]);
+  }, [filteredModelsAdvanced, activeIndex, isRowAvailable, handleSelectModel]);
 
   // Footer "Add providers" and the empty-state button share this path. A
   // provider with a known key name highlights that key in the dialog.
@@ -539,10 +607,12 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     lastProviderSetKey.current = providerSetKey;
     // Only the opening moment checks for an empty provider: clicking one while
     // the menu is open must keep showing its empty state.
+    // A local provider waiting for its install keeps its install state.
     const emptyFilter =
       justOpened &&
       selectedProvider !== null &&
-      !providersWithModels.has(selectedProvider);
+      !providersWithModels.has(selectedProvider) &&
+      !pendingInstalls.has(selectedProvider);
     if (changed || emptyFilter) {
       setSelectedProvider(null);
     }
@@ -552,6 +622,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     models,
     providerSetKey,
     providersWithModels,
+    pendingInstalls,
     selectedProvider,
     setSelectedProvider
   ]);
@@ -610,6 +681,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const providerLabel = selectedProvider
     ? getProviderDisplayName(selectedProvider)
     : "";
+  const selectedInstall = selectedProvider
+    ? pendingInstalls.get(selectedProvider)
+    : undefined;
   const showProviderEmpty =
     !isLoading &&
     !customView &&
@@ -656,7 +730,26 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         </Box>
       )}
       <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-        {showProviderEmpty ? (
+        {selectedInstall && !customView ? (
+          selectedInstall.status === "installing" ? (
+            <EmptyState
+              variant="empty"
+              size="small"
+              icon={<LoadingSpinner size="small" />}
+              title={`Installing ${selectedInstall.spec.installLabel}`}
+              description="The models appear here when the install finishes."
+            />
+          ) : (
+            <EmptyState
+              variant="empty"
+              size="small"
+              title={`Install ${selectedInstall.spec.installLabel}`}
+              description={`${providerLabel} runs models on this computer. Install it once, then download a model here.`}
+              actionText={`Install ${selectedInstall.spec.installLabel}`}
+              onAction={() => void selectedInstall.install()}
+            />
+          )
+        ) : showProviderEmpty ? (
           <EmptyState
             variant="empty"
             size="small"
@@ -680,6 +773,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           downloadTargetLabel={downloadTargetLabel}
           onClose={onClose}
           selectedModel={selectedModel}
+          pendingInstalls={pendingInstalls}
         />
         )}
       </Box>

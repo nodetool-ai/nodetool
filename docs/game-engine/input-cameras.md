@@ -35,12 +35,16 @@ A listed action uses exactly its listed bindings. An empty array unbinds it. An 
 
 3D axes use key pairs, gamepad axes or buttons, and touch-stick axes. When several bindings contribute, the largest magnitude wins. Default `moveX` and `moveZ` use WASD, arrows, and gamepad/touch movement.
 
-Look accepts mouse motion, a gamepad stick, or touch drag, with sensitivity and inversion controls. Click the 3D player to capture the mouse. Input pressed while paused is discarded. Player rebinding is not persisted automatically.
+Look accepts mouse motion, a gamepad stick, or touch drag, with sensitivity and inversion controls. A 3D player requests pointer lock on click only when mouse look is bound. Mouse-button actions work on that first click, including when pointer lock is unavailable or denied. An explicit `look: []` disables mouse capture.
+
+Editor play and public and exported players support authored mouse-button actions. HUD buttons take priority over gameplay buttons, including touch zones. HUD hit tests use the rendered canvas content and reject letterbox bars.
+
+On touch screens, both 2D and 3D players show the stick and action buttons declared by their bindings. A 3D touch drag can control look while another finger moves the stick or holds an action. Pausing, leaving the active view, or cancelling a pointer releases those controls. Input pressed while paused is discarded. Player rebinding is not persisted automatically.
 
 ## Frame the scene
 
 A 2D camera defines width, height, and zoom. Its world dimensions combine with pixels-per-unit to determine HUD coordinates.
 
-A 3D camera uses perspective field of view or orthographic size, plus near and far planes. A fixed camera follows its authored transform. A follow camera names a target and provides position and look-at offsets, yaw, pitch limits, sensitivity, and collision radius. Keep near/far values appropriate to the scene to avoid clipping and depth precision problems.
+A 3D camera uses perspective field of view or orthographic size, plus near and far planes. A fixed camera follows its authored world transform. Its current orientation also supplies script camera angles and camera-relative character movement, including after scripted rotation of the camera or its parent. A follow camera names a target and provides position and look-at offsets, yaw, pitch limits, sensitivity, and collision radius. Keep near/far values appropriate to the scene to avoid clipping and depth precision problems.
 
 The editor orbit camera is an inspection tool. The scene's active camera controls play and capture. Verify framing with the active camera and exported aspect ratio, not only the editor viewport.

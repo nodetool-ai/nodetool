@@ -7,7 +7,7 @@
  *   - `ChatSocket` — typed event-emitter wrapper around the chat WebSocket
  *     protocol (msgpack frames, with JSON fallback).
  *
- * Works in both browsers (native `WebSocket`/`fetch`) and Node ≥18 (native
+ * Works in both browsers (native `WebSocket`/`fetch`) and Node ≥22 (native
  * `fetch`; pass a `WebSocket` constructor from the `ws` package).
  */
 

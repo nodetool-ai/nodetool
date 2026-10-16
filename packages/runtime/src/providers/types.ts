@@ -15,6 +15,8 @@ export interface LanguageModel {
   id: string;
   name: string;
   provider: ProviderId;
+  /** Execution adapter facts for a model that runs in this process. */
+  adapter?: ModelAdapterInfo;
 }
 
 export interface ImageModel {
@@ -65,6 +67,13 @@ export interface ModelAdapterInfo {
   reasonCode?: string;
   reason?: string;
   artifactRef?: ModelArtifactRef;
+  /** Further repositories the model loads files from. A download fetches each one. */
+  extraArtifactRefs?: ModelArtifactRef[];
+  /**
+   * Set when the adapter checks its own files: whether every file it loads is
+   * on disk. It replaces the repository cache check, which cannot see single files.
+   */
+  filesPresent?: boolean;
 }
 
 export interface TTSModel {
@@ -100,6 +109,8 @@ export interface MusicModel {
   provider: ProviderId;
   /** Capability hints, e.g. `["text_to_music"]`. */
   supportedTasks?: string[];
+  /** Execution adapter facts reported by the local worker without loading weights. */
+  adapter?: ModelAdapterInfo;
 }
 
 /**
