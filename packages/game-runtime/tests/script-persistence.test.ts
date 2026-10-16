@@ -12,7 +12,7 @@ describe("persistent script proof", () => {
   it("uses two setup evaluations per fresh call while preserving initializer closure state", async () => {
     const document = gameDocument.parse(createTopDownRoomGame("a".repeat(32)));
     const player = document.scenes[0].entities.find((entity) => entity.id === "player")!;
-    player.behaviors = [{ kind: "script", source: "(() => { let n = 0; return input => ({ state: ++n, commands: [] }); })()", maxTickMs: 50, maxCommands: 8 }];
+    player.behaviors = [{ kind: "script", source: "(() => { let n = 0; return input => ({ state: ++n, commands: [] }); })()", maxTickMs: 20, maxCommands: 8 }];
     const runner = await prepareGameScripts(document);
     const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
     const key = scriptSourceKey("room", "player", 0);
@@ -20,7 +20,7 @@ describe("persistent script proof", () => {
       for (let tick = 0; tick < 3; tick += 1) {
         evaluate.mockClear();
         const result = runner.run([{ sourceKey: key, stateKey: key, entityId: "player", source: "player", state: null,
-          x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxTickMs: 50, maxCommands: 8
+          x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxTickMs: 20, maxCommands: 8
         }], { tick, pressed: [], justPressed: [], events: [], world: [] }, 1);
         expect(result.results[0].state).toBe(1);
         expect(evaluate).toHaveBeenCalledTimes(2);
@@ -31,7 +31,7 @@ describe("persistent script proof", () => {
   it("bounds native callback registrations and releases call-owned world readers", async () => {
     const document = gameDocument.parse(createTopDownRoomGame("a".repeat(32)));
     const player = document.scenes[0].entities.find((entity) => entity.id === "player")!;
-    player.behaviors = [{ kind: "script", source: "input => ({ state: input.world, commands: [] })", maxTickMs: 50, maxCommands: 8 }];
+    player.behaviors = [{ kind: "script", source: "input => ({ state: input.world, commands: [] })", maxTickMs: 20, maxCommands: 8 }];
     const nativeFunction = vi.spyOn(QuickJSContext.prototype, "newFunction");
     const runner = await prepareGameScripts(document);
     const key = scriptSourceKey("room", "player", 0);
@@ -39,7 +39,7 @@ describe("persistent script proof", () => {
       for (let tick = 0; tick < 10; tick += 1) {
         const world = [{ id: "target", source: "target", x: tick, y: 0 }];
         const batch = runner.run([{ sourceKey: key, stateKey: key, entityId: "player", source: "player", state: null,
-          x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxTickMs: 50, maxCommands: 8
+          x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxTickMs: 20, maxCommands: 8
         }], { tick, pressed: [], justPressed: [], events: [], world }, 1);
         expect(batch.results[0].state).toEqual(world);
       }
@@ -58,7 +58,7 @@ describe("persistent script proof", () => {
   it("validates source during preparation, starts the entry instance in that realm and retains it with native values", async () => {
     const document = gameDocument.parse(createTopDownRoomGame("a".repeat(32)));
     const player = document.scenes[0].entities.find((entity) => entity.id === "player")!;
-    player.behaviors = [{ kind: "script", source: "input => ({ state: (input.state || 0) + 1, commands: [] })", maxTickMs: 50, maxCommands: 8 }];
+    player.behaviors = [{ kind: "script", source: "input => ({ state: (input.state || 0) + 1, commands: [] })", maxTickMs: 20, maxCommands: 8 }];
     const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
     const nativeObject = vi.spyOn(QuickJSContext.prototype, "newObject");
     const key = scriptSourceKey("room", "player", 0);
@@ -67,7 +67,7 @@ describe("persistent script proof", () => {
       expect(evaluate.mock.calls.filter(([source]) => source.includes("globalThis.__gameScript ="))).toHaveLength(1);
       evaluate.mockClear(); nativeObject.mockClear();
       const call = { sourceKey: key, stateKey: key, entityId: "player", source: "player", state: null,
-        x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxTickMs: 50, maxCommands: 8 };
+        x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxTickMs: 20, maxCommands: 8 };
       const input = { tick: 0, pressed: [], justPressed: [], events: [], world: [] };
       const first = runner.run([call], input, 7);
       expect(evaluate).not.toHaveBeenCalled();
@@ -87,14 +87,14 @@ describe("persistent script proof", () => {
     const document = blockout();
     const scene = document.scenes[0];
     document.scenes.push({ ...scene, id: "inactive", entities: Array.from({ length: 512 }, (_, index) => ({
-      ...scene.entities[1], id: `unused-${index}`, behaviors: [{ kind: "script" as const, source: "input => ({ state: input.state, commands: [] })", maxTickMs: 50, maxCommands: 8 }]
+      ...scene.entities[1], id: `unused-${index}`, behaviors: [{ kind: "script" as const, source: "input => ({ state: input.state, commands: [] })", maxTickMs: 20, maxCommands: 8 }]
     })) });
     const runner = await prepareGameScripts3D(document);
     try {
       const sourceKey = sceneScriptSourceKey("inactive", "unused-0", 0);
       const calls = ["instance-a", "instance-b"].map((entityId, index) => ({ sourceKey,
         stateKey: scriptSourceKey("scene", entityId, 0), entityId, source: "unused-0", state: index + 1,
-        position: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 }, grounded: false, maxTickMs: 50, maxCommands: 8
+        position: { x: 0, y: 0, z: 0 }, velocity: { x: 0, y: 0, z: 0 }, grounded: false, maxTickMs: 20, maxCommands: 8
       }));
       const result = runner.run(calls, { tick: 0, pressed: [], justPressed: [], axes: {}, look: { x: 0, y: 0 },
         camera: { yaw: 0, pitch: 0 }, events: [], queries: [], world: [] }, 1);
