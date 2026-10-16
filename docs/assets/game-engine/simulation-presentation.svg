@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 330" role="img" aria-labelledby="title desc">
+  <title id="title">Gameplay and presentation state</title>
+  <desc id="desc">Recorded input enters fixed simulation ticks. Simulation produces snapshots and presentation events. Rendering, audio and particles do not change gameplay state.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0L0 6L8 3Z" fill="#70d9d0"/></marker></defs>
+  <rect width="1000" height="330" rx="12" fill="#141b26"/>
+  <g fill="#202e40" stroke="#70d9d0" stroke-width="2"><rect x="30" y="105" width="220" height="100" rx="8"/><rect x="350" y="105" width="270" height="100" rx="8"/><rect x="720" y="35" width="250" height="100" rx="8"/><rect x="720" y="195" width="250" height="100" rx="8"/></g>
+  <g fill="#f3f6fa" font-family="sans-serif" text-anchor="middle"><text x="140" y="145" font-size="22">Input frames</text><text x="140" y="177" font-size="16">actions · axes · loaded data</text><text x="485" y="145" font-size="22">Fixed simulation</text><text x="485" y="177" font-size="16">scripts · physics · gameplay</text><text x="845" y="77" font-size="22">Snapshots + events</text><text x="845" y="109" font-size="16">restore and compare</text><text x="845" y="237" font-size="22">Presentation</text><text x="845" y="269" font-size="16">rendering · audio · particles</text><text x="485" y="275" font-size="17" fill="#a9bacd">Presentation does not write gameplay state</text></g>
+  <g fill="none" stroke="#70d9d0" stroke-width="3" marker-end="url(#arrow)"><path d="M250 155H340"/><path d="M620 135L710 85"/><path d="M620 175L710 245"/></g>
+</svg>
