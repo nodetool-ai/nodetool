@@ -102,6 +102,9 @@ function ModelSelectButton({
         ]}
         onClick={onClick}
         disabled={disabled}
+        // Focus returns here when the picker closes on Escape. The focus
+        // ring marks it; the pulsating ripple read as a text highlight.
+        disableFocusRipple
         size="small"
       >
         <FlexRow

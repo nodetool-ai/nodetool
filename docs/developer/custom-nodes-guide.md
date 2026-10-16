@@ -44,7 +44,7 @@ npm install --save @nodetool-ai/node-sdk @nodetool-ai/runtime @nodetool-ai/proto
 npm install --save-dev typescript @types/node vitest
 ```
 
-`nodetool package init` scaffolds a similar package. It writes the `nodetool` field and an empty `export function register(...)`, but its `tsconfig.json` lacks `experimentalDecorators`. Add the compiler flags from [§5](#5-tsconfigjson) before you write nodes.
+`nodetool package init` scaffolds a similar package. It writes the `nodetool` field and an empty `export function register(...)`, but its `tsconfig.json` lacks `experimentalDecorators`. Add the compiler flags from [§5](#5-tsconfigjson) before you write nodes. The scaffold's `build` script is `node ../../scripts/run-tsc.mjs`, a path that only exists inside the NodeTool monorepo, so outside it change the script to `tsc`.
 
 `src/nodes/reverse.ts`:
 
@@ -165,7 +165,7 @@ To avoid silently running whatever happens to be in `node_modules` in production
 - **Allowlist** — a list of trusted pack names; `"*"` allows everything. Set via:
   - The env var `NODETOOL_PACKS_ALLOWLIST` (comma-separated names), which takes precedence, or
   - The `allow` field of `~/.config/nodetool/packs.json` (path overridable with the `NODETOOL_PACKS_CONFIG` env var).
-- **`allowUnlisted`** — whether packs not on the allowlist load anyway. Defaults to **`true` in development** (so installing a pack just works) and **`false`** when either `NODETOOL_ENV=production` or `NODETOOL_PACKS_REQUIRE_ALLOWLIST=1` is set. The packaged desktop app sets the latter — it needs the allowlist without production mode, which would disable local-only features. Override via the `allowUnlisted` field of the config file. The `packs.getTrust` and `packs.setTrust` tRPC procedures read and write the same file, and `setTrust` does not copy an env override into it.
+- **`allowUnlisted`** — whether packs not on the allowlist load anyway. Defaults to **`true` in development** (so installing a pack just works) and **`false`** when either `NODETOOL_ENV=production` or `NODETOOL_PACKS_REQUIRE_ALLOWLIST=1` is set. The packaged desktop app sets the latter — it needs the allowlist without production mode, which would disable local-only features. Override via the `allowUnlisted` field of the config file. The `packs.getTrust` and `packs.setTrust` tRPC procedures read and write the same file, and `setTrust` does not copy an env override into it. With `NODETOOL_ENV=production`, `setTrust` and `packs.reload` are refused.
 
 Two further guards protect the registry regardless of trust:
 
@@ -247,9 +247,11 @@ export class AddOffsetNode extends BaseNode {
 
 | Member        | Type      | Purpose |
 |---------------|-----------|---------|
-| `nodeType`    | `string`  | Unique dotted identifier. By convention: `<namespace>.<category>.<Name>`. |
-| `title`       | `string`  | Display name in the node menu. |
-| `description` | `string`  | One-line tooltip. |
+| `nodeType`    | `string`  | Unique dotted identifier. By convention: `<namespace>.<category>.<Name>`. `registry.register` throws without it. |
+| `title`       | `string`  | Display name in the node menu. Falls back to `nodeType` when empty. |
+| `description` | `string`  | One-line tooltip. Falls back to an empty string. |
+
+Set all three. Only `nodeType` is enforced.
 
 ### Common optional static members
 
@@ -278,6 +280,7 @@ abstract process(context?: ProcessingContext): Promise<Record<string, unknown>>
 - Reads inputs from `this.<field>`. The runtime has already populated them via `assign()`.
 - The `context` parameter is optional. Many pure-compute nodes ignore it. Anything that touches secrets, storage, HTTP, or providers will use it — see [§10](#10-processingcontext--the-runtime-surface).
 - Throwing an `Error` fails the node and surfaces the message to the UI. Throw `Error` objects, not strings.
+- To hand the workflow supervisor the malformed value that caused the failure, throw `RecoverableNodeError(message, { candidateOutput, code? })`, exported from `@nodetool-ai/node-sdk`. `code` is a stable category such as an HTTP status, never request-specific text.
 
 > **Do not** add an `inputs` parameter — that pattern is from an older draft of this guide and does not match the runtime contract. Property assignment happens before `process()` runs.
 
@@ -522,7 +525,13 @@ To read the bytes of an image, audio, video, or model reference, call `loadMedia
 ```ts
 if (await context.isProviderConfigured("openai")) {
   const provider = await context.getProvider("openai");
-  const stream = provider.streamChat({ messages, model: "gpt-5.4-mini" });
+  // generateMessage returns one Message. generateMessages streams
+  // ProviderStreamItem values.
+  const reply = await provider.generateMessage({
+    messages: [{ role: "user", content: "Say hello" }],
+    model: "gpt-4o-mini",
+    signal: context.signal
+  });
 }
 ```
 
@@ -653,7 +662,7 @@ export function register(registry: NodeRegistry): void {
 }
 ```
 
-Things the loader will refuse — silently dropping the offending node and warning in the log:
+Things the loader will refuse. It drops the offending node and warns in the log:
 
 - A `nodeType` under a [reserved namespace](#4-trust-model-and-governance).
 - A `nodeType` already registered by a built-in or an earlier pack (no shadowing).
@@ -662,7 +671,7 @@ The `register` function may be `async` — useful if you build node classes from
 
 ### What `NodeRegistry` exposes
 
-Pack authors only need:
+The loader does not pass your `register` function the real registry. It passes a guarded wrapper that has only `register(nodeClass)` and `has(nodeType)`, so inside a pack's `register` function the other methods below are not available. They apply to a registry you construct yourself, as in [§15](#15-testing-nodes):
 
 | Method                        | Purpose |
 |-------------------------------|---------|
@@ -685,6 +694,8 @@ npm run test        # vitest run
 ```
 
 Ship the `dist/` directory plus `package.json` and a `README.md`. Don't ship `src/` — it won't be loaded.
+
+`nodetool package docs`, `nodetool package node-docs`, and `nodetool package workflow-docs` generate Markdown for a pack from its registered nodes and shipped workflows. See [`nodetool package`](../cli.md#nodetool-package).
 
 ### Recommended `package.json` "files" allowlist
 
@@ -729,6 +740,8 @@ const result = await node.process(handle.context);
 handle.cleanup();
 ```
 
+A node that lists `requiredSettings` reads them from `this._secrets`, which the executor fills before `process()`. Calling `node.process()` directly skips that step, so seed them in the test with `node.setDynamic("_secrets", { API_KEY: "test" })`.
+
 To run one node against the real registry from the command line, use `nodetool node run <type> --props '{"text":"hello"}'`. Add `--no-secrets` for a hermetic run and `--json` for the full result. See [CLI reference](../cli.md).
 
 ### Testing streaming nodes
@@ -751,7 +764,8 @@ For a published pack:
 ```bash
 cd /path/to/nodetool
 npm install @acme/cool-nodes
-# in production, allowlist it:
+# in production, allowlist it (this overwrites an existing packs.json):
+mkdir -p ~/.config/nodetool
 echo '{ "allow": ["@acme/cool-nodes"] }' > ~/.config/nodetool/packs.json
 npm run dev:server
 ```
@@ -813,7 +827,7 @@ import { ReverseTextNode } from "./nodes/reverse";      // bad
 
 **Loading from `src/` instead of `dist/`.** The loader resolves the package's `exports`/`main`, which points at `dist/`. Forgetting to build before installing means the pack loads stale code (or nothing).
 
-**Reserved-namespace `nodeType`s.** A `nodeType` of `nodetool.foo.MyNode` will be silently rejected. Use your own namespace (`mypack.foo.MyNode`, `@acme.foo.MyNode`, …).
+**Reserved-namespace `nodeType`s.** A `nodeType` of `nodetool.foo.MyNode` is rejected with a warning in the log. Use your own namespace (`mypack.foo.MyNode`, `acme.foo.MyNode`, …).
 
 **Collision with built-ins.** If a built-in already owns the `nodeType` you picked, your node is dropped. Pick a unique name and check the server log for `skipped node … (collision)`.
 

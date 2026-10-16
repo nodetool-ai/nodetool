@@ -6,6 +6,7 @@ import {
   buildScreenplaySchema,
   clampShotCount,
   fallbackScreenplay,
+  isAspectRatio,
   parseScreenplay
 } from "../src/screenplay-authoring.js";
 
@@ -329,5 +330,40 @@ describe("clampShotCount", () => {
     ["symbol", Symbol("shots")]
   ])("falls back to 5 shots for %s, which is no request", (_label, value) => {
     expect(clampShotCount(value)).toBe(5);
+  });
+});
+
+// The fake provider answers every free string with "fake". A board that took
+// it as its ratio showed a blank aspect-ratio select and collapsed every
+// still's media box (UX study 4, D2 and D3).
+describe("parseScreenplay aspect ratio", () => {
+  it("keeps the given ratio when the answer's is not W:H", () => {
+    const screenplay = parseScreenplay(
+      { aspect_ratio: "fake", shots: [{ action: "a" }] },
+      { shotCount: 1, aspectRatio: "9:16" }
+    );
+    expect(screenplay.aspect_ratio).toBe("9:16");
+  });
+
+  it("takes a well-formed ratio from the answer", () => {
+    const screenplay = parseScreenplay(
+      { aspect_ratio: "2.39:1", shots: [{ action: "a" }] },
+      { shotCount: 1, aspectRatio: "16:9" }
+    );
+    expect(screenplay.aspect_ratio).toBe("2.39:1");
+  });
+
+  it.each([
+    ["16:9", true],
+    [" 4:3 ", true],
+    ["2.39:1", true],
+    ["fake", false],
+    ["16/9", false],
+    ["0:9", false],
+    ["16:", false],
+    ["", false],
+    [null, false]
+  ])("isAspectRatio(%j) is %s", (value, expected) => {
+    expect(isAspectRatio(value)).toBe(expected);
   });
 });

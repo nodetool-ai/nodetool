@@ -20,6 +20,7 @@ NodeTool is organized into distinct packages, each responsible for a specific la
 | Package | Purpose |
 |---------|---------|
 | **@nodetool-ai/kernel** | Workflow execution engine -- graph validation, correlation analysis, node actors, inbox routing, edge counting |
+| **@nodetool-ai/execution** | `ExecutionSession`, the one place that constructs `WorkflowRunner` |
 | **@nodetool-ai/runtime** | `ProcessingContext`, model providers, workspace, Python bridge |
 | **@nodetool-ai/protocol** | Shared message types and schemas (`job_update`, `node_update`, `edge_update`, `task_update`, and the rest) |
 | **@nodetool-ai/node-sdk** | `BaseNode`, the `@prop` decorator, `NodeRegistry`, and the pack loader |
@@ -27,6 +28,9 @@ NodeTool is organized into distinct packages, each responsible for a specific la
 | **@nodetool-ai/websocket** | HTTP, WebSocket, and MCP server |
 | **@nodetool-ai/dsl** | TypeScript DSL for building workflows programmatically with type-safe factories |
 | **@nodetool-ai/config** | Settings management and environment configuration |
+| **@nodetool-ai/chat** | Chat message processing: tool-call orchestration, streaming responses, token counting |
+| **@nodetool-ai/models** | Data models on Drizzle ORM: SQLite for local and desktop, PostgreSQL or Supabase for cloud |
+| **@nodetool-ai/auth**, **@nodetool-ai/security** | Pluggable auth providers and HTTP middleware, secret storage and encryption |
 
 ### Infrastructure Packages
 
@@ -34,9 +38,9 @@ NodeTool is organized into distinct packages, each responsible for a specific la
 |---------|---------|
 | **@nodetool-ai/deploy** | Docker image builds and self-hosted server provisioning over SSH |
 | **@nodetool-ai/storage** | Asset storage backends (local filesystem, S3, Supabase, in-memory) |
-| **@nodetool-ai/vectorstore** | Vector database integration (SQLite-vec, Pinecone, Supabase pgvector) for RAG workflows |
-| **@nodetool-ai/cli** | Command-line interface for workflow execution, deployment, and package management |
-| **@nodetool-ai/base-nodes** | Compatibility shell that re-exports the domain node packages and registers the built-in packs |
+| **@nodetool-ai/vectorstore** | Vector store providers (SQLite-vec, Pinecone, Supabase) for RAG workflows |
+| **@nodetool-ai/cli** | The `nodetool` command-line interface: chat, agents, workflow execution, deployment, and package management |
+| **@nodetool-ai/base-nodes** | Compatibility shell that re-exports the domain node packages and registers the built-in packs. Each domain (`core-nodes`, `text-nodes`, `llm-nodes`, and so on) is its own workspace package |
 
 See [Packages](packages.md) for how node packages are structured and registered.
 
@@ -71,7 +75,7 @@ Each node in a workflow runs as a `NodeActor` with one of four execution modes. 
 | **Buffered** | Collects all inputs before processing | Default for most nodes. Use when you need all data before you can produce output (e.g., image resize, text formatting). |
 | **Streaming input** | Processes inputs as they arrive, one at a time | Use for nodes that handle items in a stream (e.g., filtering, transforming individual items). |
 | **Streaming output** | Produces outputs incrementally as they become available | Use for LLMs and generators that emit tokens/chunks over time (e.g., Agent, ListGenerator). |
-| **Controlled** | Manages its own execution lifecycle with cached input replay | Use for nodes that need custom control over when and how they process (e.g., loops, conditional retry). |
+| **Controlled** | Manages its own execution lifecycle with cached input replay | Use for nodes driven by control edges, such as a node an Agent calls as a tool. The node re-runs once per `run` event with its cached data inputs. |
 
 ### Correlation-Aware Scheduling
 
@@ -224,7 +228,7 @@ See [Python Bridge Protocol](python-bridge-protocol.md) for the full wire protoc
 ## Notes
 
 - All endpoints and examples use `http://127.0.0.1:7777` by default; update host/port when deploying.
-- The WebSocket uses MessagePack by default and can switch to JSON. See [Chat Server](chat-server.md) for protocol details.
+- The WebSocket uses MessagePack by default and can switch to JSON. See [Chat API](chat-api.md) for protocol details.
 - Execution strategies are detailed in [Execution Strategies](execution-strategies.md).
 
 ## Related

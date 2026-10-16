@@ -7,12 +7,11 @@
 
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { createLogger } from "@nodetool-ai/config";
-import type {
-  EmbeddingModel,
-  Message,
-  ProviderStreamItem
-} from "./types.js";
-import { isNonEmptyString } from "@nodetool-ai/protocol";
+import type { EmbeddingModel, Message, ProviderStreamItem } from "./types.js";
+import {
+  normalizeEmbeddingTexts,
+  postEmbeddingRequest
+} from "./embedding-http.js";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.cohere");
@@ -59,14 +58,16 @@ interface CohereProviderOptions {
    * is appropriate for indexing content into a vector store. Use
    * `"search_query"` when embedding user queries against a document index.
    */
-  inputType?: "search_document" | "search_query" | "classification" | "clustering";
+  inputType?:
+    | "search_document"
+    | "search_query"
+    | "classification"
+    | "clustering";
 }
 
 export class CohereProvider extends BaseProvider {
   protected override declaredCapabilities(): readonly ProviderCapability[] {
-    return [
-      "generate_embedding"
-    ];
+    return ["generate_embedding"];
   }
 
   static override requiredSecrets(): string[] {
@@ -123,13 +124,7 @@ export class CohereProvider extends BaseProvider {
     if (!this.apiKey) {
       throw new Error("COHERE_API_KEY is not configured");
     }
-    const texts = Array.isArray(args.text) ? args.text : [args.text];
-    if (
-      texts.length === 0 ||
-      texts.some((v) => !isNonEmptyString(v))
-    ) {
-      throw new Error("text must not be empty");
-    }
+    const texts = normalizeEmbeddingTexts(args.text);
 
     const body: Record<string, unknown> = {
       model: args.model || "embed-v4.0",
@@ -142,23 +137,15 @@ export class CohereProvider extends BaseProvider {
       body.output_dimension = args.dimensions;
     }
 
-    const response = await this._fetch(`${COHERE_API_BASE_URL}/embed`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => "");
-      throw new Error(`Cohere embedding error ${response.status}: ${errText}`);
-    }
-
-    const data = (await response.json()) as {
+    const data = await postEmbeddingRequest<{
       embeddings?: { float?: number[][] } | number[][];
-    };
+    }>({
+      fetchFn: this._fetch,
+      url: `${COHERE_API_BASE_URL}/embed`,
+      apiKey: this.apiKey,
+      body,
+      label: "Cohere"
+    });
 
     // v2 API returns `{ embeddings: { float: [[...]] } }` when
     // `embedding_types: ["float"]` is requested. Older payloads return a bare

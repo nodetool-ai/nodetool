@@ -41,6 +41,18 @@ const optionalStr = (value: unknown): string | undefined => {
   return s.length > 0 ? s : undefined;
 };
 
+const ASPECT_RATIO = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/;
+
+/**
+ * Whether `value` is a "W:H" aspect ratio with both sides above zero, such as
+ * "16:9" or "2.39:1". Surrounding whitespace is allowed.
+ */
+export function isAspectRatio(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const match = ASPECT_RATIO.exec(value.trim());
+  return match !== null && Number(match[1]) > 0 && Number(match[2]) > 0;
+}
+
 const optionalNumber = (value: unknown): number | undefined => {
   const n = isNumber(value) ? value : Number(value);
   return Number.isFinite(n) ? n : undefined;
@@ -205,7 +217,11 @@ export function parseScreenplay(
     type: "screenplay",
     id: "screenplay-1",
     title: optionalStr(obj.title) ?? opts.title ?? "Untitled Screenplay",
-    aspect_ratio: optionalStr(obj.aspect_ratio) ?? opts.aspectRatio ?? "16:9",
+    // A model is told the ratio and may echo it, but a value that is not one
+    // (the fake provider's "fake") must not replace the one it was given.
+    aspect_ratio: isAspectRatio(obj.aspect_ratio)
+      ? obj.aspect_ratio.trim()
+      : (opts.aspectRatio ?? "16:9"),
     shots
   };
   const logline = optionalStr(obj.logline);

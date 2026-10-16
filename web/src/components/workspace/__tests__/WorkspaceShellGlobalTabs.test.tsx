@@ -65,6 +65,11 @@ jest.mock("@mui/material/styles", () => ({
   })
 }));
 
+// The real spinner styles itself from theme fields the mocked theme lacks.
+jest.mock("../../ui_primitives", () => ({
+  ...jest.requireActual("../../ui_primitives"),
+  LoadingSpinner: () => <div role="status" aria-label="Loading" />
+}));
 jest.mock("../../panels/FrontendToolRuntimeSync", () => ({
   __esModule: true,
   default: () => null

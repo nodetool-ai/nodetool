@@ -32,6 +32,7 @@ writer, or generator code. Then build and verify.
 | `packages/kie-nodes/src/kie-factory.ts` | Creates node classes from manifest at runtime |
 | `packages/kie-nodes/src/kie-base.ts` | API submission, polling, upload, result conversion |
 | `packages/kie-nodes/src/index.ts` | Loads manifest, exports `KIE_NODES` registry |
+| `packages/kie-nodes/src/generated/kie-node-type-pricing.json` | **Generated** pricing bundle |
 | `packages/runtime/src/providers/kie-provider.ts` | `KieProvider` — chat + media generation |
 | `packages/runtime/src/providers/manifest-models.ts` | Reads manifest to build model lists |
 

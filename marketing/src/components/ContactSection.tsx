@@ -86,7 +86,7 @@ export default function ContactSection() {
               transition={{ delay: i * 0.05 }}
             >
               <Tilt3D className="h-full">
-                <div className="group relative h-full flex flex-col items-center justify-center text-center rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-10 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
+                <div className="group relative h-full flex flex-col items-center justify-center text-center rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-xs p-10 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
                   <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                     <card.icon className="w-8 h-8 text-blue-400" />
                   </div>

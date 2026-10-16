@@ -84,7 +84,7 @@ export default function UseCasesShowcase() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
                 transition={{ duration: 0.3 }}
-                className="scroll-fade group relative grid items-center gap-8 rounded-3xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-sm transition-all duration-300 hover:border-white/20 hover:bg-slate-900/60 lg:grid-cols-2 lg:gap-12 lg:p-8"
+                className="scroll-fade group relative grid items-center gap-8 rounded-3xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-xs transition-all duration-300 hover:border-white/20 hover:bg-slate-900/60 lg:grid-cols-2 lg:gap-12 lg:p-8"
               >
                 {/* Media */}
                 <div

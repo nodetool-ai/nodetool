@@ -26,7 +26,7 @@ The images below are unchanged copies of the repository's accepted native-game g
 
 The [source fixture directory](https://github.com/nodetool-ai/nodetool/tree/f328d856addeffd49f5d19c233957cab7b1ccb45/packages/cli/tests/fixtures/native-game-goldens) contains the originals and manifest. The [machine-readable image record](/assets/game-engine/screenshots.json) gives source paths, dimensions, and SHA-256 hashes.
 
-These frames establish appearance under their capture conditions. They do not prove sound playback, touch usability, every collision surface, or recovery from every failure. Signal Forge's shipped decorative geometry has known collision gaps. Its unsaved collision candidate is not pictured or included in this guide.
+These frames establish appearance under their capture conditions. They do not prove sound playback, touch usability, every collision surface, or recovery from every failure. The Signal Forge image predates the prepared static-machinery collider repair. The repair preserves the pictured art, and its collision and recovery checks are separate runtime tests.
 
 ## Editor captures
 
