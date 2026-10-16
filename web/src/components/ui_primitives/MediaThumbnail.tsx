@@ -13,7 +13,7 @@
 
 import React, { memo } from "react";
 import { Box, type BoxProps } from "@mui/material";
-import type { SxProps, Theme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import AudiotrackOutlinedIcon from "@mui/icons-material/AudiotrackOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
@@ -197,8 +197,8 @@ const LocatorMedia: React.FC<
   return <IconTile kind={kind} alt={alt} icon={icon} />;
 };
 
-const overlaySx = (theme: Theme): SxProps<Theme> => ({
-  position: "absolute",
+const overlaySx = (theme: Theme) => ({
+  position: "absolute" as const,
   zIndex: Z_INDEX.raised,
   color: theme.vars.palette.common.white
 });
