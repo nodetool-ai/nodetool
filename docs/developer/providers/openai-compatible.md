@@ -236,7 +236,7 @@ If Groq, DeepSeek, Mistral, Cerebras, Alibaba Cloud, OpenRouter, Requesty, Opper
 
 ### Tool-support overrides
 
-`hasToolSupport(model: string)` controls whether the UI offers tool/function calling for a given model. Groq, Mistral, Cerebras, DeepSeek, Moonshot, and API Route return `true` unconditionally. OpenRouter, Alibaba Cloud, Requesty, and Opper decide per model. OpenRouter checks the model id:
+`hasToolSupport(model: string)` controls whether the UI offers tool/function calling for a given model. Groq, Mistral, Cerebras, DeepSeek, and Moonshot return `true` unconditionally. API Route does not override it and inherits `OpenAIProvider`, which returns `false` for ids starting with `o1` or `o3`. OpenRouter, Alibaba Cloud, Requesty, and Opper decide per model. OpenRouter checks the model id:
 
 ```ts
 // packages/runtime/src/providers/openrouter-provider.ts

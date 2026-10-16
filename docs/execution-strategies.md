@@ -98,7 +98,7 @@ Two cases are checked before those modes:
 - **Loop.** `nodetool.control.Loop` runs in a kernel-owned loop mode. The kernel
   handles iteration, feedback matching, and termination, and the node's
   `process()` is never called. `max_iterations` defaults to 10 and is clamped to
-  1000. See [Workflow Loops](https://github.com/nodetool-ai/nodetool/blob/main/docs/workflow-loops.md).
+  1000. See the [Loop node](/nodes/nodetool/control/loop).
 
 ### Correlation-aware scheduling (`_runCorrelated`)
 

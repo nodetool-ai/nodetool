@@ -135,6 +135,59 @@
                 }
               },
               {
+                "type": "ChoiceCards",
+                "props": {
+                  "id": "fillPath",
+                  "binding": "var:fillPath",
+                  "label": "How do you want to start?",
+                  "columns": 2,
+                  "options": [
+                    {
+                      "value": "web",
+                      "title": "Fill from a website",
+                      "description": "Paste a product page. AI suggests the copy and images."
+                    },
+                    {
+                      "value": "self",
+                      "title": "Fill in myself",
+                      "description": "Go through 3 short steps."
+                    }
+                  ],
+                  "events": []
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: The hub",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "hub"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
                 "type": "ModelSelect",
                 "props": {
                   "id": "finishModel",
@@ -175,28 +228,6 @@
                   "id": "imageModel-help",
                   "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
                   "tone": "hint"
-                }
-              },
-              {
-                "type": "ChoiceCards",
-                "props": {
-                  "id": "fillPath",
-                  "binding": "var:fillPath",
-                  "label": "How do you want to start?",
-                  "columns": 2,
-                  "options": [
-                    {
-                      "value": "web",
-                      "title": "Fill from a website",
-                      "description": "Paste a product page. AI suggests the copy and images."
-                    },
-                    {
-                      "value": "self",
-                      "title": "Fill in myself",
-                      "description": "Go through 3 short steps."
-                    }
-                  ],
-                  "events": []
                 }
               },
               {
@@ -345,37 +376,6 @@
                         "text": "",
                         "visibleWhen": {
                           "binding": "var:fillReport",
-                          "op": "notEmpty"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "type": "Columns",
-                "props": {
-                  "id": "start-nav",
-                  "gap": 16,
-                  "left": [],
-                  "right": [
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "start-next",
-                        "label": "Next: The hub",
-                        "fullWidth": false,
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "setVariable",
-                            "key": "var:step",
-                            "value": "hub"
-                          }
-                        ],
-                        "align": "end",
-                        "visibleWhen": {
-                          "binding": "var:fillPath",
                           "op": "notEmpty"
                         }
                       }

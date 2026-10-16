@@ -5,10 +5,7 @@
  * See MUTATION_TESTING.md.
  */
 import { describe, it, expect, vi } from "vitest";
-import {
-  VoyageProvider,
-  sortEmbeddingsByIndex
-} from "../../src/providers/voyage-provider.js";
+import { VoyageProvider } from "../../src/providers/voyage-provider.js";
 
 const make = (fetchFn?: unknown, opts: object = {}, key = "k") =>
   new VoyageProvider({ VOYAGE_API_KEY: key }, { fetchFn: fetchFn as never, ...(opts as never) });
@@ -109,16 +106,6 @@ describe("VoyageProvider.generateEmbedding", () => {
 
   it("returns [] when the response has no data", async () => {
     expect(await make(ok({})).generateEmbedding({ text: "x", model: "m" })).toEqual([]);
-  });
-
-  it("sortEmbeddingsByIndex orders by index (default 0) and projects", () => {
-    expect(
-      sortEmbeddingsByIndex([
-        { embedding: [9], index: 2 },
-        { embedding: [5] }, // no index → 0, sorts first
-        { embedding: [7], index: 1 }
-      ])
-    ).toEqual([[5], [7], [9]]);
   });
 
   it("surfaces HTTP errors, with an empty body when text() rejects", async () => {

@@ -185,8 +185,7 @@ const TOGETHER_EMBEDDING_MODELS: EmbeddingModel[] = [
 **1. Build and type-check.**
 
 ```bash
-npm run build --workspace=packages/together-nodes
-npm run typecheck
+npm run build --workspace=packages/together-nodes   # tsc, so it type-checks
 ```
 
 **2. Run package tests.**

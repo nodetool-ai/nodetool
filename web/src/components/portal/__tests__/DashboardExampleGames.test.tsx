@@ -17,7 +17,9 @@ jest.mock("react-router-dom", () => ({
   useNavigate: () => navigate
 }));
 jest.mock("../../ui_primitives/ResponsiveImage", () => ({
-  ResponsiveImage: ({ alt }: { alt: string }) => <img alt={alt} />
+  ResponsiveImage: ({ alt, showSkeleton }: { alt: string; showSkeleton?: boolean }) => (
+    <img alt={alt} data-skeleton={showSkeleton ? "true" : "false"} />
+  )
 }));
 jest.mock("../../../hooks/useExampleGames", () => ({
   useExampleGames: () => ({ data: [{
@@ -52,6 +54,11 @@ it("shows the game and opens an installed copy in play mode", async () => {
   }));
   expect(mutate).toHaveBeenCalledWith({ slug: "kindle", projectId: "project-1" }, expect.any(Object));
   expect(navigate).toHaveBeenCalledWith("/workspace");
+});
+
+it("shows a loading skeleton while a poster loads, not a black card", () => {
+  render(<MemoryRouter><ThemeProvider theme={mockTheme}><DashboardExampleGames /></ThemeProvider></MemoryRouter>);
+  expect(screen.getByAltText("Kindle gameplay")).toHaveAttribute("data-skeleton", "true");
 });
 
 it("plays a shipped game without installing it", async () => {

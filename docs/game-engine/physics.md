@@ -25,6 +25,8 @@ Scene `gravity` is a vector in meters per second squared, defaulting to `{x: 0, 
 
 Prepared colliders carry a digest, preparation version, bounds, and geometry counts. Validation and loading check the binding against the bytes. Changing the visible model does not regenerate a collider automatically.
 
+Signal Forge uses a prepared triangle mesh for authored static machinery, alongside separate colliders for moving gates, the shuttle, and the core. Its runtime regressions test four obstacle surfaces, the recorded objective route, snapshot restoration, and recovery. Small decorative details do not each have a collider.
+
 Keep physics transforms unscaled and avoid multiple pose owners in one hierarchy. Move a body through its supported controller or script commands rather than competing parent and child transforms.
 
 ## Character movement

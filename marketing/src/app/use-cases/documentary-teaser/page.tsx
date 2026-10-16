@@ -205,7 +205,7 @@ export default function DocumentaryTeaserUseCase() {
                     "radial-gradient(ellipse at center, rgba(34,211,238,0.22), rgba(99,102,241,0.16) 45%, transparent 72%)",
                 }}
               />
-              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-2 shadow-2xl backdrop-blur-sm">
+              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-2 shadow-2xl backdrop-blur-xs">
                 <video
                   src="/deep_teaser_example.mp4"
                   poster="/deep-shot-1-800.webp"
@@ -226,7 +226,7 @@ export default function DocumentaryTeaserUseCase() {
               />
               <a
                 href="#how-it-works"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:border-white/25 hover:bg-white/5"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-xs transition-all hover:border-white/25 hover:bg-white/5"
               >
                 <Play className="h-4 w-4" />
                 See how it works
@@ -256,7 +256,7 @@ export default function DocumentaryTeaserUseCase() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.5, delay: i * 0.05 }}
-                  className="rounded-2xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-sm"
+                  className="rounded-2xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-xs"
                 >
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-500/25 bg-cyan-500/10 text-cyan-300">
                     <step.icon className="h-5 w-5" />
@@ -408,7 +408,7 @@ export default function DocumentaryTeaserUseCase() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.5, delay: i * 0.05 }}
-                  className="rounded-2xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-sm transition-colors hover:border-white/20"
+                  className="rounded-2xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-xs transition-colors hover:border-white/20"
                 >
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-indigo-500/25 bg-indigo-500/10 text-indigo-300">
                     <tweak.icon className="h-5 w-5" />
@@ -428,7 +428,7 @@ export default function DocumentaryTeaserUseCase() {
         {/* Models */}
         <section className="relative py-20">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
-            <div className="rounded-3xl border border-white/10 bg-slate-900/40 p-8 backdrop-blur-sm md:p-12">
+            <div className="rounded-3xl border border-white/10 bg-slate-900/40 p-8 backdrop-blur-xs md:p-12">
               <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
                 <div>
                   <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
@@ -502,7 +502,7 @@ export default function DocumentaryTeaserUseCase() {
               />
               <a
                 href="/use-cases/movie-trailer"
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:border-white/25 hover:bg-white/5"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#0a0a14]/70 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-xs transition-all hover:border-white/25 hover:bg-white/5"
               >
                 Build a movie trailer
                 <ArrowRight className="h-4 w-4" />

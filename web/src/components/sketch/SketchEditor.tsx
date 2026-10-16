@@ -63,7 +63,8 @@ import {
   useColorIntentRouter,
   useEditorSession,
   useEditorCommands,
-  useSketchIsMobile
+  useSketchIsMobile,
+  useSketchAssistantCramped
 } from "./hooks";
 import {
   ConnectedStatusBar,
@@ -242,6 +243,16 @@ function SketchEditor({
       setAssistantPanelOpen(false, { persist: false });
     }
   }, [isMobile, setAssistantPanelOpen]);
+
+  // A workspace side panel (Chats, Assets) can narrow a desktop editor until
+  // the docked assistant leaves the canvas a few hundred pixels wide. Close
+  // the dock when that happens, keeping the remembered preference.
+  const assistantCramped = useSketchAssistantCramped(containerRef);
+  useEffect(() => {
+    if (assistantCramped) {
+      setAssistantPanelOpen(false, { persist: false });
+    }
+  }, [assistantCramped, setAssistantPanelOpen]);
 
   // Register the agent bridge under this document's id so the `ui_sketch_*`
   // tools can address it whether or not this surface is focused. The session

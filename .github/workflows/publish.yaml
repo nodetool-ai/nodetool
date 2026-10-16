@@ -13,6 +13,10 @@ on:
         description: "Version to publish (without leading v, e.g. 0.8.0)"
         required: false
         default: ""
+      resume_original_run_id:
+        description: "Recover published artifacts from this run and resume verification and promotion"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -22,7 +26,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
       id-token: write  # for npm provenance attestation
+    env:
+      RESUME_ORIGINAL_RUN_ID: ${{ inputs.resume_original_run_id }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -50,6 +57,7 @@ jobs:
           echo "NODE_GYP_FORCE_PYTHON=$(which python3)" >> "$GITHUB_ENV"
 
       - name: Install dependencies
+        if: ${{ env.RESUME_ORIGINAL_RUN_ID == '' }}
         run: npm ci
 
       - name: Resolve version
@@ -62,6 +70,15 @@ jobs:
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${GITHUB_REF}" != "refs/heads/main" && "${GITHUB_REF}" != refs/tags/* ]]; then
             echo "workflow_dispatch publishes must run from main or a tag, not ${GITHUB_REF}." >&2
             exit 1
+          fi
+          if [[ -n "$RESUME_ORIGINAL_RUN_ID" ]]; then
+            if [[ ! "$RESUME_ORIGINAL_RUN_ID" =~ ^[1-9][0-9]*$ || -z "$INPUT_VERSION" ]]; then
+              echo "Recovery requires a positive original run ID and an explicit version." >&2
+              exit 1
+            fi
+            echo "RELEASE_CATALOG=.release-tarballs/catalog.json" >> "$GITHUB_ENV"
+          else
+            echo "RELEASE_CATALOG=packages/node-catalog/data/index.json" >> "$GITHUB_ENV"
           fi
           VERSION="${INPUT_VERSION:-${GITHUB_REF_NAME}}"
           VERSION_NO_V="${VERSION#v}"
@@ -81,36 +98,50 @@ jobs:
           echo "npm tag: ${NPM_TAG}"
 
       - name: Bump package versions
+        if: ${{ env.RESUME_ORIGINAL_RUN_ID == '' }}
         run: node scripts/bump-version.mjs "$VERSION_NO_V" --no-commit
 
       - name: Build all packages
+        if: ${{ env.RESUME_ORIGINAL_RUN_ID == '' }}
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
         run: npm run build:packages
 
       - name: Resolve workspace "*" dependencies
+        if: ${{ env.RESUME_ORIGINAL_RUN_ID == '' }}
         run: node scripts/prepare-publish.mjs
 
       - name: Verify dry-run
+        if: ${{ env.RESUME_ORIGINAL_RUN_ID == '' }}
         run: node scripts/prepare-publish.mjs --dry-run
 
       # Install the CLI from the packed tarballs and run it against an empty
       # HOME before anything reaches the registry. The post-publish smoke job
       # below only finds a broken release after users can install it.
       - name: Pack release tarballs once
+        if: ${{ env.RESUME_ORIGINAL_RUN_ID == '' }}
         run: node scripts/publish-packages.mjs --pack-only --tarballs-dir .release-tarballs
 
       - name: Smoke-test the packed CLI
+        if: ${{ env.RESUME_ORIGINAL_RUN_ID == '' }}
         run: node scripts/smoke-packed-cli.mjs --tarballs-dir .release-tarballs
 
       - name: Smoke-test the packed core-only CLI
+        if: ${{ env.RESUME_ORIGINAL_RUN_ID == '' }}
         run: node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .release-tarballs
 
       - name: Publish staging artifacts with trusted publishing
+        if: ${{ env.RESUME_ORIGINAL_RUN_ID == '' }}
         run: node scripts/publish-packages.mjs --tag staging --tarballs-dir .release-tarballs
 
+      - name: Recover original published artifacts
+        if: ${{ env.RESUME_ORIGINAL_RUN_ID != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release/recover-staging.mjs --original-run-id "$RESUME_ORIGINAL_RUN_ID" --version "$VERSION_NO_V" --tarballs-dir .release-tarballs
+
       - name: Verify staging and promote final tags with CLI last
-        run: node scripts/release/promote-staging.mjs --tarballs-dir .release-tarballs --tag "$NPM_TAG"
+        run: node scripts/release/promote-staging.mjs --tarballs-dir .release-tarballs --catalog "$RELEASE_CATALOG" --tag "$NPM_TAG"
 
       - name: Record published version
         id: published

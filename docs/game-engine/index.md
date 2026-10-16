@@ -24,7 +24,7 @@ A game has one dimension. It cannot mix 2D and 3D scenes or change dimension aft
 | Models, scalar PBR materials, lights, shadows, height fog, decals | Not applicable | Supported | [3D graphics](/game-engine/graphics-3d) |
 | Physics | Static and kinematic bodies | Rapier rigid bodies and character controller | [Physics](/game-engine/physics) |
 | Animation | Sprite clips and visual tracks | Prepared model clips and animation graphs | [Animation](/game-engine/animation) |
-| Particles | Editor play, standalone, capture | Standalone and capture. Editor play does not tick them | [Particles](/game-engine/particles) |
+| Particles | Presets, isolated preview, editor play, standalone, capture | Presets, isolated preview, standalone, capture. Editor play does not tick them | [Particles](/game-engine/particles) |
 | Audio, mixing, spatial effects | Supported | Supported, including directional cones | [Audio](/game-engine/audio) |
 | Keyboard, mouse, gamepad, touch | Actions | Actions, axes, camera look | [Input and cameras](/game-engine/input-cameras) |
 | Scripts, lifecycle hooks, events, parameters | Supported | Supported | [Scripts](/game-engine/scripts) |
@@ -41,7 +41,7 @@ Some document fields are preparation interfaces rather than complete rendering f
 
 Document menu screens, transitions, and generated settings controls are schema-only. They are not implemented by the shipped hosts.
 
-The dedicated particle preset inspector, 3D WebGPU rendering, and built-in localization are not covered as available features. Use the current particle document fields and authored HUD text. [3D graphics](/game-engine/graphics-3d) describes linear and height fog and the supported decal receivers.
+3D WebGPU rendering and built-in localization are not covered as available features. Use the [particle inspector and presets](/game-engine/particles) and authored HUD text. [3D graphics](/game-engine/graphics-3d) describes linear and height fog and the supported decal receivers.
 
 ## Build and verify
 

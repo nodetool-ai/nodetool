@@ -7,12 +7,12 @@
 
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { createLogger } from "@nodetool-ai/config";
-import type {
-  EmbeddingModel,
-  Message,
-  ProviderStreamItem
-} from "./types.js";
-import { isNonEmptyString } from "@nodetool-ai/protocol";
+import type { EmbeddingModel, Message, ProviderStreamItem } from "./types.js";
+import {
+  normalizeEmbeddingTexts,
+  postEmbeddingRequest,
+  sortEmbeddingsByIndex
+} from "./embedding-http.js";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.jina");
@@ -71,9 +71,7 @@ interface JinaProviderOptions {
 
 export class JinaProvider extends BaseProvider {
   protected override declaredCapabilities(): readonly ProviderCapability[] {
-    return [
-      "generate_embedding"
-    ];
+    return ["generate_embedding"];
   }
 
   static override requiredSecrets(): string[] {
@@ -128,13 +126,7 @@ export class JinaProvider extends BaseProvider {
     if (!this.apiKey) {
       throw new Error("JINA_API_KEY is not configured");
     }
-    const texts = Array.isArray(args.text) ? args.text : [args.text];
-    if (
-      texts.length === 0 ||
-      texts.some((v) => !isNonEmptyString(v))
-    ) {
-      throw new Error("text must not be empty");
-    }
+    const texts = normalizeEmbeddingTexts(args.text);
 
     const model = args.model || "jina-embeddings-v3";
     const body: Record<string, unknown> = {
@@ -149,35 +141,16 @@ export class JinaProvider extends BaseProvider {
       body.dimensions = args.dimensions;
     }
 
-    const response = await this._fetch(`${JINA_API_BASE_URL}/embeddings`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-      const errText = await response.text().catch(() => "");
-      throw new Error(`Jina embedding error ${response.status}: ${errText}`);
-    }
-
-    const data = (await response.json()) as {
+    const data = await postEmbeddingRequest<{
       data?: Array<{ embedding: number[]; index?: number }>;
-    };
+    }>({
+      fetchFn: this._fetch,
+      url: `${JINA_API_BASE_URL}/embeddings`,
+      apiKey: this.apiKey,
+      body,
+      label: "Jina"
+    });
 
     return sortEmbeddingsByIndex(data.data ?? []);
   }
-}
-
-/** Pure: order embedding rows by their `index` (default 0) and project them. */
-export function sortEmbeddingsByIndex(
-  rows: Array<{ embedding: number[]; index?: number }>
-): number[][] {
-  // Stryker disable next-line MethodExpression: defensive copy; removing it sorts in place but returns the same order.
-  const ordered = rows.slice();
-  return ordered
-    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
-    .map((row) => row.embedding);
 }

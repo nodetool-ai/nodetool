@@ -51,6 +51,7 @@ import {
 import {
   assertProductionGenerationAllowed,
   compileOneTake,
+  isAspectRatio,
   isFullResourceId,
   isShortResourceId,
   productionRequirement
@@ -2356,7 +2357,14 @@ function applyBoardOp(
       if (args["brief"] !== undefined) doc.brief = String(args["brief"]);
       if (args["style"] !== undefined) doc.style = String(args["style"]);
       if (args["aspect_ratio"] !== undefined) {
-        doc.aspectRatio = String(args["aspect_ratio"]);
+        // The editor sizes every still from this, and a value that is not a
+        // ratio leaves its select blank and the media boxes with no height.
+        if (!isAspectRatio(args["aspect_ratio"])) {
+          throw new Error(
+            `set_board aspect_ratio must be "W:H", such as "16:9"; got ${JSON.stringify(args["aspect_ratio"])}`
+          );
+        }
+        doc.aspectRatio = args["aspect_ratio"].trim();
       }
       if (Array.isArray(args["entity_ids"])) {
         doc.entityIds = args["entity_ids"].map(String);
@@ -2984,7 +2992,13 @@ const directStoryboard: CapabilityExport = {
         next.screenplay.motion_design = previousMotionDesign;
       }
       next.style = screenplay.style_bible ?? next.style;
-      next.aspectRatio = screenplay.aspect_ratio ?? next.aspectRatio;
+      // The board's ratio was the Director's input. An answer whose ratio is
+      // not "W:H" (the fake provider's "fake") does not replace it.
+      if (isAspectRatio(screenplay.aspect_ratio)) {
+        next.aspectRatio = screenplay.aspect_ratio.trim();
+      } else {
+        next.screenplay.aspect_ratio = next.aspectRatio;
+      }
       if (screenplay.genre) next.genre = screenplay.genre;
 
       const saved = await Storyboard.updateFieldsIfUnchanged(

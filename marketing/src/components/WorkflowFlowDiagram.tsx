@@ -381,7 +381,7 @@ const StepCard = React.forwardRef<
   return (
     <article
       ref={ref}
-      className="group relative rounded-xl border border-white/10 bg-slate-900/70 p-4 shadow-lg shadow-black/20 backdrop-blur-sm transition-colors duration-200 hover:border-white/25"
+      className="group relative rounded-xl border border-white/10 bg-slate-900/70 p-4 shadow-lg shadow-black/20 backdrop-blur-xs transition-colors duration-200 hover:border-white/25"
     >
       <span
         aria-hidden

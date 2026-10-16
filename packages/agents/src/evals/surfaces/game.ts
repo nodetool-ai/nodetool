@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from "node:util";
 import { createHash } from "node:crypto";
 import * as acorn from "acorn";
 import { z } from "zod";
-import { gameAssetBinding3D, getGameEnvironmentPreset3D, gameDocument, gameDocument3D, gameEntity, gameEntity3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
+import { gameAssetBinding3D, getGameEnvironmentPreset3D, getGameParticlePreset, gameDocument, gameDocument3D, gameEntity, gameEntity3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
 import { applyGameOps, applyGameOps3D, collisionLayerBits3D, resolvePhysicsMaterials3D, validateGame3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
 import type { HeadlessSurfaceBridge, ToolLoopEvalCase } from "../tool-loop-eval.js";
 
@@ -661,7 +661,21 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
           isDeepStrictEqual(sun.light3d, expected.sun.light);
       } }]
   }
-}, {
+}, ...(["2d", "3d"] as const).map((dimension): ToolLoopEvalCase<AnyGameDocument> => ({
+  id: `particle-preset-${dimension}`,
+  description: `Apply the canonical fire particle preset through public ${dimension.toUpperCase()} edit operations.`,
+  objective: `Give ${dimension === "2d" ? "player" : "crate"} the fire particle preset. Preserve its other components.`,
+  createBridge: () => dimension === "2d"
+    ? createGameToolBridge({ ...createTopDownRoomGame("particle-preset-eval"), schemaVersion: 2 })
+    : createGameToolBridge3D(createNative3DGame("particle-preset-eval")),
+  systemPrompt: `Use get_native_game and edit_native_game. update_entity sets the whole particles component. The canonical ${dimension} fire preset is ${JSON.stringify(getGameParticlePreset("fire", dimension))}.`,
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 4,
+    finalState: [{ name: "fireParticles", detail: "The target entity does not have the complete fire particle preset.",
+      test: (document) => isDeepStrictEqual(document.scenes[0].entities.find((entity) =>
+        entity.id === (dimension === "2d" ? "player" : "crate"))?.particles, getGameParticlePreset("fire", dimension)) }]
+  }
+})), {
   id: "height-fog-and-decals-3d",
   description: "Author exponential height fog and a projected image decal through public 3D edits.",
   objective: "Give the entry scene pale height fog (#cad9e4, density 0.08, baseHeight 2, heightFalloff 0.5, maxOpacity 0.95). Add graffiti as a child of crate at local (0,0,0.4), projecting the verified paint image onto crate, size (1,1,0.25), opacity 0.8, renderOrder 2.",

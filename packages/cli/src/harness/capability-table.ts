@@ -2742,7 +2742,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
       "packages/agents/tests/capabilities-game.test.ts",
       "packages/agents/tests/capabilities-game3d.test.ts",
       "packages/agents/tests/capabilities-game-autoplay.test.ts",
-      "packages/agents/tests/game-asset-pipeline.test.ts",
+      "packages/agents/tests/capabilities-game-examples.test.ts",
     ],
   },
   {

@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { GAME_ENVIRONMENT_PRESET_IDS_3D, gameDocument3D, getGameEnvironmentPreset3D } from "@nodetool-ai/protocol";
+import { GAME_ENVIRONMENT_PRESET_IDS_3D, gameDocument3D, getGameEnvironmentPreset3D, getGameParticlePreset } from "@nodetool-ai/protocol";
 import { createGameSession3D, validateGame3D } from "@nodetool-ai/game-runtime";
 import { GAME_3D_TOOL_LOOP_CASES, GAME_TOOL_LOOP_CASES, MATERIAL_EVAL_PNG_BASE64 } from "../src/evals/surfaces/game.js";
 
@@ -545,6 +545,34 @@ it("authors all three world-space force commands through public edits and replay
   }
 });
 
+
+for (const dimension of ["2d", "3d"] as const) {
+  it(`authors the ${dimension} particle preset through public edits and rejects an incomplete final state`, async () => {
+    const candidate = GAME_TOOL_LOOP_CASES.find((item) => item.id === `particle-preset-${dimension}`);
+    if (!candidate) { throw new Error("Particle preset eval must be registered"); }
+    const bridge = candidate.createBridge();
+    const edit = bridge.tools.find((tool) => tool.name === "edit_native_game");
+    const predicate = candidate.expect.finalState?.[0];
+    if (!edit || !predicate) { throw new Error("Particle eval must expose edits and a final-state predicate"); }
+    const entityId = dimension === "2d" ? "player" : "crate";
+    const original = structuredClone(bridge.finalState().scenes[0].entities.find((entity) => entity.id === entityId));
+    if (!original) { throw new Error("Particle eval target missing"); }
+    expect(predicate.test(bridge.finalState())).toBe(false);
+    expect(await edit.execute({ ops: [{ op: "update_entity", entity_id: entityId,
+      set: { particles: getGameParticlePreset("smoke", dimension) } }] })).not.toHaveProperty("error");
+    expect(predicate.test(bridge.finalState())).toBe(false);
+    expect(await edit.execute({ ops: [{ op: "update_entity", entity_id: entityId,
+      set: { particles: getGameParticlePreset("fire", dimension) } }] })).not.toHaveProperty("error");
+    expect(predicate.test(bridge.finalState())).toBe(true);
+    const edited = bridge.finalState().scenes[0].entities.find((entity) => entity.id === entityId);
+    expect(edited).toEqual({ ...original, particles: getGameParticlePreset("fire", dimension) });
+    const incomplete = structuredClone(bridge.finalState());
+    const emitter = incomplete.scenes[0].entities.find((entity) => entity.id === entityId)?.particles?.emitters[0];
+    if (!emitter) { throw new Error("Applied fire emitter missing"); }
+    delete emitter.colorOverLifetime;
+    expect(predicate.test(incomplete)).toBe(false);
+  });
+}
 
 it("authors height fog and a validated receiver decal through public game edits", async () => {
   const candidate = GAME_TOOL_LOOP_CASES.find(item => item.id === "height-fog-and-decals-3d");

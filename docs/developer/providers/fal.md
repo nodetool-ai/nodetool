@@ -34,7 +34,7 @@ FAL nodes in NodeTool are **generated**, not hand-written. A codegen pipeline fe
 | Runtime node class factory | `packages/fal-nodes/src/fal-factory.ts` |
 | FAL API call utilities | `packages/fal-nodes/src/fal-base.ts` |
 | Package entry point | `packages/fal-nodes/src/index.ts` |
-| Pricing bundles (generated) | `packages/fal-nodes/src/generated/` |
+| Pricing bundle (generated) | `packages/fal-nodes/src/generated/fal-node-type-pricing.json` |
 | High-level provider (text→image, TTS, etc.) | `packages/runtime/src/providers/fal-provider.ts` |
 | Manifest model loading | `packages/runtime/src/providers/manifest-models.ts` |
 
@@ -131,7 +131,7 @@ export const config: ModuleConfig = {
 | `enumOverrides` | `Record<string, string>` | Rename enums: `{ ImageSize: "ImageSizePreset" }` |
 | `enumValueOverrides` | `Record<string, Record<string, string>>` | Rename enum values |
 
-`FieldDef` override keys: `propType`, `default`, `description`, `enumRef`, `min`, `max`.
+Common `FieldDef` override keys: `propType`, `default`, `description`, `enumRef`, `min`, `max`. The full field list, including `acceptsObject` and `nestedAssetKey`, is in `packages/fal-codegen/src/types.ts`.
 
 Valid `propType` values: `"str"` `"float"` `"int"` `"bool"` `"image"` `"video"` `"audio"` `"enum"` `"list[image]"` `"list[video]"` `"list[audio]"` `"dict[str, any]"`.
 
@@ -165,7 +165,7 @@ Then reference it via `enumRef: "MyAspectRatio"` in a `fieldOverrides` entry.
 npm run generate:fal
 ```
 
-This fetches the schema (or reads from `.codegen-cache/` if cached), writes `packages/fal-nodes/src/fal-manifest.json`, and updates pricing bundles under `packages/fal-nodes/src/generated/` when `FAL_API_KEY` is set. Without the key, existing pricing bundles stay untouched. Pass `--no-pricing` to silence the warning.
+This fetches the schema (or reads from `.codegen-cache/` if cached), writes `packages/fal-nodes/src/fal-manifest.json`, and updates pricing bundles under `packages/fal-nodes/src/generated/` when `FAL_API_KEY` is set. Without the key, existing pricing bundles stay untouched, or empty stubs are written when none exist. Pass `--no-pricing` to skip the pricing step and its warning.
 
 To force a fresh schema fetch (bypass cache):
 

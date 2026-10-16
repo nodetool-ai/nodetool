@@ -166,7 +166,7 @@ export const allConfigs: Record<string, ModuleConfig> = {
 };
 ```
 
-The module key (`"image.depth"`) becomes the `moduleName` in the manifest (stored as `"image-depth"`) and the middle segment of every node's type string (`replicate.image.depth.<ClassName>`). To regenerate one module, run `npm run generate --workspace=packages/replicate-codegen -- --module image-depth --strict`.
+The module key (`"image.depth"`) becomes the `moduleName` in the manifest (stored as `"image-depth"`) and the middle segment of every node's type string (`replicate.image.depth.<ClassName>`). `--module <name>` writes a manifest that contains only that module and overwrites `replicate-manifest.json`, so use it only to inspect output. To update the shipped manifest, always run `npm run generate:replicate` (`--all`).
 
 ---
 
@@ -185,7 +185,7 @@ REPLICATE_API_TOKEN="r8_..." npm run generate --workspace=packages/replicate-cod
 # 3. Build — replicate-nodes loads from dist/, so rebuild is required
 npm run build:packages
 
-# 4. Type-check the codegen package
+# 4. Type-check the codegen package (the script runs tsc --noEmit)
 npm run lint --workspace=packages/replicate-codegen
 
 # 5. Run codegen tests

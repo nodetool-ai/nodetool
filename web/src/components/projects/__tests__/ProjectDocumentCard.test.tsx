@@ -5,7 +5,8 @@ import mockTheme from "../../../__mocks__/themeMock";
 import ProjectDocumentCard from "../ProjectDocumentCard";
 import type { ProjectDocument } from "../projectStatus";
 
-const name = "A very long project document title that cannot fit in a compact tile";
+const name =
+  "A very long project document title that cannot fit in a compact tile";
 const document: ProjectDocument = {
   type: "storyboard",
   ref: "board-1",
@@ -52,7 +53,27 @@ it("says when the document was last edited", () => {
     </ThemeProvider>
   );
 
-  expect(screen.getByText(/Edited 2 hours ago/)).toBeInTheDocument();
+  expect(screen.getByTitle("Edited 2 hours ago")).toHaveTextContent(
+    "2 hours ago"
+  );
+});
+
+it("shows a compact card's edit time on its title row, so it is in view with the title", () => {
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <ProjectDocumentCard
+        document={{ ...document, updatedAt: twoHoursAgo }}
+        sourceProjectId="p1"
+        onOpen={jest.fn()}
+        compact
+      />
+    </ThemeProvider>
+  );
+
+  const time = screen.getByTitle("Edited 2 hours ago");
+  expect(time.parentElement).toContainElement(screen.getByTitle(name));
+  expect(time).toHaveStyle({ whiteSpace: "nowrap", flexShrink: "0" });
 });
 
 const renderCard = (

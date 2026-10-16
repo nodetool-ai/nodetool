@@ -110,7 +110,8 @@ Waiting for a processor does not count. A call ends only when both its CPU time
 and its wall time reach the limit. Browsers have no thread CPU clock, so there
 the limit counts wall time. The 50 ms script budget for a whole tick and the
 100 ms limit for evaluating a source during preparation count wall time on
-every host. A script that loops forever still ends at its limit.
+every host. A session's first scripted tick has 1,000 ms instead of 50 ms,
+because it runs each script for the first time. A script that loops forever still ends at its limit.
 
 ### Script parameters
 
@@ -342,6 +343,84 @@ Scene entry starts authored entities' animation and lifetime clocks, and saves
 preserve those clocks and active contact pairs.
 
 ## Particles
+
+The particle inspector offers Fire, Smoke, Sparks, Dust, Magic, Rain, Snow and
+Explosion presets in both dimensions. Applying one replaces that entity's
+`particles` component and preserves its other components. Select an emitter
+to edit its fields, lifetime curves and color gradient. Renaming an emitter
+repairs its death-emitter references. Removing one removes references to it.
+The isolated preview uses a fixed seed and restarts when edited. Pause and
+Restart affect the preview only. The 2D preview uses Canvas2D, including sprite
+sheets and blending. The 3D preview uses WebGL2, including stretched and mesh
+particles and depth softness. It does not run gameplay scripts or change the
+play session. The 3D editor play view limitation below still applies.
+
+Agents and CLI document edits use the same `update_entity` operation as the
+inspector. Set the complete component with
+`{op: "update_entity", entity_id: "effect", set: {particles: {emitters: [...]}}}`.
+There is no preset-name operation. Node.js authoring can also import
+`getGameParticlePreset(name, dimension)` from `@nodetool-ai/protocol` to get
+fresh canonical data. In a code action, use the JSON recipes below with the
+existing game edit API instead of importing that host package.
+
+### Particle preset recipes
+
+Each payload is a complete `particles` component. Omitted fields take schema
+defaults. These canonical recipes use 3D draw settings. For a 2D entity, remove
+`render` from each emitter and set `shape.size.z` to `0` for box shapes.
+Keep other values unchanged. Both dimensions use world units and +Y upward.
+Place rain and snow emitters above the area they cover. Explosion is a finite
+burst, which can be restarted with `emitParticles` without a count.
+
+#### fire
+
+```json
+{"emitters":[{"id":"flame","rate":48,"shape":{"kind":"cone","angle":15,"radius":0.15},"lifetime":{"min":0.6,"max":1.2},"speed":{"min":1.2,"max":2.2},"size":{"min":0.15,"max":0.4},"color":"#ff932d","sizeOverLifetime":[{"t":0,"value":0.5},{"t":0.3,"value":1},{"t":1,"value":0.1}],"opacityOverLifetime":[{"t":0,"value":0},{"t":0.12,"value":1},{"t":1,"value":0}],"colorOverLifetime":[{"t":0,"color":"#fff4a0"},{"t":0.5,"color":"#ff8326"},{"t":1,"color":"#a91c14"}],"gravity":{"x":0,"y":1.4,"z":0},"blend":"additive","unlit":true}]}
+```
+
+#### smoke
+
+```json
+{"emitters":[{"id":"smoke","rate":14,"shape":{"kind":"cone","angle":20,"radius":0.2},"lifetime":{"min":2,"max":3.5},"speed":{"min":0.3,"max":0.7},"size":{"min":0.3,"max":0.6},"color":"#9d9fa8","opacity":0.45,"sizeOverLifetime":[{"t":0,"value":0.4},{"t":1,"value":2.5}],"opacityOverLifetime":[{"t":0,"value":0},{"t":0.12,"value":1},{"t":1,"value":0}],"colorOverLifetime":[{"t":0,"color":"#52545e"},{"t":1,"color":"#b9bac2"}],"gravity":{"x":0.08,"y":0.35,"z":0},"drag":0.3,"unlit":true}]}
+```
+
+#### sparks
+
+```json
+{"emitters":[{"id":"sparks","rate":24,"shape":{"kind":"sphere","radius":0.05,"fromSurface":false},"lifetime":{"min":0.3,"max":0.9},"speed":{"min":2,"max":5},"size":{"min":0.025,"max":0.06},"color":"#ffd37c","opacityOverLifetime":[{"t":0,"value":0},{"t":0.12,"value":1},{"t":1,"value":0}],"colorOverLifetime":[{"t":0,"color":"#fff4c1"},{"t":1,"color":"#e7551d"}],"gravity":{"x":0,"y":-4,"z":0},"blend":"additive","unlit":true,"render":{"kind":"stretched","length":2,"speedScale":0.04}}]}
+```
+
+#### dust
+
+```json
+{"emitters":[{"id":"dust","rate":8,"shape":{"kind":"box","size":{"x":4,"y":2,"z":2}},"lifetime":{"min":3,"max":6},"speed":{"min":0.02,"max":0.08},"size":{"min":0.02,"max":0.05},"color":"#d4c4a0","opacity":0.45,"opacityOverLifetime":[{"t":0,"value":0},{"t":0.12,"value":1},{"t":1,"value":0}],"gravity":{"x":0.01,"y":0.01,"z":0},"unlit":true}]}
+```
+
+#### magic
+
+```json
+{"emitters":[{"id":"magic","rate":30,"shape":{"kind":"sphere","radius":0.7,"fromSurface":true},"lifetime":{"min":0.8,"max":1.8},"speed":{"min":0.1,"max":0.5},"size":{"min":0.04,"max":0.12},"angularVelocity":{"min":-3.141592653589793,"max":3.141592653589793},"color":"#9d79ff","sizeOverLifetime":[{"t":0,"value":0},{"t":0.3,"value":1.5},{"t":1,"value":0}],"opacityOverLifetime":[{"t":0,"value":0},{"t":0.12,"value":1},{"t":1,"value":0}],"colorOverLifetime":[{"t":0,"color":"#63f4ff"},{"t":0.5,"color":"#9970ff"},{"t":1,"color":"#fa91e6"}],"blend":"additive","unlit":true}]}
+```
+
+#### rain
+
+```json
+{"emitters":[{"id":"rain","rate":120,"maxParticles":512,"shape":{"kind":"box","size":{"x":6,"y":0.2,"z":3}},"lifetime":{"min":0.7,"max":1.1},"speed":0,"size":0.025,"color":"#a2c9e8","opacity":0.65,"opacityOverLifetime":[{"t":0,"value":0},{"t":0.12,"value":1},{"t":1,"value":0}],"gravity":{"x":0.4,"y":-18,"z":0},"unlit":true,"render":{"kind":"stretched","length":2,"speedScale":0.06}}]}
+```
+
+#### snow
+
+```json
+{"emitters":[{"id":"snow","rate":28,"shape":{"kind":"box","size":{"x":6,"y":0.2,"z":3}},"lifetime":{"min":4,"max":6},"speed":0,"size":{"min":0.04,"max":0.1},"angularVelocity":{"min":-0.7853981633974483,"max":0.7853981633974483},"color":"#e8f5ff","opacity":0.9,"opacityOverLifetime":[{"t":0,"value":0},{"t":0.12,"value":1},{"t":1,"value":0}],"gravity":{"x":0.025,"y":-0.25,"z":0},"unlit":true}]}
+```
+
+#### explosion
+
+```json
+{"emitters":[{"id":"explosion","duration":0.1,"loop":false,"rate":0,"bursts":[{"time":0,"count":96,"cycles":1,"interval":0.1}],"shape":{"kind":"sphere","radius":0.1,"fromSurface":false},"lifetime":{"min":0.4,"max":1},"speed":{"min":2,"max":6},"size":{"min":0.1,"max":0.3},"color":"#ff9b30","sizeOverLifetime":[{"t":0,"value":1.5},{"t":1,"value":0}],"opacityOverLifetime":[{"t":0,"value":0},{"t":0.12,"value":1},{"t":1,"value":0}],"colorOverLifetime":[{"t":0,"color":"#fff6c5"},{"t":0.4,"color":"#ff992c"},{"t":1,"color":"#b62c19"}],"drag":2,"blend":"additive","unlit":true}]}
+```
+
+### Particle component fields
 
 Add particle effects with the `particles` component on any 2D (schema 2 or
 later) or 3D entity. It holds up to 8 `emitters`, each with a unique `id`. An
