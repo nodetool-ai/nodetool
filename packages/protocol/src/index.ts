@@ -63,6 +63,7 @@ export * from "./game.js";
 export * from "./game3d.js";
 export * from "./game-script-params.js";
 export * from "./game-particles.js";
+export * from "./game-particle-presets.js";
 export * from "./game-script-events.js";
 export * from "./game-saves.js";
 export * from "./game-migration.js";

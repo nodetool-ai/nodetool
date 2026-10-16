@@ -89,7 +89,7 @@ export const MINIMAX_T2V_MODELS: string[] = [
    ];
    ```
 
-   Do the same for `MINIMAX_I2V_MODELS` if the model supports image-to-video. TTS, music, and image models have matching constants (`MINIMAX_TTS_MODELS`, `MINIMAX_MUSIC_MODELS`). Chat models exist only in the provider, because the pack has no chat node.
+   Do the same for `MINIMAX_I2V_MODELS` if the model supports image-to-video. TTS and music models have matching constants (`MINIMAX_TTS_MODELS`, `MINIMAX_MUSIC_MODELS`). The image node lists `image-01` inline in its `@prop` (`nodes/text-to-image.ts`). Chat models exist only in the provider, because the pack has no chat node.
 
 3. The node's `@prop` enum picks up the new entry automatically — no change to the node file needed.
 
@@ -195,11 +195,11 @@ Say MiniMax releases a new endpoint, for example `POST /v1/text_to_3d`. The 3D n
 Run these in order after any change:
 
 ```bash
-# 1. Type check all packages
-npm run typecheck
-
-# 2. Build (minimax-nodes loads from dist/)
+# 1. Build (the build is tsc, so it type-checks the backend packages; minimax-nodes loads from dist/)
 npm run build:packages
+
+# 2. Type check web, electron and mobile
+npm run typecheck
 
 # 3. Run a single node in isolation (no full server needed)
 npm run dev:nodetool -- node run minimax.TextToSpeech \

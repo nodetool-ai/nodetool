@@ -276,8 +276,14 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
           schema_name: SCREENPLAY_TOOL_NAME,
           schema_description: SCREENPLAY_TOOL_DESCRIPTION
         }, undefined, runSignal);
+        // The ratio is the creator's, sent to the Director as an input. An
+        // answer that names another one (the fake provider's "fake") must not
+        // replace it: the board renders and sizes every still from it.
         const parsed = result.data
-          ? parseScreenplay(result.data, { shotCount, aspectRatio, genre })
+          ? {
+              ...parseScreenplay(result.data, { shotCount, aspectRatio, genre }),
+              aspect_ratio: aspectRatio
+            }
           : null;
         // No usable answer — a provider without tool support, or the fake
         // provider — falls back to placeholder shots derived from the brief,

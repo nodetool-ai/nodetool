@@ -144,7 +144,7 @@ export default function ModelSupportSection({
                                 <span
                                     key={`${model.name}-${idx}`}
                                     aria-hidden={idx >= frontierModels.length || undefined}
-                                    className={`flex-shrink-0 mx-4 text-lg font-medium whitespace-nowrap text-slate-300`}
+                                    className={`shrink-0 mx-4 text-lg font-medium whitespace-nowrap text-slate-300`}
                                 >
                                     {model.name}
                                 </span>
@@ -170,7 +170,7 @@ export default function ModelSupportSection({
                                     href={provider.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className={`flex-shrink-0 flex items-center gap-2 mx-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.03] transition-colors hover:border-white/25 hover:bg-white/[0.06]`}
+                                    className={`shrink-0 flex items-center gap-2 mx-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.03] transition-colors hover:border-white/25 hover:bg-white/[0.06]`}
                                 >
                                     {provider.LogoComponent ? (
                                         <provider.LogoComponent className="text-slate-300" size={18} />
@@ -201,7 +201,7 @@ export default function ModelSupportSection({
                                     href={engine.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className={`flex-shrink-0 flex items-center gap-2 mx-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.03] transition-colors hover:border-white/25 hover:bg-white/[0.06]`}
+                                    className={`shrink-0 flex items-center gap-2 mx-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.03] transition-colors hover:border-white/25 hover:bg-white/[0.06]`}
                                 >
                                     {engine.LogoComponent ? (
                                         <engine.LogoComponent className="text-slate-300" size={18} />

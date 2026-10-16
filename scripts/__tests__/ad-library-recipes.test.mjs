@@ -204,6 +204,15 @@ describe("ad library Recipe apps", () => {
     }
   });
 
+  it("puts the start choice and its Next button above the model pickers, so Next is in view at 1280 x 720", () => {
+    for (const {slug, bundle} of AD_LIBRARY_APPS) {
+      const ids = bundle.app.ui.content.find(widget => widget.props.id === "step-start").props.content.map(widget => widget.props.id);
+      expect(ids.indexOf("fillPath"), slug).toBeLessThan(ids.indexOf("finishModel"));
+      expect(ids.indexOf("start-nav"), slug).toBe(ids.indexOf("fillPath") + 1);
+      expect(ids.indexOf("start-nav"), slug).toBeLessThan(ids.indexOf("finishModel"));
+    }
+  });
+
   it("asks for an image model on Start and runs planning and building as agent jobs", () => {
     for (const {bundle} of AD_LIBRARY_APPS) {
       const stepContent = id => bundle.app.ui.content.find(widget => widget.props.id === id).props.content;

@@ -78,6 +78,7 @@ import {
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
 import { useFitToScreenRequest } from "../../hooks/useFitToScreenRequest";
 import { useClearInspectorOverlap } from "../../hooks/useClearInspectorOverlap";
+import { useInitialFitAboveChatDock } from "../../hooks/useInitialFitAboveChatDock";
 import { useNodeDragDiagnostics } from "../../hooks/useNodeDragDiagnostics";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
@@ -962,6 +963,7 @@ const ReactFlowWrapper = ({
   }, [reactFlowInstance]);
   useFitToScreenRequest(shouldFitToScreen, nodeStore, fitToScreen);
   useClearInspectorOverlap(active);
+  useInitialFitAboveChatDock(active, storedViewport, nodes.length);
 
   const snapGrid = useMemo(
     () => [gridSnap, gridSnap] as [number, number],

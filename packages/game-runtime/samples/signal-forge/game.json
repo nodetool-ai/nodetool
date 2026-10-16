@@ -257,6 +257,28 @@
       "assetId": "9fc35a7fd9e39efc937ce1b0c9641024",
       "digest": "9fc35a7fd9e39efc937ce1b0c9641024e7a1b31058389c8681c3bcdbb84aebb7",
       "required": true
+    },
+    "forge-static-collisions": {
+      "mediaKind": "collider",
+      "assetId": "4083a3fff3aeda59dc2b9d8bc35f2789",
+      "digest": "4083a3fff3aeda59dc2b9d8bc35f2789852cfe0c8b3a37c64a8adaf1f405c333",
+      "required": true,
+      "preparationVersion": "1",
+      "shape": "triangleMesh",
+      "bounds": {
+        "min": {
+          "x": -6.275000095367432,
+          "y": -0.005000002216547728,
+          "z": -64
+        },
+        "max": {
+          "x": 6.275000095367432,
+          "y": 4,
+          "z": 6
+        }
+      },
+      "vertices": 2424,
+      "triangles": 1296
     }
   },
   "prefabs": {},
@@ -540,7 +562,7 @@
             },
             {
               "kind": "script",
-              "source": "(input)=>{\n const s=input.state||{cp:0,stage:0,pulse:-60,won:false,grounded:false};const c=[],p=input.entity.position;const has=name=>input.events.some(e=>e.kind==='trigger'&&e.event===name);\n if(has('relay-online')){s.cp=1;s.stage=1;c.push({kind:'setProp',key:'checkpoint',value:true},{kind:'ui',id:'objective',text:'02 / CROSS THE SHUTTLE     Follow the mint route into the foundry'},{kind:'ui',id:'progress',value:1});}\n if(p.z<-17.5&&s.cp===1){s.cp=2;c.push({kind:'emit',event:'checkpoint-forge'},{kind:'ui',id:'objective',text:'03 / COOL THE FOUNDRY     Hold E beside the right-hand terminal'});}\n if(has('coolant-online')){s.stage=2;c.push({kind:'ui',id:'objective',text:'03 / CROSS THE FURNACE     The coolant bridge is rising'},{kind:'ui',id:'progress',value:2});}\n if(p.z<-39&&s.cp===2){s.cp=3;c.push({kind:'emit',event:'checkpoint-reactor'},{kind:'ui',id:'objective',text:'04 / PRIME THE REACTOR     Hold E beside the left-hand terminal'});}\n if(has('reactor-online')){s.stage=3;c.push({kind:'ui',id:'objective',text:'04 / RESTORE THE SIGNAL     Enter the reactor beacon'},{kind:'ui',id:'progress',value:3});}\n if(input.events.some(e=>e.kind==='win')){s.won=true;c.push({kind:'ui',id:'objective',text:'SIGNAL RESTORED     Every sector is online'},{kind:'ui',id:'progress',value:4},{kind:'ui',id:'victory',visible:true});}\n if(p.y<-7||input.justPressed.includes('respawn')){const z=s.cp===3?-39.5:s.cp===2?-19:s.cp===1?-8.7:4;c.push({kind:'teleport',position:{x:0,y:.9,z}},{kind:'emit',event:'recovered'});}\n if(input.pressed.includes('pulse')&&input.tick-s.pulse>18&&!s.won){s.pulse=input.tick;c.push({kind:'emit',event:'pulse-fired'});}\n if(input.entity.grounded&&input.justPressed.includes('jump'))c.push({kind:'emit',event:'jump'});if(!s.grounded&&input.entity.grounded&&input.tick>2)c.push({kind:'emit',event:'land'});s.grounded=input.entity.grounded;\n if(input.tick<=1)c.push({kind:'hud',id:'score',text:' ',x:0,y:0},{kind:'hud',id:'win',text:' ',x:0,y:0});\n if(input.tick%30===0&&!s.won){let t='Approach the amber core, then hold E to push it';if(s.cp===1)t='Wait at the mint dock lights, then ride the shuttle';if(s.cp===2)t=s.stage<2?'Right-hand coolant terminal \u00b7 approach and hold E':'Coolant active \u00b7 cross the raised bridge';if(s.cp===3)t=s.stage<3?'Left-hand reactor terminal \u00b7 approach and hold E':'Final gate open \u00b7 reach the descending reactor core';c.push({kind:'ui',id:'hint',text:t});}\n return {state:s,commands:c};\n}",
+              "source": "(input)=>{\n const s=input.state||{cp:0,stage:0,pulse:-60,won:false,grounded:false};const c=[],p=input.entity.position;const has=name=>input.events.some(e=>e.kind==='trigger'&&e.event===name);\n if(has('relay-online')){s.cp=1;s.stage=1;c.push({kind:'setProp',key:'checkpoint',value:true},{kind:'ui',id:'objective',text:'02 / CROSS THE SHUTTLE     Follow the mint route into the foundry'},{kind:'ui',id:'progress',value:1});}\n if(p.z<-17.5&&s.cp===1){s.cp=2;c.push({kind:'emit',event:'checkpoint-forge'},{kind:'ui',id:'objective',text:'03 / COOL THE FOUNDRY     Hold E beside the right-hand terminal'});}\n if(has('coolant-online')){s.stage=2;c.push({kind:'ui',id:'objective',text:'03 / CROSS THE FURNACE     The coolant bridge is rising'},{kind:'ui',id:'progress',value:2});}\n if(p.z<-39&&s.cp===2){s.cp=3;c.push({kind:'emit',event:'checkpoint-reactor'},{kind:'ui',id:'objective',text:'04 / PRIME THE REACTOR     Hold E beside the left-hand terminal'});}\n if(has('reactor-online')){s.stage=3;c.push({kind:'ui',id:'objective',text:'04 / RESTORE THE SIGNAL     Enter the reactor beacon'},{kind:'ui',id:'progress',value:3});}\n if(input.events.some(e=>e.kind==='win')){s.won=true;c.push({kind:'ui',id:'objective',text:'SIGNAL RESTORED     Every sector is online'},{kind:'ui',id:'progress',value:4},{kind:'ui',id:'victory',visible:true});}\n if(p.y<-7||input.justPressed.includes('respawn')){const z=s.cp===3?-39.5:s.cp===2?-19:s.cp===1?-8.7:4;c.push({kind:'teleport',position:{x:0,y:.9,z}},{kind:'emit',event:'recovered'});}\n if(input.pressed.includes('pulse')&&input.tick-s.pulse>18&&!s.won){s.pulse=input.tick;c.push({kind:'emit',event:'pulse-fired'});}\n if(input.entity.grounded&&input.justPressed.includes('jump'))c.push({kind:'emit',event:'jump'});if(!s.grounded&&input.entity.grounded&&input.tick>2)c.push({kind:'emit',event:'land'});s.grounded=input.entity.grounded;\n if(input.tick<=1)c.push({kind:'hud',id:'score',text:' ',x:0,y:0},{kind:'hud',id:'win',text:' ',x:0,y:0});\n if(input.tick%30===0&&!s.won){let t='Approach the amber core, then hold E to push it';if(s.cp===1)t='Wait at the mint dock lights, then ride the shuttle';if(s.cp===2)t=s.stage<2?'Right-hand coolant terminal · approach and hold E':'Coolant active · cross the raised bridge';if(s.cp===3)t=s.stage<3?'Left-hand reactor terminal · approach and hold E':'Final gate open · reach the descending reactor core';c.push({kind:'ui',id:'hint',text:t});}\n return {state:s,commands:c};\n}",
               "maxCommands": 24,
               "maxTickMs": 50
             }
@@ -686,7 +708,7 @@
             "position": {
               "x": -5.2,
               "y": 1.8,
-              "z": 4
+              "z": 3
             },
             "rotation": [
               0,
@@ -720,9 +742,9 @@
           "collider3d": {
             "kind": "box",
             "halfExtents": {
-              "x": 0.3,
+              "x": 0.33,
               "y": 1.8,
-              "z": 0.3
+              "z": 0.36
             },
             "offset": {
               "x": 0,
@@ -752,7 +774,7 @@
             "position": {
               "x": -5.2,
               "y": 1.8,
-              "z": -1
+              "z": -2
             },
             "rotation": [
               0,
@@ -786,9 +808,9 @@
           "collider3d": {
             "kind": "box",
             "halfExtents": {
-              "x": 0.3,
+              "x": 0.33,
               "y": 1.8,
-              "z": 0.3
+              "z": 0.36
             },
             "offset": {
               "x": 0,
@@ -818,7 +840,7 @@
             "position": {
               "x": -5.2,
               "y": 1.8,
-              "z": -6
+              "z": -7
             },
             "rotation": [
               0,
@@ -852,9 +874,9 @@
           "collider3d": {
             "kind": "box",
             "halfExtents": {
-              "x": 0.3,
+              "x": 0.33,
               "y": 1.8,
-              "z": 0.3
+              "z": 0.36
             },
             "offset": {
               "x": 0,
@@ -918,9 +940,9 @@
           "collider3d": {
             "kind": "box",
             "halfExtents": {
-              "x": 0.3,
+              "x": 0.33,
               "y": 1.8,
-              "z": 0.3
+              "z": 0.36
             },
             "offset": {
               "x": 0,
@@ -984,9 +1006,9 @@
           "collider3d": {
             "kind": "box",
             "halfExtents": {
-              "x": 0.3,
+              "x": 0.33,
               "y": 1.8,
-              "z": 0.3
+              "z": 0.36
             },
             "offset": {
               "x": 0,
@@ -1016,7 +1038,7 @@
             "position": {
               "x": 5.2,
               "y": 1.8,
-              "z": 4
+              "z": 3
             },
             "rotation": [
               0,
@@ -1050,9 +1072,9 @@
           "collider3d": {
             "kind": "box",
             "halfExtents": {
-              "x": 0.3,
+              "x": 0.33,
               "y": 1.8,
-              "z": 0.3
+              "z": 0.36
             },
             "offset": {
               "x": 0,
@@ -1082,7 +1104,7 @@
             "position": {
               "x": 5.2,
               "y": 1.8,
-              "z": -1
+              "z": -2
             },
             "rotation": [
               0,
@@ -1116,9 +1138,9 @@
           "collider3d": {
             "kind": "box",
             "halfExtents": {
-              "x": 0.3,
+              "x": 0.33,
               "y": 1.8,
-              "z": 0.3
+              "z": 0.36
             },
             "offset": {
               "x": 0,
@@ -1148,7 +1170,7 @@
             "position": {
               "x": 5.2,
               "y": 1.8,
-              "z": -6
+              "z": -7
             },
             "rotation": [
               0,
@@ -1182,9 +1204,9 @@
           "collider3d": {
             "kind": "box",
             "halfExtents": {
-              "x": 0.3,
+              "x": 0.33,
               "y": 1.8,
-              "z": 0.3
+              "z": 0.36
             },
             "offset": {
               "x": 0,
@@ -1248,9 +1270,9 @@
           "collider3d": {
             "kind": "box",
             "halfExtents": {
-              "x": 0.3,
+              "x": 0.33,
               "y": 1.8,
-              "z": 0.3
+              "z": 0.36
             },
             "offset": {
               "x": 0,
@@ -1314,9 +1336,9 @@
           "collider3d": {
             "kind": "box",
             "halfExtents": {
-              "x": 0.3,
+              "x": 0.33,
               "y": 1.8,
-              "z": 0.3
+              "z": 0.36
             },
             "offset": {
               "x": 0,
@@ -4202,6 +4224,68 @@
             "distanceModel": "inverse"
           },
           "behaviors": []
+        },
+        {
+          "id": "forge-static-obstacles",
+          "name": "Authored static obstacle collisions",
+          "templateOnly": false,
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "body3d": {
+            "type": "static",
+            "velocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "angularVelocity": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "gravityScale": 1,
+            "linearDamping": 0,
+            "angularDamping": 0,
+            "ccd": false
+          },
+          "collider3d": {
+            "kind": "triangleMesh",
+            "assetId": "forge-static-collisions",
+            "offset": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "sensor": false,
+            "category": 1,
+            "mask": 65535,
+            "physicsMaterial": "stone",
+            "friction": 0.5,
+            "restitution": 0
+          },
+          "behaviors": []
         }
       ]
     }
@@ -4393,7 +4477,7 @@
         },
         "size": 16,
         "color": "#e8d4a9",
-        "text": "Approach the amber core \u00b7 WASD or arrow keys"
+        "text": "Approach the amber core · WASD or arrow keys"
       }
     ]
   }
