@@ -136,6 +136,7 @@ jobs:
       - uses: ./.github/actions/setup-build
         with:
           cache: read-only
+          extra-apt: libsecret-1-dev
       - name: Pin workspace versions in the test tarballs
         run: node scripts/prepare-publish.mjs
       - name: Pack and pin original release artifacts once
