@@ -45,7 +45,7 @@ export class VerifiedStandaloneAssets {
     const cached = this.pending.get(path);
     if (cached) { return cached; }
     const binding = this.bindings[logicalId];
-    const pending = fetch(path, { signal: this.controller.signal, redirect: "error" }).then(async (response) => {
+    const pending = fetch(path, { signal: this.controller.signal, redirect: "error", cache: "no-cache" }).then(async (response) => {
       if (!response.ok) { throw new Error(`Export asset ${logicalId} could not load (${response.status})`); }
       const bytes = new Uint8Array(await response.arrayBuffer());
       const hash = await crypto.subtle.digest("SHA-256", bytes);
