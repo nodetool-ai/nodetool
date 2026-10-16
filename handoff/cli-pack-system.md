@@ -2,31 +2,49 @@
 
 ## Start here
 
-Continue implementing [the plan](../docs/cli-pack-system-plan.md) and
-[the design](../docs/cli-pack-system-design.md). The overall project is unfinished.
-The current branch is `codex/cli-pack-dependency-cuts`, forked from
-`codex/cli-pack-system-runtime` at `7fc7941c4d` on the user’s explicit
-instruction. The foundation PR is
-[PR #6550](https://github.com/nodetool-ai/nodetool/pull/6550). Keep the new PR
-stacked against that branch until the foundation lands. Both layers remain
-work in progress pending remote verification.
+Use [the plan](../docs/cli-pack-system-plan.md) and
+[the design](../docs/cli-pack-system-design.md). Foundation
+[PR #6550](https://github.com/nodetool-ai/nodetool/pull/6550), runtime and
+installer [PR #6558](https://github.com/nodetool-ai/nodetool/pull/6558), and
+staging verifier [PR #6591](https://github.com/nodetool-ai/nodetool/pull/6591)
+have merged.
 
-Read [latest acceptance and remaining work](#a8-acceptance-and-a9-size-gate)
-before the earlier implementation checkpoints.
+Release corrections are in
+[PR #6630](https://github.com/nodetool-ai/nodetool/pull/6630). They preserve
+original release artifacts while measuring prerelease dependencies through
+temporary tarballs, and keep shared media dependency versions equal to their
+install pins.
+
+The final CLI cut is in
+[PR #6632](https://github.com/nodetool-ai/nodetool/pull/6632), on
+`codex/cli-pack-final-cut`, forked from the release correction branch. It ships
+core nodes, enables authorized pack installs, and verifies original artifacts
+in isolated project and global consumers. The first global transaction binds
+same-version catalog root reinstallation to CLI authorization so npm can
+establish verified integrity records. See
+[global bootstrap](../docs/cli-pack-system-plan.md#d25-global-installation-baseline-without-a-hidden-lock).
+
+Require the actual A13 staging rehearsal before merging or publishing A24.
+Require complete mandatory CI and project/global artifact acceptance before
+claiming completion. Read the linked PRs for current checks and release evidence.
+The sections below preserve earlier implementation checkpoints.
+
+The user authorized commits, pushes, green PR merges, and staging prerelease
+rehearsals. Preserve the stable `latest` tag. The organization owner deleted
+`NPM_TOKEN` and confirmed trusted publishers should cover the cohort. Use
+`nodetool packs` for management. Authorized project installs may update the
+project manifest and lockfile. FAL acceptance uses a real installed node with
+strict deterministic responses and no provider API spend.
 
 Read [repository instructions](../AGENTS.md),
-[development standards](../docs/DEVELOPMENT_STANDARDS.md), the touched area
-overlays and [implement](../.agents/skills/implement/SKILL.md).
-Use sub-agents for implementation and `gpt-6-astra` for review, as the user
-requested. Do not start or run Linux Docker. Linux verification belongs in
-remote CI. The user authorized commits, pushes and PR creation. Do not ask
-again for routine permission. Do not publish npm packages or merge a PR merely
-because pushing a branch was authorized.
+[development standards](../docs/DEVELOPMENT_STANDARDS.md), and the touched area
+overlays. Use parallel agents and Astra for hard tasks and critical reviews.
+Do not run Linux Docker locally. Use remote CI for Docker verification.
 
-On another computer, fetch this branch, create a local tracking branch, run
+On another computer, fetch the relevant PR branch, run
 `scripts/setup-agent-env.sh`, use the Node version in `.nvmrc`, and run
-`npm run build:packages`. No dependency folders or local build outputs were
-transferred. Inspect the remote branch and this file before making changes.
+`npm run build:packages`. Dependency folders and local build outputs are not
+transferred through Git.
 
 ## What is merged
 

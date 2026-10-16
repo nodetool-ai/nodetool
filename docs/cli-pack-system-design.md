@@ -234,9 +234,10 @@ it at runtime.
 ### 6.4 Clean-core tests
 
 The monorepo tree contains every pack, so in-repo Jest cannot prove the cut.
-`scripts/smoke-packed-cli.mjs` already installs packed tarballs into an empty
-project and runs the CLI against an empty HOME. It gains a core-only variant
-that installs the CLI tarball with no pack tarballs available:
+`scripts/smoke-packed-cli.mjs` installs the original pinned release tarballs
+through an isolated registry into an empty project or global prefix, with an
+empty HOME. It does not rewrite the CLI manifest. The core checks run before
+any optional pack installation:
 
 1. `nodetool --help` lists every command, including those that need packs.
 2. `node -e 'import("@nodetool-ai/dsl")'` from the install root succeeds.
@@ -256,6 +257,11 @@ that installs the CLI tarball with no pack tarballs available:
    resolved `@typescript/typescript6` wrapper. The exceptions must resolve from
    those dependents and satisfy their declared ranges. The check fails on a
    deliberately added pack before it is enforced.
+
+After the clean-core checks, the smoke uses the real authorized installer to
+add FAL and runs an installed FAL node with deterministic responses. The full
+smoke installs the optional packs through `packs add`. Registry staging
+verification also exercises a clean global install before promotion.
 
 ## 7. Shared third-party identity (F4)
 
@@ -753,7 +759,10 @@ command is not covered. `packs doctor` detects its effects.
    lack this file. Only that initial global snapshot may omit integrity
    (plan D25). Existing malformed or stale locks still fail. Post-install
    verification requires a valid lock and all release pins before scripts or
-   imports. Preserve initial identities and compare every known integrity.
+   imports. Preserve initial identities and compare every known integrity. The
+   first global transaction can reinstall explicitly authorized catalog roots
+   at the same version to establish genuine npm integrity records, with scripts
+   disabled. See [global bootstrap](cli-pack-system-plan.md#d25-global-installation-baseline-without-a-hidden-lock).
 6. Plan with `npm install --dry-run` and the same flags and specs (14.5).
 7. Run `npm install` with `--ignore-scripts`.
 8. Verify the tree (14.6). No install script and no pack import has run yet.
@@ -807,8 +816,18 @@ Before any install script or import:
 4. Each shared-identity library resolves to one realpath from every dependent
    (D12).
 
-Other third-party packages float within their declared ranges, as they do for
-the core CLI install today (R1).
+Requested runtime library pins apply to their exact top-level installation
+folders, including npm aliases. Private transitive copies may use other
+versions within their declared ranges. Pack, companion, shared-identity and
+script allowlist pins retain their checks across installed copies. Every
+pre-existing package remains unchanged.
+
+Doctor verifies runtime libraries recorded in the desired set or required by
+installed optional packs. Optional capabilities inside core packages do not
+require installing their runtimes in an otherwise clean core installation. An intrinsic transitive dependency alone does not make a
+managed runtime library installed.
+
+Other third-party packages float within their declared ranges (R1).
 
 ### 14.7 Rollback
 

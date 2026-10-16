@@ -31,7 +31,7 @@ export async function installMissingPacksAndReexec(value: unknown, options: {
   const runtime = commandMissingRuntime(value)?.runtimePackage;
   const runtimeLibraries = [...new Set([...(missing?.runtimeLibraries ?? []).filter(isRuntimeNpmPackageId),
     ...(runtime && isRuntimeNpmPackageId(runtime) ? [runtime] : [])])];
-  if ((!missing && !runtimeLibraries.length) || process.env["NODETOOL_PACKS_REEXEC"] === "1" || process.env["NODETOOL_PACKS_INSTALLER"] !== "1") {
+  if ((!missing && !runtimeLibraries.length) || process.env["NODETOOL_PACKS_REEXEC"] === "1") {
     return null;
   }
   const snapshot = await (dependencies.snapshot ?? loadCliPackSnapshot)();

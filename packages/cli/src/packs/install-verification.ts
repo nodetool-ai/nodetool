@@ -16,7 +16,7 @@ export async function prepareTreeVerification(selection: InstallSelection, cliRo
       if (!pin) { throw new Error(`Runtime library ${id} has no integrity pins; installation is unavailable until catalog pins are supplied.`); }
       const spec = pin.installName && pin.installName !== pin.name ? `${pin.installName}@npm:${pin.name}@${pin.version}` : `${pin.name}@${pin.version}`;
       if (spec !== RUNTIME_NPM_PACKAGES[id].npmPackages[index]) { throw new Error(`Runtime library ${id} pin differs from its exact runtime spec: ${name}`); }
-      return pin;
+      return { ...pin, installPath: `node_modules/${name}` };
     });
   };
   const runtimePins = selection.runtimeLibraries.flatMap((id) => {
@@ -33,7 +33,7 @@ export async function prepareTreeVerification(selection: InstallSelection, cliRo
       throw new Error(`Shared library ${name} has no integrity pin`);
     }
   }
-  const pins = [...packs.map((pack) => pack.npm), ...provided, ...runtimePins, ...packs.flatMap((pack) => pack.scriptAllowlist),
+  const pins: readonly VerificationPin[] = [...packs.map((pack) => pack.npm), ...provided, ...runtimePins, ...packs.flatMap((pack) => pack.scriptAllowlist),
     ...shared.filter((pin) => before.some((entry) => entry.name === pin.name))];
   if (pins.some((pin) => !pin.integrity || pin.integrity === "PENDING")) { throw new Error("Installation requires published integrity pins"); }
   const packNames = new Set(catalog.packs.filter((pack) => pack.kind === "node-pack").flatMap((pack) => [pack.npm.name, ...pack.provides]));
@@ -51,11 +51,11 @@ export async function prepareTreeVerification(selection: InstallSelection, cliRo
   }
   if (initialGlobalLockMissing) {
     for (const pin of pins) {
-      const existing = before.filter((entry) => entry.name === pin.name);
+      const existing = before.filter((entry) => entry.name === pin.name && (!pin.installPath || entry.path === pin.installPath));
       if (existing.some((entry) => entry.version !== pin.version)) { throw new Error(`Global baseline package version differs from pin: ${pin.name}`); }
       if (shared.some((identity) => identity.name === pin.name) && existing.length !== 1) { throw new Error(`Shared library must exist exactly once: ${pin.name}`); }
     }
   }
-  assertTreePins(before, before, pins.filter((pin) => before.some((entry) => entry.name === pin.name && (!initialGlobalLockMissing || entry.integrity !== undefined))), coreNames, selection.coreVersion);
+  assertTreePins(before, before, pins.filter((pin) => before.some((entry) => entry.name === pin.name && (!pin.installPath || entry.path === pin.installPath) && (!initialGlobalLockMissing || entry.integrity !== undefined))), coreNames, selection.coreVersion);
   return { pins, provided, runtimePins, shared, coreNames, libraryPins, pinByFolder };
 }

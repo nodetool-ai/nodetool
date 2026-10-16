@@ -56,6 +56,29 @@ The Third-party list shows each pack's mode, either sandbox modules only, host n
 
 ## Installing Packs via CLI
 
+The npm CLI includes core, text, data, LLM, and code nodes. Install other
+first-party packs and npm runtime libraries for the CLI with `nodetool packs`:
+
+```bash
+nodetool packs list
+nodetool packs add fal
+nodetool packs add --for workflow.json
+
+# Restore the recorded packs and runtimes after upgrading the CLI
+nodetool packs add --restore
+```
+
+Packs use exact versions and integrity pins from the CLI release. Commands
+support global installations and npm projects. Add `--yes` to confirm an
+installation in a non-interactive terminal. Temporary npx installations and
+development checkouts support diagnostics but refuse installation changes.
+Restart running `nodetool serve` and `nodetool mcp serve` processes after
+adding or removing packs. See [CLI pack commands](cli.md#nodetool-packs).
+
+### Third-party and Python packs
+
+For the full server and desktop application:
+
 ```bash
 # List the Python packs the desktop app offers
 nodetool package list --available
@@ -70,7 +93,7 @@ npm update <pack-name>
 npm uninstall <pack-name>
 ```
 
-The server finds packs by scanning `node_modules` directories from the working directory upward. Add more directories with `NODETOOL_PACK_SEARCH_PATHS` (a list of directories) or `NODETOOL_OPTIONAL_NODE_MODULES` (one directory). Restart the server after any change.
+The full server finds third-party packs by scanning `node_modules` directories from the working directory upward. Add more directories with `NODETOOL_PACK_SEARCH_PATHS` (a list of directories) or `NODETOOL_OPTIONAL_NODE_MODULES` (one directory). Restart the server after any change.
 
 In production (`NODETOOL_ENV=production`, or `NODETOOL_PACKS_REQUIRE_ALLOWLIST=1`), only packs on the allowlist load. Set `NODETOOL_PACKS_ALLOWLIST` to a comma-separated list of package names, or edit the `allow` list in `~/.config/nodetool/packs.json`. See the [trust model](developer/custom-nodes-guide.md#4-trust-model-and-governance).
 
@@ -78,7 +101,7 @@ In production (`NODETOOL_ENV=production`, or `NODETOOL_PACKS_REQUIRE_ALLOWLIST=1
 
 ## Built-in Node Libraries
 
-NodeTool ships these first-party packs. The ids are in `BUILTIN_NODE_PACKS` (`packages/protocol/src/builtin-packs.ts`).
+The full server and desktop application include these first-party packs. The ids are in `BUILTIN_NODE_PACKS` (`packages/protocol/src/builtin-packs.ts`).
 
 | Pack | Default | Namespaces and contents |
 |------|---------|-------------------------|

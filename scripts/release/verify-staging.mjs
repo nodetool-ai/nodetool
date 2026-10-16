@@ -5,8 +5,9 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { cleanEnv } from "../smoke-packed-cli.mjs";
+import { assertCoreOnlyInstall, assertCoreInstallSize, CORE_INSTALL_BUDGET_KIB, cleanEnv } from "../smoke-packed-cli.mjs";
 import { runReleaseCommand, tarballIntegrity } from "./pin-catalog.mjs";
+import { runFalFixture } from "../packed-fal-fixture.mjs";
 import { validateInstallPin } from "./install-pins.mjs";
 
 export const RELEASE_REPOSITORY = "https://github.com/nodetool-ai/nodetool";
@@ -105,33 +106,62 @@ async function loadRegistryAttestations(url) {
 
 /** Verify a fresh registry CLI through its authorized pack installer. */
 export async function verifyRegistryInstall(catalog, { run = runReleaseCommand, temporaryRoot = tmpdir() } = {}) {
-  const pack = catalog.packs.find(entry => entry.kind === "node-pack" && entry.id === "fal") ?? catalog.packs.find(entry => entry.kind === "node-pack");
+  const pack = catalog.packs.find(entry => entry.kind === "node-pack" && entry.id === "fal");
   if (!pack) { throw new Error("No node pack is available for the staging install smoke"); }
   const work = mkdtempSync(join(temporaryRoot, "nodetool-registry-staging-"));
   try {
+    const app = join(work, "app");
+    mkdirSync(app);
     const home = join(work, "home");
     mkdirSync(home);
     const env = cleanEnv(home);
-    writeFileSync(join(work, "package.json"), JSON.stringify({ name: "nodetool-staging-smoke", private: true }));
-    run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", `@nodetool-ai/cli@${catalog.coreVersion}`], { cwd: work, env });
+    writeFileSync(join(app, "package.json"), JSON.stringify({ name: "nodetool-staging-smoke", private: true }));
+    run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", `@nodetool-ai/cli@${catalog.coreVersion}`], { cwd: app, env });
     // Verify registry signatures before executing the newly installed CLI.
-    run("npm", ["audit", "signatures"], { cwd: work, env });
-    const cli = join(work, "node_modules/.bin/nodetool");
-    const version = run(cli, ["--version"], { cwd: work, env }).trim();
+    run("npm", ["audit", "signatures"], { cwd: app, env });
+    run("npm", ["rebuild", "better-sqlite3", "--ignore-scripts=false", "--no-audit", "--no-fund"], { cwd: app, env });
+    const cli = join(app, "node_modules/.bin/nodetool");
+    const version = run(cli, ["--version"], { cwd: app, env }).trim();
     if (version !== catalog.coreVersion) { throw new Error(`Staging CLI reports ${version}, expected ${catalog.coreVersion}`); }
     run(cli, ["packs", "add", pack.id, "--yes"], {
-      cwd: work,
-      env: { ...env, NODETOOL_PACKS_INSTALLER: "1" }
+      cwd: app,
+      env
     });
     // Verify the expanded tree before the independent registration smoke.
-    run("npm", ["audit", "signatures"], { cwd: work, env });
+    run("npm", ["audit", "signatures"], { cwd: app, env });
     const code = `const { NodeRegistry } = await import('@nodetool-ai/node-sdk');
 const { importPack } = await import('@nodetool-ai/node-catalog');
 const module = await importPack(${JSON.stringify(pack.id)});
 const registry = new NodeRegistry();
 module[${JSON.stringify(pack.registrar)}](registry);
 if (registry.list().length !== ${pack.nodeCount} || registry.list().length === 0) { throw new Error('Staging pack registration differs from the catalog'); }`;
-    run(process.execPath, ["--input-type=module", "-e", code], { cwd: work, env });
+    run(process.execPath, ["--input-type=module", "-e", code], { cwd: app, env });
+    runFalFixture(join(app, "node_modules/@nodetool-ai/cli/dist/nodetool.js"), app, env, run);
+
+    const prefix = join(work, "global");
+    const globalHome = join(work, "global-home");
+    const consumer = join(work, "global-consumer");
+    mkdirSync(globalHome); mkdirSync(consumer);
+    writeFileSync(join(globalHome, ".npmrc"), `prefix=${prefix}\nregistry=https://registry.npmjs.org\n`);
+    const globalEnv = cleanEnv(globalHome);
+    run("npm", ["install", "--global", "--prefix", prefix, "--ignore-scripts", "--no-audit", "--no-fund", `@nodetool-ai/cli@${catalog.coreVersion}`], { cwd: consumer, env: globalEnv });
+    const globalRoot = join(prefix, process.platform === "win32" ? "node_modules" : "lib/node_modules", "@nodetool-ai/cli");
+    const audit = () => run("npm", ["audit", "signatures", "--global=false", "--prefix", globalRoot], { cwd: globalRoot, env: globalEnv });
+    // loadActual audits the global package's dependencies without creating a lock.
+    // The project audits above also cover the CLI and no-save FAL roots themselves.
+    audit();
+    run("npm", ["rebuild", "better-sqlite3", "--ignore-scripts=false", "--no-audit", "--no-fund", "--global=false", "--prefix", globalRoot], { cwd: globalRoot, env: globalEnv });
+    assertCoreOnlyInstall(globalRoot);
+    if (process.platform === "linux" && process.arch === "x64") {
+      assertCoreInstallSize(run("du", ["-sk", "node_modules"], { cwd: process.platform === "win32" ? prefix : join(prefix, "lib"), env: globalEnv }), CORE_INSTALL_BUDGET_KIB);
+    }
+    const globalEntry = join(globalRoot, "dist/nodetool.js");
+    const globalOptions = { cwd: consumer, env: globalEnv };
+    if (run(process.execPath, [globalEntry, "--version"], globalOptions).trim() !== catalog.coreVersion) { throw new Error("Global staging CLI version differs"); }
+    run(process.execPath, [globalEntry, "packs", "add", "fal", "--yes"], globalOptions);
+    audit();
+    run(process.execPath, [globalEntry, "packs", "doctor", "--installed", "--pack", "fal", "--json"], globalOptions);
+    runFalFixture(globalEntry, consumer, globalEnv, run);
   } finally { rmSync(work, { recursive: true, force: true }); }
 }
 

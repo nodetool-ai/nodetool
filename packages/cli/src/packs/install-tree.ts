@@ -3,7 +3,7 @@ import { join, relative, resolve, sep, dirname } from "node:path";
 import { createRequire } from "node:module";
 import { z } from "zod";
 import type { PinnedPackage } from "@nodetool-ai/node-catalog";
-export interface VerificationPin extends PinnedPackage { readonly installName?: string; readonly shared?: boolean }
+export interface VerificationPin extends PinnedPackage { readonly installName?: string; readonly shared?: boolean; readonly installPath?: string }
 
 export interface TreePackage {
   readonly path: string;
@@ -132,7 +132,9 @@ export function assertTreePins(before: readonly TreePackage[], after: readonly T
     if (names.get(name)?.length !== 1) { throw new Error(`Core package must exist exactly once: ${name}`); }
   }
   for (const pin of pins) {
-    const values = (names.get(pin.name) ?? []).filter((entry) => !pin.installName || entry.path.endsWith(`/node_modules/${pin.installName}`) || entry.path === `node_modules/${pin.installName}`);
+    const values = (names.get(pin.name) ?? []).filter((entry) =>
+      (!pin.installPath || entry.path === pin.installPath) &&
+      (!pin.installName || entry.path.endsWith(`/node_modules/${pin.installName}`) || entry.path === `node_modules/${pin.installName}`));
     if (!pin.integrity || !values.length || values.some((entry) => entry.version !== pin.version || entry.integrity !== pin.integrity)) {
       throw new Error(`Package integrity or version does not match pin: ${pin.name}`);
     }

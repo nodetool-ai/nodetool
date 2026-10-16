@@ -55,7 +55,7 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
     const byFolder = new Map((catalog.installPins ?? []).map(pin => [pin.installName ?? pin.name, pin]));
     return new Set(Object.entries(RUNTIME_NPM_PACKAGES).filter(([, runtime]) => runtime.packageNames.every(name => {
       const pin = byFolder.get(name);
-      return pin && installed.some(entry => entry.name === pin.name && entry.version === pin.version && entry.integrity === pin.integrity);
+      return pin && installed.some(entry => entry.path === `node_modules/${name}` && entry.name === pin.name && entry.version === pin.version && entry.integrity === pin.integrity);
     })).map(([id]) => id));
   };
   return {
@@ -92,7 +92,6 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
         return;
       }
       assertPackInstallProcessAllowed();
-      if (process.env["NODETOOL_PACKS_INSTALLER"] !== "1") { throw new Error("Node pack installer is disabled. Set NODETOOL_PACKS_INSTALLER=1 to enable the preview."); }
       const installRequest = request(selected.packs, selected.runtimeLibraries);
       const installed = await installWithCommandAuthorization({
         authorize: () => authorizePackInstallCommand({ request: installRequest,
@@ -127,8 +126,20 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
         try {
           const installed = await tree();
           const admitted = new Set(snapshot.packs.map(pack => pack.npm));
-          const names = new Set(installed.map(entry => entry.name));
-          const pins = [...catalog.packs.filter(pack => admitted.has(pack.npm.name)).map(pack => pack.npm), ...(catalog.installPins ?? []).filter(pin => names.has(pin.name))];
+          const packs = catalog.packs.filter(pack => admitted.has(pack.npm.name));
+          const byFolder = new Map((catalog.installPins ?? []).map(pin => [pin.installName ?? pin.name, pin]));
+          const requiredPin = (name: string) => {
+            const pin = byFolder.get(name);
+            if (!pin) { throw new Error(`Installed package ${name} has no catalog integrity pin`); }
+            return pin;
+          };
+          const libraries = new Set([...(desired?.runtimeLibraries ?? []), ...packs.filter(pack => pack.kind === "node-pack").flatMap(pack => pack.runtimeLibraries)]);
+          const runtimePins = [...libraries].flatMap(id => {
+            if (!isRuntimeNpmPackageId(id)) { throw new Error(`Unknown desired runtime library: ${id}`); }
+            return RUNTIME_NPM_PACKAGES[id].packageNames.map(name => ({ ...requiredPin(name), installPath: `node_modules/${name}` }));
+          });
+          const pins = [...packs.map(pack => pack.npm), ...packs.flatMap(pack => pack.provides.map(requiredPin)),
+            ...packs.flatMap(pack => pack.scriptAllowlist), ...runtimePins, ...(catalog.installPins ?? []).filter(pin => pin.shared)];
           const coreNames = new Set(catalog.packs.filter(pack => pack.kind === "core").map(pack => pack.npm.name));
           assertTreePins(installed, installed, pins, coreNames, catalog.coreVersion);
           await assertSharedIdentities(installed, (catalog.installPins ?? []).filter(pin => pin.shared));

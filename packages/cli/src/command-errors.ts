@@ -43,9 +43,6 @@ export function printCommandError(err: unknown, json?: boolean): 1 | 3 {
   const pack = commandMissingPack(err);
   const message = missing ? missingRuntimeText(missing) : pack ? missingPackText(pack) : err instanceof Error ? err.message : String(err);
   console.error(message);
-  if (pack?.install.supported && process.env["NODETOOL_PACKS_INSTALLER"] !== "1") {
-    console.error("The preview installer requires NODETOOL_PACKS_INSTALLER=1.");
-  }
   if (json) console.log(JSON.stringify(missing ? { error: "missing_runtime_package", ...missing } : pack ?? { error: message }, null, 2));
   return commandFailureExitCode(err);
 }

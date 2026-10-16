@@ -7,6 +7,9 @@ import { describe, expect, it } from "vitest";
 const RELEASE_FILES = [
   "scripts/publish-packages.mjs",
   "scripts/smoke-packed-cli.mjs",
+  "scripts/packed-registry.mjs",
+  "scripts/packed-fal-fixture.mjs",
+  "scripts/fixtures/packed-fal-preload.mjs",
   "scripts/release/pin-catalog.mjs",
   "scripts/release/install-pins.mjs",
   "scripts/release/commands.mjs",

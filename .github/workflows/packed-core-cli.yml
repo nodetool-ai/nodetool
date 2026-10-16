@@ -5,6 +5,9 @@ on:
     paths:
       - 'packages/**'
       - 'scripts/smoke-packed-cli.mjs'
+      - 'scripts/packed-*.mjs'
+      - 'scripts/fixtures/packed-fal-preload.mjs'
+      - 'scripts/__tests__/packed-*.test.mjs'
       - 'scripts/packed-verification.mjs'
       - 'scripts/test-affected.mjs'
       - 'scripts/ci-plan.mjs'
@@ -127,10 +130,12 @@ jobs:
           cache: read-only
       - name: Pin workspace versions in the test tarballs
         run: node scripts/prepare-publish.mjs
+      - name: Pack and pin original release artifacts once
+        run: node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts
       - name: Smoke-test the packed core-only CLI
-        run: node scripts/smoke-packed-cli.mjs --core-only
+        run: node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts
       - name: Smoke-test the packed full CLI
-        run: node scripts/smoke-packed-cli.mjs
+        run: node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts
   core-smoke:
     needs: [verification-plan, verification, packed-install]
     if: always()

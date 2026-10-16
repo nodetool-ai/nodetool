@@ -20,6 +20,21 @@
   ],
   "references": [
     {
+      "path": "../code-nodes"
+    },
+    {
+      "path": "../core-nodes"
+    },
+    {
+      "path": "../data-nodes"
+    },
+    {
+      "path": "../llm-nodes"
+    },
+    {
+      "path": "../text-nodes"
+    },
+    {
       "path": "../agents"
     },
     {

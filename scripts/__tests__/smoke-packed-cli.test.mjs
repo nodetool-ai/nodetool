@@ -9,7 +9,7 @@ import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 
-import { assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, coreOnlyCliManifest, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, probeServe, REQUIRED_COMMANDS, repackCoreCli, smokeManifest } from "../smoke-packed-cli.mjs";
+import { assertInstalledSelection, assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, probeServe, REQUIRED_COMMANDS } from "../smoke-packed-cli.mjs";
 import { partitionPlan } from "../packed-verification.mjs";
 import { fullPlan, readPackages } from "../test-affected.mjs";
 
@@ -33,9 +33,11 @@ it("keeps the required core-smoke status dependent on verification and the indep
   }
   expect(workflow.jobs["packed-install"].needs).toBeUndefined();
   const packedChecks = workflow.jobs["packed-install"].steps.map(step => step.run);
-  expect(packedChecks).toContain("node scripts/smoke-packed-cli.mjs --core-only");
-  expect(packedChecks).toContain("node scripts/smoke-packed-cli.mjs");
-  expect(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs")).toBeGreaterThan(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --core-only"));
+  expect(packedChecks).toContain("node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts");
+  expect(packedChecks.indexOf("node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts")).toBeLessThan(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts"));
+  expect(packedChecks).toContain("node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts");
+  expect(packedChecks).toContain("node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts");
+  expect(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts")).toBeGreaterThan(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts"));
   for (const job of ["verification", "packed-install", "release-pins"]) {
     expect(workflow.jobs[job].steps.find(step => step.uses === "./.github/actions/setup-build").with.cache).toBe("read-only");
   }
@@ -61,10 +63,12 @@ it("prepares sandboxed Chromium before packed verification runs browser suites",
   expect(installIndex).toBeGreaterThanOrEqual(0);
   expect(sandboxIndex).toBeGreaterThan(installIndex);
   expect(affectedIndex).toBeGreaterThan(sandboxIndex);
-  expect(steps.find(step => step.uses === "./.github/actions/setup-build").with["extra-apt"]).toBe("ffmpeg mesa-vulkan-drivers");
-  expect(steps.slice(0, affectedIndex).some(step => step.run === "npm --prefix mobile ci")).toBe(true);
   expect(steps[sandboxIndex].run).toContain("chromiumSandbox: true");
   expect(steps[sandboxIndex].run).toContain("sudo apparmor_parser -r");
+  const mobileIndex = steps.findIndex(step => step.run === "npm --prefix mobile ci");
+  expect(mobileIndex).toBeGreaterThanOrEqual(0);
+  expect(mobileIndex).toBeLessThan(affectedIndex);
+  expect(steps.find(step => step.uses === "./.github/actions/setup-build").with["extra-apt"]).toBe("ffmpeg mesa-vulkan-drivers");
 });
 
 it("bounds verification test concurrency without changing build scheduling", () => {
@@ -131,18 +135,6 @@ else createServer((req,res) => {res.end('ok');}).listen(Number(process.argv[4]),
   }
 });
 
-describe("smokeManifest", () => {
-  it("depends on the CLI tarball and overrides every other workspace", () => {
-    const manifest = smokeManifest({
-      "@nodetool-ai/cli": "/t/cli.tgz",
-      "@nodetool-ai/agents": "/t/agents.tgz"
-    });
-    expect(manifest.dependencies).toEqual({ "@nodetool-ai/cli": "file:/t/cli.tgz" });
-    // npm rejects an override that conflicts with a direct dependency.
-    expect(manifest.overrides).toEqual({ "@nodetool-ai/agents": "file:/t/agents.tgz" });
-  });
-});
-
 describe("missingCommands", () => {
   it("finds commands only at the command-list indent", () => {
     const help = [
@@ -184,33 +176,6 @@ function appFixture(dependencies = {}) {
   writeFileSync(join(root, "package.json"), JSON.stringify({ name: "core-guard-fixture", version: "1.0.0", private: true, dependencies }));
   return root;
 }
-
-describe("core-only tarballs", () => {
-  it("removes packs from every install edge and retains the executable core nodes", () => {
-    const original = { name: "@nodetool-ai/cli", version: "1.2.3",
-      dependencies: { "@nodetool-ai/base-nodes": "1.2.3", "@nodetool-ai/game-renderer": "1.2.3", "@nodetool-ai/node-catalog": "1.2.3", tsx: "4.22.4" },
-      optionalDependencies: { "@nodetool-ai/fal-nodes": "1.2.3" },
-      peerDependencies: { "@nodetool-ai/transformers-js-provider": "1.2.3" },
-      peerDependenciesMeta: { "@nodetool-ai/transformers-js-provider": { optional: true } } };
-    const result = coreOnlyCliManifest(original);
-    expect(result.dependencies).not.toHaveProperty("@nodetool-ai/base-nodes");
-    expect(result.dependencies).not.toHaveProperty("@nodetool-ai/game-renderer");
-    expect(result.optionalDependencies).toEqual({});
-    expect(result.peerDependencies).toEqual({});
-    expect(result.peerDependenciesMeta).toEqual({});
-    expect(result.dependencies).toMatchObject({ "@nodetool-ai/core-nodes": "1.2.3", "@nodetool-ai/text-nodes": "1.2.3", "@nodetool-ai/data-nodes": "1.2.3", "@nodetool-ai/llm-nodes": "1.2.3", "@nodetool-ai/code-nodes": "1.2.3", tsx: "4.22.4" });
-    expect(original.dependencies).toHaveProperty("@nodetool-ai/base-nodes");
-  });
-
-  it("re-packs the test CLI while preserving its original tarball", () => {
-    const root = appFixture();
-    const original = releaseTarball(root, "original.tgz", "@nodetool-ai/cli", "1.2.3");
-    const result = repackCoreCli(original, root);
-    const read = file => JSON.parse(spawnSync("tar", ["-xOf", file, "package/package.json"], { encoding: "utf8" }).stdout);
-    expect(read(result).dependencies).toHaveProperty("@nodetool-ai/core-nodes", "1.2.3");
-    expect(read(original)).not.toHaveProperty("dependencies");
-  });
-});
 
 describe("core-only contamination guard", () => {
   it("rejects an empty audit and accepts a tree containing executable core packages", () => {
@@ -357,4 +322,19 @@ describe("core install size budget", () => {
     const value = Number(measured.stdout.split(/\s+/)[0]);
     expect(assertCoreInstallSize(measured.stdout, value)).toBe(value);
   });
+});
+
+it("requires original pinned artifacts before attempting installation", () => {
+  const result = spawnSync(process.execPath, [resolve(import.meta.dirname, "../smoke-packed-cli.mjs")], { encoding: "utf8" });
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain("--tarballs-dir is required");
+});
+
+it("rejects a full smoke selection with a missing pack or required runtime", () => {
+  const rows = [{id:"fal",installed:true}, {id:"image",installed:false}, {id:"imaging",kind:"runtime-library",installed:false,requiredBy:["image"]}];
+  expect(() => assertInstalledSelection(JSON.stringify(rows), ["fal", "image"])).toThrow("image");
+  rows[1].installed = true;
+  expect(() => assertInstalledSelection(JSON.stringify(rows), ["fal", "image"])).toThrow("imaging");
+  rows[2].installed = true;
+  expect(() => assertInstalledSelection(JSON.stringify(rows), ["fal", "image"])).not.toThrow();
 });

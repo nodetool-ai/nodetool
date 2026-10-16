@@ -6,6 +6,7 @@ import { prepareInstallSelection, expandCatalogPacks, type InstallPacksRequest, 
 import { assertLiveInstallAuthorization, assertInstallAuthorizationScope, type InstallAuthorization } from "../commands/pack-install-authorization.js";
 import { prepareTreeVerification } from "./install-verification.js";
 import { captureInstallManifests } from "./install-manifests.js";
+import { normalizeGlobalBootstrap } from "./global-bootstrap.js";
 import { normalizeOwnedPackReplay } from "./owned-replay-plan.js";
 import { writeDesiredState } from "./install-state.js";
 import type { InstallMode } from "./mode.js";
@@ -37,7 +38,7 @@ export const DEFAULT_INSTALLER_OPERATIONS: InstallerOperations = {
   npmVersion: installerNpmVersion, npm: runInstallerNpm, loadCheck: childLoadCheck
 };
 
-/** Additive install transaction. No command can enable it without both flag and authorization. */
+/** Additive install transaction. Requires a live command authorization. */
 export async function installPacks(request: InstallPacksRequest, authorization: InstallAuthorization, operations: InstallerOperations = DEFAULT_INSTALLER_OPERATIONS): Promise<DesiredPackState> {
   return installPacksTransaction(request, authorization, operations, "install");
 }
@@ -48,7 +49,6 @@ export async function repairPackInstallation(request: InstallPacksRequest, autho
 }
 
 async function installPacksTransaction(request: InstallPacksRequest, authorization: InstallAuthorization, operations: InstallerOperations, operation: "install" | "repair"): Promise<DesiredPackState> {
-  if (process.env["NODETOOL_PACKS_INSTALLER"] !== "1") { throw new Error("Node pack installer is disabled. Set NODETOOL_PACKS_INSTALLER=1 to enable the preview."); }
   const { mode } = request;
   if (mode.kind !== "global" && mode.kind !== "local") { throw new Error(mode.reason); }
   assertLiveInstallAuthorization(authorization);
@@ -63,14 +63,16 @@ async function installPacksTransaction(request: InstallPacksRequest, authorizati
     const { previous, before, installedIds, packs, catalog, replayLibraries, initialGlobalLockMissing } = selection;
     const libraries = selection.runtimeLibraries;
     const version = await operations.npmVersion(root, request.signal, request.onWarning);
-    const { pins, provided, runtimePins, shared, coreNames, libraryPins, pinByFolder } = await prepareTreeVerification(selection, mode.cliRoot);
+    const { pins: selectedPins, provided, runtimePins, shared, coreNames, libraryPins, pinByFolder } = await prepareTreeVerification(selection, mode.cliRoot);
+    const bootstrap = selection.bootstrap ?? [];
+    const pins = [...selectedPins, ...bootstrap];
     const spec = (pin: VerificationPin): string => pin.installName && pin.installName !== pin.name
       ? `${pin.installName}@npm:${pin.name}@${pin.version}` : `${pin.name}@${pin.version}`;
-    const specs = [...new Set([...packs.map((pack) => spec(pack.npm)), ...provided.map(spec), ...runtimePins.map(spec)])];
+    const specs = [...new Set([...packs.map((pack) => spec(pack.npm)), ...provided.map(spec), ...runtimePins.map(spec), ...bootstrap.map(spec)])];
     const alreadyComplete = operation === "repair" && !initialGlobalLockMissing && pins.every((pin) => before.some((entry) => entry.name === pin.name && entry.version === pin.version && entry.integrity === pin.integrity));
     const plan = alreadyComplete ? { add: [], change: [], remove: [] } :
       parseInstallPlan(await operations.npm(root, ["install", ...specs, ...(Number(version.split(".")[0]) >= 11 ? ["--json"] : [])], { mode: mode.kind, dryRun: true, signal: request.signal, onWarning: request.onWarning }), version);
-    assertAdditivePlan(normalizeOwnedPackReplay(plan, before, catalog, coreNames), before, coreNames, shared, mode.coreVersion);
+    assertAdditivePlan(normalizeGlobalBootstrap(normalizeOwnedPackReplay(plan, before, catalog, coreNames), bootstrap), before, coreNames, shared, mode.coreVersion);
     let desired: DesiredPackState = { root, coreVersion: mode.coreVersion, packs: [...new Set([...previous.packs, ...packs.filter((pack) => pack.kind === "node-pack").map((pack) => pack.id)])].sort(), runtimeLibraries: [...new Set([...previous.runtimeLibraries, ...libraries])].sort() };
     if (operation === "repair") { desired = { ...desired, dirty: false }; }
     const restoreSavedFiles = await captureInstallManifests(root);
@@ -93,7 +95,7 @@ async function installPacksTransaction(request: InstallPacksRequest, authorizati
       let restored = false;
       try {
         const oldPacks = expandCatalogPacks(catalog, installedIds);
-        const oldSpecs = [...oldPacks.map((pack) => spec(pack.npm)), ...oldPacks.flatMap((pack) => pack.provides.map((name) => {
+        const oldSpecs = [...bootstrap.map(spec), ...oldPacks.map((pack) => spec(pack.npm)), ...oldPacks.flatMap((pack) => pack.provides.map((name) => {
           const pin = pinByFolder.get(name);
           if (!pin) { throw new Error(`Provided package ${name} has no rollback integrity pin`); }
           return spec(pin);
