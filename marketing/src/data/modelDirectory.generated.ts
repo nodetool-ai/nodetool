@@ -3924,7 +3924,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 996,
+    "total": 995,
     "providers": [
       {
         "provider": "fal_ai",
@@ -7162,15 +7162,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
-        "provider": "gemini_web",
-        "models": [
-          {
-            "id": "gemini-web-image",
-            "name": "Gemini Images (web)"
-          }
-        ]
-      },
-      {
         "provider": "minimax",
         "models": [
           {
@@ -7181,6 +7172,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
       }
     ],
     "liveProviders": [
+      "gemini_web",
       "xai"
     ]
   },

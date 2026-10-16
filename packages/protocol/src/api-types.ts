@@ -720,6 +720,11 @@ export interface Message {
    */
   permission_mode?: "plan" | "default" | "auto" | null;
   /**
+   * Reasoning level for the chat turn. The server forwards it only to models
+   * that `supportsReasoningEffort` accepts. Omitted keeps the provider default.
+   */
+  reasoning_effort?: "low" | "medium" | "high" | null;
+  /**
    * The read-only `run_search` fan-out primitive — a `run_search` tool next to
    * `run_subtask` whose child loop is restricted to read-only tools and cannot
    * spawn further work. Enabled by default (omitted / `true`); send `false` to

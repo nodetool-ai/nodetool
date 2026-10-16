@@ -95,6 +95,8 @@ import {
 } from "@nodetool-ai/runtime";
 import {
   isModelSelection,
+  isReasoningEffort,
+  supportsReasoningEffort,
   PROVIDER_IDS,
   NO_MODEL_SELECTED_MESSAGE,
   noMediaModelSelectedMessage
@@ -1651,6 +1653,14 @@ export class ChatTurnHandler {
         ? data.permission_mode
         : "default";
 
+    // The composer's reasoning level. Only models that accept it receive it,
+    // so a stale pick from another model is dropped rather than sent.
+    const reasoningEffort =
+      isReasoningEffort(data.reasoning_effort) &&
+      supportsReasoningEffort(providerId, model)
+        ? data.reasoning_effort
+        : undefined;
+
     // A surface can send a context-specific system-prompt addendum (e.g. the
     // App Builder's build-an-app-UI guidance), layered after the base prompt.
     const extraSystemPrompt = isString(data.system_prompt)
@@ -2765,6 +2775,7 @@ export class ChatTurnHandler {
         executeTool: useTools ? effectiveExecuteTool : undefined,
         maxIterations: MAX_TOOL_ROUNDS,
         turnBudget,
+        effort: reasoningEffort,
         sequentialTools: session ? true : undefined,
         workspaceDir: chatWorkspace?.localDir ?? undefined,
         skills: skillsForProvider,

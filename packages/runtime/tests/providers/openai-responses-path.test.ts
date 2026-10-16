@@ -62,6 +62,29 @@ describe("OpenAIProvider Responses path", () => {
     await expect(provider.hasToolSupport("gpt-5.4")).resolves.toBe(true);
   });
 
+  it("sends the reasoning level as reasoning.effort on gpt-5 reasoning models", async () => {
+    const create = vi.fn().mockResolvedValue({
+      id: "resp_1",
+      output_text: "done",
+      output: []
+    });
+    const provider = providerWithCreate(create);
+
+    await provider.generateMessage({
+      model: "gpt-5",
+      messages: [{ role: "user", content: "think" }],
+      effort: "low"
+    });
+    await provider.generateMessage({
+      model: "gpt-5-chat-latest",
+      messages: [{ role: "user", content: "think" }],
+      effort: "low"
+    });
+
+    expect(create.mock.calls[0][0].reasoning).toEqual({ effort: "low" });
+    expect(create.mock.calls[1][0]).not.toHaveProperty("reasoning");
+  });
+
   it("forces hosted web_search with the Responses hosted-tool choice", async () => {
     const create = vi.fn().mockResolvedValue({
       id: "resp_1",

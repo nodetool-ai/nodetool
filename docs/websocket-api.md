@@ -453,6 +453,7 @@ A plain chat turn without a `provider` and `model` pair is answered with an
 | `workflow_target` | `"workflow"` runs the workflow as a chatbot. It also takes `workflow_message_input_name` and `workflow_messages_input_name` |
 | `media_generation` | `{ "mode": ... }` where a mode other than `"chat"` produces an image, video, or audio message instead of an LLM reply |
 | `permission_mode` | `"plan"`, `"default"` (the fallback), or `"auto"`. Governs whether gated tool calls run, ask, or are blocked |
+| `reasoning_effort` | `"low"`, `"medium"`, or `"high"`. Sent only to models that `supportsReasoningEffort` in `@nodetool-ai/protocol` accepts, and dropped for the rest. Omit it for the provider default |
 | `system_prompt` | Extra system prompt text layered after the base prompt |
 | `ui_context` | Which documents the user has open and which has focus |
 

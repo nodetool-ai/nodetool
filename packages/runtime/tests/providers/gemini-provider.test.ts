@@ -636,6 +636,43 @@ describe("GeminiProvider", () => {
     expect(body.generationConfig.maxOutputTokens).toBe(1024);
   });
 
+  it("maps the reasoning level to thinkingConfig per model family", async () => {
+    const fetchFn = vi.fn().mockImplementation(async () =>
+      makeFetchResponse({
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
+      })
+    );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    const messages = [{ role: "user" as const, content: "hi" }];
+
+    await provider.generateMessage({
+      model: "gemini-2.5-pro",
+      messages,
+      effort: "medium"
+    });
+    await provider.generateMessage({
+      model: "gemini-3.5-flash",
+      messages,
+      effort: "low"
+    });
+    await provider.generateMessage({
+      model: "gemini-3.5-flash",
+      messages,
+      effort: "medium"
+    });
+    await provider.generateMessage({ model: "gemini-2.0-flash", messages, effort: "high" });
+
+    const configs = fetchFn.mock.calls.map(
+      (call) => JSON.parse(call[1].body).generationConfig.thinkingConfig
+    );
+    expect(configs).toEqual([
+      { thinkingBudget: 8192 },
+      { thinkingLevel: "low" },
+      undefined,
+      undefined
+    ]);
+  });
+
   it("streams text chunks", async () => {
     const events = [
       {

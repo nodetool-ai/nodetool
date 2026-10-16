@@ -14,7 +14,8 @@ import {
   isBoolean,
   isFiniteNumber,
   isNonEmptyString,
-  isString
+  isString,
+  supportsReasoningEffort
 } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.providers.gemini");
@@ -34,6 +35,7 @@ import type {
   MessageTextContent,
   MessageVideoContent,
   MusicModel,
+  ProviderEffort,
   ProviderStreamItem,
   ProviderTool,
   ReferenceToVideoInputs,
@@ -197,6 +199,32 @@ function geminiAudioMime(mime: string | undefined): string {
 function isGemini3Model(model: string): boolean {
   const modelId = model.split("/").pop()?.toLowerCase() ?? model.toLowerCase();
   return /^gemini-3(?:[.-]|$)/.test(modelId);
+}
+
+/**
+ * Gemini's `thinkingConfig` for a reasoning level. Gemini 3 takes a
+ * `thinkingLevel`, and only "low" and "high" are accepted across the family,
+ * so "medium" keeps the model's own dynamic default. Gemini 2.5 takes a token
+ * budget.
+ */
+function geminiThinkingConfig(
+  model: string,
+  effort: ProviderEffort | undefined
+): Record<string, unknown> | undefined {
+  if (!effort || !supportsReasoningEffort("gemini", model)) return undefined;
+  if (isGemini3Model(model)) {
+    if (effort === "low") return { thinkingLevel: "low" };
+    if (effort === "medium") return undefined;
+    return { thinkingLevel: "high" };
+  }
+  const budgets: Record<ProviderEffort, number> = {
+    low: 1024,
+    medium: 8192,
+    high: 24576,
+    xhigh: 24576,
+    max: 24576
+  };
+  return { thinkingBudget: budgets[effort] };
 }
 
 interface GeminiProviderOptions {
@@ -1484,6 +1512,7 @@ export class GeminiProvider extends BaseProvider {
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
+    effort?: ProviderEffort;
     signal?: AbortSignal;
   }): Promise<Message> {
     const {
@@ -1523,6 +1552,8 @@ export class GeminiProvider extends BaseProvider {
       generationConfig.presencePenalty = presencePenalty;
     if (frequencyPenalty != null)
       generationConfig.frequencyPenalty = frequencyPenalty;
+    const thinkingConfig = geminiThinkingConfig(model, args.effort);
+    if (thinkingConfig) generationConfig.thinkingConfig = thinkingConfig;
     body.generationConfig = generationConfig;
 
     log.debug("Gemini request", { model });
@@ -1581,6 +1612,7 @@ export class GeminiProvider extends BaseProvider {
     presencePenalty?: number;
     frequencyPenalty?: number;
     audio?: Record<string, unknown>;
+    effort?: ProviderEffort;
     signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
     const {
@@ -1620,6 +1652,8 @@ export class GeminiProvider extends BaseProvider {
       generationConfig.presencePenalty = presencePenalty;
     if (frequencyPenalty != null)
       generationConfig.frequencyPenalty = frequencyPenalty;
+    const thinkingConfig = geminiThinkingConfig(model, args.effort);
+    if (thinkingConfig) generationConfig.thinkingConfig = thinkingConfig;
     body.generationConfig = generationConfig;
 
     log.debug("Gemini request", { model });
