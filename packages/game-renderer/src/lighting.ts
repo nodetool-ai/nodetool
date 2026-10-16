@@ -1,5 +1,5 @@
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
-import { parseTint, projectedCamera } from "./frame.js";
+import { parseTint, projectedCamera, projectedPointLight } from "./frame.js";
 
 export interface PixelBounds { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
 
@@ -59,8 +59,9 @@ export function applyLighting(
     irradiance[index + 2] = ambient[2] * lighting.ambient.intensity;
   }
   for (const point of lighting.points) {
-    const centerX = viewportWidth / 2 + (point.x - camera.x) * scaleX;
-    const centerY = viewportHeight / 2 - (point.y - camera.y) * scaleY;
+    const position = projectedPointLight(point, interpolation);
+    const centerX = viewportWidth / 2 + (position.x - camera.x) * scaleX;
+    const centerY = viewportHeight / 2 - (position.y - camera.y) * scaleY;
     const firstX = Math.max(0, Math.ceil(centerX - point.radius * scaleX - 0.5) - originX);
     const lastX = Math.min(width - 1, Math.floor(centerX + point.radius * scaleX - 0.5) - originX);
     const firstY = Math.max(0, Math.ceil(centerY - point.radius * scaleY - 0.5) - originY);

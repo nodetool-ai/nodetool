@@ -67,6 +67,8 @@ export function frameFor(
   const entityLights: {
     x: number;
     y: number;
+    previousX?: number;
+    previousY?: number;
     color: string;
     intensity: number;
     radius: number;
@@ -216,10 +218,19 @@ export function frameFor(
       const light = entity.light2d;
       const x = state.x + (light.offset?.x ?? 0);
       const y = state.y + (light.offset?.y ?? 0);
-      if (Math.abs(x - cameraX) - light.radius <= viewHalfWidth && Math.abs(y - cameraY) - light.radius <= viewHalfHeight) {
+      const previousX = state.previousX + (light.offset?.x ?? 0);
+      const previousY = state.previousY + (light.offset?.y ?? 0);
+      const previousRelativeX = previousX - (cameraState?.previousX ?? cameraX);
+      const previousRelativeY = previousY - (cameraState?.previousY ?? cameraY);
+      if (Math.min(previousRelativeX, x - cameraX) - light.radius <= viewHalfWidth &&
+        Math.max(previousRelativeX, x - cameraX) + light.radius >= -viewHalfWidth &&
+        Math.min(previousRelativeY, y - cameraY) - light.radius <= viewHalfHeight &&
+        Math.max(previousRelativeY, y - cameraY) + light.radius >= -viewHalfHeight) {
         entityLights.push({
           x,
           y,
+          ...(previousX !== x ? { previousX } : {}),
+          ...(previousY !== y ? { previousY } : {}),
           color: light.color,
           intensity: light.intensity,
           radius: light.radius,

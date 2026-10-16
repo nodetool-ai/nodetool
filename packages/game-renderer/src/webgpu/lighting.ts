@@ -1,5 +1,5 @@
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
-import { parseTint } from "../frame.js";
+import { parseTint, projectedPointLight } from "../frame.js";
 export const LIGHT_SHADER = `
 struct Camera { center: vec2f, viewport: vec2f, zoom: f32, padding0: f32, padding1: f32, padding2: f32 };
 struct PointLight { position: vec2f, radius: f32, intensity: f32, color: vec4f, falloff: f32, pad0: f32, pad1: f32, pad2: f32 };
@@ -32,7 +32,7 @@ struct VertexOutput { @builtin(position) position: vec4f, @location(0) uv: vec2f
 }`;
 
 
-export function gameLightingUniforms(frame: GameRenderFrame): Float32Array {
+export function gameLightingUniforms(frame: GameRenderFrame, interpolation = 1): Float32Array {
     const lighting = new Float32Array(392);
     const sceneLighting = frame.lighting;
     if (sceneLighting) {
@@ -41,7 +41,8 @@ export function gameLightingUniforms(frame: GameRenderFrame): Float32Array {
         sceneLighting.points.length, 1], 0);
       for (const [index, point] of sceneLighting.points.entries()) {
         const color = parseTint(point.color);
-        lighting.set([point.x, point.y, point.radius, point.intensity,
+        const position = projectedPointLight(point, interpolation);
+        lighting.set([position.x, position.y, point.radius, point.intensity,
           color[0], color[1], color[2], 0, point.falloff], 8 + index * 12);
       }
     }

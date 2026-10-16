@@ -62,6 +62,13 @@ export function pixelRect(item: VisibleItem, x: number, y: number, width: number
   return { x: left + snappedWidth / 2, y: top + snappedHeight / 2, width: snappedWidth, height: snappedHeight };
 }
 
+/** A light's position at the same presentation sample as its owner. */
+export function projectedPointLight(point: NonNullable<GameRenderFrame["lighting"]>["points"][number], interpolation: number): { x: number; y: number } {
+  const alpha = Math.max(0, Math.min(1, interpolation));
+  return { x: (point.previousX ?? point.x) * (1 - alpha) + point.x * alpha,
+    y: (point.previousY ?? point.y) * (1 - alpha) + point.y * alpha };
+}
+
 /** Camera projection for the sample between the previous and current tick. */
 export function projectedCamera(frame: GameRenderFrame, interpolation: number): { x: number; y: number; zoom: number } {
   const alpha = Math.max(0, Math.min(1, interpolation));
