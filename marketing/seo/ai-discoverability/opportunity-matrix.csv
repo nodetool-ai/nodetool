@@ -1,0 +1,22 @@
+target_page,page_status,clusters,queries,strong,partial,weak_or_none,P1,P2,P3,do-not-target
+/gamedev,existing,games/agent-builds-game games/assets games/convo games/editable-output games/engine-choice games/genre-jobs games/mcp-control games/vibe-coding,159,83,59,17,83,59,12,5
+/ai-video-editor,existing,video/assistant-video video/convo video/editable-timeline video/filmmaking-agent,47,36,9,2,36,9,2,0
+/mcp,existing,mcp-dev/claude-code mcp-dev/convo mcp-dev/mcp-media,39,27,9,3,27,9,3,0
+/gamedev/ai-game-engines,existing,comparison/games,8,1,6,1,1,6,1,0
+/marketing,improve,advertising/brand advertising/convo advertising/generators advertising/variants,39,27,9,3,0,36,2,1
+/agents,improve,agentic-category/category agentic-category/convo,29,25,2,2,0,27,0,2
+/alternatives,existing,comparison/ads comparison/convo comparison/invoke comparison/nodetool comparison/video,27,19,5,3,0,24,3,0
+/ai-image-editor,proposed,image/convo image/editor,21,14,5,2,0,19,1,1
+/alternatives/comfyui,existing,comparison/comfyui,10,10,0,0,0,10,0,0
+/developers,existing,mcp-dev/api,10,8,2,0,0,10,0,0
+/storyboards,improve,video/storyboard,9,7,2,0,0,9,0,0
+/recipes/ugc-product-video,existing,advertising/ugc,7,1,5,1,0,6,1,0
+/node-based-workflows,existing,image/workflows,5,5,0,0,0,5,0,0
+/recipes/ecommerce-sku-visual-factory,existing,image/product-photo,5,2,3,0,0,5,0,0
+/alternatives/higgsfield,improve,comparison/higgsfield,3,2,0,1,0,2,1,0
+/alternatives/runway,existing,comparison/runway,3,2,0,1,0,2,1,0
+/alternatives/figma-weave,existing,comparison/weavy,2,2,0,0,0,2,0,0
+/alternatives/flora,existing,comparison/flora,2,1,1,0,0,2,0,0
+/alternatives/krea,existing,comparison/krea,2,2,0,0,0,2,0,0
+/alternatives/ltx-studio,existing,comparison/ltx,1,1,0,0,0,1,0,0
+/models,existing,image/multi-model video/model-questions,16,7,2,7,0,0,15,1

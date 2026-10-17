@@ -59,7 +59,7 @@ export default function StudioLayout({
           operatingSystem: "macOS, Windows, Linux",
           url: "https://nodetool.ai/studio",
           downloadUrl: "https://github.com/nodetool-ai/nodetool/releases",
-          license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE",
+          license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE.txt",
           offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
           author: { "@type": "Organization", name: "NodeTool", url: "https://nodetool.ai" },
         }}

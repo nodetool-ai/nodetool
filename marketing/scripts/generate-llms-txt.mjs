@@ -21,6 +21,9 @@ import { competitorEntries } from "../src/data/competitorEntries.ts";
 import { faqByCategory, faqEntries } from "../src/data/faqEntries.ts";
 import { ideaCategories } from "../src/data/ideasEntries.ts";
 import { recipeEntries } from "../src/data/recipes.ts";
+import * as gamedev from "../src/data/gamedevPage.ts";
+import * as video from "../src/data/videoEditorPage.ts";
+import * as mcp from "../src/data/mcpPage.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_FILE = resolve(__dirname, "..", "public/llms.txt");
@@ -30,11 +33,13 @@ const BASE_URL = "https://nodetool.ai";
 // --- Preamble prose (hand-written; edit here) --------------------------------
 const PREAMBLE = `# NodeTool
 
-> NodeTool is an open-source creative workspace with agents and editable projects. Studio is the free desktop edition for production work. Cloud is a hosted browser edition in alpha for evaluation and lightweight access. Use supported local models in Studio or connect supported remote providers with your own accounts. Licensed AGPL-3.0.
+> NodeTool is an open-source, agent-first creative workspace. Agents and people work in the same editors (node workflows, storyboards, a multi-track video timeline, sketches, scripts, 3D models, and a built-in 2D and 3D game engine), and the result stays an editable project. Studio is the free desktop edition for production work. Cloud is a hosted browser edition in alpha. Licensed AGPL-3.0.
 
 ## What NodeTool is
 
-- Agents can operate the workflow and project editors, with tool calls, results, errors, and interventions available for inspection. Compatible external agents can use the tools over MCP.
+- Agents operate the editors through tools, and every tool call, result, and error is recorded for inspection. External agents (Claude Code, Codex, OpenCode, Cursor) use the same tools through the NodeTool MCP server: \`npx -y --package=@nodetool-ai/cli nodetool mcp install\`.
+- Video: an agent writes a storyboard, renders stills and clips, and assembles a multi-track timeline that a person keeps editing (trims, transitions, captions, takes, aspect-ratio versions). Export MP4, WebM, or a PNG sequence.
+- Games: a built-in 2D and 3D game engine. Agents create and edit game documents, generate and install art and audio, playtest headlessly, and export a standalone web build or a desktop app project. People edit the same game in the Game Editor.
 - A visual, node-based editor for building AI workflows: connect models and tools as nodes on a canvas instead of writing glue code.
 - Two editions of one open-source codebase: **Studio**, a free desktop app for macOS, Windows, and Linux, and **Cloud**, a hosted browser edition currently in alpha.
 - Planning agents: give an agent a goal and it plans the steps, picks a model or tool, and executes multi-step tasks on the canvas.
@@ -45,7 +50,7 @@ const PREAMBLE = `# NodeTool
 
 - Source license: AGPL-3.0. Self-hostable. Repository: https://github.com/nodetool-ai/nodetool
 - Studio is free. Current Cloud alpha access is free; future Cloud pricing has not been announced.
-- Provider charges are separate: connect your own supported provider accounts and pay those providers directly. NodeTool does not issue credits or add a provider-price markup.`;
+- Provider charges are separate: calls on your own provider accounts are billed by the provider at its price, with no NodeTool markup.`;
 
 // --- Derived link sections ---------------------------------------------------
 
@@ -58,6 +63,9 @@ const KEY_PAGE_BLURBS = {
   "/agents": "build and inspect automation that produces editable workflows and projects.",
   "/developers": "connect NodeTool to your coding agent over MCP for images, video, speech, and workflows.",
   "/marketing": "hand a brief to an agent; campaign assets at volume.",
+  "/gamedev": "the open-source 2D and 3D game engine agents build in: tools, editor, export, and limits.",
+  "/ai-video-editor": "storyboard, shots, voiced script, and an editable multi-track timeline, built by an agent.",
+  "/mcp": "the MCP server for Claude Code, Codex, OpenCode, and Cursor: install, tools, transports, and keys.",
 };
 
 const KEY_PAGE_LABELS = {
@@ -68,6 +76,9 @@ const KEY_PAGE_LABELS = {
   "/agents": "Agents",
   "/developers": "For developers",
   "/marketing": "For marketing teams",
+  "/gamedev": "Game development",
+  "/ai-video-editor": "AI video editor",
+  "/mcp": "MCP server",
 };
 
 function link(label, path, blurb) {
@@ -93,6 +104,140 @@ function keyPagesSection() {
 
 function markdownPath(route) {
   return route === "/" ? "/index.md" : `${route}.md`;
+}
+
+/** The /gamedev page as Markdown, from the same data module the page renders. */
+function gamedevMarkdown() {
+  const steps = gamedev.AGENT_STEPS.map((s) => `- **${s.title}** (\`${s.tool}\`): ${s.body}`).join("\n");
+  const rows = gamedev.SPEC_ROWS.map((r) => `| ${r.feature} | ${r.twoD} | ${r.threeD} |`).join("\n");
+  const faq = gamedev.GAMEDEV_FAQ.map((q) => `### ${q.question}\n\n${q.answer}`).join("\n\n");
+  const links = gamedev.GAMEDEV_LINKS.map((l) => `- [${l.label}](${l.href})`).join("\n");
+  return `${gamedev.GAMEDEV_LEAD}
+
+Play the example games at ${BASE_URL}/gamedev.
+
+## What the agent can do
+
+${steps}
+
+## Use it from Claude Code or Codex
+
+\`\`\`bash
+${gamedev.MCP_INSTALL_COMMAND}
+\`\`\`
+
+This registers NodeTool as an MCP server in Claude Code, Codex, and OpenCode. For Cursor or another client, \`nodetool mcp config\` prints the block to paste. The agent calls the game tools inside \`execute_code\` and looks at captured frames with \`view_image\`. The game skills appear in Claude Code as slash commands.
+
+## The Game Editor
+
+${gamedev.EDITOR_POINTS.map((p) => `- ${p}`).join("\n")}
+
+## What is in the engine
+
+${gamedev.ENGINE_NOTE}
+
+| Feature | 2D games | 3D games |
+|---|---|---|
+${rows}
+
+## What it does not do yet
+
+${gamedev.LIMITS.map((l) => `- ${l}`).join("\n")}
+
+${gamedev.LIMITS_SUMMARY} Compare engines: ${BASE_URL}/gamedev/ai-game-engines
+
+## Questions
+
+${faq}
+
+## Read more
+
+${links}`;
+}
+
+/** Renders a QaPair list as Markdown questions. */
+function faqMarkdown(items) {
+  return items.map((q) => `### ${q.question}\n\n${q.answer}`).join("\n\n");
+}
+
+function linksMarkdown(items) {
+  return items.map((l) => `- [${l.label}](${l.href.startsWith("/") ? BASE_URL + l.href : l.href})`).join("\n");
+}
+
+/** The /ai-video-editor page as Markdown, from its data module. */
+function videoMarkdown() {
+  return `${video.VIDEO_LEAD}
+
+## From brief to finished cut
+
+${video.FLOW_STEPS.map((s) => `- **${s.title}**: ${s.body}`).join("\n")}
+
+## The timeline
+
+${video.TIMELINE_FEATURES.map((f) => `- ${f}`).join("\n")}
+
+## Agent tools
+
+These work in the built-in agent and over the MCP server (${BASE_URL}/mcp).
+
+${video.AGENT_TOOLS.map((t) => `- \`${t.name}\`: ${t.body}`).join("\n")}
+
+## Export
+
+${video.EXPORT_ROWS.map((r) => `- **${r.target}**: ${r.detail}`).join("\n")}
+
+## What it does not do yet
+
+${video.VIDEO_LIMITS.map((l) => `- ${l}`).join("\n")}
+
+${video.VIDEO_LIMITS_SUMMARY}
+
+## Questions
+
+${faqMarkdown(video.VIDEO_FAQ)}
+
+## Read more
+
+${linksMarkdown(video.VIDEO_LINKS)}`;
+}
+
+/** The /mcp page as Markdown, from its data module. */
+function mcpMarkdown() {
+  return `${mcp.MCP_LEAD}
+
+## Install
+
+\`\`\`bash
+${mcp.MCP_INSTALL}
+\`\`\`
+
+${mcp.CLIENT_ROWS.map((r) => `- **${r.client}**: ${r.setup}`).join("\n")}
+
+## What your agent can do
+
+${mcp.CAPABILITY_GROUPS.map((g) => `- **${g.title}**: ${g.body}`).join("\n")}
+
+## Direct tools
+
+${mcp.DIRECT_TOOLS.map((t) => `- \`${t.name}\`: ${t.purpose}`).join("\n")}
+
+Resources \`nodetool://capabilities\` and \`nodetool://sandbox\` describe everything reached through \`execute_code\`. Each skill is an MCP prompt, which Claude Code shows as a slash command.
+
+## Transports
+
+${mcp.TRANSPORT_ROWS.map((r) => `- **${r.mode}**: ${r.detail}`).join("\n")}
+
+## Good to know
+
+${mcp.MCP_LIMITS.map((l) => `- ${l}`).join("\n")}
+
+## Questions
+
+${faqMarkdown(mcp.MCP_FAQ)}
+
+## Read more
+
+${linksMarkdown(mcp.MCP_LINKS)}`;
 }
 
 const MARKDOWN_PAGES = {
@@ -160,6 +305,21 @@ Read the [agent documentation](https://docs.nodetool.ai/agents/index.md) for ins
     description: "Studio is free; current Cloud alpha access is free.",
     body: `NodeTool Studio is free and open source under AGPL-3.0. Current NodeTool Cloud alpha access is free; future Cloud pricing has not been announced. In both editions, provider charges are separate: connect supported provider accounts and pay those providers directly.`,
   },
+  "ai-video-editor.md": {
+    title: "NodeTool AI Video Editor",
+    description: video.VIDEO_DESCRIPTION,
+    body: videoMarkdown(),
+  },
+  "mcp.md": {
+    title: "NodeTool MCP Server",
+    description: mcp.MCP_DESCRIPTION,
+    body: mcpMarkdown(),
+  },
+  "gamedev.md": {
+    title: "NodeTool Game Development",
+    description: gamedev.GAMEDEV_DESCRIPTION,
+    body: gamedevMarkdown(),
+  },
   "marketing.md": {
     title: "NodeTool for Marketing Teams",
     description: "Hand the brief to an agent; get campaign assets at volume.",
@@ -188,8 +348,32 @@ function writeMarkdownPages(check) {
 function comparisonsSection() {
   const lines = competitorEntries
     .filter((e) => e.indexable)
-    .map((e) => link(e.title, e.route));
+    .map((e) => link(e.title.replace(/\s*\|\s*NodeTool$/, ""), e.route));
   return `## Comparisons\n\n${lines.join("\n")}`;
+}
+
+/**
+ * What each editor does, on the site and in the docs. Hand-written because a
+ * capability page and its docs page are a pair the registry cannot infer.
+ */
+const CAPABILITY_LINKS = [
+  ["Game development", "/gamedev", "the built-in 2D and 3D game engine: playable examples, what agents author, the Game Editor, and web export."],
+  ["AI game engines compared", "/gamedev/ai-game-engines", "NodeTool, Unity, Godot, Roblox Studio, Summer Engine, and Rosebud for agent-built games, with sources."],
+  ["Game Editor guide", "https://docs.nodetool.ai/game-editor", "scene tree, inspector, scripts, play mode, publishing, and export."],
+  ["Native Game Engine reference", "https://docs.nodetool.ai/game-engine/", "game documents, scripts, physics, assets, agent authoring, and current coverage."],
+  ["Storyboards", "/storyboards", "example storyboards: each film with every shot it was built from."],
+  ["Storyboard Editor guide", "https://docs.nodetool.ai/storyboard-editor", "scenes and shots, still and clip renders, takes, and assembling a timeline."],
+  ["Video Editor guide", "https://docs.nodetool.ai/video-editor", "multi-track timeline editing and export."],
+  ["Ad library", "/ad-library", "social ad concepts with beats, timing, and formats, each buildable as an editable ad timeline."],
+  ["Sketch Editor guide", "https://docs.nodetool.ai/sketch-editor", "layers, masks, AI layers, and inline image generation."],
+  ["MCP server guide", "https://docs.nodetool.ai/mcp-server", "use NodeTool from Claude Code, Codex, OpenCode, or any MCP client."],
+  ["All comparisons", "/alternatives", "every NodeTool comparison page, grouped by category."],
+  ["Blog", "/blog", "guides, comparisons, and cost breakdowns for AI image, video, and audio work."],
+];
+
+function capabilitiesSection() {
+  const lines = CAPABILITY_LINKS.map(([label, path, blurb]) => link(label, path, blurb));
+  return `## Editors and capabilities\n\n${lines.join("\n")}`;
 }
 
 function useCasesSection() {
@@ -236,6 +420,7 @@ function render() {
     [
       PREAMBLE,
       keyPagesSection(),
+      capabilitiesSection(),
       comparisonsSection(),
       useCasesSection(),
       faqSection(),

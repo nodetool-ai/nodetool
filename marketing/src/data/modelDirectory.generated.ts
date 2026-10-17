@@ -314,33 +314,6 @@ export const canonicalModels: CanonicalModel[] = [
     "kind": "video"
   },
   {
-    "canonical": "flux-1-dev",
-    "name": "FLUX.1 [dev]",
-    "creator": "Black Forest Labs",
-    "tasks": [
-      "text_to_image"
-    ],
-    "routes": [
-      {
-        "provider": "atlascloud",
-        "id": "black-forest-labs/flux-dev"
-      },
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/flux-1/dev"
-      },
-      {
-        "provider": "fal_ai",
-        "id": "fal-ai/flux/dev"
-      },
-      {
-        "provider": "replicate",
-        "id": "black-forest-labs/flux-dev"
-      }
-    ],
-    "kind": "image"
-  },
-  {
     "canonical": "flux-1-schnell",
     "name": "FLUX.1 [schnell]",
     "creator": "Black Forest Labs",
@@ -3924,7 +3897,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 995,
+    "total": 999,
     "providers": [
       {
         "provider": "fal_ai",
@@ -4269,6 +4242,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/flowedit"
           },
           {
+            "id": "fal-ai/flux-1/dev"
+          },
+          {
             "id": "fal-ai/flux-1/dev/image-to-image"
           },
           {
@@ -4516,6 +4492,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/flux-vision-upscaler"
+          },
+          {
+            "id": "fal-ai/flux/dev"
           },
           {
             "id": "fal-ai/flux/dev/redux"
@@ -5657,6 +5636,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "black-forest-labs/flux-depth-pro"
           },
           {
+            "id": "black-forest-labs/flux-dev"
+          },
+          {
             "id": "black-forest-labs/flux-dev-lora"
           },
           {
@@ -6620,6 +6602,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "atlascloud/photo-cleanup",
             "name": "Photo Cleanup"
+          },
+          {
+            "id": "black-forest-labs/flux-dev",
+            "name": "FLUX.1 Dev"
           },
           {
             "id": "google/nano-banana-pro/edit",

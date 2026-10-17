@@ -21,8 +21,8 @@ const features = [
     icon: Globe,
   },
   {
-    title: "Projects you keep as files",
-    body: "The storyboard, the script and its recordings, and the edited video are ordinary files on your disk. Export them as one .nodetool file to move the project to another computer.",
+    title: "Projects you can take with you",
+    body: "Studio keeps the storyboard, the script and its recordings, and the edited video on your computer. Export the whole project as one .nodetool-project file to move it to another computer.",
     icon: FolderOpen,
   },
 ];

@@ -1,0 +1,445 @@
+id,cluster,subcluster,query,form,intent,funnel,source_method,nodetool_fit,notes,target_page,page_status,priority
+Q0001,games,engine-choice,best AI game engine,keyword,commercial,consideration,listicle titles,partial,SERP dominated by summerengine.com listicles; NodeTool absent,/gamedev,existing,P2
+Q0002,games,engine-choice,best AI game engine 2026,keyword,commercial,consideration,listicle titles,partial,Year-qualified listicle query,/gamedev,existing,P2
+Q0003,games,engine-choice,open source AI game engine,keyword,commercial,consideration,search-results/related-searches,strong,"NodeTool is AGPL with built-in engine; competes with nAIVE, Arcane, OpenGame",/gamedev,existing,P1
+Q0004,games,engine-choice,AI native game engine,keyword,informational,awareness,competitor page language,strong,Phrase used by Summer Engine and cinevva signals article,/gamedev,existing,P1
+Q0005,games,engine-choice,AI-native game engines vs Unity and Godot,keyword,comparison,consideration,competitor page language,partial,NodeTool engine is far younger than Unity/Godot; be honest about depth,/gamedev,existing,P2
+Q0006,games,engine-choice,free AI game engine no royalties,keyword,commercial,consideration,competitor page language,strong,"AGPL, free Studio; Summer Engine also claims no royalties",/gamedev,existing,P1
+Q0007,games,engine-choice,AI game engine for beginners,keyword,commercial,consideration,search-results/related-searches,partial,,/gamedev,existing,P2
+Q0008,games,engine-choice,AI game engine that runs in the browser,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,Cloud alpha runs in browser; standalone web build export,/gamedev,existing,P2
+Q0009,games,engine-choice,game engine with built-in AI agent,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0010,games,engine-choice,which AI game engine is best for 2D games,question,comparison,consideration,vendor FAQ / People-also-ask,strong,,/gamedev,existing,P1
+Q0011,games,engine-choice,which AI game engine is best for 3D games,question,comparison,consideration,vendor FAQ / People-also-ask,partial,3D supported but less mature than Unity/Godot,/gamedev,existing,P2
+Q0012,games,engine-choice,is there an open source alternative to Summer Engine,question,comparison,decision,competitor page language,strong,Summer desktop app is proprietary (agent tools MIT),/gamedev,existing,P1
+Q0013,games,engine-choice,Summer Engine alternative,keyword,comparison,decision,competitor page language,strong,,/gamedev,existing,P1
+Q0014,games,engine-choice,Rosebud AI alternative open source,keyword,comparison,decision,competitor page language,strong,,/gamedev,existing,P1
+Q0015,games,engine-choice,Rosebud AI alternative that exports the code,keyword,comparison,decision,competitor page language,strong,,/gamedev,existing,P1
+Q0016,games,engine-choice,Sorceress game creation suite alternative,keyword,comparison,decision,competitor page language,partial,,/gamedev,existing,P2
+Q0017,games,engine-choice,AI game maker,keyword,commercial,consideration,search-results/related-searches,partial,Head term; dominated by Rosebud/Summer pages,/gamedev,existing,P2
+Q0018,games,engine-choice,best AI game maker for indie developers,keyword,commercial,consideration,listicle titles,partial,,/gamedev,existing,P2
+Q0019,games,engine-choice,text to game AI,keyword,informational,awareness,search-results/related-searches,partial,Prompt-to-game category; NodeTool output is an editable document not a one-shot,/gamedev,existing,P2
+Q0020,games,engine-choice,prompt to game generator,keyword,commercial,awareness,search-results/related-searches,partial,,/gamedev,existing,P2
+Q0021,games,engine-choice,AI game generator free,keyword,commercial,consideration,search-results/related-searches,weak,Users often want instant one-shot toys; NodeTool needs provider keys,/gamedev,existing,P3
+Q0022,games,engine-choice,AI game generator that makes playable games,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0023,games,engine-choice,make a game with AI without coding,keyword,how-to,awareness,search-results/related-searches,partial,,/gamedev,existing,P2
+Q0024,games,engine-choice,no-code AI game builder,keyword,commercial,consideration,search-results/related-searches,partial,,/gamedev,existing,P2
+Q0025,games,engine-choice,AI game engine desktop app Mac,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,"Studio ships for macOS, Windows, Linux",/gamedev,existing,P1
+Q0026,games,engine-choice,AI game engine Linux,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,Few competitors list Linux (Summer page shows Windows download),/gamedev,existing,P1
+Q0027,games,engine-choice,AI game engine with local models,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,Ollama/MLX support,/gamedev,existing,P1
+Q0028,games,agent-builds-game,AI agent that builds a playable game,keyword,informational,awareness,jobs-to-be-done brainstorm,strong,Core JTBD,/gamedev,existing,P1
+Q0029,games,agent-builds-game,can an AI agent build a whole game,question,informational,awareness,vendor FAQ / People-also-ask,strong,,/gamedev,existing,P1
+Q0030,games,agent-builds-game,can Claude make a playable game,question,informational,awareness,reddit/HN community phrasing,strong,"r/ClaudeAI posts: ""I made this game AND ART with just Claude Code""",/gamedev,existing,P1
+Q0031,games,agent-builds-game,can ChatGPT make a video game,question,informational,awareness,search-results/related-searches,partial,,/gamedev,existing,P2
+Q0032,games,agent-builds-game,how to make a game with Claude Code,question,how-to,awareness,search-results/related-searches,strong,Summer Engine owns an MCP landing page for this exact query,/gamedev,existing,P1
+Q0033,games,agent-builds-game,how to make a game with Codex,question,how-to,awareness,competitor page language,strong,,/gamedev,existing,P1
+Q0034,games,agent-builds-game,how to make games in Cursor with AI,question,how-to,awareness,competitor page language,partial,,/gamedev,existing,P2
+Q0035,games,agent-builds-game,Claude Code game development workflow,keyword,how-to,consideration,reddit/HN community phrasing,strong,,/gamedev,existing,P1
+Q0036,games,agent-builds-game,Claude Code game engine,keyword,commercial,consideration,competitor page language,strong,,/gamedev,existing,P1
+Q0037,games,agent-builds-game,game engine for AI coding agents,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0038,games,agent-builds-game,headless game engine for agents,keyword,informational,consideration,GitHub topics/READMEs,strong,harness/autoplay/playtest tools; compare nAIVE headless rendering,/gamedev,existing,P1
+Q0039,games,agent-builds-game,AI agent playtests my game automatically,keyword,informational,consideration,jobs-to-be-done brainstorm,strong,NodeTool has playtest and autoplay route tools,/gamedev,existing,P1
+Q0040,games,agent-builds-game,automated playtesting with AI agent,keyword,informational,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0041,games,agent-builds-game,AI that builds a game from a design document,keyword,informational,awareness,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0042,games,agent-builds-game,turn my game idea into a prototype with AI,keyword,how-to,awareness,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0043,games,agent-builds-game,AI game prototyping tool,keyword,commercial,consideration,search-results/related-searches,strong,,/gamedev,existing,P1
+Q0044,games,agent-builds-game,rapid game prototyping with AI agents,keyword,informational,awareness,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0045,games,agent-builds-game,AI game jam tool,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,,/gamedev,existing,P2
+Q0046,games,agent-builds-game,can AI make a platformer game,question,informational,awareness,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0047,games,agent-builds-game,AI make a top-down shooter game,keyword,how-to,awareness,reddit/HN community phrasing,strong,Reddit example resembled Binding of Isaac,/gamedev,existing,P1
+Q0048,games,agent-builds-game,AI puzzle game generator,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,,/gamedev,existing,P2
+Q0049,games,agent-builds-game,AI makes a 3D game from a prompt,keyword,commercial,awareness,jobs-to-be-done brainstorm,partial,,/gamedev,existing,P2
+Q0050,games,agent-builds-game,AI remake old game from source files,keyword,informational,awareness,reddit/HN community phrasing,weak,r/ClaudeAI post about reviving a 30-year-old CompuServe game; code port task,/gamedev,existing,P3
+Q0051,games,editable-output,editable AI-generated games,keyword,informational,consideration,jobs-to-be-done brainstorm,strong,Differentiator: editable game document vs throwaway code,/gamedev,existing,P1
+Q0052,games,editable-output,AI game generator where I can edit the result,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0053,games,editable-output,AI generated game open in editor afterwards,keyword,informational,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0054,games,editable-output,AI game maker with scene editor,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0055,games,editable-output,AI game builder that exports a standalone web build,keyword,commercial,decision,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0056,games,editable-output,export AI made game to itch.io,keyword,how-to,decision,search-results/related-searches,partial,Check export targets before claiming,/gamedev,existing,P2
+Q0057,games,editable-output,export AI generated game to Steam,keyword,how-to,decision,competitor page language,weak,Summer claims Steam export; NodeTool web build only (verify),/gamedev,existing,P3
+Q0058,games,editable-output,do I own games made with AI game engines,question,informational,consideration,vendor FAQ / People-also-ask,strong,"AGPL engine, user owns content; licensing questions common",/gamedev,existing,P1
+Q0059,games,editable-output,AI game engine output ownership royalties,keyword,informational,consideration,competitor page language,partial,,/gamedev,existing,P2
+Q0060,games,editable-output,AI game maker vs writing code myself,keyword,comparison,consideration,reddit/HN community phrasing,partial,,/gamedev,existing,P2
+Q0061,games,mcp-control,MCP game engine,keyword,commercial,consideration,MCP directory listings,strong,Godot/Unity/Roblox MCP servers dominate directories,/gamedev,existing,P1
+Q0062,games,mcp-control,game engine MCP server,keyword,commercial,consideration,MCP directory listings,strong,,/gamedev,existing,P1
+Q0063,games,mcp-control,Claude control game editor,keyword,informational,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0064,games,mcp-control,let Claude edit my game scene,keyword,how-to,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0065,games,mcp-control,godot mcp,keyword,navigational,consideration,MCP directory listings,partial,Navigational to Coding-Solo/godot-mcp; NodeTool is an alternative not a Godot plugin,/gamedev,existing,P2
+Q0066,games,mcp-control,godot mcp server claude,keyword,how-to,consideration,MCP directory listings,partial,,/gamedev,existing,P2
+Q0067,games,mcp-control,unity mcp,keyword,navigational,consideration,MCP directory listings,weak,"Unity official MCP (open beta, May 2026) plus community servers",/gamedev,existing,P3
+Q0068,games,mcp-control,unity mcp server claude code,keyword,how-to,consideration,MCP directory listings,weak,,/gamedev,existing,P3
+Q0069,games,mcp-control,roblox studio mcp,keyword,navigational,consideration,MCP directory listings,none,Roblox-specific,/gamedev,existing,do-not-target
+Q0070,games,mcp-control,unreal engine mcp server,keyword,navigational,consideration,MCP directory listings,none,,/gamedev,existing,do-not-target
+Q0071,games,mcp-control,blender mcp game assets,keyword,how-to,consideration,MCP directory listings,partial,NodeTool 3D editor uses headless Blender renders,/gamedev,existing,P2
+Q0072,games,mcp-control,best MCP servers for game development,keyword,commercial,consideration,listicle titles,strong,,/gamedev,existing,P1
+Q0073,games,mcp-control,MCP server for 2D game engine,keyword,commercial,consideration,MCP directory listings,strong,,/gamedev,existing,P1
+Q0074,games,mcp-control,MCP server for phaser or three.js games,keyword,commercial,consideration,MCP directory listings,partial,,/gamedev,existing,P2
+Q0075,games,mcp-control,CLI game engine for AI agents,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,nodetool CLI drives game documents,/gamedev,existing,P1
+Q0076,games,mcp-control,game engine with API for AI agents,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0077,games,vibe-coding,vibe coding games,keyword,informational,awareness,reddit/HN community phrasing,strong,Collins Word of the Year 2025 term; cinevva guide ranks for it,/gamedev,existing,P1
+Q0078,games,vibe-coding,vibe coding a game,keyword,how-to,awareness,reddit/HN community phrasing,strong,,/gamedev,existing,P1
+Q0079,games,vibe-coding,best tools for vibe coding games,keyword,commercial,consideration,listicle titles,strong,,/gamedev,existing,P1
+Q0080,games,vibe-coding,vibe code a game from scratch,keyword,how-to,awareness,vendor FAQ / People-also-ask,strong,,/gamedev,existing,P1
+Q0081,games,vibe-coding,is vibe coding good for making games,question,informational,awareness,vendor FAQ / People-also-ask,partial,,/gamedev,existing,P2
+Q0082,games,vibe-coding,vibe coding game engine,keyword,commercial,consideration,search-results/related-searches,strong,,/gamedev,existing,P1
+Q0083,games,vibe-coding,vibe coding games reddit,keyword,informational,awareness,reddit/HN community phrasing,partial,,/gamedev,existing,P2
+Q0084,games,vibe-coding,which AI model is best for vibe coding games,question,comparison,consideration,vendor FAQ / People-also-ask,weak,Model question; NodeTool is model-agnostic,/gamedev,existing,P3
+Q0085,games,vibe-coding,vibe coded game art style consistency,keyword,how-to,consideration,reddit/HN community phrasing,strong,"Commenters ask ""Especially artstyle!""",/gamedev,existing,P1
+Q0086,games,vibe-coding,vibe coding 3D browser game,keyword,how-to,awareness,search-results/related-searches,partial,,/gamedev,existing,P2
+Q0087,games,assets,AI game assets,keyword,commercial,consideration,search-results/related-searches,partial,"Ludo.ai, Scenario, Sorceress compete; NodeTool generates and installs into the game",/gamedev,existing,P2
+Q0088,games,assets,AI game asset generator,keyword,commercial,consideration,search-results/related-searches,partial,,/gamedev,existing,P2
+Q0089,games,assets,AI sprite sheet generator,keyword,commercial,consideration,search-results/related-searches,partial,,/gamedev,existing,P2
+Q0090,games,assets,AI pixel art generator for games,keyword,commercial,consideration,search-results/related-searches,weak,Mostly model/tool question,/gamedev,existing,P3
+Q0091,games,assets,AI tileset generator,keyword,commercial,consideration,search-results/related-searches,partial,,/gamedev,existing,P2
+Q0092,games,assets,AI sound effects generator for games,keyword,commercial,consideration,search-results/related-searches,partial,,/gamedev,existing,P2
+Q0093,games,assets,AI game music generator,keyword,commercial,consideration,search-results/related-searches,weak,,/gamedev,existing,P3
+Q0094,games,assets,AI 3D model generator for games,keyword,commercial,consideration,search-results/related-searches,weak,Meshy/Tripo dominate; NodeTool calls providers,/gamedev,existing,P3
+Q0095,games,assets,consistent art style AI game assets,keyword,how-to,consideration,competitor page language,partial,Scenario trains custom styles,/gamedev,existing,P2
+Q0096,games,assets,generate game assets with Claude,keyword,how-to,consideration,competitor page language,partial,"Ludo.ai owns ""game assets in Claude"" page",/gamedev,existing,P2
+Q0097,games,assets,game asset pipeline with AI agent,keyword,informational,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0098,games,assets,AI asset pack generator for indie games,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,native-game skill covers asset packs,/gamedev,existing,P1
+Q0099,games,assets,AI character sprite generator with animation,keyword,commercial,consideration,search-results/related-searches,partial,,/gamedev,existing,P2
+Q0100,games,assets,AI generated game UI and HUD,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,,/gamedev,existing,P2
+Q0101,games,assets,Ludo.ai alternative,keyword,comparison,decision,competitor page language,partial,,/gamedev,existing,P2
+Q0102,games,assets,Scenario.gg alternative open source,keyword,comparison,decision,competitor page language,partial,,/gamedev,existing,P2
+Q0103,games,assets,AI NPC dialogue voice generator,keyword,commercial,consideration,search-results/related-searches,partial,,/gamedev,existing,P2
+Q0104,games,assets,AI game trailer generator,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,Combines game capture with timeline editor,/gamedev,existing,P1
+Q0105,games,assets,make a trailer for my indie game with AI,keyword,how-to,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0106,games,genre-jobs,AI visual novel maker,keyword,commercial,consideration,search-results/related-searches,partial,Substack post: visual novel with Claude Code and Godot,/gamedev,existing,P2
+Q0107,games,genre-jobs,AI RPG maker,keyword,commercial,consideration,competitor page language,partial,Rosebud has RPG helpers,/gamedev,existing,P2
+Q0108,games,genre-jobs,AI educational game maker for teachers,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,,/gamedev,existing,P2
+Q0109,games,genre-jobs,AI game for marketing campaign playable ad,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,Playable ads crossover with advertising cluster,/gamedev,existing,P2
+Q0110,games,genre-jobs,playable ad generator AI,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,,/gamedev,existing,P2
+Q0111,games,genre-jobs,AI browser game for my website,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,,/gamedev,existing,P2
+Q0112,games,genre-jobs,AI kids game maker,keyword,commercial,consideration,search-results/related-searches,weak,,/gamedev,existing,P3
+Q0113,games,genre-jobs,AI multiplayer game builder,keyword,commercial,consideration,competitor page language,weak,Mirror Engine is multiplayer-first; NodeTool not,/gamedev,existing,P3
+Q0114,games,genre-jobs,AI mobile game maker iPhone app,keyword,commercial,consideration,search-results/related-searches,none,Native mobile game export not offered,/gamedev,existing,do-not-target
+Q0115,games,genre-jobs,Roblox game AI generator,keyword,commercial,consideration,search-results/related-searches,none,Roblox-specific,/gamedev,existing,do-not-target
+Q0116,games,convo,I want to make a small 2D platformer with AI but I still want to open the levels in an editor and tweak them myself. What should I use?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,Ideal answer surface for NodeTool,/gamedev,existing,P1
+Q0117,games,convo,Is there a game engine where Claude Code can build the game and I can still edit everything in a normal editor afterward?,conversational,commercial,consideration,reddit/HN community phrasing,strong,,/gamedev,existing,P1
+Q0118,games,convo,What's the best open-source AI game engine that doesn't lock me into a subscription or credits?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0119,games,convo,I've been vibe coding games in Cursor with three.js and it keeps falling apart past 2000 lines. Is there a better setup where the agent works on a proper game document?,conversational,commercial,consideration,reddit/HN community phrasing,strong,,/gamedev,existing,P1
+Q0120,games,convo,"Can an AI agent build me a playable browser game from a one-paragraph pitch, including art and sound, and then let me change things?",conversational,informational,awareness,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0121,games,convo,"I'm a designer, not a programmer. Which AI game maker lets me describe a game and then adjust the level layout by hand?",conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0122,games,convo,How do I connect Claude Code to a game engine through MCP so it can playtest and fix bugs on its own?,conversational,how-to,consideration,MCP directory listings,strong,,/gamedev,existing,P1
+Q0123,games,convo,Should I use Godot with an MCP server or an AI-native engine if I want Claude to do most of the work?,conversational,comparison,consideration,MCP directory listings,partial,Honest answer: Godot is more capable; AI-native engines are more agent-drivable,/gamedev,existing,P2
+Q0124,games,convo,What's a good alternative to Rosebud AI where I can export the game and keep the source files?,conversational,comparison,decision,competitor page language,strong,,/gamedev,existing,P1
+Q0125,games,convo,Summer Engine looks cool but it's Windows only for me right now. What can I use on a Mac or Linux with an AI agent?,conversational,comparison,decision,competitor page language,strong,Verify Summer platform list before publishing comparisons,/gamedev,existing,P1
+Q0126,games,convo,I want to make a game jam entry in 48 hours using AI agents for code and art. What tool chain do people recommend?,conversational,commercial,consideration,reddit/HN community phrasing,strong,,/gamedev,existing,P1
+Q0127,games,convo,Which AI tools can generate consistent sprites and then actually put them into the game for me instead of just giving me PNGs?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0128,games,convo,Can I make a 3D game with an AI agent without learning Unity?,conversational,informational,awareness,jobs-to-be-done brainstorm,partial,,/gamedev,existing,P2
+Q0129,games,convo,Is there an AI game engine that works with local models so I don't pay per prompt?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0130,games,convo,I want my students to make simple games by describing them to an AI. What's free and runs on school laptops?,conversational,commercial,consideration,jobs-to-be-done brainstorm,partial,Cloud alpha in browser; local models need GPU,/gamedev,existing,P2
+Q0131,games,convo,I tried Unity AI and it feels bolted on. Are there engines designed from the start for AI agents?,conversational,comparison,consideration,competitor page language,strong,,/gamedev,existing,P1
+Q0132,games,convo,"What's the difference between an AI game generator and an AI game engine, and which one lets me keep editing?",conversational,informational,awareness,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0133,games,convo,"Can Claude make a game and also a trailer for it, without me switching between five apps?",conversational,informational,awareness,jobs-to-be-done brainstorm,strong,Cross-editor story: game + timeline,/gamedev,existing,P1
+Q0134,games,convo,How can I get an AI agent to playtest my game and tell me where players get stuck?,conversational,how-to,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0135,games,convo,I have a game design doc. Is there any tool where an agent turns it into a playable prototype I can iterate on?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0136,games,convo,What AI game engine do indie devs on Reddit actually use in 2026?,conversational,commercial,consideration,reddit/HN community phrasing,partial,Reddit threads mostly cite Claude Code + Godot/Unity; NodeTool absent,/gamedev,existing,P2
+Q0137,games,convo,"Are AI-generated games any good, or is it all demos that break when you add features?",conversational,informational,awareness,reddit/HN community phrasing,partial,,/gamedev,existing,P2
+Q0138,games,convo,Can I use my Claude subscription instead of an API key to build games with an AI agent?,conversational,informational,consideration,jobs-to-be-done brainstorm,strong,Studio supports ChatGPT/Claude/Gemini sign-in,/gamedev,existing,P1
+Q0139,games,convo,"I want a browser game for my product launch that I can hand to my developer later. Which AI tool gives clean, editable output?",conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0140,games,convo,"What's the easiest way to vibe code a game with good art direction, not just colored rectangles?",conversational,how-to,awareness,reddit/HN community phrasing,strong,game-direction skill addresses feel/art direction,/gamedev,existing,P1
+Q0141,games,convo,Which AI game makers let me publish to a shareable link for free?,conversational,commercial,decision,competitor page language,partial,,/gamedev,existing,P2
+Q0142,games,convo,Is there an open-source tool like Rosebud that I can self-host?,conversational,comparison,decision,competitor page language,strong,,/gamedev,existing,P1
+Q0143,games,convo,My kid wants to make a Roblox game with AI. Where do we start?,conversational,how-to,awareness,search-results/related-searches,none,Roblox-specific; NodeTool is not a Roblox tool,/gamedev,existing,do-not-target
+Q0144,games,convo,Can an AI agent build a game and generate all the sound effects and music too?,conversational,informational,awareness,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0145,games,convo,How do I make a game with ChatGPT if I can't code at all?,conversational,how-to,awareness,search-results/related-searches,partial,,/gamedev,existing,P2
+Q0146,games,convo,I want an AI to build a tower defense game and then I'll balance the numbers myself. What lets me edit game values without touching code?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0147,games,convo,Which AI game engine has a real editor and not just a chat box?,conversational,comparison,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0148,games,convo,What's the best workflow for using Claude Code with a game engine in 2026?,conversational,how-to,consideration,reddit/HN community phrasing,strong,,/gamedev,existing,P1
+Q0149,games,convo,Are there AI game engines that can generate 3D models and place them in a scene automatically?,conversational,commercial,consideration,jobs-to-be-done brainstorm,partial,,/gamedev,existing,P2
+Q0150,games,convo,Can I build a game with AI on Linux? Most tools seem Windows or web only.,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/gamedev,existing,P1
+Q0151,games,convo,Is there an AI tool that makes small games for social media ads that I can tweak per campaign?,conversational,commercial,consideration,jobs-to-be-done brainstorm,partial,,/gamedev,existing,P2
+Q0152,games,convo,What are the limitations of AI game engines compared to Godot right now?,conversational,comparison,consideration,competitor page language,partial,Requires honest content to be cited,/gamedev,existing,P2
+Q0153,games,convo,Which open-source projects let AI agents create and run games headlessly for testing?,conversational,informational,consideration,GitHub topics/READMEs,strong,,/gamedev,existing,P1
+Q0154,games,convo,I want to make a narrative adventure game with AI-generated characters and voices. Which tool keeps characters consistent?,conversational,commercial,consideration,jobs-to-be-done brainstorm,partial,Entity library shared with storyboards,/gamedev,existing,P2
+Q0155,games,convo,Is there an AI game maker that works offline?,conversational,commercial,consideration,jobs-to-be-done brainstorm,partial,Studio offline with local models,/gamedev,existing,P2
+Q0156,games,convo,How do I get Codex or Claude Code to make a game that actually looks good?,conversational,how-to,consideration,reddit/HN community phrasing,strong,,/gamedev,existing,P1
+Q0157,games,convo,Which AI game engine should a solo developer pick if they want to ship to the web?,conversational,commercial,decision,listicle titles,strong,,/gamedev,existing,P1
+Q0158,games,convo,What AI tools let me make a game and a website for it in the same place?,conversational,commercial,consideration,jobs-to-be-done brainstorm,weak,,/gamedev,existing,P3
+Q0159,games,convo,I made a game with Claude but it's one huge HTML file. How do I move it to something more maintainable?,conversational,how-to,consideration,reddit/HN community phrasing,partial,,/gamedev,existing,P2
+Q0160,video,editable-timeline,AI video editor with editable timeline,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,Core differentiator vs one-shot generators,/ai-video-editor,existing,P1
+Q0161,video,editable-timeline,AI video generator that outputs an editable project,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-video-editor,existing,P1
+Q0162,video,editable-timeline,AI video editor open source,keyword,commercial,consideration,search-results/related-searches,strong,"Competes with Palmier Pro, OpenChatCut, FableCut",/ai-video-editor,existing,P1
+Q0163,video,editable-timeline,open source video editor AI agents can operate,keyword,commercial,consideration,competitor page language,strong,Palmier Pro YC launch uses this phrasing,/ai-video-editor,existing,P1
+Q0164,video,editable-timeline,agentic video editor,keyword,informational,awareness,search-results/related-searches,strong,invideo FAQ ranks for definition,/ai-video-editor,existing,P1
+Q0165,video,editable-timeline,what is an agentic video editor,question,informational,awareness,vendor FAQ / People-also-ask,strong,,/ai-video-editor,existing,P1
+Q0166,video,editable-timeline,AI rough cut from footage,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,,/ai-video-editor,existing,P2
+Q0167,video,editable-timeline,AI video editor that keeps layers and clips editable,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-video-editor,existing,P1
+Q0168,video,editable-timeline,export AI video project to Premiere or DaVinci,keyword,how-to,decision,jobs-to-be-done brainstorm,weak,Check interchange formats before claiming,/ai-video-editor,existing,P3
+Q0169,video,storyboard,AI storyboard generator,keyword,commercial,consideration,search-results/related-searches,partial,LTX Studio and invideo rank,/storyboards,improve,P2
+Q0170,video,storyboard,AI storyboard to video,keyword,commercial,consideration,search-results/related-searches,strong,,/storyboards,improve,P2
+Q0171,video,storyboard,storyboard agent,keyword,informational,awareness,jobs-to-be-done brainstorm,strong,,/storyboards,improve,P2
+Q0172,video,storyboard,AI storyboard with consistent characters,keyword,commercial,consideration,competitor page language,strong,Entity casting,/storyboards,improve,P2
+Q0173,video,storyboard,script to storyboard to video AI,keyword,how-to,consideration,vendor FAQ / People-also-ask,strong,,/storyboards,improve,P2
+Q0174,video,storyboard,AI animatic generator,keyword,commercial,consideration,search-results/related-searches,partial,,/storyboards,improve,P2
+Q0175,video,storyboard,storyboard-first AI filmmaking workflow,keyword,informational,awareness,vendor FAQ / People-also-ask,strong,invideo FAQ page title,/storyboards,improve,P2
+Q0176,video,storyboard,LTX Studio alternative,keyword,comparison,decision,competitor page language,strong,,/storyboards,improve,P2
+Q0177,video,storyboard,LTX Studio alternative open source,keyword,comparison,decision,competitor page language,strong,,/storyboards,improve,P2
+Q0178,video,filmmaking-agent,AI filmmaking agent,keyword,informational,awareness,search-results/related-searches,strong,"Pika Director's Suite (invite only, July 2026)",/ai-video-editor,existing,P1
+Q0179,video,filmmaking-agent,AI agent that directs a short film,keyword,informational,awareness,competitor page language,strong,,/ai-video-editor,existing,P1
+Q0180,video,filmmaking-agent,Pika Director's Suite alternative,keyword,comparison,decision,competitor page language,strong,,/ai-video-editor,existing,P1
+Q0181,video,filmmaking-agent,AI short film maker with dialogue and music,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,short-film skill,/ai-video-editor,existing,P1
+Q0182,video,filmmaking-agent,AI music video generator editable,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,,/ai-video-editor,existing,P2
+Q0183,video,filmmaking-agent,AI explainer video with voiceover,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,script-video skill,/ai-video-editor,existing,P1
+Q0184,video,filmmaking-agent,narrated explainer video AI agent,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-video-editor,existing,P1
+Q0185,video,filmmaking-agent,AI trailer generator,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-video-editor,existing,P1
+Q0186,video,filmmaking-agent,AI lip sync for existing footage,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,video-post skill,/ai-video-editor,existing,P2
+Q0187,video,filmmaking-agent,AI video upscaling and cleanup on a timeline,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,,/ai-video-editor,existing,P2
+Q0188,video,assistant-video,create videos with Claude,keyword,how-to,awareness,competitor page language,strong,"Higgsfield owns ""Claude AI video generator"" page",/ai-video-editor,existing,P1
+Q0189,video,assistant-video,Claude AI video generator,keyword,commercial,consideration,competitor page language,strong,,/ai-video-editor,existing,P1
+Q0190,video,assistant-video,create videos with ChatGPT,keyword,how-to,awareness,search-results/related-searches,partial,,/ai-video-editor,existing,P2
+Q0191,video,assistant-video,make a video with Gemini,keyword,how-to,awareness,search-results/related-searches,partial,,/ai-video-editor,existing,P2
+Q0192,video,assistant-video,Claude Code make a video,keyword,how-to,consideration,search-results/related-searches,strong,Remotion Claude Code plugin dominates,/ai-video-editor,existing,P1
+Q0193,video,assistant-video,Claude Code Remotion alternative,keyword,comparison,decision,competitor page language,strong,,/ai-video-editor,existing,P1
+Q0194,video,assistant-video,can Claude edit videos,question,informational,awareness,vendor FAQ / People-also-ask,strong,,/ai-video-editor,existing,P1
+Q0195,video,assistant-video,can ChatGPT make videos with sound,question,informational,awareness,search-results/related-searches,weak,Model capability question,/ai-video-editor,existing,P3
+Q0196,video,model-questions,best AI video generator,keyword,commercial,consideration,listicle titles,weak,Model question; NodeTool routes to Veo/Kling/etc,/models,existing,P3
+Q0197,video,model-questions,best AI video generator 2026,keyword,commercial,consideration,listicle titles,weak,,/models,existing,P3
+Q0198,video,model-questions,Veo vs Kling vs Sora,keyword,comparison,consideration,search-results/related-searches,weak,Model comparison,/models,existing,P3
+Q0199,video,model-questions,use multiple AI video models in one project,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,Multi-provider,/models,existing,P3
+Q0200,video,model-questions,AI video generator with my own API keys,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,"No markup, BYO keys",/models,existing,P3
+Q0201,video,model-questions,AI video tool no credits pay providers directly,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/models,existing,P3
+Q0202,video,model-questions,local AI video generation Wan 2.x desktop app,keyword,commercial,consideration,GitHub topics/READMEs,partial,nodetool-wan2gp package,/models,existing,P3
+Q0203,video,model-questions,text to video free unlimited,keyword,commercial,consideration,search-results/related-searches,none,NodeTool has provider costs; local needs GPU,/models,existing,do-not-target
+Q0204,video,convo,"I want an AI to make a 60-second product explainer with voiceover, but I still want to edit the cuts and swap shots afterward. What tool does that?",conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-video-editor,existing,P1
+Q0205,video,convo,"Is there a tool where Claude writes the script, generates the shots, and assembles a timeline I can open and change?",conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-video-editor,existing,P1
+Q0206,video,convo,Higgsfield makes great clips but I end up stitching everything in CapCut. Is there something that keeps the whole project editable?,conversational,comparison,decision,competitor page language,strong,,/ai-video-editor,existing,P1
+Q0207,video,convo,What's the best open-source alternative to Runway for making short films with AI?,conversational,comparison,decision,competitor page language,strong,,/ai-video-editor,existing,P1
+Q0208,video,convo,How can I keep the same character across all the shots in an AI video?,conversational,how-to,consideration,reddit/HN community phrasing,strong,,/ai-video-editor,existing,P1
+Q0209,video,convo,"I want to make an AI short film with dialogue, characters and a score. What's the workflow people use in 2026?",conversational,how-to,awareness,reddit/HN community phrasing,strong,,/ai-video-editor,existing,P1
+Q0210,video,convo,Can I use Claude Code to edit a video timeline instead of writing Remotion code?,conversational,commercial,consideration,competitor page language,strong,,/ai-video-editor,existing,P1
+Q0211,video,convo,"Which AI video tools let me switch between Veo, Kling and Seedance without paying for three subscriptions?",conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-video-editor,existing,P1
+Q0212,video,convo,"I have raw footage of a talk. Can an AI agent find the best moments, add captions, and give me a cut I can adjust?",conversational,commercial,consideration,competitor page language,partial,Palmier Pro pitches this exact job,/ai-video-editor,existing,P2
+Q0213,video,convo,Is there a storyboard tool that turns my script into shots and then into an actual edit?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-video-editor,existing,P1
+Q0214,video,convo,What should I use to make AI videos on my own computer instead of a cloud subscription?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-video-editor,existing,P1
+Q0215,video,convo,My client keeps asking for small changes to AI-generated videos. Which tools let me change one shot without regenerating everything?,conversational,commercial,decision,jobs-to-be-done brainstorm,strong,,/ai-video-editor,existing,P1
+Q0216,video,convo,Can ChatGPT plan a video and then hand it to an editor app automatically?,conversational,informational,awareness,jobs-to-be-done brainstorm,strong,,/ai-video-editor,existing,P1
+Q0217,video,convo,I want to recreate the structure of a viral video with my own product. Is there an AI tool that analyzes the reference and rebuilds it?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,video-clone skill,/ai-video-editor,existing,P1
+Q0218,video,convo,What's a good AI tool for making YouTube explainers where the visuals follow the narration timing?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-video-editor,existing,P1
+Q0219,video,convo,Is there an open-source LTX Studio?,conversational,comparison,decision,competitor page language,strong,,/ai-video-editor,existing,P1
+Q0220,video,convo,How do professional AI filmmakers organize projects so they can revise shots later?,conversational,informational,awareness,reddit/HN community phrasing,strong,,/ai-video-editor,existing,P1
+Q0221,video,convo,Can an AI agent make a music video synced to my song and let me fix the cuts?,conversational,commercial,consideration,jobs-to-be-done brainstorm,partial,,/ai-video-editor,existing,P2
+Q0222,video,convo,What's the cheapest way to make AI videos with top models if I already pay for ChatGPT Plus?,conversational,commercial,consideration,jobs-to-be-done brainstorm,partial,"Subscription sign-in supports LLM, not necessarily video models",/ai-video-editor,existing,P2
+Q0223,video,convo,"Is Pika Director's Suite available yet, and what are alternatives with an agent and a timeline?",conversational,comparison,decision,competitor page language,strong,,/ai-video-editor,existing,P1
+Q0224,image,editor,open source AI image editor,keyword,commercial,consideration,search-results/related-searches,strong,InvokeAI is the main open-source competitor,/ai-image-editor,proposed,P2
+Q0225,image,editor,AI image editor with layers,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,"Sketch editor: layers, blend modes, version history",/ai-image-editor,proposed,P2
+Q0226,image,editor,AI image editor that keeps edit history,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-image-editor,proposed,P2
+Q0227,image,editor,AI sketch to image editor,keyword,commercial,consideration,search-results/related-searches,partial,,/ai-image-editor,proposed,P2
+Q0228,image,editor,inpainting and outpainting app desktop,keyword,commercial,consideration,search-results/related-searches,partial,,/ai-image-editor,proposed,P2
+Q0229,image,editor,InvokeAI alternative,keyword,comparison,decision,competitor page language,partial,,/ai-image-editor,proposed,P2
+Q0230,image,editor,AI photo editor that Claude can control,keyword,informational,consideration,jobs-to-be-done brainstorm,strong,,/ai-image-editor,proposed,P2
+Q0231,image,editor,Photoshop alternative with AI agent,keyword,comparison,consideration,jobs-to-be-done brainstorm,partial,,/ai-image-editor,proposed,P2
+Q0232,image,multi-model,multi-model AI image generator,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/models,existing,P3
+Q0233,image,multi-model,"use Flux, GPT Image and Nano Banana in one app",keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/models,existing,P3
+Q0234,image,multi-model,compare AI image models side by side,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/models,existing,P3
+Q0235,image,multi-model,best AI image generator,keyword,commercial,consideration,listicle titles,weak,Model question,/models,existing,P3
+Q0236,image,multi-model,best AI image generator 2026,keyword,commercial,consideration,listicle titles,weak,,/models,existing,P3
+Q0237,image,multi-model,Midjourney alternative,keyword,comparison,decision,listicle titles,weak,Users want a model; NodeTool is a workspace,/models,existing,P3
+Q0238,image,multi-model,local AI image generation Mac MLX,keyword,commercial,consideration,GitHub topics/READMEs,strong,nodetool-mlx package,/models,existing,P3
+Q0239,image,multi-model,run Flux locally with a GUI,keyword,how-to,consideration,search-results/related-searches,partial,,/models,existing,P3
+Q0240,image,workflows,reusable AI image workflows,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/node-based-workflows,existing,P2
+Q0241,image,workflows,node based AI image workflow,keyword,commercial,consideration,listicle titles,strong,Krea top-7 list omits NodeTool,/node-based-workflows,existing,P2
+Q0242,image,workflows,batch generate product images with AI,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/node-based-workflows,existing,P2
+Q0243,image,workflows,share AI image workflow as an app,keyword,commercial,consideration,competitor page language,strong,Mini apps; Weave and Invoke offer app-style UIs,/node-based-workflows,existing,P2
+Q0244,image,workflows,AI image pipeline API,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/node-based-workflows,existing,P2
+Q0245,image,product-photo,AI product photography,keyword,commercial,consideration,search-results/related-searches,partial,,/recipes/ecommerce-sku-visual-factory,existing,P2
+Q0246,image,product-photo,AI product photo background replacement,keyword,commercial,consideration,search-results/related-searches,partial,,/recipes/ecommerce-sku-visual-factory,existing,P2
+Q0247,image,product-photo,AI product photography that keeps the product accurate,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,Product fidelity concern,/recipes/ecommerce-sku-visual-factory,existing,P2
+Q0248,image,product-photo,AI lifestyle shots from one product photo,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/recipes/ecommerce-sku-visual-factory,existing,P2
+Q0249,image,product-photo,ecommerce product image generator bulk,keyword,commercial,consideration,search-results/related-searches,partial,,/recipes/ecommerce-sku-visual-factory,existing,P2
+Q0250,image,convo,"I need 40 lifestyle product photos for my store, but the product must look exactly like the real one. Which AI workflow keeps fidelity?",conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-image-editor,proposed,P2
+Q0251,image,convo,Is there an open-source alternative to Krea where I can use my own API keys?,conversational,comparison,decision,competitor page language,strong,,/ai-image-editor,proposed,P2
+Q0252,image,convo,I want to build an image workflow once and let my team run it with a simple form. What tool does that?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-image-editor,proposed,P2
+Q0253,image,convo,What's the easiest local app on a Mac for generating images with open models and also cloud ones when needed?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-image-editor,proposed,P2
+Q0254,image,convo,"Can Claude edit an image with layers, like move the logo and change the background, and keep it editable?",conversational,informational,consideration,jobs-to-be-done brainstorm,strong,,/ai-image-editor,proposed,P2
+Q0255,image,convo,ComfyUI is too complicated for me. What's a node-based image tool that's easier but still powerful?,conversational,comparison,consideration,reddit/HN community phrasing,strong,,/ai-image-editor,proposed,P2
+Q0256,image,convo,Which AI image editors keep version history so I can go back after a bad edit?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-image-editor,proposed,P2
+Q0257,image,convo,What's a good free AI tool to remove backgrounds from product photos?,conversational,commercial,consideration,search-results/related-searches,weak,Single-function utility query,/ai-image-editor,proposed,P3
+Q0258,image,convo,Which app lets me compare outputs of five image models for the same prompt?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-image-editor,proposed,P2
+Q0259,image,convo,Is there an AI image generator I can run fully offline for client confidentiality?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/ai-image-editor,proposed,P2
+Q0260,image,convo,I want to turn rough sketches into polished concept art but keep my composition. What works?,conversational,how-to,consideration,jobs-to-be-done brainstorm,partial,,/ai-image-editor,proposed,P2
+Q0261,image,convo,Best AI art generator for anime?,conversational,commercial,consideration,search-results/related-searches,none,Model/style question,/ai-image-editor,proposed,do-not-target
+Q0262,image,convo,Can I make a reusable workflow that turns one product shot into ads for every social format?,conversational,how-to,consideration,jobs-to-be-done brainstorm,strong,,/ai-image-editor,proposed,P2
+Q0263,advertising,generators,AI ad generator,keyword,commercial,consideration,listicle titles,partial,"Listicles (vidmuse, gaga) omit NodeTool",/marketing,improve,P2
+Q0264,advertising,generators,best AI ad generator 2026,keyword,commercial,consideration,listicle titles,partial,,/marketing,improve,P2
+Q0265,advertising,generators,AI video ad generator,keyword,commercial,consideration,listicle titles,partial,,/marketing,improve,P2
+Q0266,advertising,generators,video ads from product photos,keyword,commercial,consideration,search-results/related-searches,strong,pixverse/dreamina pages rank,/marketing,improve,P2
+Q0267,advertising,generators,turn product photo into video ad,keyword,how-to,consideration,search-results/related-searches,strong,,/marketing,improve,P2
+Q0268,advertising,generators,product URL to video ad,keyword,commercial,consideration,competitor page language,partial,"Creatify, VidMuse, JoggAI feature",/marketing,improve,P2
+Q0269,advertising,generators,AI commercial generator,keyword,commercial,consideration,search-results/related-searches,strong,product-commercial / launch-commercial skills,/marketing,improve,P2
+Q0270,advertising,generators,AI product commercial from website,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0271,advertising,generators,motion graphics ad from screenshots,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,motion-ad skill,/marketing,improve,P2
+Q0272,advertising,generators,AI app promo video from screenshots,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0273,advertising,generators,15 second Instagram ad AI,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0274,advertising,generators,AI static ad creative generator,keyword,commercial,consideration,competitor page language,partial,AdCreative.ai category,/marketing,improve,P2
+Q0275,advertising,variants,AI ad variants,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0276,advertising,variants,generate ad variations for A/B testing,keyword,how-to,consideration,competitor page language,strong,,/marketing,improve,P2
+Q0277,advertising,variants,batch create ad creatives in multiple aspect ratios,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0278,advertising,variants,resize video ad 9:16 4:5 1:1 AI,keyword,how-to,consideration,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0279,advertising,variants,creative testing at scale AI,keyword,informational,consideration,competitor page language,partial,,/marketing,improve,P2
+Q0280,advertising,ugc,UGC ads AI,keyword,commercial,consideration,competitor page language,partial,Arcads/Creatify own this; NodeTool has ugc-video skill,/recipes/ugc-product-video,existing,P2
+Q0281,advertising,ugc,AI UGC video generator,keyword,commercial,consideration,competitor page language,partial,,/recipes/ugc-product-video,existing,P2
+Q0282,advertising,ugc,AI actors for ads,keyword,commercial,consideration,competitor page language,weak,Arcads has 300+ actor library,/recipes/ugc-product-video,existing,P3
+Q0283,advertising,ugc,Arcads alternative,keyword,comparison,decision,competitor page language,partial,,/recipes/ugc-product-video,existing,P2
+Q0284,advertising,ugc,Creatify alternative,keyword,comparison,decision,competitor page language,partial,,/recipes/ugc-product-video,existing,P2
+Q0285,advertising,ugc,AI testimonial video generator,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,,/recipes/ugc-product-video,existing,P2
+Q0286,advertising,ugc,UGC ad with my own product holding shots,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/recipes/ugc-product-video,existing,P2
+Q0287,advertising,brand,brand consistent AI creative,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0288,advertising,brand,AI ads that follow brand guidelines,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0289,advertising,brand,on-brand AI images for marketing teams,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0290,advertising,brand,product fidelity AI generated ads,keyword,informational,consideration,jobs-to-be-done brainstorm,strong,Common complaint: logos and packaging drift,/marketing,improve,P2
+Q0291,advertising,brand,AI campaign asset set stills and video cuts,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,launch-kit skill,/marketing,improve,P2
+Q0292,advertising,brand,AI ad library templates,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,nodetool.ai lists an ad library,/marketing,improve,P2
+Q0293,advertising,brand,AdCreative.ai alternative,keyword,comparison,decision,competitor page language,partial,,/marketing,improve,P2
+Q0294,advertising,brand,Pencil AI ads alternative,keyword,comparison,decision,competitor page language,partial,,/marketing,improve,P2
+Q0295,advertising,brand,Canva AI ads vs dedicated AI ad tools,keyword,comparison,consideration,listicle titles,weak,,/marketing,improve,P3
+Q0296,advertising,convo,I sell skincare on Shopify. Can an AI make 10 short video ads from my product photos without warping the label?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0297,advertising,convo,Which AI ad tool lets me edit the generated ad afterward instead of regenerating the whole thing?,conversational,commercial,decision,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0298,advertising,convo,What's a cheaper alternative to Arcads that still makes UGC-style ads?,conversational,comparison,decision,competitor page language,partial,,/marketing,improve,P2
+Q0299,advertising,convo,"I need the same ad in 9:16, 4:5 and 1:1 with different hooks. What AI tool handles variants well?",conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0300,advertising,convo,Can Claude make a 15-second motion graphics ad from my app screenshots with claims that match my landing page?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,motion-ad skill checks claims against page,/marketing,improve,P2
+Q0301,advertising,convo,Is there an open-source AI ad generator I can run myself?,conversational,comparison,decision,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0302,advertising,convo,We're an agency. Which tool lets us build a reusable ad workflow per client and keep brand assets consistent?,conversational,commercial,decision,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0303,advertising,convo,How do I make a TV-style product commercial with AI from just a product page link?,conversational,how-to,consideration,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0304,advertising,convo,Which AI ad generators let me bring my own model API keys instead of buying credits?,conversational,commercial,decision,jobs-to-be-done brainstorm,strong,,/marketing,improve,P2
+Q0305,advertising,convo,Can I recreate a competitor's ad structure with my own product using AI?,conversational,how-to,consideration,jobs-to-be-done brainstorm,strong,video-clone skill,/marketing,improve,P2
+Q0306,advertising,convo,What's the best AI tool for Facebook ads that also predicts performance?,conversational,commercial,consideration,competitor page language,weak,AdCreative/Pencil focus; NodeTool does not predict performance,/marketing,improve,P3
+Q0307,advertising,convo,Do AI-generated UGC ads with fake actors violate Meta or TikTok policies?,conversational,informational,awareness,search-results/related-searches,none,Policy question,/marketing,improve,do-not-target
+Q0308,advertising,convo,I want AI ads but my logo always comes out wrong. Which workflow keeps the real product and logo?,conversational,how-to,consideration,reddit/HN community phrasing,strong,,/marketing,improve,P2
+Q0309,agentic-category,category,agentic creative software,keyword,informational,awareness,jobs-to-be-done brainstorm,strong,Category term NodeTool should own,/agents,improve,P2
+Q0310,agentic-category,category,agent-first creative workspace,keyword,navigational,awareness,search-results/related-searches,strong,"Exact NodeTool tagline; SERP shows Melius, Krea Agent, Product Hunt launches instead",/agents,improve,P2
+Q0311,agentic-category,category,AI agent creative workspace,keyword,commercial,consideration,search-results/related-searches,strong,,/agents,improve,P2
+Q0312,agentic-category,category,creative canvas for agents,keyword,informational,awareness,competitor page language,strong,Melius positioning phrase,/agents,improve,P2
+Q0313,agentic-category,category,AI agents that operate real editors,keyword,informational,awareness,jobs-to-be-done brainstorm,strong,,/agents,improve,P2
+Q0314,agentic-category,category,AI agent that uses creative software for me,keyword,informational,awareness,jobs-to-be-done brainstorm,strong,,/agents,improve,P2
+Q0315,agentic-category,category,AI that creates editable projects not just files,keyword,informational,awareness,jobs-to-be-done brainstorm,strong,,/agents,improve,P2
+Q0316,agentic-category,category,agents build you edit,keyword,navigational,awareness,jobs-to-be-done brainstorm,strong,NodeTool tagline,/agents,improve,P2
+Q0317,agentic-category,category,what is agentic AI design,question,informational,awareness,search-results/related-searches,partial,krumzi guide ranks,/agents,improve,P2
+Q0318,agentic-category,category,Adobe Creative Cloud agents alternative,keyword,comparison,consideration,search-results/related-searches,partial,Adobe rolling out agents (Fast Company),/agents,improve,P2
+Q0319,agentic-category,category,Krea Agent alternative,keyword,comparison,decision,competitor page language,strong,Krea Agent beta June 2026,/agents,improve,P2
+Q0320,agentic-category,category,Melius alternative,keyword,comparison,decision,competitor page language,strong,,/agents,improve,P2
+Q0321,agentic-category,category,Figma Weave alternative open source,keyword,comparison,decision,competitor page language,strong,,/agents,improve,P2
+Q0322,agentic-category,category,FLORA alternative open source,keyword,comparison,decision,competitor page language,strong,,/agents,improve,P2
+Q0323,agentic-category,category,open source creative AI workspace,keyword,commercial,consideration,competitor page language,strong,"AlternativeTo uses ""open-source creative AI workspace""",/agents,improve,P2
+Q0324,agentic-category,category,all in one AI creative studio desktop,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/agents,improve,P2
+Q0325,agentic-category,category,AI studio for images video audio and games in one app,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/agents,improve,P2
+Q0326,agentic-category,category,AI creative suite for solo creators,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/agents,improve,P2
+Q0327,agentic-category,convo,"Is there an app where an AI agent does the whole creative project, video, images, maybe a game, but I get real editable files at the end?",conversational,informational,awareness,jobs-to-be-done brainstorm,strong,,/agents,improve,P2
+Q0328,agentic-category,convo,What's the difference between AI generators like Midjourney and agent-first creative tools?,conversational,informational,awareness,jobs-to-be-done brainstorm,strong,,/agents,improve,P2
+Q0329,agentic-category,convo,"I want something like Claude Code but for creative work: it should open editors, make changes and let me review. Does that exist?",conversational,informational,awareness,jobs-to-be-done brainstorm,strong,,/agents,improve,P2
+Q0330,agentic-category,convo,Which creative AI tools are open source and not just wrappers around one model?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/agents,improve,P2
+Q0331,agentic-category,convo,Are there creative AI workspaces that run locally so my client files never leave my machine?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/agents,improve,P2
+Q0332,agentic-category,convo,"Flora, Weave, Krea, NodeTool: which node canvas is best if I care about agents and open source?",conversational,comparison,decision,competitor page language,strong,,/agents,improve,P2
+Q0333,agentic-category,convo,"What tools let an AI agent work across a storyboard, a timeline and an image editor in the same project?",conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/agents,improve,P2
+Q0334,agentic-category,convo,"Is it better to use one AI creative workspace or chain separate tools like Midjourney, Runway and CapCut?",conversational,comparison,consideration,reddit/HN community phrasing,strong,,/agents,improve,P2
+Q0335,agentic-category,convo,Which AI creative tools let me sign in with my ChatGPT or Claude subscription?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/agents,improve,P2
+Q0336,agentic-category,convo,I want an AI voice cloning app for iPhone. What's best?,conversational,commercial,consideration,search-results/related-searches,none,Control: no NodeTool fit,/agents,improve,do-not-target
+Q0337,agentic-category,convo,What's the best AI note-taking app for meetings?,conversational,commercial,consideration,search-results/related-searches,none,Control: unrelated,/agents,improve,do-not-target
+Q0338,mcp-dev,mcp-media,MCP server video editing,keyword,commercial,consideration,MCP directory listings,strong,Glama lists many small servers; no dominant one,/mcp,existing,P1
+Q0339,mcp-dev,mcp-media,MCP server image generation,keyword,commercial,consideration,MCP directory listings,strong,,/mcp,existing,P1
+Q0340,mcp-dev,mcp-media,MCP server for video generation,keyword,commercial,consideration,MCP directory listings,strong,"Higgsfield, Comfy, Runway Dev MCP compete",/mcp,existing,P1
+Q0341,mcp-dev,mcp-media,creative MCP server,keyword,commercial,consideration,MCP directory listings,strong,,/mcp,existing,P1
+Q0342,mcp-dev,mcp-media,best MCP servers for creative work,keyword,commercial,consideration,listicle titles,strong,,/mcp,existing,P1
+Q0343,mcp-dev,mcp-media,MCP server for storyboards,keyword,commercial,consideration,MCP directory listings,strong,,/mcp,existing,P1
+Q0344,mcp-dev,mcp-media,MCP timeline editor,keyword,commercial,consideration,MCP directory listings,strong,,/mcp,existing,P1
+Q0345,mcp-dev,mcp-media,MCP server for image editing with layers,keyword,commercial,consideration,MCP directory listings,strong,,/mcp,existing,P1
+Q0346,mcp-dev,mcp-media,blender mcp,keyword,navigational,consideration,MCP directory listings,partial,Navigational to blender-mcp,/mcp,existing,P2
+Q0347,mcp-dev,mcp-media,blender mcp claude setup,keyword,how-to,consideration,MCP directory listings,partial,,/mcp,existing,P2
+Q0348,mcp-dev,mcp-media,comfyui mcp,keyword,navigational,consideration,MCP directory listings,partial,Official Comfy MCP (cloud + local),/mcp,existing,P2
+Q0349,mcp-dev,mcp-media,comfyui mcp server claude code,keyword,how-to,consideration,MCP directory listings,partial,,/mcp,existing,P2
+Q0350,mcp-dev,mcp-media,higgsfield mcp,keyword,navigational,consideration,competitor page language,weak,Navigational to Higgsfield,/mcp,existing,P3
+Q0351,mcp-dev,mcp-media,runway mcp,keyword,navigational,consideration,competitor page language,weak,,/mcp,existing,P3
+Q0352,mcp-dev,mcp-media,ludo ai mcp,keyword,navigational,consideration,competitor page language,weak,,/mcp,existing,P3
+Q0353,mcp-dev,mcp-media,MCP server for 3D modeling,keyword,commercial,consideration,MCP directory listings,partial,,/mcp,existing,P2
+Q0354,mcp-dev,mcp-media,MCP server for audio and voiceover,keyword,commercial,consideration,MCP directory listings,partial,,/mcp,existing,P2
+Q0355,mcp-dev,mcp-media,MCP server that runs AI workflows,keyword,commercial,consideration,MCP directory listings,strong,,/mcp,existing,P1
+Q0356,mcp-dev,claude-code,Claude Code video tools,keyword,commercial,consideration,competitor page language,strong,,/mcp,existing,P1
+Q0357,mcp-dev,claude-code,Claude Code game tools,keyword,commercial,consideration,competitor page language,strong,,/mcp,existing,P1
+Q0358,mcp-dev,claude-code,Claude Code skills for video editing,keyword,commercial,consideration,GitHub topics/READMEs,strong,NodeTool ships system skills,/mcp,existing,P1
+Q0359,mcp-dev,claude-code,Claude Code plugin for image generation,keyword,commercial,consideration,competitor page language,strong,,/mcp,existing,P1
+Q0360,mcp-dev,claude-code,give Claude Code image generation,keyword,how-to,consideration,reddit/HN community phrasing,strong,Reddit commenter thought Claude cannot create images,/mcp,existing,P1
+Q0361,mcp-dev,claude-code,Claude Code generate assets for my game,keyword,how-to,consideration,reddit/HN community phrasing,strong,,/mcp,existing,P1
+Q0362,mcp-dev,claude-code,Codex CLI video generation,keyword,how-to,consideration,competitor page language,strong,,/mcp,existing,P1
+Q0363,mcp-dev,claude-code,Cursor MCP image generation,keyword,how-to,consideration,MCP directory listings,strong,,/mcp,existing,P1
+Q0364,mcp-dev,claude-code,OpenClaw nodetool skill,keyword,navigational,decision,GitHub topics/READMEs,strong,"Third-party skill describes NodeTool as ""ComfyUI meets n8n"" (outdated)",/mcp,existing,P1
+Q0365,mcp-dev,api,creative API for developers,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/developers,existing,P2
+Q0366,mcp-dev,api,AI video generation API multiple providers,keyword,commercial,consideration,jobs-to-be-done brainstorm,partial,fal/Replicate are more direct answers,/developers,existing,P2
+Q0367,mcp-dev,api,workflow API for AI media pipelines,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,,/developers,existing,P2
+Q0368,mcp-dev,api,OpenAI-compatible API for AI workflows,keyword,commercial,consideration,jobs-to-be-done brainstorm,strong,NodeTool chat API,/developers,existing,P2
+Q0369,mcp-dev,api,self-hosted AI workflow server Docker,keyword,how-to,consideration,GitHub topics/READMEs,strong,,/developers,existing,P2
+Q0370,mcp-dev,api,run AI workflows from the command line,keyword,how-to,consideration,jobs-to-be-done brainstorm,strong,,/developers,existing,P2
+Q0371,mcp-dev,api,headless AI media pipeline SDK TypeScript,keyword,commercial,consideration,GitHub topics/READMEs,strong,,/developers,existing,P2
+Q0372,mcp-dev,api,embed AI workflow runner in my app,keyword,how-to,consideration,GitHub topics/READMEs,strong,,/developers,existing,P2
+Q0373,mcp-dev,api,n8n for AI media,keyword,comparison,consideration,jobs-to-be-done brainstorm,strong,,/developers,existing,P2
+Q0374,mcp-dev,api,GPU worker for AI workflows Runpod,keyword,how-to,consideration,jobs-to-be-done brainstorm,partial,,/developers,existing,P2
+Q0375,mcp-dev,convo,What MCP server can I add to Claude Code so it can generate images and videos and put them into an editable project?,conversational,commercial,consideration,MCP directory listings,strong,,/mcp,existing,P1
+Q0376,mcp-dev,convo,"Is there an MCP server that lets Claude edit a video timeline, not just generate clips?",conversational,commercial,consideration,MCP directory listings,strong,,/mcp,existing,P1
+Q0377,mcp-dev,convo,"I want my coding agent to build a game, generate the art and test it. Which MCP servers should I install?",conversational,commercial,consideration,MCP directory listings,strong,,/mcp,existing,P1
+Q0378,mcp-dev,convo,What's the difference between Comfy MCP and an app with its own MCP server for creative editors?,conversational,comparison,consideration,MCP directory listings,strong,,/mcp,existing,P1
+Q0379,mcp-dev,convo,Can I call AI workflows from a CI pipeline or a script to batch generate marketing assets?,conversational,how-to,consideration,jobs-to-be-done brainstorm,strong,,/mcp,existing,P1
+Q0380,mcp-dev,convo,Which creative tools expose a CLI so agents can drive them without a browser?,conversational,commercial,consideration,jobs-to-be-done brainstorm,strong,,/mcp,existing,P1
+Q0381,mcp-dev,convo,How do I connect Claude Desktop to a local image generation tool on my Mac?,conversational,how-to,consideration,MCP directory listings,strong,,/mcp,existing,P1
+Q0382,mcp-dev,convo,Is there an open-source alternative to the Higgsfield MCP that works with any model provider?,conversational,comparison,decision,competitor page language,strong,,/mcp,existing,P1
+Q0383,mcp-dev,convo,What's the best way to let Codex generate game sprites and drop them in my project folder?,conversational,how-to,consideration,reddit/HN community phrasing,strong,,/mcp,existing,P1
+Q0384,mcp-dev,convo,"Which MCP servers are actually reliable for creative work, not demos?",conversational,commercial,consideration,reddit/HN community phrasing,partial,,/mcp,existing,P2
+Q0385,mcp-dev,convo,I'm building an app that needs AI video generation with editing. Should I use fal directly or a workflow engine?,conversational,comparison,consideration,jobs-to-be-done brainstorm,partial,,/mcp,existing,P2
+Q0386,mcp-dev,convo,Can ChatGPT connect to a desktop app through MCP to make videos?,conversational,informational,consideration,MCP directory listings,partial,Remote connectors only in browser clients (per Comfy docs),/mcp,existing,P2
+Q0387,comparison,comfyui,ComfyUI alternatives,keyword,comparison,decision,listicle titles,strong,alternativeto mentions NodeTool only in intro text,/alternatives/comfyui,existing,P2
+Q0388,comparison,comfyui,ComfyUI alternative for video,keyword,comparison,decision,search-results/related-searches,strong,,/alternatives/comfyui,existing,P2
+Q0389,comparison,comfyui,ComfyUI alternative easier,keyword,comparison,decision,reddit/HN community phrasing,strong,,/alternatives/comfyui,existing,P2
+Q0390,comparison,comfyui,ComfyUI alternative for Mac,keyword,comparison,decision,search-results/related-searches,strong,,/alternatives/comfyui,existing,P2
+Q0391,comparison,comfyui,ComfyUI alternative with agents,keyword,comparison,decision,jobs-to-be-done brainstorm,strong,,/alternatives/comfyui,existing,P2
+Q0392,comparison,comfyui,ComfyUI vs NodeTool,keyword,comparison,decision,search-results/related-searches,strong,Needs a canonical comparison page,/alternatives/comfyui,existing,P2
+Q0393,comparison,comfyui,is there anything better than ComfyUI,question,comparison,consideration,search-results/related-searches,strong,Promptus blog title,/alternatives/comfyui,existing,P2
+Q0394,comparison,comfyui,ComfyUI for LLM agents and video,keyword,comparison,consideration,jobs-to-be-done brainstorm,strong,,/alternatives/comfyui,existing,P2
+Q0395,comparison,comfyui,ComfyUI alternative open source AGPL,keyword,comparison,decision,jobs-to-be-done brainstorm,strong,,/alternatives/comfyui,existing,P2
+Q0396,comparison,comfyui,node based AI tools like ComfyUI,keyword,comparison,consideration,listicle titles,strong,,/alternatives/comfyui,existing,P2
+Q0397,comparison,krea,Krea alternative,keyword,comparison,decision,competitor page language,strong,,/alternatives/krea,existing,P2
+Q0398,comparison,krea,Krea AI alternative open source,keyword,comparison,decision,competitor page language,strong,,/alternatives/krea,existing,P2
+Q0399,comparison,higgsfield,Higgsfield alternative,keyword,comparison,decision,competitor page language,strong,,/alternatives/higgsfield,improve,P2
+Q0400,comparison,higgsfield,Higgsfield alternative open source,keyword,comparison,decision,competitor page language,strong,Open-Higgsfield-AI GitHub project ranks,/alternatives/higgsfield,improve,P2
+Q0401,comparison,higgsfield,Higgsfield vs Runway,keyword,comparison,consideration,search-results/related-searches,weak,Competitor-vs-competitor; NodeTool rarely appears,/alternatives/higgsfield,improve,P3
+Q0402,comparison,runway,Runway alternative,keyword,comparison,decision,listicle titles,strong,,/alternatives/runway,existing,P2
+Q0403,comparison,runway,Runway ML alternative open source,keyword,comparison,decision,listicle titles,strong,,/alternatives/runway,existing,P2
+Q0404,comparison,runway,Runway vs LTX Studio,keyword,comparison,consideration,competitor page language,weak,LTX owns the comparison page,/alternatives/runway,existing,P3
+Q0405,comparison,flora,FLORA AI alternative,keyword,comparison,decision,competitor page language,strong,melius and wireflow pages omit NodeTool,/alternatives/flora,existing,P2
+Q0406,comparison,flora,Flora vs Weavy,keyword,comparison,consideration,competitor page language,partial,,/alternatives/flora,existing,P2
+Q0407,comparison,weavy,Weavy alternative,keyword,comparison,decision,competitor page language,strong,,/alternatives/figma-weave,existing,P2
+Q0408,comparison,weavy,Figma Weave vs NodeTool,keyword,comparison,decision,jobs-to-be-done brainstorm,strong,,/alternatives/figma-weave,existing,P2
+Q0409,comparison,ltx,LTX Studio vs NodeTool,keyword,comparison,decision,jobs-to-be-done brainstorm,strong,,/alternatives/ltx-studio,existing,P2
+Q0410,comparison,invoke,InvokeAI vs ComfyUI vs NodeTool,keyword,comparison,decision,jobs-to-be-done brainstorm,strong,,/alternatives,existing,P2
+Q0411,comparison,games,AI native game engine vs Unity,keyword,comparison,consideration,competitor page language,partial,,/gamedev/ai-game-engines,existing,P2
+Q0412,comparison,games,AI game engine vs Godot with MCP,keyword,comparison,consideration,MCP directory listings,partial,,/gamedev/ai-game-engines,existing,P2
+Q0413,comparison,games,Summer Engine vs Rosebud,keyword,comparison,consideration,competitor page language,partial,,/gamedev/ai-game-engines,existing,P2
+Q0414,comparison,games,Rosebud vs NodeTool,keyword,comparison,decision,jobs-to-be-done brainstorm,strong,,/gamedev/ai-game-engines,existing,P1
+Q0415,comparison,games,Unity AI vs Bezi,keyword,comparison,consideration,competitor page language,weak,,/gamedev/ai-game-engines,existing,P3
+Q0416,comparison,games,Bezi alternative,keyword,comparison,decision,competitor page language,partial,Bezi works inside Unity; different job,/gamedev/ai-game-engines,existing,P2
+Q0417,comparison,games,Unity Muse alternative,keyword,comparison,decision,competitor page language,partial,,/gamedev/ai-game-engines,existing,P2
+Q0418,comparison,games,Godot vs AI game engine for solo dev,keyword,comparison,consideration,reddit/HN community phrasing,partial,,/gamedev/ai-game-engines,existing,P2
+Q0419,comparison,ads,Arcads vs Creatify,keyword,comparison,consideration,competitor page language,weak,,/alternatives,existing,P3
+Q0420,comparison,ads,Creatify vs AdCreative,keyword,comparison,consideration,competitor page language,weak,,/alternatives,existing,P3
+Q0421,comparison,video,Pika vs Runway vs Higgsfield,keyword,comparison,consideration,search-results/related-searches,weak,,/alternatives,existing,P3
+Q0422,comparison,video,Palmier Pro alternative,keyword,comparison,decision,competitor page language,strong,,/alternatives,existing,P2
+Q0423,comparison,video,Remotion vs AI video editor,keyword,comparison,consideration,competitor page language,partial,,/alternatives,existing,P2
+Q0424,comparison,nodetool,NodeTool alternatives,keyword,comparison,decision,search-results/related-searches,strong,"AlternativeTo page lists automation tools (Make, Shortcuts) as alternatives: category drift",/alternatives,existing,P2
+Q0425,comparison,nodetool,NodeTool review,keyword,commercial,decision,search-results/related-searches,strong,G2 has 0 reviews,/alternatives,existing,P2
+Q0426,comparison,nodetool,is NodeTool free,question,commercial,decision,vendor FAQ / People-also-ask,strong,,/alternatives,existing,P2
+Q0427,comparison,nodetool,is NodeTool open source,question,commercial,decision,vendor FAQ / People-also-ask,strong,,/alternatives,existing,P2
+Q0428,comparison,nodetool,NodeTool download,keyword,navigational,decision,search-results/related-searches,strong,,/alternatives,existing,P2
+Q0429,comparison,nodetool,NodeTool cloud,keyword,navigational,decision,search-results/related-searches,strong,,/alternatives,existing,P2
+Q0430,comparison,nodetool,NodeTool game engine,keyword,navigational,decision,jobs-to-be-done brainstorm,strong,No third-party page found describing the game editor,/alternatives,existing,P2
+Q0431,comparison,nodetool,NodeTool MCP server,keyword,navigational,decision,MCP directory listings,strong,Not found in MCP directories searched,/alternatives,existing,P2
+Q0432,comparison,nodetool,NodeTool vs n8n,keyword,comparison,decision,GitHub topics/READMEs,partial,"Legacy ""ComfyUI meets n8n"" framing",/alternatives,existing,P2
+Q0433,comparison,convo,I've used ComfyUI for a year. What would I gain or lose moving to NodeTool for video work?,conversational,comparison,decision,jobs-to-be-done brainstorm,strong,,/alternatives,existing,P2
+Q0434,comparison,convo,What are the main open-source alternatives to ComfyUI that also handle video editing and LLM agents?,conversational,comparison,decision,jobs-to-be-done brainstorm,strong,,/alternatives,existing,P2
+Q0435,comparison,convo,"Which is better for a small studio, Flora or an open-source tool we can host ourselves?",conversational,comparison,decision,competitor page language,strong,,/alternatives,existing,P2
+Q0436,comparison,convo,"Compare Krea, Higgsfield and Runway for someone who wants to edit the result afterwards.",conversational,comparison,consideration,competitor page language,partial,,/alternatives,existing,P2
+Q0437,comparison,convo,"Is Summer Engine or Rosebud better for making a web game with AI, and are there open-source options?",conversational,comparison,decision,competitor page language,strong,,/alternatives,existing,P2
+Q0438,comparison,convo,What are the honest downsides of AI-native game engines compared to Unity and Godot?,conversational,comparison,consideration,competitor page language,partial,,/alternatives,existing,P2
+Q0439,comparison,convo,I like Figma Weave but don't want to be locked into Figma. What else is like it?,conversational,comparison,decision,competitor page language,strong,,/alternatives,existing,P2
+Q0440,comparison,convo,Which tool is closest to ComfyUI but designed around an AI agent doing the work?,conversational,comparison,decision,jobs-to-be-done brainstorm,strong,,/alternatives,existing,P2
+Q0441,comparison,convo,LTX Studio vs Pika Director's Suite vs open-source tools: which keeps the project editable?,conversational,comparison,decision,competitor page language,strong,,/alternatives,existing,P2
+Q0442,comparison,convo,Is NodeTool still just a visual workflow builder or did it become something else?,conversational,informational,decision,search-results/related-searches,strong,Directory descriptions are outdated,/alternatives,existing,P2
+Q0443,comparison,convo,"Can you give me a comparison table of AI game engines, which ones are open source and which support MCP?",conversational,comparison,consideration,listicle titles,strong,Table format wins,/alternatives,existing,P2
+Q0444,comparison,convo,What are alternatives to Arcads that let me use my own product footage?,conversational,comparison,decision,competitor page language,partial,,/alternatives,existing,P2

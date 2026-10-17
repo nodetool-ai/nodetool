@@ -2,7 +2,7 @@
   "name": "nodetool-electron",
   "version": "0.8.4",
   "private": true,
-  "description": "node-based AI development tool",
+  "description": "Open-source agent-first creative workspace",
   "homepage": "https://nodetool.ai",
   "main": "dist-electron/main.js",
   "scripts": {

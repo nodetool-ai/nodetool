@@ -2479,7 +2479,7 @@ const YEAR = yearToken();
  */
 export const alternativesEntries: PageEntry[] = competitors.map((c) => ({
   route: `/alternatives/${c.slug}`,
-  title: `${c.name} alternatives (${YEAR}) — why teams choose NodeTool`,
+  title: c.seo?.title ?? `${c.name} alternatives (${YEAR}) — why teams choose NodeTool`,
   description: `${c.limitation} Compare NodeTool and other ${c.category.toLowerCase()} alternatives — open source, your own keys, one canvas for image, video, audio, and text.`,
   priority: c.isNew ? 0.6 : 0.7,
   changeFrequency: "monthly",

@@ -3,9 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 const MARKDOWN_PAGES = new Set([
   "/",
   "/agents",
+  "/ai-video-editor",
   "/cloud",
   "/developers",
+  "/gamedev",
   "/marketing",
+  "/mcp",
   "/pricing",
   "/studio",
 ]);
@@ -47,9 +50,12 @@ export const config = {
   matcher: [
     "/",
     "/agents",
+    "/ai-video-editor",
     "/cloud",
     "/developers",
+    "/gamedev",
     "/marketing",
+    "/mcp",
     "/pricing",
     "/studio",
   ],

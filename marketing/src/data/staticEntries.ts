@@ -31,7 +31,11 @@ export const staticEntries: PageEntry[] = [
   { route: "/libraries/browser", title: "@nodetool-ai/browser", description: "Drive one Chrome page over CDP, headless or in your own signed-in tab.", priority: 0.6, changeFrequency: "monthly", indexable: true },
   { route: "/libraries/sandbox-compiler", title: "@nodetool-ai/sandbox-compiler", description: "Check whether an npm package runs in a QuickJS sandbox before you load it.", priority: 0.6, changeFrequency: "monthly", indexable: true },
   { route: "/marketing", title: "For Marketing", description: "Produce campaign assets with AI workflows.", priority: 0.8, changeFrequency: "monthly", indexable: true },
-  { route: "/gamedev", title: "Game Development", description: "Play and edit example games made in NodeTool Studio.", priority: 0.8, changeFrequency: "monthly", indexable: true },
+  { route: "/gamedev", title: "Open-source AI game engine", description: "A 2D and 3D game engine an AI agent builds and playtests in, with a Game Editor for you and web export.", priority: 0.8, changeFrequency: "monthly", indexable: true },
+  { route: "/ai-video-editor", title: "Open-source AI video editor", description: "An agent plans, renders, and cuts a multi-track timeline you keep editing.", priority: 0.8, changeFrequency: "monthly", indexable: true },
+  { route: "/mcp", title: "Creative MCP server", description: "Image, video, and speech generation plus editable storyboards, timelines, and games for Claude Code, Codex, and Cursor.", priority: 0.8, changeFrequency: "monthly", indexable: true },
+  { route: "/alternatives", title: "Compare NodeTool", description: "Every NodeTool comparison page, grouped by product category.", priority: 0.7, changeFrequency: "monthly", indexable: true },
+  { route: "/gamedev/ai-game-engines", title: "AI game engines compared", description: "NodeTool, Unity, Godot, Roblox Studio, Summer Engine, and Rosebud for agent-built games.", priority: 0.7, changeFrequency: "monthly", indexable: true },
   // /alternatives/* comes from the competitorEntries engine module.
   { route: "/templates", title: "AI Workflow Templates", description: "Browse ready-to-run NodeTool workflow templates by category.", priority: 0.8, changeFrequency: "weekly", indexable: true },
   { route: "/recipes", title: "AI Workflow Recipes", description: "Multi-step NodeTool recipes: the workflows to run, in order, shipped inside Studio.", priority: 0.8, changeFrequency: "monthly", indexable: true },

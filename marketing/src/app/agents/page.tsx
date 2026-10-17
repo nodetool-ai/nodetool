@@ -337,7 +337,15 @@ export default function AgentsPage() {
                 className="text-blue-300 underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200 focus-ring"
               >
                 Read the MCP setup guide
-              </TrackedLink>
+              </TrackedLink>{" "}
+              or see{" "}
+              <a
+                href="/mcp"
+                className="text-blue-300 underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200 focus-ring"
+              >
+                every tool the MCP server gives your agent
+              </a>
+              .
             </p>
           </div>
         </div>

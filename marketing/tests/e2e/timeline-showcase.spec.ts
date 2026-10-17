@@ -60,11 +60,14 @@ test("portrait playback fits a mobile viewport without cropping", async ({ page 
 });
 
 test("a failed film request can be retried", async ({ page }) => {
-  await page.route("**/timelines/serein/film.mp4", (request) => request.abort(), { times: 1 });
+  // Chromium can request the film twice before the click, so every request fails until the error shows.
+  const film = "**/timelines/serein/film.mp4";
+  await page.route(film, (request) => request.abort());
   await page.goto("/marketing");
   const showcase = page.locator("#example-timelines");
   await showcase.getByRole("button", { name: "Play Serein", exact: true }).click();
   await expect(showcase.getByRole("alert")).toBeVisible();
+  await page.unroute(film);
   await showcase.getByRole("button", { name: "Play Serein", exact: true }).click();
   await expect.poll(() => showcase.locator("video").evaluate((element: HTMLVideoElement) => element.currentTime)).toBeGreaterThan(0);
   await expect(showcase.getByRole("alert")).toHaveCount(0);
