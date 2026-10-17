@@ -41,11 +41,10 @@ async function loadCaptureBundle(): Promise<string> {
   if (!captureBundle) {
     captureBundle = (async () => {
       const source = fileURLToPath(new URL("./renderer3d/capture-page.ts", import.meta.url));
-      const compiled = fileURLToPath(new URL("./renderer3d/capture-page.js", import.meta.url));
-      if (!existsSync(source) && !existsSync(compiled)) {
+      if (!existsSync(source)) {
         return readFile(resolvePackageAssetPath({ pkg: "@nodetool-ai/game-renderer", path: "game3d-capture-page.js" }, import.meta.url), "utf8");
       }
-      const bundle = await build({ entryPoints: [existsSync(source) ? source : compiled], bundle: true,
+      const bundle = await build({ entryPoints: [source], bundle: true,
         format: "iife", platform: "browser", target: "es2022", minify: true, write: false,
         conditions: ["nodetool-dev"], logLevel: "silent" });
       const output = bundle.outputFiles?.[0];
@@ -85,6 +84,7 @@ export async function captureGameFrame3D(value: GameRenderFrame3D, options: Capt
       let totalBytes = 0;
       const imageIds = new Set<string>();
       for (const entity of frame.entities) {
+        if (entity.decal3d) { imageIds.add(entity.decal3d.assetId); }
         const component = entity.primitive ?? entity.model;
         if (!component) { continue; }
         let material = component.material;

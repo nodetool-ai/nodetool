@@ -118,8 +118,7 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
   const [localEffectIssues, setLocalEffectIssues] = useState<readonly GameValidationIssue[]>([]);
   const [newSlot, setNewSlot] = useState("");
   const selectedId = selectedIds[0];
-  const selectedScene = document.scenes.find((entry) => entry.entities.some((entity) => entity.id === selectedId));
-  const scene = selectedScene ?? document.scenes.find((entry) => entry.id === activeSceneId) ?? document.scenes[0];
+  const scene = document.scenes.find((entry) => entry.id === activeSceneId);
   const sceneIndex = document.scenes.findIndex((entry) => entry.id === scene?.id);
   const entity = scene?.entities.find((entry) => entry.id === selectedId);
   const entityIndex = scene?.entities.findIndex((entry) => entry.id === selectedId) ?? -1;
@@ -210,7 +209,7 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
           <RowAction icon={<AddIcon />} label="Add binding" disabled={!slotName || Boolean(document.assets[slotName]) || Object.keys(document.assets).length === 0} onClick={addBinding} />
         </InspectorFieldRow>
       </InspectorSection>
-    </> : entity && target ? <>
+    </> : entity && target && scene ? <>
       <GameOverrideFields document={document} sceneId={scene.id} entityId={entity.id} onOps={onOps} />
       <SchemaFields schema={ENTITY_SCHEMA.properties?.name ?? { type: "string" }} value={entity.name} path="Name"
         issuePath={[...entityPath, "name"]} issues={issues} onChange={(value) => update({ name: String(value) })} />

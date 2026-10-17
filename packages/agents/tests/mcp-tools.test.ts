@@ -1602,6 +1602,9 @@ describe("export_workflow_digraph", () => {
       workflow_id: saved.id
     })) as Record<string, unknown>;
     expect(result.source).toBe("const g = graph();");
+    expect(result.format).toBe("typescript");
+    expect(tool.description).toContain("TypeScript DSL");
+    expect(tool.description).not.toContain("Graphviz");
     expect(exportDsl).toHaveBeenCalledWith(expect.anything(), {
       workflowName: "Exportable"
     });

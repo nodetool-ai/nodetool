@@ -287,12 +287,29 @@ export class CdpPage {
   async fill(selector: string, text: string): Promise<void> {
     const ok = await this.callFn<boolean>(
       (sel: string, val: string) => {
-        const el = document.querySelector(sel) as
-          | (HTMLElement & { value?: string })
-          | null;
+        const el = document.querySelector(sel);
         if (!el) return false;
-        el.focus();
-        el.value = val;
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          el.focus();
+          const prototype = el instanceof HTMLTextAreaElement
+            ? HTMLTextAreaElement.prototype
+            : HTMLInputElement.prototype;
+          const setter = Object.getOwnPropertyDescriptor(prototype, "value")?.set;
+          if (!setter) {
+            throw new Error(`Element has no value setter: ${sel}`);
+          }
+          // React tracks assignments through an own value setter. Use the native
+          // setter so its input listener observes a change and updates state.
+          setter.call(el, val);
+        } else if (el instanceof HTMLElement && (
+          el.isContentEditable ||
+          ["", "true", "plaintext-only"].includes(el.getAttribute("contenteditable") ?? "false")
+        )) {
+          el.focus();
+          el.textContent = val;
+        } else {
+          throw new Error(`Element is not an editable input, textarea or contenteditable element: ${sel}`);
+        }
         el.dispatchEvent(new Event("input", { bubbles: true }));
         el.dispatchEvent(new Event("change", { bubbles: true }));
         return true;

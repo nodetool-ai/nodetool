@@ -82,8 +82,11 @@ export function gameValidationConsoleEntries(issues: readonly { readonly path: r
   });
 }
 
-/** Finds the scene that holds an entity, preferring the line's own scene when it still holds that entity. */
+/** Resolves an explicit scene exactly, or an unqualified entity only when its scene is unique. */
 export function gameConsoleEntityScene(document: ConsoleDocument, entityId: string, sceneId?: string): string | undefined {
-  const own = document.scenes.find((scene) => scene.id === sceneId && scene.entities.some((entity) => entity.id === entityId));
-  return (own ?? document.scenes.find((scene) => scene.entities.some((entity) => entity.id === entityId)))?.id;
+  if (sceneId !== undefined) {
+    return document.scenes.find((scene) => scene.id === sceneId && scene.entities.some((entity) => entity.id === entityId))?.id;
+  }
+  const matches = document.scenes.filter((scene) => scene.entities.some((entity) => entity.id === entityId));
+  return matches.length === 1 ? matches[0].id : undefined;
 }

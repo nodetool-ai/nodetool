@@ -368,7 +368,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                 {`Placed ${imported.placed.length} file${
                   imported.placed.length === 1 ? "" : "s"
                 } on the timeline${
-                  imported.advanced ? "" : ". Say what to make of it below."
+                  imported.advanced ? "" : ". Say what to make of it above."
                 }`}
               </Text>
               {imported.placed.length > 0 ? (

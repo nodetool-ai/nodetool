@@ -32,6 +32,8 @@ Standalone players use IndexedDB. Browser permissions and storage quota can make
 
 Snapshots include gameplay state such as entity state, script state, timers, UI overrides, and animation graph state. Restoration checks engine build and document digest. A snapshot from an incompatible document is not a migration mechanism.
 
+Older 3D snapshots with a removed instance still awaiting `onDestroy` use an ambiguous script-source identity. Restoration rejects those records explicitly rather than selecting the wrong scene or prefab hook. Snapshots without a pending removed-instance hook retain their existing state keys.
+
 Script state retains JSON property order. A script can observe that order with `Object.keys`, so 3D snapshot hashes distinguish states with different property order even when their key/value pairs match.
 
 Particles, mixer graphs, and render resources are not gameplay snapshot data. Their hosts rebuild or resume presentation from the accepted session.

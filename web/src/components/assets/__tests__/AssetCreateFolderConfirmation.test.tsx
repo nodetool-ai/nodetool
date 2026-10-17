@@ -2,7 +2,7 @@
  * The create-folder dialog is a centered Dialog: name field, validation
  * banner, Cancel / Create footer.
  */
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import AssetCreateFolderConfirmation from "../AssetCreateFolderConfirmation";
@@ -13,7 +13,8 @@ const mockGridState = {
   selectedAssetIds: [] as string[],
   currentFolder: null,
   setSelectedAssetIds: jest.fn(),
-  setSelectedAssets: jest.fn()
+  setSelectedAssets: jest.fn(),
+  setFoldersVisible: jest.fn()
 };
 
 const mockAssetState = {
@@ -89,5 +90,36 @@ describe("AssetCreateFolderConfirmation", () => {
     ).toBeInTheDocument();
     expect(mockGridState.setCreateFolderDialogOpen).not.toHaveBeenCalled();
     expect(mockAssetState.createFolder).not.toHaveBeenCalled();
+  });
+
+  it("selects the default name, so typing replaces it", () => {
+    jest.useFakeTimers();
+    try {
+      renderDialog();
+      act(() => {
+        jest.advanceTimersByTime(20);
+      });
+      const input = screen.getByRole("textbox", {
+        name: "Name"
+      }) as HTMLInputElement;
+      expect(document.activeElement).toBe(input);
+      expect(input.selectionStart).toBe(0);
+      expect(input.selectionEnd).toBe("New Folder".length);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("shows the folder tree after creating a folder", async () => {
+    mockAssetState.createFolder.mockResolvedValue({ id: "f1" });
+    renderDialog();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    });
+
+    expect(mockAssetState.createFolder).toHaveBeenCalled();
+    expect(mockGridState.setFoldersVisible).toHaveBeenCalledWith(true);
+    expect(mockGridState.setCreateFolderDialogOpen).toHaveBeenCalledWith(false);
   });
 });

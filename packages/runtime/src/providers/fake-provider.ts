@@ -20,6 +20,8 @@ import type {
   ImageToImageParams,
   ImageToVideoParams,
   LanguageModel,
+  ImageModel,
+  VideoModel,
   LipSyncParams,
   Message,
   MessageTextContent,
@@ -44,20 +46,14 @@ import type {
 // Tiny but valid asset bytes for fake media generators.
 // ---------------------------------------------------------------------------
 
-/**
- * Minimal 1×1 transparent PNG. Sufficient for any consumer that just sniffs
- * the file signature or runs the bytes through `sharp` / Pillow / etc.
- */
+/** A 1×1 transparent RGBA PNG with valid chunk lengths, CRCs and scanline data. */
 const TINY_PNG = new Uint8Array([
-  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-  0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
-  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-  0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4,
-  0x89, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x44, 0x41,
-  0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00,
-  0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00,
-  0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
-  0x42, 0x60, 0x82
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+  0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+  0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00,
+  0x0b, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x60, 0x00, 0x02, 0x00,
+  0x00, 0x05, 0x00, 0x01, 0x7a, 0x5e, 0xab, 0x3f, 0x00, 0x00, 0x00, 0x00,
+  0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
 ]);
 
 /**
@@ -166,6 +162,8 @@ type CustomResponseFn = (
 ) => string | ToolCall[];
 
 export interface FakeProviderOptions {
+  /** Hide test chat models when only fake media was explicitly requested. */
+  includeLanguageModels?: boolean;
   textResponse?: string;
   toolCalls?: ToolCall[];
   shouldStream?: boolean;
@@ -218,6 +216,7 @@ function defaultToolArgs(
 }
 
 export class FakeProvider extends BaseProvider {
+  private readonly includeLanguageModels: boolean;
   textResponse: string;
   toolCalls: ToolCall[];
   shouldStream: boolean;
@@ -235,6 +234,7 @@ export class FakeProvider extends BaseProvider {
 
   constructor(options: FakeProviderOptions = {}) {
     super("fake");
+    this.includeLanguageModels = options.includeLanguageModels ?? true;
     this.textResponse =
       options.textResponse ?? "Hello, this is a fake response!";
     this.toolCalls = options.toolCalls ?? [];
@@ -285,6 +285,11 @@ export class FakeProvider extends BaseProvider {
 
   protected override declaredCapabilities(): readonly ProviderCapability[] {
     return [
+      "text_to_image",
+      "image_to_image",
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
       "upscale_image",
       "remove_background",
       "relight_image",
@@ -295,11 +300,29 @@ export class FakeProvider extends BaseProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    if (!this.includeLanguageModels) {
+      return [];
+    }
     return [
       { id: "fake-model-v1", name: "Fake Model v1", provider: "fake" },
       { id: "fake-model-v2", name: "Fake Model v2", provider: "fake" },
       { id: "fake-fast-model", name: "Fake Fast Model", provider: "fake" }
     ];
+  }
+
+  override async getAvailableImageModels(): Promise<ImageModel[]> {
+    return [{
+      id: "fake-image", name: "Fake Image (no-cost test PNG)", provider: "fake",
+      supportedTasks: ["text_to_image", "image_to_image"]
+    }];
+  }
+
+  override async getAvailableVideoModels(): Promise<VideoModel[]> {
+    return [{
+      id: "fake-video", name: "Fake Video (no-cost test MP4)", provider: "fake",
+      supportedTasks: ["text_to_video", "image_to_video", "reference_to_video", "video_to_video"],
+      durations: [2]
+    }];
   }
 
   async generateMessage(args: {

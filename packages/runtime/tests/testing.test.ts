@@ -1,9 +1,28 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
+import { execFile as execFileCallback } from "node:child_process";
+import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
 import { createFakeContext, stubGlobalFetch } from "../src/testing.js";
 import { FakeProvider } from "../src/providers/fake-provider.js";
+
+const execFile = promisify(execFileCallback);
+
+async function decodeMedia(bytes: Uint8Array, filename: string): Promise<void> {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "nodetool-fake-decode-"));
+  try {
+    const file = path.join(directory, filename);
+    fs.writeFileSync(file, bytes);
+    const result = await execFile("ffmpeg", [
+      "-v", "error", "-xerror", "-err_detect", "explode", "-i", file,
+      "-map", "0", "-f", "null", "-"
+    ]);
+    expect(result.stderr).toBe("");
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+}
 
 describe("createFakeContext", () => {
   it("returns a ProcessingContext with in-memory storage and a temp workspace", () => {
@@ -133,7 +152,18 @@ describe("stubGlobalFetch", () => {
 });
 
 describe("FakeProvider media capabilities", () => {
-  it("textToImage returns PNG-magic bytes", async () => {
+  it("lists explicit image and video test models with matching capabilities", async () => {
+    const provider = new FakeProvider({ includeLanguageModels: false });
+    expect(await provider.getAvailableLanguageModels()).toEqual([]);
+    expect(await provider.getAvailableImageModels()).toEqual([expect.objectContaining({ id: "fake-image", provider: "fake" })]);
+    expect(await provider.getAvailableVideoModels()).toEqual([expect.objectContaining({ id: "fake-video", provider: "fake" })]);
+    expect(provider.getCapabilities()).toEqual(expect.arrayContaining([
+      "text_to_image", "image_to_image", "text_to_video", "image_to_video", "reference_to_video"
+    ]));
+    expect(await new FakeProvider().getAvailableLanguageModels()).not.toEqual([]);
+  });
+
+  it("textToImage returns a fully decodable PNG", async () => {
     const p = new FakeProvider();
     const bytes = await p.textToImage({
       prompt: "hello",
@@ -141,9 +171,10 @@ describe("FakeProvider media capabilities", () => {
     });
     expect(bytes[0]).toBe(0x89);
     expect(String.fromCharCode(bytes[1], bytes[2], bytes[3])).toBe("PNG");
+    await decodeMedia(bytes, "still.png");
   });
 
-  it("textToVideo returns an ftyp-prefixed MP4 box", async () => {
+  it("textToVideo returns a fully decodable MP4", async () => {
     const p = new FakeProvider();
     const bytes = await p.textToVideo({
       prompt: "x",
@@ -152,6 +183,7 @@ describe("FakeProvider media capabilities", () => {
     expect(String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7])).toBe(
       "ftyp"
     );
+    await decodeMedia(bytes, "clip.mp4");
   });
 
   it("textToSpeechEncoded returns a parseable WAV", async () => {

@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
-import { readdir, rm, access, mkdir, writeFile } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
+import { readdir, rm, access, mkdir, writeFile, readFile, cp } from "node:fs/promises";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { NPM_RUNTIME_RESOURCE_DIRS } from "../packages/config/src/package-asset-registry.ts";
 
 import {
   DEFAULT_TSC_HEAP_MB,
@@ -72,6 +73,11 @@ export async function pruneOrphanedDistOutputs(workspaceDir) {
 
     const distFilePath = join(entry.parentPath ?? entry.path, entry.name);
     const relPath = relative(distDir, distFilePath);
+    const resourcePath = relPath.split(sep).join("/");
+    if (NPM_RUNTIME_RESOURCE_DIRS.some((resource) =>
+      resourcePath.startsWith(`${resource.distDir}/`))) {
+      continue;
+    }
     const suffix = DIST_OUTPUT_SUFFIXES.find((s) => relPath.endsWith(s));
     if (!suffix) {
       continue;
@@ -146,6 +152,41 @@ export async function runCommand(command, args, options = {}) {
   });
 }
 
+async function pruneRemovedRuntimeResources(source, target) {
+  const entries = await readdir(source, { withFileTypes: true });
+  const retained = new Set(entries.map((entry) => entry.name));
+  for (const entry of await readdir(target)) {
+    if (!retained.has(entry)) {
+      await rm(join(target, entry), { recursive: true, force: true });
+    }
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      await pruneRemovedRuntimeResources(join(source, entry.name), join(target, entry.name));
+    }
+  }
+}
+
+async function stageWorkspaceRuntimeResources(workspaceDir) {
+  const manifest = resolve(workspaceDir, "package.json");
+  if (!(await pathExists(manifest))) {
+    return;
+  }
+  const { name } = JSON.parse(await readFile(manifest, "utf8"));
+  const resource = NPM_RUNTIME_RESOURCE_DIRS.find((entry) => entry.pkg === name);
+  if (!resource) {
+    return;
+  }
+  const source = resolve(repoRoot, resource.sourceDir);
+  const target = resolve(workspaceDir, "dist", resource.distDir);
+  const entries = await readdir(source);
+  if (entries.length === 0) {
+    throw new Error(`Runtime resources are empty: ${source}`);
+  }
+  await cp(source, target, { recursive: true, force: true });
+  await pruneRemovedRuntimeResources(source, target);
+}
+
 export async function prepareTypeScriptWorkspaceBuild(workspaceDir, execute = runCommand) {
   // Intentionally do NOT `rm -rf dist` here. Wiping `dist/` first opens a
   // window where the package's files are missing — turbo schedules build
@@ -172,6 +213,7 @@ export async function prepareTypeScriptWorkspaceBuild(workspaceDir, execute = ru
   });
 
   await pruneOrphanedDistOutputs(workspaceDir);
+  await stageWorkspaceRuntimeResources(workspaceDir);
   await writeBuildStamp(workspaceDir);
 }
 

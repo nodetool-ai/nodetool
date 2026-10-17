@@ -245,7 +245,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "export_workflow_digraph",
     module: "workflows",
     impl: "packages/agents/src/capabilities/workflows.ts",
-    contract: "adbf4387177b",
+    contract: "e77dc5f2c0d1",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/mcp-tools.test.ts",
@@ -1285,7 +1285,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_app",
     module: "apps",
     impl: "packages/agents/src/capabilities/apps.ts",
-    contract: "80aab4b438b8",
+    contract: "5d71cf4b7e8e",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-apps.test.ts",
@@ -2775,7 +2775,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
       },
       {
         file: "packages/agents/src/evals/surfaces/game.ts",
-        cases: ["audio-mixer-buses", "cascaded-shadows", "collision-layer-matrix", "entity-tags-properties", "environment-preset-3d", "forces-and-torques-3d", "hud-widget-tree", "hud-widget-tree-3d", "input-bindings", "lifecycle-timer-script", "material-system-3d", "particle-emitter", "particle-rendering", "particle-rendering-3d", "physics-materials", "player-saves-script", "post-processing", "procedural-sky", "render-culling", "script-parameters", "spatial-audio-source", "typed-event-script"],
+        cases: ["audio-mixer-buses", "cascaded-shadows", "collision-layer-matrix", "entity-tags-properties", "environment-preset-3d", "forces-and-torques-3d", "height-fog-and-decals-3d", "hud-widget-tree", "hud-widget-tree-3d", "input-bindings", "lifecycle-timer-script", "material-system-3d", "particle-emitter", "particle-rendering", "particle-rendering-3d", "physics-materials", "player-saves-script", "post-processing", "procedural-sky", "render-culling", "script-parameters", "spatial-audio-source", "typed-event-script"],
       },
     ],
   },
@@ -3120,7 +3120,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "f8a51c6734fd",
+    contract: "a2f214d7936b",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",

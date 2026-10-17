@@ -94,15 +94,59 @@ const parseConditionProps = (raw: unknown): ConditionProps | undefined => {
   return props;
 };
 
-const parseEvents = (raw: unknown): AppEventSpec[] => {
-  if (!Array.isArray(raw)) return [];
+const EVENT_KINDS = new Set([
+  "run",
+  "cancel",
+  "setVariable",
+  "toggleVariable",
+  "setState",
+  "toggleState",
+  "resourceCommand",
+  "openResource"
+]);
+const EVENT_FIELDS = new Set([
+  "trigger",
+  "kind",
+  "key",
+  "value",
+  "operationId",
+  "invocationId",
+  "resourceBindingId",
+  "command",
+  "pace"
+]);
+
+const parseEvents = (
+  raw: unknown,
+  where: string,
+  issues: string[]
+): AppEventSpec[] => {
+  if (raw == null) return [];
+  if (!Array.isArray(raw)) {
+    issues.push(`${where} events must be an array of {trigger, kind} objects.`);
+    return [];
+  }
   const events: AppEventSpec[] = [];
-  for (const item of raw) {
-    if (!isRecord(item)) continue;
-    if (item.trigger !== "click" && item.trigger !== "change") continue;
+  for (const [index, item] of raw.entries()) {
+    if (
+      !isRecord(item) ||
+      (item.trigger !== "click" && item.trigger !== "change") ||
+      Object.keys(item).some((key) => !EVENT_FIELDS.has(key)) ||
+      Object.values(item).some(
+        (value) => value !== undefined && !isString(value)
+      ) ||
+      (item.kind !== undefined &&
+        item.kind !== "" &&
+        !EVENT_KINDS.has(String(item.kind)))
+    ) {
+      issues.push(
+        `${where} events[${index}] is invalid. Use {trigger: "click" | "change", kind: "run" | "cancel" | "setVariable" | "toggleVariable" | "resourceCommand" | "openResource"}, with optional operationId, key, value, invocationId, resourceBindingId, command and pace.`
+      );
+      continue;
+    }
     events.push({
       trigger: item.trigger,
-      kind: str(item.kind) ?? "run",
+      kind: str(item.kind) || "run",
       // The builder stores "" for unset key/value — normalize to undefined.
       key: str(item.key) || undefined,
       value: str(item.value) || undefined,
@@ -203,24 +247,11 @@ const REENTRY_CONSEQUENCE = {
   parallel: "starts a second run alongside the one in flight"
 } satisfies Record<OperationPolicy, string>;
 
-/**
- * The operations a parsed document declares, as report specs. A document with
- * none gets the implicit single operation a legacy `app_doc` runs.
- */
+/** Declared operations. Legacy documents receive their implicit operation when lifted. */
 export function documentOperations(
   document: ApplicationDocument
 ): OperationBinding[] {
-  if (document.operations.length > 0) return document.operations;
-  return [
-    {
-      id: DEFAULT_OPERATION_ID,
-      name: "Run",
-      workflowId: "",
-      inputs: {},
-      outputs: {},
-      policy: "replace"
-    }
-  ];
+  return document.operations;
 }
 
 /** Parse an app document (object or JSON string), or explain why it will not. */
@@ -368,7 +399,7 @@ export function parseAppSpec(
         operationId: rendersOperationInputs(item.type)
           ? str(item.props.operationId) || null
           : null,
-        events: parseEvents(item.props.events),
+        events: parseEvents(item.props.events, `${item.type} "${id}"`, issues),
         parentId,
         slot
       };
@@ -703,7 +734,7 @@ export function validateApp(
     }
   }
 
-  if (spec.widgets.length > 0 && !hasRunTrigger) {
+  if (operations.length > 0 && spec.widgets.length > 0 && !hasRunTrigger) {
     errors.push(
       'No widget has a "run" event — the app can never execute the workflow. Add a Run button or an on-change run.'
     );

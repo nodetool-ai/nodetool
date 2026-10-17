@@ -54,6 +54,9 @@ const entitySet = preservingPatch(gameEntity3D.partial().extend({
   interactionActor: gameEntity3D.shape.interactionActor.unwrap().partial().nullable().optional(),
   audioSource: gameAudioSourcePatch,
   particles: gameEntity3D.shape.particles.unwrap().partial().nullable().optional(),
+  decal3d: gameEntity3D.shape.decal3d.unwrap().partial().extend({
+    size: gameEntity3D.shape.decal3d.unwrap().shape.size.partial().optional()
+  }).nullable().optional(),
   renderCulling: gameEntity3D.shape.renderCulling.unwrap().partial().nullable().optional()
 }));
 export const gameDocumentOp3D = z.discriminatedUnion("op", [
@@ -150,6 +153,7 @@ export function instantiateGamePrefab3D(prefab: GamePrefab3D, instanceId: string
     const entity = structuredClone(definition);
     entity.id = mapping[definition.id];
     if (entity.parentId) { entity.parentId = mapping[entity.parentId] ?? entity.parentId; }
+    if (entity.decal3d) { entity.decal3d.receiverId = mapping[entity.decal3d.receiverId] ?? entity.decal3d.receiverId; }
     if (entity.camera3d?.behavior.kind === "follow") {
       entity.camera3d.behavior.targetId = mapping[entity.camera3d.behavior.targetId] ?? entity.camera3d.behavior.targetId;
     }

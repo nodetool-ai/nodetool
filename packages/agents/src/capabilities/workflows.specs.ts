@@ -652,7 +652,8 @@ export const getExampleWorkflowSpec: CapabilitySpec = {
 export const exportWorkflowDigraphSpec: CapabilitySpec = {
   name: "export_workflow_digraph",
   description:
-    "Export a workflow as a Graphviz Digraph (DOT format) for visualization.",
+    "Export a workflow as TypeScript DSL in the source field. " +
+    "This tool keeps its legacy digraph name. The result is executable workflow code.",
   inputSchema: {
     type: "object",
     properties: {
@@ -662,7 +663,7 @@ export const exportWorkflowDigraphSpec: CapabilitySpec = {
       },
       descriptive_names: {
         type: "boolean",
-        description: "Use descriptive node names instead of UUIDs",
+        description: "Deprecated compatibility argument. Ignored by the TypeScript DSL exporter.",
         default: true
       }
     },
@@ -670,7 +671,7 @@ export const exportWorkflowDigraphSpec: CapabilitySpec = {
   },
   category: "read",
   userMessage: (params) =>
-    `Exporting workflow ${params["workflow_id"]} as digraph`
+    `Exporting workflow ${params["workflow_id"]} as TypeScript DSL`
 };
 
 

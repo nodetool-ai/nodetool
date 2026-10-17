@@ -611,3 +611,48 @@ it.each([false, true])("preserves one real pointer gesture and the public queue 
     if (originalGetContext) { Object.defineProperty(HTMLCanvasElement.prototype, "getContext", originalGetContext); }
   }
 });
+
+it("keeps an actual deferred pointer release in its captured scene after a scene switch (E1)", () => {
+  const sceneDocument = gameDocument.parse({ ...document, scenes: [
+    document.scenes[0], { id: "other", name: "Other", entities: [
+      { id: "parent", transform2d: { x: 2, y: 0, scaleX: 2, scaleY: 1 } },
+      { ...structuredClone(document.scenes[0].entities[0]), parentId: "parent", transform2d: { x: 1, y: 0 } }
+    ] }
+  ] });
+  const originalGetContext = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, "getContext");
+  Object.defineProperty(HTMLCanvasElement.prototype, "getContext", { configurable: true,
+    value: jest.fn(() => ({ clearRect: jest.fn(), fillRect: jest.fn() })) });
+  const oldMoves = jest.fn();
+  const newMoves = jest.fn();
+  const onGestureEnd = jest.fn();
+  const canvasRef = createRef<HTMLCanvasElement>();
+  const props = {
+    canvasRef, frame: { ...frame, camera: { x: 4, y: 0, zoom: 1 }, sprites: [] }, document: sceneDocument, playing: false, paused: false, active: true,
+    selectedIds: ["ship"], highlightedIds: [], onSelect: jest.fn(), onSelectMany: jest.fn(), onMove: jest.fn(),
+    onTransform: jest.fn(), onLight: jest.fn(), onCamera: jest.fn(), onViewportAspect: jest.fn(),
+    onKeyDown: jest.fn(), onKeyUp: jest.fn(), onBlur: jest.fn(), onGestureStart: () => 47, onGestureEnd
+  };
+  try {
+    const view = render(<ThemeProvider theme={theme}><GameViewport {...props} sceneId="other" onMoves={oldMoves} /></ThemeProvider>);
+    const overlay = screen.getByRole("group", { name: "Game edit overlay" });
+    overlay.setPointerCapture = jest.fn();
+    jest.spyOn(overlay, "getBoundingClientRect").mockReturnValue({ x: 0, y: 0, left: 0, top: 0,
+      right: 512, bottom: 288, width: 512, height: 288, toJSON: () => undefined });
+    const down = createEvent.pointerDown(overlay);
+    Object.defineProperties(down, { button: { value: 0 }, pointerId: { value: 1 }, clientX: { value: 256 }, clientY: { value: 144 } });
+    fireEvent(overlay, down);
+    const move = createEvent.pointerMove(overlay);
+    Object.defineProperties(move, { pointerId: { value: 1 }, clientX: { value: 288 }, clientY: { value: 144 } });
+    fireEvent(overlay, move);
+    view.rerender(<ThemeProvider theme={theme}><GameViewport {...props} sceneId="room" frame={{ ...frame, camera: { x: 20, y: 0, zoom: 2 }, sprites: [] }} onMoves={newMoves} /></ThemeProvider>);
+    const afterSwitch = createEvent.pointerMove(overlay);
+    Object.defineProperties(afterSwitch, { pointerId: { value: 1 }, clientX: { value: 320 }, clientY: { value: 144 } });
+    fireEvent(overlay, afterSwitch);
+    fireEvent.pointerUp(overlay);
+    expect(oldMoves.mock.calls).toEqual([[[{ id: "ship", x: 2, y: 0 }], 47]]);
+    expect(newMoves).not.toHaveBeenCalled();
+    expect(onGestureEnd.mock.calls).toEqual([[47]]);
+  } finally {
+    if (originalGetContext) { Object.defineProperty(HTMLCanvasElement.prototype, "getContext", originalGetContext); }
+  }
+});

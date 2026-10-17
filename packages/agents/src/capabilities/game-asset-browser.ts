@@ -65,7 +65,12 @@ async function candidateBinding(run: CapabilityRun, draft: GameDraft, digest: st
     return { candidate: summary, binding: prepared.binding };
   }
   if (candidate.mediaKind === "collider") { return { error: "A collider candidate needs the record staging wrote; restage it with generate_game_asset" }; }
-  if (is3D && candidate.mediaKind === "image") { return { error: "3D games use model assets with embedded textures" }; }
+  if (is3D && candidate.mediaKind === "image") {
+    const { prepareGameImage3D } = await importPack<typeof import("@nodetool-ai/game-renderer/preparation3d")>("game", "@nodetool-ai/game-renderer/preparation3d");
+    const prepared = await prepareGameImage3D(bytes, { assetId: `staged:${digest}`, expectedDigest: digest, signal: run.context.signal });
+    if (!prepared.ok) { return { error: prepared.diagnostics.map((issue) => issue.message).join("; ") }; }
+    return { candidate: summary, binding: prepared.image.binding };
+  }
   const previous = slot ? draft.document.assets[slot] : undefined;
   const legacy = await derivedStagedBinding2D(bytes, candidate,
     previous && "pivot" in previous ? previous as Pick<GameAssetBinding, "pivot" | "sampling"> : undefined);
