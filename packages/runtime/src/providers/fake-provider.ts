@@ -308,7 +308,7 @@ export class FakeProvider extends BaseProvider {
       { id: "fake-model-v1", name: "Fake Model v1", provider: "fake" },
       { id: "fake-model-v2", name: "Fake Model v2", provider: "fake" },
       { id: "fake-fast-model", name: "Fake Fast Model", provider: "fake" },
-      { id: FAKE_APP_GREETING_MODEL, name: "Fixed greeting app fixture (app build --no-judge; ignores prompt)", provider: "fake" }
+      { id: FAKE_APP_GREETING_MODEL, name: "Fixed greeting app (requires audio pack; --no-judge; ignores prompt)", provider: "fake" }
     ];
   }
 

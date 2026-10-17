@@ -315,6 +315,6 @@ describe("explicit app fixture admission", () => {
     ).toEqual([]);
     expect(
       await new FakeProvider().getAvailableLanguageModels()
-    ).toContainEqual(expect.objectContaining({ id: "fake-app-greeting" }));
+    ).toContainEqual(expect.objectContaining({ id: "fake-app-greeting", name: expect.stringContaining("requires audio") }));
   });
 });
