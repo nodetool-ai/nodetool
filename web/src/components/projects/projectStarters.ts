@@ -66,7 +66,7 @@ export const invokedStarter = <T extends { name: string }>(
 };
 
 /** The prompt with every `/name` of the given starter taken out, one space with it. */
-const withoutStarter = (prompt: string, name: string): string =>
+export const promptWithoutStarter = (prompt: string, name: string): string =>
   prompt.replace(
     new RegExp(`(^|\\s)/${escapeRegExp(name)}(?:\\s|$)`, "g"),
     "$1"
@@ -85,7 +85,7 @@ export const toggleStarterInPrompt = (
   next: string | null
 ): string => {
   if (next === null) {
-    return current === null ? prompt : withoutStarter(prompt, current);
+    return current === null ? prompt : promptWithoutStarter(prompt, current);
   }
   if (current !== null && invokesStarter(prompt, current)) {
     return prompt.replace(invocationPattern(current), `$1/${next}`);
@@ -211,7 +211,7 @@ export const projectNameFromPrompt = (
   prompt: string,
   starter: ProjectStarter | null
 ): string => {
-  const ask = starter ? withoutStarter(prompt, starter.name) : prompt;
+  const ask = starter ? promptWithoutStarter(prompt, starter.name) : prompt;
   const firstLine = ask.trim().split("\n")[0]?.trim() ?? "";
   if (firstLine.length === 0) {
     return starter ? starterLabel(starter.name) : "New project";

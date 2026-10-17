@@ -358,7 +358,7 @@ The isolated preview uses a fixed seed and restarts when edited. Pause and
 Restart affect the preview only. The 2D preview uses Canvas2D, including sprite
 sheets and blending. The 3D preview uses WebGL2, including stretched and mesh
 particles and depth softness. It does not run gameplay scripts or change the
-play session. The 3D editor play view limitation below still applies.
+play session.
 
 Agents and CLI document edits use the same `update_entity` operation as the
 inspector. Set the complete component with
@@ -486,12 +486,16 @@ take scene fog and post-processing such as bloom, so additive particles glow.
 behind it, so smoke and glows do not cut a hard line through the floor. The
 renderer then draws the scene's depth once more per frame, so set it only on
 emitters that touch geometry. That depth pass skips transparent materials,
-keeps alpha-tested cut-outs, and does not count toward the draw call and
+keeps alpha-tested cut-outs, and counts toward the draw call and
 triangle budgets. 3D particles ignore `sprite` and `layer`, and
 2D particles ignore `render` and `softness`. Validation warns about `render` or
-`softness` on a 2D emitter and `softness` on a mesh emitter, without failing. The 3D standalone player,
-`nodetool game capture` and `capture_native_game_frame` draw 3D particles. The
-editor's 3D play view does not yet.
+`softness` on a 2D emitter, `softness` on a mesh emitter, and `sprite` on a
+3D emitter, without failing. Editor Play, the 3D standalone player,
+`nodetool game capture` and `capture_native_game_frame` draw 3D particles.
+Translucent particles sort across render types without writing depth. Interleaved
+types can increase draw calls. A scene transition clears the particle field.
+Within a scene, detached world particles retain world-space death chains until
+they finish. Storage grows lazily within the scene particle limit.
 
 ## 3D collision layers
 
@@ -621,6 +625,35 @@ Set every `environment` field with `update_scene`. It replaces the whole
 `environment`, so send the existing `background`, `ambient`, `fog`, `shadows`,
 `sky` and `postProcessing` with the changed field. Capture the scene and view
 the frames to review a change.
+
+`environment.fog` accepts either linear `{ color, near, far }` or height
+`{ kind: "height", color, density, baseHeight, heightFalloff, maxOpacity }`.
+Height fog replaces linear fog and integrates exponential density along the
+camera ray. `density` (0.000001 to 10, default 0.02) is extinction per world
+unit at `baseHeight` (-10000 to 10000, default 0). `heightFalloff` (0.000001
+to 100, default 0.2) reduces density above that height. `maxOpacity` (0 to 1,
+default 1) limits coverage. Omit `fog` to disable it. Both camera projections,
+rigid and animated models, and 3D particles receive scene fog.
+
+Add an image projection with `decal3d: { assetId, receiverId, size: { x, y, z },
+opacity, renderOrder }`. `assetId` names a verified PNG, JPEG or WebP image
+slot. Browse a staged image with `browse_native_game_assets`, then use its
+binding with `install_native_game_asset`. `receiverId` names one existing
+non-template primitive or rigid model entity in the same scene. Use a separate
+projector entity whose `transform3d` positions and rotates the projection box.
+Its scale multiplies `size`. Parent the projector to the receiver to keep the
+decal attached as it moves. Otherwise the projection volume stays in world
+space. Each size axis is 0.001 to 1000 world units,
+`opacity` is 0 to 1 (default 1), and integer `renderOrder` is 0 to 31 (default
+0). Higher order draws later. Ties follow entity order.
+
+A scene accepts at most 32 authored decals. Projection follows moving rigid
+receivers and selected visible model nodes, respects foreground depth, and
+supports image transparency. Skinned, morphed or instanced receivers, and
+transparent or alpha-masked receiver materials, report a diagnostic instead of
+projecting. A receiver with `animator3d` is invalid. Projection also reports a
+diagnostic when its bounded node, triangle or output work exceeds the renderer
+limit. Decals affect presentation only and never add collision surfaces.
 
 `environment.shadows` is `{ enabled, mapSize, extent, cascades? }`. Without
 `cascades`, the one shadow-casting directional light draws a single map that

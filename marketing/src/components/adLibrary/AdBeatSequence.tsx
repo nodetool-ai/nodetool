@@ -57,6 +57,8 @@ export default function AdBeatSequence({
   const clock = useVideoBeatClock(videoRef, beats);
   const reducedMotion = usePrefersReducedMotion();
   const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const selectionScrollRef = useRef(false);
+  const ignoreIntersectionsThroughRef = useRef(0);
   const playingRef = useRef(false);
   playingRef.current = clock.playing;
   const { seek } = clock;
@@ -65,10 +67,14 @@ export default function AdBeatSequence({
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (playingRef.current) {
+        if (playingRef.current || selectionScrollRef.current) {
           return;
         }
-        const hit = entries.find((entry) => entry.isIntersecting);
+        const hit = entries.find(
+          (entry) =>
+            entry.isIntersecting &&
+            entry.time > ignoreIntersectionsThroughRef.current
+        );
         if (!hit) {
           return;
         }
@@ -84,15 +90,43 @@ export default function AdBeatSequence({
         observer.observe(item);
       }
     }
-    return () => observer.disconnect();
+    const onScrollEnd = (): void => {
+      if (selectionScrollRef.current) {
+        // The browser can deliver intersections recorded during the animation later.
+        ignoreIntersectionsThroughRef.current = performance.now();
+      }
+      selectionScrollRef.current = false;
+    };
+    document.addEventListener("scrollend", onScrollEnd);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("scrollend", onScrollEnd);
+    };
   }, [beats, seek]);
 
   const selectBeat = (index: number): void => {
+    ignoreIntersectionsThroughRef.current = performance.now();
+    const item = itemRefs.current[index];
+    if (item) {
+      const bounds = item.getBoundingClientRect();
+      const targetY = Math.max(
+        0,
+        Math.min(
+          document.documentElement.scrollHeight - window.innerHeight,
+          window.scrollY + bounds.top + (bounds.height - window.innerHeight) / 2
+        )
+      );
+      // Intermediate beats cross the observer during this selection scroll.
+      // A selection already centered needs no scrollend event to unlock it.
+      const smooth = !reducedMotion && "onscrollend" in document;
+      selectionScrollRef.current =
+        smooth && Math.round(targetY) !== Math.round(window.scrollY);
+      item.scrollIntoView({
+        behavior: smooth ? "smooth" : "instant",
+        block: "center"
+      });
+    }
     seek(settledMs(beats[index]));
-    itemRefs.current[index]?.scrollIntoView({
-      behavior: reducedMotion ? "auto" : "smooth",
-      block: "center"
-    });
   };
 
   const active = beats[clock.activeIndex];

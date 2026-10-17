@@ -1,5 +1,5 @@
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, readdirSync } from "node:fs";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, readdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -522,6 +522,164 @@ describe("executeChecks", () => {
       runOpts({ timeoutMs: 500, timeoutSeconds: 0.5 })
     );
     expect(r).toMatchObject({ ok: false, exitCode: 124, timedOut: true });
+  });
+
+  it.each([
+    { jobs: 1, json: true, cost: "cheap" as const },
+    { jobs: 1, json: false, cost: "cheap" as const },
+    { jobs: 2, json: true, cost: "expensive" as const },
+    { jobs: 2, json: true, cost: "cheap" as const }
+  ])("stops descendants before continuing after timeout ($jobs, $json, $cost)", async ({ jobs, json, cost }) => {
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const dir = mkdtempSync(join(tmpdir(), "gate-descendant-"));
+    const pidPath = join(dir, "pid");
+    const parentPidPath = join(dir, "parent-pid");
+    const releasePath = join(dir, "release");
+    const escapedPath = join(dir, "escaped");
+    const childCode =
+      `const fs=require("node:fs");` +
+      `fs.writeFileSync(${JSON.stringify(pidPath)},String(process.pid));` +
+      `setInterval(()=>{if(fs.existsSync(${JSON.stringify(releasePath)})){` +
+      `fs.writeFileSync(${JSON.stringify(escapedPath)},"still running");}},10);`;
+    const parentCode =
+      `require("node:fs").writeFileSync(${JSON.stringify(parentPidPath)},String(process.pid));` +
+      `require("node:child_process").spawn(process.execPath,["-e",${JSON.stringify(childCode)}],{stdio:"ignore"});` +
+      `setInterval(()=>{},1000);`;
+    try {
+      const parallel = jobs > 1 && cost === "cheap";
+      const continueCode = parallel ? "process.exit(0)" : `require("node:fs").writeFileSync(${JSON.stringify(releasePath)},"continue");setTimeout(()=>{},150);`;
+      const [result, next] = await executeChecks(
+        [check("descendant", node(parentCode), { cost }), check("next", node(continueCode), { cost })],
+        runOpts({ jobs, json, timeoutMs: 1000, timeoutSeconds: 1 })
+      );
+      expect(existsSync(pidPath)).toBe(true);
+      expect(result).toMatchObject({ ok: false, exitCode: 124, timedOut: true, killed: true });
+      expect(next.ok).toBe(true);
+      if (parallel) {
+        writeFileSync(releasePath, "continue");
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      }
+      expect(existsSync(releasePath)).toBe(true);
+      expect(existsSync(escapedPath)).toBe(false);
+    } finally {
+      for (const ownedPidPath of [pidPath, parentPidPath]) {
+        if (!existsSync(ownedPidPath)) {
+          continue;
+        }
+        const pid = Number(readFileSync(ownedPidPath, "utf8"));
+        try { process.kill(pid, "SIGKILL"); } catch (error) {
+          if (!(error instanceof Error) || !("code" in error) || error.code !== "ESRCH") {
+            throw error;
+          }
+        }
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    { signal: "SIGINT" as const, exitCode: 130 },
+    { signal: "SIGTERM" as const, exitCode: 143 }
+  ])("cleans up a serial gate on $signal and does not start its next check", async ({ signal, exitCode }) => {
+    const dir = mkdtempSync(join(tmpdir(), "gate-interrupt-"));
+    const pidPath = join(dir, "pid");
+    const parentPidPath = join(dir, "parent-pid");
+    const releasePath = join(dir, "release");
+    const escapedPath = join(dir, "escaped");
+    const nextPath = join(dir, "next");
+    const entry = join(dir, "check.mts");
+    const childCode = `const fs=require("node:fs");fs.writeFileSync(${JSON.stringify(pidPath)},String(process.pid));setInterval(()=>{if(fs.existsSync(${JSON.stringify(releasePath)}))fs.writeFileSync(${JSON.stringify(escapedPath)},"escaped");},10);`;
+    const parentCode = `require("node:fs").writeFileSync(${JSON.stringify(parentPidPath)},String(process.pid));require("node:child_process").spawn(process.execPath,["-e",${JSON.stringify(childCode)}],{stdio:"ignore"});setInterval(()=>{},1000);`;
+    const harnessUrl = new URL("../src/commands/harness.ts", import.meta.url).href;
+    writeFileSync(entry, `import { executeChecks } from ${JSON.stringify(harnessUrl)};
+await executeChecks(${JSON.stringify([
+      check("interrupted", node(parentCode)),
+      check("next", node(`require("node:fs").writeFileSync(${JSON.stringify(nextPath)},"started")`))
+    ])}, ${JSON.stringify(runOpts())});`);
+    const gate = spawn(process.execPath, ["--import", import.meta.resolve("tsx"), entry], { stdio: "ignore" });
+    const closed = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve, reject) => {
+      gate.once("error", reject);
+      gate.once("close", (code, signal) => resolve({ code, signal }));
+    });
+    try {
+      const deadline = Date.now() + 5000;
+      while (!existsSync(pidPath) && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      expect(existsSync(pidPath)).toBe(true);
+      gate.kill(signal);
+      expect(await closed).toEqual({ code: exitCode, signal: null });
+      writeFileSync(releasePath, "continue");
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(existsSync(escapedPath)).toBe(false);
+      expect(existsSync(nextPath)).toBe(false);
+    } finally {
+      gate.kill("SIGKILL");
+      for (const ownedPidPath of [pidPath, parentPidPath]) {
+        if (!existsSync(ownedPidPath)) {
+          continue;
+        }
+        try { process.kill(Number(readFileSync(ownedPidPath, "utf8")), "SIGKILL"); } catch (error) {
+          if (!(error instanceof Error) || !("code" in error) || error.code !== "ESRCH") {
+            throw error;
+          }
+        }
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("enforces the serial JSON byte limit and cleans up descendants on overflow", async () => {
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const dir = mkdtempSync(join(tmpdir(), "gate-overflow-"));
+    const pidPath = join(dir, "pid");
+    const parentPidPath = join(dir, "parent-pid");
+    const releasePath = join(dir, "release");
+    const escapedPath = join(dir, "escaped");
+    const childCode = `const fs=require("node:fs");fs.writeFileSync(${JSON.stringify(pidPath)},String(process.pid));setInterval(()=>{if(fs.existsSync(${JSON.stringify(releasePath)}))fs.writeFileSync(${JSON.stringify(escapedPath)},"escaped");},10);`;
+    const parentCode = `const fs=require("node:fs");fs.writeFileSync(${JSON.stringify(parentPidPath)},String(process.pid));require("node:child_process").spawn(process.execPath,["-e",${JSON.stringify(childCode)}],{stdio:"ignore"});const ready=setInterval(()=>{if(!fs.existsSync(${JSON.stringify(pidPath)}))return;clearInterval(ready);const chunk=Buffer.alloc(65536,"é");for(let n=0;n<4097;n++)fs.writeSync(1,chunk);setInterval(()=>{},1000);},10);`;
+    try {
+      const [result] = await executeChecks([check("overflow", node(parentCode))], runOpts());
+      expect(existsSync(pidPath)).toBe(true);
+      expect(result).toMatchObject({ ok: false, exitCode: 1, timedOut: false, killed: true });
+      writeFileSync(releasePath, "continue");
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      expect(existsSync(escapedPath)).toBe(false);
+    } finally {
+      for (const ownedPidPath of [pidPath, parentPidPath]) {
+        if (!existsSync(ownedPidPath)) {
+          continue;
+        }
+        try { process.kill(Number(readFileSync(ownedPidPath, "utf8")), "SIGKILL"); } catch (error) {
+          if (!(error instanceof Error) || !("code" in error) || error.code !== "ESRCH") {
+            throw error;
+          }
+        }
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("retains live stdout and stderr for serial checks", () => {
+    const dir = mkdtempSync(join(tmpdir(), "gate-live-output-"));
+    try {
+      const entry = join(dir, "check.mts");
+      const harnessUrl = new URL("../src/commands/harness.ts", import.meta.url).href;
+      const command = node('process.stdout.write("child stdout");process.stderr.write("child stderr")');
+      writeFileSync(entry, `import { executeChecks } from ${JSON.stringify(harnessUrl)};
+const results = await executeChecks([${JSON.stringify(check("live", command))}], ${JSON.stringify(runOpts({ json: false }))});
+process.stdout.write("RESULT " + JSON.stringify(results));`);
+      const output = spawnSync(process.execPath, ["--import", import.meta.resolve("tsx"), entry], {
+        encoding: "utf8", timeout: 10_000, stdio: ["ignore", "pipe", "pipe"]
+      });
+      expect(output.error).toBeUndefined();
+      expect(output.status).toBe(0);
+      expect(output.stdout).toContain("child stdout");
+      expect(output.stderr).toContain("child stderr");
+      expect(output.stdout).toContain('"ok":true');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("buffers a check's output into one block in parallel mode", async () => {

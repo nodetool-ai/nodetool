@@ -39,9 +39,11 @@ Add or remove lifetime curves and the color gradient in their inspector sections
 
 Add `particles` to an entity with an `emitters` array. Each emitter needs a unique ID. Set its rate, bursts, duration, looping, start behavior, and maximum population. Shapes include point, circle, sphere, cone, box, and edge. Cone, box, and edge emit along local +Y.
 
-Lifetime, speed, size, rotation, and angular velocity accept a fixed value or a minimum/maximum range. Curves control size, speed, and opacity over normalized lifetime. A gradient controls color. Add gravity and drag, or use local space to make the field follow its entity.
+Lifetime, speed, size, rotation, and angular velocity accept a fixed value or a minimum/maximum range. Curves control size, speed, and opacity over normalized lifetime. A gradient multiplies the base color. Adding an untouched gradient uses white and preserves the existing appearance. Add gravity and drag, or use local space to make the field follow its entity.
 
-An `onDeath` entry can spawn particles from another emitter in the same component. Set that secondary emitter's rate to zero and disable its automatic start when it should only respond to the parent.
+An `onDeath` entry can spawn particles from another emitter in the same component. Set that secondary emitter's rate to zero and disable its automatic start when it should only respond to the parent. World-space particles and chains of world-space sub-emitters can finish after their owner disappears within a scene. A scene transition clears the field, including reused emitter IDs.
+
+Particle storage grows only when particles spawn and stays within the scene particle limit. Dormant emitters do not reserve their maximum population. Local-space particles interpolate with their owner between simulation ticks.
 
 A script can burst its own emitter:
 
@@ -57,12 +59,12 @@ The entity must already declare `sparks`. Omitting `count` restarts its cycle. O
 
 The default particle is a tinted soft dot. An optional sprite binding supplies a single image or a grid of sheet frames. Columns, rows, frame count, and cycles control playback over the particle's lifetime. Normal blending suits smoke. Additive blending suits luminous sparks. Use `unlit` for effects that should retain color in a dark scene.
 
-2D particles work in editor play, standalone builds, and captures. WebGPU draws the live field. Canvas2D draws at most 1024 visible particles.
+2D particles work in editor play, standalone builds, and captures. WebGPU draws the live field. Browser Canvas2D and Canvas2D captures draw at most 1024 visible particles. Native captures with GPU effects still paint particles through Canvas before applying effects. They do not exercise the browser WebGPU particle shader.
 
 ## 3D appearance
 
 Use a camera-facing billboard, a velocity-stretched billboard, or a mesh particle. Mesh shapes are box, sphere, tetrahedron, and octahedron. Meshes can align to the world or velocity and can receive lighting. Billboard colors are unlit. Both participate in fog and post-processing.
 
-Billboard `softness` fades intersections against scene depth and adds a depth pass. Enable it where that cost improves the effect. Mesh softness is not supported.
+Billboard `softness` fades intersections against scene depth and adds a depth pass. Its submitted draw calls and triangles count toward rendering budgets. Enable it where that cost improves the effect. Mesh softness is not supported.
 
-3D particles work in standalone players and captures. The current editor's 3D play session does not tick them. 3D also ignores particle sprite textures, sprite sheets, and 2D draw layers. Use the isolated inspector preview, capture, or an exported player to review 3D effects.
+3D particles work in editor Play, standalone players, and captures. Translucent particles sort across billboard and mesh types without writing depth. Compatible particle batches split around ordinary transparent objects and can require additional draw calls. Ordinary transparent geometry retains Three.js object-center sorting. 3D ignores particle sprite textures, sprite sheets, and 2D draw layers. Validation reports unsupported sprite and sheet settings.

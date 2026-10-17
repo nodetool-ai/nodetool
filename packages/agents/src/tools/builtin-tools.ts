@@ -29,6 +29,7 @@
  */
 
 import type { Tool } from "./base-tool.js";
+import { gameSpecs } from "../capabilities/game.specs.js";
 import { toolForCapabilityName } from "../capabilities/lazy-tool.js";
 import { isYtDlpEnabled } from "../yt-dlp-gate.js";
 import { isBrowserEnabled } from "../browser-gate.js";
@@ -36,6 +37,7 @@ import { isBlenderEnabled } from "../blender-gate.js";
 import { isHostAccessEnabled } from "../host-access-gate.js";
 
 export const BUILTIN_TOOL_NAMES: readonly string[] = [
+  ...gameSpecs.map((spec) => spec.name),
   // Filesystem (workspace-relative)
   "read_file",
   "write_file",

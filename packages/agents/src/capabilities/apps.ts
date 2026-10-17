@@ -177,7 +177,7 @@ const createApp: CapabilityExport = {
           {
             id: "main",
             name: "Run",
-            workflowId: fromWorkflowId,
+            workflowId: workflow.id,
             inputs: {},
             outputs: {},
             policy: "replace"
@@ -224,11 +224,19 @@ function parseSteps(raw: unknown): EditStep[] | { error: string } {
     if (!isRecord(entry) || !isString(entry.tool) || !entry.tool) {
       return { error: `steps[${index}] needs a \`tool\` name.` };
     }
+    const unknown = Object.keys(entry).filter(
+      (key) => key !== "tool" && key !== "input"
+    );
+    if (unknown.length > 0) {
+      return {
+        error: `steps[${index}] has unknown fields: ${unknown.join(", ")}. Put tool arguments in input.`
+      };
+    }
     const input = entry.input;
-    if (input !== undefined && !isRecord(input)) {
+    if (!isRecord(input)) {
       return { error: `steps[${index}].input must be an object.` };
     }
-    steps.push({ tool: entry.tool, input: isRecord(input) ? input : {} });
+    steps.push({ tool: entry.tool, input });
   }
   return steps;
 }
@@ -242,7 +250,9 @@ const editApp: CapabilityExport = {
     if (!app) return { error: `App ${id} was not found, or it is not yours.` };
 
     const steps = parseSteps(params["steps"]);
-    if (!Array.isArray(steps)) return steps;
+    if (!Array.isArray(steps)) {
+      return { ok: false, saved: false, ...steps };
+    }
 
     const expected = params["base_updated_at"];
     if (isString(expected) && expected && expected !== app.updated_at) {
@@ -256,7 +266,8 @@ const editApp: CapabilityExport = {
 
     const document = app.toDocument();
     const { createAppToolBridge } = await import("../app-build/bridge.js");
-    const { zodToJsonSchema } = await import("@nodetool-ai/runtime");
+    const { zodToJsonSchema, parseWithTypeCoercion } =
+      await import("@nodetool-ai/runtime");
 
     const workflows = await bindableWorkflows(userId, document, params);
     // The bridge needs one workflow to answer binding targets against; the
@@ -274,6 +285,29 @@ const editApp: CapabilityExport = {
     bridge.loadDocument(bridgeDocumentOf(document));
 
     const byName = new Map(bridge.tools.map((tool) => [tool.name, tool]));
+    // Reject malformed arguments before any step mutates the in-memory document.
+    // Runtime tool failures retain the existing partial-success behavior below.
+    for (const [index, step] of steps.entries()) {
+      const name = step.tool.startsWith("ui_app_")
+        ? step.tool
+        : `ui_app_${step.tool}`;
+      const tool = byName.get(name);
+      if (!tool) {
+        continue;
+      }
+      try {
+        parseWithTypeCoercion(tool.parameters, {
+          ...step.input,
+          application_id: app.id
+        });
+      } catch (error) {
+        return {
+          ok: false,
+          saved: false,
+          error: `steps[${index}] (${name}): ${error instanceof Error ? error.message : String(error)}`
+        };
+      }
+    }
     const results: Record<string, unknown>[] = [];
     let failed = false;
     for (const [index, step] of steps.entries()) {
@@ -293,10 +327,14 @@ const editApp: CapabilityExport = {
       }
       try {
         const result = await tool.execute({
-          application_id: app.id,
-          ...step.input
+          ...step.input,
+          application_id: app.id
         });
-        results.push({ step: index, tool: name, ok: true, result });
+        const ok = !isRecord(result) || result.ok !== false;
+        results.push({ step: index, tool: name, ok, result });
+        if (!ok) {
+          failed = true;
+        }
       } catch (error) {
         results.push({
           step: index,
@@ -431,13 +469,21 @@ async function bindableWorkflows(
   const idArray = Array.from(ids);
   if (idArray.length === 0) return bindable;
 
-  const workflows = await Workflow.findMany(userId, idArray);
+  const workflows = await Promise.all(
+    idArray.map(async (id) => ({
+      id,
+      workflow: await Workflow.find(userId, id)
+    }))
+  );
 
-  for (const workflow of workflows) {
-    const graph = debugGraphOf(workflow?.graph);
+  for (const { id, workflow } of workflows) {
+    if (!workflow) {
+      continue;
+    }
+    const graph = debugGraphOf(workflow.graph);
     if (!graph) continue;
     const io = extractAppIO(graph);
-    bindable[workflow.id] = {
+    bindable[id] = {
       inputs: io.inputs.map((input) => ({
         nodeId: input.nodeId,
         name: input.name,
@@ -450,6 +496,7 @@ async function bindableWorkflows(
       })),
       variables: io.variables
     };
+    bindable[workflow.id] = bindable[id];
   }
   return bindable;
 }

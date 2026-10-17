@@ -57,6 +57,14 @@ export interface GameCommandHistory {
   readonly past: readonly GameCommand[];
   readonly future: readonly GameCommand[];
 }
+export interface GameEntityTarget {
+  readonly sceneId: string;
+  readonly entityId: string;
+}
+interface GameEntitySelection {
+  readonly sceneId: string;
+  readonly entityIds: readonly string[];
+}
 interface GameDraftState {
   behaviorStructureVersions: Readonly<Record<string, number>>;
   document: GameDocument | null;
@@ -69,6 +77,7 @@ interface GameDraftState {
   saveStatus: GameSaveStatus;
   error: string | null;
   selectedIds: string[];
+  selectedSceneId: string | null;
   commandHistory: GameCommandHistory;
   canUndo: boolean;
   canRedo: boolean;
@@ -87,14 +96,20 @@ interface GameDraftState {
   /** Protect every pending op and return the document they produce. */
   captureSaveDocument: () => { count: number; document: GameDocument } | null;
   requireDocumentSave: () => void;
-  select: (id: string, additive?: boolean) => void;
-  selectMany: (ids: string[], additive?: boolean) => void;
+  select: (id: string | GameEntityTarget, additive?: boolean) => void;
+  selectMany: (ids: string[] | GameEntitySelection, additive?: boolean) => void;
   undo: () => void;
   redo: () => void;
 }
 
 type GameDraftStore = StoreApi<GameDraftState>;
 const stores = new Map<string, GameDraftStore>();
+function reconciledSelection(document: GameDocument, state: Pick<GameDraftState, "selectedIds" | "selectedSceneId">) {
+  if (state.selectedSceneId === null) { return {}; }
+  const scene = document.scenes.find((entry) => entry.id === state.selectedSceneId);
+  const ids = new Set(scene?.entities.map((entity) => entity.id));
+  return { selectedSceneId: scene?.id ?? null, selectedIds: state.selectedIds.filter((id) => ids.has(id)) };
+}
 const HISTORY_LIMIT = 100;
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -157,11 +172,11 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
   function closeCoalescing(): void { gesture = null; lastScriptEdit = null; lastScriptQueue = null; }
   const store = createStore<GameDraftState>()((set, get) => ({
     behaviorStructureVersions: {}, document: null, savedDocument: null, baseUpdatedAt: null, pendingOps: [], savingCount: 0, documentSaveRequired: false,
-    saveStatus: "saved", error: null, selectedIds: [], ...historyState([], []),
+    saveStatus: "saved", error: null, selectedIds: [], selectedSceneId: null, ...historyState([], []),
     load: (document, baseUpdatedAt) => {
       retryPrefixCount = 0;
       closeCoalescing();
-      set({ behaviorStructureVersions: replacedVersions(get().behaviorStructureVersions), document, savedDocument: document, baseUpdatedAt, pendingOps: [], savingCount: 0, documentSaveRequired: false,
+      set({ ...reconciledSelection(document, get()), behaviorStructureVersions: replacedVersions(get().behaviorStructureVersions), document, savedDocument: document, baseUpdatedAt, pendingOps: [], savingCount: 0, documentSaveRequired: false,
         saveStatus: "saved", error: null, ...historyState([], []) });
     },
     applyMerged: (document, server, baseUpdatedAt, options) => {
@@ -175,7 +190,7 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
       retryPrefixCount = 0;
       closeCoalescing();
       const { past, future } = options?.keepHistory ? get().commandHistory : { past: [], future: [] };
-      set({ behaviorStructureVersions: replacedVersions(get().behaviorStructureVersions), document: validation.document, savedDocument: server, baseUpdatedAt, pendingOps, savingCount: 0, documentSaveRequired: false,
+      set({ ...reconciledSelection(validation.document, get()), behaviorStructureVersions: replacedVersions(get().behaviorStructureVersions), document: validation.document, savedDocument: server, baseUpdatedAt, pendingOps, savingCount: 0, documentSaveRequired: false,
         saveStatus: pendingOps.length ? "unsaved" : "saved", error: null, ...historyState(past, future) });
     },
     acceptConflict: (server, kind, unitId) => {
@@ -221,7 +236,7 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
         validateReplay(queueBefore, queueOps, document);
         const pendingOps = [...state.pendingOps.slice(0, queueStart), ...structuredClone(queueOps)];
         const behaviorStructureVersions = structuralVersions(state.behaviorStructureVersions, ops);
-        set({ document, behaviorStructureVersions, pendingOps, saveStatus: "unsaved", error: null, ...historyState(past, []) });
+        set({ ...reconciledSelection(document, state), document, behaviorStructureVersions, pendingOps, saveStatus: "unsaved", error: null, ...historyState(past, []) });
         if (gestureMatches && gesture) { gesture = { id: gesture.id, key: options?.mergeKey, before: commandBefore, index: past.length - 1 }; }
         else { gesture = null; }
         lastScriptEdit = scriptKey ? { key: scriptKey, time: Date.now(), before: commandBefore, index: past.length - 1 } : null;
@@ -243,7 +258,7 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
       ];
       const behaviorStructureVersions = remaining.length === 0 && current.document && !same(behaviorLists(current.document), behaviorLists(document))
         ? replacedVersions(current.behaviorStructureVersions) : current.behaviorStructureVersions;
-      set({ behaviorStructureVersions, savedDocument: document, baseUpdatedAt, pendingOps: remaining, savingCount: 0, documentSaveRequired: false,
+      set({ ...reconciledSelection(remaining.length === 0 ? document : current.document ?? document, current), behaviorStructureVersions, savedDocument: document, baseUpdatedAt, pendingOps: remaining, savingCount: 0, documentSaveRequired: false,
         document: remaining.length === 0 ? document : get().document,
         saveStatus: remaining.length === 0 ? "saved" : "unsaved", error: null });
     },
@@ -264,15 +279,27 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
     },
     requireDocumentSave: () => { set({ documentSaveRequired: true }); },
     setSaving: (count) => { set({ saveStatus: "saving", savingCount: count }); },
-    select: (id, additive = false) => {
+    select: (target, additive = false) => {
+      const state = get();
+      const id = typeof target === "string" ? target : target.entityId;
+      const selectedSceneId = typeof target === "string" ? null : target.sceneId;
+      const previous = selectedSceneId === state.selectedSceneId ? state.selectedIds : [];
       const selectedIds = additive
-        ? get().selectedIds.includes(id) ? get().selectedIds.filter((entry) => entry !== id) : [...get().selectedIds, id]
+        ? previous.includes(id) ? previous.filter((entry) => entry !== id) : [...previous, id]
         : [id];
-      if (!same(selectedIds, get().selectedIds)) { closeCoalescing(); set({ selectedIds }); }
+      if (!same(selectedIds, state.selectedIds) || selectedSceneId !== state.selectedSceneId) {
+        closeCoalescing(); set({ selectedIds, selectedSceneId });
+      }
     },
-    selectMany: (ids, additive = false) => {
-      const selectedIds = [...new Set(additive ? [...get().selectedIds, ...ids] : ids)];
-      if (!same(selectedIds, get().selectedIds)) { closeCoalescing(); set({ selectedIds }); }
+    selectMany: (target, additive = false) => {
+      const state = get();
+      const ids = Array.isArray(target) ? target : target.entityIds;
+      const selectedSceneId = Array.isArray(target) ? null : target.sceneId;
+      const previous = selectedSceneId === state.selectedSceneId ? state.selectedIds : [];
+      const selectedIds = [...new Set(additive ? [...previous, ...ids] : ids)];
+      if (!same(selectedIds, state.selectedIds) || selectedSceneId !== state.selectedSceneId) {
+        closeCoalescing(); set({ selectedIds, selectedSceneId });
+      }
     },
     undo: () => {
       const state = get(), command = state.commandHistory.past.at(-1);
@@ -281,7 +308,7 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
         const document = applyGameOps(state.document, command.inverseOps);
         const pendingOps = rebuildHistoryQueue(state, document, Math.max(state.savingCount, retryPrefixCount));
         closeCoalescing();
-        set({ document, behaviorStructureVersions: structuralVersions(state.behaviorStructureVersions, command.inverseOps), pendingOps, saveStatus: pendingOps.length === 0 ? "saved" : "unsaved", error: null,
+        set({ ...reconciledSelection(document, state), document, behaviorStructureVersions: structuralVersions(state.behaviorStructureVersions, command.inverseOps), pendingOps, saveStatus: pendingOps.length === 0 ? "saved" : "unsaved", error: null,
           ...historyState(state.commandHistory.past.slice(0, -1), [...state.commandHistory.future, command]) });
       } catch (cause) { set({ error: cause instanceof Error ? cause.message : String(cause) }); }
     },
@@ -292,7 +319,7 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
         const document = applyGameOps(state.document, command.ops);
         const pendingOps = rebuildHistoryQueue(state, document, Math.max(state.savingCount, retryPrefixCount));
         closeCoalescing();
-        set({ document, behaviorStructureVersions: structuralVersions(state.behaviorStructureVersions, command.ops), pendingOps, saveStatus: pendingOps.length === 0 ? "saved" : "unsaved", error: null,
+        set({ ...reconciledSelection(document, state), document, behaviorStructureVersions: structuralVersions(state.behaviorStructureVersions, command.ops), pendingOps, saveStatus: pendingOps.length === 0 ? "saved" : "unsaved", error: null,
           ...historyState([...state.commandHistory.past, command].slice(-HISTORY_LIMIT), state.commandHistory.future.slice(0, -1)) });
       } catch (cause) { set({ error: cause instanceof Error ? cause.message : String(cause) }); }
     }

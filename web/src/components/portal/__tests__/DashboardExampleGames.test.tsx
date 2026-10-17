@@ -73,3 +73,13 @@ it("plays a shipped game without installing it", async () => {
     "keep-creating"
   );
 });
+
+it("offers Make a game only where the host passes the game flow", async () => {
+  const onMakeGame = jest.fn();
+  const { unmount } = render(<MemoryRouter><ThemeProvider theme={mockTheme}><DashboardExampleGames /></ThemeProvider></MemoryRouter>);
+  expect(screen.queryByRole("button", { name: "Make a game" })).not.toBeInTheDocument();
+  unmount();
+  render(<MemoryRouter><ThemeProvider theme={mockTheme}><DashboardExampleGames onMakeGame={onMakeGame} /></ThemeProvider></MemoryRouter>);
+  await userEvent.click(screen.getByRole("button", { name: "Make a game" }));
+  expect(onMakeGame).toHaveBeenCalledTimes(1);
+});

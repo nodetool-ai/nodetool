@@ -39,6 +39,16 @@ export function imageHeight(image: GameImage | HTMLCanvasElement): number {
   return image instanceof HTMLImageElement ? image.naturalHeight : image.height;
 }
 
+interface ParticleSourcePixels {
+  readonly image: GameImage | HTMLCanvasElement;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly original: Uint8ClampedArray;
+  readonly output: ImageData;
+}
+
 export class Canvas2DGameRenderer implements GameRenderer {
   readonly backend = "canvas2d";
   private readonly context: CanvasRenderingContext2D;
@@ -46,6 +56,7 @@ export class Canvas2DGameRenderer implements GameRenderer {
   private lightCanvas: HTMLCanvasElement | undefined;
   private particleDot: HTMLCanvasElement | undefined;
   private particleScratch: HTMLCanvasElement | undefined;
+  private particleSource: ParticleSourcePixels | undefined;
   private tintedBytes = 0;
   private disposed = false;
 
@@ -196,20 +207,22 @@ export class Canvas2DGameRenderer implements GameRenderer {
     }
     const canvas = this.particleScratch ?? document.createElement("canvas");
     this.particleScratch = canvas;
-    canvas.width = source.width;
-    canvas.height = source.height;
     const context = canvas.getContext("2d");
     if (!context) {
       throw new Error("Canvas2D particle target is unavailable");
     }
-    context.drawImage(image, source.x, source.y, source.width, source.height, 0, 0, source.width, source.height);
-    context.globalCompositeOperation = "multiply";
-    context.fillStyle = tint;
-    context.fillRect(0, 0, source.width, source.height);
-    // Multiply fills transparent pixels too, so the image's own alpha is restored afterwards.
-    context.globalCompositeOperation = "destination-in";
-    context.drawImage(image, source.x, source.y, source.width, source.height, 0, 0, source.width, source.height);
-    context.globalCompositeOperation = "source-over";
+    let cached = this.particleSource;
+    if (!cached || cached.image !== image || cached.x !== source.x || cached.y !== source.y || cached.width !== source.width || cached.height !== source.height) {
+      canvas.width = source.width;
+      canvas.height = source.height;
+      context.drawImage(image, source.x, source.y, source.width, source.height, 0, 0, source.width, source.height);
+      cached = { image, ...source, original: context.getImageData(0, 0, source.width, source.height).data,
+        output: context.createImageData(source.width, source.height) };
+      this.particleSource = cached;
+    }
+    cached.output.data.set(cached.original);
+    tintPixels(cached.output.data, tint);
+    context.putImageData(cached.output, 0, 0);
     return canvas;
   }
 
@@ -263,6 +276,7 @@ export class Canvas2DGameRenderer implements GameRenderer {
 
   invalidateAsset(assetId: string): void {
     this.assets.invalidate(assetId);
+    this.particleSource = undefined;
     for (const key of this.tinted.keys()) {
       if (key.startsWith(`${assetId}:`)) {
         const canvas = this.tinted.get(key);
@@ -278,6 +292,7 @@ export class Canvas2DGameRenderer implements GameRenderer {
     this.lightCanvas = undefined;
     this.particleDot = undefined;
     this.particleScratch = undefined;
+    this.particleSource = undefined;
     this.tintedBytes = 0;
     this.assets.clear();
   }

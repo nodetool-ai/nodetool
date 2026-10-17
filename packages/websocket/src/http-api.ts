@@ -20,6 +20,7 @@ import { GZIP_THRESHOLD } from "./lib/compression.js";
 import { withCacheBuster } from "./lib/example-thumbnail.js";
 import {
   loadExampleGraph,
+  shippedWorkflowExamplesDir,
   deriveExampleAssetsDir
 } from "./example-workflows.js";
 import { createLogger } from "@nodetool-ai/config";
@@ -923,7 +924,6 @@ export function buildExampleWorkflows(
     | "metadataMaxDepth"
   >
 ): unknown[] {
-  // If a static examples directory is configured, use it directly — no Python needed.
   if (options.examplesDir) {
     return buildExamplesFromDir(
       options.examplesDir,
@@ -968,7 +968,25 @@ export function buildExampleWorkflows(
       });
     }
   }
-  return workflows;
+  const shippedDirectory = shippedWorkflowExamplesDir();
+  const shipped = shippedDirectory
+    ? buildExamplesFromDir(shippedDirectory, options.examplesAssetsFallbackDir, options.registry)
+    : [];
+  const seen = new Set<string>();
+  return [...workflows, ...shipped].filter((workflow) => {
+    if (!isObjectLike(workflow)) {
+      return false;
+    }
+    const key = JSON.stringify([
+      workflow.package_name ?? "nodetool-base",
+      isString(workflow.id) && workflow.id !== "" ? workflow.id : workflow.name
+    ]);
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 }
 
 export async function handleWorkflowExamples(

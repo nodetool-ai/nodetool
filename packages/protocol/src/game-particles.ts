@@ -197,8 +197,13 @@ export function gameParticleRenderWarnings(particles: GameParticles, dimension: 
       if (emitter.softness !== undefined) {
         warnings.push({ path: ["emitters", index, "softness"], message: "2D particles ignore softness, which only fades 3D billboards" });
       }
-    } else if (emitter.render?.kind === "mesh" && emitter.softness !== undefined && emitter.softness > 0) {
-      warnings.push({ path: ["emitters", index, "softness"], message: "Mesh particles ignore softness, which only fades billboards" });
+    } else {
+      if (emitter.sprite !== undefined) {
+        warnings.push({ path: ["emitters", index, "sprite"], message: "3D particles ignore sprite textures and sprite sheets" });
+      }
+      if (emitter.render?.kind === "mesh" && emitter.softness !== undefined && emitter.softness > 0) {
+        warnings.push({ path: ["emitters", index, "softness"], message: "Mesh particles ignore softness, which only fades billboards" });
+      }
     }
   }
   return warnings;

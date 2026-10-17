@@ -28,11 +28,10 @@ const CSS = 'html,body{margin:0;background:#202838;color:#fff;font:16px system-u
 
 async function playerBundle(): Promise<Uint8Array> {
   const source = fileURLToPath(new URL("./standalone-player3d.ts", import.meta.url));
-  const compiled = fileURLToPath(new URL("./standalone-player3d.js", import.meta.url));
-  if (!existsSync(source) && !existsSync(compiled)) {
+  if (!existsSync(source)) {
     return readFile(resolvePackageAssetPath({ pkg: "@nodetool-ai/game-renderer", path: PLAYER_FILE }, import.meta.url));
   }
-  const result = await build({ entryPoints: [existsSync(source) ? source : compiled], bundle: true, format: "esm", platform: "browser",
+  const result = await build({ entryPoints: [source], bundle: true, format: "esm", platform: "browser",
     target: "es2022", minify: true, write: false, conditions: ["nodetool-dev"], logLevel: "silent" });
   const player = result.outputFiles?.[0];
   if (!player) { throw new Error("3D player bundle is empty"); }

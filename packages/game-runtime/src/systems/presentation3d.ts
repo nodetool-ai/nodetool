@@ -130,6 +130,9 @@ export function frame3D(
         if (state.definition.particles) {
           entity.particles = state.definition.particles;
         }
+        if (state.definition.decal3d) {
+          entity.decal3d = structuredClone(state.definition.decal3d);
+        }
         const cullDistance = cullDistanceOf?.(state.definition);
         if (cullDistance !== undefined) {
           entity.cullDistance = cullDistance;

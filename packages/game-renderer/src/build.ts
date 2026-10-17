@@ -131,13 +131,11 @@ body.touch .touch-layer{display:block;position:fixed;inset:0;z-index:2;pointer-e
 
 async function playerBundle(): Promise<Uint8Array> {
   const sourceEntry = fileURLToPath(new URL("./standalone-player.ts", import.meta.url));
-  const compiledEntry = fileURLToPath(new URL("./standalone-player.js", import.meta.url));
-  if (!existsSync(sourceEntry) && !existsSync(compiledEntry)) {
+  if (!existsSync(sourceEntry)) {
     return readFile(resolvePackageAssetPath({ pkg: "@nodetool-ai/game-renderer", path: PLAYER_FILE }, import.meta.url));
   }
-  const entry = existsSync(sourceEntry) ? sourceEntry : compiledEntry;
   const bundled = await build({
-    entryPoints: [entry],
+    entryPoints: [sourceEntry],
     outfile: PLAYER_FILE,
     bundle: true,
     platform: "browser",

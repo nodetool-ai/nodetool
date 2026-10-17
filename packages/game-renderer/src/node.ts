@@ -6,7 +6,7 @@ import { gameFontFamily } from "./fonts.js";
 import { loadGameUiImages, paintGameHud2D } from "./ui/hud2d.js";
 import { applyGpuEffects } from "./gpu-capture.js";
 import type { GameHudEffectOrder, GameRendererEffect } from "./index.js";
-import { PARTICLE_DOT_ASSET, PARTICLE_DOT_SIZE, particleDotPixels, type GameParticleField } from "./particles/render2d.js";
+import { CANVAS2D_MAX_PARTICLES, PARTICLE_DOT_ASSET, PARTICLE_DOT_SIZE, particleDotPixels, type GameParticleField } from "./particles/render2d.js";
 
 export interface CaptureGameFrameOptions {
   readonly resolveAsset?: (assetId: string) => Promise<Uint8Array | null>;
@@ -41,7 +41,8 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
   const context = canvas.getContext("2d");
   context.imageSmoothingEnabled = false;
   const pixelScaleForCulling = frame.pixelsPerUnit * frame.camera.zoom * scale;
-  const items = visibleItems(frame, options.interpolation ?? 1, overscan / pixelScaleForCulling, options.particles && { field: options.particles });
+  const items = visibleItems(frame, options.interpolation ?? 1, overscan / pixelScaleForCulling,
+    options.particles && { field: options.particles, limit: backend === "canvas2d" ? CANVAS2D_MAX_PARTICLES : undefined });
   const cache = new Map<string, Promise<Awaited<ReturnType<typeof loadImage>> | null>>();
   const getImage = (assetId: string): Promise<Awaited<ReturnType<typeof loadImage>> | null> => {
     if (assetId === PARTICLE_DOT_ASSET) {

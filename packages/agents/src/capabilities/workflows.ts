@@ -1055,6 +1055,7 @@ const exportWorkflowDigraph: CapabilityExport = {
     try {
       return {
         workflow_id: workflowId,
+        format: "typescript",
         source: exportDsl(workflow.graph, { workflowName: workflow.name })
       };
     } catch (error) {

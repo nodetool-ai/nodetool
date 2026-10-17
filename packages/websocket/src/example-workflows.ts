@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import nodePath from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { isString } from "./lib/wire-values.js";
 
@@ -9,6 +10,16 @@ interface ExampleWorkflowLoadOptions {
   examplesAssetsFallbackDir?: string;
   metadataRoots?: string[];
   metadataMaxDepth?: number;
+}
+
+/** Default examples shipped inside the npm package or bundled server. */
+export function shippedWorkflowExamplesDir(): string | undefined {
+  const here = nodePath.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    nodePath.join(here, "examples", "nodetool-base"),
+    nodePath.resolve(here, "../../base-nodes/nodetool/examples/nodetool-base")
+  ];
+  return candidates.find((directory) => existsSync(directory));
 }
 
 function directoryHasGalleryThumbnails(dir: string): boolean {
@@ -156,8 +167,9 @@ export function loadExampleGraph(
   exampleRef: string,
   options: ExampleWorkflowLoadOptions = {}
 ): Record<string, unknown> | null {
-  if (options.examplesDir && existsSync(options.examplesDir)) {
-    const fromDir = loadExampleGraphFromDir(options.examplesDir, exampleRef);
+  const examplesDir = options.examplesDir ?? shippedWorkflowExamplesDir();
+  if (examplesDir && existsSync(examplesDir) && (options.examplesDir || !packageName || packageName === nodePath.basename(examplesDir))) {
+    const fromDir = loadExampleGraphFromDir(examplesDir, exampleRef);
     if (fromDir) {
       return fromDir;
     }
@@ -173,8 +185,9 @@ export function loadExampleGraph(
 export function defaultExamplePackageName(
   options: ExampleWorkflowLoadOptions
 ): string | null {
-  if (options.examplesDir && existsSync(options.examplesDir)) {
-    return nodePath.basename(options.examplesDir);
+  const examplesDir = options.examplesDir ?? shippedWorkflowExamplesDir();
+  if (examplesDir && existsSync(examplesDir)) {
+    return nodePath.basename(examplesDir);
   }
   return null;
 }

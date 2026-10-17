@@ -213,3 +213,30 @@ describe("MCP missing-pack transport", () => {
     expect(toToolResponse({ ok: true, result: missing.details })).toEqual(response);
   });
 });
+
+describe("MCP installed authoring discovery", () => {
+  it("finds game tools and reads installed sandbox pack documentation", async () => {
+    const { discoverSandboxCatalog } = await import("@nodetool-ai/node-sdk");
+    const { getProcessSandboxModuleCatalog, setProcessSandboxModuleCatalog } =
+      await import("@nodetool-ai/runtime");
+    const previous = getProcessSandboxModuleCatalog();
+    try {
+      setProcessSandboxModuleCatalog(discoverSandboxCatalog().catalog);
+      const server = newServer();
+      registerAgentMcpTools(server, { agentToolsScope: scope });
+      const response = await callTool(server, "execute_code", {
+        code: 'const guide = await nodetool.packs.docs("@nodetool-ai/sandbox-timeline"); return { games: await nodetool.searchTools("game"), create: await nodetool.searchTools("create_native_game"), docs: guide.slice(0, 1000), guideLength: guide.length };'
+      });
+      const observation = JSON.parse(response.content[0].text ?? "{}");
+      expect(observation.ok, observation.error).toBe(true);
+      expect(observation.result.games.length).toBeGreaterThan(0);
+      expect(observation.result.create).toEqual(expect.arrayContaining([
+        expect.objectContaining({ name: "create_native_game" })
+      ]));
+      expect(observation.result.docs.length).toBeGreaterThan(0);
+      expect(observation.result.docs).toContain("timeline");
+    } finally {
+      setProcessSandboxModuleCatalog(previous);
+    }
+  }, 60_000);
+});
