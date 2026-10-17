@@ -58,7 +58,8 @@ export const SANDBOX_PACKAGE_LIMITS = {
   npmBundledJsBytes: 1024 * 1024,
   wasmBytes: 4 * 1024 * 1024,
   packBytes: 8 * 1024 * 1024,
-  skillBytes: 16 * 1024
+  skillBytes: 16 * 1024,
+  shippedSkillBytes: 64 * 1024
 } as const;
 
 /** The id a host module carries in a pack's module table. Never a file path. */
@@ -145,6 +146,8 @@ type StoredFile = {
 
 /** Host-supplied input discovery cannot produce on its own. */
 export interface SandboxPackDiscoveryOptions {
+  /** Only the host's canonical shipped-pack roots qualify for the larger guide cap. */
+  readonly shipped?: boolean;
   /**
    * Compiled npm artifacts, keyed by pack and dependency name.
    *
@@ -457,6 +460,9 @@ export function discoverSandboxPack(
     .sort(compareById);
 
   const skillCandidate = join(dir, "SKILL.md");
+  const skillBytes = options.shipped
+    ? SANDBOX_PACKAGE_LIMITS.shippedSkillBytes
+    : SANDBOX_PACKAGE_LIMITS.skillBytes;
   let skill: SandboxPackSkill | undefined;
   if (!existsSync(skillCandidate)) {
     statuses.push({
@@ -471,7 +477,7 @@ export function discoverSandboxPack(
       const skillPath = resolveContainedFile(dir, "SKILL.md");
       source = readFileWithinLimit(
         skillPath,
-        SANDBOX_PACKAGE_LIMITS.skillBytes
+        skillBytes
       );
     } catch {
       // SKILL.md is optional; read and containment failures only disable discoverability.
@@ -487,7 +493,7 @@ export function discoverSandboxPack(
         status: "warning",
         code: "skill-invalid",
         message:
-          "SKILL.md is invalid, unavailable, or exceeds the 16 KB cap; agent discoverability is disabled"
+          `SKILL.md is invalid, unavailable, or exceeds the ${skillBytes} byte cap; agent discoverability is disabled`
       });
     }
   }

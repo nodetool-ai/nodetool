@@ -68,7 +68,7 @@ export interface GuidedFlowStarters {
 }
 
 /**
- * The eight guided starters, each reporting failure as a toast rather than a
+ * The nine guided starters, each reporting failure as a toast rather than a
  * dead click. `onStarted` lets the caller close its own menu when one lands.
  *
  * Clicking a starter creates its document in the selected project.
@@ -269,6 +269,30 @@ export const useGuidedFlowStarters = (
     [runStart, createWorkflow, openTab]
   );
 
+  // The App flow creates nothing until its build is green, so the menu opens
+  // the flow itself in a guided tab rather than a document.
+  const startApp = useCallback(
+    (projectIdOverride?: string) =>
+      runStart("app", async () => {
+        const projectId = projectIdOverride ?? creationProjectId();
+        openTab({
+          type: "guided-flow",
+          ref: crypto.randomUUID(),
+          mode: "edit",
+          title: "New app",
+          projectId,
+          setupTarget: {
+            kind: "app",
+            id: crypto.randomUUID(),
+            projectId,
+            name: "New app",
+            ownsProject: false
+          }
+        });
+      }),
+    [runStart, openTab]
+  );
+
   // Entities have no document tab — the library is their surface — so the
   // starter opens it already in the guided `Add entity` steps.
   const startEntity = useCallback(
@@ -292,7 +316,8 @@ export const useGuidedFlowStarters = (
       speech: startSpeech,
       image: startImage,
       workflow: startWorkflow,
-      game: startGame
+      game: startGame,
+      app: startApp
     };
     return ENTRY_CARDS.map((card) => {
       const title = MENU_TITLES[card.id] ?? card.title;
@@ -306,6 +331,7 @@ export const useGuidedFlowStarters = (
     });
   }, [
     onStarted,
+    startApp,
     startEntity,
     startGame,
     startImage,

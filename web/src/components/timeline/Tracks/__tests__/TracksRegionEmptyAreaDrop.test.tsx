@@ -20,6 +20,7 @@ import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { TracksRegion } from "../TracksRegion";
+import { TRACK_HEADER_WIDTH_VAR } from "../TrackHeader";
 import {
   createTimelineInstance,
   TimelineProvider,
@@ -96,6 +97,23 @@ describe("TracksRegion empty-area drop", () => {
       useTimelineStore.getState().reset();
       useTimelineUIStore.setState({ dropMode: "overwrite" });
     });
+  });
+
+  it("keeps the header column's width with no tracks, so empty lanes start at the ruler's zero", () => {
+    // Study 6: with no tracks the header column collapsed to its border, the
+    // lanes began under the header area, and a first drop at the ruler's
+    // 0.2 s landed one header width (3.4 s at 100 %) later.
+    const { container } = renderRegion();
+    const lanes = screen.getByTestId("tracks-scroll-area");
+    const header = lanes.previousElementSibling as HTMLElement;
+    const widthVar = (
+      container.querySelector(`[style*="${TRACK_HEADER_WIDTH_VAR}"]`) as
+        | HTMLElement
+        | null
+    )?.style.getPropertyValue(TRACK_HEADER_WIDTH_VAR);
+    expect(useTimelineStore.getState().tracks).toHaveLength(0);
+    expect(widthVar).toMatch(/^\d+px$/);
+    expect(header.style.width).toBe(widthVar);
   });
 
   it("creates a linked audio track when a VIDEO is dropped on empty space", async () => {

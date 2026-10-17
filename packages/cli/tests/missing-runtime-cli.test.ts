@@ -50,7 +50,7 @@ registerHooks({ resolve(specifier, context, next) {
     directories.push(dir);
     const file = join(dir, "script.json");
     writeFileSync(file, JSON.stringify({ name: "Mismatch", document: {
-      schemaVersion: 1, code: 'return { value: 1 };', inputs: [], outputs: [{ name: "value", type: "int" }],
+      schemaVersion: 1, code: 'await output("value", 1);', inputs: [], outputs: [{ name: "value", type: "int" }],
       packages: [], secrets: [], timeoutSeconds: 10,
       tests: [{ name: "Wrong value", inputs: {}, expect: { value: 2 } }]
     } }));

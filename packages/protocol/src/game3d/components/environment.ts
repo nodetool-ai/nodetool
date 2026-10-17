@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { finite, positive, color, id } from "./common.js";
 import { gameShadowSettings3D } from "./shadows.js";
+import { gameHeightFog3D } from "./height-fog.js";
 
 const skyIntensity = finite.min(0).max(8).default(1).describe("Multiplier for the sky background and its image-based lighting.");
 
@@ -41,7 +42,7 @@ export type GamePostProcessing3D = z.infer<typeof gamePostProcessing3D>;
 
 export const gameEnvironment3D = z.strictObject({
   background: color.default("#202838"), ambient: z.strictObject({ color, intensity: finite.min(0).max(4) }).default({ color: "#ffffff", intensity: 0.5 }),
-  fog: z.strictObject({ color, near: finite.min(0), far: positive }).optional(),
+  fog: z.union([z.strictObject({ color, near: finite.min(0), far: positive }), gameHeightFog3D]).optional(),
   shadows: gameShadowSettings3D.default({ enabled: true, mapSize: 1024, extent: 30 }),
   sky: gameSky3D.optional(),
   postProcessing: gamePostProcessing3D.optional()

@@ -9,6 +9,8 @@ import { commitScriptHooks, planScriptHooks, scriptHookIssue, SCRIPT_LIFECYCLE_D
 import { canPersistGameScript } from "./script-persistence.js";
 import { gameScriptValue, scriptHandleResult } from "./script-transport.js";
 import { ScriptWorldSnapshot, type ScriptWorldEntity } from "./script-world.js";
+import { prefabScriptSourceKey, sceneScriptSourceKey, scriptSourceKey } from "./script-source.js";
+export { scriptSourceKey } from "./script-source.js";
 
 const encoder = new TextEncoder();
 const MAX_SCRIPT_CALL_MS = 20;
@@ -124,10 +126,6 @@ export interface GameScriptRunner {
 }
 
 export interface GameScriptSourceUpdate { readonly sourceKey: string; readonly source: string }
-
-export function scriptSourceKey(sceneId: string, entityId: string, behaviorIndex: number): string {
-  return JSON.stringify([sceneId, entityId, behaviorIndex]);
-}
 
 export function hasGameScripts(document: GameDocument): boolean {
   return document.scenes.some((scene) => scene.entities.some((entity) => entity.behaviors.some((behavior) => behavior.kind === "script")));
@@ -261,7 +259,7 @@ function disposeRealm(realm: RealmShell): void {
 
 interface ScriptDefinitions {
   readonly entrySceneId?: string;
-  readonly scenes: readonly { readonly id: string; readonly entities: readonly {
+  readonly scenes: readonly { readonly id: string; readonly sourceScope?: "scene" | "prefab"; readonly entities: readonly {
     readonly id: string; readonly behaviors: readonly {
       readonly kind: string; readonly source?: string;
       readonly params?: Readonly<Record<string, GameScriptParam>>; readonly values?: Readonly<Record<string, GameScriptParamValue>>
@@ -445,7 +443,10 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           if (behavior.kind !== "script" || behavior.source === undefined) {
             return;
           }
-          const key = scriptSourceKey(scene.id, entity.id, index);
+          const keyOf = scene.sourceScope === "prefab" ? prefabScriptSourceKey
+            : scene.sourceScope === "scene" ? sceneScriptSourceKey : scriptSourceKey;
+          const key = keyOf(scene.id, entity.id, index);
+          if (sources.has(key)) { throw new Error(`Duplicate game script source ${key}`); }
           try {
             const deadline = performance.now() + 100;
             runtime.setInterruptHandler(() => performance.now() >= deadline);
@@ -457,7 +458,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             if (hooks) { hookSources.add(key); }
             if (onEvent) { eventSources.add(key); }
             // Inactive scenes and prefab definitions are validated without retaining their realms.
-            if (persistent && scene.id === document.entrySceneId && prepared.size < PREPARED_REALM_LIMIT) { prepared.set(key, realm); }
+            if (persistent && scene.sourceScope !== "prefab" && scene.id === document.entrySceneId && prepared.size < PREPARED_REALM_LIMIT) { prepared.set(key, realm); }
             else { disposeRealm(realm); }
           } catch (error) {
             throw new Error(`Game script ${key} could not be prepared: ${error instanceof Error ? error.message : String(error)}`);

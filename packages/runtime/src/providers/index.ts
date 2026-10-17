@@ -783,14 +783,13 @@ if (!_cloudProfile) {
   );
 }
 
-// Fake provider for end-to-end testing without external API keys.
-// Opt-in via env flag — never enabled in production builds.
-if (
-  _envProcess.env["NODETOOL_ENV"] !== "production" &&
-  _envProcess.env["NODETOOL_ENABLE_FAKE_PROVIDER"] === "1"
-) {
-  registerBuiltinProvider(PROVIDER_IDS.FAKE, FakeProvider, {});
-}
+// Explicit fake media works without credentials. Keep test chat models opt-in
+// so registering this provider does not change automatic language-model choices.
+registerBuiltinProvider(PROVIDER_IDS.FAKE, FakeProvider, {
+  includeLanguageModels:
+    _envProcess.env["NODETOOL_ENV"] !== "production" &&
+    _envProcess.env["NODETOOL_ENABLE_FAKE_PROVIDER"] === "1"
+}, {}, { access: "in_process", displayName: "Fake (no-cost test media)" });
 
 // Cloud profile (production default, or NODETOOL_NODE_PROFILE=cloud; disabled
 // by NODETOOL_NODE_PROFILE=full): drop the providers a cloud server cannot

@@ -1,5 +1,6 @@
 import type { AnyGameDocument } from "@nodetool-ai/protocol";
 import { scriptSourceKey, type GameScriptSourceUpdate } from "./scripts.js";
+import { prefabScriptSourceKey, sceneScriptSourceKey } from "./script-source.js";
 import { digestGame3D } from "./spatial3d/digest.js";
 
 export type GameScriptReloadResult<Document> =
@@ -27,7 +28,7 @@ export function createGameScriptReloader<Document extends AnyGameDocument>(optio
         const normalized = structuredClone(parsed);
         normalized.revision = current.revision;
         const updates: GameScriptSourceUpdate[] = [];
-        const compare = (before: AnyGameDocument["scenes"][number]["entities"], after: AnyGameDocument["scenes"][number]["entities"], sceneId: string): void => {
+        const compare = (before: AnyGameDocument["scenes"][number]["entities"], after: AnyGameDocument["scenes"][number]["entities"], sceneId: string, prefab = false): void => {
           before.forEach((entity, entityIndex) => {
             const next = after[entityIndex];
             if (next?.id !== entity.id) { return; }
@@ -35,7 +36,8 @@ export function createGameScriptReloader<Document extends AnyGameDocument>(optio
               const replacement = next.behaviors[index];
               if (behavior.kind === "script" && replacement?.kind === "script") {
                 if (behavior.source !== replacement.source) {
-                  updates.push({ sourceKey: scriptSourceKey(sceneId, entity.id, index), source: replacement.source });
+                  updates.push({ sourceKey: prefab ? prefabScriptSourceKey(sceneId, entity.id, index)
+                    : current.schemaVersion === 3 ? sceneScriptSourceKey(sceneId, entity.id, index) : scriptSourceKey(sceneId, entity.id, index), source: replacement.source });
                   replacement.source = behavior.source;
                 }
               }
@@ -49,7 +51,7 @@ export function createGameScriptReloader<Document extends AnyGameDocument>(optio
         if (current.schemaVersion === 3 && normalized.schemaVersion === 3) {
           for (const [id, prefab] of Object.entries(current.prefabs)) {
             const next = normalized.prefabs[id];
-            if (next) { compare(prefab.entities, next.entities, `prefab:${id}`); }
+            if (next) { compare(prefab.entities, next.entities, id, true); }
           }
         }
         if (await digestGame3D(normalized) !== await digestGame3D(current)) {

@@ -1084,11 +1084,27 @@ nodetool sketch versions delete <image_document_id> 3 --yes
 ### `nodetool jsscript`
 
 A JS script is a named, versioned script document: a body plus declared ports,
-secrets, a timeout, and saved test cases. The target of every
-subcommand is a script JSON file (a bare `JsScriptDocument` or anything carrying
-one under `document`) or a `js_scripts` row id.
+secrets, a timeout, and saved test cases. Commands that take a script target
+accept a script JSON file (a bare `JsScriptDocument` or anything carrying one
+under `document`) or a `js_scripts` row id.
 
-**Subcommands:** `validate`, `run`, `test`, `debug`, `versions`
+**Subcommands:** `schema`, `example`, `validate`, `run`, `test`, `debug`, `versions`
+
+#### `nodetool jsscript schema` and `example`
+
+Print the document JSON Schema or a runnable document with a saved test. Both
+write JSON to stdout and need no database or provider credentials.
+
+```bash
+nodetool jsscript schema
+nodetool jsscript example > script.json
+nodetool jsscript validate script.json --warnings-as-errors
+nodetool jsscript test script.json
+```
+
+Saved cases use `expect` for final output values and `expectedStreamed` for
+ordered `{name, value}` emissions. Unknown case fields, including `expected`,
+are errors so a misspelled assertion cannot pass without being graded.
 
 #### `nodetool jsscript validate <script_id_or_file>`
 
@@ -1111,10 +1127,11 @@ nodetool jsscript validate <js_script_id> --warnings-as-errors
 
 #### `nodetool jsscript run <script_id_or_file>`
 
-Execute the body once in the QuickJS sandbox and print its outputs, streamed
-emits, logs, and error. A body that reads its inputs with `stream` is fed with
-`--input-streams` instead of `--inputs`; a staged handle the script does not
-declare is refused.
+Validate the document, then execute the body once in the QuickJS sandbox and
+print its outputs, streamed emits, logs, and error. Declared outputs must use
+`await output(name, value)` or `await emit(name, value)`. A body that reads its
+inputs with `stream` is fed with `--input-streams` instead of `--inputs`. A
+staged handle the script does not declare is refused.
 
 **Options:**
 
@@ -1135,8 +1152,8 @@ nodetool jsscript run script.json --input-streams '{"numbers":[1,2,3]}'
 
 #### `nodetool jsscript test <script_id_or_file>`
 
-Run the document's own saved test cases and grade each one. Exits non-zero when
-any case fails, which makes it the regression check after an edit.
+Validate the document, then run its saved test cases and grade each one. Exit
+non-zero when validation or any case fails.
 
 **Options:**
 
@@ -1156,8 +1173,9 @@ nodetool jsscript test <js_script_id> --json
 #### `nodetool jsscript debug <script_id_or_file>`
 
 Replay each scripted step against the headless `ui_jsscript_*` bridge (the
-prefix is optional) and validate the document the session left behind. The
-editor, persistence of a debug session, and secret values are not simulated.
+prefix is optional) and validate the document the session left behind. A failed
+run or test result fails the interaction, report verdict, and command exit status.
+The editor, persistence of a debug session, and secret values are not simulated.
 
 **Options:**
 
@@ -1877,6 +1895,12 @@ nodetool models download-hf --repo-id Qwen/Qwen3-0.6B-GGUF -a "*.gguf"
 
 ### `nodetool generate <provider> <model> <prompt...>`
 
+Local and self-hosted installs expose `fake-image` and `fake-video` on provider
+`fake` for no-cost tests without credentials. They produce a fixed PNG or a
+two-second MP4. Select fake explicitly with `find_model({provider_hint: "fake", ...})`.
+Automatic model selection excludes fake media. Storyboards can use these refs as
+`image_model` and `video_model` board defaults.
+
 Generate an image from any registered provider straight to a file, with no
 workflow in between. Use it to try a model, check that a provider's key resolves,
 or produce one image from a script.
@@ -1908,6 +1932,9 @@ environment; when it is missing the error names the variable to set.
 
 ```bash
 # Discover model ids for a provider
+nodetool generate fake --list-models
+nodetool generate fake fake-image "test fixture" -o fixture.png
+
 nodetool generate fal-ai --list-models
 
 # Text to image
@@ -2434,7 +2461,10 @@ the registry with its harness — or with its debt written down.
 
 #### `nodetool harness list`
 
-List every harness and its capabilities. Takes `--json` to print the registry.
+List every harness and its capabilities. Each command is marked as available
+in the installed CLI or requiring a NodeTool checkout. `--json` adds a
+`requiresCheckout` flag to each registry entry. Repository checks need the
+checkout's scripts and workspace dependencies.
 
 ```bash
 nodetool harness list
@@ -2513,6 +2543,10 @@ touched. Refresh the table with `npm run capabilities:sync` and say which case
 covers the new contract.
 
 #### `nodetool harness gate [files...]`
+
+Run from a NodeTool Git checkout. Outside a checkout, the command exits with an
+explanation and supports `--json` errors. For local documents in an installed
+CLI, use `validate`, `jsscript test`, `app debug`, or `timeline debug`.
 
 Map a diff onto surfaces by path and run the selfcheck of every harness covering
 a touched surface. The diff selects the checks, not the author. Harnesses that

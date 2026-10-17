@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import { z } from "zod";
 import { gameDocument3D, resolveGameInputBindings, gameAssetBinding, gameSnapshot3D, type GameDocument3D, type GameInspection3D, type GameInputFrame3D, type GameRenderFrame3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
 import { createGameSession3D, gameScriptLogsOf, type GamePlayerSaves, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
-import { attachGameTouchInput, attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, gameAudioVoiceCount, GameInput3D, GameUiController, gameUiViewport3D } from "@nodetool-ai/game-renderer";
+import { attachGameTouchInput, attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, gameAudioVoiceCount, gameParticleFieldFromSamples3D, gameParticleSamples3D, GameInput3D, GameParticles3D, type GameParticleField, GameUiController, gameUiViewport3D } from "@nodetool-ai/game-renderer";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
 import { useGameDraft } from "../../stores/game/GameDraftStore";
@@ -56,6 +56,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const rendererRef = useRef<GameRenderer3D | null>(null);
   const sessionRef = useRef<GameSession3D | null>(null);
+  const particlesRef = useRef<GameParticles3D | null>(null);
   const effectiveDocumentRef = useRef<GameDocument3D | null>(null);
   const [readyGeneration, setReadyGeneration] = useState(0);
   const [restoring, setRestoring] = useState(false);
@@ -83,7 +84,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const [renderDocument, setRenderDocument] = useState(document);
   const committedRef = useRef<GameInspection3D | null>(null);
   const lastFrameRef = useRef<GameRenderFrame3D | null>(null);
-  const displayQueueRef = useRef<{ renderer: GameRenderer3D; busy: boolean; latest: { frame: GameRenderFrame3D; alpha: number } | null } | null>(null);
+  const displayQueueRef = useRef<{ renderer: GameRenderer3D; busy: boolean; latest: { frame: GameRenderFrame3D; alpha: number; particles: GameParticleField | null } | null } | null>(null);
   const playingRef = useRef(playing);
   playingRef.current = playing && active;
 
@@ -105,7 +106,8 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     audioRef.current?.updateSpatial(gameAudioSpatialView3D(current, alpha));
     if (displayQueueRef.current?.renderer !== renderer) { displayQueueRef.current = { renderer, busy: false, latest: null }; }
     const queue = displayQueueRef.current;
-    queue.latest = { frame: current, alpha };
+    const particles = particlesRef.current;
+    queue.latest = { frame: current, alpha, particles: particles ? gameParticleFieldFromSamples3D(gameParticleSamples3D(particles, alpha), current) : null };
     if (queue.busy) { return; }
     queue.busy = true;
     const drain = async (): Promise<void> => {
@@ -115,7 +117,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
           queue.latest = null;
           const hud = hudRef.current;
           hud?.update(next.frame.ui, gameUiViewport3D(next.frame));
-          const stats = await renderer.render(hud ? hud.annotate(next.frame) : next.frame, next.alpha);
+          const stats = await renderer.render(hud ? hud.annotate(next.frame) : next.frame, next.alpha, next.particles ?? undefined);
           profiler.recordRender(stats);
         }
       } catch (cause) {
@@ -137,6 +139,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       const saves = savesRef.current;
       const frame = saves ? saves.withLoaded(input) : input;
       const result = session.step(frame);
+      particlesRef.current?.tick(result.frame, session.takePresentationEvents());
       saves?.handle(result.saveRequests, () => session.snapshot());
       if (result.scriptLogs) { scriptLogs.publish(result.scriptLogs); }
       lastFrameRef.current = result.frame;
@@ -228,6 +231,8 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       session = await createGameSession3D(current, 1, undefined, options);
       controller.signal.throwIfAborted();
       sessionRef.current = session;
+      particlesRef.current?.clear();
+      particlesRef.current = new GameParticles3D(current.tickRate);
       effectiveDocumentRef.current = current;
       setReadyGeneration((value) => value + 1);
       setEffectivePlayDocument(current);
@@ -276,7 +281,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
         resizeObserverRef.current.observe(canvas);
       }
       resize();
-      await renderer.render(initialFrame, 1);
+      await renderer.render(initialFrame, 1, particlesRef.current ?? undefined);
       setBackend("WebGL2");
       if (playingRef.current) { audio.resume(); }
     };
@@ -295,6 +300,8 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       generationRef.current += 1;
       sessionRef.current?.dispose();
       sessionRef.current = null;
+      particlesRef.current?.clear();
+      particlesRef.current = null;
       inputRef.current.release();
 
     };
@@ -303,6 +310,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
 
 
   useEffect(() => {
+    profiler.setPlaybackActive(active && playing);
     if (!playing || !active) {
       // Paused input is dropped, not queued for the next tick (F23).
       inputRef.current.setEnabled(false);
@@ -353,7 +361,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       hud.release();
       if (hudRef.current === hud) { hudRef.current = null; }
     };
-  }, [playing, active, playDocument, sessionDocument, step, display]);
+  }, [playing, active, playDocument, sessionDocument, step, display, profiler]);
 
   const cancelReload = useGameScriptReload({ draft: document, playDocument: restoring ? null : playDocument, sessionRef, effectiveDocumentRef, readyGeneration, scriptLogs, blockedEntities, lastCommittedTick: committedRef.current?.tick ?? 0,
     checkpoint: (session) => { historyRef.current.clear(session.snapshot()); setEffectivePlayDocument(effectiveDocumentRef.current); } });
@@ -407,6 +415,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       historyRef.current.clear(snapshot);
       sessionRef.current?.dispose();
       sessionRef.current = restored;
+      particlesRef.current?.clear();
       effectiveDocumentRef.current = effectiveDocument;
       setEffectivePlayDocument(effectiveDocument);
       setRestoring(false);
@@ -443,6 +452,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       catch (cause) { restored.dispose(); throw cause; }
       sessionRef.current?.dispose();
       sessionRef.current = restored;
+      particlesRef.current?.clear();
       effectiveDocumentRef.current = effectiveDocument;
       setEffectivePlayDocument(effectiveDocument);
       setRestoring(false);

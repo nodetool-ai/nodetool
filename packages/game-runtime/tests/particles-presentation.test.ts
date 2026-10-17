@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gameDocument, gameDocument3D, gameInputFrame3D, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
+import { gameDocument, gameDocument3D, gameInputFrame3D, gameParticleRenderWarnings, gameParticles, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
 
 import {
   applyGameOps,
@@ -18,6 +18,14 @@ const particles = {
     { id: "spark", playOnStart: false, rate: 0 }
   ]
 };
+
+it("warns explicitly when a 3D emitter requests an unsupported particle sprite", () => {
+  const component = gameParticles.parse({ emitters: [{ id: "sheet", sprite: { assetId: "sheet", columns: 2 } }] });
+  expect(gameParticleRenderWarnings(component, "2d")).toEqual([]);
+  expect(gameParticleRenderWarnings(component, "3d")).toEqual([
+    { path: ["emitters", 0, "sprite"], message: "3D particles ignore sprite textures and sprite sheets" }
+  ]);
+});
 const emitScript = "({tick}) => ({ state: null, commands: tick % 2 === 0 ? [{ kind: 'emitParticles', emitter: 'spark', count: 3 }] : [] })";
 
 function document2D(withParticles: boolean): GameDocument {

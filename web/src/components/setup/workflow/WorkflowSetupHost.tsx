@@ -11,7 +11,6 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { isModelSelected } from "@nodetool-ai/protocol";
 
 import {
   useImageModelsByProvider,
@@ -19,10 +18,7 @@ import {
   useTTSModelsByProvider,
   useVideoModelsByProvider
 } from "../../../hooks/useModelsByProvider";
-import {
-  recommendedModelKey,
-  useRecommendedModelKeys
-} from "../../../hooks/useRecommendedModelKeys";
+import { useRecommendedModelKeys } from "../../../hooks/useRecommendedModelKeys";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useWorkflowManagerStore } from "../../../contexts/WorkflowManagerContext";
 import {
@@ -49,6 +45,7 @@ import {
 import { SetupFlow } from "../SetupFlow";
 import type { OptionCardItem } from "../OptionCardGrid";
 import { useWorkflowSetupFlow } from "./useWorkflowSetupFlow";
+import { pickDefaultPlannerModel } from "./defaultPlannerModel";
 import type { ModelRoleAvailability, ModelRoleStatus } from "./SetupStep";
 
 /** A model as the setup step's tile row shows it. */
@@ -207,40 +204,19 @@ const WorkflowSetupHost: React.FC<WorkflowSetupHostProps> = ({
     [byRole]
   );
 
-  // Where the planner starts before the plan step's picker chooses. In order:
-  // the model the creator already chats with, then the first recommended model
-  // the install offers, then anything. The first entry of the provider list is
-  // the last resort, not the default — it is whatever sorts first, and an
-  // account that cannot call it only finds out after a round trip.
-  const defaultPlannerModel = useMemo(() => {
-    const models = byRole["language"] ?? [];
-    if (models.length === 0) {
-      return null;
-    }
-    const asChoice = (model: RoleModel) => ({
-      provider: model.provider,
-      id: model.ref["id"] as string
-    });
-    const chatModel = models.find(
-      (model) =>
-        isModelSelected(selectedChatModel) &&
-        model.provider === selectedChatModel.provider &&
-        model.ref["id"] === selectedChatModel.id
-    );
-    if (chatModel) {
-      return asChoice(chatModel);
-    }
-    for (const key of recommendedKeys) {
-      const match = models.find(
-        (model) =>
-          recommendedModelKey(model.provider, model.ref["id"] as string) === key
-      );
-      if (match) {
-        return asChoice(match);
-      }
-    }
-    return asChoice(models[0]);
-  }, [byRole, recommendedKeys, selectedChatModel]);
+  // Where the planner starts before the plan step's picker chooses.
+  const defaultPlannerModel = useMemo(
+    () =>
+      pickDefaultPlannerModel(
+        (byRole["language"] ?? []).map((model) => ({
+          provider: model.provider,
+          id: model.ref["id"] as string
+        })),
+        selectedChatModel,
+        recommendedKeys
+      ),
+    [byRole, recommendedKeys, selectedChatModel]
+  );
 
   const handleImport = useCallback(
     async (file: File) => {

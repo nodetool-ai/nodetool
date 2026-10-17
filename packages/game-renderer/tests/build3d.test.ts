@@ -1,8 +1,12 @@
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { promisify } from "node:util";
+import { build as bundle } from "esbuild";
 import { chromium } from "@playwright/test";
 import { createCanvas } from "@napi-rs/canvas";
 import { afterEach, describe, expect, it } from "vitest";
@@ -138,3 +142,23 @@ describe("offline 3D export", () => {
     }
   }, 60_000);
 });
+
+
+it("exports the staged 3D player without rebuilding a compiled entry", async () => {
+  const directory = await root();
+  const document = createNative3DGame("installed-export");
+  const staged = await buildStandaloneGame3D({ document, outputDir: join(directory, "staged"), resolveAsset: async () => null });
+  await copyFile(staged.playerPath, join(directory, "game3d-player.js"));
+  await writeFile(join(directory, "standalone-player3d.js"), 'import "@nodetool-ai/absent-development-source";');
+  await symlink(resolve("../../node_modules"), join(directory, "node_modules"), "junction");
+  const backend = join(directory, "server.mjs");
+  await bundle({ entryPoints: [resolve("src/build3d.ts")], outfile: backend,
+    bundle: true, platform: "node", format: "esm", packages: "external" });
+  const output = join(directory, "export");
+  const script = `import { readFile } from "node:fs/promises";
+    import { buildStandaloneGame3D } from ${JSON.stringify(pathToFileURL(backend).href)};
+    const document = JSON.parse(await readFile(${JSON.stringify(staged.gamePath)}, "utf8"));
+    await buildStandaloneGame3D({ document, outputDir: ${JSON.stringify(output)}, resolveAsset: async () => null });`;
+  await promisify(execFile)(process.execPath, ["--conditions=nodetool-dev", "--import=tsx", "--input-type=module", "-e", script]);
+  expect(await readFile(join(output, "game3d-player.js"))).toEqual(await readFile(staged.playerPath));
+}, 30_000);

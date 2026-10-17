@@ -392,3 +392,101 @@ describe("app verdict — nothing ever ran", () => {
     );
   });
 });
+
+describe("apps without operations", () => {
+  it.each([false, true])(
+    "checks state-only apps with run=%s",
+    async (allowRun) => {
+      const target = resolvedBundle({
+        schemaVersion: 1,
+        name: "Mirror",
+        description: "",
+        workflows: [],
+        app: {
+          schemaVersion: 4,
+          operations: [],
+          resources: [],
+          variables: [
+            {
+              id: "message",
+              name: "Message",
+              default: "hello",
+              scope: "instance",
+              persist: false
+            }
+          ],
+          ui: {
+            root: { props: {} },
+            content: [
+              {
+                type: "TextInput",
+                props: { id: "input", binding: "var:message" }
+              },
+              { type: "Text", props: { id: "display", binding: "var:message" } }
+            ]
+          }
+        }
+      });
+      const runOnServer = stubRunner();
+      const report = await simulateApp(
+        target,
+        { run: allowRun, interact: [{ change: "input", value: "changed" }] },
+        { loadFromDb: async () => null, runOnServer }
+      );
+      expect(report.spec?.operations).toEqual([]);
+      expect(report.verdict.issues).toEqual([]);
+      expect(report.verdict.ok).toBe(true);
+      expect(report.variables.message).toBe("changed");
+      expect(runOnServer).not.toHaveBeenCalled();
+    }
+  );
+
+  it("reports failed invocations when a run fails without terminal messages", async () => {
+    const runOnServer: RunOnServer = async () => ({
+      report: {
+        surface: "server",
+        ok: false,
+        status: "failed",
+        error: "Missing pack",
+        durationMs: 1,
+        summary: collectExecutionSummary([]),
+        trace: null
+      },
+      rawMessages: []
+    });
+    const { report } = await run(
+      appTarget([runButton]),
+      [{ run: "main" }],
+      runOnServer
+    );
+    expect(report.invocations[0]?.status).toBe("failed");
+    expect(report.invocations[0]?.error).toBe("Missing pack");
+  });
+});
+
+describe("malformed widget events", () => {
+  it.each([
+    { events: [{ event: "click", action: "run" }] },
+    { events: [{ trigger: "click", action: "run" }] },
+    { events: [{ trigger: "click", kind: "typo" }] },
+    { events: { click: "run" } }
+  ])(
+    "rejects invalid stored layouts during static checking: %j",
+    async ({ events }) => {
+      const report = await simulateApp(
+        appTarget([
+          { type: "Button", props: { id: "invalid", events } },
+          runButton
+        ]),
+        { run: false },
+        { loadFromDb: async () => null, runOnServer: stubRunner() }
+      );
+      expect(report.verdict.ok).toBe(false);
+      expect(
+        report.verdict.issues.some((issue) =>
+          issue.includes('Button "invalid" events')
+        )
+      ).toBe(true);
+    }
+  );
+});

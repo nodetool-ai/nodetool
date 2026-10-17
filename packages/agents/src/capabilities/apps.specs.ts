@@ -206,10 +206,12 @@ export const EDIT_APP_SCHEMA: JsonSchema = {
           },
           input: {
             type: "object",
-            description: "That tool's arguments"
+            description:
+              "That tool's arguments. Example: {tool: 'ui_app_set_title', input: {title: 'My app'}}."
           }
         },
-        required: ["tool"]
+        required: ["tool", "input"],
+        additionalProperties: false
       },
       description:
         "The edits to apply, in order. They run against the saved " +
@@ -240,7 +242,8 @@ export const editAppSpec: CapabilitySpec = {
   description:
     "Edit a mini APP by driving the App Builder tools headlessly: place " +
     "and wire widgets, declare operations, variables and resources. Each " +
-    "step names one `ui_app_*` tool and its arguments; they apply in order " +
+    "step is {tool: 'ui_app_set_title', input: {title: 'My app'}}. " +
+    "Use input for each tool's arguments. Malformed arguments reject the batch before edits. Valid steps apply in order " +
     "to the saved document, which is written back once at the end. Call it " +
     "with no steps to read the tool catalog and the app's current state. " +
     "Check the result with debug_app({run: false}) — free and instant — " +

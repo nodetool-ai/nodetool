@@ -1,3 +1,4 @@
+import { parseScriptSourceKey } from "./script-source.js";
 import { gameEventReaches, type GameEventTarget } from "@nodetool-ai/protocol";
 
 /**
@@ -102,9 +103,9 @@ export function removedDestroyCall(
   if (typeof removed !== "object" || removed === null || Array.isArray(removed)) { return undefined; }
   const key = parseKey(stateKey);
   const sourceKey = (removed as { readonly sourceKey?: unknown }).sourceKey;
-  const source = parseKey(sourceKey);
+  const source = parseScriptSourceKey(sourceKey);
   if (!key || !source || typeof sourceKey !== "string" || key[0] !== context.sceneId || context.exists(key[1])
-    || source[2] !== key[2] || !context.hookSources.has(sourceKey)) {
+    || source.behaviorIndex !== key[2] || !context.hookSources.has(sourceKey)) {
     return undefined;
   }
   const limits = context.limitsOf(sourceKey);
@@ -113,7 +114,7 @@ export function removedDestroyCall(
   for (const field of context.fields) {
     if (Object.hasOwn(removed, field)) { fields[field] = (removed as Record<string, unknown>)[field]; }
   }
-  return { ...fields, active: false, sourceKey, stateKey, entityId: key[1], source: source[1],
+  return { ...fields, active: false, sourceKey, stateKey, entityId: key[1], source: source.entityId,
     maxCommands: limits.maxCommands, maxTickMs: limits.maxTickMs, state: rest, lifecycle: { destroy: true } };
 }
 
