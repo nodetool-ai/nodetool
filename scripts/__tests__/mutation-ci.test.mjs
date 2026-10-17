@@ -139,6 +139,35 @@ describe("mutation CI exact union", () => {
     }
   });
 
+  it.each(["missing", "truncated", "duplicate", "changed outcome"])("rejects a %s completion journal", (damage) => {
+    const output = outputs.find((directory) => json(join(directory, "receipt.json")).completed.length > 0);
+    expect(output).toBeDefined();
+    const path = join(output, "completed.ndjson");
+    const before = readFileSync(path, "utf8");
+    const entries = before.trim().split("\n");
+    try {
+      if (damage === "missing") {
+        renameSync(path, `${path}.held`);
+      } else if (damage === "truncated") {
+        writeFileSync(path, entries.slice(1).join("\n") + "\n");
+      } else if (damage === "duplicate") {
+        writeFileSync(path, before + entries[0] + "\n");
+      } else {
+        const entry = JSON.parse(entries[0]);
+        entry.outcome = entry.outcome === "killed" ? "survived" : "killed";
+        writeFileSync(path, [JSON.stringify(entry), ...entries.slice(1)].join("\n") + "\n");
+      }
+      expect(() => aggregate(root, plan, outputs)).toThrow(/journal|ENOENT/);
+    } finally {
+      if (damage === "missing") {
+        renameSync(`${path}.held`, path);
+      } else {
+        writeFileSync(path, before);
+      }
+    }
+    expect(aggregate(root, plan, outputs).score).toContain("86.36%** | **19 / 22**");
+  });
+
   it("rejects omitted, duplicate, unexpected, and fabricated terminal outcomes", () => {
     const index = outputs.findIndex((output) => json(join(output, "receipt.json")).completed.length > 0);
     for (const mutate of [
