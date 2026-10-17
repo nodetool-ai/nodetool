@@ -2,7 +2,7 @@
 /**
  * RotateAndFlipBody — bespoke body for `nodetool.image.RotateAndFlip`.
  *
- * Top: preview of the server output. Bottom: free-rotate slider
+ * Top: live preview of the node's output. Bottom: free-rotate slider
  * (0/90/180/270 snap marks), Flip H and Flip V toggles, Reset.
  */
 
@@ -25,7 +25,7 @@ import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useLiveSliderWriter } from "../../../hooks/nodes/useLiveSliderWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 import { ROTATE_AND_FLIP_NODE_TYPE } from "../../../constants/nodeTypes";
 
@@ -137,7 +137,7 @@ const RotateAndFlipBodyInner: React.FC<RotateAndFlipBodyProps> = ({
   const previewValue = useNodeOutput(workflowId, id);
 
   const { setProperty, setProperties, setPropertyComplete } =
-    useBespokePropertyWriter({ nodeId: id, nodeType });
+    useLiveSliderWriter({ nodeId: id, nodeType });
 
   const handleAngleChange = useCallback(
     (_: Event, v: number | number[]) => {

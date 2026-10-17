@@ -19,8 +19,8 @@ const mockSetPropertyComplete = jest.fn();
 // by hooks/__tests__/useResolvedMediaUri.test.tsx).
 jest.mock("../../../../hooks/useResolvedMediaUri");
 
-jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
-  useBespokePropertyWriter: jest.fn(() => ({
+jest.mock("../../../../hooks/nodes/useLiveSliderWriter", () => ({
+  useLiveSliderWriter: jest.fn(() => ({
     setProperty: mockSetProperty,
     setPropertyComplete: mockSetPropertyComplete
   }))

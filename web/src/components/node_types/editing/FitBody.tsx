@@ -23,7 +23,7 @@ import NumberInput from "../../inputs/NumberInput";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useLiveSliderWriter } from "../../../hooks/nodes/useLiveSliderWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 import { asImageRef } from "../../../utils/imageRef";
 import { FIT_NODE_TYPE } from "../../../constants/nodeTypes";
@@ -158,7 +158,7 @@ const FitBodyInner: React.FC<FitBodyProps> = ({
   const previewValue = useNodeOutput(workflowId, id);
   const previewRef = useMemo(() => asImageRef(previewValue), [previewValue]);
 
-  const { setProperties, setPropertyComplete } = useBespokePropertyWriter({
+  const { setProperties, setPropertyComplete } = useLiveSliderWriter({
     nodeId: id,
     nodeType
   });
