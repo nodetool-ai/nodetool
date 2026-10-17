@@ -72,7 +72,8 @@ export type TimelineAction =
   | "prevKeyframe"
   | "sourceAppend"
   | "sourceInsert"
-  | "sourceOverwrite";
+  | "sourceOverwrite"
+  | "toggleDawMode";
 
 export interface KeyBinding {
   key: string;
@@ -114,7 +115,10 @@ const COMMON: Partial<Keymap> = {
   applyFades: [k("t", { alt: true })],
   addKeyframe: [k("k", { alt: true })],
   nextKeyframe: [k("k", { alt: true, shift: true })],
-  prevKeyframe: [k("k", { ctrl: true, alt: true, shift: true })]
+  prevKeyframe: [k("k", { ctrl: true, alt: true, shift: true })],
+  // Video or DAW layout. Alt+M is free in every preset; Option+M types "µ"
+  // on macOS, so the binding matches the physical key.
+  toggleDawMode: [k("m", { alt: true })]
 };
 
 const NODETOOL: Keymap = {

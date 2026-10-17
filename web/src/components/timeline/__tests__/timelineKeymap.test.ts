@@ -140,6 +140,15 @@ describe("physical-key matching (macOS and US layouts)", () => {
     expect(resolveTimelineAction(ev(",", { code: "Comma" }), "fcp")).toBe("nudgeLeft");
   });
 
+  it("toggles the DAW layout on Option+M in every preset", () => {
+    for (const preset of TIMELINE_KEYBOARD_PRESETS) {
+      expect(
+        resolveTimelineAction(ev("µ", { altKey: true, code: "KeyM" }), preset)
+      ).toBe("toggleDawMode");
+      expect(resolveTimelineAction(ev("m"), preset)).toBe("addMarker");
+    }
+  });
+
   it("still matches on key when the event has no code", () => {
     expect(resolveTimelineAction(ev("t", { altKey: true }), "nodetool")).toBe(
       "applyFades"
