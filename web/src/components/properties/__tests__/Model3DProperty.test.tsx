@@ -89,7 +89,17 @@ jest.mock("@mui/material/styles", () => ({
   })
 }));
 
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 import Model3DProperty from "../Model3DProperty";
+
+// DropZone reads the theme through `sx`, which takes it from the provider.
+const renderProperty = (props: Partial<typeof defaultProps> = {}) =>
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <Model3DProperty {...defaultProps} {...props} />
+    </ThemeProvider>
+  );
 
 const defaultProps = {
   property: {
@@ -106,19 +116,19 @@ const defaultProps = {
 
 describe("Model3DProperty", () => {
   it("renders property label", () => {
-    render(<Model3DProperty {...defaultProps} />);
+    renderProperty();
     expect(screen.getByText("Model")).toBeInTheDocument();
   });
 
   it("renders drop zone when not connected", () => {
-    render(<Model3DProperty {...defaultProps} />);
+    renderProperty();
     expect(
       screen.getByText("Drop 3D model (GLB, GLTF)")
     ).toBeInTheDocument();
   });
 
   it("renders URL toggle button", () => {
-    render(<Model3DProperty {...defaultProps} />);
+    renderProperty();
     expect(
       screen.getByRole("button", { name: "Show input to enter a URL" })
     ).toBeInTheDocument();
@@ -136,7 +146,7 @@ describe("Model3DProperty", () => {
       use: "Loot"
     };
     addExampleModelAsset.mockResolvedValue({ id: "a".repeat(32) });
-    render(<Model3DProperty {...defaultProps} onChange={onChange} />);
+    renderProperty({ onChange });
     const drag = JSON.stringify({ type: "example-model", payload: model });
     fireEvent.drop(screen.getByText("Drop 3D model (GLB, GLTF)"), {
       dataTransfer: {

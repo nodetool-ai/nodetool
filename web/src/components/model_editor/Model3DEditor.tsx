@@ -265,12 +265,8 @@ const styles = (theme: Theme) =>
       // Leave room for the axis widget in the bottom-right corner.
       right: 160,
       bottom: getSpacingPx(SPACING.md),
-      zIndex: Z_INDEX.raised,
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
-      borderRadius: BORDER_RADIUS.md,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.72)`,
-      backdropFilter: "blur(8px)"
+      // Position only: FloatingToolbar draws the surface.
+      zIndex: Z_INDEX.raised
     },
     ".drop-hint": {
       position: "absolute",

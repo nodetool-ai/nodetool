@@ -6,7 +6,7 @@ import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 
 import {
   Caption,
-  FlexRow,
+  FloatingToolbar,
   SelectField,
   Slider,
   ToolbarIconButton,
@@ -109,7 +109,11 @@ const AnimationBar = ({ preview, onActiveChange, className }: AnimationBarProps)
   const duration = clip?.duration ?? 0;
 
   return (
-    <FlexRow className={className} align="center" gap={SPACING.sm}>
+    <FloatingToolbar
+      className={className}
+      aria-label="Animation preview"
+      sx={{ gap: SPACING.sm, px: SPACING.md }}
+    >
       <MovieOutlinedIcon fontSize="small" color="action" />
       <ToolbarIconButton
         icon={playing ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
@@ -153,7 +157,7 @@ const AnimationBar = ({ preview, onActiveChange, className }: AnimationBarProps)
       <Caption sx={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
         {formatSeconds(time)} / {formatSeconds(duration)} s
       </Caption>
-    </FlexRow>
+    </FloatingToolbar>
   );
 };
 

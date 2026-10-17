@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { MOTION, BORDER_RADIUS, dropZoneOverStyle } from "../../ui_primitives";
 
 /**
  * Slick media-generation composer styles — a rounded glass surface with a
@@ -44,9 +44,8 @@ export const createMediaComposerStyles = (theme: Theme) =>
             ? `0 0 0 3px rgb(${theme.vars.palette.primary.mainChannel} / 0.1), 0 8px 24px ${theme.vars.palette.c_scrim_soft}`
             : `0 0 0 3px rgb(${theme.vars.palette.primary.mainChannel} / 0.12), 0 10px 40px ${theme.vars.palette.c_scrim}`
       },
-      "&.dragging": {
-        borderColor: theme.vars.palette.primary.main
-      }
+      // The shared drag-over look of every drop target (DropZone).
+      "&.dragging": dropZoneOverStyle(theme)
     },
 
     ".media-compose-card textarea.media-compose-input": {

@@ -906,13 +906,13 @@ export const AssetList: React.FC = () => {
 };
 ```
 
-### ViewModeToggle
+### View mode switch
 
-View mode toggle buttons:
+A grid/list switch is a segmented `ToggleGroup`; give each icon option an `aria-label`:
 
 ```tsx
 import React, { useState } from "react";
-import { ViewModeToggle } from "../ui_primitives";
+import { ToggleGroup, ToggleOption, Tooltip } from "../ui_primitives";
 import GridViewIcon from "@mui/icons-material/GridView";
 import ListIcon from "@mui/icons-material/List";
 
@@ -920,14 +920,20 @@ export const AssetView: React.FC = () => {
   const [viewMode, setViewMode] = useState("grid");
 
   return (
-    <ViewModeToggle
+    <ToggleGroup
+      segmented
+      exclusive
       value={viewMode}
-      onChange={setViewMode}
-      options={[
-        { value: "grid", icon: <GridViewIcon />, tooltip: "Grid view" },
-        { value: "list", icon: <ListIcon />, tooltip: "List view" }
-      ]}
-    />
+      onChange={(_e, next: string | null) => next && setViewMode(next)}
+      aria-label="View"
+    >
+      <Tooltip title="Grid view">
+        <ToggleOption value="grid" aria-label="Grid view" icon={<GridViewIcon fontSize="small" />} />
+      </Tooltip>
+      <Tooltip title="List view">
+        <ToggleOption value="list" aria-label="List view" icon={<ListIcon fontSize="small" />} />
+      </Tooltip>
+    </ToggleGroup>
   );
 };
 ```
