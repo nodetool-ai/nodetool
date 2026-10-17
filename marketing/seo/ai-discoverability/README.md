@@ -13,6 +13,7 @@ clusters, the priorities, and what the site deliberately does not target.
 - `opportunity-matrix.csv` is generated. It rolls the corpus up to one row per
   target page.
 - `build-matrix.mjs` validates the corpus and writes the matrix.
+- `retrieval-review.md` tests representative questions against the built pages. `retrieval-review.py` reruns it against a local `next start -p 3100`.
 
 ## Columns
 

@@ -1,11 +1,11 @@
 target_page,page_status,clusters,queries,strong,partial,weak_or_none,P1,P2,P3,do-not-target
-/gamedev,rebuild,games/agent-builds-game games/assets games/convo games/editable-output games/engine-choice games/genre-jobs games/mcp-control games/vibe-coding,159,83,59,17,83,59,12,5
-/ai-video-editor,new,video/assistant-video video/convo video/editable-timeline video/filmmaking-agent,47,36,9,2,36,9,2,0
-/mcp,new,mcp-dev/claude-code mcp-dev/convo mcp-dev/mcp-media,39,27,9,3,27,9,3,0
-/gamedev/ai-game-engines,new,comparison/games,8,1,6,1,1,6,1,0
+/gamedev,existing,games/agent-builds-game games/assets games/convo games/editable-output games/engine-choice games/genre-jobs games/mcp-control games/vibe-coding,159,83,59,17,83,59,12,5
+/ai-video-editor,existing,video/assistant-video video/convo video/editable-timeline video/filmmaking-agent,47,36,9,2,36,9,2,0
+/mcp,existing,mcp-dev/claude-code mcp-dev/convo mcp-dev/mcp-media,39,27,9,3,27,9,3,0
+/gamedev/ai-game-engines,existing,comparison/games,8,1,6,1,1,6,1,0
 /marketing,improve,advertising/brand advertising/convo advertising/generators advertising/variants,39,27,9,3,0,36,2,1
 /agents,improve,agentic-category/category agentic-category/convo,29,25,2,2,0,27,0,2
-/alternatives,new,comparison/ads comparison/convo comparison/invoke comparison/nodetool comparison/video,27,19,5,3,0,24,3,0
+/alternatives,existing,comparison/ads comparison/convo comparison/invoke comparison/nodetool comparison/video,27,19,5,3,0,24,3,0
 /ai-image-editor,proposed,image/convo image/editor,21,14,5,2,0,19,1,1
 /alternatives/comfyui,existing,comparison/comfyui,10,10,0,0,0,10,0,0
 /developers,existing,mcp-dev/api,10,8,2,0,0,10,0,0
