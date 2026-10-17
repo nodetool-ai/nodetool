@@ -1,3 +1,5 @@
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { chromium } from "playwright";
 
 export interface GameGoldenFontEvidence {
@@ -33,12 +35,21 @@ export async function assertGameGoldenFont(fontconfig: string, cacheDirectory: s
 export async function withGameGoldenFontEnvironment(fontconfig: string, cacheDirectory: string, capture: () => Promise<void>): Promise<void> {
   const previousFontconfig = process.env["FONTCONFIG_FILE"];
   const previousCache = process.env["XDG_CACHE_HOME"];
+  const previousBrowsers = process.env["PLAYWRIGHT_BROWSERS_PATH"];
+  const configuredBrowsers = previousBrowsers ?? process.env["npm_config_playwright_browsers_path"]
+    ?? process.env["npm_package_config_playwright_browsers_path"];
+  const browserCache = process.platform === "darwin" ? join(homedir(), "Library", "Caches")
+    : process.platform === "win32" ? process.env["LOCALAPPDATA"] || join(homedir(), "AppData", "Local")
+    : previousCache || join(homedir(), ".cache");
   try {
+    // A fresh CLI imports Playwright inside this scope. Its browser registry must not move into the font cache.
+    process.env["PLAYWRIGHT_BROWSERS_PATH"] = configuredBrowsers || join(browserCache, "ms-playwright");
     process.env["FONTCONFIG_FILE"] = fontconfig;
     process.env["XDG_CACHE_HOME"] = cacheDirectory;
     await capture();
   } finally {
     if (previousFontconfig === undefined) { delete process.env["FONTCONFIG_FILE"]; } else { process.env["FONTCONFIG_FILE"] = previousFontconfig; }
     if (previousCache === undefined) { delete process.env["XDG_CACHE_HOME"]; } else { process.env["XDG_CACHE_HOME"] = previousCache; }
+    if (previousBrowsers === undefined) { delete process.env["PLAYWRIGHT_BROWSERS_PATH"]; } else { process.env["PLAYWRIGHT_BROWSERS_PATH"] = previousBrowsers; }
   }
 }

@@ -3,14 +3,13 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Command } from "commander";
-import { afterAll, beforeAll, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
 import type { AnyGameDocument } from "@nodetool-ai/protocol";
 import { getExampleGameBundle, listExampleGames, readExampleGameFile } from "@nodetool-ai/agents/game-examples";
 import { compareGameCaptures } from "@nodetool-ai/game-renderer/node";
 import { assertGameGoldenFont, withGameGoldenFontEnvironment } from "./gameGoldenFonts.js";
 import { writeGameGoldenDiagnostics } from "./gameGoldenDiagnostics.js";
-import { registerGameCommands } from "../src/commands/game.js";
+import { cleanupGameCliProcesses, runGameCli } from "./gameCliProcess.js";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const examples = { examplesDir: join(root, "packages/base-nodes/nodetool/examples/workflows") };
@@ -26,6 +25,7 @@ const names = [...cards.map((card) => card.slug), ...benchmarkNames].sort();
 const metadata = { tick, seed: 1, channelTolerance, changedFractionTolerance, fixtures: names, backends: { "2d": "webgpu", "3d": "webgl2" } };
 let directory: string;
 let originalExitCode: typeof process.exitCode;
+let signal: AbortSignal;
 
 beforeAll(async () => {
   directory = await mkdtemp(join(tmpdir(), "native-game-goldens-"));
@@ -41,6 +41,8 @@ beforeAll(async () => {
     await writeFile(join(goldenDirectory, "manifest.json"), `${JSON.stringify(metadata, null, 2)}\n`);
   }
 });
+beforeEach((test) => { signal = test.signal; });
+afterEach(cleanupGameCliProcesses);
 afterAll(async () => {
   process.exitCode = originalExitCode;
   await rm(directory, { recursive: true, force: true });
@@ -82,21 +84,29 @@ it("rejects a different effective browser font before capturing goldens", async 
 it("restores absent and existing font environment after a thrown capture", async () => {
   const originalFontconfig = process.env["FONTCONFIG_FILE"];
   const originalCache = process.env["XDG_CACHE_HOME"];
+  const originalBrowsers = process.env["PLAYWRIGHT_BROWSERS_PATH"];
   try {
     for (const previous of [undefined, "previous-font-environment"]) {
       if (previous === undefined) { delete process.env["FONTCONFIG_FILE"]; delete process.env["XDG_CACHE_HOME"]; }
       else { process.env["FONTCONFIG_FILE"] = previous; process.env["XDG_CACHE_HOME"] = previous; }
+      if (previous === undefined) { delete process.env["PLAYWRIGHT_BROWSERS_PATH"]; }
+      else { process.env["PLAYWRIGHT_BROWSERS_PATH"] = "previous-browser-environment"; }
+      const previousBrowsers = process.env["PLAYWRIGHT_BROWSERS_PATH"];
       await expect(withGameGoldenFontEnvironment(goldenFontconfig, join(directory, "font-cache"), async () => {
         expect(process.env["FONTCONFIG_FILE"]).toBe(goldenFontconfig);
         expect(process.env["XDG_CACHE_HOME"]).toBe(join(directory, "font-cache"));
+        expect(process.env["PLAYWRIGHT_BROWSERS_PATH"]).toBeDefined();
+        if (previousBrowsers !== undefined) { expect(process.env["PLAYWRIGHT_BROWSERS_PATH"]).toBe(previousBrowsers); }
         throw new Error("capture failed deliberately");
       })).rejects.toThrow("capture failed deliberately");
       expect(process.env["FONTCONFIG_FILE"]).toBe(previous);
       expect(process.env["XDG_CACHE_HOME"]).toBe(previous);
+      expect(process.env["PLAYWRIGHT_BROWSERS_PATH"]).toBe(previousBrowsers);
     }
   } finally {
     if (originalFontconfig === undefined) { delete process.env["FONTCONFIG_FILE"]; } else { process.env["FONTCONFIG_FILE"] = originalFontconfig; }
     if (originalCache === undefined) { delete process.env["XDG_CACHE_HOME"]; } else { process.env["XDG_CACHE_HOME"] = originalCache; }
+    if (originalBrowsers === undefined) { delete process.env["PLAYWRIGHT_BROWSERS_PATH"]; } else { process.env["PLAYWRIGHT_BROWSERS_PATH"] = originalBrowsers; }
   }
 });
 
@@ -120,18 +130,14 @@ it.each(names)("captures %s at the fixed tick within the stored pixel tolerance"
     const backend = staged.document.schemaVersion === 3 ? "webgl2" : "webgpu";
     const output = join(directory, `${name}.png`);
     let report = "";
-    const stdout = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => { report += String(chunk); return true; });
-    try {
-      await withGameGoldenFontEnvironment(goldenFontconfig, join(directory, "font-cache"), async () => {
-        process.exitCode = undefined;
-        const program = new Command();
-        registerGameCommands(program);
-        await program.parseAsync(["node", "nodetool", "game", "capture", staged.path, "--ticks", String(tick),
-          "--seed", "1", "--backend", backend, "--assets-dir", staged.assetsDir, "--out", output, "--json"]);
-      });
-    } finally {
-      stdout.mockRestore();
-    }
+    await withGameGoldenFontEnvironment(goldenFontconfig, join(directory, "font-cache"), async () => {
+      process.exitCode = undefined;
+      const captured = await runGameCli(["game", "capture", staged.path, "--ticks", String(tick),
+        "--seed", "1", "--backend", backend, "--assets-dir", staged.assetsDir, "--out", output, "--json"], { signal });
+      report = captured.stdout;
+      if (captured.exitCode !== 0) { process.exitCode = captured.exitCode; }
+      expect(captured.exitCode, captured.stderr).toBe(0);
+    });
     expect(process.exitCode, `${name}: ${report}`).not.toBe(1);
     expect(JSON.parse(report).tick, name).toBe(tick);
     const actual = await readFile(output);
