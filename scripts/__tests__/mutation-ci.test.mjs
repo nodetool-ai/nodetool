@@ -393,3 +393,25 @@ it("prepares sandboxed Chromium before mutation baselines execute browser tests"
   expect(steps[sandbox].run).toContain("await browser.close()");
   expect(steps[sandbox].run).not.toContain("--no-sandbox");
 });
+
+
+it("downloads one partition into its canonical result directory without flattening it", () => {
+  const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/mutation-changed.yml", import.meta.url), "utf8"));
+  const steps = workflow.jobs["mutation-complete"].steps;
+  const single = steps.find((step) => step.name === "Download one partition result");
+  const multiple = steps.find((step) => step.name === "Download partition results");
+  expect(single).toBeDefined();
+  expect(single.if).toBe("${{ !fromJSON(needs.plan.outputs.matrix).partition[1] }}");
+  expect(single.with).toEqual({
+    name: "mutation-result-partition-${{ fromJSON(needs.plan.outputs.matrix).partition[0] }}",
+    path: ".metrics/mutation-ci/results/mutation-result-partition-${{ fromJSON(needs.plan.outputs.matrix).partition[0] }}"
+  });
+  expect(multiple).toBeDefined();
+  expect(multiple.if).toBe("${{ fromJSON(needs.plan.outputs.matrix).partition[1] }}");
+  expect(multiple.uses).toBe(single.uses);
+  expect(multiple.with).toEqual({
+    pattern: "mutation-result-partition-*", path: ".metrics/mutation-ci/results"
+  });
+  expect(steps.indexOf(single)).toBeLessThan(steps.findIndex((step) => step.name === "Verify the exact union and report survivors"));
+  expect(steps.indexOf(multiple)).toBeLessThan(steps.findIndex((step) => step.name === "Verify the exact union and report survivors"));
+});
