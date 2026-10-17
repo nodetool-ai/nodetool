@@ -27,6 +27,8 @@ const COLUMNS: Col[] = [
       { name: "Templates", href: "/templates" },
       { name: "Recipes", href: "/recipes" },
       { name: "Storyboards", href: "/storyboards" },
+      { name: "AI video editor", href: "/ai-video-editor" },
+      { name: "MCP server", href: "/mcp" },
       { name: "Tasks", href: "/tasks" },
       { name: "Pricing", href: "/pricing" },
     ],
@@ -46,7 +48,7 @@ const COLUMNS: Col[] = [
   },
   {
     title: "Compare",
-    links: footerCompareLinks,
+    links: [...footerCompareLinks, { name: "All comparisons", href: "/alternatives" }],
   },
   {
     title: "Resources",

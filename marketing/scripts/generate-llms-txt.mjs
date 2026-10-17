@@ -22,6 +22,8 @@ import { faqByCategory, faqEntries } from "../src/data/faqEntries.ts";
 import { ideaCategories } from "../src/data/ideasEntries.ts";
 import { recipeEntries } from "../src/data/recipes.ts";
 import * as gamedev from "../src/data/gamedevPage.ts";
+import * as video from "../src/data/videoEditorPage.ts";
+import * as mcp from "../src/data/mcpPage.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_FILE = resolve(__dirname, "..", "public/llms.txt");
@@ -62,6 +64,8 @@ const KEY_PAGE_BLURBS = {
   "/developers": "connect NodeTool to your coding agent over MCP for images, video, speech, and workflows.",
   "/marketing": "hand a brief to an agent; campaign assets at volume.",
   "/gamedev": "the open-source 2D and 3D game engine agents build in: tools, editor, export, and limits.",
+  "/ai-video-editor": "storyboard, shots, voiced script, and an editable multi-track timeline, built by an agent.",
+  "/mcp": "the MCP server for Claude Code, Codex, OpenCode, and Cursor: install, tools, transports, and keys.",
 };
 
 const KEY_PAGE_LABELS = {
@@ -73,6 +77,8 @@ const KEY_PAGE_LABELS = {
   "/developers": "For developers",
   "/marketing": "For marketing teams",
   "/gamedev": "Game development",
+  "/ai-video-editor": "AI video editor",
+  "/mcp": "MCP server",
 };
 
 function link(label, path, blurb) {
@@ -149,6 +155,91 @@ ${faq}
 ${links}`;
 }
 
+/** Renders a QaPair list as Markdown questions. */
+function faqMarkdown(items) {
+  return items.map((q) => `### ${q.question}\n\n${q.answer}`).join("\n\n");
+}
+
+function linksMarkdown(items) {
+  return items.map((l) => `- [${l.label}](${l.href.startsWith("/") ? BASE_URL + l.href : l.href})`).join("\n");
+}
+
+/** The /ai-video-editor page as Markdown, from its data module. */
+function videoMarkdown() {
+  return `${video.VIDEO_LEAD}
+
+## From brief to finished cut
+
+${video.FLOW_STEPS.map((s) => `- **${s.title}**: ${s.body}`).join("\n")}
+
+## The timeline
+
+${video.TIMELINE_FEATURES.map((f) => `- ${f}`).join("\n")}
+
+## Agent tools
+
+These work in the built-in agent and over the MCP server (${BASE_URL}/mcp).
+
+${video.AGENT_TOOLS.map((t) => `- \`${t.name}\`: ${t.body}`).join("\n")}
+
+## Export
+
+${video.EXPORT_ROWS.map((r) => `- **${r.target}**: ${r.detail}`).join("\n")}
+
+## What it does not do yet
+
+${video.VIDEO_LIMITS.map((l) => `- ${l}`).join("\n")}
+
+${video.VIDEO_LIMITS_SUMMARY}
+
+## Questions
+
+${faqMarkdown(video.VIDEO_FAQ)}
+
+## Read more
+
+${linksMarkdown(video.VIDEO_LINKS)}`;
+}
+
+/** The /mcp page as Markdown, from its data module. */
+function mcpMarkdown() {
+  return `${mcp.MCP_LEAD}
+
+## Install
+
+\`\`\`bash
+${mcp.MCP_INSTALL}
+\`\`\`
+
+${mcp.CLIENT_ROWS.map((r) => `- **${r.client}**: ${r.setup}`).join("\n")}
+
+## What your agent can do
+
+${mcp.CAPABILITY_GROUPS.map((g) => `- **${g.title}**: ${g.body}`).join("\n")}
+
+## Direct tools
+
+${mcp.DIRECT_TOOLS.map((t) => `- \`${t.name}\`: ${t.purpose}`).join("\n")}
+
+Resources \`nodetool://capabilities\` and \`nodetool://sandbox\` describe everything reached through \`execute_code\`. Each skill is an MCP prompt, which Claude Code shows as a slash command.
+
+## Transports
+
+${mcp.TRANSPORT_ROWS.map((r) => `- **${r.mode}**: ${r.detail}`).join("\n")}
+
+## Good to know
+
+${mcp.MCP_LIMITS.map((l) => `- ${l}`).join("\n")}
+
+## Questions
+
+${faqMarkdown(mcp.MCP_FAQ)}
+
+## Read more
+
+${linksMarkdown(mcp.MCP_LINKS)}`;
+}
+
 const MARKDOWN_PAGES = {
   "index.md": {
     title: "NodeTool",
@@ -214,6 +305,16 @@ Read the [agent documentation](https://docs.nodetool.ai/agents/index.md) for ins
     description: "Studio is free; current Cloud alpha access is free.",
     body: `NodeTool Studio is free and open source under AGPL-3.0. Current NodeTool Cloud alpha access is free; future Cloud pricing has not been announced. In both editions, provider charges are separate: connect supported provider accounts and pay those providers directly.`,
   },
+  "ai-video-editor.md": {
+    title: "NodeTool AI Video Editor",
+    description: video.VIDEO_DESCRIPTION,
+    body: videoMarkdown(),
+  },
+  "mcp.md": {
+    title: "NodeTool MCP Server",
+    description: mcp.MCP_DESCRIPTION,
+    body: mcpMarkdown(),
+  },
   "gamedev.md": {
     title: "NodeTool Game Development",
     description: gamedev.GAMEDEV_DESCRIPTION,
@@ -266,6 +367,7 @@ const CAPABILITY_LINKS = [
   ["Ad library", "/ad-library", "social ad concepts with beats, timing, and formats, each buildable as an editable ad timeline."],
   ["Sketch Editor guide", "https://docs.nodetool.ai/sketch-editor", "layers, masks, AI layers, and inline image generation."],
   ["MCP server guide", "https://docs.nodetool.ai/mcp-server", "use NodeTool from Claude Code, Codex, OpenCode, or any MCP client."],
+  ["All comparisons", "/alternatives", "every NodeTool comparison page, grouped by category."],
   ["Blog", "/blog", "guides, comparisons, and cost breakdowns for AI image, video, and audio work."],
 ];
 

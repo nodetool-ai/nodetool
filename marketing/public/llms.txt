@@ -29,6 +29,8 @@
 - [For developers](https://nodetool.ai/developers.md): connect NodeTool to your coding agent over MCP for images, video, speech, and workflows.
 - [For marketing teams](https://nodetool.ai/marketing.md): hand a brief to an agent; campaign assets at volume.
 - [Game development](https://nodetool.ai/gamedev.md): the open-source 2D and 3D game engine agents build in: tools, editor, export, and limits.
+- [AI video editor](https://nodetool.ai/ai-video-editor.md): storyboard, shots, voiced script, and an editable multi-track timeline, built by an agent.
+- [MCP server](https://nodetool.ai/mcp.md): the MCP server for Claude Code, Codex, OpenCode, and Cursor: install, tools, transports, and keys.
 - [Documentation](https://docs.nodetool.ai/llms.txt): install guides, key concepts, node reference, API reference, CLI.
 
 ## Editors and capabilities
@@ -43,6 +45,7 @@
 - [Ad library](https://nodetool.ai/ad-library): social ad concepts with beats, timing, and formats, each buildable as an editable ad timeline.
 - [Sketch Editor guide](https://docs.nodetool.ai/sketch-editor): layers, masks, AI layers, and inline image generation.
 - [MCP server guide](https://docs.nodetool.ai/mcp-server): use NodeTool from Claude Code, Codex, OpenCode, or any MCP client.
+- [All comparisons](https://nodetool.ai/alternatives): every NodeTool comparison page, grouped by category.
 - [Blog](https://nodetool.ai/blog): guides, comparisons, and cost breakdowns for AI image, video, and audio work.
 
 ## Comparisons

@@ -372,7 +372,14 @@ export default function DevelopersPage() {
               <code className="font-jetbrains text-slate-100">
                 nodetool mcp config
               </code>{" "}
-              and paste the block it prints into the client config.
+              and paste the block it prints into the client config. The{" "}
+              <a
+                href="/mcp"
+                className="text-slate-100 underline underline-offset-4 hover:text-white focus-ring"
+              >
+                MCP server page
+              </a>{" "}
+              lists every tool, transport, and client.
             </p>
           </div>
         </div>
