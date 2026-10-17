@@ -9,6 +9,7 @@ import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { BORDER_RADIUS, CONTROL, MOTION } from "./tokens";
+import { SPACING, getSpacingPx } from "./spacing";
 
 export interface UndoRedoButtonsProps {
   /** Whether undo is available */
@@ -39,17 +40,17 @@ const styles = (theme: Theme) => css`
   
   &.horizontal {
     flex-direction: row;
-    gap: 4px;
+    gap: ${getSpacingPx(SPACING.xs)};
   }
   
   &.vertical {
     flex-direction: column;
-    gap: 4px;
+    gap: ${getSpacingPx(SPACING.xs)};
   }
   
   .undo-redo-button {
     color: ${theme.vars.palette.text.secondary};
-    padding: 6px;
+    padding: ${getSpacingPx(SPACING.sm)};
     border-radius: ${BORDER_RADIUS.md};
     transition: ${MOTION.all};
     
@@ -67,12 +68,12 @@ const styles = (theme: Theme) => css`
   .divider {
     &.horizontal {
       height: ${CONTROL.height.xs}px;
-      margin: 0 4px;
+      margin: 0 ${getSpacingPx(SPACING.xs)};
     }
     
     &.vertical {
       width: ${CONTROL.height.xs}px;
-      margin: 4px 0;
+      margin: ${getSpacingPx(SPACING.xs)} 0;
     }
   }
 `;

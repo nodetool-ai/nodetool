@@ -77,7 +77,7 @@ const ToggleGroupInternal: React.FC<ToggleGroupProps> = ({
   const segmentedSx = segmented
     ? {
         height: SEGMENTED_HEIGHT,
-        borderRadius: "var(--rounded-lg)",
+        borderRadius: BORDER_RADIUS.lg,
         border: `1px solid ${palette.divider}`,
         backgroundColor: palette.action.hover,
         overflow: "hidden",

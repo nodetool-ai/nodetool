@@ -26,7 +26,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
-import { MOTION } from "./tokens";
+import { BORDER_RADIUS, MOTION } from "./tokens";
 
 export type PlaybackState = "stopped" | "playing" | "paused";
 
@@ -234,7 +234,7 @@ export const PlaybackButton = memo(
             sx={{
               ...sizeStyles,
               ...colorStyles,
-              borderRadius: "var(--rounded-circle)",
+              borderRadius: BORDER_RADIUS.circle,
               transition: MOTION.all,
               ...sx
             }}

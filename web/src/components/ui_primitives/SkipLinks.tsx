@@ -4,6 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { MOTION } from "./tokens";
+import { SPACING, getSpacingPx } from "./spacing";
 
 const skipLinkStyles = (theme: Theme) =>
   css({
@@ -11,8 +12,9 @@ const skipLinkStyles = (theme: Theme) =>
       position: "absolute",
       top: "-100px",
       left: "16px",
-      zIndex: 10000,
-      padding: "8px 16px",
+      // Above every overlay, including MUI tooltips, so the link is always reachable.
+      zIndex: theme.zIndex.tooltip + 1,
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
       borderRadius: `0 0 ${theme.rounded.lg} ${theme.rounded.lg}`,

@@ -12,7 +12,8 @@
 
 import React, { memo } from "react";
 import { Box, BoxProps } from "@mui/material";
-import { MOTION } from "./tokens";
+import { BORDER_RADIUS, MOTION } from "./tokens";
+import { SPACING, getSpacingPx } from "./spacing";
 
 export interface ShortcutHintProps extends BoxProps {
   /**
@@ -82,7 +83,7 @@ export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
 
       if (index > 0) {
         elements.push(
-          <span key={`plus-${key}-${index}`} style={{ margin: "0 1px", opacity: 0.7, fontWeight: 600, transition: MOTION.normal }}>
+          <span key={`plus-${key}-${index}`} style={{ margin: `0 ${getSpacingPx(SPACING.micro)}`, opacity: 0.7, fontWeight: 600, transition: MOTION.normal }}>
             +
           </span>
         );
@@ -97,9 +98,9 @@ export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
             justifyContent: "center",
             minWidth: size === "small" ? "14px" : "16px",
             height: size === "small" ? "14px" : "16px",
-            padding: size === "small" ? "0 2px" : "0 3px",
-            borderRadius: "var(--rounded-xs)",
-            backgroundColor: "rgba(0, 0, 0, 0.08)",
+            padding: `0 ${getSpacingPx(SPACING.micro)}`,
+            borderRadius: BORDER_RADIUS.xs,
+            backgroundColor: "var(--palette-action-hover)",
             color: "inherit",
             transition: MOTION.normal,
             fontWeight: 600,
@@ -117,9 +118,9 @@ export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
         sx={{
           display: "inline-flex",
           alignItems: "center",
-          gap: size === "small" ? "2px" : "4px",
-          padding: size === "small" ? "2px 4px" : "4px 6px",
-          borderRadius: "var(--rounded-sm)",
+          gap: size === "small" ? SPACING.micro : SPACING.xs,
+          padding: size === "small" ? `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}` : `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`,
+          borderRadius: BORDER_RADIUS.sm,
           fontSize: "var(--fontSizeSmaller)",
           fontWeight: 500,
           letterSpacing: "0.5px",
@@ -127,7 +128,7 @@ export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
           opacity: 0.8,
           "&:hover": {
             opacity: 1,
-            backgroundColor: "rgba(0, 0, 0, 0.12)",
+            backgroundColor: "action.selected",
           },
 
           ...sx,
