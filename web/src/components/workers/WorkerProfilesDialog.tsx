@@ -17,8 +17,7 @@ import {
   SelectField,
   CollapsibleSection,
   AlertBanner,
-  InspectorSectionTitle,
-  WarningBanner
+  InspectorSectionTitle
 } from "../ui_primitives";
 import type {
   CreateWorkerProfileInput,
@@ -395,13 +394,15 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
           />
 
           {apiKeyMissing && (
-            <WarningBanner
+            <AlertBanner
+              severity="warning"
               compact
-              message={`No ${apiKeyName} configured`}
-              description={`Add it in Settings → Models & Providers before provisioning a ${
+              title={`No ${apiKeyName} configured`}
+            >
+              {`Add it in Settings → Models & Providers before provisioning a ${
                 target === "runpod" ? "RunPod" : "Vast.ai"
               } worker — provisioning fails without it.`}
-            />
+            </AlertBanner>
           )}
 
           <SelectField

@@ -95,6 +95,7 @@ import { registerProjectCommands } from "./commands/projects.js";
 import { registerGameCommands } from "./commands/game.js";
 import { registerAuthCommands } from "./commands/auth.js";
 import { registerTelegramCommands } from "./commands/telegram.js";
+import { registerAuthoringCommands } from "./commands/tools.js";
 import { registerResourceReadCommands } from "./commands/resource-read.js";
 import { createApiClient } from "./api-client.js";
 import {
@@ -1774,6 +1775,7 @@ registerRunsCommands(program, {
 });
 registerAuthCommands(program);
 registerTelegramCommands(program);
+registerAuthoringCommands(program);
 
 // ---------------------------------------------------------------------------
 

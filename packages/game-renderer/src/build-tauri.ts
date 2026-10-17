@@ -8,6 +8,7 @@ import { z } from "zod";
 import type { AnyGameDocument } from "@nodetool-ai/protocol";
 import { missingRuntimePackageError } from "@nodetool-ai/protocol/missing-runtime-package";
 import type { StandaloneAsset } from "./build.js";
+import { gameBuildFingerprint } from "./build-fingerprint.js";
 
 /** Tauri releases the generated project pins. Bump the three together. */
 export const TAURI_VERSIONS = { tauri: "2.12.1", tauriBuild: "2.7.1", cli: "2.12.1" } as const;
@@ -345,6 +346,15 @@ The window size, title and identifier (\`${metadata.identifier}\`) are in \`src-
     "src-tauri/tauri.conf.json": `${JSON.stringify(config, null, 2)}\n`,
     "src-tauri/.gitignore": "/target/\n/gen/schemas\n"
   };
+}
+
+/** Includes the web runtime, native project templates and generated app icons in cache identity. */
+export async function tauriGameRuntimeFingerprint(document: AnyGameDocument, app: TauriAppOptions = {}): Promise<string> {
+  const metadata = tauriAppMetadata(document, app);
+  const web = document.schemaVersion === 3
+    ? await (await import("./build3d.js")).standaloneGame3DRuntimeFingerprint()
+    : await (await import("./build.js")).standaloneGameRuntimeFingerprint();
+  return gameBuildFingerprint({ format: "nodetool-tauri-v1", web, ...tauriProjectFiles(metadata), ...await tauriIconFiles(app.icon) });
 }
 
 /** Exports a game as a Tauri desktop project: the standalone web player plus a native shell around it. */

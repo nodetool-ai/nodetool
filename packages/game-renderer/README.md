@@ -44,3 +44,16 @@ binary. It writes a PNG and backend/load statistics under
 Chromium lifecycle test writes `game3d-renderer-spike.json` in that directory's
 parent. Both commands honor `TMPDIR` and report the tested resolution and GPU.
 Their software-rendered timings do not establish the hardware target.
+
+The browser benchmark uses local files named `<full-asset-id>.<extension>`:
+
+```sh
+npm run benchmark:effects --workspace=packages/game-renderer -- --game game.json --assets-dir assets
+```
+
+It resolves models, prepared images, fonts and prepared collider JSON. Reports
+identify the `static` scenario and captured tick. The initial pose receives 60
+warm-up renders followed by the default 600 measured renders with GPU completion.
+`--post-effects` measures each post-processing variant against the same pose.
+This measures repeated drawing of that pose. Simulation changes and decal
+geometry rebuilding need a separate scenario with a sequence of render frames.

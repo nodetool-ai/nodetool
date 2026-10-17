@@ -71,7 +71,7 @@ These primitives exist but are barely adopted:
 `CopyButton` | `CloseButton` | `DeleteButton` | `DownloadButton` | `UploadButton` | `EditButton` | `SettingsButton` | `FavoriteButton` | `HelpButton` | `DocsHelpLink` | `UndoRedoButtons`
 
 ### Feedback & Status (replace raw CircularProgress/Alert)
-`LoadingSpinner` | `ProgressBar` | `Skeleton` | `StatusIndicator` | `StatusPill` | `EmptyState` | `AlertBanner` | `WarningBanner` | `CountBadge` | `ConflictBanner`
+`LoadingSpinner` | `ProgressBar` | `Skeleton` | `StatusIndicator` | `StatusPill` | `EmptyState` | `AlertBanner` | `CountBadge` | `ConflictBanner`
 
 Media that is being generated shows `MagicGenerationFill` over its host: the sketch canvas and layer thumbnails, timeline clips and preview, storyboard shots, chat's pending media tiles and the contact sheet. Do not build a separate generating animation.
 
@@ -196,7 +196,7 @@ Need feedback?
 ├── Placeholder → Skeleton
 ├── Media being generated → MagicGenerationFill
 ├── Nothing to show → EmptyState
-├── Warning/error → AlertBanner / WarningBanner
+├── Warning/error → AlertBanner
 ├── Temporary message → useNotificationStore().addNotification (or useAlertNotifier)
 ├── Status dot/badge → StatusIndicator / CountBadge
 ├── Tag, count or filter pill → Chip (`active` for a selected filter)

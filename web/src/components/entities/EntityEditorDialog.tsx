@@ -181,6 +181,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
 
         <TextInput
           label="Name"
+          required
           value={name}
           onChange={(e) => setName(e.target.value)}
           size="small"
@@ -189,7 +190,8 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
 
         <TextInput
           label="Descriptor"
-          helperText="Pasted verbatim into every prompt that uses this entity."
+          required
+          helperText="How it looks, in a sentence. Every prompt that uses this entity gets it word for word."
           value={descriptor}
           onChange={(e) => setDescriptor(e.target.value)}
           multiline

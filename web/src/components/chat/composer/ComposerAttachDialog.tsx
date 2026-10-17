@@ -318,7 +318,12 @@ export const ComposerAttachDialog: React.FC<ComposerAttachDialogProps> = ({
         )}
         {tab === "assets" && <AssetsTab query={query} onSelect={pickAsset} />}
         {tab === "entities" && (
-          <EntityPicker onSelect={pickEntity} height={PANEL_HEIGHT} autoFocus />
+          <EntityPicker
+            onSelect={pickEntity}
+            height={PANEL_HEIGHT}
+            autoFocus
+            onCreateStarted={onClose}
+          />
         )}
         {tab === "documents" && (
           <DocumentsTab query={query} onSelect={pickDocument} />

@@ -98,7 +98,7 @@ const formatDuration = (seconds: number | null | undefined): string => {
 /** Map a run's aggregate status onto the StatusIndicator's vocabulary. Completed
  *  runs render no indicator (the common, quiet case). */
 const runStatusType = (status: RunGroup["status"]): StatusType | null => {
-  if (status === "running") return "info";
+  if (status === "running") return "running";
   if (status === "error") return "error";
   return null;
 };

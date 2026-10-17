@@ -54,7 +54,7 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { Clip } from "./Clip";
 import {
   ContextMenu,
-  WarningBanner,
+  AlertBanner,
   MOTION,
   MenuItemPrimitive,
   SPACING,
@@ -919,11 +919,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
           }}
           aria-live="polite"
         >
-          <WarningBanner
-            message={dropWarning}
-            variant="warning"
-            compact
-          />
+          <AlertBanner severity="warning" compact>
+            {dropWarning}
+          </AlertBanner>
         </div>
       )}
     </div>

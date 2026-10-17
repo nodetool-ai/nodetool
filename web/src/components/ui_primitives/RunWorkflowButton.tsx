@@ -25,7 +25,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
-import { MOTION } from "./tokens";
+import { MOTION, SHADOW } from "./tokens";
 
 export interface RunWorkflowButtonProps {
   /**
@@ -223,7 +223,7 @@ export const RunWorkflowButton = memo(
               {...sharedProps}
               sx={{
                 ...sharedSx,
-                boxShadow: "0px 3px 5px -1px rgba(0,0,0,0.2), 0px 6px 10px 0px rgba(0,0,0,0.14), 0px 1px 18px 0px rgba(0,0,0,0.12)"
+                boxShadow: SHADOW(theme).md
               }}
             >
               {content}

@@ -77,6 +77,24 @@ export const designTokenIgnores = [
   "src/components/sketch/MagicGenerationFill.tsx",
 ];
 
+// The primitive layer is exempt from the raw-MUI and barrel rules above (it
+// wraps MUI and imports its siblings directly), but its tokens are checked like
+// every other file: a raw value in a primitive reaches every caller.
+export const primitiveTokenFiles = [
+  "src/components/ui_primitives/**/*.{ts,tsx}",
+  "src/components/editor_ui/**/*.{ts,tsx}",
+];
+
+export const primitiveTokenIgnores = [
+  "**/__tests__/**",
+  "**/*.test.{ts,tsx}",
+  // The token definitions themselves.
+  "src/components/ui_primitives/tokens.ts",
+  "src/components/ui_primitives/spacing.ts",
+  // Decorative multi-hue "generating" wash, same exemption as the sketch copy above.
+  "src/components/ui_primitives/MagicGenerationFill.tsx",
+];
+
 const muiPrimitiveMessage =
   "Use the equivalent primitive from components/ui_primitives instead of raw MUI. See ui_primitives/STRATEGY.md.";
 

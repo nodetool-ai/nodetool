@@ -139,6 +139,35 @@ describe("mutation CI exact union", () => {
     }
   });
 
+  it.each(["missing", "truncated", "duplicate", "changed outcome"])("rejects a %s completion journal", (damage) => {
+    const output = outputs.find((directory) => json(join(directory, "receipt.json")).completed.length > 0);
+    expect(output).toBeDefined();
+    const path = join(output, "completed.ndjson");
+    const before = readFileSync(path, "utf8");
+    const entries = before.trim().split("\n");
+    try {
+      if (damage === "missing") {
+        renameSync(path, `${path}.held`);
+      } else if (damage === "truncated") {
+        writeFileSync(path, entries.slice(1).join("\n") + "\n");
+      } else if (damage === "duplicate") {
+        writeFileSync(path, before + entries[0] + "\n");
+      } else {
+        const entry = JSON.parse(entries[0]);
+        entry.outcome = entry.outcome === "killed" ? "survived" : "killed";
+        writeFileSync(path, [JSON.stringify(entry), ...entries.slice(1)].join("\n") + "\n");
+      }
+      expect(() => aggregate(root, plan, outputs)).toThrow(/journal|ENOENT/);
+    } finally {
+      if (damage === "missing") {
+        renameSync(`${path}.held`, path);
+      } else {
+        writeFileSync(path, before);
+      }
+    }
+    expect(aggregate(root, plan, outputs).score).toContain("86.36%** | **19 / 22**");
+  });
+
   it("rejects omitted, duplicate, unexpected, and fabricated terminal outcomes", () => {
     const index = outputs.findIndex((output) => json(join(output, "receipt.json")).completed.length > 0);
     for (const mutate of [
@@ -363,4 +392,26 @@ it("prepares sandboxed Chromium before mutation baselines execute browser tests"
   expect(steps[sandbox].run).toContain("chromiumSandbox: true");
   expect(steps[sandbox].run).toContain("await browser.close()");
   expect(steps[sandbox].run).not.toContain("--no-sandbox");
+});
+
+
+it("downloads one partition into its canonical result directory without flattening it", () => {
+  const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/mutation-changed.yml", import.meta.url), "utf8"));
+  const steps = workflow.jobs["mutation-complete"].steps;
+  const single = steps.find((step) => step.name === "Download one partition result");
+  const multiple = steps.find((step) => step.name === "Download partition results");
+  expect(single).toBeDefined();
+  expect(single.if).toBe("${{ !fromJSON(needs.plan.outputs.matrix).partition[1] }}");
+  expect(single.with).toEqual({
+    name: "mutation-result-partition-${{ fromJSON(needs.plan.outputs.matrix).partition[0] }}",
+    path: ".metrics/mutation-ci/results/mutation-result-partition-${{ fromJSON(needs.plan.outputs.matrix).partition[0] }}"
+  });
+  expect(multiple).toBeDefined();
+  expect(multiple.if).toBe("${{ fromJSON(needs.plan.outputs.matrix).partition[1] }}");
+  expect(multiple.uses).toBe(single.uses);
+  expect(multiple.with).toEqual({
+    pattern: "mutation-result-partition-*", path: ".metrics/mutation-ci/results"
+  });
+  expect(steps.indexOf(single)).toBeLessThan(steps.findIndex((step) => step.name === "Verify the exact union and report survivors"));
+  expect(steps.indexOf(multiple)).toBeLessThan(steps.findIndex((step) => step.name === "Verify the exact union and report survivors"));
 });

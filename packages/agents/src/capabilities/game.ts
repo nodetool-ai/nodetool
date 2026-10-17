@@ -15,12 +15,14 @@ import type { CapabilityExport, CapabilityModule, CapabilityRun } from "./types.
 import { gameOutline3D, inputFrames3D, playtestGame3D, captureFrames3D, colliderBinding3D, stageModelGameAsset3D } from "./game3d.js";
 import type { PublishNativeGameRequest } from "./GamePublishRequest.js";
 import { gameSpecs } from "./game.specs.js";
+import { gameAssertions2D } from "./gameAssertions.js";
 import { persistOutput } from "../tools/asset-persist.js";
 import { getExampleGameBundle, installExampleGameAssets, listExampleGames } from "../game-examples.js";
 import { previewGameAuthoring, applyGameAuthoring } from "../game-authoring.js";
 import { gameDocumentDigest } from "../game-code-bake.js";
 import { previewGameAuthoringSpec, applyGameAuthoringSpec, browseGameAssetsSpec } from "./game.specs.js";
 import { browseGameAssets } from "./game-asset-browser.js";
+import { GAME_BUILD_INTEGRITY_FILE, gameBuildIntegrityManifest, verifiedGameBuildCache } from "../game-build-integrity.js";
 
 const log = createLogger("capabilities.game");
 
@@ -652,12 +654,14 @@ const playtest: CapabilityExport = {
     }
     const captures = captureTicks(args["capture_ticks"], []);
     if ("error" in captures) return captures;
-    const assertions = Array.isArray(args["assertions"]) ? args["assertions"] : [];
-    const assertionHorizon = assertions.reduce((maximum, item) => {
-      if (!item || typeof item !== "object") return maximum;
-      const assertion = item as Record<string, unknown>;
-      const tick = assertion.at_tick ?? assertion.before_tick;
-      return typeof tick === "number" && Number.isSafeInteger(tick) && tick >= 0 ? Math.max(maximum, tick) : maximum;
+    const parsedAssertions = gameAssertions2D.safeParse(args["assertions"] === undefined ? [] : args["assertions"]);
+    if (!parsedAssertions.success) {
+      return { error: "Invalid 2D assertions", diagnostics: parsedAssertions.error.issues };
+    }
+    const assertions = parsedAssertions.data;
+    const assertionHorizon = assertions.reduce((maximum, assertion) => {
+      const tick = "at_tick" in assertion ? assertion.at_tick : "before_tick" in assertion ? assertion.before_tick : undefined;
+      return Math.max(maximum, tick ?? 0);
     }, 0);
     const inputs = inputFrames(args["inputs"], Math.max(0, ...captures, assertionHorizon));
     if ("error" in inputs) return inputs;
@@ -667,10 +671,8 @@ const playtest: CapabilityExport = {
     const session = await createScriptedGameSession(document, seed);
     const events: unknown[] = [];
     const contacts = new Map<string, number>();
-    const inspectionTicks = new Set(assertions.flatMap((item) => {
-      if (!item || typeof item !== "object" || !("at_tick" in item)) return [];
-      return typeof item.at_tick === "number" ? [item.at_tick] : [];
-    }));
+    const inspectionTicks = new Set(assertions.flatMap((assertion) =>
+      "at_tick" in assertion && assertion.at_tick !== undefined ? [assertion.at_tick] : []));
     let state = session.inspect();
     const inspections = new Map<number, ReturnType<typeof session.inspect>>([[0, state]]);
     const started = Date.now();
@@ -704,28 +706,27 @@ const playtest: CapabilityExport = {
           }
         }
       }
-      const assertion_results = assertions.map((item) => {
-        if (!item || typeof item !== "object") return { passed: false, error: "Invalid assertion" };
-        const assertion = item as Record<string, unknown>;
-        if (assertion.no_script_errors === true) return { passed: scriptError === null, assertion, observed: scriptError };
-        if (typeof assertion.event === "string") {
+      const assertion_results = assertions.map((assertion) => {
+        if ("no_script_errors" in assertion) {
+          return { passed: scriptError === null, assertion, observed: scriptError };
+        }
+        if ("event" in assertion) {
           const observed = events.find((event) => {
-            if (typeof event !== "object" || event === null || !("kind" in event)) return false;
-            if (event.kind === assertion.event) return true;
+            if (typeof event !== "object" || event === null || !("kind" in event)) {
+              return false;
+            }
+            if (event.kind === assertion.event) {
+              return true;
+            }
             return event.kind === "trigger" && "event" in event && (event.event === assertion.event || assertion.event === "win" && event.event === "victory");
           });
           const tick = typeof observed === "object" && observed !== null && "tick" in observed && typeof observed.tick === "number" ? observed.tick : Infinity;
-          return { passed: observed !== undefined && (typeof assertion.before_tick !== "number" || tick <= assertion.before_tick), assertion, observed: observed ?? null };
+          return { passed: observed !== undefined && (assertion.before_tick === undefined || tick <= assertion.before_tick), assertion, observed: observed ?? null };
         }
-        if (typeof assertion.entity_id === "string" && assertion.near && typeof assertion.near === "object") {
-          const near = assertion.near as Record<string, unknown>;
-          const observed = typeof assertion.at_tick === "number" ? inspections.get(assertion.at_tick) : state;
-          const entity = observed?.entities.find((candidate) => candidate.id === assertion.entity_id);
-          const tolerance = typeof near.tolerance === "number" ? near.tolerance : 0;
-          const passed = !!entity && typeof near.x === "number" && typeof near.y === "number" && Math.hypot(entity.x - near.x, entity.y - near.y) <= tolerance;
-          return { passed, assertion, observed: entity ?? null };
-        }
-        return { passed: false, assertion, error: "Unsupported assertion" };
+        const observed = assertion.at_tick === undefined ? state : inspections.get(assertion.at_tick);
+        const entity = observed?.entities.find((candidate) => candidate.id === assertion.entity_id);
+        const passed = !!entity && Math.hypot(entity.x - assertion.near.x, entity.y - assertion.near.y) <= (assertion.near.tolerance ?? 0);
+        return { passed, assertion, observed: entity ?? null };
       });
       const images = captures.length && scriptError === null && !cancelled && !wallTimeLimited && state.tick === inputs.length
         ? await captureFrames(run, user, document, captures, inputs, seed, { sheet: true, deadlineAt: started + 15_000 })
@@ -1034,7 +1035,7 @@ const BUILD_CONTENT_TYPES: Readonly<Record<string, string>> = {
 
 /**
  * Builds an owned, published game revision into its project workspace: a static web player under
- * `game-builds/<game-id>/<revision>`, or a Tauri desktop project under `game-builds/<game-id>/<revision>-tauri-<settings>`.
+ * `game-builds/<game-id>/<revision>-<target>-<runtime-fingerprint>`.
  * The capability and the editor's export download share this path.
  */
 export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Promise<NativeGameBuildResult> {
@@ -1060,23 +1061,39 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
   if ([...expectedDigests.values()].some((digests) => digests.size !== 1)) {
     return { error: "One source asset has conflicting digests in this revision" };
   }
-  let buildPath = `game-builds/${game.id}/${revision}`;
-  let entryPath = `${buildPath}/index.html`;
   let tauriApp: { name: string } | undefined;
   let metadata: TauriAppMetadata | undefined;
-  if (target === "tauri") {
-    tauriApp = { name: game.name };
-    const { tauriAppMetadata } = await importPack<typeof import("@nodetool-ai/game-renderer/build-tauri")>("game", "@nodetool-ai/game-renderer/build-tauri");
-    try { metadata = tauriAppMetadata(document, tauriApp); }
-    catch (error) { return { error: error instanceof Error ? error.message : String(error) }; }
-    // The app name comes from the game row, which can change without a new revision.
-    const settings = createHash("sha256").update(JSON.stringify(metadata)).digest("hex").slice(0, 12);
-    buildPath = `game-builds/${game.id}/${revision}-tauri-${settings}`;
-    entryPath = `${buildPath}/src-tauri/tauri.conf.json`;
+  let fingerprint: string;
+  try {
+    request.signal?.throwIfAborted();
+    if (target === "tauri") {
+      tauriApp = { name: game.name };
+      const renderer = await importPack<typeof import("@nodetool-ai/game-renderer/build-tauri")>("game", "@nodetool-ai/game-renderer/build-tauri");
+      metadata = renderer.tauriAppMetadata(document, tauriApp);
+      fingerprint = await renderer.tauriGameRuntimeFingerprint(document, tauriApp);
+    } else if (document.schemaVersion === 3) {
+      const renderer = await importPack<typeof import("@nodetool-ai/game-renderer/build3d")>("game", "@nodetool-ai/game-renderer/build3d");
+      fingerprint = await renderer.standaloneGame3DRuntimeFingerprint();
+    } else {
+      const renderer = await importPack<typeof import("@nodetool-ai/game-renderer/build")>("game", "@nodetool-ai/game-renderer/build");
+      fingerprint = await renderer.standaloneGameRuntimeFingerprint();
+    }
+    request.signal?.throwIfAborted();
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
   }
+  const buildPath = `game-builds/${game.id}/${revision}-${target}-${fingerprint}`;
+  const entryFile = target === "web" ? "index.html" : "src-tauri/tauri.conf.json";
+  const entryPath = `${buildPath}/${entryFile}`;
   const done = { game_id: game.id, revision, target, build_path: buildPath, entry_path: entryPath, workspace, app: metadata ?? null };
-  if (await workspace.exists(entryPath)) {
-    return { ...done, cached: true };
+  try {
+    const cached = await verifiedGameBuildCache(workspace, buildPath, fingerprint, entryFile, { files: MAX_BUILD_FILES, bytes: MAX_BUILD_BYTES }, request.signal);
+    request.signal?.throwIfAborted();
+    if (cached) {
+      return { ...done, cached: true };
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
   }
   const storage = request.storage;
   const cache = new Map<string, { bytes: Uint8Array; mimeType: string }>();
@@ -1141,15 +1158,19 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
         }
       }
     }
-    const entryFile = entryPath.slice(buildPath.length + 1);
     const entry = files.find((file) => file.path === entryFile);
     if (!entry) throw new Error("Standalone build entry is missing");
+    const integrity = gameBuildIntegrityManifest(buildPath, fingerprint, entryFile, files);
+    if (files.length + 1 > MAX_BUILD_FILES || totalBytes + Buffer.byteLength(integrity) > MAX_BUILD_BYTES) {
+      throw new Error("Standalone build exceeds file or byte limits");
+    }
     const contentType = (path: string): string => BUILD_CONTENT_TYPES[path.slice(path.lastIndexOf(".") + 1)] ?? "application/octet-stream";
-    // The entry file is written last, so its presence marks a complete build for the cache check above.
+    // Publish the integrity manifest only after all of its files have been written successfully.
     for (const file of files.filter((item) => item !== entry)) {
       await workspace.write(`${buildPath}/${file.path}`, file.bytes, contentType(file.path));
     }
     await workspace.write(entryPath, entry.bytes, contentType(entry.path));
+    await workspace.write(`${buildPath}/${GAME_BUILD_INTEGRITY_FILE}`, integrity, "application/json");
     return { ...done, cached: false };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
@@ -1224,17 +1245,18 @@ const installExample: CapabilityExport = {
     if (!storage) return { error: "Asset storage is unavailable" };
     if (!getExampleGameBundle({}, slug)) return { error: "Example game not found" };
     const installed = await installExampleGameAssets(user, projectId, {}, slug, storage);
+    let created: Awaited<ReturnType<typeof createNativeGame>>;
     try {
-      const created = await createNativeGame(user, projectId, typeof name === "string" ? name.trim() : installed.bundle.name, installed.document, installed.document.schemaVersion === 3 ? "3d" : "2d");
-      if ("error" in created) {
-        await installed.rollback();
-        return created;
-      }
-      return { game: summary(created.game), document: created.document };
+      created = await createNativeGame(user, projectId, typeof name === "string" ? name.trim() : installed.bundle.name, installed.document, installed.document.schemaVersion === 3 ? "3d" : "2d");
     } catch (error) {
-      await installed.rollback();
+      await installed.rollback(error);
       throw error;
     }
+    if ("error" in created) {
+      await installed.rollback(new Error(created.error));
+      return created;
+    }
+    return { game: summary(created.game), document: created.document };
   }
 };
 

@@ -1,5 +1,6 @@
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import { FAKE_APP_GREETING_MODEL, greetingFixtureCalls } from "./fake-app-greeting.js";
 import { schemaAnswer } from "./fake-schema-answer.js";
 
 const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
@@ -306,7 +307,8 @@ export class FakeProvider extends BaseProvider {
     return [
       { id: "fake-model-v1", name: "Fake Model v1", provider: "fake" },
       { id: "fake-model-v2", name: "Fake Model v2", provider: "fake" },
-      { id: "fake-fast-model", name: "Fake Fast Model", provider: "fake" }
+      { id: "fake-fast-model", name: "Fake Fast Model", provider: "fake" },
+      { id: FAKE_APP_GREETING_MODEL, name: "Fixed greeting app (requires audio pack; --no-judge; ignores prompt)", provider: "fake" }
     ];
   }
 
@@ -340,6 +342,10 @@ export class FakeProvider extends BaseProvider {
     this.lastModel = args.model;
     this.lastTools = args.tools ?? [];
 
+    if (args.model === FAKE_APP_GREETING_MODEL) {
+      return { role: "assistant", content: [], toolCalls: greetingFixtureCalls(args.tools ?? [], randomUUID()) };
+    }
+
     const auto = this.autoToolCalls(args.tools ?? []);
     if (auto) {
       return { role: "assistant", content: [], toolCalls: auto };
@@ -369,6 +375,14 @@ export class FakeProvider extends BaseProvider {
     this.lastMessages = args.messages;
     this.lastModel = args.model;
     this.lastTools = args.tools ?? [];
+
+    if (args.model === FAKE_APP_GREETING_MODEL) {
+      for (const call of greetingFixtureCalls(args.tools ?? [], randomUUID())) {
+        yield call;
+      }
+      yield { type: "chunk", content: "", done: true, content_type: "text" };
+      return;
+    }
 
     const auto = this.autoToolCalls(args.tools ?? []);
     if (auto) {

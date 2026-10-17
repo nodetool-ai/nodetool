@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -300,5 +300,32 @@ describe("native game tools in 3D", () => {
     const manifest = JSON.parse(await readFile(join(directory, built.build_path, "manifest.json"), "utf8"));
     expect(manifest).toMatchObject({ dimension: "3d", sourceRevision: created.document.revision });
     expect(manifest.files["emscripten-module.wasm"]).toHaveLength(64);
+    expect(await run.invoke("build_native_game", { game_id: created.document.id })).toMatchObject({ cached: true, build_path: built.build_path });
+  });
+
+  it.each([
+    { name: "game3d-player.js", damage: "missing" },
+    { name: "game3d-player.js", damage: "changed" },
+    { name: "emscripten-module.wasm", damage: "missing" },
+    { name: "emscripten-module.wasm", damage: "changed" },
+    { name: "manifest.json", damage: "missing" },
+    { name: "manifest.json", damage: "changed" }
+  ])("repairs a $damage $name in a cached 3D export", async ({ name, damage }) => {
+    const { run } = await agent();
+    const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Export", dimension: "3d" }));
+    const args = { game_id: created.document.id };
+    const built = readRecord(await run.invoke("build_native_game", args));
+    expect(built).toMatchObject({ game_id: created.document.id, revision: created.document.revision, cached: false });
+    if (typeof built.build_path !== "string") { throw new Error("Build path missing"); }
+    const path = join(directory, built.build_path, name);
+    const original = await readFile(path);
+    if (damage === "missing") {
+      await rm(path);
+    } else {
+      await writeFile(path, new Uint8Array(original.byteLength));
+    }
+    expect(await run.invoke("build_native_game", args)).toMatchObject({ cached: false, build_path: built.build_path });
+    expect(await readFile(path)).toEqual(original);
+    expect(await run.invoke("build_native_game", args)).toMatchObject({ cached: true, build_path: built.build_path });
   });
 });

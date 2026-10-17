@@ -6,6 +6,7 @@
  * Heavy deps (registry + runtime) load lazily inside the action.
  */
 import type { Command } from "commander";
+import { asJson, printTable } from "./output.js";
 import { printCommandError, commandMissingRuntime, commandMissingPack } from "../command-errors.js";
 import { installMissingPacksAndReexec } from "./install-missing-packs.js";
 
@@ -21,6 +22,49 @@ export function registerNodeCommands(program: Command): void {
   const node = program
     .command("node")
     .description("Inspect and run individual nodes");
+
+  node
+    .command("list [query]")
+    .description("List installed TypeScript node types (optionally filter by type or title)")
+    .option("--json", "Print complete node metadata as JSON")
+    .action(async (query: string | undefined, opts: { json?: boolean }) => {
+      try {
+        const { buildFullRegistry } = await import("../node-registry.js");
+        const registry = await buildFullRegistry();
+        const search = query?.toLowerCase() ?? "";
+        const nodes = registry.listMetadata()
+          .filter((meta) => registry.has(meta.node_type))
+          .filter((meta) => `${meta.node_type} ${meta.title}`.toLowerCase().includes(search))
+          .sort((a, b) => a.node_type.localeCompare(b.node_type));
+        if (opts.json) {
+          asJson(nodes);
+        } else if (nodes.length === 0) {
+          console.log('No installed node types match. Run "nodetool packs list" to inspect installed packs.');
+        } else {
+          printTable(nodes.map((meta) => ({ type: meta.node_type, title: meta.title })));
+          console.log('Use "nodetool node info <type>" for properties and outputs.');
+        }
+      } catch (error) {
+        process.exitCode = printCommandError(error, opts.json);
+      }
+    });
+
+  node
+    .command("info <node_type>")
+    .description("Show an installed node's properties, defaults, inputs and outputs")
+    .option("--json", "Print complete node metadata as JSON")
+    .action(async (nodeType: string, opts: { json?: boolean }) => {
+      try {
+        const { buildFullRegistry } = await import("../node-registry.js");
+        const registry = await buildFullRegistry();
+        if (!registry.has(nodeType)) {
+          throw new Error(`Node type "${nodeType}" is not installed. Use "nodetool node list" or "nodetool packs list".`);
+        }
+        asJson(registry.getMetadata(nodeType));
+      } catch (error) {
+        process.exitCode = printCommandError(error, opts.json);
+      }
+    });
 
   node
     .command("run <node_type>")

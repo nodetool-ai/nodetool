@@ -45,25 +45,27 @@ describe("TracksRegion toolbar undo/redo", () => {
     renderRegion();
     resetDoc();
 
-    const undo = screen.getByTestId("timeline-undo");
-    const redo = screen.getByTestId("timeline-redo");
-    expect(undo).toBeDisabled();
-    expect(redo).toBeDisabled();
+    // Re-query after each change: a disabled icon button sits inside a tooltip
+    // span, so enabling it renders a new element.
+    const undo = () => screen.getByTestId("timeline-undo");
+    const redo = () => screen.getByTestId("timeline-redo");
+    expect(undo()).toBeDisabled();
+    expect(redo()).toBeDisabled();
 
     act(() => {
       useTimelineStore.getState().addTrack("video", "Video 1");
     });
     expect(useTimelineStore.getState().tracks).toHaveLength(1);
-    expect(undo).toBeEnabled();
+    expect(undo()).toBeEnabled();
 
     act(() => {
-      fireEvent.click(undo);
+      fireEvent.click(undo());
     });
     expect(useTimelineStore.getState().tracks).toHaveLength(0);
-    expect(redo).toBeEnabled();
+    expect(redo()).toBeEnabled();
 
     act(() => {
-      fireEvent.click(redo);
+      fireEvent.click(redo());
     });
     expect(useTimelineStore.getState().tracks).toHaveLength(1);
   });

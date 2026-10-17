@@ -32,6 +32,59 @@ npx --package=@nodetool-ai/cli nodetool-chat
 - `nodetool <group> --help` — list sub-commands for grouped tooling (e.g. `nodetool workflows --help`).
 - `nodetool help [command]` — the same output as `--help`, as a command (e.g. `nodetool help serve`). With no argument it lists the top-level commands.
 
+## Authoring tools and guides
+
+Use the installed tool catalog and guides to start a document from the terminal.
+No agent session or MCP client is needed. These commands run locally against the
+same tool implementations as CLI agent sessions.
+
+```bash
+nodetool tools list timeline
+nodetool tools info create_timeline
+nodetool skills list motion
+nodetool skills read motion-graphics
+nodetool tools call create_timeline --args @arguments.json
+```
+
+`tools list [query]` prints names and descriptions. `tools info <name>` prints
+its current input schema. `tools call <name> --args <json|@file>` executes it
+with a JSON object. Results are JSON. Tool failures exit nonzero. Calls can save
+work, execute jobs, or incur provider charges. The local database, secret store,
+installed packs, current working directory, and agent budget settings are used
+as in CLI agent sessions. Generation costs are recorded in the local ledger.
+
+`skills list [query]` searches installed guides and user skills.
+`skills read <name>` reads the full guide, including its examples and creation instructions.
+Start with these guides and then inspect the named tools:
+
+| Document | Guide | Tool discovery |
+| --- | --- | --- |
+| Timeline or storyboard | `storyboard-core` | `tools list timeline` |
+| Animated text and shapes | `motion-graphics` | `tools list timeline` |
+| Reusable workflow | `nodetool-workflow-builder` | `tools list workflow` |
+| Interactive mini app | `nodetool-app-builder` | `tools list app` |
+| Playable game | `native-game` | `tools list game` |
+
+Call `nodetool tools call list_projects` to obtain an owned project id for
+project-scoped documents. Local tool calls initialize the Personal project
+(`personal:1`) on a fresh installation.
+
+For a deterministic mini app build without provider charges, run:
+
+```bash
+nodetool packs add audio --yes
+nodetool app build "greeting fixture" --provider fake --model fake-app-greeting --no-judge
+```
+
+The audio pack supplies the required `nodetool.output.Output` node.
+`fake-app-greeting` builds a fixed greeting app and ignores the prompt. It tests
+the build pipeline and interaction checks, not general app generation.
+
+For games, `list_example_games` and `get_example_game` expose shipped starting
+documents. Follow the guide's installation instructions when a bundled example
+uses packaged assets. For other documents, read the guide's minimal example and
+inspect the creation tool's schema before saving it.
+
 ## Global Options
 
 These flags work on any `nodetool` command and control [OpenTelemetry tracing](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md):
@@ -557,6 +610,23 @@ nodetool debug workflow.json --watch
 The bundle holds `report.json` and `report.md`, the resolved `workflow.json`,
 and `server/messages.jsonl`. `--trace` adds `server/trace.jsonl`; `--browser`
 adds `browser/record.json`, a canvas screenshot, and `browser/console-errors.log`.
+
+### `nodetool node list [query]`, `nodetool node info <node_type>`
+
+List executable TypeScript nodes from installed packs, optionally filtering by
+node type or title. `--json` returns complete metadata. `info` prints the exact
+node type's properties, defaults, inputs and outputs as JSON. These commands
+use the same installed pack registry as `node run` and work outside a checkout.
+Catalog entries for missing packs are excluded.
+
+```bash
+nodetool node list text
+nodetool node list --json
+nodetool node info nodetool.text.Concat --json
+```
+
+Use `nodetool packs list` to inspect pack installation state. Python package
+metadata is inspected separately through `nodetool package list`.
 
 ### `nodetool node run <node_type>`
 
@@ -1898,8 +1968,16 @@ nodetool models download-hf --repo-id Qwen/Qwen3-0.6B-GGUF -a "*.gguf"
 Local and self-hosted installs expose `fake-image` and `fake-video` on provider
 `fake` for no-cost tests without credentials. They produce a fixed PNG or a
 two-second MP4. Select fake explicitly with `find_model({provider_hint: "fake", ...})`.
-Automatic model selection excludes fake media. Storyboards can use these refs as
-`image_model` and `video_model` board defaults.
+Automatic model selection excludes fake media. `generate` accepts image models.
+For a video fixture, use the video tool:
+
+```bash
+nodetool tools info generate_video
+nodetool tools call generate_video --args '{"provider":"fake","model":"fake-video","prompt":"test fixture"}'
+nodetool skills read storyboard-core
+```
+
+Storyboards can use these refs as `image_model` and `video_model` board defaults.
 
 Generate an image from any registered provider straight to a file, with no
 workflow in between. Use it to try a model, check that a provider's key resolves,
@@ -2610,21 +2688,23 @@ Manual harnesses (need a target/key — run yourself):
 
 ### `nodetool package`
 
-Manage TypeScript **node** packages — the packs that contribute node types to
-the registry. Not to be confused with [`nodetool packs`](#nodetool-packs),
-which installs, removes and diagnoses published node packs and runtime
-libraries, and compiles the sandbox packs a Code node imports.
+Scaffold TypeScript node packages and inspect local Python package metadata.
+`init` scaffolds a TypeScript package. `list`, `docs` and `node-docs` read
+Python package metadata files. `workflow-docs` reads workflow JSON files.
 
-Reach for it when you are authoring a node pack: `init` scaffolds one, `list`
-tells you what this install has, and the three `*-docs` commands generate the
-Markdown that ships with a pack.
+[`nodetool packs`](#nodetool-packs) installs, removes and diagnoses published
+node packs and runtime libraries, and compiles sandbox packs. Use
+`nodetool node list` and `nodetool node info <type>` to discover the TypeScript
+nodes available to this CLI.
 
 **Subcommands:** `list`, `init`, `docs`, `node-docs`, `workflow-docs`
 
 #### `nodetool package list`
 
-List the installed packages with their node counts, or the registry's catalog
-with `-a, --available`. `--json` prints the rows as JSON.
+List Python package metadata in the current directory and its workspaces,
+with node counts. `-a, --available` lists the shipped Python pack catalog.
+`--json` prints the rows as JSON. For installed TypeScript runtime packs use
+`nodetool packs list`. For executable node types use `nodetool node list`.
 
 ```bash
 nodetool package list
@@ -2653,9 +2733,11 @@ nodetool package init
 
 #### `nodetool package docs`, `node-docs`, `workflow-docs`
 
-Generate Markdown from the current package: `docs` writes one overview,
-`node-docs` writes a page per node, and `workflow-docs` documents the workflow
-JSONs a pack ships. Each takes `-v, --verbose`.
+Generate Markdown from local Python package metadata: `docs` writes one
+overview and `node-docs` writes a page per node. `workflow-docs` documents
+workflow JSON files. Each takes `-v, --verbose`. An empty `node-docs` result
+points to `nodetool node list` and `nodetool node info <type>` for installed
+TypeScript node metadata, including properties and outputs.
 
 **Options:**
 

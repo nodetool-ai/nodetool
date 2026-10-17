@@ -81,6 +81,8 @@ export function frameFor(
   const entityLights: {
     x: number;
     y: number;
+    previousX?: number;
+    previousY?: number;
     color: string;
     intensity: number;
     radius: number;
@@ -230,8 +232,15 @@ export function frameFor(
       const light = entity.light2d;
       const x = state.x + (light.offset?.x ?? 0);
       const y = state.y + (light.offset?.y ?? 0);
-      if (Math.abs(x - cameraX) - light.radius <= viewHalfWidth && Math.abs(y - cameraY) - light.radius <= viewHalfHeight) {
-        entityLights.push({
+      const previousX = state.previousX + (light.offset?.x ?? 0);
+      const previousY = state.previousY + (light.offset?.y ?? 0);
+      const previousRelativeX = previousX - (shownCamera.previousX ?? cameraX);
+      const previousRelativeY = previousY - (shownCamera.previousY ?? cameraY);
+      if (Math.min(previousRelativeX, x - cameraX) - light.radius <= viewHalfWidth &&
+        Math.max(previousRelativeX, x - cameraX) + light.radius >= -viewHalfWidth &&
+        Math.min(previousRelativeY, y - cameraY) - light.radius <= viewHalfHeight &&
+        Math.max(previousRelativeY, y - cameraY) + light.radius >= -viewHalfHeight) {
+        const projectedLight: (typeof entityLights)[number] = {
           x,
           y,
           color: light.color,
@@ -239,7 +248,10 @@ export function frameFor(
           radius: light.radius,
           falloff: light.falloff,
           distance: Math.hypot(x - cameraX, y - cameraY)
-        });
+        };
+        if (previousX !== x) { projectedLight.previousX = previousX; }
+        if (previousY !== y) { projectedLight.previousY = previousY; }
+        entityLights.push(projectedLight);
       }
     }
   }

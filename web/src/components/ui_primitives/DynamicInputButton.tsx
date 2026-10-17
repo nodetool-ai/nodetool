@@ -15,7 +15,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import { Button } from "@mui/material";
-import { MOTION } from "./tokens";
+import { BORDER_RADIUS, MOTION } from "./tokens";
+import { SPACING, getSpacingPx } from "./spacing";
 
 const styles = (theme: Theme) =>
   css({
@@ -28,8 +29,8 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       backgroundColor: "transparent",
       border: `1px dashed ${theme.vars.palette.grey[600]}`,
-      borderRadius: "var(--rounded-sm)",
-      padding: "4px 10px",
+      borderRadius: BORDER_RADIUS.sm,
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
       minWidth: 0,
       gap: 6,
       transition: `color ${MOTION.fast}, border-color ${MOTION.fast}, background-color ${MOTION.fast}`,

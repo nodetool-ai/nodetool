@@ -12,6 +12,8 @@ import {
   designTokensPlugin,
   noRestrictedImports,
   noRestrictedSyntax,
+  primitiveTokenFiles,
+  primitiveTokenIgnores,
 } from "./eslint.design.mjs";
 
 // Source files carry inline `// eslint-disable … <rule>` comments for rules
@@ -83,6 +85,39 @@ export default [
       // JSX url attribute renders nothing — media resolution is the rendering
       // boundary. Zero violations; locked in as an error. See
       // utils/resolveMediaUri.ts and scripts/test-media-src-rule.mjs.
+      "design-tokens/no-unresolved-media-src": "error",
+    },
+  },
+  {
+    // The primitive layer: every token rule above, without the raw-MUI and
+    // barrel-import rules, since primitives wrap MUI and import each other.
+    files: primitiveTokenFiles,
+    ignores: primitiveTokenIgnores,
+    plugins: { ...directiveStubs, "design-tokens": designTokensPlugin },
+    linterOptions: {
+      reportUnusedDisableDirectives: "off",
+    },
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: 2021,
+      sourceType: "module",
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+        project: null,
+      },
+    },
+    rules: {
+      "react-hooks/exhaustive-deps": "off",
+      "@typescript-eslint/no-require-imports": "off",
+      "no-restricted-syntax": noRestrictedSyntax,
+      "design-tokens/spacing-tokens": "error",
+      "design-tokens/font-size-tokens": "error",
+      "design-tokens/color-tokens": "error",
+      "design-tokens/font-family-tokens": "error",
+      "design-tokens/shadow-tokens": "error",
+      "design-tokens/border-radius-tokens": "error",
+      "design-tokens/zindex-tokens": "error",
+      "design-tokens/motion-tokens": "error",
       "design-tokens/no-unresolved-media-src": "error",
     },
   },

@@ -17,6 +17,7 @@ import { useTheme } from "@mui/material/styles";
 
 import { Box } from "./Box";
 import { BORDER_RADIUS, MOTION, Z_INDEX, reducedMotion } from "./tokens";
+import { SPACING } from "./spacing";
 
 export type DockZone = "center" | "top" | "bottom" | "left" | "right";
 
@@ -69,7 +70,7 @@ const DockDropOverlayBase = forwardRef<HTMLDivElement, DockDropOverlayProps>(fun
   const inset = ZONE_INSET[zone];
   return <Box ref={ref} aria-hidden data-dock-drop-zone={zone} sx={{
     position: "absolute", ...inset, pointerEvents: "none", zIndex: Z_INDEX.overlay,
-    m: "2px", borderRadius: BORDER_RADIUS.sm,
+    m: SPACING.micro, borderRadius: BORDER_RADIUS.sm,
     border: `1px solid ${theme.vars.palette.primary.main}`,
     bgcolor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.18)`,
     transition: `top ${MOTION.fast}, right ${MOTION.fast}, bottom ${MOTION.fast}, left ${MOTION.fast}`,

@@ -563,7 +563,7 @@ export class WebGPUGameRenderer implements GameRenderer {
       frame.camera.zoom, 0, 0, 0]);
     this.device.queue.writeBuffer(this.cameraBuffer, 0, camera);
     const sceneLighting = frame.lighting;
-    const lighting = gameLightingUniforms(frame);
+    const lighting = gameLightingUniforms(frame, interpolation);
     this.device.queue.writeBuffer(this.lightingBuffer, 0, lighting);
     if (count > 0 && this.instanceBuffer) {
       this.device.queue.writeBuffer(this.instanceBuffer, 0, instances);
