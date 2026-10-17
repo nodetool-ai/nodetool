@@ -168,6 +168,22 @@ describe("applyGeneratedMatteResult", () => {
     ]);
   });
 
+  it("records no version for a failed first run's marker", () => {
+    const failed = clip({
+      generatedMatte: {
+        ...MATTE,
+        assetId: "",
+        status: "failed",
+        error: "video too long"
+      }
+    });
+    const next = applyGeneratedMatteResult(failed, result);
+
+    expect(next.generatedMatte?.assetId).toBe("mask-2");
+    expect(next.generatedMatte?.versions).toBeUndefined();
+    expect(next.generatedMatte?.error).toBeUndefined();
+  });
+
   it("keeps the look knobs the user dialled in across a regenerate", () => {
     const tuned = clip({
       generatedMatte: { ...MATTE, invert: true, strength: 0.4, featherPx: 3 }

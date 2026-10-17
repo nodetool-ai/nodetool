@@ -51,11 +51,64 @@ export class ProviderQueueTerminalError extends Error {
     readonly state: Extract<ProviderQueueState, "failed" | "cancelled">,
     readonly observation?: ProviderQueueObservation
   ) {
+    const detail = describeProviderError(observation?.error);
     super(
-      `Provider queue request ${providerRequestId} did not succeed (${state})`
+      `Provider queue request ${providerRequestId} did not succeed (${state})${
+        detail ? `: ${detail}` : ""
+      }`
     );
     this.name = "ProviderQueueTerminalError";
   }
+}
+
+/** Longest provider error text carried into a message. */
+const MAX_PROVIDER_ERROR_CHARS = 500;
+
+/**
+ * A provider's error payload as one readable sentence, or undefined when it
+ * carries nothing to read. Accepts a string, a `{ message | msg | detail |
+ * error }` object, and a FastAPI-style validation list (`[{ loc, msg }]`),
+ * which is what a queue answers for an input the model rejected.
+ */
+export function describeProviderError(error: unknown): string | undefined {
+  const text = describe(error, 0)?.trim();
+  if (!text) return undefined;
+  return text.length > MAX_PROVIDER_ERROR_CHARS
+    ? `${text.slice(0, MAX_PROVIDER_ERROR_CHARS)}…`
+    : text;
+}
+
+function describe(error: unknown, depth: number): string | undefined {
+  if (error === null || error === undefined || depth > 3) return undefined;
+  if (typeof error === "string") return error;
+  if (typeof error === "number" || typeof error === "boolean") {
+    return String(error);
+  }
+  if (Array.isArray(error)) {
+    const parts = error
+      .map((item) => describe(item, depth + 1))
+      .filter((part): part is string => Boolean(part));
+    return parts.length > 0 ? parts.join("; ") : undefined;
+  }
+  if (typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const message = describe(
+      record.message ?? record.msg ?? record.detail ?? record.error,
+      depth + 1
+    );
+    if (message) {
+      const loc = Array.isArray(record.loc)
+        ? record.loc.filter((part) => part !== "body").join(".")
+        : undefined;
+      return loc ? `${loc}: ${message}` : message;
+    }
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
 }
 
 export interface ProviderQueueWaitOptions {

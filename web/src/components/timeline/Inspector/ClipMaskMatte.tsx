@@ -52,6 +52,7 @@ import {
   INSPECTOR_SECTION_CONTENT_SX
 } from "./InspectorPrimitives";
 import { TextCommitField } from "./InspectorMotionFields";
+import type { BugReportContext } from "../../../utils/bugReportBundle";
 
 const MASK_KINDS = [
   { value: "rect", label: "Rectangle" },
@@ -433,6 +434,14 @@ const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
     // result", not "is there a record".
     const result = matte && matte.assetId !== "" ? matte : undefined;
     const stale = isGeneratedMatteStale(clip);
+    const failureReport = useMemo(() => {
+      const report: BugReportContext = {
+        source: "job-failure",
+        summary: "Clip cutout failed"
+      };
+      if (matte?.error) report.errorText = matte.error;
+      return report;
+    }, [matte?.error]);
 
     const run = useCallback(
       async (regenerate: boolean) => {
@@ -539,12 +548,11 @@ const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
               <>
                 {status === "failed" && (
                   <ErrorBanner
-                    report={{
-                      source: "job-failure",
-                      summary: "Clip cutout failed"
-                    }}
+                    report={failureReport}
                   >
-                    The last run failed. Nothing was cut. Try again.
+                    {matte?.error
+                      ? `The last run failed: ${matte.error}`
+                      : "The last run failed. Nothing was cut. Try again."}
                   </ErrorBanner>
                 )}
                 <EditorButton

@@ -1587,7 +1587,8 @@ export const clipGeneratedMatte = z.object({
       })
     )
     .optional(),
-  status: z.enum(["ready", "generating", "failed"]).optional()
+  status: z.enum(["ready", "generating", "failed"]).optional(),
+  error: z.string().optional()
 });
 export type ClipGeneratedMatte = z.infer<typeof clipGeneratedMatte>;
 

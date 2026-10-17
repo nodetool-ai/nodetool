@@ -281,8 +281,61 @@ describe("isolate_subject", () => {
     expect(outcome.status).toBe("failed");
     expect(outcome.clip.generatedMatte).toMatchObject({
       assetId: "",
-      status: "failed"
+      status: "failed",
+      error: "no mask"
     });
+    // The reason is saved, so the inspector can name it after a reload.
+    expect(h.saved.at(-1)!.generatedMatte?.error).toBe("no mask");
+  });
+
+  it("names the new reason when a retry after a failed first run fails too", async () => {
+    const h = harness({
+      run: () => Promise.reject(new Error("video_url: too long"))
+    });
+    const failedBefore = videoClip({
+      generatedMatte: {
+        assetId: "",
+        sourceAssetId: "asset_src",
+        sourceRange: { fromMs: 0, toMs: 9000 },
+        settings: {},
+        status: "failed",
+        error: "first reason"
+      }
+    });
+
+    const outcome = outcomeOf(
+      await isolateSubjectOnClip(h.deps, input(failedBefore))
+    );
+
+    expect(outcome.clip.generatedMatte).toMatchObject({
+      status: "failed",
+      error: "video_url: too long"
+    });
+    // The in-flight marker drops the stale reason while the run is out.
+    expect(h.saved[0]!.generatedMatte?.error).toBeUndefined();
+  });
+
+  it("clears a failed run's reason once a retry succeeds", async () => {
+    const h = harness();
+    const failedBefore = videoClip({
+      generatedMatte: {
+        assetId: "",
+        sourceAssetId: "asset_src",
+        sourceRange: { fromMs: 0, toMs: 9000 },
+        settings: {},
+        status: "failed",
+        error: "first reason"
+      }
+    });
+
+    const outcome = outcomeOf(
+      await isolateSubjectOnClip(h.deps, input(failedBefore))
+    );
+
+    expect(outcome.status).toBe("ready");
+    expect(outcome.clip.generatedMatte?.error).toBeUndefined();
+    // The marker had no mask, so it is not a version to go back to.
+    expect(outcome.clip.generatedMatte?.versions).toBeUndefined();
   });
 
   it("reports a failed download the same way as a failed generation", async () => {

@@ -156,8 +156,65 @@ describe("FAL explicit queue adapter", () => {
 
     await expect(
       falSubmitAndWait(operations, { endpoint: "fal-ai/flux/dev", input: {} })
-    ).rejects.toThrow("did not succeed");
+    ).rejects.toThrow(
+      "Provider queue request req-error did not succeed (failed): model failed"
+    );
     expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  it("reads why a request failed from its result when the status only names the type", async () => {
+    const fetchFn = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ request_id: "req-422" }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          status: "COMPLETED",
+          request_id: "req-422",
+          error_type: "validation_error"
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            detail: [
+              {
+                loc: ["body", "video_url"],
+                msg: "Video is longer than 30 seconds",
+                type: "value_error"
+              }
+            ]
+          },
+          422
+        )
+      );
+    const operations = createFalQueueOperations({
+      apiKey: "secret",
+      fetchFn,
+      pollIntervalMs: 0
+    });
+
+    await expect(
+      falSubmitAndWait(operations, {
+        endpoint: "fal-ai/birefnet/v2/video",
+        input: {}
+      })
+    ).rejects.toThrow(
+      "Provider queue request req-422 did not succeed (failed): video_url: Video is longer than 30 seconds"
+    );
+    expect(fetchFn.mock.calls[2]?.[0]?.toString()).toBe(
+      "https://queue.fal.run/fal-ai/birefnet/requests/req-422"
+    );
+  });
+
+  it("names a rejected submission's validation detail", async () => {
+    const fetchFn = vi.fn<typeof fetch>().mockResolvedValue(
+      jsonResponse({ detail: [{ loc: ["body", "prompt"], msg: "required" }] }, 422)
+    );
+    const operations = createFalQueueOperations({ apiKey: "secret", fetchFn });
+
+    await expect(
+      operations.submit({ endpoint: "fal-ai/flux/dev", input: {} })
+    ).rejects.toThrow("FAL queue request failed (HTTP 422): prompt: required");
   });
 
   it("aborting a waiter does not issue a remote cancellation", async () => {

@@ -122,7 +122,8 @@ export function applyGeneratedMatteResult(
 ): TimelineClip {
   const previous = clip.generatedMatte;
   const versions: GeneratedMatteVersion[] = [];
-  if (previous) {
+  // A failed first run's marker has no mask, so there is no result to keep.
+  if (previous && previous.assetId !== "") {
     const displaced: GeneratedMatteVersion = {
       assetId: previous.assetId,
       sourceAssetId: previous.sourceAssetId,

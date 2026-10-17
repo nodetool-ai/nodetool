@@ -5,7 +5,10 @@ import type {
   ProviderQueueSubmission,
   ProviderQueueWaitOptions
 } from "./provider-queue.js";
-import { ProviderQueueTerminalError } from "./provider-queue.js";
+import {
+  ProviderQueueTerminalError,
+  describeProviderError
+} from "./provider-queue.js";
 
 export const FAL_QUEUE_ORIGIN = "https://queue.fal.run";
 export const FAL_PROVIDER_ID = "fal_ai";
@@ -120,14 +123,27 @@ async function readJson(response: Response): Promise<unknown> {
     }
   }
   if (!response.ok) {
-    const detail = isRecord(value) ? value.error : undefined;
-    throw new Error(
-      `FAL queue request failed (HTTP ${response.status})${
-        typeof detail === "string" ? `: ${detail}` : ""
-      }`
-    );
+    // FAL answers a rejected input with `{ detail: [{ loc, msg }] }` and
+    // most other failures with `{ error }`.
+    const detail = isRecord(value)
+      ? describeProviderError(value.error ?? value.detail)
+      : undefined;
+    throw new FalQueueHttpError(response.status, detail);
   }
   return value;
+}
+
+/** A non-2xx queue answer, keeping the provider's own reason apart. */
+class FalQueueHttpError extends Error {
+  constructor(
+    readonly status: number,
+    readonly detail: string | undefined
+  ) {
+    super(
+      `FAL queue request failed (HTTP ${status})${detail ? `: ${detail}` : ""}`
+    );
+    this.name = "FalQueueHttpError";
+  }
 }
 
 function resultData(value: unknown): Record<string, unknown> {
@@ -272,6 +288,29 @@ export function createFalQueueOperations(
     };
   };
 
+  /**
+   * Why a completed request failed. The status names it when it carries a
+   * message; otherwise the result endpoint does, answering the request's own
+   * error body (a validation `detail` list for an input the model rejected).
+   */
+  const failureDetail = async (
+    binding: ProviderQueueBinding,
+    envelope: Record<string, unknown>,
+    signal?: AbortSignal
+  ): Promise<unknown> => {
+    const message = envelope.error;
+    if (typeof message === "string" && message !== "") return message;
+    try {
+      await result(binding, signal);
+    } catch (resultError) {
+      if (resultError instanceof FalQueueHttpError && resultError.detail) {
+        return resultError.detail;
+      }
+      if (resultError instanceof Error) return resultError.message;
+    }
+    return statusError(envelope);
+  };
+
   const wait = async (
     binding: ProviderQueueBinding,
     waitOptions: ProviderQueueWaitOptions = {}
@@ -290,7 +329,10 @@ export function createFalQueueOperations(
           state,
           rawStatus
         };
-      const error = statusError(envelope);
+      const error =
+        state === "failed"
+          ? await failureDetail(binding, envelope, waitOptions.signal)
+          : statusError(envelope);
       const observation =
         error === undefined ? observationBase : { ...observationBase, error };
       waitOptions.onUpdate?.(observation);
