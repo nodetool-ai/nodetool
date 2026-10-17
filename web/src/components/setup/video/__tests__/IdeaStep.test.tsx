@@ -199,7 +199,7 @@ describe("video IdeaStep", () => {
     expect(screen.getByText(/kerb.png/)).toBeInTheDocument();
     expect(screen.getByText(/No track takes notes.pdf/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Say what to make of it below/)
+      screen.getByText(/Say what to make of it above/)
     ).toBeInTheDocument();
   });
 

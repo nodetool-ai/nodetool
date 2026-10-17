@@ -25,6 +25,9 @@ const AssetCreateFolderConfirmation: React.FC = () => {
   const setSelectedAssets = useAssetGridStore(
     (state) => state.setSelectedAssets
   );
+  const setFoldersVisible = useAssetGridStore(
+    (state) => state.setFoldersVisible
+  );
 
   const [folderName, setFolderName] = useState("New Folder");
   const [showAlert, setShowAlert] = useState<string | null>(null);
@@ -68,6 +71,8 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       const timer = setTimeout(() => {
         if (inputRef.current) {
           inputRef.current.focus();
+          // Typing replaces the default name instead of appending to it.
+          inputRef.current.select();
         }
       }, 10);
       return () => clearTimeout(timer);
@@ -143,6 +148,9 @@ const AssetCreateFolderConfirmation: React.FC = () => {
         });
       }
 
+      // The sidebar hides its folder tree by default. Show it, so the folder
+      // just made is on screen rather than behind a toggle.
+      setFoldersVisible(true);
       setDialogOpen(false);
       refetchAssetsAndFolders();
     } catch (error) {
@@ -161,6 +169,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     refetchAssetsAndFolders,
     setSelectedAssetIds,
     setSelectedAssets,
+    setFoldersVisible,
     projectId
   ]);
 

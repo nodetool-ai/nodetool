@@ -21,6 +21,8 @@ const DashboardExampleGames = lazy(
 
 interface StartExamplesProps {
   onBrowseAll: () => void;
+  /** Opens the Game guided flow from the Games tab. */
+  onMakeGame?: () => void;
 }
 
 const EXAMPLE_TABS = [
@@ -33,7 +35,7 @@ const EXAMPLE_TABS = [
   { value: "games", label: "Games" }
 ];
 
-const StartExamples = ({ onBrowseAll }: StartExamplesProps) => {
+const StartExamples = ({ onBrowseAll, onMakeGame }: StartExamplesProps) => {
   const [activeTab, setActiveTab] = useState("apps");
 
   return (
@@ -59,7 +61,7 @@ const StartExamples = ({ onBrowseAll }: StartExamplesProps) => {
         ) : activeTab === "models" ? (
           <DashboardExampleModels />
         ) : (
-          <DashboardExampleGames />
+          <DashboardExampleGames onMakeGame={onMakeGame} />
         )}
       </Suspense>
     </section>
