@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 
 import {
   BORDER_RADIUS,
@@ -29,7 +30,7 @@ import { useAuth } from "../../stores/useAuth";
 import NewProjectDialog from "./NewProjectDialog";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
 
-const selectorStyles = (theme: Theme, inline: boolean) =>
+const selectorStyles = (theme: Theme, inline: boolean, mobile: boolean) =>
   css({
     WebkitAppRegion: "no-drag",
     display: "flex",
@@ -77,23 +78,34 @@ const selectorStyles = (theme: Theme, inline: boolean) =>
       flexShrink: 0,
       lineHeight: 1
     },
-    [theme.breakpoints.down("sm")]: inline
-      ? {}
-      : {
-          "& .selector-name, & .selector-caret": { display: "none" },
-          "& .selector-button": {
-            justifyContent: "center",
-            minWidth: CONTROL.height.xl,
-            padding: `0 ${getSpacingPx(SPACING.md)}`
+    // The mobile header row names the project in full, so it is not
+    // collapsed to the glyph like the desktop selector on a narrow window.
+    [theme.breakpoints.down("sm")]:
+      inline || mobile
+        ? {}
+        : {
+            "& .selector-name, & .selector-caret": { display: "none" },
+            "& .selector-button": {
+              justifyContent: "center",
+              minWidth: CONTROL.height.xl,
+              padding: `0 ${getSpacingPx(SPACING.md)}`
+            }
           }
-        }
   });
 
 interface ProjectSelectorProps {
   inline?: boolean;
+  /**
+   * Mobile header variant: the button shows the project name, and the menu
+   * leads with the project home, which has no button of its own on a phone.
+   */
+  mobile?: boolean;
 }
 
-const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
+const ProjectSelector = ({
+  inline = false,
+  mobile = false
+}: ProjectSelectorProps) => {
   const anchorRef = useRef<HTMLButtonElement>(null);
   const theme = useTheme();
   const [open, setOpen] = useState(false);
@@ -179,6 +191,11 @@ const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
   }, [close]);
   const closeNewProject = useCallback(() => setNewProjectOpen(false), []);
 
+  const openProjectHome = useCallback(() => {
+    close();
+    openNewProjectTab();
+  }, [close, openNewProjectTab]);
+
   const needle = search.trim().toLowerCase();
   const visibleProjects = (projects ?? []).filter(
     (project) =>
@@ -186,20 +203,27 @@ const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
   );
 
   return (
-    <div css={selectorStyles(theme, inline)} className="project-selector">
+    <div
+      css={selectorStyles(theme, inline, mobile)}
+      className="project-selector"
+    >
       <button
         ref={anchorRef}
         type="button"
         className="selector-button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={inline ? `Selected project: ${name}` : "Select project"}
+        aria-label={
+          inline || mobile ? `Selected project: ${name}` : "Select project"
+        }
         onClick={() => setOpen((value) => !value)}
       >
         <span className="selector-glyph" aria-hidden>
           {PROJECT_GLYPH}
         </span>
-        <span className="selector-name">{inline ? name : "Project"}</span>
+        <span className="selector-name">
+          {inline || mobile ? name : "Project"}
+        </span>
         <span className="selector-caret" aria-hidden>
           ▾
         </span>
@@ -218,6 +242,14 @@ const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
           }
         }}
       >
+        {mobile && (
+          <MenuItemPrimitive
+            label="Project home"
+            icon={<HomeRoundedIcon />}
+            onClick={openProjectHome}
+            dividerAfter
+          />
+        )}
         {!inline && (
           <MenuItemPrimitive
             label="New project"
