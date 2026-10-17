@@ -1776,8 +1776,14 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "nodes",
     skill: "api-workflows",
     doc: `- \`nodetool.nodes\` — \`search(query)\` (→ \`{total, results}\`, the type is on
-  \`type\`), \`info(type)\`, \`list({namespace})\`, \`run(type, inputs)\` (one node,
-  no graph). NEVER guess a node type: search, then \`info\`.`
+  \`type\`), \`info(type)\`, \`list({namespace})\`. NEVER guess a node type:
+  search, then \`info\`.`,
+    // `run_node` is a chat-turn host capability: the MCP mount and the step
+    // executors carry the catalog tools without it.
+    extra: {
+      tools: ["run_node"],
+      doc: ` \`run(type, inputs)\` runs one node with no graph.`
+    }
   },
   {
     namespace: "agents",
