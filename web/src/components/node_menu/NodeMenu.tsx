@@ -359,10 +359,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
               </div>
             </FlexRow>
           </FlexColumn>
-          <NamespaceList
-            namespaceTree={namespaceTree}
-            metadata={searchResults}
-          />
+          <NamespaceList namespaceTree={namespaceTree} />
         </div>
       </Box>
       <ResizeHandle

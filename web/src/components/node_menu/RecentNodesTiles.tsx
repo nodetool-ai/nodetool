@@ -20,7 +20,7 @@ import { QUICK_ACTION_BUTTONS } from "./QuickActionTiles.constants";
 import { colorForType } from "../../config/data_types";
 import { IconForType } from "../../config/IconForType";
 
-const QUICK_ACTION_NODE_TYPES = new Set(
+const QUICK_ACTION_NODE_TYPES = new Set<string>(
   QUICK_ACTION_BUTTONS.map((action) => action.nodeType)
 );
 
