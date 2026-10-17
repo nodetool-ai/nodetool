@@ -317,7 +317,7 @@ const VideoItem: React.FC<{
         overflow: "hidden"
       }}
     >
-      <VideoPlayer locator={src} />
+      <VideoPlayer locator={src} label={filename ?? "Video"} />
     </Box>
     {download ? (
       <MediaDownloadButton

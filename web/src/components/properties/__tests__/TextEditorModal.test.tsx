@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import TextEditorModal from "../TextEditorModal";
@@ -66,5 +66,22 @@ describe("TextEditorModal", () => {
 
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith("edited");
+  });
+
+  it("picks the language from the select primitive, not a native select", () => {
+    const { container } = render(renderModal(jest.fn()));
+    expect(container.ownerDocument.querySelector("select")).toBeNull();
+
+    const language = screen.getByRole("combobox", { name: "Language" });
+    expect(language).toHaveTextContent("JSON");
+    fireEvent.mouseDown(language);
+    fireEvent.click(
+      within(screen.getByRole("listbox")).getByRole("option", {
+        name: "Python"
+      })
+    );
+    expect(
+      screen.getByRole("combobox", { name: "Language" })
+    ).toHaveTextContent("Python");
   });
 });

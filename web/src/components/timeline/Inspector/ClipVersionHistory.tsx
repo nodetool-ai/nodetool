@@ -261,6 +261,8 @@ const VersionTile: React.FC<VersionTileProps> = memo(
                 muted
                 playsInline
                 preload="metadata"
+                // A still for the tile; the button around it carries the name.
+                aria-hidden
               />
             )}
             {isAudio && (

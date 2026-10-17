@@ -38,6 +38,7 @@ const VideoViewer: React.FC<VideoViewerProps> = memo(function VideoViewer({ asse
         playsInline
         preload="metadata"
         src={asset?.get_url || url || ""}
+        aria-label={asset?.name || "Video"}
       >
         Your browser does not support the video element.
       </video>
