@@ -182,15 +182,12 @@ def ask_anthropic(query, key, model):
     headers = {
         "x-api-key": key,
         "anthropic-version": "2023-06-01",
-        # Server-side fallback reruns a declined request on another model.
-        "anthropic-beta": "server-side-fallback-2026-07-01",
     }
     messages = [{"role": "user", "content": query}]
     body = {
         "model": model,
         "max_tokens": 16000,
         "output_config": {"effort": "medium"},
-        "fallbacks": "default",
         "tools": [{"type": "web_search_20260209", "name": "web_search", "max_uses": 5}],
         "messages": messages,
     }
