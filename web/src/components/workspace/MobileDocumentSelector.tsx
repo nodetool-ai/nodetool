@@ -28,13 +28,16 @@ import {
   StatusDot,
   getSpacingPx
 } from "../ui_primitives";
-import { tabDisplayTitle } from "./tabTypeIdentity";
+import { PROJECT_HOME_GLYPH, tabDisplayTitle } from "./tabTypeIdentity";
+import { PROJECT_COLOR } from "../projects/projectIdentity";
 
 interface MobileDocumentSelectorProps {
   tabs: WorkspaceTab[];
   activeTabId: string | null;
   typeColor: Record<WorkspaceTabType, string>;
   typeGlyph: Record<WorkspaceTabType, string>;
+  /** The project home is showing, which is not one of the listed documents. */
+  homeIsActive?: boolean;
   onActivate: (tabId: string) => void;
   onClose: (tab: WorkspaceTab) => void;
   onCloseAll: () => void;
@@ -131,11 +134,7 @@ const DocumentStatus = memo(function DocumentStatus({
   return (
     <>
       {isRunning && !instantUpdate && (
-        <LoadingSpinner
-          inline
-          size={14}
-          color="primary"
-        />
+        <LoadingSpinner inline size={14} color="primary" />
       )}
       {isDirty && (
         <StatusDot tone="warning" size="medium" label="unsaved changes" />
@@ -155,6 +154,7 @@ const MobileDocumentSelector = ({
   activeTabId,
   typeColor,
   typeGlyph,
+  homeIsActive = false,
   onActivate,
   onClose,
   onCloseAll
@@ -195,20 +195,34 @@ const MobileDocumentSelector = ({
         aria-label={
           activeTab
             ? `Open document: ${tabDisplayTitle(activeTab)}`
-            : "Open documents"
+            : homeIsActive
+              ? "Project home, switch document"
+              : "Open documents"
         }
         onClick={() => setOpen(true)}
       >
-        {activeTab && (
+        {activeTab ? (
           <span className="glyph" style={{ color: typeColor[activeTab.type] }}>
             {typeGlyph[activeTab.type]}
           </span>
+        ) : (
+          homeIsActive && (
+            <span className="glyph" style={{ color: PROJECT_COLOR }}>
+              {PROJECT_HOME_GLYPH}
+            </span>
+          )
         )}
         <span className="doc-title">
-          {activeTab ? tabDisplayTitle(activeTab) : "No document open"}
+          {activeTab
+            ? tabDisplayTitle(activeTab)
+            : homeIsActive
+              ? "Project home"
+              : "No document open"}
         </span>
         {activeTab && <DocumentStatus tab={activeTab} />}
-        {tabs.length > 1 && <span className="doc-count">{tabs.length}</span>}
+        {tabs.length > 1 && (
+          <span className="doc-count">{tabs.length} open</span>
+        )}
         <ExpandMoreRoundedIcon className="caret" aria-hidden />
       </button>
 
@@ -220,8 +234,8 @@ const MobileDocumentSelector = ({
       >
         <div css={listStyles}>
           {tabs.length === 0 && (
-            <Caption color="secondary" sx={{ px: 2.5, py: 2 }}>
-              No documents open — use + to open or create one.
+            <Caption color="secondary" sx={{ px: SPACING.xl, py: SPACING.md }}>
+              No documents open. Tap New to open or create one.
             </Caption>
           )}
           <List dense disablePadding>

@@ -53,10 +53,10 @@ jest.mock("../../../trpc/client", () => {
 
 import ProjectSelector from "../ProjectSelector";
 
-const renderSelector = (inline = false) =>
+const renderSelector = (inline = false, mobile = false) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <ProjectSelector inline={inline} />
+      <ProjectSelector inline={inline} mobile={mobile} />
     </ThemeProvider>
   );
 
@@ -130,6 +130,21 @@ describe("ProjectSelector", () => {
       "personal:u1"
     );
     expect(useWorkspaceTabsStore.getState().activeTabId).toBeNull();
+  });
+
+  it("names the project and offers its home in the mobile header", async () => {
+    const user = userEvent.setup();
+    useWorkspaceTabsStore.getState().setActiveProjectId("b");
+    renderSelector(false, true);
+
+    await user.click(
+      screen.getByRole("button", { name: "Selected project: Beacon" })
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Project home" }));
+
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(
+      "project-new:new"
+    );
   });
 
   it("labels the tab bar selector Project", () => {

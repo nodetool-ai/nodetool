@@ -74,7 +74,6 @@ const SUPPORTS_BOTH_MODES = {
   "project-new": false
 } satisfies Record<WorkspaceTabType, boolean>;
 
-
 const styles = (theme: Theme) =>
   css({
     display: "flex",
@@ -280,8 +279,13 @@ const styles = (theme: Theme) =>
         cursor: "pointer",
         fontSize: "var(--fontSizeSmaller)",
         padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
-        "&:first-of-type": { borderRadius: `${BORDER_RADIUS.sm} 0 0 ${BORDER_RADIUS.sm}`, borderRight: "none" },
-        "&:last-of-type": { borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0` },
+        "&:first-of-type": {
+          borderRadius: `${BORDER_RADIUS.sm} 0 0 ${BORDER_RADIUS.sm}`,
+          borderRight: "none"
+        },
+        "&:last-of-type": {
+          borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0`
+        },
         "&.on": {
           color: theme.vars.palette.primary.contrastText,
           backgroundColor: theme.vars.palette.primary.main,
@@ -322,50 +326,54 @@ const styles = (theme: Theme) =>
       }
     },
 
-    // Mobile: no left rail to clear, and the bar grows to 48px so the global
-    // 44px touch-target minimum fits inside it. The tab strip is replaced by a
-    // single document selector (see MobileDocumentSelector); text labels drop
-    // to icons.
-    [theme.breakpoints.down("sm")]: {
-      height: "48px",
+    // Mobile: no left rail to clear. The bar stacks 48px rows so the global
+    // 44px touch-target minimum fits and every control keeps its text label
+    // (see the isMobile branch of WorkspaceTabBar).
+    "&.is-mobile": {
+      height: "auto",
+      flexDirection: "column",
       paddingLeft: 0,
-      "&.has-document-actions": {
-        height: "auto",
-        flexWrap: "wrap",
-        "& > .mobile-rail-launcher, & > .project-selector, & > .home-button, & > .new-tab, & > .document-selector": {
-          height: "48px"
-        },
-        "& .document-actions": {
-          flexBasis: "100%",
-          minWidth: 0,
-          minHeight: "48px",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
+      "& .mobile-row": {
+        display: "flex",
+        alignItems: "stretch",
+        minWidth: 0,
+        height: "48px",
+        "& + .mobile-row": {
           borderTop: `1px solid ${theme.vars.palette.divider}`
-        },
-        "& .right-actions": {
-          maxWidth: "100%",
-          flexShrink: 1,
-          flexWrap: "wrap",
-          marginLeft: "auto"
         }
       },
-      "& .new-tab": {
-        justifyContent: "center",
-        minWidth: CONTROL.height.xl,
-        padding: `0 ${getSpacingPx(SPACING.md)}`
+      "& .app-row .project-selector": {
+        flex: 1,
+        minWidth: 0,
+        maxWidth: "none"
       },
-      // The project name yields width to the document selector, which is
-      // the control a phone user reaches for most.
-      "& .home-button": {
-        padding: `0 ${getSpacingPx(SPACING.md)}`,
-        maxWidth: "30vw"
+      "& .app-row .right-actions": {
+        gap: 0,
+        paddingRight: getSpacingPx(SPACING.xs),
+        "& .MuiIconButton-root, & .MuiButtonBase-root": {
+          minWidth: CONTROL.height.xl,
+          width: CONTROL.height.xl,
+          height: CONTROL.height.xl
+        },
+        "& svg, & .MuiSvgIcon-root": {
+          width: "20px",
+          height: "20px"
+        }
       },
-      "& .new-tab .new-tab-label, & .new-tab .new-tab-caret": {
-        display: "none"
+      "& .document-row .new-tab": {
+        borderRight: "none",
+        borderLeft: `1px solid ${theme.vars.palette.divider}`,
+        color: theme.vars.palette.primary.main,
+        padding: `0 ${getSpacingPx(SPACING.lg)}`,
+        "& .new-tab-caret": { display: "none" }
       },
-      "& .mode-toggle": {
+      "& .document-row .mode-toggle": {
         padding: `0 ${getSpacingPx(SPACING.sm)}`
+      },
+      "& .actions-row .right-actions": {
+        flex: 1,
+        justifyContent: "flex-end",
+        overflowX: "auto"
       }
     }
   });
@@ -577,16 +585,103 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     ]
   );
 
+  const newTabButton = (
+    <button
+      ref={newTabButtonRef}
+      type="button"
+      className="new-tab"
+      aria-label="Open or create a tab"
+      aria-haspopup="menu"
+      aria-expanded={menuOpen}
+      onClick={() => setMenuOpen((v) => !v)}
+    >
+      <span className="new-tab-plus" aria-hidden>
+        +
+      </span>
+      <span className="new-tab-label">New</span>
+      <span className="new-tab-caret" aria-hidden>
+        ▾
+      </span>
+    </button>
+  );
+
+  const openMenu = (
+    <OpenMenu
+      anchorEl={newTabButtonRef.current}
+      open={menuOpen}
+      onClose={() => setMenuOpen(false)}
+    />
+  );
+
+  const modeToggle = activeTab && SUPPORTS_BOTH_MODES[activeTab.type] && (
+    <div className="mode-toggle">
+      <button
+        type="button"
+        className={activeTab.mode === "view" ? "on" : ""}
+        aria-pressed={activeTab.mode === "view"}
+        onClick={() => setMode(activeTab.id, "view")}
+      >
+        View
+      </button>
+      <button
+        type="button"
+        className={activeTab.mode === "edit" ? "on" : ""}
+        aria-pressed={activeTab.mode === "edit"}
+        onClick={() => setMode(activeTab.id, "edit")}
+      >
+        Edit
+      </button>
+    </div>
+  );
+
+  if (isMobile) {
+    // Phones get two labelled rows instead of one strip of glyphs: the top
+    // row says where you are (menu, project, app status), the second says
+    // what you are looking at (current document, New). Document-specific
+    // actions, when a document supplies them, take a third row.
+    return (
+      <div css={tabBarStyles} className="workspace-tabbar is-mobile">
+        <div className="mobile-row app-row">
+          {/* The sheet this opens is mobile's one navigation surface:
+            document categories plus the app pages the desktop logo menu
+            holds. */}
+          <MobileRailLauncher />
+          <ProjectSelector mobile />
+          <div className="right-actions">
+            <ActivityIndicator />
+            <NotificationButton />
+            <SettingsHeaderButton />
+          </div>
+        </div>
+        <div className="mobile-row document-row">
+          <MobileDocumentSelector
+            tabs={visibleTabs}
+            activeTabId={activeTabId}
+            typeColor={TYPE_COLOR}
+            typeGlyph={TYPE_GLYPH}
+            homeIsActive={homeIsActive}
+            onActivate={setActiveTab}
+            onClose={handleClose}
+            onCloseAll={handleCloseAll}
+          />
+          {modeToggle}
+          {newTabButton}
+        </div>
+        {headerActions && (
+          <div className="mobile-row actions-row">
+            <div className="right-actions">{headerActions}</div>
+          </div>
+        )}
+        {openMenu}
+      </div>
+    );
+  }
+
   return (
     <div
       css={tabBarStyles}
       className={`workspace-tabbar${headerActions || (activeTab && SUPPORTS_BOTH_MODES[activeTab.type]) ? " has-document-actions" : ""}`}
     >
-      {/* Mobile has no vertical rail, so the panel toggle rides along in the
-        top row instead of floating over the content. The sheet it opens is
-        mobile's one navigation surface — document categories plus the app
-        pages the desktop logo menu holds. */}
-      {isMobile && <MobileRailLauncher />}
       <ProjectSelector />
       {editingHome ? (
         <div className="home-button active">
@@ -632,89 +727,38 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
           }}
         />
       </ContextMenu>
-      <button
-        ref={newTabButtonRef}
-        type="button"
-        className="new-tab"
-        aria-label="Open or create a tab"
-        aria-haspopup="menu"
-        aria-expanded={menuOpen}
-        onClick={() => setMenuOpen((v) => !v)}
-      >
-        <span className="new-tab-plus" aria-hidden>
-          +
-        </span>
-        <span className="new-tab-label">New</span>
-        <span className="new-tab-caret" aria-hidden>
-          ▾
-        </span>
-      </button>
-      {isMobile ? (
-        <MobileDocumentSelector
-          tabs={visibleTabs}
-          activeTabId={activeTabId}
-          typeColor={TYPE_COLOR}
-          typeGlyph={TYPE_GLYPH}
-          onActivate={setActiveTab}
-          onClose={handleClose}
-          onCloseAll={handleCloseAll}
-        />
-      ) : (
-        <div className="tabs">
-          {visibleTabs.map((tab) => (
-            <Fragment key={tab.id}>
-              <WorkspaceTabItem
-                tab={tab}
-                isActive={tab.id === activeTabId}
-                isEditing={editingTabId === tab.id}
-                canRename={tabCanRename(tab.type)}
-                dropPosition={
-                  dropTarget?.id === tab.id ? dropTarget.position : null
-                }
-                onActivate={setActiveTab}
-                onBeginRename={handleBeginRename}
-                onClose={handleClose}
-                onCloseOthers={handleCloseOthers}
-                onCloseAll={handleCloseAll}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onCommitRename={commitRename}
-                onCancelRename={handleCancelRename}
-              />
-            </Fragment>
-          ))}
-        </div>
-      )}
+      {newTabButton}
+      <div className="tabs">
+        {visibleTabs.map((tab) => (
+          <Fragment key={tab.id}>
+            <WorkspaceTabItem
+              tab={tab}
+              isActive={tab.id === activeTabId}
+              isEditing={editingTabId === tab.id}
+              canRename={tabCanRename(tab.type)}
+              dropPosition={
+                dropTarget?.id === tab.id ? dropTarget.position : null
+              }
+              onActivate={setActiveTab}
+              onBeginRename={handleBeginRename}
+              onClose={handleClose}
+              onCloseOthers={handleCloseOthers}
+              onCloseAll={handleCloseAll}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onCommitRename={commitRename}
+              onCancelRename={handleCancelRename}
+            />
+          </Fragment>
+        ))}
+      </div>
 
-      <OpenMenu
-        anchorEl={newTabButtonRef.current}
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-      />
+      {openMenu}
 
       <div className="document-actions">
-        {activeTab && SUPPORTS_BOTH_MODES[activeTab.type] && (
-          <div className="mode-toggle">
-            <button
-              type="button"
-              className={activeTab.mode === "view" ? "on" : ""}
-              aria-pressed={activeTab.mode === "view"}
-              onClick={() => setMode(activeTab.id, "view")}
-            >
-              View
-            </button>
-            <button
-              type="button"
-              className={activeTab.mode === "edit" ? "on" : ""}
-              aria-pressed={activeTab.mode === "edit"}
-              onClick={() => setMode(activeTab.id, "edit")}
-            >
-              Edit
-            </button>
-          </div>
-        )}
+        {modeToggle}
 
         <div className="right-actions">
           {headerActions}

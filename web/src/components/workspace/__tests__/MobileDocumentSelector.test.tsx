@@ -68,7 +68,7 @@ describe("MobileDocumentSelector", () => {
   it("names the active document and its sibling count", () => {
     renderSelector();
     expect(screen.getByRole("button", { name: /Alpha/ })).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("2 open")).toBeInTheDocument();
   });
 
   it("switches documents from the sheet", async () => {
@@ -91,6 +91,13 @@ describe("MobileDocumentSelector", () => {
     const user = await openSheet();
     await user.click(screen.getByRole("button", { name: "Close all documents" }));
     expect(props.onCloseAll).toHaveBeenCalled();
+  });
+
+  it("names the project home when it is showing", () => {
+    renderSelector({ activeTabId: null, homeIsActive: true });
+    expect(
+      screen.getByRole("button", { name: "Project home, switch document" })
+    ).toHaveTextContent("Project home");
   });
 
   it("says so when nothing is open", () => {
