@@ -39,11 +39,14 @@ services:
     # (Python bridge, code runners), so `docker stop` shuts down cleanly.
     init: true
     ports:
-      # ⚠️  Published on 0.0.0.0 — reachable from your whole LAN. In Local mode
-      # that means no-login admin access to anyone who can hit this port. To
-      # restrict it to just this machine, bind to loopback:
-      #     - "127.0.0.1:${NODETOOL_PORT:-17777}:7777"
-      - "${NODETOOL_PORT:-17777}:7777"
+      # Published on loopback only, so just this machine can reach it. Docker
+      # forwards a published-port connection from the bridge or Desktop VM
+      # gateway, which NODETOOL_TRUST_LOCAL_NETWORKS below trusts as the admin
+      # user, so publishing on 0.0.0.0 would give everyone on your LAN (cafe
+      # Wi-Fi included) no-login admin access. To serve other devices, set
+      # NODETOOL_BIND=0.0.0.0 AND enable Supabase auth, or clear
+      # NODETOOL_TRUST_LOCAL_NETWORKS and use access tokens.
+      - "${NODETOOL_BIND:-127.0.0.1}:${NODETOOL_PORT:-17777}:7777"
     volumes:
       - nodetool-data:/workspace
     # Every key in .env reaches the server (Supabase login, storage, extra
@@ -108,14 +111,17 @@ services:
       # │  password. ANYONE who can reach the published port from one of      │
       # │  these ranges gets full control of your data, secrets & API keys.   │
       # │                                                                     │
-      # │  172.16.0.0/12  ✅ DEFAULT — Docker's Linux bridge range. Host + LAN │
-      # │                    clients reach the app through the port mapping,  │
-      # │                    but nothing off the Docker bridge is trusted.    │
+      # │  172.16.0.0/12  ✅ DEFAULT — Docker's Linux bridge range. Every     │
+      # │                    published-port connection arrives from the       │
+      # │                    bridge gateway, whoever sent it, so this trusts  │
+      # │                    whatever can reach the port. Safe only with the  │
+      # │                    loopback binding above. It also trusts the       │
+      # │                    other containers on the host.                    │
       # │                                                                     │
       # │  192.168.65.0/24 ✅ DEFAULT — Docker Desktop's VM gateway subnet     │
       # │                    (macOS/Windows). Published-port traffic arrives  │
-      # │                    from 192.168.65.1, not the bridge gateway. Only   │
-      # │                    the Desktop VM itself lives in this subnet.      │
+      # │                    from 192.168.65.1, whoever sent it. Same rule:   │
+      # │                    safe only with the loopback binding above.       │
       # │                                                                     │
       # │  0.0.0.0/0      🚫 DO NOT USE on a public IP. Trusts EVERY source —  │
       # │                    the entire internet if the port is reachable.    │
@@ -125,6 +131,10 @@ services:
       # │     this list — enable real logins with Supabase auth below.        │
       # └────────────────────────────────────────────────────────────────────┘
       NODETOOL_TRUST_LOCAL_NETWORKS: "${NODETOOL_TRUST_LOCAL_NETWORKS:-172.16.0.0/12,192.168.65.0/24}"
+      # The bypass above applies only when the browser's Host is localhost or
+      # an IP address. If you open NodeTool by a DNS name (nodetool.lan), list
+      # it here, comma-separated. See docs/authentication.md#host-check.
+      NODETOOL_ALLOWED_HOSTS: "${NODETOOL_ALLOWED_HOSTS:-}"
 
       # To require login (multi-user or remote access), set these in .env (the
       # env_file above forwards them) or uncomment them here. Point them at

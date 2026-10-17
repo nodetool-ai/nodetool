@@ -30,6 +30,7 @@ import type {
 } from "@nodetool-ai/agents";
 import { registerAgentMcpTools, toToolResponse } from "../src/mcp-agent-tools.js";
 import { createMissingPackError } from "@nodetool-ai/node-catalog";
+import { BaseNode, NodeRegistry, prop } from "@nodetool-ai/node-sdk";
 
 const scope = { userId: "1", source: "stdio-local" as const };
 
@@ -239,4 +240,54 @@ describe("MCP installed authoring discovery", () => {
       setProcessSandboxModuleCatalog(previous);
     }
   }, 60_000);
+});
+
+describe("MCP run_node", () => {
+  class Shout extends BaseNode {
+    static readonly nodeType = "test.mcp.Shout";
+    static readonly title = "Shout";
+    static readonly description = "Upper-cases its text on two slots";
+    static readonly metadataOutputTypes = { loud: "str", length: "int" };
+
+    @prop({ type: "str", default: "" })
+    declare text: string;
+
+    async process(): Promise<Record<string, unknown>> {
+      return { loud: this.text.toUpperCase(), length: this.text.length };
+    }
+  }
+
+  class Output extends BaseNode {
+    static readonly nodeType = "nodetool.output.Output";
+    static readonly title = "Output";
+    static readonly description = "Workflow output";
+    static readonly metadataOutputTypes = { output: "any" };
+
+    @prop({ type: "str", default: "" })
+    declare name: string;
+
+    @prop({ type: "any", default: null })
+    declare value: unknown;
+
+    async process(): Promise<Record<string, unknown>> {
+      return { output: this.value };
+    }
+  }
+
+  // The sandbox documented `nodetool.nodes.run()` on this mount, and the call
+  // threw "tool run_node is not in this toolbelt": only a chat turn supplied it.
+  it("runs one node from an execute_code action and answers by slot", async () => {
+    const registry = new NodeRegistry();
+    registry.register(Shout);
+    registry.register(Output);
+    const server = newServer();
+    registerAgentMcpTools(server, { agentToolsScope: scope, registry });
+
+    const response = await callTool(server, "execute_code", {
+      code: 'return await nodetool.nodes.run("test.mcp.Shout", { text: "hey" });'
+    });
+    const observation = JSON.parse(response.content[0].text ?? "{}");
+    expect(observation.ok, observation.error).toBe(true);
+    expect(observation.result).toEqual({ loud: "HEY", length: 3 });
+  });
 });

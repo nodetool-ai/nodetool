@@ -33,7 +33,7 @@ docker compose up -d
 ```
 
 The server binds to `0.0.0.0:7777` inside the container and is published on the
-host as `${NODETOOL_PORT:-17777}`. All persistent state — SQLite database,
+host's loopback interface as `127.0.0.1:${NODETOOL_PORT:-17777}`. All persistent state — SQLite database,
 assets, vector store, model cache, and the generated secret key — lives under
 `/workspace`, backed by the named `nodetool-data` volume, so it survives
 restarts and image upgrades.
@@ -45,6 +45,8 @@ Common overrides (set in `.env` or the shell):
 | `NODETOOL_IMAGE` | `ghcr.io/nodetool-ai/nodetool:${NODETOOL_VERSION}` | Full image reference. Set it to run a locally built image (for example `nodetool:dev`) |
 | `NODETOOL_VERSION` | `latest` | Image tag to pull (pin a release in production) |
 | `NODETOOL_PORT` | `17777` | Host port mapped to the container's `7777` |
+| `NODETOOL_BIND` | `127.0.0.1` | Host address the port is published on. Docker forwards every published-port connection from the bridge or Desktop VM gateway, which `NODETOOL_TRUST_LOCAL_NETWORKS` trusts, so `0.0.0.0` gives every device that can reach the port no-login admin access. Set `0.0.0.0` only together with Supabase auth, or with `NODETOOL_TRUST_LOCAL_NETWORKS` cleared and access tokens in use |
+| `NODETOOL_ALLOWED_HOSTS` | unset | DNS names you open the app by, beyond `localhost` and IP addresses. See [Authentication → Host check](authentication.md#host-check) |
 | `NODETOOL_TRUST_LOCAL_NETWORKS` | `172.16.0.0/12,192.168.65.0/24` | ⚠️ Source CIDRs trusted as user `1` **without a login** (Local mode). Docker's Linux bridge plus Docker Desktop's VM gateway subnet by default — **never `0.0.0.0/0`** on a public IP. Ignored in Supabase mode |
 | `SECRETS_MASTER_KEY` | generated on first start | 32-byte base64 key encrypting stored secrets. If unset, the image entrypoint generates one and stores it in `/workspace/.secrets_master_key` (override the path with `SECRETS_MASTER_KEY_FILE`). The line is commented out in the compose file, so uncomment it to pass your own (`openssl rand -base64 32`) |
 | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `FAL_API_KEY`, `HF_TOKEN` | unset | Model provider keys |

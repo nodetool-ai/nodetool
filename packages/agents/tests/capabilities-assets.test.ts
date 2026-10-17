@@ -253,6 +253,32 @@ describe("assets capabilities against the database", () => {
     expect(searched.assets.map((a) => a.asset_id)).toContain(asset.id);
   });
 
+  it("finds a loose asset after the web app moves it into Personal", async () => {
+    // An MCP run has no project, so its generation saves to the loose bucket.
+    // The web app's next resource read claims that row for Personal.
+    const asset = (await Asset.create({
+      user_id: USER,
+      name: "fox.png",
+      content_type: "image/png"
+    })) as Asset;
+    await Project.migrateToPersonal(USER);
+    const personal = await Project.ensurePersonal(USER);
+    expect((await Asset.find(USER, asset.id))?.project_id).toBe(personal.id);
+
+    const ctx = makeContext();
+    expect(
+      await asTool("get_asset", ctx).process(ctx, { asset_id: asset.id })
+    ).toMatchObject({ id: asset.id });
+    const images = (await asTool("list_images", ctx).process(ctx, {})) as {
+      images: Array<{ image_id: string }>;
+    };
+    expect(images.images.map((image) => image.image_id)).toContain(asset.id);
+    const listed = (await asTool("list_assets", ctx).process(ctx, {})) as {
+      assets: Array<{ id: string }>;
+    };
+    expect(listed.assets.map((entry) => entry.id)).toContain(asset.id);
+  });
+
   it("moves an asset under a folder named by its short id", async () => {
     const folder = (await Asset.create({
       user_id: USER,

@@ -619,6 +619,37 @@ describe("timeline router", () => {
       expect(got.tempo).toEqual(tempo);
     });
 
+    it("persists the master channel through update and keeps it when a save omits it", async () => {
+      TS.findById.mockResolvedValue(makeSeq());
+      let savedDocumentJson = "";
+      TS.update.mockImplementation((_id, fields) => {
+        savedDocumentJson = (fields as { document: string }).document;
+        return Promise.resolve(makeSeq({ document: savedDocumentJson }));
+      });
+      const caller = createCaller(makeCtx());
+      const master = {
+        volumeDb: -4.5,
+        effects: [{ id: "fx1", type: "gain" as const, enabled: true, gainDb: -2 }]
+      };
+      await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], clips: [], markers: [], master }
+      });
+      expect(JSON.parse(savedDocumentJson).master).toEqual(master);
+
+      TS.findById.mockResolvedValue(
+        makeSeq({ id: "seq-1", document: savedDocumentJson })
+      );
+      const got = await caller.timeline.get({ id: "seq-1" });
+      expect(got.master).toEqual(master);
+
+      await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], clips: [], markers: [] }
+      });
+      expect(JSON.parse(savedDocumentJson).master).toEqual(master);
+    });
+
     it("persists a clip's speaker and paragraphId through the round-trip", async () => {
       TS.findById.mockResolvedValue(makeSeq());
       TS.update.mockResolvedValue(makeSeq());

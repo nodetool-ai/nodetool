@@ -12,6 +12,13 @@ import { describe, expect, it } from "vitest";
 import { QUANTIZE_DIVISION_VALUES } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import {
   MIDI_MAX_NOTES_PER_CLIP as PROTOCOL_MAX_NOTES,
+  chordQuality,
+  clipHarmony,
+  timelineChord,
+  timelineClip,
+  timelineTrack,
+  type ClipHarmony as ProtocolClipHarmony,
+  type TimelineChord as ProtocolTimelineChord,
   midiInstrument,
   midiNote,
   timelineTempo,
@@ -24,7 +31,16 @@ import { MIDI_INSTRUMENT_PRESETS } from "../src/midi/presets.js";
 import { DEFAULT_TEMPO } from "../src/midi/tempo.js";
 import { MIDI_MAX_NOTES_PER_CLIP } from "../src/midi/notes.js";
 import { QUANTIZE_DIVISIONS } from "../src/midi/edit.js";
-import type { MidiInstrument, MidiNote, TimelineTempo } from "../src/types.js";
+import { CHORD_QUALITY_IDS } from "../src/harmony/chords.js";
+import { DEFAULT_CLIP_HARMONY } from "../src/harmony/expand.js";
+import { SCALE_IDS } from "../src/harmony/scales.js";
+import type {
+  ClipHarmony,
+  MidiInstrument,
+  MidiNote,
+  TimelineChord,
+  TimelineTempo
+} from "../src/types.js";
 
 // Both directions: a field on one side and not the other breaks compilation.
 const noteThere: ProtocolMidiNote = {
@@ -42,6 +58,23 @@ const instrumentBack: MidiInstrument = instrumentThere;
 
 const tempoThere: ProtocolTimelineTempo = DEFAULT_TEMPO satisfies TimelineTempo;
 const tempoBack: TimelineTempo = tempoThere;
+
+const chordThere: ProtocolTimelineChord = {
+  id: "ch1",
+  startTick: 0,
+  durationTick: 3840,
+  root: 9,
+  quality: "m7",
+  inversion: 1
+} satisfies TimelineChord;
+const chordBack: TimelineChord = chordThere;
+
+const harmonyThere: ProtocolClipHarmony = {
+  ...DEFAULT_CLIP_HARMONY,
+  chordTrackId: "chords",
+  scaleKey: 9
+} satisfies ClipHarmony;
+const harmonyBack: ClipHarmony = harmonyThere;
 
 describe("midi types match the protocol schemas", () => {
   it("parses the engine's own values through the protocol schemas", () => {
@@ -66,6 +99,26 @@ describe("midi types match the protocol schemas", () => {
     expect(
       new Set(MIDI_INSTRUMENT_PRESETS.map((p) => p.instrument.type))
     ).toEqual(new Set(["subtractive", "wavetable", "bass", "drum", "sampler"]));
+  });
+
+  it("parses chord tracks and clip harmony through the protocol schemas", () => {
+    expect(timelineChord.parse(chordBack)).toEqual(chordThere);
+    expect(clipHarmony.parse(harmonyBack)).toEqual(harmonyThere);
+    expect(clipHarmony.parse({ style: "comp", input: "notes" })).toEqual({ style: "comp", input: "notes" });
+    const track = timelineTrack.parse({
+      id: "chords", name: "Chords", type: "chord", index: 0, visible: true, locked: false, chords: [chordBack]
+    });
+    expect(track.chords).toEqual([chordThere]);
+    const clip = timelineClip.parse({
+      id: "c", trackId: "m", name: "Arp", startMs: 0, durationMs: 2000, mediaType: "midi",
+      sourceType: "imported", status: "draft", versions: [], locked: false, harmony: harmonyBack
+    });
+    expect(clip.harmony).toEqual(harmonyThere);
+  });
+
+  it("keeps the chord qualities and scales the same on both sides", () => {
+    expect([...chordQuality.options]).toEqual(CHORD_QUALITY_IDS);
+    expect(clipHarmony.shape.scaleType.unwrap().options).toEqual(["auto", ...SCALE_IDS]);
   });
 
   it("keeps the note cap the same on both sides", () => {

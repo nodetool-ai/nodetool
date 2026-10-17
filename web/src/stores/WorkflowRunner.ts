@@ -43,6 +43,7 @@ import { queryClient } from "../queryClient";
 import { clearRunSignatures, recordRunSignatures } from "./runSignatures";
 import { computeRunSignatures } from "../utils/computeRunSignatures";
 import { getNodeGenerations } from "./nodeGenerationAccessor";
+import { noteWorkflowRunStarted } from "../lib/analytics";
 
 /**
  * Title for a run: the node's name for a single-node run, otherwise the
@@ -492,6 +493,8 @@ export const createWorkflowRunnerStore = (
             }
           )
       );
+      // Anonymous, opt-in analytics: only the bucketed node count is recorded.
+      noteWorkflowRunStarted(jobId, activeNodeTypes.length);
 
       if (!queueRun) {
         if (stuck) {

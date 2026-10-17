@@ -18,6 +18,8 @@ const mockAutoUpdater = {
   channel: "latest",
   allowPrerelease: false,
   allowDowngrade: false,
+  autoDownload: true,
+  autoInstallOnAppQuit: true,
 };
 
 jest.mock("electron-updater", () => ({
@@ -60,10 +62,14 @@ jest.mock("../state", () => ({
 const mockReadSettings = jest.fn().mockReturnValue({ autoUpdatesEnabled: true });
 const mockReadSettingsAsync = jest.fn().mockResolvedValue({ autoUpdatesEnabled: true });
 const mockGetUpdateChannel = jest.fn().mockReturnValue("latest");
+const mockGetDefaultUpdateChannel = jest.fn((version: string) =>
+  /-nightly\.\d{8}\.\d+$/.test(version) ? "nightly" : "latest"
+);
 jest.mock("../settings", () => ({
   readSettings: mockReadSettings,
   readSettingsAsync: mockReadSettingsAsync,
   getUpdateChannel: mockGetUpdateChannel,
+  getDefaultUpdateChannel: mockGetDefaultUpdateChannel,
 }));
 
 // Store original process.resourcesPath
@@ -78,6 +84,8 @@ describe("Auto-updater Module", () => {
     mockAutoUpdater.channel = "latest";
     mockAutoUpdater.allowPrerelease = false;
     mockAutoUpdater.allowDowngrade = false;
+    mockAutoUpdater.autoDownload = true;
+    mockAutoUpdater.autoInstallOnAppQuit = true;
     mockGetUpdateChannel.mockReturnValue("latest");
     // Default to auto-updates enabled for backward-compatible tests
     mockReadSettings.mockReturnValue({ autoUpdatesEnabled: true });
@@ -129,6 +137,7 @@ describe("Auto-updater Module", () => {
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
           getUpdateChannel: mockGetUpdateChannel,
+          getDefaultUpdateChannel: mockGetDefaultUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -159,6 +168,7 @@ describe("Auto-updater Module", () => {
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
           getUpdateChannel: mockGetUpdateChannel,
+          getDefaultUpdateChannel: mockGetDefaultUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -188,6 +198,7 @@ describe("Auto-updater Module", () => {
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
           getUpdateChannel: mockGetUpdateChannel,
+          getDefaultUpdateChannel: mockGetDefaultUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -227,6 +238,7 @@ describe("Auto-updater Module", () => {
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
           getUpdateChannel: mockGetUpdateChannel,
+          getDefaultUpdateChannel: mockGetDefaultUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -244,7 +256,7 @@ describe("Auto-updater Module", () => {
       });
       expect(mockAutoUpdater.channel).toBe("latest");
       expect(mockAutoUpdater.allowPrerelease).toBe(false);
-      expect(mockAutoUpdater.allowDowngrade).toBe(true);
+      expect(mockAutoUpdater.allowDowngrade).toBe(false);
       expect(mockAutoUpdater.checkForUpdates).toHaveBeenCalled();
     });
 
@@ -262,6 +274,7 @@ describe("Auto-updater Module", () => {
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
           getUpdateChannel: mockGetUpdateChannel,
+          getDefaultUpdateChannel: mockGetDefaultUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -280,7 +293,7 @@ describe("Auto-updater Module", () => {
       });
       expect(mockAutoUpdater.channel).toBe("nightly");
       expect(mockAutoUpdater.allowPrerelease).toBe(true);
-      expect(mockAutoUpdater.allowDowngrade).toBe(true);
+      expect(mockAutoUpdater.allowDowngrade).toBe(false);
       expect(mockAutoUpdater.checkForUpdates).toHaveBeenCalled();
     });
 
@@ -302,6 +315,7 @@ describe("Auto-updater Module", () => {
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
           getUpdateChannel: mockGetUpdateChannel,
+          getDefaultUpdateChannel: mockGetDefaultUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -338,6 +352,7 @@ describe("Auto-updater Module", () => {
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
           getUpdateChannel: mockGetUpdateChannel,
+          getDefaultUpdateChannel: mockGetDefaultUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -371,6 +386,7 @@ describe("Auto-updater Module", () => {
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
           getUpdateChannel: mockGetUpdateChannel,
+          getDefaultUpdateChannel: mockGetDefaultUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -440,6 +456,7 @@ describe("Auto-updater Module", () => {
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
           getUpdateChannel: mockGetUpdateChannel,
+          getDefaultUpdateChannel: mockGetDefaultUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -479,6 +496,7 @@ describe("Auto-updater Module", () => {
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
           getUpdateChannel: mockGetUpdateChannel,
+          getDefaultUpdateChannel: mockGetDefaultUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -520,6 +538,7 @@ describe("Auto-updater Module", () => {
           readSettings: mockReadSettings,
           readSettingsAsync: mockReadSettingsAsync,
           getUpdateChannel: mockGetUpdateChannel,
+          getDefaultUpdateChannel: mockGetDefaultUpdateChannel,
         }));
         const updater = require("../updater");
         setupAutoUpdater = updater.setupAutoUpdater;
@@ -542,6 +561,102 @@ describe("Auto-updater Module", () => {
         "Update error: Network connection failed",
         "error"
       );
+    });
+  });
+
+  describe("channel switches and runtime settings", () => {
+    type UpdaterModule = {
+      setupAutoUpdater: () => Promise<void>;
+      quitAndInstallUpdate: () => void;
+      isQuittingForUpdate: () => boolean;
+    };
+
+    const loadUpdater = (version = "1.0.0"): UpdaterModule => {
+      let updater: UpdaterModule | undefined;
+      jest.isolateModules(() => {
+        jest.doMock("electron", () => ({
+          app: { isPackaged: true, getVersion: jest.fn().mockReturnValue(version) },
+        }));
+        jest.doMock("../settings", () => ({
+          readSettings: mockReadSettings,
+          readSettingsAsync: mockReadSettingsAsync,
+          getUpdateChannel: mockGetUpdateChannel,
+          getDefaultUpdateChannel: mockGetDefaultUpdateChannel,
+        }));
+        updater = require("../updater");
+      });
+      if (!updater) {
+        throw new Error("updater module did not load");
+      }
+      return updater;
+    };
+
+    const handlerFor = (event: string) =>
+      mockAutoUpdater.on.mock.calls.find((call) => call[0] === event)?.[1];
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("allows a downgrade when a nightly build switches to the stable channel", async () => {
+      mockGetUpdateChannel.mockReturnValue("latest");
+      await loadUpdater("1.0.1-nightly.20260509.1").setupAutoUpdater();
+
+      expect(mockAutoUpdater.channel).toBe("latest");
+      expect(mockAutoUpdater.allowDowngrade).toBe(true);
+    });
+
+    it("re-checks periodically until an update is downloaded", async () => {
+      jest.useFakeTimers();
+      await loadUpdater().setupAutoUpdater();
+      expect(mockAutoUpdater.checkForUpdates).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(4 * 60 * 60 * 1000);
+      expect(mockAutoUpdater.checkForUpdates).toHaveBeenCalledTimes(2);
+
+      await handlerFor("update-downloaded")({ version: "1.2.3" });
+      jest.advanceTimersByTime(8 * 60 * 60 * 1000);
+      expect(mockAutoUpdater.checkForUpdates).toHaveBeenCalledTimes(2);
+    });
+
+    it("applies settings again without registering event handlers twice", async () => {
+      const updater = loadUpdater();
+      await updater.setupAutoUpdater();
+      await updater.setupAutoUpdater();
+
+      const errorHandlers = mockAutoUpdater.on.mock.calls.filter(
+        (call) => call[0] === "error"
+      );
+      expect(errorHandlers).toHaveLength(1);
+      expect(mockAutoUpdater.checkForUpdates).toHaveBeenCalledTimes(2);
+    });
+
+    it("stops downloading and installing when auto-updates are turned off", async () => {
+      jest.useFakeTimers();
+      const updater = loadUpdater();
+      await updater.setupAutoUpdater();
+
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: false });
+      await updater.setupAutoUpdater();
+
+      expect(mockAutoUpdater.autoDownload).toBe(false);
+      expect(mockAutoUpdater.autoInstallOnAppQuit).toBe(false);
+      jest.advanceTimersByTime(8 * 60 * 60 * 1000);
+      expect(mockAutoUpdater.checkForUpdates).toHaveBeenCalledTimes(1);
+    });
+
+    it("installs only after an update has been downloaded", async () => {
+      const updater = loadUpdater();
+      await updater.setupAutoUpdater();
+
+      updater.quitAndInstallUpdate();
+      expect(mockAutoUpdater.quitAndInstall).not.toHaveBeenCalled();
+      expect(updater.isQuittingForUpdate()).toBe(false);
+
+      await handlerFor("update-downloaded")({ version: "1.2.3" });
+      updater.quitAndInstallUpdate();
+      expect(mockAutoUpdater.quitAndInstall).toHaveBeenCalledTimes(1);
+      expect(updater.isQuittingForUpdate()).toBe(true);
     });
   });
 });

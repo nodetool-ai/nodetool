@@ -32,8 +32,8 @@ const mockSetProperty = jest.fn();
 const mockSetProperties = jest.fn();
 const mockSetPropertyComplete = jest.fn();
 
-jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
-  useBespokePropertyWriter: jest.fn(() => ({
+jest.mock("../../../../hooks/nodes/useLiveSliderWriter", () => ({
+  useLiveSliderWriter: jest.fn(() => ({
     setProperty: mockSetProperty,
     setProperties: mockSetProperties,
     setPropertyComplete: mockSetPropertyComplete

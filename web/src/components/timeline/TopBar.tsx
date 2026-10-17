@@ -8,8 +8,11 @@ import {
   EditorMenu,
   MenuItemPrimitive,
   SPACING,
+  ToggleGroup,
+  ToggleOption,
   ToolbarGroup,
-  ToolbarIconButton
+  ToolbarIconButton,
+  Tooltip
 } from "../ui_primitives";
 import CodeIcon from "@mui/icons-material/Code";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
@@ -24,6 +27,8 @@ import VideoLibraryOutlinedIcon from "@mui/icons-material/VideoLibraryOutlined";
 import SubjectIcon from "@mui/icons-material/Subject";
 import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
 import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
+import { useSettingsStore } from "../../stores/SettingsStore";
+import { formatActionShortcut } from "./timelineKeymap";
 
 interface TopBarProps {
   onExportVideo?: () => void;
@@ -55,6 +60,9 @@ interface TopBarProps {
   /** Shows or hides the right panel. Omit where there is none (phones). */
   onToggleSidePanel?: () => void;
   sidePanelVisible?: boolean;
+  /** Switches between the video layout and DAW mode. Omit to hide the switch. */
+  onSetDawMode?: (dawMode: boolean) => void;
+  dawMode?: boolean;
 }
 
 /** Autosave state of one sequence, as the caption beside Save reads it. */
@@ -96,8 +104,14 @@ export const TopBar: React.FC<TopBarProps> = memo(
     onToggleTranscript,
     transcriptVisible = true,
     onToggleSidePanel,
-    sidePanelVisible = true
+    sidePanelVisible = true,
+    onSetDawMode,
+    dawMode = false
   }) => {
+    const keyboardPreset = useSettingsStore(
+      (s) => s.settings.timelineKeyboardPreset
+    );
+    const dawShortcut = formatActionShortcut(keyboardPreset, "toggleDawMode");
     const saveStateLabel = useSaveStateLabel(sequenceId, isSaving);
     const overflowButtonRef = useRef<HTMLButtonElement>(null);
     const [overflowAnchor, setOverflowAnchor] = useState<HTMLElement | null>(
@@ -122,6 +136,28 @@ export const TopBar: React.FC<TopBarProps> = memo(
     return (
       <ToolbarGroup sx={{ gap: SPACING.micro }}>
         {activitySlot}
+        {onSetDawMode && (
+          <Tooltip
+            title={`Video layout or DAW mode for audio work${dawShortcut ? ` (${dawShortcut})` : ""}`}
+          >
+            <ToggleGroup
+              value={dawMode ? "daw" : "video"}
+              exclusive
+              compact
+              onChange={(_event, value: string | null) => {
+                if (value === "daw" || value === "video") onSetDawMode(value === "daw");
+              }}
+              aria-label="Editor layout"
+            >
+              <ToggleOption value="video" aria-label="Video layout">
+                Video
+              </ToggleOption>
+              <ToggleOption value="daw" aria-label="DAW mode">
+                DAW
+              </ToggleOption>
+            </ToggleGroup>
+          </Tooltip>
+        )}
         {onToggleTranscript && (
           <ToolbarIconButton
             onClick={onToggleTranscript}

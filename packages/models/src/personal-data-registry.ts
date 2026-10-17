@@ -624,6 +624,24 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "A live handle to a provisioned pod: provider reference, websocket URL, encrypted pod token, status. `attached_to` names the device a pod is bound to, not an account. Instances are ephemeral and torn down by the compute reaper; erasing one on a person's request would kill a running pod that may not be theirs."
   },
   {
+    table: "nodetool_analytics_events",
+    schemaExport: "analyticsEvents",
+    disposition: "not-personal",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "Anonymous product-analytics events. Columns are allowlisted enums plus a random installation ID that rotates every 30 days and is generated on the device, never from an account. No column can hold a user, account, IP address or user agent, so there is no person to reach. Rows are pruned after 30 days."
+  },
+  {
+    table: "nodetool_analytics_daily",
+    schemaExport: "analyticsDaily",
+    disposition: "not-personal",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "Daily counts of anonymous analytics events by event, client type, platform, version and enum properties. Aggregates with no installation, session or account identifier."
+  },
+  {
     table: "nodetool_team_tasks",
     schemaExport: "teamTasks",
     disposition: "not-personal",

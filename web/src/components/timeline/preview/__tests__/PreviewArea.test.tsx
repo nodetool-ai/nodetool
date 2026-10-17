@@ -35,6 +35,8 @@ jest.mock("../AudioGraph", () => {
       scheduleClipsAt = jest.fn();
       seek = jest.fn();
       setMasterVolume = jest.fn();
+      setMaster = jest.fn();
+      setTempo = jest.fn();
       dispose = jest.fn();
       ensureClipBuffer = jest.fn().mockResolvedValue(undefined);
       getContext = () => ({
@@ -101,7 +103,9 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
     seekNonce: 0,
     setTimeMs: mockSetTimeMs,
     getTimeMs: () => mockCurrentTimeMs,
-    subscribeTime: mockSubscribeTime
+    subscribeTime: mockSubscribeTime,
+    audioGraph: null,
+    setAudioGraph: jest.fn()
   });
   const useTimelinePlaybackStore = <T,>(
     selector: (s: ReturnType<typeof getState>) => T

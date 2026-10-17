@@ -60,6 +60,16 @@ function mockLiveContext(gains: Array<ReturnType<typeof mockGain>>) {
       gains.push(g);
       return g;
     }),
+    createStereoPanner: jest.fn(() => ({
+      pan: { value: 0, setTargetAtTime: jest.fn() },
+      connect: jest.fn(),
+      disconnect: jest.fn()
+    })),
+    createAnalyser: jest.fn(() => ({
+      fftSize: 2048,
+      connect: jest.fn(),
+      disconnect: jest.fn()
+    })),
     createBufferSource: jest.fn(() => ({
       buffer: null as unknown,
       playbackRate: { value: 1 },

@@ -2,9 +2,9 @@
 /**
  * BlurBody — bespoke body for `nodetool.image.Blur`.
  *
- * Top: preview of the server output. Bottom: type dropdown (Gaussian /
- * Box / Motion) and a 0–100 size slider. The preview reflects whatever
- * the server most recently produced — no client-side approximation.
+ * Top: preview of the node's output. Bottom: type dropdown (Gaussian /
+ * Box / Motion) and a 0–100 size slider. Edits re-run the node in the
+ * browser (`useLiveSliderWriter`), so the preview updates while dragging.
  */
 
 import React, { memo, useCallback, useMemo } from "react";
@@ -26,7 +26,7 @@ import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useLiveSliderWriter } from "../../../hooks/nodes/useLiveSliderWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 import { BLUR_NODE_TYPE } from "../../../constants/nodeTypes";
 
@@ -140,7 +140,7 @@ const BlurBodyInner: React.FC<BlurBodyProps> = ({
 
   const previewValue = useNodeOutput(workflowId, id);
 
-  const { setProperty, setPropertyComplete } = useBespokePropertyWriter({
+  const { setProperty, setPropertyComplete } = useLiveSliderWriter({
     nodeId: id,
     nodeType
   });

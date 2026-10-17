@@ -27,7 +27,12 @@ function fakeContext() {
       };
       gains.push(node);
       return node;
-    })
+    }),
+    createAnalyser: jest.fn(() => ({
+      fftSize: 2048,
+      connect: jest.fn(),
+      disconnect: jest.fn()
+    }))
   };
   return { ctx: ctx as unknown as BaseAudioContext, gains };
 }

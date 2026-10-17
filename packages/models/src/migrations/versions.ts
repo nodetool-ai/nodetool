@@ -160,6 +160,44 @@ const BUG_REPORTS_DDL: readonly string[] = [
 ];
 
 /**
+ * DDL for the anonymous product-analytics tables, valid on both dialects.
+ * Applied by their migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}. See schema/analytics.ts.
+ */
+const ANALYTICS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS nodetool_analytics_events (
+    id TEXT PRIMARY KEY NOT NULL,
+    schema_version INTEGER NOT NULL,
+    event TEXT NOT NULL,
+    client_type TEXT NOT NULL,
+    anonymous_id TEXT,
+    session_id TEXT,
+    event_hour TEXT NOT NULL,
+    app_version TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    properties TEXT NOT NULL,
+    received_day TEXT NOT NULL
+  )`,
+  // Serves the 30-day retention sweep.
+  `CREATE INDEX IF NOT EXISTS idx_analytics_event_received_day
+    ON nodetool_analytics_events (received_day)`,
+  `CREATE INDEX IF NOT EXISTS idx_analytics_event_name_hour
+    ON nodetool_analytics_events (event, event_hour)`,
+  `CREATE TABLE IF NOT EXISTS nodetool_analytics_daily (
+    id TEXT PRIMARY KEY NOT NULL,
+    day TEXT NOT NULL,
+    event TEXT NOT NULL,
+    client_type TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    app_version TEXT NOT NULL,
+    properties TEXT NOT NULL,
+    count INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_analytics_daily_day_event
+    ON nodetool_analytics_daily (day, event)`
+];
+
+/**
  * Idempotent DDL for tables created by migrations newer than the frozen
  * SQLite baseline, in migration order. Only `initTestDb` reads it: the
  * in-memory test database is built synchronously from the baseline and would
@@ -206,7 +244,7 @@ content_expired INTEGER NOT NULL DEFAULT 0)`,
 
 const JOB_TRACE_MARKER_DDL = "ALTER TABLE nodetool_jobs ADD COLUMN has_run_trace INTEGER NOT NULL DEFAULT 0";
 const ASSET_FAVORITE_DDL = "ALTER TABLE nodetool_assets ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0";
-export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL];
+export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL];
 
 export const migrations: MigrationDef[] = [
   // ── 001: Create workflows ──────────────────────────────────────────
@@ -4121,6 +4159,37 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // The column stays: dropping one is unsafe across dialects and versions.
+    }
+  },
+
+  // ── Anonymous product analytics ─────────────────────────────────────
+  // Raw events (pruned after 30 days) and daily counts. No column can hold
+  // an account, IP address or user agent. On PostgreSQL row-level security is
+  // on with no policy, so the Supabase Data API exposes neither table; the
+  // server connects as the owner.
+  {
+    version: "20261017_000000",
+    name: "create_analytics_tables",
+    createsTables: ["nodetool_analytics_events", "nodetool_analytics_daily"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of ANALYTICS_DDL) {
+        await db.execute(statement);
+      }
+      if (db.dbType !== "postgres") return;
+      await db.execute(
+        "ALTER TABLE nodetool_analytics_events ENABLE ROW LEVEL SECURITY"
+      );
+      await db.execute(
+        "ALTER TABLE nodetool_analytics_daily ENABLE ROW LEVEL SECURITY"
+      );
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_analytics_event_received_day");
+      await db.execute("DROP INDEX IF EXISTS idx_analytics_event_name_hour");
+      await db.execute("DROP INDEX IF EXISTS idx_analytics_daily_day_event");
+      await db.execute("DROP TABLE IF EXISTS nodetool_analytics_events");
+      await db.execute("DROP TABLE IF EXISTS nodetool_analytics_daily");
     }
   }
 ];

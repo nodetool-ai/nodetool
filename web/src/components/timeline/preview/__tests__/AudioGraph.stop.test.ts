@@ -31,6 +31,16 @@ class FakeAudioContext {
     this.gains.push(node);
     return node;
   });
+  createStereoPanner = jest.fn(() => ({
+    pan: { value: 0, setTargetAtTime: jest.fn() },
+    connect: jest.fn(),
+    disconnect: jest.fn()
+  }));
+  createAnalyser = jest.fn(() => ({
+    fftSize: 2048,
+    connect: jest.fn(),
+    disconnect: jest.fn()
+  }));
   createBufferSource = jest.fn(() => {
     const node = {
       buffer: null as unknown,
@@ -65,8 +75,8 @@ async function playing() {
   const restore = () => {
     (globalThis as { AudioContext?: unknown }).AudioContext = original;
   };
-  // The master gain is made first, then the clip gain, then its track gain.
-  const clipGain = ctx.gains[1];
+  // The listener, mix bus and master fader come first, then the clip gain.
+  const clipGain = ctx.gains[3];
   return { graph, ctx, clipGain, source: ctx.sources[0], restore };
 }
 

@@ -238,6 +238,37 @@ Seven agent tools drive it — `ui_timeline_add_midi_clip`,
 `ui_timeline_get_state` reports the resolved tempo, each track's instrument and
 the preset it matches, and each midi clip's note count.
 
+## DAW mode
+
+The TopBar's Video / DAW switch (or Alt+M in every keyboard layout) is a
+persisted layout flag, `dawMode` on `TimelineLayoutStore`. It changes the
+layout only; the document is the same.
+
+- **Body**: `daw/dock/DawWorkspace` replaces the preview row, the tracks
+  divider and the piano-roll strip. The lab page renders the same component
+  (`daw-lab.html?view=daw&tab=devices`).
+- **Transport**: `PreviewArea` stays mounted with `audioOnly`, so it keeps the
+  `AudioGraph`, the `PlaybackClock` and the Space binding, but renders no
+  compositor. `daw/transport/DawTransport` replaces its control bar: play,
+  stop, return to start, loop, metronome, bars:beats:ticks and timecode, BPM
+  and time signature (`setTempo`), listener volume and a master peak meter.
+  Loop on with no out point sets the in/out range over the selected clips, or
+  the whole bars on screen. The metronome (`daw/transport/metronome.ts`)
+  schedules its clicks on the graph's context from the clock's anchor and
+  connects to the destination, never the mix bus, so an export has no clicks.
+- **Tracks**: the ruler reads in bars while DAW mode is on, so snapping
+  follows the beat grid. `trackRowHeightPx` gives midi, audio and chord tracks
+  a 96 px default (a height the user set still wins) and collapses video,
+  overlay and subtitle tracks to a 32 px strip.
+- **Dock**: Mixer, Devices, Piano roll and Harmony tabs, resizable, height and
+  tab persisted. Opening the piano roll (double-click a midi clip) brings its
+  tab forward. Devices shows one channel's chain left to right: the
+  instrument (`instrumentView`, else `TrackInstrumentPanel`), each insert
+  (`fxView(type)` or `fxView("fable:<kind>")`, else the knob editor
+  `TrackEffectParams`), and an add card. Selecting a clip focuses its track,
+  the track header's instrument button focuses the track and opens the tab,
+  and the picker also offers the master.
+
 ## 3D clips
 
 A glTF asset on a `video` or `overlay` track is a clip with

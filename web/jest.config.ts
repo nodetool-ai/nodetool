@@ -47,6 +47,7 @@ export default {
     "^yoga-layout$": "<rootDir>/src/__mocks__/yogaLayoutSync.cjs",
     // ESM-only package entry; the shim loads the real LAME bundle as CommonJS.
     "^@mediabunny/mp3-encoder$": "<rootDir>/src/__mocks__/mediabunnyMp3Encoder.cjs",
+    "^@nodetool-ai/analytics$": "<rootDir>/../packages/analytics/src/index.ts",
     "^@nodetool-ai/app-runtime$":
       "<rootDir>/../packages/app-runtime/src/index.ts",
     "^@nodetool-ai/game-runtime$":

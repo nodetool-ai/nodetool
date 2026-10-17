@@ -23,6 +23,7 @@ describe("buildTimelineDocumentPayload", () => {
       "camera2d",
       "clips",
       "markers",
+      "master",
       "mediaTracks",
       "scriptEnabled",
       "setup",

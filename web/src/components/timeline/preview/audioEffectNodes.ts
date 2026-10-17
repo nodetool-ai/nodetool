@@ -14,11 +14,17 @@ import type {
   TrackCompressorEffect,
   TrackEffect,
   TrackEq3Effect,
+  TrackFableEffect,
   TrackFilterEffect,
   TrackGainEffect
 } from "@nodetool-ai/timeline";
 
 import { createImpulseResponse } from "../../audio_editor/audioEffects";
+import {
+  buildFableFxNodes,
+  disposeFableFxNodes,
+  type FableFxHandle
+} from "../daw/fx/fableFxUnit";
 
 /** An effect a track chain or a clip chain can hold. */
 export type AudioEffect = TrackEffect | ClipAudioEffect;
@@ -33,6 +39,36 @@ export interface EffectUnit {
   output: AudioNode;
   /** All allocated nodes, disconnected on rebuild or release. */
   nodes: AudioNode[];
+  /** The running FableSynth stage of a `fable` effect. */
+  fable?: FableFxHandle;
+}
+
+/** Context a unit needs beyond its effect. */
+export interface EffectUnitOptions {
+  /** Tempo for tempo-synced `fable` echo and LAB stages. Default 120. */
+  bpm?: number;
+}
+
+/** Send a `fable` effect's new params to its running unit, without a rebuild. */
+export function applyFableEffect(
+  unit: EffectUnit,
+  e: TrackFableEffect,
+  bpm: number
+): void {
+  unit.fable?.update(e, bpm);
+}
+
+/** Disconnect a unit's nodes and stop a pending `fable` worklet from attaching. */
+export function releaseEffectUnit(unit: EffectUnit): void {
+  if (unit.fable) {
+    disposeFableFxNodes({
+      input: unit.input as GainNode,
+      output: unit.output as GainNode,
+      nodes: unit.nodes,
+      handle: unit.fable
+    });
+  }
+  disconnectNodes(unit.nodes);
 }
 
 const dbToLin = (db: number): number => Math.pow(10, db / 20);
@@ -143,7 +179,8 @@ function buildDistortion(
 /** The nodes for one audio effect, or null for a video-only type. */
 export function buildEffectUnit(
   ctx: BaseAudioContext,
-  effect: AudioEffect
+  effect: AudioEffect,
+  options: EffectUnitOptions = {}
 ): EffectUnit | null {
   switch (effect.type) {
     case "gain": {
@@ -179,6 +216,16 @@ export function buildEffectUnit(
       return buildReverb(ctx, effect);
     case "distortion":
       return buildDistortion(ctx, effect);
+    case "fable": {
+      const unit = buildFableFxNodes(ctx, effect, options.bpm ?? 120);
+      return {
+        effect,
+        input: unit.input,
+        output: unit.output,
+        nodes: unit.nodes,
+        fable: unit.handle
+      };
+    }
     default:
       return null;
   }

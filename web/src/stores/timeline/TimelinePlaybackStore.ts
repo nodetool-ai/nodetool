@@ -34,6 +34,8 @@
 
 import { create, type StoreApi, type UseBoundStore } from "zustand";
 
+import type { AudioGraph } from "../../components/timeline/preview/AudioGraph";
+
 export interface TimelinePlaybackState {
   currentTimeMs: number;
   isPlaying: boolean;
@@ -48,6 +50,12 @@ export interface TimelinePlaybackState {
    */
   rangeInMs: number | null;
   rangeOutMs: number | null;
+  /**
+   * The editor's live audio graph, published by the preview that owns it so
+   * the mixer's meters and the device views can reach the track channels and
+   * live instruments. Null until the preview mounts.
+   */
+  audioGraph: AudioGraph | null;
 
   setCurrentTimeMs: (timeMs: number) => void;
   /** Seek to a new position (bumps seekNonce). */
@@ -62,6 +70,7 @@ export interface TimelinePlaybackState {
   /** Set the out point; an in point at or after it is dropped. */
   setRangeOut: (timeMs: number | null) => void;
   clearRange: () => void;
+  setAudioGraph: (graph: AudioGraph | null) => void;
 
   // ── Transient playhead channel (does NOT trigger React re-renders) ─────────
   /** Read the live playhead position. Updated ~60×/s during playback. */
@@ -94,6 +103,7 @@ export const createTimelinePlaybackStore = (): TimelinePlaybackStoreApi => {
     seekNonce: 0,
     rangeInMs: null,
     rangeOutMs: null,
+    audioGraph: null,
 
     setCurrentTimeMs: (timeMs) => {
       liveTimeMs = timeMs;
@@ -142,6 +152,7 @@ export const createTimelinePlaybackStore = (): TimelinePlaybackStoreApi => {
         };
       }),
     clearRange: () => set({ rangeInMs: null, rangeOutMs: null }),
+    setAudioGraph: (audioGraph) => set({ audioGraph }),
 
     getTimeMs: () => liveTimeMs,
     setTimeMs: (timeMs) => {

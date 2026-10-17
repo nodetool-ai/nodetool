@@ -533,11 +533,26 @@ function rememberResolved(
   }
 }
 
-/** The parent's env: the SDK's default env is a short allowlist. */
-function inheritedChildEnv(): Record<string, string> {
+/**
+ * Variable names that carry the server's own credentials: provider API keys,
+ * `SERVER_AUTH_TOKEN`, `SECRETS_MASTER_KEY`, Supabase and cloud keys, the
+ * database URL. A stdio server is third-party code, and it gets only the
+ * credentials its config declares.
+ */
+const CREDENTIAL_ENV_NAME =
+  /KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|^SUPABASE_|^AWS_|^AZURE_|^GOOGLE_APPLICATION|^DATABASE_URL$/i;
+
+/**
+ * The parent's env without its credentials. The SDK's default env is a short
+ * allowlist that breaks `npx`/`uvx` launchers (proxies, toolchain paths), so
+ * everything else is kept.
+ */
+export function inheritedChildEnv(
+  env: NodeJS.ProcessEnv = process.env
+): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(process.env)) {
-    if (v !== undefined) out[k] = v;
+  for (const [k, v] of Object.entries(env)) {
+    if (v !== undefined && !CREDENTIAL_ENV_NAME.test(k)) out[k] = v;
   }
   return out;
 }

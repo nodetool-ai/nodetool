@@ -128,12 +128,13 @@ from the UI or CLI, supported targets, and the cost guard in full.
 - `type` – always `docker`
 - `enabled` – whether the deployment is active
 - `host` – Docker host (IP/hostname, or `localhost`)
-- `ssh` – SSH connection details for remote hosts (omit for local)
+- `ssh` – SSH connection details for remote hosts (omit for local). The host key must already be in `~/.ssh/known_hosts`: run `ssh <user>@<host>` once and check the fingerprint before the first deploy
 - `paths` – host directories for the workspace (default `~/nodetool_data/workspace`, mounted at `/workspace`) and the HF cache (default `~/nodetool_data/hf-cache`, mounted at `/hf-cache`, read-only unless `persistent_paths` is set)
 - `persistent_paths` – optional container paths for the users file, database, vector store (`vectorstore_db_path`), HF home, assets, and logs. Setting it changes the injected environment, see below
 - `image` – container image name/tag/registry
 - `container` – `name`, `port`, `gpu` (device ids such as `0` or `0,1`, passed as `--gpus "device=…"`), and `environment` (env vars injected into the container)
 - `server_auth_token` – auto-generated bearer token for admin/sync calls. The server accepts it in Local mode (see [Authentication](authentication.md#authentication-modes))
+- `server_url` – optional URL the CLI uses instead of `http://<host>:<port>`. The CLI sends `server_auth_token` only over `https://` or to `localhost`, so set it to your TLS proxy (`https://nodetool.example.com`) or to an SSH tunnel (`http://localhost:8000` after `ssh -L 8000:localhost:8000 <host>`). `NODETOOL_ALLOW_INSECURE_HTTP=1` lifts the check
 - `state` – deployment state tracked by the deployer
 
 The container is named `nodetool-<container.name>` and runs with

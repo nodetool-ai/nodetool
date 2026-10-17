@@ -269,6 +269,24 @@ describe("SSHConnection constructor", () => {
 });
 
 describe("SSHConnection.connect", () => {
+  // ssh2 accepts any host key unless a verifier refuses it, which would hand
+  // the password and deploy secrets to whoever intercepts the connection.
+  it("refuses a host key that is not in known_hosts", async () => {
+    mockedReadFileSync.mockImplementationOnce(() => {
+      throw new Error("ENOENT");
+    });
+    const conn = new SSHConnection({
+      ...baseOpts,
+      knownHostsPath: "/nonexistent/known_hosts"
+    });
+    await conn.connect();
+    const config = currentClient.connect.mock.calls[0][0] as {
+      hostVerifier: (key: Buffer) => boolean;
+    };
+    expect(config.hostVerifier(Buffer.from("unknown-key"))).toBe(false);
+    conn.disconnect();
+  });
+
   it("should connect successfully with password", async () => {
     const conn = new SSHConnection(baseOpts);
     await conn.connect();

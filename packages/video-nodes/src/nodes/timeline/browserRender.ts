@@ -603,6 +603,7 @@ export async function renderTimelineInBrowser(
       mediaTracks: sequence.mediaTracks,
       camera2d: sequence.camera2d,
       tempo: sequence.tempo,
+      master: sequence.master,
       width: opts.width,
       height: opts.height,
       referenceWidth: sequence.width > 0 ? sequence.width : opts.width,

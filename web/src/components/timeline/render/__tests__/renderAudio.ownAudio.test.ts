@@ -10,6 +10,11 @@ const scheduled: string[] = [];
 
 jest.mock("../../preview/AudioGraph", () => ({
   AudioGraph: class {
+    setMaster(): void {}
+    setTempo(): void {}
+    preloadLiveDevices(): Promise<Set<string>> {
+      return Promise.resolve(new Set());
+    }
     scheduleClips(clips: Array<{ clip: { id: string } }>) {
       scheduled.push(...clips.map((c) => c.clip.id));
       return Promise.resolve();

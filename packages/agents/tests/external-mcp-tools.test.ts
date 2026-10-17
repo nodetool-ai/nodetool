@@ -26,7 +26,8 @@ import {
   getCachedExternalMcpTools,
   getExternalMcpTools,
   normalizeCallResult,
-  type McpClientPoolOptions
+  type McpClientPoolOptions,
+  inheritedChildEnv
 } from "../src/tools/external-mcp-tools.js";
 import { graftedModuleFor } from "../src/codeact/capability-modules.js";
 import { IMAGE_CONTENTS_FIELD } from "../src/tools/image-injection.js";
@@ -512,5 +513,27 @@ describe("McpClientPool", () => {
     await pool.sync([{ ...config, enabled: false }]);
     expect(pool.serverIds()).toEqual([]);
     await pool.close();
+  });
+});
+
+describe("inheritedChildEnv", () => {
+  it("keeps the launcher environment and drops the server's credentials", () => {
+    const env = inheritedChildEnv({
+      PATH: "/usr/bin",
+      HOME: "/home/u",
+      HTTPS_PROXY: "http://proxy:8080",
+      OPENAI_API_KEY: "sk-1",
+      SERVER_AUTH_TOKEN: "t",
+      SECRETS_MASTER_KEY: "m",
+      SUPABASE_URL: "https://x.supabase.co",
+      DATABASE_URL: "postgres://u:p@db/n",
+      AWS_REGION: "us-east-1",
+      DB_PASSWORD: "p"
+    });
+    expect(env).toEqual({
+      PATH: "/usr/bin",
+      HOME: "/home/u",
+      HTTPS_PROXY: "http://proxy:8080"
+    });
   });
 });
