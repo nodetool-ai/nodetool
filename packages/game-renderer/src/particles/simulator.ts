@@ -55,8 +55,9 @@ export const DEFAULT_MAX_SCENE_PARTICLES = 8192;
 /** Longest interval one `step` simulates, so a long pause cannot turn into thousands of emission cycles. */
 export const MAX_PARTICLE_STEP_SECONDS = 0.25;
 
-const STRIDE = 14;
+const STRIDE = 19;
 const PX = 0, PY = 1, PZ = 2, VX = 3, VY = 4, VZ = 5, AGE = 6, LIFE = 7, SIZE = 8, ROT = 9, SPIN = 10, CR = 11, CG = 12, CB = 13;
+const PREVIOUS_X = 14, PREVIOUS_Y = 15, PREVIOUS_Z = 16, PREVIOUS_ROTATION = 17, PREVIOUS_AGE = 18;
 const SAME_TIME = 1e-9;
 const IDENTITY: ParticleQuaternion = [0, 0, 0, 1];
 
@@ -64,7 +65,8 @@ interface EmitterInstance {
   readonly entityId: string;
   definition: GameParticleEmitter;
   readonly random: ParticleRandom;
-  data: Float64Array;
+  head: number;
+  tail: number;
   count: number;
   time: number;
   playing: boolean;
@@ -73,6 +75,8 @@ interface EmitterInstance {
   attached: boolean;
   position: ParticleVector;
   rotation: ParticleQuaternion;
+  previousPosition: ParticleVector;
+  previousRotation: ParticleQuaternion;
 }
 
 interface Death {
@@ -95,6 +99,11 @@ export class ParticleSimulator {
   /** Emitter ids of each entity in the last sync, in document order. */
   private readonly emitterOrder = new Map<string, readonly string[]>();
   private total = 0;
+  private data = new Float64Array(0);
+  private next = new Int32Array(0);
+  private previous = new Int32Array(0);
+  private free = new Int32Array(0);
+  private freeCount = 0;
   private readonly sample: ParticleShapeSample = { px: 0, py: 0, pz: 0, dx: 0, dy: 1, dz: 0 };
   private readonly color: ParticleColor = { r: 0, g: 0, b: 0 };
 
@@ -106,6 +115,11 @@ export class ParticleSimulator {
   /** Live particles across every emitter. */
   get count(): number {
     return this.total;
+  }
+
+  /** Particle slots reserved by typed-array storage, including unused capacity. */
+  get allocatedParticleCapacity(): number {
+    return this.data.length / STRIDE;
   }
 
   /** Live particles of one emitter. */
@@ -132,7 +146,8 @@ export class ParticleSimulator {
             entityId: source.entityId,
             definition,
             random: new ParticleRandom(particleSeed(source.entityId, definition.id)),
-            data: new Float64Array(definition.maxParticles * STRIDE),
+            head: -1,
+            tail: -1,
             count: 0,
             time: 0,
             playing: definition.playOnStart,
@@ -140,30 +155,22 @@ export class ParticleSimulator {
             pending: 0,
             attached: true,
             position: source.position,
-            rotation: source.rotation
+            rotation: source.rotation,
+            previousPosition: source.position,
+            previousRotation: source.rotation
           };
           this.instances.set(key, instance);
         }
-        if (definition.maxParticles !== instance.definition.maxParticles) {
-          const data = new Float64Array(definition.maxParticles * STRIDE);
-          const kept = Math.min(instance.count, definition.maxParticles);
-          data.set(instance.data.subarray(0, kept * STRIDE));
-          this.total -= instance.count - kept;
-          instance.data = data;
-          instance.count = kept;
-        }
+        while (instance.count > definition.maxParticles) { this.remove(instance, instance.tail); }
         instance.definition = definition;
+        instance.previousPosition = instance.position;
+        instance.previousRotation = instance.rotation;
         instance.position = source.position;
         instance.rotation = source.rotation;
         instance.attached = true;
       }
     }
-    for (const [key, instance] of this.instances) {
-      if (!instance.attached && (instance.definition.space === "local" || instance.count === 0)) {
-        this.total -= instance.count;
-        this.instances.delete(key);
-      }
-    }
+    this.collectDetached();
   }
 
   /** Applies `particles` presentation events from a session. Other event kinds are ignored. */
@@ -214,43 +221,46 @@ export class ParticleSimulator {
         this.schedule(instance, dt);
       }
     }
-    for (const [key, instance] of this.instances) {
-      if (!instance.attached && instance.count === 0) {
-        this.instances.delete(key);
-      }
-    }
+    this.collectDetached();
   }
 
   /** Visits every live particle in world space. */
-  forEachParticle(visit: (particle: Readonly<ParticleView>) => void): void {
+  forEachParticle(visit: (particle: Readonly<ParticleView>) => void, interpolation = 1): void {
+    const alpha = Math.max(0, Math.min(1, interpolation));
     for (const instance of this.instances.values()) {
       const definition = instance.definition;
-      const data = instance.data;
+      const data = this.data;
+      const position = { x: mix(instance.previousPosition.x, instance.position.x, alpha),
+        y: mix(instance.previousPosition.y, instance.position.y, alpha), z: mix(instance.previousPosition.z, instance.position.z, alpha) };
+      const rotation = interpolateRotation(instance.previousRotation, instance.rotation, alpha);
       const view: ParticleView = { entityId: instance.entityId, emitterId: definition.id, emitter: definition,
         x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, size: 0, rotation: 0, r: 0, g: 0, b: 0, opacity: 0, life: 0 };
-      for (let index = 0; index < instance.count; index += 1) {
-        const base = index * STRIDE;
-        const life = Math.min(1, data[base + AGE] / data[base + LIFE]);
+      for (let slot = instance.head; slot !== -1; slot = this.next[slot]) {
+        const base = slot * STRIDE;
+        const life = Math.min(1, mix(data[base + PREVIOUS_AGE], data[base + AGE], alpha) / data[base + LIFE]);
         const speed = definition.speedOverLifetime ? evaluateParticleCurve(definition.speedOverLifetime, life) : 1;
+        const x = mix(data[base + PREVIOUS_X], data[base + PX], alpha);
+        const y = mix(data[base + PREVIOUS_Y], data[base + PY], alpha);
+        const z = mix(data[base + PREVIOUS_Z], data[base + PZ], alpha);
         if (definition.space === "local") {
-          const point = transformPoint(instance.rotation, instance.position, data[base + PX], data[base + PY], data[base + PZ]);
+          const point = transformPoint(rotation, position, x, y, z);
           view.x = point.x;
           view.y = point.y;
           view.z = point.z;
-          const velocity = rotate(instance.rotation, data[base + VX] * speed, data[base + VY] * speed, data[base + VZ] * speed);
+          const velocity = rotate(rotation, data[base + VX] * speed, data[base + VY] * speed, data[base + VZ] * speed);
           view.vx = velocity.x;
           view.vy = velocity.y;
           view.vz = velocity.z;
         } else {
-          view.x = data[base + PX];
-          view.y = data[base + PY];
-          view.z = data[base + PZ];
+          view.x = x;
+          view.y = y;
+          view.z = z;
           view.vx = data[base + VX] * speed;
           view.vy = data[base + VY] * speed;
           view.vz = data[base + VZ] * speed;
         }
         view.size = data[base + SIZE] * (definition.sizeOverLifetime ? evaluateParticleCurve(definition.sizeOverLifetime, life) : 1);
-        view.rotation = data[base + ROT];
+        view.rotation = mix(data[base + PREVIOUS_ROTATION], data[base + ROT], alpha);
         view.r = data[base + CR];
         view.g = data[base + CG];
         view.b = data[base + CB];
@@ -272,6 +282,70 @@ export class ParticleSimulator {
     this.instances.clear();
     this.emitterOrder.clear();
     this.total = 0;
+    this.data = new Float64Array(0);
+    this.next = new Int32Array(0);
+    this.previous = new Int32Array(0);
+    this.free = new Int32Array(0);
+    this.freeCount = 0;
+  }
+
+  /** Marks the death chains reachable from live world particles before collecting detached definitions. */
+  private collectDetached(): void {
+    const retained = new Set<EmitterInstance>();
+    const pending: EmitterInstance[] = [];
+    for (const instance of this.instances.values()) {
+      if (instance.attached || (instance.definition.space === "world" && instance.count > 0)) {
+        retained.add(instance);
+        pending.push(instance);
+      }
+    }
+    for (let index = 0; index < pending.length; index += 1) {
+      const instance = pending[index];
+      for (const death of instance.definition.onDeath) {
+        const child = this.instances.get(instanceKey(instance.entityId, death.emitter));
+        if (child && child.definition.space === "world" && !retained.has(child)) {
+          retained.add(child);
+          pending.push(child);
+        }
+      }
+    }
+    for (const [key, instance] of this.instances) {
+      if (!retained.has(instance)) {
+        while (instance.count > 0) { this.remove(instance, instance.tail); }
+        this.instances.delete(key);
+      }
+    }
+  }
+
+  private allocate(): number {
+    if (this.freeCount === 0) {
+      const oldCapacity = this.allocatedParticleCapacity;
+      const capacity = Math.min(this.maxSceneParticles, Math.max(1, oldCapacity * 2));
+      if (capacity <= oldCapacity) { throw new Error("Particle storage exhausted"); }
+      const data = new Float64Array(capacity * STRIDE);
+      data.set(this.data);
+      this.data = data;
+      const next = new Int32Array(capacity);
+      next.set(this.next);
+      this.next = next;
+      const previous = new Int32Array(capacity);
+      previous.set(this.previous);
+      this.previous = previous;
+      this.free = new Int32Array(capacity);
+      for (let slot = capacity - 1; slot >= oldCapacity; slot -= 1) { this.free[this.freeCount++] = slot; }
+    }
+    return this.free[--this.freeCount];
+  }
+
+  /** Swap-removes the last particle's payload, preserving the original per-emitter iteration order. */
+  private remove(instance: EmitterInstance, slot: number): void {
+    const tail = instance.tail;
+    if (slot !== tail) { this.data.copyWithin(slot * STRIDE, tail * STRIDE, (tail + 1) * STRIDE); }
+    instance.tail = this.previous[tail];
+    if (instance.tail === -1) { instance.head = -1; } else { this.next[instance.tail] = -1; }
+    this.free[this.freeCount++] = tail;
+    instance.count -= 1;
+    this.total -= 1;
   }
 
   private findInstance(entityId: string, emitterId: string | undefined): EmitterInstance | undefined {
@@ -285,13 +359,13 @@ export class ParticleSimulator {
 
   private advance(instance: EmitterInstance, dt: number, deaths: Death[]): void {
     const definition = instance.definition;
-    const data = instance.data;
+    const data = this.data;
     const flat = this.dimension === "2d";
     const gx = definition.gravity.x, gy = definition.gravity.y, gz = flat ? 0 : definition.gravity.z;
     const damping = definition.drag > 0 ? 1 / (1 + definition.drag * dt) : 1;
-    let index = 0;
-    while (index < instance.count) {
-      const base = index * STRIDE;
+    let slot = instance.head;
+    while (slot !== -1) {
+      const base = slot * STRIDE;
       const age = data[base + AGE] + dt;
       if (age >= data[base + LIFE]) {
         if (definition.onDeath.length > 0) {
@@ -302,14 +376,16 @@ export class ParticleSimulator {
             deaths.push({ entityId: instance.entityId, emitter: sub.emitter, count: sub.count, ...point });
           }
         }
-        const last = (instance.count - 1) * STRIDE;
-        if (last !== base) {
-          data.copyWithin(base, last, last + STRIDE);
-        }
-        instance.count -= 1;
-        this.total -= 1;
+        const tail = instance.tail;
+        this.remove(instance, slot);
+        if (slot === tail) { slot = -1; }
         continue;
       }
+      data[base + PREVIOUS_X] = data[base + PX];
+      data[base + PREVIOUS_Y] = data[base + PY];
+      data[base + PREVIOUS_Z] = data[base + PZ];
+      data[base + PREVIOUS_ROTATION] = data[base + ROT];
+      data[base + PREVIOUS_AGE] = data[base + AGE];
       data[base + AGE] = age;
       data[base + VX] = (data[base + VX] + gx * dt) * damping;
       data[base + VY] = (data[base + VY] + gy * dt) * damping;
@@ -319,7 +395,7 @@ export class ParticleSimulator {
       data[base + PY] += data[base + VY] * speed * dt;
       data[base + PZ] += data[base + VZ] * speed * dt;
       data[base + ROT] += data[base + SPIN] * dt;
-      index += 1;
+      slot = this.next[slot];
     }
   }
 
@@ -400,8 +476,13 @@ export class ParticleSimulator {
       direction = { x: shape.dx, y: shape.dy, z: shape.dz };
     }
     const flat = this.dimension === "2d";
-    const base = instance.count * STRIDE;
-    const data = instance.data;
+    const slot = this.allocate();
+    this.previous[slot] = instance.tail;
+    this.next[slot] = -1;
+    if (instance.tail === -1) { instance.head = slot; } else { this.next[instance.tail] = slot; }
+    instance.tail = slot;
+    const base = slot * STRIDE;
+    const data = this.data;
     data[base + PX] = position.x;
     data[base + PY] = position.y;
     data[base + PZ] = flat ? 0 : position.z;
@@ -416,10 +497,37 @@ export class ParticleSimulator {
     data[base + CR] = color.r;
     data[base + CG] = color.g;
     data[base + CB] = color.b;
+    data[base + PREVIOUS_X] = data[base + PX];
+    data[base + PREVIOUS_Y] = data[base + PY];
+    data[base + PREVIOUS_Z] = data[base + PZ];
+    data[base + PREVIOUS_ROTATION] = rotation;
+    data[base + PREVIOUS_AGE] = 0;
     instance.count += 1;
     this.total += 1;
     return true;
   }
+}
+
+function mix(previous: number, current: number, alpha: number): number {
+  if (alpha === 0) { return previous; }
+  if (alpha === 1) { return current; }
+  return previous + (current - previous) * alpha;
+}
+
+function interpolateRotation(previous: ParticleQuaternion, current: ParticleQuaternion, alpha: number): ParticleQuaternion {
+  if (alpha === 0) { return previous; }
+  if (alpha === 1) { return current; }
+  const dot = previous.reduce((sum, value, index) => sum + value * current[index], 0);
+  const sign = dot < 0 ? -1 : 1;
+  const cosine = Math.min(1, Math.abs(dot));
+  const angle = Math.acos(cosine);
+  const sine = Math.sin(angle);
+  const from = sine > 1e-6 ? Math.sin((1 - alpha) * angle) / sine : 1 - alpha;
+  const to = sign * (sine > 1e-6 ? Math.sin(alpha * angle) / sine : alpha);
+  const result = [previous[0] * from + current[0] * to, previous[1] * from + current[1] * to,
+    previous[2] * from + current[2] * to, previous[3] * from + current[3] * to] as const;
+  const length = Math.hypot(...result);
+  return [result[0] / length, result[1] / length, result[2] / length, result[3] / length];
 }
 
 /** Emitter sources from a 2D or 3D render frame. 2D rotation turns about Z. */
