@@ -65,7 +65,7 @@ These primitives exist but are barely adopted:
 `NodeTextField` | `TextInput` | `NumericField` | `InspectorValueInput` | `NodeSelect` | `SelectField` | `InspectorSelect` | `NodeSwitch` | `LabeledSwitch` | `NodeSlider` | `Checkbox` | `Autocomplete` | `AutocompleteTagInput` | `TagInput` | `SearchInput`
 
 ### Buttons (replace raw Button/IconButton)
-`EditorButton` | `ToolbarIconButton` | `StateIconButton` | `CircularActionButton` | `NavButton` | `CreateFab` | `PlaybackButton` | `RunWorkflowButton` | `ExpandCollapseButton` | `RefreshButton` | `ViewModeToggle` | `LabeledToggle`
+`EditorButton` | `ToolbarIconButton` | `StateIconButton` | `CircularActionButton` | `NavButton` | `CreateFab` | `PlaybackButton` | `RunWorkflowButton` | `ExpandCollapseButton` | `RefreshButton` | `LabeledToggle`
 
 ### Semantic Action Buttons (replace custom icon+tooltip combos)
 `CopyButton` | `CloseButton` | `DeleteButton` | `DownloadButton` | `UploadButton` | `EditButton` | `SettingsButton` | `FavoriteButton` | `HelpButton` | `DocsHelpLink` | `UndoRedoButtons`
@@ -154,7 +154,8 @@ Need a button?
 ├── Standard button → EditorButton
 ├── Icon-only in toolbar → ToolbarIconButton
 ├── Specific action (copy/delete/close/etc.) → Semantic action button
-├── Toggle on/off → LabeledToggle / ViewModeToggle
+├── Toggle on/off → LabeledToggle
+├── Pick one mode of several (grid/list, scope) → ToggleGroup `segmented exclusive`
 └── Floating action → CreateFab / CircularActionButton
 
 Need an input?
@@ -187,7 +188,8 @@ Need a container/surface?
 ├── Content card → Card
 ├── Panel with header/footer → Panel (its title row is a PanelHeader)
 ├── Title strip of a docked or floating panel → PanelHeader
-├── Tabs of a docked panel group → DockTabStrip (+ DockDropOverlay while dragging)
+├── Views over one surface → TabGroup (`count` per tab, `orientation="vertical"` for a rail)
+├── Tabs that close (docked panels, subgraph canvases) → DockTabStrip (+ DockDropOverlay while dragging)
 ├── Generic surface → Surface
 ├── Modal → Dialog
 ├── Backdrop → Overlay

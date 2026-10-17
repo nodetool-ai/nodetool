@@ -60,8 +60,6 @@ export type { RunWorkflowButtonProps } from "./RunWorkflowButton";
 export { ExpandCollapseButton } from "./ExpandCollapseButton";
 export type { ExpandCollapseButtonProps } from "./ExpandCollapseButton";
 
-export { ViewModeToggle } from "./ViewModeToggle";
-export type { ViewModeToggleProps, ViewModeOption } from "./ViewModeToggle";
 
 export { RefreshButton } from "./RefreshButton";
 export type { RefreshButtonProps } from "./RefreshButton";

@@ -1380,7 +1380,7 @@ import { EmptyState, LoadingSpinner, TabGroup, TabPanel } from "../ui_primitives
 | Icon | The variant picks a default. A passed `icon` takes the same size, so do not size it |
 | Search | A search or filter with no matches uses `variant="no-results"` |
 | Loading | Never bare "Loading…" text. A dropdown option may keep a disabled "Loading…" item |
-| Tabs | `TabGroup`, not raw `Tabs` and `Tab`. Workspace document tabs and the inspector's counted tabs are their own components |
+| Tabs | `TabGroup`, not raw `Tabs` and `Tab`. A tab's `count` shows after its label. `value={false}` selects none, and `onReselect` reports a click on the selected tab, for a strip that also collapses its panel. `orientation="vertical"` makes a category rail. Closable tabs use `DockTabStrip`. Workspace document tabs are their own component |
 
 ### Drop zones
 

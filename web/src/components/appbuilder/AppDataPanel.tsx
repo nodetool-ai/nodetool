@@ -45,6 +45,7 @@ import {
   SelectField,
   Text,
   TextInput,
+  NumberField,
   BORDER_RADIUS,
   SPACING
 } from "../ui_primitives";
@@ -248,9 +249,10 @@ const OperationRow: React.FC<{
         options={POLICY_OPTIONS}
         onChange={(value) => onPatch({ policy: value as OperationPolicy })}
       />
-      <TextInput
-        label="Timeout (ms)"
-        type="number"
+      <NumberField
+        label="Timeout"
+        unit="ms"
+        min={0}
         value={operation.timeoutMs == null ? "" : String(operation.timeoutMs)}
         size="small"
         fullWidth

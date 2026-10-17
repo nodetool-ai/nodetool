@@ -90,17 +90,16 @@ const styles = (theme: Theme) =>
         fontSize: "var(--fontSizeBig)"
       }
     },
+    // Positions the FloatingToolbar above the comment; the bar draws itself.
     ".format-toolbar-container": {
       display: "none",
       position: "absolute",
-      top: "-35px",
+      top: 0,
       left: "0",
       width: "100%",
+      transform: `translateY(calc(-100% - ${getSpacingPx(SPACING.xs)}))`,
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: theme.vars.palette.c_overlay_strong,
-      borderRadius: BORDER_RADIUS.sm,
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       zIndex: Z_INDEX.raised,
       opacity: 0,
       transition: `opacity ${MOTION.normal} ${200}ms`

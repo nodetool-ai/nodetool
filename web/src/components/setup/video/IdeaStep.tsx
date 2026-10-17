@@ -32,6 +32,7 @@ import {
   Box,
   Caption,
   Chip,
+  DropZone,
   FlexColumn,
   FlexRow,
   GAP,
@@ -283,7 +284,10 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   );
 
   return (
-    <Box
+    <DropZone
+      overlay
+      over={dragging}
+      overlayLabel="Drop to place your media"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -294,10 +298,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           md: "minmax(0, 2fr) minmax(240px, 1fr)"
         },
         gap: GAP.spacious,
-        alignItems: "start",
-        borderRadius: BORDER_RADIUS.md,
-        outline: dragging ? "2px dashed" : "none",
-        outlineColor: "primary.main"
+        alignItems: "start"
       }}
     >
       <FlexColumn gap={GAP.comfortable}>
@@ -491,7 +492,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         aria-label="Drop your media"
         onChange={handlePicked}
       />
-    </Box>
+    </DropZone>
   );
 };
 

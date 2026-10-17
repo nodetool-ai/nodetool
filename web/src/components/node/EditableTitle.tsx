@@ -5,6 +5,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import {
+  CountBadge,
   MOTION,
   BORDER_RADIUS,
   reducedMotion,
@@ -33,9 +34,17 @@ const EMOJI =
   /[#*0-9]\uFE0F?\u20E3|\p{RI}\p{RI}|\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic}|\p{Emoji_Modifier}|\uFE0F)*/u;
 const EMOJI_SPLIT = new RegExp(`(${EMOJI.source})`, "gu");
 
-// A standalone keycap emoji (digit/#/* + keycap). These read as step indices
-// in the example notes, so we promote them to a clean numbered badge.
-const KEYCAP = /^[#*0-9]\uFE0F?\u20E3$/u;
+// A standalone digit keycap emoji (digit + keycap). These read as step indices
+// in the example notes, so we promote them to a clean numbered badge. The #
+// and * keycaps are not numbers and stay emoji.
+const KEYCAP = /^[0-9]\uFE0F?\u20E3$/u;
+
+// A neutral index, not an alert: the note's own muted colors.
+const STEP_BADGE_SX = {
+  mr: SPACING.sm,
+  bgcolor: "grey.700",
+  color: "grey.100"
+} as const;
 
 // Split the title into runs: keycap markers become crisp step badges, other
 // emoji are desaturated so their native colors don't clash, and plain text is
@@ -46,10 +55,17 @@ function renderTitleText(title: string) {
     .filter((part) => part !== "")
     .map((part, i) => {
       if (KEYCAP.test(part)) {
+        const step = Number(part.replace(/[\uFE0F\u20E3]/gu, ""));
         return (
-          <span key={i} className="step-badge">
-            {part.replace(/[\uFE0F\u20E3]/gu, "")}
-          </span>
+          <CountBadge
+            key={i}
+            className="step-badge"
+            count={step}
+            showZero
+            size="small"
+            ariaLabel={`Step ${step}`}
+            sx={STEP_BADGE_SX}
+          />
         );
       }
       if (EMOJI.test(part)) {
@@ -145,23 +161,6 @@ const EditableTitle = memo(function EditableTitle({
       letterSpacing: "0.01em",
       wordBreak: "break-word",
       whiteSpace: "pre-wrap"
-    },
-
-    // Numbered step badge promoted from a keycap emoji — a crisp circular index.
-    ".step-badge": {
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      flexShrink: 0,
-      width: "16px",
-      height: "16px",
-      marginRight: getSpacingPx(SPACING.sm),
-      borderRadius: BORDER_RADIUS.circle,
-      background: theme.vars.palette.grey[700],
-      color: theme.vars.palette.grey[100],
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
-      lineHeight: 1
     },
 
     // Other emoji render in harsh native colors that clash with the muted note.

@@ -22,6 +22,7 @@ import {
   Text,
   TextInput,
   EditorButton,
+  Toolbar,
   ToolbarIconButton,
   UndoRedoButtons,
   EmptyState,
@@ -1027,15 +1028,16 @@ const ScriptDocumentPane = ({
       gap={SPACING.md}
       sx={{ flex: 1, minWidth: 0, height: "100%", overflowY: "auto" }}
     >
-      <FlexColumn
-        gap={SPACING.none}
+      {/* A stacked two-row header: Toolbar's surface and rule, column layout. */}
+      <Toolbar
         sx={{
           position: "sticky",
           top: 0,
-          backgroundColor: "background.paper",
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          zIndex: Z_INDEX.sticky
+          zIndex: Z_INDEX.sticky,
+          flexDirection: "column",
+          alignItems: "stretch",
+          gap: SPACING.none,
+          px: SPACING.none
         }}
       >
       <FlexRow
@@ -1233,7 +1235,7 @@ const ScriptDocumentPane = ({
           </>
         )}
       </FlexRow>
-      </FlexColumn>
+      </Toolbar>
 
       <VoicingStrip scriptId={scriptId} readOnly={readOnly} />
 

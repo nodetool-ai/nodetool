@@ -6,7 +6,8 @@ import type { Theme } from "@mui/material/styles";
 import {
   EmptyState,
   TYPOGRAPHY,
-  Tooltip,
+  TabGroup,
+  type TabItem,
   FlexColumn,
   CONTROL,
   SHADOW,
@@ -163,6 +164,9 @@ const VIEW_SPECS = {
 
 const PANEL_VIEWS = BOTTOM_PANEL_GROUPS.flatMap((g) => g.views);
 
+const isPanelView = (value: string): value is BottomPanelView =>
+  PANEL_VIEWS.some((view) => view === value);
+
 /**
  * Width of the status bar below which the cpu/mem and node-count readout is
  * hidden. The tabs, the worker status and that readout need about this much
@@ -224,65 +228,20 @@ export const styles = (theme: Theme) =>
       },
 
       "& .tab-rail": {
-        display: "flex",
-        alignItems: "stretch",
-        gap: 0,
-        overflowX: "auto",
         flexShrink: 1,
         minWidth: 0,
-        scrollbarWidth: "none",
-        msOverflowStyle: "none",
-        WebkitOverflowScrolling: "touch",
-        "&::-webkit-scrollbar": { display: "none" }
-      },
-
-      "& .tab-button": {
+        minHeight: 0,
         height: "100%",
-        padding: `0 ${getSpacingPx(SPACING.lg)}`,
-        color: theme.vars.palette.text.secondary,
-        ...TYPOGRAPHY.sans.label,
-        lineHeight: 1,
-        textTransform: "none",
-        minWidth: "auto",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: getSpacingPx(SPACING.md),
-        cursor: "pointer",
-        backgroundColor: "transparent",
-        border: "none",
-        whiteSpace: "nowrap",
-        transition: `${MOTION.background}, color ${MOTION.fast}`,
-        ...reducedMotion({ transition: MOTION.none }),
-        "& svg": {
-          fontSize: "var(--fontSizeNormal)",
-          color: theme.vars.palette.text.disabled
+        "& .MuiTab-root": {
+          minHeight: 0,
+          height: `${HEADER_HEIGHT}px`,
+          paddingTop: 0,
+          paddingBottom: 0
         },
-        "&:hover": {
-          backgroundColor: theme.vars.palette.c_overlay_subtle,
-          color: theme.vars.palette.text.primary,
-          "& svg": { color: theme.vars.palette.text.secondary }
-        },
-        "&.active": {
-          color: theme.vars.palette.text.primary,
-          backgroundColor: theme.vars.palette.c_overlay_subtle,
-          "& svg": { color: theme.vars.palette.primary.main },
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: "1px",
-            background: theme.vars.palette.primary.main
-          }
-        },
-        position: "relative"
-      },
-
-      "& .tab-count": {
-        color: theme.vars.palette.text.disabled,
-        fontVariantNumeric: "tabular-nums",
-        ...TYPOGRAPHY.sans.caption
+        "& .MuiTab-iconWrapper": { color: theme.vars.palette.text.disabled },
+        "& .Mui-selected .MuiTab-iconWrapper": {
+          color: theme.vars.palette.primary.main
+        }
       },
 
       "& .meta-cluster": {
@@ -324,38 +283,6 @@ export const styles = (theme: Theme) =>
       flexDirection: "column"
     }
   });
-
-interface TabButtonProps {
-  spec: ViewSpec;
-  active: boolean;
-  count?: number;
-  onClick: () => void;
-}
-
-const TabButton = memo(function TabButton({
-  spec,
-  active,
-  count,
-  onClick
-}: TabButtonProps) {
-  return (
-    <Tooltip title={spec.label} placement="top">
-      <button
-        type="button"
-        role="tab"
-        aria-selected={active}
-        className={`tab-button ${active ? "active" : ""}`}
-        onClick={onClick}
-      >
-        {spec.icon}
-        <span>{spec.label}</span>
-        {count !== undefined && count > 0 && (
-          <span className="tab-count">{count}</span>
-        )}
-      </button>
-    </Tooltip>
-  );
-});
 
 export const PanelBodyContent = memo(function PanelBodyContent({
   activeView
@@ -486,6 +413,34 @@ const PanelBottom: React.FC = () => {
 
   const systemStats = useSystemStatsStore((state) => state.stats);
 
+  // Clicking the open view's tab again collapses the panel.
+  const handleTabToggle = useCallback(
+    (view: string) => {
+      if (isPanelView(view)) {
+        handlePanelToggle(view);
+      }
+    },
+    [handlePanelToggle]
+  );
+
+  const visibleTabs = useMemo<TabItem[]>(
+    () =>
+      PANEL_VIEWS.filter(
+        // Workers are remote runners the server provisions, which the
+        // cloud refuses.
+        (view) => view !== "workers" || !isCloudProfile()
+      ).map((view) => {
+        const spec = VIEW_SPECS[view];
+        return {
+          value: view,
+          label: spec.label,
+          icon: spec.icon,
+          count: view === "queue" && queuedCount > 0 ? queuedCount : undefined
+        };
+      }),
+    [queuedCount]
+  );
+
   useCombo(["Control", "Shift", "T"], () => handlePanelToggle("trace"), false);
   const timelineEditing = useWorkspaceTabsStore((state) => {
     const tab = state.tabs.find((item) => item.id === state.activeTabId);
@@ -576,21 +531,15 @@ const PanelBottom: React.FC = () => {
               <span>{workerLabel}</span>
               <WorkerStatusIndicator />
             </div>
-            <div className="tab-rail" role="tablist">
-              {PANEL_VIEWS.filter(
-                // Workers are remote runners the server provisions, which the
-                // cloud refuses.
-                (view) => view !== "workers" || !isCloudProfile()
-              ).map((view) => (
-                <TabButton
-                  key={view}
-                  spec={VIEW_SPECS[view]}
-                  active={isVisible && activeView === view}
-                  count={view === "queue" ? queuedCount : undefined}
-                  onClick={() => handlePanelToggle(view)}
-                />
-              ))}
-            </div>
+            <TabGroup
+              className="tab-rail"
+              size="small"
+              aria-label="Bottom panel views"
+              tabs={visibleTabs}
+              value={isVisible ? activeView : false}
+              onChange={handleTabToggle}
+              onReselect={handleTabToggle}
+            />
             <div className="meta-cluster" aria-label="Workflow stats">
               {currentWorkflowId && (
                 <span className="meta-pair">
