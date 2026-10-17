@@ -18,6 +18,7 @@ import type {
 import {
   BaseProvider as BaseProviderClass,
   createPythonBridge,
+  FakeProvider,
   getProvider,
   getProviderSecretKey,
   isProviderConfigured,
@@ -430,7 +431,10 @@ export async function listProviderModels(
   providerId: string,
   kind: ProviderModelKind
 ): Promise<UnifiedModel[]> {
-  const provider = await createProviderStrict(providerId);
+  // Explicit discovery may show test models without admitting them to automatic selection.
+  const provider = providerId === "fake" && kind === "llm"
+    ? new FakeProvider()
+    : await createProviderStrict(providerId);
   if (kind === "llm") {
     const models = await provider.getAvailableLanguageModels();
     const toolSupport = await Promise.all(

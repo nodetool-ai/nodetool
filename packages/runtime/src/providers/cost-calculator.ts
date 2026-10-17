@@ -24,6 +24,7 @@ import {
   PROVIDER_IDS,
   type ProviderId
 } from "@nodetool-ai/protocol";
+import { FAKE_APP_GREETING_MODEL } from "./fake-app-greeting.js";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic text, not a behavioural contract.
 const log = createLogger("nodetool.runtime.cost");
@@ -168,6 +169,10 @@ function calcTokenPriceUsd(
   usage: UsageInfo,
   provider: ProviderId
 ): number | null {
+  // This in-process fixture emits fixed tool calls and never contacts a service.
+  if (provider === PROVIDER_IDS.FAKE && modelId === FAKE_APP_GREETING_MODEL) {
+    return 0;
+  }
   const providerLower = provider.toLowerCase();
   if (LOCAL_FREE_PROVIDERS.has(providerLower)) return 0;
 
