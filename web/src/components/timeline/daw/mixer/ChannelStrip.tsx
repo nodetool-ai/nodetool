@@ -2,9 +2,10 @@
 /**
  * One mixer channel strip, top to bottom: the channel's name and type, the
  * instrument of a midi track (opens its device), the insert slots, the pan
- * knob, the fader beside its stereo meter, the dB readout (click to type a
- * level) and mute and solo. The master strip is the same strip without
- * pan, instrument, mute or solo.
+ * knob, mute and solo, the fader beside its stereo meter and the dB readout
+ * (click to type a level). The master strip is the same strip without
+ * instrument, pan, mute or solo; a spacer keeps its fader level with the
+ * tracks' faders.
  *
  * Fader and pan drags write at most once a frame and record one undo entry
  * per gesture (`useBatchedGesture`).
@@ -14,8 +15,6 @@ import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import VolumeOffOutlinedIcon from "@mui/icons-material/VolumeOffOutlined";
-import VolumeUpOutlinedIcon from "@mui/icons-material/VolumeUpOutlined";
 import type { TimelineTrack, TrackEffect } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
@@ -46,8 +45,29 @@ import {
 } from "./faderTaper";
 import { InsertSlots } from "./InsertSlots";
 
-/** Strip width, from the spacing scale (88 px). */
-const STRIP_UNITS = 22;
+/** Strip width on a roomy mixer, from the spacing scale (120 px). */
+const STRIP_UNITS = 30;
+/** Width of the pan, mute and solo column beside the fader. */
+const SIDE_PX = CONTROL.height.lg;
+/**
+ * Below this mixer width (the `daw-mixer` container) the strip stacks pan,
+ * mute and solo above the fader instead of beside it.
+ */
+export const MIXER_PHONE_MAX_PX = 520;
+/** Pan knob diameter. */
+const KNOB_PX = CONTROL.height.sm;
+/** Mute and solo button height. */
+const TOGGLE_PX = CONTROL.height.xs - 4;
+/**
+ * The fader's travel is inset by half a cap at each end; the meter's bars are
+ * inset by the same amount (less its clip light above them) so both share
+ * one scale.
+ */
+const FADER_INSET_PX = (CONTROL.height.xs - 4) / 2;
+const METER_CLIP_PX = 6 + 2;
+
+/** The class every strip carries, for the mixer's phone layout. */
+export const STRIP_CLASS = "mixer-strip";
 
 const stripStyles = (theme: Theme, accent: string, master: boolean) =>
   css({
@@ -64,15 +84,14 @@ const stripStyles = (theme: Theme, accent: string, master: boolean) =>
     borderRadius: BORDER_RADIUS.md,
     border: `1px solid ${theme.vars.palette.divider}`,
     borderTop: `3px solid ${accent}`,
-    backgroundColor: master
-      ? theme.vars.palette.action.hover
-      : theme.vars.palette.background.paper,
+    backgroundColor: master ? theme.vars.palette.action.hover : theme.vars.palette.background.paper,
     ".strip__head": {
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
       gap: theme.spacing(SPACING.xs),
       minWidth: 0,
+      flexShrink: 0,
       color: accent,
       "& svg": { fontSize: TYPOGRAPHY.sans.label.fontSize, flexShrink: 0 }
     },
@@ -86,7 +105,10 @@ const stripStyles = (theme: Theme, accent: string, master: boolean) =>
     },
     ".strip__device": {
       ...TYPOGRAPHY.sans.caption,
+      display: "block",
       height: CONTROL.height.xs - 4,
+      lineHeight: `${CONTROL.height.xs - 6}px`,
+      boxSizing: "border-box",
       padding: `0 ${theme.spacing(SPACING.xs)}`,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.sm,
@@ -97,17 +119,79 @@ const stripStyles = (theme: Theme, accent: string, master: boolean) =>
       overflow: "hidden",
       textOverflow: "ellipsis",
       cursor: "pointer",
-      flexShrink: 0
+      flexShrink: 0,
+      transition: `color ${MOTION.fast}, ${MOTION.border}`
     },
-    ".strip__device[data-static]": { cursor: "default", lineHeight: `${CONTROL.height.xs - 6}px` },
+    ".strip__device[data-static]": { cursor: "default", borderStyle: "dashed" },
     "button.strip__device:hover": {
       color: theme.vars.palette.text.primary,
       borderColor: theme.vars.palette.text.secondary
     },
+    // Beside the fader: the pan knob over its value, then mute over solo.
+    ".strip__body": {
+      display: "flex",
+      flexDirection: "row",
+      gap: theme.spacing(SPACING.xs),
+      flex: "1 1 auto",
+      minHeight: theme.spacing(SPACING.xxxl * 3)
+    },
+    ".strip__side": {
+      order: 1,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: theme.spacing(SPACING.md),
+      width: SIDE_PX,
+      flexShrink: 0
+    },
     ".strip__pan": {
       display: "flex",
-      justifyContent: "center",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: theme.spacing(SPACING.micro),
       flexShrink: 0
+    },
+    ".strip__pan-value": {
+      ...TYPOGRAPHY.mono.caption,
+      lineHeight: 1,
+      color: theme.vars.palette.text.secondary,
+      whiteSpace: "nowrap",
+      userSelect: "none"
+    },
+    ".strip__buttons": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(SPACING.xs),
+      flexShrink: 0
+    },
+    ".strip__spacer": { display: "none" },
+    [`@container daw-mixer (max-width: ${MIXER_PHONE_MAX_PX}px)`]: {
+      ".strip__body": {
+        flexDirection: "column",
+        minHeight: 0
+      },
+      ".strip__side": {
+        order: 0,
+        width: "auto",
+        gap: theme.spacing(SPACING.xs)
+      },
+      ".strip__pan": {
+        flexDirection: "row",
+        justifyContent: "center",
+        gap: theme.spacing(SPACING.xs),
+        height: KNOB_PX
+      },
+      ".strip__buttons": {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr"
+      },
+      // The master has no pan, mute or solo; this keeps its fader level with
+      // the tracks' faders so every scale lines up across the mixer.
+      ".strip__spacer": {
+        display: "block",
+        height: KNOB_PX + TOGGLE_PX + 4,
+        flexShrink: 0
+      }
     },
     ".strip__level": {
       display: "flex",
@@ -115,7 +199,14 @@ const stripStyles = (theme: Theme, accent: string, master: boolean) =>
       justifyContent: "center",
       gap: theme.spacing(SPACING.xs),
       flex: "1 1 auto",
-      minHeight: theme.spacing(SPACING.xxxl * 2)
+      minWidth: 0,
+      minHeight: theme.spacing(SPACING.xxxl + SPACING.xl)
+    },
+    ".strip__meter": {
+      height: "100%",
+      boxSizing: "border-box",
+      paddingTop: FADER_INSET_PX - METER_CLIP_PX,
+      paddingBottom: FADER_INSET_PX
     },
     ".strip__readout, .strip__readout-input": {
       ...TYPOGRAPHY.mono.caption,
@@ -129,47 +220,50 @@ const stripStyles = (theme: Theme, accent: string, master: boolean) =>
       color: theme.vars.palette.text.primary,
       textAlign: "center",
       cursor: "text",
-      flexShrink: 0
+      flexShrink: 0,
+      transition: MOTION.border
+    },
+    ".strip__readout:hover": {
+      borderColor: theme.vars.palette.text.secondary
     },
     ".strip__readout-input": {
       outline: `2px solid ${theme.vars.palette.primary.main}`,
       outlineOffset: -2
     },
-    ".strip__buttons": {
-      display: "flex",
-      flexDirection: "row",
-      justifyContent: "center",
-      gap: theme.spacing(SPACING.xs),
-      flexShrink: 0
-    },
     ".strip__toggle": {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      width: CONTROL.height.xs,
-      height: CONTROL.height.xs,
+      minWidth: 0,
+      height: TOGGLE_PX,
       padding: 0,
-      border: "1px solid transparent",
-      borderRadius: BORDER_RADIUS.md,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: BORDER_RADIUS.sm,
       background: "transparent",
       color: theme.vars.palette.text.secondary,
       cursor: "pointer",
-      transition: `${MOTION.background}, ${MOTION.border}`,
+      transition: `${MOTION.background}, ${MOTION.border}, color ${MOTION.fast}`,
       ...TYPOGRAPHY.mono.strong,
-      lineHeight: 1,
-      "& svg": { fontSize: TYPOGRAPHY.sans.body.fontSize }
+      lineHeight: 1
     },
     ".strip__toggle:hover": {
       backgroundColor: theme.vars.palette.action.hover,
-      borderColor: theme.vars.palette.divider
+      borderColor: theme.vars.palette.text.secondary,
+      color: theme.vars.palette.text.primary
     },
     ".strip__toggle[data-tone='warning'][aria-pressed='true']": {
-      backgroundColor: theme.vars.palette.action.selected,
-      color: theme.vars.palette.warning.main
+      backgroundColor: theme.vars.palette.warning.main,
+      borderColor: theme.vars.palette.warning.main,
+      color: theme.vars.palette.warning.contrastText
     },
     ".strip__toggle[data-tone='success'][aria-pressed='true']": {
-      backgroundColor: theme.vars.palette.action.selected,
-      color: theme.vars.palette.success.main
+      backgroundColor: theme.vars.palette.success.main,
+      borderColor: theme.vars.palette.success.main,
+      color: theme.vars.palette.success.contrastText
+    },
+    // A muted channel's name reads as off at a glance.
+    "&[data-muted='true'] .strip__name": {
+      color: theme.vars.palette.text.disabled
     },
     "button:focus-visible, input:focus-visible": {
       outline: `2px solid ${theme.vars.palette.primary.main}`,
@@ -198,7 +292,9 @@ const DbReadout: React.FC<{
         type="button"
         className="strip__readout"
         aria-label={`${channel} level ${formatDb(db)}, edit`}
-        onClick={() => setDraft(db <= FADER_MIN_DB ? "-inf" : (Math.round(db * 10) / 10).toFixed(1))}
+        onClick={() =>
+          setDraft(db <= FADER_MIN_DB ? "-inf" : (Math.round(db * 10) / 10).toFixed(1))
+        }
       >
         {formatDb(db)}
       </button>
@@ -272,8 +368,10 @@ export const ChannelStripView: React.FC<ChannelStripViewProps> = memo((props) =>
   return (
     <section
       css={styles}
+      className={STRIP_CLASS}
       aria-label={`${channel.name} channel`}
       data-testid={master ? "mixer-strip-master" : undefined}
+      data-muted={channel.muted ? "true" : undefined}
     >
       <div className="strip__head">
         {Icon && <Icon aria-hidden="true" />}
@@ -282,14 +380,16 @@ export const ChannelStripView: React.FC<ChannelStripViewProps> = memo((props) =>
         </Tooltip>
       </div>
       {channel.instrument !== undefined ? (
-        <button
-          type="button"
-          className="strip__device"
-          onClick={props.onOpenDevice}
-          aria-label={`Open ${channel.name} instrument, ${channel.instrument}`}
-        >
-          {channel.instrument}
-        </button>
+        <Tooltip title={`Open ${channel.instrument}`}>
+          <button
+            type="button"
+            className="strip__device"
+            onClick={props.onOpenDevice}
+            aria-label={`Open ${channel.name} instrument, ${channel.instrument}`}
+          >
+            {channel.instrument}
+          </button>
+        </Tooltip>
       ) : (
         <span className="strip__device" data-static="true">
           {master ? "Stereo out" : "Audio"}
@@ -302,70 +402,87 @@ export const ChannelStripView: React.FC<ChannelStripViewProps> = memo((props) =>
         onToggle={props.onToggleEffect}
         onOpen={props.onOpenEffect}
       />
-      {props.onPan && (
-        <div className="strip__pan">
-          <Knob
-            value={channel.pan ?? 0}
-            min={-1}
-            max={1}
-            step={0.01}
-            bipolar
+      <div className="strip__body">
+        {props.onPan || props.onMute ? (
+          <div className="strip__side">
+            {props.onPan ? (
+              <div className="strip__pan">
+                <Knob
+                  value={channel.pan ?? 0}
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  bipolar
+                  defaultValue={0}
+                  size={KNOB_PX}
+                  label={`${channel.name} pan`}
+                  valueText={panValueText}
+                  onChangeStart={props.onPanStart}
+                  onChange={props.onPan}
+                  onChangeEnd={props.onPanEnd}
+                />
+                <span className="strip__pan-value" aria-hidden="true">
+                  {formatPan(channel.pan)}
+                </span>
+              </div>
+            ) : null}
+            {props.onMute && props.onSolo ? (
+              <div className="strip__buttons">
+                <Tooltip title={channel.muted ? "Unmute" : "Mute"}>
+                  <button
+                    type="button"
+                    className="strip__toggle"
+                    data-tone="warning"
+                    aria-pressed={!!channel.muted}
+                    aria-label={`${channel.muted ? "Unmute" : "Mute"} ${channel.name}`}
+                    onClick={props.onMute}
+                  >
+                    M
+                  </button>
+                </Tooltip>
+                <Tooltip title={channel.solo ? "Unsolo" : "Solo"}>
+                  <button
+                    type="button"
+                    className="strip__toggle"
+                    data-tone="success"
+                    aria-pressed={!!channel.solo}
+                    aria-label={`${channel.solo ? "Unsolo" : "Solo"} ${channel.name}`}
+                    onClick={props.onSolo}
+                  >
+                    S
+                  </button>
+                </Tooltip>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="strip__spacer" aria-hidden="true" />
+        )}
+        <div className="strip__level">
+          <Fader
+            value={channel.volumeDb}
+            min={FADER_MIN_DB}
+            max={faderMax}
+            toPosition={dbToFaderPosition}
+            fromPosition={faderPositionToDb}
             defaultValue={0}
-            label={`${channel.name} pan`}
-            valueText={panValueText}
-            caption={formatPan(channel.pan)}
-            onChangeStart={props.onPanStart}
-            onChange={props.onPan}
-            onChangeEnd={props.onPanEnd}
+            marks={FADER_MARKS}
+            label={`${channel.name} volume`}
+            valueText={formatDb}
+            onChangeStart={props.onVolumeStart}
+            onChange={props.onVolume}
+            onChangeEnd={props.onVolumeEnd}
           />
+          <div className="strip__meter">
+            <LevelMeter
+              read={props.readLevels}
+              toPosition={dbToFaderPosition}
+              label={`${channel.name} level`}
+            />
+          </div>
         </div>
-      )}
-      <div className="strip__level">
-        <Fader
-          value={channel.volumeDb}
-          min={FADER_MIN_DB}
-          max={faderMax}
-          toPosition={dbToFaderPosition}
-          fromPosition={faderPositionToDb}
-          defaultValue={0}
-          marks={FADER_MARKS}
-          label={`${channel.name} volume`}
-          valueText={formatDb}
-          onChangeStart={props.onVolumeStart}
-          onChange={props.onVolume}
-          onChangeEnd={props.onVolumeEnd}
-        />
-        <LevelMeter read={props.readLevels} toPosition={dbToFaderPosition} label={`${channel.name} level`} />
       </div>
       <DbReadout channel={channel.name} db={channel.volumeDb} onCommit={props.onVolumeCommit} />
-      {props.onMute && props.onSolo && (
-        <div className="strip__buttons">
-          <Tooltip title={channel.muted ? "Unmute" : "Mute"}>
-            <button
-              type="button"
-              className="strip__toggle"
-              data-tone="warning"
-              aria-pressed={!!channel.muted}
-              aria-label={`${channel.muted ? "Unmute" : "Mute"} ${channel.name}`}
-              onClick={props.onMute}
-            >
-              {channel.muted ? <VolumeOffOutlinedIcon /> : <VolumeUpOutlinedIcon />}
-            </button>
-          </Tooltip>
-          <Tooltip title={channel.solo ? "Unsolo" : "Solo"}>
-            <button
-              type="button"
-              className="strip__toggle"
-              data-tone="success"
-              aria-pressed={!!channel.solo}
-              aria-label={`${channel.solo ? "Unsolo" : "Solo"} ${channel.name}`}
-              onClick={props.onSolo}
-            >
-              S
-            </button>
-          </Tooltip>
-        </div>
-      )}
     </section>
   );
 });

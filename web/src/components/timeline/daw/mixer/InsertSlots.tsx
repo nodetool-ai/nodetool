@@ -21,7 +21,9 @@ import {
   MOTION,
   SPACING,
   TYPOGRAPHY,
-  Tooltip
+  Divider,
+  Tooltip,
+  thinScrollbarStyles
 } from "../../../ui_primitives";
 import { AUDIO_EFFECT_TYPES, EFFECT_LABELS } from "../../Tracks/trackEffectsConstants";
 import { FABLE_FX_KINDS, FABLE_FX_LABELS, makeFableEffect } from "../fx/fableFxParams";
@@ -44,9 +46,18 @@ const slotsStyles = (theme: Theme) =>
     flexDirection: "column",
     gap: theme.spacing(SPACING.micro),
     width: "100%",
-    minHeight: 0,
-    maxHeight: theme.spacing(SPACING.xxxl * 3),
-    overflowY: "auto",
+    // On a short strip the list shrinks and scrolls; the add button stays.
+    flex: "0 1 auto",
+    minHeight: CONTROL.height.xs - 4,
+    ".inserts__list": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(SPACING.micro),
+      minHeight: 0,
+      maxHeight: theme.spacing(SPACING.xxxl * 3),
+      overflowY: "auto",
+      ...thinScrollbarStyles(theme)
+    },
     ".insert": {
       display: "flex",
       flexDirection: "row",
@@ -97,11 +108,16 @@ const slotsStyles = (theme: Theme) =>
     },
     ".insert__add": {
       width: "100%",
+      transition: `${MOTION.background}, ${MOTION.border}, color ${MOTION.fast}`,
       border: `1px dashed ${theme.vars.palette.divider}`,
       color: theme.vars.palette.text.secondary
     },
     "button:hover": {
       backgroundColor: theme.vars.palette.action.selected
+    },
+    ".insert__add:hover": {
+      borderColor: theme.vars.palette.text.secondary,
+      color: theme.vars.palette.text.primary
     },
     "button:focus-visible": {
       outline: `2px solid ${theme.vars.palette.primary.main}`,
@@ -124,38 +140,42 @@ export const InsertSlots: React.FC<InsertSlotsProps> = memo(
     );
 
     return (
-      <div css={styles} role="list" aria-label={`${channel} inserts`}>
-        {effects.map((effect) => {
-          const title = effectTitle(effect);
-          return (
-            <div
-              key={effect.id}
-              className="insert"
-              role="listitem"
-              data-enabled={effect.enabled}
-            >
-              <button
-                type="button"
-                className="insert__power"
-                aria-pressed={effect.enabled}
-                aria-label={`${effect.enabled ? "Bypass" : "Enable"} ${title}`}
-                onClick={() => onToggle(effect.id, !effect.enabled)}
-              >
-                <PowerSettingsNewIcon />
-              </button>
-              <Tooltip title={`Open ${title}`}>
-                <button
-                  type="button"
-                  className="insert__name"
-                  aria-haspopup="dialog"
-                  onClick={(event) => onOpen(effect.id, event.currentTarget)}
+      <div css={styles}>
+        {effects.length > 0 && (
+          <div className="inserts__list" role="list" aria-label={`${channel} inserts`}>
+            {effects.map((effect) => {
+              const title = effectTitle(effect);
+              return (
+                <div
+                  key={effect.id}
+                  className="insert"
+                  role="listitem"
+                  data-enabled={effect.enabled}
                 >
-                  {title}
-                </button>
-              </Tooltip>
-            </div>
-          );
-        })}
+                  <button
+                    type="button"
+                    className="insert__power"
+                    aria-pressed={effect.enabled}
+                    aria-label={`${effect.enabled ? "Bypass" : "Enable"} ${title}`}
+                    onClick={() => onToggle(effect.id, !effect.enabled)}
+                  >
+                    <PowerSettingsNewIcon />
+                  </button>
+                  <Tooltip title={`Open ${title}`}>
+                    <button
+                      type="button"
+                      className="insert__name"
+                      aria-haspopup="dialog"
+                      onClick={(event) => onOpen(effect.id, event.currentTarget)}
+                    >
+                      {title}
+                    </button>
+                  </Tooltip>
+                </div>
+              );
+            })}
+          </div>
+        )}
         <button
           type="button"
           className="insert__add"
@@ -174,6 +194,7 @@ export const InsertSlots: React.FC<InsertSlotsProps> = memo(
               onClick={() => add(type)}
             />
           ))}
+          <Divider sx={{ my: SPACING.xs }} />
           {FABLE_FX_KINDS.map((kind) => (
             <MenuItemPrimitive
               key={`fable:${kind}`}

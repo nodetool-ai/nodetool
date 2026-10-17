@@ -37,6 +37,13 @@ export interface EffectDevicePopoverProps {
 
 const NO_EFFECTS: TrackEffect[] = [];
 
+/** True when the anchor sits in the lower half of the window. */
+function opensUpward(anchor: HTMLElement): boolean {
+  if (typeof window === "undefined") return false;
+  const rect = anchor.getBoundingClientRect();
+  return rect.top + rect.height / 2 > window.innerHeight / 2;
+}
+
 export const EffectDevicePopover: React.FC<EffectDevicePopoverProps> = memo(
   ({ open, onClose }) => {
     const trackId = open?.trackId ?? null;
@@ -71,13 +78,17 @@ export const EffectDevicePopover: React.FC<EffectDevicePopoverProps> = memo(
     if (!open || !effect) return null;
     const View = fxView(effectViewKey(effect));
     const title = effectTitle(effect);
+    // Open toward the roomier side of the window, so the device sits beside
+    // its strip instead of being pushed back over it.
+    const vertical = opensUpward(open.anchor) ? "top" : "bottom";
+    const horizontal = open.trackId === null ? "right" : "left";
     return (
       <Popover
         open
         action={actions}
         anchorEl={open.anchor}
         onClose={onClose}
-        placement={open.trackId === null ? "bottom-right" : "bottom-left"}
+        placement={`${vertical}-${horizontal}`}
         paperSx={{ width: "max-content" }}
         maxWidth="100vw"
         maxHeight="90vh"
