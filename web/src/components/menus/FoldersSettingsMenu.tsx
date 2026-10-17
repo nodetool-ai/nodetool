@@ -3,7 +3,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import { useMemo, useState, useCallback, memo } from "react";
 
-import { Text, FlexColumn, FlexRow, getSpacingPx, SPACING } from "../ui_primitives";
+import { Text, FlexColumn, FlexRow, getSpacingPx, SPACING, LoadingSpinner } from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -185,9 +185,7 @@ const FoldersSettings = () => {
   return (
     <>
       {isLoading && (
-        <Text sx={{ textAlign: "center", padding: getSpacingPx(SPACING.xxxl) }}>
-          Loading folder settings…
-        </Text>
+        <LoadingSpinner text="Loading folder settings" />
       )}
       <div
         className="remote-settings-content"

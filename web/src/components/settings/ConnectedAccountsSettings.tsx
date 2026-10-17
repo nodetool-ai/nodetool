@@ -114,10 +114,7 @@ const ConnectedAccountsSettings = () => {
         </FlexRow>
 
         {isLoading && (
-          <FlexRow align="center" gap={SPACING.md}>
-            <LoadingSpinner />
-            <Caption>Loading connected accounts…</Caption>
-          </FlexRow>
+          <LoadingSpinner text="Loading connected accounts" />
         )}
 
         {!isLoading && linked && (

@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import type { StorageRetentionPolicy } from "@nodetool-ai/protocol/api-schemas/settings.js";
 import { useStorageHistory } from "../../serverState/useStorageHistory";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { ConfirmDialog } from "../ui_primitives";
+import { ConfirmDialog, LoadingSpinner } from "../ui_primitives";
 import { NumberSetting } from "../menus/NumberSetting";
 import {
   AlertBanner,
@@ -84,7 +84,7 @@ export default function StorageHistorySettings() {
   }, [addNotification, confirmation, history]);
 
   if (history.isLoading) {
-    return <Text className="description">Loading history status…</Text>;
+    return <LoadingSpinner size="small" text="Loading history status" />;
   }
   if (history.error || !policy || !status) {
     return (

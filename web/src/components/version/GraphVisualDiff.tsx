@@ -7,7 +7,7 @@ import React, { useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { GraphDiff } from "../../utils/graphDiff";
 import { Graph, Node } from "../../stores/ApiTypes";
-import { Caption, FlexColumn, FlexRow, Surface, Tooltip, StatusDot } from "../ui_primitives";
+import { Caption, FlexColumn, FlexRow, Surface, Tooltip, StatusDot, EmptyState } from "../ui_primitives";
 
 interface GraphVisualDiffProps {
   diff: GraphDiff;
@@ -228,9 +228,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
           align="center"
           justify="center"
         >
-          <Caption color="secondary">
-            No changes to display
-          </Caption>
+          <EmptyState variant="no-data" size="small" title="No changes to display" />
         </FlexColumn>
       </Surface>
     );

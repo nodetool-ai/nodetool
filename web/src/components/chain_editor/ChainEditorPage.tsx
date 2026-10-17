@@ -6,7 +6,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { LoadingSpinner, Text, FlexColumn } from "../ui_primitives";
+import ErrorBanner from "../support/ErrorBanner";
+import { LoadingSpinner, FlexColumn } from "../ui_primitives";
 import { ChainEditor } from "./ChainEditor";
 import { useChainEditorStore } from "./useChainEditorStore";
 import { trpcClient } from "../../trpc/client";
@@ -45,8 +46,7 @@ const ChainEditorPage: React.FC = () => {
   if (loading) {
     return (
       <FlexColumn align="center" justify="center" fullHeight fullWidth gap={2}>
-        <LoadingSpinner size="large" />
-        <Text color="secondary">Loading workflow…</Text>
+        <LoadingSpinner size="large" text="Loading workflow" />
       </FlexColumn>
     );
   }
@@ -54,7 +54,16 @@ const ChainEditorPage: React.FC = () => {
   if (error) {
     return (
       <FlexColumn align="center" justify="center" fullHeight fullWidth gap={2}>
-        <Text color="error">{error}</Text>
+        <ErrorBanner
+          report={{
+            source: "operation-failure",
+            summary: "Chain editor failed to load the workflow",
+            errorText: error,
+            workflowId
+          }}
+        >
+          {error}
+        </ErrorBanner>
       </FlexColumn>
     );
   }

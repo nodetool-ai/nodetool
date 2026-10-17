@@ -19,7 +19,7 @@ import type { TimelineBeat } from "@nodetool-ai/timeline";
 
 import { FlexColumn, FlexRow, GAP, Text } from "../../ui_primitives";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import ReportBugButton from "../../support/ReportBugButton";
+import ErrorBanner from "../../support/ErrorBanner";
 import GenerationSummary, {
   type GenerationSummaryProps
 } from "../GenerationSummary";
@@ -286,18 +286,15 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       />
       {generation ? <GenerationSummary {...generation} compact /> : null}
       {error ? (
-        <FlexRow gap={GAP.normal} align="center" wrap>
-          <Text size="small" color="error" role="alert">
-            {error}
-          </Text>
-          <ReportBugButton
-            context={{
-              source: "provider-call",
-              summary: "Video beat re-plan failed",
-              errorText: error
-            }}
-          />
-        </FlexRow>
+        <ErrorBanner
+          report={{
+            source: "provider-call",
+            summary: "Video beat re-plan failed",
+            errorText: error
+          }}
+        >
+          {error}
+        </ErrorBanner>
       ) : null}
     </FlexColumn>
   );

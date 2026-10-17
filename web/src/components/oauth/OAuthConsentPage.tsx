@@ -20,7 +20,8 @@ import {
   NavButton,
   SPACING,
   PageHeader,
-  Text
+  Text,
+  EmptyState
 } from "../ui_primitives";
 import { trpcClient } from "../../trpc/client";
 import { navigateToRedirect } from "./navigate";
@@ -67,17 +68,11 @@ const OAuthConsentPage = () => {
   if (!requestId) {
     return (
       <FlexColumn align="center" justify="center" sx={{ minHeight: "60vh", padding: `${SPACING.xl}px` }}>
-        <FlexColumn
-          gap={2}
-          align="center"
-          sx={{ maxWidth: "480px", textAlign: "center" }}
-        >
-          <Text sx={{ fontWeight: 500 }}>No authorization request</Text>
-          <Text className="description">
-            This page needs a request_id. Restart the connection from your
-            MCP client.
-          </Text>
-        </FlexColumn>
+        <EmptyState
+          variant="no-data"
+          title="No authorization request"
+          description="This page needs a request_id. Restart the connection from your MCP client."
+        />
       </FlexColumn>
     );
   }

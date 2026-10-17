@@ -196,9 +196,11 @@ const QueuePanel = memo(function QueuePanel() {
           }
         />
         {active.length === 0 ? (
-          <Text size="smaller" color="secondary">
-            Nothing running or queued. Runs show up here while they work.
-          </Text>
+          <EmptyState
+            size="small"
+            title="Nothing running or queued"
+            description="Runs show up here while they work."
+          />
         ) : (
           <ScrollArea sx={{ minHeight: 0 }}>
             <JobGrid jobs={active} label="Active jobs" />

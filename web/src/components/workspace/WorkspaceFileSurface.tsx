@@ -12,11 +12,10 @@ import VideoViewer from "../asset_viewer/VideoViewer";
 import LazyPDFViewer from "../asset_viewer/LazyPDFViewer";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import {
-  Button,
-  Caption,
   FlexColumn,
   SPACING,
-  Text
+  Text,
+  EmptyState
 } from "../ui_primitives";
 import WorkspaceFileText from "./WorkspaceFileText";
 import { isTextKind, workspaceFileKind } from "./workspaceFileKind";
@@ -43,13 +42,13 @@ const BinaryFallback = ({ name, url }: { name: string; url: string }) => {
       justify="center"
       gap={SPACING.md}
     >
-      <Text size="normal" weight={600}>
-        {name}
-      </Text>
-      <Caption>No preview available for this file type.</Caption>
-      <Button variant="outlined" size="small" onClick={handleDownload}>
-        Download
-      </Button>
+      <EmptyState
+        variant="no-data"
+        title={name}
+        description="No preview available for this file type."
+        actionText="Download"
+        onAction={handleDownload}
+      />
     </FlexColumn>
   );
 };

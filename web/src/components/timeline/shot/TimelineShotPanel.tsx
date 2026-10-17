@@ -43,6 +43,7 @@ import ShotRenderDialog, {
 import ShotStatusPill, {
   isShotGenerating
 } from "../../storyboard/ShotStatusPill";
+import ErrorBanner from "../../support/ErrorBanner";
 import {
   Caption,
   CollapsibleSection,
@@ -220,7 +221,17 @@ const ShotContent = memo(({ clip, boardId, shot }: ShotContentProps) => {
                 changes.
               </Caption>
             )}
-            {jobError && <Caption color="error">{jobError}</Caption>}
+            {jobError && (
+              <ErrorBanner
+                report={{
+                  source: "job-failure",
+                  summary: "Shot generation failed",
+                  errorText: jobError
+                }}
+              >
+                {jobError}
+              </ErrorBanner>
+            )}
           </FlexColumn>
         </CollapsibleSection>
 

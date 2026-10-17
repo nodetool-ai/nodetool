@@ -13,6 +13,7 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTrackObject } from "../../../hooks/timeline/useTrackObject";
+import ErrorBanner from "../../support/ErrorBanner";
 import {
   Caption,
   CollapsibleSection,
@@ -139,9 +140,15 @@ const TrackingSection: React.FC<ClipTrackingProps> = ({ clip }) => {
             {status === "pending" ? "Tracking subject…" : "Track subject"}
           </EditorButton>
           {error && (
-            <Caption color="error" role="alert">
+            <ErrorBanner
+              report={{
+                source: "operation-failure",
+                summary: "Subject tracking failed",
+                errorText: error
+              }}
+            >
               {error}
-            </Caption>
+            </ErrorBanner>
           )}
           <Caption color="muted" aria-live="polite">
             {isLoadingModel

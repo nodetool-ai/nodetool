@@ -36,6 +36,7 @@ import CostEstimateLine from "../../costs/CostEstimateLine";
 import { generationCostLine } from "../../costs/costLine";
 import VideoModelSelect from "../../properties/VideoModelSelect";
 import CuratedModelSelect from "../../properties/curated/CuratedModelSelect";
+import ErrorBanner from "../../support/ErrorBanner";
 import {
   Caption,
   CollapsibleSection,
@@ -389,14 +390,25 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
             </EditorButton>
 
             {!imageSize && measured.failed && (
-              <Caption color="error" sx={{ textAlign: "center" }}>
+              <ErrorBanner
+                report={{
+                  source: "operation-failure",
+                  summary: "Image-to-video source image failed to load"
+                }}
+              >
                 The image could not be loaded, so its size is unknown.
-              </Caption>
+              </ErrorBanner>
             )}
             {errorMessage && (
-              <Caption color="error" sx={{ textAlign: "center" }}>
+              <ErrorBanner
+                report={{
+                  source: "operation-failure",
+                  summary: "Image-to-video generation could not start",
+                  errorText: errorMessage
+                }}
+              >
                 {errorMessage}
-              </Caption>
+              </ErrorBanner>
             )}
           </>
         )}

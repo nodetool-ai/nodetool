@@ -7,6 +7,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { VERSION, GIT_COMMIT_HASH, BUILD_NUMBER } from "../../config/constants";
 import { isElectron, isProduction } from "../../lib/env";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import ErrorBanner from "../support/ErrorBanner";
 import { FlexRow, FlexColumn, Text, Caption, LoadingSpinner, Chip, Box, getSpacingPx, SPACING } from "../ui_primitives";
 
 // Note: This interface mirrors the SystemInfo type from window.d.ts
@@ -268,7 +269,15 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
   if (error) {
     return (
       <Box sx={{ padding: getSpacingPx(SPACING.xl) }}>
-        <Text color="error">{error}</Text>
+        <ErrorBanner
+          report={{
+            source: "operation-failure",
+            summary: "System information failed to load",
+            errorText: error
+          }}
+        >
+          {error}
+        </ErrorBanner>
       </Box>
     );
   }

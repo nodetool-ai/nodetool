@@ -62,6 +62,7 @@ import {
 } from "./shotRenderModels";
 import RenderCostSummary from "./RenderCostSummary";
 
+import ErrorBanner from "../support/ErrorBanner";
 import {
   AlertBanner,
   Box,
@@ -1795,9 +1796,15 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 </Caption>
               )}
               {assembleError && (
-                <Caption role="alert" color="error">
+                <ErrorBanner
+                  report={{
+                    source: "operation-failure",
+                    summary: "Assembling the storyboard timeline failed",
+                    errorText: assembleError
+                  }}
+                >
                   {assembleError}
-                </Caption>
+                </ErrorBanner>
               )}
             </FlexColumn>
           )}
