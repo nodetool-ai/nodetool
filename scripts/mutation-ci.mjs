@@ -180,6 +180,9 @@ export function aggregate(root, plan, outputs) {
     indices.push(partition.id);
     const expectedIds = partition.assignedIds;
     assert.deepEqual(receipt.assignedIds, expectedIds, "Assignment differs from canonical partition");
+    const journal = readFileSync(join(output, "completed.ndjson"), "utf8")
+      .split("\n").filter(Boolean).map((line) => JSON.parse(line));
+    assert.deepEqual(journal, receipt.completed, "Partition completion journal differs from its receipt");
     const completedIds = unique(receipt.completed.map((item) => item.id), "completed");
     assert.deepEqual(completedIds, unique(expectedIds, "assigned"), "Missing or unexpected terminal outcomes");
     for (const { outcome } of receipt.completed) {
