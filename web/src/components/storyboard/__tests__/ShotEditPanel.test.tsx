@@ -200,10 +200,13 @@ const choose = async (label: string, option: string) => {
   );
 };
 
+// Pasting enters the whole value in one input event. Typing it one key at a
+// time ran past the timeout on loaded CI runners.
 const typeInto = async (label: string, text: string) => {
   const field = screen.getByLabelText(label);
   await userEvent.clear(field);
-  await userEvent.type(field, text);
+  await userEvent.click(field);
+  await userEvent.paste(text);
 };
 
 beforeEach(() => {
