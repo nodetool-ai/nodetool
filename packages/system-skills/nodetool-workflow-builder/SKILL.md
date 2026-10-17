@@ -114,7 +114,14 @@ canvas the same flow is `ui_workflow_plan`, `ui_workflow_update_plan_step` and
 ## Node catalog
 
 Catalog entries are search leads. Confirm each type with `get_node_info` or
-`ui_search_nodes` before using it.
+`ui_search_nodes` before using it. From the CLI, inspect installed types with
+`nodetool node list` and `nodetool node info <type>`.
+
+`nodetool.output.Output` is supplied by the audio pack. If it is needed but
+not installed, run `nodetool packs add audio --yes`. CLI workflow runs also
+return terminal transform outputs: a core-only deterministic text graph can
+end at `nodetool.text.Template` without a dedicated sink. For example,
+`StringInput` → `Template` returns the template's values under `outputs.Template`.
 
 | Namespace | Common nodes |
 |---|---|
