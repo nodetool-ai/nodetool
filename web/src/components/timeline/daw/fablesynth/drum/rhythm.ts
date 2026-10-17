@@ -55,15 +55,19 @@ export function cloneDrumRhythm(value: DrumRhythm | undefined, sourceBars = 16):
   if (error) throw new Error(`Invalid drum rhythm: ${error}`);
   return {
     v: 1,
-    lanes: value.lanes.map((lane) => lane && {
-      ...(lane.delayMs !== undefined ? { delayMs: lane.delayMs } : {}),
-      ...(lane.stepDelayMs !== undefined ? { stepDelayMs: [...lane.stepDelayMs] } : {}),
-      enabled: lane.enabled,
-      // Active POLY lanes always play bar one, including older saved rhythms.
-      sourceBar: lane.enabled ? 0 : lane.sourceBar,
-      steps: lane.steps,
-      rotation: lane.rotation,
-      timing: lane.timing.mode === 'grid' ? { mode: 'grid' } : { mode: 'fit', cycleBeats: lane.timing.cycleBeats },
+    lanes: value.lanes.map((lane) => {
+      if (!lane) return lane;
+      const copy: NonNullable<typeof lane> = {
+        enabled: lane.enabled,
+        // Active POLY lanes always play bar one, including older saved rhythms.
+        sourceBar: lane.enabled ? 0 : lane.sourceBar,
+        steps: lane.steps,
+        rotation: lane.rotation,
+        timing: lane.timing.mode === 'grid' ? { mode: 'grid' } : { mode: 'fit', cycleBeats: lane.timing.cycleBeats },
+      };
+      if (lane.delayMs !== undefined) copy.delayMs = lane.delayMs;
+      if (lane.stepDelayMs !== undefined) copy.stepDelayMs = [...lane.stepDelayMs];
+      return copy;
     }),
   };
 }

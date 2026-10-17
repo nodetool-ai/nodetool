@@ -210,18 +210,21 @@ export async function createDr1DeviceInstance(
   ]);
   const params = dr1ParamsFromInstrument(drum);
   const lists = workletAssetLists(assets);
+  const processorOptions: Record<string, unknown> = {
+    mixdown: true,
+    baseNote: drum.baseNote,
+    params,
+    tables: lists.tables,
+    samples: lists.samples
+  };
+  if (options.events?.length) {
+    processorOptions.events = encodeLiveEvents(options.events, ctx.sampleRate);
+  }
   const node = new AudioWorkletNode(ctx, "fable-dr", {
     numberOfInputs: 0,
     numberOfOutputs: 1,
     outputChannelCount: [2],
-    processorOptions: {
-      mixdown: true,
-      baseNote: drum.baseNote,
-      params,
-      tables: lists.tables,
-      samples: lists.samples,
-      ...(options.events?.length ? { events: encodeLiveEvents(options.events, ctx.sampleRate) } : {})
-    }
+    processorOptions
   });
   const output = ctx.createGain();
   node.connect(output);

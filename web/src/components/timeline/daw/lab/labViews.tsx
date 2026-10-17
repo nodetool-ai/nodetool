@@ -94,7 +94,7 @@ function FxLabView({ kind }: { kind: FableEffectKind }): React.JSX.Element {
   });
   const View = FABLE_FX_VIEWS[kind];
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#06070b" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }} className="fablesynth">
       <div style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 16 }}>
         <View trackId="lab-keys" effectId={effectId} />
       </div>

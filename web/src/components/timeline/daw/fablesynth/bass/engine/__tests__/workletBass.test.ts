@@ -34,7 +34,7 @@ const tables = generateTables().map((t) => ({ frames: t.frames, mips: t.mips, si
 
 function loadProcessor(): { Ctor: ProcCtor; scope: { currentFrame: number } } {
   const registered: Record<string, ProcCtor> = {};
-  const scope: Record<string, unknown> = {
+  const scope: { currentFrame: number } & Record<string, unknown> = {
     sampleRate: SR,
     currentFrame: 0,
     registerProcessor: (name: string, ctor: ProcCtor) => {
@@ -53,7 +53,7 @@ function loadProcessor(): { Ctor: ProcCtor; scope: { currentFrame: number } } {
   const context = vm.createContext(scope);
   vm.runInContext(fs.readFileSync(path.join(engineDir, "ott-worklet.js"), "utf8"), context);
   vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "worklet-bass.js"), "utf8"), context);
-  return { Ctor: registered["fable-bl"], scope: scope as { currentFrame: number } };
+  return { Ctor: registered["fable-bl"], scope };
 }
 
 function dryParams(): Record<string, number> {

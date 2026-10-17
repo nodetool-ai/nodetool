@@ -1063,14 +1063,14 @@ export function kitToState(kit: Kit): {
       if (migrated !== undefined) params[def.id] = migrated;
     }
   }
-  return {
+  const state = {
     params,
     padNames: [...kit.padNames],
     patterns: Uint8Array.from(kit.patterns),
     chain: [...kit.chain],
-    ...(kit.drumRhythm ? { drumRhythm: cloneDrumRhythm(kit.drumRhythm, 4) } : {}),
     tables: kit.tables ? [...kit.tables] : [],
   };
+  return kit.drumRhythm ? { ...state, drumRhythm: cloneDrumRhythm(kit.drumRhythm, 4) } : state;
 }
 
 export function stateToKit(

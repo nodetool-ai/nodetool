@@ -210,7 +210,6 @@ const DbReadout: React.FC<{
       aria-label={`${channel} level in dB`}
       value={draft}
       // The readout was clicked to type a level; the field takes focus.
-      // eslint-disable-next-line jsx-a11y/no-autofocus
       autoFocus
       inputMode="decimal"
       onChange={(event) => setDraft(event.target.value)}

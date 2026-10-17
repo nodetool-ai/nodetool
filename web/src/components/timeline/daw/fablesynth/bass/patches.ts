@@ -393,12 +393,9 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
 // Drive, where a patch enables it, blends at a common 65% mix.
 export const FACTORY_PATCHES: BassPatch[] = FACTORY_PATCHES_RAW.map((patch) => ({
   ...patch,
-  params: {
-    ...patch.params,
-    'fx.delay.on': 0,
-    'fx.reverb.on': 0,
-    ...(patch.params['fx.drive.on'] === 0 ? {} : { 'fx.drive.mix': 0.65 }),
-  },
+  params: patch.params['fx.drive.on'] === 0
+    ? { ...patch.params, 'fx.delay.on': 0, 'fx.reverb.on': 0 }
+    : { ...patch.params, 'fx.delay.on': 0, 'fx.reverb.on': 0, 'fx.drive.mix': 0.65 },
 }));
 
 

@@ -238,7 +238,7 @@ export function createDrumStore(host: Dr1StoreHost, params: ParamValues, padName
 
       syncFromTrack: (nextParams, nextNames) => set({ params: nextParams, padNames: nextNames }),
       attach: (patch) => {
-        set({ ...patch, ...(patch.device !== undefined ? { powered: !!patch.device } : {}) });
+        set(patch.device === undefined ? patch : { ...patch, powered: !!patch.device });
         if (patch.device) patch.device.selectPad(get().sel);
       },
     };
