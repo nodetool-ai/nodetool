@@ -32,7 +32,6 @@
     "@webgpu/types": "^0.1.70",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vite": "^6.0.0",
-    "vite-plugin-node-polyfills": "^0.28.0",
     "vitest": "^5.0.1"
   },
   "exports": {
