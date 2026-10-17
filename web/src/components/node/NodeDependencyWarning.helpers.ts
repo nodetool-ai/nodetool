@@ -2,7 +2,7 @@ import { trpcClient } from "../../trpc/client";
 import useRuntimeStatusStore from "../../stores/RuntimeStatusStore";
 
 export const RUNTIME_LABELS: Record<string, string> = {
-  ffmpeg: "FFmpeg & Codecs",
+  ffmpeg: "FFmpeg & codecs",
   python: "Python",
   nodejs: "Node.js",
   "yt-dlp": "yt-dlp",

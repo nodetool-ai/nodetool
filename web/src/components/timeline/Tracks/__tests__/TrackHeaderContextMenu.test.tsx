@@ -57,7 +57,7 @@ const MENU_LABELS = [
   "New folder with this track",
   "Insert video track above",
   "Insert video track below",
-  "Remove track"
+  "Delete track"
 ];
 
 describe("TrackHeader context menu", () => {
@@ -173,24 +173,22 @@ describe("TrackHeader context menu", () => {
     const [v1] = seedTracks();
     const input = screen.getByLabelText("Track name: Video 1");
     expect(input).toHaveAttribute("readonly");
-    expect(input).toHaveAttribute("title", "Double-click to rename");
 
     openMenu(v1);
     await userEvent.click(screen.getByText("Rename"));
 
     expect(input).not.toHaveAttribute("readonly");
-    expect(input).not.toHaveAttribute("title");
   });
 
-  it("Remove track opens the confirm dialog", async () => {
+  it("Delete track opens the confirm dialog", async () => {
     renderRegion();
     const [, v2] = seedTracks();
 
     openMenu(v2);
-    await userEvent.click(screen.getByText("Remove track"));
+    await userEvent.click(screen.getByText("Delete track"));
 
     expect(
-      screen.getByText('Track "Video 2" and all its clips are removed.')
+      screen.getByText('Track "Video 2" and all its clips are deleted.')
     ).toBeInTheDocument();
     expect(trackIds()).toHaveLength(3);
   });

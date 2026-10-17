@@ -12,6 +12,20 @@ import { parseTint, projectedCamera, sourceRect, visibleItems } from "./frame.js
 import { PARTICLE_DOT_ASSET, PARTICLE_DOT_SIZE, particleDotPixels, type GameParticleField } from "./particles/render2d.js";
 import type { GameHudEffectOrder, GameRenderer, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
 
+interface AssetTextureGeneration {
+  readonly image: Promise<GameImage | null>;
+  upload?: Promise<TextureEntry>;
+  entry?: TextureEntry;
+  readers: number;
+  retired: boolean;
+  opaque: boolean;
+}
+
+interface FrameAssets {
+  readonly generations: Set<AssetTextureGeneration>;
+  uploadedBytes: number;
+}
+
 /** Draws ordered sprites as consecutive texture batches on a private WebGPU device. */
 export class WebGPUGameRenderer implements GameRenderer {
   private readonly renderPipeline = new WebGPURenderPipeline();
@@ -46,8 +60,9 @@ export class WebGPUGameRenderer implements GameRenderer {
   private readonly lightSampleLayout: GPUBindGroupLayout;
   private readonly lightFallback: GPUTexture;
   private lightTarget: LabeledTexture | undefined;
-  private readonly textures = new Map<string, TextureEntry>();
-  private readonly validatedLuts = new Set<string>();
+  private readonly textures = new Map<string, AssetTextureGeneration>();
+  private readonly assetGenerations = new Set<AssetTextureGeneration>();
+  private readonly liveAssetTextures = new Set<TextureEntry>();
   private readonly fallback: TextureEntry;
   private readonly particleDot: TextureEntry;
   private readonly placeholders = new Map<string, TextureEntry>();
@@ -56,6 +71,7 @@ export class WebGPUGameRenderer implements GameRenderer {
   private hudCanvas: HTMLCanvasElement | undefined;
   private hudTexture: TextureEntry | undefined;
   private hudKey = "";
+  private hudRevision = 0;
   private disposed = false;
   private lost = false;
 
@@ -173,7 +189,7 @@ export class WebGPUGameRenderer implements GameRenderer {
     const dotTexture = device.createTexture({ size: [PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE], format: "rgba8unorm",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
     device.queue.writeTexture({ texture: dotTexture }, particleDotPixels(), { bytesPerRow: PARTICLE_DOT_SIZE * 4 }, [PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE]);
-    this.particleDot = this.textureEntry(dotTexture, PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE, "linear");
+    this.particleDot = this.textureEntry(dotTexture, PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE);
     void device.lost.then(() => { this.lost = true; });
   }
 
@@ -296,23 +312,25 @@ export class WebGPUGameRenderer implements GameRenderer {
     output.markWritten();
   }
 
-  private textureEntry(texture: GPUTexture, width: number, height: number, sampling: "nearest" | "linear" = "nearest"): TextureEntry {
+  private textureEntry(texture: GPUTexture, width: number, height: number): TextureEntry {
+    const view = texture.createView();
+    const bindGroup = (sampler: GPUSampler): GPUBindGroup => this.device.createBindGroup({
+      layout: this.pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: this.cameraBuffer } },
+        { binding: 1, resource: sampler },
+        { binding: 2, resource: view },
+      ],
+    });
     return {
       texture,
       width,
       height,
-      bindGroup: this.device.createBindGroup({
-        layout: this.pipeline.getBindGroupLayout(0),
-        entries: [
-          { binding: 0, resource: { buffer: this.cameraBuffer } },
-          { binding: 1, resource: sampling === "linear" ? this.linearSampler : this.sampler },
-          { binding: 2, resource: texture.createView() },
-        ],
-      }),
+      bindGroups: { nearest: bindGroup(this.sampler), linear: bindGroup(this.linearSampler) },
     };
   }
 
-  private upload(image: GameImage | HTMLCanvasElement, sampling: "nearest" | "linear" = "nearest"): TextureEntry {
+  private upload(image: GameImage | HTMLCanvasElement): TextureEntry {
     const width = image instanceof HTMLCanvasElement ? image.width : imageWidth(image);
     const height = image instanceof HTMLCanvasElement ? image.height : imageHeight(image);
     if (width <= 0 || height <= 0) {
@@ -321,33 +339,104 @@ export class WebGPUGameRenderer implements GameRenderer {
     // copyExternalImageToTexture requires RENDER_ATTACHMENT on the destination as well as COPY_DST.
     const texture = this.device.createTexture({ size: [width, height], format: "rgba8unorm",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT });
-    this.device.queue.copyExternalImageToTexture({ source: image }, { texture, premultipliedAlpha: false }, [width, height]);
-    return this.textureEntry(texture, width, height, sampling);
+    try {
+      this.device.queue.copyExternalImageToTexture({ source: image }, { texture, premultipliedAlpha: false }, [width, height]);
+      return this.textureEntry(texture, width, height);
+    } catch (error) {
+      texture.destroy();
+      throw error;
+    }
   }
 
-  private async getTexture(assetId: string, sampling: "nearest" | "linear"): Promise<{ texture: TextureEntry; uploadedBytes: number }> {
-    if (assetId === PARTICLE_DOT_ASSET) {
-      return { texture: this.particleDot, uploadedBytes: 0 };
+  private assertUsable(): void {
+    if (this.disposed || this.lost) {
+      throw new Error(this.lost ? "WebGPU device was lost" : "Game renderer is disposed");
     }
-    const cached = this.textures.get(assetId);
-    if (cached) {
-      return { texture: cached, uploadedBytes: 0 };
+  }
+
+  private assetGeneration(assetId: string, frame: FrameAssets): AssetTextureGeneration {
+    this.assertUsable();
+    let generation = this.textures.get(assetId);
+    if (!generation) {
+      generation = { image: this.assets.get(assetId), readers: 0, retired: false, opaque: false };
+      this.textures.set(assetId, generation);
+      this.assetGenerations.add(generation);
     }
-    const image = await this.assets.get(assetId);
+    if (!frame.generations.has(generation)) {
+      frame.generations.add(generation);
+      generation.readers++;
+    }
+    return generation;
+  }
+
+  private retireGeneration(generation: AssetTextureGeneration): void {
+    if (!generation.retired || generation.readers !== 0) {
+      return;
+    }
+    if (generation.entry && this.liveAssetTextures.delete(generation.entry)) {
+      generation.entry.texture.destroy();
+    }
+    generation.entry = undefined;
+    this.assetGenerations.delete(generation);
+  }
+
+  private releaseFrameAssets(frame: FrameAssets): void {
+    for (const generation of frame.generations) {
+      generation.readers--;
+      this.retireGeneration(generation);
+    }
+    frame.generations.clear();
+  }
+
+  private async uploadGeneration(assetId: string, generation: AssetTextureGeneration, frame: FrameAssets): Promise<TextureEntry> {
+    const image = await generation.image;
+    this.assertUsable();
+    if (generation.retired && generation.readers === 0) {
+      throw new Error(`Asset ${assetId} was invalidated before upload`);
+    }
     if (!image) {
-      return { texture: this.placeholder(assetId), uploadedBytes: 0 };
+      return this.placeholder(assetId);
     }
-    const texture = this.upload(image, sampling);
-    this.textures.set(assetId, texture);
-    return { texture, uploadedBytes: texture.width * texture.height * 4 };
+    const texture = this.upload(image);
+    if (texture !== this.fallback) {
+      generation.entry = texture;
+      this.liveAssetTextures.add(texture);
+      frame.uploadedBytes += texture.width * texture.height * 4;
+    }
+    return texture;
   }
 
-  private async getLutTexture(assetId: string, size: number): Promise<LabeledTexture> {
-    const image = await this.assets.get(assetId);
+  private generationTexture(assetId: string, generation: AssetTextureGeneration, frame: FrameAssets): Promise<TextureEntry> {
+    if (!generation.upload) {
+      const upload = this.uploadGeneration(assetId, generation, frame);
+      generation.upload = upload;
+      void upload.catch(() => {
+        if (generation.upload === upload && !generation.entry) {
+          generation.upload = undefined;
+        }
+      });
+    }
+    return generation.upload;
+  }
+
+  private async getTexture(assetId: string, frame: FrameAssets): Promise<TextureEntry> {
+    if (assetId === PARTICLE_DOT_ASSET) {
+      return this.particleDot;
+    }
+    const generation = this.assetGeneration(assetId, frame);
+    const texture = await this.generationTexture(assetId, generation, frame);
+    this.assertUsable();
+    return texture;
+  }
+
+  private async getLutTexture(assetId: string, size: number, frame: FrameAssets): Promise<LabeledTexture> {
+    const generation = this.assetGeneration(assetId, frame);
+    const image = await generation.image;
+    this.assertUsable();
     if (!image || imageWidth(image) !== size * size || imageHeight(image) !== size) {
       throw new Error(`LUT ${assetId} is missing or has invalid dimensions`);
     }
-    if (!this.validatedLuts.has(assetId)) {
+    if (!generation.opaque) {
       const canvas = document.createElement("canvas");
       canvas.width = imageWidth(image);
       canvas.height = imageHeight(image);
@@ -362,9 +451,10 @@ export class WebGPUGameRenderer implements GameRenderer {
           throw new Error(`LUT ${assetId} must be opaque`);
         }
       }
-      this.validatedLuts.add(assetId);
+      generation.opaque = true;
     }
-    const { texture } = await this.getTexture(assetId, "nearest");
+    const texture = await this.generationTexture(assetId, generation, frame);
+    this.assertUsable();
     return new LabeledTexture(texture.texture, { label: `game-lut-${assetId}`, format: "rgba8unorm",
       width: texture.width, height: texture.height,
       meta: { colorSpace: "srgb", alpha: "premultiplied", bindingKind: "texture_2d" } });
@@ -413,15 +503,27 @@ export class WebGPUGameRenderer implements GameRenderer {
   }
 
   private async renderFrame(frame: GameRenderFrame, interpolation: number, particles?: GameParticleField): Promise<GameRendererStats> {
+    const assets: FrameAssets = { generations: new Set(), uploadedBytes: 0 };
+    try {
+      return await this.renderAssetFrame(frame, interpolation, assets, particles);
+    } finally {
+      this.releaseFrameAssets(assets);
+    }
+  }
+
+  private async renderAssetFrame(frame: GameRenderFrame, interpolation: number, assets: FrameAssets,
+    particles?: GameParticleField): Promise<GameRendererStats> {
     const bloomRadius = this.effects.reduce((maximum, effect) => effect.kind === "bloom" ? Math.max(maximum, effect.radius) : maximum, 0);
     const overscanPixels = Math.ceil(bloomRadius * 2);
     const overscanWorld = overscanPixels * frame.width / (Math.max(1, this.canvas.width) * projectedCamera(frame, interpolation).zoom);
     const items = visibleItems(frame, interpolation, overscanWorld, particles && { field: particles });
-    const sampling = new Map(items.map((item) => [item.assetId, item.sampling]));
-    const assetIds = [...sampling.keys()];
-    const textureResults = await Promise.all(assetIds.map((assetId) => this.getTexture(assetId, sampling.get(assetId) ?? "nearest")));
+    const assetIds = [...new Set(items.map((item) => item.assetId))];
+    const textureResults = await Promise.all(assetIds.map((assetId) => this.getTexture(assetId, assets)));
     const textureById = new Map(assetIds.map((assetId, index) => [assetId, textureResults[index]]));
-    const hudTexture = this.updateHud(frame, await loadGameUiImages(frame, (assetId) => this.assets.get(assetId)));
+    const hudRevision = this.hudRevision;
+    const hudImages = await loadGameUiImages(frame, (assetId) => this.assets.get(assetId));
+    this.assertUsable();
+    const hudTexture = this.updateHud(frame, hudImages, hudRevision);
     const count = items.length + (hudTexture ? 1 : 0);
     this.ensureInstanceCapacity(count);
     const instances = new Float32Array(count * INSTANCE_FLOATS);
@@ -432,7 +534,7 @@ export class WebGPUGameRenderer implements GameRenderer {
       if (!item || !result) {
         continue;
       }
-      const texture = result.texture;
+      const texture = result;
       const rect = texture.width === 1 && texture.height === 1 ? { x: 0, y: 0, width: 1, height: 1 } : sourceRect(item, texture.width, texture.height);
       const tint = parseTint(item.tint);
       const subRect = item.frame !== undefined || item.cell !== undefined;
@@ -445,14 +547,14 @@ export class WebGPUGameRenderer implements GameRenderer {
       writeInstance(instances, index, item.x, item.y, item.width, item.height,
         item.flipX ? u + du : u, item.flipY ? v + dv : v, item.flipX ? -du : du, item.flipY ? -dv : dv,
         tint[0], tint[1], tint[2], item.opacity, item.rotation, item.unlit ? 1 : 0);
-      appendBatch(batches, texture, item.blend, index);
+      appendBatch(batches, texture, item.blend, index, item.sampling);
     }
     if (hudTexture) {
       const scale = frame.camera.zoom;
       const projected = projectedCamera(frame, interpolation);
       writeInstance(instances, items.length, projected.x, projected.y,
         frame.width / scale, frame.height / scale, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1);
-      appendBatch(batches, hudTexture, "normal", items.length);
+      appendBatch(batches, hudTexture, "normal", items.length, "nearest");
     }
     const projected = projectedCamera(frame, interpolation);
     const camera = new Float32Array([projected.x, projected.y,
@@ -519,7 +621,7 @@ export class WebGPUGameRenderer implements GameRenderer {
                 ? hasEffects ? this.effectAdditivePipeline : this.additivePipeline
                 : hasEffects ? this.effectSpritePipeline : this.pipeline);
             }
-            pass.setBindGroup(0, batch.texture.bindGroup);
+            pass.setBindGroup(0, batch.bindGroup);
             pass.draw(6, batch.count, 0, batch.first);
       }
     }
@@ -533,7 +635,7 @@ export class WebGPUGameRenderer implements GameRenderer {
             effectContext: this.effectContext, effectExecutor: this.effectExecutor,
             effectRecipeRunner: this.effectRecipeRunner, effectRegistry: this.effectRegistry,
             srgbTarget: this.srgbTarget, lutTarget: this.lutTarget, toSrgbPipeline: this.toSrgbPipeline,
-            toLinearPipeline: this.toLinearPipeline, getLutTexture: (id, size) => this.getLutTexture(id, size),
+            toLinearPipeline: this.toLinearPipeline, getLutTexture: (id, size) => this.getLutTexture(id, size, assets),
             convertColor: (command, input, target, pipeline) => this.convertColor(command, input, target, pipeline) });
           const presentGroup = this.device.createBindGroup({ layout: this.presentLayout, entries: [
             { binding: 0, resource: this.sampler }, { binding: 1, resource: source.createView() },
@@ -563,14 +665,16 @@ export class WebGPUGameRenderer implements GameRenderer {
       }
       }
     });
+    this.assertUsable();
     this.device.queue.submit([encoder.finish()]);
-    const textureBytes = [...this.textures.values(), ...this.placeholders.values(), this.fallback, this.particleDot,
+    this.releaseFrameAssets(assets);
+    const textureBytes = [...this.liveAssetTextures, ...this.placeholders.values(), this.fallback, this.particleDot,
       ...(this.hudTexture ? [this.hudTexture] : [])].reduce((sum, entry) => sum + entry.width * entry.height * 4, 0);
     return {
       backend: this.backend,
       visibleSprites: items.length,
       drawCalls: batches.length + this.effects.reduce((sum, effect) => sum + (effect.kind === "bloom" ? 4 : effect.kind === "lut" ? 3 : 1), 0) + (hasEffects ? 1 : 0) + (sceneLighting ? 1 : 0),
-      uploadedBytes: textureResults.reduce((sum, result) => sum + result.uploadedBytes, 0),
+      uploadedBytes: assets.uploadedBytes,
       textureBytes,
       targetBytes: (this.sourceTarget && this.effectTarget ? (this.sourceTarget.width * this.sourceTarget.height +
         this.effectTarget.width * this.effectTarget.height + (this.effects.some((effect) => effect.kind === "bloom") ?
@@ -581,11 +685,12 @@ export class WebGPUGameRenderer implements GameRenderer {
     };
   }
 
-  private updateHud(frame: GameRenderFrame, images: ReadonlyMap<string, GameImage>): TextureEntry | undefined {
+  private updateHud(frame: GameRenderFrame, images: ReadonlyMap<string, GameImage>, revision: number): TextureEntry | undefined {
     if (frame.hud.length === 0 && !frame.ui) {
       return undefined;
     }
-    const key = JSON.stringify([this.canvas.width, this.canvas.height, frame.hud, frame.ui, [...images.keys()]]);
+    const key = JSON.stringify([this.canvas.width, this.canvas.height, frame.gameId, frame.fonts,
+      frame.hud, frame.ui, [...images.keys()], revision]);
     if (key !== this.hudKey) {
       const canvas = this.hudCanvas ?? document.createElement("canvas");
       paintWebGPUHud(canvas, this.canvas.width, this.canvas.height, frame, images);
@@ -624,11 +729,14 @@ export class WebGPUGameRenderer implements GameRenderer {
   }
 
   invalidateAsset(assetId: string): void {
+    this.hudRevision++;
     this.assets.invalidate(assetId);
-    const texture = this.textures.get(assetId);
-    texture?.texture.destroy();
+    const generation = this.textures.get(assetId);
     this.textures.delete(assetId);
-    this.validatedLuts.delete(assetId);
+    if (generation) {
+      generation.retired = true;
+      this.retireGeneration(generation);
+    }
   }
 
   dispose(): void {
@@ -655,9 +763,14 @@ export class WebGPUGameRenderer implements GameRenderer {
       entry.texture.destroy();
     }
     this.placeholders.clear();
-    for (const entry of this.textures.values()) {
+    for (const generation of this.assetGenerations) {
+      generation.retired = true;
+    }
+    for (const entry of this.liveAssetTextures) {
       entry.texture.destroy();
     }
+    this.liveAssetTextures.clear();
+    this.assetGenerations.clear();
     this.textures.clear();
     this.assets.clear();
     this.context.unconfigure();

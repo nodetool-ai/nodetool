@@ -5,6 +5,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import ErrorBanner from "../support/ErrorBanner";
 import {
   FlexColumn,
   FlexRow,
@@ -161,7 +162,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
   const theme = useTheme();
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number>(1);
-  const [, setError] = useState<Error | null>(null);
+  const [loadError, setError] = useState<Error | null>(null);
   const [scale, setScale] = useState(1);
 
   const pdfUrl = asset?.get_url || url;
@@ -225,7 +226,17 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={onDocumentLoadError}
           loading={<LoadingSpinner />}
-          error={<Text color="error">Failed to load PDF</Text>}
+          error={
+            <ErrorBanner
+              report={{
+                source: "operation-failure",
+                summary: "PDF failed to load",
+                errorText: loadError?.message
+              }}
+            >
+              Could not load this PDF.
+            </ErrorBanner>
+          }
         >
           {pageComponent}
         </Document>

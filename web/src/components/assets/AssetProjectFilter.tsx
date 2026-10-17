@@ -9,14 +9,15 @@ import {
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
 import { useAuth } from "../../stores/useAuth";
+import ErrorBanner from "../support/ErrorBanner";
 import {
   Box,
-  Caption,
   ContextMenu,
   EditorButton,
   MenuItemPrimitive,
   SPACING,
-  TruncatedText
+  TruncatedText,
+  LoadingSpinner
 } from "../ui_primitives";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "../projects/projectIdentity";
 
@@ -121,14 +122,19 @@ const AssetProjectFilter: React.FC = () => {
           />
         ))}
         {isPending && (
-          <Caption sx={{ px: SPACING.lg, py: SPACING.sm }}>
-            Loading projects…
-          </Caption>
+          <LoadingSpinner size="small" text="Loading projects" />
         )}
         {error && (
-          <Caption color="error" sx={{ px: SPACING.lg, py: SPACING.sm }}>
+          <ErrorBanner
+            sx={{ mx: SPACING.sm, my: SPACING.xs }}
+            report={{
+              source: "operation-failure",
+              summary: "Project filter failed to load projects",
+              errorText: error.message
+            }}
+          >
             Could not load projects
-          </Caption>
+          </ErrorBanner>
         )}
       </ContextMenu>
     </>

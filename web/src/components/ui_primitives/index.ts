@@ -234,6 +234,8 @@ export { InspectorSectionTitle, InspectorSection } from "./InspectorSection";
 export type { InspectorSectionTitleProps, InspectorSectionProps, InspectorSectionAction } from "./InspectorSection";
 export { InspectorToggleRow } from "./InspectorToggleRow";
 export type { InspectorToggleRowProps } from "./InspectorToggleRow";
+export { InspectorStaticValue } from "./InspectorStaticValue";
+export type { InspectorStaticValueProps } from "./InspectorStaticValue";
 export { BatchedColorInput } from "./BatchedColorInput";
 export type { BatchedColorInputProps } from "./BatchedColorInput";
 export { InspectorValueInput } from "./InspectorValueInput";

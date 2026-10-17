@@ -61,7 +61,7 @@ describe("ClipCustomCurves", () => {
 
     expect(
       screen.getByRole("button", {
-        name: "Remove Animation 1 curve 1 keyframe 1"
+        name: "Delete Animation 1 curve 1 keyframe 1"
       })
     ).toBeDisabled();
   });

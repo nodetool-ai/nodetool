@@ -71,6 +71,7 @@ If no existing primitive fits your use case:
 
 ## General Rules
 
+- Follow [UX Guidelines](../../../docs/UX_GUIDELINES.md) for behavior and copy, and run its [checklist](../../../docs/UX_GUIDELINES.md#10-checklist-for-a-ui-change) before a UI PR.
 - Use functional components only. No class components.
 - Define a TypeScript interface for all component props.
 - Keep components focused on a single responsibility.
@@ -99,6 +100,12 @@ Wire it with `ReportBugButton` (or `openBugReport()` from
   }}
 />
 ```
+
+For a load or operation failure shown inside a surface, use `ErrorBanner`
+from `components/support/`. It renders `AlertBanner severity="error"` with the
+Report control and an optional retry. Do not show a failure as red `Text` or
+`Caption`. Inline validation next to a field is not a failure surface and
+stays in the field's helper text.
 
 `source` picks the label and the issue title; the rest is optional. Already
 wired: `NodeErrors`, `ErrorBoundary`, `PanelErrorBoundary`,

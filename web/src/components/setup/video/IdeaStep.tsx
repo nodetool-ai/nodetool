@@ -48,6 +48,7 @@ import { useSetupMediaImport } from "../../../hooks/timeline/useSetupMediaImport
 import type { SetupMediaImportResult } from "../../../hooks/timeline/useSetupMediaImport";
 import { assetIdFromLocator } from "../../../utils/mediaRef";
 import ReportBugButton from "../../support/ReportBugButton";
+import ErrorBanner from "../../support/ErrorBanner";
 import { ExampleBriefs } from "../ExampleBriefs";
 import { GalleryFrame } from "../MediaGallery";
 import { AlternativesColumn } from "../AlternativesColumn";
@@ -377,23 +378,22 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                   {imported.placed.map((asset) => asset.name).join(" · ")}
                 </Caption>
               ) : null}
-              {imported.failed.map((failure) => (
-                <Caption key={failure.name} component="span" color="error">
-                  {`${failure.name} did not upload: ${failure.reason}`}
-                </Caption>
-              ))}
               {imported.failed.length > 0 ? (
-                <Box>
-                  <ReportBugButton
-                    context={{
-                      source: "operation-failure",
-                      summary: "Video media upload failed",
-                      errorText: imported.failed
-                        .map((failure) => `${failure.name}: ${failure.reason}`)
-                        .join("\n")
-                    }}
-                  />
-                </Box>
+                <ErrorBanner
+                  report={{
+                    source: "operation-failure",
+                    summary: "Video media upload failed",
+                    errorText: imported.failed
+                      .map((failure) => `${failure.name}: ${failure.reason}`)
+                      .join("\n")
+                  }}
+                >
+                  {imported.failed.map((failure) => (
+                    <div key={failure.name}>
+                      {`${failure.name} did not upload: ${failure.reason}`}
+                    </div>
+                  ))}
+                </ErrorBanner>
               ) : null}
               {skippedNames.length > 0 ? (
                 <Caption component="span" color="secondary">

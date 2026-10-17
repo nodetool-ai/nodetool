@@ -119,10 +119,10 @@ const KeyframeRow: React.FC<{
             activeIcon={<DiamondIcon fontSize="inherit" />}
             tooltip={
               keyed
-                ? "Remove keyframe at playhead"
+                ? "Delete keyframe at playhead"
                 : `Add keyframe at playhead${armed ? " (Alt+K)" : ""}`
             }
-            ariaLabel={`${keyed ? "Remove" : "Add"} ${meta.label} keyframe`}
+            ariaLabel={`${keyed ? "Delete" : "Add"} ${meta.label} keyframe`}
           />
           <span>{meta.label}</span>
         </FlexRow>

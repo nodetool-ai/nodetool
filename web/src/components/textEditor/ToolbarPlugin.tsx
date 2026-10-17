@@ -164,7 +164,7 @@ const ToolbarPlugin = () => {
         icon={<FormatBoldIcon />}
         tooltip="Bold"
         shortcut={[MOD_KEY, "B"]}
-        ariaLabel="Format Bold"
+        ariaLabel="Format bold"
         active={isBold}
         aria-pressed={isBold}
         onClick={handleFormatBold}
@@ -173,7 +173,7 @@ const ToolbarPlugin = () => {
         icon={<FormatItalicIcon />}
         tooltip="Italic"
         shortcut={[MOD_KEY, "I"]}
-        ariaLabel="Format Italic"
+        ariaLabel="Format italic"
         active={isItalic}
         aria-pressed={isItalic}
         onClick={handleFormatItalic}
@@ -181,7 +181,7 @@ const ToolbarPlugin = () => {
       <ToolbarIconButton
         icon={<FormatSizeIcon />}
         tooltip="Toggle large font size"
-        ariaLabel="Toggle Large Font Size"
+        ariaLabel="Toggle large font size"
         active={isLargeFont}
         aria-pressed={isLargeFont}
         onClick={toggleFontSize}
@@ -189,7 +189,7 @@ const ToolbarPlugin = () => {
       <ToolbarIconButton
         icon={<HorizontalRuleIcon />}
         tooltip="Insert horizontal rule"
-        ariaLabel="Insert Horizontal Rule"
+        ariaLabel="Insert horizontal rule"
         onClick={handleInsertHR}
       />
       <ToolbarIconButton

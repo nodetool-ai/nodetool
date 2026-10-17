@@ -130,7 +130,7 @@ function MusicModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={<AudiotrackIcon fontSize="small" />}
-        label={params.model?.name || "Select Music Model"}
+        label={params.model?.name || "Select music model"}
         picker={{
           kind: "music",
           onPick: handlePickMusic
@@ -140,7 +140,7 @@ function MusicModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}
         label={`${params.duration} Sec`}
-        header="Target Duration"
+        header="Target duration"
         title={`Target duration: ${params.duration} seconds. The model may adjust or ignore this.`}
         value={params.duration}
         options={MUSIC_DURATIONS.map((id) => ({ id, label: `${id} Sec` }))}
@@ -164,7 +164,7 @@ function ImageModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={null}
-        label={params.model?.name || "Select Model"}
+        label={params.model?.name || "Select model"}
         picker={{
           kind: "image",
           task: "text_to_image",
@@ -178,7 +178,7 @@ function ImageModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
         label={params.resolution}
-        header="Image Resolution"
+        header="Image resolution"
         value={params.resolution}
         options={resolutionOptions}
         onChange={(resolution) => setParams({ resolution })}
@@ -195,7 +195,7 @@ function ImageModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<AppsIcon fontSize="small" />}
         label={`${params.variations}`}
-        header="Number of Variations"
+        header="Number of variations"
         value={params.variations}
         options={VARIATIONS_OPTIONS}
         onChange={(variations) => setParams({ variations })}
@@ -218,7 +218,7 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={<AutoFixHighIcon fontSize="small" />}
-        label={params.model?.name || "Select Edit Model"}
+        label={params.model?.name || "Select edit model"}
         picker={{
           kind: "image",
           task: "image_to_image",
@@ -250,7 +250,7 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
         label={params.resolution}
-        header="Image Resolution"
+        header="Image resolution"
         value={params.resolution}
         options={resolutionOptions}
         onChange={(resolution) => setParams({ resolution })}
@@ -267,7 +267,7 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<TuneIcon fontSize="small" />}
         label={`Strength ${params.strength.toFixed(2)}`}
-        header="Edit Strength"
+        header="Edit strength"
         value={params.strength}
         options={STRENGTH_OPTIONS}
         onChange={(strength) => setParams({ strength })}
@@ -276,7 +276,7 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<LayersIcon fontSize="small" />}
         label={`${params.numInferenceSteps} steps`}
-        header="Inference Steps"
+        header="Inference steps"
         value={params.numInferenceSteps}
         options={STEPS_OPTIONS}
         onChange={(numInferenceSteps) => setParams({ numInferenceSteps })}
@@ -285,7 +285,7 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<AppsIcon fontSize="small" />}
         label={`${params.variations}`}
-        header="Number of Variations"
+        header="Number of variations"
         value={params.variations}
         options={VARIATIONS_OPTIONS}
         onChange={(variations) => setParams({ variations })}
@@ -308,7 +308,7 @@ function VideoModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={<MovieIcon fontSize="small" />}
-        label={params.model?.name || "Select Video Model"}
+        label={params.model?.name || "Select video model"}
         picker={{
           kind: "video",
           task: "text_to_video",
@@ -330,7 +330,7 @@ function VideoModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
         label={params.resolution}
-        header="Video Resolution"
+        header="Video resolution"
         value={params.resolution}
         options={resolutionOptions}
         onChange={(resolution) => setParams({ resolution })}
@@ -361,7 +361,7 @@ function ImageToVideoModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={<MovieFilterIcon fontSize="small" />}
-        label={params.model?.name || "Select I2V Model"}
+        label={params.model?.name || "Select I2V model"}
         picker={{
           kind: "video",
           task: "image_to_video",
@@ -393,7 +393,7 @@ function ImageToVideoModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}
         label={`${params.duration} Sec`}
-        header="Clip Duration"
+        header="Clip duration"
         value={params.duration}
         options={durationOptions}
         onChange={(duration) => setParams({ duration })}
@@ -402,7 +402,7 @@ function ImageToVideoModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
         label={params.resolution}
-        header="Video Resolution"
+        header="Video resolution"
         value={params.resolution}
         options={resolutionOptions}
         onChange={(resolution) => setParams({ resolution })}
@@ -419,7 +419,7 @@ function ImageToVideoModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<LayersIcon fontSize="small" />}
         label={`${params.numInferenceSteps} steps`}
-        header="Inference Steps"
+        header="Inference steps"
         value={params.numInferenceSteps}
         options={STEPS_OPTIONS}
         onChange={(numInferenceSteps) => setParams({ numInferenceSteps })}
@@ -442,7 +442,7 @@ function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={<BurstModeIcon fontSize="small" />}
-        label={params.model?.name || "Select Reference Model"}
+        label={params.model?.name || "Select reference model"}
         picker={{
           kind: "video",
           task: "reference_to_video",
@@ -456,7 +456,7 @@ function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}
         label={`${params.duration} Sec`}
-        header="Clip Duration"
+        header="Clip duration"
         value={params.duration}
         options={durationOptions}
         onChange={(duration) => setParams({ duration })}
@@ -465,7 +465,7 @@ function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
         label={params.resolution}
-        header="Video Resolution"
+        header="Video resolution"
         value={params.resolution}
         options={resolutionOptions}
         onChange={(resolution) => setParams({ resolution })}
@@ -482,7 +482,7 @@ function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<VolumeUpIcon fontSize="small" />}
         label={params.useReferenceVideoAudio ? "Reference audio" : "Model audio"}
-        header="Audio Source"
+        header="Audio source"
         value={params.useReferenceVideoAudio ? "on" : "off"}
         options={REFERENCE_AUDIO_OPTIONS}
         onChange={(value) =>
@@ -514,7 +514,7 @@ function AudioModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={<GraphicEqIcon fontSize="small" />}
-        label={params.model?.name || "Select TTS Model"}
+        label={params.model?.name || "Select TTS model"}
         picker={{
           kind: "tts",
           onPick: (model) => {
@@ -540,7 +540,7 @@ function AudioModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<SpeedIcon fontSize="small" />}
         label={`${params.speed}x`}
-        header="Speech Rate"
+        header="Speech rate"
         value={params.speed}
         options={SPEED_OPTIONS}
         onChange={(speed) => setParams({ speed })}
@@ -549,7 +549,7 @@ function AudioModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<AudiotrackIcon fontSize="small" />}
         label={params.format.toUpperCase()}
-        header="Audio Format"
+        header="Audio format"
         value={params.format}
         options={AUDIO_FORMAT_OPTIONS}
         onChange={(format) => setParams({ format })}

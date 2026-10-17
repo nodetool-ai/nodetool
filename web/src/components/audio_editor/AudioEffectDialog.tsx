@@ -11,7 +11,7 @@ import {
   SPACING,
   Text
 } from "../ui_primitives";
-import ReportBugButton from "../support/ReportBugButton";
+import ErrorBanner from "../support/ErrorBanner";
 import { isNumber } from "../../utils/typePredicates";
 import {
   PREVIEW_MAX_SECONDS,
@@ -256,12 +256,7 @@ const AudioEffectDialog = ({
           />
         ))}
         {error && (
-          <FlexRow align="center" justify="space-between" gap={SPACING.sm}>
-            <Text size="small" color="error">
-              {error}
-            </Text>
-            <ReportBugButton context={reportContext} />
-          </FlexRow>
+          <ErrorBanner report={reportContext}>{error}</ErrorBanner>
         )}
       </FlexColumn>
     </Dialog>

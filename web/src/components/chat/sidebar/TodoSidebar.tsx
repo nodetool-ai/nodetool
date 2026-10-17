@@ -15,7 +15,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   FONT_SIZE_SANS,
-  getSpacingPx
+  getSpacingPx,
+  EmptyState
 } from "../../ui_primitives";
 import type { TodoItem } from "../../../stores/ApiTypes";
 
@@ -90,11 +91,6 @@ const styles = (theme: Theme) =>
       textDecoration: "line-through",
       opacity: 0.55
     },
-    ".empty-state": {
-      padding: theme.spacing(8, 6),
-      textAlign: "center",
-      opacity: 0.55
-    }
   });
 
 const STATUS_ICONS = {
@@ -131,11 +127,11 @@ export const TodoSidebar: React.FC<TodoSidebarProps> = memo(({ todos }) => {
       </FlexRow>
       <ScrollArea className="todo-list">
         {todos.length === 0 ? (
-          <div className="empty-state">
-            <Text size="small">
-              No tasks yet. The agent will list its plan here as it works.
-            </Text>
-          </div>
+          <EmptyState
+            size="small"
+            title="No tasks yet"
+            description="The agent will list its plan here as it works."
+          />
         ) : (
           <FlexColumn gap={0}>
             {todos.map((todo, i) => {

@@ -100,7 +100,7 @@ export const SelectionControls = memo(
         onSelectAll,
         onClear,
         showCount = true,
-        selectAllLabel = "Select All",
+        selectAllLabel = "Select all",
         clearLabel = "Clear",
         variant = "buttons",
         size = "small",

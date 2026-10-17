@@ -143,6 +143,10 @@ readout. Triage each one as
   user and record their answer.
 - **Research**: the evidence is too thin or contradictory. Plan the question
   for the next study.
+
+When an insight adds, confirms or overturns a rule in
+[UX Guidelines](../../../docs/UX_GUIDELINES.md), update that file in the same
+change.
 - **Accept**: the team decides not to act. Record why.
 
 After a fix ships, run a validation study: the same tasks and the same packet

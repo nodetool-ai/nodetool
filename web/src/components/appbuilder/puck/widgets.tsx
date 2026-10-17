@@ -44,6 +44,7 @@ import {
   VideoPlayer
 } from "../../ui_primitives";
 import { AppEvent } from "../types";
+import { PHONE_WIDTH_QUERY } from "../appThemes";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
 import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
 import { downloadResolvedMedia } from "../../storyboard/shotMediaDownload";
@@ -318,7 +319,7 @@ const VideoItem: React.FC<{
         overflow: "hidden"
       }}
     >
-      <VideoPlayer locator={src} />
+      <VideoPlayer locator={src} label={filename ?? "Video"} />
     </Box>
     {download ? (
       <MediaDownloadButton
@@ -1481,7 +1482,25 @@ export const StepperWidget: React.FC<
           listStyle: "none",
           m: 0,
           p: 0,
-          width: "100%"
+          width: "100%",
+          // A title truncates rather than pushing the rail past the screen
+          // edge on a phone.
+          "& > li:not([aria-hidden])": { flexShrink: 1 },
+          "& button": { maxWidth: "100%" },
+          "& .step-title": {
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis"
+          },
+          // When the titles would not fit on one line, only the current step
+          // keeps its title.
+          [`@container (max-width: ${steps.length * STEP_MIN_WIDTH_PX}px)`]: {
+            gap: `${SPACING_PX.micro}px`,
+            "& > li[aria-hidden]": { minWidth: SPACING_PX.micro },
+            "& button": { p: SPACING.micro },
+            "& .step-title": { display: "none" },
+            "& [aria-current=step] .step-title": { display: "inline" }
+          }
         }}
       >
         {steps.map((step, index) => {
@@ -1513,6 +1532,7 @@ export const StepperWidget: React.FC<
                 <Box
                   component="button"
                   type="button"
+                  className="app-stepper-step"
                   disabled={blocked(index)}
                   aria-current={index === current ? "step" : undefined}
                   aria-label={`Step ${index + 1} of ${steps.length}: ${title}${state === "done" ? ", done" : ""}`}
@@ -1538,12 +1558,7 @@ export const StepperWidget: React.FC<
                       outlineColor: "primary.main",
                       outlineOffset: 2
                     },
-                    "&:disabled": { cursor: "default", opacity: index === current ? 1 : 0.5 },
-                    // When the titles would not fit on one line, only the
-                    // current step keeps its title.
-                    [`@container (max-width: ${steps.length * STEP_MIN_WIDTH_PX}px)`]: {
-                      "& .step-title": { display: index === current ? "inline" : "none" }
-                    }
+                    "&:disabled": { cursor: "default", opacity: index === current ? 1 : 0.5 }
                   }}
                 >
                   <StepMarker state={state} index={index} />
@@ -1804,7 +1819,12 @@ export const ContainerWidget: React.FC<{
     <Card
       variant="outlined"
       padding="none"
-      sx={{ width: "100%", p: SPACING.xl, borderRadius: BORDER_RADIUS.md }}
+      sx={{
+        width: "100%",
+        p: SPACING.xl,
+        borderRadius: BORDER_RADIUS.md,
+        [PHONE_WIDTH_QUERY]: { p: SPACING.lg }
+      }}
     >
       {title ? (
         <SectionHeader

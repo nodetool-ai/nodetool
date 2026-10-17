@@ -123,11 +123,11 @@ const JsScriptRunConsole = ({
       { id: "run", label: "Run Script…", run: () => setDialogOpen(true) }
     ];
     if (tests.length > 0) {
-      commands.push({ id: "test", label: "Run Tests", run: onTest });
+      commands.push({ id: "test", label: "Run tests", run: onTest });
     }
     return commands;
   }, [running, readOnly, tests.length, onTest]);
-  useContextCommands("JS Script", menuCommands, active);
+  useContextCommands("JS script", menuCommands, active);
 
   return (
     <FlexColumn fullWidth gap={SPACING.sm} sx={{ minHeight: 0, flex: 1 }}>

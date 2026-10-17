@@ -488,7 +488,7 @@ export const DownloadProgress: React.FC<{
               }}
               className="cancel-button"
             >
-              Cancel Download
+              Cancel download
             </EditorButton>
           </Tooltip>
         </>

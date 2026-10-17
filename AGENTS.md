@@ -57,6 +57,7 @@ Guidelines](docs/BRAND.md).
 - **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** — Required for all work.
 - **[Repository Skills](#repository-skills)** — Task-specific engineering and NodeTool authoring workflows.
 - **[Design System](docs/DESIGN.md)** — Required for UI work.
+- **[UX Guidelines](docs/UX_GUIDELINES.md)** — Required for UI work: entry points, model defaults, keeping work, empty states, errors, labels, small windows. Drawn from the UX research studies.
 - **[UI Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** — Required for frontend work.
 - **[Harness-First Engineering](docs/HARNESS_FIRST.md)** — The doctrine: every surface headlessly drivable, the registry, `nodetool harness audit`
 - **[Agent Harnesses & Tooling](#agent-harnesses--tooling)** — Validate, debug, run, single-node, browser, deploy, trace (the tools that close the build→verify loop)
@@ -214,8 +215,9 @@ workspace manifests. Build in dependency order with `npm run build:packages`.
 
 ### Frontend Rules
 
-Read [Design System](docs/DESIGN.md) and [Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)
-before UI work. Use [Standards by Task](#standards-by-task) for React, state,
+Read [Design System](docs/DESIGN.md), [UX Guidelines](docs/UX_GUIDELINES.md)
+and [Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md) before
+UI work. Use [Standards by Task](#standards-by-task) for React, state,
 accessibility, and performance rules.
 
 - Use `web/src/components/ui_primitives/`. Raw MUI components are allowed only

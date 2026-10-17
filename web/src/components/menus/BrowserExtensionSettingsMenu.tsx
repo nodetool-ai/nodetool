@@ -7,6 +7,7 @@ import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
 import LinkIcon from "@mui/icons-material/Link";
+import ErrorBanner from "../support/ErrorBanner";
 import { Text, FlexRow, FlexColumn, NavButton, Chip, getSpacingPx, SPACING } from "../ui_primitives";
 import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -124,9 +125,16 @@ const BrowserExtensionSettingsMenu = () => {
         </FlexColumn>
 
         {host.error && (
-          <Text size="small" color="error" sx={{ mb: 1 }}>
+          <ErrorBanner
+            sx={{ mb: SPACING.sm }}
+            report={{
+              source: "operation-failure",
+              summary: "Browser bridge registration failed",
+              errorText: host.error
+            }}
+          >
             {host.error}
-          </Text>
+          </ErrorBanner>
         )}
 
         <FlexRow gap={1} sx={{ flexWrap: "wrap" }}>

@@ -118,7 +118,7 @@ const AssetFilesPanel: React.FC<AssetFilesPanelProps> = ({
       >
         <BreadcrumbNav />
         {isGlobalSearchModeLocal && isGlobalSearchActiveLocal ? (
-          <SearchErrorBoundary fallbackTitle="Search Results Error">
+          <SearchErrorBoundary fallbackTitle="Search results error">
             <GlobalSearchResults
               results={globalSearchResultsLocal}
               onAssetDoubleClick={handleGlobalSearchAssetDoubleClick}

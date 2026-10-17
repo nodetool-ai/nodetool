@@ -414,7 +414,7 @@ const SectionBlockInner = ({
         {!readOnly && (
           <Box className="section-remove">
             <ToolbarIconButton
-              tooltip="Remove section"
+              tooltip="Delete section"
               onClick={() => removeSection(scriptId, section.id)}
               icon={<CloseIcon fontSize="small" />}
             />
@@ -982,10 +982,10 @@ const ScriptDocumentPane = ({
       commands.push({
         id: "send-to-timeline",
         label: storyboardId
-          ? "Assemble Video"
+          ? "Assemble video"
           : timelineId
-            ? "Update Timeline"
-            : "Send to Timeline",
+            ? "Update timeline"
+            : "Send to timeline",
         run: onSendToTimeline
       });
     }
@@ -1160,11 +1160,14 @@ const ScriptDocumentPane = ({
             startIcon={<MovieIcon fontSize="small" />}
             onClick={onSendToTimeline}
             disabled={assembling || !hasVoicedLine}
-            title={
+            tooltip={
+              storyboardId
+                ? "Cut the linked storyboard's shots and these takes into one timeline"
+                : undefined
+            }
+            disabledReason={
               hasVoicedLine
-                ? storyboardId
-                  ? "Cut the linked storyboard's shots and these takes into one timeline"
-                  : undefined
+                ? undefined
                 : "Voice at least one line to send it to a timeline"
             }
           >

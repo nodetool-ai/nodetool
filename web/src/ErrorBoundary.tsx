@@ -210,7 +210,7 @@ const ErrorBoundary: React.FC = () => {
   return (
     <Box css={errorBoundaryStyles(theme)}>
       <Box className="hero">
-        <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
+        <img src="/logo192.png" alt="NodeTool logo" className="logo" />
         <Text className="heading">Something went wrong</Text>
         <Text className="subtext">
           An unexpected error occurred. You can try reloading the page. If

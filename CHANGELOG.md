@@ -9,12 +9,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+## [0.8.4]
 
-- The npm CLI includes core node packages by default. Install optional packs
-  with `nodetool packs add`. After upgrading, restore the recorded pack and
-  runtime set with `nodetool packs add --restore`. Restart running server and
-  MCP processes after changing packs.
+NodeTool 0.8.4 adds on-demand node packs, direct CLI authoring tools, new cloud and local providers, and more controls for native games. It also improves project navigation, media search, timeline playback, and standalone exports.
+
+## Upgrading the CLI
+
+```bash
+npm install -g @nodetool-ai/cli@0.8.4
+nodetool --version
+```
+
+The npm CLI installs core node packs by default. Add optional node packs and runtime libraries when you need them:
+
+```bash
+nodetool packs list
+nodetool packs add audio imaging video --yes
+nodetool packs doctor --installed
+```
+
+After upgrading an existing installation, use `nodetool packs add --restore` to restore its recorded packs and runtimes. Restart running NodeTool server and MCP processes after changing packs. Global pack installation preserves the CLI's existing dependencies.
+
+## Authoring from the terminal
+
+Discover tools, inspect their input schemas, and read shipped guides without building an MCP client:
+
+```bash
+nodetool tools list timeline
+nodetool tools info create_timeline
+nodetool skills read storyboard-core
+nodetool node list
+nodetool node info nodetool.text.Template
+```
+
+`tools call` exposes the same local authoring operations used by NodeTool agents. Help now points to starting documents for storyboards, timelines, motion graphics, workflows, mini apps, and games. Model-discovery tools are listed before provider setup. Installed node metadata is separate from the legacy Python package catalog.
+
+The explicit `fake-app-greeting` model provides a zero-cost, fixed greeting-app fixture for testing the real app builder and button interactions. It requires the audio pack's Output node and is intended for deterministic testing, not arbitrary app generation. Explicit fake image and video routes are also available. Failed script runs, tool calls, and app checks retain structured failure reports and nonzero CLI exits.
+
+## Native games
+
+The native game editor gains an animation graph editor, a particle inspector with presets and live preview, and a profiler panel. Scripts can reload during play and use save/load commands. Scene music supports streaming, loops, and crossfades.
+
+3D authoring adds material controls and prepared image textures, physical-material extensions, and one-tick force and torque commands. Rendering fixes cover animation continuity, particle parity, camera culling, shadows, lighting interpolation, model bounds, and scene selection.
+
+Standalone web and Tauri exports have stronger media-integrity checks and cache validation. Collider generation, example publication, player-session cleanup, and browser benchmark assets are corrected. Headless playtests reject ambiguous assertions and provide clearer route and replay evidence.
+
+## Providers and local models
+
+Azure OpenAI / Microsoft Foundry and Amazon Bedrock are available as configured providers. Azure supports the deployed model's chat, image, speech, transcription, and embedding capabilities. Bedrock supports Converse chat and supported image-generation models.
+
+Local image generation is available through stable-diffusion.cpp, including text-to-image and editing models. The model picker separates Cloud and Local providers, offers local-engine installation and model downloads, and shows progress on the selected model. Local model listings exit cleanly when their Python worker is no longer needed.
+
+Claude Code and Antigravity CLI providers can use their installed, signed-in local CLIs. Gemini browser replies and web-mode selection are improved. Desktop chat voice transcription now defaults to local whisper.cpp. Provider availability still depends on the relevant engine, sign-in, model download, or credentials.
+
+## Projects, assets, and editors
+
+Export and import whole projects as `.nodetool-project` files. Asset and workflow browsing respect the selected project. The Examples view supports dragging examples onto the workflow canvas, and the start page shows recent chats.
+
+The asset browser can search Openverse images and audio, filter licensing, preview audio, and import selected media into the current project and folder. Imported assets retain their license and attribution details, with a copy-attribution action in asset information.
+
+Mobile-width workspace headers now give the project and current document separate labeled rows. Shared editor controls, search fields, drop zones, loading states, and media previews are more consistent. Usability fixes improve renaming, setup guidance, model selection, and navigation.
+
+Timeline changes include audio while scrubbing a paused sequence, visual clip fades, playhead following, gesture zoom, and clickable markers. Asset-reference normalization and concurrent storyboard-render fixes reduce stale or mismatched media.
+
+## Packaging and reliability
+
+npm publishing packs each artifact once, measures catalog integrity pins from those bytes, and checks full and core-only installations before publication. Staging verification checks the original artifacts before final tags move, with the CLI promoted last. Cross-package versions are pinned exactly in published packages.
+
+Packaged backend startup, updater assets, workflow integration, and required CI checks receive additional coverage. Harness timeouts clean up their process groups, and mutation-result aggregation verifies partition directories and completion journals. Security and dependency updates are included.
+
+**Full changelog:** https://github.com/nodetool-ai/nodetool/compare/v0.8.3...v0.8.4
 
 ## [September 2026]
 

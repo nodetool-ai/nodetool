@@ -24,12 +24,12 @@ export type OnboardingCapability =
   | "embedding";
 
 export const CAPABILITY_LABELS = {
-  chat: "Chat & Reasoning",
+  chat: "Chat & reasoning",
   vision: "Vision (image understanding)",
-  image: "Image Generation",
-  "speech-to-text": "Speech to Text",
-  "text-to-speech": "Text to Speech",
-  embedding: "Embeddings & Search"
+  image: "Image generation",
+  "speech-to-text": "Speech to text",
+  "text-to-speech": "Text to speech",
+  embedding: "Embeddings & search"
 } satisfies Record<OnboardingCapability, string>;
 
 /** A local inference engine the user can run models on. */

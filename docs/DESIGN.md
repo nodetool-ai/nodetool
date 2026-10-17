@@ -866,7 +866,7 @@ import { Dialog, Text } from "../ui_primitives";
 | Footer | `onConfirm` with a verb in `confirmText`, plus `destructive`, `isLoading`, `confirmDisabled`. Other footers go in `actions` as a fragment of `Button`s: secondary `variant="text" color="inherit"`, the primary last with `variant="contained"` |
 | Destructive | Delete, remove, revoke and discard pass `destructive`. Their title is a question and the body states the consequence |
 | Feedback | Errors and warnings inside a dialog use `AlertBanner` |
-| Confirm only | `ConfirmDialog` for a title, a sentence and two buttons. Never `window.confirm` or `window.prompt` |
+| Confirm only | `ConfirmDialog` for a title, a sentence and two buttons. Never `window.confirm` or `window.prompt`. A hook or callback that renders nothing of its own (a keyboard shortcut, a store action) asks with `await requestConfirm({ title, content, confirmText, destructive })` from `stores/ConfirmStore`, answered by the `ConfirmDialogHost` mounted at the app root |
 | Fullscreen | Media viewers and reading views pass `variant="fullscreen"` |
 
 Full-screen editors with their own resize and history (the text, dataframe,
@@ -1014,6 +1014,7 @@ import { InspectorFieldRow, InspectorSection, InspectorValueInput } from "../ui_
 | Numbers | `InspectorValueInput`. Pass `scrub` for drag-to-change and `scrubGesture` to merge a drag into one undo entry |
 | Choices | `InspectorSelect` |
 | Booleans | `InspectorToggleRow` |
+| Read-only values | `InspectorStaticValue`: mono, `text.secondary`, truncated with the full value as its tooltip |
 | Body inset | The panel body pads `SPACING.lg` (12px) or `SPACING.md` (8px) horizontally, and sections sit inside that inset |
 
 Do not restyle a `CollapsibleSection` header into a filled bar, a bright
@@ -1173,6 +1174,25 @@ There is one slider: `Slider` from `ui_primitives`. It owns the rail, track and 
 ## 14. Controls
 
 Buttons, tooltips, notifications, chips, empty and loading states, tabs and the other small controls every surface shares.
+
+### Copy
+
+The words on controls follow one set of rules, wherever they appear: labels,
+menu items, tooltips, `aria-label`s, buttons, headings, settings sections and
+placeholders. Prose rules live in [WRITING_STYLE.md](WRITING_STYLE.md) and the
+voice in [BRAND.md](BRAND.md).
+
+| Part | Rule |
+|---|---|
+| Case | Sentence case: "Default models", "Take screenshot", "Duplicate layer", never "Default Models". Proper nouns, product and provider names keep their case ("NodeTool", "OpenAI", "ComfyUI", "Hugging Face"), and so do acronyms ("API key", "3D model"). Node titles are names and keep the case the node defines ("Text To Image") |
+| Ellipsis | One "…" character, never three dots: "Saving…", "Type or select…". On a menu row or button it means the action asks for more before it runs |
+| Delete | The action destroys the thing: a layer, a track, a version, a file, a note, a keyframe. "Delete layer", "Delete track?" |
+| Remove | The action takes the thing out of a container and it still exists elsewhere: from favorites, a group, a queue or a folder; an attached file or reference; a tag; a vault or workspace whose files stay on disk; something applied to an object, such as an effect, a transition or a mask designation. "Remove from favorites", "Remove reference" |
+| Copy | A copy tooltip or label is "Copy" plus the thing: "Copy message", "Copy error", "Copy link". Never "Copy to clipboard" or "Copy the …". `CopyButton` defaults to "Copy" |
+| Same action, same words | One action has one label in every place it appears. A menu row, its toolbar button and its shortcut entry read the same |
+
+Only the visible text follows these rules. Ids, persisted keys, enum values
+and strings sent to the server or the agent keep their spelling.
 
 ### Tooltips
 

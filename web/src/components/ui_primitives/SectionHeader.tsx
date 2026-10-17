@@ -8,17 +8,23 @@
 import React from "react";
 import { Box, BoxProps, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { SPACING } from "./spacing";
+import { EYEBROW, TYPOGRAPHY } from "./tokens";
 
 export interface SectionHeaderProps extends BoxProps {
   /** Section title text */
   title: string;
   /** Optional subtitle/description */
   subtitle?: string;
+  /** Item count shown after the title in caption style */
+  count?: React.ReactNode;
+  /** Heading element for the title. Defaults to a paragraph. */
+  titleComponent?: "h2" | "h3" | "h4" | "p" | "span";
   /** Action element(s) rendered on the right side */
   action?: React.ReactNode;
   /** Size variant */
   size?: "small" | "medium" | "large";
-  /** Uppercase title */
+  /** Uppercase title (medium and large; small is always uppercase) */
   uppercase?: boolean;
 }
 
@@ -44,71 +50,76 @@ export interface SectionHeaderProps extends BoxProps {
 export const SectionHeader: React.FC<SectionHeaderProps> = ({
   title,
   subtitle,
+  count,
   action,
   size = "medium",
   uppercase = false,
+  titleComponent,
   sx,
   ...props
 }) => {
   const theme = useTheme();
 
   // Each size maps onto a sanctioned type style. `small` is the eyebrow used
-  // to group rows inside a panel: caption type, always uppercase, muted.
-  const sizeStyles = {
-    small: {
-      fontSize: theme.fontSizeSmaller,
-      fontWeight: 400,
-      padding: theme.spacing(1, 0),
-      uppercase: true,
-      color: theme.vars.palette.text.secondary
-    },
-    medium: {
-      fontSize: theme.fontSizeSmall,
-      fontWeight: 500,
-      padding: theme.spacing(1.5, 0),
-      uppercase,
-      color: theme.vars.palette.text.primary
-    },
-    large: {
-      fontSize: theme.fontSizeBig,
-      fontWeight: 600,
-      padding: theme.spacing(2, 0),
-      uppercase,
-      color: theme.vars.palette.text.primary
-    }
-  };
-
-  const currentSize = sizeStyles[size];
+  // to group rows inside a panel: the shared `EYEBROW` token (the same style
+  // `InspectorSectionTitle` draws), always uppercase, muted.
+  const titleStyle =
+    size === "small"
+      ? { ...EYEBROW, color: theme.vars.palette.text.secondary }
+      : {
+          ...(size === "large" ? TYPOGRAPHY.sans.title : TYPOGRAPHY.sans.label),
+          color: theme.vars.palette.text.primary,
+          ...(uppercase && {
+            textTransform: EYEBROW.textTransform,
+            letterSpacing: EYEBROW.letterSpacing
+          })
+        };
+  const paddingY = { small: SPACING.xs, medium: SPACING.sm, large: SPACING.md }[size];
 
   return (
     <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: currentSize.padding,
-        ...sx,
-      }}
+      sx={[
+        {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          py: paddingY,
+          px: SPACING.none
+        },
+        ...(Array.isArray(sx) ? sx : sx ? [sx] : [])
+      ]}
       {...props}
     >
-      <Box>
-        <Typography
-          sx={{
-            fontSize: currentSize.fontSize,
-            fontWeight: currentSize.fontWeight,
-            color: currentSize.color,
-            textTransform: currentSize.uppercase ? "uppercase" : "none",
-            letterSpacing: currentSize.uppercase ? "0.06em" : undefined,
-          }}
-        >
-          {title}
-        </Typography>
+      <Box sx={{ minWidth: 0 }}>
+        <Box sx={{ display: "flex", alignItems: "baseline", gap: SPACING.md }}>
+          <Typography
+            className="section-header-title"
+            component={titleComponent ?? "p"}
+            sx={{ ...titleStyle, margin: 0 }}
+          >
+            {title}
+          </Typography>
+          {count !== undefined && count !== null && (
+            <Box
+              component="span"
+              className="section-header-count"
+              sx={{
+                ...TYPOGRAPHY.sans.caption,
+                flexShrink: 0,
+                fontVariantNumeric: "tabular-nums",
+                color: theme.vars.palette.text.secondary
+              }}
+            >
+              {count}
+            </Box>
+          )}
+        </Box>
         {subtitle && (
           <Typography
             sx={{
-              fontSize: "var(--fontSizeSmaller)",
+              ...TYPOGRAPHY.sans.caption,
               color: theme.vars.palette.text.secondary,
-              mt: 0.5,
+              mt: SPACING.micro
             }}
           >
             {subtitle}
@@ -116,7 +127,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         )}
       </Box>
       {action && (
-        <Box sx={{ flexShrink: 0, ml: 1 }}>
+        <Box sx={{ flexShrink: 0, ml: SPACING.xs }}>
           {action}
         </Box>
       )}

@@ -329,7 +329,7 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
           {binding.workflowId && documentId && (
             <ToolbarIconButton
               icon={<OpenInNewIcon fontSize="small" />}
-              tooltip="Open in Node Editor"
+              tooltip="Open in node editor"
               onClick={handleOpenInNodeEditor}
               aria-label="Open layer workflow in node editor"
               data-testid="layer-action-open-in-editor"

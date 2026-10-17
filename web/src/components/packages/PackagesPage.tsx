@@ -10,7 +10,7 @@ import PackageManager from "./PackageManager";
 const PackagesPage: React.FC = () => (
   <PageLayout
     icon={<Inventory2OutlinedIcon sx={{ fontSize: 22 }} />}
-    title="Package Manager"
+    title="Package manager"
     subtitle="Install runtimes and node packs in one place."
     docsTopic="nodePacks"
     padded={false}

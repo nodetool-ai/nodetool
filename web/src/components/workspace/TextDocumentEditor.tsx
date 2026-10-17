@@ -22,8 +22,8 @@ import { isMac } from "../../utils/platform";
 import MonacoPane from "./MonacoPane";
 import DataTable from "../node/DataTable/DataTable";
 import EditorToolbar from "../textEditor/EditorToolbar";
+import ErrorBanner from "../support/ErrorBanner";
 import {
-  Caption,
   EditorButton,
   FlexColumn,
   FlexRow,
@@ -274,7 +274,7 @@ const TextDocumentEditor = ({
       );
       commands.push({
         id: "word-wrap",
-        label: wordWrap ? "Turn Off Word Wrap" : "Turn On Word Wrap",
+        label: wordWrap ? "Turn off word wrap" : "Turn on word wrap",
         run: () => setWordWrap((wrap) => !wrap)
       });
     }
@@ -323,9 +323,15 @@ const TextDocumentEditor = ({
           fullHeight
           sx={{ alignItems: "center", justifyContent: "center" }}
         >
-          <Caption sx={{ color: "error.main" }}>
-            Failed to load text content
-          </Caption>
+          <ErrorBanner
+            report={{
+              source: "operation-failure",
+              summary: "Text document failed to load",
+              errorText: textError.message
+            }}
+          >
+            Could not load this text file.
+          </ErrorBanner>
         </FlexColumn>
       );
     }

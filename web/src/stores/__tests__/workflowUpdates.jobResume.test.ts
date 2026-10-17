@@ -127,7 +127,7 @@ describe("job_resumed", () => {
     const runnerStore = makeRunnerStore({
       job_id: "A",
       state: "connecting",
-      statusMessage: "Reconnecting to running job..."
+      statusMessage: "Reconnecting to running job…"
     });
 
     handleUpdate(mockWorkflow, jobResumed(), runnerStore as never, () => undefined);

@@ -346,7 +346,7 @@ export const createWorkflowRunnerStore = (
         jobReplayCursor: lastSeq,
         isBrowserRun: false,
         state: "connecting",
-        statusMessage: "Reconnecting to running job..."
+        statusMessage: "Reconnecting to running job…"
       });
 
       await globalWebSocketManager.send({
@@ -517,7 +517,7 @@ export const createWorkflowRunnerStore = (
           jobReplayCursor: 0,
           isBrowserRun: false,
           queuePosition: null,
-          statusMessage: "Workflow starting...",
+          statusMessage: "Workflow starting…",
           notifications: [],
           state: "connecting"
         });

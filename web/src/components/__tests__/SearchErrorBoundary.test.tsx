@@ -101,7 +101,7 @@ describe("SearchErrorBoundary", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Search Error")).toBeInTheDocument();
+        expect(screen.getByText("Search error")).toBeInTheDocument();
       });
     });
 
@@ -120,7 +120,7 @@ describe("SearchErrorBoundary", () => {
 
       await waitFor(() => {
         expect(screen.getByText("Custom Error Title")).toBeInTheDocument();
-        expect(screen.queryByText("Search Error")).not.toBeInTheDocument();
+        expect(screen.queryByText("Search error")).not.toBeInTheDocument();
       });
     });
 
@@ -231,7 +231,7 @@ describe("SearchErrorBoundary", () => {
 
       // Wait for error to be caught
       await waitFor(() => {
-        expect(screen.getByText("Search Error")).toBeInTheDocument();
+        expect(screen.getByText("Search error")).toBeInTheDocument();
       });
 
       // Stop throwing errors
@@ -272,7 +272,7 @@ describe("SearchErrorBoundary", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Search Error")).toBeInTheDocument();
+        expect(screen.getByText("Search error")).toBeInTheDocument();
         expect(mockLogError).toHaveBeenCalled();
       });
     });
@@ -293,7 +293,7 @@ describe("SearchErrorBoundary", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Search Error")).toBeInTheDocument();
+        expect(screen.getByText("Search error")).toBeInTheDocument();
       });
     });
   });
@@ -319,7 +319,7 @@ describe("SearchErrorBoundary", () => {
 
       // Wait for error to be caught
       await waitFor(() => {
-        expect(screen.getByText("Search Error")).toBeInTheDocument();
+        expect(screen.getByText("Search error")).toBeInTheDocument();
       });
 
       // Click retry without onRetry - error state is cleared but child throws again
@@ -328,7 +328,7 @@ describe("SearchErrorBoundary", () => {
 
       // Error is re-caught because child throws again on re-render
       await waitFor(() => {
-        expect(screen.getByText("Search Error")).toBeInTheDocument();
+        expect(screen.getByText("Search error")).toBeInTheDocument();
       });
     });
 
@@ -340,7 +340,7 @@ describe("SearchErrorBoundary", () => {
       );
 
       // Should render without errors
-      expect(screen.queryByText("Search Error")).not.toBeInTheDocument();
+      expect(screen.queryByText("Search error")).not.toBeInTheDocument();
     });
   });
 
@@ -359,7 +359,7 @@ describe("SearchErrorBoundary", () => {
       );
 
       await waitFor(() => {
-        const heading = screen.getByText("Search Error");
+        const heading = screen.getByText("Search error");
         // Text component renders as <p> by default
         expect(heading.tagName).toBe("P");
       });

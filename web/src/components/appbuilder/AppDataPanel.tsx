@@ -206,7 +206,7 @@ const OperationRow: React.FC<{
       title={operation.name || operation.id}
       subtitle={`id: ${operation.id}`}
       onDelete={onRemove}
-      deleteLabel={`Remove operation ${operation.name || operation.id}`}
+      deleteLabel={`Delete operation ${operation.name || operation.id}`}
     >
       <TextInput
         label="Name"
@@ -318,7 +318,7 @@ const VariableRow: React.FC<{
     title={variable.name || variable.id}
     subtitle={`var:${variable.id}`}
     onDelete={onRemove}
-    deleteLabel={`Remove variable ${variable.name || variable.id}`}
+    deleteLabel={`Delete variable ${variable.name || variable.id}`}
   >
     <TextInput
       label="Name"
@@ -380,7 +380,7 @@ const ResourceRow: React.FC<{
         : `All ${RESOURCE_KIND_PLURAL[resource.kind]}`
     }
     onDelete={onRemove}
-    deleteLabel={`Remove resource ${resource.name || resource.id}`}
+    deleteLabel={`Delete resource ${resource.name || resource.id}`}
   >
     <Caption color="secondary">
       Allows: {resource.operations.join(", ")}

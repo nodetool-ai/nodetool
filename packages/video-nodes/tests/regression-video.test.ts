@@ -609,7 +609,7 @@ describe("TrimVideoNode — uses start/end as time values (seconds)", () => {
     });
     await node.process().catch(() => undefined);
 
-    const args = ffmpegArgString();
+    const args = ffmpegCalls().flat();
     expect(args).toContain("-ss");
     expect(args).toContain("3");
     expect(args).not.toContain("-to");

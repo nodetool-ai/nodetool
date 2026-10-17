@@ -14,6 +14,7 @@ import {
 import {
   APP_ROOT_STYLES,
   APP_THEMES,
+  PHONE_WIDTH_QUERY,
   appThemeFrame,
   resolveAppTheme
 } from "../appThemes";
@@ -320,6 +321,8 @@ const AppRoot: React.FC<{
       sx={{
         ...APP_ROOT_STYLES,
         p: appTheme.padding,
+        // A phone has no width to spare for the desktop gutter.
+        [PHONE_WIDTH_QUERY]: { p: SPACING.lg },
         minHeight: "100%",
         backgroundColor: appTheme.surface,
         color: "text.primary",

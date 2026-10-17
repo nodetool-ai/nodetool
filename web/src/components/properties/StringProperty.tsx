@@ -133,7 +133,7 @@ const StringProperty = ({
       <>
         <ToolbarIconButton
           className="inspector-supplemental-action"
-          tooltip="Open Editor"
+          tooltip="Open editor"
           icon={<OpenInFullIcon />}
           onClick={toggleExpand}
           size="small"
@@ -181,7 +181,7 @@ const StringProperty = ({
         {!isInspector ? (
           <div className="string-action-buttons">
             <ToolbarIconButton
-              tooltip="Open Editor"
+              tooltip="Open editor"
               icon={<OpenInFullIcon />}
               onClick={toggleExpand}
               size="small"

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import ErrorBanner from "../support/ErrorBanner";
 import {
   Box,
   Caption,
@@ -112,7 +113,15 @@ const CurrentProjectDocuments = () => {
       {isPending ? (
         <LoadingSpinner />
       ) : error ? (
-        <Caption color="error">{error.message}</Caption>
+        <ErrorBanner
+          report={{
+            source: "operation-failure",
+            summary: "Project documents failed to load",
+            errorText: error.message
+          }}
+        >
+          {error.message}
+        </ErrorBanner>
       ) : documents.length === 0 ? (
         <EmptyState size="small" title="No documents in this project yet" />
       ) : (

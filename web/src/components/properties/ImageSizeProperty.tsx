@@ -164,7 +164,7 @@ const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
         <Box className="spacer" sx={{ flex: 1 }} />
         <FlexRow className="icon-container" align="center" gap={0} sx={{ mt: -2 }}>
           <ToolbarIconButton
-            tooltip="Swap Width and Height"
+            tooltip="Swap width and height"
             icon={<SwapHoriz sx={{ fontSize: "var(--fontSizeBig)" }} />}
             className="aspect-swap-button"
             onClick={handleSwap}
@@ -177,7 +177,7 @@ const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
           />
 
           <ToolbarIconButton
-            tooltip={locked ? "Unlock Aspect Ratio" : "Lock Aspect Ratio"}
+            tooltip={locked ? "Unlock aspect ratio" : "Lock aspect ratio"}
             icon={locked ? <Lock sx={{ fontSize: "var(--fontSizeNormal)" }} /> : <LockOpen sx={{ fontSize: "var(--fontSizeNormal)" }} />}
             className="aspect-lock-button"
             onClick={toggleLock}

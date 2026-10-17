@@ -320,7 +320,7 @@ describe("video ReviewStep (criterion 4)", () => {
     seed(beats());
     renderStep();
     await userEvent.click(
-      screen.getByRole("button", { name: "Remove beat 1" })
+      screen.getByRole("button", { name: "Delete beat 1" })
     );
     expect(
       useTimelineStore.getState().setup?.beats?.map((beat) => beat.id)
@@ -330,7 +330,7 @@ describe("video ReviewStep (criterion 4)", () => {
   it("keeps the last beat, so a plan is never empty", async () => {
     seed([{ id: "b1", prompt: "the kerb", duration_ms: 3000 }]);
     renderStep();
-    const control = screen.getByRole("button", { name: "Remove beat 1" });
+    const control = screen.getByRole("button", { name: "Delete beat 1" });
     expect(control).toHaveAttribute("aria-disabled", "true");
     await userEvent.click(control);
     expect(useTimelineStore.getState().setup?.beats?.length).toBe(1);
@@ -350,7 +350,7 @@ describe("video ReviewStep (criterion 4)", () => {
     // another beat blurs this field without writing anything.
     await userEvent.type(second, "0.1");
     await userEvent.click(
-      screen.getByRole("button", { name: "Remove beat 1" })
+      screen.getByRole("button", { name: "Delete beat 1" })
     );
     expect(screen.getAllByLabelText("Seconds")[0]).toHaveValue("0.1");
     expect(useTimelineStore.getState().setup?.beats?.[0].duration_ms).toBe(

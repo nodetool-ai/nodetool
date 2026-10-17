@@ -35,8 +35,8 @@ import {
 } from "./AdjustmentSlider";
 
 const TONAL_SLIDERS: ReadonlyArray<SliderSpec> = [
-  { name: "black_point", label: "Black Point", min: 0, max: 0.5, step: 0.01, default: 0, bipolar: false },
-  { name: "white_point", label: "White Point", min: 0.5, max: 1, step: 0.01, default: 1, bipolar: false },
+  { name: "black_point", label: "Black point", min: 0, max: 0.5, step: 0.01, default: 0, bipolar: false },
+  { name: "white_point", label: "White point", min: 0.5, max: 1, step: 0.01, default: 1, bipolar: false },
   { name: "shadows", label: "Shadows", min: -0.5, max: 0.5, step: 0.01, default: 0, bipolar: true },
   { name: "midtones", label: "Midtones", min: -0.5, max: 0.5, step: 0.01, default: 0, bipolar: true },
   { name: "highlights", label: "Highlights", min: -0.5, max: 0.5, step: 0.01, default: 0, bipolar: true }

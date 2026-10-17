@@ -9,6 +9,7 @@ import {
   useTimelineExtension
 } from "../../../hooks/timeline/useTimelineExtension";
 import { isElectron, isLocalhost } from "../../../lib/env";
+import ErrorBanner from "../../support/ErrorBanner";
 import {
   Caption,
   CollapsibleSection,
@@ -301,7 +302,17 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                 </>
               ) : job.status !== "running" ? (
                 <>
-                  {job.error && <Caption color="error">{job.error}</Caption>}
+                  {job.error && (
+                    <ErrorBanner
+                      report={{
+                        source: "job-failure",
+                        summary: "Clip extension failed",
+                        errorText: job.error
+                      }}
+                    >
+                      {job.error}
+                    </ErrorBanner>
+                  )}
                   <EditorButton
                     fullWidth
                     variant="outlined"
@@ -316,7 +327,17 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
             </FlexColumn>
           );
         })}
-        {error && <Caption color="error">{error}</Caption>}
+        {error && (
+          <ErrorBanner
+            report={{
+              source: "operation-failure",
+              summary: "Clip extension could not start",
+              errorText: error
+            }}
+          >
+            {error}
+          </ErrorBanner>
+        )}
       </FlexColumn>
     </CollapsibleSection>
   );

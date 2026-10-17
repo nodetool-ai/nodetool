@@ -9,9 +9,11 @@ import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
+import TravelExploreIcon from "@mui/icons-material/TravelExplore";
 import AssetSearchInput from "./AssetSearchInput";
 import AssetActions from "./AssetActions";
 import AssetProjectFilter from "./AssetProjectFilter";
+import OpenverseDialog from "./OpenverseDialog";
 import SearchErrorBoundary from "../SearchErrorBoundary";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
@@ -72,6 +74,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   const { folderFiles, folderTree, modelOptions } = useAssets();
   const { handleSelectAllAssets } = useAssetSelection(folderFiles);
   const [expanded, setExpanded] = useState(false);
+  const [openverseOpen, setOpenverseOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasFolders = useMemo(
@@ -149,6 +152,15 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
           New folder
         </EditorButton>
       )}
+      <EditorButton
+        variant="outlined"
+        density="compact"
+        startIcon={<TravelExploreIcon />}
+        tooltip="Find openly licensed images and audio on Openverse"
+        onClick={() => setOpenverseOpen(true)}
+      >
+        Openverse
+      </EditorButton>
       <input
         ref={fileInputRef}
         type="file"
@@ -186,6 +198,13 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
           nodrag={false}
         />
       )}
+      <ToolbarIconButton
+        icon={<TravelExploreIcon />}
+        tooltip="Find openly licensed media on Openverse"
+        onClick={() => setOpenverseOpen(true)}
+        tooltipPlacement="top"
+        nodrag={false}
+      />
       <UploadButton
         onFileSelect={(files) => onUploadFiles?.(files)}
         iconVariant="file"
@@ -196,7 +215,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   );
 
   const search = (
-    <SearchErrorBoundary fallbackTitle="Search Input Error">
+    <SearchErrorBoundary fallbackTitle="Search input error">
       <AssetSearchInput
         onLocalSearchChange={onLocalSearchChange}
         focusOnTyping={false}
@@ -273,6 +292,10 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
             </SidebarOptionsRow>
           )}
         </>
+      )}
+
+      {openverseOpen && (
+        <OpenverseDialog open onClose={() => setOpenverseOpen(false)} />
       )}
 
       <ContextMenu

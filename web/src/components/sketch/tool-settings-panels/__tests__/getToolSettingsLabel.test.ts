@@ -10,7 +10,7 @@ describe("getToolSettingsLabel", () => {
     ["pencil", "Pencil"],
     ["eraser", "Eraser"],
     ["fill", "Fill"],
-    ["blur", "Blur Brush"],
+    ["blur", "Blur brush"],
     ["gradient", "Gradient"],
     ["crop", "Crop"],
     ["select", "Selection"],
@@ -26,8 +26,8 @@ describe("getToolSettingsLabel", () => {
 
   it("names the tools that have no settings of their own", () => {
     expect(getToolSettingsLabel("move")).toBe("Move");
-    expect(getToolSettingsLabel("eyedropper")).toBe("Color Picker");
-    expect(getToolSettingsLabel("clone_stamp")).toBe("Clone Stamp");
+    expect(getToolSettingsLabel("eyedropper")).toBe("Color picker");
+    expect(getToolSettingsLabel("clone_stamp")).toBe("Clone stamp");
   });
 
   it('returns "Settings" for unknown tool values', () => {

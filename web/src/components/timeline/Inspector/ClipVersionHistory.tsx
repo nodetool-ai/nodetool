@@ -261,6 +261,8 @@ const VersionTile: React.FC<VersionTileProps> = memo(
                 muted
                 playsInline
                 preload="metadata"
+                // A still for the tile; the button around it carries the name.
+                aria-hidden
               />
             )}
             {isAudio && (
@@ -279,12 +281,12 @@ const VersionTile: React.FC<VersionTileProps> = memo(
           <div className="take-actions" css={takeActionsStyles}>
             <ToolbarIconButton
               icon={<PlayArrowIcon />}
-              tooltip={active ? "Preview Original" : "Preview Candidate"}
+              tooltip={active ? "Preview original" : "Preview candidate"}
               onClick={(e) => {
                 e.stopPropagation();
                 onPreview(active ? null : version.id);
               }}
-              aria-label={active ? "Preview Original" : "Preview Candidate"}
+              aria-label={active ? "Preview original" : "Preview candidate"}
               sx={actionIconSx}
             />
             {!active && (

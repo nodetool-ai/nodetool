@@ -241,7 +241,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
         </Box>
       </FlexColumn>
       {dataOpen && (
-        <FlexColumn role="complementary" aria-label="App Data" sx={panelSx}>
+        <FlexColumn role="complementary" aria-label="App data" sx={panelSx}>
           {narrow && (
             <EditorButton onClick={toggleData}>Back to canvas</EditorButton>
           )}

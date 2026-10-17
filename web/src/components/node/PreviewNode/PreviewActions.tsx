@@ -101,11 +101,11 @@ const PreviewActions: React.FC<PreviewActionsProps> = memo(({
           <FileDownloadIcon />
         </EditorButton>
       </Tooltip>
-      <Tooltip title="Add to Assets">
+      <Tooltip title="Add to assets">
         <EditorButton
           onClick={onAddToAssets}
           className="action-button"
-          aria-label="Add to Assets"
+          aria-label="Add to assets"
         >
           <AddIcon />
         </EditorButton>
@@ -117,7 +117,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = memo(({
           onCopyError={handleCopyError}
           className="action-button copy"
           sx={COPY_BUTTON_SX}
-          aria-label="Copy asset to clipboard"
+          aria-label="Copy asset"
         />
       ) : (
         <CopyButton
@@ -125,7 +125,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = memo(({
           onCopyError={handleCopyError}
           className="action-button copy"
           sx={COPY_BUTTON_SX}
-          aria-label="Copy to clipboard"
+          aria-label="Copy output"
         />
       )}
     </FlexRow>

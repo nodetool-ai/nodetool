@@ -27,7 +27,7 @@
  */
 
 import React, { useCallback, useMemo, memo } from "react";
-import { Box, IconButton } from "@mui/material";
+import { Box } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useTheme, SxProps, Theme } from "@mui/material/styles";
@@ -37,7 +37,9 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
-import { MOTION, FONT_SIZE_SANS } from "./tokens";
+import { MOTION, FONT_SIZE_SANS, BORDER_RADIUS } from "./tokens";
+import { focusRing } from "./selectionStyles";
+import { activateOnKey } from "./keyboardActivation";
 import { Text } from "./Text";
 
 export interface LabeledToggleProps {
@@ -103,8 +105,8 @@ export interface LabeledToggleProps {
    */
   showTooltip?: boolean;
   /**
-   * Button size
-   * @default "small"
+   * @deprecated The expand indicator is no longer a separate button; the
+   * whole toggle is one button. Kept so existing callers still compile.
    */
   size?: "small" | "medium" | "large";
   /**
@@ -129,7 +131,6 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
   className,
   sx,
   showTooltip = true,
-  size = "small",
   nodrag = true
 }) => {
   const theme = useTheme();
@@ -146,10 +147,24 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
     [onToggle]
   );
 
+  // The toggle is a single button: Enter and Space activate it like a native
+  // one, so keyboard users can open and close it too.
+  const handleKeyDown = useMemo(
+    () =>
+      activateOnKey((event) => {
+        event.stopPropagation();
+        onToggle();
+      }),
+    [onToggle]
+  );
+
   const expandButtonSx: SxProps<Theme> = useMemo(() => ({
     transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
     transition: MOTION.transform,
-    padding: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
     width: theme.spacing(6),
     height: theme.spacing(6),
     color: "inherit",
@@ -182,23 +197,22 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
     userSelect: "none",
     opacity: disabled ? 0.5 : 1,
     transition: MOTION.opacity,
+    borderRadius: BORDER_RADIUS.sm,
+    "&:focus-visible": focusRing(theme, 2),
     ...sx
   }), [disabled, isOpen, sx, theme]);
 
+  // A visual indicator only: the whole toggle is the button, so a nested
+  // button here would be a second, redundant tab stop.
   const expandIconNode = showExpandIcon ? (
-    <IconButton
-      size={size}
-      onClick={handleToggle}
-      disabled={disabled}
-      className={cn(
-        "labeled-toggle-expand",
-        nodrag && editorClassNames.nodrag
-      )}
+    <Box
+      component="span"
+      aria-hidden
+      className="labeled-toggle-expand"
       sx={expandButtonSx}
-      aria-label={labelText}
     >
       {expandIcon || <ExpandMoreIcon fontSize="inherit" />}
-    </IconButton>
+    </Box>
   ) : null;
 
   const iconNode = icon ? (
@@ -220,7 +234,13 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
         className
       )}
       sx={containerSx}
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled || undefined}
+      aria-expanded={showExpandIcon ? isOpen : undefined}
+      aria-pressed={showExpandIcon ? undefined : isOpen}
       onClick={disabled ? undefined : handleToggle}
+      onKeyDown={disabled ? undefined : handleKeyDown}
     >
       {expandIconNode}
       {iconNode}

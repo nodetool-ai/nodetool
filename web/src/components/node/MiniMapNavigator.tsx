@@ -116,32 +116,32 @@ const MiniMapNavigator: React.FC = () => {
     () => [
       {
         category: NodeTypeCategory.Input,
-        label: "Input Nodes",
+        label: "Input nodes",
         color: getNodeCategoryColor(NodeTypeCategory.Input, isDarkMode)
       },
       {
         category: NodeTypeCategory.Constant,
-        label: "Constant Nodes",
+        label: "Constant nodes",
         color: getNodeCategoryColor(NodeTypeCategory.Constant, isDarkMode)
       },
       {
         category: NodeTypeCategory.Processing,
-        label: "Processing Nodes",
+        label: "Processing nodes",
         color: getNodeCategoryColor(NodeTypeCategory.Processing, isDarkMode)
       },
       {
         category: NodeTypeCategory.Group,
-        label: "Group Nodes",
+        label: "Group nodes",
         color: getNodeCategoryColor(NodeTypeCategory.Group, isDarkMode)
       },
       {
         category: NodeTypeCategory.Comment,
-        label: "Comment Nodes",
+        label: "Comment nodes",
         color: getNodeCategoryColor(NodeTypeCategory.Comment, isDarkMode)
       },
       {
         category: NodeTypeCategory.Output,
-        label: "Output Nodes",
+        label: "Output nodes",
         color: getNodeCategoryColor(NodeTypeCategory.Output, isDarkMode)
       }
     ],
@@ -188,7 +188,7 @@ const MiniMapNavigator: React.FC = () => {
           >
             {colorMode === "type" && showLegend && (
               <ToolbarIconButton
-                title="Node Type Legend"
+                title="Node type legend"
                 size="small"
                 onClick={handleOpenLegend}
                 sx={{
@@ -205,7 +205,7 @@ const MiniMapNavigator: React.FC = () => {
               </ToolbarIconButton>
             )}
             <ToolbarIconButton
-              title="Color Mode Settings"
+              title="Color mode settings"
               size="small"
               onClick={handleOpenSettings}
               sx={{

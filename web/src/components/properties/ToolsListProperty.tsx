@@ -201,7 +201,7 @@ const ToolsListProperty = (props: PropertyProps<Tool[]>) => {
         ))}
 
         <ToolbarIconButton
-          tooltip="Add / Remove Tools"
+          tooltip="Add / remove tools"
           tooltipPlacement="top"
           icon={<Add fontSize="small" />}
           size="small"

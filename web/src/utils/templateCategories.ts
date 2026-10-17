@@ -29,7 +29,7 @@ export const TOP_CATEGORIES: TemplateCategory[] = [
   },
   {
     id: "data-web",
-    label: "Data & Web",
+    label: "Data & web",
     tags: [
       "data",
       "web",

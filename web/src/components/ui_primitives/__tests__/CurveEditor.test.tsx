@@ -89,7 +89,7 @@ describe("CurveEditor", () => {
     render(<Harness initial={[{ t: 0.5, value: 1 }]} maxKeys={2} onChange={onChange} />);
     fireEvent.keyDown(keyHandle(1), { key: "Delete" });
     expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Remove key" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Delete key" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Add key" }));
     expect(onChange).toHaveBeenLastCalledWith([{ t: 0.5, value: 1 }, { t: 0.75, value: 1 }]);
     expect(screen.getByRole("button", { name: "Add key" })).toBeDisabled();
@@ -180,7 +180,7 @@ describe("CurveEditor", () => {
     fireEvent.pointerUp(handle, { pointerId: 1, clientX: 100, clientY: 50 });
     fireEvent.doubleClick(plot, { clientX: 50, clientY: 20 });
     expect(screen.getByRole("button", { name: "Add key" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Remove key" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Delete key" })).toBeDisabled();
     expect(onChange).not.toHaveBeenCalled();
   });
 

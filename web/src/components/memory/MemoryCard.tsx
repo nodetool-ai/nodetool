@@ -11,6 +11,7 @@ import {
   DeleteButton,
   FlexColumn,
   FlexRow,
+  HoverActionGroup,
   ResponsiveImage,
   Text,
   ToolbarIconButton,
@@ -31,10 +32,8 @@ const THUMB_SIZE = 56;
 const styles = (theme: Theme): CSSObject => ({
     transition: MOTION.background,
     "&:hover": {
-      background: `rgb(${theme.vars.palette.common.whiteChannel} / 0.04)`
+      background: theme.vars.palette.action.hover
     },
-    "&:hover .memory-actions": { opacity: 1 },
-    ".memory-actions": { opacity: 0, transition: MOTION.opacity },
     ".memory-content": {
       wordBreak: "break-word",
       lineHeight: 1.45,
@@ -132,7 +131,11 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
           </FlexRow>
           <Caption>{formatDate(memory.created_at)}</Caption>
         </FlexColumn>
-        <FlexRow className="memory-actions" align="center" gap={SPACING.xs}>
+        <HoverActionGroup
+          className="memory-actions"
+          triggerSelector=".memory-item:hover"
+          gap={SPACING.xs}
+        >
           <ToolbarIconButton
             tooltip="Open the conversation this came from"
             onClick={() => onOpenThread(memory.thread_id)}
@@ -143,7 +146,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
             onClick={() => onDelete(memory.id)}
             disabled={deleteDisabled}
           />
-        </FlexRow>
+        </HoverActionGroup>
       </FlexRow>
       {memory.content && (
         <Text size="small" className="memory-content">

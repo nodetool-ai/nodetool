@@ -407,13 +407,13 @@ describe("native media editing P0 acceptance journey", () => {
     await waitFor(() =>
       expect(
         recoveredView.getByRole("button", {
-          name: /^Preview Candidate$/
+          name: /^Preview candidate$/
         })
       ).toBeEnabled()
     );
     await user.click(
       recoveredView.getByRole("button", {
-        name: /^Preview Candidate$/
+        name: /^Preview candidate$/
       })
     );
     expect(reloaded.ui.getState().audition).toEqual({

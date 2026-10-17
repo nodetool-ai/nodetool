@@ -620,9 +620,9 @@ describe("RemoteSettingsMenu", () => {
 
       // Meta-section headings render in the fixed order (the raw group names
       // "vLLM", "KIE", "NodeSupabase" must not appear as section headings).
-      expect(screen.getByText("Local Model Servers")).toBeInTheDocument();
-      expect(screen.getByText("Provider Options")).toBeInTheDocument();
-      expect(screen.getByText("Data & Storage")).toBeInTheDocument();
+      expect(screen.getByText("Local model servers")).toBeInTheDocument();
+      expect(screen.getByText("Provider options")).toBeInTheDocument();
+      expect(screen.getByText("Data & storage")).toBeInTheDocument();
     });
 
     it("renders unmapped registry groups under the catch-all Other section", async () => {

@@ -95,7 +95,7 @@ const EditorToolbar = ({
       <ToolbarGroup>
         <ToolbarIconButton
           icon={<SearchIcon fontSize="small" />}
-          tooltip="Find & Replace"
+          tooltip="Find & replace"
           className="toolbar-button"
           onClick={onToggleFind}
           size="small"
@@ -106,14 +106,14 @@ const EditorToolbar = ({
       <ToolbarGroup>
         <ToolbarIconButton
           icon={<WrapTextIcon fontSize="small" />}
-          tooltip="Toggle Word Wrap"
+          tooltip="Toggle word wrap"
           className={`toolbar-button ${wordWrapEnabled ? "active" : ""}`}
           onClick={onToggleWordWrap}
           size="small"
         />
         <ToolbarIconButton
           icon={<CodeIcon fontSize="small" />}
-          tooltip="Format as Code Block"
+          tooltip="Format as code block"
           className={`toolbar-button ${isCodeBlock ? "active" : ""}`}
           onClick={onFormatCodeBlock}
           size="small"

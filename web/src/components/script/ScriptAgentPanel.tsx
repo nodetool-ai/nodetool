@@ -23,7 +23,7 @@ const ScriptAgentPanel = ({ scriptId }: ScriptAgentPanelProps) => {
       workflowId={scriptId}
       docsTopic="scripts"
       docsLabel="Scripts"
-      welcomeTitle="Script Assistant"
+      welcomeTitle="Script assistant"
       welcomeBody='Ask me to write and voice the script — e.g. "draft a 30-second intro for two hosts", "add a line for Narrator", or "voice every line and send it to a timeline".'
     />
   );

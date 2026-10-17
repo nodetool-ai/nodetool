@@ -347,8 +347,8 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
           }
         }}
       >
-        <SketchModeOption value="active_layer">Active Layer</SketchModeOption>
-        <SketchModeOption value="composited">All Layers</SketchModeOption>
+        <SketchModeOption value="active_layer">Active layer</SketchModeOption>
+        <SketchModeOption value="composited">All layers</SketchModeOption>
       </SketchModeToggle>
       <Text sx={{ ...sketchHintTextSx, mt: 1 }}>
         Alt+click to set source point

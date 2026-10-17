@@ -294,7 +294,13 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
       <Box
         data-focus-id="app-runtime"
         className="appbuilder-runtime"
-        sx={{ width: "100%", height: "100%", overflow: "auto" }}
+        // A size container, so the app root can query its own width.
+        sx={{
+          width: "100%",
+          height: "100%",
+          overflow: "auto",
+          containerType: "inline-size"
+        }}
       >
         {instanceError}
         {application && !previewDraft && getAppSessionToken() === null ? (

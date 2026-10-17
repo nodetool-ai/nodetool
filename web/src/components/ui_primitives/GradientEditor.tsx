@@ -310,7 +310,7 @@ export const GradientEditor = forwardRef<HTMLDivElement, GradientEditorProps>(fu
           }}
         />
         <EditorButton density="compact" disabled={disabled || value.length >= maxStops} onClick={() => addStopAt(insertionTime(value, selectedIndex))}>Add stop</EditorButton>
-        <EditorButton density="compact" disabled={disabled || value.length <= minStops} onClick={() => removeStopAt(selectedIndex)}>Remove stop</EditorButton>
+        <EditorButton density="compact" disabled={disabled || value.length <= minStops} onClick={() => removeStopAt(selectedIndex)}>Delete stop</EditorButton>
       </FlexRow>
       <Caption id={hintId}>Arrow keys move a stop, Shift moves further. Insert adds a stop, Delete removes it. Double-click the bar to add a stop there.</Caption>
     </FlexColumn>

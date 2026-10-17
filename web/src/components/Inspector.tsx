@@ -27,7 +27,8 @@ import {
   reducedMotion,
   ScrollArea,
   Tooltip,
-  Box
+  Box,
+  EmptyState
 } from "./ui_primitives";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import FalPricingFooter from "./node/FalPricingFooter";
@@ -688,7 +689,7 @@ const Inspector: React.FC = () => {
       <Box className="inspector" css={inspectorStyles}>
         <div className="inspector-head">
           <div className="inspector-head-text">
-            <div className="inspector-title">No node selected</div>
+            <div className="inspector-title">Inspector</div>
           </div>
           <div className="inspector-head-close">
             <CloseButton
@@ -699,6 +700,11 @@ const Inspector: React.FC = () => {
             />
           </div>
         </div>
+        <EmptyState
+          size="small"
+          title="No node selected"
+          description="Select a node to edit its settings here."
+        />
       </Box>
     );
   }

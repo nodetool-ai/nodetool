@@ -357,6 +357,7 @@ const TutorialsPage: React.FC = () => {
                 poster={resolveStaticMediaUri(active.poster) ?? undefined}
                 autoplay={started}
                 muted
+                label={active.title}
               />
               {!started && (
                 <button

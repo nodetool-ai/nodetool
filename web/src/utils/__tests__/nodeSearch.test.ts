@@ -117,7 +117,7 @@ describe("nodeSearch", () => {
 
       expect(results.sortedResults).toHaveLength(3); // All except default
       expect(results.groupedResults).toHaveLength(1);
-      expect(results.groupedResults[0].title).toBe("All Nodes");
+      expect(results.groupedResults[0].title).toBe("All nodes");
     });
 
     it("should filter by selected path", () => {
