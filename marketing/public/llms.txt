@@ -28,11 +28,13 @@
 - [Agents](https://nodetool.ai/agents.md): build and inspect automation that produces editable workflows and projects.
 - [For developers](https://nodetool.ai/developers.md): connect NodeTool to your coding agent over MCP for images, video, speech, and workflows.
 - [For marketing teams](https://nodetool.ai/marketing.md): hand a brief to an agent; campaign assets at volume.
+- [Game development](https://nodetool.ai/gamedev.md): the open-source 2D and 3D game engine agents build in: tools, editor, export, and limits.
 - [Documentation](https://docs.nodetool.ai/llms.txt): install guides, key concepts, node reference, API reference, CLI.
 
 ## Editors and capabilities
 
 - [Game development](https://nodetool.ai/gamedev): the built-in 2D and 3D game engine: playable examples, what agents author, the Game Editor, and web export.
+- [AI game engines compared](https://nodetool.ai/gamedev/ai-game-engines): NodeTool, Unity, Godot, Roblox Studio, Summer Engine, and Rosebud for agent-built games, with sources.
 - [Game Editor guide](https://docs.nodetool.ai/game-editor): scene tree, inspector, scripts, play mode, publishing, and export.
 - [Native Game Engine reference](https://docs.nodetool.ai/game-engine/): game documents, scripts, physics, assets, agent authoring, and current coverage.
 - [Storyboards](https://nodetool.ai/storyboards): example storyboards: each film with every shot it was built from.

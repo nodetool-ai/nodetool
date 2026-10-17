@@ -21,6 +21,7 @@ import { competitorEntries } from "../src/data/competitorEntries.ts";
 import { faqByCategory, faqEntries } from "../src/data/faqEntries.ts";
 import { ideaCategories } from "../src/data/ideasEntries.ts";
 import { recipeEntries } from "../src/data/recipes.ts";
+import * as gamedev from "../src/data/gamedevPage.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_FILE = resolve(__dirname, "..", "public/llms.txt");
@@ -60,6 +61,7 @@ const KEY_PAGE_BLURBS = {
   "/agents": "build and inspect automation that produces editable workflows and projects.",
   "/developers": "connect NodeTool to your coding agent over MCP for images, video, speech, and workflows.",
   "/marketing": "hand a brief to an agent; campaign assets at volume.",
+  "/gamedev": "the open-source 2D and 3D game engine agents build in: tools, editor, export, and limits.",
 };
 
 const KEY_PAGE_LABELS = {
@@ -70,6 +72,7 @@ const KEY_PAGE_LABELS = {
   "/agents": "Agents",
   "/developers": "For developers",
   "/marketing": "For marketing teams",
+  "/gamedev": "Game development",
 };
 
 function link(label, path, blurb) {
@@ -95,6 +98,55 @@ function keyPagesSection() {
 
 function markdownPath(route) {
   return route === "/" ? "/index.md" : `${route}.md`;
+}
+
+/** The /gamedev page as Markdown, from the same data module the page renders. */
+function gamedevMarkdown() {
+  const steps = gamedev.AGENT_STEPS.map((s) => `- **${s.title}** (\`${s.tool}\`): ${s.body}`).join("\n");
+  const rows = gamedev.SPEC_ROWS.map((r) => `| ${r.feature} | ${r.twoD} | ${r.threeD} |`).join("\n");
+  const faq = gamedev.GAMEDEV_FAQ.map((q) => `### ${q.question}\n\n${q.answer}`).join("\n\n");
+  const links = gamedev.GAMEDEV_LINKS.map((l) => `- [${l.label}](${l.href})`).join("\n");
+  return `${gamedev.GAMEDEV_LEAD}
+
+Play the example games at ${BASE_URL}/gamedev.
+
+## What the agent can do
+
+${steps}
+
+## Use it from Claude Code or Codex
+
+\`\`\`bash
+${gamedev.MCP_INSTALL_COMMAND}
+\`\`\`
+
+This registers NodeTool as an MCP server in Claude Code, Codex, and OpenCode. For Cursor or another client, \`nodetool mcp config\` prints the block to paste. The agent calls the game tools inside \`execute_code\` and looks at captured frames with \`view_image\`. The game skills appear in Claude Code as slash commands.
+
+## The Game Editor
+
+${gamedev.EDITOR_POINTS.map((p) => `- ${p}`).join("\n")}
+
+## What is in the engine
+
+${gamedev.ENGINE_NOTE}
+
+| Feature | 2D games | 3D games |
+|---|---|---|
+${rows}
+
+## What it does not do yet
+
+${gamedev.LIMITS.map((l) => `- ${l}`).join("\n")}
+
+${gamedev.LIMITS_SUMMARY} Compare engines: ${BASE_URL}/gamedev/ai-game-engines
+
+## Questions
+
+${faq}
+
+## Read more
+
+${links}`;
 }
 
 const MARKDOWN_PAGES = {
@@ -162,6 +214,11 @@ Read the [agent documentation](https://docs.nodetool.ai/agents/index.md) for ins
     description: "Studio is free; current Cloud alpha access is free.",
     body: `NodeTool Studio is free and open source under AGPL-3.0. Current NodeTool Cloud alpha access is free; future Cloud pricing has not been announced. In both editions, provider charges are separate: connect supported provider accounts and pay those providers directly.`,
   },
+  "gamedev.md": {
+    title: "NodeTool Game Development",
+    description: gamedev.GAMEDEV_DESCRIPTION,
+    body: gamedevMarkdown(),
+  },
   "marketing.md": {
     title: "NodeTool for Marketing Teams",
     description: "Hand the brief to an agent; get campaign assets at volume.",
@@ -200,6 +257,7 @@ function comparisonsSection() {
  */
 const CAPABILITY_LINKS = [
   ["Game development", "/gamedev", "the built-in 2D and 3D game engine: playable examples, what agents author, the Game Editor, and web export."],
+  ["AI game engines compared", "/gamedev/ai-game-engines", "NodeTool, Unity, Godot, Roblox Studio, Summer Engine, and Rosebud for agent-built games, with sources."],
   ["Game Editor guide", "https://docs.nodetool.ai/game-editor", "scene tree, inspector, scripts, play mode, publishing, and export."],
   ["Native Game Engine reference", "https://docs.nodetool.ai/game-engine/", "game documents, scripts, physics, assets, agent authoring, and current coverage."],
   ["Storyboards", "/storyboards", "example storyboards: each film with every shot it was built from."],

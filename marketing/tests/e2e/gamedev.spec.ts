@@ -19,7 +19,7 @@ for (const game of games) {
   test(`${game.name} loads only on request and starts its playable scene`, async ({ page }) => {
     test.setTimeout(60_000);
     await page.goto("/gamedev");
-    await expect(page).toHaveTitle(/Game Development with NodeTool/);
+    await expect(page).toHaveTitle(/Open-Source AI Game Engine/);
     await expect(page.locator("h1")).toHaveCount(1);
     const section = page.locator("#example-games");
     expect(await section.getByRole("group", { name: "Example games" }).getByRole("button").allTextContents()).toEqual(games.map((example) => example.name));
