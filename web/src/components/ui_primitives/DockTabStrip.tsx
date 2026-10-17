@@ -23,7 +23,6 @@ import type { SxProps, Theme } from "@mui/material/styles";
 
 import { Box } from "./Box";
 import { FlexRow } from "./FlexRow";
-import { Tooltip } from "./Tooltip";
 import { focusRing } from "./selectionStyles";
 import { SPACING, getSpacingPx } from "./spacing";
 import { BORDER_RADIUS, CONTROL, FONT_SIZE_SANS, MOTION, TYPOGRAPHY, reducedMotion, thinScrollbarStyles } from "./tokens";
@@ -183,8 +182,8 @@ const DockTabStripBase = forwardRef<HTMLDivElement, DockTabStripProps>(function 
           >
             {tab.icon && <span className="dock-tab-icon" aria-hidden>{tab.icon}</span>}
             <Box component="span" sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tab.label}</Box>
-            {closable && <Tooltip title={`Close ${tab.label}`}><Box component="button" type="button" className="dock-tab-close" tabIndex={-1}
-              aria-label={`Close ${tab.label}`}
+            {closable && <Box component="button" type="button" className="dock-tab-close" tabIndex={-1}
+              aria-label={`Close ${tab.label}`} title={`Close ${tab.label}`}
               onPointerDown={(event: React.PointerEvent) => event.stopPropagation()}
               onClick={(event: React.MouseEvent) => { event.stopPropagation(); onClose?.(tab.id); }}
               sx={{
@@ -195,7 +194,7 @@ const DockTabStripBase = forwardRef<HTMLDivElement, DockTabStripProps>(function 
                 "& svg": { fontSize: FONT_SIZE_SANS.caption }
               }}>
               <CloseIcon />
-            </Box></Tooltip>}
+            </Box>}
           </FlexRow>
         </React.Fragment>;
       })}
