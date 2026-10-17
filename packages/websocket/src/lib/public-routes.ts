@@ -175,6 +175,9 @@ export function isPublicAuthExemptRoute(
     pathname === "/ready" ||
     pathname === "/api/health" ||
     pathname === "/api/config" ||
+    // Anonymous analytics carry no account by design: the route must never
+    // resolve a user, so it never runs the auth hook.
+    (pathname === "/api/analytics/v1/events" && method === "POST") ||
     isPublicOAuthRequest(pathname) ||
     pathname === "/api/assets/packages" ||
     pathname.startsWith("/api/assets/packages/") ||

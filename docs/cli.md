@@ -1848,6 +1848,25 @@ nodetool settings show
 nodetool settings show --json
 ```
 
+### `nodetool telemetry`
+
+Control anonymous usage analytics for the CLI. Telemetry is off until you run
+`enable`, and the CLI never asks. `NODETOOL_TELEMETRY=0` and `DO_NOT_TRACK=1`
+turn it off whatever was stored. The decision lives in
+`~/.nodetool/telemetry.json` and applies to the CLI only. What is sent and what
+is never sent is in [Product Analytics](analytics.md).
+
+- `enable` — start sending anonymous usage events.
+- `disable` — stop, and delete the anonymous ID and unsent events.
+- `status [--json]` — show whether telemetry is on, why, and where it is stored.
+- `inspect [--json]` — print the events waiting to be sent, exactly as they would be sent.
+
+```bash
+nodetool telemetry status
+nodetool telemetry enable
+nodetool telemetry inspect --json
+```
+
 ## Model Management
 
 ### `nodetool models`

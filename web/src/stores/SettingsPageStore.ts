@@ -12,7 +12,9 @@ export const SETTINGS_SECTIONS = [
   "general",
   "providers",
   "integrations",
-  "about"
+  "about",
+  // Appended, not inserted: legacy `?tab=<n>` links index this list.
+  "privacy"
 ] as const;
 
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];

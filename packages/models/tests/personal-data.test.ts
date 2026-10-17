@@ -535,6 +535,8 @@ describe("exportPersonalData", () => {
     expect(excluded).toEqual([
       "mcp_oauth_clients",
       "mcp_oauth_tokens",
+      "nodetool_analytics_daily",
+      "nodetool_analytics_events",
       "nodetool_generation_attachments",
       "nodetool_generation_attempts",
       "nodetool_generation_outputs",

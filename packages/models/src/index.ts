@@ -52,7 +52,9 @@ export {
   runInboxMessages,
   triggerRegistrations,
   externalIdentities,
-  userEvents
+  userEvents,
+  analyticsEvents,
+  analyticsDaily
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
@@ -446,6 +448,12 @@ export {
   recordUserEvent,
   sanitizeUserEventMetadata
 } from "./user-event.js";
+export {
+  DEFAULT_ANALYTICS_RETENTION_DAYS,
+  pruneAnalyticsEvents,
+  recordAnalyticsEvents
+} from "./analytics-event.js";
+export type { AnalyticsEventInput } from "./analytics-event.js";
 export { createBugReport } from "./bug-report.js";
 export type { BugReportRow, CreateBugReportInput } from "./bug-report.js";
 export {

@@ -12,7 +12,7 @@
  *   nodetool settings show
  */
 
-import { program } from "commander";
+import { program, type Command } from "commander";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -96,6 +96,13 @@ import { registerGameCommands } from "./commands/game.js";
 import { registerAuthCommands } from "./commands/auth.js";
 import { registerTelegramCommands } from "./commands/telegram.js";
 import { registerAuthoringCommands } from "./commands/tools.js";
+import { registerTelemetryCommands } from "./commands/telemetry.js";
+import {
+  finishCliTelemetry,
+  startCliTelemetry,
+  trackCliEvent
+} from "./telemetry.js";
+import { bucketDuration, bucketNodeCount, categorizeError } from "@nodetool-ai/analytics";
 import { registerResourceReadCommands } from "./commands/resource-read.js";
 import { createApiClient } from "./api-client.js";
 import {
@@ -287,10 +294,14 @@ program
   )
   // A command that started the Python worker must stop it, or the worker
   // child process keeps the CLI alive after the output.
-  .hook("postAction", () => {
+  .hook("postAction", async () => {
     closePythonProviders();
+    await finishCliTelemetry();
   })
   .hook("preAction", async (thisCommand, actionCommand) => {
+    // Anonymous usage analytics, off unless `nodetool telemetry enable` ran.
+    // Only the matched top-level command name is used, never argv.
+    startCliTelemetry(topLevelCommandName(actionCommand));
     // With `--trace`, the `debug` command owns telemetry: it routes spans into
     // its bundle's trace.jsonl via its own initTelemetry call. Initializing here
     // first would win the one-shot init and drop that file sink, so skip it.
@@ -309,6 +320,15 @@ program
       })
     });
   });
+
+/** The name of the top-level command an action belongs to. */
+function topLevelCommandName(command: Command | undefined): string | undefined {
+  let current = command;
+  while (current?.parent && current.parent.parent) {
+    current = current.parent;
+  }
+  return current?.name();
+}
 
 function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
   if (v === false) return false;
@@ -720,6 +740,12 @@ addSupervisorOptions(
         sessionOptions.supervisor = supervisor.handle;
         sessionOptions.captureMessages = true;
       }
+      const nodeCountBucket = bucketNodeCount(graph.nodes.length);
+      trackCliEvent({
+        event: "workflow_run",
+        properties: { executionMode: "local", nodeCountBucket }
+      });
+      const runStartedAt = Date.now();
       const session = await ExecutionSession.create(sessionOptions);
 
       const interventionLines = supervisor
@@ -727,6 +753,24 @@ addSupervisorOptions(
         : Promise.resolve();
 
       const result = await session.result;
+      const durationBucket = bucketDuration(Date.now() - runStartedAt);
+      if (result.status === "completed") {
+        trackCliEvent({
+          event: "workflow_run_succeeded",
+          properties: { executionMode: "local", nodeCountBucket, durationBucket }
+        });
+      } else {
+        trackCliEvent({
+          event: "workflow_run_failed",
+          properties: {
+            executionMode: "local",
+            nodeCountBucket,
+            durationBucket,
+            errorCategory:
+              result.status === "cancelled" ? "cancelled" : categorizeError(result.error)
+          }
+        });
+      }
       if (result.status === "failed" && (commandMissingRuntime(result) || commandMissingPack(result))) {
         const exit = await installMissingPacksAndReexec(result, { command: "workflows-run", installMissing: opts.installMissing });
         if (exit !== null) { process.exit(exit); }
@@ -766,6 +810,7 @@ addSupervisorOptions(
         printSupervisedSummary(interventions);
       }
 
+      await finishCliTelemetry();
       process.exit(result.status === "completed" ? 0 : 1);
     } catch (e) {
       const exit = await installMissingPacksAndReexec(e, { command: "workflows-run", installMissing: opts.installMissing });
@@ -1776,6 +1821,7 @@ registerRunsCommands(program, {
 registerAuthCommands(program);
 registerTelegramCommands(program);
 registerAuthoringCommands(program);
+registerTelemetryCommands(program);
 
 // ---------------------------------------------------------------------------
 

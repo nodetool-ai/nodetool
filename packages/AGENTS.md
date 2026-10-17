@@ -39,6 +39,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/game-runtime` | Deterministic built-in game simulation, validation, and sample |
 | `@nodetool-ai/game-renderer` | Native 2D and 3D rendering, headless capture, and standalone web export |
 | `@nodetool-ai/app-runtime` | Mini-app document, bindings, instance state, and the streaming fold — dependency-free, shared by web, mobile, and `app debug` ([README](app-runtime/README.md)) |
+| `@nodetool-ai/analytics` | Opt-in anonymous product analytics: the shared event schema, validation, bucketing and client core ([docs](../docs/analytics.md)) |
 | `@nodetool-ai/app-export` | Exports a mini app as a standalone Vite + Node project that runs its workflows in process ([README](app-export/README.md)) |
 
 ## Package Overlays

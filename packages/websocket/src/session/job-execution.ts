@@ -2,6 +2,10 @@ import { ROOT_CONTEXT, propagation, trace, isSpanContextValid } from "@opentelem
 import { missingPackDetailsOf, type JobUpdate } from "@nodetool-ai/protocol";
 import { getRegisteredRunTrace } from "@nodetool-ai/models";
 import { ensureRunTraceTelemetry, openAppRunTrace, registerWorkflowRunTrace } from "@nodetool-ai/execution";
+import {
+  trackExecutionFinished,
+  trackExecutionStarted
+} from "../backend-analytics.js";
 /**
  * Everything between "run_job arrived" and "terminal status persisted": the
  * admission gates, the concurrency queue, run start-up, the message stream,
@@ -1873,6 +1877,7 @@ export class JobExecutionManager {
       ...(appRun && { appRunFold: createAppRunFold(appRun) }),
       ...(finishAppTrace && { finishAppTrace })
     };
+    trackExecutionStarted(active.applicationId ? "app" : "workflow");
     // Decouple the run from this socket: from here on every frame carrying
     // this job_id is stamped with `job_seq` and buffered, so a client that
     // drops mid-run can `reconnect_job` from a fresh connection and replay
@@ -2002,6 +2007,14 @@ export class JobExecutionManager {
       // window, so a client reconnecting shortly after still gets the tail
       // (and the outcome) before the persisted row becomes the only source.
       active.runSession?.finish(active.status);
+      if (active.status !== "running") {
+        trackExecutionFinished(
+          active.applicationId ? "app" : "workflow",
+          active.status,
+          performance.now() - active.timings.acceptedAt,
+          active.error
+        );
+      }
       this.activeJobs.delete(active.jobId);
       this.drainQueue();
     }

@@ -358,14 +358,6 @@ declare global {
     isProduction?: boolean;
     isLocalhost?: boolean;
     isElectron?: boolean;
-    // Plausible analytics (loaded only on the production website).
-    plausible?: {
-      (
-        event: string,
-        options?: { props?: Record<string, string | number | boolean> }
-      ): void;
-      q?: unknown[];
-    };
   }
 }
 
