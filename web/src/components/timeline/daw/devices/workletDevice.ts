@@ -43,6 +43,7 @@ export abstract class WorkletInstrumentDevice implements LiveInstrumentDevice {
   abstract setInstrument(instrument: MidiInstrument): void;
   abstract noteOn(pitch: number, velocity: number): void;
   abstract noteOff(pitch: number): void;
+  abstract setTempo(bpm: number, beatZeroSec: number): void;
 
   schedule(events: LiveNoteEvent[], tag: string): void {
     if (events.length === 0) return;

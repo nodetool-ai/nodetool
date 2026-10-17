@@ -66,6 +66,7 @@ function tablePayload(table: GeneratedTable): {
 }
 
 export class Wt1Device extends WorkletInstrumentDevice {
+  private bpm = 120;
   readonly scopeAnalyser: AnalyserNode;
   readonly specAnalyser: AnalyserNode;
   /** FX chain latency (drive oversampler and limiter lookahead), in samples. */
@@ -136,7 +137,13 @@ export class Wt1Device extends WorkletInstrumentDevice {
 
   setInstrument(instrument: MidiInstrument): void {
     if (instrument.type !== "wavetable") return;
-    this.applyParams(wt1ParamsFromInstrument(instrument));
+    this.applyParams({ ...wt1ParamsFromInstrument(instrument), "seq.bpm": this.bpm });
+  }
+
+  /** Synced LFOs and delays read `seq.bpm`; the document tempo owns it. */
+  setTempo(bpm: number): void {
+    this.bpm = bpm;
+    this.setParam("seq.bpm", bpm);
   }
 
   /** Send only the parameters that differ from what the worklet holds. */

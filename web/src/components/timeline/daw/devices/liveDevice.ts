@@ -38,6 +38,11 @@ export interface LiveInstrumentDevice {
   /** Play a note now, outside any clip (the on-screen keyboard). */
   noteOn(pitch: number, velocity: number): void;
   noteOff(pitch: number): void;
+  /**
+   * The timeline tempo, and the context time of beat one, for tempo-synced
+   * LFOs and delays.
+   */
+  setTempo(bpm: number, beatZeroSec: number): void;
   dispose(): void;
 }
 

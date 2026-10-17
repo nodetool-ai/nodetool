@@ -10,7 +10,8 @@ export const FABLE_WORKLET_URLS = {
   wt1: new URL("../fablesynth/engine/worklet.js", import.meta.url).href,
   bl1: new URL("../fablesynth/bass/engine/worklet-bass.js", import.meta.url).href,
   dr1: new URL("../fablesynth/drum/engine/worklet-drum.js", import.meta.url).href,
-  master: new URL("../fablesynth/seq/master-worklet.js", import.meta.url).href
+  master: new URL("../fablesynth/seq/master-worklet.js", import.meta.url).href,
+  fx: new URL("../fablesynth/fx/fx-worklet.js", import.meta.url).href
 } as const;
 
 export type FableWorkletName = keyof typeof FABLE_WORKLET_URLS;

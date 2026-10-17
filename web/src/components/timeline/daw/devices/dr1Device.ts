@@ -49,6 +49,7 @@ function asDrum(instrument: MidiInstrument): DrumMidiInstrument {
 }
 
 export class Dr1Device extends WorkletInstrumentDevice {
+  private bpm = 120;
   private applied: ParamValues;
   private baseNote: number;
   private lastInstrument: DrumMidiInstrument;
@@ -91,10 +92,16 @@ export class Dr1Device extends WorkletInstrumentDevice {
       this.baseNote = drum.baseNote;
       this.node.port.postMessage({ t: "base", note: drum.baseNote });
     }
-    const next = dr1ParamsFromInstrument(drum);
+    const next = { ...dr1ParamsFromInstrument(drum), "seq.bpm": this.bpm };
     for (const [id, value] of Object.entries(next)) {
       if (this.applied[id] !== value) this.setParam(id, value);
     }
+  }
+
+  /** Synced LFOs and LAB divisions read `seq.bpm`; the document tempo owns it. */
+  setTempo(bpm: number): void {
+    this.bpm = bpm;
+    this.setParam("seq.bpm", bpm);
   }
 
   /** Send one param now, ahead of the document write that follows it. */

@@ -12,6 +12,8 @@ describe("AudioGraph Performance", () => {
     const mockAudioContext = {
       currentTime: 0,
       createGain: jest.fn().mockReturnValue({ connect: jest.fn(), gain: { value: 1, setValueAtTime: jest.fn(), linearRampToValueAtTime: jest.fn(), setTargetAtTime: jest.fn() } }),
+      createStereoPanner: jest.fn().mockReturnValue({ connect: jest.fn(), pan: { value: 0, setTargetAtTime: jest.fn() } }),
+      createAnalyser: jest.fn().mockReturnValue({ connect: jest.fn(), fftSize: 2048 }),
       createBufferSource: jest.fn().mockReturnValue({ connect: jest.fn(), start: jest.fn(), stop: jest.fn(), playbackRate: { value: 1 } }),
       destination: {},
       decodeAudioData: jest.fn().mockImplementation((ab) => Promise.resolve({ length: ab.byteLength }))
