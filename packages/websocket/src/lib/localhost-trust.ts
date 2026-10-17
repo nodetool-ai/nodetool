@@ -143,3 +143,52 @@ export function isTrustedLocalAddress(
 ): boolean {
   return networks.some((cidr) => isIpInCidr(ip, cidr));
 }
+
+/**
+ * Parse `NODETOOL_ALLOWED_HOSTS` into lowercase hostnames (any `:port` is
+ * dropped) that may carry the local trust bypass in addition to the built-in
+ * loopback names and IP literals.
+ */
+export function parseAllowedHosts(value: string | undefined): string[] {
+  return parseTrustedProxies(value)
+    .map((entry) => hostnameOf(entry))
+    .filter((host): host is string => host !== null);
+}
+
+/** The lowercase hostname of a `Host` header value, without its port. */
+function hostnameOf(host: string): string | null {
+  const h = host.trim().toLowerCase();
+  if (!h) return null;
+  if (h.startsWith("[")) {
+    const end = h.indexOf("]");
+    return end === -1 ? null : h.slice(0, end + 1);
+  }
+  // A bare IPv6 literal has several colons and no port to strip.
+  if (h.indexOf(":") !== h.lastIndexOf(":")) return h;
+  const colon = h.indexOf(":");
+  return colon === -1 ? h : h.slice(0, colon);
+}
+
+/**
+ * Whether a request's `Host` header names this machine directly, so the
+ * loopback/trusted-network bypass may apply.
+ *
+ * DNS rebinding points an attacker's domain at 127.0.0.1: the browser then
+ * treats the local server as same-origin with the attacker's page and CORS
+ * stops protecting it, but the `Host` header still carries the attacker's
+ * name. Loopback names and IP literals cannot be rebound, so they pass, as do
+ * names listed in `NODETOOL_ALLOWED_HOSTS`. A missing header (non-browser
+ * HTTP/1.0 client) also passes: no browser sends a request without one.
+ */
+export function isLocalHostHeader(
+  host: string | undefined | null,
+  allowedHosts: string[]
+): boolean {
+  if (host == null || host.trim() === "") return true;
+  const name = hostnameOf(host);
+  if (name === null) return false;
+  if (name === "localhost" || name.endsWith(".localhost")) return true;
+  if (name.startsWith("[") || name.includes(":")) return true;
+  if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(name)) return true;
+  return allowedHosts.includes(name);
+}

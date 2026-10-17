@@ -6,6 +6,7 @@ import { logMessage } from "./logger";
 import { isAppQuitting } from "./main";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
 import { hardenWebContents, isTrustedAppOrigin } from "./windowSecurity";
+import { LOCAL_CLIENT_TOKEN_HEADER, getLocalClientToken } from "./localClientToken";
 
 /**
  * Shared secure webPreferences for all windows.
@@ -210,6 +211,37 @@ function initializePermissionHandlers(): void {
       responseHeaders["Access-Control-Allow-Methods"] = ["GET, POST, PUT, DELETE, OPTIONS"];
       responseHeaders["Access-Control-Allow-Headers"] = ["*"];
       callback({ responseHeaders });
+    }
+  );
+
+  // The backend trusts a loopback browser request as the local user only when
+  // it comes from a known origin or carries the launch token. The packaged
+  // renderer is `file://` and sends `Origin: null`, so add the token to the
+  // app's own requests, WebSocket handshakes included. The frame decides, as
+  // above, so an embedded third-party page never receives it.
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    {
+      urls: [
+        "http://localhost:*/*",
+        "http://127.0.0.1:*/*",
+        "ws://localhost:*/*",
+        "ws://127.0.0.1:*/*",
+      ],
+    },
+    (details, callback) => {
+      // A WebSocket handshake may arrive without its frame; the window that
+      // opened it then decides. A third-party iframe always has a frame.
+      const frameUrl = details.frame?.url ?? details.webContents?.getURL();
+      if (!frameUrl || !isTrustedAppOrigin(frameUrl)) {
+        callback({ requestHeaders: details.requestHeaders });
+        return;
+      }
+      callback({
+        requestHeaders: {
+          ...details.requestHeaders,
+          [LOCAL_CLIENT_TOKEN_HEADER]: getLocalClientToken(),
+        },
+      });
     }
   );
 

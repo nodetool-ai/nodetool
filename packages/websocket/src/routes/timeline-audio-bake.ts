@@ -30,6 +30,7 @@ import type { StorageAdapter } from "@nodetool-ai/storage";
 import { bridge } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
 import { getAssetAdapter } from "../lib/storage.js";
+import { isJsonContentType } from "../lib/json-body.js";
 
 const BAKE_HOST = "audio-bake route";
 
@@ -70,7 +71,7 @@ function jsonResponse(data: unknown, status = 200): Response {
 
 async function readJsonBody(request: Request): Promise<unknown> {
   const contentType = request.headers.get("content-type") ?? "";
-  if (!contentType.toLowerCase().includes("application/json")) {
+  if (!isJsonContentType(contentType)) {
     return {};
   }
   try {

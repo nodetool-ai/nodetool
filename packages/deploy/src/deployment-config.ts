@@ -77,8 +77,16 @@ function withEmptyDefault<T extends z.ZodTypeAny>(schema: T): z.ZodDefault<T> {
 // Self-Hosted Deployment Schemas
 // ============================================================================
 
+/**
+ * An SSH user name. A leading `-` would reach `ssh` as an option
+ * (`-oProxyCommand=…` runs a local command), so it is refused.
+ */
+const SshUserSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9_][A-Za-z0-9._-]*$/, "Invalid SSH user name");
+
 export const SSHConfigSchema = z.object({
-  user: z.string(),
+  user: SshUserSchema,
   key_path: z
     .string()
     .optional()
@@ -179,19 +187,30 @@ export type NginxConfig = z.infer<typeof NginxConfigSchema>;
 export const DockerDeploymentSchema = z.object({
   type: z.literal("docker").default("docker"),
   enabled: z.boolean().default(true),
-  host: z.string(),
+  // `ssh` would read a leading `-` as an option, like the user name above.
+  host: z.string().regex(/^[^-\s]\S*$/, "Invalid host"),
   ssh: SSHConfigSchema.optional(),
   paths: withEmptyDefault(ServerPathsSchema),
   persistent_paths: PersistentPathsSchema.optional(),
   image: ImageConfigSchema,
   container: ContainerConfigSchema,
   server_auth_token: z.string().optional(),
+  /**
+   * The URL the CLI reaches the server at, when it is not `http://host:port`:
+   * an https reverse proxy, or `http://localhost:<port>` through an SSH tunnel.
+   */
+  server_url: z.string().url().optional(),
   state: withEmptyDefault(SelfHostedStateSchema)
 });
 export type DockerDeployment = z.infer<typeof DockerDeploymentSchema>;
 
 /** Get server URL for a Docker deployment. */
 export function dockerDeploymentGetServerUrl(d: DockerDeployment): string {
+  if (d.server_url) {
+    let url = d.server_url;
+    while (url.endsWith("/")) url = url.slice(0, -1);
+    return url;
+  }
   const hostPort = d.container.port === 7777 ? 8000 : d.container.port;
   return `http://${d.host}:${hostPort}`;
 }

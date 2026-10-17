@@ -27,6 +27,7 @@ import {
   type HttpApiOptions
 } from "../http-api.js";
 import { getAssetAdapter } from "../lib/storage.js";
+import { isJsonContentType } from "../lib/json-body.js";
 
 const TRACK_OBJECT_HOST = "track-object route";
 
@@ -62,7 +63,7 @@ function jsonResponse(data: unknown, status = 200): Response {
 
 async function readJsonBody(request: Request): Promise<unknown> {
   const contentType = request.headers.get("content-type") ?? "";
-  if (!contentType.toLowerCase().includes("application/json")) return {};
+  if (!isJsonContentType(contentType)) return {};
   try {
     return await request.json();
   } catch {

@@ -18,7 +18,13 @@ import {
   saveExternalMcpServer
 } from "../src/external-mcp.js";
 
-const KEYS = ["NODETOOL_NODE_PROFILE", "NODETOOL_ENV"] as const;
+const KEYS = [
+  "NODETOOL_NODE_PROFILE",
+  "NODETOOL_ENV",
+  "SUPABASE_URL",
+  "SUPABASE_KEY",
+  "NODETOOL_ALLOW_STDIO_MCP"
+] as const;
 const saved: Record<string, string | undefined> = {};
 
 const stdio: McpServerConfig = {
@@ -151,6 +157,27 @@ describe("external MCP persistence", () => {
       description: ""
     });
     expect(await loadExternalMcpServers("1")).toEqual([]);
+  });
+
+  // Any account that can sign up to a Supabase-auth server could otherwise
+  // run a command on it, even with the full node profile.
+  it("refuses stdio servers when Supabase auth is on", async () => {
+    process.env.NODETOOL_NODE_PROFILE = "full";
+    process.env.SUPABASE_URL = "https://example.supabase.co";
+    process.env.SUPABASE_KEY = "key";
+    expect(isLocalMcpProfile()).toBe(false);
+    const probe = await probeExternalMcpServer("1", stdio);
+    expect(probe.ok).toBe(false);
+    expect(probe.error).toBe(STDIO_MCP_DISABLED_ERROR);
+    await expect(
+      saveExternalMcpServer("1", {
+        ...http,
+        transport: { type: "http", url: "http://169.254.169.254/mcp", headers: {} }
+      })
+    ).rejects.toThrow(/unsafe URL/);
+
+    process.env.NODETOOL_ALLOW_STDIO_MCP = "1";
+    expect(isLocalMcpProfile()).toBe(true);
   });
 
   it("refuses stdio servers under the cloud profile", async () => {

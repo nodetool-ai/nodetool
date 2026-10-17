@@ -14,6 +14,11 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 import { createLogger } from "@nodetool-ai/config";
+import {
+  defaultKnownHostsPath,
+  isKnownHostKey,
+  readKnownHosts
+} from "./known-hosts.js";
 
 const log = createLogger("nodetool.deploy.ssh");
 
@@ -30,6 +35,7 @@ interface SSH2ConnectConfig {
   privateKey?: Buffer;
   password?: string;
   agent?: string;
+  hostVerifier?: (key: Buffer) => boolean;
 }
 
 interface SSH2Channel {
@@ -165,6 +171,8 @@ export interface SSHConnectionOptions {
   timeout?: number;
   retryAttempts?: number;
   retryDelay?: number;
+  /** OpenSSH known_hosts file the host key must be in. Default `~/.ssh/known_hosts`. */
+  knownHostsPath?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -186,6 +194,7 @@ export class SSHConnection {
   public readonly timeout: number;
   public readonly retryAttempts: number;
   public readonly retryDelay: number;
+  public readonly knownHostsPath: string;
 
   private client: SSH2Client | null = null;
   private sftp: SSH2SFTPWrapper | null = null;
@@ -199,6 +208,7 @@ export class SSHConnection {
     this.timeout = options.timeout ?? 30;
     this.retryAttempts = options.retryAttempts ?? 3;
     this.retryDelay = options.retryDelay ?? 2.0;
+    this.knownHostsPath = options.knownHostsPath ?? defaultKnownHostsPath();
   }
 
   /**
@@ -208,16 +218,28 @@ export class SSHConnection {
   async connect(): Promise<void> {
     const ClientCtor = getClientCtor();
 
+    let hostKeyRejected = false;
     for (let attempt = 0; attempt < this.retryAttempts; attempt++) {
       try {
         this.client = new ClientCtor();
+        hostKeyRejected = false;
 
         await new Promise<void>((resolve, reject) => {
           const connectConfig: SSH2ConnectConfig = {
             host: this.host,
             port: this.port,
             username: this.user,
-            readyTimeout: this.timeout * 1000
+            readyTimeout: this.timeout * 1000,
+            hostVerifier: (key: Buffer) => {
+              const known = isKnownHostKey(
+                readKnownHosts(this.knownHostsPath),
+                this.host,
+                this.port,
+                key
+              );
+              if (!known) hostKeyRejected = true;
+              return known;
+            }
           };
 
           if (this.keyPath) {
@@ -246,6 +268,15 @@ export class SSHConnection {
 
         return; // Connection successful
       } catch (err) {
+        if (hostKeyRejected) {
+          // Retrying cannot change the key, and the message is the fix.
+          throw new SSHConnectionError(
+            `The host key of ${this.host}:${this.port} is not in ` +
+              `${this.knownHostsPath}. Run \`ssh ${this.user}@${this.host}` +
+              `${this.port === 22 ? "" : ` -p ${this.port}`}\` once, check the ` +
+              "fingerprint it shows, and accept it, then deploy again."
+          );
+        }
         if (attempt < this.retryAttempts - 1) {
           await sleep(this.retryDelay * 1000);
           continue;

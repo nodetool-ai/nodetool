@@ -207,12 +207,15 @@ request must present a valid token.
 > secrets, and API keys. **Anyone who can reach the published port from a listed
 > range gets that access.**
 >
-> - **`172.16.0.0/12`** — the Docker bridge range on Linux. Host and LAN clients
->   reach the app through the port mapping, but nothing off the bridge is trusted.
+> - **`172.16.0.0/12`** — the Docker bridge range on Linux. Every
+>   published-port connection arrives from the bridge gateway, whoever sent it,
+>   so this trusts anything that can reach the port, plus the other containers
+>   on the host.
 > - **`192.168.65.0/24`** — Docker Desktop's VM gateway subnet. Published-port
->   traffic on macOS/Windows arrives from `192.168.65.1`, not the bridge gateway,
->   so the Linux range alone leaves every call 401 there. The bundled Compose
->   file defaults to both.
+>   traffic on macOS/Windows arrives from `192.168.65.1`, whoever sent it, so
+>   the Linux range alone leaves every call 401 there. The bundled Compose
+>   file defaults to both and publishes the port on `127.0.0.1` only
+>   (`NODETOOL_BIND`), which keeps other machines off it.
 > - **`0.0.0.0/0`** — trusts *every* source, the whole internet if the port is
 >   reachable. **Never use this on a public IP.** Only on a network you fully
 >   control (private LAN / VPN), ideally with the port firewalled.
@@ -223,6 +226,33 @@ request must present a valid token.
 # Docker self-host, single user, no login (safe on a private LAN):
 NODETOOL_TRUST_LOCAL_NETWORKS=172.16.0.0/12,192.168.65.0/24   # bridge + Desktop VM gateway
 ```
+
+### Host check
+
+The loopback and `NODETOOL_TRUST_LOCAL_NETWORKS` bypasses also require the
+request's `Host` header to name this machine: `localhost`, a `*.localhost`
+name, an IP literal, or a name listed in `NODETOOL_ALLOWED_HOSTS`. Any other
+`Host` falls through to token auth. This blocks DNS rebinding, where a website
+points its own domain at `127.0.0.1` so the browser treats the local server as
+same-origin with the site.
+
+If you reach a Local-mode server by a DNS name (for example
+`http://nodetool.lan:17777`), add that name:
+
+```bash
+NODETOOL_ALLOWED_HOSTS=nodetool.lan
+```
+
+The bypass also checks who sent a browser request. Any website can open
+`ws://127.0.0.1:7777/ws` or post to loopback, so a request with an `Origin`
+header runs as user `"1"` only when that origin is the server's own, a
+localhost dev server, `file://`, a browser extension, or listed in
+`NODETOOL_ALLOWED_ORIGINS`. `Origin: null` is refused, because any sandboxed
+iframe sends it. The desktop app's `file://` window sends `null` too, so
+Electron generates a secret per launch, passes it to the backend as
+`NODETOOL_LOCAL_CLIENT_TOKEN`, and adds it to its own windows' requests as the
+`X-NodeTool-Local-Client` header. Clients that send no `Origin` (the CLI, MCP
+clients, scripts) are unaffected.
 
 ## Security Hardening
 
