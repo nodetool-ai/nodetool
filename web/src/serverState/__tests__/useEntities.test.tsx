@@ -28,12 +28,13 @@ jest.mock("../../stores/WorkspaceTabsStore", () => ({
   ): T => selector({ activeProjectId })
 }));
 
+import { asMock } from "../../test-utils/doubles";
 import { trpcClient } from "../../trpc/client";
 import { useDeleteEntity, useSaveEntity } from "../useEntities";
 
-const getQuery = trpcClient.assets.get.query as jest.Mock;
-const updateMutate = trpcClient.assets.update.mutate as jest.Mock;
-const assignDocument = trpcClient.projects.assignDocument.mutate as jest.Mock;
+const getQuery = asMock(trpcClient.assets.get.query);
+const updateMutate = asMock(trpcClient.assets.update.mutate);
+const assignDocument = asMock(trpcClient.projects.assignDocument.mutate);
 
 const asset = {
   id: "6b3cf9b582a144a58464b510a3fd934a",
