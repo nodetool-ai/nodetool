@@ -154,9 +154,6 @@ export type { SearchInputProps } from "./SearchInput";
 export { Breadcrumbs } from "./Breadcrumbs";
 export type { BreadcrumbsProps, BreadcrumbItem } from "./Breadcrumbs";
 
-export { WarningBanner } from "./WarningBanner";
-export type { WarningBannerProps, BannerVariant } from "./WarningBanner";
-
 export { CountBadge } from "./CountBadge";
 export type { CountBadgeProps } from "./CountBadge";
 

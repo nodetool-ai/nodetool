@@ -14,7 +14,6 @@ import {
   SelectField,
   StatusIndicator,
   AlertBanner,
-  WarningBanner,
   PanelHeader,
   type StatusType, getSpacingPx, SPACING
 } from "../ui_primitives";
@@ -521,17 +520,17 @@ const WorkersPanel: React.FC = () => {
         )}
 
         {orphanWarning && (
-          <WarningBanner
-            variant="warning"
-            message={`${orphanWarning.count} orphaned worker(s) may still be billing — stop them in your provider console`}
-            description={`${orphanWarning.liveCount} live, ~${formatRate(
-              orphanWarning.estimatedCostUsd
-            )}`}
-            dismissible
-            onDismiss={() => setOrphanWarning(null)}
+          <AlertBanner
+            severity="warning"
+            title={`${orphanWarning.count} orphaned worker(s) may still be billing — stop them in your provider console`}
+            onClose={() => setOrphanWarning(null)}
             className="nodrag"
             compact
-          />
+          >
+            {`${orphanWarning.liveCount} live, ~${formatRate(
+              orphanWarning.estimatedCostUsd
+            )}`}
+          </AlertBanner>
         )}
 
         <FlexColumn className="scrollable-content" gap={2} sx={{ mt: 2 }}>
