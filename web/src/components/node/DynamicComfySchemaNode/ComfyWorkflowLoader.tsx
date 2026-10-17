@@ -14,12 +14,11 @@ import {
   Checkbox,
   FlexColumn,
   FlexRow,
-  Box,
+  DropZone,
   Text,
   Caption,
   ScrollArea,
   AlertBanner,
-  BORDER_RADIUS,
   SPACING,
   getSpacingPx,
   ICON_SIZE
@@ -158,10 +157,9 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
       [applySchema]
     );
 
-    const onDrop = useCallback(
-      (e: React.DragEvent) => {
-        e.preventDefault();
-        const file = e.dataTransfer.files?.[0];
+    const onFilesDrop = useCallback(
+      (files: File[]) => {
+        const file = files[0];
         if (file) void handleFile(file);
       },
       [handleFile]
@@ -248,16 +246,7 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
               Paste a workflow in API (prompt) format — use “Save (API Format)”
               in ComfyUI — or drop a .json/.png file exported by ComfyUI.
             </Caption>
-            <Box
-              onDrop={onDrop}
-              onDragOver={(e) => e.preventDefault()}
-              sx={{
-                border: "1px dashed",
-                borderColor: "divider",
-                borderRadius: BORDER_RADIUS.xs,
-                p: SPACING.xs
-              }}
-            >
+            <DropZone onFilesDrop={onFilesDrop} sx={{ p: SPACING.xs }}>
               <TextInput
                 label="Workflow JSON"
                 value={text}
@@ -288,7 +277,7 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
                   }}
                 />
               </FlexRow>
-            </Box>
+            </DropZone>
 
             {error && (
               <AlertBanner severity="error" compact>

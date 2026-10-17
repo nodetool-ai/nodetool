@@ -44,6 +44,8 @@ import {
 import { createMediaEditRequest } from "@nodetool-ai/timeline";
 import type { MediaEditRequest } from "@nodetool-ai/timeline";
 import { __resetGenerationWatchesForTests } from "../../../lib/websocket/generationWatch";
+import { useNotificationStore } from "../../../stores/NotificationStore";
+import { __resetGenerationCompletionNoticeForTests } from "../generationCompletionNotice";
 
 const sourceContext = {
   sequenceId: "seq-1",
@@ -111,14 +113,16 @@ const loadSequence = (
 
 const rememberEdit = (
   requestId: string,
-  request: MediaEditRequest = makeRequest()
+  request: MediaEditRequest = makeRequest(),
+  replaceOnLand = false
 ): void => {
   useDirectGenPendingStore.getState().remember("seq-1", {
     clipId: "c1",
     requestId,
     startedAt: Date.now() - 1_000,
     bucket: "video_edit:edit-model",
-    mediaEdit: request
+    mediaEdit: request,
+    replaceOnLand
   });
 };
 
@@ -134,6 +138,87 @@ beforeEach(() => {
     pending: {},
     durationSamples: {},
     editSettlements: {}
+  });
+});
+
+describe("Replace on timeline", () => {
+  it("leaves the accepted take active for an edit sent as a take", () => {
+    const store = createTimelineStore();
+    loadSequence(store);
+    const request = makeRequest();
+    rememberEdit("req-take", request);
+
+    landMediaEdit(store, "c1", "req-take", "seq-1", request, {
+      assetIds: ["asset-take"],
+      errored: false
+    });
+
+    const clip = store.getState().clips[0];
+    expect(clip.versions?.some((v) => v.assetId === "asset-take")).toBe(true);
+    expect(clip.currentAssetId).toBe("asset-source");
+  });
+
+  it("makes the landed edit the active take when sent with Replace", () => {
+    const store = createTimelineStore();
+    loadSequence(store);
+    const request = makeRequest();
+    rememberEdit("req-replace", request, true);
+
+    landMediaEdit(store, "c1", "req-replace", "seq-1", request, {
+      assetIds: ["asset-replace"],
+      errored: false
+    });
+
+    const clip = store.getState().clips[0];
+    expect(clip.currentAssetId).toBe("asset-replace");
+    expect(clip.activeTakeId).toBe("req-replace");
+    // The source stays in history so the creator can switch back.
+    expect(clip.versions?.some((v) => v.assetId === "asset-source")).toBe(
+      true
+    );
+  });
+
+  it("activates a replaced edit replayed after a crash before autosave", async () => {
+    const store = createTimelineStore();
+    loadSequence(store);
+    const request = makeRequest();
+    rememberEdit("req-replace-replay", request, true);
+    landMediaEdit(store, "c1", "req-replace-replay", "seq-1", request, {
+      assetIds: ["asset-replay"],
+      errored: false
+    });
+
+    const reopened = createTimelineStore();
+    loadSequence(reopened);
+    await reattachSequenceJobs(reopened, "seq-1");
+
+    expect(reopened.getState().clips[0].currentAssetId).toBe("asset-replay");
+  });
+
+  it("announces a landed edit once and stays quiet on a replay", async () => {
+    useNotificationStore.getState().clearNotifications();
+    __resetGenerationCompletionNoticeForTests();
+    const store = createTimelineStore();
+    loadSequence(store);
+    const request = makeRequest();
+    rememberEdit("req-announce", request);
+    landMediaEdit(store, "c1", "req-announce", "seq-1", request, {
+      assetIds: ["asset-announce"],
+      errored: false
+    });
+    const finished = () =>
+      useNotificationStore
+        .getState()
+        .notifications.filter((n) => n.type === "success");
+    expect(finished()).toHaveLength(1);
+
+    useNotificationStore.getState().clearNotifications();
+    __resetGenerationCompletionNoticeForTests();
+    const reopened = createTimelineStore();
+    loadSequence(reopened);
+    await reattachSequenceJobs(reopened, "seq-1");
+
+    expect(finished()).toHaveLength(0);
   });
 });
 

@@ -75,6 +75,11 @@ export interface PendingClipJob {
   /** Candidate-only requests never replace the accepted clip on completion. */
   candidateOnly?: boolean;
   /**
+   * An edit the creator sent with "Replace on timeline": its take becomes the
+   * clip's active take when it lands, instead of waiting to be applied.
+   */
+  replaceOnLand?: boolean;
+  /**
    * The clip's generation parameters as they were when the request was sent.
    * Recorded on the take instead of re-reading the clip at completion, which
    * may have been edited while the render ran.
@@ -98,6 +103,8 @@ export interface MediaEditSettlement {
   settledAt: number;
   assetIds: readonly string[];
   mediaEdit: MediaEditRequest;
+  /** Copied from the pending job: activate the take when it lands. */
+  replaceOnLand?: boolean;
   /** Set only after an autosave accepted the candidate version. */
   acknowledgedAt?: number;
 }
@@ -393,17 +400,21 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
             pending[sequenceId] = rest;
           }
           const settledAt = finishedAt ?? Date.now();
+          const settlement: MediaEditSettlement = {
+            requestId,
+            sequenceId,
+            clipId,
+            status,
+            settledAt,
+            assetIds: [...assetIds],
+            mediaEdit
+          };
+          if (job?.replaceOnLand) {
+            settlement.replaceOnLand = true;
+          }
           const editSettlements = {
             ...state.editSettlements,
-            [requestId]: {
-              requestId,
-              sequenceId,
-              clipId,
-              status,
-              settledAt,
-              assetIds: [...assetIds],
-              mediaEdit
-            }
+            [requestId]: settlement
           };
           const took = settledAt - (job?.startedAt ?? settledAt);
           const shouldMeasure =

@@ -110,7 +110,8 @@ const styles = (theme: Theme) =>
       position: "absolute",
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.grey[300],
+      // Fixed light text: the scrim is dark in both schemes.
+      color: `rgb(${theme.vars.palette.common.whiteChannel} / 0.8)`,
       backgroundColor: theme.vars.palette.c_scrim,
       borderRadius: BORDER_RADIUS.sm,
       zIndex: Z_INDEX.sticky,

@@ -118,6 +118,7 @@ import {
   FlexRow,
   HelpButton,
   ResizeHandle,
+  Toolbar,
   ToolbarIconButton,
   Tooltip,
   TYPOGRAPHY,
@@ -184,16 +185,13 @@ const TOOLBAR_HEIGHT_PX = 36;
 /** Phone toolbar: tall enough for the app-wide 44px touch target. */
 const TOUCH_TOOLBAR_HEIGHT_PX = 44;
 
-const toolbarStyles = (theme: Theme, compact: boolean) =>
-  css({
-    height: compact ? TOUCH_TOOLBAR_HEIGHT_PX : TOOLBAR_HEIGHT_PX,
-    flexShrink: 0,
-    padding: compact
-      ? `0 ${getSpacingPx(SPACING.sm)}`
-      : `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.md)}`,
-    borderBottom: `1px solid ${theme.vars.palette.divider}`,
-    backgroundColor: theme.vars.palette.background.paper
-  });
+/** The bar's fixed height and inset; `Toolbar` draws the surface and rule. */
+const toolbarSx = (compact: boolean) => ({
+  height: compact ? TOUCH_TOOLBAR_HEIGHT_PX : TOOLBAR_HEIGHT_PX,
+  gap: SPACING.micro,
+  pl: compact ? SPACING.sm : SPACING.md,
+  pr: compact ? SPACING.sm : SPACING.lg
+});
 
 const tracksSectionHeaderStyles = (theme: Theme, compact: boolean) =>
   css({
@@ -1564,11 +1562,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         aria-label="Tracks region"
       >
         {/* ── Tool toolbar (above the ruler) ──────────────────────────── */}
-        <FlexRow
+        <Toolbar
           ref={toolbarRef}
-          align="center"
-          gap={SPACING.micro}
-          css={toolbarStyles(theme, toolbarCompact)}
+          density="compact"
+          sx={toolbarSx(toolbarCompact)}
           data-testid="timeline-toolbar"
         >
           <ToolToggle compact={toolbarCompact} />
@@ -1632,7 +1629,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             compact={toolbarCompact}
             onZoomToFit={zoomToFit}
           />
-        </FlexRow>
+        </Toolbar>
 
         {/* ── Sub-header: TRACKS label + ruler ────────────────────────── */}
         <FlexRow align="stretch" fullWidth>

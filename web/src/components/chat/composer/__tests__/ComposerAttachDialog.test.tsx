@@ -4,7 +4,10 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { ComposerAttachDialog } from "../ComposerAttachDialog";
+import {
+  ComposerAttachDialog,
+  documentResourceUri
+} from "../ComposerAttachDialog";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { trpc } from "../../../../trpc/client";
 import { useWorkspaceTabsStore } from "../../../../stores/WorkspaceTabsStore";
@@ -147,6 +150,16 @@ describe("ComposerAttachDialog", () => {
       name: "Poster app",
       uri: "app://app1"
     });
+  });
+
+  it("links a text file by its asset URI and other documents by their kind", () => {
+    const base = { name: "x", updatedAt: "2024-01-01T00:00:00.000Z" };
+    expect(documentResourceUri({ ...base, id: "t1", type: "text" })).toBe(
+      "asset://t1"
+    );
+    expect(documentResourceUri({ ...base, id: "g1", type: "game" })).toBe(
+      "game://g1"
+    );
   });
 
   it("uploads chosen files", async () => {

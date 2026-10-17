@@ -1,4 +1,4 @@
-import { useCallback, memo, useState } from "react";
+import { useCallback, memo, useState, type MouseEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import SortIcon from "@mui/icons-material/Sort";
@@ -18,8 +18,9 @@ import {
   LoadingSpinner,
   MenuItemPrimitive,
   Slider,
+  ToggleGroup,
+  ToggleOption,
   Tooltip,
-  ViewModeToggle,
   SPACING,
   ICON_SIZE
 } from "../ui_primitives";
@@ -43,8 +44,8 @@ const SIZE_LABELS: Record<SizeFilterKey, string> = {
 };
 
 const VIEW_OPTIONS = [
-  { value: "grid", icon: <GridViewIcon />, tooltip: "Grid view" },
-  { value: "list", icon: <ViewListIcon />, tooltip: "List view" }
+  { value: "grid", icon: <GridViewIcon fontSize="small" />, label: "Grid view" },
+  { value: "list", icon: <ViewListIcon fontSize="small" />, label: "List view" }
 ];
 
 interface AssetActionsProps {
@@ -88,7 +89,12 @@ const AssetActions = ({
   );
 
   const handleViewMode = useCallback(
-    (mode: string) => setViewMode(mode === "list" ? "list" : "grid"),
+    (_event: MouseEvent<HTMLElement>, mode: string | null) => {
+      // An exclusive group reports null when the active option is clicked
+      // again; the view always has a mode, so ignore that.
+      if (mode === null) {return;}
+      setViewMode(mode === "list" ? "list" : "grid");
+    },
     [setViewMode]
   );
 
@@ -125,13 +131,23 @@ const AssetActions = ({
         {SIZE_LABELS[sizeFilter]}
       </EditorButton>
 
-      <ViewModeToggle
+      <ToggleGroup
+        segmented
+        exclusive
         value={viewMode}
         onChange={handleViewMode}
-        options={VIEW_OPTIONS}
-        nodrag={false}
         aria-label="View"
-      />
+      >
+        {VIEW_OPTIONS.map((option) => (
+          <Tooltip key={option.value} title={option.label}>
+            <ToggleOption
+              value={option.value}
+              aria-label={option.label}
+              icon={option.icon}
+            />
+          </Tooltip>
+        ))}
+      </ToggleGroup>
 
       {viewMode === "grid" && (
         <Tooltip title="Thumbnail size" placement="bottom">

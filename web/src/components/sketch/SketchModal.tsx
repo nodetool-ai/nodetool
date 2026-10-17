@@ -10,7 +10,7 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import ReactDOM from "react-dom";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import DrawOutlinedIcon from "@mui/icons-material/DrawOutlined";
@@ -461,7 +461,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 position: "absolute",
                 inset: 0,
                 zIndex: SKETCH_Z_INDEX.overlay,
-                backgroundColor: alpha(theme.palette.common.black, 0.45)
+                backgroundColor: `rgb(${theme.vars.palette.common.blackChannel} / 0.45)`
               }}
             />
             <FlexColumn

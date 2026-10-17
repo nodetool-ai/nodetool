@@ -95,7 +95,7 @@ const styles = (theme: Theme) =>
       opacity: 0,
       transition: `opacity ${MOTION.normal}`,
       backgroundColor: theme.vars.palette.c_scrim,
-      color: theme.vars.palette.grey[100],
+      color: theme.vars.palette.common.white,
       padding: getSpacingPx(SPACING.micro),
       width: "20px",
       height: "20px",

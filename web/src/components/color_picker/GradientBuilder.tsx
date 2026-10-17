@@ -13,6 +13,7 @@ import {
   FlexColumn,
   FlexRow,
   NodeSlider,
+  NumberField,
   TextInput,
   ToggleGroup,
   ToggleOption,
@@ -354,15 +355,14 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
             onChange={handleStopColorInputChange}
             sx={{ width: "100px" }}
           />
-          <TextInput
+          <NumberField
             size="small"
             label="Position"
-            type="number"
             value={selectedStop.position}
             onChange={handleStopPositionInputChange}
-            InputProps={{
-              endAdornment: <Caption>%</Caption>
-            }}
+            min={0}
+            max={100}
+            unit="%"
             sx={{ width: "80px" }}
           />
           <Tooltip title="Use current color">

@@ -349,3 +349,89 @@ function snapOneClip(
     }
   };
 }
+
+/**
+ * Where a beat grid at `bpm` sits against measured onsets: the phase in
+ * `[0, 60000 / bpm)` that puts the most onsets on a beat.
+ *
+ * Each onset proposes its own phase, and the phase that the most onsets agree
+ * with, within a tolerance of a quarter beat or 50 ms, wins. Ties go to the
+ * earliest proposing onset, so the same audio always gives the same grid.
+ */
+export function beatGridPhaseMs(
+  onsetsMs: readonly number[],
+  bpm: number
+): number {
+  if (!Number.isFinite(bpm) || bpm <= 0 || onsetsMs.length === 0) return 0;
+  const intervalMs = 60000 / bpm;
+  const toleranceMs = Math.min(50, intervalMs / 4);
+  const phaseOf = (timeMs: number): number =>
+    ((timeMs % intervalMs) + intervalMs) % intervalMs;
+  let bestPhase = phaseOf(onsetsMs[0]);
+  let bestScore = -1;
+  for (const candidate of onsetsMs) {
+    const phase = phaseOf(candidate);
+    let score = 0;
+    for (const onset of onsetsMs) {
+      const distance = Math.abs(phaseOf(onset) - phase);
+      if (Math.min(distance, intervalMs - distance) <= toleranceMs) score++;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestPhase = phase;
+    }
+  }
+  return bestPhase;
+}
+
+/** What "Detect beats" writes for one clip. */
+export interface ClipBeatPlan {
+  /** Tempo on the timeline, after the clip's speed. */
+  bpm: number;
+  /** Beat one of the document tempo, within the first bar of the timeline. */
+  offsetMs: number;
+  /** Timeline times of every bar line inside the clip. */
+  barTimesMs: number[];
+}
+
+/**
+ * Turn onsets and a tempo measured on a clip's source into a document tempo
+ * and the clip's bar lines.
+ *
+ * `onsetsMs` and `sourceBpm` are in source time from the clip's in-point. The
+ * clip's speed scales both onto the timeline. The first beat inside the clip
+ * is taken as beat one of a bar, since onsets carry no downbeat.
+ */
+export function planClipBeats(
+  clip: { startMs: number; durationMs: number; rate: number },
+  onsetsMs: readonly number[],
+  sourceBpm: number,
+  beatsPerBar: number
+): ClipBeatPlan | null {
+  if (!Number.isFinite(sourceBpm) || sourceBpm <= 0 || !(clip.rate > 0)) {
+    return null;
+  }
+  const bpm = sourceBpm * clip.rate;
+  const intervalMs = 60000 / bpm;
+  const timelineOnsets = onsetsMs.map(
+    (onsetMs) => clip.startMs + onsetMs / clip.rate
+  );
+  const phase = beatGridPhaseMs(timelineOnsets, bpm);
+  const firstBeat =
+    phase + Math.ceil((clip.startMs - phase) / intervalMs) * intervalMs;
+  const barMs = intervalMs * Math.max(1, Math.round(beatsPerBar));
+  const endMs = clip.startMs + clip.durationMs;
+  const barTimesMs: number[] = [];
+  for (
+    let bar = 0;
+    firstBeat + bar * barMs < endMs && bar < MAX_BEAT_GRID_POINTS;
+    bar++
+  ) {
+    barTimesMs.push(Math.round(firstBeat + bar * barMs));
+  }
+  return {
+    bpm: Math.round(bpm * 100) / 100,
+    offsetMs: Math.round(firstBeat % barMs),
+    barTimesMs
+  };
+}

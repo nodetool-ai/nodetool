@@ -42,6 +42,7 @@ import type {
 import { deriveIdleClipStatus } from "./useGenerateClip";
 import {
   durationBucketKey,
+  type PendingClipJob,
   type PendingProductionRequest,
   PENDING_TTL_MS,
   useDirectGenPendingStore
@@ -57,6 +58,10 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import { probeMediaDurationMs } from "../../utils/probeMediaDuration";
 import { imageToVideoRequestSeconds } from "./imageToVideoSettings";
+import {
+  __resetGenerationCompletionNoticeForTests,
+  announceGenerationFinished
+} from "./generationCompletionNotice";
 
 interface DirectGenRpcResponse extends WebSocketMessage {
   type: "rpc_response";
@@ -161,6 +166,8 @@ interface UseTimelineDirectGenJobApi {
     model: string;
     strength?: number;
     resolution?: string;
+    /** Make the landed edit the clip's active take instead of an alternate. */
+    replaceOnLand?: boolean;
   }) => Promise<string | null>;
   cancel: (clipId: string) => void;
   cancelEdit: (clipId: string) => void;
@@ -326,6 +333,7 @@ export const __resetDirectGenJobsForTests = (): void => {
   for (const job of [...inFlight.values()]) job.cleanup();
   inFlight.clear();
   startingDirectGen.clear();
+  __resetGenerationCompletionNoticeForTests();
 };
 
 async function fitGeneratedAudio(
@@ -514,6 +522,12 @@ export function landDirectGen(
     patch.outPointMs = undefined;
   }
   writeGenerationState(timeline, clipId, patch);
+  announceGenerationFinished({
+    requestId,
+    sequenceId,
+    clipName: current.name,
+    kind: "generation"
+  });
   if (
     (current.bindingKind === "text-to-audio" ||
       current.bindingKind === "text-to-music") &&
@@ -612,15 +626,24 @@ export function landProductionDirectGen(
     });
     if (!claimed) return;
   }
-  if (assetId) {
-    applyProductionCandidate(
-      timeline,
-      sequenceId,
-      clipId,
+  if (!assetId) return;
+  const landed = applyProductionCandidate(
+    timeline,
+    sequenceId,
+    clipId,
+    requestId,
+    production,
+    assetId
+  );
+  if (landed) {
+    announceGenerationFinished({
       requestId,
-      production,
-      assetId
-    );
+      sequenceId,
+      clipName:
+        timeline.getState().clips.find((clip) => clip.id === clipId)?.name ??
+        "",
+      kind: "generation"
+    });
   }
 }
 
@@ -656,6 +679,26 @@ const applyMediaEditCandidate = (
     writeGenerationState(timeline, clipId, { versions: next.versions });
   }
   return true;
+};
+
+/**
+ * Make a landed edit the clip's active take when it was sent with "Replace on
+ * timeline". A clip locked since then keeps its accepted take, and the edit
+ * stays in version history for the creator to apply.
+ */
+const activateReplacingEdit = (
+  timeline: TimelineStoreHandle,
+  clipId: string,
+  requestId: string
+): void => {
+  const refusal = timeline.getState().applyTake(clipId, requestId);
+  if (refusal) {
+    useNotificationStore.getState().addNotification({
+      type: "warning",
+      content: `The edit was added as a take but could not replace the clip: ${refusal}`,
+      dedupeKey: `timeline-media-edit-replace-${requestId}`
+    });
+  }
 };
 
 const mediaEditSettlementStatus = (
@@ -719,7 +762,27 @@ export function landMediaEdit(
   // destination separately. The request snapshot is authoritative, and the
   // explicit comparison prevents a stale adapter from redirecting a result.
   if (sequenceId !== null && sequenceId !== destinationSequenceId) return;
-  applyMediaEditCandidate(timeline, clipId, requestId, request, assetId);
+  const landed = applyMediaEditCandidate(
+    timeline,
+    clipId,
+    requestId,
+    request,
+    assetId
+  );
+  if (!landed) return;
+  if (
+    useDirectGenPendingStore.getState().editSettlements[requestId]
+      ?.replaceOnLand
+  ) {
+    activateReplacingEdit(timeline, clipId, requestId);
+  }
+  announceGenerationFinished({
+    requestId,
+    sequenceId: destinationSequenceId,
+    clipName:
+      timeline.getState().clips.find((clip) => clip.id === clipId)?.name ?? "",
+    kind: "edit"
+  });
 }
 
 /**
@@ -964,13 +1027,22 @@ const recoverSettledMediaEdits = (
         .markEditOrphaned(settlement.requestId);
       continue;
     }
-    applyMediaEditCandidate(
+    // A replay re-lands a candidate the last autosave missed. Activate it
+    // only when it is new to the document, so a take the creator already
+    // switched away from is not switched back.
+    const alreadyLanded = (current.versions ?? []).some(
+      (version) => version.id === settlement.requestId
+    );
+    const landed = applyMediaEditCandidate(
       timeline,
       settlement.clipId,
       settlement.requestId,
       settlement.mediaEdit,
       assetId
     );
+    if (landed && !alreadyLanded && settlement.replaceOnLand) {
+      activateReplacingEdit(timeline, settlement.clipId, settlement.requestId);
+    }
   }
 };
 
@@ -1656,6 +1728,8 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
       model: string;
       strength?: number;
       resolution?: string;
+      /** Make the result the clip's active take when it lands. */
+      replaceOnLand?: boolean;
     }): Promise<string | null> => {
       const clip = timeline
         .getState()
@@ -1699,13 +1773,17 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         Date.now() + PENDING_TTL_MS,
         request
       );
-      useDirectGenPendingStore.getState().remember(sequenceId, {
+      const job: PendingClipJob = {
         clipId: input.clipId,
         requestId,
         startedAt: Date.now(),
         bucket: durationBucketKey("video_edit", input.model),
         mediaEdit: request
-      });
+      };
+      if (input.replaceOnLand) {
+        job.replaceOnLand = true;
+      }
+      useDirectGenPendingStore.getState().remember(sequenceId, job);
       try {
         await globalWebSocketManager.send({
           command: "generate_media",

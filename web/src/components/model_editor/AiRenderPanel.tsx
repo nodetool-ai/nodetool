@@ -23,6 +23,7 @@ import {
   AlertBanner,
   Box,
   Caption,
+  DropZone,
   EditorButton,
   EmptyState,
   FlexColumn,
@@ -279,12 +280,17 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
 
   return (
     <ScrollArea>
-      <FlexColumn
-        gap={SPACING.md}
-        sx={{ padding: getSpacingPx(SPACING.md) }}
+      <DropZone
+        overlay
+        over={dropActive}
+        overlayLabel="Drop an image as a style reference"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+      >
+      <FlexColumn
+        gap={SPACING.md}
+        sx={{ padding: getSpacingPx(SPACING.md) }}
       >
         <Box
           sx={{
@@ -416,7 +422,7 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
               sx={{
                 padding: getSpacingPx(SPACING.sm),
                 borderRadius: BORDER_RADIUS.sm,
-                border: `1px dashed ${dropActive ? theme.vars.palette.primary.main : theme.vars.palette.divider}`
+                border: `1px dashed ${theme.vars.palette.divider}`
               }}
             >
               <Caption>Drop an image here, or use a render below, to keep a look across shots.</Caption>
@@ -519,6 +525,7 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
           </FlexColumn>
         )}
       </FlexColumn>
+      </DropZone>
     </ScrollArea>
   );
 };

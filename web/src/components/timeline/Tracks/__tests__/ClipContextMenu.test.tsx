@@ -24,6 +24,8 @@ const makeActions = (
   isMidi: false,
   canReplace: true,
   canEditVideo: false,
+  canDetectBeats: false,
+  detectBeats: jest.fn(),
   splitAtPlayhead: jest.fn(),
   duplicate: jest.fn(),
   editNotes: jest.fn(),
@@ -99,6 +101,21 @@ describe("ClipContextMenu", () => {
     expect(screen.getByText("Lock")).toBeTruthy();
     expect(screen.getByText("Replace clip…")).toBeTruthy();
     expect(screen.getByText("Open in node editor")).toBeTruthy();
+  });
+
+  it("offers Detect beats only for a clip it can measure", async () => {
+    const actions = makeActions({ canDetectBeats: true });
+    mockUseClipMenuActions.mockReturnValue(actions);
+    renderMenu();
+
+    await userEvent.click(screen.getByText("Detect beats"));
+    expect(actions.detectBeats).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides Detect beats for a clip without measurable audio", () => {
+    mockUseClipMenuActions.mockReturnValue(makeActions());
+    renderMenu();
+    expect(screen.queryByText("Detect beats")).toBeNull();
   });
 
   it("offers Edit video for a clip with an active video asset", async () => {

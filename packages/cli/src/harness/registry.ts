@@ -2161,6 +2161,10 @@ export const SURFACES: SurfaceEntry[] = [
  * one that is in neither.
  */
 export const UNCLAIMED_PATHS: Record<string, string> = {
+  ".design-sync/":
+    "Preview stubs and config for syncing ui_primitives into the external " +
+    "design tool; nothing in the repo builds or runs them. The primitives " +
+    "they render are covered by the web surface.",
   "examples/nextjs-vercel/":
     "Deployment example app. CI typechecks it (`npm run typecheck:examples`); " +
     "its `next build` costs minutes and belongs to deploys, not the PR gate. " +

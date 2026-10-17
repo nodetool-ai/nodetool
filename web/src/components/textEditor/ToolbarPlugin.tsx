@@ -1,5 +1,3 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   $getSelection,
@@ -7,45 +5,22 @@ import {
   FORMAT_TEXT_COMMAND
 } from "lexical";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import FormatBoldIcon from "@mui/icons-material/FormatBold";
+import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatSizeIcon from "@mui/icons-material/FormatSize";
+import HorizontalRuleIcon from "@mui/icons-material/HorizontalRule";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {
   addClassNamesToElement,
   removeClassNamesFromElement
 } from "@lexical/utils";
 import { $patchStyleText } from "@lexical/selection";
-import { BORDER_RADIUS, getSpacingPx, SPACING, Tooltip } from "../ui_primitives";
+import { FloatingToolbar, ToolbarIconButton } from "../ui_primitives";
 import { isMac } from "../../utils/platform";
 import { copyAsMarkdown } from "./exportMarkdown";
 import { INSERT_HORIZONTAL_RULE_COMMAND } from "./horizontalRuleCommand";
 
 const MOD_KEY = isMac() ? "⌘" : "Ctrl";
-
-const toolbarStyles = css`
-  display: flex;
-  gap: ${getSpacingPx(SPACING.xs)};
-  background-color: var(--palette-c_overlay_strong);
-  padding: ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)};
-  border-radius: ${BORDER_RADIUS.sm};
-  button {
-    padding: ${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)};
-    min-width: 20px;
-    font-size: var(--fontSizeSmall);
-    border: none;
-    line-height: 1.2em;
-    background-color: transparent;
-    border-radius: ${BORDER_RADIUS.sm};
-    color: black;
-    cursor: pointer;
-
-    &.active {
-      background-color: var(--palette-c_scrim_soft);
-    }
-    &:hover {
-      background-color: var(--palette-c_scrim_soft);
-    }
-  }
-`;
 
 const ToolbarPlugin = () => {
   const [editor] = useLexicalComposerContext();
@@ -181,58 +156,50 @@ const ToolbarPlugin = () => {
   }, [editor]);
 
   return (
-    <div className="format-toolbar-actions" css={toolbarStyles}>
-      <Tooltip title="Bold" shortcut={[MOD_KEY, "B"]} describeChild>
-        <button
-          type="button"
-          onClick={handleFormatBold}
-          className={isBold ? "active" : ""}
-          aria-label="Format bold"
-        >
-          <b>B</b>
-        </button>
-      </Tooltip>
-      <Tooltip title="Italic" shortcut={[MOD_KEY, "I"]} describeChild>
-        <button
-          type="button"
-          onClick={handleFormatItalic}
-          className={isItalic ? "active" : ""}
-          aria-label="Format italic"
-        >
-          <i>I</i>
-        </button>
-      </Tooltip>
-      <Tooltip title="Toggle large font size" describeChild>
-        <button
-          type="button"
-          onClick={toggleFontSize}
-          className={isLargeFont ? "active" : ""}
-          aria-label="Toggle large font size"
-        >
-          <FormatSizeIcon fontSize="inherit" />
-        </button>
-      </Tooltip>
-      <Tooltip title="Insert horizontal rule" describeChild>
-        <button
-          type="button"
-          onClick={handleInsertHR}
-          aria-label="Insert horizontal rule"
-          style={{ fontSize: "var(--fontSizeNormal)", fontWeight: 600 }}
-        >
-          ─
-        </button>
-      </Tooltip>
-      <Tooltip title="Copy as Markdown" describeChild>
-        <button
-          type="button"
-          onClick={handleCopyAsMarkdown}
-          aria-label="Copy as Markdown"
-          className={copied ? "active" : ""}
-        >
-          <ContentCopyIcon fontSize="inherit" />
-        </button>
-      </Tooltip>
-    </div>
+    <FloatingToolbar
+      className="format-toolbar-actions"
+      aria-label="Text formatting"
+    >
+      <ToolbarIconButton
+        icon={<FormatBoldIcon />}
+        tooltip="Bold"
+        shortcut={[MOD_KEY, "B"]}
+        ariaLabel="Format bold"
+        active={isBold}
+        aria-pressed={isBold}
+        onClick={handleFormatBold}
+      />
+      <ToolbarIconButton
+        icon={<FormatItalicIcon />}
+        tooltip="Italic"
+        shortcut={[MOD_KEY, "I"]}
+        ariaLabel="Format italic"
+        active={isItalic}
+        aria-pressed={isItalic}
+        onClick={handleFormatItalic}
+      />
+      <ToolbarIconButton
+        icon={<FormatSizeIcon />}
+        tooltip="Toggle large font size"
+        ariaLabel="Toggle large font size"
+        active={isLargeFont}
+        aria-pressed={isLargeFont}
+        onClick={toggleFontSize}
+      />
+      <ToolbarIconButton
+        icon={<HorizontalRuleIcon />}
+        tooltip="Insert horizontal rule"
+        ariaLabel="Insert horizontal rule"
+        onClick={handleInsertHR}
+      />
+      <ToolbarIconButton
+        icon={<ContentCopyIcon />}
+        tooltip="Copy as Markdown"
+        ariaLabel="Copy as Markdown"
+        active={copied}
+        onClick={handleCopyAsMarkdown}
+      />
+    </FloatingToolbar>
   );
 };
 

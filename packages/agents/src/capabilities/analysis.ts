@@ -27,11 +27,15 @@
 
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
+  analyzeOnsets,
+  DEFAULT_ONSET_SENSITIVITY,
+  isTempoReliable,
+  MIN_TEMPO_ONSETS
+} from "@nodetool-ai/timeline";
+import {
   amplitudeToDb,
   bandEnergies,
-  detectOnsets,
   energyFrames,
-  estimateTempo,
   floorPowerOfTwo,
   hannWindow,
   invertSegments,
@@ -259,11 +263,7 @@ export interface AnalyzeAudioFramesOptions {
   readonly detectTempo?: boolean;
 }
 
-/** The onset detector's FFT window — fixed, matching `detect_audio_events`. */
-const ONSET_FFT_SIZE = 1024;
-
 const DEFAULT_FRAME_MS = 20;
-const DEFAULT_ONSET_SENSITIVITY = 1.5;
 
 /**
  * Decode `input` (or reuse an already-decoded track) up to the decode cap,
@@ -362,33 +362,14 @@ export async function analyzeAudioFrames(
     peak: frame.peak
   }));
 
-  // Onsets come off spectral flux, same window and FFT size
-  // `detect_audio_events` always used, so delegating here changes nothing it
-  // returns.
-  const window = hannWindow(ONSET_FFT_SIZE);
-  const hop = ONSET_FFT_SIZE / 4;
-  const hopSeconds = hop / audio.sampleRate;
-  const flux: number[] = [];
-  const times: number[] = [];
-  let previous: Float32Array | null = null;
-  for (
-    let offset = 0;
-    offset + ONSET_FFT_SIZE <= windowMono.length;
-    offset += hop
-  ) {
-    const magnitude = magnitudeSpectrum(windowMono, offset, window);
-    if (previous) {
-      flux.push(spectralFlux(magnitude, previous));
-      times.push(offset / audio.sampleRate);
-    }
-    previous = magnitude;
-  }
-  const sensitivity = options.onsetSensitivity ?? DEFAULT_ONSET_SENSITIVITY;
-  const onsets = detectOnsets(flux, times, sensitivity);
-  const onsetsMs = onsets.map((time) => analyzedFromMs + time * 1000);
-
-  const wantTempo = options.detectTempo !== false;
-  const tempo = wantTempo ? estimateTempo(flux, hopSeconds) : null;
+  const onsetAnalysis = analyzeOnsets(windowMono, audio.sampleRate, {
+    sensitivity: options.onsetSensitivity ?? DEFAULT_ONSET_SENSITIVITY,
+    detectTempo: options.detectTempo !== false
+  });
+  const onsetsMs = onsetAnalysis.onsetsMs.map(
+    (timeMs) => analyzedFromMs + timeMs
+  );
+  const tempo = onsetAnalysis.tempo ?? null;
 
   return {
     frameMs,
@@ -710,12 +691,6 @@ const detectAudioEvents: CapabilityExport = {
     const tempo = wantTempo
       ? { bpm: analysis.bpm ?? 0, confidence: analysis.tempoConfidence ?? 0 }
       : { bpm: 0, confidence: 0 };
-    // A tempo needs repeated events to be a tempo. Autocorrelating the flux of
-    // a steady tone — which is numerical noise around zero — still peaks
-    // somewhere, and that peak scores a confident-looking 0.4 for a signal
-    // with no beat in it at all. Four onsets is three intervals, the least
-    // that can agree about a period.
-    const MIN_TEMPO_ONSETS = 4;
 
     const cappedSilence = capped(silence);
     const cappedSounding = capped(sounding);
@@ -750,10 +725,7 @@ const detectAudioEvents: CapabilityExport = {
             // Naming the floor beats printing a BPM the caller has no way to
             // judge: speech and ambience both produce a confident-looking
             // number from an autocorrelation that found nothing periodic.
-            reliable:
-              tempo.confidence >= 0.15 &&
-              tempo.bpm > 0 &&
-              onsets.length >= MIN_TEMPO_ONSETS
+            reliable: isTempoReliable(tempo, onsets.length)
           }
         : null,
       notes: [

@@ -31,8 +31,9 @@ beforeEach(() => {
   listeners = new Map();
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   jest.mocked(globalWebSocketManager.subscribeEvent).mockImplementation((event, handler) => {
-    // The mocked manager emits messages and parameterless open/close signals
-    // through one test seam. Production signatures remain strongly typed.
+    // SAFETY: the mocked manager emits messages and parameterless open/close
+    // signals through one test seam, and `emit` only passes a message to the
+    // "message" event. Production signatures remain strongly typed.
     const listener = handler as unknown as Listener;
     const set = listeners.get(event) ?? new Set();
     set.add(listener); listeners.set(event, set);

@@ -31,6 +31,21 @@ type MenuView = "root" | NewDocumentSubmenu;
 /** The menu's width, and its room at most, in px. */
 const MENU_WIDTH = 320;
 const MENU_MAX_WIDTH = 340;
+/**
+ * From `md` up, the root view sets its two sections side by side: guided
+ * flows on the left, blank documents on the right. One column of 21 rows was
+ * taller than a 1280×800 window and cut "New 3D model" off with no cue that
+ * it scrolled (UX study 7). Side by side, every row fits at 1280×720.
+ */
+const ROOT_WIDTH = { xs: MENU_WIDTH, md: MENU_WIDTH * 2 };
+const ROOT_MAX_WIDTH = { xs: MENU_MAX_WIDTH, md: MENU_MAX_WIDTH * 2 };
+const ROOT_LIST_SX = {
+  columnCount: { xs: 1, md: 2 },
+  columnGap: 0,
+  "& > *": { breakInside: "avoid" },
+  "& > .open-menu-blank-section": { breakBefore: { md: "column" } },
+  "& > .open-menu-section-divider": { display: { md: "none" } }
+} as const;
 // Space kept between the menu and the bottom of the window.
 const MENU_VIEWPORT_GAP = 16;
 // The bottom status bar (PanelBottom's tab strip).
@@ -113,8 +128,17 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       transformOrigin={{ vertical: "top", horizontal: "left" }}
       maxHeight={menuMaxHeight(anchorEl)}
-      paperSx={{ width: MENU_WIDTH, maxWidth: MENU_MAX_WIDTH }}
-      slotProps={{ list: { ref: listRef } }}
+      paperSx={
+        view === "root"
+          ? { width: ROOT_WIDTH, maxWidth: ROOT_MAX_WIDTH }
+          : { width: MENU_WIDTH, maxWidth: MENU_MAX_WIDTH }
+      }
+      slotProps={{
+        list: {
+          ref: listRef,
+          sx: view === "root" ? ROOT_LIST_SX : undefined
+        }
+      }}
     >
       {view === "root" && [
         <ListSubheader key="guided-label">Guided flows</ListSubheader>,
@@ -122,7 +146,10 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
         // the disabled menu does not read as a dead click.
         ...starters.map((starter) => (
           <MenuItemPrimitive
-            key={starter.id}
+            // Starter ids and blank-document keys overlap ("workflow",
+            // "image", …); duplicate keys left guided rows behind in the
+            // submenus.
+            key={`guided-${starter.id}`}
             label={starter.title}
             icon={
               starting === starter.id ? (
@@ -138,11 +165,13 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
             disabled={busy}
           />
         )),
-        <Divider key="blank-divider" />,
-        <ListSubheader key="blank-label">Blank documents</ListSubheader>,
+        <Divider key="blank-divider" className="open-menu-section-divider" />,
+        <ListSubheader key="blank-label" className="open-menu-blank-section">
+          Blank documents
+        </ListSubheader>,
         ...entries.map((entry) => (
           <MenuItemPrimitive
-            key={entry.key}
+            key={`blank-${entry.key}`}
             label={entry.menuLabel}
             icon={entry.icon}
             hasSubmenu={entry.submenu !== undefined}

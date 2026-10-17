@@ -1,9 +1,4 @@
-/** @jsxImportSource @emotion/react */
-import { memo, useCallback, type MouseEvent } from "react";
-import { css } from "@emotion/react";
-import type { Theme } from "@mui/material/styles";
-import { useTheme } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/CloseOutlined";
+import { memo, useCallback, useMemo } from "react";
 
 import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import {
@@ -11,55 +6,10 @@ import {
   useSubgraphTabsStore
 } from "../../stores/SubgraphTabsStore";
 import { SUBGRAPH_ACCENT_COLOR } from "../../constants/nodeTypes";
-import {
-  SPACING_PX,
-  TYPOGRAPHY,
-  BORDER_RADIUS,
-  MOTION,
-  reducedMotion
-} from "../ui_primitives";
+import { DockTabStrip, type DockTab } from "../ui_primitives";
 
-const styles = (theme: Theme) =>
-  css({
-    display: "flex",
-    alignItems: "center",
-    gap: SPACING_PX.xs,
-    padding: `0 ${SPACING_PX.sm}px`,
-    borderBottom: `1px solid ${theme.vars.palette.divider}`,
-    backgroundColor: theme.vars.palette.background.paper,
-    ".graph-tab": {
-      display: "flex",
-      alignItems: "center",
-      gap: SPACING_PX.xs,
-      padding: `${SPACING_PX.xs}px ${SPACING_PX.sm}px`,
-      border: "none",
-      borderBottom: "2px solid transparent",
-      background: "none",
-      color: theme.vars.palette.text.secondary,
-      ...TYPOGRAPHY.sans.label,
-      cursor: "pointer",
-      transition: MOTION.fast,
-      "&:hover": { color: theme.vars.palette.text.primary },
-      "&.active": {
-        color: theme.vars.palette.text.primary,
-        // Violet, matching the SubgraphNode accent, so a subgraph canvas is
-        // never mistaken for the parent workflow's.
-        borderBottomColor: SUBGRAPH_ACCENT_COLOR
-      },
-      ...reducedMotion({ transition: MOTION.none })
-    },
-    // The host's own tab is not a subgraph tab — it carries neither the
-    // `subgraph-tab` class nor a close control.
-    ".parent-tab.active": {
-      borderBottomColor: theme.vars.palette.primary.main
-    },
-    ".close-icon": {
-      width: 14,
-      height: 14,
-      borderRadius: BORDER_RADIUS.sm,
-      "&:hover": { color: theme.vars.palette.error.main }
-    }
-  });
+/** Tab id of the host canvas itself; subgraph keys never take this form. */
+const HOST_TAB_ID = "subgraph-host";
 
 interface SubgraphTabStripProps {
   /** The canvas these tabs belong to: a workflow id, or a subgraph tab key. */
@@ -87,7 +37,6 @@ const SubgraphTabStrip = ({
   hostActiveKey,
   hostLabel
 }: SubgraphTabStripProps) => {
-  const theme = useTheme();
   const workflowManagerStore = useWorkflowManagerStore();
   const tabs = useSubgraphTabsStore((state) => state.tabs);
   const activeKey = useSubgraphTabsStore((state) => state.activeKey);
@@ -95,10 +44,7 @@ const SubgraphTabStrip = ({
   const closeTab = useSubgraphTabsStore((state) => state.closeTab);
 
   const handleClose = useCallback(
-    (event: MouseEvent<Element>, key: string) => {
-      // The close icon sits inside the tab button; without this the click also
-      // selects the tab it just removed.
-      event.stopPropagation();
+    (key: string) => {
       const closed = closeTab(key);
       // Drop the synthetic workflows the closed canvases were registered
       // under (the tab and any subgraph opened inside it), so reopening
@@ -113,7 +59,24 @@ const SubgraphTabStrip = ({
     [closeTab, workflowManagerStore]
   );
 
-  const ownTabs = tabs.filter((tab) => tab.workflowId === hostId);
+  const ownTabs = useMemo(
+    () => tabs.filter((tab) => tab.workflowId === hostId),
+    [tabs, hostId]
+  );
+  const stripTabs = useMemo<DockTab[]>(
+    () => [
+      // The host's own tab is not a subgraph tab: it cannot be closed.
+      { id: HOST_TAB_ID, label: hostLabel, closable: false },
+      ...ownTabs.map((tab) => ({ id: tab.key, label: tab.label }))
+    ],
+    [hostLabel, ownTabs]
+  );
+
+  const handleActivate = useCallback(
+    (id: string) => setActive(id === HOST_TAB_ID ? hostActiveKey : id),
+    [setActive, hostActiveKey]
+  );
+
   if (ownTabs.length === 0) {
     return null;
   }
@@ -122,38 +85,20 @@ const SubgraphTabStrip = ({
     findActiveChildTab(tabs, activeKey, hostId)?.key ?? hostActiveKey;
 
   return (
-    <div css={styles(theme)} role="tablist">
-      <button
-        type="button"
-        role="tab"
-        aria-selected={shownKey === hostActiveKey}
-        className={`graph-tab parent-tab ${
-          shownKey === hostActiveKey ? "active" : ""
-        }`}
-        onClick={() => setActive(hostActiveKey)}
-      >
-        {hostLabel}
-      </button>
-      {ownTabs.map((tab) => (
-        <button
-          key={tab.key}
-          type="button"
-          role="tab"
-          aria-selected={shownKey === tab.key}
-          className={`graph-tab subgraph-tab ${
-            shownKey === tab.key ? "active" : ""
-          }`}
-          onClick={() => setActive(tab.key)}
-        >
-          {tab.label}
-          <CloseIcon
-            className="close-icon"
-            aria-label={`Close ${tab.label}`}
-            onClick={(event) => handleClose(event, tab.key)}
-          />
-        </button>
-      ))}
-    </div>
+    <DockTabStrip
+      ariaLabel="Workflow and subgraph canvases"
+      tabs={stripTabs}
+      activeId={shownKey === hostActiveKey ? HOST_TAB_ID : (shownKey ?? HOST_TAB_ID)}
+      onActivate={handleActivate}
+      onClose={handleClose}
+      focused
+      sx={{
+        // Violet, matching the SubgraphNode accent, so a subgraph canvas is
+        // never mistaken for the parent workflow's.
+        [`& [data-dock-tab]:not([data-dock-tab="${HOST_TAB_ID}"])[aria-selected="true"]::before`]:
+          { bgcolor: SUBGRAPH_ACCENT_COLOR }
+      }}
+    />
   );
 };
 

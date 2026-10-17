@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useEffect } from "react";
 import { sketchToolSettingsContainerSx } from "./sketchStyles";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import {
   FlexColumn,
   FlexRow,
@@ -176,7 +176,7 @@ const ToolGridButton = memo(function ToolGridButton({
         border: "1px solid",
         borderColor: selected ? "primary.main" : "transparent",
         backgroundColor: selected
-          ? alpha(theme.palette.primary.main, 0.16)
+          ? `rgb(${theme.vars.palette.primary.mainChannel} / 0.16)`
           : inactiveBg,
         px: compact ? 0.35 : 0.75,
         py: compact ? 0.45 : 0.8,
@@ -189,7 +189,7 @@ const ToolGridButton = memo(function ToolGridButton({
         width: "100%",
         "&:hover": {
           backgroundColor: selected
-            ? alpha(theme.palette.primary.main, 0.22)
+            ? `rgb(${theme.vars.palette.primary.mainChannel} / 0.22)`
             : hoverBg,
           borderColor: selected ? "primary.main" : "text.secondary"
         },
@@ -429,7 +429,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             backgroundColor: surfaceSoft,
             p: 0.5,
             "&:hover": {
-              backgroundColor: alpha(theme.palette.primary.main, 0.14)
+              backgroundColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.14)`
             }
           }}
         />
@@ -523,7 +523,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             orientation="vertical"
             flexItem
             sx={{
-              borderColor: alpha(theme.palette.primary.main, 0.22),
+              borderColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.22)`,
               my: 1
             }}
           />

@@ -520,7 +520,7 @@ const PreviewRecommendedModels: React.FC = () => {
         width: "100%",
         minHeight: "100vh",
         p: 4,
-        bgcolor: theme.palette.background.paper
+        bgcolor: theme.vars.palette.background.paper
       }}
     >
       <Text size="big" weight={600} sx={{ mb: 1, display: "block" }}>
@@ -584,16 +584,16 @@ const PreviewNodeReadme: React.FC = () => {
         width: "100%",
         minHeight: "100vh",
         p: 4,
-        bgcolor: theme.palette.background.default
+        bgcolor: theme.vars.palette.background.default
       }}
     >
       <Box
         sx={{
           maxWidth: 720,
           mx: "auto",
-          bgcolor: theme.palette.background.paper,
+          bgcolor: theme.vars.palette.background.paper,
           borderRadius: BORDER_RADIUS.xs,
-          border: `1px solid ${theme.palette.divider}`,
+          border: `1px solid ${theme.vars.palette.divider}`,
           overflow: "hidden"
         }}
       >
@@ -708,7 +708,7 @@ const PreviewIndex: React.FC = () => {
     <Box
       sx={{
         p: 4,
-        bgcolor: theme.palette.background.default,
+        bgcolor: theme.vars.palette.background.default,
         minHeight: "100vh"
       }}
     >
@@ -737,10 +737,10 @@ const PreviewIndex: React.FC = () => {
               elevation={0}
               sx={{
                 p: 3,
-                border: `1px solid ${theme.palette.divider}`,
+                border: `1px solid ${theme.vars.palette.divider}`,
                 "&:hover": {
-                  borderColor: theme.palette.primary.main,
-                  boxShadow: `0 0 0 2px ${theme.palette.primary.main}22`
+                  borderColor: theme.vars.palette.primary.main,
+                  boxShadow: `0 0 0 2px rgb(${theme.vars.palette.primary.mainChannel} / 0.13)`
                 },
                 transition: `${MOTION.border}, ${MOTION.shadow}`
               }}
@@ -817,7 +817,7 @@ const ComponentPreview: React.FC = () => {
       <Box
         sx={{
           p: 4,
-          bgcolor: theme.palette.background.default,
+          bgcolor: theme.vars.palette.background.default,
           minHeight: "100vh"
         }}
       >

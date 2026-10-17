@@ -226,14 +226,14 @@ const MCPSettingsMenu = () => {
                       {t.installed ? (
                         <CheckCircleIcon
                           sx={{
-                            color: theme.palette.success.main,
+                            color: theme.vars.palette.success.main,
                             fontSize: ICON_SIZE.md
                           }}
                         />
                       ) : (
                         <CancelIcon
                           sx={{
-                            color: theme.palette.text.disabled,
+                            color: theme.vars.palette.text.disabled,
                             fontSize: ICON_SIZE.md
                           }}
                         />

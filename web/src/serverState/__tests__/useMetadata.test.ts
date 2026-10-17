@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 
+import { stub } from "../../test-utils/doubles";
 import { loadMetadata, prefetchMetadata, WORKFLOW_NODE_TYPE } from "../useMetadata";
 
 jest.mock("../../lib/rest-fetch", () => ({
@@ -38,7 +39,7 @@ import { restFetch } from "../../lib/rest-fetch";
 import useMetadataStore from "../../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../../components/node_menu/typeFilterUtils";
 
-const mockRestFetch = restFetch as jest.MockedFunction<typeof restFetch>;
+const mockRestFetch = jest.mocked(restFetch);
 
 describe("loadMetadata", () => {
   beforeEach(() => {
@@ -46,10 +47,10 @@ describe("loadMetadata", () => {
   });
 
   it("returns 'error' when fetch fails", async () => {
-    mockRestFetch.mockResolvedValue({
+    mockRestFetch.mockResolvedValue(stub<Response>({
       ok: false,
       status: 500
-    } as Response);
+    }));
 
     const result = await loadMetadata();
 
@@ -79,10 +80,10 @@ describe("loadMetadata", () => {
       }
     ];
 
-    mockRestFetch.mockResolvedValue({
+    mockRestFetch.mockResolvedValue(stub<Response>({
       ok: true,
       json: async () => mockMetadata
-    } as Response);
+    }));
 
     const result = await loadMetadata();
 
@@ -94,10 +95,10 @@ describe("loadMetadata", () => {
   });
 
   it("includes default metadata for Preview and Workflow nodes", async () => {
-    mockRestFetch.mockResolvedValue({
+    mockRestFetch.mockResolvedValue(stub<Response>({
       ok: true,
       json: async () => []
-    } as Response);
+    }));
 
     await loadMetadata();
 
@@ -108,10 +109,10 @@ describe("loadMetadata", () => {
   });
 
   it("includes snippet metadata", async () => {
-    mockRestFetch.mockResolvedValue({
+    mockRestFetch.mockResolvedValue(stub<Response>({
       ok: true,
       json: async () => []
-    } as Response);
+    }));
 
     await loadMetadata();
 
@@ -121,10 +122,10 @@ describe("loadMetadata", () => {
   });
 
   it("adds the Write Code with AI palette entry", async () => {
-    mockRestFetch.mockResolvedValue({
+    mockRestFetch.mockResolvedValue(stub<Response>({
       ok: true,
       json: async () => []
-    } as Response);
+    }));
 
     await loadMetadata();
 
@@ -158,10 +159,10 @@ describe("loadMetadata", () => {
       }
     ];
 
-    mockRestFetch.mockResolvedValue({
+    mockRestFetch.mockResolvedValue(stub<Response>({
       ok: true,
       json: async () => mockMetadata
-    } as Response);
+    }));
 
     await loadMetadata();
 
@@ -170,10 +171,10 @@ describe("loadMetadata", () => {
   });
 
   it("fetches from the correct endpoint", async () => {
-    mockRestFetch.mockResolvedValue({
+    mockRestFetch.mockResolvedValue(stub<Response>({
       ok: true,
       json: async () => []
-    } as Response);
+    }));
 
     await loadMetadata();
 
@@ -183,10 +184,10 @@ describe("loadMetadata", () => {
   });
 
   it("reuses a successful prefetch instead of refetching", async () => {
-    mockRestFetch.mockResolvedValue({
+    mockRestFetch.mockResolvedValue(stub<Response>({
       ok: true,
       json: async () => []
-    } as Response);
+    }));
 
     prefetchMetadata();
     prefetchMetadata(); // second call is a no-op (cached)
@@ -199,8 +200,8 @@ describe("loadMetadata", () => {
 
   it("falls back to a fresh fetch when the prefetch fails", async () => {
     mockRestFetch
-      .mockResolvedValueOnce({ ok: false, status: 401 } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => [] } as Response);
+      .mockResolvedValueOnce(stub<Response>({ ok: false, status: 401 }))
+      .mockResolvedValueOnce(stub<Response>({ ok: true, json: async () => [] }));
 
     prefetchMetadata();
     const result = await loadMetadata();
@@ -210,10 +211,10 @@ describe("loadMetadata", () => {
   });
 
   it("does not reuse a consumed prefetch on a later reload", async () => {
-    mockRestFetch.mockResolvedValue({
+    mockRestFetch.mockResolvedValue(stub<Response>({
       ok: true,
       json: async () => []
-    } as Response);
+    }));
 
     prefetchMetadata();
     await loadMetadata(); // consumes the prefetch

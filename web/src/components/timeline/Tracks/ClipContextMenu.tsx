@@ -13,6 +13,7 @@ import GradientOutlinedIcon from "@mui/icons-material/GradientOutlined";
 import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import QueueMusicOutlinedIcon from "@mui/icons-material/QueueMusicOutlined";
 import { canClipFade } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -138,6 +139,13 @@ export function ClipContextMenu({
               ? clearFades(new Set([clipId]))
               : applyFades(new Set([clipId]))
           )}
+        />
+      )}
+      {actions.canDetectBeats && (
+        <MenuItemPrimitive
+          label="Detect beats"
+          icon={<QueueMusicOutlinedIcon fontSize="small" />}
+          onClick={run(actions.detectBeats)}
         />
       )}
       {actions.isGenerated && (

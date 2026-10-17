@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, jest, beforeEach } from "@jest/globals";
 import { ThemeProvider } from "@mui/material/styles";
 import { makeClip, makeTrack } from "@nodetool-ai/timeline";
@@ -286,5 +286,32 @@ describe("AIEditClipPanel", () => {
     ).toBeTruthy();
     expect(screen.getByTestId("ai-edit-submit")).toHaveTextContent("Retry");
     expect(screen.getByTestId("ai-edit-submit")).not.toBeDisabled();
+  });
+
+  it("sends the edit as a take unless Replace clip is chosen", async () => {
+    renderPanel(makeVideoClip());
+    await waitFor(() =>
+      expect(screen.getByTestId("ai-edit-submit")).toBeDisabled()
+    );
+    fireEvent.change(screen.getByTestId("ai-edit-instruction"), {
+      target: { value: "Make it golden hour" }
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("ai-edit-submit")).not.toBeDisabled()
+    );
+
+    fireEvent.click(screen.getByTestId("ai-edit-submit"));
+    await waitFor(() => expect(mockStartEdit).toHaveBeenCalledTimes(1));
+    expect(mockStartEdit.mock.calls[0]).toEqual([
+      expect.objectContaining({ replaceOnLand: false })
+    ]);
+
+    fireEvent.click(screen.getByTestId("ai-edit-landing-replace"));
+    expect(screen.getByText(/replaces the clip when it finishes/)).toBeTruthy();
+    fireEvent.click(screen.getByTestId("ai-edit-submit"));
+    await waitFor(() => expect(mockStartEdit).toHaveBeenCalledTimes(2));
+    expect(mockStartEdit.mock.calls[1]).toEqual([
+      expect.objectContaining({ replaceOnLand: true })
+    ]);
   });
 });

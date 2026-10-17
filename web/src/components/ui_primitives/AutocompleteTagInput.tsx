@@ -151,7 +151,7 @@ const AutocompleteTagInputInternal: React.FC<AutocompleteTagInputProps> = ({
           style={{
             display: "block",
             marginTop: theme.spacing(0.5),
-            color: theme.palette.text.secondary,
+            color: theme.vars.palette.text.secondary,
             fontSize: theme.fontSizeSmaller
           }}
         >

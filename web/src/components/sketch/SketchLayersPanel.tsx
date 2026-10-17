@@ -22,7 +22,7 @@ import {
   SKETCH_COLORS,
   SKETCH_SIZE
 } from "./sketchStyles";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { SystemStyleObject } from "@mui/system";
 
@@ -298,7 +298,7 @@ const styles = (theme: Theme) =>
          keeping the layer's own thumbnail and name the focus. */
       "&.active": {
         backgroundColor: theme.vars.palette.action.selected,
-        boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.7)}`
+        boxShadow: `inset 0 0 0 1px rgb(${theme.vars.palette.primary.mainChannel} / 0.7)`
       },
       "&.selected-secondary": {
         backgroundColor: theme.vars.palette.action.selected,
@@ -319,14 +319,14 @@ const styles = (theme: Theme) =>
       /* Matches Lock Transparency toolbar control (IconButton color=info when on). */
       "&.alpha-lock": {
         boxShadow: `inset 3px 0 0 0 ${theme.vars.palette.info.main}`,
-        backgroundColor: alpha(theme.palette.info.main, 0.1)
+        backgroundColor: `rgb(${theme.vars.palette.info.mainChannel} / 0.1)`
       },
       "&.alpha-lock:hover": {
-        backgroundColor: alpha(theme.palette.info.main, 0.18)
+        backgroundColor: `rgb(${theme.vars.palette.info.mainChannel} / 0.18)`
       },
       "&.alpha-lock.active": {
         backgroundColor: theme.vars.palette.action.selected,
-        boxShadow: `inset 3px 0 0 0 ${theme.vars.palette.info.main}, inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.7)}`
+        boxShadow: `inset 3px 0 0 0 ${theme.vars.palette.info.main}, inset 0 0 0 1px rgb(${theme.vars.palette.primary.mainChannel} / 0.7)`
       },
       "&.alpha-lock.selected-secondary": {
         backgroundColor: theme.vars.palette.action.selected,
@@ -341,10 +341,10 @@ const styles = (theme: Theme) =>
         gap: theme.spacing(0.5),
         paddingTop: 0,
         paddingBottom: 0,
-        backgroundColor: alpha(theme.palette.common.white, 0.04),
+        backgroundColor: `rgb(${theme.vars.palette.common.onBackgroundChannel} / 0.04)`,
 
         "&:hover": {
-          backgroundColor: alpha(theme.palette.common.white, 0.075)
+          backgroundColor: `rgb(${theme.vars.palette.common.onBackgroundChannel} / 0.075)`
         },
 
       }

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { TextInput } from "../ui_primitives";
+import { NumberField } from "../ui_primitives";
 
 interface NumberSettingProps {
   label: string;
@@ -72,10 +72,11 @@ export const NumberSetting = React.memo(function NumberSetting({
   );
 
   return (
-    <TextInput
-      type="number"
+    <NumberField
       autoComplete="off"
-      slotProps={{ htmlInput: { min, max, step } }}
+      min={min}
+      max={max}
+      step={step}
       id={id}
       label={label}
       helperText={
