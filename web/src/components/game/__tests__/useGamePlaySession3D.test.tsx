@@ -101,19 +101,44 @@ beforeEach(() => {
 });
 afterEach(() => { global.fetch = originalFetch; global.structuredClone = originalClone; jest.clearAllMocks(); });
 
-it("ticks 3D particles in editor Play and clears them when Stop creates a new session", async () => {
+it.each([false, true])("ticks 3D particles in editor Play and clears them when Stop creates a new session (deferred Stop: %s)", async (deferredStop) => {
   const document = fixture();
   document.scenes[0].entities[1].particles = gameParticles.parse({ emitters: [{ id: "burst", loop: false, rate: 0, speed: 0, lifetime: 60, bursts: [{ count: 4 }] }] });
   const view = render(<Harness document={gameDocument3D.parse(document)} />);
+  let releaseStop: (() => void) | undefined;
   try {
     await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("WebGL2"));
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Play" }));
-    await waitFor(() => expect(mockRenderers.at(-1)?.render.mock.calls.some((call) => call[2] && gameParticleSamples3D(call[2]).length === 4)).toBe(true));
+    await waitFor(() => {
+      const submitted = mockRenderers.at(-1)?.render.mock.calls.at(-1);
+      expect(submitted?.[0].tick).toBeGreaterThan(0);
+      expect(gameParticleSamples3D(submitted?.[2])).toHaveLength(4);
+    });
+    const submittedBeforeStop = mockRenderers.at(-1)?.render.mock.calls.length ?? 0;
+    if (deferredStop) {
+      jest.mocked(createGameSession3D).mockImplementationOnce(async (...args) => {
+        const runtime = jest.requireActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
+        const next = await runtime.createGameSession3D(...args);
+        await new Promise<void>((resolve) => { releaseStop = resolve; });
+        return next;
+      });
+    }
     await user.click(screen.getByRole("button", { name: "Stop" }));
+    if (deferredStop) {
+      await waitFor(() => expect(releaseStop).toBeDefined());
+      expect(gameParticleSamples3D(mockRenderers.at(-1)?.render.mock.calls.at(-1)?.[2])).toHaveLength(4);
+      await act(async () => { releaseStop?.(); });
+    }
     await waitFor(() => expect(screen.getByTestId("tick")).toHaveTextContent("0"));
-    expect(gameParticleSamples3D(mockRenderers.at(-1)?.render.mock.calls.at(-1)?.[2])).toHaveLength(0);
-  } finally { view.unmount(); }
+    await waitFor(() => {
+      const submissions = mockRenderers.at(-1)?.render.mock.calls;
+      expect(submissions?.length).toBeGreaterThan(submittedBeforeStop);
+      const submitted = submissions?.at(-1);
+      expect(submitted?.[0].tick).toBe(0);
+      expect(gameParticleSamples3D(submitted?.[2])).toHaveLength(0);
+    });
+  } finally { await act(async () => { releaseStop?.(); }); view.unmount(); }
 });
 
 it("keeps submitted particles stable while rendering waits and Stop replaces the session", async () => {

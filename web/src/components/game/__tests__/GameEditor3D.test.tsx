@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { createNative3DGame, applyAnyGameOps, anyGameDocumentOp, validateAnyGame } from "@nodetool-ai/game-runtime";
@@ -318,12 +318,14 @@ it("keeps an opened script anchored after another entity is selected", async () 
 it.each(["confirmation", "autosave"])("confirms restore and uses the acknowledged %s token before resetting undo", async (saveTrigger) => {
   jest.useFakeTimers();
   let acknowledge: (() => void) | undefined;
-  mockSave.mockImplementationOnce((request) => new Promise((resolve) => {
+  const save = mockSave.getMockImplementation();
+  mockSave.mockImplementation((request) => new Promise((resolve) => {
     acknowledge = () => resolve({ document: getGameDraftStore(request.id).getState().document, game: { draftUpdatedAt: mockSavedToken } });
   }));
+  let view: ReturnType<typeof render> | undefined;
   try {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+    view = render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
     await user.click(screen.getByRole("button", { name: "Select player" }));
     await user.click(screen.getByRole("button", { name: "Edit selected script" }));
     await user.type(screen.getByRole("textbox", { name: "Anchored script" }), " changed");
@@ -331,11 +333,15 @@ it.each(["confirmation", "autosave"])("confirms restore and uses the acknowledge
     expect(store.getState().commandHistory.past.length).toBeGreaterThan(0);
     await user.click(screen.getByRole("tab", { name: /^Revisions$/ }));
     expect(mockSave).not.toHaveBeenCalled();
+    expect(store.getState().pendingOps.length).toBeGreaterThan(0);
     if (saveTrigger === "autosave") {
       await act(async () => { jest.advanceTimersByTime(500); });
       expect(mockSave).toHaveBeenCalledTimes(1);
-      expect(screen.getByRole("button", { name: "Restore to draft" })).toBeDisabled();
+      const restore = screen.getByRole("button", { name: "Restore to draft" });
+      expect(restore).toBeDisabled();
+      fireEvent.click(restore);
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(mockRestore).not.toHaveBeenCalled();
       await act(async () => { acknowledge?.(); });
     }
     expect(screen.getByRole("button", { name: "Restore to draft" })).toBeEnabled();
@@ -355,6 +361,8 @@ it.each(["confirmation", "autosave"])("confirms restore and uses the acknowledge
     expect(store.getState().document).toEqual(mockDocument);
   } finally {
     await act(async () => { acknowledge?.(); });
+    if (save) { mockSave.mockImplementation(save); }
+    view?.unmount();
     jest.useRealTimers();
   }
 });
