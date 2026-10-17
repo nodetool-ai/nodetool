@@ -45,6 +45,8 @@ class FakeAudioContext {
   }
 
   createGain = jest.fn(() => this.node("gain", { gain: mockParam() }));
+  createStereoPanner = jest.fn(() => this.node("panner", { pan: mockParam() }));
+  createAnalyser = jest.fn(() => this.node("analyser", { fftSize: 2048 }));
   createBiquadFilter = jest.fn(() =>
     this.node("biquad", {
       type: "lowpass",
@@ -132,17 +134,11 @@ async function play(audioEffects: ClipAudioEffect[]) {
     [],
     0
   );
-  // Master gain, then the track gain is made on demand after the clip gain.
+  // Listener, mix bus and master fader come with the context; the clip gain
+  // is next, then its track's chain (mute/solo gain first) on demand.
   const gains = ctx.nodes.filter((n) => n.kind === "gain");
-  return { ctx, graph, masterGain: gains[0], clipGain: gains[1] };
+  return { ctx, graph, clipGain: gains[3], trackGain: gains[4] };
 }
-
-const trackGainOf = (ctx: FakeAudioContext, masterGain: FakeNode) =>
-  ctx.nodes.find(
-    (n) =>
-      n.kind === "gain" &&
-      n.connect.mock.calls.some(([target]) => target === masterGain)
-  );
 
 describe("AudioGraph clip audio effects", () => {
   beforeEach(() => {
@@ -157,9 +153,8 @@ describe("AudioGraph clip audio effects", () => {
   });
 
   it("routes the clip through its effects before the track", async () => {
-    const { ctx, masterGain, clipGain } = await play([FILTER]);
+    const { ctx, clipGain, trackGain } = await play([FILTER]);
     const filter = ctx.nodes.find((n) => n.kind === "biquad");
-    const trackGain = trackGainOf(ctx, masterGain);
     expect(filter?.type).toBe("highpass");
     expect(clipGain.connect).toHaveBeenCalledWith(filter);
     expect(clipGain.connect).not.toHaveBeenCalledWith(trackGain);
@@ -174,13 +169,11 @@ describe("AudioGraph clip audio effects", () => {
   });
 
   it("connects straight to the track when every effect is disabled", async () => {
-    const { ctx, masterGain, clipGain } = await play([
+    const { ctx, clipGain, trackGain } = await play([
       { ...FILTER, enabled: false }
     ]);
     expect(ctx.nodes.some((n) => n.kind === "biquad")).toBe(false);
-    expect(clipGain.connect).toHaveBeenCalledWith(
-      trackGainOf(ctx, masterGain)
-    );
+    expect(clipGain.connect).toHaveBeenCalledWith(trackGain);
   });
 
   it("lets an echo ring past the clip's end, then releases it", async () => {
@@ -195,9 +188,8 @@ describe("AudioGraph clip audio effects", () => {
   });
 
   it("silences a ringing tail when playback stops", async () => {
-    const { ctx, graph, masterGain, clipGain } = await play([ECHO]);
+    const { ctx, graph, clipGain, trackGain } = await play([ECHO]);
     const delay = ctx.nodes.find((n) => n.kind === "delay");
-    const trackGain = trackGainOf(ctx, masterGain);
     const chainOutput = ctx.nodes.find(
       (n) =>
         n.kind === "gain" &&

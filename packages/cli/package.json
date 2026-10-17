@@ -22,6 +22,7 @@
   "dependencies": {
     "@inquirer/prompts": "^8.5.2",
     "@nodetool-ai/agents": "*",
+    "@nodetool-ai/analytics": "*",
     "@nodetool-ai/app-export": "*",
     "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/browser": "*",

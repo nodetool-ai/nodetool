@@ -158,7 +158,8 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
     rows: [
       { action: "zoomIn", label: "Zoom in" },
       { action: "zoomOut", label: "Zoom out" },
-      { action: "zoomFit", label: "Zoom to fit content" }
+      { action: "zoomFit", label: "Zoom to fit content" },
+      { action: "toggleDawMode", label: "Switch between the video and DAW layouts" }
     ]
   },
   {

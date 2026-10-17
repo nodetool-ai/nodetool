@@ -5,7 +5,8 @@ vi.mock("node:fs", () => ({
   readFileSync: vi.fn(),
   writeFileSync: vi.fn(),
   mkdirSync: vi.fn(),
-  existsSync: vi.fn()
+  existsSync: vi.fn(),
+  chmodSync: vi.fn()
 }));
 
 vi.mock("node:crypto", async (importOriginal) => {

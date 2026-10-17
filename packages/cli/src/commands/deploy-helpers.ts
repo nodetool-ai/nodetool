@@ -108,11 +108,42 @@ export function resolveServerUrl(
   }
 }
 
+/**
+ * Whether the admin token may travel to `url`. The token is admin access that
+ * never expires, so plain HTTP is allowed only to this machine (an SSH tunnel
+ * counts) unless the operator opts in with NODETOOL_ALLOW_INSECURE_HTTP=1.
+ */
+export function isSafeTokenUrl(
+  url: string,
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol === "https:") return true;
+  if (env["NODETOOL_ALLOW_INSECURE_HTTP"] === "1") return true;
+  const host = parsed.hostname.replace(/^\[|\]$/g, "");
+  return host === "localhost" || host === "::1" || host.startsWith("127.");
+}
+
 function requireServerUrl(deployment: AnyDeployment, name: string): string {
   const url = resolveServerUrl(deployment);
   if (!url) {
     console.error(
       `Deployment '${name}' has no server URL yet (run 'nodetool deploy apply ${name}' first).`
+    );
+    process.exit(1);
+  }
+  if (!isSafeTokenUrl(url)) {
+    console.error(
+      `Refusing to send the admin token to ${url} over plain HTTP, where anyone ` +
+        "on the network path can read it. Put the server behind TLS and set " +
+        `'server_url: https://…' on deployment '${name}', or open an SSH tunnel ` +
+        "and set 'server_url: http://localhost:<port>'. " +
+        "Set NODETOOL_ALLOW_INSECURE_HTTP=1 to send it anyway."
     );
     process.exit(1);
   }
@@ -126,7 +157,13 @@ function requireServerUrl(deployment: AnyDeployment, name: string): string {
 export async function resolveAdminToken(opts?: {
   token?: string;
 }): Promise<string> {
-  if (opts?.token) return opts.token;
+  if (opts?.token) {
+    console.error(
+      "Warning: --token is visible to other local users in the process list " +
+        "and stays in shell history. Prefer NODETOOL_ADMIN_TOKEN or the prompt."
+    );
+    return opts.token;
+  }
   const envToken = process.env["NODETOOL_ADMIN_TOKEN"];
   if (envToken) return envToken;
   if (!process.stdin.isTTY) {

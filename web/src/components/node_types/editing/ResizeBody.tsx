@@ -23,7 +23,7 @@ import NumberInput from "../../inputs/NumberInput";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useLiveSliderWriter } from "../../../hooks/nodes/useLiveSliderWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 import { RESIZE_NODE_TYPE } from "../../../constants/nodeTypes";
 import {
@@ -139,7 +139,7 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
   const previewValue = useNodeOutput(workflowId, id);
   const previewDims = useMemo(() => extractDims(previewValue), [previewValue]);
 
-  const { setProperties, setPropertyComplete } = useBespokePropertyWriter({
+  const { setProperties, setPropertyComplete } = useLiveSliderWriter({
     nodeId: id,
     nodeType
   });

@@ -30,6 +30,8 @@ import {
 
 /** The quietest note still draws at this opacity. */
 const MIN_NOTE_ALPHA = 0.45;
+/** Fill opacity of a harmony ghost note. */
+const GHOST_NOTE_ALPHA = 0.22;
 
 const canvasStyles = css({
   ...TYPOGRAPHY.mono.caption,
@@ -46,6 +48,8 @@ interface PianoRollGridProps {
   widthPx: number;
   heightPx: number;
   notes: ReadonlyArray<MidiNote>;
+  /** Notes the clip plays but does not hold (its harmony expansion), drawn read-only. */
+  ghostNotes?: ReadonlyArray<MidiNote>;
   selectedIds: ReadonlySet<string>;
   /** Content ticks a subdivision line sits on. */
   gridTicks: readonly number[];
@@ -64,6 +68,7 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
     widthPx,
     heightPx,
     notes,
+    ghostNotes,
     selectedIds,
     gridTicks,
     barTicks,
@@ -135,6 +140,25 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
         ctx.fillRect(windowEndX, 0, widthPx - windowEndX, heightPx);
       }
 
+      // Harmony expansion: what the clip plays, under the notes it holds.
+      if (ghostNotes) {
+        ctx.fillStyle = colors.note;
+        ctx.strokeStyle = colors.note;
+        ctx.setLineDash([3, 2]);
+        for (const note of ghostNotes) {
+          const rect = noteRect(note, geometry);
+          if (rect.x > widthPx || rect.x + rect.width < 0) continue;
+          if (rect.y > heightPx || rect.y + rect.height < 0) continue;
+          ctx.beginPath();
+          ctx.roundRect(rect.x, rect.y + 1, Math.max(2, rect.width - 1), Math.max(1, rect.height - 2), noteRadius);
+          ctx.globalAlpha = GHOST_NOTE_ALPHA;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+      }
+
       // Notes.
       for (const note of notes) {
         const rect = noteRect(note, geometry);
@@ -184,6 +208,7 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
       widthPx,
       heightPx,
       notes,
+      ghostNotes,
       selectedIds,
       gridTicks,
       barTicks,

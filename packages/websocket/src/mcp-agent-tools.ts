@@ -66,6 +66,8 @@ import { uiToolSchemas } from "@nodetool-ai/protocol";
 import { missingPackDetailsOf } from "@nodetool-ai/protocol";
 import { loadConfiguredProviders } from "./configured-providers.js";
 import { mcpToolHostDeps } from "./mcp-tool-deps.js";
+import { RunNodeTool } from "./agent/run-node-tool.js";
+import { serviceNodeRunner } from "./agent/run-node-workflow.js";
 import type { SketchLoader, TimelineLoader } from "@nodetool-ai/agents";
 import {
   getSecret,
@@ -993,9 +995,30 @@ export function registerAgentMcpTools(
   // The belt the sandbox sees. Deduped by name, because the two catalogs
   // overlap and a session must not offer one tool under two instances.
   const hostCapabilities: CapabilityExport[] = [];
+  const hostDeps = mcpToolHostDeps({
+    registry: options.registry,
+    metadataRoots: options.metadataRoots,
+    metadataMaxDepth: options.metadataMaxDepth,
+    examplesDir: options.examplesDir
+  });
+  const workflowEnvironment = hostDeps.workflowEnvironment;
   const legacyEntries = [
     new ImportAssetTool(localFilePathsAllowed, (args) =>
       capabilityRun.invoke("save_asset", args)
+    ),
+    // The chat turn supplies `run_node` itself; this mount has no turn, so it
+    // runs the node through the execution service instead.
+    new RunNodeTool(
+      serviceNodeRunner({
+        userId: scope.userId,
+        registry: options.registry,
+        environment: async () =>
+          workflowEnvironment
+            ? workflowEnvironment()
+            : options.registry
+              ? { registry: options.registry }
+              : null
+      })
     ),
     new RenderDemoSurfaceTool(),
     ...editorSteeringTools(options, scope.userId)
@@ -1084,12 +1107,7 @@ export function registerAgentMcpTools(
     gate,
     availableSecrets: contextSecretAvailability(context),
     nodeRegistry: options.registry,
-    ...mcpToolHostDeps({
-      registry: options.registry,
-      metadataRoots: options.metadataRoots,
-      metadataMaxDepth: options.metadataMaxDepth,
-      examplesDir: options.examplesDir
-    }),
+    ...hostDeps,
     providers: sharedProviders,
     loaders: { timeline: loadTimelineForUser, sketch: loadSketchForUser }
   });

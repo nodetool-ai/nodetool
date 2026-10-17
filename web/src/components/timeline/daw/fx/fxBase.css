@@ -1,0 +1,144 @@
+/* FableSynth hardware look for the FX device views: the variables, panel,
+   power LED, knob and stepper rules of fablesynth/index.css, scoped to the
+   .fablesynth root so nothing reaches NodeTool's own UI. */
+
+.fablesynth {
+  --bg: #06070b;
+  --panel-hi: #181c26;
+  --panel-lo: #0d1017;
+  --line: rgba(255, 255, 255, 0.07);
+  --text: #dfe6f3;
+  --text-dim: #6b768c;
+  --text-hint: #93a0b8;
+  --ac-a: #4de8ff;
+  --ac-b: #ffa14d;
+  --ac-f: #b18cff;
+  --ac-n: #9fb4d8;
+  --ac: var(--ac-n);
+  --nav: var(--ac-a);
+  --font-disp: 'Michroma', 'Avenir Next', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.fablesynth *, .fablesynth *::before, .fablesynth *::after { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+
+.fablesynth [data-accent='a'] { --ac: var(--ac-a); }
+.fablesynth [data-accent='b'] { --ac: var(--ac-b); }
+.fablesynth [data-accent='f'] { --ac: var(--ac-f); }
+.fablesynth [data-accent='n'] { --ac: var(--ac-n); }
+
+.fablesynth .panel {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 26px rgba(0, 0, 0, 0.4);
+  padding: 8px 12px 10px;
+  min-width: 0;
+  transition: opacity 0.25s;
+}
+.fablesynth .panel-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.fablesynth .panel-head h2 {
+  margin: 0;
+  font-family: var(--font-disp);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  color: var(--text);
+}
+
+.fablesynth .power-btn {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: radial-gradient(circle at 40% 35%, #2a3140, #12151d);
+  cursor: pointer;
+  padding: 0;
+  flex: none;
+  transition: box-shadow 0.2s, background 0.2s;
+}
+.fablesynth .power-btn.on {
+  background: radial-gradient(circle at 40% 35%, color-mix(in srgb, var(--ac) 90%, white), color-mix(in srgb, var(--ac) 55%, black));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ac) 70%, transparent);
+  border-color: color-mix(in srgb, var(--ac) 60%, transparent);
+}
+
+.fablesynth .knob {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  cursor: ns-resize;
+  outline: none;
+  touch-action: none;
+}
+.fablesynth .knob:focus-visible svg { outline: 1px solid var(--ac); outline-offset: 2px; border-radius: 50%; }
+.fablesynth .knob svg { display: block; overflow: visible; }
+.fablesynth .knob-lg svg { width: 74px; height: 74px; }
+.fablesynth .knob-md svg { width: 56px; height: 56px; }
+.fablesynth .knob-sm svg { width: 44px; height: 44px; }
+.fablesynth .knob-xs svg { width: 34px; height: 34px; }
+.fablesynth .k-body { fill: #161b25; stroke: rgba(255, 255, 255, 0.1); stroke-width: 1.5; }
+.fablesynth .knob.dragging .k-body, .fablesynth .knob:hover .k-body { fill: #1b2130; }
+.fablesynth .k-track { fill: none; stroke: rgba(255, 255, 255, 0.09); stroke-width: 5; stroke-linecap: round; }
+.fablesynth .k-arc {
+  fill: none;
+  stroke: var(--ac);
+  stroke-width: 5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--ac) 70%, transparent));
+}
+.fablesynth .k-ptr { stroke: #e8edf7; stroke-width: 4; stroke-linecap: round; }
+.fablesynth .k-label { font-size: 8px; letter-spacing: 0.16em; color: var(--text-dim); margin-top: 3px; }
+.fablesynth .k-value { font-size: 9px; color: var(--text); opacity: 0; transition: opacity 0.15s; height: 11px; line-height: 11px; }
+.fablesynth .knob:hover .k-value, .fablesynth .knob.dragging .k-value, .fablesynth .knob:focus .k-value { opacity: 1; }
+.fablesynth .knob-xs .k-label { display: none; }
+
+.fablesynth .stepper { display: inline-flex; align-items: center; gap: 4px; }
+.fablesynth .st-label { font-size: 8px; color: var(--text-dim); letter-spacing: 0.14em; margin-right: 2px; }
+.fablesynth .st-btn {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #11141c;
+  color: var(--text-dim);
+  font-size: 9px;
+  cursor: pointer;
+  line-height: 1;
+}
+.fablesynth .st-btn:hover { color: var(--ac); border-color: var(--ac); }
+.fablesynth .st-value {
+  min-width: 52px;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ac);
+  background: #0a0d13;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+
+/* One FX device: the upstream panel on the dark well it sits on in WT-1. */
+.fablesynth.fable-fx-device {
+  background: radial-gradient(900px 500px at 50% -20%, #11141d 0%, var(--bg) 60%), var(--bg);
+  border-radius: 14px;
+  padding: 9px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  container: fablesynth / inline-size;
+}
+.fablesynth.fable-fx-device[data-kind='eq'],
+.fablesynth.fable-fx-device[data-kind='ott'],
+.fablesynth.fable-fx-device[data-kind='comp'] { max-width: 420px; }
+.fablesynth.fable-fx-device[data-kind='drive'],
+.fablesynth.fable-fx-device[data-kind='chorus'],
+.fablesynth.fable-fx-device[data-kind='echo'],
+.fablesynth.fable-fx-device[data-kind='reverb'] { max-width: 300px; }
+.fablesynth.fable-fx-device[data-kind='lab'] { max-width: 1100px; }
+.fablesynth.fable-fx-device .panel { grid-area: auto !important; }

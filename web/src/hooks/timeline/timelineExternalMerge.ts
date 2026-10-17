@@ -37,6 +37,7 @@ export type TimelineTypedDocument = Pick<
   | "storyboardMaterializations"
   | "camera2d"
   | "tempo"
+  | "master"
   | "setup"
 >;
 
@@ -61,6 +62,7 @@ export const timelineMergeDocumentOf = (
   storyboardMaterializations: state.storyboardMaterializations,
   camera2d: state.camera2d ?? null,
   tempo: state.tempo,
+  master: state.master,
   setup: state.setup ?? null
 });
 
@@ -84,6 +86,7 @@ export const timelineMergeDocumentOfSequence = (
     storyboardMaterializations?: TimelineMergeDoc["storyboardMaterializations"];
     camera2d?: TimelineMergeDoc["camera2d"];
     tempo?: TimelineMergeDoc["tempo"];
+    master?: TimelineMergeDoc["master"];
     setup?: TimelineMergeDoc["setup"];
   },
   base: TimelineMergeDoc
@@ -101,6 +104,7 @@ export const timelineMergeDocumentOfSequence = (
   storyboardMaterializations: sequence.storyboardMaterializations,
   camera2d: sequence.camera2d ?? null,
   tempo: sequence.tempo ?? base.tempo,
+  master: sequence.master ?? base.master,
   setup: sequence.setup ?? null
 });
 
@@ -207,6 +211,12 @@ export function applyAcceptedTimelineConflict(
       });
       return;
     }
+    if (conflict.unit.id === "master") {
+      state.applyExternalMerge({
+        master: conflict.external as TimelineStoreState["master"]
+      });
+      return;
+    }
     if (conflict.unit.id === "setup") {
       state.applyExternalMerge({
         setup: (conflict.external ?? null) as TimelineStoreState["setup"]
@@ -279,6 +289,7 @@ export function rebaseTimelineSnapshots(
       storyboardMaterializations: snapshot.storyboardMaterializations,
       camera2d: snapshot.camera2d ?? null,
       tempo: snapshot.tempo,
+      master: snapshot.master,
       setup: snapshot.setup ?? null
     })),
     before,
@@ -305,6 +316,7 @@ export function rebaseTimelineSnapshots(
       storyboardMaterializations: typedNext.storyboardMaterializations,
       camera2d: typedNext.camera2d ?? null,
       tempo: typedNext.tempo,
+      master: typedNext.master,
       setup: typedNext.setup ?? null,
       durationMs: reflowed.durationMs
     } satisfies TimelinePartializedState;

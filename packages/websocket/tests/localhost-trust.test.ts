@@ -6,7 +6,9 @@ import {
   parseTrustedProxies,
   parseTrustedLocalNetworks,
   isIpInCidr,
-  isTrustedLocalAddress
+  isTrustedLocalAddress,
+  parseAllowedHosts,
+  isLocalHostHeader
 } from "../src/lib/localhost-trust.js";
 
 describe("parseBoolEnv", () => {
@@ -151,5 +153,49 @@ describe("isTrustedLocalAddress", () => {
 
   it("is false with no configured networks", () => {
     expect(isTrustedLocalAddress("172.17.0.1", [])).toBe(false);
+  });
+});
+
+describe("parseAllowedHosts", () => {
+  it("lowercases names and drops ports and blanks", () => {
+    expect(parseAllowedHosts(" NodeTool.lan:17777, ,box.local ")).toEqual([
+      "nodetool.lan",
+      "box.local"
+    ]);
+    expect(parseAllowedHosts(undefined)).toEqual([]);
+  });
+});
+
+describe("isLocalHostHeader", () => {
+  it("accepts loopback names and IP literals with or without a port", () => {
+    for (const host of [
+      "localhost",
+      "localhost:7777",
+      "app.localhost:3000",
+      "127.0.0.1:7777",
+      "192.168.1.20:17777",
+      "[::1]:7777",
+      "::1"
+    ]) {
+      expect(isLocalHostHeader(host, [])).toBe(true);
+    }
+  });
+
+  it("accepts a missing header", () => {
+    expect(isLocalHostHeader(undefined, [])).toBe(true);
+    expect(isLocalHostHeader("", [])).toBe(true);
+  });
+
+  it("refuses a DNS name that could be rebound to loopback", () => {
+    expect(isLocalHostHeader("evil.example:7777", [])).toBe(false);
+    expect(isLocalHostHeader("127.0.0.1.evil.example", [])).toBe(false);
+    expect(isLocalHostHeader("localhost.evil.example", [])).toBe(false);
+    expect(isLocalHostHeader("[::1", [])).toBe(false);
+  });
+
+  it("accepts a name listed in NODETOOL_ALLOWED_HOSTS", () => {
+    const allowed = parseAllowedHosts("nodetool.lan");
+    expect(isLocalHostHeader("NodeTool.lan:17777", allowed)).toBe(true);
+    expect(isLocalHostHeader("other.lan", allowed)).toBe(false);
   });
 });

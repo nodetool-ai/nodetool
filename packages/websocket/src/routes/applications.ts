@@ -61,6 +61,7 @@ import {
   type AppDebugRequest
 } from "../lib/app-debug-service.js";
 import { exportApplicationProject } from "../lib/app-project-export.js";
+import { isJsonContentType } from "../lib/json-body.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
@@ -92,7 +93,7 @@ type JsonValue =
 
 async function readJsonBody(request: Request): Promise<JsonValue> {
   const contentType = request.headers.get("content-type") ?? "";
-  if (!contentType.toLowerCase().includes("application/json")) return {};
+  if (!isJsonContentType(contentType)) return {};
   try {
     return await request.json();
   } catch {

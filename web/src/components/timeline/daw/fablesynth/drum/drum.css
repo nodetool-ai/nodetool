@@ -1,0 +1,1395 @@
+/* DR-1 rack styles, scoped under .fablesynth. Source: FableSynth src/drum/drum.css; each #id selector became a .<id>-slot class. */
+/* DR-1 shell and task-ready section layouts. Shared controls live in index.css. */
+
+.fablesynth.dr1-device {
+  /* The layout follows the panel the device sits in (a DAW device card is
+     narrower than the window), so the rack's breakpoints are container
+     queries on this root. */
+  container: fablesynth / inline-size;
+}
+.fablesynth .drum-rack-slot {
+  max-width: 1460px;
+  min-width: 900px;
+  margin: 0 auto;
+  padding: 14px 18px 22px;
+}
+
+.fablesynth .dr-header {
+  gap: 14px;
+  min-height: 0;
+  padding: 8px 14px;
+  align-items: center;
+}
+/* One control height across the header. */
+.fablesynth .dr-header .pb-btn { height: 26px; min-width: 26px; font-size: 10px; }
+.fablesynth .dr-header .pb-save { font-size: 8px; }
+.fablesynth .dr-header .hud-cell { height: 34px; }
+.fablesynth .dr-header .brand { flex: none; }
+.fablesynth .dr-kitbar { flex: none; }
+.fablesynth .dr-kitname {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 128px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #0c0f16;
+  color: var(--ac-a);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.fablesynth .dr-kitbar .dr-mini-head {
+  color: var(--text-dim);
+  font-size: 7px;
+}
+.fablesynth .dr-dirty-dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--ac-b);
+  box-shadow: 0 0 5px rgba(255, 161, 77, 0.75);
+}
+/* Inline SAVE name field — replaces window.prompt(). Styled like the app's
+   value wells (dark well bg, mono, uppercase accent text). */
+.fablesynth .dr-name-input {
+  height: 21px;
+  min-width: 110px;
+  padding: 0 8px;
+  border: 1px solid var(--ac-a);
+  border-radius: 6px;
+  outline: none;
+  background: #07090e;
+  color: var(--ac-a);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fablesynth .dr-kitbar .dr-name-input { height: 28px; font-size: 10px; }
+
+.fablesynth .dr-mode { display: flex; gap: 4px; }
+.fablesynth .dr-mode .pb-btn {
+  min-width: 48px;
+  color: var(--text-dim);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+.fablesynth .dr-mode .pb-btn.active {
+  border-color: var(--ac-a);
+  color: var(--ac-a);
+  box-shadow: inset 0 0 10px rgba(77, 232, 255, 0.08);
+}
+
+.fablesynth .dr-hud { margin-left: auto; }
+.fablesynth .dr-hud .hud-cell { width: 156px; }
+.fablesynth .dr-midi { flex: none; }
+/* The scope hides below 1420px; keep the master strip right-aligned. */
+@media (max-width: 1420px) { .fablesynth .dr-midi { margin-left: auto; } }
+.fablesynth .dr-tempo .st-value { min-width: 40px; padding: 4px 6px; }
+.fablesynth .dr-tempo .st-btn { width: 20px; height: 26px; }
+.fablesynth .dr-tempo .st-label { font-size: 7px; letter-spacing: 0.2em; }
+/* Master strip: inline knobs (dial left, label over value right). */
+.fablesynth .dr-master {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
+.fablesynth .dr-master .knob {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 6px;
+}
+.fablesynth .dr-master .knob svg { grid-row: 1 / 3; width: 30px; height: 30px; }
+.fablesynth .dr-master .knob .k-label {
+  display: block;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  margin: 0;
+  font-size: 7px;
+  letter-spacing: 0.2em;
+}
+.fablesynth .dr-master .knob .k-value {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  min-width: 34px;
+  opacity: 1;
+  color: var(--text);
+  font-size: 9px;
+}
+
+.fablesynth .dr-main {
+  display: grid;
+  /* Compact pad deck: pads stay playable while the editor gets the width. */
+  grid-template-columns: clamp(232px, 22%, 280px) minmax(0, 1fr);
+  gap: 9px;
+}
+.fablesynth .dr-right { container: dr-right / inline-size; }
+/* GROUP FX and SEQ hide the pads: the right column takes the full width. */
+.fablesynth .dr-main.no-pads { grid-template-columns: minmax(0, 1fr); }
+.fablesynth .dr-left,
+.fablesynth .dr-right {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+/* Empty slots keep the shell stable until Tasks 9-12 mount their panels. */
+.fablesynth .dr-pads-slot,
+.fablesynth .dr-padstrip-slot,
+.fablesynth .dr-selbar-slot,
+.fablesynth .dr-oscrow-slot,
+.fablesynth .dr-editrow-slot,
+.fablesynth .dr-stepseq-slot,
+.fablesynth .dr-fxrack-slot {
+  min-width: 0;
+}
+.fablesynth .dr-stepseq-slot { margin-top: 9px; }
+/* Anchors the pad-patch browser drawer below the pad bar. */
+.fablesynth .dr-selbar-slot { position: relative; }
+.fablesynth .dr-body .device-tabs { margin-bottom: 0; }
+.fablesynth .dr-body[data-page='seq'] .dr-main { align-items: end; }
+.fablesynth .dr-edit-tabs { align-self: flex-start; }
+.fablesynth .dr-edit-tabs button { padding: 5px 16px; font-size: 9px; color: color-mix(in srgb, var(--nav) 55%, var(--text-dim)); }
+.fablesynth .dr-edit-tabs button.active { background: color-mix(in srgb, var(--nav) 16%, transparent); color: var(--nav); box-shadow: inset 0 0 0 1px var(--nav); }
+
+.fablesynth .dr-selbar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 31px;
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: linear-gradient(180deg, rgba(24, 28, 38, 0.82), rgba(10, 13, 19, 0.88));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+.fablesynth .dr-led {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border: 1px solid color-mix(in srgb, var(--ac) 65%, white);
+  border-radius: 50%;
+}
+.fablesynth .dr-led-a {
+  --ac: var(--ac-a);
+  background: radial-gradient(circle at 38% 32%, #e8fcff, var(--ac-a) 38%, #177687 76%);
+  box-shadow: 0 0 8px rgba(77, 232, 255, 0.75);
+}
+.fablesynth .dr-led-b {
+  --ac: var(--ac-b);
+  background: radial-gradient(circle at 38% 32%, #fff2e5, var(--ac-b) 38%, #874616 76%);
+  box-shadow: 0 0 8px rgba(255, 161, 77, 0.75);
+}
+.fablesynth .dr-mini-head {
+  color: var(--text);
+  font-family: var(--font-disp);
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+}
+.fablesynth .dr-sel-name {
+  color: var(--ac-a);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 9px rgba(77, 232, 255, 0.35);
+}
+.fablesynth .dr-patchbar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.fablesynth .dr-patchbar .pb-btn {
+  height: 21px;
+  min-width: 21px;
+  padding: 0 6px;
+  font-size: 9px;
+}
+.fablesynth .dr-patchbar .pb-save { font-size: 8px; }
+.fablesynth .dr-patchname {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  height: 21px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #0c0f16;
+  color: var(--ac-a);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.fablesynth .dr-oscrow-slot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(180px, 0.62fr);
+  gap: 9px;
+}
+
+.fablesynth .dr-editrow-slot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(0, 1.3fr);
+  gap: 9px;
+}
+.fablesynth .dr-edit-panel { min-height: 193px; }
+.fablesynth .dr-env-view,
+.fablesynth .dr-filter-view {
+  display: block;
+  width: 100%;
+  height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 32%),
+    #07090e;
+}
+.fablesynth .dr-env-knobs,
+.fablesynth .dr-filter-knobs {
+  min-height: 82px;
+  padding-top: 7px;
+  flex-wrap: nowrap;
+  justify-content: space-evenly;
+  gap: 0;
+}
+.fablesynth .dr-pitch-knobs { justify-content: space-around; }
+.fablesynth .dr-led-f {
+  --ac: var(--ac-f);
+  background: radial-gradient(circle at 38% 32%, #f4edff, var(--ac-f) 38%, #593a87 76%);
+  box-shadow: 0 0 8px rgba(177, 140, 255, 0.75);
+}
+.fablesynth .dr-filter-off-tag {
+  flex: none;
+  padding: 1px 5px;
+  border: 1px solid rgba(107, 118, 140, 0.5);
+  border-radius: 3px;
+  color: #93a0b8;
+  font-family: var(--font-disp);
+  font-size: 7px;
+  letter-spacing: 0.14em;
+}
+.fablesynth .dr-filter-stepper {
+  min-width: 0;
+  margin-left: auto;
+}
+.fablesynth .dr-filter-stepper .st-value {
+  min-width: 48px;
+  padding-inline: 4px;
+  font-size: 9px;
+}
+.fablesynth .dr-filter-knobs { justify-content: space-between; }
+.fablesynth .dr-mod-head { min-height: 34px; }
+.fablesynth .dr-mod-env {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+}
+.fablesynth .dr-mod-env .panel-hint { margin-left: 0; }
+.fablesynth .dr-mod-routes {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.fablesynth .dr-mod-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 30px;
+}
+.fablesynth .dr-mod-row .mod-select {
+  flex: 1;
+  min-width: 0;
+  padding-right: 18px;
+  padding-left: 6px;
+  background-position: right 6px center;
+}
+.fablesynth .dr-mod-row .knob {
+  flex: none;
+  width: 34px;
+}
+.fablesynth .dr-mod-row .k-value {
+  position: absolute;
+  margin-top: 34px;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: #0a0d13;
+  z-index: 1;
+}
+.fablesynth .dr-mod-arrow {
+  flex: none;
+  color: var(--text-dim);
+  font-size: 8px;
+}
+.fablesynth .dr-mod-hint {
+  margin: 2px 0 5px;
+  color: #93a0b8;
+  font-size: 7px;
+  letter-spacing: 0.14em;
+  text-align: center;
+}
+.fablesynth .dr-osc-section,
+.fablesynth .dr-noise-section { min-height: 238px; }
+.fablesynth .dr-noise-section .panel-head h2 { white-space: nowrap; font-size: 9px; letter-spacing: 0.14em; }
+.fablesynth .dr-osc-stepper { margin-left: auto; }
+.fablesynth .dr-osc-stepper .st-value { min-width: 62px; }
+.fablesynth .dr-osc-body {
+  display: grid;
+  grid-template: 104px auto / minmax(0, 1fr) 36px;
+  gap: 8px;
+}
+.fablesynth .dr-wavetable-view,
+.fablesynth .dr-noise-view {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 32%),
+    #07090e;
+}
+.fablesynth .dr-wavetable-view { grid-column: 1; grid-row: 1; }
+.fablesynth .dr-osc-knobs {
+  grid-column: 1 / 3;
+  grid-row: 2;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  justify-content: space-between;
+  gap: 0;
+}
+.fablesynth .dr-osc-knobs .knob { min-width: 0; }
+
+.fablesynth .dr-pos-slider {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  cursor: ns-resize;
+  outline: none;
+  touch-action: none;
+}
+.fablesynth .dr-pos-slider:focus-visible .dr-pos-track {
+  outline: 1px solid var(--ac);
+  outline-offset: 2px;
+}
+.fablesynth .dr-pos-track {
+  position: relative;
+  flex: 1;
+  width: 9px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #0a0d13;
+}
+.fablesynth .dr-pos-fill {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 0 0 5px 5px;
+  background: linear-gradient(180deg, var(--ac), color-mix(in srgb, var(--ac) 35%, transparent));
+  opacity: 0.55;
+}
+.fablesynth .dr-pos-handle {
+  position: absolute;
+  left: 50%;
+  width: 22px;
+  height: 9px;
+  transform: translate(-50%, 50%);
+  border: 1px solid color-mix(in srgb, var(--ac) 65%, transparent);
+  border-radius: 3px;
+  background: linear-gradient(180deg, #2b3344, #161b25);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ac) 45%, transparent);
+}
+.fablesynth .dr-pos-label {
+  margin-top: 5px;
+  color: var(--text-dim);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+}
+
+.fablesynth .dr-noise-type { margin-left: auto; min-width: 65px; }
+.fablesynth .dr-noise-view {
+  display: block;
+  height: 104px;
+}
+.fablesynth .dr-noise-knobs {
+  min-height: 78px;
+  padding-top: 8px;
+  flex-wrap: nowrap;
+  justify-content: space-evenly;
+  gap: 0;
+}
+.fablesynth .dr-noise-knobs .knob { min-width: 0; flex: 1 1 0; }
+.fablesynth .dr-noise-knobs .k-label { white-space: nowrap; font-size: 7px; letter-spacing: 0.06em; }
+
+.fablesynth .pad-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.fablesynth .dr-pad-output {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 9px;
+  color: var(--text-dim);
+  font: 8px var(--font-mono);
+  letter-spacing: .14em;
+}
+.fablesynth .dr-pad-output select { width: 132px; }
+.fablesynth .pad {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #1c212d, #10131b);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.fablesynth .pad:hover { border-color: rgba(77, 232, 255, 0.4); }
+.fablesynth .pad:active { transform: translateY(1px); }
+.fablesynth .pad.sel {
+  border-color: var(--ac-a);
+  box-shadow: 0 0 0 1px rgba(77, 232, 255, 0.3), inset 0 0 18px rgba(77, 232, 255, 0.06);
+}
+.fablesynth .pad-led {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #232936;
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.7);
+}
+.fablesynth .pad-led.on,
+.fablesynth .pad-led.lit {
+  background: var(--ac-a);
+  box-shadow: 0 0 8px var(--ac-a);
+}
+.fablesynth .panel-hint {
+  margin-left: auto;
+  color: #93a0b8;
+  font-size: 7px;
+  letter-spacing: 0.16em;
+}
+.fablesynth .pad.drag-over {
+  border-color: var(--ac-b);
+  box-shadow: 0 0 0 1px rgba(255, 161, 77, 0.35), inset 0 0 20px rgba(255, 161, 77, 0.1);
+}
+.fablesynth .pad-num {
+  position: absolute;
+  top: 7px;
+  left: 8px;
+  color: var(--text-dim);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+.fablesynth .pad-meta {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  left: 7px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+.fablesynth .pad-name,
+.fablesynth .pad-name-input {
+  width: 100%;
+  min-width: 0;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fablesynth .pad-name-input {
+  height: 18px;
+  padding: 0 3px;
+  border: 1px solid var(--ac-a);
+  border-radius: 3px;
+  outline: none;
+  background: #07090e;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.fablesynth .pad-tag {
+  color: var(--text-dim);
+  font-size: 7px;
+  letter-spacing: 0.12em;
+}
+.fablesynth .padstrip-steppers {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.fablesynth .padstrip-steppers .st-label {
+  font-size: 7px;
+  letter-spacing: 0.14em;
+}
+.fablesynth .padstrip-steppers .st-value { min-width: 42px; }
+.fablesynth .padstrip-knobs { flex-wrap: nowrap; }
+
+.fablesynth .step-row {
+  display: flex;
+  gap: 5px;
+}
+.fablesynth .step {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 45px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #171b25, #0d1017);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.fablesynth .step:nth-child(4),
+.fablesynth .step:nth-child(8),
+.fablesynth .step:nth-child(12) { margin-right: 8px; }
+.fablesynth .step:hover { border-color: rgba(77, 232, 255, 0.38); }
+.fablesynth .step:focus-visible {
+  outline: 1px solid var(--ac-a);
+  outline-offset: 2px;
+}
+.fablesynth .step-accent,
+.fablesynth .step-fill {
+  position: absolute;
+  right: 5px;
+  left: 5px;
+  pointer-events: none;
+}
+.fablesynth .step-accent {
+  top: 5px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 161, 77, 0.12);
+}
+.fablesynth .step-fill {
+  top: 10px;
+  bottom: 12px;
+  border-radius: 3px;
+  background: #0a0d13;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.6);
+}
+.fablesynth .step.on .step-fill {
+  background: linear-gradient(180deg, rgba(119, 242, 255, 0.76), rgba(77, 232, 255, 0.28));
+  box-shadow: inset 0 1px 0 rgba(232, 252, 255, 0.34), 0 0 8px rgba(77, 232, 255, 0.28);
+}
+/* Accents must read at a glance, not just on close inspection: a brighter,
+   fully-opaque fill plus a taller/brighter top cap distinguish them from a
+   plain on-step. */
+.fablesynth .step.accented .step-fill {
+  background: linear-gradient(180deg, #fff6ea, var(--ac-b) 46%, rgba(255, 161, 77, 0.55));
+  box-shadow: inset 0 1px 0 rgba(255, 242, 224, 0.55), 0 0 11px rgba(255, 161, 77, 0.55);
+}
+.fablesynth .step.accented .step-accent {
+  top: 3px;
+  height: 4px;
+  background: #fff2e0;
+  box-shadow: 0 0 8px rgba(255, 161, 77, 0.9);
+}
+.fablesynth .step-num {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  left: 0;
+  color: var(--text-dim);
+  font-size: 7px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  pointer-events: none;
+}
+/* Playhead marker. The highlight used to sit on the step button itself
+   (.step.cur), but the class made every engine tick re-render the whole grid.
+   It is its own element now (StepCursor), so a tick only re-renders the cells
+   the marker moves between. The overlay covers the button's border box
+   exactly, so its border paints over the button's own. */
+.fablesynth .step-cur {
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--ac-b);
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(255, 161, 77, 0.3), 0 0 8px rgba(255, 161, 77, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.fablesynth .step-cur.cur { opacity: 1; }
+.fablesynth .step.ghost {
+  outline: 1px dashed color-mix(in srgb, var(--ac-a) 85%, transparent);
+  outline-offset: -1px;
+  background: color-mix(in srgb, var(--ac-a) 30%, transparent);
+}
+.fablesynth .step.cut-src { opacity: 0.35; }
+
+/* STEP mode: all 16 pad lanes stacked at once, compact enough that the whole
+   kit's pattern reads in one glance (the pad grid is hidden in this mode). */
+.fablesynth .dr-lanes {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.fablesynth .dr-lane {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.fablesynth .dr-lane > .step-row {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* Flat cells in BL-1's grid idiom (.bl-cell): the whole button IS the cell,
+   so every pixel of a lane is a hit target — no inset pill leaving dead
+   space above and below the graphic. */
+.fablesynth .dr-lanes .step-row { gap: 2px; }
+.fablesynth .dr-lanes .step {
+  height: 20px;
+  border-color: rgba(255, 255, 255, 0.045);
+  border-radius: 2px;
+  background: #0a0d13;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.fablesynth .dr-lanes .step-accent,
+.fablesynth .dr-lanes .step-fill,
+.fablesynth .dr-lanes .step-num { display: none; }
+.fablesynth .dr-lanes .step.on {
+  background: linear-gradient(180deg, rgba(119, 242, 255, 0.72), rgba(77, 232, 255, 0.3));
+  box-shadow: none;
+}
+.fablesynth .dr-lanes .step.accented {
+  background: linear-gradient(180deg, #fff6ea, var(--ac-b) 55%, rgba(255, 161, 77, 0.6));
+  box-shadow: none;
+}
+/* Flat lane cells: the playhead is a plain border there, with no glow, and it
+   follows the 2px lane radius. */
+.fablesynth .dr-lanes .step-cur {
+  border-radius: 2px;
+  box-shadow: none;
+}
+/* Ghost paste: carried cells trail the cursor (dashed wash); a CUT dims its
+   picked-up source until the drop commits (mirrors WT-1's .ns-cell.ghost /
+   .drag-src). */
+.fablesynth .dr-lanes .step.ghost {
+  outline: 1px dashed color-mix(in srgb, var(--ac-a) 85%, transparent);
+  outline-offset: -1px;
+  background: color-mix(in srgb, var(--ac-a) 34%, #0a0d13);
+}
+.fablesynth .dr-lanes .step.cut-src { opacity: 0.35; }
+/* Positioning context for the floating selection menu (SeqSelectionMenu) and
+   the selection rectangle. */
+.fablesynth .dr-lanes-wrap { position: relative; }
+/* Single translucent, bordered rectangle over the current selection — sized
+   and positioned inline by StepSeq to match the lane/step grid geometry.
+   Matches WT-1's .ns-sel-rect and BL-1's .bl-sel-rect. */
+.fablesynth .dr-sel-rect {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--ac-a) 85%, transparent);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ac-a) 14%, transparent);
+}
+.fablesynth .dr-lane-name {
+  display: flex;
+  gap: 5px;
+  width: 92px;
+  min-width: 92px;
+  padding: 0 5px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-dim);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  line-height: 18px; /* + 1px borders = the 20px step height, so rows align */
+  white-space: nowrap;
+  text-align: left;
+  cursor: pointer;
+}
+.fablesynth .dr-lane-name:hover { color: var(--text); }
+.fablesynth .dr-lane-name.sel {
+  border-color: rgba(77, 232, 255, 0.35);
+  background: color-mix(in srgb, var(--ac-a) 10%, transparent);
+  color: var(--ac-a);
+}
+.fablesynth .dr-lane-num { opacity: 0.5; }
+
+.fablesynth .dr-stepseq { padding: 9px 12px 11px; }
+.fablesynth .dr-stepseq-head {
+  position: relative; /* anchors the pattern browser drawer */
+  min-height: 28px;
+  margin-bottom: 10px;
+}
+.fablesynth .dr-pattern-browse.on { color: var(--text); border-color: var(--ac-a); }
+/* The pad being edited, tied directly to the STEP SEQ nameplate in the
+   pad's own accent color instead of sitting disconnected on the far right. */
+.fablesynth .dr-stepseq-target {
+  color: var(--ac-a);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--ac-a) 45%, transparent);
+}
+.fablesynth .dr-pattern-preset { width: 148px; flex: 0 0 148px; }
+.fablesynth .dr-transport {
+  width: 34px;
+  min-width: 34px;
+  height: 28px;
+  padding: 0;
+  border-color: rgba(77, 232, 255, 0.55);
+  color: var(--ac-a);
+  font-size: 10px;
+}
+.fablesynth .dr-transport.active {
+  border-color: var(--ac-a);
+  box-shadow: inset 0 0 10px rgba(77, 232, 255, 0.1), 0 0 7px rgba(77, 232, 255, 0.16);
+}
+.fablesynth .dr-patterns { display: flex; gap: 4px; }
+.fablesynth .dr-seq-btn {
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #0d1017;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.fablesynth .dr-seq-btn:hover,
+.fablesynth .dr-seq-btn:focus-visible {
+  border-color: rgba(77, 232, 255, 0.62);
+  color: var(--ac-a);
+  outline: none;
+}
+.fablesynth .dr-seq-btn.active {
+  border-color: var(--ac-a);
+  color: var(--ac-a);
+  background: rgba(77, 232, 255, 0.07);
+  box-shadow: inset 0 0 9px rgba(77, 232, 255, 0.1);
+}
+.fablesynth .dr-pattern { width: 26px; }
+.fablesynth .dr-chain-toggle {
+  width: 52px;
+  margin-left: 2px;
+}
+.fablesynth .dr-chain-readout {
+  max-width: 180px;
+  color: #93a0b8;
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fablesynth .dr-step-editing {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  margin-left: auto;
+  color: #93a0b8;
+  font-size: 7px;
+  letter-spacing: 0.13em;
+  white-space: nowrap;
+}
+.fablesynth .dr-step-editing strong {
+  max-width: 120px;
+  padding: 4px 7px;
+  border: 1px solid rgba(77, 232, 255, 0.18);
+  border-radius: 4px;
+  background: #0a0d13;
+  color: var(--ac-a);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fablesynth .dr-fx-panel .fx-rack {
+  display: grid;
+  /* The rack shares the right column with the pads in the FX tab. COMP's
+     knob row needs a slightly wider cell than OTT and EQ. */
+  grid-template-columns: repeat(8, minmax(0, 1fr)) repeat(4, minmax(0, 1.06fr));
+  grid-template-areas:
+    'eq eq eq eq ott ott ott ott comp comp comp comp'
+    'drive drive drive chorus chorus chorus echo echo echo reverb reverb reverb';
+  gap: 10px;
+}
+.fablesynth .dr-fx-panel { padding: 8px; }
+.fablesynth .dr-fx-panel .dynamics-curve { height: 144px; aspect-ratio: auto; }
+.fablesynth .dr-fx-panel .fx-rack > .fx-group { grid-area: chorus; }
+.fablesynth .dr-fx-panel .fx-rack > .panel-dynamics,
+.fablesynth .dr-fx-panel .fx-rack > .panel-echo,
+.fablesynth .dr-fx-panel .fx-rack > .panel-reverb { min-width: 0; padding: 8px; }
+.fablesynth .dr-fx-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 22px;
+  padding: 0 3px 7px;
+}
+.fablesynth .dr-fx-head h2 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-disp);
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+}
+.fablesynth .dr-fx-padname {
+  min-width: 0;
+  color: var(--ac-a);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fablesynth .dr-fx-scope {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: rgba(7, 10, 16, 0.74);
+}
+.fablesynth .dr-fx-scope button {
+  border: 0;
+  border-radius: 3px;
+  padding: 3px 5px;
+  background: transparent;
+  color: var(--text-dim);
+  font: 500 7px var(--font-mono);
+  letter-spacing: .09em;
+  cursor: pointer;
+}
+.fablesynth .dr-fx-scope button.active {
+  background: rgba(77, 232, 255, .16);
+  color: var(--ac-a);
+  box-shadow: inset 0 0 0 1px rgba(77, 232, 255, .2);
+}
+.fablesynth .dr-fx-flow {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 6px;
+  letter-spacing: 0.11em;
+  white-space: nowrap;
+}
+.fablesynth .fx-group {
+  min-width: 0;
+  min-height: 104px;
+  padding: 8px 9px 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(24, 28, 38, 0.72), rgba(9, 12, 18, 0.8));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.fablesynth .fx-group-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 17px;
+  margin-bottom: 4px;
+}
+.fablesynth .fx-group-head h2 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-disp);
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+}
+.fablesynth .fx-power.on {
+  background: radial-gradient(circle at 38% 32%, #e9f1ff, var(--ac-n) 40%, #41506a 78%);
+  border-color: rgba(159, 180, 216, 0.64);
+  box-shadow: 0 0 9px rgba(159, 180, 216, 0.68);
+}
+.fablesynth .fx-knobs {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-evenly;
+  gap: 2px;
+}
+.fablesynth .fx-knobs .knob { min-width: 0; }
+.fablesynth .dr-fx-panel .dr-ott-knobs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 3px; }
+.fablesynth .dr-ott-bands { margin-left: auto; color: var(--text-dim); font-size: 7px; white-space: nowrap; }
+
+.fablesynth .mod-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 26px;
+  padding: 0 24px 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #0c0f16 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6'%3E%3Cpath d='M0 0h8L4 6z' fill='%236b768c'/%3E%3C/svg%3E") no-repeat right 8px center;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+.fablesynth .mod-select:focus-visible {
+  outline: 1px solid var(--ac-a);
+  outline-offset: 1px;
+}
+
+.fablesynth .dr-well {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #07090e;
+}
+.fablesynth .dr-label {
+  color: var(--text-dim);
+  font-size: 8px;
+  letter-spacing: 0.16em;
+}
+.fablesynth .dr-spacer { flex: 1; }
+
+/* ============ narrow panel ============ */
+@container fablesynth (max-width: 900px) {
+  .fablesynth .drum-rack-slot { min-width: 0; }
+  /* The flow legend is decoration: it gives way before the scope buttons. */
+  .fablesynth .dr-fx-flow { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
+/* The pad patch bar drops to its own line, its name taking the spare width,
+   instead of running under the BROWSE and SAVE buttons. */
+@container fablesynth (max-width: 560px) {
+  .fablesynth .dr-selbar { flex-wrap: wrap; row-gap: 6px; }
+  .fablesynth .dr-patchbar { flex: 1 1 100%; margin-left: 0; }
+  .fablesynth .dr-patchbar .dr-patchname { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
+/* ============ phone layout ============ */
+@container fablesynth (max-width: 700px) {
+  .fablesynth .drum-rack-slot {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  }
+
+  .fablesynth .dr-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 0;
+    padding: 9px;
+  }
+  .fablesynth .dr-header .brand { flex: 1 1 auto; min-width: 0; }
+  .fablesynth .dr-kitbar {
+    order: 3;
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+  .fablesynth .dr-kitname,
+.fablesynth .dr-name-input { flex: 1 1 0; min-width: 0; width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .fablesynth .dr-mode { order: 4; }
+  .fablesynth .dr-midi { display: none; }
+  .fablesynth .dr-master { order: 5; margin-left: auto; padding-left: 0; border-left: 0; }
+
+  .fablesynth .dr-main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .fablesynth .dr-left,
+.fablesynth .dr-right { gap: 8px; }
+
+  .fablesynth .dr-oscrow-slot,
+.fablesynth .dr-editrow-slot {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .fablesynth .dr-edit-panel { min-height: 0; }
+  .fablesynth .dr-osc-section,
+.fablesynth .dr-noise-section { min-height: 0; }
+  .fablesynth .dr-osc-body { grid-template-rows: minmax(126px, 35vw) auto; }
+  .fablesynth .dr-osc-knobs,
+.fablesynth .dr-noise-knobs { gap: 2px; justify-content: space-around; }
+  .fablesynth .dr-osc-knobs .knob-sm svg,
+.fablesynth .dr-noise-knobs .knob-sm svg { width: 38px; height: 38px; }
+  .fablesynth .dr-osc-knobs .knob-sm .k-label,
+.fablesynth .dr-noise-knobs .knob-sm .k-label { font-size: 7px; letter-spacing: 0.08em; }
+
+  .fablesynth .dr-stepseq-head { flex-wrap: wrap; gap: 6px; min-height: 0; }
+  .fablesynth .dr-step-editing {
+    order: 10;
+    flex: 1 1 100%;
+    margin-left: 0;
+    white-space: normal;
+    line-height: 1.35;
+  }
+  .fablesynth .dr-lanes-wrap { max-width: 100%; overflow-x: auto; }
+  .fablesynth .dr-lanes-wrap > .dr-lanes,
+.fablesynth .dr-lanes-wrap.single > .step-row { min-width: 512px; }
+  .fablesynth .dr-lane { min-width: 512px; }
+
+  .fablesynth .dr-fx-panel .fx-rack {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'eq'
+      'ott'
+      'comp'
+      'drive'
+      'chorus'
+      'echo'
+      'reverb';
+    gap: 8px;
+  }
+}
+
+/* POLY lane inspector: one machined strip under the grid. It speaks the header's
+   vocabulary (8px mono labels, 30px segmented wells). Amber marks POLY state:
+   the power LED, the loop meter, and the lane badge. Cyan marks selection. */
+.fablesynth .dr-poly {
+  --poly: var(--ac-b);
+  margin-top: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: linear-gradient(#0f131b, #0b0e14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+.fablesynth .dr-poly-head { display: flex; align-items: center; gap: 12px; min-height: 30px; }
+.fablesynth .dr-poly-title {
+  color: var(--text);
+  font-family: var(--font-disp);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+.fablesynth .dr-poly-pad { color: var(--ac-a); font-size: 9px; font-weight: 500; letter-spacing: 0.1em; white-space: nowrap; }
+.fablesynth .dr-poly-power {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px 0 7px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #0d1017;
+  color: var(--text-dim);
+  font: 600 8px var(--font-mono);
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.fablesynth .dr-poly-power-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #262d3a;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.fablesynth .dr-poly-power[aria-pressed=true] { border-color: color-mix(in srgb, var(--poly) 45%, transparent); color: var(--poly); }
+.fablesynth .dr-poly-power[aria-pressed=true] .dr-poly-power-led { background: var(--poly); box-shadow: 0 0 6px var(--poly); }
+.fablesynth .dr-poly-power:hover { color: var(--text); }
+
+.fablesynth .dr-poly-meter {
+  display: grid;
+  grid-template-columns: repeat(var(--poly-steps), 1fr);
+  gap: 3px;
+  width: min(260px, calc(var(--poly-steps) * 16px + 14px));
+  height: 24px;
+  margin-left: auto;
+  padding: 0 7px;
+  align-items: center;
+  border-radius: 5px;
+  background: #07090e;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.fablesynth .dr-poly-led { height: 5px; border-radius: 2px; background: #1a202b; transition: background 0.06s, box-shadow 0.06s; }
+.fablesynth .dr-poly-led.hit { background: color-mix(in srgb, var(--poly) 38%, #1a202b); }
+.fablesynth .dr-poly-led.accent { height: 10px; }
+.fablesynth .dr-poly.on .dr-poly-led.now { background: var(--text); box-shadow: 0 0 5px rgba(223, 230, 243, 0.55); }
+.fablesynth .dr-poly.on .dr-poly-led.hit.now { background: var(--poly); box-shadow: 0 0 7px var(--poly); }
+.fablesynth .dr-poly:not(.on) .dr-poly-meter { opacity: 0.45; }
+.fablesynth .dr-poly-readout {
+  min-width: 170px;
+  color: var(--text-hint);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+.fablesynth .dr-poly.on .dr-poly-readout { color: color-mix(in srgb, var(--poly) 75%, var(--text-hint)); }
+.fablesynth .dr-poly-history { display: flex; overflow: hidden; border: 1px solid var(--line); border-radius: 5px; }
+.fablesynth .dr-poly-history button {
+  width: 28px;
+  height: 24px;
+  border: 0;
+  background: #0d1017;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.fablesynth .dr-poly-history button + button { border-left: 1px solid var(--line); }
+.fablesynth .dr-poly-history button:hover { color: var(--ac-a); }
+
+.fablesynth .dr-poly-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+.fablesynth .dr-poly:not(.on) .dr-poly-controls { opacity: 0.6; }
+.fablesynth .dr-poly-group,
+.fablesynth .dr-sequence-number { display: flex; align-items: center; gap: 7px; margin: 0; padding: 0; border: 0; }
+.fablesynth .dr-poly-group legend,
+.fablesynth .dr-sequence-number > label {
+  float: left;
+  padding: 0;
+  color: var(--text-dim);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+}
+.fablesynth .dr-poly-seg,
+.fablesynth .dr-number-controls {
+  display: flex;
+  height: 30px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #0a0d13;
+}
+.fablesynth .dr-poly-seg label { position: relative; display: flex; }
+.fablesynth .dr-poly-seg label + label { border-left: 1px solid var(--line); }
+.fablesynth .dr-poly-seg input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.fablesynth .dr-poly-seg span {
+  display: grid;
+  min-width: 30px;
+  padding: 0 10px;
+  place-items: center;
+  background: #11141c;
+  color: var(--text-dim);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  transition: color 0.15s, background 0.15s;
+}
+.fablesynth .dr-poly-seg label:hover span { color: var(--ac-a); }
+.fablesynth .dr-poly-seg input:checked + span {
+  background: color-mix(in srgb, var(--ac-a) 12%, #0a0d13);
+  color: var(--ac-a);
+  box-shadow: inset 0 -2px 0 var(--ac-a);
+}
+.fablesynth .dr-poly-seg input:focus-visible + span { outline: 1px solid var(--ac-a); outline-offset: -3px; }
+.fablesynth .dr-number-controls button {
+  width: 30px;
+  padding: 0;
+  border: 0;
+  background: #11141c;
+  color: var(--text);
+  font: 700 15px var(--font-mono);
+  cursor: pointer;
+}
+.fablesynth .dr-number-controls button:first-child { border-right: 1px solid var(--line); }
+.fablesynth .dr-number-controls .dr-number-plus { order: 2; border-left: 1px solid var(--line); }
+.fablesynth .dr-number-controls button:hover { color: var(--ac-a); }
+.fablesynth .dr-number-controls input {
+  order: 1;
+  width: 38px;
+  border: 0;
+  background: transparent;
+  color: var(--ac-a);
+  font: 500 11px var(--font-mono);
+  text-align: center;
+}
+.fablesynth .dr-number-controls input[aria-invalid=true] { color: var(--ac-b); }
+.fablesynth .dr-poly :focus-visible,
+.fablesynth .dr-lane-name:focus-visible { outline: 1px solid var(--ac-a); outline-offset: 1px; }
+.fablesynth .dr-poly-hint { margin: 8px 0 0; color: var(--text-hint); font: 8px var(--font-mono); letter-spacing: 0.12em; }
+.fablesynth .dr-poly-error { color: var(--ac-b); font: 9px var(--font-mono); letter-spacing: 0.08em; }
+.fablesynth .dr-poly-badge { margin-left: auto; color: var(--ac-b); font-size: 8px; letter-spacing: 0.1em; white-space: nowrap; }
+.fablesynth .dr-lane-name { min-width: 155px; }
+.fablesynth .dr-stepseq .step.poly-source { outline: 1px solid #b4884a; outline-offset: -1px; }
+@media (max-width: 700px) {
+  .fablesynth .dr-stepseq-head { flex-wrap: wrap; }
+  .fablesynth .dr-poly-head { flex-wrap: wrap; }
+  .fablesynth .dr-poly-meter { order: 5; width: 100%; margin-left: 0; }
+  .fablesynth .dr-lanes-wrap { overflow-x: auto; }
+  .fablesynth .dr-lanes { min-width: 690px; }
+}
+.fablesynth .dr-lanes .step,
+.fablesynth .dr-lane-name,
+.fablesynth .dr-seq-btn { min-height: 24px; }
+@media (pointer: coarse) {
+  .fablesynth .dr-poly-seg,
+.fablesynth .dr-number-controls,
+.fablesynth .dr-seq-btn { min-height: 44px; }
+  .fablesynth .dr-poly-seg span,
+.fablesynth .dr-number-controls button { min-width: 44px; }
+  .fablesynth .dr-lanes .step,
+.fablesynth .dr-lane-name { min-height: 44px; }
+  .fablesynth .dr-lanes-wrap > .dr-lanes { min-width: 940px; }
+}
+
+/* Timing and lane-loop inspectors share one compact row beneath the grid. */
+.fablesynth .dr-inspector-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-top: 6px; align-items: stretch; }
+.fablesynth .dr-poly-slot { min-width: 0; }
+.fablesynth .dr-stepseq .step.poly-outside { background: #10151e; outline: 1px dashed #33404c; outline-offset: -1px; }
+.fablesynth .dr-stepseq .step.poly-outside.poly-grid { outline: none; background: #353b45; opacity: 0.7; }
+.fablesynth .dr-stepseq .step.poly-outside .step-fill,
+.fablesynth .dr-stepseq .step.poly-outside .step-accent { opacity: .15; }
+.fablesynth .dr-lanes .step.poly-outside:not(.poly-grid) .step-num { display: block; position: static; color: #8a9bad; font-size: 9px; }
+
+/* FIT shows the entire lane cycle. Hit onsets retain their fractional timing;
+   faint quarter-note marks and bar numbers identify this lane's time scale. */
+.fablesynth .dr-stepseq .fit-row {
+  position: relative;
+  display: block;
+  height: 45px;
+  background: repeating-linear-gradient(to right, #33404c 0 1px, transparent 1px calc(100% / var(--fit-beats)));
+}
+.fablesynth .dr-lanes .fit-row { height: 24px; }
+.fablesynth .dr-stepseq .fit-row .step { position: absolute; top: 0; height: 100%; margin: 0; }
+.fablesynth .dr-stepseq .fit-row .step-num { display: block; color: #b9c4d3; }
+.fablesynth .dr-lanes .fit-row .step-num { top: 50%; bottom: auto; transform: translateY(-50%); font-size: 9px; }
+.fablesynth .dr-stepseq .fit-row .step.on .step-num { color: #10151e; }
+.fablesynth .fit-bar-label { position: absolute; right: 100%; padding-right: 2px; top: 0; color: #a6b6c9; font: 8px 'IBM Plex Mono', monospace; pointer-events: none; }
+.fablesynth .fit-bar-label.second { right: 50%; }
+.fablesynth .dr-stepseq .step.selected { outline: 1px solid var(--ac-f, #b18cff); outline-offset: -1px; }
+@media (pointer: coarse) { .fablesynth .dr-lanes .fit-row { height: 44px; } }
+
+.fablesynth .dr-timing-panel {
+  display: grid;
+  grid-template-columns: minmax(90px, .7fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(90px, .7fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: linear-gradient(#111722, #0c1018);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+  font-family: var(--font-mono);
+}
+.fablesynth .dr-timing-context,
+.fablesynth .dr-timing-result { display: flex; flex-direction: column; gap: 5px; }
+.fablesynth .dr-timing-context { border-right: 1px solid var(--line); }
+.fablesynth .dr-timing-context strong { color: var(--text); font: 500 10px var(--font-disp); letter-spacing: .1em; }
+.fablesynth .dr-timing-context span { color: var(--ac-a); font-size: 10px; font-weight: 600; letter-spacing: .1em; }
+.fablesynth .dr-timing-control .dr-sequence-number { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.fablesynth .dr-timing-control .dr-sequence-number > label,
+.fablesynth .dr-timing-result > span { color: #9ca9bd; font-size: 9px; font-weight: 600; letter-spacing: .14em; }
+.fablesynth .dr-timing-control .dr-number-controls { height: 32px; }
+.fablesynth .dr-timing-control .dr-number-controls input { width: 62px; font-size: 12px; }
+.fablesynth .dr-timing-result { padding-left: 8px; border-left: 1px solid var(--line); }
+.fablesynth .dr-timing-result strong { color: var(--ac-a); font-size: 16px; font-weight: 600; line-height: 1; }
+.fablesynth .dr-timing-hint { display: none; }
+@media (max-width: 1120px) {
+  .fablesynth .dr-inspector-grid { grid-template-columns: 1fr; }
+  .fablesynth .dr-timing-panel { grid-template-columns: minmax(85px, .7fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(85px, .7fr); }
+}
+@media (max-width: 730px) {
+  .fablesynth .dr-timing-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .fablesynth .dr-timing-context { border: 0; }
+  .fablesynth .dr-timing-result { padding-left: 0; border: 0; }
+}
+.fablesynth .dr-stepseq .step.timing-selected { outline: 2px solid var(--ac-a); outline-offset: -2px; }
+.fablesynth .dr-micro-mark { position: absolute; right: 3px; top: 1px; font-size: 10px; color: var(--ac-a); }
+
+/* Width-driven layout: the editor column may be a full page (DR-1) or a slice
+   of the SQ-4 device pane, so rows adapt to their own container. */
+.fablesynth .pad-grid { gap: 5px; }
+.fablesynth .pad { aspect-ratio: 1 / 0.88; border-radius: 8px; }
+.fablesynth .pad-num { top: 4px; left: 6px; font-size: 7px; }
+.fablesynth .pad-led { top: 5px; right: 5px; width: 5px; height: 5px; }
+.fablesynth .pad-meta { right: 4px; bottom: 4px; left: 6px; gap: 0; }
+.fablesynth .pad-name,
+.fablesynth .pad-name-input { font-size: 8px; line-height: 12px; letter-spacing: 0; }
+.fablesynth .dr-noise-section .panel-head { flex-wrap: wrap; row-gap: 4px; }
+@container dr-right (max-width: 780px) {
+  .fablesynth .dr-oscrow-slot { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .fablesynth .dr-oscrow-slot > .dr-noise-section { grid-column: 1 / -1; min-height: 0; }
+  .fablesynth .dr-noise-section .dr-noise-view { height: 64px; }
+  .fablesynth .dr-editrow-slot { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .fablesynth .dr-fx-panel .fx-rack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'eq ott'
+      'comp drive'
+      'chorus echo'
+      'reverb reverb';
+  }
+}
+@container dr-right (max-width: 480px) {
+  .fablesynth .dr-oscrow-slot,
+.fablesynth .dr-editrow-slot { grid-template-columns: minmax(0, 1fr); }
+  .fablesynth .dr-fx-panel .fx-rack {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'eq' 'ott' 'comp' 'drive' 'chorus' 'echo' 'reverb';
+  }
+}
+
+/* SEQUENCER keeps the tabs over the editor column; on phones the column
+   stacks, so drop the empty pad-column spacer. */
+@media (max-width: 700px) {
+  .fablesynth .dr-body[data-page='seq'] .dr-main > div:empty { display: none; }
+}
+
+/* Kit auto-mix (group scope): controls, kit spectrum vs reference, pad moves. */
+.fablesynth .dr-kitmix { margin-bottom: 10px; }
+.fablesynth .dr-kitmix .panel-head { display: flex; align-items: baseline; gap: 10px; }
+.fablesynth .dr-kitmix-status { color: var(--text-dim); font: 8px var(--font-mono); letter-spacing: .1em; }
+.fablesynth .dr-kitmix-body { display: grid; grid-template-columns: 170px minmax(0, 1.4fr) minmax(0, 1fr); gap: 10px; align-items: start; }
+.fablesynth .dr-kitmix-side { display: grid; gap: 6px; }
+.fablesynth .dr-kitmix-side select { padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: #0a0d14; color: var(--text); font: 8px var(--font-mono); letter-spacing: .1em; }
+.fablesynth .dr-kitmix-amount { display: grid; grid-template-columns: 1fr 32px; align-items: center; gap: 6px; color: var(--text); font: 8px var(--font-mono); }
+.fablesynth .dr-kitmix-amount input { accent-color: var(--ac-n, #4de8ff); }
+.fablesynth .dr-kitmix-amount output { text-align: right; }
+.fablesynth .dr-kitmix-actions { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 4px; }
+.fablesynth .dr-kitmix-actions button { padding: 6px 2px; border: 1px solid var(--line); border-radius: 6px; background: #0a0d14; color: var(--text); font: 8px var(--font-mono); letter-spacing: .08em; cursor: pointer; }
+.fablesynth .dr-kitmix-actions button:disabled { opacity: .35; cursor: default; }
+.fablesynth .dr-kitmix-learn { background: linear-gradient(90deg, color-mix(in srgb, var(--ac-n, #4de8ff) 30%, #0a0d14) calc(var(--p, 0) * 100%), #0a0d14 0) !important; }
+.fablesynth .dr-kitmix-plot { display: block; width: 100%; height: 110px; border: 1px solid var(--line); border-radius: 8px; background: #07090e; }
+.fablesynth .dr-kitmix-plot .grid path { stroke: var(--text-dim); stroke-opacity: .15; }
+.fablesynth .dr-kitmix-plot .grid text { fill: var(--text-dim); font: 6px var(--font-mono); }
+.fablesynth .dr-kitmix-plot .target { fill: var(--ac-n, #4de8ff); fill-opacity: .1; stroke: var(--ac-n, #4de8ff); stroke-opacity: .35; stroke-dasharray: 2 3; }
+.fablesynth .dr-kitmix-plot .live { fill: color-mix(in srgb, var(--text) 9%, transparent); stroke: color-mix(in srgb, var(--text) 35%, transparent); stroke-width: 1; }
+.fablesynth .dr-kitmix-plot .before { fill: none; stroke: var(--text); stroke-width: 1.3; }
+.fablesynth .dr-kitmix-plot .after { fill: none; stroke: var(--ac-n, #4de8ff); stroke-width: 1.3; stroke-dasharray: 4 3; }
+.fablesynth .dr-kitmix-pads { margin: 0; padding: 4px 6px; max-height: 110px; overflow: auto; list-style: none; border: 1px solid var(--line); border-radius: 8px; background: #0a0d14; }
+.fablesynth .dr-kitmix-pads li { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 6px; padding: 2px 0; font: 8px var(--font-mono); color: var(--text-dim); }
+.fablesynth .dr-kitmix-pads li i { position: absolute; left: 0; bottom: 0; height: 1px; background: var(--text-dim); opacity: .5; }
+.fablesynth .dr-kitmix-pads b { color: var(--ac-n, #4de8ff); font-weight: normal; }
+.fablesynth .dr-kitmix-pads b.hold { color: var(--text-dim); }
+@media (max-width: 900px) { .fablesynth .dr-kitmix-body { grid-template-columns: 1fr; } }

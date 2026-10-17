@@ -29,6 +29,16 @@ function mockContext(started: StartedSource[], currentTime = 0) {
   return {
     currentTime,
     createGain: jest.fn(gain),
+    createStereoPanner: jest.fn(() => ({
+      pan: { value: 0, setTargetAtTime: jest.fn() },
+      connect: jest.fn(),
+      disconnect: jest.fn()
+    })),
+    createAnalyser: jest.fn(() => ({
+      fftSize: 2048,
+      connect: jest.fn(),
+      disconnect: jest.fn()
+    })),
     createBufferSource: jest.fn(() => {
       const src = {
         buffer: null as unknown,

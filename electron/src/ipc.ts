@@ -175,6 +175,12 @@ export function fileUrlToLocalPath(uri: string): string | null {
   }
 }
 
+/** Applies changed auto-update settings to the running updater. */
+async function applyUpdateSettings(): Promise<void> {
+  const { setupAutoUpdater } = await import("./updater");
+  await setupAutoUpdater();
+}
+
 function isSafeExternalUrl(urlValue: unknown): boolean {
   if (!isNonEmptyString(urlValue)) {
     return false;
@@ -630,9 +636,9 @@ export function initializeIpcHandlers(): void {
   });
 
   createIpcMainHandler(IpcChannels.INSTALL_UPDATE, async () => {
-    const { autoUpdater } = await import("electron-updater");
+    const { quitAndInstallUpdate } = await import("./updater");
     logMessage("User requested to install update and restart");
-    autoUpdater.quitAndInstall();
+    quitAndInstallUpdate();
   });
 
   // Window control handlers. Act on the window that sent the request: the
@@ -1016,8 +1022,12 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.SETTINGS_SET_AUTO_UPDATES,
     async (_event, enabled) => {
+      if (!isBoolean(enabled)) {
+        throw new Error(`Invalid auto-updates value: ${String(enabled)}`);
+      }
       logMessage(`Setting auto-updates to: ${enabled}`);
       updateSetting("autoUpdatesEnabled", enabled);
+      await applyUpdateSettings();
     },
   );
 
@@ -1034,7 +1044,9 @@ export function initializeIpcHandlers(): void {
         throw new Error(`Invalid update channel: ${String(channel)}`);
       }
       logMessage(`Setting update channel to: ${nextChannel}`);
-      return setUpdateChannel(nextChannel);
+      const savedChannel = setUpdateChannel(nextChannel);
+      await applyUpdateSettings();
+      return savedChannel;
     },
   );
 

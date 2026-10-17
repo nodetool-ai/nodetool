@@ -105,6 +105,7 @@ export const session = {
     fromPartition: jest.fn(),
     webRequest: {
       onHeadersReceived: jest.fn(),
+      onBeforeSendHeaders: jest.fn(),
       onBeforeRequest: jest.fn(),
     },
     on: jest.fn(),

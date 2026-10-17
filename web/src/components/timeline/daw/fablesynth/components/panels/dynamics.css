@@ -1,0 +1,51 @@
+.fablesynth .panel-dynamics { --ac: var(--ac-n); }
+.fablesynth .panel-dynamics .panel-head { gap: 7px; height: 22px; margin-bottom: 7px; }
+.fablesynth .dynamics-caption, .fablesynth .dynamics-legend { font: 8px var(--font-mono); letter-spacing: 0.08em; color: var(--ac-n); white-space: nowrap; }
+.fablesynth .dynamics-caption { color: var(--text-dim); }
+.fablesynth .dynamics-legend { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
+.fablesynth .dynamics-legend i { display: inline-block; width: 10px; height: 1px; background: var(--ac-n); opacity: 0.5; }
+.fablesynth .dynamics-legend .legend-out { background: var(--text); opacity: 1; }
+.fablesynth .dynamics-curve { display: block; width: 100%; height: auto; aspect-ratio: 360 / 126; border: 1px solid var(--line); border-radius: 9px; background: #07090e; }
+.fablesynth .dynamics-readouts { display: flex; justify-content: space-between; gap: 8px; padding: 9px 2px 8px; }
+.fablesynth .dynamics-readouts > div { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+.fablesynth .dynamics-readouts span { font: 8px var(--font-mono); letter-spacing: 0.06em; color: var(--ac-n); }
+.fablesynth .dynamics-readouts output { font: 9px var(--font-mono); color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fablesynth .dynamics-controls { display: flex; align-items: center; justify-content: space-around; gap: 10px; }
+.fablesynth .dynamics-note { font: 9px var(--font-mono); color: var(--ac-n); display: flex; flex-direction: column; gap: 7px; }
+.fablesynth .dynamics-note span, .fablesynth .dynamics-footnote { font: 8px var(--font-mono); color: var(--ac-n); letter-spacing: 0.03em; }
+.fablesynth .dynamics-footnote { text-align: center; margin-top: 7px; }
+.fablesynth .dynamics-bypassed .dynamics-controls { opacity: 0.55; }
+@media (max-width: 1100px) {
+  .fablesynth .dynamics-readouts > div { flex-direction: column; gap: 4px; }
+  .fablesynth .dynamics-note span { max-width: 18ch; line-height: 1.6; }
+  .fablesynth .dynamics-legend { font-size: 7px; }
+}
+
+/* Auto-comp */
+.fablesynth .comp-auto-toggle { margin-left: auto; min-height: 22px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 5px; background: #0a0d14; color: var(--text-dim); font: 8px var(--font-mono); letter-spacing: .1em; cursor: pointer; }
+.fablesynth .comp-auto-toggle.on { border-color: var(--ac-n); color: var(--text); background: color-mix(in srgb, var(--ac-n) 18%, #0a0d14); }
+.fablesynth .comp-auto-toggle + .dynamics-legend { margin-left: 6px; min-width: 0; overflow: hidden; }
+.fablesynth .comp-auto { display: grid; gap: 6px; margin: 8px 0 5px; }
+.fablesynth .comp-auto-row { display: flex; align-items: center; gap: 6px; }
+.fablesynth .comp-auto select, .fablesynth .comp-auto button { min-height: 24px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 5px; background: #0a0d14; color: var(--text); font: 8px var(--font-mono); letter-spacing: .08em; }
+.fablesynth .comp-auto select { flex: 1; min-width: 0; }
+.fablesynth .comp-auto button { flex: 1; cursor: pointer; }
+.fablesynth .comp-auto button:disabled { opacity: .35; cursor: default; }
+.fablesynth .comp-auto-learn { background: linear-gradient(90deg, color-mix(in srgb, var(--ac-n) 30%, #0a0d14) calc(var(--p, 0) * 100%), #0a0d14 0) !important; }
+.fablesynth .comp-auto-learn.on { border-color: var(--ac-n) !important; }
+.fablesynth .comp-auto-depth { display: flex; align-items: center; gap: 4px; width: 42%; }
+.fablesynth .comp-auto-depth input { flex: 1; min-width: 0; accent-color: var(--ac-n); }
+.fablesynth .comp-auto-depth output { width: 32px; text-align: right; color: var(--text-dim); font: 8px var(--font-mono); }
+.fablesynth .comp-auto-hist { display: block; width: 100%; height: 34px; border: 1px solid var(--line); border-radius: 5px; background: #07090e; }
+.fablesynth .comp-auto-hist rect { fill: var(--text-dim); opacity: .45; }
+.fablesynth .comp-auto-hist rect.over { fill: var(--ac-n); opacity: .85; }
+.fablesynth .comp-auto-hist line { stroke: var(--text); stroke-width: 1; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; }
+.fablesynth .comp-auto-status { margin: 0; color: var(--text-dim); font: 8px var(--font-mono); letter-spacing: .06em; }
+
+/* COMP side-chain row */
+.fablesynth .comp-sc { display: flex; align-items: center; gap: 10px; min-height: 26px; padding: 4px 2px 0; font: 8px var(--font-mono); letter-spacing: .1em; color: var(--text-dim); }
+.fablesynth .comp-sc label { display: flex; align-items: center; gap: 6px; }
+.fablesynth .comp-sc select { padding: 3px 5px; border: 1px solid var(--line); border-radius: 6px; background: #0a0d14; color: var(--text-dim); font: 8px var(--font-mono); letter-spacing: .08em; }
+.fablesynth .comp-sc.on select { color: var(--text); border-color: var(--ac-n, #4de8ff); }
+.fablesynth .comp-sc-hp { transform: scale(.85); transform-origin: left center; }
+.fablesynth .comp-sc-note { color: var(--ac-b, #ffa14d); }

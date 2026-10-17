@@ -73,7 +73,8 @@ import {
 import type { SelectOption } from "../../ui_primitives";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
-import { DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX } from "./trackHeight";
+import { trackRowHeightPx } from "./trackHeight";
+import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { trackTypeMeta, trackTypeAccent } from "./trackVisuals";
 export const TRACK_HEADER_WIDTH_PX = DEFAULT_TRACK_HEADER_WIDTH_PX;
 /**
@@ -98,7 +99,6 @@ export const trackHeaderWidthCss = `var(${TRACK_HEADER_WIDTH_VAR}, ${TRACK_HEADE
 const TRACK_DRAG_MIME = "application/x-nodetool-timeline-track";
 const MIN_TRACK_HEIGHT_PX = 48;
 const MAX_TRACK_HEIGHT_PX = 300;
-const DEFAULT_TRACK_HEIGHT_PX = SHARED_DEFAULT_TRACK_HEIGHT_PX;
 const RESIZE_HANDLE_HEIGHT_PX = 6;
 const RESIZE_KEY_STEP_PX = 8;
 const RESIZE_KEY_STEP_LARGE_PX = 32;
@@ -333,14 +333,40 @@ const resizeHandleStyles = (theme: Theme) =>
     }
   });
 
-/** Keep the preset compact as the track header grows. */
+/** The preset select at the icon buttons' height, so the row stays even. */
+const presetFieldHeight = {
+  "& .MuiInputBase-root": {
+    height: CONTROL.height.xs,
+    minHeight: CONTROL.height.xs
+  }
+};
+
+/** Inline in the controls row: keep the preset compact as the header grows. */
 const presetSelectStyles = css({
   minWidth: 0,
   flex: "0 1 160px",
   "@container (max-width: 280px)": { display: "none" },
-  "& .MuiInputBase-root": {
-    height: 22
-  }
+  ...presetFieldHeight
+});
+
+/**
+ * A DAW-mode midi row is tall enough to give the instrument its own line
+ * between the name and the controls, so the preset name reads in full.
+ */
+const DAW_INSTRUMENT_ROW_MIN_HEIGHT_PX = 80;
+
+const instrumentRowStyles = css({
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: getSpacingPx(SPACING.xs),
+  minWidth: 0
+});
+
+const instrumentRowSelectStyles = css({
+  minWidth: 0,
+  flex: "1 1 auto",
+  ...presetFieldHeight
 });
 
 /** Shown when the track's voice matches no shipped preset. */
@@ -386,7 +412,8 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
     const setTrackFolder = useTimelineStore((s) => s.setTrackFolder);
 
     const verticalZoom = useTimelineUIStore((s) => s.verticalZoom);
-    const authoredHeightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
+    const dawMode = useTimelineLayoutStore((s) => s.dawMode);
+    const authoredHeightPx = trackRowHeightPx(track, dawMode);
     const heightPx = authoredHeightPx * verticalZoom;
     const meta = trackTypeMeta(track.type);
     // Sentence case in menu labels; acronyms such as MIDI stay upper case.
@@ -597,6 +624,8 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
     const handleInstrumentToggle = useCallback(() => {
       toggleExpandedInstrument(track.id);
     }, [toggleExpandedInstrument, track.id]);
+    const instrumentOnOwnRow =
+      isMidi && dawMode && heightPx >= DAW_INSTRUMENT_ROW_MIN_HEIGHT_PX;
 
     const fxExpanded = useTimelineUIStore(
       (s) => s.expandedFxTrackId === track.id
@@ -730,6 +759,36 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
     );
     const resizeHandleCss = useMemo(() => resizeHandleStyles(theme), [theme]);
 
+    const instrumentControls = isMidi ? (
+      <>
+        <SelectField
+          label={`Instrument for ${track.name}`}
+          hideLabel
+          size="small"
+          appearance="inspector"
+          variant="outlined"
+          value={presetId}
+          options={PRESET_OPTIONS}
+          onChange={handlePresetChange}
+          css={instrumentOnOwnRow ? instrumentRowSelectStyles : presetSelectStyles}
+        />
+        <Tooltip title="Edit instrument">
+          <button
+            type="button"
+            css={instrumentExpanded ? iconButtonOnCss : iconButtonOffCss}
+            onClick={handleInstrumentToggle}
+            aria-label="Edit instrument"
+            aria-expanded={instrumentExpanded}
+            aria-pressed={instrumentExpanded}
+            data-testid={`track-instrument-${track.id}`}
+          >
+            <TuneOutlinedIcon />
+          </button>
+        </Tooltip>
+      </>
+    ) : null;
+
+
     return (
       <>
         <div
@@ -799,6 +858,10 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
             </div>
           </div>
 
+          {instrumentOnOwnRow && (
+            <div css={instrumentRowStyles}>{instrumentControls}</div>
+          )}
+
           {/* Controls row */}
           <div
             css={controlsRowCss}
@@ -866,35 +929,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               </>
             )}
 
-            {isMidi && (
-              <>
-                <SelectField
-                  label={`Instrument for ${track.name}`}
-                  hideLabel
-                  size="small"
-                  variant="outlined"
-                  value={presetId}
-                  options={PRESET_OPTIONS}
-                  onChange={handlePresetChange}
-                  css={presetSelectStyles}
-                />
-                <Tooltip title="Edit instrument">
-                  <button
-                    type="button"
-                    css={
-                      instrumentExpanded ? iconButtonOnCss : iconButtonOffCss
-                    }
-                    onClick={handleInstrumentToggle}
-                    aria-label="Edit instrument"
-                    aria-expanded={instrumentExpanded}
-                    aria-pressed={instrumentExpanded}
-                    data-testid={`track-instrument-${track.id}`}
-                  >
-                    <TuneOutlinedIcon />
-                  </button>
-                </Tooltip>
-              </>
-            )}
+            {isMidi && !instrumentOnOwnRow && instrumentControls}
 
             {supportsEffects && (
               <Tooltip

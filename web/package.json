@@ -6,8 +6,10 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/michroma": "^5.3.0",
     "@lexical/code": "^0.46.0",
     "@lexical/link": "^0.46.0",
     "@lexical/list": "^0.46.0",
@@ -21,6 +23,7 @@
     "@mui/icons-material": "^7.3.11",
     "@mui/material": "^7.3.11",
     "@mui/x-tree-view": "^7.29.10",
+    "@nodetool-ai/analytics": "*",
     "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/base-nodes": "*",
     "@nodetool-ai/core-nodes": "*",

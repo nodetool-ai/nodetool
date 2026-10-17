@@ -266,6 +266,25 @@ describe("RenderTimeline — midi tracks", () => {
     expect(execFileCalls.filter(call => call.args.includes("f32le"))).toHaveLength(1);
     expect(ffmpegArgs().some(args => args.includes("pan=mono|c0=0.5*c0+0.5*c1"))).toBe(true);
   });
+  it("renders a noteless arp clip from the chord track under it", async () => {
+    const chordTrack = {
+      id: "t-chords", type: "chord", index: 1, visible: true,
+      chords: [{ id: "c", startTick: 0, durationTick: 16 * MIDI_PPQ, root: 9, quality: "min", inversion: 0 }]
+    };
+    await render(sequence({
+      tracks: [MIDI_TRACK, chordTrack],
+      clips: [midiClip({ notes: [], harmony: { style: "arp", input: "chords", rate: 0.5 } })]
+    }));
+    const wav = capturedWavs.get("midi_clip-m.wav");
+    expect(wav).toBeDefined();
+    const { samples } = decodeWavPcm16(wav as Buffer);
+    // Eighth-note arp over the whole two-bar window.
+    for (const beat of [0, 3, 7]) {
+      expect(rms(samples, beat * QUARTER_MS + 20, beat * QUARTER_MS + 200)).toBeGreaterThan(0.01);
+    }
+    expect(mixArgs()).toContain("midi_clip-m.wav");
+  });
+
   it("renders a midi-only timeline and mixes the clip's rendered WAV in", async () => {
     const seq = sequence({ tracks: [MIDI_TRACK] });
     await expect(render(seq)).resolves.toBeDefined();

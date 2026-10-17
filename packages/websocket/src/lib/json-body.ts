@@ -16,3 +16,16 @@ export function parseJsonBodies(app: FastifyInstance): void {
     app.getDefaultJsonParser("error", "error")
   );
 }
+
+/**
+ * Whether a `Content-Type` header is exactly `application/json`, ignoring
+ * parameters such as `charset`.
+ *
+ * A substring test also accepts `text/plain; x=application/json`, which a
+ * browser sends cross-site without a CORS preflight, so a page could post
+ * JSON to a local server that trusts loopback.
+ */
+export function isJsonContentType(contentType: string | null | undefined): boolean {
+  const essence = (contentType ?? "").split(";")[0]?.trim().toLowerCase();
+  return essence === "application/json";
+}

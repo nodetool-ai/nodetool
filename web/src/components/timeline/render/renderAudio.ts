@@ -11,17 +11,22 @@
 import {
   DEFAULT_MIDI_INSTRUMENT,
   effectiveAssetId,
+  harmonizeClips,
   renderMidiClip,
   resolveTempo,
   videoClipsWithOwnAudio
 } from "@nodetool-ai/timeline";
 import type {
   TimelineClip,
+  TimelineMasterChannel,
   TimelineTempo,
   TimelineTrack
 } from "@nodetool-ai/timeline";
 import { getSamplerAudio } from "../preview/samplerAudio";
 import { AudioGraph, type ScheduledAudioClip } from "../preview/AudioGraph";
+import { liveDeviceFactory } from "../daw/devices/liveDevice";
+import "../daw/devices/registerFablesynthDevices";
+import { preloadFableFx, usesFableFx } from "../daw/fx/fableFxUnit";
 
 interface RenderAudioOptions {
   clips: TimelineClip[];
@@ -34,6 +39,8 @@ interface RenderAudioOptions {
   sampleRate?: number;
   /** Tempo the midi clips are read against. Defaults to `DEFAULT_TEMPO`. */
   tempo?: TimelineTempo;
+  /** The document's master channel: its inserts and fader run on the mix. */
+  master?: TimelineMasterChannel;
   /** Aborts the mixdown between steps and while assets are loading. */
   signal?: AbortSignal;
 }
@@ -87,7 +94,10 @@ function isPlayableAudioClip(clip: TimelineClip): boolean {
 export async function renderTimelineAudio(
   opts: RenderAudioOptions
 ): Promise<AudioBuffer | null> {
-  const { clips, tracks, durationMs, resolveUrl, signal } = opts;
+  const { tracks, durationMs, resolveUrl, signal } = opts;
+  // A midi clip with `harmony` plays its arp or comp expansion, here and in
+  // what the live devices are preloaded with.
+  const clips = harmonizeClips(opts.clips, { tracks, tempo: opts.tempo });
   const sampleRate = opts.sampleRate ?? 48_000;
 
   if (durationMs <= 0) return null;
@@ -126,6 +136,9 @@ export async function renderTimelineAudio(
     Promise.all(
       audioClips.map(async (clip): Promise<ScheduledAudioClip | null> => {
         throwIfAborted(signal);
+        if (clip.mediaType === "midi" && liveDeviceFactory(instrumentOf(clip.trackId))) {
+          return { clip, live: { bpm } };
+        }
         if (clip.mediaType === "midi") {
           // Rendered inline: the export already runs off the main thread's hot
           // path, and one context per render makes a worker round trip pure cost.
@@ -163,10 +176,27 @@ export async function renderTimelineAudio(
   );
   if (validClips.length === 0) return null;
 
+  // FableSynth inserts are worklets: load the module before the graph builds
+  // its chains, so they are spliced in at build time and render from frame 0.
+  if (usesFableFx(tracks, opts.master)) {
+    await abortable(preloadFableFx(offline), signal);
+  }
   // The graph's fetches take the export's signal, and a cancel stops it
   // scheduling once its buffers settle, so a cancelled mix stops downloading
   // and decoding rather than finishing behind the next export.
   const graph = new AudioGraph(offline, { signal });
+  graph.setTempo(bpm);
+  graph.setMaster(opts.master);
+  // Live devices get their whole score at construction: an offline render
+  // can finish before a message posted after it starts is delivered.
+  await abortable(
+    graph.preloadLiveDevices(
+      tracks.filter((track) => audibleTrackIds.has(track.id)),
+      audioClips,
+      bpm
+    ),
+    signal
+  );
   // currentTimeMs = 0: the renderer always mixes the whole timeline from t=0,
   // so each clip is scheduled at its absolute startMs on the offline clock.
   await abortable(

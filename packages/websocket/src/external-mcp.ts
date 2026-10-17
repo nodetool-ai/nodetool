@@ -15,7 +15,7 @@
  * answering is dropped and retried on the next turn.
  */
 
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, isAuthEnforced } from "@nodetool-ai/config";
 import { Secret, Setting, clearSecretCache } from "@nodetool-ai/models";
 import {
   McpClientPool,
@@ -60,14 +60,20 @@ function serializedFor<T>(userId: string, fn: () => Promise<T>): Promise<T> {
  * Whether this deployment spawns stdio servers and reaches private hosts. A
  * stdio server is a command run on the machine the server owns, so it is
  * offered only where that machine belongs to its user — the desktop app, a
- * local server, a self-hosted install. The cloud profile keeps HTTP servers
- * only, and only public https ones.
+ * local server, a single-user self-hosted install. The cloud profile and a
+ * Supabase-auth deployment keep HTTP servers only, and only public https ones.
  */
 export function isLocalMcpProfile(): boolean {
-  return !isCloudProfileActive(
-    process.env[CLOUD_PROFILE_ENV],
-    process.env[NODE_ENV_VAR]
-  );
+  if (isCloudProfileActive(process.env[CLOUD_PROFILE_ENV], process.env[NODE_ENV_VAR])) {
+    return false;
+  }
+  // With Supabase auth the machine is shared by every account that can sign
+  // up, and a stdio server would run a command for any of them. The operator
+  // can opt in when every account is trusted with a shell on the host.
+  if (isAuthEnforced()) {
+    return process.env["NODETOOL_ALLOW_STDIO_MCP"]?.trim() === "1";
+  }
+  return true;
 }
 
 export const STDIO_MCP_DISABLED_ERROR =

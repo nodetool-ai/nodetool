@@ -33,3 +33,5 @@ export const QUICK_ACTION_NODE_TYPES = [
   "nodetool.constant.String",
   "nodetool.constant.Video"
 ] as const;
+
+export type QuickActionNodeType = (typeof QUICK_ACTION_NODE_TYPES)[number];

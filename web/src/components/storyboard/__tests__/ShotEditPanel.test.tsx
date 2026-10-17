@@ -200,8 +200,8 @@ const choose = async (label: string, option: string) => {
   );
 };
 
-// Pastes instead of typing: every keystroke re-renders the whole panel, so
-// typing eleven fields one key at a time took ~26 s and timed out on CI.
+// Pasting enters the whole value in one input event. Typing it one key at a
+// time ran past the timeout on loaded CI runners.
 const typeInto = async (label: string, text: string) => {
   const field = screen.getByLabelText(label);
   await userEvent.clear(field);

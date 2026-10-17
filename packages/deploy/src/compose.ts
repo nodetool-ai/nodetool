@@ -196,7 +196,8 @@ export function generateComposeFile(
   const content = generator.generate();
 
   if (outputPath) {
-    writeFileSync(outputPath, content, "utf-8");
+    // The file carries container.environment, SECRETS_MASTER_KEY included.
+    writeFileSync(outputPath, content, { encoding: "utf-8", mode: 0o600 });
   }
 
   return content;

@@ -27,7 +27,7 @@ function isNightlyVersion(version: string): boolean {
   return NIGHTLY_VERSION_PATTERN.test(version);
 }
 
-function getDefaultUpdateChannel(version: string): UpdateChannel {
+export function getDefaultUpdateChannel(version: string): UpdateChannel {
   return isNightlyVersion(version) ? "nightly" : "latest";
 }
 

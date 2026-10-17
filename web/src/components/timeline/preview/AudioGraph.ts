@@ -1,26 +1,37 @@
 import {
   fadeShapeGain,
+  midiClipNoteEvents,
   resolveClipFades,
   sampleFadeShape,
   timeRemapAudioSegments
 } from "@nodetool-ai/timeline";
 import type { ClipFadeShape, TimeRemapAudioSegment } from "@nodetool-ai/timeline";
 import type {
+  MidiInstrument,
   TimelineClip,
+  TimelineMasterChannel,
   TimelineTrack,
   TrackEffect
 } from "@nodetool-ai/timeline";
 import {
+  liveDeviceFactory,
+  type LiveInstrumentDevice,
+  type LiveNoteEvent
+} from "../daw/devices/liveDevice";
+import {
   applyCompressorEffect,
   applyEq3Effect,
   applyFilterEffect,
+  applyFableEffect,
   applyGainEffect,
   buildClipEffectChain,
   buildEffectUnit,
   disconnectNodes,
+  releaseEffectUnit,
   type ClipEffectChain,
   type EffectUnit
 } from "./audioEffectNodes";
+import type { FableFxHandle } from "../daw/fx/fableFxUnit";
 
 /**
  * One clip handed to the graph for scheduling, with the PCM it should play:
@@ -45,15 +56,69 @@ export type ScheduledAudioClip =
       assetUrl?: undefined;
       /** Already-rendered PCM — no asset, no decode. */
       buffer: AudioBuffer;
+    }
+  | {
+      /**
+       * A midi clip played by its track's live device: the graph sends the
+       * clip's notes to the device instead of playing a buffer.
+       */
+      clip: TimelineClip;
+      live: { bpm: number };
+      assetUrl?: undefined;
+      buffer?: undefined;
     };
 
-interface TrackChainState {
-  /** trackGain output is always connected to the head of `units` (or directly to masterGain if empty). */
-  trackGain: GainNode;
+/** A scheduled clip that plays PCM through the graph, not a live device. */
+type PcmScheduledClip = Exclude<ScheduledAudioClip, { live: { bpm: number } }>;
+
+/** Linear gain of a fader position in decibels. */
+export function dbToGain(db: number | undefined): number {
+  return db === undefined || db === 0 ? 1 : Math.pow(10, db / 20);
+}
+
+/** A track's live instrument and the instrument type it was made for. */
+interface TrackDeviceState {
+  type: MidiInstrument["type"];
+  device: Promise<LiveInstrumentDevice | null>;
+  /** Set once `device` resolves, for synchronous callers. */
+  ready: LiveInstrumentDevice | null;
+  /** The newest instrument, applied when a device still loading resolves. */
+  instrument: MidiInstrument;
+}
+
+/** An insert chain: the effects last applied and the nodes built for them. */
+interface EffectChainState {
   /** Last applied snapshot — used to skip rebuilds when reference-equal. */
   effects: TrackEffect[];
   units: EffectUnit[];
 }
+
+interface TrackChainState extends EffectChainState {
+  /**
+   * trackGain (mute/solo) → units → fader (volumeDb) → panner → mix bus.
+   * The analyser taps the panner for the mixer's meters.
+   */
+  trackGain: GainNode;
+  fader: GainNode;
+  panner: StereoPannerNode;
+  analyser: AnalyserNode;
+  /** Per-side analysers, made the first time a stereo meter asks. */
+  meter?: StereoMeterTap;
+}
+
+/**
+ * A stereo meter's taps on a channel output: an `AnalyserNode` downmixes to
+ * mono, so each side gets its own after a splitter.
+ */
+export interface StereoMeterTap {
+  left: AnalyserNode;
+  right: AnalyserNode;
+  /** The splitter feeding both, disconnected with the channel. */
+  splitter: ChannelSplitterNode;
+}
+
+/** Analyser window for channel meters: about 43 ms at 48 kHz. */
+const METER_FFT_SIZE = 2048;
 
 /** Sample spacing for a shaped fade, and the bounds that spacing is held to. */
 const FADE_CURVE_STEP_MS = 5;
@@ -357,6 +422,25 @@ interface ScrubVoice {
 export class AudioGraph {
   private ctx: BaseAudioContext | null = null;
   private masterGain: GainNode | null = null;
+  /**
+   * The document's master channel: every track channel sums here, then runs
+   * through the master inserts and the master fader (`masterFader`) into the
+   * listener volume (`masterGain`). The analyser taps the fader's output.
+   */
+  private mixBus: GainNode | null = null;
+  private masterFader: GainNode | null = null;
+  private masterChain: EffectChainState = { effects: [], units: [] };
+  /** Tempo the `fable` inserts sync their echo and LAB stages to. */
+  private fxBpm = 120;
+  /** Context time of the timeline's zero for the current play gesture. */
+  private beatZeroSec = 0;
+  /** The document's master channel, kept so a later context starts with it. */
+  private master: TimelineMasterChannel | undefined;
+  private mixAnalyser: AnalyserNode | null = null;
+  private masterMeter: StereoMeterTap | null = null;
+  private trackDevices = new Map<string, TrackDeviceState>();
+  /** Clips playing through a live device, by clip id, with their track id. */
+  private liveClips = new Map<string, string>();
   /** Listener volume, linear 0..1. Applied after every mix decision. */
   private masterVolume = 1;
   private trackChains = new Map<string, TrackChainState>();
@@ -400,8 +484,45 @@ export class AudioGraph {
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.value = this.masterVolume;
       this.masterGain.connect(this.ctx.destination);
+      this.mixBus = this.ctx.createGain();
+      this.masterFader = this.ctx.createGain();
+      this.masterFader.gain.value = dbToGain(this.master?.volumeDb);
+      this.mixAnalyser = this.ctx.createAnalyser();
+      this.mixAnalyser.fftSize = METER_FFT_SIZE;
+      this.masterChain = { effects: [], units: [] };
+      this.mixBus.connect(this.masterFader);
+      this.masterFader.connect(this.masterGain);
+      this.masterFader.connect(this.mixAnalyser);
+      this.applyEffectChain(
+        this.masterChain,
+        this.mixBus,
+        this.masterFader,
+        this.master?.effects ?? []
+      );
     }
     return this.ctx;
+  }
+
+  /**
+   * Set the document's master channel: its inserts run on the summed mix,
+   * then its fader. Unlike {@link setMasterVolume} this is part of the
+   * document, so the export renders it too. Kept until a context exists.
+   */
+  setMaster(master: TimelineMasterChannel | undefined): void {
+    this.master = master;
+    const ctx = this.ctx;
+    if (!ctx || !this.mixBus || !this.masterFader) return;
+    this.masterFader.gain.setTargetAtTime(
+      dbToGain(master?.volumeDb),
+      ctx.currentTime,
+      0.01
+    );
+    this.applyEffectChain(
+      this.masterChain,
+      this.mixBus,
+      this.masterFader,
+      master?.effects ?? []
+    );
   }
 
   /**
@@ -484,8 +605,19 @@ export class AudioGraph {
 
     const ctx = this.getContext();
     const trackGain = ctx.createGain();
-    trackGain.connect(this.masterGain!);
-    chain = { trackGain, effects: [], units: [] };
+    const fader = ctx.createGain();
+    const panner = ctx.createStereoPanner();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = METER_FFT_SIZE;
+    // Mono input is upmixed before the panner, as the server render does, so
+    // a centred mono channel plays at the level it had before panning.
+    panner.channelCount = 2;
+    panner.channelCountMode = "explicit";
+    trackGain.connect(fader);
+    fader.connect(panner);
+    panner.connect(this.mixBus!);
+    panner.connect(analyser);
+    chain = { trackGain, fader, panner, analyser, effects: [], units: [] };
     this.trackChains.set(trackId, chain);
     return chain;
   }
@@ -540,6 +672,9 @@ export class AudioGraph {
             e
           );
           break;
+        case "fable":
+          applyFableEffect(unit, e, this.fxBpm);
+          break;
       }
       unit.effect = e;
     }
@@ -559,6 +694,21 @@ export class AudioGraph {
       return;
     }
     const chain = this.getOrCreateTrackChain(trackId);
+    this.applyEffectChain(chain, chain.trackGain, chain.fader, effects);
+  }
+
+  /**
+   * Bring an insert chain wired `input → units → output` in line with
+   * `effects`: parameters in place when the structure matches, otherwise a
+   * rebuild. `input` must feed nothing but this chain, since a rebuild
+   * disconnects all of its outputs.
+   */
+  private applyEffectChain(
+    chain: EffectChainState,
+    input: AudioNode,
+    output: AudioNode,
+    effects: TrackEffect[]
+  ): void {
     if (chain.effects === effects) return; // reference-equal — nothing to do
 
     if (this.chainStructureMatches(chain.units, effects)) {
@@ -569,38 +719,30 @@ export class AudioGraph {
 
     // Rebuild: disconnect current chain.
     try {
-      chain.trackGain.disconnect();
+      input.disconnect();
     } catch {
       /* not connected */
     }
-    for (const unit of chain.units) {
-      for (const n of unit.nodes) {
-        try {
-          n.disconnect();
-        } catch {
-          /* not connected */
-        }
-      }
-    }
+    for (const unit of chain.units) releaseEffectUnit(unit);
     chain.units = [];
 
     // Build new chain from enabled effects.
     const newUnits: EffectUnit[] = [];
     for (const effect of effects) {
       if (!effect.enabled) continue;
-      const unit = buildEffectUnit(this.getContext(), effect);
+      const unit = buildEffectUnit(this.getContext(), effect, { bpm: this.fxBpm });
       if (unit) newUnits.push(unit);
     }
     chain.units = newUnits;
     chain.effects = effects;
 
-    // Wire up: trackGain → unit[0] → unit[1] → ... → masterGain.
-    let prevOutput: AudioNode = chain.trackGain;
+    // Wire up: input → unit[0] → unit[1] → ... → output.
+    let prevOutput: AudioNode = input;
     for (const unit of newUnits) {
       prevOutput.connect(unit.input);
       prevOutput = unit.output;
     }
-    prevOutput.connect(this.masterGain!);
+    prevOutput.connect(output);
   }
 
   /**
@@ -612,20 +754,10 @@ export class AudioGraph {
     const keep = new Set(trackIds);
     for (const [id, chain] of this.trackChains) {
       if (keep.has(id)) continue;
-      try {
-        chain.trackGain.disconnect();
-      } catch {
-        /* not connected */
-      }
-      for (const unit of chain.units) {
-        for (const n of unit.nodes) {
-          try {
-            n.disconnect();
-          } catch {
-            /* not connected */
-          }
-        }
-      }
+      disconnectNodes([chain.trackGain, chain.fader, chain.panner]);
+      if (chain.meter) disconnectNodes([chain.meter.splitter]);
+      this.disposeTrackDevice(id);
+      for (const unit of chain.units) releaseEffectUnit(unit);
       this.trackChains.delete(id);
     }
   }
@@ -653,8 +785,223 @@ export class AudioGraph {
       const muted = track.muted === true || (hasSolo && !track.solo);
       // Use a short ramp instead of a hard cut to avoid clicks.
       chain.trackGain.gain.setTargetAtTime(muted ? 0 : 1, now, 0.01);
+      chain.fader.gain.setTargetAtTime(dbToGain(track.volumeDb), now, 0.01);
+      chain.panner.pan.setTargetAtTime(track.pan ?? 0, now, 0.01);
       this.setTrackEffects(track.id, track.effects ?? []);
+      if (track.type === "midi") this.syncTrackDevice(track);
     }
+  }
+
+  /** The analyser on a track's channel output, or null before the track has played. */
+  getTrackAnalyser(trackId: string): AnalyserNode | null {
+    return this.trackChains.get(trackId)?.analyser ?? null;
+  }
+
+  /**
+   * Set the tempo `fable` inserts sync to (tape echo SYNC, LAB glitch and
+   * shift divisions). Running units update in place.
+   */
+  setTempo(bpm: number): void {
+    if (!Number.isFinite(bpm) || bpm <= 0 || bpm === this.fxBpm) return;
+    this.fxBpm = bpm;
+    for (const state of this.trackDevices.values()) {
+      state.ready?.setTempo(bpm, this.beatZeroSec);
+    }
+    const chains: EffectChainState[] = [this.masterChain, ...this.trackChains.values()];
+    for (const chain of chains) {
+      for (const unit of chain.units) {
+        if (unit.effect.type === "fable") applyFableEffect(unit, unit.effect, bpm);
+      }
+    }
+  }
+
+  /** The running FableSynth stage of a `fable` effect on any track or the master. */
+  getFableFx(effectId: string): FableFxHandle | null {
+    const chains: EffectChainState[] = [this.masterChain, ...this.trackChains.values()];
+    for (const chain of chains) {
+      const unit = chain.units.find((u) => u.effect.id === effectId);
+      if (unit?.fable) return unit.fable;
+    }
+    return null;
+  }
+
+  /** The analyser on the master channel's output. */
+  getMasterAnalyser(): AnalyserNode | null {
+    return this.mixAnalyser;
+  }
+
+  /**
+   * Left and right analysers after a track's panner, or null before the
+   * track has a channel. Made on first request, so a graph nobody meters
+   * carries no splitter.
+   */
+  getTrackMeter(trackId: string): StereoMeterTap | null {
+    const chain = this.trackChains.get(trackId);
+    if (!chain || !this.ctx) return null;
+    chain.meter ??= this.createMeterTap(this.ctx, chain.panner);
+    return chain.meter;
+  }
+
+  /** Left and right analysers after the master fader, or null before the context. */
+  getMasterMeter(): StereoMeterTap | null {
+    if (!this.ctx || !this.masterFader) return null;
+    this.masterMeter ??= this.createMeterTap(this.ctx, this.masterFader);
+    return this.masterMeter;
+  }
+
+  private createMeterTap(ctx: BaseAudioContext, source: AudioNode): StereoMeterTap {
+    const splitter = ctx.createChannelSplitter(2);
+    const left = ctx.createAnalyser();
+    const right = ctx.createAnalyser();
+    left.fftSize = METER_FFT_SIZE;
+    right.fftSize = METER_FFT_SIZE;
+    source.connect(splitter);
+    splitter.connect(left, 0);
+    splitter.connect(right, 1);
+    return { left, right, splitter };
+  }
+
+  /** The master channel's gain node, the input every track channel feeds. */
+  getMixBus(): GainNode | null {
+    return this.mixBus;
+  }
+
+  /** The live device playing a midi track, once it has been created. */
+  getTrackDevice(trackId: string): LiveInstrumentDevice | null {
+    return this.trackDevices.get(trackId)?.ready ?? null;
+  }
+
+  /**
+   * The live device for a midi track, created on demand (the on-screen
+   * keyboard needs one before anything has played). Null when the track's
+   * instrument plays pre-rendered.
+   */
+  async ensureTrackDevice(track: TimelineTrack): Promise<LiveInstrumentDevice | null> {
+    this.getContext();
+    this.getOrCreateTrackChain(track.id);
+    this.syncTrackDevice(track);
+    return (await this.trackDevices.get(track.id)?.device) ?? null;
+  }
+
+  /**
+   * Create, replace or update a midi track's live device to match its
+   * instrument. `events` preloads an offline render's whole score.
+   */
+  private syncTrackDevice(track: TimelineTrack, events?: LiveNoteEvent[]): void {
+    const instrument = track.instrument;
+    const factory = liveDeviceFactory(instrument);
+    const current = this.trackDevices.get(track.id);
+    if (!factory || !instrument) {
+      if (current) this.disposeTrackDevice(track.id);
+      return;
+    }
+    if (current && current.type === instrument.type) {
+      current.instrument = instrument;
+      current.ready?.setInstrument(instrument);
+      return;
+    }
+    if (current) this.disposeTrackDevice(track.id);
+    const ctx = this.getContext();
+    const chain = this.getOrCreateTrackChain(track.id);
+    const state: TrackDeviceState = {
+      type: instrument.type,
+      ready: null,
+      instrument,
+      device: factory(ctx, instrument, { events }).then(
+        (device) => {
+          if (this.trackDevices.get(track.id) !== state) {
+            device.dispose();
+            return null;
+          }
+          device.output.connect(chain.trackGain);
+          device.setTempo(this.fxBpm, this.beatZeroSec);
+          device.setInstrument(state.instrument);
+          state.ready = device;
+          return device;
+        },
+        (error: unknown) => {
+          console.error("[AudioGraph] live device failed to start", error);
+          return null;
+        }
+      )
+    };
+    this.trackDevices.set(track.id, state);
+  }
+
+  private disposeTrackDevice(trackId: string): void {
+    const state = this.trackDevices.get(trackId);
+    if (!state) return;
+    this.trackDevices.delete(trackId);
+    void state.device.then((device) => device?.dispose());
+    for (const [clipId, clipTrackId] of this.liveClips) {
+      if (clipTrackId === trackId) this.liveClips.delete(clipId);
+    }
+  }
+
+  /**
+   * Offline export: create every live device with its whole score, before
+   * rendering starts. Clips handed to `addClips` afterwards are then skipped
+   * for those tracks, since their notes are already queued.
+   */
+  async preloadLiveDevices(
+    tracks: TimelineTrack[],
+    clips: TimelineClip[],
+    bpm: number
+  ): Promise<Set<string>> {
+    const preloaded = new Set<string>();
+    for (const track of tracks) {
+      if (track.type !== "midi" || !liveDeviceFactory(track.instrument)) continue;
+      const events = clips
+        .filter((clip) => clip.trackId === track.id && clip.mediaType === "midi")
+        .flatMap((clip) =>
+          midiClipNoteEvents(clip, bpm).map((event) => ({
+            timeSec: event.timeMs / 1000,
+            pitch: event.pitch,
+            velocity: event.velocity,
+            on: event.on
+          }))
+        );
+      this.getOrCreateTrackChain(track.id);
+      this.syncTrackDevice(track, events);
+      await this.trackDevices.get(track.id)?.device;
+      for (const clip of clips) {
+        if (clip.trackId !== track.id) continue;
+        preloaded.add(clip.id);
+        this.liveClips.set(clip.id, track.id);
+      }
+    }
+    return preloaded;
+  }
+
+  /** Send a live clip's notes from the playhead on to its track's device. */
+  private async scheduleLiveClip(
+    clip: TimelineClip,
+    bpm: number,
+    tracks: TimelineTrack[],
+    currentTimeInput: number | (() => number),
+    globalRate: number,
+    shouldCancel?: () => boolean
+  ): Promise<void> {
+    const track = tracks.find((t) => t.id === clip.trackId);
+    if (!track) return;
+    this.syncTrackDevice(track);
+    const device = await this.trackDevices.get(track.id)?.device;
+    if (!device || shouldCancel?.() || this.liveClips.has(clip.id)) return;
+    const ctx = this.getContext();
+    const currentTimeMs =
+      typeof currentTimeInput === "function" ? currentTimeInput() : currentTimeInput;
+    const now = ctx.currentTime;
+    const g = Math.max(0.0001, globalRate);
+    this.beatZeroSec = now - currentTimeMs / 1000 / g;
+    device.setTempo(bpm, this.beatZeroSec);
+    const events = midiClipNoteEvents(clip, bpm, currentTimeMs).map((event) => ({
+      timeSec: now + (event.timeMs - currentTimeMs) / 1000 / g,
+      pitch: event.pitch,
+      velocity: event.velocity,
+      on: event.on
+    }));
+    this.liveClips.set(clip.id, track.id);
+    device.schedule(events, clip.id);
   }
 
   /**
@@ -673,7 +1020,9 @@ export class AudioGraph {
   ): Promise<void> {
     const activeIds = new Set(clips.map((c) => c.clip.id));
     this.stopClips(
-      [...this.clipSources.keys()].filter((id) => !activeIds.has(id))
+      [...this.clipSources.keys(), ...this.liveClips.keys()].filter(
+        (id) => !activeIds.has(id)
+      )
     );
 
     await this.addClips(clips, tracks, currentTimeMs, shouldCancel, globalRate);
@@ -687,6 +1036,12 @@ export class AudioGraph {
    */
   stopClips(clipIds: Iterable<string>): void {
     for (const id of clipIds) {
+      const liveTrackId = this.liveClips.get(id);
+      if (liveTrackId !== undefined) {
+        this.liveClips.delete(id);
+        this.trackDevices.get(liveTrackId)?.ready?.clear(id);
+        continue;
+      }
       const sources = this.clipSources.get(id);
       if (!sources) continue;
       this.releaseClip(
@@ -797,6 +1152,28 @@ export class AudioGraph {
     globalRate = 1
   ): Promise<void> {
     const ctx = this.getContext();
+    const live = clips.filter(
+      (scheduled): scheduled is Extract<ScheduledAudioClip, { live: { bpm: number } }> =>
+        "live" in scheduled && scheduled.live !== undefined
+    );
+    if (live.length > 0) {
+      this.updateTracks(tracks);
+      await Promise.all(
+        live.map((scheduled) =>
+          this.scheduleLiveClip(
+            scheduled.clip,
+            scheduled.live.bpm,
+            tracks,
+            currentTimeInput,
+            globalRate,
+            shouldCancel
+          )
+        )
+      );
+    }
+    const pcmClips = clips.filter(
+      (scheduled): scheduled is PcmScheduledClip => !("live" in scheduled && scheduled.live)
+    );
     // Global timeline speed (1 = normal). One wall-clock second covers
     // `g` timeline seconds, so every wall-clock duration below (lead,
     // remaining, fades) is divided by `g`, and the source's playbackRate is
@@ -810,7 +1187,7 @@ export class AudioGraph {
       typeof (ctx as Partial<AudioContext>).createMediaElementSource ===
       "function";
 
-    const bufferPromises = clips.map(
+    const bufferPromises = pcmClips.map(
       async (
         scheduled
       ): Promise<{
@@ -868,7 +1245,7 @@ export class AudioGraph {
         ? currentTimeInput()
         : currentTimeInput;
 
-    for (const { clip } of clips) {
+    for (const { clip } of pcmClips) {
       if (this.clipSources.has(clip.id)) {
         continue;
       }
@@ -1263,6 +1640,8 @@ export class AudioGraph {
   }
 
   stopAll(): void {
+    this.liveClips.clear();
+    for (const state of this.trackDevices.values()) state.ready?.clear();
     for (const [id, sources] of this.clipSources) {
       this.releaseClip(
         sources,
@@ -1310,25 +1689,23 @@ export class AudioGraph {
     for (const clipId of [...this.scrubVoices.keys()]) {
       this.releaseScrubVoice(clipId);
     }
+    for (const trackId of [...this.trackDevices.keys()]) {
+      this.disposeTrackDevice(trackId);
+    }
     for (const chain of this.trackChains.values()) {
-      try {
-        chain.trackGain.disconnect();
-      } catch {
-        /* not connected */
-      }
-      for (const unit of chain.units) {
-        for (const n of unit.nodes) {
-          try {
-            n.disconnect();
-          } catch {
-            /* not connected */
-          }
-        }
-      }
+      disconnectNodes([chain.trackGain, chain.fader, chain.panner]);
+      if (chain.meter) disconnectNodes([chain.meter.splitter]);
+      for (const unit of chain.units) releaseEffectUnit(unit);
     }
     this.trackChains.clear();
+    this.masterChain.units.forEach(releaseEffectUnit);
+    this.masterChain = { effects: [], units: [] };
     if (this.ctx instanceof AudioContext) void this.ctx.close();
     this.ctx = null;
     this.masterGain = null;
+    this.mixBus = null;
+    this.masterFader = null;
+    this.mixAnalyser = null;
+    this.masterMeter = null;
   }
 }

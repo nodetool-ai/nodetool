@@ -1,0 +1,17 @@
+.fablesynth .panel-drive { --ac: var(--ac-n); min-width: 0; padding: 8px; }
+.fablesynth .panel-drive .panel-head { gap: 7px; margin-bottom: 7px; height: 22px; }
+.fablesynth .drive-caption { margin-left: auto; font: 8px var(--font-mono); letter-spacing: 0.06em; color: var(--ac-n); }
+.fablesynth .drive-view { display: block; width: 100%; height: 144px; border: 1px solid var(--line); border-radius: 9px; background: var(--display-well, oklch(14% 0.012 260)); overflow: hidden; }
+.fablesynth .drive-grid { fill: none; stroke: var(--ac-n); stroke-width: 0.6; opacity: 0.2; }
+.fablesynth .drive-unity { stroke-dasharray: 3 4; }
+.fablesynth .drive-label { fill: var(--ac-n); font: 8px var(--font-mono); }
+.fablesynth .drive-transfer, .fablesynth .drive-tone { fill: none; stroke: var(--text); stroke-width: 1.6; stroke-linejoin: round; }
+.fablesynth .drive-tone { stroke: var(--ac-n); }
+.fablesynth .drive-type { display: flex; margin: 9px 0; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.fablesynth .drive-type button { flex: 1; min-width: 0; padding: 6px 2px; border: 0; border-radius: 0; background: transparent; color: var(--ac-n); font: 9px var(--font-mono); letter-spacing: 0.05em; cursor: pointer; }
+.fablesynth .drive-type button + button { border-left: 1px solid var(--line); }
+.fablesynth .drive-type button[aria-pressed="true"] { color: var(--text); background: color-mix(in srgb, var(--ac-n) 16%, transparent); }
+.fablesynth .drive-type button:hover { background: color-mix(in srgb, var(--ac-n) 10%, transparent); }
+.fablesynth .drive-type button:focus-visible { outline: 1px solid var(--ac-n); outline-offset: -2px; }
+.fablesynth .drive-controls { display: flex; align-items: center; justify-content: space-around; gap: 6px; }
+.fablesynth .drive-bypassed .drive-controls { opacity: 0.55; }

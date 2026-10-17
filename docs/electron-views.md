@@ -48,7 +48,7 @@ Each row is color-coded as info, warning, or error. The toolbar has a **Search l
 
 ## Update Notification
 
-Auto-updates are opt-in and run only in packaged builds. Turn them on in Settings. When a newer release exists, the app downloads it in the background and shows a card at the top right of the main window: "Version X is available. Downloading in the background..." with a **View Release Notes** link. Once the download finishes the card reads "Version X has been downloaded and will be installed on restart." with a **Restart to Update** button. A system notification also appears for both events.
+Auto-updates are opt-in and run only in packaged builds. Turn them on in Settings. When a newer release exists, the app downloads it in the background and shows a system notification. A second notification appears when the download finishes. Clicking it restarts into the update, and otherwise the update installs on the next quit. The startup screen also shows a card at its top right: "Version X is available. Downloading in the background..." with a **View Release Notes** link, then "Version X has been downloaded and will be installed on restart." with a **Restart to Update** button. The editor that replaces the startup screen has no such card.
 
 The update channel (stable or nightly) comes from the `updateChannel` setting.
 

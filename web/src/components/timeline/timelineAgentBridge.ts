@@ -56,7 +56,7 @@ type TimelineCaptionStyle = timeline.CaptionStyle;
 export interface TimelineTrackNode {
   id: string;
   name: string;
-  type: "video" | "audio" | "overlay" | "subtitle" | "midi";
+  type: "video" | "audio" | "overlay" | "subtitle" | "midi" | "chord";
   index: number;
   visible: boolean;
   locked: boolean;

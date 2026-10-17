@@ -3,6 +3,7 @@
   "references": [
     { "path": "packages/gpu" },
     { "path": "packages/protocol" },
+    { "path": "packages/analytics" },
     { "path": "packages/timeline" },
     { "path": "packages/storyboard" },
     { "path": "packages/app-runtime" },

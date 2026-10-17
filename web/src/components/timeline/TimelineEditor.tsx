@@ -10,6 +10,11 @@
  *   TracksArea (user-resizable, default 240 px)
  *   BottomStatusBar (32 px)
  *
+ * DAW mode (TopBar switch, Alt+M) swaps the preview row, the tracks divider
+ * and the piano-roll strip for `DawWorkspace`: a transport strip (the preview
+ * mounted audio-only), the tracks, and a resizable dock with the mixer, the
+ * device chain, the piano roll and harmony. The transcript is hidden.
+ *
  * On phones there is no room for three columns: the transcript and inspector
  * leave the row entirely and the preview takes the full width, so preview and
  * tracks — the two surfaces you need simultaneously to edit — stay stacked and
@@ -92,6 +97,7 @@ import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { VideoLandingStrip } from "../setup/video/VideoLandingStrip";
 import { useReattachSequenceJobs } from "../../hooks/timeline/useReattachSequenceJobs";
 import { PreviewArea } from "./preview/PreviewArea";
+import { DawWorkspace } from "./daw/dock/DawWorkspace";
 import { FieldDensityContext } from "../ui_primitives";
 import { TimelineInstrumentsPanel } from "./TimelineInstrumentsPanel";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
@@ -618,6 +624,8 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const sidePanelVisible = useTimelineLayoutStore((s) => s.sidePanelVisible);
   const toggleTranscript = useTimelineLayoutStore((s) => s.toggleTranscript);
   const toggleSidePanel = useTimelineLayoutStore((s) => s.toggleSidePanel);
+  const dawMode = useTimelineLayoutStore((s) => s.dawMode);
+  const setDawMode = useTimelineLayoutStore((s) => s.setDawMode);
   const handleOpenCode = useCallback(() => {
     setPanelTab("code");
     if (isMobile) setPanelSheetOpen(true);
@@ -907,6 +915,8 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
 
   /** Query finished without a usable row (disabled id, error, or empty). */
   const sequenceUnavailable = !isLoading && (isError || !sequence);
+  /** Loading and error states keep the video layout, which shows them. */
+  const dawActive = dawMode && !isLoading && !sequenceUnavailable;
 
   const { data: userTimelines } = useTimelines(undefined, {
     enabled: sequenceUnavailable
@@ -975,14 +985,18 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         onOpenCode={handleOpenCode}
         sequenceId={sequenceUnavailable ? undefined : sequenceId}
         onToggleTranscript={
-          !isMobile && hasScript ? toggleTranscript : undefined
+          !isMobile && hasScript && !dawMode ? toggleTranscript : undefined
         }
         transcriptVisible={transcriptVisible}
         onToggleSidePanel={isMobile ? undefined : toggleSidePanel}
         sidePanelVisible={sidePanelVisible}
+        onSetDawMode={sequenceUnavailable ? undefined : setDawMode}
+        dawMode={dawMode}
       />
     ),
     [
+      dawMode,
+      setDawMode,
       hasScript,
       isMobile,
       sidePanelVisible,
@@ -1075,6 +1089,10 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
 
       <FlexRow fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
       <FlexColumn ref={editorColumnRef} sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+      {dawActive ? (
+        <DawWorkspace onGenerate={openGenerate} />
+      ) : (
+      <>
       {/* ── Middle: assets + preview ──────────────────────────────── */}
       {/* Basis 0 (not `auto`): the middle row absorbs all leftover height via
        *  flex-grow, but its *content* never contributes to the column's size.
@@ -1131,6 +1149,8 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
 
       {/* ── Clip editor (piano roll) ──────────────────────────────── */}
       <PianoRollPanel fullHeight={pianoRollFullScreen} />
+      </>
+      )}
       </FlexColumn>
       {!isMobile && sidePanelVisible && (
         <InspectorRegion
