@@ -7,7 +7,7 @@ import { Box, Typography } from "@mui/material";
 import { GAP } from "./spacing";
 import { MOTION, TYPOGRAPHY, reducedMotion } from "./tokens";
 import { Tooltip } from "./Tooltip";
-import CircleIcon from "@mui/icons-material/Circle";
+import { StatusDot, type StatusDotTone } from "./StatusDot";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import WarningIcon from "@mui/icons-material/Warning";
@@ -37,7 +37,19 @@ const LABEL_STYLE = {
   medium: TYPOGRAPHY.sans.label
 } as const;
 
-export type StatusType = "success" | "error" | "warning" | "info" | "pending" | "default";
+/**
+ * `running` is work in flight (generating, rendering), `pending` is work
+ * waiting its turn. See `GENERATION_STATUS` for the mapping of generated
+ * items onto these.
+ */
+export type StatusType =
+  | "success"
+  | "error"
+  | "warning"
+  | "info"
+  | "running"
+  | "pending"
+  | "default";
 
 export interface StatusIndicatorProps {
   /** Status type */
@@ -64,12 +76,24 @@ export interface StatusIndicatorProps {
   className?: string;
 }
 
+/** The same tones `StatusDot` and `StatusPill` use, so one state reads as one colour. */
+const STATUS_DOT_TONE = {
+  success: "success",
+  error: "error",
+  warning: "warning",
+  info: "info",
+  running: "primary",
+  pending: "neutral",
+  default: "neutral"
+} satisfies Record<StatusType, StatusDotTone>;
+
 const statusColors = {
   success: "success.main",
   error: "error.main",
   warning: "warning.main",
   info: "info.main",
-  pending: "grey.500",
+  running: "primary.main",
+  pending: "text.secondary",
   default: "text.secondary"
 } satisfies Record<StatusType, string>;
 
@@ -98,13 +122,20 @@ const StatusIndicatorInternal: React.FC<StatusIndicatorProps> = ({
         case "warning":
           return <WarningIcon className="status-icon" fontSize={iconSize} />;
         case "pending":
+        case "running":
           return <PendingIcon className="status-icon" fontSize={iconSize} />;
         default:
-          return <CircleIcon className="status-icon" fontSize={iconSize} />;
+          break;
       }
     }
-    
-    return <CircleIcon className="status-icon" fontSize={iconSize} />;
+
+    return (
+      <StatusDot
+        className="status-icon"
+        tone={STATUS_DOT_TONE[status]}
+        size="medium"
+      />
+    );
   };
 
   const statusClassName = `status-indicator status-${status}${className ? ` ${className}` : ""}`;

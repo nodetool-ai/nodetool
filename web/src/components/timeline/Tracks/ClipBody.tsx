@@ -34,7 +34,7 @@ import {
   MOTION,
   Z_INDEX
 } from "../../ui_primitives";
-import type { StatusType } from "../../ui_primitives";
+import { GENERATION_STATUS } from "../../ui_primitives";
 import { useClipThumbnails } from "./useClipThumbnails";
 import { useModel3DClipThumbnails } from "./useModel3DClipThumbnails";
 import { useAudioPeaks } from "./useAudioPeaks";
@@ -75,17 +75,8 @@ const FILMSTRIP_CELL_PX = 60;
 const MIN_FADE_HANDLE_CLIP_WIDTH_PX = 32;
 const FADE_HANDLE_SIZE_PX = 9;
 
-// Status mapping (PRD §5.5)
-export const CLIP_STATUS_MAP = {
-  draft: { status: "default", label: "Draft", pulse: false },
-  queued: { status: "pending", label: "Queued", pulse: false },
-  generating: { status: "pending", label: "Generating", pulse: true },
-  generated: { status: "success", label: "Generated", pulse: false },
-  stale: { status: "warning", label: "Stale", pulse: false },
-  failed: { status: "error", label: "Failed", pulse: false },
-  locked: { status: "info", label: "Locked", pulse: false },
-  missing: { status: "error", label: "Missing", pulse: false }
-} satisfies Record<ClipStatus, { status: StatusType; label: string; pulse: boolean }>;
+// Status mapping (PRD §5.5), shared with sketch layers
+export const CLIP_STATUS_MAP = GENERATION_STATUS satisfies Record<ClipStatus, unknown>;
 
 
 const clipStyles = (

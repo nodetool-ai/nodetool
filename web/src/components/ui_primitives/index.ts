@@ -135,6 +135,8 @@ export type { StatusPillProps, StatusPillTone } from "./StatusPill";
 
 export { StatusIndicator } from "./StatusIndicator";
 export type { StatusIndicatorProps, StatusType } from "./StatusIndicator";
+export { GENERATION_STATUS } from "./generationStatus";
+export type { GenerationStatus, GenerationStatusVisual } from "./generationStatus";
 
 export { HighlightText } from "./HighlightText";
 

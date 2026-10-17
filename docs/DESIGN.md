@@ -1276,6 +1276,23 @@ import { CountBadge, StatusDot, MediaLabel } from "../ui_primitives";
 | Text badge | `Chip compact`, never a styled `span` |
 | Hand-built | Do not draw a dot from a `Box`, `span` or `::before` with `BORDER_RADIUS.circle`, copy a `.dirty-dot` or `.dimensions-badge` rule, or write a `@keyframes` for a pulsing dot. A custom colour goes in `sx={{ bgcolor }}` on `StatusDot`. A dot with a label is `SaveState` or `StatusIndicator` |
 
+#### Status
+
+One state has one colour, whichever primitive draws it. Work in flight
+(generating, rendering, provisioning) is `primary`. Work waiting its turn is
+`neutral`. Done is `success`, a warning or stale result is `warning`, and a
+failure is `error`.
+
+| Where | Primitive |
+|---|---|
+| Inline in a row or header, with a label | `StatusIndicator` (`status="running"` for work in flight, `"pending"` for queued). Its dot is a `StatusDot` |
+| On a media card or thumbnail corner | `StatusPill` |
+| A list bullet or a dot with no room for a label | `StatusDot` |
+
+A generated item (sketch layer, timeline clip) maps its state through
+`GENERATION_STATUS`, which gives the `status`, `pill` and `dot` value for each
+state. Do not write a new state-to-colour table.
+
 ### Buttons
 
 A command is a button. Draw a text command with `EditorButton`, an icon-only

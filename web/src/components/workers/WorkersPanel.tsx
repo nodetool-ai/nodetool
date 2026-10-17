@@ -32,10 +32,10 @@ import WorkerProfilesDialog from "./WorkerProfilesDialog";
  */
 
 const STATUS_TONE: Record<string, StatusType> = {
-  provisioning: "pending",
+  provisioning: "running",
   running: "info",
   attached: "success",
-  stopping: "pending",
+  stopping: "running",
   stopped: "default",
   error: "error"
 };
@@ -186,7 +186,7 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
   const displayTone: StatusType = isRunning
     ? isHealthy
       ? "success"
-      : "pending"
+      : "running"
     : statusTone(instance.status);
   const statusHint = isBooting
     ? "GPU up — worker still loading"

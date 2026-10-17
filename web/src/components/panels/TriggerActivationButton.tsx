@@ -33,6 +33,7 @@ import {
   BORDER_RADIUS,
   getSpacingPx
 } from "../ui_primitives";
+import type { StatusType } from "../ui_primitives";
 import BoltIcon from "@mui/icons-material/Bolt";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
@@ -107,15 +108,13 @@ const STATUS_LABELS = {
 } satisfies Readonly<Record<ActivationState, string>>;
 
 const STATUS_KINDS = {
-  loading: "pending",
+  loading: "running",
   error: "error",
   unregistered: "default",
   inactive: "default",
   mixed: "warning",
   active: "success"
-} satisfies Readonly<
-  Record<ActivationState, "success" | "error" | "warning" | "pending" | "default">
->;
+} satisfies Readonly<Record<ActivationState, StatusType>>;
 
 interface WebhookDeliveryDetailsProps {
   webhookToken: string;
