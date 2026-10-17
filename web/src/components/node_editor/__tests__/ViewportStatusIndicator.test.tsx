@@ -136,7 +136,7 @@ describe("ViewportStatusIndicator", () => {
       selectorOver({ transform: [0, 0, 1.25] })
     );
     renderWithTheme(<ViewportStatusIndicator />);
-    const addButton = screen.getByTestId("AddIcon").closest("button") as HTMLElement;
+    const addButton = screen.getByTestId("AddOutlinedIcon").closest("button") as HTMLElement;
     await user.click(addButton);
     expect(mockZoomTo).toHaveBeenCalledWith(Math.min(1.25 * 1.2, 5), { duration: 100 });
   });
@@ -227,7 +227,7 @@ describe("ViewportStatusIndicator", () => {
   it("renders zoom controls visible by default", () => {
     renderWithTheme(<ViewportStatusIndicator />);
     expect(screen.getByTestId("RemoveIcon")).toBeInTheDocument();
-    expect(screen.getByTestId("AddIcon")).toBeInTheDocument();
+    expect(screen.getByTestId("AddOutlinedIcon")).toBeInTheDocument();
     expect(screen.getByTestId("CenterFocusStrongIcon")).toBeInTheDocument();
   });
 

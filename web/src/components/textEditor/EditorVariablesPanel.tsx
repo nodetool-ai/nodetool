@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type React from "react";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import {
   Tooltip,

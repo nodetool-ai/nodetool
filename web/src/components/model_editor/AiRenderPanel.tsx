@@ -11,7 +11,7 @@ import { useTheme } from "@mui/material/styles";
 import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
 import ImageIcon from "@mui/icons-material/Image";
 import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 
 import type { Asset, ImageModel } from "../../stores/ApiTypes";
 import { useAssetStore } from "../../stores/AssetStore";

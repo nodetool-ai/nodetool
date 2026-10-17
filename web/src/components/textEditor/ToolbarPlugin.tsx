@@ -209,7 +209,7 @@ const ToolbarPlugin = () => {
           className={isLargeFont ? "active" : ""}
           aria-label="Toggle Large Font Size"
         >
-          <FormatSizeIcon sx={{ fontSize: "1em" }} />
+          <FormatSizeIcon fontSize="inherit" />
         </button>
       </Tooltip>
       <Tooltip title="Insert horizontal rule" describeChild>
@@ -229,7 +229,7 @@ const ToolbarPlugin = () => {
           aria-label="Copy as Markdown"
           className={copied ? "active" : ""}
         >
-          <ContentCopyIcon sx={{ fontSize: "1em" }} />
+          <ContentCopyIcon fontSize="inherit" />
         </button>
       </Tooltip>
     </div>

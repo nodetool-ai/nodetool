@@ -20,7 +20,7 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { SelectField, StateIconButton, MOTION, reducedMotion, BORDER_RADIUS } from "../../ui_primitives";
+import { SelectField, StateIconButton, MOTION, reducedMotion, BORDER_RADIUS, ICON_SIZE } from "../../ui_primitives";
 import NumberInput from "../../inputs/NumberInput";
 
 import {
@@ -90,7 +90,7 @@ const styles = (theme: Theme) =>
         minHeight: "unset"
       },
       "& .MuiInput-root": { marginTop: 0 },
-      "& .MuiSvgIcon-root": { fontSize: 16, right: 0 }
+      "& .MuiSvgIcon-root": { fontSize: ICON_SIZE.sm, right: 0 }
     },
     ".vis-btn, .del-btn": {
       justifySelf: "center",

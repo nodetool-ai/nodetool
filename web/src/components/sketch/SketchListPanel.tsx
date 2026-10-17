@@ -1,4 +1,4 @@
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
 import { memo, useCallback, useState } from "react";
 import type { DragEvent } from "react";

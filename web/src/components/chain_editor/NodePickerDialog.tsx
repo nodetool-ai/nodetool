@@ -22,7 +22,8 @@ import {
   Text,
   TextInput,
   HighlightText,
-  SHADOW
+  SHADOW,
+  ICON_SIZE
 } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -167,7 +168,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
                 <InputAdornment position="start">
                   <SearchIcon
                     sx={{
-                      fontSize: 18,
+                      fontSize: ICON_SIZE.md,
                       color: theme.vars.palette.text.secondary
                     }}
                   />

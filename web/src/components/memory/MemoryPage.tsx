@@ -22,7 +22,8 @@ import {
   SearchInput,
   Text,
   PageLayout,
-  SPACING
+  SPACING,
+  ICON_SIZE
 } from "../ui_primitives";
 import { trpc } from "../../trpc/client";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -144,7 +145,7 @@ const MemoryPage: React.FC = () => {
 
   return (
     <PageLayout
-      icon={<PsychologyOutlinedIcon sx={{ fontSize: 22 }} />}
+      icon={<PsychologyOutlinedIcon sx={{ fontSize: ICON_SIZE.lg }} />}
       title="Memory"
       subtitle="What the agent remembers across every conversation — project notes and the resources they refer to."
     >

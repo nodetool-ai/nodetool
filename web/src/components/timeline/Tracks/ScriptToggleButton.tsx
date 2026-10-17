@@ -17,7 +17,7 @@ import React, { memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 

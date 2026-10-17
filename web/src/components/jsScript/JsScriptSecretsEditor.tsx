@@ -5,7 +5,7 @@
  * never widen what the script reaches.
  */
 import { memo, useCallback } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 
 import {
   DeleteButton,

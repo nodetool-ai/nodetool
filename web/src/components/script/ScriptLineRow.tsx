@@ -420,13 +420,13 @@ const ScriptLineRow = ({
     status === "stale" ? (
       <Tooltip title="The text or voice changed since this take">
         <StatusPill tone="warning" sx={pillSx}>
-          <RefreshIcon sx={{ fontSize: "inherit" }} />
+          <RefreshIcon fontSize="inherit" />
           Stale
         </StatusPill>
       </Tooltip>
     ) : status === "voiced" ? (
       <StatusPill tone="done" sx={pillSx}>
-        <CheckIcon sx={{ fontSize: "inherit" }} />
+        <CheckIcon fontSize="inherit" />
         Take {takeNumber}
       </StatusPill>
     ) : (

@@ -22,10 +22,10 @@ interface Tool {
 }
 import Search from "@mui/icons-material/Search";
 import Language from "@mui/icons-material/Language";
-import Add from "@mui/icons-material/Add";
+import Add from "@mui/icons-material/AddOutlined";
 import Description from "@mui/icons-material/Description";
 import EditNote from "@mui/icons-material/EditNote";
-import Folder from "@mui/icons-material/Folder";
+import Folder from "@mui/icons-material/FolderOutlined";
 import Lock from "@mui/icons-material/Lock";
 
 const BROWSER_TOOL_IDS = [

@@ -23,7 +23,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  Z_INDEX
+  Z_INDEX,
+  ICON_SIZE
 } from "../ui_primitives";
 import PaletteIcon from "@mui/icons-material/Palette";
 import LegendToggleIcon from "@mui/icons-material/LegendToggle";
@@ -201,7 +202,7 @@ const MiniMapNavigator: React.FC = () => {
                   }
                 }}
               >
-                <LegendToggleIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
+                <LegendToggleIcon sx={{ fontSize: ICON_SIZE.sm }} />
               </ToolbarIconButton>
             )}
             <ToolbarIconButton
@@ -218,7 +219,7 @@ const MiniMapNavigator: React.FC = () => {
                 }
               }}
             >
-              <PaletteIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
+              <PaletteIcon sx={{ fontSize: ICON_SIZE.sm }} />
             </ToolbarIconButton>
           </FlexRow>
         </div>

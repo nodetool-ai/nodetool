@@ -1,5 +1,5 @@
 import React from "react";
-import FolderIcon from "@mui/icons-material/Folder";
+import FolderIcon from "@mui/icons-material/FolderOutlined";
 
 import { Caption, FlexRow, SPACING, getSpacingPx } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";

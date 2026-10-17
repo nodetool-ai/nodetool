@@ -214,7 +214,7 @@ const ChromeExtensionStep: React.FC = () => {
                   density="compact"
                   variant="contained"
                   size="small"
-                  startIcon={<FolderOpenIcon sx={{ fontSize: "1.2em" }} />}
+                  startIcon={<FolderOpenIcon />}
                   onClick={handleReveal}
                 >
                   Show extension folder
@@ -224,7 +224,7 @@ const ChromeExtensionStep: React.FC = () => {
                   density="compact"
                   variant="contained"
                   size="small"
-                  startIcon={<DownloadIcon sx={{ fontSize: "1.2em" }} />}
+                  startIcon={<DownloadIcon />}
                   onClick={handleDownload}
                 >
                   Download extension

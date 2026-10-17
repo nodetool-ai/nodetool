@@ -15,7 +15,8 @@ import {
   EmptyState,
   ToolbarIconButton,
   Box,
-  TextInput
+  TextInput,
+  ICON_SIZE
 } from "../ui_primitives";
 import { useChainEditorStore } from "./useChainEditorStore";
 import { ChainNodeCard } from "./ChainNodeCard";
@@ -118,7 +119,7 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
           tooltip="Save workflow"
           onClick={handleSave}
           disabled={saving}
-          icon={<SaveOutlinedIcon sx={{ fontSize: 20 }} />}
+          icon={<SaveOutlinedIcon sx={{ fontSize: ICON_SIZE.lg }} />}
           sx={{ color: theme.vars.palette.text.secondary }}
         />
       </FlexRow>

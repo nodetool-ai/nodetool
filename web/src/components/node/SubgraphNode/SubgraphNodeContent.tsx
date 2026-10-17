@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from "react";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import { Box, Caption, FlexColumn, FlexRow, MOTION } from "../../ui_primitives";
+import { Box, Caption, FlexColumn, FlexRow, MOTION, ICON_SIZE } from "../../ui_primitives";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useOpenSubgraph } from "../../../hooks/nodes/useOpenSubgraph";
 import { NodeInputs } from "../NodeInputs";
@@ -128,7 +128,7 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
           }}
         >
           <FlexRow gap={0.5} align="center">
-            <AccountTreeIcon sx={{ fontSize: 14 }} />
+            <AccountTreeIcon sx={{ fontSize: ICON_SIZE.xs }} />
             <Caption>Open subgraph</Caption>
           </FlexRow>
           <Caption>

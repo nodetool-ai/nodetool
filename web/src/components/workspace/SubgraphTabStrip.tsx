@@ -3,7 +3,7 @@ import { memo, useCallback, type MouseEvent } from "react";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 
 import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import {

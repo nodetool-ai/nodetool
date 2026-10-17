@@ -5,7 +5,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import type { Entity } from "@nodetool-ai/protocol";
 import {

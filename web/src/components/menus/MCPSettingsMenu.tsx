@@ -16,7 +16,8 @@ import {
   NavButton,
   getSpacingPx,
   SPACING,
-  LoadingSpinner
+  LoadingSpinner,
+  ICON_SIZE
 } from "../ui_primitives";
 import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -226,14 +227,14 @@ const MCPSettingsMenu = () => {
                         <CheckCircleIcon
                           sx={{
                             color: theme.palette.success.main,
-                            fontSize: "var(--fontSizeBig)"
+                            fontSize: ICON_SIZE.md
                           }}
                         />
                       ) : (
                         <CancelIcon
                           sx={{
                             color: theme.palette.text.disabled,
-                            fontSize: "var(--fontSizeBig)"
+                            fontSize: ICON_SIZE.md
                           }}
                         />
                       )}

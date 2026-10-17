@@ -21,7 +21,7 @@
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import TheaterComedyIcon from "@mui/icons-material/TheaterComedy";
 import {

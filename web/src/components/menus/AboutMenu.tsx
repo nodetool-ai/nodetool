@@ -86,7 +86,7 @@ const InfoRow: React.FC<{
         {copyable && value && (
           <ContentCopyIcon
             sx={{
-              fontSize: "1em",
+              fontSize: "inherit",
               cursor: "pointer",
               opacity: 0.6,
               "&:hover": {

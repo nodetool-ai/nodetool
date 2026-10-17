@@ -10,7 +10,7 @@
 import React, { memo, forwardRef, useCallback } from "react";
 import { IconButton } from "@mui/material";
 import { Tooltip } from "./Tooltip";
-import EditIcon from "@mui/icons-material/Edit";
+import EditIcon from "@mui/icons-material/EditOutlined";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import { useTheme, SxProps, Theme } from "@mui/material/styles";

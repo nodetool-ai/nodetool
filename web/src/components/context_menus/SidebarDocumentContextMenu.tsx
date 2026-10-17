@@ -8,8 +8,8 @@ import {
   type SidebarDocumentItem
 } from "../../stores/SidebarDocumentActionsStore";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/DeleteOutline";
+import EditIcon from "@mui/icons-material/EditOutlined";
 
 /**
  * Right-click menu for sidebar document list items (timelines, sketches,

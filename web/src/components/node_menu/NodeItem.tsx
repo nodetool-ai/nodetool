@@ -9,7 +9,8 @@ import {
   BORDER_RADIUS,
   FONT_WEIGHT,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../ui_primitives";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -349,7 +350,7 @@ const NodeItem = memo(function NodeItem({
             {isSelected && (
               <CheckIcon
                 sx={{
-                  fontSize: "var(--fontSizeBig)",
+                  fontSize: ICON_SIZE.md,
                   color: theme.vars.palette.primary.main,
                   padding: getSpacingPx(SPACING.micro)
                 }}

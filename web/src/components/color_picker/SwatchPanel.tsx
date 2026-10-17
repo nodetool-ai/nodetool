@@ -17,10 +17,11 @@ import {
   MenuItemPrimitive,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../ui_primitives";
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/AddOutlined";
+import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import { DeleteButton, ColorSwatch } from "../ui_primitives";
 import {
@@ -258,7 +259,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
               tabIndex={0}
               aria-label="Save current color as swatch"
             >
-              <AddIcon sx={{ fontSize: 16 }} />
+              <AddIcon sx={{ fontSize: ICON_SIZE.sm }} />
             </FlexRow>
           </Tooltip>
         </FlexRow>

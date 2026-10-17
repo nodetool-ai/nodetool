@@ -1,5 +1,5 @@
 import { useCallback, memo } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, ToolbarIconButton } from "../ui_primitives";

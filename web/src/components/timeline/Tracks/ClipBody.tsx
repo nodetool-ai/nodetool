@@ -32,7 +32,8 @@ import {
   FONT_WEIGHT,
   TYPOGRAPHY,
   MOTION,
-  Z_INDEX
+  Z_INDEX,
+  ICON_SIZE
 } from "../../ui_primitives";
 import { GENERATION_STATUS } from "../../ui_primitives";
 import { useClipThumbnails } from "./useClipThumbnails";
@@ -1090,7 +1091,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           <span css={dotCss} aria-hidden />
           {clip.mediaType === "adjustment" && (
             <TuneOutlinedIcon
-              sx={{ fontSize: 12, flexShrink: 0, color: accent }}
+              sx={{ fontSize: ICON_SIZE.xs, flexShrink: 0, color: accent }}
               aria-hidden
             />
           )}
@@ -1134,7 +1135,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
 
         {clip.locked && (
           <div css={lockIconStyles}>
-            <LockOutlinedIcon sx={{ fontSize: 12 }} aria-label="Clip locked" />
+            <LockOutlinedIcon sx={{ fontSize: ICON_SIZE.xs }} aria-label="Clip locked" />
           </div>
         )}
 

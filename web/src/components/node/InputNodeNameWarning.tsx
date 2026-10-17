@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import { useNodes } from "../../contexts/NodeContext";
-import { Text, Tooltip, getSpacingPx, SPACING } from "../ui_primitives";
+import { Text, Tooltip, getSpacingPx, SPACING, ICON_SIZE } from "../ui_primitives";
 
 const INPUT_PREFIX = "nodetool.input.";
 
@@ -63,7 +63,7 @@ const InputNodeNameWarning: React.FC<InputNodeNameWarningProps> = ({
           cursor: "help"
         }}
       >
-        <WarningAmberOutlinedIcon sx={{ fontSize: "var(--fontSizeSmall)" }} />
+        <WarningAmberOutlinedIcon sx={{ fontSize: ICON_SIZE.xs }} />
         {isMissing ? "Name required" : "Duplicate name"}
       </Text>
     </Tooltip>

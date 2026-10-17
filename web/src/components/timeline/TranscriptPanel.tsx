@@ -27,7 +27,8 @@ import {
   EditorButton,
   ToolbarIconButton,
   LoadingSpinner,
-  SPACING
+  SPACING,
+  ICON_SIZE
 } from "../ui_primitives";
 
 import {
@@ -130,7 +131,7 @@ export const TranscriptPanel: React.FC = memo(() => {
       />
       <FlexColumn gap={SPACING.md} sx={{ p: 0.5, flex: 1, minHeight: 0 }}>
         <FlexRow gap={SPACING.xs} align="center">
-          <GraphicEqIcon sx={{ fontSize: 16, color: "primary.main" }} />
+          <GraphicEqIcon sx={{ fontSize: ICON_SIZE.sm, color: "primary.main" }} />
           <Text size="smaller" sx={{ letterSpacing: "0.1em" }}>
             TRANSCRIPT
           </Text>

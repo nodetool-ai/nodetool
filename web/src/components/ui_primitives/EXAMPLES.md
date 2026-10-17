@@ -809,7 +809,7 @@ Icon buttons with tooltips for toolbars:
 import React from "react";
 import { ToolbarIconButton } from "../ui_primitives";
 import SaveIcon from "@mui/icons-material/Save";
-import DeleteIcon from "@mui/icons-material/Delete";
+import DeleteIcon from "@mui/icons-material/DeleteOutline";
 
 export const EditorToolbar: React.FC = () => (
   <div className="toolbar">
@@ -1092,7 +1092,7 @@ import React, { useState } from "react";
 import { LabeledToggle } from "../ui_primitives";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import PsychologyIcon from "@mui/icons-material/Psychology";
-import InfoIcon from "@mui/icons-material/Info";
+import InfoIcon from "@mui/icons-material/InfoOutlined";
 
 // Collapsible section toggle
 export const ReasoningSection: React.FC = () => {
@@ -1153,7 +1153,7 @@ import React, { useState } from "react";
 import { CircularActionButton } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 
 // Primary workflow action
 export const RunWorkflowButton: React.FC = () => {
@@ -1318,10 +1318,10 @@ import {
   CircularActionButton
 } from "../ui_primitives";
 import SaveIcon from "@mui/icons-material/Save";
-import DeleteIcon from "@mui/icons-material/Delete";
+import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import ShareIcon from "@mui/icons-material/Share";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import EditIcon from "@mui/icons-material/Edit";
+import EditIcon from "@mui/icons-material/EditOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
 

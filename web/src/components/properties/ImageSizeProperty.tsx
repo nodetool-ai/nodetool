@@ -3,7 +3,7 @@ import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "../../utils/isEqual";
-import { FlexColumn, FlexRow, ToolbarIconButton, Box } from "../ui_primitives";
+import { FlexColumn, FlexRow, ToolbarIconButton, Box, ICON_SIZE } from "../ui_primitives";
 import { IMAGE_SIZE_PRESETS as PRESETS } from "../../config/constants";
 import Lock from "@mui/icons-material/Lock";
 import LockOpen from "@mui/icons-material/LockOpen";
@@ -165,7 +165,7 @@ const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
         <FlexRow className="icon-container" align="center" gap={0} sx={{ mt: -2 }}>
           <ToolbarIconButton
             tooltip="Swap Width and Height"
-            icon={<SwapHoriz sx={{ fontSize: "var(--fontSizeBig)" }} />}
+            icon={<SwapHoriz sx={{ fontSize: ICON_SIZE.md }} />}
             className="aspect-swap-button"
             onClick={handleSwap}
             size="small"
@@ -178,7 +178,7 @@ const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
 
           <ToolbarIconButton
             tooltip={locked ? "Unlock Aspect Ratio" : "Lock Aspect Ratio"}
-            icon={locked ? <Lock sx={{ fontSize: "var(--fontSizeNormal)" }} /> : <LockOpen sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+            icon={locked ? <Lock sx={{ fontSize: ICON_SIZE.sm }} /> : <LockOpen sx={{ fontSize: ICON_SIZE.sm }} />}
             className="aspect-lock-button"
             onClick={toggleLock}
             size="small"
@@ -191,7 +191,7 @@ const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
 
           <ToolbarIconButton
             tooltip="Presets"
-            icon={<MoreVert sx={{ fontSize: "var(--fontSizeBig)" }} />}
+            icon={<MoreVert sx={{ fontSize: ICON_SIZE.md }} />}
             className="presets-menu-button"
             onClick={handlePresetClick}
             size="small"

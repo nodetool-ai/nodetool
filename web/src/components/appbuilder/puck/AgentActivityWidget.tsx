@@ -220,7 +220,7 @@ const ToolRow: React.FC<{ entry: ToolEntry; connected: boolean; runId?: string; 
               className="chevron"
               aria-hidden
               sx={{
-                fontSize: "1em",
+                fontSize: "inherit",
                 color: "text.disabled",
                 flexShrink: 0,
                 opacity: open ? 1 : 0,

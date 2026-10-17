@@ -10,7 +10,8 @@ import {
   TextLink,
   SPACING,
   getSpacingPx,
-  activateOnKey
+  activateOnKey,
+  ICON_SIZE
 } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -268,7 +269,7 @@ const ModelListItem: React.FC<
                   onClick={handleOpenDialog}
                   icon={
                     <VisibilityIcon
-                      style={{ fontSize: "var(--fontSizeNormal)" }}
+                      style={{ fontSize: ICON_SIZE.sm }}
                     />
                   }
                   sx={{

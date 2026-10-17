@@ -42,7 +42,7 @@ import type {
   Shot,
   ShotModelRef
 } from "@nodetool-ai/protocol";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import TuneIcon from "@mui/icons-material/Tune";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SlideshowIcon from "@mui/icons-material/Slideshow";

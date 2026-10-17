@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState, memo } from "react";
 import Public from "@mui/icons-material/Public";
-import Folder from "@mui/icons-material/Folder";
+import Folder from "@mui/icons-material/FolderOutlined";
 import { registerTypeToFocus } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { useAssetGridStore } from "../../stores/AssetGridStore";

@@ -3,7 +3,7 @@ import { memo, useCallback, useEffect, useMemo, useState, type FC } from "react"
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { BORDER_RADIUS, SPACING, getSpacingPx, EditorButton } from "../ui_primitives";
+import { BORDER_RADIUS, SPACING, getSpacingPx, EditorButton, ICON_SIZE } from "../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import isEqual from "../../utils/isEqual";
 import { getIsElectronDetails } from "../../utils/browser";
@@ -130,7 +130,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
       className="node-dependency-warning nodrag nowheel"
     >
       <div className="warning-title">
-        <WarningAmberIcon sx={{ fontSize: 14 }} />
+        <WarningAmberIcon sx={{ fontSize: ICON_SIZE.xs }} />
         Requires {runtimeNames}
       </div>
       {isElectron ? (

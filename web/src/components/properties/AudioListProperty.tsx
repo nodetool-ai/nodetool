@@ -7,7 +7,7 @@ import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { listDropzoneStyles } from "./shared/listDropzoneStyles";
-import { Tooltip, Text, CloseButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
+import { Tooltip, Text, CloseButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx, ICON_SIZE } from "../ui_primitives";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
 import isEqual from "../../utils/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
@@ -101,7 +101,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".remove-button .MuiSvgIcon-root": {
-      fontSize: "var(--fontSizeNormal)"
+      fontSize: ICON_SIZE.sm
     },
     ...listDropzoneStyles(theme)
   });

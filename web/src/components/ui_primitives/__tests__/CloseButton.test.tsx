@@ -19,7 +19,7 @@ describe("CloseButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("CloseIcon")).toBeInTheDocument();
+    expect(screen.getByTestId("CloseOutlinedIcon")).toBeInTheDocument();
   });
 
   it("renders with clear icon when iconVariant is 'clear'", () => {
@@ -30,7 +30,7 @@ describe("CloseButton", () => {
     );
 
     expect(screen.getByTestId("ClearIcon")).toBeInTheDocument();
-    expect(screen.queryByTestId("CloseIcon")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("CloseOutlinedIcon")).not.toBeInTheDocument();
   });
 
   it("calls onClick when clicked", () => {

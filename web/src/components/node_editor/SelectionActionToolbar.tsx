@@ -17,7 +17,7 @@ import AlignVerticalCenter from "@mui/icons-material/AlignVerticalCenter";
 import AlignVerticalTop from "@mui/icons-material/AlignVerticalTop";
 import ArrowDropDown from "@mui/icons-material/ArrowDropDown";
 import ContentCopy from "@mui/icons-material/ContentCopy";
-import Delete from "@mui/icons-material/Delete";
+import Delete from "@mui/icons-material/DeleteOutline";
 import Layers from "@mui/icons-material/Layers";
 import LinkIcon from "@mui/icons-material/Link";
 import PlayArrow from "@mui/icons-material/PlayArrow";

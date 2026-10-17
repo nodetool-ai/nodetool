@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
-import { PageLayout } from "../../ui_primitives";
+import { PageLayout, ICON_SIZE } from "../../ui_primitives";
 import ModelListIndex from "./ModelListIndex";
 
 /**
@@ -9,7 +9,7 @@ import ModelListIndex from "./ModelListIndex";
  */
 const ModelsPage: React.FC = () => (
   <PageLayout
-    icon={<ViewInArOutlinedIcon sx={{ fontSize: 22 }} />}
+    icon={<ViewInArOutlinedIcon sx={{ fontSize: ICON_SIZE.lg }} />}
     title="Model Manager"
     subtitle="Browse, download, and manage local AI models."
     docsTopic="modelsManager"

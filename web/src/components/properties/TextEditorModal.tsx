@@ -4,7 +4,7 @@ import ReactDOM from "react-dom";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { css } from "@emotion/react";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import CodeIcon from "@mui/icons-material/Code";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
@@ -17,7 +17,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import WrapTextIcon from "@mui/icons-material/WrapText";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import DataObjectIcon from "@mui/icons-material/DataObject";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import TextDecreaseIcon from "@mui/icons-material/TextDecrease";

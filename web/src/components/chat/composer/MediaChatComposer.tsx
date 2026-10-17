@@ -10,7 +10,7 @@ import React, {
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 
 import { FlexRow, LoadingSpinner, Text, SPACING } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";

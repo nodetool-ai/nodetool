@@ -605,14 +605,14 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             <>
               {onEdit && (
                 <ToolbarIconButton
-                  icon={<EditOutlinedIcon sx={{ fontSize: "1em" }} />}
+                  icon={<EditOutlinedIcon fontSize="inherit" />}
                   tooltip="Edit shot"
                   ariaLabel="Edit shot"
                   onClick={handleEdit}
                 />
               )}
               <ToolbarIconButton
-                icon={<AutorenewIcon sx={{ fontSize: "1em" }} />}
+                icon={<AutorenewIcon fontSize="inherit" />}
                 tooltip={`Render a new still and pick its model${
                   stillCost ? ` · about ${formatUsd(stillCost)}` : ""
                 }`}
@@ -621,7 +621,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
                 disabled={isGenerating}
               />
               <ToolbarIconButton
-                icon={<MovieOutlinedIcon sx={{ fontSize: "1em" }} />}
+                icon={<MovieOutlinedIcon fontSize="inherit" />}
                 tooltip={
                   clipNeedsStill
                     ? "Render a still first"

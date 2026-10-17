@@ -20,7 +20,8 @@ import {
   Z_INDEX,
   FONT_SIZE_SANS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../ui_primitives";
 import { colorToHex6 } from "./types";
 import { colorSwatchSx } from "./sketchStyles";
@@ -156,7 +157,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
             aria-label="Swap colors"
             sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: BORDER_RADIUS.sm }}
           >
-            <SwapHorizIcon sx={{ fontSize: "var(--fontSizeSmall)" }} />
+            <SwapHorizIcon sx={{ fontSize: ICON_SIZE.xs }} />
           </EditorButton>
         </Tooltip>
         <Tooltip

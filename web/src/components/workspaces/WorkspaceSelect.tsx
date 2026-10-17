@@ -28,8 +28,8 @@ import {
   useWorkspaceCacheWriter
 } from "../../hooks/useWorkspaces";
 import { useFolderPicker } from "./useFolderPicker";
-import FolderIcon from "@mui/icons-material/Folder";
-import AddIcon from "@mui/icons-material/Add";
+import FolderIcon from "@mui/icons-material/FolderOutlined";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import StarIcon from "@mui/icons-material/Star";
 
 const styles = (theme: Theme) =>

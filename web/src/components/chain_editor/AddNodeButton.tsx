@@ -2,8 +2,8 @@
 import React from "react";
 import { useTheme } from "@mui/material/styles";
 import { EditorButton } from "../editor_ui";
-import { ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
-import AddIcon from "@mui/icons-material/Add";
+import { ToolbarIconButton, Box, MOTION, BORDER_RADIUS, ICON_SIZE } from "../ui_primitives";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import { FlexColumn } from "../ui_primitives";
 
 interface AddNodeButtonProps {
@@ -43,7 +43,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
         ariaLabel="Add node"
         tooltip="Add node"
         onClick={onClick}
-        icon={<AddIcon sx={{ fontSize: 16, color: theme.vars.palette.primary.main }} />}
+        icon={<AddIcon sx={{ fontSize: ICON_SIZE.sm, color: theme.vars.palette.primary.main }} />}
         sx={{
           width: 28,
           height: 28,

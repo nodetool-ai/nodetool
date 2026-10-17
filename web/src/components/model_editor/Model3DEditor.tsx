@@ -28,7 +28,7 @@ import {
 import OpenWithIcon from "@mui/icons-material/OpenWith";
 import ThreeDRotationIcon from "@mui/icons-material/ThreeDRotation";
 import AspectRatioIcon from "@mui/icons-material/AspectRatio";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";

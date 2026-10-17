@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import { EditorButton } from "../../editor_ui";
 import {
   FlexRow,
@@ -169,7 +169,7 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
             variant="outlined"
             density="normal"
             onClick={handleDecline}
-            startIcon={<CloseRoundedIcon />}
+            startIcon={<CloseOutlinedIcon />}
           >
             Not now
           </EditorButton>

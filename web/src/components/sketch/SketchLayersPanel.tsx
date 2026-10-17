@@ -15,7 +15,7 @@ import React, {
   useRef,
   useMemo
 } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import {
   sketchFieldSx,
   SKETCH_CHECKERBOARD,
@@ -49,15 +49,15 @@ import {
   Slider,
   Select,
   MenuItem,
-  FormControl
+  FormControl,
+  DeleteButton,
+  ICON_SIZE
 } from "../ui_primitives";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import TrashIconSvg from "../../icons/trash.svg?react";
-const DeleteIcon = TrashIconSvg;
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 const MaskIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
@@ -192,6 +192,11 @@ const OPS_ICON_SX = {
   ...reducedMotion({ transition: MOTION.none }),
   "&:hover": { backgroundColor: "grey.800", color: "grey.100" },
   "&.Mui-disabled": { color: "grey.700" }
+};
+
+const OPS_DELETE_SX = {
+  ...OPS_ICON_SX,
+  "& .MuiSvgIcon-root": { fontSize: ICON_SIZE.md }
 };
 /** The shared op-icon styling, tinted when the op it drives is on. */
 const opsIconSx = (activeColor: string | null): SystemStyleObject<Theme> => {
@@ -1109,7 +1114,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               data-testid="layers-panel-add-menu"
               sx={ADD_ACTION_ICON_SX}
             >
-              <ExpandMoreIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+              <ExpandMoreIcon sx={{ fontSize: ICON_SIZE.md }} />
             </IconButton>
           </Tooltip>
         </FlexRow>
@@ -1279,7 +1284,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             onClick={() => onToggleAlphaLock(activeLayerId)}
             sx={opsIconSx(activeLayer?.alphaLock ? "info.main" : null)}
           >
-            <LockIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+            <LockIcon sx={{ fontSize: ICON_SIZE.md }} />
           </IconButton>
         </Tooltip>
 
@@ -1294,7 +1299,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               disabled={!hasMultiLayerSelection}
               sx={OPS_ICON_SX}
             >
-              <CreateNewFolderIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+              <CreateNewFolderIcon sx={{ fontSize: ICON_SIZE.md }} />
             </IconButton>
           </span>
         </Tooltip>
@@ -1310,30 +1315,23 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onClick={() => onDuplicateLayer(activeLayerId)}
               sx={OPS_ICON_SX}
             >
-              <ContentCopyIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+              <ContentCopyIcon sx={{ fontSize: ICON_SIZE.md }} />
             </IconButton>
           </Tooltip>
-          <Tooltip
-            title={
+          <DeleteButton
+            iconVariant="outline"
+            tooltip={
               hasMultiLayerSelection ? "Remove selected layers" : "Remove Layer"
             }
-          >
-            <span>
-              <IconButton
-                aria-label="Remove active layer"
-                size="small"
-                onClick={() =>
-                  hasMultiLayerSelection
-                    ? onDeleteSelectedLayers()
-                    : onRemoveLayer(activeLayerId)
-                }
-                disabled={!canDeleteToolbarLayer}
-                sx={OPS_ICON_SX}
-              >
-                <DeleteIcon width={18} height={18} />
-              </IconButton>
-            </span>
-          </Tooltip>
+            ariaLabel="Remove active layer"
+            onClick={() =>
+              hasMultiLayerSelection
+                ? onDeleteSelectedLayers()
+                : onRemoveLayer(activeLayerId)
+            }
+            disabled={!canDeleteToolbarLayer}
+            sx={OPS_DELETE_SX}
+          />
         </FlexRow>
       </FlexRow>
 

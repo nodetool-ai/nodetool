@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo, memo } from "react";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import {
   Text,
   Tooltip,
@@ -10,7 +10,8 @@ import {
   EditorButton,
   SPACING,
   getSpacingPx,
-  ToolbarIconButton
+  ToolbarIconButton,
+  ICON_SIZE
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -98,7 +99,7 @@ const SelectedItemsInfo: React.FC<{
           tooltipPlacement="top"
           onClick={onClear}
           size="small"
-          sx={{ ml: SPACING.micro, "& .MuiSvgIcon-root": { fontSize: 14 } }}
+          sx={{ ml: SPACING.micro, "& .MuiSvgIcon-root": { fontSize: ICON_SIZE.xs } }}
         />
       </div>
     </div>

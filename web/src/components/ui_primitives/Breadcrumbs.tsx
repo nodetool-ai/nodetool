@@ -12,7 +12,7 @@ import { Tooltip } from "./Tooltip";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HomeIcon from "@mui/icons-material/Home";
-import FolderIcon from "@mui/icons-material/Folder";
+import FolderIcon from "@mui/icons-material/FolderOutlined";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { BORDER_RADIUS, MOTION } from "./tokens";
 import { SPACING, getSpacingPx } from "./spacing";

@@ -309,7 +309,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                   </Box>
                   {!readOnly && (
                     <ToolbarIconButton
-                      icon={<DeleteOutlineIcon sx={{ fontSize: "1em" }} />}
+                      icon={<DeleteOutlineIcon fontSize="inherit" />}
                       tooltip="Remove still"
                       ariaLabel={`Remove still ${i + 1}`}
                       onClick={() => handleRemoveStill(i)}
@@ -319,7 +319,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                     />
                   )}
                   <ToolbarIconButton
-                    icon={<FullscreenIcon sx={{ fontSize: "1em" }} />}
+                    icon={<FullscreenIcon fontSize="inherit" />}
                     tooltip="View fullscreen"
                     ariaLabel={`View still ${i + 1} fullscreen`}
                     onClick={() => setViewerMedia(still)}
@@ -374,7 +374,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                   </Box>
                   {!readOnly && (
                     <ToolbarIconButton
-                      icon={<DeleteOutlineIcon sx={{ fontSize: "1em" }} />}
+                      icon={<DeleteOutlineIcon fontSize="inherit" />}
                       tooltip="Remove clip"
                       ariaLabel={`Remove clip ${i + 1}`}
                       onClick={() => handleRemoveClip(i)}
@@ -384,7 +384,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                     />
                   )}
                   <ToolbarIconButton
-                    icon={<FullscreenIcon sx={{ fontSize: "1em" }} />}
+                    icon={<FullscreenIcon fontSize="inherit" />}
                     tooltip="View fullscreen"
                     ariaLabel={`View clip ${i + 1} fullscreen`}
                     onClick={() => setViewerMedia(clip)}

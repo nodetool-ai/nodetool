@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, activateOnKey, SHADOW } from "../ui_primitives";
+import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, activateOnKey, SHADOW, ICON_SIZE } from "../ui_primitives";
 import type { TabItem } from "../ui_primitives";
 import { CloseButton } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
@@ -463,7 +463,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
                     </span>
                     {copiedFormat === "hex" && (
                       <FlexRow className="copy-feedback" align="center">
-                        <CheckIcon sx={{ fontSize: 12 }} /> Copied
+                        <CheckIcon sx={{ fontSize: ICON_SIZE.xs }} /> Copied
                       </FlexRow>
                     )}
                   </FlexRow>

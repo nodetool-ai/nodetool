@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo } from "react";
-import FolderIcon from "@mui/icons-material/Folder";
+import FolderIcon from "@mui/icons-material/FolderOutlined";
 import NorthWest from "@mui/icons-material/NorthWest";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetActions } from "./useAssetActions";

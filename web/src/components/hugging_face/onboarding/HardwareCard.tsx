@@ -13,7 +13,8 @@ import {
   SelectField,
   Text,
   BORDER_RADIUS,
-  SPACING
+  SPACING,
+  ICON_SIZE
 } from "../../ui_primitives";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import { ModelStat } from "../ModelStat";
@@ -126,12 +127,12 @@ const HardwareCard: React.FC<HardwareCardProps> = ({
   const stats = (
     <>
       <ModelStat
-        icon={<DeveloperBoardIcon sx={{ fontSize: 14 }} />}
+        icon={<DeveloperBoardIcon sx={{ fontSize: ICON_SIZE.xs }} />}
         label="GPU memory"
         value={gb(profile.vramGb)}
       />
       <ModelStat
-        icon={<MemoryIcon sx={{ fontSize: 14 }} />}
+        icon={<MemoryIcon sx={{ fontSize: ICON_SIZE.xs }} />}
         label="System RAM"
         value={gb(profile.ramGb)}
       />

@@ -33,7 +33,8 @@ import {
   MenuItemPrimitive,
   MOTION,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../ui_primitives";
 import NotificationButton from "../panels/NotificationButton";
 import SettingsHeaderButton from "../panels/SettingsHeaderButton";
@@ -197,7 +198,7 @@ const styles = (theme: Theme) =>
       "& .MuiSvgIcon-root": {
         width: "14px",
         height: "14px",
-        fontSize: "var(--fontSizeNormal)"
+        fontSize: ICON_SIZE.sm
       }
     },
 
@@ -322,7 +323,7 @@ const styles = (theme: Theme) =>
       "& svg, & .MuiSvgIcon-root": {
         width: "16px",
         height: "16px",
-        fontSize: "var(--fontSizeNormal)"
+        fontSize: ICON_SIZE.sm
       }
     },
 

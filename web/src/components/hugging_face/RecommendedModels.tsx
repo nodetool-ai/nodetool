@@ -180,7 +180,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
             density="normal"
             onClick={openHuggingfacePath}
           >
-            <FolderOutlined sx={{ mr: 0.5, fontSize: "1em" }} />
+            <FolderOutlined sx={{ mr: 0.5, fontSize: "inherit" }} />
             Open HuggingFace folder
           </EditorButton>
           <EditorButton
@@ -188,7 +188,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
             density="normal"
             onClick={openOllamaPath}
           >
-            <FolderOutlined sx={{ mr: 0.5, fontSize: "1em" }} />
+            <FolderOutlined sx={{ mr: 0.5, fontSize: "inherit" }} />
             Open Ollama folder
           </EditorButton>
         </FlexRow>
