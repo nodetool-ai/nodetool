@@ -76,6 +76,8 @@ export interface TimelineSequence {
    * `DEFAULT_TEMPO` (120 BPM, 4/4, no offset) — see `midi/tempo.ts`.
    */
   tempo?: TimelineTempo;
+  /** The mix bus. Absent means 0 dB with no effects. */
+  master?: TimelineMasterChannel;
   /**
    * Guided video-flow state (PRD § 8.5). Absent on every sequence not built
    * through the flow, which is what makes those open straight in the editor.
@@ -399,6 +401,23 @@ export interface TimelineTrack {
    * its sound. Must also exist on the protocol zod schema or PATCH strips it.
    */
   instrument?: MidiInstrument;
+  /**
+   * Channel fader in decibels, applied after the track's effects. Absent
+   * means 0 dB. Audio and midi tracks only.
+   */
+  volumeDb?: number;
+  /** Stereo position, -1 (left) to 1 (right). Absent means centre. */
+  pan?: number;
+}
+
+/**
+ * The master channel every audio and midi track sums into. Absent means
+ * 0 dB with no effects.
+ */
+export interface TimelineMasterChannel {
+  volumeDb: number;
+  /** Audio effects on the summed mix, applied in order before the fader. */
+  effects?: TrackEffect[];
 }
 
 export interface TimelineTrackFolder {

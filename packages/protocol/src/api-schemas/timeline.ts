@@ -598,9 +598,18 @@ export const timelineTrack = z.object({
   /** The voice a `midi` track plays; the track owns the instrument, not the
    * clip. Without this field Zod strips it on every PATCH, so a track reverts
    * to the default synth on the first autosave. */
-  instrument: midiInstrument.optional()
+  instrument: midiInstrument.optional(),
+  volumeDb: z.number().min(-120).max(24).optional(),
+  pan: z.number().min(-1).max(1).optional()
 });
 export type TimelineTrack = z.infer<typeof timelineTrack>;
+
+/** `TimelineMasterChannel` in `@nodetool-ai/timeline`. */
+export const timelineMasterChannel = z.object({
+  volumeDb: z.number().min(-120).max(24),
+  effects: z.array(trackEffect).optional()
+});
+export type TimelineMasterChannel = z.infer<typeof timelineMasterChannel>;
 
 export const timelineTrackFolder = z.object({
   id: z.string(),
@@ -1973,6 +1982,9 @@ export const timelineDocument = z.object({
    * strips it on every PATCH, so the document falls back to 120 BPM and every
    * midi clip plays at the wrong speed after one save. */
   tempo: timelineTempo.optional(),
+  /** The mix bus. Without this field Zod strips it on every PATCH, so the
+   * master fader and its effects reset on the first save. */
+  master: timelineMasterChannel.optional(),
   /** Guided-setup state. Absent on every sequence not built through the flow. */
   setup: timelineSetup.optional(),
   /** Sequence this one was retargeted from. Without this field Zod strips it

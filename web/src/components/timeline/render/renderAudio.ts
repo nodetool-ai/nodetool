@@ -22,6 +22,8 @@ import type {
 } from "@nodetool-ai/timeline";
 import { getSamplerAudio } from "../preview/samplerAudio";
 import { AudioGraph, type ScheduledAudioClip } from "../preview/AudioGraph";
+import { liveDeviceFactory } from "../daw/devices/liveDevice";
+import "../daw/devices/registerFablesynthDevices";
 
 interface RenderAudioOptions {
   clips: TimelineClip[];
@@ -126,6 +128,9 @@ export async function renderTimelineAudio(
     Promise.all(
       audioClips.map(async (clip): Promise<ScheduledAudioClip | null> => {
         throwIfAborted(signal);
+        if (clip.mediaType === "midi" && liveDeviceFactory(instrumentOf(clip.trackId))) {
+          return { clip, live: { bpm } };
+        }
         if (clip.mediaType === "midi") {
           // Rendered inline: the export already runs off the main thread's hot
           // path, and one context per render makes a worker round trip pure cost.
@@ -167,6 +172,16 @@ export async function renderTimelineAudio(
   // scheduling once its buffers settle, so a cancelled mix stops downloading
   // and decoding rather than finishing behind the next export.
   const graph = new AudioGraph(offline, { signal });
+  // Live devices get their whole score at construction: an offline render
+  // can finish before a message posted after it starts is delivered.
+  await abortable(
+    graph.preloadLiveDevices(
+      tracks.filter((track) => audibleTrackIds.has(track.id)),
+      audioClips,
+      bpm
+    ),
+    signal
+  );
   // currentTimeMs = 0: the renderer always mixes the whole timeline from t=0,
   // so each clip is scheduled at its absolute startMs on the offline clock.
   await abortable(

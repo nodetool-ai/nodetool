@@ -76,6 +76,8 @@ import type { PreviewQuality } from "./previewQuality";
 import { resolvePlayStartMs } from "./playbackSync";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import { formatBinding, withActionShortcut } from "../timelineKeymap";
+import { liveDeviceFactory } from "../daw/devices/liveDevice";
+import "../daw/devices/registerFablesynthDevices";
 
 /** Space is bound by the preview itself (useCombo below), not the keymap. */
 const PLAY_PAUSE_KEY = formatBinding({ key: " " });
@@ -543,12 +545,16 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     useEffect(() => {
       const clock = clockRef.current;
       const graph = graphRef.current;
+      playbackApi.getState().setAudioGraph(graph);
       return () => {
+        if (playbackApi.getState().audioGraph === graph) {
+          playbackApi.getState().setAudioGraph(null);
+        }
         clock.stop();
         graph.dispose();
         stopAudioSession();
       };
-    }, [stopAudioSession]);
+    }, [playbackApi, stopAudioSession]);
 
     // Live-apply track gain/solo/mute and DSP chain changes so effect tweaks
     // are audible immediately without waiting for the next play/seek cycle.
@@ -572,6 +578,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       ): Promise<ScheduledAudioClip | null> => {
         if (clip.mediaType === "midi") {
           const state = timelineApi.getState();
+          if (liveDeviceFactory(instrumentForTrack(state.tracks, clip.trackId))) {
+            return { clip, live: { bpm: resolveTempo(state).bpm } };
+          }
           try {
             const buffer = await getMidiClipBuffer(
               graphRef.current.getContext(),
@@ -622,6 +631,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         const midiKey = (() => {
           if (clip.mediaType !== "midi") return null;
           const state = timelineApi.getState();
+          // A live device plays the notes as they are; its sound follows the
+          // instrument without rescheduling, so only the notes and tempo key it.
+          if (liveDeviceFactory(instrumentForTrack(state.tracks, clip.trackId))) {
+            return JSON.stringify({ notes: clip.notes ?? [], bpm: resolveTempo(state).bpm });
+          }
           return midiRenderKey({
             clip,
             bpm: resolveTempo(state).bpm,
