@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { createNative3DGame, applyAnyGameOps, anyGameDocumentOp, validateAnyGame } from "@nodetool-ai/game-runtime";
@@ -358,14 +358,12 @@ it("waits for a pending autosave before opening restore confirmation", async () 
     await user.click(screen.getByRole("button", { name: "Edit selected script" }));
     await user.type(screen.getByRole("textbox", { name: "Anchored script" }), " changed");
     await user.click(screen.getByRole("tab", { name: /^Revisions$/ }));
-    const restore = screen.getByRole("button", { name: "Restore to draft" });
-    expect(restore).toBeEnabled();
-    restore.addEventListener("pointerdown", () => {
-      act(() => { jest.advanceTimersByTime(500); });
-    }, { once: true });
-    await user.click(restore);
+    expect(screen.getByRole("button", { name: "Restore to draft" })).toBeEnabled();
+    await act(async () => { jest.advanceTimersByTime(500); });
     expect(store.getState().saveStatus).toBe("saving");
+    const restore = screen.getByRole("button", { name: "Restore to draft" });
     expect(restore).toBeDisabled();
+    fireEvent.click(restore);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(mockRestore).not.toHaveBeenCalled();
     expect(mockSave).toHaveBeenCalledTimes(1);
