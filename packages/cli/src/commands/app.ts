@@ -171,7 +171,7 @@ export function registerAppCommands(program: Command): void {
     .command("build <prompt_or_spec_file>")
     .addHelpText(
       "after",
-      "\nNo-cost fixed greeting fixture (ignores the prompt):\n  nodetool app build \"greeting fixture\" --provider fake --model fake-app-greeting --no-judge\n\nAuthoring guide: nodetool skills read nodetool-app-builder\n"
+      "\nNo-cost fixed greeting fixture (ignores the prompt):\n  nodetool packs add audio --yes\n  nodetool app build \"greeting fixture\" --provider fake --model fake-app-greeting --no-judge\n\nThe audio pack supplies the required Output node.\nAuthoring guide: nodetool skills read nodetool-app-builder\n"
     )
     .description(
       "Build a mini app from a prompt (or a spec.json) and verify it: plan the workflows, author the app, check its wiring, run every interaction, and write an ApplicationBundle plus a build report. Exits 0 only when the verdict is ok"

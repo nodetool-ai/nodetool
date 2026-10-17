@@ -100,6 +100,15 @@ const report = (): BuildReport => ({
 });
 
 describe("registerAppCommands — build", () => {
+  it("shows the Output-node prerequisite before the fixed fixture build", () => {
+    const command = appBuildCommand();
+    let output = "";
+    command.configureOutput({ writeOut: (text) => { output += text; } });
+    command.outputHelp();
+    expect(output).toContain("The audio pack supplies the required Output node.");
+    expect(output.indexOf("nodetool packs add audio --yes")).toBeLessThan(output.indexOf('nodetool app build "greeting fixture"'));
+  });
+
   it("registers app build with an agent-friendly description", () => {
     expect(appBuildCommand().description()).toMatch(/mini app/i);
     expect(appBuildCommand().description()).toMatch(/ApplicationBundle/);

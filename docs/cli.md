@@ -72,9 +72,11 @@ project-scoped documents. Local tool calls initialize the Personal project
 For a deterministic mini app build without provider charges, run:
 
 ```bash
+nodetool packs add audio --yes
 nodetool app build "greeting fixture" --provider fake --model fake-app-greeting --no-judge
 ```
 
+The audio pack supplies the required `nodetool.output.Output` node.
 `fake-app-greeting` builds a fixed greeting app and ignores the prompt. It tests
 the build pipeline and interaction checks, not general app generation.
 
