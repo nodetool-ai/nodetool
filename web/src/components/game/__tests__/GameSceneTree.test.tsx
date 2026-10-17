@@ -136,7 +136,7 @@ describe("GameSceneTree", () => {
     const wall = next.scenes[0].entities.at(-1);
     expect(wall?.body2d?.type).toBe("static");
     expect(wall?.collider2d).toBeDefined();
-    expect(onSelect).toHaveBeenCalledWith(wall?.id, false);
+    expect(onSelect).toHaveBeenCalledWith({ sceneId: "room", entityId: wall?.id }, false);
   });
 
   it("reparents and reorders entities through reducer ops", () => {
@@ -199,4 +199,15 @@ it("keeps a child at its world position when dropped into another parent", () =>
   const child = updated.scenes[0].entities.find(entity => entity.id === "child")!;
   expect(child.parentId).toBe("sibling");
   expect(child.transform2d.x).toBe(-3);
+});
+
+
+it("preserves the scene component of a clicked entity target when two scenes reuse an ID (E1)", async () => {
+  const document = fixture();
+  const original = document.scenes[0].entities.find((entity) => entity.id === "parent");
+  if (!original) { throw new Error("Hierarchy fixture parent is missing"); }
+  document.scenes.push({ id: "arena", name: "Arena", entities: [{ ...structuredClone(original), name: "Other Parent" }] });
+  const { onSelect } = renderTree(document);
+  await userEvent.click(screen.getByRole("button", { name: "Other Parent" }));
+  expect(onSelect).toHaveBeenCalledWith({ sceneId: "arena", entityId: "parent" }, false);
 });

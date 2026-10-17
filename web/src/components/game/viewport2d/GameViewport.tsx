@@ -86,15 +86,22 @@ function point(event: { clientX: number; clientY: number }, canvas: HTMLCanvasEl
 
 export default function GameViewport({ canvasRef, frame, document, sceneId, playing, paused, active, selectedIds, highlightedIds, onSelect, onSelectMany, onMove, onMoves, onTransform, onLight, onGestureStart, onGestureEnd, onCamera, onViewportAspect, onKeyDown, onKeyUp, onBlur }: GameViewportProps) {
   const gestureRef = useRef<number | null>(null);
+  const gestureEndRef = useRef<typeof onGestureEnd>(undefined);
+  const pointerHandlersRef = useRef<{ move: (event: PointerEvent<HTMLCanvasElement>) => void; up: () => void } | null>(null);
   const gestureCallbacks = useRef({ onGestureStart, onGestureEnd });
   gestureCallbacks.current = { onGestureStart, onGestureEnd };
   const startGesture = () => {
-    if (gestureRef.current === null) { gestureRef.current = gestureCallbacks.current.onGestureStart?.() ?? null; }
+    if (gestureRef.current === null) {
+      gestureRef.current = gestureCallbacks.current.onGestureStart?.() ?? null;
+      gestureEndRef.current = gestureCallbacks.current.onGestureEnd;
+    }
   };
   const endGesture = () => {
     const id = gestureRef.current;
     gestureRef.current = null;
-    if (id !== null) { gestureCallbacks.current.onGestureEnd?.(id); }
+    const finish = gestureEndRef.current;
+    gestureEndRef.current = undefined;
+    if (id !== null) { finish?.(id); }
   };
   const theme = useTheme();
   const mac = isMac();
@@ -457,6 +464,7 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
   };
 
   const onPointerCancel = () => {
+    pointerHandlersRef.current = null;
     dragRef.current = null;
     previewRef.current = null;
     marqueeRef.current = null;
@@ -511,7 +519,15 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
         {(!playing || paused) && frame && <Box component="canvas" ref={overlayRef} width={Math.round(frame.width * frame.pixelsPerUnit)} height={Math.round(frame.height * frame.pixelsPerUnit)}
           aria-label="Game edit overlay" role="group"
           onContextMenu={(event) => event.preventDefault()}
-          onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel} onLostPointerCapture={onPointerCancel}
+          onPointerDown={(event) => {
+            pointerHandlersRef.current = { move: onPointerMove, up: onPointerUp };
+            onPointerDown(event);
+          }} onPointerMove={(event) => (pointerHandlersRef.current?.move ?? onPointerMove)(event)}
+          onPointerUp={() => {
+            const finish = pointerHandlersRef.current?.up ?? onPointerUp;
+            pointerHandlersRef.current = null;
+            finish();
+          }} onPointerCancel={onPointerCancel} onLostPointerCapture={onPointerCancel}
           onWheel={(event) => {
             if (!active) return;
             event.preventDefault();

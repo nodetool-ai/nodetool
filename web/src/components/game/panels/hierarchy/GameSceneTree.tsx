@@ -16,6 +16,8 @@ import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import type { GameDocument, GameEntity, GameScene } from "@nodetool-ai/protocol/game.js";
 import type { GameDocumentOp, GameValidationIssue } from "@nodetool-ai/game-runtime";
 
+import type { GameEntityTarget } from "../../../../stores/game/GameDraftStore";
+
 import {
   BORDER_RADIUS, Box, Caption, CONTROL, EditorMenu, FlexColumn, FlexRow, focusRing, FONT_SIZE_SANS, getSpacingPx, MenuItemPrimitive,
   SearchInput, SPACING, ToolbarIconButton, Tooltip, TreeRow, TYPOGRAPHY
@@ -29,7 +31,7 @@ interface GameSceneTreeProps {
   selectedIds: readonly string[];
   issues?: readonly GameValidationIssue[];
   scriptErrorEntityId?: string | null;
-  onSelect: (id: string, additive: boolean) => void;
+  onSelect: (target: GameEntityTarget, additive: boolean) => void;
   onSelectScene: (id: string) => void;
   onOps: (ops: GameDocumentOp[]) => void;
 }
@@ -200,7 +202,7 @@ export default function GameSceneTree({ document, activeSceneId, selectedIds, is
     if (!addSceneId) return;
     const id = crypto.randomUUID().replaceAll("-", "");
     onOps([{ op: "add_entity", scene_id: addSceneId, entity: presetEntity(kind, id, imageSlot) }]);
-    onSelect(id, false);
+    onSelect({ sceneId: addSceneId, entityId: id }, false);
     setAddSceneId(null);
   };
   const drop = (scene: GameScene, targetId: string | null, position: DropPosition, prefabs = false) => {
@@ -299,7 +301,7 @@ export default function GameSceneTree({ document, activeSceneId, selectedIds, is
                 {groupExpanded && rows.map(({ entity, depth, hasChildren }) => {
                   const hasIssue = entity.id === scriptErrorEntityId || issues.some((issue) => issue.path[0] === "scenes" &&
                     issue.path[1] === sceneIndex && issue.path[2] === "entities" && scene.entities[issue.path[3] as number]?.id === entity.id);
-                  const selected = selectedIds.includes(entity.id);
+                  const selected = scene.id === activeSceneId && selectedIds.includes(entity.id);
                   const name = entity.name || entity.id;
                   const expanded = needle !== "" || !collapsedEntities.has(entity.id);
                   return (
@@ -315,7 +317,7 @@ export default function GameSceneTree({ document, activeSceneId, selectedIds, is
                         aria-label={`${name}${hasIssue ? ", has errors" : ""}`}
                         aria-pressed={selected}
                         aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"
-                        onClick={(event) => onSelect(entity.id, event.shiftKey || event.metaKey || event.ctrlKey)}
+                        onClick={(event) => onSelect({ sceneId: scene.id, entityId: entity.id }, event.shiftKey || event.metaKey || event.ctrlKey)}
                         onKeyDown={(event) => moveWithKeyboard(event, scene, entity)}
                         onDragStart={(event) => {
                           event.dataTransfer.setData("text/plain", entity.id);
