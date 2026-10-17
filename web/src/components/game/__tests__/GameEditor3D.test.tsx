@@ -316,23 +316,72 @@ it("keeps an opened script anchored after another entity is selected", async () 
 });
 
 it("confirms restore, flushes edits and uses the acknowledged token before resetting undo", async () => {
-  const user = userEvent.setup();
-  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
-  await user.click(screen.getByRole("button", { name: "Select player" }));
-  await user.click(screen.getByRole("button", { name: "Edit selected script" }));
-  await user.type(screen.getByRole("textbox", { name: "Anchored script" }), " changed");
+  jest.useFakeTimers();
+  const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+  const view = render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  try {
+    await user.click(screen.getByRole("button", { name: "Select player" }));
+    await user.click(screen.getByRole("button", { name: "Edit selected script" }));
+    await user.type(screen.getByRole("textbox", { name: "Anchored script" }), " changed");
+    const store = getGameDraftStore(mockDocument.id);
+    expect(store.getState().commandHistory.past.length).toBeGreaterThan(0);
+    await user.click(screen.getByRole("tab", { name: /^Revisions$/ }));
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(store.getState().pendingOps.length).toBeGreaterThan(0);
+    await user.click(screen.getByRole("button", { name: "Restore to draft" }));
+    expect(mockRestore).not.toHaveBeenCalled();
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Restore to draft" }));
+    await waitFor(() => expect(mockRestore).toHaveBeenCalledWith({ id: mockDocument.id, baseUpdatedAt: mockSavedToken, revision: mockRevision }));
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(store.getState().baseUpdatedAt).toBe(mockRestoredToken));
+    expect(store.getState().pendingOps).toEqual([]);
+    expect(store.getState().commandHistory.past).toEqual([]);
+    expect(store.getState().document).toEqual(mockDocument);
+  } finally {
+    view.unmount();
+    jest.useRealTimers();
+  }
+});
+
+it("waits for a pending autosave before opening restore confirmation", async () => {
+  jest.useFakeTimers();
+  let acknowledge: (() => void) | undefined;
+  const save = mockSave.getMockImplementation();
+  mockSave.mockImplementation((request) => new Promise((resolve) => {
+    acknowledge = () => resolve({ document: getGameDraftStore(request.id).getState().document, game: { draftUpdatedAt: mockSavedToken } });
+  }));
+  const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+  const view = render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
   const store = getGameDraftStore(mockDocument.id);
-  expect(store.getState().commandHistory.past.length).toBeGreaterThan(0);
-  await user.click(screen.getByRole("tab", { name: /^Revisions$/ }));
-  await user.click(screen.getByRole("button", { name: "Restore to draft" }));
-  expect(mockRestore).not.toHaveBeenCalled();
-  await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Restore to draft" }));
-  await waitFor(() => expect(mockRestore).toHaveBeenCalledWith({ id: mockDocument.id, baseUpdatedAt: mockSavedToken, revision: mockRevision }));
-  expect(mockSave).toHaveBeenCalledTimes(1);
-  await waitFor(() => expect(store.getState().baseUpdatedAt).toBe(mockRestoredToken));
-  expect(store.getState().pendingOps).toEqual([]);
-  expect(store.getState().commandHistory.past).toEqual([]);
-  expect(store.getState().document).toEqual(mockDocument);
+  try {
+    await user.click(screen.getByRole("button", { name: "Select player" }));
+    await user.click(screen.getByRole("button", { name: "Edit selected script" }));
+    await user.type(screen.getByRole("textbox", { name: "Anchored script" }), " changed");
+    await user.click(screen.getByRole("tab", { name: /^Revisions$/ }));
+    const restore = screen.getByRole("button", { name: "Restore to draft" });
+    expect(restore).toBeEnabled();
+    restore.addEventListener("pointerdown", () => {
+      act(() => { jest.advanceTimersByTime(500); });
+    }, { once: true });
+    await user.click(restore);
+    expect(store.getState().saveStatus).toBe("saving");
+    expect(restore).toBeDisabled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mockRestore).not.toHaveBeenCalled();
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    await act(async () => { acknowledge?.(); });
+    expect(restore).toBeEnabled();
+    await user.click(restore);
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Restore to draft" }));
+    await waitFor(() => expect(mockRestore).toHaveBeenCalledWith({ id: mockDocument.id, baseUpdatedAt: mockSavedToken, revision: mockRevision }));
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(store.getState().baseUpdatedAt).toBe(mockRestoredToken));
+  } finally {
+    await act(async () => { acknowledge?.(); });
+    if (save) { mockSave.mockImplementation(save); }
+    view.unmount();
+    jest.useRealTimers();
+  }
 });
 
 it("keeps inspector-button undo outside the 3D editor keyboard scope", async () => {
