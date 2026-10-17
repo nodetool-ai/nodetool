@@ -12,6 +12,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
@@ -44,6 +46,12 @@ export interface DeviceCardProps {
   onMove?: (from: number, to: number) => void;
   /** Width of the expanded card: px, or any CSS width. */
   width?: number | string;
+  /**
+   * `row` (the default) sits in a horizontal rack at the rack's height and
+   * scrolls its body. `stack` fills the width of a vertical rack at the
+   * device's natural height, and folds to its header when collapsed.
+   */
+  layout?: "row" | "stack";
   testId?: string;
   children: React.ReactNode;
 }
@@ -54,18 +62,20 @@ const cardStyles = (
   collapsed: boolean,
   dragOver: "left" | "right" | null,
   dragging: boolean,
-  disabled: boolean
-) =>
-  css({
+  disabled: boolean,
+  stacked: boolean
+) => {
+  const vertical = collapsed && !stacked;
+  return css({
     position: "relative",
     display: "flex",
     flexDirection: "column",
     flexShrink: 0,
-    height: "100%",
+    height: stacked ? "auto" : "100%",
     minHeight: 0,
     boxSizing: "border-box",
-    width: collapsed ? theme.spacing(SPACING.xxxl + SPACING.md) : width,
-    minWidth: collapsed ? undefined : theme.spacing(SPACING.xxxl * 5),
+    width: stacked ? "100%" : vertical ? theme.spacing(SPACING.xxxl + SPACING.md) : width,
+    minWidth: stacked || vertical ? undefined : theme.spacing(SPACING.xxxl * 5),
     border: `1px solid ${theme.vars.palette.divider}`,
     borderRadius: BORDER_RADIUS.md,
     backgroundColor: theme.vars.palette.background.paper,
@@ -73,21 +83,29 @@ const cardStyles = (
     transition: `${MOTION.opacity}, ${MOTION.border}`,
     ".device-card__header": {
       display: "flex",
-      flexDirection: collapsed ? "column" : "row",
+      flexDirection: vertical ? "column" : "row",
       alignItems: "center",
       gap: theme.spacing(SPACING.micro),
       padding: theme.spacing(SPACING.micro, SPACING.xs),
       borderBottom: collapsed ? "none" : `1px solid ${theme.vars.palette.divider}`,
       flexShrink: 0,
       minWidth: 0,
-      height: collapsed ? "100%" : undefined
+      height: vertical ? "100%" : undefined
+    },
+    ".device-card__label": {
+      display: "flex",
+      alignItems: "baseline",
+      gap: theme.spacing(SPACING.sm),
+      minWidth: 0,
+      flex: "0 1 auto",
+      paddingLeft: theme.spacing(SPACING.micro)
     },
     ".device-card__spacer": { flex: "1 1 auto" },
     ".device-card__title": {
       ...TYPOGRAPHY.sans.label,
       color: disabled ? theme.vars.palette.text.disabled : theme.vars.palette.text.primary,
       minWidth: 0,
-      flex: collapsed ? "1 1 auto" : "0 1 auto"
+      flex: "0 1 auto"
     },
     ".device-card__vertical-title": {
       ...TYPOGRAPHY.sans.label,
@@ -105,7 +123,8 @@ const cardStyles = (
     ".device-card__kind": {
       ...TYPOGRAPHY.sans.caption,
       color: theme.vars.palette.text.secondary,
-      whiteSpace: "nowrap"
+      whiteSpace: "nowrap",
+      flexShrink: 0
     },
     ".device-card__grip": {
       display: "flex",
@@ -120,7 +139,10 @@ const cardStyles = (
     ".device-card__body": {
       flex: "1 1 auto",
       minHeight: 0,
-      overflow: "auto",
+      overflow: stacked ? "visible" : "auto",
+      overscrollBehavior: "contain",
+      scrollbarWidth: "thin",
+      scrollbarGutter: stacked ? undefined : "stable",
       padding: theme.spacing(SPACING.xs),
       opacity: disabled ? 0.55 : 1,
       transition: MOTION.opacity
@@ -139,6 +161,7 @@ const cardStyles = (
         }
       : undefined
   });
+};
 
 export const DeviceCard: React.FC<DeviceCardProps> = memo(
   ({
@@ -152,6 +175,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = memo(
     index,
     onMove,
     width = "max-content",
+    layout = "row",
     testId,
     children
   }) => {
@@ -212,9 +236,10 @@ export const DeviceCard: React.FC<DeviceCardProps> = memo(
     );
 
     const disabled = enabled === false;
+    const stacked = layout === "stack";
     const cardCss = useMemo(
-      () => cardStyles(theme, width, collapsed, dragOver, dragging, disabled),
-      [theme, width, collapsed, dragOver, dragging, disabled]
+      () => cardStyles(theme, width, collapsed, dragOver, dragging, disabled, stacked),
+      [theme, width, collapsed, dragOver, dragging, disabled, stacked]
     );
 
     const grip = reorderable ? (
@@ -250,7 +275,15 @@ export const DeviceCard: React.FC<DeviceCardProps> = memo(
 
     const collapse = (
       <ToolbarIconButton
-        icon={collapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
+        icon={
+          stacked ? (
+            collapsed ? <ExpandMoreIcon fontSize="small" /> : <ExpandLessIcon fontSize="small" />
+          ) : collapsed ? (
+            <ChevronRightIcon fontSize="small" />
+          ) : (
+            <ChevronLeftIcon fontSize="small" />
+          )
+        }
         tooltip={collapsed ? `Expand ${title}` : `Collapse ${title}`}
         aria-label={collapsed ? `Expand ${title}` : `Collapse ${title}`}
         aria-expanded={!collapsed}
@@ -268,7 +301,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = memo(
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {collapsed ? (
+        {collapsed && !stacked ? (
           <div className="device-card__header">
             {collapse}
             {power}
@@ -282,8 +315,10 @@ export const DeviceCard: React.FC<DeviceCardProps> = memo(
             <div className="device-card__header">
               {grip}
               {power}
-              <TruncatedText className="device-card__title">{title}</TruncatedText>
-              {kind && <span className="device-card__kind">{kind}</span>}
+              <div className="device-card__label">
+                <TruncatedText className="device-card__title">{title}</TruncatedText>
+                {kind && <span className="device-card__kind">{kind}</span>}
+              </div>
               <span className="device-card__spacer" />
               {onRemove && (
                 <ToolbarIconButton
@@ -296,7 +331,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = memo(
               )}
               {collapse}
             </div>
-            <div className="device-card__body">{children}</div>
+            {!collapsed && <div className="device-card__body">{children}</div>}
           </>
         )}
       </div>

@@ -642,13 +642,16 @@
 .fablesynth .filter-tab-led.on { background: var(--ac-f); box-shadow: 0 0 5px var(--ac-f); }
 .fablesynth .filter-active-power { display: inline-flex; }
 .fablesynth .filter-type { display: inline-flex; }
-.fablesynth .panel-filter .filter-type .st-value { min-width: 46px; }
+.fablesynth .panel-filter .filter-type .st-value { min-width: 46px; white-space: nowrap; }
 .fablesynth .panel-filter > .panel-head,
 .fablesynth .panel-env > .panel-head,
 .fablesynth .lfo-block > .panel-head {
   height: 26px;
   margin-bottom: 8px;
 }
+/* A narrow filter panel wraps its route stepper to a second header line
+   rather than pushing it past the panel edge. */
+.fablesynth .panel-filter > .panel-head { flex-wrap: wrap; column-gap: 5px; row-gap: 4px; height: auto; min-height: 26px; }
 .fablesynth .filter-block {
   transition: opacity 0.25s;
 }
@@ -684,10 +687,10 @@
 }
 .fablesynth .lfo-tg {
   flex: none;
-  width: 26px;
-  min-width: 0;
+  width: auto;
+  min-width: 26px;
   height: 18px;
-  padding: 0;
+  padding: 0 3px;
   border: 1px solid var(--line);
   border-radius: 4px;
   background: #11141c;
@@ -1037,6 +1040,20 @@
       'lab lab lab lab lab lab lab lab lab lab lab lab'
       'seq seq seq seq seq seq seq seq seq seq seq seq';
   }
+  /* The EDIT page's own template outranks the bare .panels one above, so it
+     needs its own narrow form: the two LFOs get a full row instead of a
+     third of one, where their header steppers overran the panel. */
+  .fablesynth .panels[data-page='edit'] {
+    grid-template-areas:
+      'oscA oscA oscA oscA oscA oscB oscB oscB oscB oscB util util'
+      'filter filter filter filter env1 env1 env1 env1 env2 env2 env2 env2'
+      'lfos lfos lfos lfos lfos lfos lfos lfos lfos lfos lfos lfos'
+      'matrix matrix matrix matrix matrix matrix matrix matrix matrix matrix matrix matrix';
+  }
+  /* Compact header steppers, as the LFO heads use, so FILTERS keeps one line. */
+  .fablesynth .panel-filter > .panel-head .stepper { gap: 2px; }
+  .fablesynth .panel-filter > .panel-head .st-btn { width: 14px; height: 16px; }
+  .fablesynth .panel-filter > .panel-head .st-value { min-width: 0; padding-inline: 5px; }
   .fablesynth .hud { display: none; }
   .fablesynth .panel-matrix,
 .fablesynth .panel-fx { height: auto; min-height: 124px; }

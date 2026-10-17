@@ -1,6 +1,12 @@
 /* DR-1 rack styles, scoped under .fablesynth. Source: FableSynth src/drum/drum.css; each #id selector became a .<id>-slot class. */
 /* DR-1 shell and task-ready section layouts. Shared controls live in index.css. */
 
+.fablesynth.dr1-device {
+  /* The layout follows the panel the device sits in (a DAW device card is
+     narrower than the window), so the rack's breakpoints are container
+     queries on this root. */
+  container: fablesynth / inline-size;
+}
 .fablesynth .drum-rack-slot {
   max-width: 1460px;
   min-width: 900px;
@@ -976,8 +982,21 @@
 }
 .fablesynth .dr-spacer { flex: 1; }
 
+/* ============ narrow panel ============ */
+@container fablesynth (max-width: 900px) {
+  .fablesynth .drum-rack-slot { min-width: 0; }
+  /* The flow legend is decoration: it gives way before the scope buttons. */
+  .fablesynth .dr-fx-flow { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
+/* The pad patch bar drops to its own line, its name taking the spare width,
+   instead of running under the BROWSE and SAVE buttons. */
+@container fablesynth (max-width: 560px) {
+  .fablesynth .dr-selbar { flex-wrap: wrap; row-gap: 6px; }
+  .fablesynth .dr-patchbar { flex: 1 1 100%; margin-left: 0; }
+  .fablesynth .dr-patchbar .dr-patchname { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
 /* ============ phone layout ============ */
-@media (max-width: 700px) {
+@container fablesynth (max-width: 700px) {
   .fablesynth .drum-rack-slot {
     width: 100%;
     max-width: none;

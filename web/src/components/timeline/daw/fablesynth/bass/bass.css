@@ -4,6 +4,10 @@
    keys everything off --ac-a, so one override recolors brand, LEDs and knobs. */
 .fablesynth.fablesynth-bl1 {
   --ac-a: #4dff9e;
+  /* The layout follows the panel the device sits in (a DAW device card is
+     narrower than the window), so the rack's breakpoints are container
+     queries on this root. */
+  container: fablesynth / inline-size;
 }
 .fablesynth.fablesynth-bl1 ::selection { background: rgba(77, 255, 158, 0.25); }
 .fablesynth.fablesynth-bl1 .bass-rack {
@@ -313,7 +317,7 @@
 .fablesynth.fablesynth-bl1 .bl-fx-rack > .panel { min-width: 0; }
 .fablesynth.fablesynth-bl1 .bl-fx-rack .dynamics-curve { height: 144px; aspect-ratio: auto; }
 .fablesynth.fablesynth-bl1 .bl-fx-rack > .fx-group { grid-area: chorus; }
-@media (max-width: 1150px) {
+@container fablesynth (max-width: 1150px) {
   .fablesynth.fablesynth-bl1 .bl-fx-rack { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: 'eq eq' 'ott comp' 'echo reverb' 'drive chorus'; }
 }
 .fablesynth.fablesynth-bl1 .bl-fx-rack > .panel-dynamics,
@@ -355,8 +359,20 @@
   gap: 2px;
 }
 .fablesynth.fablesynth-bl1 .fx-knobs .knob { min-width: 0; }
+/* ============ narrow panel ============
+   Below the rack's drawn width, the rack follows the panel and the edit row
+   folds into two columns instead of scrolling sideways. */
+@container fablesynth (max-width: 1180px) {
+  .fablesynth.fablesynth-bl1 .bass-rack { min-width: 0; }
+  .fablesynth.fablesynth-bl1 .bl-header { flex-wrap: wrap; row-gap: 8px; }
+  .fablesynth.fablesynth-bl1 .bl-editrow { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+  .fablesynth.fablesynth-bl1 .bl-editrow > :nth-child(1) { grid-column: span 7; }
+  .fablesynth.fablesynth-bl1 .bl-editrow > :nth-child(2) { grid-column: span 3; }
+  .fablesynth.fablesynth-bl1 .bl-editrow > :nth-child(n + 3) { grid-column: span 5; }
+  .fablesynth.fablesynth-bl1 .bl-body .device-page { min-height: 0; }
+}
 /* ============ phone layout ============ */
-@media (max-width: 700px) {
+@container fablesynth (max-width: 700px) {
   .fablesynth.fablesynth-bl1 .bass-rack {
     width: 100%;
     max-width: none;
@@ -392,6 +408,7 @@
     gap: 8px;
     margin-top: 8px;
   }
+  .fablesynth.fablesynth-bl1 .bl-editrow > * { grid-column: auto; }
   .fablesynth.fablesynth-bl1 .bl-fxrack,
   .fablesynth.fablesynth-bl1 .bl-keysrow { margin-top: 8px; }
   .fablesynth.fablesynth-bl1 .bl-osc-body { grid-template-rows: minmax(126px, 35vw) auto; }
@@ -416,6 +433,6 @@
     gap: 8px;
   }
 }
-@media (max-width: 700px) {
+@container fablesynth (max-width: 700px) {
   .fablesynth.fablesynth-bl1 .bl-body .device-page { min-height: 0; }
 }

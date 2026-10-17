@@ -13,7 +13,12 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
-import type { MidiInstrument, TimelineTrack, TrackEffect } from "@nodetool-ai/timeline";
+import type {
+  FableEffectKind,
+  MidiInstrument,
+  TimelineTrack,
+  TrackEffect
+} from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineIsMobile } from "../../../../hooks/timeline/useTimelineIsMobile";
@@ -26,6 +31,7 @@ import {
   FlexColumn,
   LoadingSpinner,
   MenuItemPrimitive,
+  MOTION,
   SelectField,
   SelectableListItem,
   SPACING,
@@ -39,7 +45,9 @@ import { AUDIO_EFFECT_TYPES, DEVICE_WIDTHS, EFFECT_LABELS } from "../../Tracks/t
 import { FABLE_FX_KINDS, FABLE_FX_LABELS, makeFableEffect } from "../fx/fableFxParams";
 import { fxView, instrumentView } from "../devices/deviceViews";
 import "../devices/registerDeviceViews";
-import { DeviceCard } from "./DeviceCard";
+import { DeviceCard, type DeviceCardProps } from "./DeviceCard";
+
+type DeviceCardLayout = NonNullable<DeviceCardProps["layout"]>;
 
 /** Which channel the Devices tab shows. */
 export type DeviceTarget = { kind: "track"; trackId: string } | { kind: "master" };
@@ -73,11 +81,25 @@ const NATIVE_TYPES = AUDIO_EFFECT_TYPES.filter((type) => type !== "fable");
 
 /*
  * The FableSynth views lay themselves out by container queries, so they have
- * no width of their own: an instrument takes most of the rack, an effect a
- * share of it, within the sizes their panels were drawn for.
+ * no width of their own: an instrument fills the rack beside the add card, up
+ * to the width its panels were drawn for. An effect panel has a fixed drawn
+ * width (`fxBase.css`), so its card fits it: that width plus the card body's
+ * padding and scrollbar gutter. The Lab row of five takes a share of the rack.
  */
-const INSTRUMENT_VIEW_WIDTH = "clamp(340px, 92%, 1180px)";
-const FX_VIEW_WIDTH = "clamp(280px, 36%, 480px)";
+// 44px: the add card (36px) and the rack gap (8px).
+const INSTRUMENT_VIEW_WIDTH = "clamp(340px, calc(100% - 44px), 1420px)";
+const FX_CARD_EXTRA = 20;
+const FX_VIEW_WIDTHS: Record<FableEffectKind, number | string> = {
+  eq: 420 + FX_CARD_EXTRA,
+  ott: 420 + FX_CARD_EXTRA,
+  comp: 420 + FX_CARD_EXTRA,
+  drive: 300 + FX_CARD_EXTRA,
+  chorus: 300 + FX_CARD_EXTRA,
+  echo: 300 + FX_CARD_EXTRA,
+  reverb: 300 + FX_CARD_EXTRA,
+  lab: "clamp(560px, 70%, 1120px)"
+};
+const FX_VIEW_WIDTH = 480;
 
 const layoutStyles = (theme: Theme, mobile: boolean) =>
   css({
@@ -95,27 +117,34 @@ const layoutStyles = (theme: Theme, mobile: boolean) =>
       overflowY: "auto",
       boxSizing: "border-box"
     },
+    // On a phone the devices stack and the rack scrolls down; on a wider
+    // screen they run left to right and the rack scrolls across.
     ".device-chain__rack": {
       flex: "1 1 auto",
       minWidth: 0,
       minHeight: 0,
       display: "flex",
-      flexDirection: "row",
+      flexDirection: mobile ? "column" : "row",
       alignItems: "stretch",
       gap: theme.spacing(SPACING.md),
       padding: theme.spacing(SPACING.md),
-      overflowX: "auto",
-      overflowY: "hidden",
-      overscrollBehaviorX: "contain"
+      overflowX: mobile ? "hidden" : "auto",
+      overflowY: mobile ? "auto" : "hidden",
+      overscrollBehavior: "contain",
+      scrollbarWidth: "thin"
     },
     ".device-chain__add": {
       flexShrink: 0,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      width: theme.spacing(SPACING.xxxl + SPACING.lg),
+      width: mobile ? "100%" : theme.spacing(SPACING.xxxl + SPACING.xs),
+      minHeight: mobile ? theme.spacing(SPACING.xxxl + SPACING.md) : undefined,
+      boxSizing: "border-box",
       border: `1px dashed ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.md
+      borderRadius: BORDER_RADIUS.md,
+      transition: MOTION.border,
+      "&:hover, &:focus-within": { borderColor: theme.vars.palette.text.secondary }
     },
   });
 
@@ -190,7 +219,8 @@ const EffectDevice: React.FC<{
   ops: ChainOps;
   collapsed: boolean;
   onToggleCollapsed: (id: string) => void;
-}> = memo(({ target, effect, index, ops, collapsed, onToggleCollapsed }) => {
+  layout: DeviceCardLayout;
+}> = memo(({ target, effect, index, ops, collapsed, onToggleCollapsed, layout }) => {
   const View = fxView(effectViewKey(effect));
   const title = effectTitle(effect);
   const trackId = target.kind === "track" ? target.trackId : null;
@@ -199,7 +229,9 @@ const EffectDevice: React.FC<{
     [ops, effect.id]
   );
   const width = View
-    ? FX_VIEW_WIDTH
+    ? effect.type === "fable"
+      ? FX_VIEW_WIDTHS[effect.kind]
+      : FX_VIEW_WIDTH
     : (DEVICE_WIDTHS as Record<string, number>)[effect.type] ?? "max-content";
   return (
     <DeviceCard
@@ -213,6 +245,7 @@ const EffectDevice: React.FC<{
       index={index}
       onMove={ops.move}
       width={width}
+      layout={layout}
       testId={`device-effect-${effect.id}`}
     >
       {View ? (
@@ -235,7 +268,8 @@ const InstrumentDevice: React.FC<{
   track: TimelineTrack;
   collapsed: boolean;
   onToggleCollapsed: (id: string) => void;
-}> = memo(({ track, collapsed, onToggleCollapsed }) => {
+  layout: DeviceCardLayout;
+}> = memo(({ track, collapsed, onToggleCollapsed, layout }) => {
   const type = track.instrument?.type;
   const View = instrumentView(type);
   const title = type ? INSTRUMENT_NAMES[type] : "Instrument";
@@ -246,6 +280,7 @@ const InstrumentDevice: React.FC<{
       collapsed={collapsed}
       onToggleCollapsed={() => onToggleCollapsed("instrument")}
       width={View ? INSTRUMENT_VIEW_WIDTH : 360}
+      layout={layout}
       testId={`device-instrument-${track.id}`}
     >
       {View ? (
@@ -340,6 +375,7 @@ export const DeviceChainView: React.FC<DeviceChainViewProps> = memo(({ target, o
     [onTargetChange]
   );
   const layoutCss = useMemo(() => layoutStyles(theme, isMobile), [theme, isMobile]);
+  const cardLayout: DeviceCardLayout = isMobile ? "stack" : "row";
 
   const picker = isMobile ? (
     <SelectField
@@ -397,6 +433,7 @@ export const DeviceChainView: React.FC<DeviceChainViewProps> = memo(({ target, o
               track={track}
               collapsed={isCollapsed("instrument")}
               onToggleCollapsed={toggleCollapsed}
+              layout={cardLayout}
             />
           )}
           {ops.effects.map((effect, index) => (
@@ -408,6 +445,7 @@ export const DeviceChainView: React.FC<DeviceChainViewProps> = memo(({ target, o
               ops={ops}
               collapsed={isCollapsed(effect.id)}
               onToggleCollapsed={toggleCollapsed}
+              layout={cardLayout}
             />
           ))}
           <AddEffectCard onAdd={ops.add} />
