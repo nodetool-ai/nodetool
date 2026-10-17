@@ -343,14 +343,17 @@ The harness runs **every** declared operation, not just the first: each resolves
 its own graph, and state is keyed per operation.
 
 The verdict catches app-level failures a workflow-only run can't: bindings that
-reference missing inputs/outputs/variables, apps with no run trigger, and
+reference missing inputs/outputs/variables, apps with operations but no run
+trigger, and
 display widgets that never receive a value from a completed run. It also catches
 what the operation/variable layer makes mis-configurable — an output mapped to
 an undeclared variable, a mapping keyed on a node the workflow lacks, an event
 naming an operation the document never declares, a widget showing execution
 state of an operation nothing can run, and an elapsed `timeoutMs`. A
 `persist: true` variable that is `instance`-scoped warns rather than being
-silently downgraded.
+silently downgraded. Apps that declare no operations can pass after variable
+interactions without executing a workflow. Legacy workflow app documents retain
+their implicit operation.
 
 Three warnings cover the app an agent builds that wires up correctly and still
 fails a user. A run button with no `disabledWhen` on `op:<id>/exec#running` is
@@ -1039,6 +1042,8 @@ anything carrying one under `document`) or a `js_scripts` row id. A path that
 exists on disk wins over an id; file targets need no database.
 
 ```bash
+npm run dev:nodetool -- jsscript schema
+npm run dev:nodetool -- jsscript example > script.json
 npm run dev:nodetool -- jsscript validate <id|file.json> [--json] [--warnings-as-errors]
 npm run dev:nodetool -- jsscript run <id|file.json> --inputs '{"numbers":[1,2,3]}'
 npm run dev:nodetool -- jsscript run <id|file.json> --input-streams '{"numbers":[1,2,3]}'
@@ -1056,6 +1061,9 @@ and returns them instead of emitting them is an **error** — a script has no
 legacy return contract. Zero saved tests and a declared secret this install
 lacks are warnings.
 
+`run` and `test` validate the document before execution. Declared outputs must
+leave through `output` or `emit`. Saved test cases use `expect` for final values
+and `expectedStreamed` for ordered emissions. Unknown case fields are errors.
 `run` executes the body once in the QuickJS sandbox. A body that reads its
 inputs with `stream` is fed with `--input-streams '{handle: [item, …]}'` instead
 of `--inputs`; a staged handle the script does not declare is refused. `test`
@@ -1068,8 +1076,9 @@ imports a shipped sandbox pack. `run` and `test` open the database and install
 the sandbox pack catalog, so a body can import packs and save through
 `nodetool.*`. `debug` replays each
 `--interact` step against the headless `ui_jsscript_*` bridge (tool names with
-or without the prefix; a failing step is recorded and the script continues),
-validates the document the session left behind, and writes
+or without the prefix). A failed run or test result fails the interaction and
+report verdict. The session continues after failed steps, validates the document
+it left behind, and writes
 `nodetool-debug/jsscript-<id>-<ts>/` with `report.json`, `report.md` and
 `jsscript.json`. `versions restore` snapshots the pre-restore state first and
 re-validates against today's schema, so a restore that no longer validates exits
@@ -2083,6 +2092,11 @@ harnesses cover which surface. An uncovered surface must carry a written gap
 note; one without it fails `audit` and the registry test. Shipping a new
 surface means adding it to `packages/cli/src/harness/registry.ts` — with its
 harness or its debt written down.
+
+`harness list` distinguishes commands available in an installed CLI from
+checks that require a NodeTool checkout. Its JSON entries carry
+`requiresCheckout`. `gate` requires the checkout's Git metadata, scripts, and
+workspace dependencies. Outside a checkout it returns an actionable error.
 
 `gate` makes the registry executable: it maps a diff onto surfaces by path
 and runs the selfcheck of every harness covering a touched surface — keyless,

@@ -39,7 +39,7 @@ export const jsScriptPort = z.object({
 export type JsScriptPort = z.infer<typeof jsScriptPort>;
 
 /** One saved case, the shape `test_code` grades. */
-export const jsScriptTestCase = z.object({
+export const jsScriptTestCase = z.strictObject({
   name: z.string().min(1),
   inputs: z.record(z.string(), z.unknown()).default({}),
   /**
@@ -54,6 +54,10 @@ export const jsScriptTestCase = z.object({
   expectedStreamed: z
     .array(z.object({ name: z.string(), value: z.unknown() }))
     .optional()
+}, {
+  error: (issue) => issue.code === "unrecognized_keys"
+    ? `Unrecognized test field(s): ${issue.keys.join(", ")}. Use expect for final outputs and expectedStreamed for ordered emitted values.`
+    : undefined
 });
 export type JsScriptTestCase = z.infer<typeof jsScriptTestCase>;
 

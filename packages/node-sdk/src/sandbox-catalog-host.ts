@@ -58,7 +58,7 @@ export function discoverSandboxCatalog(
     for (const packageDir of listPackageDirs(nodeModules)) {
       let discovery: SandboxPackDiscovery | undefined;
       try {
-        discovery = discoverSandboxPack(packageDir, options);
+        discovery = discoverSandboxPack(packageDir, { ...options, shipped });
       } catch (error) {
         failures.push({
           packName: packageDir,

@@ -144,6 +144,7 @@ export async function typeCheckAgainstPackDts(
         strict: false,
         target: ts.ScriptTarget.ES2022,
         module: ts.ModuleKind.ESNext,
+        moduleDetection: ts.ModuleDetectionKind.Force,
         moduleResolution: ts.ModuleResolutionKind.Bundler,
         baseUrl: dir,
         paths

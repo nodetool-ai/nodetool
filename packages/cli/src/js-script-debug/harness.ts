@@ -299,6 +299,23 @@ async function asDocument(raw: unknown): Promise<JsScriptDocument> {
   return parsed.data;
 }
 
+async function executableDocument(
+  raw: unknown,
+  deps: JsScriptDebugDeps
+): Promise<JsScriptDocument> {
+  const document = await asDocument(raw);
+  const core = deps.core ?? (await loadCore());
+  const validation = await core.validateJsScriptDoc(document);
+  if (!validation.ok) {
+    throw new Error(
+      `The script failed validation: ${validation.errors
+        .map((issue) => `[${issue.code}] ${issue.message}`)
+        .join("; ")}`
+    );
+  }
+  return document;
+}
+
 /** Load a script and validate it — no sandbox, no bundle. */
 export async function runJsScriptValidate(
   ref: string,
@@ -330,7 +347,7 @@ export async function runJsScriptOnce(
   inputStreams?: Record<string, unknown[]>
 ): Promise<JsScriptRunOutcome> {
   const resolved = await resolveJsScriptTarget(ref, deps);
-  const document = await asDocument(resolved.raw);
+  const document = await executableDocument(resolved.raw, deps);
   if (inputStreams) {
     const declared = new Set(document.inputs.map((port) => port.name));
     const undeclared = Object.keys(inputStreams).filter(
@@ -363,7 +380,7 @@ export async function runJsScriptTests(
   deps: JsScriptDebugDeps
 ): Promise<JsScriptTestOutcome> {
   const resolved = await resolveJsScriptTarget(ref, deps);
-  const document = await asDocument(resolved.raw);
+  const document = await executableDocument(resolved.raw, deps);
   if (document.tests.length === 0) {
     throw new Error(
       `${ref} has no saved test cases; there is nothing to run. Add some to the document's \`tests\`.`

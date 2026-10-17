@@ -1705,6 +1705,9 @@ mcp
       const registry = new NodeRegistry();
       await registerCliPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
 
+      const { installSandboxCatalog } = await import("./sandbox-catalog.js");
+      installSandboxCatalog();
+
       // stdio serves exactly one local user; "1" is the local single-user id.
       const server = createMcpServer({
         registry,
