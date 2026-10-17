@@ -133,7 +133,7 @@ describe("TableActions", () => {
 
       const selectButton = screen.getByRole("button", { name: /show select column/i });
       expect(selectButton).toBeInTheDocument();
-      expect(selectButton.getAttribute("aria-label")).toBe("Show Select column");
+      expect(selectButton.getAttribute("aria-label")).toBe("Show select column");
     });
 
     it("has aria-label on Show Row Numbers button", () => {
@@ -141,15 +141,15 @@ describe("TableActions", () => {
 
       const rowNumbersButton = screen.getByRole("button", { name: /show row numbers/i });
       expect(rowNumbersButton).toBeInTheDocument();
-      expect(rowNumbersButton.getAttribute("aria-label")).toBe("Show Row Numbers");
+      expect(rowNumbersButton.getAttribute("aria-label")).toBe("Show row numbers");
     });
 
     it("has aria-label on Copy table data button", () => {
       renderWithTheme(<TableActions {...defaultProps} />);
 
-      const copyButton = screen.getByRole("button", { name: /copy table data to clipboard/i });
+      const copyButton = screen.getByRole("button", { name: /copy table data/i });
       expect(copyButton).toBeInTheDocument();
-      expect(copyButton.getAttribute("aria-label")).toBe("Copy table data to clipboard");
+      expect(copyButton.getAttribute("aria-label")).toBe("Copy table data");
     });
 
     it("all icon buttons have accessible names", () => {

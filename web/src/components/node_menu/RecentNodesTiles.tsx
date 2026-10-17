@@ -307,7 +307,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
   return (
     <div css={memoizedStyles}>
       <div className="tiles-header">
-        <Text size="normal" weight={600}>Recent Nodes</Text>
+        <Text size="normal" weight={600}>Recent nodes</Text>
         <ToolbarIconButton
           icon={<ClearIcon fontSize="small" />}
           tooltip="Clear recent nodes"

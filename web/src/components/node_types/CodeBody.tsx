@@ -452,7 +452,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
             )}
             {!supportsCodeGen && (
               <ToolbarIconButton
-                tooltip="Open Editor"
+                tooltip="Open editor"
                 icon={<OpenInFullIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
                 onClick={toggleExpand}
                 size="small"

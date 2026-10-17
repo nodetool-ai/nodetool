@@ -103,7 +103,7 @@ describe("AssetViewer", () => {
 
   it("opens an image in the image editor tab and closes", () => {
     const { onClose } = renderViewer();
-    fireEvent.click(screen.getByRole("button", { name: "Edit Image" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit image" }));
     expect(mockOpenTab).toHaveBeenCalledWith({
       type: "image",
       ref: "a1",
@@ -122,7 +122,7 @@ describe("AssetViewer", () => {
     });
     renderViewer({ asset: video, sortedAssets: [video] });
     fireEvent.click(
-      screen.getByRole("button", { name: "Create Timeline from Video" })
+      screen.getByRole("button", { name: "Create timeline from video" })
     );
     expect(mockEditVideoAsset).toHaveBeenCalledWith(video);
     expect(mockOpenTab).not.toHaveBeenCalled();
@@ -131,7 +131,7 @@ describe("AssetViewer", () => {
   it("hides edit and info for media outside the library", () => {
     renderViewer({ detachedIds: new Set(["a1"]) });
     expect(
-      screen.queryByRole("button", { name: "Edit Image" })
+      screen.queryByRole("button", { name: "Edit image" })
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Show info" })

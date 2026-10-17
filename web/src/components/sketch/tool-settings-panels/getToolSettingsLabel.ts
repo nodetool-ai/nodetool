@@ -11,7 +11,7 @@ export function getToolSettingsLabel(tool: SketchTool): string {
     case "fill":
       return "Fill";
     case "blur":
-      return "Blur Brush";
+      return "Blur brush";
     case "gradient":
       return "Gradient";
     case "crop":
@@ -29,9 +29,9 @@ export function getToolSettingsLabel(tool: SketchTool): string {
     case "move":
       return "Move";
     case "eyedropper":
-      return "Color Picker";
+      return "Color picker";
     case "clone_stamp":
-      return "Clone Stamp";
+      return "Clone stamp";
     default:
       return "Settings";
   }

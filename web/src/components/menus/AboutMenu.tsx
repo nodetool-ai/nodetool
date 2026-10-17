@@ -140,7 +140,7 @@ const FeatureStatus: React.FC<{
         ) : (
           <Chip
             icon={<CancelIcon />}
-            label="Not Available"
+            label="Not available"
             size="small"
             color="default"
             variant="outlined"
@@ -290,7 +290,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
       <div className="settings-section">
         <InfoRow label="Version" value={VERSION} />
         <InfoRow
-          label="Git Commit"
+          label="Git commit"
           value={GIT_COMMIT_HASH}
           copyable
           onCopy={handleCopy}
@@ -306,7 +306,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
       </div>
 
       <Text size="big" id="operating-system">
-        Operating System
+        Operating system
       </Text>
       <div className="settings-section">
         {systemInfo ? (
@@ -318,7 +318,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
         ) : (
           <>
             <InfoRow label="Platform" value={navigator.platform} />
-            <InfoRow label="User Agent" value={navigator.userAgent} />
+            <InfoRow label="User agent" value={navigator.userAgent} />
           </>
         )}
       </div>
@@ -326,7 +326,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
       {systemInfo && !isProduction && (
         <>
           <Text size="big" id="installation-paths">
-            Installation Paths
+            Installation paths
           </Text>
           <div className="settings-section">
             <InfoRow
@@ -336,7 +336,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
               onCopy={handleCopy}
             />
             <InfoRow
-              label="Conda Environment"
+              label="Conda environment"
               value={systemInfo.condaEnvPath}
               copyable
               onCopy={handleCopy}
@@ -354,7 +354,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
               onCopy={handleCopy}
             />
             <InfoRow
-              label="NPM Packages"
+              label="NPM packages"
               value={systemInfo.optionalNodePath}
               copyable
               onCopy={handleCopy}
@@ -366,7 +366,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
       {systemInfo && (
         <>
           <Text size="big" id="features">
-            Features & Versions
+            Features & versions
           </Text>
           <div className="settings-section">
             <InfoRow label="Python" value={systemInfo.pythonVersion} />
@@ -430,7 +430,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
               textDecoration: "none"
             }}
           >
-            GitHub Repository
+            GitHub repository
           </a>
           <a
             href="https://forum.nodetool.ai"
@@ -441,7 +441,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
               textDecoration: "none"
             }}
           >
-            NodeTool Forum
+            NodeTool forum
           </a>
           <a
             href="https://nodetool.ai"
@@ -463,7 +463,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
               textDecoration: "none"
             }}
           >
-            Privacy Policy
+            Privacy policy
           </a>
           <a
             href="https://nodetool.ai/terms"
@@ -474,7 +474,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
               textDecoration: "none"
             }}
           >
-            Terms of Use
+            Terms of use
           </a>
         </FlexColumn>
       </div>

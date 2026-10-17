@@ -332,7 +332,7 @@ function ModelList<TModel extends ModelSelectorModel>({
             : !providerEnabled
               ? "Enable provider in the left sidebar to use this model"
               : !hasKey
-                ? "Add API key in Settings to use this model"
+                ? "Add API key in settings to use this model"
                 : "";
       // A file inside a repository shows the file, then the model it belongs
       // to. Any other model shows its name, then its provider.

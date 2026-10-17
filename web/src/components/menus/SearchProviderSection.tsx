@@ -83,7 +83,7 @@ const SearchProviderSection = memo(function SearchProviderSection({
   return (
     <div className="settings-section">
       <Text size="big" id="search-provider" className="settings-heading">
-        Search Provider
+        Search provider
       </Text>
 
       <div className="settings-item large">

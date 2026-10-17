@@ -489,12 +489,12 @@ const STATUS_DOT_PX = 6;
 const SECTION_ORDER = ["popular", "language", "media", "gateways", "search", "compute", "advanced"] as const;
 const SECTION_TITLES = {
   popular: "Popular",
-  language: "Language Models",
-  media: "Media Generation",
-  gateways: "Gateways & Hubs",
-  search: "Web Search",
-  compute: "Compute & Local",
-  advanced: "Services & Advanced"
+  language: "Language models",
+  media: "Media generation",
+  gateways: "Gateways & hubs",
+  search: "Web search",
+  compute: "Compute & local",
+  advanced: "Services & advanced"
 } satisfies Record<string, string>;
 
 /* ------------------------------------------------------------------ */
@@ -785,7 +785,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
       {connected.length > 0 && (
         <div>
           <SectionTitle
-            title="Connected Providers"
+            title="Connected providers"
             count={connected.length}
           />
           <FlexColumn
@@ -1080,13 +1080,13 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
   const quickLinks = [
     {
       icon: <ModelTrainingIcon sx={{ fontSize: "1.2em" }} />,
-      title: "Supported Models",
+      title: "Supported models",
       subtitle: "See models by provider",
       href: docsLink("providers")
     },
     {
       icon: <MenuBookIcon sx={{ fontSize: "1.2em" }} />,
-      title: "API Documentation",
+      title: "API documentation",
       subtitle: "Provider guides & links",
       href: docsUrl("providers")
     },
@@ -1119,7 +1119,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
         }}
       >
         <Text size="small" sx={{ marginBottom: theme.spacing(3) }}>
-          Quick Links
+          Quick links
         </Text>
         <FlexColumn sx={{ gap: theme.spacing(0.5) }}>
           {quickLinks.map((link) => (

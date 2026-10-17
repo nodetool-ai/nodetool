@@ -449,10 +449,10 @@ describe("PlanReview", () => {
       </ThemeProvider>
     );
 
-    expect(screen.queryByRole("button", { name: /^Remove/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Delete/ })).toBeNull();
   });
 
-  // A bare row of "Remove" buttons tells a screen reader nothing about which
+  // A bare row of "Delete" buttons tells a screen reader nothing about which
   // item each one is on.
   it("names each remove control with what it removes", async () => {
     const user = userEvent.setup();
@@ -469,7 +469,7 @@ describe("PlanReview", () => {
 
     await user.click(
       screen.getByRole("button", {
-        name: "Remove SCENE 2: EXT. CLIFF - NIGHT"
+        name: "Delete SCENE 2: EXT. CLIFF - NIGHT"
       })
     );
 
@@ -484,7 +484,7 @@ describe("PlanReview", () => {
             {
               id: "beat-3",
               header: "SCENE 3: INT. CAR - NIGHT",
-              removeLabel: "Remove beat 3",
+              removeLabel: "Delete beat 3",
               rows: []
             },
             { id: "beat-4", header: "Beat 4", rows: [] }
@@ -495,7 +495,7 @@ describe("PlanReview", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "Remove beat 3" })
+      screen.getByRole("button", { name: "Delete beat 3" })
     ).toBeInTheDocument();
   });
 
@@ -514,7 +514,7 @@ describe("PlanReview", () => {
       </ThemeProvider>
     );
 
-    const control = screen.getByRole("button", { name: "Remove Beat 1" });
+    const control = screen.getByRole("button", { name: "Delete Beat 1" });
     expect(control).toHaveAttribute("aria-disabled", "true");
 
     await user.click(control);
@@ -551,12 +551,12 @@ describe("PlanReview", () => {
       </ThemeProvider>
     );
 
-    await user.click(screen.getByRole("button", { name: "Remove Beat 2" }));
-    expect(screen.getByRole("button", { name: "Remove Beat 3" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Delete Beat 2" }));
+    expect(screen.getByRole("button", { name: "Delete Beat 3" })).toHaveFocus();
 
     // The last item leaves no next item, so focus goes to the one before it.
-    await user.click(screen.getByRole("button", { name: "Remove Beat 3" }));
-    expect(screen.getByRole("button", { name: "Remove Beat 1" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Delete Beat 3" }));
+    expect(screen.getByRole("button", { name: "Delete Beat 1" })).toHaveFocus();
   });
 });
 

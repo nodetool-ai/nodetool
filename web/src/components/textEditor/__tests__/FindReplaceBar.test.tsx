@@ -205,13 +205,13 @@ describe("FindReplaceBar", () => {
 
   it("shows replace section when toggle replace button is clicked", () => {
     renderWithTheme();
-    expect(screen.queryByPlaceholderText("Replace with...")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Replace with…")).not.toBeInTheDocument();
 
     const buttons = screen.getAllByTestId("toolbar-icon-button");
     const toggleButton = buttons[2];
     fireEvent.click(toggleButton);
 
-    expect(screen.getByPlaceholderText("Replace with...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Replace with…")).toBeInTheDocument();
   });
 
   it("calls onFind when search input changes with debounce", () => {
@@ -303,16 +303,16 @@ describe("FindReplaceBar", () => {
   it("maintains replace visibility state correctly", () => {
     renderWithTheme();
 
-    expect(screen.queryByPlaceholderText("Replace with...")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Replace with…")).not.toBeInTheDocument();
 
     const buttons = screen.getAllByTestId("toolbar-icon-button");
     const toggleButton = buttons[2];
     fireEvent.click(toggleButton);
 
-    expect(screen.getByPlaceholderText("Replace with...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Replace with…")).toBeInTheDocument();
 
     fireEvent.click(toggleButton);
 
-    expect(screen.queryByPlaceholderText("Replace with...")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Replace with…")).not.toBeInTheDocument();
   });
 });

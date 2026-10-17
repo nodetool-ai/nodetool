@@ -11,7 +11,7 @@ const EmptyCollectionState = () => {
   return (
     <Box sx={{ marginTop: 2, maxWidth: 600 }}>
       <Text size="big" sx={{ margin: `${getSpacingPx(SPACING.xl)} 0 ${getSpacingPx(SPACING.md)} 0` }}>
-        Vector Collections
+        Vector collections
       </Text>
       <Text sx={{ marginBottom: 1 }}>
         Collections organize vector representations of your text and images in a

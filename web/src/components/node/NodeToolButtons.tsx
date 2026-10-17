@@ -131,7 +131,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     <>
       <FloatingToolbar className="node-toolbar" sx={{ marginBottom: 2 }}>
         <ToolbarIconButton
-          title={isWorkflowRunning ? "Running…" : "Run Node"}
+          title={isWorkflowRunning ? "Running…" : "Run node"}
           className="nodrag"
           onClick={runFromHere}
           tabIndex={-1}
@@ -163,11 +163,11 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         <ToolbarIconButton
           title={
             <>
-              {isBypassed ? "Enable Node" : "Disable Node"}{" "}
+              {isBypassed ? "Enable node" : "Disable node"}{" "}
               {getShortcutTooltip("bypassNode", undefined, "combo")}
             </>
           }
-          ariaLabel={isBypassed ? "Enable Node" : "Disable Node"}
+          ariaLabel={isBypassed ? "Enable node" : "Disable node"}
           className="nodrag"
           onClick={handleToggleBypass}
           tabIndex={-1}
@@ -198,7 +198,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         </ToolbarIconButton>
 
         <ToolbarIconButton
-          title="More Actions"
+          title="More actions"
           className="nodrag"
           onClick={handleOpenDropdown}
           tabIndex={-1}
@@ -249,7 +249,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         )}
 
         <MenuItemPrimitive
-          label={hasCommentTitle ? "Remove comment" : "Add comment"}
+          label={hasCommentTitle ? "Delete comment" : "Add comment"}
           icon={<EditIcon />}
           onClick={handleToggleComment}
         />

@@ -262,7 +262,7 @@ const EditableTitle = memo(function EditableTitle({
           defaultValue={title}
           autoFocus
           aria-label="Note text"
-          placeholder="Add your note..."
+          placeholder="Add your note…"
           onKeyDown={handleKeyDown}
           onInput={handleInput}
           onBlur={handleBlur}
@@ -271,12 +271,12 @@ const EditableTitle = memo(function EditableTitle({
       ) : (
         <>
           <div className="title">{renderTitleText(title)}</div>
-          <Tooltip title="Remove note" describeChild>
+          <Tooltip title="Delete note" describeChild>
             <button
               type="button"
               className="remove-title"
               onClick={handleRemoveTitle}
-              aria-label="Remove note"
+              aria-label="Delete note"
             >
               <CloseIcon className="icon" />
             </button>

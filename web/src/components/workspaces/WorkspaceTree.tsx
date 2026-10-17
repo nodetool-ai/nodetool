@@ -476,7 +476,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
         <SettingsButton
           className="settings-button"
           onClick={handleManageWorkspace}
-          tooltip="Manage Workspaces"
+          tooltip="Manage workspaces"
         />
       </div>
 
@@ -509,7 +509,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
             startIcon={<FolderOpenIcon />}
             onClick={handleOpenInFolder}
           >
-            Open in Folder
+            Open in folder
           </EditorButton>
           {Boolean(window.api?.shell?.openPath) && (
             <EditorButton
@@ -518,7 +518,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
               startIcon={<OpenInNewIcon />}
               onClick={handleOpenExternally}
             >
-              Open Externally
+              Open externally
             </EditorButton>
           )}
         </div>

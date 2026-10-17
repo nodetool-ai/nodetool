@@ -132,7 +132,7 @@ const AudioProperty = (props: PropertyProps) => {
               onClick={toggle}
               sx={{ flex: 1, minHeight: 36 }}
             >
-              {isStreaming ? "Stop" : "Start Mic"}
+              {isStreaming ? "Stop" : "Start mic"}
             </EditorButton>
           </div>
         </div>

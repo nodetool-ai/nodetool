@@ -146,7 +146,7 @@ describe("MessageView action row", () => {
     } as Message);
 
     expect(
-      screen.getByRole("button", { name: "Copy to clipboard" })
+      screen.getByRole("button", { name: "Copy message" })
     ).toBeInTheDocument();
   });
 
@@ -160,7 +160,7 @@ describe("MessageView action row", () => {
     } as unknown as Message);
 
     expect(
-      screen.getByRole("button", { name: "Copy to clipboard" })
+      screen.getByRole("button", { name: "Copy message" })
     ).toBeInTheDocument();
   });
 
@@ -174,7 +174,7 @@ describe("MessageView action row", () => {
     } as Message);
 
     expect(
-      screen.queryByRole("button", { name: "Copy to clipboard" })
+      screen.queryByRole("button", { name: "Copy message" })
     ).not.toBeInTheDocument();
   });
 });
@@ -269,7 +269,7 @@ describe("MessageView inside a longer reply", () => {
     renderView(segment, { hideActions: true });
 
     expect(
-      screen.queryByRole("button", { name: "Copy to clipboard" })
+      screen.queryByRole("button", { name: "Copy message" })
     ).not.toBeInTheDocument();
   });
 });

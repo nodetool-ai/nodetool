@@ -244,7 +244,7 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
               opacity: installing ? 0.5 : 1,
             }}
           >
-            Open Package Manager instead
+            Open package manager instead
           </Text>
         )}
       </FlexColumn>

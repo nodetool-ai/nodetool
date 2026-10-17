@@ -208,7 +208,7 @@ const NodeErrorsImpl: React.FC<{
         </EditorButton>
         <CopyButton
           value={errorDisplay}
-          tooltip="Copy to clipboard"
+          tooltip="Copy error"
         />
       </div>
       <div className="error-text">{errorDisplay}</div>

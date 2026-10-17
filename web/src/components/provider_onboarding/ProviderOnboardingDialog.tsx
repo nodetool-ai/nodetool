@@ -51,7 +51,7 @@ const ProviderOnboardingDialog: React.FC = () => {
       title="Connect an AI provider"
       actions={
         <>
-          <Button variant="text" color="inherit" onClick={handleOpenSettings} sx={{ mr: "auto" }}>See all providers in Settings</Button>
+          <Button variant="text" color="inherit" onClick={handleOpenSettings} sx={{ mr: "auto" }}>See all providers in settings</Button>
           <Button variant="contained" onClick={dismiss}>Done</Button>
         </>
       }

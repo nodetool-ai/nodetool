@@ -555,7 +555,7 @@ const ScriptLineRow = ({
     >
       {!readOnly && (
         <ToolbarIconButton
-          tooltip={showDirection ? "Remove direction" : "Add direction"}
+          tooltip={showDirection ? "Delete direction" : "Add direction"}
           onClick={toggleDirection}
           icon={<TheaterComedyIcon fontSize="small" />}
           sx={showDirection ? { color: "primary.main" } : undefined}

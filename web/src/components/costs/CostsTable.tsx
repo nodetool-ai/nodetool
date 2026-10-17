@@ -340,7 +340,7 @@ const CostsTableInternal: React.FC<CostsTableProps> = ({
           <>
             <HeaderText>Node</HeaderText>
             <HeaderText>Workflow</HeaderText>
-            <HeaderText>Provider / Model</HeaderText>
+            <HeaderText>Provider / model</HeaderText>
             <HeaderText align="right">Tokens (in/out)</HeaderText>
             <HeaderText align="right">Runtime</HeaderText>
             <HeaderText>Status</HeaderText>

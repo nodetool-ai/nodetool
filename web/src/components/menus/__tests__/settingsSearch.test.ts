@@ -48,6 +48,6 @@ describe("otherMatchingTabs", () => {
   });
 
   it("exposes human labels for those tabs", () => {
-    expect(settingsTabLabel("providers")).toBe("Models & Providers");
+    expect(settingsTabLabel("providers")).toBe("Models & providers");
   });
 });

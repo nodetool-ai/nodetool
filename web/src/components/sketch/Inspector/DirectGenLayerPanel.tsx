@@ -224,7 +224,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
               <MediaOptionChip
                 icon={<TuneIcon fontSize="small" />}
                 label={`Strength ${(binding.strength ?? DEFAULT_STRENGTH).toFixed(2)}`}
-                header="Edit Strength"
+                header="Edit strength"
                 value={binding.strength ?? DEFAULT_STRENGTH}
                 options={strengthOptions}
                 onChange={(s) => patchBinding(layer.id, { strength: s })}
@@ -232,7 +232,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
               <MediaOptionChip
                 icon={<LayersIcon fontSize="small" />}
                 label={`${binding.numInferenceSteps ?? DEFAULT_STEPS} steps`}
-                header="Inference Steps"
+                header="Inference steps"
                 value={binding.numInferenceSteps ?? DEFAULT_STEPS}
                 options={stepsOptions}
                 onChange={(n) =>

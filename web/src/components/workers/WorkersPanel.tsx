@@ -485,7 +485,7 @@ const WorkersPanel: React.FC = () => {
               onClick={() => setDialogOpen(true)}
               aria-label="Start worker"
             >
-              Start Worker
+              Start worker
             </EditorButton>
             <EditorButton
               density="compact"
@@ -503,7 +503,7 @@ const WorkersPanel: React.FC = () => {
               disabled={shownInstances.length === 0}
               aria-label="Stop all workers"
             >
-              Stop All
+              Stop all
             </EditorButton>
           </>
         }

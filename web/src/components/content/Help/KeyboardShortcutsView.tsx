@@ -381,7 +381,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         sx={{ mb: 2, ml: imageEditorShortcuts ? 2 : 8 }}
       >
         {imageEditorShortcuts ? (
-          <ToggleOption value="image-editor">Image Editor</ToggleOption>
+          <ToggleOption value="image-editor">Image editor</ToggleOption>
         ) : (
           <>
             <ToggleOption value="editor">Editor</ToggleOption>
@@ -427,7 +427,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
                 <React.Fragment key={idx}>
                   {slug === "switchToTabGroup" ? (
                     <div className="tooltip-span">
-                      <div className="tooltip-title">Switch to Tab</div>
+                      <div className="tooltip-title">Switch to tab</div>
                       <div className="tooltip-key">
                         <kbd>{os === "mac" ? "⌘" : "CTRL"}</kbd>+<kbd>1-9</kbd>
                       </div>

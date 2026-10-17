@@ -146,7 +146,7 @@ export function getHarmonyInfo(): Array<{ type: HarmonyType; name: string; descr
     },
     {
       type: "split-complementary",
-      name: "Split Complementary",
+      name: "Split complementary",
       description: "Base color with two adjacent to its complement"
     },
     {

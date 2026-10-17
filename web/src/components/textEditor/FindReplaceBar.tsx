@@ -239,7 +239,7 @@ const FindReplaceBar = ({
 
         <ToolbarIconButton
           icon={<ReplaceIcon fontSize="small" />}
-          tooltip="Toggle Replace"
+          tooltip="Toggle replace"
           onClick={handleToggleReplace}
           className="toolbar-button"
         />
@@ -249,7 +249,7 @@ const FindReplaceBar = ({
         <div className="search-group">
           <NodeTextField
             className="replace-input"
-            placeholder="Replace with..."
+            placeholder="Replace with…"
             value={replaceTerm}
             onChange={handleReplaceChange}
             onKeyDown={handleKeyDown}
@@ -274,7 +274,7 @@ const FindReplaceBar = ({
           <span>
             <ToolbarIconButton
               icon={<span style={{ fontSize: 'var(--fontSizeSmaller)', fontWeight: 600 }}>All</span>}
-              tooltip="Replace All"
+              tooltip="Replace all"
               onClick={handleReplaceAll}
               disabled={!isValidSearch || totalMatches === 0}
               className="toolbar-button"

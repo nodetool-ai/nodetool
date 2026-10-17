@@ -205,7 +205,7 @@ export const MediaResolutionImageProperty = memo<PropertyProps>((props) => {
     <OptionPicker<string>
       {...props}
       options={options}
-      header="Image Resolution"
+      header="Image resolution"
       icon={<DisplaySettingsIcon fontSize="small" />}
       defaultValue="1K"
     />
@@ -228,7 +228,7 @@ export const MediaResolutionVideoProperty = memo<PropertyProps>((props) => {
     <OptionPicker<string>
       {...props}
       options={options}
-      header="Video Resolution"
+      header="Video resolution"
       icon={<DisplaySettingsIcon fontSize="small" />}
       defaultValue="1080p"
     />

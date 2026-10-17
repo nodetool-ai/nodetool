@@ -187,7 +187,7 @@ const ToolbarPlugin = () => {
           type="button"
           onClick={handleFormatBold}
           className={isBold ? "active" : ""}
-          aria-label="Format Bold"
+          aria-label="Format bold"
         >
           <b>B</b>
         </button>
@@ -197,7 +197,7 @@ const ToolbarPlugin = () => {
           type="button"
           onClick={handleFormatItalic}
           className={isItalic ? "active" : ""}
-          aria-label="Format Italic"
+          aria-label="Format italic"
         >
           <i>I</i>
         </button>
@@ -207,7 +207,7 @@ const ToolbarPlugin = () => {
           type="button"
           onClick={toggleFontSize}
           className={isLargeFont ? "active" : ""}
-          aria-label="Toggle Large Font Size"
+          aria-label="Toggle large font size"
         >
           <FormatSizeIcon sx={{ fontSize: "1em" }} />
         </button>
@@ -216,7 +216,7 @@ const ToolbarPlugin = () => {
         <button
           type="button"
           onClick={handleInsertHR}
-          aria-label="Insert Horizontal Rule"
+          aria-label="Insert horizontal rule"
           style={{ fontSize: "var(--fontSizeNormal)", fontWeight: 600 }}
         >
           ─

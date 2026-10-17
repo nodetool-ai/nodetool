@@ -59,7 +59,7 @@ export interface TooltipProps extends Omit<MuiTooltipProps, "enterDelay" | "ente
  *
  * @example
  * // Basic usage
- * <Tooltip title="Copy to clipboard">
+ * <Tooltip title="Copy link">
  *   <IconButton><CopyIcon /></IconButton>
  * </Tooltip>
  *

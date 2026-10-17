@@ -53,7 +53,7 @@ const RequiredSettingsWarning: React.FC<RequiredSettingsWarningProps> = React.me
               minHeight: 24
             }}
           >
-            Configure in Settings
+            Configure in settings
           </EditorButton>
         </FlexColumn>
       );

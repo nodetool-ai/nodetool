@@ -61,7 +61,7 @@ const PADDING_VARIANTS = {
  * <Panel 
  *   title="Users" 
  *   subtitle="Manage user accounts"
- *   headerAction={<Button>Add User</Button>}
+ *   headerAction={<Button>Add user</Button>}
  * >
  *   <UserList />
  * </Panel>

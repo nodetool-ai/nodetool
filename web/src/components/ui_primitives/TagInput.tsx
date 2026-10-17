@@ -143,7 +143,7 @@ export const TagInput: React.FC<TagInputProps> = memo(
   function TagInput({
     tags,
     onTagsChange,
-    placeholder = "Type and press Enter to add a tag...",
+    placeholder = "Type and press Enter to add a tag…",
     label,
     allowDuplicates = false,
     maxTags,

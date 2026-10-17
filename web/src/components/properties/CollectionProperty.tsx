@@ -67,7 +67,7 @@ const CollectionProperty = (props: PropertyProps<CollectionValue | null>) => {
         onChange={(newValue) =>
           props.onChange({ type: "collection", name: newValue })
         }
-        placeholder="Select collection..."
+        placeholder="Select collection…"
         label={props.property.name}
       />
     </>

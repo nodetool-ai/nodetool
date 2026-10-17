@@ -95,7 +95,7 @@ const SceneBreak: React.FC<{
         type="button"
         className="del"
         data-testid="scene-break-delete"
-        aria-label={`Remove ${label}`}
+        aria-label={`Delete ${label}`}
         onClick={remove}
       >
         ×

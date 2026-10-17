@@ -79,7 +79,7 @@ describe("editActionFor", () => {
         kind: "tab",
         tabType: "image",
         title: "photo.png",
-        tooltip: "Edit Image"
+        tooltip: "Edit image"
       }
     ],
     [
@@ -88,7 +88,7 @@ describe("editActionFor", () => {
     ],
     [
       asset({ name: "", content_type: "image/png" }),
-      { kind: "tab", tabType: "image", title: "Image", tooltip: "Edit Image" }
+      { kind: "tab", tabType: "image", title: "Image", tooltip: "Edit image" }
     ],
     [
       asset({
@@ -100,16 +100,16 @@ describe("editActionFor", () => {
         kind: "tab",
         tabType: "model3d",
         title: "chair.glb",
-        tooltip: "Edit in 3D Editor"
+        tooltip: "Edit in 3D editor"
       }
     ],
     [
       asset({ name: "", content_type: "audio/wav", get_url: "/a.wav" }),
-      { kind: "tab", tabType: "audio", title: "Audio", tooltip: "Edit Audio" }
+      { kind: "tab", tabType: "audio", title: "Audio", tooltip: "Edit audio" }
     ],
     [
       asset({ content_type: "video/mp4", get_url: "/v.mp4" }),
-      { kind: "video", tooltip: "Create Timeline from Video" }
+      { kind: "video", tooltip: "Create timeline from video" }
     ],
     [
       asset({
@@ -117,11 +117,11 @@ describe("editActionFor", () => {
         get_url: "/v.mp4",
         timeline_id: "t1"
       }),
-      { kind: "video", tooltip: "Edit Timeline" }
+      { kind: "video", tooltip: "Edit timeline" }
     ],
     [
       asset({ name: "sales.csv", content_type: "text/csv" }),
-      { kind: "tab", tabType: "text", title: "sales.csv", tooltip: "Edit Table" }
+      { kind: "tab", tabType: "text", title: "sales.csv", tooltip: "Edit table" }
     ],
     [
       asset({
@@ -133,7 +133,7 @@ describe("editActionFor", () => {
         kind: "tab",
         tabType: "text",
         title: "budget.xlsx",
-        tooltip: "Edit Table"
+        tooltip: "Edit table"
       }
     ]
   ])("picks the editor for %#", (a, expected) => {
@@ -161,10 +161,10 @@ describe("editActionFor", () => {
 
 describe("copyTooltip", () => {
   it.each([
-    ["image/png", false, "Copy Image"],
-    ["video/mp4", false, "Copy Video Info"],
-    ["audio/wav", false, "Copy Audio Info"],
-    ["text/plain", false, "Copy Content"],
+    ["image/png", false, "Copy image"],
+    ["video/mp4", false, "Copy video info"],
+    ["audio/wav", false, "Copy audio info"],
+    ["text/plain", false, "Copy content"],
     ["image/png", true, "Copied!"]
   ])("labels %s (copied: %s) as %s", (type, copied, label) => {
     expect(copyTooltip(type, copied)).toBe(label);

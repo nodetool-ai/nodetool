@@ -185,7 +185,7 @@ describe("ErrorBoundary", () => {
       </ThemeProvider>
     );
 
-    const logo = screen.getByAltText("NodeTool Logo");
+    const logo = screen.getByAltText("NodeTool logo");
     expect(logo).toBeInTheDocument();
     expect(logo).toHaveAttribute("src", "/logo192.png");
   });

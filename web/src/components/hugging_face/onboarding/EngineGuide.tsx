@@ -156,7 +156,7 @@ const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
           }
           sx={{ flexShrink: 0 }}
         >
-          {available ? "Install" : "Open Manager"}
+          {available ? "Install" : "Open manager"}
         </EditorButton>
       )}
     </FlexRow>
@@ -225,7 +225,7 @@ const EngineGuide: React.FC = () => {
             endIcon={<OpenInNewIcon />}
             onClick={openPackageManager}
           >
-            Package Manager
+            Package manager
           </EditorButton>
         </FlexRow>
         <FlexColumn gap={SPACING.xs}>

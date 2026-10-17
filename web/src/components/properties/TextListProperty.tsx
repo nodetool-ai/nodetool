@@ -307,7 +307,7 @@ const TextListProperty = (props: PropertyProps<TextItem[] | null>) => {
       const result = await window.api.dialog.openFile({
         title: "Select text files",
         filters: [
-          { name: "Text Files", extensions: ["txt", "md", "json", "csv", "xml", "html", "htm", "yaml", "yml", "log", "ini", "cfg", "conf"] }
+          { name: "Text files", extensions: ["txt", "md", "json", "csv", "xml", "html", "htm", "yaml", "yml", "log", "ini", "cfg", "conf"] }
         ],
         multiSelections: true
       });

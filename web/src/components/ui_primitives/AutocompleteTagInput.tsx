@@ -59,7 +59,7 @@ const AutocompleteTagInputInternal: React.FC<AutocompleteTagInputProps> = ({
   value,
   onChange,
   suggestions = [],
-  placeholder = "Type or select...",
+  placeholder = "Type or select…",
   description,
   disabled = false,
   size = "small"

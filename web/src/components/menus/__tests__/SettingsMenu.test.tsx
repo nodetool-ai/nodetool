@@ -127,7 +127,7 @@ describe("SettingsPage", () => {
     renderSettings();
     const search = screen.getByRole("textbox", { name: "Search settings" });
     await user.type(search, "openai");
-    await user.click(screen.getByRole("tab", { name: "Models & Providers" }));
+    await user.click(screen.getByRole("tab", { name: "Models & providers" }));
     expect(search).toHaveValue("openai");
     expect(screen.getByText("providers openai")).toBeInTheDocument();
   });
@@ -141,7 +141,7 @@ describe("SettingsPage", () => {
     );
     expect(screen.getByText("No matches in General.")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Models & Providers" })
+      screen.getByRole("button", { name: "Models & providers" })
     ).toBeInTheDocument();
   });
 
@@ -201,7 +201,7 @@ describe("SettingsPage", () => {
       );
 
       expect(
-        within(sidebar).getByRole("button", { name: "Canvas & Navigation" })
+        within(sidebar).getByRole("button", { name: "Canvas & navigation" })
       ).toBeInTheDocument();
       expect(
         within(sidebar).queryByRole("button", { name: "Execution" })

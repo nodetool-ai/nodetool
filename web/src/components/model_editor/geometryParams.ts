@@ -39,53 +39,53 @@ export const GEOMETRY_PARAM_SPECS = {
     { key: "width", label: "Width", kind: "float", min: 0.001, step: 0.1 },
     { key: "height", label: "Height", kind: "float", min: 0.001, step: 0.1 },
     { key: "depth", label: "Depth", kind: "float", min: 0.001, step: 0.1 },
-    { key: "widthSegments", label: "W Segs", kind: "int", min: 1, max: MAX_SEGMENTS },
-    { key: "heightSegments", label: "H Segs", kind: "int", min: 1, max: MAX_SEGMENTS },
-    { key: "depthSegments", label: "D Segs", kind: "int", min: 1, max: MAX_SEGMENTS }
+    { key: "widthSegments", label: "W segs", kind: "int", min: 1, max: MAX_SEGMENTS },
+    { key: "heightSegments", label: "H segs", kind: "int", min: 1, max: MAX_SEGMENTS },
+    { key: "depthSegments", label: "D segs", kind: "int", min: 1, max: MAX_SEGMENTS }
   ],
   SphereGeometry: [
     { key: "radius", label: "Radius", kind: "float", min: 0.001, step: 0.1 },
-    { key: "widthSegments", label: "W Segs", kind: "int", min: 3, max: MAX_SEGMENTS },
-    { key: "heightSegments", label: "H Segs", kind: "int", min: 2, max: MAX_SEGMENTS },
-    { key: "phiStart", label: "Phi Start", kind: "angle" },
-    { key: "phiLength", label: "Phi Len", kind: "angle" },
-    { key: "thetaStart", label: "Theta Start", kind: "angle" },
-    { key: "thetaLength", label: "Theta Len", kind: "angle" }
+    { key: "widthSegments", label: "W segs", kind: "int", min: 3, max: MAX_SEGMENTS },
+    { key: "heightSegments", label: "H segs", kind: "int", min: 2, max: MAX_SEGMENTS },
+    { key: "phiStart", label: "Phi start", kind: "angle" },
+    { key: "phiLength", label: "Phi len", kind: "angle" },
+    { key: "thetaStart", label: "Theta start", kind: "angle" },
+    { key: "thetaLength", label: "Theta len", kind: "angle" }
   ],
   PlaneGeometry: [
     { key: "width", label: "Width", kind: "float", min: 0.001, step: 0.1 },
     { key: "height", label: "Height", kind: "float", min: 0.001, step: 0.1 },
-    { key: "widthSegments", label: "W Segs", kind: "int", min: 1, max: MAX_SEGMENTS },
-    { key: "heightSegments", label: "H Segs", kind: "int", min: 1, max: MAX_SEGMENTS }
+    { key: "widthSegments", label: "W segs", kind: "int", min: 1, max: MAX_SEGMENTS },
+    { key: "heightSegments", label: "H segs", kind: "int", min: 1, max: MAX_SEGMENTS }
   ],
   CylinderGeometry: [
-    { key: "radiusTop", label: "Radius Top", kind: "float", min: 0, step: 0.1 },
+    { key: "radiusTop", label: "Radius top", kind: "float", min: 0, step: 0.1 },
     {
       key: "radiusBottom",
-      label: "Radius Bot",
+      label: "Radius bot",
       kind: "float",
       min: 0,
       step: 0.1
     },
     { key: "height", label: "Height", kind: "float", min: 0.001, step: 0.1 },
-    { key: "radialSegments", label: "Radial Segs", kind: "int", min: 3, max: MAX_SEGMENTS },
-    { key: "heightSegments", label: "Height Segs", kind: "int", min: 1, max: MAX_SEGMENTS },
-    { key: "thetaStart", label: "Theta Start", kind: "angle" },
-    { key: "thetaLength", label: "Theta Len", kind: "angle" }
+    { key: "radialSegments", label: "Radial segs", kind: "int", min: 3, max: MAX_SEGMENTS },
+    { key: "heightSegments", label: "Height segs", kind: "int", min: 1, max: MAX_SEGMENTS },
+    { key: "thetaStart", label: "Theta start", kind: "angle" },
+    { key: "thetaLength", label: "Theta len", kind: "angle" }
   ],
   ConeGeometry: [
     { key: "radius", label: "Radius", kind: "float", min: 0.001, step: 0.1 },
     { key: "height", label: "Height", kind: "float", min: 0.001, step: 0.1 },
-    { key: "radialSegments", label: "Radial Segs", kind: "int", min: 3, max: MAX_SEGMENTS },
-    { key: "heightSegments", label: "Height Segs", kind: "int", min: 1, max: MAX_SEGMENTS },
-    { key: "thetaStart", label: "Theta Start", kind: "angle" },
-    { key: "thetaLength", label: "Theta Len", kind: "angle" }
+    { key: "radialSegments", label: "Radial segs", kind: "int", min: 3, max: MAX_SEGMENTS },
+    { key: "heightSegments", label: "Height segs", kind: "int", min: 1, max: MAX_SEGMENTS },
+    { key: "thetaStart", label: "Theta start", kind: "angle" },
+    { key: "thetaLength", label: "Theta len", kind: "angle" }
   ],
   TorusGeometry: [
     { key: "radius", label: "Radius", kind: "float", min: 0.001, step: 0.1 },
     { key: "tube", label: "Tube", kind: "float", min: 0.001, step: 0.05 },
-    { key: "radialSegments", label: "Radial Segs", kind: "int", min: 3, max: MAX_SEGMENTS },
-    { key: "tubularSegments", label: "Tubular Segs", kind: "int", min: 3, max: MAX_SEGMENTS },
+    { key: "radialSegments", label: "Radial segs", kind: "int", min: 3, max: MAX_SEGMENTS },
+    { key: "tubularSegments", label: "Tubular segs", kind: "int", min: 3, max: MAX_SEGMENTS },
     { key: "arc", label: "Arc", kind: "angle" }
   ]
 } satisfies Record<EditableGeometryType, readonly GeometryParamSpec[]>;

@@ -113,7 +113,7 @@ describe("toolDefinitions", () => {
     it("returns the correct definition for clone_stamp", () => {
       const def = getToolDefinition("clone_stamp");
       expect(def.tool).toBe("clone_stamp");
-      expect(def.label).toBe("Clone Stamp");
+      expect(def.label).toBe("Clone stamp");
     });
 
     it("returns move (first painting tool) for unknown tool", () => {

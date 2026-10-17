@@ -171,7 +171,7 @@ export interface ToggleOptionProps extends ToggleButtonProps {
  * ToggleOption - A single option within a ToggleGroup
  *
  * @example
- * <ToggleOption value="grid" icon={<GridIcon />}>Grid View</ToggleOption>
+ * <ToggleOption value="grid" icon={<GridIcon />}>Grid view</ToggleOption>
  */
 const ToggleOptionInternal: React.FC<ToggleOptionProps> = ({
   icon,
