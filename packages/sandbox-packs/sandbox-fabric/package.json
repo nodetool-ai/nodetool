@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-fabric",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "description": "Build, parse, and rasterize SVG with Fabric.js (renderSVG, loadSVG, render)",
   "license": "MIT",
   "nodetool": {

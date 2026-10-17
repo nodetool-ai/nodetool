@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-dates",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "description": "Date arithmetic, parsing and formatting inside the NodeTool sandbox, from date-fns",
   "license": "MIT",
   "dependencies": {
