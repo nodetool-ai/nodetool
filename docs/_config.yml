@@ -207,6 +207,16 @@ defaults:
     values: *noindex
   - scope: { path: "websocket-runner-refactor-plan.md" }
     values: *noindex
+  - scope: { path: "native-media-editing" }
+    values: *noindex
+  - scope: { path: "project-scoping" }
+    values: *noindex
+  - scope: { path: "script-storyboard-link" }
+    values: *noindex
+  - scope: { path: "graph-resources" }
+    values: *noindex
+  - scope: { path: "developer/ts-dsl-authoring-design.md" }
+    values: *noindex
 
 # Plugin settings
 relative_links:
