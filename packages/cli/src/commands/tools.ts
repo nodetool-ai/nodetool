@@ -3,6 +3,10 @@ import type { Command } from "commander";
 import { readFile } from "node:fs/promises";
 import type { Tool } from "@nodetool-ai/agents";
 import { asJson } from "./output.js";
+import {
+  commandFailureExitCode,
+  printCommandError
+} from "../command-errors.js";
 import { isRecord } from "../predicates.js";
 import { setupLocalDb, LOCAL_USER_ID } from "./local-db.js";
 
@@ -54,7 +58,10 @@ async function localTools(): Promise<AuthoringTools> {
       context.set(RUN_BUDGET_CONTEXT_KEY, await createCliRunBudget());
       context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("CLI tool call"));
       const { attachRunCostLedger } = await import("@nodetool-ai/execution");
-      const ledger = attachRunCostLedger(context, { userId: LOCAL_USER_ID, workflowId: null });
+      const ledger = attachRunCostLedger(context, {
+        userId: LOCAL_USER_ID,
+        workflowId: null
+      });
       const controller = new AbortController();
       const cancel = (): void =>
         controller.abort(new Error("Tool call interrupted"));
@@ -87,6 +94,46 @@ export async function parseToolArguments(
   return value;
 }
 
+/** Inspect only result envelopes whose tool contracts define failure statuses. */
+function toolCallFailed(name: string, result: unknown): boolean {
+  if (!isRecord(result)) {
+    return false;
+  }
+  if (
+    commandFailureExitCode(result) === 3 ||
+    result.error ||
+    result.isError === true ||
+    result.success === false ||
+    result.ok === false
+  ) {
+    return true;
+  }
+  switch (name) {
+    case "get_node_info":
+    case "search_nodes":
+      return result.status === "error";
+    case "run_node":
+    case "run_workflow":
+    case "resolve_workflow_escalation":
+      return result.status === "failed" || result.status === "error";
+    case "debug_app":
+      return (
+        result.status === "failed" ||
+        (isRecord(result.verdict) && result.verdict.ok === false)
+      );
+    case "debug_workflow":
+      return (
+        isRecord(result.run) &&
+        (result.run.status === "failed" ||
+          result.run.status === "error" ||
+          Boolean(result.run.error) ||
+          (isRecord(result.run.verdict) && result.run.verdict.ok === false))
+      );
+    default:
+      return false;
+  }
+}
+
 export const AUTHORING_HELP = `
 Authoring tools and starting documents:
   nodetool tools list timeline
@@ -113,16 +160,18 @@ export function registerAuthoringCommands(
     name: string,
     args: Record<string, unknown>
   ): Promise<void> => {
-    const result = await (await load()).call(name, args);
-    asJson(result);
-    if (
-      isRecord(result) &&
-      (result.error ||
-        result.isError === true ||
-        result.success === false ||
-        result.ok === false)
-    ) {
-      process.exitCode = 1;
+    try {
+      const result = await (await load()).call(name, args);
+      asJson(result);
+      if (toolCallFailed(name, result)) {
+        const failure =
+          name === "debug_workflow" && isRecord(result) && isRecord(result.run)
+            ? result.run
+            : result;
+        process.exitCode = commandFailureExitCode(failure);
+      }
+    } catch (error) {
+      process.exitCode = printCommandError(error, true);
     }
   };
   const tools = program

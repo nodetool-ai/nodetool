@@ -13,16 +13,23 @@ it("discovers shipped guides and schemas and creates valid timeline/game startin
   const run = async (...args: string[]) => {
     const { stdout } = await exec(
       process.execPath,
-      ["--import", "tsx", entry, ...args],
+      ["--import", import.meta.resolve("tsx"), entry, ...args],
       {
-        cwd: resolve("../.."),
+        cwd: directory,
         env: {
-          ...Object.fromEntries(
-            Object.entries(process.env).filter(
-              ([name]) =>
-                !/(API_KEY|TOKEN|SECRET|DATABASE_URL|DB_PATH)$/.test(name)
-            )
-          ),
+          PATH: process.env["PATH"] ?? "",
+          ...(process.env["SystemRoot"]
+            ? { SystemRoot: process.env["SystemRoot"] }
+            : {}),
+          ...(process.env["WINDIR"] ? { WINDIR: process.env["WINDIR"] } : {}),
+          APPDATA: join(directory, "appdata"),
+          LOCALAPPDATA: join(directory, "localappdata"),
+          USERPROFILE: directory,
+          TMP: directory,
+          TEMP: directory,
+          TMPDIR: directory,
+          ASSET_FOLDER: join(directory, "assets"),
+          NODETOOL_WORKSPACES_DIR: join(directory, "workspaces"),
           HOME: directory,
           XDG_CONFIG_HOME: join(directory, "config"),
           XDG_CACHE_HOME: join(directory, "cache"),
@@ -43,6 +50,18 @@ it("discovers shipped guides and schemas and creates valid timeline/game startin
     expect(tools).toContainEqual(
       expect.objectContaining({ name: "create_timeline" })
     );
+    await expect(
+      run(
+        "tools",
+        "call",
+        "get_node_info",
+        "--args",
+        JSON.stringify({ node_type: "nodetool.nonexistent.NoSuchNode" })
+      )
+    ).rejects.toMatchObject({
+      code: 1,
+      stdout: expect.stringContaining('"status": "error"')
+    });
     const schema = await run("tools", "info", "create_native_game");
     expect(schema.inputSchema.required).toContain("project_id");
     const game = await run(
