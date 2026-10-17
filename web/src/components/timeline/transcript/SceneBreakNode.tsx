@@ -21,7 +21,7 @@ import {
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
 import { useTimelineStoreApi } from "../../../stores/timeline/TimelineInstance";
-import { MOTION, FONT_SIZE_SANS, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+import { MOTION, FONT_SIZE_SANS, focusRing, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
@@ -60,7 +60,11 @@ const Row = styled("div")(({ theme }) => ({
     opacity: 0,
     transition: `opacity ${MOTION.fast}, color ${MOTION.fast}`
   },
-  "&:hover .del": { opacity: 1 },
+  // Reveal the × on hover, on keyboard focus, and outright on touch screens,
+  // where a pointer can never hover.
+  "&:hover .del, & .del:focus-visible": { opacity: 1 },
+  "& .del:focus-visible": focusRing(theme),
+  "@media (hover: none)": { "& .del": { opacity: 1 } },
   "& .del:hover": { color: theme.vars.palette.error.main }
 }));
 
