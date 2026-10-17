@@ -59,6 +59,7 @@ import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../../stores/timeline/TimelinePlaybackStore";
 import { getTimelineTemporal } from "../../../../stores/timeline/TimelineInstance";
+import { useTimelineLayoutStore } from "../../../../stores/timeline/TimelineLayoutStore";
 
 beforeAll(installPointerEvent);
 
@@ -584,5 +585,28 @@ describe("Clip lock", () => {
     expect(
       useTimelineStore.getState().clips.filter((c) => c.trackId === "t2")
     ).toHaveLength(1);
+  });
+});
+
+describe("Clip double-click", () => {
+  beforeEach(() => {
+    seed();
+    useTimelineUIStore.setState({ panelTab: "history", codePanelDirty: false });
+    useTimelineLayoutStore.setState({ sidePanelVisible: false });
+  });
+
+  it("selects the clip and opens the inspector in the side panel", () => {
+    renderLanes();
+    fireEvent.doubleClick(screen.getByTestId("clip-a1"));
+    expect([...useTimelineUIStore.getState().selectedClipIds]).toEqual(["a1"]);
+    expect(useTimelineUIStore.getState().panelTab).toBe("inspector");
+    expect(useTimelineLayoutStore.getState().sidePanelVisible).toBe(true);
+  });
+
+  it("keeps a Code tab that has unsaved changes", () => {
+    useTimelineUIStore.setState({ panelTab: "code", codePanelDirty: true });
+    renderLanes();
+    fireEvent.doubleClick(screen.getByTestId("clip-a1"));
+    expect(useTimelineUIStore.getState().panelTab).toBe("code");
   });
 });

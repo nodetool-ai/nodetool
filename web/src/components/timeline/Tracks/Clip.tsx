@@ -39,6 +39,7 @@ import type { ClipFadeEdge } from "./useClipFade";
 import { ClipFadeShapeMenu } from "./ClipFadeShapeMenu";
 import { keyframeTimesMs as deriveKeyframeTimes } from "@nodetool-ai/timeline";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { ClipBody, CLIP_STATUS_MAP, MIN_CLIP_WIDTH_PX } from "./ClipBody";
 import { ClipContextMenu } from "./ClipContextMenu";
 import { SendToWorkflowMenu } from "../../workflows/SendToWorkflowMenu";
@@ -272,15 +273,23 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   );
 
   // A midi clip's content is notes, and the way a DAW opens them is a
-  // double-click on the clip. Every other media type has nothing to open.
+  // double-click on the clip. Every other clip opens in the inspector.
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
-      if (clip?.mediaType !== "midi") {
-        return;
-      }
       e.stopPropagation();
       selectClip(clipId);
-      openPianoRoll(clipId);
+      if (clip?.mediaType === "midi") {
+        openPianoRoll(clipId);
+        return;
+      }
+      const { panelTab, codePanelDirty, setPanelTab } =
+        useTimelineUIStore.getState();
+      // Unsaved code stays on screen. Only the tab switcher asks to leave it.
+      if (panelTab === "code" && codePanelDirty) {
+        return;
+      }
+      setPanelTab("inspector");
+      useTimelineLayoutStore.getState().showSidePanel();
     },
     [clip?.mediaType, clipId, openPianoRoll, selectClip]
   );
