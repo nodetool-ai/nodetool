@@ -26,7 +26,6 @@ import QuickActionTiles from "./QuickActionTiles";
 import RecentNodesTiles from "./RecentNodesTiles";
 import FavoritesTiles from "./FavoritesTiles";
 import isEqual from "../../utils/isEqual";
-import useMetadataStore from "../../stores/MetadataStore";
 import AddCircleOutline from "@mui/icons-material/AddCircleOutline";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
 import { useOpenPackageManager } from "../../hooks/useOpenPackageManager";
@@ -34,7 +33,6 @@ import { isCloudProfile } from "../../lib/runtimeConfig";
 
 interface NamespaceListProps {
   namespaceTree: NamespaceTree;
-  metadata: NodeMetadata[];
 }
 
 const namespaceStyles = (theme: Theme) =>
@@ -52,14 +50,9 @@ const namespaceStyles = (theme: Theme) =>
       color: "var(--palette-primary-main)"
     },
     ".info-box": {
-      position: "absolute",
-      right: "0",
-      bottom: "0",
-      minHeight: "30px",
-      alignItems: "center",
-      flexDirection: "column",
-      margin: `0 ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`,
-      justifyContent: "flex-start"
+      flex: "0 0 auto",
+      alignSelf: "flex-end",
+      margin: `0 ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`
     },
     ".node-packs-info": {
       textAlign: "right",
@@ -164,7 +157,7 @@ const namespaceStyles = (theme: Theme) =>
       padding: theme.spacing(1, 1.5),
       borderRadius: BORDER_RADIUS.md,
       backgroundColor: theme.vars.palette.action.hover,
-      margin: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)} 0 0`,
+      margin: `${getSpacingPx(SPACING.sm)} 0 0 0`,
       border: `1px solid ${theme.vars.palette.divider}`
     },
     ".result-info span": {
@@ -382,16 +375,13 @@ const InfoBox = memo(function InfoBox({
   minSearchTermLength,
   selectedPathString,
   searchResults,
-  allSearchMatches,
-  totalNodes
+  allSearchMatches
 }: {
   searchTerm: string;
   minSearchTermLength: number;
   selectedPathString: string;
   searchResults: NodeMetadata[];
   allSearchMatches: NodeMetadata[];
-  metadata: NodeMetadata[];
-  totalNodes: number;
 }) {
   const buildContextMessage = () => {
     if (searchTerm.length > minSearchTermLength) {
@@ -405,7 +395,8 @@ const InfoBox = memo(function InfoBox({
     if (selectedPathString) {
       return `${searchResults.length} nodes in ${selectedPathString}`;
     }
-    return `${totalNodes} nodes available`;
+    const count = searchResults.length;
+    return `${count} ${count === 1 ? "node matches" : "nodes match"} the filters`;
   };
 
   return (
@@ -418,8 +409,7 @@ const InfoBox = memo(function InfoBox({
 });
 
 const NamespaceList: React.FC<NamespaceListProps> = ({
-  namespaceTree,
-  metadata
+  namespaceTree
 }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => namespaceStyles(theme), [theme]);
@@ -445,8 +435,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     }))
   );
 
-  const allMetadata = useMetadataStore((state) => state.metadata);
-
   const selectedPathString = useMemo(
     () => selectedPath.join("."),
     [selectedPath]
@@ -459,10 +447,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     searchTerm.includes("/")
       ? 0
       : 1;
-
-  const totalNodes = useMemo(() => {
-    return Object.keys(allMetadata).length;
-  }, [allMetadata]);
 
   const isHomeLayout = !(
     selectedPathString ||
@@ -517,15 +501,16 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           </>
         )}
       </Box>
-      <InfoBox
-        searchTerm={searchTerm}
-        minSearchTermLength={minSearchTermLength}
-        selectedPathString={selectedPathString}
-        searchResults={searchResults}
-        allSearchMatches={allSearchMatches}
-        metadata={metadata}
-        totalNodes={totalNodes}
-      />
+      {/* The toolbar already shows the total node count on the home view. */}
+      {!isHomeLayout && (
+        <InfoBox
+          searchTerm={searchTerm}
+          minSearchTermLength={minSearchTermLength}
+          selectedPathString={selectedPathString}
+          searchResults={searchResults}
+          allSearchMatches={allSearchMatches}
+        />
+      )}
     </div>
   );
 };

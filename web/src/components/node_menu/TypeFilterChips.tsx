@@ -11,6 +11,7 @@ import {
   Popover,
   MOTION,
   BORDER_RADIUS,
+  ICON_SIZE,
   FONT_WEIGHT,
   SPACING,
   getSpacingPx,
@@ -39,7 +40,10 @@ const TYPE_CATEGORIES = [
   { value: "float", label: "Number", icon: "float" }
 ];
 
-const TYPE_CHIP_ICON_CONTAINER_STYLE = { width: 16, height: 16 } as const;
+const TYPE_CHIP_ICON_CONTAINER_STYLE = { width: 14, height: 14 } as const;
+
+/** One height for every control in the toolbar row so their edges line up. */
+const CONTROL_HEIGHT = "28px";
 
 type TypeOption = {
   value: string;
@@ -65,13 +69,13 @@ const typeFilterChipsStyles = (theme: Theme) =>
       justifyContent: "flex-end",
       width: "100%",
       flex: "1 1 100%",
-      gap: theme.spacing(1.5),
+      gap: getSpacingPx(SPACING.md),
       minWidth: 0
     },
     ".quick-filters": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1),
+      gap: getSpacingPx(SPACING.md),
       minWidth: 0,
       flex: "0 1 auto",
       marginLeft: "auto",
@@ -80,20 +84,21 @@ const typeFilterChipsStyles = (theme: Theme) =>
     ".provider-quick": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.5),
-      paddingRight: theme.spacing(1),
+      gap: getSpacingPx(SPACING.micro),
+      paddingRight: getSpacingPx(SPACING.md),
       borderRight: `1px solid ${theme.vars.palette.divider}`
     },
     ".provider-quick-chip": {
-      height: "26px",
-      fontSize: theme.fontSizeSmaller,
+      height: CONTROL_HEIGHT,
+      fontSize: theme.fontSizeSmall,
+      fontWeight: FONT_WEIGHT.medium,
       borderRadius: BORDER_RADIUS.md,
       border: "1px solid transparent",
       backgroundColor: "transparent",
       color: theme.vars.palette.text.secondary,
       transition: MOTION.all,
       "& .MuiChip-label": {
-        paddingInline: theme.spacing(1)
+        paddingInline: getSpacingPx(SPACING.md)
       },
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
@@ -110,12 +115,14 @@ const typeFilterChipsStyles = (theme: Theme) =>
       textTransform: "uppercase",
       letterSpacing: "0.5px",
       whiteSpace: "nowrap",
-      fontWeight: FONT_WEIGHT.medium
+      fontWeight: FONT_WEIGHT.medium,
+      lineHeight: 1,
+      marginLeft: getSpacingPx(SPACING.xs)
     },
     ".filter-section": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1),
+      gap: getSpacingPx(SPACING.micro),
       flexWrap: "nowrap"
     },
     ".filter-label": {
@@ -128,13 +135,13 @@ const typeFilterChipsStyles = (theme: Theme) =>
     },
     ".type-chips": {
       display: "flex",
-      flexWrap: "nowrap",
-      gap: theme.spacing(1)
+      flexWrap: "nowrap"
     },
     ".type-chip": {
-      height: "26px",
-      padding: theme.spacing(0, 0.5),
-      fontSize: theme.fontSizeSmaller,
+      height: CONTROL_HEIGHT,
+      padding: 0,
+      fontSize: theme.fontSizeSmall,
+      fontWeight: FONT_WEIGHT.medium,
       borderRadius: BORDER_RADIUS.md,
       backgroundColor: "transparent",
       border: "1px solid transparent",
@@ -142,11 +149,13 @@ const typeFilterChipsStyles = (theme: Theme) =>
       cursor: "pointer",
       transition: MOTION.all,
       "& .MuiChip-label": {
-        paddingInline: theme.spacing(0.5)
+        paddingLeft: getSpacingPx(SPACING.xs),
+        paddingRight: getSpacingPx(SPACING.sm)
       },
       "& .MuiChip-icon": {
-        marginLeft: theme.spacing(SPACING.xs),
-        marginRight: theme.spacing(SPACING.micro),
+        marginLeft: getSpacingPx(SPACING.sm),
+        marginRight: 0,
+        color: "inherit",
         display: "inline-flex",
         alignItems: "center"
       },
@@ -162,7 +171,9 @@ const typeFilterChipsStyles = (theme: Theme) =>
     ".filter-actions": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1.5),
+      gap: getSpacingPx(SPACING.md),
+      paddingLeft: getSpacingPx(SPACING.md),
+      borderLeft: `1px solid ${theme.vars.palette.divider}`,
       flexShrink: 0
     },
     ".node-count": {
@@ -173,16 +184,23 @@ const typeFilterChipsStyles = (theme: Theme) =>
     },
     ".more-filters-button": {
       textTransform: "none",
-      borderRadius: BORDER_RADIUS.xl,
+      height: CONTROL_HEIGHT,
+      borderRadius: BORDER_RADIUS.md,
       fontSize: theme.fontSizeSmall,
+      fontWeight: FONT_WEIGHT.medium,
       lineHeight: 1.2,
-      padding: theme.spacing(1, 1),
+      padding: `0 ${getSpacingPx(SPACING.md)}`,
       minWidth: "unset",
-      color: theme.vars.palette.text.primary,
-      borderColor: theme.vars.palette.text.secondary,
+      color: theme.vars.palette.text.secondary,
+      borderColor: theme.vars.palette.divider,
+      "& .MuiButton-startIcon": {
+        marginRight: getSpacingPx(SPACING.xs),
+        "& svg": { fontSize: ICON_SIZE.sm }
+      },
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
-        borderColor: theme.vars.palette.primary.main
+        borderColor: theme.vars.palette.text.secondary,
+        color: theme.vars.palette.text.primary
       }
     },
     ".menu-header": {
@@ -373,7 +391,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
               onClick={handleApiProviderClick}
             />
           </Box>
-          <span className="quick-label">Output:</span>
+          <span className="quick-label">Output</span>
           <Box className="type-chips filter-section">
             {TYPE_CATEGORIES.map((type) => (
               <Tooltip

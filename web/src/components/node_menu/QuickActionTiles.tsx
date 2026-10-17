@@ -6,164 +6,199 @@ import { memo, useCallback, useMemo } from "react";
 import type {
   CSSProperties,
   DragEvent as ReactDragEvent,
-  KeyboardEvent as ReactKeyboardEvent
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent
 } from "react";
-import { Tooltip, Text, thinScrollbarStyles, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
-import { NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useShallow } from "zustand/react/shallow";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
+import {
+  Tooltip,
+  Text,
+  BORDER_RADIUS,
+  ICON_SIZE,
+  MOTION,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
+import { NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import {
-  QUICK_ACTION_BUTTONS,
+  AI_TASK_ACTIONS,
+  PROVIDER_ACTIONS,
   CONSTANT_NODES,
   type QuickActionDefinition
 } from "./QuickActionTiles.constants";
+
+/** Hover delay before a tile shows its description, so sweeping across the grid stays quiet. */
+const TILE_TOOLTIP_DELAY_MS = 600;
 
 const tileStyles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",
       flexDirection: "column",
+      gap: getSpacingPx(SPACING.lg),
       width: "100%",
-      height: "100%",
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`,
       boxSizing: "border-box"
     },
     ".tiles-header": {
-      marginBottom: getSpacingPx(SPACING.xs),
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: `0 ${getSpacingPx(SPACING.xs)}`,
-      "& h5": {
-        margin: 0,
-        fontSize: "var(--fontSizeNormal)",
-        fontWeight: 600,
-        color: theme.vars.palette.text.secondary,
-        textTransform: "uppercase",
-        letterSpacing: "1px",
-        opacity: 0.8
-      }
+      marginBottom: getSpacingPx(SPACING.sm),
+      padding: `0 ${getSpacingPx(SPACING.xs)}`
     },
     ".tiles-container": {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(116px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fill, minmax(112px, 1fr))",
       gridAutoRows: "1fr",
       gap: getSpacingPx(SPACING.sm),
       alignContent: "start",
-      overflow: "visible",
       padding: getSpacingPx(SPACING.micro)
-    },
-    ".constants-container": {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))",
-      gridAutoRows: "1fr",
-      gap: getSpacingPx(SPACING.sm),
-      alignContent: "start",
-      marginTop: getSpacingPx(SPACING.md),
-      padding: getSpacingPx(SPACING.micro),
-      ...thinScrollbarStyles(theme)
     },
     ".quick-tile": {
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.sm)}`,
-      borderRadius: BORDER_RADIUS.xl,
+      gap: getSpacingPx(SPACING.xs),
+      minHeight: "68px",
+      padding: getSpacingPx(SPACING.sm),
+      borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
-      position: "relative",
-      overflow: "hidden",
       border: `1px solid ${theme.vars.palette.divider}`,
-      transition: `all ${MOTION.slow}`,
-      minHeight: "30px",
       background: theme.vars.palette.background.paper,
-      "&::before": {
-        content: '""',
-        position: "absolute",
-        inset: 0,
-        borderRadius: "inherit",
-        background:
-          `linear-gradient(180deg, ${theme.vars.palette.c_overlay}, transparent 80%)`,
-        opacity: 0,
-        transition: `opacity ${MOTION.slow}`,
-        pointerEvents: "none"
-      },
+      transition: `${MOTION.border}, ${MOTION.background}, ${MOTION.transform}`,
       "&:hover": {
-        transform: "translateY(-3px)",
         borderColor: theme.vars.palette.primary.main,
-        background: "var(--quick-hover-tile-bg)",
-        boxShadow: "none",
-        "&::before": {
-          opacity: 1
-        },
-        "& .tile-icon": {
-          transform: "scale(1.15) rotate(5deg)"
-        },
-        "& .tile-label": {
-          opacity: 1
-        }
+        background: theme.vars.palette.action.hover
+      },
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: "1px"
       },
       "&:active": {
-        transform: "scale(0.97) translateY(0)",
-        transition: `all ${MOTION.fast}`
-      },
-      "&.active": {
-        borderColor: theme.vars.palette.primary.main,
-        boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}`
-      }
-    },
-    ".constant-tile": {
-      minHeight: "70px",
-      padding: `${theme.spacing(3)} ${theme.spacing(1.5)}`,
-      "& .tile-icon": {
-        marginBottom: getSpacingPx(SPACING.xs),
-        "& svg": {
-          fontSize: "var(--fontSizeBig)"
-        }
-      },
-      "& .tile-label": {
-        fontSize: "var(--fontSizeNormal)"
+        transform: "scale(0.97)"
       }
     },
     ".tile-icon": {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: getSpacingPx(SPACING.xs),
-      transition: `transform ${MOTION.slow}`,
-      "& svg": {
-        fontSize: "var(--fontSizeBig)",
-        filter: "none",
-        [theme.getColorSchemeSelector("dark")]: {
-          filter: `drop-shadow(0 3px 5px ${theme.vars.palette.c_scrim_soft})`
-        }
+      "& > svg": {
+        fontSize: ICON_SIZE.lg
       }
     },
     ".tile-label": {
-      fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       textAlign: "center",
       lineHeight: 1.3,
       color: theme.vars.palette.text.primary,
-      opacity: 0.9,
-      transition: `opacity ${MOTION.slow}`,
-      maxWidth: "100%"
+      maxWidth: "100%",
+      overflow: "hidden",
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical"
     }
   });
+
+// Tooltips render in a portal outside the tile styles, so the hint is styled inline.
+const TOOLTIP_HINT_STYLE: CSSProperties = {
+  fontSize: "var(--fontSizeSmaller)",
+  opacity: 0.75,
+  marginTop: getSpacingPx(SPACING.xs)
+};
+
+/** First line of a node description, which is its one-sentence summary. */
+const summaryOf = (description: string | undefined): string =>
+  description?.split("\n")[0]?.trim() ?? "";
+
+interface TileSectionProps {
+  title: string;
+  actions: QuickActionDefinition[];
+  getDescription: (nodeType: string) => string;
+  onClick: (event: ReactMouseEvent<HTMLDivElement>) => void;
+  onKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
+  onMouseEnter: (event: ReactMouseEvent<HTMLDivElement>) => void;
+  onDragStart: (event: ReactDragEvent<HTMLDivElement>) => void;
+  onDragEnd: () => void;
+}
+
+const TileSection = memo(function TileSection({
+  title,
+  actions,
+  getDescription,
+  onClick,
+  onKeyDown,
+  onMouseEnter,
+  onDragStart,
+  onDragEnd
+}: TileSectionProps) {
+  return (
+    <section>
+      <div className="tiles-header">
+        <Text size="normal" weight={600}>
+          {title}
+        </Text>
+      </div>
+      <div className="tiles-container">
+        {actions.map(({ key, label, nodeType, icon, iconColor }) => {
+          const description = getDescription(nodeType);
+          return (
+            <Tooltip
+              key={key}
+              delay={TILE_TOOLTIP_DELAY_MS}
+              title={
+                <div>
+                  {description && <div>{description}</div>}
+                  <div style={description ? TOOLTIP_HINT_STYLE : undefined}>
+                    Click to place · Drag to canvas
+                  </div>
+                </div>
+              }
+              placement="top"
+            >
+              <div
+                className="quick-tile"
+                role="button"
+                tabIndex={0}
+                aria-label={label}
+                draggable
+                onDragStart={onDragStart}
+                onDragEnd={onDragEnd}
+                onClick={onClick}
+                onKeyDown={onKeyDown}
+                onMouseEnter={onMouseEnter}
+                data-node-type={nodeType}
+                data-label={label}
+              >
+                <div className="tile-icon" style={{ color: iconColor }}>
+                  {icon}
+                </div>
+                <Text size="small" className="tile-label">
+                  {label}
+                </Text>
+              </div>
+            </Tooltip>
+          );
+        })}
+      </div>
+    </section>
+  );
+});
 
 const QuickActionTiles = memo(function QuickActionTiles() {
   const theme = useTheme();
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
 
-  const { setDragToCreate, setHoveredNode } = useNodeMenuStore(useShallow((state) => ({
-    setDragToCreate: state.setDragToCreate,
-    setHoveredNode: state.setHoveredNode
-  })));
+  const { setDragToCreate, setHoveredNode } = useNodeMenuStore(
+    useShallow((state) => ({
+      setDragToCreate: state.setDragToCreate,
+      setHoveredNode: state.setHoveredNode
+    }))
+  );
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -175,15 +210,15 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   // to render outside the editor's ReactFlowProvider.
   const requestCreate = usePendingNodeCreateStore((s) => s.requestCreate);
 
+  const getDescription = useCallback(
+    (nodeType: string) => summaryOf(getMetadata(nodeType)?.description),
+    [getMetadata]
+  );
+
   const handleDragStart = useCallback(
     (event: ReactDragEvent<HTMLDivElement>) => {
       const nodeType = event.currentTarget.dataset.nodeType;
-      if (!nodeType) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-      const metadata = getMetadata(nodeType);
+      const metadata = nodeType ? getMetadata(nodeType) : undefined;
       if (!metadata) {
         event.preventDefault();
         event.stopPropagation();
@@ -205,29 +240,48 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     clearDrag();
   }, [setDragToCreate, clearDrag]);
 
-  const onTileClick = useCallback(
-    (action: QuickActionDefinition) => {
-      const { nodeType, label } = action;
+  const createFromTile = useCallback(
+    (tile: HTMLDivElement) => {
+      const { nodeType, label } = tile.dataset;
+      if (!nodeType) {
+        return;
+      }
       const metadata = getMetadata(nodeType);
-
       if (!metadata) {
         console.warn(`Metadata not found for node type: ${nodeType}`);
         addNotification({
           type: "warning",
-          content: `Unable to find metadata for ${label}.`,
+          content: `Unable to find metadata for ${label ?? nodeType}.`,
           timeout: NOTIFICATION_TIMEOUT_MEDIUM
         });
         return;
       }
-
       requestCreate(metadata);
     },
     [getMetadata, addNotification, requestCreate]
   );
 
-  const onTileMouseEnter = useCallback(
-    (nodeType: string) => {
-      const metadata = getMetadata(nodeType);
+  const handleTileClick = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      createFromTile(event.currentTarget);
+    },
+    [createFromTile]
+  );
+
+  const handleTileKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        createFromTile(event.currentTarget);
+      }
+    },
+    [createFromTile]
+  );
+
+  const handleTileMouseEnter = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      const metadata = nodeType ? getMetadata(nodeType) : undefined;
       if (metadata) {
         setHoveredNode(metadata);
       }
@@ -235,191 +289,36 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     [getMetadata, setHoveredNode]
   );
 
-  // Use data attributes to avoid creating new function references on each render
-  // This is more efficient than curried handlers which create new closures
-  const handleTileClick = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      const nodeType = event.currentTarget.dataset.nodeType;
-      if (nodeType) {
-        const metadata = getMetadata(nodeType);
-        if (metadata) {
-          const definition = [...QUICK_ACTION_BUTTONS, ...CONSTANT_NODES].find(
-            (d) => d.nodeType === nodeType
-          );
-          if (definition) {
-            onTileClick(definition);
-          }
-        }
-      }
-    },
-    [getMetadata, onTileClick]
-  );
-
-  const handleTileMouseEnter = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      const nodeType = event.currentTarget.dataset.nodeType;
-      if (nodeType) {
-        onTileMouseEnter(nodeType);
-      }
-    },
-    [onTileMouseEnter]
-  );
-
-  const tooltipSubtitleStyle = useMemo(
+  const sectionProps = useMemo(
     () => ({
-      fontSize: "var(--fontSizeSmaller)" as const,
-      opacity: 0.75,
-      marginTop: getSpacingPx(SPACING.xs)
+      getDescription,
+      onClick: handleTileClick,
+      onKeyDown: handleTileKeyDown,
+      onMouseEnter: handleTileMouseEnter,
+      onDragStart: handleDragStart,
+      onDragEnd: handleDragEnd
     }),
-    []
-  );
-
-  const constantsHeaderStyle = useMemo(
-    () => ({
-      marginTop: getSpacingPx(SPACING.xl),
-      marginBottom: getSpacingPx(SPACING.md)
-    }),
-    []
+    [
+      getDescription,
+      handleTileClick,
+      handleTileKeyDown,
+      handleTileMouseEnter,
+      handleDragStart,
+      handleDragEnd
+    ]
   );
 
   return (
     <div css={memoizedStyles}>
-      <div className="tiles-header">
-        <Text size="normal" weight={600}>AI Nodes</Text>
-      </div>
-      <div className="tiles-container">
-        {QUICK_ACTION_BUTTONS.map((definition) => {
-          const {
-            key,
-            label,
-            nodeType,
-            icon,
-            gradient,
-            hoverGradient,
-            shadow,
-            hoverShadow = shadow,
-            iconColor
-          } = definition;
-          return (
-            <Tooltip
-              key={key}
-              title={
-                <div>
-                  <div>{label}</div>
-                  <div style={tooltipSubtitleStyle}>
-                    Click to place · Shift-click to auto add
-                  </div>
-                </div>
-              }
-              placement="top"
-            >
-              <div
-                className="quick-tile"
-                role="button"
-                tabIndex={0}
-                draggable
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onClick={handleTileClick}
-                onKeyDown={(e: ReactKeyboardEvent<HTMLDivElement>) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    const nodeTypeKey = e.currentTarget.dataset.nodeType;
-                    if (!nodeTypeKey) return;
-                    const meta = getMetadata(nodeTypeKey);
-                    if (meta) requestCreate(meta);
-                  }
-                }}
-                onMouseEnter={handleTileMouseEnter}
-                data-node-type={nodeType}
-                style={
-                  {
-                    "--quick-gradient": gradient,
-                    "--quick-hover-tile-bg": hoverGradient,
-                    "--quick-shadow": shadow,
-                    "--quick-shadow-hover": hoverShadow ?? shadow,
-                    "--quick-icon-color": iconColor
-                  } as CSSProperties
-                }
-              >
-                <div className="tile-icon" style={{ color: iconColor }}>
-                  {icon}
-                </div>
-                <Text className="tile-label">{label}</Text>
-              </div>
-            </Tooltip>
-          );
-        })}
-      </div>
-      <div className="tiles-header" style={constantsHeaderStyle}>
-        <Text size="normal" weight={600}>Constants</Text>
-      </div>
-      <div className="constants-container">
-        {CONSTANT_NODES.map((definition) => {
-          const {
-            key,
-            label,
-            nodeType,
-            icon,
-            gradient,
-            hoverGradient,
-            shadow,
-            hoverShadow = shadow,
-            iconColor
-          } = definition;
-          return (
-            <Tooltip
-              key={key}
-              title={
-                <div>
-                  <div>{label} Constant</div>
-                  <div style={tooltipSubtitleStyle}>
-                    Click to place
-                  </div>
-                </div>
-              }
-              placement="top"
-            >
-              <div
-                className="quick-tile constant-tile"
-                role="button"
-                tabIndex={0}
-                draggable
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onClick={handleTileClick}
-                onKeyDown={(e: ReactKeyboardEvent<HTMLDivElement>) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    const nodeTypeKey = e.currentTarget.dataset.nodeType;
-                    if (!nodeTypeKey) return;
-                    const meta = getMetadata(nodeTypeKey);
-                    if (meta) requestCreate(meta);
-                  }
-                }}
-                onMouseEnter={handleTileMouseEnter}
-                data-node-type={nodeType}
-                style={
-                  {
-                    "--quick-gradient": gradient,
-                    "--quick-hover-tile-bg": hoverGradient,
-                    "--quick-shadow": shadow,
-                    "--quick-shadow-hover": hoverShadow ?? shadow,
-                    "--quick-icon-color": iconColor
-                  } as CSSProperties
-                }
-              >
-                <div className="tile-icon" style={{ color: iconColor }}>
-                  {icon}
-                </div>
-                <Text className="tile-label">{label}</Text>
-              </div>
-            </Tooltip>
-          );
-        })}
-      </div>
+      <TileSection title="AI nodes" actions={AI_TASK_ACTIONS} {...sectionProps} />
+      <TileSection
+        title="Provider models"
+        actions={PROVIDER_ACTIONS}
+        {...sectionProps}
+      />
+      <TileSection title="Constants" actions={CONSTANT_NODES} {...sectionProps} />
     </div>
   );
 });
 
-export default memo(QuickActionTiles);
+export default QuickActionTiles;
