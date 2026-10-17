@@ -2,6 +2,8 @@ import * as THREE from "three";
 import type { GameRenderFrame3D } from "@nodetool-ai/protocol";
 export function configureGameEnvironment(scene: THREE.Scene, ambient: THREE.AmbientLight, renderer: THREE.WebGLRenderer, environment: GameRenderFrame3D["environment"]): void {
     scene.background = new THREE.Color(environment.background);
+    scene.backgroundIntensity = 1;
+    scene.backgroundRotation.set(0, 0, 0);
     ambient.color.set(environment.ambient.color);
     ambient.intensity = environment.ambient.intensity;
     const fog = environment.fog;

@@ -29,7 +29,8 @@ interface LoadedHdri {
 
 /** Builds the PMREM environment and background for a scene sky. A color sky leaves the scene untouched. */
 export class GameSkyRenderer3D {
-  private applied: string | undefined;
+  private applied: { readonly key: string; readonly scene: THREE.Scene; readonly background: THREE.Texture;
+    readonly environment: THREE.Texture } | undefined;
   private pmrem: THREE.PMREMGenerator | undefined;
   private procedural: { key: string; readonly cube: THREE.WebGLCubeRenderTarget; readonly camera: THREE.CubeCamera; readonly environment: THREE.WebGLRenderTarget } | undefined;
   private proceduralScene: { readonly scene: THREE.Scene; readonly sky: Sky; readonly ground: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial> } | undefined;
@@ -40,6 +41,7 @@ export class GameSkyRenderer3D {
     private readonly signal: AbortSignal, private readonly diagnostics: string[]) {}
 
   async apply(scene: THREE.Scene, frame: GameRenderFrame3D): Promise<void> {
+    if (this.applied && this.applied.scene !== scene) { this.detach(); }
     const sky = frame.environment.sky;
     if (sky?.kind === "procedural") { this.applyProcedural(scene, sky, frame); return; }
     if (sky?.kind === "hdri") {
@@ -53,7 +55,7 @@ export class GameSkyRenderer3D {
       } while (this.hdris.get(sky.assetId) !== pending);
       if (loaded) { this.applyHdri(scene, sky, loaded); return; }
     }
-    this.clear(scene);
+    this.clear();
   }
 
   /** Drops a cached HDRI so the next frame resolves the slot again. */
@@ -63,17 +65,16 @@ export class GameSkyRenderer3D {
     this.reported.delete(slot);
     const loaded = await pending?.catch(() => null);
     if (loaded) { this.releaseHdri(loaded); }
-    if (this.applied?.startsWith(`hdri:${slot}:`)) { this.applied = undefined; }
   }
 
   /** Regenerates GPU-built maps after a context restore. Decoded HDRI pixels are uploaded again by three. */
   reset(): void {
+    this.detach();
     this.releaseProcedural();
     for (const pending of this.hdris.values()) { void pending.then((loaded) => { if (loaded) { this.releaseHdri(loaded); } }, () => undefined); }
     this.hdris.clear();
     this.pmrem?.dispose();
     this.pmrem = undefined;
-    this.applied = undefined;
   }
 
   dispose(): void {
@@ -92,15 +93,26 @@ export class GameSkyRenderer3D {
     return this.pmrem;
   }
 
-  private clear(scene: THREE.Scene): void {
-    if (this.applied === undefined) { return; }
-    scene.environment = null;
-    scene.environmentIntensity = 1;
-    scene.backgroundIntensity = 1;
-    scene.environmentRotation.set(0, 0, 0);
-    scene.backgroundRotation.set(0, 0, 0);
-    this.releaseProcedural();
+  private detach(): void {
+    const applied = this.applied;
+    if (!applied) { return; }
+    const { scene, background, environment } = applied;
+    if (scene.environment === environment) {
+      scene.environment = null;
+      scene.environmentIntensity = 1;
+      scene.environmentRotation.set(0, 0, 0);
+    }
+    if (scene.background === background) {
+      scene.background = null;
+      scene.backgroundIntensity = 1;
+      scene.backgroundRotation.set(0, 0, 0);
+    }
     this.applied = undefined;
+  }
+
+  private clear(): void {
+    this.detach();
+    this.releaseProcedural();
   }
 
   private applyProcedural(scene: THREE.Scene, sky: ProceduralSky3D, frame: GameRenderFrame3D): void {
@@ -115,7 +127,7 @@ export class GameSkyRenderer3D {
     scene.backgroundIntensity = sky.intensity;
     scene.environmentRotation.set(0, 0, 0);
     scene.backgroundRotation.set(0, 0, 0);
-    this.applied = "procedural";
+    this.applied = { key: "procedural", scene, background: cube.texture, environment: environment.texture };
   }
 
   /** Renders the sky into the retained cube and PMREM targets, allocating them only on first use. */
@@ -150,14 +162,14 @@ export class GameSkyRenderer3D {
   }
 
   private applyHdri(scene: THREE.Scene, sky: HdriSky3D, loaded: LoadedHdri): void {
-    if (this.applied !== `hdri:${sky.assetId}:${loaded.digest}`) { this.releaseProcedural(); }
+    if (this.applied?.key !== `hdri:${sky.assetId}:${loaded.digest}`) { this.releaseProcedural(); }
     scene.background = loaded.texture;
     scene.environment = loaded.environment.texture;
     scene.environmentIntensity = sky.intensity;
     scene.backgroundIntensity = sky.intensity;
     scene.environmentRotation.set(0, sky.rotation, 0);
     scene.backgroundRotation.set(0, sky.rotation, 0);
-    this.applied = `hdri:${sky.assetId}:${loaded.digest}`;
+    this.applied = { key: `hdri:${sky.assetId}:${loaded.digest}`, scene, background: loaded.texture, environment: loaded.environment.texture };
   }
 
   private loadHdri(sky: HdriSky3D): Promise<LoadedHdri | null> {
@@ -200,12 +212,15 @@ export class GameSkyRenderer3D {
   }
 
   private releaseProcedural(): void {
+    if (this.procedural && (this.applied?.background === this.procedural.cube.texture
+      || this.applied?.environment === this.procedural.environment.texture)) { this.detach(); }
     this.procedural?.cube.dispose();
     this.procedural?.environment.dispose();
     this.procedural = undefined;
   }
 
   private releaseHdri(loaded: LoadedHdri): void {
+    if (this.applied?.background === loaded.texture || this.applied?.environment === loaded.environment.texture) { this.detach(); }
     loaded.texture.dispose();
     loaded.environment.dispose();
   }
