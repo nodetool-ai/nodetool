@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 const TITLE = "Open-Source Creative Harness for AI Agents | NodeTool";
 const DESCRIPTION =
-  "NodeTool is the open-source creative harness for AI agents. Your agent gets generation tools and seven editors, runs on your keys, and leaves editable work.";
+  "NodeTool is the open-source creative harness for AI agents. Your agent gets generation tools and eight editors, runs on your keys, and leaves editable work.";
 
 export const metadata: Metadata = {
   title: TITLE,

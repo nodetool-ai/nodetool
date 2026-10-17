@@ -55,6 +55,28 @@ export const AGENT_STEPS: AgentStep[] = [
   },
 ];
 
+/**
+ * Game assets, checked against generate_game_asset, capture_native_game_frame
+ * and browse_native_game_assets in packages/agents/src/capabilities/game.specs.ts.
+ */
+export const ASSETS_LEAD =
+  "The agent makes the art and sound for the game and installs each piece where the game uses it. Generation runs on your own provider accounts, and you can import files you already have.";
+
+export const ASSET_KINDS: { title: string; body: string }[] = [
+  { title: "Sprites and sprite sheets", body: "A generated or imported image is cut into an aligned sprite sheet, and its frames are bound to the game." },
+  { title: "Tilesets", body: "An image is prepared as an edge tileset." },
+  { title: "Color grading", body: "An image is prepared as a grade LUT, a render effect that sets the game's color look." },
+  { title: "Speech, music, and sound effects", body: "Voice lines from a speech model, music from a music model, and sound effects from a sound-effect node you choose." },
+  { title: "Fonts", body: "Import a TTF or OTF file for the HUD and text." },
+  { title: "3D models and colliders", body: "Generate a model on a provider node, or import your own glTF or GLB. Each 3D result is a candidate that you or the agent install on purpose." },
+];
+
+export const ASSET_NOTES: string[] = [
+  "Every asset is bound to a named slot, so the agent can regenerate one slot without touching the rest. It can also stage a 2D candidate and compare it before installing it.",
+  "Asset generators such as Ludo.ai and Scenario focus on making the asset. NodeTool also makes assets, then places each one into a game you can play, test, and edit.",
+  "For a trailer, the agent captures up to eight still frames from the game and can cut them on a timeline with generated clips. It does not record gameplay video.",
+];
+
 export type SpecRow = { feature: string; twoD: string; threeD: string };
 
 export const SPEC_ROWS: SpecRow[] = [

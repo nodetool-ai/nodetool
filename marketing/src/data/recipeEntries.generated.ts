@@ -159,7 +159,7 @@ export const recipeEntries: RecipeEntry[] = [
       ]
     },
     "route": "/recipes/directed-campaign-kit",
-    "title": "Directed campaign kit | NodeTool guided recipe",
+    "title": "AI Campaign Kit from One Product Image | NodeTool",
     "description": "Turn one product image into a kinetic campaign hero, coordinated social formats, and one controlled revision.",
     "priority": 0.8,
     "changeFrequency": "monthly",
@@ -368,7 +368,7 @@ export const recipeEntries: RecipeEntry[] = [
       ]
     },
     "route": "/recipes/ugc-product-video",
-    "title": "UGC product video | NodeTool guided recipe",
+    "title": "AI UGC Product Video from a Creator and a Product Image | NodeTool",
     "description": "Turn creator and product references into a 15-second day-in-the-life story where a cup becomes a reassuring companion.",
     "priority": 0.8,
     "changeFrequency": "monthly",
@@ -599,7 +599,7 @@ export const recipeEntries: RecipeEntry[] = [
       ]
     },
     "route": "/recipes/viral-video-ad-engine",
-    "title": "Product commercials | NodeTool guided recipe",
+    "title": "AI Product Commercial You Edit on a Timeline | NodeTool",
     "description": "Give your product a story. Direct the shots, shape the sound, and finish your ad in the timeline.",
     "priority": 0.8,
     "changeFrequency": "monthly",
@@ -835,7 +835,7 @@ export const recipeEntries: RecipeEntry[] = [
       ]
     },
     "route": "/recipes/multilingual-video-dubber",
-    "title": "Multilingual video | NodeTool guided recipe",
+    "title": "AI Video Dubbing with Line-by-Line Voice Review | NodeTool",
     "description": "Review a translation, choose a voice, and edit the delivery line by line. Finish with a new-language voiceover or a separate lip-sync pass.",
     "priority": 0.8,
     "changeFrequency": "monthly",
@@ -1090,7 +1090,7 @@ export const recipeEntries: RecipeEntry[] = [
       ]
     },
     "route": "/recipes/ecommerce-sku-visual-factory",
-    "title": "Product catalogue assets | NodeTool guided recipe",
+    "title": "AI Product Photography from One Product Photo | NodeTool",
     "description": "Turn one product reference into a coordinated set of studio images, seasonal scenes, and a short motion clip.",
     "priority": 0.8,
     "changeFrequency": "monthly",
@@ -1341,7 +1341,7 @@ export const recipeEntries: RecipeEntry[] = [
       ]
     },
     "route": "/recipes/storyboard-to-trailer",
-    "title": "Storyboard to trailer | NodeTool guided recipe",
+    "title": "AI Trailer from a Storyboard | NodeTool",
     "description": "Turn a story idea into a six-shot storyboard, then develop its voice, motion, and edit in the same workspace.",
     "priority": 0.8,
     "changeFrequency": "monthly",
@@ -1580,7 +1580,7 @@ export const recipeEntries: RecipeEntry[] = [
       ]
     },
     "route": "/recipes/impossible-product-worlds",
-    "title": "Impossible product worlds | NodeTool guided recipe",
+    "title": "Surreal AI Product Video with a Hero Product | NodeTool",
     "description": "Chase a swimmer into a pool hidden in a giant cup, then return to human scale as she drinks from it.",
     "priority": 0.8,
     "changeFrequency": "monthly",

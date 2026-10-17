@@ -23,6 +23,7 @@ import TrackedLink from "../../components/TrackedLink";
 import AgentSessionMock from "../../components/developers/AgentSessionMock";
 import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import CodeBlock from "../../components/developers/CodeBlock";
+import PageUpdated from "@/components/PageUpdated";
 
 const container = "mx-auto max-w-7xl px-6 lg:px-8";
 const eyebrowClass =
@@ -400,6 +401,14 @@ export default function DevelopersPage() {
               A workflow the agent built is also an endpoint. Your app sends
               the input and gets the image, audio, or video back.
             </p>
+            <p className="mt-4 leading-relaxed text-slate-300">
+              Send a POST request to{" "}
+              <code className="font-mono text-sm text-slate-100">
+                /api/workflows/&lt;id&gt;/run
+              </code>{" "}
+              with the inputs under <code className="font-mono text-sm text-slate-100">params</code>.
+              The same call works from a CI job or a script.
+            </p>
           </header>
           <div className="min-w-0 lg:col-span-7">
             <div className="overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-950">
@@ -475,6 +484,9 @@ export default function DevelopersPage() {
           eventProps: { placement: "closing" },
         }}
       />
+    <div className="mx-auto max-w-7xl px-6 pb-12 lg:px-8">
+      <PageUpdated route="/developers" className="text-sm text-slate-400" />
+    </div>
     </MarketingPageShell>
   );
 }

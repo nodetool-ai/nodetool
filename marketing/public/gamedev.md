@@ -28,6 +28,21 @@ npx -y --package=@nodetool-ai/cli nodetool mcp install
 
 This registers NodeTool as an MCP server in Claude Code, Codex, and OpenCode. For Cursor or another client, `nodetool mcp config` prints the block to paste. The agent calls the game tools inside `execute_code` and looks at captured frames with `view_image`. The game skills appear in Claude Code as slash commands.
 
+## Game assets, installed in the game
+
+The agent makes the art and sound for the game and installs each piece where the game uses it. Generation runs on your own provider accounts, and you can import files you already have.
+
+- **Sprites and sprite sheets**: A generated or imported image is cut into an aligned sprite sheet, and its frames are bound to the game.
+- **Tilesets**: An image is prepared as an edge tileset.
+- **Color grading**: An image is prepared as a grade LUT, a render effect that sets the game's color look.
+- **Speech, music, and sound effects**: Voice lines from a speech model, music from a music model, and sound effects from a sound-effect node you choose.
+- **Fonts**: Import a TTF or OTF file for the HUD and text.
+- **3D models and colliders**: Generate a model on a provider node, or import your own glTF or GLB. Each 3D result is a candidate that you or the agent install on purpose.
+
+- Every asset is bound to a named slot, so the agent can regenerate one slot without touching the rest. It can also stage a 2D candidate and compare it before installing it.
+- Asset generators such as Ludo.ai and Scenario focus on making the asset. NodeTool also makes assets, then places each one into a game you can play, test, and edit.
+- For a trailer, the agent captures up to eight still frames from the game and can cut them on a timeline with generated clips. It does not record gameplay video.
+
 ## The Game Editor
 
 - Scene tree, viewport, and inspector. Select anything in the level, change its components and behaviors in the side panel.

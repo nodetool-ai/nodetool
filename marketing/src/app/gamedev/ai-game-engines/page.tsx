@@ -19,6 +19,7 @@ import {
   RECOMMENDATIONS,
   SOURCES_CHECKED,
 } from "@/data/gameEngineComparison";
+import PageUpdated from "@/components/PageUpdated";
 
 const PAGE_TITLE = `${COMPARISON_TITLE} | NodeTool`;
 
@@ -108,6 +109,9 @@ export default function AiGameEnginesPage() {
             </ul>
           </section>
         </article>
+        <div className="mx-auto max-w-7xl px-6 pb-12 lg:px-8">
+          <PageUpdated route="/gamedev/ai-game-engines" className="text-sm text-slate-400" />
+        </div>
         <JsonLd data={breadcrumbSchema([{ name: "Game development", url: "/gamedev" }, { name: "AI game engines compared", url: "/gamedev/ai-game-engines" }])} />
       </main>
       <SiteFooter />

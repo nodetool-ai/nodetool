@@ -74,9 +74,9 @@ export function formatTimecode(seconds: number): string {
 export const storyboardEntryPages: PageEntry[] = [
   {
     route: "/storyboards",
-    title: "Example storyboards | NodeTool",
+    title: "AI Storyboard Generator with Editable Shots | NodeTool",
     description:
-      "Browse finished AI films with their storyboards. Each page shows the video, then every shot with its camera, timing, and direction.",
+      "An open-source AI storyboard generator: turn a brief into scenes and shots, render stills and clips per shot, and assemble an editable timeline. Browse finished films with their storyboards.",
     priority: 0.8,
     changeFrequency: "monthly",
     indexable: true

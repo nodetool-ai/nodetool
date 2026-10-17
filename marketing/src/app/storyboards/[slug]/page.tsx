@@ -12,6 +12,7 @@ import {
   storyboards
 } from "@/data/storyboards";
 import type { Storyboard } from "@/data/storyboards";
+import { storyboardUploadDate } from "@/data/contentDates";
 
 interface StoryboardPageProps {
   readonly params: Promise<{ slug: string }>;
@@ -118,6 +119,7 @@ export default async function StoryboardPage({ params }: StoryboardPageProps) {
     notFound();
   }
   const more = related(board);
+  const uploadDate = storyboardUploadDate(board.slug);
   return (
     <MarketingPageShell>
       <JsonLd
@@ -130,7 +132,8 @@ export default async function StoryboardPage({ params }: StoryboardPageProps) {
           contentUrl: board.video.src,
           duration: `PT${Math.round(board.video.duration)}S`,
           width: board.video.width,
-          height: board.video.height
+          height: board.video.height,
+          ...(uploadDate ? { uploadDate } : {})
         }}
       />
       <article className="mx-auto max-w-7xl px-6 pb-24 pt-10 lg:px-8">
@@ -176,6 +179,18 @@ export default async function StoryboardPage({ params }: StoryboardPageProps) {
             <p className="mt-2 leading-relaxed text-slate-300">
               This storyboard ships as an example in NodeTool. Open it in the
               Studio, edit the direction for any shot, and render a new take.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-slate-400">
+              See how the{" "}
+              <a href="/ai-video-editor" className="focus-ring rounded text-amber-300 underline underline-offset-2 hover:text-amber-200">AI video editor</a>{" "}
+              turns the shots into a timeline, or read the{" "}
+              <a href="https://docs.nodetool.ai/storyboard-editor" className="focus-ring rounded text-amber-300 underline underline-offset-2 hover:text-amber-200">Storyboard Editor guide</a>.
+              {board.category === "commercial" && (
+                <>
+                  {" "}For product spots, see{" "}
+                  <a href="/marketing" className="focus-ring rounded text-amber-300 underline underline-offset-2 hover:text-amber-200">AI for advertising</a>.
+                </>
+              )}
             </p>
           </div>
           <a

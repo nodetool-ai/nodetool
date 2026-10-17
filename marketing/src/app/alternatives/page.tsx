@@ -5,7 +5,7 @@ import SiteFooter from "../../components/SiteFooter";
 import JsonLd from "../../components/JsonLd";
 import { breadcrumbSchema, itemListSchema } from "@/lib/jsonld";
 import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
-import { competitors } from "@/data/competitorEntries";
+import { ALTERNATIVES_CATEGORY_ORDER, ALTERNATIVES_INTRO, competitors } from "@/data/competitorEntries";
 
 const TITLE = "Compare NodeTool with Other AI Creative Tools | NodeTool";
 const DESCRIPTION =
@@ -19,18 +19,6 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
-/** Categories in reading order; any category not listed sorts after these. */
-const CATEGORY_ORDER = [
-  "Node editor",
-  "Video studio",
-  "AI filmmaking",
-  "Creative canvas",
-  "Workflow automation",
-  "Chatbot & agent builder",
-  "Agent automation",
-  "Local language model runtime",
-];
-
 function categoryId(category: string): string {
   return `cat-${category.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 }
@@ -41,8 +29,8 @@ function groupedCompetitors() {
     groups.set(c.category, [...(groups.get(c.category) ?? []), c]);
   }
   const rank = (category: string) => {
-    const index = CATEGORY_ORDER.indexOf(category);
-    return index === -1 ? CATEGORY_ORDER.length : index;
+    const index = ALTERNATIVES_CATEGORY_ORDER.indexOf(category);
+    return index === -1 ? ALTERNATIVES_CATEGORY_ORDER.length : index;
   };
   return [...groups.entries()].sort(([a], [b]) => rank(a) - rank(b));
 }
@@ -57,7 +45,7 @@ export default function AlternativesIndexPage() {
           <header className="max-w-3xl">
             <h1 className="text-4xl font-semibold leading-tight tracking-tight md:text-6xl">Compare NodeTool with other AI tools</h1>
             <p className="mt-6 text-lg leading-relaxed text-slate-300">
-              Each page puts NodeTool next to one product: what the other product does well, what NodeTool does differently, a feature table, and when to pick which. NodeTool is an open-source, agent-first creative workspace that runs on your own provider accounts, on the desktop or self-hosted.
+              {ALTERNATIVES_INTRO}
             </p>
           </header>
 

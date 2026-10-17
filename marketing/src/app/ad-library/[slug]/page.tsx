@@ -15,6 +15,8 @@ import AdBeatSequence from "@/components/adLibrary/AdBeatSequence";
 import { ComplexityMeter } from "@/components/adLibrary/AdConceptCard";
 import { adRecipes, formatKey } from "@/data/adLibrary";
 import type { AdRecipe } from "@/data/adLibrary";
+import JsonLd from "@/components/JsonLd";
+import { adVideoUploadDate } from "@/data/contentDates";
 import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 interface AdRecipePageProps {
@@ -33,7 +35,7 @@ export async function generateMetadata({
     return {};
   }
   return {
-    title: `${recipe.title} | NodeTool ad library`,
+    title: `${recipe.title} video ad template | NodeTool`,
     description: recipe.objective,
     alternates: { canonical: `https://nodetool.ai${recipe.route}` },
     openGraph: {
@@ -275,6 +277,50 @@ function ConceptLink({
   );
 }
 
+const inlineLink =
+  "focus-ring rounded text-amber-300 underline underline-offset-2 hover:text-amber-200";
+
+/**
+ * Each concept ships as an ad-<slug>.app.json mini app in
+ * packages/base-nodes/nodetool/examples/apps/, whose description this repeats.
+ */
+function BuildInNodeTool({ recipe }: { recipe: AdRecipe }) {
+  return (
+    <section
+      aria-labelledby="build-title"
+      className="mt-24 rounded-2xl border border-white/10 bg-white/[0.03] p-8"
+    >
+      <h2
+        id="build-title"
+        className="text-xl font-semibold tracking-tight text-white"
+      >
+        Build this ad in NodeTool
+      </h2>
+      <p className="mt-3 max-w-3xl leading-relaxed text-slate-300">
+        This concept ships with NodeTool as a mini app. It builds an editable{" "}
+        {recipe.duration_ms / 1000}-second vertical ad from your images, logo,
+        and copy. AI can suggest options from a website to fill the fields with
+        its copy and images. It uses no generated video.
+      </p>
+      <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-400">
+        Read how{" "}
+        <a href="https://docs.nodetool.ai/mini-apps" className={inlineLink}>
+          mini apps
+        </a>{" "}
+        work, see{" "}
+        <a href="/marketing" className={inlineLink}>
+          AI for advertising
+        </a>{" "}
+        for spots with generated shots, or cut the ad further in the{" "}
+        <a href="/ai-video-editor" className={inlineLink}>
+          AI video editor
+        </a>
+        .
+      </p>
+    </section>
+  );
+}
+
 export default async function AdRecipePage({ params }: AdRecipePageProps) {
   const { slug } = await params;
   const index = adRecipes.findIndex((item) => item.slug === slug);
@@ -285,22 +331,38 @@ export default async function AdRecipePage({ params }: AdRecipePageProps) {
   const alternatives = adRecipes.filter((item) =>
     recipe.selection.alternative_recipe_ids.includes(item.id)
   );
+  const uploadDate = adVideoUploadDate(recipe.slug);
   const next = [...adRecipes.slice(index + 1), ...adRecipes.slice(0, index)].find(
     (item) => !alternatives.includes(item)
   );
   return (
     <MarketingPageShell>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "VideoObject",
+          name: recipe.title,
+          description: recipe.objective,
+          thumbnailUrl: `https://nodetool.ai${recipe.video.poster}`,
+          contentUrl: `https://nodetool.ai${recipe.video.src}`,
+          duration: `PT${Math.round(recipe.video.duration_ms / 1000)}S`,
+          width: recipe.video.width,
+          height: recipe.video.height,
+          ...(uploadDate ? { uploadDate } : {})
+        }}
+      />
       <article className="mx-auto max-w-7xl px-6 pb-24 pt-10 lg:px-8">
         <a
           href="/ad-library"
           className="focus-ring mb-10 inline-flex items-center gap-2 rounded text-sm text-slate-400 hover:text-amber-200"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Social ad library
+          Video ad templates
         </a>
         <AdBeatSequence title={recipe.title} beats={recipe.beats} video={recipe.video}>
           <RecipeHeader recipe={recipe} />
         </AdBeatSequence>
+        <BuildInNodeTool recipe={recipe} />
         <section
           aria-label="Production plan"
           className="mt-24 grid gap-14 border-t border-white/10 pt-16 lg:grid-cols-3 lg:gap-12"

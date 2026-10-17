@@ -1,7 +1,7 @@
 # Retrieval-readiness review
 
-Date: 2026-10-17. Branch `claude/ai-discoverability-4l2i1b` (PR 6741), built
-with `next build` and served with `next start`.
+Date: 2026-10-17. Branch `claude/ai-discoverability-4l2i1b` after the A1 to A4
+and B page items, built with `next build` and served with `next start`.
 
 ## Method
 
@@ -20,7 +20,8 @@ Claude, Gemini and Perplexity (see the strategy's measurement section).
 
 ## Result
 
-34 answered, 1 partial, 2 gaps, out of 37 questions.
+37 answered, 0 partial, 0 gaps, out of 37 questions. The first run on
+PR 6741 had 34 answered, 1 partial and 2 gaps.
 
 | Cluster | Question | Page | Verdict | Detail |
 |---|---|---|---|---|
@@ -48,37 +49,33 @@ Claude, Gemini and Perplexity (see the strategy's measurement section).
 | mcp-dev | Cursor MCP image generation | `/mcp` | Answered | all facts on page |
 | mcp-dev | Connect Claude Desktop to local image generation on Mac | `/mcp` | Answered | all facts on page |
 | mcp-dev | Difference between ComfyUI MCP and NodeTool | `/mcp` | Answered | all facts on page |
-| mcp-dev | Call AI workflows from CI or a script | `/developers` | Partial | missing: /api/workflows |
+| mcp-dev | Call AI workflows from CI or a script | `/developers` | Answered | all facts on page |
 | mcp-dev | Does the MCP server need the desktop app? | `/mcp` | Answered | all facts on page |
 | advertising | Turn product photos into video ads I can edit | `/marketing` | Answered | all facts on page |
 | advertising | Make 9:16, 1:1 and 4:5 versions of an ad | `/ai-video-editor` | Answered | all facts on page |
 | advertising | AI UGC product video | `/recipes/ugc-product-video` | Answered | all facts on page |
 | advertising | AI ad examples to copy | `/ad-library` | Answered | all facts on page |
 | agentic-category | What is an open-source creative harness for Claude Code? | `/agents` | Answered | all facts on page |
-| agentic-category | Can I approve each step an AI agent takes? | `/agents` | Gap | missing: approv |
+| agentic-category | Can I approve each step an AI agent takes? | `/agents` | Answered | all facts on page |
 | comparison | NodeTool vs ComfyUI | `/alternatives/comfyui` | Answered | all facts on page |
 | comparison | NodeTool alternatives and comparisons | `/alternatives` | Answered | all facts on page |
 | comparison | NodeTool vs Higgsfield | `/alternatives/higgsfield` | Answered | all facts on page |
-| image | Layered AI image editor with masks | `/ai-image-editor` | Gap | page HTTP Error 404: Not Found |
+| image | Layered AI image editor with masks | `/ai-image-editor` | Answered | all facts on page |
 | image | Open-source AI image editor that agents can use | `/studio` | Answered | all facts on page |
 
 ## Findings
 
-1. F1. Games, video, MCP and comparison questions now have a page that
-   answers them directly, including the "what it does not do" questions
-   (mobile export, multiplayer, Unity replacement, FCPXML).
-2. F2. `/developers` renders its REST example inside a client component.
-   The curl command appears only in the serialized payload, not as text, so
-   crawlers that read text miss "call a workflow from CI". Render the code
-   block on the server, or repeat the endpoint in prose.
-3. F3. `/agents` never says how a person approves agent actions. The product
-   has Plan, Default and Auto permission modes and an approval card. Add one
-   section that names them, after the Auto-mode claim in the capability sheet
-   is checked (the Auto label promises "asks once", and the gate code allows
-   every call in Auto).
-4. F4. `/ai-image-editor` does not exist yet (strategy item O8). Image editor
-   questions now land on `/studio`, which mentions layers and sketches only
-   briefly.
+1. F1. Games, video, MCP and comparison questions have a page that answers
+   them directly, including the "what it does not do" questions (mobile
+   export, multiplayer, Unity replacement, FCPXML).
+2. F2. Fixed. `/developers` renders its code block on the server and names
+   `POST /api/workflows/<id>/run` in prose.
+3. F3. Fixed. `/agents` has a permission-mode section with Plan, Default and
+   Auto, checked against `decidePermission` in
+   `packages/runtime/src/permission-gate.ts`. The Auto-mode "asks once" label
+   was not confirmed in the gate code, so the page does not repeat it.
+4. F4. Fixed. `/ai-image-editor` exists and answers the layered editing
+   questions.
 
 ## Rerun
 

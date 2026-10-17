@@ -5,9 +5,7 @@ import CommunitySection from "../../components/CommunitySection";
 import FaqBlock from "../../components/FaqBlock";
 import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import MarketingClosingAction from "../../components/MarketingClosingAction";
-import MarketingFacts, {
-  type MarketingFact,
-} from "../../components/MarketingFacts";
+import MarketingFacts from "../../components/MarketingFacts";
 import MarketingPageShell from "../../components/MarketingPageShell";
 import ModelSupportSection from "../../components/ModelSupportSection";
 import ProductImage from "../../components/ProductImage";
@@ -18,46 +16,8 @@ import StoryboardTeaser from "../../components/storyboards/StoryboardTeaser";
 import SurfaceShowcase from "../../components/SurfaceShowcase";
 import TimelineShowcase from "../../components/TimelineShowcase";
 import { EDITIONS } from "../../data/editions";
-
-const ownershipFacts: MarketingFact[] = [
-  {
-    term: "Project files",
-    description:
-      "Studio stores the workspace, workflows, and media on your machine. You choose where those files live and when to move them.",
-  },
-  {
-    term: "Supported local models",
-    description:
-      "Use supported language and image models through Ollama, MLX, llama.cpp, vLLM, or LM Studio. Local capability depends on the model and your hardware.",
-  },
-  {
-    term: "Online AI providers",
-    description:
-      "Connect your own provider accounts when a hosted model fits the job. Those requests need a network connection and are handled under the provider's terms.",
-  },
-  {
-    term: "Offline work",
-    description:
-      "Studio can work without a network when the project uses local files and supported local models. Remote providers, downloads, and online services still need a connection.",
-  },
-];
-
-const setupFacts: MarketingFact[] = [
-  {
-    term: "Desktop platforms",
-    description: "Studio is available for macOS, Windows, and Linux.",
-  },
-  {
-    term: "Graphics hardware",
-    description:
-      "A dedicated GPU is optional when you use hosted providers. It matters when you choose to run larger models locally.",
-  },
-  {
-    term: "Model downloads",
-    description:
-      "The desktop app does not require a local model collection. Download only the supported models you plan to run on your machine.",
-  },
-];
+import PageUpdated from "@/components/PageUpdated";
+import { OWNERSHIP_FACTS, SETUP_FACTS, STUDIO_PROJECT } from "@/data/studioPage";
 
 const primaryButtonClass =
   "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition-colors hover:bg-blue-500 focus-ring sm:w-auto";
@@ -99,9 +59,7 @@ export default function StudioPage() {
               A brief becomes a project you can reopen.
             </h2>
             <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-300">
-              The agent can draft the storyboard and edit the clips into a
-              video. The result is a NodeTool project, so you can make the next
-              change yourself in an editor or ask the agent to make it.
+              {STUDIO_PROJECT}
             </p>
           </header>
           <div className="mx-auto max-w-5xl">
@@ -155,7 +113,7 @@ export default function StudioPage() {
               when you use an online AI provider or service.
             </p>
             <div className="mt-8">
-              <MarketingFacts items={ownershipFacts} />
+              <MarketingFacts items={OWNERSHIP_FACTS} />
             </div>
           </div>
         </div>
@@ -185,7 +143,7 @@ export default function StudioPage() {
             </p>
           </header>
           <div className="lg:col-span-7">
-            <MarketingFacts items={setupFacts} />
+            <MarketingFacts items={SETUP_FACTS} />
           </div>
         </div>
         <FaqBlock
@@ -212,6 +170,9 @@ export default function StudioPage() {
         primaryAction={<StudioPrimaryAction />}
         secondaryAction={{ href: "/cloud", label: "Try Cloud (alpha)" }}
       />
+    <div className="mx-auto max-w-7xl px-6 pb-12 lg:px-8">
+      <PageUpdated route="/studio" className="text-sm text-slate-400" />
+    </div>
     </MarketingPageShell>
   );
 }

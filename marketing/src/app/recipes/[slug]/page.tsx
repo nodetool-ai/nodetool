@@ -9,6 +9,7 @@ import RecipeProductionRun from "@/components/RecipeProductionRun";
 import RecipeGuide from "@/components/RecipeGuide";
 import RecipeCard from "@/components/RecipeCard";
 import { recipeEntries } from "@/data/recipes";
+import { runDate } from "@/data/contentDates";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -72,10 +73,36 @@ export default async function RecipePage({ params }: RecipePageProps) {
       ...(step.image ? { image: `${BASE_URL}${step.image.src}` } : {})
     }))
   };
+  const runVideo = entry.productionRun?.video;
+  const runUploadDate = entry.productionRun
+    ? runDate(entry.productionRun.runId)
+    : undefined;
+  const videoLd =
+    runVideo && runUploadDate
+      ? {
+          "@context": "https://schema.org",
+          "@type": "VideoObject",
+          name: entry.name,
+          description: runVideo.caption ?? entry.outcome,
+          thumbnailUrl: `${BASE_URL}${runVideo.poster}`,
+          contentUrl: `${BASE_URL}${runVideo.mp4}`,
+          uploadDate: runUploadDate
+        }
+      : null;
+  const related = [
+    { href: "/storyboards", label: "AI storyboard generator" },
+    { href: "/ai-video-editor", label: "AI video editor" },
+    { href: "/marketing", label: "AI for advertising" },
+    { href: "/ad-library", label: "Video ad templates" },
+    ...(entry.guide.entry === "Storyboard"
+      ? [{ href: "https://docs.nodetool.ai/storyboard-editor", label: "Storyboard Editor guide" }]
+      : [])
+  ];
   return (
     <main className="overflow-clip-safe relative min-h-screen bg-slate-950 text-slate-100">
       <SiteHeader />
       <JsonLd data={howToLd} />
+      {videoLd && <JsonLd data={videoLd} />}
       <div className="relative pt-24 lg:pt-28">
         <section className="pt-6 pb-12 lg:pt-10">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
@@ -171,6 +198,20 @@ export default async function RecipePage({ params }: RecipePageProps) {
               Studio is free and open source. You pay providers directly for
               media generation. Set up your own project using the guide above.
             </p>
+            <nav aria-label="Related pages" className="mt-6">
+              <ul className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
+                {related.map((link) => (
+                  <li key={link.href}>
+                    <a
+                      href={link.href}
+                      className="focus-ring rounded text-amber-300 underline underline-offset-2 hover:text-amber-200"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           </div>
         </section>
         <section className="pb-20">

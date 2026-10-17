@@ -50,7 +50,7 @@ export const landingEntries: LandingEntry[] = [
     route: "/solutions/music-video",
     title: title("AI Music Video Generator"),
     description:
-      "Turn a track into a synced music video. NodeTool storyboards scenes, renders key art, and animates each shot to the beat — on one open canvas with your own keys.",
+      "Turn a track into a music video of AI stills. NodeTool transcribes the lyrics, writes a prompt per frame, renders the stills, and sets them to the song on your own keys.",
     priority: 0.6,
     changeFrequency: "monthly",
     indexable: true,
@@ -59,22 +59,26 @@ export const landingEntries: LandingEntry[] = [
     eyebrow: "Use case",
     headline: "AI Music Video Generator",
     subhead:
-      "Drop in a track and a concept. The agent breaks the song into scenes, renders each as key art, and cuts them to the beat on a timeline you can still edit.",
+      "Drop in a track and a visual style. The workflow transcribes the lyrics, reads the song's mood, renders one still per frame, and holds each still for an equal share of the track.",
     featuredTemplate: "music-video-visualizer",
     highlights: [
-      "Beat-aware scene breakdown from one prompt",
-      "Key art per scene, then animated to video",
-      "Swap any image or video model for your own look",
+      "Lyrics and mood drive a prompt for every frame",
+      "Stills fitted to 720p and joined into a video with the track",
+      "For clips cut on the beat, ask the agent for a beat-synced storyboard",
     ],
     sections: ["features"],
     faqs: [
       {
         q: "Can I use my own song?",
-        a: "Yes. Feed any audio file into the workflow. The graph reads the track and drives the scene breakdown and pacing from it.",
+        a: "Yes. Feed any audio file into the workflow. It transcribes the lyrics for the prompts and uses the track length to time the frames.",
       },
       {
         q: "Which models does it use?",
-        a: "It defaults to a text-to-image model for key art and an image-to-video model for motion, but every node is swappable — bring your own keys and pick any provider.",
+        a: "A speech recognition model for the lyrics, a language model for the prompts, and a text-to-image model for the stills. Pick each on your own keys. The template makes stills, not generated video clips.",
+      },
+      {
+        q: "Can it cut to the beat?",
+        a: "Not this template. It spaces the stills evenly. The agent can detect the tempo with detect_audio_events, write a treatment with the music-video-treatment skill, and cut the timeline on the beat with the beat-sync-editing skill.",
       },
       {
         q: "Do I need to code?",
@@ -124,7 +128,7 @@ export const landingEntries: LandingEntry[] = [
     route: "/solutions/youtube-thumbnails",
     title: title("AI YouTube Thumbnail Generator"),
     description:
-      "Generate click-worthy YouTube thumbnails from a title. NodeTool drafts concepts, renders variants, and composes text — all on one open canvas with your own keys.",
+      "Generate YouTube thumbnail images and hook lines from a video topic. NodeTool writes the hooks, renders one color-graded image per hook, and runs on your own keys.",
     priority: 0.6,
     changeFrequency: "monthly",
     indexable: true,
@@ -133,22 +137,26 @@ export const landingEntries: LandingEntry[] = [
     eyebrow: "Use case",
     headline: "AI YouTube Thumbnail Generator",
     subhead:
-      "Give it a video title and a hook. The agent drafts thumbnail concepts, renders a batch of variants, and lays in the text so you can pick a winner.",
+      "Give it a video topic and an audience. The workflow writes hook lines, turns each into an image description, and renders a color-graded thumbnail image for each hook so you can pick one.",
     featuredTemplate: "hook-and-thumbnail-factory",
     highlights: [
-      "A batch of thumbnail variants per title",
-      "Concept, key art, and text composed in one pass",
-      "A/B a few looks without opening an image editor",
+      "One hook line and one thumbnail image per variant",
+      "A contrast grade on every image",
+      "Swap in the YouTube thumbnail model on fal for text in the image",
     ],
     sections: ["features"],
     faqs: [
       {
         q: "Can it match my channel's style?",
-        a: "Yes — describe the style in the prompt node, or feed a reference image, and the batch follows it.",
+        a: "Describe the style in the art-direction prompt node and every image in the batch follows it.",
       },
       {
         q: "How many variants do I get?",
-        a: "As many as you set on the batch node. Render a handful, compare them on the canvas, and export the best.",
+        a: "As many as you set in Number of Hooks. Each hook gets one image. Compare them on the canvas and keep the best.",
+      },
+      {
+        q: "Does it put text on the image?",
+        a: "No. The template renders the image and returns the hook lines separately. For text in the image, swap the image node for the YouTube thumbnail model on fal, which generates thumbnails with custom text.",
       },
       {
         q: "Is it free?",
@@ -159,37 +167,41 @@ export const landingEntries: LandingEntry[] = [
   },
   {
     route: "/solutions/photo-restoration",
-    title: title("AI Photo Restoration & Enhancement"),
+    title: title("AI Photo Enhancement and Restoration"),
     description:
-      "Restore and enhance photos with AI. NodeTool denoises, sharpens, upscales, and color-corrects in one workflow — on your own machine with your own keys.",
+      "Batch-enhance photos with AI. NodeTool runs auto-contrast, color, sharpening, and an AI grading pass on every image. For old photos, swap in a restoration model.",
     priority: 0.6,
     changeFrequency: "monthly",
     indexable: true,
     slug: "photo-restoration",
     kind: "use-case",
     eyebrow: "Use case",
-    headline: "AI Photo Restoration & Enhancement",
+    headline: "AI Photo Enhancement and Restoration",
     subhead:
-      "Bring old or low-quality photos back to life. The workflow denoises, sharpens, upscales, and color-corrects in one pass you can tune node by node.",
+      "Drop in a list of photos. The workflow runs each one through auto-contrast, brightness and contrast, color, two sharpening passes, and a light image-to-image grade you can tune node by node.",
     featuredTemplate: "photo-enhancement-suite",
     highlights: [
-      "Denoise, sharpen, upscale, and correct in one graph",
-      "Batch a whole folder of images at once",
-      "Run it locally — your photos never leave your machine",
+      "Contrast, color, and sharpening in one graph",
+      "Batch a list of images through the same chain",
+      "Swap in CodeFormer or a photo restoration model on fal for damaged photos",
     ],
     sections: ["features"],
     faqs: [
       {
-        q: "Can I process a whole folder?",
-        a: "Yes. Point the workflow at a folder and it runs every image through the same enhancement chain.",
+        q: "Can I process many photos at once?",
+        a: "Yes. Add the photos to the image list input and the workflow runs every one through the same chain.",
       },
       {
         q: "Do my photos leave my computer?",
-        a: "Not unless you choose a cloud model. NodeTool Studio runs locally, so you can keep the whole pipeline on your own hardware.",
+        a: "The contrast, color, and sharpening steps run on your computer. The grading step calls the image model you pick, so the photos stay local only when that model runs locally.",
+      },
+      {
+        q: "Can it restore old or damaged photos?",
+        a: "Not this template, which has no restoration model. Replace the grading node with a restoration model on fal, such as CodeFormer for faces, the photo restoration editing model, or Bria Fibo Edit Colorize for black-and-white photos.",
       },
       {
         q: "Can I control how strong the enhancement is?",
-        a: "Every step is a node with its own settings — dial the denoise, sharpen, and upscale strength independently.",
+        a: "Every step is a node with its own settings. Change the brightness, color boost, and the grading strength independently.",
       },
     ],
     accent: "emerald",

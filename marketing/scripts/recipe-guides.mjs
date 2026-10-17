@@ -47,6 +47,7 @@ const campaign = (file, alt, caption) => ({
 
 export const recipeGuides = {
   "directed-campaign-kit": {
+    seoTitle: "AI Campaign Kit from One Product Image",
     name: "Directed campaign kit",
     outcome:
       "Turn one product image into a kinetic campaign hero, coordinated social formats, and one controlled revision.",
@@ -153,6 +154,7 @@ export const recipeGuides = {
     }
   },
   "ugc-product-video": {
+    seoTitle: "AI UGC Product Video from a Creator and a Product Image",
     name: "UGC product video",
     outcome:
       "Turn creator and product references into a 15-second day-in-the-life story where a cup becomes a reassuring companion.",
@@ -260,6 +262,7 @@ export const recipeGuides = {
     }
   },
   "impossible-product-worlds": {
+    seoTitle: "Surreal AI Product Video with a Hero Product",
     name: "Impossible product worlds",
     outcome:
       "Chase a swimmer into a pool hidden in a giant cup, then return to human scale as she drinks from it.",
@@ -381,6 +384,7 @@ export const recipeGuides = {
     }
   },
   "viral-video-ad-engine": {
+    seoTitle: "AI Product Commercial You Edit on a Timeline",
     name: "Product commercials",
     outcome:
       "Give your product a story. Direct the shots, shape the sound, and finish your ad in the timeline.",
@@ -537,6 +541,7 @@ export const recipeGuides = {
     }
   },
   "multilingual-video-dubber": {
+    seoTitle: "AI Video Dubbing with Line-by-Line Voice Review",
     name: "Multilingual video",
     outcome:
       "Review a translation, choose a voice, and edit the delivery line by line. Finish with a new-language voiceover or a separate lip-sync pass.",
@@ -670,6 +675,7 @@ export const recipeGuides = {
     }
   },
   "ecommerce-sku-visual-factory": {
+    seoTitle: "AI Product Photography from One Product Photo",
     name: "Product catalogue assets",
     outcome:
       "Turn one product reference into a coordinated set of studio images, seasonal scenes, and a short motion clip.",
@@ -808,6 +814,7 @@ export const recipeGuides = {
     }
   },
   "storyboard-to-trailer": {
+    seoTitle: "AI Trailer from a Storyboard",
     name: "Storyboard to trailer",
     outcome:
       "Turn a story idea into a six-shot storyboard, then develop its voice, motion, and edit in the same workspace.",

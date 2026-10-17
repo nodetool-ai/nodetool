@@ -9,6 +9,9 @@ import { SmartDownloadButton } from "../SmartDownloadButton";
 import { breadcrumbSchema } from "@/lib/jsonld";
 import {
   AGENT_STEPS,
+  ASSET_KINDS,
+  ASSET_NOTES,
+  ASSETS_LEAD,
   EDITOR_POINTS,
   ENGINE_NOTE,
   GAMEDEV_DESCRIPTION,
@@ -22,6 +25,7 @@ import {
   PROCESS_STEPS,
   SPEC_ROWS,
 } from "@/data/gamedevPage";
+import PageUpdated from "@/components/PageUpdated";
 
 export const metadata: Metadata = {
   title: GAMEDEV_TITLE,
@@ -71,6 +75,26 @@ export default function GameDevelopmentPage() {
                 </li>
               ))}
             </ol>
+          </section>
+
+          <section aria-labelledby="assets-title" className="mt-24 grid gap-10 border-t border-slate-700 pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+            <div>
+              <h2 id="assets-title" className={sectionTitle}>Game assets, installed in the game</h2>
+              <p className={`mt-4 max-w-sm ${bodyText}`}>{ASSETS_LEAD}</p>
+            </div>
+            <div>
+              <ul className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
+                {ASSET_KINDS.map((kind) => (
+                  <li key={kind.title}>
+                    <h3 className="text-xl font-medium">{kind.title}</h3>
+                    <p className={`mt-2 ${bodyText}`}>{kind.body}</p>
+                  </li>
+                ))}
+              </ul>
+              <ul className="mt-10 max-w-2xl list-disc space-y-3 pl-5 text-slate-300">
+                {ASSET_NOTES.map((note) => <li key={note}>{note}</li>)}
+              </ul>
+            </div>
           </section>
 
           <section aria-labelledby="game-editor-title" className="mt-24 grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
@@ -164,6 +188,9 @@ export default function GameDevelopmentPage() {
             <p className="max-w-xl text-lg leading-relaxed text-slate-300">Studio is free and open source. Your game stays editable. Connect your own model providers when you want to generate new assets.</p>
             <SmartDownloadButton classNameOverride="focus-ring inline-flex items-center rounded-full bg-slate-100 px-6 py-3 font-medium text-slate-950 hover:bg-slate-200" />
           </div>
+        </div>
+        <div className="mx-auto max-w-7xl px-6 pb-12 lg:px-8">
+          <PageUpdated route="/gamedev" className="text-sm text-slate-400" />
         </div>
         <JsonLd data={breadcrumbSchema([{ name: "Game development", url: "/gamedev" }])} />
       </main>
