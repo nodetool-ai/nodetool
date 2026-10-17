@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { CSMFrustum } from "three/addons/csm/CSMFrustum.js";
 import * as csmShaderModule from "three/addons/csm/CSMShader.js";
 import type { GameLight3D, GameShadowCascades3D } from "@nodetool-ai/protocol";
+import { removeGameMaterialHook, setGameMaterialHook } from "../material-hooks.js";
 
 type CascadeMaterial = THREE.MeshStandardMaterial | THREE.MeshLambertMaterial | THREE.MeshPhongMaterial | THREE.MeshToonMaterial;
 
@@ -48,8 +49,7 @@ export class GameCascadedShadows3D {
   private readonly mainFrustum = new CSMFrustum({ webGL: true });
   private readonly frustums: CSMFrustum[] = [];
   private readonly lightSpaceFrustum = new CSMFrustum({ webGL: true });
-  /** Each patched material with the hooks it had before, restored on release. */
-  private readonly materials = new Map<CascadeMaterial, MaterialHooks>();
+  private readonly materials = new Set<CascadeMaterial>();
   private readonly uniforms = { CSM_cascades: { value: [] as THREE.Vector2[] }, cameraNear: { value: 0 }, shadowFar: { value: 0 } };
   private breaks: number[] = [];
   private frustumKey = "";
@@ -103,12 +103,17 @@ export class GameCascadedShadows3D {
   }
 
   detach(): void {
-    for (const [material, hooks] of this.materials) { releaseMaterial(material, hooks); }
+    for (const material of this.materials) { releaseMaterial(material); }
     this.materials.clear();
     this.disposeLights();
     this.group.removeFromParent();
     this.count = 0;
     this.frustumKey = "";
+  }
+
+  /** Includes materials created by presentation passes after the light update. */
+  bindMaterials(scene: THREE.Scene): void {
+    if (this.count > 0) { this.setupMaterials(scene); }
   }
 
   private rebuild(count: number): void {
@@ -122,7 +127,7 @@ export class GameCascadedShadows3D {
     }
     this.count = count;
     this.frustumKey = "";
-    for (const [material, hooks] of this.materials) { releaseMaterial(material, hooks); }
+    for (const material of this.materials) { releaseMaterial(material); }
     this.materials.clear();
   }
 
@@ -189,44 +194,22 @@ export class GameCascadedShadows3D {
         if (!isCascadeMaterial(material)) { continue; }
         seen.add(material);
         if (this.materials.has(material)) { continue; }
-        this.materials.set(material, this.patchMaterial(material));
+        this.patchMaterial(material);
+        this.materials.add(material);
       }
     });
-    for (const [material, hooks] of this.materials) {
-      if (!seen.has(material)) { releaseMaterial(material, hooks); this.materials.delete(material); }
+    for (const material of this.materials) {
+      if (!seen.has(material)) { releaseMaterial(material); this.materials.delete(material); }
     }
   }
 
   /** Runs the material's existing compile hook first, then adds the cascade chunk, and keys the program on both. */
-  private patchMaterial(material: CascadeMaterial): MaterialHooks {
-    const hooks: MaterialHooks = {
-      onBeforeCompile: Object.hasOwn(material, "onBeforeCompile") ? material.onBeforeCompile : undefined,
-      customProgramCacheKey: Object.hasOwn(material, "customProgramCacheKey") ? material.customProgramCacheKey : undefined
-    };
-    const previousCompile = material.onBeforeCompile;
-    const previousKey = material.customProgramCacheKey;
+  private patchMaterial(material: CascadeMaterial): void {
     material.defines = { ...material.defines, USE_CSM: 1, CSM_CASCADES: this.count };
-    material.onBeforeCompile = (shader, renderer) => {
-      previousCompile.call(material, shader, renderer);
-      this.compile(shader);
-    };
-    material.customProgramCacheKey = () => `${previousKey.call(material)}|game-shadow-cascades`;
-    material.needsUpdate = true;
-    return hooks;
+    setGameMaterialHook(material, "cascades", this.compile, "|game-shadow-cascades");
   }
 }
-
-interface MaterialHooks {
-  readonly onBeforeCompile?: THREE.Material["onBeforeCompile"];
-  readonly customProgramCacheKey?: THREE.Material["customProgramCacheKey"];
-}
-
-function releaseMaterial(material: CascadeMaterial, hooks: MaterialHooks): void {
+function releaseMaterial(material: CascadeMaterial): void {
   if (material.defines) { for (const name of cascadeDefines) { delete material.defines[name]; } }
-  // Own properties return to their previous values. Otherwise the prototype's hooks show through again.
-  if (hooks.onBeforeCompile) { material.onBeforeCompile = hooks.onBeforeCompile; }
-  else { Reflect.deleteProperty(material, "onBeforeCompile"); }
-  if (hooks.customProgramCacheKey) { material.customProgramCacheKey = hooks.customProgramCacheKey; }
-  else { Reflect.deleteProperty(material, "customProgramCacheKey"); }
-  material.needsUpdate = true;
+  removeGameMaterialHook(material, "cascades");
 }

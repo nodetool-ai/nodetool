@@ -21,7 +21,7 @@ A game has one dimension. It cannot mix 2D and 3D scenes or change dimension aft
 |---|---|---|---|
 | Scenes, entities, tags, properties, prefabs | Supported | Supported | [Scene structure](/game-engine/scenes) |
 | Sprites, tilemaps, scrolling backgrounds | Supported | Use models and primitives | [2D graphics](/game-engine/graphics-2d) |
-| Models, scalar PBR materials, lights, shadows | Not applicable | Supported | [3D graphics](/game-engine/graphics-3d) |
+| Models, scalar PBR materials, lights, shadows, height fog, decals | Not applicable | Supported | [3D graphics](/game-engine/graphics-3d) |
 | Physics | Static and kinematic bodies | Rapier rigid bodies and character controller | [Physics](/game-engine/physics) |
 | Animation | Sprite clips and visual tracks | Prepared model clips and animation graphs | [Animation](/game-engine/animation) |
 | Particles | Presets, isolated preview, editor play, standalone, capture | Presets, isolated preview, editor play, standalone, capture | [Particles](/game-engine/particles) |
@@ -41,7 +41,7 @@ Some document fields are preparation interfaces rather than complete rendering f
 
 Document menu screens, transitions, and generated settings controls are schema-only. They are not implemented by the shipped hosts.
 
-Height fog, projected decals, 3D WebGPU rendering, and built-in localization are not covered as available features. Use [linear fog](/game-engine/graphics-3d), the [particle inspector and presets](/game-engine/particles), and authored HUD text.
+3D WebGPU rendering and built-in localization are not covered as available features. Use the [particle inspector and presets](/game-engine/particles) and authored HUD text. [3D graphics](/game-engine/graphics-3d) describes linear and height fog and the supported decal receivers.
 
 ## Build and verify
 

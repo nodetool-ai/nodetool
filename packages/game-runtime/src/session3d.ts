@@ -111,6 +111,9 @@ function restoreEntityStates3D(
       parentId: entity.parentId,
       templateOnly: entity.sourceId ? false : source.templateOnly
     };
+    if (source.decal3d && entity.prefabId && entity.instanceId) {
+      definition.decal3d = { ...source.decal3d, receiverId: `${entity.instanceId}/${source.decal3d.receiverId}` };
+    }
     const state: EntityState3D = {
       ...initialState3D(definition, entity.spawnTick),
       sourceId: entity.sourceId,
@@ -168,6 +171,7 @@ function remapDefinition3D(definition: GameEntity3D, mapping: Readonly<Record<st
   const behavior = camera?.behavior;
   const remapped: GameEntity3D = { ...definition, id: mapping[definition.id], templateOnly: false };
   if (definition.parentId) remapped.parentId = mapping[definition.parentId] ?? definition.parentId;
+  if (definition.decal3d) remapped.decal3d = { ...definition.decal3d, receiverId: mapping[definition.decal3d.receiverId] ?? definition.decal3d.receiverId };
   if (camera && behavior?.kind === "follow") remapped.camera3d = { ...camera, behavior: { ...behavior, targetId: mapping[behavior.targetId] ?? behavior.targetId } };
   return remapped;
 }

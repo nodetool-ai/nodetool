@@ -84,6 +84,7 @@ export async function captureGameFrame3D(value: GameRenderFrame3D, options: Capt
       let totalBytes = 0;
       const imageIds = new Set<string>();
       for (const entity of frame.entities) {
+        if (entity.decal3d) { imageIds.add(entity.decal3d.assetId); }
         const component = entity.primitive ?? entity.model;
         if (!component) { continue; }
         let material = component.material;

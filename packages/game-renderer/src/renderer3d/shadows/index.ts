@@ -124,5 +124,7 @@ export class GameShadows3D {
     this.cascades.update(scene, source, entry.light, settings, frame.environment.shadows.mapSize, camera);
   }
 
+  bindMaterials(scene: THREE.Scene): void { this.cascades.bindMaterials(scene); }
+
   dispose(): void { this.cascades.detach(); }
 }

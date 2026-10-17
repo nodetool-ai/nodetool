@@ -2775,7 +2775,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
       },
       {
         file: "packages/agents/src/evals/surfaces/game.ts",
-        cases: ["audio-mixer-buses", "cascaded-shadows", "collision-layer-matrix", "entity-tags-properties", "environment-preset-3d", "forces-and-torques-3d", "hud-widget-tree", "hud-widget-tree-3d", "input-bindings", "lifecycle-timer-script", "material-system-3d", "particle-emitter", "particle-rendering", "particle-rendering-3d", "physics-materials", "player-saves-script", "post-processing", "procedural-sky", "render-culling", "script-parameters", "spatial-audio-source", "typed-event-script"],
+        cases: ["audio-mixer-buses", "cascaded-shadows", "collision-layer-matrix", "entity-tags-properties", "environment-preset-3d", "forces-and-torques-3d", "height-fog-and-decals-3d", "hud-widget-tree", "hud-widget-tree-3d", "input-bindings", "lifecycle-timer-script", "material-system-3d", "particle-emitter", "particle-rendering", "particle-rendering-3d", "physics-materials", "player-saves-script", "post-processing", "procedural-sky", "render-culling", "script-parameters", "spatial-audio-source", "typed-event-script"],
       },
     ],
   },
