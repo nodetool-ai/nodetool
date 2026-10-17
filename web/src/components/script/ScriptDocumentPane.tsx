@@ -4,8 +4,8 @@ import type { DragEvent, ReactNode } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 import { useMediaQuery } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
+import AddIcon from "@mui/icons-material/AddOutlined";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -40,7 +40,8 @@ import {
   TruncatedText,
   MOTION,
   SPACING_PX,
-  Z_INDEX
+  Z_INDEX,
+  ICON_SIZE
 } from "../ui_primitives";
 import { formatDuration } from "../../utils/formatUtils";
 import { useInStudio } from "../../studio/StudioContext";
@@ -173,7 +174,7 @@ const InsertLineGap = ({
         color: "primary.main"
       }}
     >
-      <AddIcon sx={{ fontSize: "var(--fontSizeSmall)" }} />
+      <AddIcon sx={{ fontSize: ICON_SIZE.xs }} />
       <Box
         sx={{
           flex: 1,
@@ -1074,7 +1075,7 @@ const ScriptDocumentPane = ({
           </MetaChip>
         )}
         {castCount > 0 && (
-          <MetaChip icon={<MicNoneIcon sx={{ fontSize: "inherit" }} />}>
+          <MetaChip icon={<MicNoneIcon fontSize="inherit" />}>
             {castCount} {castCount === 1 ? "voice" : "voices"}
           </MetaChip>
         )}

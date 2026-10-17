@@ -5,6 +5,7 @@ import {
   BORDER_RADIUS,
   CONTROL,
   EYEBROW,
+  ICON_SIZE,
   MOTION,
   SHADOW,
   TYPOGRAPHY,
@@ -22,7 +23,7 @@ import { SPACING, getSpacingPx } from "./spacing";
 export const MENU_MIN_WIDTH = 180;
 
 /** Icon size inside a menu row, px. */
-export const MENU_ICON_SIZE = 16;
+export const MENU_ICON_SIZE = ICON_SIZE.sm;
 
 /**
  * The menu surface: overlay paper, a 1px divider frame, `BORDER_RADIUS.lg`

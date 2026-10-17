@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 
 import ErrorBanner from "../support/ErrorBanner";
@@ -255,7 +255,7 @@ const ProjectSelector = ({
         {!inline && (
           <MenuItemPrimitive
             label="New project"
-            icon={<AddRoundedIcon />}
+            icon={<AddOutlinedIcon />}
             onClick={openNewProject}
             color="primary"
             dividerAfter

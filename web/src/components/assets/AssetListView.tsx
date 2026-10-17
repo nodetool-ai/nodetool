@@ -18,7 +18,7 @@ import { AssetGroupIcon } from "./assetGroupIcons";
 import { colorForType } from "../../config/data_types";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import FolderIcon from "@mui/icons-material/Folder";
+import FolderIcon from "@mui/icons-material/FolderOutlined";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -36,7 +36,8 @@ import {
   SPACING,
   focusRing,
   selectableRowStyles,
-  selectedRowStyles
+  selectedRowStyles,
+  ICON_SIZE
 } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { isCoarsePointer } from "../../utils/isCoarsePointer";
@@ -424,18 +425,18 @@ const AssetListView: React.FC<AssetListViewProps> = ({
         >
           <ExpandMoreIcon
             sx={{
-              fontSize: 16,
+              fontSize: ICON_SIZE.sm,
               color: "text.secondary",
               transform: isExpanded ? "none" : "rotate(-90deg)",
               transition: MOTION.transform
             }}
           />
           {type === "folder" ? (
-            <FolderIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+            <FolderIcon sx={{ fontSize: ICON_SIZE.sm, color: "text.secondary" }} />
           ) : (
             <AssetGroupIcon
               group={type}
-              sx={{ fontSize: 16, color: colorForType(type) }}
+              sx={{ fontSize: ICON_SIZE.sm, color: colorForType(type) }}
             />
           )}
           <Text component="span" className="asset-content-type-title">
@@ -504,7 +505,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
               <FolderIcon
                 style={{
                   color: "var(--palette-grey-200)",
-                  fontSize: "var(--fontSizeBig)"
+                  fontSize: ICON_SIZE.md
                 }}
               />
             ) : (

@@ -32,7 +32,8 @@ import {
   FlexColumn,
   LoadingSpinner,
   SPACING,
-  ToolbarIconButton
+  ToolbarIconButton,
+  ICON_SIZE
 } from "../ui_primitives";
 import { EditorActivationCover, editorClassNames, cn } from "../editor_ui";
 import HandleColumn from "../node/HandleColumn";
@@ -443,7 +444,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
                 aria-label="Ask AI"
                 icon={
                   <AutoAwesomeIcon
-                    sx={{ fontSize: "var(--fontSizeNormal)" }}
+                    sx={{ fontSize: ICON_SIZE.sm }}
                   />
                 }
                 onClick={openCodeGen}
@@ -453,7 +454,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
             {!supportsCodeGen && (
               <ToolbarIconButton
                 tooltip="Open editor"
-                icon={<OpenInFullIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+                icon={<OpenInFullIcon sx={{ fontSize: ICON_SIZE.sm }} />}
                 onClick={toggleExpand}
                 size="small"
               />

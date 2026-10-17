@@ -4,7 +4,7 @@ import { useTheme, type Theme } from "@mui/material/styles";
 import PlanIcon from "@mui/icons-material/AutoAwesome";
 import TaskIcon from "@mui/icons-material/Assignment";
 import ToolIcon from "@mui/icons-material/Build";
-import LogIcon from "@mui/icons-material/Info";
+import LogIcon from "@mui/icons-material/InfoOutlined";
 import WarningIcon from "@mui/icons-material/Warning";
 import ErrorIcon from "@mui/icons-material/ErrorOutline";
 import { Chunk } from "../../../stores/ApiTypes";

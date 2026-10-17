@@ -17,7 +17,8 @@ import {
   BORDER_RADIUS,
   StatusDot,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../ui_primitives";
 import type { SxProps } from "@mui/material/styles";
 import LayersIcon from "@mui/icons-material/Layers";
@@ -25,7 +26,7 @@ import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import RemoveIcon from "@mui/icons-material/Remove";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useRunningJobs } from "../../hooks/useRunningJobs";
 import { useWorkflow } from "../../serverState/useWorkflow";
@@ -177,7 +178,7 @@ const RunningCard = memo(function RunningCard({
             gap={0.4}
             sx={{ flex: "0 0 auto", color: "primary.main" }}
           >
-            <VisibilityIcon sx={{ fontSize: 12 }} />
+            <VisibilityIcon sx={{ fontSize: ICON_SIZE.xs }} />
             <Text size="smaller" sx={{ color: "primary.main" }}>
               On canvas
             </Text>
@@ -191,7 +192,7 @@ const RunningCard = memo(function RunningCard({
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
         >
           <IconButton
-            icon={<CloseIcon sx={{ fontSize: 15 }} />}
+            icon={<CloseIcon sx={{ fontSize: ICON_SIZE.sm }} />}
             label="Stop run"
             onClick={() => onCancel(job.id)}
             hoverColor="error.main"
@@ -260,7 +261,7 @@ const EnqueuedCard = memo(function EnqueuedCard({
           {name}
         </Text>
         <IconButton
-          icon={<CloseIcon sx={{ fontSize: 15 }} />}
+          icon={<CloseIcon sx={{ fontSize: ICON_SIZE.sm }} />}
           label="Remove from queue"
           onClick={() => onCancel(job.id)}
           hoverColor="error.main"
@@ -483,7 +484,7 @@ const QueueOverlay = memo(function QueueOverlay() {
               <Text size="smaller" color="secondary" family="secondary">{formatClock(single.started_at, now)}</Text>
             )}
             <IconButton
-              icon={<KeyboardArrowDownIcon sx={{ fontSize: 18 }} />}
+              icon={<KeyboardArrowDownIcon sx={{ fontSize: ICON_SIZE.md }} />}
               label="Expand queue"
               onClick={() => setExpanded(true)}
             />
@@ -491,7 +492,7 @@ const QueueOverlay = memo(function QueueOverlay() {
           {running.length > 0 && <RunBar />}
           {queued.length > 0 && (
             <FlexRow align="center" gap={0.5} sx={{ color: "text.secondary" }}>
-              <ScheduleIcon sx={{ fontSize: 13 }} />
+              <ScheduleIcon sx={{ fontSize: ICON_SIZE.xs }} />
               <Text size="smaller" color="secondary">{queued.length} queued
                             </Text>
             </FlexRow>

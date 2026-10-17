@@ -27,7 +27,8 @@ import {
   NumberField,
   FONT_SIZE_SANS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../ui_primitives";
 import MediaControlChip from "../chat/composer/MediaControlChip";
 import MediaOptionMenu, {
@@ -337,7 +338,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
           sx={dimensionFieldSx}
         />
         <StateIconButton
-          icon={<CheckIcon sx={{ fontSize: 18 }} />}
+          icon={<CheckIcon sx={{ fontSize: ICON_SIZE.md }} />}
           tooltip="Apply canvas size"
           ariaLabel="Apply canvas size"
           onClick={handleApplyCustomSize}

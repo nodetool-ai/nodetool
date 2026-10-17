@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import { FlexRow, EditorButton, Dialog, TextInput } from "../ui_primitives";
-import Add from "@mui/icons-material/Add";
+import Add from "@mui/icons-material/AddOutlined";
 import { useState, useCallback, memo, useMemo } from "react";
 import isEqual from "../../utils/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";

@@ -17,7 +17,7 @@ import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 
 import {

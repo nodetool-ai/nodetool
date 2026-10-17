@@ -12,10 +12,11 @@ import {
   Checkbox,
   FormControlLabel,
   Slider,
-  TYPOGRAPHY
+  TYPOGRAPHY,
+  ICON_SIZE
 } from "../../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import {
   sketchButtonSmallSx,
@@ -230,7 +231,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
       </Box>
       <FlexRow sx={{ gap: getSpacingPx(SPACING.micro), ml: 1 }}>
         <ToolbarIconButton
-          icon={<CheckIcon sx={{ fontSize: 18 }} />}
+          icon={<CheckIcon sx={{ fontSize: ICON_SIZE.md }} />}
           tooltip="Commit"
           shortcut={["Enter"]}
           tooltipPlacement="bottom"
@@ -238,7 +239,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
           sx={{ padding: 1, color: "success.main" }}
         />
         <ToolbarIconButton
-          icon={<CloseIcon sx={{ fontSize: 18 }} />}
+          icon={<CloseIcon sx={{ fontSize: ICON_SIZE.md }} />}
           tooltip="Cancel"
           shortcut={["Esc"]}
           tooltipPlacement="bottom"
@@ -246,7 +247,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
           sx={{ padding: 1, color: "error.main" }}
         />
         <ToolbarIconButton
-          icon={<RestartAltIcon sx={{ fontSize: 18 }} />}
+          icon={<RestartAltIcon sx={{ fontSize: ICON_SIZE.md }} />}
           tooltip="Reset"
           tooltipPlacement="bottom"
           onClick={onReset}
@@ -282,7 +283,7 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
       </Text>
       <FlexRow sx={{ gap: getSpacingPx(SPACING.micro), ml: 1 }}>
         <ToolbarIconButton
-          icon={<CheckIcon sx={{ fontSize: 18 }} />}
+          icon={<CheckIcon sx={{ fontSize: ICON_SIZE.md }} />}
           tooltip="Apply crop"
           shortcut={["Enter"]}
           tooltipPlacement="bottom"
@@ -291,7 +292,7 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
           sx={{ padding: 1, color: "success.main" }}
         />
         <ToolbarIconButton
-          icon={<CloseIcon sx={{ fontSize: 18 }} />}
+          icon={<CloseIcon sx={{ fontSize: ICON_SIZE.md }} />}
           tooltip="Cancel crop preview"
           shortcut={["Esc"]}
           tooltipPlacement="bottom"

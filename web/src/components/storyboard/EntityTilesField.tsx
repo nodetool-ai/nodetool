@@ -6,7 +6,7 @@
  */
 
 import React, { memo, useRef, useState } from "react";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { Entity } from "@nodetool-ai/protocol";
 
@@ -109,7 +109,7 @@ const EntityTile: React.FC<{
       {onRemove && (
         <Box sx={removeSx}>
           <ToolbarIconButton
-            icon={<CloseIcon sx={{ fontSize: "1em" }} />}
+            icon={<CloseIcon fontSize="inherit" />}
             tooltip={removeLabel}
             ariaLabel={removeLabel}
             onClick={() => onRemove(entity)}

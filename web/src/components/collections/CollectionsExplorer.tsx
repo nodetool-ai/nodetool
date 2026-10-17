@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
-import { PageLayout } from "../ui_primitives";
+import { PageLayout, ICON_SIZE } from "../ui_primitives";
 import CollectionList from "./CollectionList";
 
 /**
@@ -9,7 +9,7 @@ import CollectionList from "./CollectionList";
  */
 const CollectionsExplorer: React.FC = () => (
   <PageLayout
-    icon={<LibraryBooksOutlinedIcon sx={{ fontSize: 22 }} />}
+    icon={<LibraryBooksOutlinedIcon sx={{ fontSize: ICON_SIZE.lg }} />}
     title="Collections"
     subtitle="Searchable document collections for RAG workflows — drop in PDFs, Markdown, HTML, or transcripts."
     docsTopic="collections"

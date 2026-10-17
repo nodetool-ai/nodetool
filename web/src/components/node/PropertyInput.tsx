@@ -9,8 +9,8 @@ import StringProperty from "../properties/StringProperty";
 import DataframeProperty from "../properties/DataframeProperty";
 import isEqual from "../../utils/isEqual";
 import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
-import Close from "@mui/icons-material/Close";
-import Edit from "@mui/icons-material/Edit";
+import Close from "@mui/icons-material/CloseOutlined";
+import Edit from "@mui/icons-material/EditOutlined";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
 import {
   Tooltip,

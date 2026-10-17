@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from "react";
 import BoltIcon from "@mui/icons-material/Bolt";
-import { Box, Tooltip } from "../ui_primitives";
+import { Box, Tooltip, ICON_SIZE } from "../ui_primitives";
 import { useRunningTriggers } from "../../serverState/useTriggers";
 import { describeTriggerDisabledReason } from "@nodetool-ai/protocol";
 
@@ -55,7 +55,7 @@ const WorkflowTriggerIndicatorInternal: React.FC<
           color: failing ? "error.main" : "success.main"
         }}
       >
-        <BoltIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
+        <BoltIcon sx={{ fontSize: ICON_SIZE.sm }} />
       </Box>
     </Tooltip>
   );

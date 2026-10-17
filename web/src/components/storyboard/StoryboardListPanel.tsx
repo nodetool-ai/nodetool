@@ -1,4 +1,4 @@
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import { memo, useCallback, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";

@@ -18,7 +18,8 @@ import {
   Card,
   reducedMotion,
   activateOnKey,
-  SHADOW
+  SHADOW,
+  ICON_SIZE
 } from "../ui_primitives";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { getOutputFromResult } from "../node/outputResult";
@@ -186,16 +187,16 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         </FlexColumn>
 
         {isCompleted && (
-          <CheckCircleOutlineIcon sx={{ fontSize: 18, color: theme.vars.palette.success.main }} />
+          <CheckCircleOutlineIcon sx={{ fontSize: ICON_SIZE.md, color: theme.vars.palette.success.main }} />
         )}
         {isError && (
-          <ErrorOutlineIcon sx={{ fontSize: 18, color: theme.vars.palette.error.main }} />
+          <ErrorOutlineIcon sx={{ fontSize: ICON_SIZE.md, color: theme.vars.palette.error.main }} />
         )}
 
         {node.expanded ? (
-          <ExpandLessIcon sx={{ fontSize: 20, color: theme.vars.palette.text.secondary }} />
+          <ExpandLessIcon sx={{ fontSize: ICON_SIZE.lg, color: theme.vars.palette.text.secondary }} />
         ) : (
-          <ExpandMoreIcon sx={{ fontSize: 20, color: theme.vars.palette.text.secondary }} />
+          <ExpandMoreIcon sx={{ fontSize: ICON_SIZE.lg, color: theme.vars.palette.text.secondary }} />
         )}
       </FlexRow>
 
@@ -247,11 +248,11 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
           <Divider spacing="compact" color="subtle" />
 
           <FlexRow gap={0.5} align="center">
-            <ToolbarIconButton ariaLabel="Move node up" size="small" onClick={onMoveUp} disabled={index === 0} tooltip="Move up" icon={<ArrowUpwardIcon sx={{ fontSize: 18 }} />} />
-            <ToolbarIconButton ariaLabel="Move node down" size="small" onClick={onMoveDown} disabled={index === totalNodes - 1} tooltip="Move down" icon={<ArrowDownwardIcon sx={{ fontSize: 18 }} />} />
+            <ToolbarIconButton ariaLabel="Move node up" size="small" onClick={onMoveUp} disabled={index === 0} tooltip="Move up" icon={<ArrowUpwardIcon sx={{ fontSize: ICON_SIZE.md }} />} />
+            <ToolbarIconButton ariaLabel="Move node down" size="small" onClick={onMoveDown} disabled={index === totalNodes - 1} tooltip="Move down" icon={<ArrowDownwardIcon sx={{ fontSize: ICON_SIZE.md }} />} />
             <Box sx={{ flex: 1 }} />
-            <ToolbarIconButton ariaLabel="Duplicate node" size="small" onClick={onDuplicate} tooltip="Duplicate" icon={<ContentCopyIcon sx={{ fontSize: 18 }} />} />
-            <ToolbarIconButton ariaLabel="Delete node" size="small" onClick={onRemove} tooltip="Delete" icon={<DeleteOutlineIcon sx={{ fontSize: 18 }} />} sx={{ color: theme.vars.palette.error.main }} />
+            <ToolbarIconButton ariaLabel="Duplicate node" size="small" onClick={onDuplicate} tooltip="Duplicate" icon={<ContentCopyIcon sx={{ fontSize: ICON_SIZE.md }} />} />
+            <ToolbarIconButton ariaLabel="Delete node" size="small" onClick={onRemove} tooltip="Delete" icon={<DeleteOutlineIcon sx={{ fontSize: ICON_SIZE.md }} />} sx={{ color: theme.vars.palette.error.main }} />
           </FlexRow>
         </FlexColumn>
       </Collapse>

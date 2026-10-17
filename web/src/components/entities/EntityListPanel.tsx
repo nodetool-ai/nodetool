@@ -5,7 +5,7 @@
  * opening a workspace tab per row.
  */
 
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import React, { memo, useCallback, useState } from "react";
 import type { Entity } from "@nodetool-ai/protocol";
 

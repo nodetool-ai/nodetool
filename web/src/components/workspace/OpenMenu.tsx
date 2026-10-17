@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 
 import {
@@ -200,7 +200,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
         <MenuItemPrimitive
           key="blank-storyboard"
           label="Blank storyboard"
-          icon={<AddRoundedIcon fontSize="small" />}
+          icon={<AddOutlinedIcon fontSize="small" />}
           onClick={() => void createBlankStoryboard()}
           disabled={busy}
           dividerAfter

@@ -584,7 +584,7 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
           </ToggleGroup>
         )}
         <ToolbarIconButton
-          icon={<ChevronLeftIcon sx={{ fontSize: "1em" }} />}
+          icon={<ChevronLeftIcon fontSize="inherit" />}
           tooltip="Previous version"
           ariaLabel="Previous version"
           onClick={handlePrevious}
@@ -594,7 +594,7 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
           {versions.length > 0 ? `${index + 1} / ${versions.length}` : "0 / 0"}
         </Box>
         <ToolbarIconButton
-          icon={<ChevronRightIcon sx={{ fontSize: "1em" }} />}
+          icon={<ChevronRightIcon fontSize="inherit" />}
           tooltip="Next version"
           ariaLabel="Next version"
           onClick={handleNext}
@@ -616,28 +616,28 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
           sx={{ "@media (pointer: coarse)": { display: "none" } }}
         >
           <ToolbarIconButton
-            icon={<ArrowUpwardIcon sx={{ fontSize: "1em" }} />}
+            icon={<ArrowUpwardIcon fontSize="inherit" />}
             tooltip="Pan up"
             ariaLabel="Pan up"
             onClick={() => nudgePan(0, -PAN_STEP)}
             disabled={!previewed}
           />
           <ToolbarIconButton
-            icon={<ArrowDownwardIcon sx={{ fontSize: "1em" }} />}
+            icon={<ArrowDownwardIcon fontSize="inherit" />}
             tooltip="Pan down"
             ariaLabel="Pan down"
             onClick={() => nudgePan(0, PAN_STEP)}
             disabled={!previewed}
           />
           <ToolbarIconButton
-            icon={<ArrowBackIcon sx={{ fontSize: "1em" }} />}
+            icon={<ArrowBackIcon fontSize="inherit" />}
             tooltip="Pan left"
             ariaLabel="Pan left"
             onClick={() => nudgePan(-PAN_STEP, 0)}
             disabled={!previewed}
           />
           <ToolbarIconButton
-            icon={<ArrowForwardIcon sx={{ fontSize: "1em" }} />}
+            icon={<ArrowForwardIcon fontSize="inherit" />}
             tooltip="Pan right"
             ariaLabel="Pan right"
             onClick={() => nudgePan(PAN_STEP, 0)}
@@ -666,7 +666,7 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
         {!readOnly && (
           <>
             <ToolbarIconButton
-              icon={<FlipIcon sx={{ fontSize: "1em" }} />}
+              icon={<FlipIcon fontSize="inherit" />}
               tooltip="Mirror this still as a new version"
               ariaLabel="Flip horizontal"
               onClick={() => void handleFlip()}

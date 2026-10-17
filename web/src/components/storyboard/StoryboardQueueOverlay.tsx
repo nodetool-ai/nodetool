@@ -37,7 +37,7 @@ import TheatersIcon from "@mui/icons-material/Theaters";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import RemoveIcon from "@mui/icons-material/Remove";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import {
   sameMediaRef,
   useStoryboardStore
@@ -163,7 +163,7 @@ const RequestCard = memo(function RequestCard({
         <KindTag kind={row.kind} />
         {row.status === "running" && onStopTracking && (
           <ToolbarIconButton
-            icon={<CloseIcon sx={{ fontSize: "1em" }} />}
+            icon={<CloseIcon fontSize="inherit" />}
             tooltip="Stop tracking. The provider request may still finish and charge."
             ariaLabel="Stop tracking render"
             variant="error"
@@ -335,7 +335,7 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
               {summary}
             </Text>
             <ToolbarIconButton
-              icon={<KeyboardArrowUpIcon sx={{ fontSize: "1em" }} />}
+              icon={<KeyboardArrowUpIcon fontSize="inherit" />}
               tooltip="Expand render queue"
               ariaLabel="Expand render queue"
               onClick={() => setExpanded(true)}
@@ -354,17 +354,17 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
         gap={SPACING.xs}
         sx={{ px: SPACING.md, py: SPACING.sm, flex: "0 0 auto" }}
       >
-        <TheatersIcon sx={{ fontSize: "1em", color: "text.secondary" }} />
+        <TheatersIcon sx={{ fontSize: "inherit", color: "text.secondary" }} />
         <Text size="small" sx={{ flex: 1 }}>
           Render queue
         </Text>
         <HeaderCount
-          icon={<PlayArrowOutlinedIcon sx={{ fontSize: "1em" }} />}
+          icon={<PlayArrowOutlinedIcon fontSize="inherit" />}
           count={counts.running}
         />
         {counts.running > 0 && !readOnly && (
           <ToolbarIconButton
-            icon={<CloseIcon sx={{ fontSize: "1em" }} />}
+            icon={<CloseIcon fontSize="inherit" />}
             tooltip="Stop tracking all. Provider requests may still finish and charge."
             ariaLabel="Stop tracking all renders"
             variant="error"
@@ -372,7 +372,7 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
           />
         )}
         <ToolbarIconButton
-          icon={<RemoveIcon sx={{ fontSize: "1em" }} />}
+          icon={<RemoveIcon fontSize="inherit" />}
           tooltip="Collapse render queue"
           ariaLabel="Collapse render queue"
           onClick={() => setExpanded(false)}

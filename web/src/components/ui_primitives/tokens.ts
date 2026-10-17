@@ -299,6 +299,26 @@ export const CONTROL = {
 } as const;
 
 /**
+ * Icon glyph sizes, px. Every icon that is not sized by its container (a
+ * button's `startIcon`, a menu row) takes one of these, or the MUI
+ * `fontSize="small" | "medium" | "inherit"` keywords. Never hand-set a number.
+ *
+ *   xs 14  beside caption text, in chips and dense rows
+ *   sm 16  default in toolbars, lists and inline with label text
+ *   md 18  inline with body or title text
+ *   lg 20  standalone status icons and section headers
+ *
+ * @example
+ * <InfoOutlinedIcon sx={{ fontSize: ICON_SIZE.sm }} />
+ */
+export const ICON_SIZE = {
+  xs: 14,
+  sm: 16,
+  md: 18,
+  lg: 20,
+} as const;
+
+/**
  * Elevation scale. Every drop shadow in the app comes from here — never write
  * a literal `boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"`, which hardcodes both
  * a depth and a color.

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo } from "react";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, ICON_SIZE } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
 
@@ -57,7 +57,7 @@ function ExternalLink({
         fontSize={size}
         sx={{
           marginLeft: theme.spacing(0.5),
-          fontSize: theme.fontSizeSmall,
+          fontSize: ICON_SIZE.xs,
           color: theme.vars.palette.c_link,
           opacity: 0.8
         }}

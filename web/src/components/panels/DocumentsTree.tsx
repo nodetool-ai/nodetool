@@ -61,7 +61,8 @@ import {
   TYPOGRAPHY,
   PanelHeader,
   ToolbarIconButton,
-  selectableRowStyles
+  selectableRowStyles,
+  ICON_SIZE
 } from "../ui_primitives";
 
 const DOCUMENT_TAB_TYPES = {
@@ -261,7 +262,7 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
             aria-hidden="true"
             sx={(theme) => ({
               color: `color-mix(in srgb, ${LEAF_ICON_COLORS[leaf.type]} 60%, ${theme.vars.palette.text.primary})`,
-              fontSize: "var(--fontSizeBig)"
+              fontSize: ICON_SIZE.md
             })}
           />
           {editing ? (
@@ -419,7 +420,7 @@ const DocumentTreeGroupRow = ({
           aria-label={`${expanded ? "Collapse" : "Expand"} ${group.label}`}
           tabIndex={-1}
         />
-        <Icon aria-hidden="true" sx={{ fontSize: "var(--fontSizeBig)" }} />
+        <Icon aria-hidden="true" sx={{ fontSize: ICON_SIZE.md }} />
         <TruncatedText component="span" sx={TYPOGRAPHY.sans.label}>
           {group.label}
         </TruncatedText>

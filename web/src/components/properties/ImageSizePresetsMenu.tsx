@@ -7,7 +7,8 @@ import {
   ListSubheader,
   MenuItemPrimitive,
   InputAdornment,
-  Z_INDEX
+  Z_INDEX,
+  ICON_SIZE
 } from "../ui_primitives";
 import Search from "@mui/icons-material/Search";
 import { IMAGE_SIZE_PRESETS, PresetOption } from "../../config/constants";
@@ -119,7 +120,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <Search sx={{ fontSize: "var(--fontSizeNormal)" }} />
+                <Search sx={{ fontSize: ICON_SIZE.sm }} />
               </InputAdornment>
             ),
             sx: { 

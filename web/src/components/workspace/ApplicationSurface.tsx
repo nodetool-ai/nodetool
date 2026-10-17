@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useMutation } from "@tanstack/react-query";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import {
   parseApplicationDocument,
   type AppDocument

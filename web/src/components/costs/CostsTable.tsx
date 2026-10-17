@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import { Box, FlexRow, FlexColumn, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, EmptyState } from "../ui_primitives";
+import { Box, FlexRow, FlexColumn, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, ICON_SIZE, EmptyState } from "../ui_primitives";
 import { CostNodeIcon } from "./CostNodeIcon";
 import {
   groupExecutions,
@@ -105,7 +105,7 @@ const ExecutionRows: React.FC<{ rows: Execution[] }> = ({ rows }) => {
                 color: theme.vars.palette.text.secondary
               }}
             >
-              <CostNodeIcon category={e.category} sx={{ fontSize: 16 }} />
+              <CostNodeIcon category={e.category} sx={{ fontSize: ICON_SIZE.sm }} />
             </FlexRow>
             <FlexColumn sx={{ minWidth: 0 }}>
               <Text
@@ -348,7 +348,7 @@ const CostsTableInternal: React.FC<CostsTableProps> = ({
               <HeaderText align="right">When</HeaderText>
               <ArrowDropDownIcon
                 sx={{
-                  fontSize: 16,
+                  fontSize: ICON_SIZE.sm,
                   color: theme.vars.palette.text.secondary
                 }}
               />

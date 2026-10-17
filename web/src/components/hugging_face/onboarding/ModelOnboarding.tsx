@@ -10,7 +10,8 @@ import {
   ToggleGroup,
   ToggleOption,
   BORDER_RADIUS,
-  SPACING
+  SPACING,
+  ICON_SIZE
 } from "../../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
@@ -165,7 +166,7 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
             color: theme.vars.palette.primary.main
           }}
         >
-          <RocketLaunchOutlinedIcon sx={{ fontSize: 22 }} />
+          <RocketLaunchOutlinedIcon sx={{ fontSize: ICON_SIZE.lg }} />
         </FlexRow>
         <FlexColumn gap={SPACING.micro}>
           <Text size="big" weight={600}>

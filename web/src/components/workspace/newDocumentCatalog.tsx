@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useState, type ReactNode } from "react";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
@@ -474,7 +474,7 @@ export const useNewDocumentCatalog = (
       label: "Workflow",
       menuLabel: "New workflow",
       type: "workflow",
-      icon: <AddRoundedIcon fontSize="small" />,
+      icon: <AddOutlinedIcon fontSize="small" />,
       create: createWorkflow
     },
     {

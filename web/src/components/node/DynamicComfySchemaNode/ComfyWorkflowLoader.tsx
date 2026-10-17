@@ -20,7 +20,8 @@ import {
   ScrollArea,
   AlertBanner,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../../ui_primitives";
 import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { NodeData } from "../../../stores/NodeData";
@@ -227,7 +228,7 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
             }
           }}
         >
-          <UploadFileIcon sx={{ fontSize: 16 }} />
+          <UploadFileIcon sx={{ fontSize: ICON_SIZE.sm }} />
         </ToolbarIconButton>
 
         <Dialog
@@ -261,7 +262,7 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
                   size="small"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <UploadFileIcon sx={{ fontSize: 18 }} />
+                  <UploadFileIcon sx={{ fontSize: ICON_SIZE.md }} />
                 </ToolbarIconButton>
                 <Caption>or drop a .json / .png here</Caption>
                 <input

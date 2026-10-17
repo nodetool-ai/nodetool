@@ -17,7 +17,7 @@ import { Tooltip } from "./Tooltip";
 import { SxProps, Theme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import { useTheme } from "@mui/material/styles";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import {

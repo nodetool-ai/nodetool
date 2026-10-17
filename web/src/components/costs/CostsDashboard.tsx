@@ -30,7 +30,8 @@ import {
   SPACING,
   getSpacingPx,
   SHADOW,
-  EmptyState
+  EmptyState,
+  ICON_SIZE
 } from "../ui_primitives";
 import { CostStatCard } from "./CostStatCard";
 import { SpendOverTimeChart } from "./SpendOverTimeChart";
@@ -271,7 +272,7 @@ const CostsDashboard: React.FC = () => {
             {view && (
               <>
                 <FilterDropdown
-                  icon={<FilterListIcon sx={{ fontSize: 16 }} />}
+                  icon={<FilterListIcon sx={{ fontSize: ICON_SIZE.sm }} />}
                   label={providersAllSelected ? "All providers" : "Providers"}
                   count={
                     providersAllSelected
@@ -296,7 +297,7 @@ const CostsDashboard: React.FC = () => {
                 />
 
                 <FilterDropdown
-                  icon={<AccountTreeIcon sx={{ fontSize: 15 }} />}
+                  icon={<AccountTreeIcon sx={{ fontSize: ICON_SIZE.sm }} />}
                   label={workflowsAllSelected ? "All workflows" : "Workflows"}
                   count={
                     workflowsAllSelected
@@ -344,7 +345,7 @@ const CostsDashboard: React.FC = () => {
                     }
                   }}
                 >
-                  <FileDownloadIcon sx={{ fontSize: 17 }} />
+                  <FileDownloadIcon sx={{ fontSize: ICON_SIZE.md }} />
                   Export CSV
                 </Box>
               </>
@@ -448,9 +449,9 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
                 }}
               >
                 {deltaUp ? (
-                  <NorthIcon sx={{ fontSize: 12, color: deltaColor }} />
+                  <NorthIcon sx={{ fontSize: ICON_SIZE.xs, color: deltaColor }} />
                 ) : (
-                  <SouthIcon sx={{ fontSize: 12, color: deltaColor }} />
+                  <SouthIcon sx={{ fontSize: ICON_SIZE.xs, color: deltaColor }} />
                 )}
                 <Text size="smaller" weight={600} sx={{ color: deltaColor }}>
                   {formatPercent(Math.abs(delta))}
@@ -643,7 +644,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
         )}
         <ExpandMoreIcon
           sx={{
-            fontSize: 16,
+            fontSize: ICON_SIZE.sm,
             color: theme.vars.palette.text.secondary,
             transition: MOTION.transform,
             transform: open ? "rotate(180deg)" : "none"

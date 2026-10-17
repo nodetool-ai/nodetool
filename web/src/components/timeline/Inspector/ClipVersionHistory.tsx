@@ -45,7 +45,8 @@ import {
   BORDER_RADIUS,
   MOTION,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../../ui_primitives";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
@@ -152,7 +153,7 @@ const actionIconSx = {
   width: 18,
   height: 18,
   padding: 0,
-  "& .MuiSvgIcon-root": { fontSize: 12 }
+  "& .MuiSvgIcon-root": { fontSize: ICON_SIZE.xs }
 } as const;
 
 const renameRowStyles = (theme: Theme) =>

@@ -21,7 +21,8 @@ import {
   ToggleGroup,
   ToggleOption,
   Tooltip,
-  SPACING
+  SPACING,
+  ICON_SIZE
 } from "../ui_primitives";
 import { SIZE_FILTERS, SizeFilterKey } from "../../utils/formatUtils";
 
@@ -155,7 +156,7 @@ const AssetActions = ({
             gap={SPACING.sm}
             sx={{ width: 140, flexShrink: 0, color: "text.secondary" }}
           >
-            <PhotoSizeSelectSmallIcon sx={{ fontSize: 16 }} />
+            <PhotoSizeSelectSmallIcon sx={{ fontSize: ICON_SIZE.sm }} />
             <Slider
               size="small"
               aria-label="Thumbnail size"

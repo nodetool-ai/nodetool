@@ -13,7 +13,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import {
@@ -394,7 +394,7 @@ function stringifyResult(v: unknown): string {
 const StatusBadge: React.FC<{ status: NodeStatus }> = memo(({ status }) => (
   <div className={`tl-badge ${status}`} aria-hidden>
     {status === "completed" && <CheckRoundedIcon />}
-    {status === "failed" && <CloseRoundedIcon />}
+    {status === "failed" && <CloseOutlinedIcon />}
     {status === "running" && <LoadingSpinner inline size={14} color="inherit" />}
   </div>
 ));

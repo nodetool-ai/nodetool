@@ -24,8 +24,8 @@ import ImageIcon from "@mui/icons-material/Image";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import MovieIcon from "@mui/icons-material/Movie";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import FolderIcon from "@mui/icons-material/Folder";
-import EditIcon from "@mui/icons-material/Edit";
+import FolderIcon from "@mui/icons-material/FolderOutlined";
+import EditIcon from "@mui/icons-material/EditOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 import { BORDER_RADIUS, MOTION, reducedMotion, SPACING, getSpacingPx } from "../../../ui_primitives";

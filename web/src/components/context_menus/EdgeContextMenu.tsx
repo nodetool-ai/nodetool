@@ -9,7 +9,7 @@ import { useNodeStoreRef, useNodes } from "../../contexts/NodeContext";
 import { runAsOneUndoEntry } from "../../utils/runAsOneUndoEntry";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
-import DeleteIcon from "@mui/icons-material/Delete";
+import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import RouteIcon from "@mui/icons-material/Route";
 
 interface EdgeContextMenuProps {

@@ -12,7 +12,7 @@ import { IconForType } from "../../config/IconForType";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import OpenInNew from "@mui/icons-material/OpenInNew";
 import { NodeLogsDialog } from "./NodeLogs";
-import { BORDER_RADIUS, Chip, FlexRow, Tooltip, ToolbarIconButton, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
+import { BORDER_RADIUS, Chip, FlexRow, Tooltip, ToolbarIconButton, MOTION, SPACING, getSpacingPx, ICON_SIZE } from "../ui_primitives";
 
 interface NodeHeaderProps {
   id: string;
@@ -332,7 +332,7 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
               }
             }}
           >
-            <OpenInNew sx={{ fontSize: "var(--fontSizeNormal)" }} />
+            <OpenInNew sx={{ fontSize: ICON_SIZE.sm }} />
           </ToolbarIconButton>
         )}
         {data.bypassed && (
@@ -345,7 +345,7 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
             onClick={handleOpenLogsDialog}
             sx={{ padding: getSpacingPx(SPACING.xs) }}
           >
-            <ListAltIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
+            <ListAltIcon sx={{ fontSize: ICON_SIZE.sm }} />
           </ToolbarIconButton>
         )}
       </FlexRow>

@@ -2,7 +2,7 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {

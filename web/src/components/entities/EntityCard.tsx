@@ -6,7 +6,7 @@
 
 import React, { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
-import EditIcon from "@mui/icons-material/Edit";
+import EditIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import type { Entity } from "@nodetool-ai/protocol";
 import {

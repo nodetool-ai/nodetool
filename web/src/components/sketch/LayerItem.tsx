@@ -37,7 +37,8 @@ import {
   InlineEditableText,
   MagicGenerationFill,
   ResponsiveImage,
-  TreeRow
+  TreeRow,
+  ICON_SIZE
 } from "../ui_primitives";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
@@ -258,9 +259,9 @@ const LayerItem: React.FC<LayerItemProps> = ({
             sx={GROUP_LAYER_ICON_BUTTON_SX}
           >
             {layer.collapsed ? (
-              <ChevronRightIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
+              <ChevronRightIcon sx={{ fontSize: ICON_SIZE.sm }} />
             ) : (
-              <ExpandMoreIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
+              <ExpandMoreIcon sx={{ fontSize: ICON_SIZE.sm }} />
             )}
           </IconButton>
         ) : null}
@@ -270,7 +271,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
           layer.collapsed ? (
             <FolderOutlinedIcon
               sx={{
-                fontSize: "var(--fontSizeNormal)",
+                fontSize: ICON_SIZE.sm,
                 color: isPaintTarget ? "primary.contrastText" : "grey.500",
                 flexShrink: 0,
                 mr: getSpacingPx(SPACING.micro),
@@ -280,7 +281,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
           ) : (
             <FolderOpenOutlinedIcon
               sx={{
-                fontSize: "var(--fontSizeNormal)",
+                fontSize: ICON_SIZE.sm,
                 color: isPaintTarget ? "primary.contrastText" : "grey.400",
                 flexShrink: 0,
                 mr: getSpacingPx(SPACING.micro),
@@ -343,7 +344,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 }
               }}
             >
-              <CenterFocusStrongIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+              <CenterFocusStrongIcon sx={{ fontSize: ICON_SIZE.md }} />
             </IconButton>
           </Tooltip>
         )}
@@ -375,7 +376,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 >
                   <LinkIcon
                     sx={{
-                      fontSize: "var(--fontSizeSmall)",
+                      fontSize: ICON_SIZE.xs,
                       color: "info.light",
                       flexShrink: 0,
                       opacity: 0.85
@@ -390,7 +391,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 >
                   <LockIcon
                     sx={{
-                      fontSize: "var(--fontSizeNormal)",
+                      fontSize: ICON_SIZE.sm,
                       color: "info.main",
                       flexShrink: 0,
                       opacity: 0.95

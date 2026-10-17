@@ -1,5 +1,5 @@
 import React, { useCallback, useState, memo } from "react";
-import { Caption, LoadingSpinner, ToolbarIconButton, Box, SPACING, getSpacingPx } from "../../ui_primitives";
+import { Caption, LoadingSpinner, ToolbarIconButton, Box, SPACING, getSpacingPx, ICON_SIZE } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
@@ -181,7 +181,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
           {loading ? (
             <LoadingSpinner size="small" />
           ) : (
-            <RefreshIcon sx={{ fontSize: 16 }} />
+            <RefreshIcon sx={{ fontSize: ICON_SIZE.sm }} />
           )}
         </ToolbarIconButton>
         {error && (

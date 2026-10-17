@@ -105,7 +105,7 @@ const GeminiRow: React.FC<GeminiRowProps> = ({ extensionConnected, onSetUp }) =>
             density="compact"
             variant="outlined"
             size="small"
-            startIcon={<ExtensionOutlinedIcon sx={{ fontSize: "1.2em" }} />}
+            startIcon={<ExtensionOutlinedIcon />}
             onClick={onSetUp}
           >
             Set up

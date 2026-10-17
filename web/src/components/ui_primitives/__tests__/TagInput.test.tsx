@@ -131,7 +131,7 @@ describe("TagInput", () => {
       renderWithTheme(<TagInput tags={["tag1", "tag2"]} onTagsChange={mockOnChange} />);
       
       const chip = screen.getByRole("button", { name: /remove tag: tag1/i });
-      await user.click(within(chip).getByTestId("CloseIcon"));
+      await user.click(within(chip).getByTestId("CloseOutlinedIcon"));
       
       expect(mockOnChange).toHaveBeenCalledWith(["tag2"]);
     });
@@ -292,7 +292,7 @@ describe("TagInput", () => {
       // The delete affordance is inert while the chip is disabled: the icon
       // is rendered but takes no pointer events, so a click never reaches it.
       const chip = screen.getByRole("button", { name: /remove tag: tag1/i });
-      const deleteIcon = within(chip).getByTestId("CloseIcon");
+      const deleteIcon = within(chip).getByTestId("CloseOutlinedIcon");
       fireEvent.click(deleteIcon);
 
       expect(deleteIcon).toHaveStyle({ pointerEvents: "none" });

@@ -27,7 +27,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import CompressOutlinedIcon from "@mui/icons-material/CompressOutlined";
 import { findGap } from "@nodetool-ai/timeline";
 import TitleIcon from "@mui/icons-material/Title";

@@ -9,7 +9,7 @@ import { useShowGraphPreview } from "../../stores/WorkflowListViewStore";
 import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/FavoriteWorkflowsStore";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
-import { FavoriteButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box, FONT_WEIGHT, InlineEditableText, SPACING, getSpacingPx, Chip } from "../ui_primitives";
+import { FavoriteButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box, FONT_WEIGHT, InlineEditableText, SPACING, getSpacingPx, Chip, ICON_SIZE } from "../ui_primitives";
 import { WorkflowTriggerIndicator } from "./WorkflowTriggerIndicator";
 
 // Single-click on the row opens the workflow. Double-clicking the name renames
@@ -280,7 +280,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       </Box>
       <Box className="date-container">
         <WorkflowTriggerIndicator workflowId={workflow.id} />
-        {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: "var(--fontSizeNormal)", color: "warning.main" }} />}
+        {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: ICON_SIZE.sm, color: "warning.main" }} />}
         {!hideDate && (
           <Text
             className="date"

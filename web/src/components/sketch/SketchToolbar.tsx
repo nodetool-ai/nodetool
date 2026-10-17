@@ -22,7 +22,8 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../ui_primitives";
 import type { SelectToolMode, SketchTool } from "./types";
 import {
@@ -112,7 +113,7 @@ function renderToolButton(def: ToolDefinition, selectMode: SelectToolMode) {
         title={tooltip}
         placement="right"
       >
-        <Icon sx={{ fontSize: "var(--fontSizeBig)" }} />
+        <Icon sx={{ fontSize: ICON_SIZE.md }} />
       </Tooltip>
     </ToggleButton>
   );

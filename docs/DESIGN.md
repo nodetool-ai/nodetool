@@ -159,6 +159,39 @@ Heading **hierarchy** is expressed through margin, letter-spacing, color, and te
 
 **Exception:** Icon glyph sizing via relative `em` units (e.g. `<DeleteIcon sx={{ fontSize: "1.2em" }} />`) is icon scaling, not text typography — `em` is only allowed for icons.
 
+### Icons
+
+Every icon comes from `@mui/icons-material`. A role draws the same glyph
+everywhere:
+
+| Role | Icon |
+|---|---|
+| Delete | `DeleteOutline`, or `DeleteButton iconVariant="outline"` for a delete button. Never import `icons/trash.svg` |
+| Close | `CloseOutlined` (`CloseButton` already uses it) |
+| Add | `AddOutlined` |
+| Folder | `FolderOutlined` |
+| Edit | `EditOutlined` |
+| Info | `InfoOutlined` |
+
+Do not mix in the filled or `Rounded` variant of these.
+
+An icon in a button's `startIcon` or `endIcon`, a menu row or a `ToolbarIconButton` is sized by its container, so pass no size. Any other icon takes `fontSize="small" | "medium" | "inherit"` or an `ICON_SIZE` step. Never write a pixel number.
+
+```tsx
+import { ICON_SIZE } from "../ui_primitives";
+
+<InfoOutlinedIcon sx={{ fontSize: ICON_SIZE.sm }} />
+```
+
+| Token | px | Use |
+|---|---|---|
+| `ICON_SIZE.xs` | 14 | Beside caption text, in chips and dense rows |
+| `ICON_SIZE.sm` | 16 | Default: toolbars, lists, inline with label text (`MENU_ICON_SIZE`) |
+| `ICON_SIZE.md` | 18 | Inline with body or title text |
+| `ICON_SIZE.lg` | 20 | Standalone status icons and section headers |
+
+To match the surrounding text, use `fontSize="inherit"` rather than `"1em"`.
+
 ---
 
 ## 2. Spacing — 4px Grid

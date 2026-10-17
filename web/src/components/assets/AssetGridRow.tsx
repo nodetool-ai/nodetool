@@ -15,7 +15,8 @@ import {
   FlexRow,
   MOTION,
   SPACING,
-  Text
+  Text,
+  ICON_SIZE
 } from "../ui_primitives";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
@@ -146,7 +147,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
         <ExpandMoreIcon
           className="group-chevron"
           sx={{
-            fontSize: 16,
+            fontSize: ICON_SIZE.sm,
             color: theme.vars.palette.text.secondary,
             transform: isExpanded ? "none" : "rotate(-90deg)",
             transition: MOTION.transform
@@ -154,7 +155,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
         />
         <AssetGroupIcon
           group={divider.type}
-          sx={{ fontSize: 16, color: colorForType(divider.type) }}
+          sx={{ fontSize: ICON_SIZE.sm, color: colorForType(divider.type) }}
         />
         <Text
           component="span"

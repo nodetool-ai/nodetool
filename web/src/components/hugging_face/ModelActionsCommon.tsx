@@ -1,6 +1,6 @@
 import React from "react";
 import { Tooltip, EditorButton, SPACING, getSpacingPx } from "../ui_primitives";
-import FolderIcon from "@mui/icons-material/Folder";
+import FolderIcon from "@mui/icons-material/FolderOutlined";
 import { TOOLTIP_DESCRIPTION_DELAY } from "../../config/constants";
 
 export const ModelShowInExplorerButton: React.FC<{

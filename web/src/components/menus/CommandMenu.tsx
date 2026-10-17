@@ -45,8 +45,8 @@ import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import FolderZipRoundedIcon from "@mui/icons-material/FolderZipRounded";
 
 // Icons — Edit
@@ -56,7 +56,7 @@ import ContentCutRoundedIcon from "@mui/icons-material/ContentCutRounded";
 import ContentPasteRoundedIcon from "@mui/icons-material/ContentPasteRounded";
 import FileCopyRoundedIcon from "@mui/icons-material/FileCopyRounded";
 import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
-import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import GroupWorkRoundedIcon from "@mui/icons-material/GroupWorkRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -86,7 +86,7 @@ import GridOffRoundedIcon from "@mui/icons-material/GridOffRounded";
 import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import PermMediaRoundedIcon from "@mui/icons-material/PermMediaRounded";
-import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 
 import { readImportedWorkflow } from "../../utils/readImportedWorkflow";
@@ -309,10 +309,10 @@ const WorkflowCommands = memo(function WorkflowCommands() {
         <SaveRoundedIcon /> Save Workflow
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(handleNewWorkflow)}>
-        <AddRoundedIcon /> New Workflow
+        <AddOutlinedIcon /> New Workflow
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(handleCloseWorkflow)}>
-        <CloseRoundedIcon /> Close Workflow
+        <CloseOutlinedIcon /> Close Workflow
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(downloadWorkflow)}>
         <FileDownloadRoundedIcon /> Download Workflow as JSON
@@ -399,7 +399,7 @@ const EditCommands = memo(function EditCommands({
         <SelectAllRoundedIcon /> Select All
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(selectionActions.deleteSelected)}>
-        <DeleteRoundedIcon /> Delete Selected
+        <DeleteOutlineIcon /> Delete Selected
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(duplicateNodes)}>
         <ContentCopyRoundedIcon /> Duplicate
@@ -533,7 +533,7 @@ const PanelCommands = memo(function PanelCommands() {
       <Command.Item
         onSelect={() => runCommandAndClose(rightPanelToggle)}
       >
-        <InfoRoundedIcon /> Toggle Inspector
+        <InfoOutlinedIcon /> Toggle Inspector
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => leftPanelToggle("settings"))}

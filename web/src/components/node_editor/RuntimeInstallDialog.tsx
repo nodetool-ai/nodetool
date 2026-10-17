@@ -22,6 +22,7 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
+  ICON_SIZE
 } from "../ui_primitives";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -276,15 +277,15 @@ const RuntimeRow: React.FC<RuntimeRowProps> = ({ name, status, error }) => {
             <LoadingSpinner inline size={16} />
           ) : status === "installed" ? (
             <CheckCircleOutlineIcon
-              sx={{ fontSize: 16, color: "var(--palette-success-main)" }}
+              sx={{ fontSize: ICON_SIZE.sm, color: "var(--palette-success-main)" }}
             />
           ) : status === "failed" ? (
             <ErrorOutlineIcon
-              sx={{ fontSize: 16, color: "var(--palette-error-main)" }}
+              sx={{ fontSize: ICON_SIZE.sm, color: "var(--palette-error-main)" }}
             />
           ) : (
             <DownloadOutlinedIcon
-              sx={{ fontSize: 16, color: "var(--palette-text-secondary)" }}
+              sx={{ fontSize: ICON_SIZE.sm, color: "var(--palette-text-secondary)" }}
             />
           )}
           <Text size="small" weight={500}>

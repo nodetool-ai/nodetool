@@ -7,7 +7,8 @@ import {
   Popover,
   DialogTitle,
   DialogContent,
-  LoadingSpinner
+  LoadingSpinner,
+  ICON_SIZE
 } from "../ui_primitives";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import { AssetList } from "../../stores/ApiTypes";
@@ -156,7 +157,7 @@ const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
             margin: "0"
           }}
         >
-          <CreateNewFolderIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+          <CreateNewFolderIcon sx={{ fontSize: ICON_SIZE.md }} />
         </EditorButton>
       </FlexRow>
       <Popover
