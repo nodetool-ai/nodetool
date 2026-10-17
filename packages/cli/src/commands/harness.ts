@@ -732,30 +732,95 @@ function selfcheckEnv(): NodeJS.ProcessEnv {
   };
 }
 
-/** Run one selfcheck to completion, output inherited (serial, live). */
-async function runCheckSync(
+/** Run one serial selfcheck, retaining live output and bounded JSON capture. */
+async function runCheckSerial(
   check: GateCheck,
   o: ExecuteChecksOptions
 ): Promise<RawOutcome> {
-  const { spawnSync } = await import("node:child_process");
-  const r = spawnSync(check.command, {
-    cwd: o.repoRoot,
-    shell: true,
-    stdio: o.json ? "pipe" : "inherit",
-    encoding: "utf8",
-    timeout: o.timeoutMs,
-    maxBuffer: SELFCHECK_MAX_BUFFER,
-    killSignal: "SIGKILL",
-    env: selfcheckEnv()
+  const { spawn } = await import("node:child_process");
+  return new Promise<RawOutcome>((resolveOutcome) => {
+    const stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+    let stdoutBytes = 0;
+    let stderrBytes = 0;
+    let errorCode: string | undefined;
+    const child = spawn(check.command, {
+      cwd: o.repoRoot,
+      shell: true,
+      stdio: o.json ? ["ignore", "pipe", "pipe"] : "inherit",
+      detached: true,
+      env: selfcheckEnv()
+    });
+    let groupKilled = false;
+    const killGroup = (): void => {
+      if (groupKilled) {
+        return;
+      }
+      groupKilled = true;
+      try {
+        if (child.pid !== undefined) {
+          process.kill(-child.pid, "SIGKILL");
+        }
+      } catch {
+        child.kill("SIGKILL");
+      }
+    };
+    const interrupt = (): never => {
+      killGroup();
+      process.exit(130);
+    };
+    const terminate = (): never => {
+      killGroup();
+      process.exit(143);
+    };
+    process.once("exit", killGroup);
+    process.once("SIGINT", interrupt);
+    process.once("SIGTERM", terminate);
+    const kill = (reason: string): void => {
+      if (errorCode !== undefined) {
+        return;
+      }
+      errorCode = reason;
+      killGroup();
+    };
+    const timer = setTimeout(() => kill("ETIMEDOUT"), o.timeoutMs);
+    const capture = (chunks: Buffer[], chunk: Buffer, bytes: number): number => {
+      if (errorCode !== undefined) {
+        return bytes;
+      }
+      const remaining = SELFCHECK_MAX_BUFFER - bytes;
+      if (remaining > 0) {
+        chunks.push(chunk.subarray(0, remaining));
+      }
+      if (chunk.length > remaining) {
+        kill("ENOBUFS");
+      }
+      return bytes + Math.min(chunk.length, remaining);
+    };
+    child.stdout?.on("data", (chunk: Buffer) => {
+      stdoutBytes = capture(stdout, chunk, stdoutBytes);
+    });
+    child.stderr?.on("data", (chunk: Buffer) => {
+      stderrBytes = capture(stderr, chunk, stderrBytes);
+    });
+    child.on("error", (error: NodeJS.ErrnoException) => {
+      errorCode ??= error.code ?? "UNKNOWN";
+    });
+    child.on("close", (status, signal) => {
+      clearTimeout(timer);
+      process.removeListener("exit", killGroup);
+      process.removeListener("SIGINT", interrupt);
+      process.removeListener("SIGTERM", terminate);
+      resolveOutcome({
+        status,
+        signal,
+        errorCode,
+        hasError: errorCode !== undefined,
+        stdout: Buffer.concat(stdout, stdoutBytes).toString("utf8"),
+        stderr: Buffer.concat(stderr, stderrBytes).toString("utf8")
+      });
+    });
   });
-  return {
-    status: r.status,
-    signal: r.signal,
-    errorCode: (r.error as NodeJS.ErrnoException | undefined)?.code,
-    hasError: r.error !== undefined,
-    stdout: r.stdout ?? "",
-    stderr: r.stderr ?? ""
-  };
 }
 
 /**
@@ -895,7 +960,7 @@ export async function executeChecks(
     if (!o.json) console.log(`\n── ${check.harnessId}: ${check.command}\n`);
     const { result, stdoutText, stderrText } = interpretOutcome(
       check,
-      await runCheckSync(check, o),
+      await runCheckSerial(check, o),
       o,
       Math.round(performance.now() - started)
     );

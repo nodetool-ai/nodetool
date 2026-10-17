@@ -2135,6 +2135,13 @@ gate --base origin/main --timeout 900` on every PR and `harness gate --all`
 on push to main, so this is exercised on every diff, not only when an agent
 remembers to run it locally.
 
+On POSIX hosts, timeout cleanup kills the selfcheck's process group before
+starting the next serial check. Serial checks retain live terminal output.
+Their JSON capture keeps the existing per-stream byte limit and fails on
+buffer overflow. Interrupting a serial gate with SIGINT or SIGTERM kills its
+owned process group and exits with code 130 or 143 without starting later
+checks. SIGKILL cannot run this cleanup.
+
 `capabilities` is the same invariant one rung down, over
 `packages/cli/src/harness/capability-table.ts`: every exported agent capability
 names the suites a selfcheck runs over it, the eval cases that drive a model
