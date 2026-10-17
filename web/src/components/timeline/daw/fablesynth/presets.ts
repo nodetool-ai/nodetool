@@ -1415,6 +1415,6 @@ export function saveUserPreset(name: string, params: ParamValues, tables: Serial
   const preset: Preset = { name, params: { ...params } };
   if (tables.length) preset.tables = tables;
   list.push(preset);
-  localStorage.setItem(LS_KEY, JSON.stringify(list));
+  try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch { /* storage unavailable or full */ }
   return list;
 }

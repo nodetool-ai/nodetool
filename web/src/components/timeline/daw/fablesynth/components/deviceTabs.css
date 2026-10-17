@@ -1,7 +1,7 @@
 /* ============ device page tabs (JUCE parity) ============ */
-.device-tabs { display: flex; gap: 5px; height: 26px; margin-bottom: 10px; }
-.device-tab { position: relative; flex: none; height: 100%; }
-.device-tab > button[role='tab'] {
+.fablesynth .device-tabs { display: flex; gap: 5px; height: 26px; margin-bottom: 10px; }
+.fablesynth .device-tab { position: relative; flex: none; height: 100%; }
+.fablesynth .device-tab > button[role='tab'] {
   width: 100%;
   height: 100%;
   padding: 0 8px;
@@ -15,24 +15,24 @@
   cursor: pointer;
   transition: color 0.15s, background 0.15s;
 }
-.device-tab.has-led > button[role='tab'] { padding-right: 26px; }
-.device-tab > button[role='tab']:hover { color: var(--nav); }
-.device-tab > button[role='tab'].on {
+.fablesynth .device-tab.has-led > button[role='tab'] { padding-right: 26px; }
+.fablesynth .device-tab > button[role='tab']:hover { color: var(--nav); }
+.fablesynth .device-tab > button[role='tab'].on {
   border-color: var(--nav);
   background: color-mix(in srgb, var(--nav) 18%, var(--panel-hi));
   color: var(--nav);
 }
-.device-tab > button[role='tab']:focus-visible { outline: 1px solid var(--nav); outline-offset: 1px; }
-.device-tab-led {
+.fablesynth .device-tab > button[role='tab']:focus-visible { outline: 1px solid var(--nav); outline-offset: 1px; }
+.fablesynth .device-tab-led {
   --ac: var(--ac-a);
   position: absolute;
   top: 50%;
   right: 6px;
   transform: translateY(-50%);
 }
-.device-page[hidden] { display: none !important; }
+.fablesynth .device-page[hidden] { display: none !important; }
 
-@media (max-width: 700px) {
-  .device-tabs { height: auto; flex-wrap: wrap; }
-  .device-tab { flex: 1 1 auto; height: 34px; width: auto !important; }
+@container fablesynth (max-width: 700px) {
+  .fablesynth .device-tabs { height: auto; flex-wrap: wrap; }
+  .fablesynth .device-tab { flex: 1 1 auto; height: 34px; width: auto !important; }
 }

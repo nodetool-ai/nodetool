@@ -11,8 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { PARAMS, DEST_OF_PARAM, SOURCE_COLORS, normToValue, valueToNorm, routeBipolar, routeLabel } from '../params';
 import { useStore } from '../store';
 import { useModsByDest } from '../hooks/useModsByDest';
-import { modLive, modNormOffset, subscribeModLive } from '../engine/modLive';
-import { useAutoLive } from '../seq/autoLive';
+import { modLiveActive, modNormOffset, subscribeModLive } from '../engine/modLive';
 
 const A0 = -135, A1 = 135;
 
@@ -100,13 +99,13 @@ export function Knob({ paramId, size = 'md', accent, label }: KnobProps) {
   const myMods = useModsByDest(dest);
   const dropActive = dest && modDrag > 0;
   const modFocus = useStore((s) => s.modFocus);
+  const modLive = useStore((s) => s.modLive);
   const [activeRing, setActiveRing] = useState<number | null>(null);
   const ring = myMods.find((m) => m.slot === activeRing);
 
   const bipolar = (def.min as number) < 0;
   const norm = clamp01(valueToNorm(def, value));
 
-  const autoLive = useAutoLive('WT1', paramId, norm);
   const elRef = useRef<HTMLDivElement>(null);
   const normRef = useRef(norm);
   const draggingRef = useRef(false);
@@ -123,14 +122,14 @@ export function Knob({ paramId, size = 'md', accent, label }: KnobProps) {
     return subscribeModLive(() => {
       const el = liveRef.current;
       if (!el) return;
-      if (!modLive.active) { el.style.opacity = '0'; return; }
+      if (!modLiveActive(modLive)) { el.style.opacity = '0'; return; }
       const mn = clamp01(liveNormRef.current + modNormOffset(def, modLive.sums[dest]));
       const [x, y] = polar(40, 40, 33, degOf(mn));
       el.setAttribute('cx', x.toFixed(2));
       el.setAttribute('cy', y.toFixed(2));
       el.style.opacity = '1';
     });
-  }, [hasMods, dest, def]);
+  }, [hasMods, dest, def, modLive]);
 
   // Keep the working norm in sync with external changes (presets, etc.)
   useEffect(() => {
@@ -230,8 +229,6 @@ export function Knob({ paramId, size = 'md', accent, label }: KnobProps) {
           <ModRing key={m.slot} slotNum={m.slot} amt={m.amt} src={m.src} bi={routeBipolar(m.src, m.pol)}
             baseNorm={norm} r={38 + k * 3.4} focus={modFocus} onActive={setActiveRing} />
         ))}
-        <path ref={autoLive.ring} className="k-auto" d="" style={{ opacity: 0 }} />
-        <circle ref={autoLive.dot} className="k-auto-dot" r="3.2" style={{ opacity: 0 }} />
         <line className="k-ptr" x1="40" y1="40" x2="40" y2="17" transform={`rotate(${deg} 40 40)`} />
         {myMods.length > 0 && (
           <circle ref={liveRef} className="k-live" r="3.4" style={{ color: SOURCE_COLORS[myMods[0].src] }} />

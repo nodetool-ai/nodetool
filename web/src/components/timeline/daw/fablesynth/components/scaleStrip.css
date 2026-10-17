@@ -1,16 +1,19 @@
-.scale-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin: 0 0 10px; font: 10px 'IBM Plex Mono', monospace; color: var(--text, #dfe6f3); }
-.scale-strip-title { letter-spacing: .12em; color: oklch(76% .025 255); }
-.scale-strip-segment { display: flex; }
-.scale-strip-segment button { padding: 5px 8px; border: 1px solid oklch(60% .025 255 / .3); margin-left: -1px; background: oklch(17% .02 255); color: inherit; font: inherit; letter-spacing: .08em; cursor: pointer; }
-.scale-strip-segment button:first-child { border-radius: 4px 0 0 4px; margin-left: 0; }
-.scale-strip-segment button:last-child { border-radius: 0 4px 4px 0; }
-.scale-strip-segment button[aria-checked=true] { color: var(--accent-a, #4de8ff); background: oklch(24% .035 230); }
-.scale-strip-segment button:hover { border-color: var(--accent-a, #4de8ff); }
-.scale-strip button:focus-visible, .scale-strip select:focus-visible { outline: 2px solid var(--accent-a, #4de8ff); outline-offset: 2px; }
-.scale-strip-field { display: flex; align-items: center; gap: 6px; font-size: 9px; letter-spacing: .12em; color: oklch(76% .025 255); }
-.scale-strip-field select { border: 1px solid oklch(60% .025 255 / .3); border-radius: 4px; background: oklch(17% .02 255); color: var(--text, #dfe6f3); font: 10px 'IBM Plex Mono', monospace; padding: 4px 6px; }
-.scale-strip-chordtrack { flex: 1 0 100%; }
-.scale-strip-hint { color: oklch(76% .025 255); font-size: 9px; letter-spacing: .04em; }
+.fablesynth .scale-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin: 0 0 10px; font: 10px 'IBM Plex Mono', monospace; color: var(--text, #dfe6f3); }
+.fablesynth .scale-strip-title { letter-spacing: .12em; color: oklch(76% .025 255); }
+.fablesynth .scale-strip-segment { display: flex; }
+.fablesynth .scale-strip-segment button { padding: 5px 8px; border: 1px solid oklch(60% .025 255 / .3); margin-left: -1px; background: oklch(17% .02 255); color: inherit; font: inherit; letter-spacing: .08em; cursor: pointer; }
+.fablesynth .scale-strip-segment button:first-child { border-radius: 4px 0 0 4px; margin-left: 0; }
+.fablesynth .scale-strip-segment button:last-child { border-radius: 0 4px 4px 0; }
+.fablesynth .scale-strip-segment button[aria-checked=true] { color: var(--accent-a, #4de8ff); background: oklch(24% .035 230); }
+.fablesynth .scale-strip-segment button:hover { border-color: var(--accent-a, #4de8ff); }
+.fablesynth .scale-strip button:focus-visible,
+.fablesynth .scale-strip select:focus-visible { outline: 2px solid var(--accent-a, #4de8ff); outline-offset: 2px; }
+.fablesynth .scale-strip-field { display: flex; align-items: center; gap: 6px; font-size: 9px; letter-spacing: .12em; color: oklch(76% .025 255); }
+.fablesynth .scale-strip-field select { border: 1px solid oklch(60% .025 255 / .3); border-radius: 4px; background: oklch(17% .02 255); color: var(--text, #dfe6f3); font: 10px 'IBM Plex Mono', monospace; padding: 4px 6px; }
+.fablesynth .scale-strip-chordtrack { flex: 1 0 100%; }
+.fablesynth .scale-strip-hint { color: oklch(76% .025 255); font-size: 9px; letter-spacing: .04em; }
 /* Out-of-scale cells: written notes there snap to the scale when they play. */
-.ns-cell.off-scale:not(.on), .bl-cell.off-scale:not(.on) { opacity: .35; }
-.ns-cell.off-scale.on, .bl-cell.off-scale.on { outline: 1px dashed oklch(80% .12 70 / .8); outline-offset: -2px; }
+.fablesynth .ns-cell.off-scale:not(.on),
+.fablesynth .bl-cell.off-scale:not(.on) { opacity: .35; }
+.fablesynth .ns-cell.off-scale.on,
+.fablesynth .bl-cell.off-scale.on { outline: 1px dashed oklch(80% .12 70 / .8); outline-offset: -2px; }

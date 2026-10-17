@@ -100,7 +100,9 @@ export function loadUserTablePool(): UserTable[] {
 }
 
 export function saveUserTablePool(list: UserTable[]): void {
-  localStorage.setItem(LS_TABLES, JSON.stringify(list.map(serializeUserTable)));
+  try {
+    localStorage.setItem(LS_TABLES, JSON.stringify(list.map(serializeUserTable)));
+  } catch { /* storage unavailable or full */ }
 }
 
 // ---------- audio analysis ----------

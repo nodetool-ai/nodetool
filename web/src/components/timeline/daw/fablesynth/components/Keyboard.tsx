@@ -103,8 +103,7 @@ export function Keyboard({ low = 36, high = 84, onNote }: KeyboardProps) {
 
   return (
     <div
-      id="keyboard"
-      className="kb"
+      className="kb fs-keyboard"
       ref={elRef}
       onPointerDown={down}
       onPointerMove={move}

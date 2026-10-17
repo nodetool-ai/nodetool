@@ -1,4 +1,4 @@
-.control-menu {
+.fablesynth .control-menu {
   position: fixed;
   z-index: 10000;
   width: 220px;
@@ -12,7 +12,7 @@
   border-radius: 4px;
   box-shadow: 0 8px 24px #06070b99;
 }
-.control-menu button {
+.fablesynth .control-menu button {
   display: block;
   width: 100%;
   border: 0;
@@ -24,15 +24,16 @@
   font: 11px 'IBM Plex Mono', monospace;
   cursor: pointer;
 }
-.control-menu button:hover:not(:disabled), .control-menu button:focus-visible {
+.fablesynth .control-menu button:hover:not(:disabled),
+.fablesynth .control-menu button:focus-visible {
   background: #242c3b;
   outline: 1px solid #9fb4d8;
 }
-.control-menu button:disabled { opacity: .45; cursor: default; }
-.control-menu .control-menu-source { padding-left: 24px; }
-.control-menu-sep { height: 1px; margin: 4px 2px; background: #394255; }
-.control-menu .control-menu-remove { display: flex; align-items: center; gap: 8px; }
-.control-menu .control-menu-remove::before {
+.fablesynth .control-menu button:disabled { opacity: .45; cursor: default; }
+.fablesynth .control-menu .control-menu-source { padding-left: 24px; }
+.fablesynth .control-menu-sep { height: 1px; margin: 4px 2px; background: #394255; }
+.fablesynth .control-menu .control-menu-remove { display: flex; align-items: center; gap: 8px; }
+.fablesynth .control-menu .control-menu-remove::before {
   content: '';
   flex: none;
   width: 7px;

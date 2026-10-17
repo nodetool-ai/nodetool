@@ -263,3 +263,11 @@ export function buildUserTable(name: string, frames: Float32Array[]): GeneratedT
   }
   return { name, frames: nf, mips: MIPS, size: SIZE, data, viz };
 }
+
+// The procedural tables never change, so every WT-1 device and display on the
+// page shares one generated set.
+let factoryTableCache: GeneratedTable[] | null = null;
+export function factoryTables(): GeneratedTable[] {
+  if (!factoryTableCache) factoryTableCache = generateTables();
+  return factoryTableCache;
+}

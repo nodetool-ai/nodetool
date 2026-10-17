@@ -1,10 +1,9 @@
 // WT-1 device body: the JUCE page layout (juce/source/ui/WtDeviceBody.cpp).
-// EDIT holds the voice panels, FX CHAIN the effects, and LAB, SEQUENCER, ARP,
-// CHORDS, and AUTOMATION each fill the page. The SEQUENCER, ARP, and CHORDS
-// LEDs are one radio group: exactly one of the three modes plays. The automation editor stays mounted so a
-// knob's control menu can open its lane from any page.
+// EDIT holds the voice panels, FX CHAIN the effects, and LAB fills the page.
+// Upstream's SEQUENCER, ARP, CHORDS and AUTOMATION pages are not here: on the
+// timeline the clips sequence the device.
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DeviceTabs, type DeviceTab } from './DeviceTabs';
 import { OscPanel } from './panels/OscPanel';
 import { UtilPanel } from './panels/UtilPanel';
@@ -18,43 +17,47 @@ import { TapeEchoPanel } from './panels/TapeEchoPanel';
 import { ReverbPanel } from './panels/ReverbPanel';
 import { FxPanel } from './panels/FxPanel';
 import { LabPanel } from './panels/LabPanel';
-import { NoteSeqPanel } from './panels/SeqPanel';
-import { ArpPanel } from './panels/WtArpPanel';
-import { WtAutomation } from './WtAutomation';
 import { useStore } from '../store';
-import { modeStyle, seqMode, type SeqMode } from '../arp';
+import { Knob } from './Knob';
+import { PowerButton } from './PowerButton';
+import { Stepper } from './Stepper';
+import type { FxPanelAdapter } from './panels/fxAdapter';
 
-type Page = 'edit' | 'fx' | 'lab' | SeqMode | 'auto';
+type Page = 'edit' | 'fx' | 'lab';
+
+const TABS: DeviceTab<Page>[] = [
+  { id: 'edit', label: 'EDIT', width: 76 },
+  { id: 'fx', label: 'FX CHAIN', width: 106 },
+  { id: 'lab', label: 'LAB', width: 70 },
+];
+
+// The shared FX panels are store-independent; WT-1 binds them to its store.
+function useWtFxAdapter(): FxPanelAdapter {
+  const params = useStore((s) => s.params);
+  const setParam = useStore((s) => s.setParam);
+  const engine = useStore((s) => s.engine);
+  // Re-read the analyser when the track's device changes.
+  const powered = useStore((s) => s.powered);
+  return useMemo(() => {
+    const scope = powered ? engine.scopeAnalyser : null;
+    return {
+      engine, params, setParam, tape: true,
+      analysis: { source: scope, reference: 'lead' },
+      compTap: { source: null, style: 'level' },
+      renderKnob: (id, key, accent) => <Knob paramId={id} label={id.includes('fx.eq.') ? key?.toUpperCase() : undefined} size="sm" accent={accent ?? 'n'} />,
+      renderPower: (id) => <PowerButton paramId={id} />,
+      renderStepper: (id) => <Stepper paramId={id} />,
+    };
+  }, [engine, params, setParam, powered]);
+}
 
 export function WtDeviceBody() {
-  const arpMode = useStore((s) => s.arpMode);
-  const style = useStore((s) => s.arp.style);
-  const mode = seqMode(arpMode, style);
-  const [page, setPage] = useState<Page>(() => {
-    const st = useStore.getState();
-    return st.arpMode ? seqMode(true, st.arp.style) : 'edit';
-  });
-  const enable = (next: SeqMode) => {
-    const st = useStore.getState();
-    if (next !== 'seq' && st.arp.style !== modeStyle(next)) st.updateArp({ style: modeStyle(next) });
-    st.setArpMode(next !== 'seq');
-  };
-  // An LED switches its mode on; switching ARP or CHORDS off returns to SEQUENCER.
-  const led = (m: SeqMode, label: string) => ({ on: mode === m, label: `${label} on/off`, toggle: () => enable(mode === m ? 'seq' : m) });
-
-  const tabs: DeviceTab<Page>[] = [
-    { id: 'edit', label: 'EDIT', width: 76 },
-    { id: 'fx', label: 'FX CHAIN', width: 106 },
-    { id: 'lab', label: 'LAB', width: 70 },
-    { id: 'seq', label: 'SEQUENCER', width: 146, led: led('seq', 'Sequencer') },
-    { id: 'arp', label: 'ARP', width: 92, led: led('arp', 'Arpeggiator') },
-    { id: 'chords', label: 'CHORDS', width: 118, led: led('chords', 'Chord comping') },
-    { id: 'auto', label: 'AUTOMATION', width: 138 },
-  ];
+  const fx = useWtFxAdapter();
+  const [page, setPage] = useState<Page>('edit');
 
   return (
     <div className="device-body wt-body">
-      <DeviceTabs tabs={tabs} page={page} onSelect={setPage} label="WT-1 pages" />
+      <DeviceTabs tabs={TABS} page={page} onSelect={setPage} label="WT-1 pages" />
       {page === 'edit' && (
         <div className="panels device-page" data-page="edit">
           <OscPanel prefix="oscA" accentKey="a" title="OSC A" gridArea="oscA" />
@@ -70,21 +73,15 @@ export function WtDeviceBody() {
       )}
       {page === 'fx' && (
         <div className="panels device-page" data-page="fx">
-          <EqPanel />
-          <DynamicsPanel kind="ott" />
-          <DynamicsPanel kind="comp" />
-          <TapeEchoPanel />
-          <ReverbPanel />
-          <FxPanel />
+          <EqPanel adapter={fx} />
+          <DynamicsPanel kind="ott" adapter={fx} />
+          <DynamicsPanel kind="comp" adapter={fx} />
+          <TapeEchoPanel adapter={fx} />
+          <ReverbPanel adapter={fx} />
+          <FxPanel adapter={fx} />
         </div>
       )}
-      {page === 'lab' && <div className="panels device-page" data-page="lab"><LabPanel /></div>}
-      {page === 'seq' && <div className="panels device-page" data-page="seq"><NoteSeqPanel /></div>}
-      {page === 'arp' && <div className="panels device-page" data-page="seq"><ArpPanel mode="arp" /></div>}
-      {page === 'chords' && <div className="panels device-page" data-page="seq"><ArpPanel mode="chords" /></div>}
-      <div className="device-page wt-auto-page" hidden={page !== 'auto'}>
-        <WtAutomation onReveal={() => setPage('auto')} />
-      </div>
+      {page === 'lab' && <div className="panels device-page" data-page="lab"><LabPanel adapter={fx} /></div>}
     </div>
   );
 }

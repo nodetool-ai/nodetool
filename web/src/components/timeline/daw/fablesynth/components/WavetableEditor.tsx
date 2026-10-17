@@ -6,7 +6,7 @@
 // and assigned to the osc that opened the editor.
 
 import { useEffect, useRef, useState } from 'react';
-import { useStore, engine, factoryTables } from '../store';
+import { useStore, factoryTables } from '../store';
 import { setupCanvas } from './displays/canvas';
 import {
   makeUserTable, mixToMono, detectCycleLength, sliceToFrames, singleCycleFrame,
@@ -24,9 +24,9 @@ import { frameFromDrawing } from '../engine/usertables';
 type Tab = 'audio' | 'draw';
 type AudioMode = 'single' | 'auto' | 'fixed';
 
-function decodeFile(file: File): Promise<AudioBuffer> {
+function decodeFile(file: File, deviceCtx: BaseAudioContext | null): Promise<AudioBuffer> {
   const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-  const ctx = engine.ctx || new Ctor();
+  const ctx = deviceCtx || new Ctor();
   return file.arrayBuffer().then((buf) => ctx.decodeAudioData(buf));
 }
 
@@ -41,6 +41,7 @@ export function WavetableEditor() {
   const duplicateUserTable = useStore((s) => s.duplicateUserTable);
   const duplicateFactoryTable = useStore((s) => s.duplicateFactoryTable);
   const setParam = useStore((s) => s.setParam);
+  const engine = useStore((s) => s.engine);
 
   const [tab, setTab] = useState<Tab>('draw');
   const [name, setName] = useState('');
@@ -109,7 +110,7 @@ export function WavetableEditor() {
     if (!file) return;
     setStatus('decoding…');
     try {
-      const buf = await decodeFile(file);
+      const buf = await decodeFile(file, engine.ctx);
       const samples = mixToMono(buf);
       setAudio({ samples, sr: buf.sampleRate, label: file.name });
       if (!name) setName(file.name.replace(/\.[^.]+$/, '').slice(0, 14).toUpperCase());

@@ -5,7 +5,7 @@
 
 import type * as React from 'react';
 import { MOD_SOURCES, SOURCE_COLORS } from '../params';
-import { useStore } from '../store';
+import { useStore, useStoreApi } from '../store';
 
 interface ModSourceChipProps {
   src: number; // MOD_SOURCES index (1..)
@@ -13,6 +13,7 @@ interface ModSourceChipProps {
 }
 
 export function ModSourceChip({ src, compact }: ModSourceChipProps) {
+  const api = useStoreApi();
   const setModDrag = useStore((s) => s.setModDrag);
   const setModFocus = useStore((s) => s.setModFocus);
   const color = SOURCE_COLORS[src];
@@ -31,7 +32,7 @@ export function ModSourceChip({ src, compact }: ModSourceChipProps) {
       onDragStart={onDragStart}
       onDragEnd={() => setModDrag(0)}
       onPointerEnter={() => setModFocus(src)}
-      onPointerLeave={() => { if (useStore.getState().modFocus === src) setModFocus(0); }}
+      onPointerLeave={() => { if (api.getState().modFocus === src) setModFocus(0); }}
       title={`drag ${MOD_SOURCES[src]} onto a control`}
     >
       <span className="mod-grip" aria-hidden="true">⠿</span>

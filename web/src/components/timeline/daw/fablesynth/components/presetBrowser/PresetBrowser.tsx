@@ -1,33 +1,31 @@
 // WT-1 preset browser: the shared shell with a WT-1 adapter. Rows load
 // FACTORY / USER presets; the audition plays a short phrase for the preset's
-// role through the engine. With `session` (SQ-4 focus mode) it browses the
-// track's session patch instead, factory presets only.
+// role through the track's device.
 
 import { useMemo, useRef } from 'react';
 import { PresetBrowserShell, type PresetBrowserAdapter } from './PresetBrowserShell';
 import { PresetGlyph } from './PresetGlyph';
-import { engine, useStore, type SoundSnapshot } from '../../store';
+import { useStore, useStoreApi, type SoundSnapshot, type Wt1StoreApi } from '../../store';
 import { FILTER_TYPES, TABLE_NAMES, fmtHz, fmtPct, fmtSec } from '../../params';
 import { browserEntries, glyphData, varyParams, PHRASE_ROOT, PHRASES, type BrowserEntry } from '../../presetBrowser';
 import { PRESET_CHARACTERS, PRESET_ROLES } from '../../presetTags';
-import type { SessionPatchOps, SessionSnapshot } from '../../seq/sessionPatchOps';
 
-type WtSnapshot = (SoundSnapshot & { value: string }) | SessionSnapshot;
+type WtSnapshot = SoundSnapshot & { value: string };
 
-// Plays a role's phrase through the engine; a new phrase cancels the last one.
-function usePhrase() {
+// Plays a role's phrase through the device; a new phrase cancels the last one.
+function usePhrase(api: Wt1StoreApi) {
   const timers = useRef<number[]>([]);
   const held = useRef(new Set<number>());
   const stop = () => {
     timers.current.forEach(clearTimeout);
     timers.current = [];
-    held.current.forEach((n) => engine.noteOff(n));
+    held.current.forEach((n) => api.getState().engine.noteOff(n));
     held.current.clear();
   };
-  const play = (item: BrowserEntry | null, allowed: boolean) => {
+  const play = (item: BrowserEntry | null) => {
     stop();
-    const { powered, params } = useStore.getState();
-    if (!powered || !allowed) return;
+    const { powered, params, engine } = api.getState();
+    if (!powered) return;
     const beat = 60 / (params['seq.bpm'] || 120) * 1000;
     for (const [semi, start, len] of PHRASES[item?.role ?? 'lead']) {
       const n = PHRASE_ROOT + semi;
@@ -38,19 +36,19 @@ function usePhrase() {
   return { play, stop };
 }
 
-export function PresetBrowser({ onClose, session }: { onClose: () => void; session?: SessionPatchOps }) {
+export function PresetBrowser({ onClose }: { onClose: () => void }) {
+  const api = useStoreApi();
   const userPresets = useStore((s) => s.userPresets);
   const presetValue = useStore((s) => s.presetValue);
   const params = useStore((s) => s.params);
   const powered = useStore((s) => s.powered);
-  const seqPlaying = useStore((s) => s.seqPlaying);
-  const { loadPresetByValue, captureSound, restoreSound, applyVariant } = useStore.getState();
+  const tables = useStore((s) => s.tables);
+  const { loadPresetByValue, captureSound, restoreSound, applyVariant } = api.getState();
 
-  const items = useMemo(() => browserEntries(session ? [] : userPresets), [userPresets, !session]);
+  const items = useMemo(() => browserEntries(userPresets), [userPresets]);
   const glyphs = useMemo(() => new Map(items.map((e) => [e.value, glyphData(e.params)])), [items]);
   const live = useMemo(() => glyphData(params), [params]);
-  const tables = powered ? engine.tables : null;
-  const phrase = usePhrase();
+  const phrase = usePhrase(api);
 
   const adapter: PresetBrowserAdapter<BrowserEntry, WtSnapshot> = {
     title: 'WT-1 presets',
@@ -59,20 +57,17 @@ export function PresetBrowser({ onClose, session }: { onClose: () => void; sessi
     roles: PRESET_ROLES,
     characters: PRESET_CHARACTERS,
     items,
-    value: session?.value ?? presetValue,
-    load: (e) => (session ? session.load(e.value) : loadPresetByValue(e.value)),
+    value: presetValue,
+    load: (e) => loadPresetByValue(e.value),
     capture: () => {
-      if (session) return session.capture();
       const s = captureSound();
       return { ...s, value: s.presetValue };
     },
-    restore: (s) => ('patch' in s ? session?.restore(s) : restoreSound(s)),
-    vary: (e) => (session ? session.applyParams(varyParams(e.params)) : applyVariant(varyParams(e.params))),
-    audition: (e) => phrase.play(e, session ? session.canAudition() : !useStore.getState().hosted && !useStore.getState().seqPlaying),
+    restore: (s) => restoreSound(s),
+    vary: (e) => applyVariant(varyParams(e.params)),
+    audition: (e) => phrase.play(e),
     stopAudition: phrase.stop,
-    auditionHint: (on) => !powered ? 'Power on to hear presets.'
-      : session && !session.canAudition() ? 'Stop SQ-4 to hear presets.'
-      : !session && seqPlaying ? 'The sequencer plays the preset.'
+    auditionHint: (on) => !powered ? 'The track device is starting.'
       : on ? 'A short phrase plays on select.' : 'Play the keys to hear presets.',
     renderGlyph: (e, color) => <PresetGlyph className="pbr-glyph" data={glyphs.get(e.value)!} tables={tables} color={color} />,
     renderDetail: (color) => (

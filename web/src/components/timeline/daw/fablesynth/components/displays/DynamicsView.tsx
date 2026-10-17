@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { engine, useStore } from '../../store';
 import { idleDynamics, type DynamicsMessage } from '../../engine/dynamics';
 import { setupCanvas } from './canvas';
 import type { FxTelemetryEngine } from '../panels/fxAdapter';
@@ -9,12 +8,11 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 const signed = (v: number) => `${v > 0.05 ? '+' : ''}${Math.abs(v) < 0.05 ? '0.0' : v.toFixed(1)}`;
 const level = (v: number) => v <= -89 ? '−∞' : v.toFixed(1);
 
-export function DynamicsView({ kind, telemetryEngine, telemetryParams, prefix = '' }: { kind: Kind; telemetryEngine?: FxTelemetryEngine; telemetryParams?: Record<string, number>; prefix?: string }) {
+export function DynamicsView({ kind, telemetryEngine, telemetryParams, prefix = '' }: { kind: Kind; telemetryEngine: FxTelemetryEngine; telemetryParams: Record<string, number>; prefix?: string }) {
   // Parameter updates redraw the threshold/bypass; audio measurements never
   // enter React state. Subscribing to params also follows hosted engine swaps.
-  const wtParams = useStore(s => telemetryParams ? null : s.params);
-  const params = telemetryParams ?? wtParams!;
-  const activeEngine = telemetryEngine ?? engine;
+  const params = telemetryParams;
+  const activeEngine = telemetryEngine;
   const canvas = useRef<HTMLCanvasElement>(null);
   const readouts = useRef<HTMLDivElement>(null);
   const settings = useRef({ on: false, threshold: -18 });

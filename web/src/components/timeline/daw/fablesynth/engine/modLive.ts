@@ -1,28 +1,43 @@
 // Live-modulation telemetry sink. The worklet streams {t:'mod', d} at ~23 Hz
-// (see worklet.js); the values land HERE — a mutable singleton outside React
-// state — and UI consumers read them from a single shared rAF loop, updating
+// (see worklet.js); the values land in a per-editor sink outside React state,
+// and UI consumers read them from a single shared rAF loop, updating
 // DOM/SVG attributes directly. 16 modulated knobs therefore cost zero React
 // re-renders per telemetry frame.
 
 import { MOD_DESTS, MOD_LOG_D, type ParamDef } from '../params';
 
-export const modLive = {
+export interface ModLive {
   // sums[MOD_DESTS index] = the viz voice's live route sum x (bipolar, same
   // value the engine folds into the modulated param via the Lin/Log curve rule)
-  sums: new Float32Array(MOD_DESTS.length),
-  active: false,
-  stamp: 0,
-};
+  sums: Float32Array;
+  active: boolean;
+  stamp: number;
+}
 
-/** Engine callback (SynthEngine.onmod). d=null closes the stream. */
-export function feedModLive(d: Float32Array | null): void {
+/** One sink per WT-1 editor: each follows its own track's device. */
+export function createModLive(): ModLive {
+  return { sums: new Float32Array(MOD_DESTS.length), active: false, stamp: 0 };
+}
+
+/** The device's `mod` message. d=null closes the stream. */
+export function feedModLive(sink: ModLive, d: Float32Array | null): void {
   if (d) {
-    modLive.sums.set(d);
-    modLive.active = true;
-    modLive.stamp = performance.now();
+    sink.sums.set(d);
+    sink.active = true;
+    sink.stamp = performance.now();
   } else {
-    modLive.active = false;
+    sink.active = false;
   }
+}
+
+/**
+ * True while the sink has fresh values. An audio stall (context suspend, tab
+ * freeze, device gone) never sends a null terminator, so a silent feed must
+ * not freeze the dots.
+ */
+export function modLiveActive(sink: ModLive): boolean {
+  if (sink.active && performance.now() - sink.stamp > 300) sink.active = false;
+  return sink.active;
 }
 
 type Sub = () => void;
@@ -30,9 +45,6 @@ const subs = new Set<Sub>();
 let raf = 0;
 
 function tick(): void {
-  // Stale guard: an audio stall (context suspend, tab freeze, power-off)
-  // never gets a null terminator, so a silent feed must not freeze the dots.
-  if (modLive.active && performance.now() - modLive.stamp > 300) modLive.active = false;
   subs.forEach((f) => f());
   raf = subs.size ? requestAnimationFrame(tick) : 0;
 }

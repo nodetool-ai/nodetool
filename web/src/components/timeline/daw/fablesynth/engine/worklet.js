@@ -1547,8 +1547,13 @@ class Fx {
   }
 }
 
+// Timeline note events (see web/src/components/timeline/daw/devices/
+// workletDevice.ts): a note-on more than this late is dropped, a late
+// note-off still releases its note so nothing hangs.
+const EV_LATE_S = 0.05;
+
 class FableProcessor extends AudioWorkletProcessor {
-  constructor() {
+  constructor(options) {
     super();
     subSquareTable(); // build the sub-square table now, not on the audio thread
     // Flat parameter store (finding W2): p[index], never p['some.string'].
@@ -1643,11 +1648,66 @@ class FableProcessor extends AudioWorkletProcessor {
     // (finding W6): same algorithm as juce/source/dsp/Fx.cpp, testable offline.
     this.fx = new Fx();
     this.fxLatency = this.fx.latencySamples();
+    // Timeline event queue: sorted { f, on, n, v }, consumed from evHead.
+    this.evq = [];
+    this.evHead = 0;
     this.port.onmessage = (e) => this.onMsg(e.data);
+    // Timeline hosts (and offline renders) hand over tables, params and the
+    // whole score at construction, so the first quantum already has them.
+    const po = options && options.processorOptions;
+    if (po) {
+      if (Array.isArray(po.tables)) this.tables = po.tables.map((x) => this.makeTable(x));
+      if (po.params) this.onMsg({ t: 'init', params: po.params });
+      if (po.events) this.queueEvents(po.events);
+      this.port.postMessage({ t: 'ready' });
+    }
+  }
+
+  queueEvents(ev) {
+    const q = this.evHead ? this.evq.slice(this.evHead) : this.evq;
+    for (let i = 0; i + 3 < ev.length; i += 4) {
+      const n = ev[i + 2] | 0;
+      if (!Number.isFinite(ev[i]) || n < 0 || n > 127) continue;
+      q.push({ f: ev[i], on: ev[i + 1] > 0, n, v: Math.min(1, Math.max(0, ev[i + 3] || 0)) });
+    }
+    // Same frame: a note-off sorts first, so a repeated note retriggers.
+    q.sort((a, b) => a.f - b.f || (a.on === b.on ? 0 : a.on ? 1 : -1));
+    this.evq = q;
+    this.evHead = 0;
+  }
+
+  // Apply every queued event due at or before `frame`. Events that were
+  // already late when the block started follow EV_LATE_S.
+  applyEvents(frame, blockStart) {
+    const q = this.evq;
+    const late = blockStart - EV_LATE_S * sampleRate;
+    while (this.evHead < q.length && q[this.evHead].f <= frame) {
+      const e = q[this.evHead++];
+      if (!e.on) this.noteOff(e.n);
+      else if (e.f >= late) this.noteOn(e.n, e.v);
+    }
+    if (this.evHead > 512 && this.evHead * 2 > q.length) {
+      this.evq = q.slice(this.evHead);
+      this.evHead = 0;
+    }
+  }
+
+  releaseAll() {
+    for (const v of this.voices) {
+      v.pending = null;
+      if (v.gate) v.noteOff();
+    }
+    this.held.length = 0;
   }
 
   onMsg(d) {
     switch (d.t) {
+      case 'evs': this.queueEvents(d.ev); break;
+      case 'evclear':
+        this.evq = [];
+        this.evHead = 0;
+        this.releaseAll();
+        break;
       case 'reverb':
         this.fx.reverbMetering = !!d.on;
         this.fx.reverbEnergy.fill(0); this.fx.reverbSamples = 0;
@@ -2919,6 +2979,13 @@ class FableProcessor extends AudioWorkletProcessor {
     while (off < n) {
       let run = Math.min(128, n - off);
       this.frameNow = currentFrame + off;
+
+      // Timeline notes land on their own sample: apply what is due, then end
+      // the chunk where the next event starts.
+      if (this.evHead < this.evq.length) {
+        this.applyEvents(this.frameNow, currentFrame);
+        if (this.evHead < this.evq.length) run = Math.min(run, Math.max(1, Math.ceil(this.evq[this.evHead].f - this.frameNow)));
+      }
 
       // Fire the step that is due at this sample, then shorten the chunk so the
       // next one starts exactly where the following step does.
