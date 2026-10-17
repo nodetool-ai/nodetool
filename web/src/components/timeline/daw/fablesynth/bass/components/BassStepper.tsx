@@ -1,5 +1,5 @@
 import { BASS_PARAMS } from '../params';
-import { useBassStore } from '../store';
+import { useBassStore } from '../bassStoreContext';
 
 interface BassStepperProps {
   paramId: string;

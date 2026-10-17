@@ -1,11 +1,11 @@
+// Source: fablesynth src/bass/components/LfoPanel.tsx. LFO panel: bar-locked
+// LFO → cutoff. The display animates at the timeline tempo while it plays.
 import { LfoClock } from '../../engine/lfoClock';
-// LFO panel: bar-locked LFO → cutoff. Waveform display animates in sync with
-// the sequencer tempo while playing.
 
 import { useEffect, useRef } from 'react';
 import { setupCanvas } from '../../components/displays/canvas';
 import { LFO_DIV_F } from '../../params';
-import { useBassStore } from '../store';
+import { useBassStore } from '../bassStoreContext';
 import { BassKnob } from './BassKnob';
 import { BassStepper } from './BassStepper';
 
@@ -25,7 +25,7 @@ function LfoView() {
   const redraw = useRef<(() => void) | null>(null);
   const shape = useBassStore((s) => s.params['lfo.shape']);
   const rate = useBassStore((s) => s.params['lfo.rate']);
-  const bpm = useBassStore((s) => s.params['seq.bpm']);
+  const bpm = useBassStore((s) => s.bpm);
   const playing = useBassStore((s) => s.playing);
   const clock = useRef(new LfoClock());
   const wasPlaying = useRef(false);
@@ -124,8 +124,9 @@ export function AccentPanel() {
       <div className="knob-row bl-acc-knobs">
         <BassKnob paramId="acc.amt" size="lg" accent="a" />
         <BassKnob paramId="slide.time" size="md" accent="n" />
+        <BassKnob paramId="acc.vel" size="sm" accent="a" />
       </div>
-      <div className="bl-acc-hint">ONE KNOB · LEVEL + ENV + DECAY</div>
+      <div className="bl-acc-hint">VELOCITY ≥ ACC VEL = ACCENT · OVERLAP = SLIDE</div>
     </section>
   );
 }

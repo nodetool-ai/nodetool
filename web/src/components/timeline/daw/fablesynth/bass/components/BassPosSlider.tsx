@@ -1,8 +1,9 @@
 import type * as React from 'react';
 import { useEffect, useRef } from 'react';
+import { useBatchedGesture, useWheelBatch } from '../../../../../../hooks/timeline/useBatchedGesture';
 import { normToValue, valueToNorm } from '../../params';
 import { BASS_PARAMS } from '../params';
-import { useBassStore } from '../store';
+import { useBassStore, useBassStoreApi } from '../bassStoreContext';
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
@@ -13,8 +14,9 @@ interface BassPosSliderProps {
 
 export function BassPosSlider({ paramId, accent }: BassPosSliderProps) {
   const def = BASS_PARAMS[paramId];
+  const api = useBassStoreApi();
   const value = useBassStore((s) => s.params[paramId]);
-  const setParam = useBassStore((s) => s.setParam);
+  const gesture = useBatchedGesture<number>((v) => api.getState().setParam(paramId, v));
   const norm = clamp01(valueToNorm(def, value));
   const rootRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -25,24 +27,13 @@ export function BassPosSlider({ paramId, accent }: BassPosSliderProps) {
     if (!dragRef.current) normRef.current = norm;
   }, [norm]);
 
-  const setNorm = (next: number) => {
+  const normValue = (next: number): number => {
     normRef.current = clamp01(next);
-    setParam(paramId, normToValue(def, normRef.current));
+    return normToValue(def, normRef.current);
   };
+  const setNorm = (next: number) => api.getState().setParam(paramId, normValue(next));
 
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    const onWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      const amount = event.shiftKey ? 0.006 : 0.03;
-      setNorm(normRef.current + (event.deltaY < 0 ? amount : -amount));
-    };
-    root.addEventListener('wheel', onWheel, { passive: false });
-    return () => root.removeEventListener('wheel', onWheel);
-    // setNorm deliberately reads the latest value through normRef.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paramId]);
+  useWheelBatch(rootRef, (direction) => setNorm(normRef.current + direction * 0.03));
 
   const onPointerDown = (event: React.PointerEvent) => {
     if (event.button !== 0) return;
@@ -55,11 +46,12 @@ export function BassPosSlider({ paramId, accent }: BassPosSliderProps) {
     const track = trackRef.current;
     if (!drag || !track) return;
     const scale = event.shiftKey ? 0.2 : 1;
-    setNorm(drag.norm + ((drag.y - event.clientY) / track.getBoundingClientRect().height) * scale);
+    gesture.schedule(normValue(drag.norm + ((drag.y - event.clientY) / track.getBoundingClientRect().height) * scale));
   };
   const onPointerEnd = (event: React.PointerEvent) => {
     if (!dragRef.current) return;
     dragRef.current = null;
+    gesture.commit();
     try { rootRef.current?.releasePointerCapture(event.pointerId); } catch { /* ignore */ }
   };
   const onKeyDown = (event: React.KeyboardEvent) => {

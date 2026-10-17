@@ -3,7 +3,7 @@
 
 import { useEffect, useRef } from 'react';
 import { setupCanvas } from '../../components/displays/canvas';
-import { useBassStore } from '../store';
+import { useBassStore } from '../bassStoreContext';
 import { BassKnob } from './BassKnob';
 
 // Drawing window: envelope segment widths are normalized against this many
@@ -81,7 +81,7 @@ function EnvView() {
       ctx.stroke();
       ctx.globalAlpha = 1;
 
-      ctx.font = '600 8px "IBM Plex Mono"';
+      ctx.font = '600 8px "IBM Plex Mono", monospace';
       ctx.fillStyle = '#4dff9e';
       ctx.fillText('FILTER', pad + 2, 10);
       ctx.fillStyle = 'rgba(255,161,77,0.95)';

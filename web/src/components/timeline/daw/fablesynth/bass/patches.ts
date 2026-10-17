@@ -1,43 +1,15 @@
-import { copySequenceRhythm, type SequenceRhythm } from '../shared/sequenceRhythm';
-// BL-1 factory and user patches. A patch is the whole machine state — sound
-// params + the four pitch patterns + chain (same "kit" model as DR-1, since a
-// 303 line is inseparable from its pattern). Factory entries contain only
-// authored overrides; patchToState fills the rest from the canonical defaults.
+// Source: fablesynth src/bass/patches.ts. BL-1 factory and user patches. In
+// the timeline a patch is the sound only: the clip holds the notes, so the
+// upstream pitch sequences are dropped. Factory entries contain only authored
+// overrides; patchToState fills the rest from the canonical defaults.
 
 import type { ParamValues } from '../params';
 import { defaultBassParams } from './params';
-import { makeEmptyPatterns, writePattern, type Patterns, type Step } from './seq';
 
 export interface BassPatch {
-  sequenceRhythm?: SequenceRhythm;
   name: string;
   params: Partial<ParamValues>;
-  patterns: number[];
-  chain: number[];
 }
-
-const S = (note: number, opts: Partial<Step> = {}): Partial<Step> => ({ on: true, note, ...opts });
-const rest = (): Partial<Step> => ({ on: false });
-
-// The design mock's A/B acid lines, verbatim.
-function acidPatterns(): number[] {
-  let p = makeEmptyPatterns();
-  p = writePattern(p, 0, [
-    S(0, { acc: true }), S(0, { oct: -1 }), rest(), S(3, { slide: true }),
-    S(0), rest(), S(7, { acc: true }), S(6, { slide: true }),
-    S(0), rest(), S(10, { oct: -1 }), S(0, { slide: true }),
-    rest(), S(3, { oct: 1, acc: true }), S(0, { slide: true }), rest(),
-  ]);
-  p = writePattern(p, 1, [
-    S(0, { acc: true }), rest(), S(0), S(5, { slide: true }),
-    rest(), S(0, { oct: -1 }), S(7, { slide: true }), rest(),
-    S(0, { acc: true }), S(3), rest(), S(10, { oct: -1, slide: true }),
-    S(0), rest(), S(0, { oct: 1, acc: true, slide: true }), rest(),
-  ]);
-  return Array.from(p);
-}
-
-const ACID_PATTERNS = acidPatterns();
 
 const FACTORY_PATCHES_RAW: BassPatch[] = [
   {
@@ -47,8 +19,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.ott.on': 1, 'fx.ott.depth': 0.24, 'fx.ott.time': 1.1, 'fx.ott.up': 0.65, 'fx.ott.down': 0.75,
       'fx.comp.on': 1, 'fx.comp.thr': -20, 'fx.comp.att': 0.02, 'fx.comp.rel': 0.1, 'fx.comp.ratio': 3,
     },
-    patterns: [...ACID_PATTERNS],
-    chain: [0],
   },
   {
     name: 'RUBBER SUB',
@@ -75,8 +45,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'seq.bpm': 122,
       'master.swing': 0.42,
     },
-    patterns: [...ACID_PATTERNS],
-    chain: [0],
   },
   {
     name: 'NEON SQUELCH',
@@ -101,8 +69,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.delay.mix': 0.24,
       'seq.bpm': 142,
     },
-    patterns: [...ACID_PATTERNS],
-    chain: [0, 1],
   },
   {
     name: 'DEEP DUB',
@@ -118,7 +84,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.reverb.size': 0.58, 'fx.reverb.mix': 0.16,
       'seq.bpm': 112, 'master.swing': 0.4,
     },
-    patterns: [...ACID_PATTERNS], chain: [0],
   },
   {
     name: 'WAREHOUSE',
@@ -133,7 +98,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.drive.amt': 0.7, 'fx.drive.mix': 0.2,
       'fx.reverb.mix': 0.05, 'seq.bpm': 136, 'master.swing': 0.16,
     },
-    patterns: [...ACID_PATTERNS], chain: [0, 1],
   },
   {
     name: 'ROUNDHOUSE',
@@ -151,7 +115,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.chorus.depth': 0.22, 'fx.chorus.mix': 0.1,
       'seq.bpm': 124, 'master.swing': 0.32,
     },
-    patterns: [...ACID_PATTERNS], chain: [0],
   },
   {
     name: 'METAL PULSE',
@@ -171,7 +134,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.chorus.mix': 0.22, 'fx.delay.on': 1, 'fx.delay.time': 0.22,
       'fx.delay.mix': 0.12, 'seq.bpm': 130, 'master.swing': 0.2,
     },
-    patterns: [...ACID_PATTERNS], chain: [0, 1],
   },
   {
     name: 'TAPE BASS',
@@ -188,7 +150,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.chorus.mix': 0.12, 'fx.reverb.mix': 0.08,
       'seq.bpm': 104, 'master.swing': 0.5,
     },
-    patterns: [...ACID_PATTERNS], chain: [0],
   },
   {
     name: 'REESE MONO',
@@ -206,7 +167,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.chorus.mix': 0.16, 'fx.reverb.mix': 0.05,
       'seq.bpm': 128, 'master.swing': 0.24,
     },
-    patterns: [...ACID_PATTERNS], chain: [0, 1],
   },
   {
     name: 'PLUCKED WIRE',
@@ -224,7 +184,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.reverb.size': 0.42, 'fx.reverb.mix': 0.14,
       'seq.bpm': 132, 'master.swing': 0.18,
     },
-    patterns: [...ACID_PATTERNS], chain: [1, 0],
   },
   {
     name: 'DARK CURRENT',
@@ -241,7 +200,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.delay.mix': 0.16, 'fx.reverb.size': 0.68, 'fx.reverb.mix': 0.18,
       'seq.bpm': 118, 'master.swing': 0.36,
     },
-    patterns: [...ACID_PATTERNS], chain: [0, 1],
   },
   {
     name: 'CLEAN SUB',
@@ -255,7 +213,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.drive.on': 0, 'fx.chorus.on': 0, 'fx.delay.on': 0,
       'fx.reverb.on': 0, 'seq.bpm': 120, 'master.swing': 0.26,
     },
-    patterns: [...ACID_PATTERNS], chain: [0],
   },
   // ---- genre bank: one purpose-built voice per SQ-4 song family, so no
   // family has to borrow a bass that fights its groove. Levelled to land in
@@ -278,7 +235,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.reverb.size': 0.7, 'fx.reverb.mix': 0.2,
       'seq.bpm': 96, 'master.swing': 0.2,
     },
-    patterns: [...ACID_PATTERNS], chain: [0],
   },
   {
     // HOUSE: the classic organ-ish bump — short, round, sits under a 4/4 kick.
@@ -298,7 +254,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.chorus.depth': 0.24, 'fx.chorus.mix': 0.14,
       'fx.reverb.mix': 0.06, 'seq.bpm': 124, 'master.swing': 0.1,
     },
-    patterns: [...ACID_PATTERNS], chain: [0],
   },
   {
     // LO-FI: dark, slightly flat, felt-muted — the tape hiss's companion.
@@ -316,7 +271,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.chorus.depth': 0.26, 'fx.chorus.mix': 0.14,
       'fx.reverb.mix': 0.08, 'seq.bpm': 88, 'master.swing': 0.52,
     },
-    patterns: [...ACID_PATTERNS], chain: [0],
   },
   {
     // CINEMATIC: almost all sub, two octaves down, swelling rather than played.
@@ -333,7 +287,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.drive.amt': 0.4, 'fx.reverb.size': 0.8, 'fx.reverb.mix': 0.18,
       'seq.bpm': 96, 'master.swing': 0,
     },
-    patterns: [...ACID_PATTERNS], chain: [0],
   },
   {
     // MINIMAL: a sub stab. The oscillator is only there to give the note an
@@ -350,7 +303,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.drive.on': 0, 'fx.chorus.on': 0, 'fx.delay.on': 0, 'fx.reverb.on': 0,
       'seq.bpm': 132, 'master.swing': 0,
     },
-    patterns: [...ACID_PATTERNS], chain: [0],
   },
   {
     // FUTURE BASS: the 808 — pure sub, long tail, glides between roots.
@@ -368,7 +320,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.drive.amt': 0.45, 'fx.reverb.mix': 0.05,
       'seq.bpm': 150, 'master.swing': 0,
     },
-    patterns: [...ACID_PATTERNS], chain: [0],
   },
   {
     // FUTURE BASS: the other half — wide detuned growl with 1/8 filter motion.
@@ -388,7 +339,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.chorus.depth': 0.4, 'fx.chorus.mix': 0.2,
       'fx.reverb.mix': 0.06, 'seq.bpm': 150, 'master.swing': 0,
     },
-    patterns: [...ACID_PATTERNS], chain: [0, 1],
   },
   {
     // TRIP HOP: woody and finger-soft, a hair behind the beat.
@@ -404,7 +354,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.drive.amt': 0.2, 'fx.reverb.size': 0.5, 'fx.reverb.mix': 0.12,
       'seq.bpm': 86, 'master.swing': 0.42,
     },
-    patterns: [...ACID_PATTERNS], chain: [0],
   },
   {
     // DUB: the steppers root — enormous, round, slow to speak, long to leave.
@@ -420,7 +369,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.drive.amt': 0.22, 'fx.reverb.size': 0.6, 'fx.reverb.mix': 0.14,
       'seq.bpm': 74, 'master.swing': 0.14,
     },
-    patterns: [...ACID_PATTERNS], chain: [0],
   },
   {
     // MINIMAL: the held counterpart to SUB STAB — a pure sine sub that sits
@@ -437,7 +385,6 @@ const FACTORY_PATCHES_RAW: BassPatch[] = [
       'fx.drive.amt': 0.2, 'fx.chorus.on': 0, 'fx.delay.on': 0, 'fx.reverb.on': 0,
       'seq.bpm': 130, 'master.swing': 0,
     },
-    patterns: [...ACID_PATTERNS], chain: [0],
   },
 ];
 
@@ -455,28 +402,12 @@ export const FACTORY_PATCHES: BassPatch[] = FACTORY_PATCHES_RAW.map((patch) => (
 }));
 
 
-export function patchToState(patch: BassPatch): {
-  sequenceRhythm?: SequenceRhythm;
-  params: ParamValues;
-  patterns: Patterns;
-  chain: number[];
-} {
-  return {
-    ...(patch.sequenceRhythm ? { sequenceRhythm: copySequenceRhythm(patch.sequenceRhythm) } : {}),
-    params: { ...defaultBassParams(), ...patch.params } as ParamValues,
-    patterns: Uint8Array.from(patch.patterns),
-    chain: patch.chain.length ? [...patch.chain] : [0],
-  };
+export function patchToState(patch: BassPatch): { params: ParamValues } {
+  return { params: { ...defaultBassParams(), ...patch.params } as ParamValues };
 }
 
-export function stateToPatch(
-  name: string,
-  params: ParamValues,
-  patterns: Patterns,
-  chain: number[],
-  sequenceRhythm?: SequenceRhythm,
-): BassPatch {
-  return { name, ...(sequenceRhythm ? { sequenceRhythm: copySequenceRhythm(sequenceRhythm) } : {}), params: { ...params }, patterns: Array.from(patterns), chain: [...chain] };
+export function stateToPatch(name: string, params: ParamValues): BassPatch {
+  return { name, params: { ...params } };
 }
 
 export interface PatchOption {

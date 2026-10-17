@@ -1,29 +1,28 @@
-// Two-octave audition keyboard. Click/touch plays when the sequencer is
-// stopped; overlapping presses are legato = slide. While playing it just
-// mirrors the sequenced note.
+// Source: fablesynth src/bass/components/KeysPanel.tsx. Two-octave keyboard
+// that plays the track's live device; overlapping presses are legato = slide.
+// It lights the note the device is sounding, so it mirrors the clips too.
 
 import type * as React from 'react';
-import { KEY_COUNT } from '../params';
-import { useBassStore } from '../store';
+import { KEY_COUNT, ROOT_MIDI } from '../params';
+import { useBassStore } from '../bassStoreContext';
 
 const IS_BLACK: Record<number, number> = { 1: 1, 3: 1, 6: 1, 8: 1, 10: 1 };
 const BLACK_OFF: Record<number, number> = { 1: 0.68, 3: 1.72, 6: 3.68, 8: 4.7, 10: 5.72 };
 const WHITE_COUNT = 15;
 
 export function KeysPanel() {
-  const playing = useBassStore((s) => s.playing);
-  const arpInput = useBassStore(s => s.arpMode && !s.hosted && s.arp.input === 'keys');
-  const arpMode = useBassStore(s => s.arpMode && !s.hosted);
-  const heldSemis = useBassStore(s => s.heldSemis);
-  const curSemi = useBassStore((s) => s.curSemi);
+  const heldPitches = useBassStore((s) => s.heldPitches);
+  const vizPitch = useBassStore((s) => s.vizPitch);
+  const vizGate = useBassStore((s) => s.vizGate);
+  const powered = useBassStore((s) => s.powered);
   const noteOn = useBassStore((s) => s.noteOn);
   const noteOff = useBassStore((s) => s.noteOff);
 
+  // The sounding note, folded into the keyboard's two octaves.
   let hot = -100;
-  if (curSemi > -100) {
-    // sequencer semis are root-relative (-12..23): show them an octave up so
-    // the lane octave lands mid-keyboard; audition semis are already key ids.
-    hot = playing && !arpMode ? curSemi + 12 : curSemi;
+  const sounding = heldPitches.length ? heldPitches[heldPitches.length - 1] : vizGate ? vizPitch : -1;
+  if (sounding >= 0) {
+    hot = sounding - ROOT_MIDI;
     while (hot > KEY_COUNT - 1) hot -= 12;
     while (hot < 0) hot += 12;
   }
@@ -34,10 +33,11 @@ export function KeysPanel() {
     // Key the release to this pointer so overlapping touches stay legato:
     // lifting one finger must only release its own note.
     const pointerId = e.pointerId;
-    noteOn(semi, 0.85);
+    // Shift plays an accent.
+    noteOn(ROOT_MIDI + semi, e.shiftKey ? 120 : 96);
     const up = (ev: PointerEvent) => {
       if (ev.pointerId !== pointerId) return;
-      noteOff(semi);
+      noteOff(ROOT_MIDI + semi);
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
     };
@@ -50,7 +50,7 @@ export function KeysPanel() {
   for (let semi = 0; semi < KEY_COUNT; semi++) {
     const pc = semi % 12;
     const oct = Math.floor(semi / 12);
-    const isHot = arpInput ? heldSemis.includes(semi) : semi === hot;
+    const isHot = semi === hot;
     if (IS_BLACK[pc]) {
       blacks.push(
         <button
@@ -79,7 +79,7 @@ export function KeysPanel() {
     <section className="panel bl-keys-section">
       <div className="panel-head">
         <h2>KEYS</h2>
-        <span className="bl-head-note">{arpInput ? 'PLAY NOTES INTO ARP · LATCH HOLDS THE CHORD' : 'AUDITION WHEN STOPPED · LEGATO = SLIDE'}</span>
+        <span className="bl-head-note">{powered ? 'LEGATO = SLIDE · SHIFT = ACCENT' : 'PLAY A KEY TO START THE DEVICE'}</span>
       </div>
       <div className="bl-keys">
         <div className="bl-keys-white">{whites}</div>

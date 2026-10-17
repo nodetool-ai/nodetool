@@ -87,6 +87,8 @@ export const BASS_PARAM_DEFS: ParamDef[] = [
   ...PARAM_DEFS.filter((d) => d.id.startsWith('fx.eq.')),
   ...PARAM_DEFS.filter((d) => ['fx.comp.att', 'fx.comp.rel', 'fx.comp.ratio', 'fx.drive.tone', 'fx.drive.type'].includes(d.id)),
   ...PARAM_DEFS.filter((d) => d.id === 'fx.comp.sc' || d.id === 'fx.comp.schp'),
+  // Timeline only: the note velocity (1..127) at which a note counts as accented.
+  { id: 'acc.vel', label: 'ACC VEL', min: 1, max: 127, def: 100, curve: 'int', fmt: (v) => String(Math.round(v)) },
 ];
 
 export const BASS_PARAMS: Record<string, ParamDef> = Object.fromEntries(BASS_PARAM_DEFS.map((d) => [d.id, d]));

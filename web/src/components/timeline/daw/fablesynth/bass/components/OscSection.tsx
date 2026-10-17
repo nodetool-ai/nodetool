@@ -1,5 +1,6 @@
 import { WavetableView } from '../../components/displays/WavetableView';
-import { bassEngine, useBassStore } from '../store';
+import { bl1Tables } from '../../../devices/bl1Tables';
+import { useBassStore } from '../bassStoreContext';
 import { BassKnob } from './BassKnob';
 import { BassPosSlider } from './BassPosSlider';
 import { BassStepper } from './BassStepper';
@@ -8,8 +9,7 @@ export function OscSection() {
   const tableValue = useBassStore((s) => s.params['osc.table']);
   const pos = useBassStore((s) => s.params['osc.pos']);
   const modPos = useBassStore((s) => s.vizPos);
-  const powered = useBassStore((s) => s.powered);
-  const table = (powered ? bassEngine.tables : null)?.[tableValue | 0] ?? null;
+  const table = bl1Tables()[tableValue | 0] ?? null;
 
   return (
     <section className="panel bl-osc-section" data-accent="a">

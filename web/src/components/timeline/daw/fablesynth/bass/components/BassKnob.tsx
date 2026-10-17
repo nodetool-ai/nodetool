@@ -1,10 +1,11 @@
-import { useControlMenu } from '../../components/ControlMenu';
+// Source: fablesynth src/bass/components/BassKnob.tsx. A drag or a wheel
+// burst is one undo entry on the timeline.
 import type * as React from 'react';
 import { useEffect, useRef } from 'react';
+import { useBatchedGesture, useWheelBatch } from '../../../../../../hooks/timeline/useBatchedGesture';
 import { normToValue, valueToNorm } from '../../params';
 import { BASS_PARAMS } from '../params';
-import { useBassStore } from '../store';
-import { useAutoLive } from '../../seq/autoLive';
+import { useBassStore, useBassStoreApi } from '../bassStoreContext';
 
 const A0 = -135, A1 = 135;
 
@@ -35,15 +36,15 @@ interface BassKnobProps {
 }
 
 export function BassKnob({ paramId, size = 'md', accent, label }: BassKnobProps) {
-  const controlMenu = useControlMenu('BL1', paramId);
   const def = BASS_PARAMS[paramId];
+  const api = useBassStoreApi();
   const value = useBassStore((s) => s.params[paramId]);
-  const setParam = useBassStore((s) => s.setParam);
+  const setParam = (v: number) => api.getState().setParam(paramId, v);
+  const gesture = useBatchedGesture<number>((v) => api.getState().setParam(paramId, v));
 
   const bipolar = (def.min as number) < 0;
   const norm = clamp01(valueToNorm(def, value));
 
-  const autoLive = useAutoLive('BL1', paramId, norm);
   const elRef = useRef<HTMLDivElement>(null);
   const normRef = useRef(norm);
   const draggingRef = useRef(false);
@@ -52,23 +53,12 @@ export function BassKnob({ paramId, size = 'md', accent, label }: BassKnobProps)
     if (!draggingRef.current) normRef.current = norm;
   }, [norm]);
 
-  const nudge = (deltaNorm: number) => {
+  const nudgeNorm = (deltaNorm: number): number => {
     normRef.current = clamp01(normRef.current + deltaNorm);
-    setParam(paramId, normToValue(def, normRef.current));
+    return normToValue(def, normRef.current);
   };
 
-  useEffect(() => {
-    const el = elRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      nudge((e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? 0.005 : 0.03));
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-    // nudge deliberately reads the latest value through normRef.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paramId]);
+  useWheelBatch(elRef, (direction) => setParam(nudgeNorm(direction * 0.03)));
 
   const lastYRef = useRef(0);
   const onPointerDown = (e: React.PointerEvent) => {
@@ -83,18 +73,19 @@ export function BassKnob({ paramId, size = 'md', accent, label }: BassKnobProps)
     if (!draggingRef.current) return;
     const dy = lastYRef.current - e.clientY;
     lastYRef.current = e.clientY;
-    nudge(dy * (e.shiftKey ? 0.0008 : 0.005));
+    gesture.schedule(nudgeNorm(dy * (e.shiftKey ? 0.0008 : 0.005)));
   };
   const onPointerEnd = (e: React.PointerEvent) => {
     if (!draggingRef.current) return;
     draggingRef.current = false;
+    gesture.commit();
     elRef.current?.classList.remove('dragging');
     try { elRef.current?.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
   };
   const onKeyDown = (e: React.KeyboardEvent) => {
     const step = e.shiftKey ? 0.005 : 0.02;
-    if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { nudge(step); e.preventDefault(); }
-    else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { nudge(-step); e.preventDefault(); }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { setParam(nudgeNorm(step)); e.preventDefault(); }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { setParam(nudgeNorm(-step)); e.preventDefault(); }
   };
 
   const deg = degOf(norm);
@@ -111,7 +102,6 @@ export function BassKnob({ paramId, size = 'md', accent, label }: BassKnobProps)
   return (
     <div
       ref={elRef}
-      onContextMenu={controlMenu.onContextMenu}
       className={`knob knob-${size}`}
       data-accent={accent}
       tabIndex={0}
@@ -125,20 +115,17 @@ export function BassKnob({ paramId, size = 'md', accent, label }: BassKnobProps)
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}
       onPointerCancel={onPointerEnd}
-      onDoubleClick={() => setParam(paramId, def.def)}
+      onDoubleClick={() => setParam(def.def)}
       onKeyDown={onKeyDown}
     >
       <svg viewBox="0 0 80 80">
         <circle className="k-body" cx="40" cy="40" r="26" />
         <path className="k-track" d={arcPath(40, 40, 33, A0, A1)} />
         <path className="k-arc" d={arcD} />
-        <path ref={autoLive.ring} className="k-auto" d="" style={{ opacity: 0 }} />
-        <circle ref={autoLive.dot} className="k-auto-dot" r="3.2" style={{ opacity: 0 }} />
         <line className="k-ptr" x1="40" y1="40" x2="40" y2="17" transform={`rotate(${deg} 40 40)`} />
       </svg>
       <div className="k-label">{labelText}</div>
       <div className="k-value">{text}</div>
-      {controlMenu.menu}
     </div>
   );
 }

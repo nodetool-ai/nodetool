@@ -3,7 +3,7 @@
 
 import { useEffect, useRef } from 'react';
 import { setupCanvas } from '../../components/displays/canvas';
-import { useBassStore } from '../store';
+import { useBassStore } from '../bassStoreContext';
 import { BassKnob } from './BassKnob';
 import { BassStepper } from './BassStepper';
 
@@ -68,7 +68,7 @@ function FilterView() {
       plot('rgba(177,140,255,0.28)', 1, 0);
       plot('#b18cff', 1.8, 7);
       ctx.fillStyle = '#6b768c';
-      ctx.font = '7px "IBM Plex Mono"';
+      ctx.font = '7px "IBM Plex Mono", monospace';
       ctx.fillText('LFO + ENV → CUT', pad + 2, 10);
     };
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
