@@ -33,6 +33,7 @@ jest.mock("../window", () => ({
 
 jest.mock("../updater", () => ({
   setupAutoUpdater: jest.fn(),
+  isQuittingForUpdate: jest.fn().mockReturnValue(false),
 }));
 
 jest.mock("../server", () => ({
@@ -93,10 +94,8 @@ describe("main.ts lifecycle wiring", () => {
   type EventHandler = (...args: unknown[]) => void | Promise<void>;
 
   let appOn: jest.Mock;
-  let ipcHandle: jest.Mock;
   let processOn: jest.SpyInstance;
   const appHandlers: Record<string, EventHandler> = {};
-  const ipcHandlers: Record<string, EventHandler> = {};
   const processHandlers: Record<string, EventHandler> = {};
 
   beforeAll(() => {
@@ -107,11 +106,6 @@ describe("main.ts lifecycle wiring", () => {
     appOn.mockImplementation((event: string, handler: EventHandler) => {
       appHandlers[event] = handler;
       return electronMock.app;
-    });
-
-    ipcHandle = jest.mocked(electronMock.ipcMain.handle);
-    ipcHandle.mockImplementation((channel: string, handler: EventHandler) => {
-      ipcHandlers[channel] = handler;
     });
 
     processOn = jest
@@ -141,10 +135,6 @@ describe("main.ts lifecycle wiring", () => {
   test("registers process-level error handlers (uncaught + unhandledRejection)", () => {
     expect(processHandlers).toHaveProperty("uncaughtException");
     expect(processHandlers).toHaveProperty("unhandledRejection");
-  });
-
-  test("update-installed IPC handler is registered", () => {
-    expect(ipcHandlers).toHaveProperty("update-installed");
   });
 
   describe("before-quit handler", () => {
@@ -203,6 +193,17 @@ describe("main.ts lifecycle wiring", () => {
       expect(electronMock.dialog.showMessageBox).not.toHaveBeenCalled();
     });
 
+    test("a restart into a downloaded update skips the dialog", async () => {
+      const { isQuittingForUpdate } = require("../updater");
+      jest.mocked(isQuittingForUpdate).mockReturnValueOnce(true);
+      jest.mocked(electronMock.app.quit).mockClear();
+      jest.mocked(electronMock.dialog.showMessageBox).mockClear();
+
+      await appHandlers["window-all-closed"]();
+      expect(electronMock.app.quit).not.toHaveBeenCalled();
+      expect(electronMock.dialog.showMessageBox).not.toHaveBeenCalled();
+    });
+
     test("'ask' setting opens a question dialog", async () => {
       const { readSettingsAsync } = require("../settings");
       jest.mocked(readSettingsAsync).mockResolvedValueOnce({
@@ -246,24 +247,6 @@ describe("main.ts lifecycle wiring", () => {
       appHandlers["activate"]();
 
       expect(handleActivation).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe("update-installed IPC handler", () => {
-    test("opens a 'Restart Now' dialog", async () => {
-      jest.mocked(electronMock.dialog.showMessageBox)
-        .mockClear()
-        .mockResolvedValueOnce({ response: 0 });
-
-      await ipcHandlers["update-installed"]();
-
-      expect(electronMock.dialog.showMessageBox).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: "info",
-          title: "Update Installed",
-          buttons: ["Restart Now"],
-        }),
-      );
     });
   });
 });

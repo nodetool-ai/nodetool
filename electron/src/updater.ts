@@ -6,8 +6,20 @@ import fs from "fs";
 import { logMessage } from "./logger";
 import { getMainWindow } from "./state";
 import { IpcChannels } from "./types.d";
-import { getUpdateChannel, readSettingsAsync } from "./settings";
+import {
+  getDefaultUpdateChannel,
+  getUpdateChannel,
+  readSettingsAsync,
+} from "./settings";
 import { errorMessage } from "./utils";
+
+/** How often a running app checks for a newer release after the launch check. */
+const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
+
+let eventsRegistered = false;
+let checkTimer: NodeJS.Timeout | null = null;
+let updateDownloaded = false;
+let quittingForUpdate = false;
 
 /**
  * Auto-updater Module
@@ -16,7 +28,7 @@ import { errorMessage } from "./utils";
  * It connects to GitHub releases to check for and download new versions of the application.
  *
  * Key Features:
- * - Automatically checks for updates when the app starts
+ * - Checks for updates when the app starts and every few hours while it runs
  * - Downloads updates in the background
  * - Notifies the user through the main window when updates are available
  * - Provides download progress information
@@ -99,8 +111,44 @@ async function isAutoUpdatesEnabledAsync(): Promise<boolean> {
   }
 }
 
+function checkForUpdates(): void {
+  autoUpdater.checkForUpdates().catch((err: Error) => {
+    // Handle specific error for missing app-update.yml more gracefully
+    if (isMissingAppUpdateConfigError(err)) {
+      logMessage(
+        "Auto-update check skipped: app-update.yml not found. " +
+        "Please reinstall from GitHub releases to enable auto-updates.",
+        "warn"
+      );
+    } else {
+      logMessage(`Failed to check for updates: ${err.message}`, "warn");
+    }
+  });
+}
+
 /**
- * Sets up the auto-updater
+ * Re-checks while the app runs, since it can stay open in the tray for days.
+ * Stops once an update has been downloaded: it installs on the next quit.
+ */
+function startPeriodicChecks(): void {
+  if (checkTimer || updateDownloaded) {
+    return;
+  }
+  checkTimer = setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
+  checkTimer.unref();
+}
+
+function stopPeriodicChecks(): void {
+  if (checkTimer) {
+    clearInterval(checkTimer);
+    checkTimer = null;
+  }
+}
+
+/**
+ * Sets up the auto-updater, or applies changed update settings to a running
+ * one. Safe to call again after the user toggles auto-updates or switches the
+ * update channel.
  */
 async function setupAutoUpdater(): Promise<void> {
   // Skip auto-update in development mode
@@ -113,6 +161,9 @@ async function setupAutoUpdater(): Promise<void> {
   const autoUpdateEnabled = await isAutoUpdatesEnabledAsync();
   if (!autoUpdateEnabled) {
     logMessage("Auto-updates disabled by user preference (opt-in required)");
+    stopPeriodicChecks();
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit = false;
     return;
   }
 
@@ -131,12 +182,19 @@ async function setupAutoUpdater(): Promise<void> {
 
   try {
     const settings = await readSettingsAsync();
-    const updateChannel = getUpdateChannel(settings, app.getVersion());
+    const currentVersion = app.getVersion();
+    const updateChannel = getUpdateChannel(settings, currentVersion);
     const allowPrerelease = updateChannel === "nightly";
 
     autoUpdater.channel = updateChannel;
     autoUpdater.allowPrerelease = allowPrerelease;
-    autoUpdater.allowDowngrade = true;
+    // The channel setter turns downgrades on. Keep them only after a channel
+    // switch, where the other channel's newest build can be older, so a
+    // re-published older release cannot roll back users on their own channel.
+    autoUpdater.allowDowngrade =
+      updateChannel !== getDefaultUpdateChannel(currentVersion);
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
     const feedUrl = {
       provider: "github",
       owner: "nodetool-ai",
@@ -152,20 +210,9 @@ async function setupAutoUpdater(): Promise<void> {
     );
     autoUpdater.logger = log;
 
-    autoUpdater.checkForUpdates().catch((err: Error) => {
-      // Handle specific error for missing app-update.yml more gracefully
-      if (isMissingAppUpdateConfigError(err)) {
-        logMessage(
-          "Auto-update check skipped: app-update.yml not found. " +
-          "Please reinstall from GitHub releases to enable auto-updates.",
-          "warn"
-        );
-      } else {
-        logMessage(`Failed to check for updates: ${err.message}`, "warn");
-      }
-    });
-
     setupAutoUpdaterEvents();
+    checkForUpdates();
+    startPeriodicChecks();
   } catch (err) {
     // Catch any synchronous errors during setup
     logMessage(
@@ -179,11 +226,16 @@ async function setupAutoUpdater(): Promise<void> {
  * Sets up the auto-updater events
  */
 function setupAutoUpdaterEvents(): void {
+  if (eventsRegistered) {
+    return;
+  }
+  eventsRegistered = true;
+
   autoUpdater.on("checking-for-update", () => {
     logMessage("Checking for updates...");
   });
 
-  autoUpdater.on("update-available", async (info: UpdateInfo) => {
+  autoUpdater.on("update-available", (info: UpdateInfo) => {
     try {
       logMessage(`Update available: ${info.version}`);
       const mainWindow = getMainWindow();
@@ -196,16 +248,10 @@ function setupAutoUpdaterEvents(): void {
         });
       }
 
-      // Show native notification
-      // Note: When auto-updates are disabled, electron-updater doesn't auto-download,
-      // so we direct user to open the app to download manually
       if (Notification.isSupported()) {
-        const autoUpdateEnabled = await isAutoUpdatesEnabledAsync();
         const notification = new Notification({
           title: "NodeTool Update Available",
-          body: autoUpdateEnabled
-            ? `Version ${info.version} is available. Downloading in the background...`
-            : `Version ${info.version} is available. Click to open NodeTool.`,
+          body: `Version ${info.version} is available. Downloading in the background...`,
         });
         notification.on("click", () => {
           const win = getMainWindow();
@@ -246,6 +292,8 @@ function setupAutoUpdaterEvents(): void {
   autoUpdater.on("update-downloaded", async (info: UpdateInfo) => {
     try {
       logMessage(`Update downloaded: ${info.version}`);
+      updateDownloaded = true;
+      stopPeriodicChecks();
 
       const mainWindow = getMainWindow();
       if (mainWindow) {
@@ -265,7 +313,7 @@ function setupAutoUpdaterEvents(): void {
         });
         notification.on("click", () => {
           logMessage("User clicked update notification — restarting to install");
-          autoUpdater.quitAndInstall();
+          quitAndInstallUpdate();
         });
         notification.show();
       }
@@ -291,21 +339,28 @@ function setupAutoUpdaterEvents(): void {
     }
 
     logMessage(`Update error: ${err.message}`, "error");
-    try {
-      const mainWindow = getMainWindow();
-      if (mainWindow) {
-        mainWindow.webContents.send("update-error", {
-          message: "Failed to check for updates. Please try again later.",
-          details: err.message,
-        });
-      }
-    } catch (sendErr) {
-      logMessage(
-        `Error sending update error to window: ${errorMessage(sendErr)}`,
-        "error"
-      );
-    }
   });
 }
 
-export { setupAutoUpdater };
+/**
+ * Restarts into the downloaded update. Does nothing until one is downloaded,
+ * so a stray request cannot quit the app.
+ */
+function quitAndInstallUpdate(): void {
+  if (!updateDownloaded) {
+    logMessage("Install requested but no update has been downloaded", "warn");
+    return;
+  }
+  quittingForUpdate = true;
+  autoUpdater.quitAndInstall();
+}
+
+/**
+ * True once a restart into a downloaded update has started. On macOS the
+ * updater closes every window first, which must not open the close dialog.
+ */
+function isQuittingForUpdate(): boolean {
+  return quittingForUpdate;
+}
+
+export { setupAutoUpdater, quitAndInstallUpdate, isQuittingForUpdate };

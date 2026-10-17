@@ -26,7 +26,6 @@
 
 import {
   app,
-  ipcMain,
   dialog,
   systemPreferences,
   BrowserWindow,
@@ -35,7 +34,7 @@ import {
 import { createWindow, forceQuit, handleActivation } from "./window";
 import { getMainWindow } from "./state";
 import { hardenWebContents } from "./windowSecurity";
-import { setupAutoUpdater } from "./updater";
+import { isQuittingForUpdate, setupAutoUpdater } from "./updater";
 import { logMessage, closeLogStream } from "./logger";
 import {
   initializeBackendServer,
@@ -518,23 +517,6 @@ app.on("ready", async () => {
   });
 });
 
-ipcMain.handle("update-installed", async () => {
-  logMessage("Update installed, marking conda environment for update");
-
-  // Show dialog informing user about restart
-  dialog
-    .showMessageBox({
-      type: "info",
-      title: "Update Installed",
-      message: "The application needs to restart to apply the update.",
-      buttons: ["Restart Now"],
-    })
-    .then(() => {
-      app.relaunch();
-      app.quit();
-    });
-});
-
 /** Upper bound on how long quitting waits for the backend to exit. */
 const QUIT_SERVER_STOP_TIMEOUT_MS = 10000;
 
@@ -558,6 +540,9 @@ app.on("before-quit", (event) => {
 
 app.on("window-all-closed", async () => {
   logMessage("All windows closed");
+  if (isQuittingForUpdate()) {
+    return;
+  }
 
   const settings = await readSettingsAsync();
   const closeAction = settings.windowCloseAction;
