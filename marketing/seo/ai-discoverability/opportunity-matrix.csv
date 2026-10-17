@@ -1,6 +1,6 @@
 target_page,page_status,clusters,queries,strong,partial,weak_or_none,P1,P2,P3,do-not-target
 /gamedev,existing,games/agent-builds-game games/assets games/convo games/editable-output games/engine-choice games/genre-jobs games/mcp-control games/vibe-coding,159,83,59,17,83,59,12,5
-/ai-video-editor,existing,video/assistant-video video/convo video/editable-timeline video/filmmaking-agent,47,36,9,2,36,9,2,0
+/ai-video-editor,existing,video/assistant-video video/convo video/dubbing video/editable-timeline video/filmmaking-agent video/music-video,50,38,10,2,36,12,2,0
 /mcp,existing,mcp-dev/claude-code mcp-dev/convo mcp-dev/mcp-media,39,27,9,3,27,9,3,0
 /gamedev/ai-game-engines,existing,comparison/games,8,1,6,1,1,6,1,0
 /marketing,improve,advertising/brand advertising/convo advertising/generators advertising/variants,39,27,9,3,0,36,2,1
@@ -10,13 +10,18 @@ target_page,page_status,clusters,queries,strong,partial,weak_or_none,P1,P2,P3,do
 /alternatives/comfyui,existing,comparison/comfyui,10,10,0,0,0,10,0,0
 /developers,existing,mcp-dev/api,10,8,2,0,0,10,0,0
 /storyboards,improve,video/storyboard,9,7,2,0,0,9,0,0
+/recipes/multilingual-video-dubber,existing,video/dubbing,7,5,2,0,0,6,1,0
 /recipes/ugc-product-video,existing,advertising/ugc,7,1,5,1,0,6,1,0
 /node-based-workflows,existing,image/workflows,5,5,0,0,0,5,0,0
 /recipes/ecommerce-sku-visual-factory,existing,image/product-photo,5,2,3,0,0,5,0,0
+/templates/podcast-repurposing-studio,existing,audio/podcast,6,3,3,0,0,3,3,0
+/solutions/photo-restoration,improve,image/restoration,4,1,3,0,0,2,2,0
+/solutions/youtube-thumbnails,improve,image/thumbnails,4,1,2,1,0,2,1,1
 /alternatives/higgsfield,improve,comparison/higgsfield,3,2,0,1,0,2,1,0
 /alternatives/runway,existing,comparison/runway,3,2,0,1,0,2,1,0
 /alternatives/figma-weave,existing,comparison/weavy,2,2,0,0,0,2,0,0
 /alternatives/flora,existing,comparison/flora,2,1,1,0,0,2,0,0
 /alternatives/krea,existing,comparison/krea,2,2,0,0,0,2,0,0
+/solutions/music-video,improve,video/music-video,2,0,1,1,0,1,1,0
 /alternatives/ltx-studio,existing,comparison/ltx,1,1,0,0,0,1,0,0
 /models,existing,image/multi-model video/model-questions,16,7,2,7,0,0,15,1
