@@ -153,19 +153,12 @@ function isAppRunContent(value: unknown): value is AppRunContent {
     ) {
       continue;
     }
-    if (Array.isArray(next)) {
-      for (const child of next) {
-        pending.push(child);
-      }
-      continue;
+    if (typeof next !== "object") {
+      return false;
     }
-    if (typeof next === "object" && next !== null) {
-      for (const child of Object.values(next)) {
-        pending.push(child);
-      }
-      continue;
+    for (const child of Object.values(next)) {
+      pending.push(child);
     }
-    return false;
   }
   return true;
 }

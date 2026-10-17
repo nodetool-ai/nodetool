@@ -17,7 +17,7 @@ import AlignVerticalCenter from "@mui/icons-material/AlignVerticalCenter";
 import AlignVerticalTop from "@mui/icons-material/AlignVerticalTop";
 import ArrowDropDown from "@mui/icons-material/ArrowDropDown";
 import ContentCopy from "@mui/icons-material/ContentCopy";
-import Delete from "@mui/icons-material/Delete";
+import Delete from "@mui/icons-material/DeleteOutline";
 import Layers from "@mui/icons-material/Layers";
 import LinkIcon from "@mui/icons-material/Link";
 import PlayArrow from "@mui/icons-material/PlayArrow";
@@ -127,19 +127,19 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
       () => [
         {
           icon: <AlignHorizontalLeft fontSize="small" />,
-          label: "Align Left",
+          label: "Align left",
           slug: "alignLeft",
           action: selectionActions.alignLeft
         },
         {
           icon: <AlignHorizontalCenter fontSize="small" />,
-          label: "Align Center",
+          label: "Align center",
           slug: "alignCenter",
           action: selectionActions.alignCenter
         },
         {
           icon: <AlignHorizontalRight fontSize="small" />,
-          label: "Align Right",
+          label: "Align right",
           slug: "alignRight",
           action: selectionActions.alignRight
         }
@@ -151,19 +151,19 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
       () => [
         {
           icon: <AlignVerticalTop fontSize="small" />,
-          label: "Align Top",
+          label: "Align top",
           slug: "alignTop",
           action: selectionActions.alignTop
         },
         {
           icon: <AlignVerticalCenter fontSize="small" />,
-          label: "Align Middle",
+          label: "Align middle",
           slug: "alignMiddle",
           action: selectionActions.alignMiddle
         },
         {
           icon: <AlignVerticalBottom fontSize="small" />,
-          label: "Align Bottom",
+          label: "Align bottom",
           slug: "alignBottom",
           action: selectionActions.alignBottom
         }
@@ -175,13 +175,13 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
       () => [
         {
           icon: <ViewColumn fontSize="small" />,
-          label: "Distribute Horizontally",
+          label: "Distribute horizontally",
           slug: "distributeHorizontal",
           action: selectionActions.distributeHorizontal
         },
         {
           icon: <ViewStream fontSize="small" />,
-          label: "Distribute Vertically",
+          label: "Distribute vertically",
           slug: "distributeVertical",
           action: selectionActions.distributeVertical
         }
@@ -193,7 +193,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
       () => [
         {
           icon: <PlayArrow fontSize="small" />,
-          label: "Run Selected",
+          label: "Run selected",
           slug: "runSelected",
           // onClick forwards a MouseEvent; runSelectedNodes treats its first arg
           // as a run count (Math.floor(event) -> NaN -> no-op), so call it bare.
@@ -257,7 +257,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
       <FloatingToolbar
         className="selection-action-toolbar"
         role="region"
-        aria-label="Selection Action Toolbar"
+        aria-label="Selection action toolbar"
         onKeyDown={handleKeyDown}
         sx={{
           position: "absolute",

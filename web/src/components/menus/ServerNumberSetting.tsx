@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { TextInput } from "../ui_primitives";
+import { NumberField } from "../ui_primitives";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { formatRangeHint } from "./NumberSetting";
@@ -85,10 +85,10 @@ export const ServerNumberSetting = React.memo(function ServerNumberSetting({
   );
 
   return (
-    <TextInput
-      type="number"
+    <NumberField
       autoComplete="off"
-      slotProps={{ htmlInput: { min, max } }}
+      min={min}
+      max={max}
       id={id}
       label={label}
       helperText={

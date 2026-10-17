@@ -28,9 +28,10 @@ import {
   Slider,
   IconButton,
   Popover,
-  FONT_SIZE_SANS
+  FONT_SIZE_SANS,
+  ICON_SIZE
 } from "../ui_primitives";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import {
   ColorMode,
   parseColorToRgba,
@@ -225,7 +226,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
             aria-label="Cancel color change"
             sx={{ p: getSpacingPx(SPACING.micro), color: SKETCH_COLORS.textSecondary, "&:hover": { color: SKETCH_COLORS.textPrimary, bgcolor: "rgba(255,255,255,0.06)" } }}
           >
-            <CloseIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
+            <CloseIcon sx={{ fontSize: ICON_SIZE.sm }} />
           </IconButton>
         </Tooltip>
       </FlexRow>

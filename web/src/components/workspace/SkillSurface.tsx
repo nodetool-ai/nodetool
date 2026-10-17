@@ -1,7 +1,7 @@
 import { useSkill } from "../../hooks/skills/useSkills";
 import type { WorkspaceTabMode } from "../../stores/WorkspaceTabsStore";
 import SkillEditorPane from "../skills/SkillEditorPane";
-import ReportBugButton from "../support/ReportBugButton";
+import ErrorBanner from "../support/ErrorBanner";
 import {
   Caption,
   FlexColumn,
@@ -31,15 +31,16 @@ const SkillSurface = ({ refId, mode }: SkillSurfaceProps) => {
   if (error || !skill) {
     return (
       <FlexColumn fullWidth fullHeight sx={{ alignItems: "center", justifyContent: "center" }}>
-        <Caption sx={{ color: "error.main" }}>Failed to load skill</Caption>
-        <ReportBugButton
-          context={{
+        <ErrorBanner
+          report={{
             source: "panel-crash",
             summary: "Skill surface failed to load",
             errorText: error?.message,
             stackTrace: error instanceof Error ? error.stack : undefined
           }}
-        />
+        >
+          Could not load this skill.
+        </ErrorBanner>
       </FlexColumn>
     );
   }

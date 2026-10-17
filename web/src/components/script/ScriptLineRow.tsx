@@ -16,6 +16,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import TheaterComedyIcon from "@mui/icons-material/TheaterComedy";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import ErrorBanner from "../support/ErrorBanner";
 import {
   FlexColumn,
   FlexRow,
@@ -405,9 +406,15 @@ const ScriptLineRow = ({
         </Caption>
       )}
       {voiceError && (
-        <Text size="smaller" color="error" sx={{ paddingLeft: SPACING.sm }}>
+        <ErrorBanner
+          report={{
+            source: "job-failure",
+            summary: "Voicing a script line failed",
+            errorText: voiceError
+          }}
+        >
           {voiceError}
-        </Text>
+        </ErrorBanner>
       )}
     </FlexColumn>
   );
@@ -420,13 +427,13 @@ const ScriptLineRow = ({
     status === "stale" ? (
       <Tooltip title="The text or voice changed since this take">
         <StatusPill tone="warning" sx={pillSx}>
-          <RefreshIcon sx={{ fontSize: "inherit" }} />
+          <RefreshIcon fontSize="inherit" />
           Stale
         </StatusPill>
       </Tooltip>
     ) : status === "voiced" ? (
       <StatusPill tone="done" sx={pillSx}>
-        <CheckIcon sx={{ fontSize: "inherit" }} />
+        <CheckIcon fontSize="inherit" />
         Take {takeNumber}
       </StatusPill>
     ) : (
@@ -548,7 +555,7 @@ const ScriptLineRow = ({
     >
       {!readOnly && (
         <ToolbarIconButton
-          tooltip={showDirection ? "Remove direction" : "Add direction"}
+          tooltip={showDirection ? "Delete direction" : "Add direction"}
           onClick={toggleDirection}
           icon={<TheaterComedyIcon fontSize="small" />}
           sx={showDirection ? { color: "primary.main" } : undefined}

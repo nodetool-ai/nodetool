@@ -4,7 +4,7 @@ import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import React, { memo, useMemo } from "react";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import {
   BORDER_RADIUS,
   FlexRow,
@@ -101,7 +101,7 @@ export const VoiceRecordingBar = memo(function VoiceRecordingBar({
         className="voice-cancel"
         aria-label="Discard recording"
         tooltip="Discard recording"
-        icon={<CloseRoundedIcon fontSize="small" />}
+        icon={<CloseOutlinedIcon fontSize="small" />}
         onClick={onCancel}
         variant="error"
       />

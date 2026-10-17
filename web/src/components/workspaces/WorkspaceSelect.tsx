@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useId, useMemo } from "react";
 
+import ErrorBanner from "../support/ErrorBanner";
 import {
   Text,
   Caption,
@@ -28,8 +29,8 @@ import {
   useWorkspaceCacheWriter
 } from "../../hooks/useWorkspaces";
 import { useFolderPicker } from "./useFolderPicker";
-import FolderIcon from "@mui/icons-material/Folder";
-import AddIcon from "@mui/icons-material/Add";
+import FolderIcon from "@mui/icons-material/FolderOutlined";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import StarIcon from "@mui/icons-material/Star";
 
 const styles = (theme: Theme) =>
@@ -188,12 +189,15 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     if (error) {
       return (
         <Box css={cssStyles}>
-          <Text size="small" color="error" sx={{ mb: 1 }}>
-            Unable to load workspaces
-          </Text>
-          <Caption color="secondary">
-            Check your connection or try again later
-          </Caption>
+          <ErrorBanner
+            report={{
+              source: "operation-failure",
+              summary: "Workspaces failed to load",
+              errorText: error instanceof Error ? error.message : String(error)
+            }}
+          >
+            Could not load workspaces. Check your connection or try again later.
+          </ErrorBanner>
         </Box>
       );
     }

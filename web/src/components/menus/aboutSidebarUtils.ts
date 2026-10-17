@@ -11,15 +11,15 @@ export const getAboutSidebarSections = (): SidebarSection[] => {
       category: "Application",
       items: [
         { id: "application", label: "Application" },
-        { id: "operating-system", label: "Operating System" },
-        { id: "features", label: "Features & Versions" }
+        { id: "operating-system", label: "Operating system" },
+        { id: "features", label: "Features & versions" }
       ]
     },
     {
       category: "Resources",
       items: [
         ...(!isProduction
-          ? [{ id: "installation-paths", label: "Installation Paths" }]
+          ? [{ id: "installation-paths", label: "Installation paths" }]
           : []),
         { id: "links", label: "Links" }
       ]

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { useState, useCallback, useMemo, memo, useRef, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import {
@@ -13,6 +13,7 @@ import {
   FlexColumn,
   FlexRow,
   NodeSlider,
+  NumberField,
   TextInput,
   ToggleGroup,
   ToggleOption,
@@ -323,7 +324,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
 
       <div>
         <Caption color="secondary">
-          Color Stops
+          Color stops
         </Caption>
         <div className="stops-container" style={{ background: cssOutput }}>
           {gradient.stops.map((stop, index) => (
@@ -354,15 +355,14 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
             onChange={handleStopColorInputChange}
             sx={{ width: "100px" }}
           />
-          <TextInput
+          <NumberField
             size="small"
             label="Position"
-            type="number"
             value={selectedStop.position}
             onChange={handleStopPositionInputChange}
-            InputProps={{
-              endAdornment: <Caption>%</Caption>
-            }}
+            min={0}
+            max={100}
+            unit="%"
             sx={{ width: "80px" }}
           />
           <Tooltip title="Use current color">
@@ -377,7 +377,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
           </Tooltip>
           <DeleteButton
             onClick={handleRemoveStopButtonClick}
-            tooltip="Remove stop"
+            tooltip="Delete stop"
             disabled={gradient.stops.length <= 2}
             nodrag={false}
           />
@@ -390,7 +390,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
           onClick={addStop}
           variant="outlined"
         >
-          Add Stop
+          Add stop
         </EditorButton>
         <EditorButton
           startIcon={copied ? <CheckIcon /> : <ContentCopyIcon />}

@@ -63,7 +63,7 @@ describe('NodeProvider', () => {
         <div>child</div>
       </NodeProvider>
     );
-    expect(screen.getByText('Loading workflow...')).toBeInTheDocument();
+    expect(screen.getByText('Loading workflow…')).toBeInTheDocument();
   });
 
   test('renders children when store available', () => {

@@ -9,7 +9,8 @@ import {
   EmptyState,
   FlexColumn,
   LoadingSpinner,
-  PageLayout
+  PageLayout,
+  ICON_SIZE
 } from "../ui_primitives";
 import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -53,7 +54,7 @@ const AssetExplorer: React.FC = memo(() => {
 
   return (
     <PageLayout
-      icon={<PermMediaOutlinedIcon sx={{ fontSize: 22 }} />}
+      icon={<PermMediaOutlinedIcon sx={{ fontSize: ICON_SIZE.lg }} />}
       title="Assets"
       subtitle="Browse, organize, and preview your images, audio, video, and other files."
       docsTopic="assets"

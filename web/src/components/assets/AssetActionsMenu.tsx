@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import TuneIcon from "@mui/icons-material/Tune";
-import FolderIcon from "@mui/icons-material/Folder";
+import FolderIcon from "@mui/icons-material/FolderOutlined";
 import FolderOffIcon from "@mui/icons-material/FolderOff";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
@@ -29,7 +29,8 @@ import {
   Divider,
   EditorButton,
   TruncatedText,
-  SPACING
+  SPACING,
+  ICON_SIZE
 } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
 
@@ -215,7 +216,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   );
 
   const search = (
-    <SearchErrorBoundary fallbackTitle="Search Input Error">
+    <SearchErrorBoundary fallbackTitle="Search input error">
       <AssetSearchInput
         onLocalSearchChange={onLocalSearchChange}
         focusOnTyping={false}
@@ -254,7 +255,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
               px: SPACING.micro,
               py: SPACING.micro,
               "& .MuiIconButton-root": { padding: SPACING.sm },
-              "& .MuiIconButton-root .MuiSvgIcon-root": { fontSize: 16 }
+              "& .MuiIconButton-root .MuiSvgIcon-root": { fontSize: ICON_SIZE.sm }
             }}
           >
             {!hideFolderControls && hasFolders && (

@@ -26,7 +26,7 @@ import React, {
   useRef,
   useState
 } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -163,7 +163,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
     const next =
       target >= 0
         ? rootRef.current?.querySelector<HTMLElement>(
-            `button[aria-label="Remove step ${target + 1}"]`
+            `button[aria-label="Delete step ${target + 1}"]`
           )
         : null;
     (next ?? addStepRef.current)?.focus();
@@ -571,10 +571,10 @@ const StepRow: React.FC<StepRowProps> = ({
             <ToolbarIconButton
               size="small"
               icon={<DeleteOutlineIcon fontSize="inherit" />}
-              tooltip={readOnly ? "" : "Remove step"}
+              tooltip={readOnly ? "" : "Delete step"}
               onClick={() => onRemove(step.id)}
               disabled={readOnly}
-              aria-label={`Remove step ${index + 1}`}
+              aria-label={`Delete step ${index + 1}`}
             />
           </FlexRow>
         </FlexRow>

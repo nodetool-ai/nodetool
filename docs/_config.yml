@@ -1,8 +1,9 @@
 # Site settings
 title: NodeTool Documentation
 description: >-
-  Local-first visual environment for building and running AI workflows.
-  Build agents visually, deploy anywhere, privacy by design.
+  Open-source agent-first creative workspace. Agents build images, video,
+  storyboards, timelines, and games in real editors, and you keep an editable
+  project.
 baseurl: "" # the subpath of your site, e.g. /docs
 url: "https://docs.nodetool.ai" # the base hostname & protocol for your site
 
@@ -205,6 +206,16 @@ defaults:
   - scope: { path: "ui-primitives-overhaul.md" }
     values: *noindex
   - scope: { path: "websocket-runner-refactor-plan.md" }
+    values: *noindex
+  - scope: { path: "native-media-editing" }
+    values: *noindex
+  - scope: { path: "project-scoping" }
+    values: *noindex
+  - scope: { path: "script-storyboard-link" }
+    values: *noindex
+  - scope: { path: "graph-resources" }
+    values: *noindex
+  - scope: { path: "developer/ts-dsl-authoring-design.md" }
     values: *noindex
 
 # Plugin settings

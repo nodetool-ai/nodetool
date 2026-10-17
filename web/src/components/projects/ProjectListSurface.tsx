@@ -7,7 +7,7 @@ import {
   type DragEvent
 } from "react";
 
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 
 import {
   AutoGrid,

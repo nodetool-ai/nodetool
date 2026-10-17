@@ -45,7 +45,8 @@ import {
   BORDER_RADIUS,
   MOTION,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../../ui_primitives";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
@@ -152,7 +153,7 @@ const actionIconSx = {
   width: 18,
   height: 18,
   padding: 0,
-  "& .MuiSvgIcon-root": { fontSize: 12 }
+  "& .MuiSvgIcon-root": { fontSize: ICON_SIZE.xs }
 } as const;
 
 const renameRowStyles = (theme: Theme) =>
@@ -261,6 +262,8 @@ const VersionTile: React.FC<VersionTileProps> = memo(
                 muted
                 playsInline
                 preload="metadata"
+                // A still for the tile; the button around it carries the name.
+                aria-hidden
               />
             )}
             {isAudio && (
@@ -279,12 +282,12 @@ const VersionTile: React.FC<VersionTileProps> = memo(
           <div className="take-actions" css={takeActionsStyles}>
             <ToolbarIconButton
               icon={<PlayArrowIcon />}
-              tooltip={active ? "Preview Original" : "Preview Candidate"}
+              tooltip={active ? "Preview original" : "Preview candidate"}
               onClick={(e) => {
                 e.stopPropagation();
                 onPreview(active ? null : version.id);
               }}
-              aria-label={active ? "Preview Original" : "Preview Candidate"}
+              aria-label={active ? "Preview original" : "Preview candidate"}
               sx={actionIconSx}
             />
             {!active && (

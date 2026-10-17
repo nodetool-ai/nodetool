@@ -8,7 +8,7 @@ import { CollapsibleSection } from "./CollapsibleSection";
 import { FlexColumn } from "./FlexColumn";
 import { Tooltip } from "./Tooltip";
 import { SPACING, getSpacingPx } from "./spacing";
-import { BORDER_RADIUS, CONTROL, EYEBROW, FONT_SIZE_SANS, MOTION } from "./tokens";
+import { BORDER_RADIUS, CONTROL, EYEBROW, FONT_SIZE_SANS, MOTION, TYPOGRAPHY } from "./tokens";
 
 export interface InspectorSectionAction {
   icon: ReactNode;
@@ -27,6 +27,11 @@ export interface InspectorSectionTitleProps {
   checked?: boolean;
   onCheckedChange?: (next: boolean) => void;
   checkboxDisabled?: boolean;
+  /**
+   * Passive trailing readout, such as the current value the section edits
+   * (a hex colour). Drawn in mono caption, not uppercased, before `action`.
+   */
+  meta?: ReactNode;
   /** Trailing action, such as reset to defaults. Half strength until hovered. */
   action?: InspectorSectionAction;
 }
@@ -59,6 +64,15 @@ const iconStyles = (theme: Theme) =>
     color: theme.vars.palette.text.secondary,
     display: "inline-flex",
     "& svg": { fontSize: FONT_SIZE_SANS.label }
+  });
+
+const metaStyles = (theme: Theme) =>
+  css({
+    ...TYPOGRAPHY.mono.caption,
+    flexShrink: 0,
+    textTransform: "none",
+    letterSpacing: "normal",
+    color: theme.vars.palette.text.secondary
   });
 
 const textStyles = css({
@@ -142,7 +156,7 @@ const stopKeyToggle = (event: KeyboardEvent) => {
 
 /** Group label for a collapsible section in a properties panel. */
 export const InspectorSectionTitle = memo(function InspectorSectionTitle({
-  title, icon, checked, onCheckedChange, checkboxDisabled, action
+  title, icon, checked, onCheckedChange, checkboxDisabled, meta, action
 }: InspectorSectionTitleProps) {
   const theme = useTheme();
   const hasCheckbox = onCheckedChange !== undefined;
@@ -168,6 +182,9 @@ export const InspectorSectionTitle = memo(function InspectorSectionTitle({
       {icon && <span css={iconStyles(theme)}>{icon}</span>}
       <span css={textStyles}>{title}</span>
       <span css={{ flex: "1 1 auto" }} />
+      {meta !== undefined && meta !== null && (
+        <span className="inspector-section-meta" css={metaStyles(theme)}>{meta}</span>
+      )}
       {action && (
         <Tooltip title={action.label}>
           {/* The span keeps the tooltip working while the button is disabled. */}

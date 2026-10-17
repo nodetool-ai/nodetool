@@ -2,6 +2,7 @@ import React from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
+import { stub } from "../../test-utils/doubles";
 import { restFetch } from "../../lib/rest-fetch";
 import {
   appInstanceKeys,
@@ -44,11 +45,13 @@ const instance = {
   variables: { price: 10 }
 };
 const respond = (body: unknown, status = 200) =>
-  fetchMock.mockResolvedValueOnce({
-    ok: status === 200,
-    status,
-    json: async () => body
-  } as Response);
+  fetchMock.mockResolvedValueOnce(
+    stub<Response>({
+      ok: status === 200,
+      status,
+      json: async () => body
+    })
+  );
 const mount = () => {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } }

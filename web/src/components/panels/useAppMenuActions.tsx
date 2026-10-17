@@ -106,7 +106,7 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
     if (!cloud) {
       actions.push({
         key: "models",
-        label: "Model Manager",
+        label: "Model manager",
         icon: <ViewInArOutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("models")
@@ -116,7 +116,7 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
     if (!isProduction) {
       actions.push({
         key: "packages",
-        label: "Package Manager",
+        label: "Package manager",
         icon: <Inventory2OutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("packages")

@@ -7,7 +7,7 @@ import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { listDropzoneStyles } from "./shared/listDropzoneStyles";
-import { Tooltip, Text, CloseButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
+import { Tooltip, Text, CloseButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx, ICON_SIZE } from "../ui_primitives";
 import DescriptionIcon from "@mui/icons-material/Description";
 import isEqual from "../../utils/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
@@ -118,7 +118,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".remove-button .MuiSvgIcon-root": {
-      fontSize: "var(--fontSizeNormal)"
+      fontSize: ICON_SIZE.sm
     },
     ...listDropzoneStyles(theme)
   });
@@ -307,7 +307,7 @@ const TextListProperty = (props: PropertyProps<TextItem[] | null>) => {
       const result = await window.api.dialog.openFile({
         title: "Select text files",
         filters: [
-          { name: "Text Files", extensions: ["txt", "md", "json", "csv", "xml", "html", "htm", "yaml", "yml", "log", "ini", "cfg", "conf"] }
+          { name: "Text files", extensions: ["txt", "md", "json", "csv", "xml", "html", "htm", "yaml", "yml", "log", "ini", "cfg", "conf"] }
         ],
         multiSelections: true
       });

@@ -206,7 +206,7 @@ const AgentAccessSection = () => {
       <FormField label="Server URL" sx={{ mb: 2 }}>
         <FlexRow align="center" gap={1}>
           <CodeBlock sx={{ flex: 1 }}>{url}</CodeBlock>
-          <CopyButton value={url} tooltip="Copy the server URL" />
+          <CopyButton value={url} tooltip="Copy server URL" />
         </FlexRow>
       </FormField>
 
@@ -242,13 +242,13 @@ const AgentAccessSection = () => {
           </AlertBanner>
           <FlexRow align="center" gap={1}>
             <CodeBlock sx={{ flex: 1 }}>{freshToken}</CodeBlock>
-            <CopyButton value={freshToken} tooltip="Copy the token" />
+            <CopyButton value={freshToken} tooltip="Copy token" />
           </FlexRow>
 
           <Caption>Claude Code — run this</Caption>
           <FlexRow align="center" gap={1}>
             <CodeBlock sx={{ flex: 1 }}>{snippets.cli}</CodeBlock>
-            <CopyButton value={snippets.cli} tooltip="Copy the command" />
+            <CopyButton value={snippets.cli} tooltip="Copy command" />
           </FlexRow>
 
           <Caption>Or paste into an MCP client config file</Caption>
@@ -256,13 +256,13 @@ const AgentAccessSection = () => {
             <CodeBlock sx={{ flex: 1 }}>{snippets.json}</CodeBlock>
             <CopyButton
               value={snippets.json}
-              tooltip="Copy the configuration"
+              tooltip="Copy configuration"
             />
           </FlexRow>
         </FlexColumn>
       )}
 
-      {tokensLoading && <Text sx={{ padding: `${SPACING.md}px` }}>Loading tokens…</Text>}
+      {tokensLoading && <LoadingSpinner size="small" text="Loading tokens" />}
 
       {tokens.length > 0 && (
         <FlexColumn gap={0}>

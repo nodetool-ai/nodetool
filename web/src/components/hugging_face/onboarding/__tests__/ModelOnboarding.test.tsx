@@ -77,7 +77,7 @@ describe("ModelOnboarding", () => {
   it("filters models when a capability is selected", async () => {
     const user = userEvent.setup();
     renderOnboarding();
-    await user.click(screen.getByRole("button", { name: /Image Generation/i }));
+    await user.click(screen.getByRole("button", { name: /Image generation/i }));
     expect(screen.getByText("Stable Diffusion XL")).toBeInTheDocument();
     expect(screen.queryByText("Qwen3.5 9B")).not.toBeInTheDocument();
   });
@@ -97,7 +97,7 @@ describe("ModelOnboarding", () => {
     useNodePacksStore.setState({ available: true, install });
     const onDownload = renderOnboarding();
 
-    await user.click(screen.getByRole("button", { name: /Image Generation/i }));
+    await user.click(screen.getByRole("button", { name: /Image generation/i }));
     await user.click(screen.getAllByRole("button", { name: /^Download$/i })[0]);
 
     expect(install).toHaveBeenCalledWith(HUGGINGFACE_PACK_REPO_ID);
@@ -111,7 +111,7 @@ describe("ModelOnboarding", () => {
     renderOnboarding();
 
     await user.click(
-      screen.getByRole("button", { name: /Chat & Reasoning/i })
+      screen.getByRole("button", { name: /Chat & reasoning/i })
     );
     await user.click(screen.getAllByRole("button", { name: /^Download$/i })[0]);
 

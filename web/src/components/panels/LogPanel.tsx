@@ -23,7 +23,8 @@ import {
   ToggleOption,
   ToolbarIconButton,
   getSpacingPx,
-  PanelHeader
+  PanelHeader,
+  Tooltip
 } from "../ui_primitives";
 
 type Row = LogRow & { workflowId: string; workflowName: string; key: string };
@@ -205,7 +206,7 @@ const LogPanel: React.FC = memo(function LogPanel() {
                 <FullscreenIcon fontSize="small" />
               )
             }
-            tooltip={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+            tooltip={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
             onClick={handleFullscreenToggle}
             ariaLabel="Toggle fullscreen"
           />
@@ -224,13 +225,18 @@ const LogPanel: React.FC = memo(function LogPanel() {
           ))}
         </ToggleGroup>
         {filter?.nodeId && filteredNodeName ? (
-          <Chip
-            compact
-            color="info"
-            label={`Node: ${filteredNodeName}`}
-            onDelete={clearFilter}
-            title={filter.jobId ? `Run ${filter.jobId}` : undefined}
-          />
+          <Tooltip
+            title={filter.jobId ? `Run ${filter.jobId}` : ""}
+            disabled={!filter.jobId}
+            describeChild
+          >
+            <Chip
+              compact
+              color="info"
+              label={`Node: ${filteredNodeName}`}
+              onDelete={clearFilter}
+            />
+          </Tooltip>
         ) : null}
       </PanelHeader>
 

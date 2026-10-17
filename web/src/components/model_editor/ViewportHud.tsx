@@ -6,9 +6,21 @@ import GridOnIcon from "@mui/icons-material/GridOn";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
 
-import { Divider, FlexRow, MenuItemPrimitive, ToolbarIconButton } from "../ui_primitives";
+import {
+  Divider,
+  EditorButton,
+  FlexRow,
+  MenuItemPrimitive,
+  ToolbarIconButton,
+  Tooltip
+} from "../ui_primitives";
 import { MenuButton } from "./MenuButton";
-import { EDITOR_SHORTCUTS, shortcutKeys, type EditorAction } from "./editorShortcuts";
+import {
+  EDITOR_SHORTCUTS,
+  shortcutKeys,
+  withShortcut,
+  type EditorAction
+} from "./editorShortcuts";
 import type { ViewPreset } from "./ViewportHelpers";
 import type { ViewPrefs } from "./viewPrefs";
 
@@ -79,21 +91,32 @@ const ViewportHud = ({
           />
         ]}
       </MenuButton>
-      <ToolbarIconButton
-        icon={<FitScreenIcon fontSize="small" />}
-        tooltip="Frame all"
-        shortcut={shortcutKeys("frameAll")}
-        onClick={onFrameAll}
-        size="small"
-      />
-      <ToolbarIconButton
-        icon={<CenterFocusStrongIcon fontSize="small" />}
-        tooltip="Focus selection"
-        shortcut={shortcutKeys("focusSelection")}
-        onClick={onFocus}
-        disabled={!canFocus}
-        size="small"
-      />
+      <Tooltip title={withShortcut("Frame all objects", "frameAll")}>
+        <EditorButton
+          density="compact"
+          variant="text"
+          startIcon={<FitScreenIcon />}
+          sx={{ whiteSpace: "nowrap" }}
+          onClick={onFrameAll}
+        >
+          Frame all
+        </EditorButton>
+      </Tooltip>
+      <Tooltip title={withShortcut("Frame selection", "focusSelection")}>
+        {/* The span keeps the tooltip on a disabled button. */}
+        <span>
+          <EditorButton
+            density="compact"
+            variant="text"
+            startIcon={<CenterFocusStrongIcon />}
+            sx={{ whiteSpace: "nowrap" }}
+            onClick={onFocus}
+            disabled={!canFocus}
+          >
+            Frame selection
+          </EditorButton>
+        </span>
+      </Tooltip>
       <Divider orientation="vertical" flexItem />
       <ToolbarIconButton
         icon={<GridOnIcon fontSize="small" />}

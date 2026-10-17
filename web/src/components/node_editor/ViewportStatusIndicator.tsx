@@ -13,14 +13,15 @@ import {
   SPACING,
   getSpacingPx,
   Z_INDEX,
-  reducedMotion
+  reducedMotion,
+  ICON_SIZE
 } from "../ui_primitives";
 import { useStore, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import FilterCenterFocusIcon from "@mui/icons-material/FilterCenterFocus";
 import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import RemoveIcon from "@mui/icons-material/Remove";
 import { getShortcutTooltip } from "../../config/shortcuts";
 
@@ -103,10 +104,10 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       color: theme.vars.palette.text.secondary,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
-        color: theme.palette.primary.main
+        color: theme.vars.palette.primary.main
       }
     }),
-    [theme.vars.palette.text.secondary, theme.vars.palette.action.hover, theme.palette.primary.main]
+    [theme.vars.palette.text.secondary, theme.vars.palette.action.hover, theme.vars.palette.primary.main]
   );
 
   const zoomLabelSx = useMemo(
@@ -118,7 +119,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       color: currentPreset !== null
-        ? theme.palette.primary.main
+        ? theme.vars.palette.primary.main
         : theme.vars.palette.text.secondary,
       minWidth: "48px",
       textAlign: "center" as const,
@@ -127,10 +128,10 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       transition: `all ${MOTION.fast}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
-        color: theme.palette.primary.main
+        color: theme.vars.palette.primary.main
       }
     }),
-    [currentPreset, theme.palette.primary.main, theme.vars.palette.text.secondary, theme.vars.palette.action.hover]
+    [currentPreset, theme.vars.palette.primary.main, theme.vars.palette.text.secondary, theme.vars.palette.action.hover]
   );
 
   const containerSx = useMemo(
@@ -167,7 +168,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         sx={containerSx}
       >
         <ToolbarIconButton
-          icon={<RemoveIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+          icon={<RemoveIcon sx={{ fontSize: ICON_SIZE.sm }} />}
           tooltip={getShortcutTooltip("zoomOut")}
           tooltipPlacement="top"
           onClick={handleZoomOut}
@@ -196,7 +197,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         </Tooltip>
 
         <ToolbarIconButton
-          icon={<AddIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+          icon={<AddIcon sx={{ fontSize: ICON_SIZE.sm }} />}
           tooltip={getShortcutTooltip("zoomIn")}
           tooltipPlacement="top"
           onClick={handleZoomIn}
@@ -214,7 +215,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         />
 
         <ToolbarIconButton
-          icon={<CenterFocusStrongIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+          icon={<CenterFocusStrongIcon sx={{ fontSize: ICON_SIZE.sm }} />}
           tooltip={getShortcutTooltip("fitView")}
           tooltipPlacement="top"
           onClick={handleFitView}
@@ -223,7 +224,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         />
 
         <ToolbarIconButton
-          icon={<FilterCenterFocusIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+          icon={<FilterCenterFocusIcon sx={{ fontSize: ICON_SIZE.sm }} />}
           tooltip="Fit selection"
           tooltipPlacement="top"
           onClick={handleFitSelection}
@@ -233,7 +234,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
 
         {onTogglePortLabels ? (
           <ToolbarIconButton
-            icon={<LabelOutlinedIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+            icon={<LabelOutlinedIcon sx={{ fontSize: ICON_SIZE.sm }} />}
             tooltip={showPortLabels ? "Hide port labels" : "Show port labels"}
             tooltipPlacement="top"
             onClick={onTogglePortLabels}

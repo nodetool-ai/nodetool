@@ -11,67 +11,22 @@ import AgentRunHero from "../../components/agents/AgentRunHero";
 import AgentSurfaceGrid from "../../components/agents/AgentSurfaceGrid";
 import McpInstallCommand from "../../components/agents/McpInstallCommand";
 import TrackedLink from "../../components/TrackedLink";
+import PageUpdated from "@/components/PageUpdated";
+import {
+  AGENTS_LEAD,
+  APPROVAL_MODES,
+  APPROVAL_MODES_INTRO,
+  CONTROLS,
+  LOOP_STAGES,
+  MCP_STEPS,
+} from "@/data/agentsPage";
 
-const loopStages = [
-  {
-    title: "Build",
-    tool: "create_workflow",
-    body: "The agent adds nodes, picks models, and wires the graph.",
-  },
-  {
-    title: "Run",
-    tool: "run_workflow",
-    body: "The graph calls your local models and provider accounts.",
-  },
-  {
-    title: "Inspect",
-    tool: "get_job_logs",
-    body: "Every tool call, output, and error is in the log.",
-  },
-  {
-    title: "Repair",
-    tool: "create_workflow_version",
-    body: "The fix is a new version. The last good one stays.",
-  },
-];
-
-const controls = [
-  {
-    icon: Cpu,
-    title: "Your models",
-    body: "Run the agent on Claude, GPT, Gemini, or a local model through Ollama. Each node names its own model.",
-  },
-  {
-    icon: KeyRound,
-    title: "Your keys",
-    body: "Each generation is billed to your own provider account at its list price. NodeTool sells no credits.",
-  },
-  {
-    icon: ScrollText,
-    title: "A full record",
-    body: "Read each tool call with its arguments, result, and error. Find the step that went wrong.",
-  },
-  {
-    icon: Hand,
-    title: "Your hands",
-    body: "Stop the agent, change a node yourself, and hand the work back. It reads the graph as you left it.",
-  },
-];
-
-const mcpSteps = [
-  {
-    title: "Install",
-    body: "The command finds the coding agents on your computer and adds NodeTool to each one's settings. It needs Node.js 22.",
-  },
-  {
-    title: "Restart the agent",
-    body: "Then ask it: “List my NodeTool workflows.”",
-  },
-  {
-    title: "Store your keys",
-    body: "Run nodetool secrets store once per provider, such as FAL_API_KEY.",
-  },
-];
+const CONTROL_ICONS = {
+  "Your models": Cpu,
+  "Your keys": KeyRound,
+  "A full record": ScrollText,
+  "Your hands": Hand,
+} as const;
 
 const primaryButtonClass =
   "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition-colors hover:bg-blue-500 focus-ring";
@@ -132,11 +87,7 @@ export default function AgentsPage() {
               The open-source creative harness for your agent.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-300">
-              A harness is everything an agent works inside: tools, editors,
-              models, keys, and a record of each step. NodeTool is that harness
-              for creative work. Give a brief to the built-in agent or to Claude
-              Code. It generates images, video, and audio, builds the workflow,
-              and leaves every piece open to change.
+              {AGENTS_LEAD}
             </p>
             <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <AgentsPrimaryAction />
@@ -190,7 +141,7 @@ export default function AgentsPage() {
                 className="absolute bottom-6 left-[1.1875rem] top-6 w-px bg-gradient-to-b from-blue-400/60 via-slate-700 to-blue-400/60"
                 aria-hidden
               />
-              {loopStages.map((stage, index) => (
+              {LOOP_STAGES.map((stage, index) => (
                 <li
                   key={stage.title}
                   className="relative grid grid-cols-[2.5rem_1fr] gap-5 pb-8 last:pb-0"
@@ -227,7 +178,7 @@ export default function AgentsPage() {
           <SectionHeader
             id="agent-surfaces-title"
             eyebrow="What the harness gives the agent"
-            title="Seven editors the agent can work in. No export step."
+            title="Eight editors the agent can work in. No export step."
             body="The agent edits the same documents you open in Studio. When it stops, the work is already in the editor."
           />
           <div className="mt-12">
@@ -249,7 +200,9 @@ export default function AgentsPage() {
             body="You decide what the agent may use, and you can read everything it did."
           />
           <ul className="mt-12 grid overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40 sm:grid-cols-2">
-            {controls.map(({ icon: Icon, title, body }) => (
+            {CONTROLS.map(({ title, body }) => {
+              const Icon = CONTROL_ICONS[title as keyof typeof CONTROL_ICONS];
+              return (
               <li
                 key={title}
                 className="border-slate-800 p-7 [&:not(:first-child)]:border-t sm:[&:nth-child(2)]:border-t-0 sm:[&:nth-child(even)]:border-l lg:p-9"
@@ -262,8 +215,36 @@ export default function AgentsPage() {
                   {body}
                 </p>
               </li>
-            ))}
+              );
+            })}
           </ul>
+          <div className="mt-16">
+            <h3
+              id="approval-modes-title"
+              className="text-2xl font-semibold tracking-tight text-white"
+            >
+              Choose how much the agent may do on its own.
+            </h3>
+            <p className="mt-3 max-w-2xl leading-relaxed text-slate-300">
+              {APPROVAL_MODES_INTRO}
+            </p>
+            <dl
+              aria-labelledby="approval-modes-title"
+              className="mt-8 grid gap-6 sm:grid-cols-3"
+            >
+              {APPROVAL_MODES.map(({ title, body }) => (
+                <div
+                  key={title}
+                  className="rounded-2xl border border-slate-800 bg-slate-900/40 p-6"
+                >
+                  <dt className="text-lg font-semibold text-white">{title}</dt>
+                  <dd className="mt-2 text-sm leading-relaxed text-slate-300">
+                    {body}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         </div>
       </section>
 
@@ -304,7 +285,7 @@ export default function AgentsPage() {
                 <McpInstallCommand placement="terminal" />
               </div>
               <ol className="grid border-t border-slate-800 sm:grid-cols-3">
-                {mcpSteps.map((step, index) => (
+                {MCP_STEPS.map((step, index) => (
                   <li
                     key={step.title}
                     className="border-slate-800 p-5 [&:not(:first-child)]:border-t sm:[&:not(:first-child)]:border-l sm:[&:not(:first-child)]:border-t-0"
@@ -337,7 +318,15 @@ export default function AgentsPage() {
                 className="text-blue-300 underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200 focus-ring"
               >
                 Read the MCP setup guide
-              </TrackedLink>
+              </TrackedLink>{" "}
+              or see{" "}
+              <a
+                href="/mcp"
+                className="text-blue-300 underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200 focus-ring"
+              >
+                every tool the MCP server gives your agent
+              </a>
+              .
             </p>
           </div>
         </div>
@@ -375,6 +364,9 @@ export default function AgentsPage() {
           eventProps: { placement: "closing" },
         }}
       />
+    <div className="mx-auto max-w-7xl px-6 pb-12 lg:px-8">
+      <PageUpdated route="/agents" className="text-sm text-slate-400" />
+    </div>
     </MarketingPageShell>
   );
 }

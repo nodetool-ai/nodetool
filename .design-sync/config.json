@@ -108,7 +108,6 @@
     "UndoRedoButtons": "src/components/ui_primitives/UndoRedoButtons.tsx",
     "UploadButton": "src/components/ui_primitives/UploadButton.tsx",
     "VideoPlayer": "src/components/ui_primitives/VideoPlayer.tsx",
-    "ViewModeToggle": "src/components/ui_primitives/ViewModeToggle.tsx",
     "WarningBanner": "src/components/ui_primitives/WarningBanner.tsx",
     "ZoomControls": "src/components/ui_primitives/ZoomControls.tsx"
   },

@@ -1,6 +1,6 @@
 import { memo, useEffect, useCallback, useMemo } from "react";
 import CollectionForm from "./CollectionForm";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import CollectionHeader from "./CollectionHeader";
 import EmptyCollectionState from "./EmptyCollectionState";
 import CollectionItem from "./CollectionItem";
@@ -136,9 +136,9 @@ const CollectionList = () => {
             </Text>
             <CreateFab
               onClick={handleShowForm}
-              label="Create Collection"
+              label="Create collection"
               icon={<AddIcon />}
-              aria-label="Create Collection"
+              aria-label="Create collection"
             />
           </FlexRow>
 

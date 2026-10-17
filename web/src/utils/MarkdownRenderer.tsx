@@ -231,8 +231,8 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
               size="small"
               icon={<FullscreenIcon fontSize="small" />}
               sx={{
-                bgcolor: (t) => t.palette.action.hover,
-                "&:hover": { bgcolor: (t) => t.palette.action.selected }
+                bgcolor: "action.hover",
+                "&:hover": { bgcolor: "action.selected" }
               }}
               nodrag={false}
             />

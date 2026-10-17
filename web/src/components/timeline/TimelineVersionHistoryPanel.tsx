@@ -30,6 +30,7 @@ import {
 } from "../../serverState/useTimelineVersions";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import { notifyMutationError } from "../../utils/notifyMutationError";
+import ErrorBanner from "../support/ErrorBanner";
 import {
   Caption,
   Chip,
@@ -290,10 +291,16 @@ export const TimelineVersionHistoryPanel: React.FC<
           </FlexColumn>
         ) : error ? (
           <FlexColumn gap={0.5} sx={{ p: 2 }}>
-            <Text color="error">Failed to load versions</Text>
-            <Caption size="smaller" color="secondary">
+            <ErrorBanner
+              title="Could not load versions"
+              report={{
+                source: "operation-failure",
+                summary: "Timeline versions failed to load",
+                errorText: error instanceof Error ? error.message : String(error)
+              }}
+            >
               {error instanceof Error ? error.message : String(error)}
-            </Caption>
+            </ErrorBanner>
           </FlexColumn>
         ) : ordered.length === 0 ? (
           <FlexColumn align="center" sx={{ py: 4, px: 2 }}>

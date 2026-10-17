@@ -31,7 +31,7 @@ export const EFFECT_LABELS = {
   videoBlur: "Blur",
   sharpen: "Sharpen",
   vignette: "Vignette",
-  chromaKey: "Chroma Key"
+  chromaKey: "Chroma key"
 } satisfies Record<TrackEffect["type"], string>;
 
 /** Effect types available on audio tracks. */

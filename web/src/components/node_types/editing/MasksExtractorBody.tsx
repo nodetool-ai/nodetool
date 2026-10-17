@@ -206,7 +206,7 @@ const MasksExtractorBodyInner: React.FC<MasksExtractorBodyProps> = ({
         </FlexRow>
         <div className="action-row">
           <RunModelButton
-            label="Recalculate Mask"
+            label="Recalculate mask"
             isRunning={isRunning}
             onClick={runSingleNode}
           />

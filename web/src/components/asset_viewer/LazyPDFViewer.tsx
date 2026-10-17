@@ -2,7 +2,7 @@
 // it out of the initial bundle.
 
 import React, { Suspense, lazy } from "react";
-import { FlexColumn, Text, LoadingSpinner, SPACING } from "../ui_primitives";
+import { FlexColumn, LoadingSpinner, SPACING } from "../ui_primitives";
 import type { Asset } from "../../stores/ApiTypes";
 
 const PDFViewer = lazy(() =>
@@ -23,10 +23,7 @@ const PDFViewerLoadingFallback: React.FC = () => (
     gap={SPACING.md}
     sx={{ height: "300px" }}
   >
-    <LoadingSpinner size="medium" />
-    <Text size="small" color="secondary">
-      Loading PDF viewer…
-    </Text>
+    <LoadingSpinner size="medium" text="Loading PDF viewer" />
   </FlexColumn>
 );
 

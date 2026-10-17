@@ -4,9 +4,9 @@ import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
-import EditIcon from "@mui/icons-material/Edit";
+import EditIcon from "@mui/icons-material/EditOutlined";
 import FilterListIcon from "@mui/icons-material/FilterList";
-import DeleteIcon from "@mui/icons-material/Delete";
+import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -95,7 +95,7 @@ const NodeContextMenu: React.FC = () => {
       onClick={handlers.handleCopyMetadataToClipboard}
       label="Copy node as JSON"
       IconComponent={<DataArrayIcon />}
-      tooltip="Copy this node's data as JSON to the clipboard"
+      tooltip="Copy node data as JSON"
     />,
     <ContextMenuItem
       key="duplicate"
@@ -170,11 +170,11 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="toggle-comment"
       onClick={handlers.handleToggleComment}
-      label={conditions.hasCommentTitle ? "Remove comment" : "Add comment"}
+      label={conditions.hasCommentTitle ? "Delete comment" : "Add comment"}
       IconComponent={<EditIcon />}
       tooltip={
         conditions.hasCommentTitle
-          ? "Remove the comment from this node"
+          ? "Delete the comment on this node"
           : "Add a comment to this node"
       }
     />,

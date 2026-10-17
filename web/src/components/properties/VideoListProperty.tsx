@@ -7,7 +7,7 @@ import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { listDropzoneStyles } from "./shared/listDropzoneStyles";
-import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx } from "../ui_primitives";
+import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx, ICON_SIZE } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -82,7 +82,7 @@ const styles = (theme: Theme) =>
       opacity: 0,
       transition: `opacity ${MOTION.normal}`,
       backgroundColor: theme.vars.palette.c_scrim,
-      color: theme.vars.palette.grey[100],
+      color: theme.vars.palette.common.white,
       padding: getSpacingPx(SPACING.micro),
       width: "20px",
       height: "20px",
@@ -93,7 +93,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".remove-button .MuiSvgIcon-root": {
-      fontSize: "var(--fontSizeNormal)"
+      fontSize: ICON_SIZE.sm
     },
     ...listDropzoneStyles(theme)
   });

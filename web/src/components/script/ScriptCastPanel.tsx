@@ -21,7 +21,8 @@ import {
   BORDER_RADIUS,
   EYEBROW,
   MOTION,
-  TYPOGRAPHY
+  TYPOGRAPHY,
+  ICON_SIZE
 } from "../ui_primitives";
 import TTSModelSelect from "../properties/TTSModelSelect";
 import type { TTSModelValue } from "../../stores/ApiTypes";
@@ -183,7 +184,7 @@ const SpeakerCard = ({
           >
             <MicNoneIcon
               sx={{
-                fontSize: "var(--fontSizeNormal)",
+                fontSize: ICON_SIZE.sm,
                 color: speaker.voice ? "info.main" : "text.disabled"
               }}
             />

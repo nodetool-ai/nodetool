@@ -4,7 +4,7 @@ import JsonLd from "../../components/JsonLd";
 export const metadata: Metadata = {
   title: "NodeTool for Developers | Images, Video, and Workflows for Your Coding Agent",
   description:
-    "Connect NodeTool to Claude Code, Codex, OpenCode, or Cursor with one command. Your coding agent makes images, video, speech, and repeatable media workflows on your own provider keys. Open source under AGPL-3.0.",
+    "Connect NodeTool to Claude Code, Codex, OpenCode, or Cursor with one command. Your coding agent makes images, video, speech, and workflows on your own keys.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/developers",
@@ -61,7 +61,7 @@ export default function DevelopersLayout({
             "Open-source creative workspace that runs as an MCP server for coding agents such as Claude Code, Codex, OpenCode, and Cursor, with image, video, speech, and workflow tools.",
           codeRepository: "https://github.com/nodetool-ai/nodetool",
           programmingLanguage: ["TypeScript", "Python"],
-          license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE",
+          license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE.txt",
           url: "https://nodetool.ai/developers",
         }}
       />

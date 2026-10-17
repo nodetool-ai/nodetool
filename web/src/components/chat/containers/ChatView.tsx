@@ -16,7 +16,7 @@ import {
   LanguageModel,
   TodoItem
 } from "../../../stores/ApiTypes";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {
   FlexColumn,

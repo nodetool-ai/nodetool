@@ -7,7 +7,8 @@ import {
   Popover,
   DialogTitle,
   DialogContent,
-  LoadingSpinner
+  LoadingSpinner,
+  ICON_SIZE
 } from "../ui_primitives";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import { AssetList } from "../../stores/ApiTypes";
@@ -156,7 +157,7 @@ const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
             margin: "0"
           }}
         >
-          <CreateNewFolderIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+          <CreateNewFolderIcon sx={{ fontSize: ICON_SIZE.md }} />
         </EditorButton>
       </FlexRow>
       <Popover
@@ -169,13 +170,13 @@ const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
         aria-describedby="alert-dialog-description"
       >
         <DialogTitle className="dialog-title" id="alert-dialog-title">
-          {"Create Folder"}
+          {"Create folder"}
         </DialogTitle>
         <DialogContent className="dialog-content">
           <TextInput
             className="input-field"
             inputRef={inputRef}
-            placeholder="Folder Name"
+            placeholder="Folder name"
             autoFocus
             spellCheck={false}
             autoComplete="off"
@@ -186,7 +187,7 @@ const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
         <DialogActionButtons
           onCancel={handleCloseMenu}
           onConfirm={handleCreateFolder}
-          confirmText="Create Folder"
+          confirmText="Create folder"
         />
       </Popover>
     </>

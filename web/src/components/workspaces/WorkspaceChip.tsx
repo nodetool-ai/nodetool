@@ -2,8 +2,8 @@ import React, { memo, useCallback, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useMutation } from "@tanstack/react-query";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import FolderIcon from "@mui/icons-material/Folder";
-import AddIcon from "@mui/icons-material/Add";
+import FolderIcon from "@mui/icons-material/FolderOutlined";
+import AddIcon from "@mui/icons-material/AddOutlined";
 
 import {
   ContextMenu,

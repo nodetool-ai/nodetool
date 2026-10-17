@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { SvgIconComponent } from "@mui/icons-material";
+import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
@@ -10,6 +11,7 @@ import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
+import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
 import WorkflowIcon from "@mui/icons-material/AccountTreeOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
@@ -59,7 +61,8 @@ import {
   TYPOGRAPHY,
   PanelHeader,
   ToolbarIconButton,
-  selectableRowStyles
+  selectableRowStyles,
+  ICON_SIZE
 } from "../ui_primitives";
 
 const DOCUMENT_TAB_TYPES = {
@@ -68,7 +71,9 @@ const DOCUMENT_TAB_TYPES = {
   script: "script",
   storyboard: "storyboard",
   timeline: "timeline",
-  jsscript: "jsscript"
+  jsscript: "jsscript",
+  game: "game",
+  text: "text"
 } satisfies Record<
   Exclude<DocumentTreeLeafType, "application" | "entity">,
   WorkspaceTabType
@@ -87,11 +92,17 @@ const leafCanRename = (type: DocumentTreeLeafType): boolean => {
   return tabType !== null && tabCanRename(tabType);
 };
 
+/** Games have no delete route, so their rows offer no delete action. */
+const leafCanDelete = (type: DocumentTreeLeafType): boolean =>
+  type !== "game";
+
 const GROUP_ICONS: Record<DocumentTreeGroup["id"], SvgIconComponent> = {
   workflows: WorkflowIcon,
   apps: DashboardCustomizeOutlinedIcon,
   creative: BrushOutlinedIcon,
-  agents: AutoAwesomeIcon
+  text: ArticleOutlinedIcon,
+  agents: AutoAwesomeIcon,
+  entities: PersonOutlineOutlinedIcon
 };
 
 const LEAF_ICONS: Record<DocumentTreeLeafType, SvgIconComponent> = {
@@ -102,7 +113,9 @@ const LEAF_ICONS: Record<DocumentTreeLeafType, SvgIconComponent> = {
   storyboard: DashboardOutlinedIcon,
   timeline: MovieOutlinedIcon,
   entity: PersonOutlineOutlinedIcon,
-  jsscript: DataObjectOutlinedIcon
+  jsscript: DataObjectOutlinedIcon,
+  game: SportsEsportsOutlinedIcon,
+  text: ArticleOutlinedIcon
 };
 
 const LEAF_ICON_COLORS: Record<DocumentTreeLeafType, string> = {
@@ -113,7 +126,9 @@ const LEAF_ICON_COLORS: Record<DocumentTreeLeafType, string> = {
   storyboard: TYPE_COLOR.storyboard,
   timeline: TYPE_COLOR.timeline,
   entity: colorForType("entity"),
-  jsscript: TYPE_COLOR.jsscript
+  jsscript: TYPE_COLOR.jsscript,
+  game: TYPE_COLOR.game,
+  text: TYPE_COLOR.text
 };
 
 interface DocumentsTreeProps {
@@ -125,7 +140,8 @@ interface DocumentTreeRowProps {
   readonly leaf: DocumentTreeLeaf;
   readonly active: boolean;
   readonly onOpen: (document: DocumentTreeLeaf) => void;
-  readonly onDelete: (document: DocumentTreeLeaf) => void;
+  /** Present only for kinds that can be deleted from the tree. */
+  readonly onDelete?: (document: DocumentTreeLeaf) => void;
   /** Present only for kinds that can be copied from the tree. */
   readonly onDuplicate?: (document: DocumentTreeLeaf) => void;
   /** Present only for kinds that can be renamed. */
@@ -151,7 +167,7 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
   const Icon = LEAF_ICONS[leaf.type];
   const [editing, setEditing] = useState(false);
   const handleClick = useCallback(() => onOpen(leaf), [leaf, onOpen]);
-  const handleDelete = useCallback(() => onDelete(leaf), [leaf, onDelete]);
+  const handleDelete = useCallback(() => onDelete?.(leaf), [leaf, onDelete]);
   const handleDuplicate = useCallback(
     () => onDuplicate?.(leaf),
     [leaf, onDuplicate]
@@ -246,7 +262,7 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
             aria-hidden="true"
             sx={(theme) => ({
               color: `color-mix(in srgb, ${LEAF_ICON_COLORS[leaf.type]} 60%, ${theme.vars.palette.text.primary})`,
-              fontSize: "var(--fontSizeBig)"
+              fontSize: ICON_SIZE.md
             })}
           />
           {editing ? (
@@ -300,13 +316,15 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
           className="documents-tree-duplicate"
         />
       )}
-      <DeleteButton
-        onClick={handleDelete}
-        tooltip={`Delete ${leaf.name}`}
-        ariaLabel={`Delete ${leaf.name}`}
-        iconVariant="outline"
-        className="documents-tree-delete"
-      />
+      {onDelete && (
+        <DeleteButton
+          onClick={handleDelete}
+          tooltip={`Delete ${leaf.name}`}
+          ariaLabel={`Delete ${leaf.name}`}
+          iconVariant="outline"
+          className="documents-tree-delete"
+        />
+      )}
       {onRename && (
         <ContextMenu
           open={menuPosition !== null}
@@ -402,7 +420,7 @@ const DocumentTreeGroupRow = ({
           aria-label={`${expanded ? "Collapse" : "Expand"} ${group.label}`}
           tabIndex={-1}
         />
-        <Icon aria-hidden="true" sx={{ fontSize: "var(--fontSizeBig)" }} />
+        <Icon aria-hidden="true" sx={{ fontSize: ICON_SIZE.md }} />
         <TruncatedText component="span" sx={TYPOGRAPHY.sans.label}>
           {group.label}
         </TruncatedText>
@@ -418,7 +436,7 @@ const DocumentTreeGroupRow = ({
               leaf={document}
               active={activeTabId === `${document.type}:${document.id}`}
               onOpen={onOpen}
-              onDelete={onDelete}
+              onDelete={leafCanDelete(document.type) ? onDelete : undefined}
               onDuplicate={
                 document.type === "workflow" ? onDuplicate : undefined
               }
@@ -637,13 +655,11 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
             title={query.trim() ? "No matching documents" : "No documents yet"}
             description={
               query.trim()
-                ? // This search covers documents only. Name where the rest
-                  // lives, or an empty result reads as "it does not exist"
-                  // (study-7-I4).
-                  "This searches documents only. Conversations are in Chats, and text files and uploads are in the Library."
-                : // A new text file is a Library file, not a document. Say so,
-                  // or the empty panel reads as a lost save.
-                  "Documents created in this project will appear here. Text files and uploads are in the Library."
+                ? // This search covers documents and text files only. Name
+                  // where the rest lives, or an empty result reads as "it
+                  // does not exist" (study-7-I5).
+                  "This searches documents only. Conversations are in Chats, and uploads are in the Library."
+                : "Workflows, text files and other documents created in this project will appear here. Uploads are in the Library."
             }
           />
         </FlexColumn>

@@ -4,8 +4,8 @@ import type { DragEvent, ReactNode } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 import { useMediaQuery } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
+import AddIcon from "@mui/icons-material/AddOutlined";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -22,6 +22,7 @@ import {
   Text,
   TextInput,
   EditorButton,
+  Toolbar,
   ToolbarIconButton,
   UndoRedoButtons,
   EmptyState,
@@ -39,7 +40,8 @@ import {
   TruncatedText,
   MOTION,
   SPACING_PX,
-  Z_INDEX
+  Z_INDEX,
+  ICON_SIZE
 } from "../ui_primitives";
 import { formatDuration } from "../../utils/formatUtils";
 import { useInStudio } from "../../studio/StudioContext";
@@ -172,7 +174,7 @@ const InsertLineGap = ({
         color: "primary.main"
       }}
     >
-      <AddIcon sx={{ fontSize: "var(--fontSizeSmall)" }} />
+      <AddIcon sx={{ fontSize: ICON_SIZE.xs }} />
       <Box
         sx={{
           flex: 1,
@@ -413,7 +415,7 @@ const SectionBlockInner = ({
         {!readOnly && (
           <Box className="section-remove">
             <ToolbarIconButton
-              tooltip="Remove section"
+              tooltip="Delete section"
               onClick={() => removeSection(scriptId, section.id)}
               icon={<CloseIcon fontSize="small" />}
             />
@@ -981,10 +983,10 @@ const ScriptDocumentPane = ({
       commands.push({
         id: "send-to-timeline",
         label: storyboardId
-          ? "Assemble Video"
+          ? "Assemble video"
           : timelineId
-            ? "Update Timeline"
-            : "Send to Timeline",
+            ? "Update timeline"
+            : "Send to timeline",
         run: onSendToTimeline
       });
     }
@@ -1027,15 +1029,16 @@ const ScriptDocumentPane = ({
       gap={SPACING.md}
       sx={{ flex: 1, minWidth: 0, height: "100%", overflowY: "auto" }}
     >
-      <FlexColumn
-        gap={SPACING.none}
+      {/* A stacked two-row header: Toolbar's surface and rule, column layout. */}
+      <Toolbar
         sx={{
           position: "sticky",
           top: 0,
-          backgroundColor: "background.paper",
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          zIndex: Z_INDEX.sticky
+          zIndex: Z_INDEX.sticky,
+          flexDirection: "column",
+          alignItems: "stretch",
+          gap: SPACING.none,
+          px: SPACING.none
         }}
       >
       <FlexRow
@@ -1072,7 +1075,7 @@ const ScriptDocumentPane = ({
           </MetaChip>
         )}
         {castCount > 0 && (
-          <MetaChip icon={<MicNoneIcon sx={{ fontSize: "inherit" }} />}>
+          <MetaChip icon={<MicNoneIcon fontSize="inherit" />}>
             {castCount} {castCount === 1 ? "voice" : "voices"}
           </MetaChip>
         )}
@@ -1158,11 +1161,14 @@ const ScriptDocumentPane = ({
             startIcon={<MovieIcon fontSize="small" />}
             onClick={onSendToTimeline}
             disabled={assembling || !hasVoicedLine}
-            title={
+            tooltip={
+              storyboardId
+                ? "Cut the linked storyboard's shots and these takes into one timeline"
+                : undefined
+            }
+            disabledReason={
               hasVoicedLine
-                ? storyboardId
-                  ? "Cut the linked storyboard's shots and these takes into one timeline"
-                  : undefined
+                ? undefined
                 : "Voice at least one line to send it to a timeline"
             }
           >
@@ -1230,7 +1236,7 @@ const ScriptDocumentPane = ({
           </>
         )}
       </FlexRow>
-      </FlexColumn>
+      </Toolbar>
 
       <VoicingStrip scriptId={scriptId} readOnly={readOnly} />
 

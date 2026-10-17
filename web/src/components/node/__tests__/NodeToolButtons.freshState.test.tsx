@@ -43,12 +43,12 @@ describe("NodeToolButtons", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByLabelText("Disable Node")).toBeInTheDocument();
+    expect(screen.getByLabelText("Disable node")).toBeInTheDocument();
 
     act(() => {
       store.getState().toggleBypass("n1");
     });
 
-    expect(screen.getByLabelText("Enable Node")).toBeInTheDocument();
+    expect(screen.getByLabelText("Enable node")).toBeInTheDocument();
   });
 });

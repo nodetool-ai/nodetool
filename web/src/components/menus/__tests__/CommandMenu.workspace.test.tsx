@@ -1,11 +1,12 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import CommandMenu from "../CommandMenu";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import { useCommandMenuStore } from "../../../stores/CommandMenuStore";
+import { useConfirmStore } from "../../../stores/ConfirmStore";
 import { trpcClient } from "../../../trpc/client";
 
 const mockRemoveWorkflow = jest.fn();
@@ -106,11 +107,10 @@ it("Close Workflow removes the last workflow and keeps the project usable", asyn
 
 it.each([false, true])("Close Workflow honors unsaved discard choice %s", async (discard) => {
   mockManager.unsavedWorkflowIds = { existing: true };
-  const confirm = jest.spyOn(window, "confirm").mockReturnValue(discard);
   renderMenu();
   await userEvent.click(await screen.findByRole("option", { name: "Close Workflow" }));
-  expect(confirm).toHaveBeenCalledWith('Unsaved changes or saves in progress may be lost. Close “Existing”?');
+  expect(useConfirmStore.getState().pending?.request.content).toBe('Unsaved changes or saves in progress may be lost. Close “Existing”?');
+  await act(async () => useConfirmStore.getState().settle(discard));
   expect(useWorkspaceTabsStore.getState().tabs.some((tab) => tab.ref === "existing")).toBe(!discard);
   expect(mockRemoveWorkflow).toHaveBeenCalledTimes(discard ? 1 : 0);
-  confirm.mockRestore();
 });

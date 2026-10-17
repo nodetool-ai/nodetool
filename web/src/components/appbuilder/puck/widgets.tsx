@@ -10,6 +10,7 @@ import remarkGfm from "remark-gfm";
 import {
   Text,
   TextInput,
+  NumberField,
   Slider,
   SelectField,
   LabeledSwitch,
@@ -318,7 +319,7 @@ const VideoItem: React.FC<{
         overflow: "hidden"
       }}
     >
-      <VideoPlayer locator={src} />
+      <VideoPlayer locator={src} label={filename ?? "Video"} />
     </Box>
     {download ? (
       <MediaDownloadButton
@@ -1146,17 +1147,14 @@ export const NumberInputWidget: React.FC<
 > = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
   return (
-    <TextInput
+    <NumberField
       label={props.label ?? ""}
-      type="number"
       value={value == null ? "" : String(value)}
       size="small"
       fullWidth
-      inputProps={{
-        min: numOr(props.min, 0),
-        max: numOr(props.max, 100),
-        step: numOr(props.step, 1)
-      }}
+      min={numOr(props.min, 0)}
+      max={numOr(props.max, 100)}
+      step={numOr(props.step, 1)}
       onChange={(e) => {
         setValue(e.target.value === "" ? null : Number(e.target.value));
         emit("change");

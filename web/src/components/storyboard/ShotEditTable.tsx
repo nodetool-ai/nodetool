@@ -22,7 +22,8 @@ import {
   FormSection,
   Text,
   TextInput,
-  SPACING
+  SPACING,
+  Tooltip
 } from "../ui_primitives";
 import {
   ANGLE_OPTIONS,
@@ -271,18 +272,22 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
               }}
             />
             {linksLines && (
-              <Chip
-                compact
-                variant="outlined"
-                label={pinned ? "Set by hand" : "From voice takes"}
-                sx={chipSx}
+              <Tooltip
                 title={
                   pinned
                     ? "The duration is the value you typed. Click to use the length of the voice takes for this shot's lines."
                     : "The duration is the length of the voice takes for this shot's lines. Click to type your own value."
                 }
-                onClick={readOnly ? undefined : handleToggleDurationSource}
-              />
+                describeChild
+              >
+                <Chip
+                  compact
+                  variant="outlined"
+                  label={pinned ? "Set by hand" : "From voice takes"}
+                  sx={chipSx}
+                  onClick={readOnly ? undefined : handleToggleDurationSource}
+                />
+              </Tooltip>
             )}
           </FlexColumn>
         </Box>

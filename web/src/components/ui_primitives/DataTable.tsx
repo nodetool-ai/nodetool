@@ -128,7 +128,7 @@ const DataTableInternal: React.FC<DataTableProps> = ({
         sx={{
           ...(bordered && {
             "& .MuiTableCell-root": {
-              borderRight: `1px solid ${theme.palette.divider}`,
+              borderRight: `1px solid ${theme.vars.palette.divider}`,
               "&:last-child": { borderRight: "none" },
             },
           }),
@@ -165,7 +165,7 @@ const DataTableInternal: React.FC<DataTableProps> = ({
                 cursor: onRowClick ? "pointer" : undefined,
                 ...(striped &&
                   index % 2 === 1 && {
-                    backgroundColor: theme.palette.action.hover,
+                    backgroundColor: theme.vars.palette.action.hover,
                   }),
               }}
             >

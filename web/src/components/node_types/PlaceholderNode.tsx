@@ -264,12 +264,12 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         ? preferredTitle
         : sourceType;
     const lastSegment = raw?.split(".").pop() || "";
-    return humanizeType(lastSegment) || "Missing Node";
+    return humanizeType(lastSegment) || "Missing node";
   }, [nodeType, nodeData]);
 
   const mockMetadata: NodeMetadata = useMemo(
     () => ({
-      title: computedHeaderTitle || nodeTitle || "Missing Node",
+      title: computedHeaderTitle || nodeTitle || "Missing node",
       description: "This node is missing",
       namespace: resolvedNamespace,
       node_type: resolvedType || "unknown",
@@ -326,7 +326,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       />
       <Tooltip title="This node type is missing. Search the node menu for a replacement or install the package that provides it.">
         <Text size="big" className="missing-node-text">
-          Missing Node
+          Missing node
         </Text>
       </Tooltip>
 
@@ -363,7 +363,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
                 onClick={openPackageManager}
                 startIcon={<CloudDownloadIcon />}
               >
-                Search Package Manager
+                Search package manager
               </EditorButton>
             </Tooltip>
           )}

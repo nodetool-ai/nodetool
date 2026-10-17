@@ -31,6 +31,7 @@
     "gen:storyboards": "node scripts/generate-storyboards.mjs",
     "gen:games": "node scripts/export-example-games.mjs",
     "gen:blog": "node scripts/generate-blog-entries.mjs",
+    "gen:content-dates": "node scripts/generate-content-dates.mjs",
     "seo:typecheck": "node ../scripts/run-tsc.mjs -p seo/tsconfig.json --noEmit",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",

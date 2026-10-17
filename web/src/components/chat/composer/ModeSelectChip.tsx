@@ -50,7 +50,7 @@ export function modeLabelFor(mode: MediaMode): string {
     return "Image";
   }
   if (mode === "image_edit") {
-    return "Image Edit";
+    return "Image edit";
   }
   if (mode === "video") {
     return "Video";

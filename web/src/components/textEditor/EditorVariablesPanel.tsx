@@ -4,11 +4,13 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type React from "react";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import {
   Tooltip,
   InlineEditableText,
+  focusRing,
+  activateOnKey,
   MOTION,
   BORDER_RADIUS,
   getSpacingPx,
@@ -95,8 +97,9 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
       backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.55)`,
-      border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.06)`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       transition: `all ${MOTION.fast}`,
+      "&:focus-visible": focusRing(theme, 2),
       "&:hover": {
         borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
         backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`
@@ -112,7 +115,7 @@ const styles = (theme: Theme) =>
       "&.unset .chip-dot": {
         backgroundColor: "transparent",
         boxShadow: "none",
-        border: `1.5px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.3)`
+        border: `1.5px solid ${theme.vars.palette.text.disabled}`
       },
       ".chip-name": {
         fontFamily: theme.fontFamily2,
@@ -211,7 +214,11 @@ const EditorVariablesPanel = ({
   }, []);
 
   const handleChipClick = useCallback(
-    (e: React.MouseEvent, name: string, syntax: VariableSyntax) => {
+    (
+      e: React.MouseEvent | React.KeyboardEvent,
+      name: string,
+      syntax: VariableSyntax
+    ) => {
       if (e.metaKey || e.ctrlKey) {
         onInsert(name, syntax);
         return;
@@ -271,6 +278,11 @@ const EditorVariablesPanel = ({
                 onClick={(e) =>
                   handleChipClick(e, variable.name, variable.syntax)
                 }
+                // Enter or Space edits the value (⌘/Ctrl+Enter inserts),
+                // as a click does. Keys typed in the value field are its own.
+                onKeyDown={activateOnKey((e) =>
+                  handleChipClick(e, variable.name, variable.syntax)
+                )}
               >
                 <span className="chip-dot" />
                 <span className="chip-name">{variable.name}</span>

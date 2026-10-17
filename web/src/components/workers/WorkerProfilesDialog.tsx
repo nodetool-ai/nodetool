@@ -17,7 +17,8 @@ import {
   SelectField,
   CollapsibleSection,
   AlertBanner,
-  InspectorSectionTitle
+  InspectorSectionTitle,
+  EmptyState
 } from "../ui_primitives";
 import type {
   CreateWorkerProfileInput,
@@ -337,9 +338,11 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
         <FlexColumn gap={SPACING.xs}>
           <SectionHeader size="small" title="Existing profiles" />
           {profiles.length === 0 ? (
-            <Caption size="small">
-              No profiles yet. Create one below.
-            </Caption>
+            <EmptyState
+              size="small"
+              title="No profiles yet"
+              description="Create one below."
+            />
           ) : (
             profiles.map((profile) => (
               <Card key={profile.id} variant="outlined" padding="compact">

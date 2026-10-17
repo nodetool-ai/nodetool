@@ -25,7 +25,8 @@ import {
   Tooltip,
   Box,
   BORDER_RADIUS,
-  Slider
+  Slider,
+  ICON_SIZE
 } from "../../ui_primitives";
 import { RefineSelectionPopover } from "./refine-selection";
 import { useSketchStore } from "../state";
@@ -139,7 +140,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
             sx={{ flexWrap: "wrap" }}
           >
             <SketchModeOption value="contiguous">Contiguous</SketchModeOption>
-            <SketchModeOption value="allLayers">All Layers</SketchModeOption>
+            <SketchModeOption value="allLayers">All layers</SketchModeOption>
           </SketchModeToggle>
         </>
       ) : null}
@@ -224,9 +225,9 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
                 }}
               >
                 {showAsMask ? (
-                  <OpacityIcon sx={{ fontSize: 16 }} />
+                  <OpacityIcon sx={{ fontSize: ICON_SIZE.sm }} />
                 ) : (
-                  <BorderStyleIcon sx={{ fontSize: 16 }} />
+                  <BorderStyleIcon sx={{ fontSize: ICON_SIZE.sm }} />
                 )}
               </ToolbarIconButton>
             </span>
@@ -258,7 +259,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
                     color: SKETCH_COLORS.textSecondary
                   }}
                 >
-                  <CropIcon sx={{ fontSize: 18 }} />
+                  <CropIcon sx={{ fontSize: ICON_SIZE.md }} />
                 </ToolbarIconButton>
               </span>
             </Tooltip>

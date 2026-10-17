@@ -71,6 +71,7 @@ jest.mock('@mui/material/styles', () => {
       vars: {
         palette: {
           grey: { 400: '#ccc' },
+          background: { paperChannel: '255 255 255' },
           c_node_bg: '#fff',
           glass: { blur: 'blur(10px)' },
           primary: { main: '#000' },

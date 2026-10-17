@@ -3,9 +3,9 @@ import { TabulatorFull as Tabulator, RowComponent } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { ColumnDef } from "../../../stores/ApiTypes";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { DeleteButton, RefreshButton, DownloadButton, Divider, ToolbarIconButton } from "../../ui_primitives";
+import { DeleteButton, RefreshButton, DownloadButton, Divider, ToolbarIconButton, ICON_SIZE } from "../../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import NumbersIcon from "@mui/icons-material/Numbers";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
@@ -416,7 +416,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       {editable && (
         <>
           <ToolbarIconButton title="Add new row" onClick={handleAddRow}>
-            <AddIcon sx={{ fontSize: 12 }} />
+            <AddIcon sx={{ fontSize: ICON_SIZE.xs }} />
           </ToolbarIconButton>
 
           <DeleteButton
@@ -433,7 +433,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
               className={selectedRows.length === 0 ? "disabled" : ""}
               onClick={handleDuplicateRows}
             >
-              <FileCopyIcon sx={{ fontSize: 12 }} />
+              <FileCopyIcon sx={{ fontSize: ICON_SIZE.xs }} />
             </ToolbarIconButton>
           )}
         </>
@@ -458,7 +458,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
             disabled={!canUndo}
             className={!canUndo ? "disabled" : ""}
           >
-            <UndoIcon sx={{ fontSize: 12 }} />
+            <UndoIcon sx={{ fontSize: ICON_SIZE.xs }} />
           </ToolbarIconButton>
           <ToolbarIconButton
             title="Redo"
@@ -467,11 +467,11 @@ const TableActions: React.FC<TableActionsProps> = memo(({
             disabled={!canRedo}
             className={!canRedo ? "disabled" : ""}
           >
-            <RedoIcon sx={{ fontSize: 12 }} />
+            <RedoIcon sx={{ fontSize: ICON_SIZE.xs }} />
           </ToolbarIconButton>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
           <ToolbarIconButton title="Paste from clipboard" onClick={handlePaste}>
-            <ContentPasteIcon sx={{ fontSize: 12 }} />
+            <ContentPasteIcon sx={{ fontSize: ICON_SIZE.xs }} />
           </ToolbarIconButton>
         </>
       )}
@@ -488,25 +488,25 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       )}
 
       <ToolbarIconButton
-        title="Show Select column"
+        title="Show select column"
         onClick={handleToggleSelect}
         color={showSelect ? "primary" : "default"}
       >
-        <CheckBoxIcon sx={{ fontSize: 12 }} />
+        <CheckBoxIcon sx={{ fontSize: ICON_SIZE.xs }} />
       </ToolbarIconButton>
 
       {showRowNumbersButton && Array.isArray(data) && setShowRowNumbers && (
         <ToolbarIconButton
-          title="Show Row Numbers"
+          title="Show row numbers"
           onClick={handleToggleRowNumbers}
           color={showRowNumbers ? "primary" : "default"}
         >
-          <NumbersIcon sx={{ fontSize: 12 }} />
+          <NumbersIcon sx={{ fontSize: ICON_SIZE.xs }} />
         </ToolbarIconButton>
       )}
 
-      <ToolbarIconButton title="Copy table data to clipboard" onClick={handleCopyData}>
-        <ContentCopyIcon sx={{ fontSize: 12 }} />
+      <ToolbarIconButton title="Copy table data" onClick={handleCopyData}>
+        <ContentCopyIcon sx={{ fontSize: ICON_SIZE.xs }} />
       </ToolbarIconButton>
 
       {children && <div className="table-actions-extra">{children}</div>}

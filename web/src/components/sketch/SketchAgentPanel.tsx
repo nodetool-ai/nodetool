@@ -41,7 +41,7 @@ const SketchAgentPanel = () => {
       workflowId={documentId}
       docsTopic="sketches"
       docsLabel="Sketch editor"
-      welcomeTitle="Editor Assistant"
+      welcomeTitle="Editor assistant"
       welcomeBody="Describe an image to generate, or ask for an edit to your layers."
     />
   );

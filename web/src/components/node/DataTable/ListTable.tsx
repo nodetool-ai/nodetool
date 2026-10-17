@@ -13,6 +13,7 @@ import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { tableStyles } from "../../../styles/TableStyles";
+import { SELECT_COLUMN } from "./selectColumn";
 import TableActions from "./TableActions";
 import { useTheme } from "@mui/material/styles";
 import isEqual from "../../../utils/isEqual";
@@ -75,27 +76,7 @@ const ListTable: React.FC<ListTableProps> = ({
 
   const columns = useMemo(
     () => [
-      ...(showSelect
-        ? [
-            {
-              title: "",
-              field: "select",
-              formatter: "rowSelection" as Formatter,
-              titleFormatter: "rowSelection" as Formatter,
-              hozAlign: "left" as ColumnDefinitionAlign,
-              headerSort: false,
-              width: 25,
-              minWidth: 25,
-              resizable: false,
-              frozen: true,
-              cellClick: function (_e: UIEvent, cell: CellComponent) {
-                cell.getRow().toggleSelect();
-              },
-              editable: false,
-              cssClass: "row-select"
-            }
-          ]
-        : []),
+      ...(showSelect ? [SELECT_COLUMN] : []),
       {
         title: "Index",
         field: "rownum",

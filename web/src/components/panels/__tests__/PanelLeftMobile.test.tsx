@@ -268,7 +268,7 @@ it("searches nested panels and application destinations together", async () => {
   );
 
   expect(screen.getByText("Downloads")).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: /Favorite Nodes/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Favorite nodes/ })).toBeNull();
   expect(screen.queryByText("Workflow tools")).toBeNull();
 });
 

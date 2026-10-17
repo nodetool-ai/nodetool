@@ -15,7 +15,7 @@ import { FlexRow } from "./FlexRow";
 import { FlexColumn } from "./FlexColumn";
 import { Text } from "./Text";
 import { SPACING } from "./spacing";
-import { BORDER_RADIUS } from "./tokens";
+import { BORDER_RADIUS, ICON_SIZE } from "./tokens";
 
 export interface StatCardProps {
   label: string;
@@ -145,7 +145,7 @@ const StatCardInternal: React.FC<StatCardProps> = ({
               color: "text.disabled"
             }}
           >
-            <Icon sx={{ fontSize: 15 }} />
+            <Icon sx={{ fontSize: ICON_SIZE.sm }} />
           </FlexRow>
         )}
       </FlexRow>

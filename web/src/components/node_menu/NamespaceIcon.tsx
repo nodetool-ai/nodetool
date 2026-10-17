@@ -32,7 +32,7 @@ import xaiIcon from "../../icons/providers/xai.svg";
 import elevenlabsIcon from "../../icons/providers/elevenlabs.svg";
 
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, ICON_SIZE } from "../ui_primitives";
 
 type SvgEntry = {
   kind: "svg";
@@ -98,7 +98,7 @@ const iconBoxStyles = css({
     objectFit: "contain"
   },
   "& .MuiSvgIcon-root": {
-    fontSize: 16
+    fontSize: ICON_SIZE.sm
   }
 });
 

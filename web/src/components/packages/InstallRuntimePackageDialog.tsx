@@ -89,7 +89,7 @@ const InstallRuntimePackageDialog: React.FC = () => {
           openPackageManager();
           dismiss();
         }}
-        confirmText="Open Package Manager"
+        confirmText="Open package manager"
         cancelText="Close"
         maxWidth="xs"
         fullWidth

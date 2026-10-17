@@ -150,8 +150,8 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
       <ModelSelectButton
         ref={buttonRef}
         active={!!value}
-        label={currentSelectedModelDetails?.name || value || "Select 3D Model"}
-        subLabel="Select 3D Model"
+        label={currentSelectedModelDetails?.name || value || "Select 3D model"}
+        subLabel="Select 3D model"
         onClick={handleClick}
       />
       <EditorMenu

@@ -14,7 +14,8 @@ import {
   Tooltip,
   BORDER_RADIUS,
   SPACING,
-  createPadding
+  createPadding,
+  ICON_SIZE
 } from "../../ui_primitives";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../DownloadProgress";
@@ -107,7 +108,7 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
             <FlexRow gap={SPACING.micro} align="center">
               <CheckCircleIcon
                 sx={{
-                  fontSize: 16,
+                  fontSize: ICON_SIZE.sm,
                   color: theme.vars.palette.success.main
                 }}
               />

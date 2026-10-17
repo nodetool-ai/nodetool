@@ -105,6 +105,16 @@ when its rendered film exists in
 - Add `StoryboardTeaser` to a landing page with a hand-picked `slugs` list that
   matches the page's topic.
 
+## Page and Film Dates
+
+`src/data/contentDates.generated.ts` holds the commit day each capability page
+and storyboard page last changed, and the day each published film was added.
+It feeds the "Updated" line, `dateModified`, sitemap `lastmod`, and video
+`uploadDate`. Run `npm run gen:content-dates` after changing a page listed in
+`ROUTE_SOURCES` in `scripts/generate-content-dates.mjs`, with full git history
+(`git fetch --unshallow`). CI runs `npm run gen:content-dates -- --check`,
+which compares content hashes and needs no history.
+
 ## Product Commercial Direction
 
 Build product commercials around a short sequence of consequential actions.

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { useMemo, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Tooltip, Box, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, SHADOW } from "../ui_primitives";
+import { Text, Tooltip, Box, focusRing, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, SHADOW } from "../ui_primitives";
 import { CopyButton } from "../ui_primitives";
 import {
   HarmonyType,
@@ -32,11 +32,11 @@ const styles = (theme: Theme) =>
     ".harmony-title": {
       fontSize: "var(--fontSizeSmall)",
       fontWeight: 600,
-      color: theme.vars.palette.grey[300]
+      color: theme.vars.palette.text.primary
     },
     ".harmony-description": {
       fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.grey[500],
+      color: theme.vars.palette.text.secondary,
       marginTop: getSpacingPx(SPACING.micro)
     },
     ".harmony-colors": {
@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
       height: "32px",
       borderRadius: BORDER_RADIUS.sm,
       cursor: "pointer",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -66,8 +66,13 @@ const styles = (theme: Theme) =>
       opacity: 0,
       transition: `opacity ${MOTION.fast}`
     },
-    ".harmony-color:hover .color-hex": {
+    ".harmony-color:focus-visible": focusRing(theme, 2),
+    ".harmony-color:hover .color-hex, .harmony-color:focus-visible .color-hex": {
       opacity: 1
+    },
+    // A touch screen never hovers, so show the hex outright there.
+    "@media (hover: none)": {
+      ".color-hex": { opacity: 1 }
     }
   });
 
@@ -145,6 +150,7 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
                   <div
                     role="button"
                     tabIndex={0}
+                    aria-label={`Use ${harmonyColor}`}
                     className="harmony-color"
                     style={{ backgroundColor: harmonyColor }}
                     onClick={handleSelectColorWithHarmony(harmonyColor, harmony.type)}

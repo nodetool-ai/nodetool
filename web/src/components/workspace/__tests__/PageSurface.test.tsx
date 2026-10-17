@@ -78,7 +78,7 @@ describe("PageSurface", () => {
       </ThemeProvider>
     );
     expect(
-      screen.getByText("Model Manager is not available on this server")
+      screen.getByText("Model manager is not available on this server")
     ).toBeInTheDocument();
     expect(screen.queryByText("models page")).not.toBeInTheDocument();
   });

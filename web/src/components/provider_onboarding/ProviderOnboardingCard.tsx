@@ -347,7 +347,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                     size="small"
                     startIcon={
                       oauth.isConnecting ? undefined : (
-                        <LoginIcon sx={{ fontSize: "1.2em" }} />
+                        <LoginIcon />
                       )
                     }
                     onClick={oauth.connect}
@@ -363,13 +363,12 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                     size="small"
                     startIcon={
                       provider.oauth ? undefined : (
-                        <KeyRoundedIcon sx={{ fontSize: "1.2em" }} />
+                        <KeyRoundedIcon />
                       )
                     }
                     endIcon={
                       <ExpandMoreRoundedIcon
                         sx={{
-                          fontSize: "1.2em",
                           transition: MOTION.transform,
                           ...reducedMotion({ transition: MOTION.none }),
                           transform: expanded ? "rotate(180deg)" : "none"
@@ -439,7 +438,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                 density="compact"
                 variant="text"
                 size="small"
-                endIcon={<OpenInNewIcon sx={{ fontSize: "1.2em" }} />}
+                endIcon={<OpenInNewIcon />}
                 onClick={() =>
                   window.open(provider.keyUrl, "_blank", "noopener,noreferrer")
                 }

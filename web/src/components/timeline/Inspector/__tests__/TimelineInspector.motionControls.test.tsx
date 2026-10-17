@@ -339,7 +339,7 @@ describe("Custom curve keyframes", () => {
     await openSection(user, "Animate");
     await user.click(
       screen.getByRole("button", {
-        name: /remove in curve 1 keyframe 2/i
+        name: /delete in curve 1 keyframe 2/i
       })
     );
 

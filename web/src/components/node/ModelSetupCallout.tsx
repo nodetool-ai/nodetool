@@ -3,12 +3,12 @@ import { css, keyframes } from "@emotion/react";
 import { memo, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { useProviders } from "../../hooks/useProviders";
 import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
-import { Text, EditorButton, ToolbarIconButton, MOTION } from "../ui_primitives";
+import { Text, EditorButton, ToolbarIconButton, MOTION, ICON_SIZE } from "../ui_primitives";
 
 const enter = keyframes({
   from: { opacity: 0, transform: "translateY(-4px)" },
@@ -91,7 +91,7 @@ const ModelSetupCallout: React.FC<ModelSetupCalloutProps> = ({ onDismiss }) => {
         aria-label="Dismiss"
         tooltip="Dismiss"
         onClick={onDismiss}
-        icon={<CloseRoundedIcon sx={{ fontSize: 14 }} />}
+        icon={<CloseOutlinedIcon sx={{ fontSize: ICON_SIZE.xs }} />}
       />
       <div className="callout-row">
         {noProvider ? (

@@ -25,7 +25,8 @@ import {
   ListSubheader,
   MenuItemPrimitive,
   ToolbarIconButton,
-  activateOnKey
+  activateOnKey,
+  ICON_SIZE
 } from "../ui_primitives";
 import AddLinkIcon from "@mui/icons-material/AddLink";
 import LinkIcon from "@mui/icons-material/Link";
@@ -250,7 +251,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                       "&:hover": { backgroundColor: `${secondary}14` },
                     }}
                   >
-                    <LinkIcon sx={{ fontSize: 16, color: secondary, flexShrink: 0 }} />
+                    <LinkIcon sx={{ fontSize: ICON_SIZE.sm, color: secondary, flexShrink: 0 }} />
                     <FlexColumn gap={0} sx={{ flex: 1, minWidth: 0 }}>
                       <Text
                         size="small"
@@ -276,7 +277,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                     {!sourceCompatible && (
                       <WarningAmberIcon
                         titleAccess="Source type does not match this field"
-                        sx={{ fontSize: 16, color: theme.vars.palette.warning.main }}
+                        sx={{ fontSize: ICON_SIZE.sm, color: theme.vars.palette.warning.main }}
                       />
                     )}
                     <ToolbarIconButton
@@ -287,7 +288,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                         e.stopPropagation();
                         onSetInputMapping(prop.name, null);
                       }}
-                      icon={<LinkOffIcon sx={{ fontSize: 16, color: secondary }} />}
+                      icon={<LinkOffIcon sx={{ fontSize: ICON_SIZE.sm, color: secondary }} />}
                       sx={{ p: 0.5 }}
                     />
                   </FlexRow>
@@ -317,7 +318,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                       tooltip="Use output from a previous step"
                       onClick={(e) => handleOpenPicker(prop.name, e.currentTarget)}
                       icon={
-                        <AddLinkIcon sx={{ fontSize: 16, color: secondary }} />
+                        <AddLinkIcon sx={{ fontSize: ICON_SIZE.sm, color: secondary }} />
                       }
                       sx={{
                         p: 0.5,

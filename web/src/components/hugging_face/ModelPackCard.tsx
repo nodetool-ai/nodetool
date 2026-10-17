@@ -15,7 +15,8 @@ import {
   BORDER_RADIUS,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
+  ICON_SIZE
 } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -163,7 +164,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
               </Text>
               {allDownloaded && (
                 <CheckCircleIcon
-                  sx={{ color: "var(--palette-success-main)", fontSize: 20 }}
+                  sx={{ color: "var(--palette-success-main)", fontSize: ICON_SIZE.lg }}
                 />
               )}
             </FlexRow>
@@ -229,10 +230,10 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
             }}
           >
             {allDownloaded
-              ? "All Downloaded"
+              ? "All downloaded"
               : someDownloaded
                 ? `Download ${pack.models.length - downloadedModels.size} Remaining`
-                : "Download All"}
+                : "Download all"}
           </EditorButton>
         </Tooltip>
 
@@ -285,7 +286,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                   <CheckCircleIcon
                     sx={{
                       color: "var(--palette-success-main)",
-                      fontSize: 18,
+                      fontSize: ICON_SIZE.md,
                       ml: 1
                     }}
                   />

@@ -6,7 +6,7 @@
 
 import React, { memo, useCallback, useState } from "react";
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import type { Entity } from "@nodetool-ai/protocol";
 
 import EntityAssetPickerDialog from "../entities/EntityAssetPickerDialog";
@@ -82,7 +82,7 @@ const ImageThumb: React.FC<{
     {onRemove && (
       <Box sx={removeSx}>
         <ToolbarIconButton
-          icon={<CloseIcon sx={{ fontSize: "1em" }} />}
+          icon={<CloseIcon fontSize="inherit" />}
           tooltip={`Remove ${caption}`}
           ariaLabel={`Remove ${caption}`}
           onClick={onRemove}

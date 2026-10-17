@@ -7,14 +7,8 @@ import mockTheme from "../../../__mocks__/themeMock";
 const MockIcon = () => <span data-testid="mock-icon">Icon</span>;
 const MockExpandIcon = () => <span data-testid="mock-expand-icon">Expand</span>;
 
-/** The Box the toggle renders around its icon button. */
-const toggleRoot = (): HTMLElement => {
-  const root = screen.getByRole("button").parentElement;
-  if (!root) {
-    throw new Error("LabeledToggle rendered no container around its button");
-  }
-  return root;
-};
+/** The toggle itself: one button around the indicator, icon and label. */
+const toggleRoot = (): HTMLElement => screen.getByRole("button");
 
 describe("LabeledToggle", () => {
   const mockOnToggle = jest.fn();
@@ -174,15 +168,94 @@ describe("LabeledToggle", () => {
     expect(mockOnToggle).toHaveBeenCalledTimes(1);
   });
 
-  it("calls onToggle when expand icon button is clicked", () => {
+  it("calls onToggle once when the expand indicator is clicked", () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <LabeledToggle isOpen={false} onToggle={mockOnToggle} />
       </ThemeProvider>
     );
 
-    fireEvent.click(screen.getByRole("button"));
+    fireEvent.click(screen.getByTestId("ExpandMoreIcon"));
     expect(mockOnToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("is a single keyboard-focusable button", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <LabeledToggle isOpen={false} onToggle={mockOnToggle} label="Details" />
+      </ThemeProvider>
+    );
+
+    const toggle = screen.getByRole("button");
+    expect(toggle).toHaveAttribute("tabindex", "0");
+    expect(toggle).toHaveTextContent("Details");
+  });
+
+  it.each(["Enter", " "])("toggles on the %p key", (key) => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <LabeledToggle isOpen={false} onToggle={mockOnToggle} />
+      </ThemeProvider>
+    );
+
+    fireEvent.keyDown(screen.getByRole("button"), { key });
+    expect(mockOnToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores other keys", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <LabeledToggle isOpen={false} onToggle={mockOnToggle} />
+      </ThemeProvider>
+    );
+
+    fireEvent.keyDown(screen.getByRole("button"), { key: "a" });
+    expect(mockOnToggle).not.toHaveBeenCalled();
+  });
+
+  it("reports its state with aria-expanded", () => {
+    const { rerender } = render(
+      <ThemeProvider theme={mockTheme}>
+        <LabeledToggle isOpen={false} onToggle={mockOnToggle} />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button")).toHaveAttribute("aria-expanded", "false");
+
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <LabeledToggle isOpen={true} onToggle={mockOnToggle} />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button")).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("reports a mode toggle with aria-pressed instead", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <LabeledToggle
+          isOpen={true}
+          onToggle={mockOnToggle}
+          showExpandIcon={false}
+        />
+      </ThemeProvider>
+    );
+    const toggle = screen.getByRole("button");
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(toggle).not.toHaveAttribute("aria-expanded");
+  });
+
+  it("is skipped by Tab and ignores keys when disabled", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <LabeledToggle isOpen={false} onToggle={mockOnToggle} disabled />
+      </ThemeProvider>
+    );
+
+    const toggle = screen.getByRole("button");
+    expect(toggle).toHaveAttribute("tabindex", "-1");
+    expect(toggle).toHaveAttribute("aria-disabled", "true");
+    fireEvent.keyDown(toggle, { key: "Enter" });
+    expect(mockOnToggle).not.toHaveBeenCalled();
   });
 
   it("does not call onToggle when disabled", () => {

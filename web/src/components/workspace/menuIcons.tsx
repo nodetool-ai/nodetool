@@ -14,7 +14,7 @@
  */
 
 import type { ReactNode } from "react";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
@@ -33,7 +33,7 @@ export const GUIDED_FLOW_ICONS: Record<EntryFlowId, ReactNode> = {
   script: <RecordVoiceOverOutlinedIcon fontSize="small" />,
   speech: <VolumeUpOutlinedIcon fontSize="small" />,
   image: <ImageOutlinedIcon fontSize="small" />,
-  workflow: <AddRoundedIcon fontSize="small" />,
+  workflow: <AddOutlinedIcon fontSize="small" />,
   game: <SportsEsportsOutlinedIcon fontSize="small" />,
   app: <WebOutlinedIcon fontSize="small" />
 };

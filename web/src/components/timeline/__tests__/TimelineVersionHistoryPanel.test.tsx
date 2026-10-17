@@ -121,6 +121,15 @@ describe("TimelineVersionHistoryPanel", () => {
     expect(screen.getByText("No versions yet")).toBeInTheDocument();
   });
 
+  it("shows a load failure as an error banner the user can report", () => {
+    hookState = { ...hookState, versions: [], error: new Error("503 upstream") };
+    renderPanel();
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Could not load versions");
+    expect(alert).toHaveTextContent("503 upstream");
+    expect(screen.getByRole("button", { name: /report/i })).toBeInTheDocument();
+  });
+
   it("saves a named manual snapshot", async () => {
     const user = userEvent.setup();
     renderPanel();

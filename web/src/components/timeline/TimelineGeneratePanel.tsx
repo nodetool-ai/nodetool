@@ -500,7 +500,7 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
           inStudio
             ? (STUDIO_VOICES.find((option) => option.id === audio?.voice)
                 ?.label ?? "Voice")
-            : audio?.model.name || "Select TTS Model"
+            : audio?.model.name || "Select TTS model"
         }
         active={audioModelOpen}
         onClick={openAudioModel}
@@ -551,7 +551,7 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
     <>
       <ModelChip
         icon={<AudiotrackIcon fontSize="small" />}
-        label={musicModel?.name || "Select Music Model"}
+        label={musicModel?.name || "Select music model"}
         picker={{ kind: "music", onPick: setMusicSelection }}
       />
       <OptionChip

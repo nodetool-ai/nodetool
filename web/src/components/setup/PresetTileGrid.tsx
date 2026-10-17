@@ -27,7 +27,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import { useTheme } from "@mui/material/styles";
 
 import {

@@ -110,7 +110,7 @@ export default function AdLibraryOverview({
         <div className="relative mx-auto grid max-w-7xl items-center gap-16 px-6 pb-20 pt-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:px-8 lg:pb-28 lg:pt-16">
           <div>
             <p className="text-sm font-medium text-amber-300">
-              Social ad library
+              Video ad templates
             </p>
             <h1
               id="ad-library-title"
@@ -121,9 +121,10 @@ export default function AdLibraryOverview({
               <span className="text-slate-400">An ad worth making.</span>
             </h1>
             <p className="mt-8 max-w-xl text-lg leading-relaxed text-slate-300">
-              {adRecipes.length} motion concepts for short social ads. Each one
-              sets the timing, composition, copy budget, and assets, beat by
-              beat, so the brief turns into a plan.
+              {adRecipes.length} editable video ad templates for short social
+              ads. Each one sets the timing, composition, copy budget, and
+              assets, beat by beat, and ships in NodeTool as a mini app that
+              builds the vertical ad from your images, logo, and copy.
             </p>
             <a
               href="#concepts"
@@ -205,6 +206,13 @@ export default function AdLibraryOverview({
               href="/recipes"
             >
               recipe collection
+            </a>{" "}
+            or the{" "}
+            <a
+              className="focus-ring rounded text-amber-300 underline decoration-amber-300/40 underline-offset-4 hover:decoration-amber-300"
+              href="/storyboards"
+            >
+              example AI storyboards
             </a>
             .
           </p>

@@ -72,9 +72,9 @@ describe("AboutMenu", () => {
     it("should render operating system section", () => {
       render(<AboutMenu />, { wrapper });
 
-      expect(screen.getByText("Operating System")).toBeInTheDocument();
+      expect(screen.getByText("Operating system")).toBeInTheDocument();
       expect(screen.getByText("Platform")).toBeInTheDocument();
-      expect(screen.getByText("User Agent")).toBeInTheDocument();
+      expect(screen.getByText("User agent")).toBeInTheDocument();
     });
 
     it("should display platform value", () => {
@@ -102,8 +102,8 @@ describe("AboutMenu", () => {
     it("should not show Electron-only sections in browser", () => {
       render(<AboutMenu />, { wrapper });
 
-      expect(screen.queryByText("Installation Paths")).not.toBeInTheDocument();
-      expect(screen.queryByText("Features & Versions")).not.toBeInTheDocument();
+      expect(screen.queryByText("Installation paths")).not.toBeInTheDocument();
+      expect(screen.queryByText("Features & versions")).not.toBeInTheDocument();
     });
   });
 
@@ -111,7 +111,7 @@ describe("AboutMenu", () => {
     it("should render GitHub Repository link with correct attributes", () => {
       render(<AboutMenu />, { wrapper });
 
-      const link = screen.getByText("GitHub Repository").closest("a");
+      const link = screen.getByText("GitHub repository").closest("a");
       expect(link).toHaveAttribute("href", "https://github.com/nodetool-ai/nodetool");
       expect(link).toHaveAttribute("target", "_blank");
       expect(link).toHaveAttribute("rel", "noopener noreferrer");
@@ -120,7 +120,7 @@ describe("AboutMenu", () => {
     it("should render NodeTool Forum link with correct attributes", () => {
       render(<AboutMenu />, { wrapper });
 
-      const link = screen.getByText("NodeTool Forum").closest("a");
+      const link = screen.getByText("NodeTool forum").closest("a");
       expect(link).toHaveAttribute("href", "https://forum.nodetool.ai");
       expect(link).toHaveAttribute("target", "_blank");
       expect(link).toHaveAttribute("rel", "noopener noreferrer");
@@ -140,8 +140,8 @@ describe("AboutMenu", () => {
     it("should render links with accessible names", () => {
       render(<AboutMenu />, { wrapper });
 
-      expect(screen.getByRole("link", { name: "GitHub Repository" })).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "NodeTool Forum" })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "GitHub repository" })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "NodeTool forum" })).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "Website" })).toBeInTheDocument();
     });
 
@@ -149,7 +149,7 @@ describe("AboutMenu", () => {
       render(<AboutMenu />, { wrapper });
 
       expect(screen.getByText("Application")).toBeInTheDocument();
-      expect(screen.getByText("Operating System")).toBeInTheDocument();
+      expect(screen.getByText("Operating system")).toBeInTheDocument();
       expect(screen.getByText("Links")).toBeInTheDocument();
     });
   });
@@ -163,7 +163,7 @@ describe("AboutMenu", () => {
       rerender(<ThemeProvider theme={mockTheme}><AboutMenu /></ThemeProvider>);
 
       expect(screen.getByText("Application")).toBeInTheDocument();
-      expect(screen.getByText("Operating System")).toBeInTheDocument();
+      expect(screen.getByText("Operating system")).toBeInTheDocument();
       expect(screen.getByText("Links")).toBeInTheDocument();
     });
 
@@ -171,10 +171,10 @@ describe("AboutMenu", () => {
       render(<AboutMenu />, { wrapper });
 
       expect(screen.getByText("Application")).toBeInTheDocument();
-      expect(screen.getByText("Operating System")).toBeInTheDocument();
+      expect(screen.getByText("Operating system")).toBeInTheDocument();
       expect(screen.getByText("Links")).toBeInTheDocument();
-      expect(screen.getByText("GitHub Repository")).toBeInTheDocument();
-      expect(screen.getByText("NodeTool Forum")).toBeInTheDocument();
+      expect(screen.getByText("GitHub repository")).toBeInTheDocument();
+      expect(screen.getByText("NodeTool forum")).toBeInTheDocument();
       expect(screen.getByText("Website")).toBeInTheDocument();
     });
   });

@@ -4,7 +4,7 @@ import ReactDOM from "react-dom";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { css } from "@emotion/react";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import TableRowsIcon from "@mui/icons-material/TableRows";
@@ -529,13 +529,13 @@ const DataframeEditorModal = ({
             <div className="actions">
               <div className="toolbar-group">
                 <Tooltip
-                  title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
                 >
                   <button
                     type="button"
                     className="button"
                     onClick={toggleFullscreen}
-                    aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                    aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
                   >
                     {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
                   </button>
@@ -566,7 +566,7 @@ const DataframeEditorModal = ({
                       className="add-column" 
                       onClick={addColumn}
                       icon={<TableRowsIcon style={{ rotate: "90deg" }} />}
-                      label="Add Column"
+                      label="Add column"
                     />
                   </div>
                   <ColumnsManager

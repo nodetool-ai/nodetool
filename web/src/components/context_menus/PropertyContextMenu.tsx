@@ -12,7 +12,7 @@ import {
 import { shallow } from "zustand/shallow";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ContextMenuItem from "./ContextMenuItem";
-import DeleteIcon from "@mui/icons-material/Delete";
+import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -342,7 +342,7 @@ const PropertyContextMenuComponent: React.FC = () => {
         onClick={handleCopyValue}
         label="Copy value"
         IconComponent={<ContentCopyIcon />}
-        tooltip="Copy property value to clipboard"
+        tooltip="Copy property value"
       />
       <ContextMenuItem
         onClick={handleReset}
@@ -403,10 +403,10 @@ const PropertyContextMenuComponent: React.FC = () => {
       {isDynamicProperty && (
         <ContextMenuItem
           onClick={handleRemoveDynamicProperty}
-          label="Remove dynamic property"
+          label="Delete dynamic property"
           destructive
           IconComponent={<DeleteIcon />}
-          tooltip="Remove this property from being dynamic"
+          tooltip="Delete this property from the node"
         />
       )}
     </ContextMenu>

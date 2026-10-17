@@ -18,7 +18,6 @@ import {
   THEMES,
   type FeatureRow,
 } from "../../../data/competitorEntries";
-import { yearToken } from "../../../data/types";
 
 export function generateStaticParams() {
   return competitors.map((c) => ({ slug: c.slug }));
@@ -32,7 +31,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const c = getCompetitor(slug);
   if (!c) return {};
-  const title = c.seo?.title ?? `${c.name} alternatives (${yearToken()}) — why teams choose NodeTool`;
+  const title = c.seo?.title ?? `${c.name} Alternative for ${c.category} | NodeTool`;
   const description =
     c.seo?.description ??
     `${c.limitation} Compare NodeTool with other ${c.category.toLowerCase()} alternatives: open source, run with your own keys, one canvas for image, video, audio, and text.`;

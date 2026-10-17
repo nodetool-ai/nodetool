@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, memo, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { alpha } from "@mui/material/styles";
 import {
   FlexColumn,
   FlexRow,
@@ -151,7 +150,8 @@ const StatusTile = memo(function StatusTile({
         borderRadius: BORDER_RADIUS.lg,
         color: visual.fg,
         backgroundColor: visual.tint
-          ? (theme) => alpha(theme.palette[visual.tint!].main, 0.16)
+          ? (theme) =>
+              `rgb(${theme.vars.palette[visual.tint!].mainChannel} / 0.16)`
           : "action.hover",
         transition: MOTION.all
       }}
@@ -360,9 +360,9 @@ const JobItem = ({ job }: { job: Job }) => {
         cursor: "pointer",
         // Failed runs keep a faint error wash so they stand out in history.
         ...(isError && {
-          backgroundColor: alpha(theme.palette.error.main, 0.08),
+          backgroundColor: `rgb(${theme.vars.palette.error.mainChannel} / 0.08)`,
           "&:hover": {
-            backgroundColor: alpha(theme.palette.error.main, 0.14)
+            backgroundColor: `rgb(${theme.vars.palette.error.mainChannel} / 0.14)`
           }
         })
       })}

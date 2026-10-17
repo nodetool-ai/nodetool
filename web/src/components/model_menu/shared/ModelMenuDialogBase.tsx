@@ -28,11 +28,11 @@ import {
 } from "../../../utils/providerDisplay";
 import { capabilityForModelType, useModelProviderSetup } from "../../../hooks/useModelProviderSetup";
 import type { OnboardingCapability } from "../../../stores/ProviderOnboardingStore";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import KeyIcon from "@mui/icons-material/VpnKey";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 
 import StarIcon from "@mui/icons-material/StarBorder"; // Favorite
 import HistoryIcon from "@mui/icons-material/History"; // Recent

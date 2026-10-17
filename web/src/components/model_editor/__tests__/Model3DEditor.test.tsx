@@ -1,5 +1,5 @@
 import React from "react";
-import { act, fireEvent, render, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import * as THREE from "three";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -329,6 +329,43 @@ describe("Model3DEditor", () => {
 
     act(() => press("z", { ctrlKey: true }));
     expect(handler.listScene().map((n) => n.name)).toEqual(["Box"]);
+  });
+
+  it("duplicates the selection from the Inspector's Duplicate button", async () => {
+    // The toolbar's icon button is also named Duplicate; this one has a text label.
+    const { getByText, queryByText } = renderEditor();
+    const handler = getModel3DToolHandler();
+    expect(queryByText("Duplicate", { selector: "button" })).toBeNull();
+
+    act(() => {
+      handler.selectObject("Box");
+    });
+    const duplicate = getByText("Duplicate", { selector: "button" });
+    fireEvent.mouseOver(duplicate);
+    expect(
+      await screen.findByRole("tooltip", { name: "Duplicate the selected object (Ctrl+D)" })
+    ).toBeInTheDocument();
+    fireEvent.click(duplicate);
+
+    expect(handler.listScene().map((n) => n.name)).toEqual(["Box", "Box 2"]);
+    expect(getByText("Delete", { selector: "button" })).toBeEnabled();
+  });
+
+  it("labels the viewport's framing controls", async () => {
+    const { getByRole } = renderEditor();
+    const frame = getByRole("button", { name: /Frame selection/ });
+    expect(frame).toHaveTextContent("Frame selection");
+    expect(frame).toBeDisabled();
+    expect(getByRole("button", { name: /Frame all/ })).toHaveTextContent("Frame all");
+
+    act(() => {
+      getModel3DToolHandler().selectObject("Box");
+    });
+    expect(frame).toBeEnabled();
+    fireEvent.mouseOver(frame);
+    expect(
+      await screen.findByRole("tooltip", { name: "Frame selection (F)" })
+    ).toBeInTheDocument();
   });
 
   it("lets the agent parent, restyle and undo through the shared history", () => {

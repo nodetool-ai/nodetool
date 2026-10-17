@@ -9,7 +9,7 @@
 
 import React, { memo, forwardRef, useCallback } from "react";
 import { IconButton } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";

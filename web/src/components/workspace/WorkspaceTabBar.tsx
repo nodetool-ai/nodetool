@@ -29,11 +29,13 @@ import {
   BORDER_RADIUS,
   CONTROL,
   ContextMenu,
+  focusRing,
   InlineEditableText,
   MenuItemPrimitive,
   MOTION,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../ui_primitives";
 import NotificationButton from "../panels/NotificationButton";
 import SettingsHeaderButton from "../panels/SettingsHeaderButton";
@@ -172,8 +174,15 @@ const styles = (theme: Theme) =>
       padding: 0,
       fontSize: "inherit",
       width: "100%",
-      outline: "none"
+      outline: "none",
+      borderRadius: BORDER_RADIUS.sm,
+      "&:focus-visible": focusRing(theme, 2)
     },
+
+    // Every tab-bar control draws the shared inset keyboard ring; the strip
+    // scrolls, so a ring outside the box would be clipped.
+    "& .tab:focus-visible, & .project-scope:focus-visible, & .new-tab:focus-visible, & .home-button:focus-visible, & .mode-toggle button:focus-visible":
+      focusRing(theme),
 
     "& .glyph": { flexShrink: 0, fontSize: "var(--fontSizeSmall)" },
     "& .tab-name": {
@@ -197,7 +206,7 @@ const styles = (theme: Theme) =>
       "& .MuiSvgIcon-root": {
         width: "14px",
         height: "14px",
-        fontSize: "var(--fontSizeNormal)"
+        fontSize: ICON_SIZE.sm
       }
     },
 
@@ -322,7 +331,7 @@ const styles = (theme: Theme) =>
       "& svg, & .MuiSvgIcon-root": {
         width: "16px",
         height: "16px",
-        fontSize: "var(--fontSizeNormal)"
+        fontSize: ICON_SIZE.sm
       }
     },
 

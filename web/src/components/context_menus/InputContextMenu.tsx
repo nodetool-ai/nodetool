@@ -19,7 +19,8 @@ import {
   SPACING,
   getSpacingPx,
   InputAdornment,
-  TextField
+  TextField,
+  ICON_SIZE
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import PushPinIcon from "@mui/icons-material/PushPin";
@@ -918,7 +919,7 @@ const InputContextMenu: React.FC = () => {
               startAdornment: (
                 <InputAdornment position="start">
                   <SearchIcon
-                    sx={{ color: "action.disabled", fontSize: 16 }}
+                    sx={{ color: "action.disabled", fontSize: ICON_SIZE.sm }}
                   />
                 </InputAdornment>
               ),
@@ -928,7 +929,7 @@ const InputContextMenu: React.FC = () => {
                     aria-label="clear search"
                     onClick={handleClearSearch}
                     size="small"
-                    icon={<ClearIcon sx={{ fontSize: 16 }} />}
+                    icon={<ClearIcon sx={{ fontSize: ICON_SIZE.sm }} />}
                     nodrag={false}
                   />
                 </InputAdornment>

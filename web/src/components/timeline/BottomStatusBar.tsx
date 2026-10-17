@@ -14,7 +14,7 @@ import {
   ZoomControls,
   StatusIndicator,
   StatusDot,
-  FONT_SIZE_SANS
+  ICON_SIZE
 } from "../ui_primitives";
 import type { StatusType } from "../ui_primitives";
 import CostEstimateLine, {
@@ -79,7 +79,7 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
 
           <FlexRow gap={1} align="center">
             <ModeIcon
-              sx={{ fontSize: FONT_SIZE_SANS.label, color: theme.vars.palette.text.secondary }}
+              sx={{ fontSize: ICON_SIZE.xs, color: theme.vars.palette.text.secondary }}
               aria-hidden={true}
             />
             <StatusIndicator status={modeStatus} label={modeLabel} size="small" />

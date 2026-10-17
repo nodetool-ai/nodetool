@@ -17,7 +17,8 @@ import {
   Tooltip,
   ToolbarIconButton,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../ui_primitives";
 import { SaveType } from "../../stores/VersionHistoryStore";
 import { relativeTime } from "../../utils/formatDateAndTime";
@@ -166,7 +167,7 @@ const VersionListItem = React.memo(function VersionListItem({
             size="small"
             onClick={handleClick}
             tooltip="Select for comparison"
-            icon={<CompareIcon sx={{ fontSize: 14 }} />}
+            icon={<CompareIcon sx={{ fontSize: ICON_SIZE.xs }} />}
             sx={{ padding: getSpacingPx(SPACING.micro) }}
             nodrag={false}
           />
@@ -178,14 +179,14 @@ const VersionListItem = React.memo(function VersionListItem({
               size="small"
               onClick={handleRestore}
               tooltip="Restore this version"
-              icon={<RestoreIcon sx={{ fontSize: 14 }} />}
+              icon={<RestoreIcon sx={{ fontSize: ICON_SIZE.xs }} />}
               sx={{ padding: getSpacingPx(SPACING.micro) }}
               nodrag={false}
             />
             <DeleteButton
               onClick={handleDelete}
               tooltip="Delete version"
-              sx={{ padding: getSpacingPx(SPACING.micro), "& .MuiSvgIcon-root": { fontSize: 14 } }}
+              sx={{ padding: getSpacingPx(SPACING.micro), "& .MuiSvgIcon-root": { fontSize: ICON_SIZE.xs } }}
             />
           </>
         )}

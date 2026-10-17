@@ -27,7 +27,8 @@ import {
   SPACING,
   TYPOGRAPHY,
   getSpacingPx,
-  type InspectorValueGesture
+  type InspectorValueGesture,
+  ICON_SIZE
 } from "../ui_primitives";
 import ColorPicker from "../inputs/ColorPicker";
 import {
@@ -245,7 +246,7 @@ const Vector3Row = ({
       <FlexRow align="center" justify="space-between" sx={{ minHeight: CONTROL.height.xs }}>
         <Label component="span" sx={{ mb: 0 }}>{label}</Label>
         <ToolbarIconButton
-          icon={<RestartAltIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+          icon={<RestartAltIcon sx={{ fontSize: ICON_SIZE.sm }} />}
           tooltip={`Reset ${label.toLowerCase()}`}
           size="small"
           disabled={isDefault}

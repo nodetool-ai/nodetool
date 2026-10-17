@@ -7,7 +7,8 @@ import {
   CloseButton,
   TruncatedText,
   BORDER_RADIUS,
-  SPACING
+  SPACING,
+  ICON_SIZE
 } from "../../ui_primitives";
 import { DroppedFile } from "../types/chat.types";
 
@@ -60,7 +61,7 @@ export const FilePreview: React.FC<FilePreviewProps> = React.memo(({ file, onRem
         height: SPACING.xl,
         backgroundColor: "c_scrim",
         "&:hover": { backgroundColor: "c_scrim_strong" },
-        "& .MuiSvgIcon-root": { fontSize: "var(--fontSizeSmall)" }
+        "& .MuiSvgIcon-root": { fontSize: ICON_SIZE.xs }
       }}
     />
   </Box>

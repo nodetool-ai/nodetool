@@ -10,13 +10,11 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import ReactDOM from "react-dom";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import DrawOutlinedIcon from "@mui/icons-material/DrawOutlined";
-import CloseIcon from "@mui/icons-material/Close";
-import TrashIconSvg from "../../icons/trash.svg?react";
-const TrashIcon = TrashIconSvg;
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import FlipIcon from "@mui/icons-material/Flip";
@@ -57,7 +55,9 @@ import {
   IconButton,
   ContextMenu,
   MenuItemPrimitive,
-  Slider
+  Slider,
+  DeleteButton,
+  ICON_SIZE
 } from "../ui_primitives";
 
 function isPressureSketchTool(tool: SketchTool): boolean {
@@ -115,7 +115,7 @@ interface SketchModalProps {
 
 const SketchModal: React.FC<SketchModalProps> = ({
   open,
-  title = "Image Editor",
+  title = "Image editor",
   initialDocument,
   onClose,
   onDocumentChange,
@@ -288,7 +288,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                   flexShrink: 0
                 }}
               >
-                <DrawOutlinedIcon sx={{ fontSize: 18 }} />
+                <DrawOutlinedIcon sx={{ fontSize: ICON_SIZE.md }} />
               </IconButton>
             </Tooltip>
             {headerPenPressureOn ? (
@@ -321,14 +321,14 @@ const SketchModal: React.FC<SketchModalProps> = ({
           <Tooltip title={`Undo (${displayCombo("undo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span style={{ display: 'inline-flex' }}>
               <IconButton size="small" aria-label="Undo" onClick={() => editorRef.current?.undo()} disabled={!canUndo}>
-                <UndoIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+                <UndoIcon sx={{ fontSize: ICON_SIZE.md }} />
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title={`Redo (${displayCombo("redo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span style={{ display: 'inline-flex' }}>
               <IconButton size="small" aria-label="Redo" onClick={() => editorRef.current?.redo()} disabled={!canRedo}>
-                <RedoIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+                <RedoIcon sx={{ fontSize: ICON_SIZE.md }} />
               </IconButton>
             </span>
           </Tooltip>
@@ -341,7 +341,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
               aria-expanded={shortcutsPaneOpen}
               color={shortcutsPaneOpen ? "primary" : "default"}
             >
-              <KeyboardOutlinedIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+              <KeyboardOutlinedIcon sx={{ fontSize: ICON_SIZE.md }} />
             </IconButton>
           </Tooltip>
 
@@ -356,7 +356,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
               onClick={(e) => setSymmetryAnchorEl(e.currentTarget)}
               color={symmetryActive ? "primary" : "default"}
             >
-              <FlipIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+              <FlipIcon sx={{ fontSize: ICON_SIZE.md }} />
             </IconButton>
           </Tooltip>
           <ContextMenu
@@ -400,11 +400,15 @@ const SketchModal: React.FC<SketchModalProps> = ({
               <Caption sx={{ color: "warning.main", whiteSpace: "nowrap" }}>
                 Discard changes?
               </Caption>
-              <IconButton size="small" aria-label="Confirm discard" color="error" onClick={() => { editorRef.current?.discardToInitial(); onClose(); }}>
-                <TrashIcon width={16} height={16} />
-              </IconButton>
+              <DeleteButton
+                iconVariant="outline"
+                tooltip="Discard changes"
+                ariaLabel="Confirm discard"
+                onClick={() => { editorRef.current?.discardToInitial(); onClose(); }}
+                sx={{ color: "error.main", "& .MuiSvgIcon-root": { fontSize: ICON_SIZE.sm } }}
+              />
               <IconButton size="small" aria-label="Cancel discard" autoFocus onClick={() => setConfirmDiscard(false)}>
-                <CloseIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
+                <CloseIcon sx={{ fontSize: ICON_SIZE.sm }} />
               </IconButton>
             </>
           ) : (
@@ -415,14 +419,14 @@ const SketchModal: React.FC<SketchModalProps> = ({
             </Tooltip>
           )}
 
-          <Tooltip title="Export Image" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton size="small" aria-label="Export Image" onClick={() => editorRef.current?.exportPng()}>
-              <SaveAltIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+          <Tooltip title="Export image" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+            <IconButton size="small" aria-label="Export image" onClick={() => editorRef.current?.exportPng()}>
+              <SaveAltIcon sx={{ fontSize: ICON_SIZE.md }} />
             </IconButton>
           </Tooltip>
 
           {!confirmDiscard && (
-            <Tooltip title="Save & Close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+            <Tooltip title="Save & close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
               <IconButton size="small" aria-label="Save and close" onClick={handleRequestClose} sx={{ color: "success.light" }}>
                 <CheckIcon fontSize="small" />
               </IconButton>
@@ -457,7 +461,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 position: "absolute",
                 inset: 0,
                 zIndex: SKETCH_Z_INDEX.overlay,
-                backgroundColor: alpha(theme.palette.common.black, 0.45)
+                backgroundColor: `rgb(${theme.vars.palette.common.blackChannel} / 0.45)`
               }}
             />
             <FlexColumn
@@ -502,7 +506,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                     onClick={() => setShortcutsPaneOpen(false)}
                     aria-label="Close keyboard shortcuts"
                   >
-                    <CloseIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+                    <CloseIcon sx={{ fontSize: ICON_SIZE.md }} />
                   </IconButton>
                 </Tooltip>
               </FlexRow>

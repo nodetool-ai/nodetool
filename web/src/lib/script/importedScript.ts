@@ -267,9 +267,33 @@ export function scriptSourcePatch(
 /**
  * What the writer's inputs were when this source was last handed to it. Two
  * sources with the same words and the same structure are the same source, so
- * the signature is the text plus what was said about it.
+ * the signature is the text plus what was said about it: who speaks each line,
+ * its direction and its target duration.
  */
 export function scriptSourceSignature(
+  source: ImportedScript | null
+): string | undefined {
+  const base = scriptSourceTextSignature(source);
+  if (base === undefined || !source) {
+    return base;
+  }
+  const structure = source.lines.map((line) => [
+    line.speakerName,
+    line.direction ?? "",
+    line.targetDurationMs ?? null
+  ]);
+  const hasStructure = structure.some(
+    ([speaker, direction, duration]) =>
+      speaker !== "" || direction !== "" || duration !== null
+  );
+  return hasStructure ? `${base}\u0002${JSON.stringify(structure)}` : base;
+}
+
+/**
+ * The signature as it was written before line structure counted: kind, line
+ * count and words. Documents saved with it keep matching on unchanged words.
+ */
+export function scriptSourceTextSignature(
   source: ImportedScript | null
 ): string | undefined {
   return source === null

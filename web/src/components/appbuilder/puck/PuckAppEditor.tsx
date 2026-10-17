@@ -3,7 +3,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import { Puck, useGetPuck, type Data, type Overrides } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import "./puckTheme.css";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import SaveIcon from "@mui/icons-material/Save";
 import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import TabletMacIcon from "@mui/icons-material/TabletMac";
@@ -30,7 +30,8 @@ import {
   Box,
   EditorButton,
   ToggleGroup,
-  ToggleOption
+  ToggleOption,
+  ICON_SIZE
 } from "../../ui_primitives";
 
 interface PuckAppEditorProps {
@@ -110,9 +111,9 @@ const PreviewWidthToggle: React.FC<{
       if (next) onChange(next);
     }}
   >
-    <ToggleOption value="phone" icon={<PhoneIphoneIcon sx={{ fontSize: 16 }} />} />
-    <ToggleOption value="tablet" icon={<TabletMacIcon sx={{ fontSize: 16 }} />} />
-    <ToggleOption value="fit" icon={<AspectRatioIcon sx={{ fontSize: 16 }} />} />
+    <ToggleOption value="phone" icon={<PhoneIphoneIcon sx={{ fontSize: ICON_SIZE.sm }} />} />
+    <ToggleOption value="tablet" icon={<TabletMacIcon sx={{ fontSize: ICON_SIZE.sm }} />} />
+    <ToggleOption value="fit" icon={<AspectRatioIcon sx={{ fontSize: ICON_SIZE.sm }} />} />
   </ToggleGroup>
 );
 
@@ -215,7 +216,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
               onClick={onToggleData}
               aria-pressed={dataOpen}
             >
-              App Data
+              App data
             </EditorButton>
           )}
           {onClose && (

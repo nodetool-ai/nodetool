@@ -54,6 +54,7 @@ export * from "./interchange.js";
 export * from "./interchangeImport.js";
 export * from "./snap.js";
 export * from "./beats.js";
+export * from "./audioOnsets.js";
 export * from "./staleSet.js";
 export * from "./subtitles.js";
 export * from "./placement/index.js";

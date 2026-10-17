@@ -175,14 +175,17 @@ export const projectDocumentPreview = z.discriminatedUnion("kind", [
 export type ProjectDocumentPreview = z.infer<typeof projectDocumentPreview>;
 
 /**
- * The kinds a project overview lists: every {@link projectDocumentType} plus
- * `workflow`. A saved workflow is one of the project's documents to whoever
- * saved it there, but copying a document into another project does not cover
- * workflows, so it stays out of {@link projectDocumentType}.
+ * What counts as a project document: every kind that opens in a workspace tab.
+ * The project overview, the home documents strip and the Documents panel all
+ * list these. It is every {@link projectDocumentType} plus `workflow` and
+ * `text` (a text file asset, such as a Markdown note). Copying a document into
+ * another project covers neither of those, so they stay out of
+ * {@link projectDocumentType}.
  */
 export const projectSummaryDocumentType = z.enum([
   ...projectDocumentType.options,
-  "workflow"
+  "workflow",
+  "text"
 ]);
 export type ProjectSummaryDocumentType = z.infer<
   typeof projectSummaryDocumentType

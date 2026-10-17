@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Caption, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Text, Caption, Box, BORDER_RADIUS, SPACING, getSpacingPx, ICON_SIZE } from "../ui_primitives";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import {
@@ -160,9 +160,9 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
 
   const ComplianceIcon = ({ passed }: { passed: boolean }) =>
     passed ? (
-      <CheckCircleIcon sx={{ fontSize: 16, color: "success.main" }} />
+      <CheckCircleIcon sx={{ fontSize: ICON_SIZE.sm, color: "success.main" }} />
     ) : (
-      <CancelIcon sx={{ fontSize: 16, color: "error.main" }} />
+      <CancelIcon sx={{ fontSize: ICON_SIZE.sm, color: "error.main" }} />
     );
 
   return (
@@ -172,7 +172,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
           className="preview-box"
           style={{ backgroundColor: backgroundColor, color: foregroundColor }}
         >
-          <span className="preview-label">Preview on Background</span>
+          <span className="preview-label">Preview on background</span>
           <span className="preview-text">Normal text sample</span>
           <span className="preview-text-large">Large text sample</span>
         </div>
@@ -181,7 +181,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
           className="preview-box"
           style={{ backgroundColor: foregroundColor, color: backgroundColor }}
         >
-          <span className="preview-label">Inverse Preview</span>
+          <span className="preview-label">Inverse preview</span>
           <span className="preview-text">Normal text sample</span>
           <span className="preview-text-large">Large text sample</span>
         </div>
@@ -204,7 +204,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
         <Caption
           sx={{ textAlign: "center", display: "block", color: "grey.500" }}
         >
-          Contrast Ratio
+          Contrast ratio
         </Caption>
       </div>
 
@@ -229,7 +229,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
 
       <div className="color-blindness-section">
         <Text className="color-blindness-title">
-          Color Blindness Preview
+          Color blindness preview
         </Text>
         <div className="color-blindness-grid">
           {colorBlindnessSimulations.map((sim) => (

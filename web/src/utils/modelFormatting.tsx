@@ -3,7 +3,7 @@ import { UnifiedModel } from "../stores/ApiTypes";
 import { formatByteSize } from "./formatUtils";
 import ModelIcon from "../icons/data_types/nodetool/model.svg";
 import PetsIcon from "@mui/icons-material/Pets";
-import { SPACING, getSpacingPx } from "../components/ui_primitives";
+import { SPACING, getSpacingPx, ICON_SIZE } from "../components/ui_primitives";
 
 export const prettifyModelType = (type: string): JSX.Element | string => {
   if (type === "All") {return type;}
@@ -28,7 +28,7 @@ export const prettifyModelType = (type: string): JSX.Element | string => {
   if (type === "llama_cpp") {
     return (
       <>
-        <PetsIcon style={{ fontSize: 18, marginRight: 8 }} />
+        <PetsIcon style={{ fontSize: ICON_SIZE.md, marginRight: 8 }} />
         Llama cpp
       </>
     );

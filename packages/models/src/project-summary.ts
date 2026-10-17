@@ -28,9 +28,10 @@ import { Application } from "./application.js";
 import { Game } from "./game.js";
 import { Asset } from "./asset.js";
 import {
-  listNamed,
+  listProjectTextFiles,
   listProjectWorkflows,
-  type DocumentTable
+  projectDocumentKinds,
+  type ProjectDocumentKind
 } from "./document-index.js";
 import { ImageDocument } from "./image-document.js";
 import { JsScript } from "./js-script.js";
@@ -38,13 +39,6 @@ import { Prediction } from "./prediction.js";
 import { Script, type ScriptDocument } from "./script.js";
 import { Storyboard, type StoryboardDocument } from "./storyboard.js";
 import { TimelineSequence } from "./timeline-sequence.js";
-import { applications } from "./schema/applications.js";
-import { games } from "./schema/games.js";
-import { imageDocuments } from "./schema/image-documents.js";
-import { jsScripts } from "./schema/js-scripts.js";
-import { scripts } from "./schema/scripts.js";
-import { storyboards } from "./schema/storyboards.js";
-import { timelineSequences } from "./schema/timeline-sequences.js";
 
 /**
  * The document kinds a project groups, spelled as the workspace tab type that
@@ -160,12 +154,12 @@ export interface TimelinePreview {
 export type ProjectDocumentPreview = ScriptPreview | TimelinePreview;
 
 /**
- * The kinds a project overview lists. A workflow is one of the project's
- * documents to whoever saved it there, so the overview counts it. It is not a
- * {@link ProjectDocumentType}: copying a document into another project does
- * not cover workflows.
+ * The kinds a project overview lists: every {@link ProjectDocumentKind}, the
+ * same kinds the Documents panel lists. Workflows and text files are not
+ * {@link ProjectDocumentType}s: copying a document into another project covers
+ * neither.
  */
-export type ProjectSummaryDocumentType = ProjectDocumentType | "workflow";
+export type ProjectSummaryDocumentType = ProjectDocumentKind;
 
 /** A document card: the tab-open ref, what it shows, and what it cost. */
 export interface ProjectDocumentSummary extends Omit<ProjectDocumentRef, "type"> {
@@ -505,6 +499,7 @@ interface ProjectDocumentRows {
   jsScripts: JsScript[];
   games: Game[];
   workflows: Array<{ id: string; name: string; updated_at: string }>;
+  textFiles: Array<{ id: string; name: string; updated_at: string }>;
   /** True when any table filled its cap, so documents are missing from these. */
   partial: boolean;
 }
@@ -550,7 +545,8 @@ async function loadProjectDocuments(
     applications,
     jsScripts,
     games,
-    workflows
+    workflows,
+    textFiles
   ] = await Promise.all([
       Storyboard.listByProject(projectId, userId, cap),
       Script.listByProject(projectId, userId, cap),
@@ -559,7 +555,8 @@ async function loadProjectDocuments(
       Application.listByProject(projectId, userId, cap),
       JsScript.listByProject(projectId, userId, cap),
       Game.listByProject(userId, projectId),
-      listProjectWorkflows(userId, projectId, cap)
+      listProjectWorkflows(userId, projectId, cap),
+      listProjectTextFiles(userId, projectId, cap)
     ]);
   const overflowed =
     storyboards.length > documentsPerType ||
@@ -569,7 +566,8 @@ async function loadProjectDocuments(
     applications.length > documentsPerType ||
     jsScripts.length > documentsPerType ||
     games.length > documentsPerType ||
-    workflows.length > documentsPerType;
+    workflows.length > documentsPerType ||
+    textFiles.length > documentsPerType;
   const keep = <T>(rows: T[]): T[] => rows.slice(0, documentsPerType);
   return {
     storyboards: keep(storyboards),
@@ -580,6 +578,7 @@ async function loadProjectDocuments(
     jsScripts: keep(jsScripts),
     games: keep(games),
     workflows: keep(workflows),
+    textFiles: keep(textFiles),
     partial: overflowed
   };
 }
@@ -737,7 +736,8 @@ export async function summarizeProject(
     ...rows.applications.map((row) => summarize(toRef("application", row))),
     ...rows.jsScripts.map((row) => summarize(toRef("jsscript", row))),
     ...rows.games.map((row) => summarize(toRef("game", row))),
-    ...rows.workflows.map((row) => summarize(toRef("workflow", row)))
+    ...rows.workflows.map((row) => summarize(toRef("workflow", row))),
+    ...rows.textFiles.map((row) => summarize(toRef("text", row)))
   ]);
 
   return {
@@ -758,19 +758,6 @@ export interface ProjectDocumentPage {
   /** True when a document table hit {@link DOCUMENTS_PER_TYPE}. */
   partial: boolean;
 }
-
-/** The tables a project's documents live in, by the type that opens each. */
-const DOCUMENT_TABLES: ReadonlyArray<
-  [Exclude<ProjectSummaryDocumentType, "workflow">, DocumentTable]
-> = [
-  ["storyboard", storyboards],
-  ["script", scripts],
-  ["timeline", timelineSequences],
-  ["sketch", imageDocuments],
-  ["application", applications],
-  ["jsscript", jsScripts],
-  ["game", games]
-];
 
 /** The full row behind a card, for the kinds whose card reads the document. */
 async function loadCard(
@@ -815,16 +802,13 @@ export async function summarizeProjectDocumentPage(
   documentsPerType = DOCUMENTS_PER_TYPE
 ): Promise<ProjectDocumentPage> {
   const cap = documentsPerType + 1;
-  const lists = await Promise.all([
-    ...DOCUMENT_TABLES.map(async ([type, table]) => ({
-      type,
-      rows: await listNamed(table, userId, projectId, cap)
-    })),
-    listProjectWorkflows(userId, projectId, cap).then((rows) => ({
-      type: "workflow" as const,
-      rows
+  // The same kinds the Documents panel lists, read the same way.
+  const lists = await Promise.all(
+    projectDocumentKinds(userId, projectId, cap).map(async (kind) => ({
+      type: kind.type,
+      rows: await kind.read()
     }))
-  ]);
+  );
   const partial = lists.some(({ rows }) => rows.length > documentsPerType);
   const refs = newestFirst(
     lists.flatMap(({ type, rows }) =>

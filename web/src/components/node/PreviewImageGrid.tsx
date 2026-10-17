@@ -521,7 +521,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
           onClick={toggleSelectionMode}
           startIcon={selectionMode ? <CheckBoxIcon /> : <CheckBoxOutlineBlankIcon />}
         >
-          {selectionMode ? "Exit Select" : "Select"}
+          {selectionMode ? "Exit select" : "Select"}
         </EditorButton>
       )}
 

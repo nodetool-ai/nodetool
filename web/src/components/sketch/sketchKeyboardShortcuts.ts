@@ -35,7 +35,7 @@ function bindingToShortcut(entry: BindingEntry, index: number): Shortcut {
   } else if (entry.scope === "mode:crop") {
     description = "While the crop tool is active";
   } else if (entry.scope === "panel:layers") {
-    description = "When focus is in the Layers panel";
+    description = "When focus is in the layers panel";
   }
 
   return {

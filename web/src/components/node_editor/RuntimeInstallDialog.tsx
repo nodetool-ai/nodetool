@@ -10,6 +10,7 @@
  */
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
+import ErrorBanner from "../support/ErrorBanner";
 import {
   Dialog,
   FlexColumn,
@@ -21,6 +22,7 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
+  ICON_SIZE
 } from "../ui_primitives";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -243,7 +245,7 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
               opacity: installing ? 0.5 : 1,
             }}
           >
-            Open Package Manager instead
+            Open package manager instead
           </Text>
         )}
       </FlexColumn>
@@ -275,15 +277,15 @@ const RuntimeRow: React.FC<RuntimeRowProps> = ({ name, status, error }) => {
             <LoadingSpinner inline size={16} />
           ) : status === "installed" ? (
             <CheckCircleOutlineIcon
-              sx={{ fontSize: 16, color: "var(--palette-success-main)" }}
+              sx={{ fontSize: ICON_SIZE.sm, color: "var(--palette-success-main)" }}
             />
           ) : status === "failed" ? (
             <ErrorOutlineIcon
-              sx={{ fontSize: 16, color: "var(--palette-error-main)" }}
+              sx={{ fontSize: ICON_SIZE.sm, color: "var(--palette-error-main)" }}
             />
           ) : (
             <DownloadOutlinedIcon
-              sx={{ fontSize: 16, color: "var(--palette-text-secondary)" }}
+              sx={{ fontSize: ICON_SIZE.sm, color: "var(--palette-text-secondary)" }}
             />
           )}
           <Text size="small" weight={500}>
@@ -291,7 +293,15 @@ const RuntimeRow: React.FC<RuntimeRowProps> = ({ name, status, error }) => {
           </Text>
         </FlexRow>
         {error && (
-          <Text size="smaller" color="error" sx={{ pl: SPACING.lg }}>{error}</Text>
+          <ErrorBanner
+            report={{
+              source: "operation-failure",
+              summary: `Installing the ${name} runtime failed`,
+              errorText: error
+            }}
+          >
+            {error}
+          </ErrorBanner>
         )}
       </FlexColumn>
       <Chip

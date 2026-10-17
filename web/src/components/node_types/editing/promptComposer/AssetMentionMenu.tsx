@@ -5,17 +5,23 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
-  BORDER_RADIUS,
   EYEBROW,
   SPACING,
+  TabGroup,
   Z_INDEX,
-  menuPaperStyles
+  menuPaperStyles,
+  type TabItem
 } from "../../../ui_primitives";
 import type { Asset } from "../../../../stores/ApiTypes";
 import type { Entity } from "@nodetool-ai/protocol";
 import { MentionAssetTile } from "./MentionAssetTile";
 import { MentionEntityTile } from "./MentionEntityTile";
 import type { MentionTab } from "./useAssetMentionSearch";
+
+const MENTION_TABS: TabItem[] = [
+  { value: "recent", label: "Recent" },
+  { value: "saved", label: "Saved" }
+];
 
 const assetMentionMenuStyles = (theme: Theme) =>
   css({
@@ -29,25 +35,7 @@ const assetMentionMenuStyles = (theme: Theme) =>
     overflow: "hidden",
     ".mention-tabs": {
       flex: "0 0 auto",
-      display: "flex",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
       borderBottom: `1px solid ${theme.vars.palette.divider}`
-    },
-    ".mention-tab": {
-      flex: "0 0 auto",
-      padding: `${theme.spacing(0.5)} ${theme.spacing(1.5)}`,
-      border: "none",
-      borderRadius: BORDER_RADIUS.sm,
-      background: "transparent",
-      color: theme.vars.palette.text.secondary,
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmall,
-      cursor: "pointer",
-      "&.active": {
-        background: theme.vars.palette.action.selected,
-        color: theme.vars.palette.text.primary
-      }
     },
     ".mention-grid": {
       flex: "1 1 auto",
@@ -207,6 +195,12 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
         ? "No assets match."
         : "No saved assets yet.";
 
+  const handleTabChange = (tab: string) => {
+    if (tab === "recent" || tab === "saved") {
+      onTabChange(tab);
+    }
+  };
+
   const handleGridScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (!hasMore || !onLoadMore) {
       return;
@@ -237,21 +231,16 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
           ))}
         </div>
       )}
-      <div className="mention-tabs" role="tablist">
-        {(["recent", "saved"] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab}
-            className={`mention-tab${activeTab === tab ? " active" : ""}`}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => onTabChange(tab)}
-          >
-            {tab === "recent" ? "Recent" : "Saved"}
-          </button>
-        ))}
-      </div>
+      <TabGroup
+        className="mention-tabs"
+        size="small"
+        aria-label="Asset source"
+        tabs={MENTION_TABS}
+        value={activeTab}
+        onChange={handleTabChange}
+        // Keep focus in the prompt editor: the menu is driven from its caret.
+        onMouseDown={(e) => e.preventDefault()}
+      />
       <div
         className="mention-grid"
         role="listbox"

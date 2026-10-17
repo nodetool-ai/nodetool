@@ -5,7 +5,7 @@
  * opening a workspace tab per row.
  */
 
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import React, { memo, useCallback, useState } from "react";
 import type { Entity } from "@nodetool-ai/protocol";
 
@@ -133,7 +133,7 @@ const EntityListPanelInternal: React.FC<EntityListPanelProps> = ({
       <EmptyState
         variant="empty"
         title="No entities yet"
-        description="Tag an image as a character, location, style, or prop with the + button above."
+        description="Tag an image as a character, location, style, or prop with the + button above, or right-click an image in the Library and choose Use as entity."
         size="small"
       />
     );

@@ -23,6 +23,7 @@ import TrackedLink from "../../components/TrackedLink";
 import AgentSessionMock from "../../components/developers/AgentSessionMock";
 import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import CodeBlock from "../../components/developers/CodeBlock";
+import PageUpdated from "@/components/PageUpdated";
 
 const container = "mx-auto max-w-7xl px-6 lg:px-8";
 const eyebrowClass =
@@ -372,7 +373,14 @@ export default function DevelopersPage() {
               <code className="font-jetbrains text-slate-100">
                 nodetool mcp config
               </code>{" "}
-              and paste the block it prints into the client config.
+              and paste the block it prints into the client config. The{" "}
+              <a
+                href="/mcp"
+                className="text-slate-100 underline underline-offset-4 hover:text-white focus-ring"
+              >
+                MCP server page
+              </a>{" "}
+              lists every tool, transport, and client.
             </p>
           </div>
         </div>
@@ -392,6 +400,14 @@ export default function DevelopersPage() {
             <p className={leadClass}>
               A workflow the agent built is also an endpoint. Your app sends
               the input and gets the image, audio, or video back.
+            </p>
+            <p className="mt-4 leading-relaxed text-slate-300">
+              Send a POST request to{" "}
+              <code className="font-mono text-sm text-slate-100">
+                /api/workflows/&lt;id&gt;/run
+              </code>{" "}
+              with the inputs under <code className="font-mono text-sm text-slate-100">params</code>.
+              The same call works from a CI job or a script.
             </p>
           </header>
           <div className="min-w-0 lg:col-span-7">
@@ -468,6 +484,9 @@ export default function DevelopersPage() {
           eventProps: { placement: "closing" },
         }}
       />
+    <div className="mx-auto max-w-7xl px-6 pb-12 lg:px-8">
+      <PageUpdated route="/developers" className="text-sm text-slate-400" />
+    </div>
     </MarketingPageShell>
   );
 }

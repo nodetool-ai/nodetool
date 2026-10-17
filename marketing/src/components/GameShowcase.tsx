@@ -56,10 +56,10 @@ export default function GameShowcase() {
           <p className="mt-4 leading-relaxed text-slate-300">{selected.description}</p>
           <p className="mt-5 font-medium text-slate-100">{selected.controls}</p>
           <a href={playerUrl} target="_blank" rel="noreferrer" className="focus-ring mt-6 inline-flex items-center gap-2 rounded text-sm font-medium text-cyan-200 hover:text-cyan-100">Open full game <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></a>
-          <p className="mt-2 text-sm leading-relaxed text-slate-300">On a phone, open the full game and turn sideways for touch controls.</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-300">On a phone or tablet, open the full game. Touch controls appear on screen.</p>
           <div className="mt-8 border-t border-slate-700 pt-6">
             <h4 className="font-medium text-slate-100">Make this game yours</h4>
-            <p className="mt-3 text-sm leading-relaxed text-slate-300">In Studio, open Examples from the logo menu, select Games, find {selected.name}, then choose “Play and edit”.</p>
+            <p className="mt-3 text-sm leading-relaxed text-slate-300">In Studio, open Examples from the logo menu, select Games, find {selected.name}, then choose Install game to open it in the Game Editor.</p>
           </div>
         </div>
       </div>

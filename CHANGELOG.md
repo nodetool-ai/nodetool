@@ -121,6 +121,9 @@ Shipped [v0.7.0](https://github.com/nodetool-ai/nodetool/releases/tag/v0.7.0).
 #### Nodes
 - Dropped the `lib.apple` node library
 
+### Removed
+- Godot project export, with `packages/godot` and `packages/godot-templates`. Games run in the built-in game engine. Removed after v0.8.0 ([#5916](https://github.com/nodetool-ai/nodetool/pull/5916)), so v0.8.1 and later do not include it
+
 ## [August 2026]
 
 ### Added

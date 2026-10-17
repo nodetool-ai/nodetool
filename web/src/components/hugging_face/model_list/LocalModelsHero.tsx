@@ -12,7 +12,8 @@ import {
   FlexRow,
   Text,
   BORDER_RADIUS,
-  SPACING
+  SPACING,
+  ICON_SIZE
 } from "../../ui_primitives";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { formatBytes } from "../../../utils/modelFormatting";
@@ -65,10 +66,10 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
               color: theme.vars.palette.primary.main
             }}
           >
-            <ComputerIcon sx={{ fontSize: 20 }} />
+            <ComputerIcon sx={{ fontSize: ICON_SIZE.lg }} />
           </FlexRow>
           <Text size="normal" weight={600}>
-            Local Models
+            Local models
           </Text>
         </FlexRow>
 
@@ -82,7 +83,7 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
             label="Installed"
             icon={
               <CheckCircleOutlineIcon
-                sx={{ fontSize: 14, color: theme.vars.palette.success.main }}
+                sx={{ fontSize: ICON_SIZE.xs, color: theme.vars.palette.success.main }}
               />
             }
           />
@@ -91,7 +92,7 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
             label="On disk"
             icon={
               <StorageOutlinedIcon
-                sx={{ fontSize: 14, color: theme.vars.palette.text.secondary }}
+                sx={{ fontSize: ICON_SIZE.xs, color: theme.vars.palette.text.secondary }}
               />
             }
           />

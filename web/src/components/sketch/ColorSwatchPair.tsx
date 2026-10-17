@@ -8,11 +8,14 @@
 
 import React, { memo, useState, useCallback } from "react";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import { useTheme } from "@mui/material/styles";
 import {
+  activateOnKey,
   Box,
   Container,
   EditorButton,
   FlexColumn,
+  focusRing,
   FlexRow,
   Text,
   Tooltip,
@@ -20,7 +23,8 @@ import {
   Z_INDEX,
   FONT_SIZE_SANS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../ui_primitives";
 import { colorToHex6 } from "./types";
 import { colorSwatchSx } from "./sketchStyles";
@@ -50,6 +54,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
   onSwapColors,
   onResetColors
 }) => {
+  const theme = useTheme();
   const [fgAnchor, setFgAnchor] = useState<HTMLElement | null>(null);
   const [bgAnchor, setBgAnchor] = useState<HTMLElement | null>(null);
   const [fgInitialColor, setFgInitialColor] = useState(foregroundColor);
@@ -59,14 +64,14 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
   const bgHex6 = colorToHex6(backgroundColor);
 
   const handleFgClick = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
+    (e: React.SyntheticEvent<HTMLElement>) => {
       setFgInitialColor(foregroundColor);
       setFgAnchor(e.currentTarget);
     },
     [foregroundColor]
   );
   const handleBgClick = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
+    (e: React.SyntheticEvent<HTMLElement>) => {
       setBgInitialColor(backgroundColor);
       setBgAnchor(e.currentTarget);
     },
@@ -96,9 +101,14 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
             className="color-swatch-pair__bg"
             padding="none"
             onClick={handleBgClick}
+            onKeyDown={activateOnKey(handleBgClick)}
+            role="button"
+            tabIndex={0}
+            aria-haspopup="dialog"
             aria-label="Background color"
             sx={{
               ...colorSwatchSx,
+              "&:focus-visible": focusRing(theme, 2),
               position: "absolute",
               left: OVERLAP,
               top: OVERLAP,
@@ -120,9 +130,14 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
             className="color-swatch-pair__fg"
             padding="none"
             onClick={handleFgClick}
+            onKeyDown={activateOnKey(handleFgClick)}
+            role="button"
+            tabIndex={0}
+            aria-haspopup="dialog"
             aria-label="Foreground color"
             sx={{
               ...colorSwatchSx,
+              "&:focus-visible": focusRing(theme, 2),
               position: "absolute",
               left: 0,
               top: 0,
@@ -156,7 +171,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
             aria-label="Swap colors"
             sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: BORDER_RADIUS.sm }}
           >
-            <SwapHorizIcon sx={{ fontSize: "var(--fontSizeSmall)" }} />
+            <SwapHorizIcon sx={{ fontSize: ICON_SIZE.xs }} />
           </EditorButton>
         </Tooltip>
         <Tooltip

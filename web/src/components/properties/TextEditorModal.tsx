@@ -4,7 +4,7 @@ import ReactDOM from "react-dom";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { css } from "@emotion/react";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import CodeIcon from "@mui/icons-material/Code";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
@@ -17,14 +17,14 @@ import SearchIcon from "@mui/icons-material/Search";
 import WrapTextIcon from "@mui/icons-material/WrapText";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import DataObjectIcon from "@mui/icons-material/DataObject";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import TextDecreaseIcon from "@mui/icons-material/TextDecrease";
 import TextIncreaseIcon from "@mui/icons-material/TextIncrease";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, reducedMotion, SHADOW, ResizeHandle } from "../ui_primitives";
+import { Tooltip, InspectorSelect, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, reducedMotion, SHADOW, ResizeHandle } from "../ui_primitives";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -113,9 +113,9 @@ const LANGUAGES = [
 ] as const;
 
 const LANGUAGE_LABELS: Record<string, string> = {
-  "": "Plain Text",
-  plaintext: "Plain Text",
-  text: "Plain Text",
+  "": "Plain text",
+  plaintext: "Plain text",
+  text: "Plain text",
   markdown: "Markdown",
   javascript: "JavaScript",
   typescript: "TypeScript",
@@ -386,30 +386,6 @@ const styles = (theme: Theme) =>
         height: "1.4em",
         margin: `0 ${getSpacingPx(SPACING.xs)}`,
         background: `rgba(${theme.vars.palette.common.whiteChannel} / 0.1)`
-      }
-    },
-    ".lang-select": {
-      appearance: "none",
-      WebkitAppearance: "none",
-      background: `rgba(${theme.vars.palette.background.paperChannel} / 0.5)`,
-      color: theme.vars.palette.text.secondary,
-      border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`,
-      borderRadius: BORDER_RADIUS.md,
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
-      outline: "none",
-      cursor: "pointer",
-      textTransform: "uppercase",
-      letterSpacing: "0.06em",
-      backgroundImage:
-        "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>\")",
-      backgroundRepeat: "no-repeat",
-      backgroundPosition: "right 0.55em center",
-      transition: MOTION.all,
-      "&:hover": {
-        color: theme.vars.palette.text.primary,
-        borderColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.18)`
       }
     },
     ".tool-btn": {
@@ -1155,6 +1131,16 @@ const TextEditorModal = ({
     ? TYPE_LABELS[propertyType] ?? propertyType
     : null;
   const languageLabel = LANGUAGE_LABELS[language] ?? language;
+  // A language passed in from outside the list stays selectable, so the
+  // field never shows a value it has no option for.
+  const languageOptions = useMemo(
+    () =>
+      (LANGUAGES.includes(language as (typeof LANGUAGES)[number])
+        ? [...LANGUAGES]
+        : [language, ...LANGUAGES]
+      ).map((lang) => ({ value: lang, label: LANGUAGE_LABELS[lang] ?? lang })),
+    [language]
+  );
   const showVariablesPanel = variablesVisible && !focusMode;
   const showAssistant = assistantVisible && !focusMode;
 
@@ -1270,13 +1256,13 @@ const TextEditorModal = ({
                 </button>
               </Tooltip>
               <Tooltip
-                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
               >
                 <button
                   type="button"
                   className="button"
                   onClick={toggleFullscreen}
-                  aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
                 >
                   {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
                 </button>
@@ -1301,8 +1287,8 @@ const TextEditorModal = ({
                   <Tooltip
                     title={
                       isCodeEditor
-                        ? "Switch to Rich Text"
-                        : "Switch to Code Editor"
+                        ? "Switch to rich text"
+                        : "Switch to code editor"
                     }
                   >
                     <button
@@ -1311,26 +1297,20 @@ const TextEditorModal = ({
                       onClick={handleToggleEditorMode}
                       aria-label={
                         isCodeEditor
-                          ? "Switch to Rich Text"
-                          : "Switch to Code Editor"
+                          ? "Switch to rich text"
+                          : "Switch to code editor"
                       }
                     >
                       {isCodeEditor ? <TextFieldsIcon /> : <CodeIcon />}
                     </button>
                   </Tooltip>
                 )}
-                <select
-                  className="lang-select"
+                <InspectorSelect
+                  label="Language"
                   value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  aria-label="Language"
-                >
-                  {LANGUAGES.map((lang) => (
-                    <option key={lang} value={lang}>
-                      {lang}
-                    </option>
-                  ))}
-                </select>
+                  options={languageOptions}
+                  onChange={setLanguage}
+                />
                 <span className="toolbar-divider" />
                 <button
                   type="button"

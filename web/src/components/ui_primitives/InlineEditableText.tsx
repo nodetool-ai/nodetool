@@ -26,11 +26,13 @@ import {
   type FocusEvent,
   type KeyboardEvent,
   type MouseEvent,
+  type ReactElement,
   type ReactNode
 } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
 
 import { Box } from "./Box";
+import { Tooltip } from "./Tooltip";
 import { BORDER_RADIUS } from "./tokens";
 import { SPACING, getSpacingPx } from "./spacing";
 
@@ -61,7 +63,10 @@ export interface InlineEditableTextProps {
    * the DOM node survives the transition instead of being swapped out.
    */
   displayAsInput?: boolean;
-  /** `title` for the resting display node only. */
+  /**
+   * Hint shown in a tooltip over the resting display node (for example
+   * "Double-click to rename"). Hidden while editing.
+   */
   title?: string;
   /** Skip the primitive's own input styling; the caller supplies all of it. */
   unstyled?: boolean;
@@ -250,8 +255,19 @@ export const InlineEditableText = ({
     [onEditingChange, stopPropagation]
   );
 
+  // The wrapper stays mounted across edit mode so a `displayAsInput` field
+  // keeps its DOM node; only the hint text empties while editing.
+  const withHint = (node: ReactElement): ReactElement =>
+    title === undefined ? (
+      node
+    ) : (
+      <Tooltip title={editing ? "" : title} describeChild>
+        {node}
+      </Tooltip>
+    );
+
   if (editing || displayAsInput) {
-    return (
+    return withHint(
       <Box
         component={multiline ? "textarea" : "input"}
         ref={inputRef}
@@ -259,7 +275,6 @@ export const InlineEditableText = ({
         aria-label={ariaLabel}
         value={editing ? draft : value}
         readOnly={!editing}
-        title={editing ? undefined : title}
         placeholder={placeholder}
         maxLength={maxLength}
         rows={multiline ? 2 : undefined}
@@ -285,11 +300,10 @@ export const InlineEditableText = ({
     return <>{children}</>;
   }
 
-  return (
+  return withHint(
     <Box
       component={as}
       className={displayClassName}
-      title={title}
       onDoubleClick={handleDisplayDoubleClick}
       sx={displaySx}
     >

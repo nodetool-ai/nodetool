@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useEffect } from "react";
 import { sketchToolSettingsContainerSx } from "./sketchStyles";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import {
   FlexColumn,
   FlexRow,
@@ -13,7 +13,8 @@ import {
   BORDER_RADIUS,
   ButtonBase,
   Popover,
-  FONT_SIZE_SANS
+  FONT_SIZE_SANS,
+  ICON_SIZE
 } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import DeselectIcon from "@mui/icons-material/Deselect";
@@ -175,7 +176,7 @@ const ToolGridButton = memo(function ToolGridButton({
         border: "1px solid",
         borderColor: selected ? "primary.main" : "transparent",
         backgroundColor: selected
-          ? alpha(theme.palette.primary.main, 0.16)
+          ? `rgb(${theme.vars.palette.primary.mainChannel} / 0.16)`
           : inactiveBg,
         px: compact ? 0.35 : 0.75,
         py: compact ? 0.45 : 0.8,
@@ -188,7 +189,7 @@ const ToolGridButton = memo(function ToolGridButton({
         width: "100%",
         "&:hover": {
           backgroundColor: selected
-            ? alpha(theme.palette.primary.main, 0.22)
+            ? `rgb(${theme.vars.palette.primary.mainChannel} / 0.22)`
             : hoverBg,
           borderColor: selected ? "primary.main" : "text.secondary"
         },
@@ -418,7 +419,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
         <ColorPreview label="FG" color={foregroundColor} />
         <ColorPreview label="BG" color={backgroundColor} />
         <ToolbarIconButton
-          icon={<SwapHorizIcon sx={{ fontSize: 18 }} />}
+          icon={<SwapHorizIcon sx={{ fontSize: ICON_SIZE.md }} />}
           onClick={onSwapColors}
           aria-label="Swap foreground and background colors"
           sx={{
@@ -428,7 +429,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             backgroundColor: surfaceSoft,
             p: 0.5,
             "&:hover": {
-              backgroundColor: alpha(theme.palette.primary.main, 0.14)
+              backgroundColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.14)`
             }
           }}
         />
@@ -494,7 +495,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           className="sketch-context-menu__header-tool"
           direction="row"
           label={activeDefinition.label}
-          icon={<ActiveIcon sx={{ fontSize: 22 }} />}
+          icon={<ActiveIcon sx={{ fontSize: ICON_SIZE.lg }} />}
           sx={{ flex: "0 1 auto", minWidth: 0 }}
         />
           {activeShortcut ? (
@@ -522,7 +523,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             orientation="vertical"
             flexItem
             sx={{
-              borderColor: alpha(theme.palette.primary.main, 0.22),
+              borderColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.22)`,
               my: 1
             }}
           />
@@ -636,34 +637,34 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 <SectionLabel>Selection</SectionLabel>
                 <FlexColumn gap={0.3}>
                   <SelectionMenuItem
-                    icon={<DeselectIcon sx={{ fontSize: 16 }} />}
+                    icon={<DeselectIcon sx={{ fontSize: ICON_SIZE.sm }} />}
                     label="Deselect"
                     shortcut={displayCombo("deselect")}
                     disabled={!hasActiveSelection}
                     onClick={() => { onDeselectSelection(); onClose(); }}
                   />
                   <SelectionMenuItem
-                    icon={<RestoreIcon sx={{ fontSize: 16 }} />}
+                    icon={<RestoreIcon sx={{ fontSize: ICON_SIZE.sm }} />}
                     label="Reselect"
                     shortcut={displayCombo("reselect")}
                     onClick={() => { onReselectSelection(); onClose(); }}
                   />
                   <SelectionMenuItem
-                    icon={<CropIcon sx={{ fontSize: 16 }} />}
+                    icon={<CropIcon sx={{ fontSize: ICON_SIZE.sm }} />}
                     label="Crop to selection"
                     disabled={!hasActiveSelection}
                     onClick={() => { onCropCanvasToSelection(); onClose(); }}
                   />
                   <Divider sx={{ my: 0.5, borderColor: surfaceSoft }} />
                   <SelectionMenuItem
-                    icon={<ContentCopyIcon sx={{ fontSize: 16 }} />}
+                    icon={<ContentCopyIcon sx={{ fontSize: ICON_SIZE.sm }} />}
                     label="Layer via copy"
                     shortcut={displayCombo("layer-via-copy")}
                     disabled={!hasActiveSelection}
                     onClick={() => { onLayerViaCopy(); onClose(); }}
                   />
                   <SelectionMenuItem
-                    icon={<ContentCutIcon sx={{ fontSize: 16 }} />}
+                    icon={<ContentCutIcon sx={{ fontSize: ICON_SIZE.sm }} />}
                     label="Layer via cut"
                     shortcut={displayCombo("layer-via-cut")}
                     disabled={!hasActiveSelection}
@@ -671,13 +672,13 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                   />
                   <Divider sx={{ my: 0.5, borderColor: surfaceSoft }} />
                   <SelectionMenuItem
-                    icon={<FormatColorFillIcon sx={{ fontSize: 16 }} />}
+                    icon={<FormatColorFillIcon sx={{ fontSize: ICON_SIZE.sm }} />}
                     label="Fill"
                     disabled={!hasActiveSelection}
                     onClick={() => { onFillSelectionWithForeground(); onClose(); }}
                   />
                   <SelectionMenuItem
-                    icon={<HighlightAltIcon sx={{ fontSize: 16 }} />}
+                    icon={<HighlightAltIcon sx={{ fontSize: ICON_SIZE.sm }} />}
                     label="Stroke"
                     disabled={!hasActiveSelection}
                     onClick={() => { onStrokeSelectionWithForeground(); onClose(); }}

@@ -506,13 +506,13 @@ function SettingsPage() {
       category: "Workflow",
       items: [
         { id: "execution", label: "Execution" },
-        { id: "canvas-navigation", label: "Canvas & Navigation" },
-        { id: "default-models", label: "Default Models" }
+        { id: "canvas-navigation", label: "Canvas & navigation" },
+        { id: "default-models", label: "Default models" }
       ]
     },
     {
       category: "History",
-      items: [{ id: "autosave", label: "Autosave & Version History" }]
+      items: [{ id: "autosave", label: "Autosave & version history" }]
     }
   ];
 
@@ -536,15 +536,15 @@ function SettingsPage() {
       { category: "Configuration", items: configItems },
       {
         category: "Accounts",
-        items: [{ id: "connected-accounts", label: "Connected Accounts" }]
+        items: [{ id: "connected-accounts", label: "Connected accounts" }]
       },
       ...(isLocalhost
         ? [
             {
               category: "Servers",
               items: [
-                { id: "mcp-integration", label: "MCP Integration" },
-                { id: "browser-extension", label: "Browser Extension" }
+                { id: "mcp-integration", label: "MCP integration" },
+                { id: "browser-extension", label: "Browser extension" }
               ]
             }
           ]
@@ -968,7 +968,7 @@ function SettingsPage() {
                         id="canvas-navigation"
                         className="settings-heading"
                       >
-                        Canvas & Navigation
+                        Canvas & navigation
                       </Text>
                       <SearchItem
                         search={search}
@@ -1052,7 +1052,7 @@ function SettingsPage() {
                         id="autosave"
                         className="settings-heading"
                       >
-                        Autosave & Version History
+                        Autosave & version history
                       </Text>
                       <SearchItem
                         search={search}
@@ -1159,7 +1159,7 @@ function SettingsPage() {
                         id="connected-accounts"
                         className="settings-heading"
                       >
-                        Connected Accounts
+                        Connected accounts
                       </Text>
                       <ConnectedAccountsSettings />
                     </>
@@ -1176,7 +1176,7 @@ function SettingsPage() {
                         id="mcp-integration"
                         className="settings-heading"
                       >
-                        MCP Integration
+                        MCP integration
                       </Text>
                       <MCPSettingsMenu />
                     </>
@@ -1193,7 +1193,7 @@ function SettingsPage() {
                         id="browser-extension"
                         className="settings-heading"
                       >
-                        Browser Extension
+                        Browser extension
                       </Text>
                       <BrowserExtensionSettingsMenu />
                     </>
@@ -1236,14 +1236,14 @@ function SettingsPage() {
                             </Text>
                           </div>
                           <Box>
-                            <Tooltip title="Copy to clipboard">
+                            <Tooltip title="Copy token">
                               <EditorButton
                                 size="small"
                                 variant="outlined"
                                 startIcon={<ContentCopyIcon />}
                                 onClick={copyAuthToken}
                               >
-                                Copy Token
+                                Copy token
                               </EditorButton>
                             </Tooltip>
                           </Box>

@@ -1,5 +1,6 @@
 "use client";
 import React, { useRef } from "react";
+import { SURFACES as SURFACE_COPY } from "@/data/agentsPage";
 
 interface Surface {
   title: string;
@@ -9,49 +10,21 @@ interface Surface {
   clip?: string;
 }
 
-const SURFACES: Surface[] = [
-  {
-    title: "Workflows",
-    body: "Wires nodes, picks models, validates the graph, and runs it.",
-    poster: "/screen_canvas.webp",
-  },
-  {
-    title: "Storyboards",
-    body: "Breaks a brief into shots and renders a frame for each one.",
-    poster: "/surface-storyboard-poster.webp",
-    clip: "/surface-storyboard",
-  },
-  {
-    title: "Timelines",
-    body: "Places clips, trims the cuts, and renders the edit.",
-    poster: "/surface-timeline-poster.webp",
-    clip: "/surface-timeline",
-  },
-  {
-    title: "Scripts",
-    body: "Drafts the scenes and voices the lines.",
-    poster: "/surface-script-poster.webp",
-    clip: "/surface-script",
-  },
-  {
-    title: "Sketches",
-    body: "Builds a layered image and edits it one layer at a time.",
-    poster: "/surface-sketch-poster.webp",
-    clip: "/surface-sketch",
-  },
-  {
-    title: "3D scenes",
-    body: "Places objects, lights, and materials, then renders the scene.",
-    poster: "/surface-3d-poster.webp",
-    clip: "/surface-3d",
-  },
-  {
-    title: "Games",
-    body: "Places entities, writes their behaviors, generates the art, and play-tests the level.",
-    poster: "/surface-game-poster.webp",
-    clip: "/surface-game",
-  },
-];
+const MEDIA: Record<string, { poster: string; clip?: string }> = {
+  Workflows: { poster: "/screen_canvas.webp" },
+  Storyboards: { poster: "/surface-storyboard-poster.webp", clip: "/surface-storyboard" },
+  Timelines: { poster: "/surface-timeline-poster.webp", clip: "/surface-timeline" },
+  Scripts: { poster: "/surface-script-poster.webp", clip: "/surface-script" },
+  Sketches: { poster: "/surface-sketch-poster.webp", clip: "/surface-sketch" },
+  "3D scenes": { poster: "/surface-3d-poster.webp", clip: "/surface-3d" },
+  Games: { poster: "/surface-game-poster.webp", clip: "/surface-game" },
+  Apps: { poster: "/screen_app_builder.png" },
+};
+
+const SURFACES: Surface[] = SURFACE_COPY.map((surface) => ({
+  ...surface,
+  ...MEDIA[surface.title],
+}));
 
 function SurfaceCard({ surface }: { surface: Surface }) {
   const videoRef = useRef<HTMLVideoElement>(null);

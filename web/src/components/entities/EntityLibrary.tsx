@@ -5,7 +5,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import type { Entity } from "@nodetool-ai/protocol";
 import {
@@ -42,18 +42,29 @@ const EntityLibraryInternal: React.FC = () => {
   const createRequested = useEntityLibraryStore(
     (state) => state.createRequested
   );
+  const createAssetId = useEntityLibraryStore((state) => state.createAssetId);
   const clearCreateRequest = useEntityLibraryStore(
     (state) => state.clearCreateRequest
   );
+  // One draft per project, so a half-made entity does not follow the creator
+  // into another project's library.
+  const draftKey = `entity-library:${projectId}`;
   // Local, so the guided flow ends with this page. A request made before the
   // tab opened (or while it is open) starts it once and is then consumed.
   const [creating, setCreating] = useState(createRequested);
+  // The image a request preselected as the reference. It replaces any draft,
+  // since the creator just chose this image for a new entity.
+  const [startAssetId, setStartAssetId] = useState<string | null>(null);
   useEffect(() => {
     if (createRequested) {
+      if (createAssetId) {
+        clearEntitySetupDraft(draftKey);
+      }
+      setStartAssetId(createAssetId);
       setCreating(true);
       clearCreateRequest();
     }
-  }, [clearCreateRequest, createRequested]);
+  }, [clearCreateRequest, createAssetId, createRequested, draftKey]);
   // The entity save and blank reference upload cannot be stopped, so the
   // exit waits for them rather than leaving a saved entity or orphan asset.
   const [setupBusy, setSetupBusy] = useState(false);
@@ -63,15 +74,12 @@ const EntityLibraryInternal: React.FC = () => {
     undefined
   );
 
-  // One draft per project, so a half-made entity does not follow the creator
-  // into another project's library.
-  const draftKey = `entity-library:${projectId}`;
-
   const handleAdd = useCallback(() => setCreating(true), []);
 
   // Leaving without creating discards the draft.
   const handleBack = useCallback(() => {
     clearEntitySetupDraft(draftKey);
+    setStartAssetId(null);
     setCreating(false);
   }, [draftKey]);
 
@@ -101,7 +109,7 @@ const EntityLibraryInternal: React.FC = () => {
         <EmptyState
           variant="empty"
           title="No entities yet"
-          description="Tag an image as a character, location, style, or prop to reuse it across shots."
+          description="Tag an image as a character, location, style, or prop to reuse it across shots. In the Library, right-click an image and choose Use as entity."
           actionText="Add entity"
           onAction={handleAdd}
         />
@@ -134,9 +142,13 @@ const EntityLibraryInternal: React.FC = () => {
           Back to entities
         </EditorButton>
         <EntitySetupHost
-          key={draftKey}
+          key={`${draftKey}:${startAssetId ?? ""}`}
           draftKey={draftKey}
-          onFinish={() => setCreating(false)}
+          initialAssetId={startAssetId ?? undefined}
+          onFinish={() => {
+            setStartAssetId(null);
+            setCreating(false);
+          }}
           onBusyChange={setSetupBusy}
         />
       </FlexColumn>

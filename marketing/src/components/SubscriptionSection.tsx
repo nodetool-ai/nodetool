@@ -3,7 +3,8 @@ import { Check, Minus } from "lucide-react";
 
 /*
  * What each consumer plan runs in NodeTool, checked against the providers in
- * packages/runtime/src/providers: `codex` (Sign in with ChatGPT),
+ * packages/runtime/src/providers: `codex` (Sign in with ChatGPT: chat and
+ * GPT Image, no extension),
  * `claude_agent_sdk` (Sign in with Claude), `chatgpt` (images in the user's
  * chatgpt.com tab) and `gemini_web` (chat, images and video in the user's
  * gemini.google.com tab). The two tab providers run only on local installs,
@@ -124,8 +125,8 @@ export default function SubscriptionSection({
                 </table>
               </div>
               <p className="mt-4 text-sm leading-relaxed text-slate-400">
-                Subscriptions run in Studio, the desktop app. Gemini, and
-                image generation on ChatGPT, also need the{" "}
+                Subscriptions run in Studio, the desktop app. Gemini also
+                needs the{" "}
                 <a
                   href="https://docs.nodetool.ai/chrome-extension"
                   className="text-blue-300 underline underline-offset-2 hover:text-blue-200 focus-ring"

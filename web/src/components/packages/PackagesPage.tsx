@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
-import { PageLayout } from "../ui_primitives";
+import { PageLayout, ICON_SIZE } from "../ui_primitives";
 import PackageManager from "./PackageManager";
 
 /**
@@ -9,8 +9,8 @@ import PackageManager from "./PackageManager";
  */
 const PackagesPage: React.FC = () => (
   <PageLayout
-    icon={<Inventory2OutlinedIcon sx={{ fontSize: 22 }} />}
-    title="Package Manager"
+    icon={<Inventory2OutlinedIcon sx={{ fontSize: ICON_SIZE.lg }} />}
+    title="Package manager"
     subtitle="Install runtimes and node packs in one place."
     docsTopic="nodePacks"
     padded={false}

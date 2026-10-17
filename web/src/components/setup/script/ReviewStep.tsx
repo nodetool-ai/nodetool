@@ -21,7 +21,7 @@
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import TheaterComedyIcon from "@mui/icons-material/TheaterComedy";
 import {
@@ -296,14 +296,14 @@ const ReviewLine: React.FC<ReviewLineProps> = memo(
           >
             <ToolbarIconButton
               icon={<TheaterComedyIcon fontSize="small" />}
-              tooltip={showDirection ? "Remove direction" : "Add direction"}
-              ariaLabel={`${showDirection ? "Remove direction from" : "Add direction to"} ${excerpt}`}
+              tooltip={showDirection ? "Delete direction" : "Add direction"}
+              ariaLabel={`${showDirection ? "Delete direction from" : "Add direction to"} ${excerpt}`}
               onClick={toggleDirection}
             />
             <ToolbarIconButton
               icon={<DeleteOutlineIcon fontSize="small" />}
-              tooltip="Remove line"
-              ariaLabel={`Remove ${excerpt}`}
+              tooltip="Delete line"
+              ariaLabel={`Delete ${excerpt}`}
               variant="error"
               onClick={remove}
             />
@@ -545,7 +545,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
               disabled={locked}
               onClick={removeEmptyLines}
             >
-              {`Remove ${plural(emptyLineIds.length, "empty line")}`}
+              {`Delete ${plural(emptyLineIds.length, "empty line")}`}
             </EditorButton>
           }
         >

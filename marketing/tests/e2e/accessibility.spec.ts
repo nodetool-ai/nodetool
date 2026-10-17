@@ -7,10 +7,25 @@ const REPRESENTATIVE_ROUTES = [
   "/studio",
   "/agents",
   "/gamedev",
+  "/gamedev/ai-game-engines",
+  "/ai-image-editor",
+  "/ai-video-editor",
+  "/mcp",
+  "/alternatives",
   "/models",
   "/recipes/ugc-product-video",
 ];
-const REDESIGNED_ROUTES = ["/cloud", "/studio", "/agents", "/gamedev"];
+const REDESIGNED_ROUTES = [
+  "/cloud",
+  "/studio",
+  "/agents",
+  "/gamedev",
+  "/gamedev/ai-game-engines",
+  "/ai-image-editor",
+  "/ai-video-editor",
+  "/mcp",
+  "/alternatives",
+];
 const SMOKE_RULES = [
   "aria-allowed-attr",
   "aria-valid-attr-value",

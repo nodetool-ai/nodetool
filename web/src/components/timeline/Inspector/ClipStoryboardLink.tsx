@@ -18,7 +18,8 @@ import {
   Chip,
   EditorButton,
   FlexRow,
-  SPACING
+  SPACING,
+  Tooltip
 } from "../../ui_primitives";
 import LinkShotDialog from "../shot/LinkShotDialog";
 import { colorForType } from "../../../config/data_types";
@@ -66,14 +67,15 @@ const ClipStoryboardLinkInner = ({ clip }: ClipStoryboardLinkProps) => {
 
   return (
     <FlexRow align="center" sx={{ pt: SPACING.micro }}>
-      <Chip
-        compact
-        variant="outlined"
-        label={link.label}
-        accent={BOARD_COLOR}
-        onClick={link.open}
-        title={`Open ${link.shot.slug ?? "this shot"} on the storyboard`}
-      />
+      <Tooltip title={`Open ${link.shot.slug ?? "this shot"} on the storyboard`} describeChild>
+        <Chip
+          compact
+          variant="outlined"
+          label={link.label}
+          accent={BOARD_COLOR}
+          onClick={link.open}
+        />
+      </Tooltip>
     </FlexRow>
   );
 };

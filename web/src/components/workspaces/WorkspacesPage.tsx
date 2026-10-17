@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import FolderSpecialOutlinedIcon from "@mui/icons-material/FolderSpecialOutlined";
-import { PageLayout } from "../ui_primitives";
+import { PageLayout, ICON_SIZE } from "../ui_primitives";
 import WorkspacesManager from "./WorkspacesManager";
 
 /**
@@ -9,7 +9,7 @@ import WorkspacesManager from "./WorkspacesManager";
  */
 const WorkspacesPage: React.FC = () => (
   <PageLayout
-    icon={<FolderSpecialOutlinedIcon sx={{ fontSize: 22 }} />}
+    icon={<FolderSpecialOutlinedIcon sx={{ fontSize: ICON_SIZE.lg }} />}
     title="Workspaces"
     subtitle="Sandboxed folders that agents and workflows can read, write, and organize files in."
     docsTopic="workspaces"

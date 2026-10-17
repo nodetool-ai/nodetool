@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useState, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import DeleteIcon from "@mui/icons-material/Delete";
+import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import LoginIcon from "@mui/icons-material/Login";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -32,11 +31,11 @@ import {
   Box,
   EmptyState,
   CollapsibleSection,
+  SectionHeader,
   BORDER_RADIUS,
-  MOTION,
-  reducedMotion,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  selectableRowStyles
 } from "../ui_primitives";
 import { ToolbarIconButton } from "../ui_primitives";
 import { ConfirmDialog } from "../ui_primitives";
@@ -463,31 +462,19 @@ const ProviderHero = memo(function ProviderHero() {
 
 const SectionTitle = memo(function SectionTitle({
   title,
-  count,
-  theme
+  count
 }: {
   title: string;
   count: number;
-  theme: Theme;
 }) {
   return (
-    <FlexRow
-      align="center"
-      gap={SPACING.md}
-      sx={{ marginBottom: theme.spacing(3) }}
-    >
-      <Text component="h3" size="big">
-        {title}
-      </Text>
-      <Caption
-        size="small"
-        sx={{
-          fontVariantNumeric: "tabular-nums"
-        }}
-      >
-        {count}
-      </Caption>
-    </FlexRow>
+    <SectionHeader
+      title={title}
+      titleComponent="h3"
+      size="large"
+      count={count}
+      sx={{ justifyContent: "flex-start", py: SPACING.none, mb: SPACING.lg }}
+    />
   );
 });
 
@@ -502,12 +489,12 @@ const STATUS_DOT_PX = 6;
 const SECTION_ORDER = ["popular", "language", "media", "gateways", "search", "compute", "advanced"] as const;
 const SECTION_TITLES = {
   popular: "Popular",
-  language: "Language Models",
-  media: "Media Generation",
-  gateways: "Gateways & Hubs",
-  search: "Web Search",
-  compute: "Compute & Local",
-  advanced: "Services & Advanced"
+  language: "Language models",
+  media: "Media generation",
+  gateways: "Gateways & hubs",
+  search: "Web search",
+  compute: "Compute & local",
+  advanced: "Services & advanced"
 } satisfies Record<string, string>;
 
 /* ------------------------------------------------------------------ */
@@ -798,9 +785,8 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
       {connected.length > 0 && (
         <div>
           <SectionTitle
-            title="Connected Providers"
+            title="Connected providers"
             count={connected.length}
-            theme={theme}
           />
           <FlexColumn
             sx={{
@@ -852,7 +838,6 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
             <SectionTitle
               title={sectionTitle}
               count={allInSection.length}
-              theme={theme}
             />
             <FlexColumn
               sx={{
@@ -884,7 +869,6 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
                 <SectionTitle
                   title={sectionTitle}
                   count={allInSection.length}
-                  theme={theme}
                 />
               }
               open={forceAdvancedOpen || advancedOpen}
@@ -1096,13 +1080,13 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
   const quickLinks = [
     {
       icon: <ModelTrainingIcon sx={{ fontSize: "1.2em" }} />,
-      title: "Supported Models",
+      title: "Supported models",
       subtitle: "See models by provider",
       href: docsLink("providers")
     },
     {
       icon: <MenuBookIcon sx={{ fontSize: "1.2em" }} />,
-      title: "API Documentation",
+      title: "API documentation",
       subtitle: "Provider guides & links",
       href: docsUrl("providers")
     },
@@ -1135,30 +1119,27 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
         }}
       >
         <Text size="small" sx={{ marginBottom: theme.spacing(3) }}>
-          Quick Links
+          Quick links
         </Text>
         <FlexColumn sx={{ gap: theme.spacing(0.5) }}>
           {quickLinks.map((link) => (
-            <FlexRow
+            // A real link, so Tab reaches it, Enter opens it and the
+            // browser's own open-in-new-tab gestures work.
+            <Box
               key={link.title}
-              align="center"
-              gap={SPACING.md}
+              component="a"
+              href={link.href}
+              {...(link.href.startsWith("http")
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
               sx={{
+                ...selectableRowStyles(theme),
+                display: "flex",
+                alignItems: "center",
+                gap: getSpacingPx(SPACING.md),
                 padding: theme.spacing(2, 2),
-                borderRadius: BORDER_RADIUS.md,
-                cursor: "pointer",
-                transition: MOTION.background,
-                ...reducedMotion({ transition: MOTION.none }),
-                "&:hover": {
-                  backgroundColor: theme.vars.palette.action.hover
-                }
-              }}
-              onClick={() => {
-                if (link.href.startsWith("http")) {
-                  window.open(link.href, "_blank", "noopener,noreferrer");
-                } else {
-                  window.location.href = link.href;
-                }
+                color: "inherit",
+                textDecoration: "none"
               }}
             >
               <FlexRow
@@ -1190,7 +1171,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
               >
                 ›
               </Text>
-            </FlexRow>
+            </Box>
           ))}
         </FlexColumn>
       </Card>

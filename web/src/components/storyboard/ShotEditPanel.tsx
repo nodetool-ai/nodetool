@@ -765,7 +765,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
           {!readOnly && (
             <>
               <ToolbarIconButton
-                icon={<MoreHorizIcon sx={{ fontSize: "1em" }} />}
+                icon={<MoreHorizIcon fontSize="inherit" />}
                 tooltip="More actions"
                 ariaLabel="More shot actions"
                 onClick={(event) => setMenuAnchor(event.currentTarget)}

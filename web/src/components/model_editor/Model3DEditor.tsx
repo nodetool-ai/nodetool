@@ -28,7 +28,7 @@ import {
 import OpenWithIcon from "@mui/icons-material/OpenWith";
 import ThreeDRotationIcon from "@mui/icons-material/ThreeDRotation";
 import AspectRatioIcon from "@mui/icons-material/AspectRatio";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
@@ -77,6 +77,7 @@ import Model3DChatPanel from "./Model3DChatPanel";
 import AiRenderPanel, { type ViewportCapture } from "./AiRenderPanel";
 import type { CapturePass } from "./aiRender";
 import EditorStatusBar from "./EditorStatusBar";
+import ViewportContextMenu from "./ViewportContextMenu";
 import AnimationBar from "./AnimationBar";
 import ViewportHud from "./ViewportHud";
 import { MenuButton } from "./MenuButton";
@@ -140,6 +141,7 @@ import {
 import {
   CameraRig,
   CaptureBridge,
+  FollowSelection,
   GroundAxes,
   LightGizmos,
   SelectionBounds,
@@ -265,12 +267,8 @@ const styles = (theme: Theme) =>
       // Leave room for the axis widget in the bottom-right corner.
       right: 160,
       bottom: getSpacingPx(SPACING.md),
-      zIndex: Z_INDEX.raised,
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
-      borderRadius: BORDER_RADIUS.md,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.72)`,
-      backdropFilter: "blur(8px)"
+      // Position only: FloatingToolbar draws the surface.
+      zIndex: Z_INDEX.raised
     },
     ".drop-hint": {
       position: "absolute",
@@ -1001,6 +999,10 @@ const Model3DEditor = ({
   }, [requestCamera]);
 
   const frameAll = useCallback(() => requestCamera({ kind: "frameAll" }), [requestCamera]);
+  const followSelection = useCallback(
+    (uuid: string) => requestCamera({ kind: "follow", uuid }),
+    [requestCamera]
+  );
   const setView = useCallback(
     (view: ViewPreset) => requestCamera({ kind: "view", view }),
     [requestCamera]
@@ -1050,6 +1052,35 @@ const Model3DEditor = ({
       return;
     }
     setSelectedUuid(e.object.uuid);
+  }, []);
+
+  // A right-click on an object opens the viewport menu. A right-drag pans the
+  // camera, so the menu opens on release, and only when the pointer stayed put.
+  const rightPress = useRef<{ uuid: string; x: number; y: number } | null>(null);
+  const [viewportMenu, setViewportMenu] = useState<{ x: number; y: number } | null>(null);
+  const closeViewportMenu = useCallback(() => setViewportMenu(null), []);
+
+  const handleScenePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
+    if (e.nativeEvent.button !== 2 || !isVisibleInTree(e.object)) {
+      return;
+    }
+    e.stopPropagation();
+    rightPress.current = { uuid: e.object.uuid, x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
+  }, []);
+
+  const handleScenePointerUp = useCallback((e: ThreeEvent<PointerEvent>) => {
+    const press = rightPress.current;
+    if (e.nativeEvent.button !== 2 || !press || !isVisibleInTree(e.object)) {
+      return;
+    }
+    e.stopPropagation();
+    rightPress.current = null;
+    const { clientX: x, clientY: y } = e.nativeEvent;
+    if (press.uuid !== e.object.uuid || Math.hypot(x - press.x, y - press.y) > 4) {
+      return;
+    }
+    setSelectedUuid(press.uuid);
+    setViewportMenu({ x, y });
   }, []);
 
   const handlePointerMissed = useCallback(() => {
@@ -1261,7 +1292,7 @@ const Model3DEditor = ({
     }
     if (selectedObject) {
       const tool = gizmoMode === "translate" ? "Move" : gizmoMode === "rotate" ? "Rotate" : "Scale";
-      return `${tool} (${gizmoSpace}) · drag the gizmo, hold Ctrl to snap · F focus · Ctrl+D duplicate · Del delete`;
+      return `${tool} (${gizmoSpace}) · drag the gizmo, hold Ctrl to snap · F frame · Ctrl+D duplicate · Del delete`;
     }
     return "Click to select · drag to orbit · right-drag to pan · scroll to zoom · press ? for shortcuts";
   }, [previewActive, isDragging, snapActive, gizmoMode, gizmoSpace, selectedObject]);
@@ -1650,7 +1681,12 @@ const Model3DEditor = ({
                   <GroundAxes xColor={palette.x} zColor={palette.z} />
                 </>
               )}
-              <primitive object={root} onClick={handleSceneClick} />
+              <primitive
+                object={root}
+                onClick={handleSceneClick}
+                onPointerDown={interactive ? handleScenePointerDown : undefined}
+                onPointerUp={interactive ? handleScenePointerUp : undefined}
+              />
               {interactive && (
                 <>
                   <SelectionBounds object={selectedObject} color={palette.accent} />
@@ -1689,6 +1725,13 @@ const Model3DEditor = ({
                   <OrbitControls makeDefault enableDamping={false} />
                   <OrbitTargetBridge targetRef={orbitTargetRef} />
                   <CameraRig root={root} request={cameraRequest} />
+                  {interactive && (
+                    <FollowSelection
+                      object={selectedObject}
+                      tick={tick}
+                      onLeftView={followSelection}
+                    />
+                  )}
                   <GizmoHelper alignment="bottom-right" margin={[72, 72]}>
                     <GizmoViewport
                       axisColors={[palette.x, palette.y, palette.z]}
@@ -1725,7 +1768,36 @@ const Model3DEditor = ({
         </div>
 
         <FlexColumn className="side-panel right" fullHeight>
-          <PanelHeader title="Inspector" />
+          <PanelHeader
+            title="Inspector"
+            actions={
+              selectedObject && interactive ? (
+                <FlexRow gap={SPACING.xs} align="center">
+                  <Tooltip title={withShortcut("Duplicate the selected object", "duplicate")}>
+                    <EditorButton
+                      density="compact"
+                      variant="text"
+                      startIcon={<ContentCopyIcon />}
+                      onClick={handleDuplicate}
+                    >
+                      Duplicate
+                    </EditorButton>
+                  </Tooltip>
+                  <Tooltip title={withShortcut("Delete the selected object", "delete")}>
+                    <EditorButton
+                      density="compact"
+                      variant="text"
+                      color="error"
+                      startIcon={<DeleteOutlineIcon />}
+                      onClick={handleDelete}
+                    >
+                      Delete
+                    </EditorButton>
+                  </Tooltip>
+                </FlexRow>
+              ) : undefined
+            }
+          />
           <PropertiesPanel object={selectedObject} tick={tick + dragTick} record={record} />
         </FlexColumn>
 
@@ -1780,6 +1852,14 @@ const Model3DEditor = ({
         stats={stats}
       />
 
+      <ViewportContextMenu
+        position={viewportMenu && selectedObject ? viewportMenu : null}
+        onClose={closeViewportMenu}
+        onDuplicate={handleDuplicate}
+        onFrame={focusSelection}
+        onHide={handleToggleHidden}
+        onDelete={handleDelete}
+      />
       <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <ConfirmDialog
         open={confirmCloseOpen}

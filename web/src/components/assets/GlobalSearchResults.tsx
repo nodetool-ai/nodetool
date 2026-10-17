@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
 import { EditorButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS, getSpacingPx, SPACING, EmptyState, LoadingSpinner } from "../ui_primitives";
-import FolderIcon from "@mui/icons-material/Folder";
+import FolderIcon from "@mui/icons-material/FolderOutlined";
 import NavigateIcon from "@mui/icons-material/NavigateNext";
 import { AssetWithPath } from "../../stores/ApiTypes";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
@@ -371,7 +371,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         <div className="global-search-results-container search-results-container">
           <div className="global-search-results-header search-results-header">
             <Text className="global-search-results-title search-results-title">
-              Search Results
+              Search results
             </Text>
             <Text className="global-search-results-count search-results-count">
               {isSearching
@@ -407,7 +407,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       <div className="global-search-results-container search-results-container">
         <div className="global-search-results-header search-results-header">
           <Text className="global-search-results-title search-results-title">
-            Search Results
+            Search results
           </Text>
           <Text className="global-search-results-count search-results-count">
             {results.length} result{results.length !== 1 ? "s" : ""} for &quot;

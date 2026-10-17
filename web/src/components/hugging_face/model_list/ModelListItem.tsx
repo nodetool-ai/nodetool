@@ -10,7 +10,8 @@ import {
   TextLink,
   SPACING,
   getSpacingPx,
-  activateOnKey
+  activateOnKey,
+  ICON_SIZE
 } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -92,9 +93,11 @@ const ModelName: React.FC<{ model: UnifiedModel; plain: boolean }> = ({
   }
 
   return (
-    <TextLink href={modelUrl} external className="model-name-link" title={full}>
-      {content}
-    </TextLink>
+    <Tooltip title={full} describeChild>
+      <TextLink href={modelUrl} external className="model-name-link">
+        {content}
+      </TextLink>
+    </Tooltip>
   );
 };
 
@@ -268,7 +271,7 @@ const ModelListItem: React.FC<
                   onClick={handleOpenDialog}
                   icon={
                     <VisibilityIcon
-                      style={{ fontSize: "var(--fontSizeNormal)" }}
+                      style={{ fontSize: ICON_SIZE.sm }}
                     />
                   }
                   sx={{

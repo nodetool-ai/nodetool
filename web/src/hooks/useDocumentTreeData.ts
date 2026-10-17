@@ -11,7 +11,9 @@ export type DocumentTreeLeafType =
   | "storyboard"
   | "timeline"
   | "entity"
-  | "jsscript";
+  | "jsscript"
+  | "game"
+  | "text";
 
 export interface DocumentTreeLeaf {
   readonly id: string;
@@ -23,7 +25,7 @@ export interface DocumentTreeLeaf {
 }
 
 export interface DocumentTreeGroup {
-  readonly id: "workflows" | "apps" | "creative" | "agents";
+  readonly id: "workflows" | "apps" | "creative" | "text" | "agents" | "entities";
   readonly label: string;
   readonly children: readonly DocumentTreeLeaf[];
 }
@@ -46,7 +48,9 @@ const UNTITLED: Record<DocumentTreeLeafType, string> = {
   storyboard: "Untitled storyboard",
   timeline: "Untitled video",
   entity: "Untitled entity",
-  jsscript: "Untitled JS script"
+  jsscript: "Untitled JS script",
+  game: "Untitled game",
+  text: "Untitled text file"
 };
 
 const TYPE_LABELS: Record<DocumentTreeLeafType, string> = {
@@ -57,13 +61,20 @@ const TYPE_LABELS: Record<DocumentTreeLeafType, string> = {
   storyboard: "Storyboard",
   timeline: "Timeline",
   entity: "Entity",
-  jsscript: "JS script"
+  jsscript: "JS script",
+  game: "Game",
+  text: "Text file"
 };
 
 /**
  * The groups, and the kinds each one holds in the order it shows them. The
  * index arrives newest-first across every kind at once, so a group's order
  * comes from partitioning it by kind rather than from the order it arrived in.
+ *
+ * Every group but Entities holds the kinds the home documents strip counts,
+ * so the panel and the strip agree on what a document is. Entities open in
+ * place rather than as a tab, and the strip does not list them, so they get a
+ * group of their own instead of sitting among the documents.
  */
 const GROUPS: readonly {
   readonly id: DocumentTreeGroup["id"];
@@ -75,9 +86,11 @@ const GROUPS: readonly {
   {
     id: "creative",
     label: "Creative documents",
-    types: ["sketch", "script", "storyboard", "timeline", "entity"]
+    types: ["sketch", "script", "storyboard", "timeline", "game"]
   },
-  { id: "agents", label: "Agents & code", types: ["jsscript"] }
+  { id: "text", label: "Text files", types: ["text"] },
+  { id: "agents", label: "Agents & code", types: ["jsscript"] },
+  { id: "entities", label: "Entities", types: ["entity"] }
 ];
 
 /**

@@ -35,11 +35,11 @@ const FONT_SIZES = {
  * 
  * @example
  * // Basic label
- * <Label htmlFor="email">Email Address</Label>
+ * <Label htmlFor="email">Email address</Label>
  * 
  * @example
  * // Required field label
- * <Label required htmlFor="name">Full Name</Label>
+ * <Label required htmlFor="name">Full name</Label>
  * 
  * @example
  * // Error state label
@@ -47,7 +47,7 @@ const FONT_SIZES = {
  * 
  * @example
  * // Disabled label
- * <Label disabled>Disabled Field</Label>
+ * <Label disabled>Disabled field</Label>
  */
 export const Label = forwardRef<HTMLElement, LabelProps>(({
   size = "normal",

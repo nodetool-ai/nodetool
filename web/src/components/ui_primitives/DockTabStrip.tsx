@@ -17,7 +17,7 @@
 
 import React, { forwardRef, memo, useRef } from "react";
 import type { ReactNode } from "react";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
 

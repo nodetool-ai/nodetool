@@ -6,7 +6,7 @@
  * reads what is declared here.
  */
 import { memo, useCallback } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 
 import {
   Box,
@@ -119,7 +119,7 @@ const JsScriptPortsEditor = ({
             </Box>
             {!readOnly && (
               <DeleteButton
-                ariaLabel={`Remove ${label} ${index + 1}`}
+                ariaLabel={`Delete ${label} ${index + 1}`}
                 onClick={() => remove(index)}
               />
             )}

@@ -16,7 +16,8 @@ import {
   TextLink,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../../ui_primitives";
 import useNodePacksStore from "../../../stores/NodePacksStore";
 import { useShallow } from "zustand/react/shallow";
@@ -136,7 +137,7 @@ const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
       {isInstalled ? (
         <FlexRow gap={SPACING.micro} align="center" sx={{ flexShrink: 0 }}>
           <CheckCircleIcon
-            sx={{ fontSize: 16, color: theme.vars.palette.success.main }}
+            sx={{ fontSize: ICON_SIZE.sm, color: theme.vars.palette.success.main }}
           />
           <Caption color="secondary">Installed</Caption>
         </FlexRow>
@@ -156,7 +157,7 @@ const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
           }
           sx={{ flexShrink: 0 }}
         >
-          {available ? "Install" : "Open Manager"}
+          {available ? "Install" : "Open manager"}
         </EditorButton>
       )}
     </FlexRow>
@@ -225,7 +226,7 @@ const EngineGuide: React.FC = () => {
             endIcon={<OpenInNewIcon />}
             onClick={openPackageManager}
           >
-            Package Manager
+            Package manager
           </EditorButton>
         </FlexRow>
         <FlexColumn gap={SPACING.xs}>

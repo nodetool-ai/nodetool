@@ -27,11 +27,11 @@ import {
   MenuItemPrimitive,
   ScrollArea,
   SearchInput,
-  Text,
   TreeRow,
   BORDER_RADIUS,
   MOTION,
-  SPACING
+  SPACING,
+  EmptyState
 } from "../ui_primitives";
 import type { SceneTreeNode } from "./sceneTree";
 import { shortcutKeys } from "./editorShortcuts";
@@ -488,13 +488,17 @@ const SceneOutliner = ({
           }}
         >
           {!hasNodes ? (
-            <Text size="small" color="secondary" sx={{ py: SPACING.lg, px: SPACING.md }}>
-              Scene is empty. Use Add to create an object.
-            </Text>
+            <EmptyState
+              size="small"
+              title="Scene is empty"
+              description="Use Add to create an object."
+            />
           ) : rows.length === 0 ? (
-            <Text size="small" color="secondary" sx={{ py: SPACING.lg, px: SPACING.md }}>
-              No objects match “{query}”.
-            </Text>
+            <EmptyState
+              variant="no-results"
+              size="small"
+              title={`No objects match “${query}”`}
+            />
           ) : (
             rows.map((row) => (
               <OutlinerRow

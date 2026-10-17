@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, activateOnKey, SHADOW } from "../ui_primitives";
+import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, activateOnKey, SHADOW, ICON_SIZE } from "../ui_primitives";
 import type { TabItem } from "../ui_primitives";
 import { CloseButton } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
@@ -400,7 +400,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
       >
         <FlexColumn className="modal-content" onClick={(e) => e.stopPropagation()}>
           <FlexRow className="modal-header" align="center" justify="space-between" fullWidth>
-            <Text className="modal-title">Color Picker</Text>
+            <Text className="modal-title">Color picker</Text>
             <FlexRow className="header-actions" align="center">
               <EyedropperButton onColorPicked={handleEyedropperPick} />
               <CloseButton
@@ -463,7 +463,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
                     </span>
                     {copiedFormat === "hex" && (
                       <FlexRow className="copy-feedback" align="center">
-                        <CheckIcon sx={{ fontSize: 12 }} /> Copied
+                        <CheckIcon sx={{ fontSize: ICON_SIZE.xs }} /> Copied
                       </FlexRow>
                     )}
                   </FlexRow>

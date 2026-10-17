@@ -1043,6 +1043,9 @@ and the BS.1770 reference signal reads -20.0 LUFS. `media-decode.ts` is the
 Mediabunny seam (PCM out of an audio track, RGBA frames at chosen timestamps,
 container metadata), and the capability file resolves the reference, picks the
 analysis parameters, and shapes the answer.
+The onset and tempo detector lives in `@nodetool-ai/timeline`
+(`src/audioOnsets.ts`) so the timeline editor's Detect beats action runs the
+same code in the browser. `audio-dsp.ts` re-exports it.
 
 `src/analysis/mediabunny-runtime.ts` is where the Node codec adapter is
 registered, once per process. `sandbox-av-media.ts` imports it rather than

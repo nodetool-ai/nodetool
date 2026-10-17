@@ -50,7 +50,7 @@ The new-project screen has a **Start with a guided flow** row. The **Game** card
 
 ### From an example
 
-Open the Examples page from the logo menu and choose the **Games** tab. Each card shows a poster, a description, and the controls. **Play** opens the example. **Install game** copies the game and its media into your current project. Choose **Edit** to open its editor.
+Open the Examples page from the logo menu and choose the **Games** tab. Each card shows a poster, a description, and the controls. **Play** opens the example. **Install game** copies the game and its media into your current project and opens the copy in the Game Editor.
 
 | Example | Dimension | Summary |
 |---|---|---|
@@ -213,8 +213,9 @@ and `grounded`. In 3D it contains `id`, `source`, `position`, `velocity`, and
 Pass `near: { x, y, z? }` together with a nonnegative `radius`. Distance uses
 entity centers and includes the radius boundary. Omitted `z` is zero. `source`
 matches the exact `source` field, the original entity ID rather than a 3D prefab
-asset ID. Documents currently have no
-authored tags, so every `tag` filter returns an empty array.
+asset ID. A `tag` filter matches entities
+whose `tags` include it. Entities in legacy 2D documents carry no tags, so a
+`tag` filter returns an empty array there.
 
 ```js
 /** @type {GameScript} */

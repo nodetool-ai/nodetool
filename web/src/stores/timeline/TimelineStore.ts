@@ -536,6 +536,11 @@ export interface TimelineStoreState {
    * clock and a picture cut is where the editor put it. One undo entry.
    */
   setTempo: (tempo: TimelineTempo) => void;
+  /**
+   * Set the tempo "Detect beats" measured and add its bar markers, as one undo
+   * entry. A bar that already has a marker at that time keeps it alone.
+   */
+  applyDetectedBeats: (tempo: TimelineTempo, barTimesMs: readonly number[]) => void;
   /** Set the synth a midi track plays. Every clip on the track uses it. */
   setTrackInstrument: (trackId: string, instrument: MidiInstrument) => void;
   /** Replace a chord track's chord regions (sorted by onset). */
@@ -3507,6 +3512,30 @@ export const createTimelineStore = (
                 previous,
                 tempo
               )
+            };
+          }),
+
+        applyDetectedBeats: (tempo, barTimesMs) =>
+          set((state) => {
+            const taken = new Set(state.markers.map((m) => Math.round(m.timeMs)));
+            const added = barTimesMs
+              .map((timeMs, index) => ({
+                timeMs: Math.max(0, Math.round(timeMs)),
+                label: `Bar ${index + 1}`
+              }))
+              .filter((bar) => !taken.has(bar.timeMs))
+              .map((bar) => makeMarker(bar));
+            return {
+              tempo,
+              clips: rescaleClipsForTempo(
+                state.clips,
+                state.tracks,
+                resolveTempo(state),
+                tempo
+              ),
+              markers: added.length
+                ? [...state.markers, ...added]
+                : state.markers
             };
           }),
 

@@ -1,5 +1,4 @@
 import type { PageEntry } from "./types";
-import { yearToken } from "./types";
 import type { OgAccent } from "../lib/og";
 import type { SearchStarter } from "./searchStarters";
 import type { LandingPage } from "../lib/analytics";
@@ -139,6 +138,22 @@ export type Competitor = {
   starter?: { id: SearchStarter; source: LandingPage; heading: string };
   sources?: { title: string; href: string }[];
 };
+
+/** The /alternatives hub's lead, shared with its Markdown mirror. */
+export const ALTERNATIVES_INTRO =
+  "Each page puts NodeTool next to one product: what the other product does well, what NodeTool does differently, a feature table, and when to pick which. NodeTool is an open-source, agent-first creative workspace that runs on your own provider accounts, on the desktop or self-hosted.";
+
+/** /alternatives categories in reading order. Any category not listed sorts after these. */
+export const ALTERNATIVES_CATEGORY_ORDER = [
+  "Node editor",
+  "Video studio",
+  "AI filmmaking",
+  "Creative canvas",
+  "Workflow automation",
+  "Chatbot & agent builder",
+  "Agent automation",
+  "Local language model runtime",
+];
 
 export const competitors: Competitor[] = [
   {
@@ -1740,6 +1755,10 @@ export const competitors: Competitor[] = [
     name: "Langflow",
     theme: "blue",
     category: "Chatbot & agent builder",
+    seo: {
+      title: "Langflow Alternative with Image, Video, and Audio Generation | NodeTool",
+      description: "Langflow is text-first. NodeTool builds agents and generates image, video, and audio in the same open-source workflow, on your own provider keys.",
+    },
     og: {
       image: "screen_workflow.png",
       accent: "emerald",
@@ -1808,6 +1827,10 @@ export const competitors: Competitor[] = [
     name: "n8n",
     theme: "blue",
     category: "Workflow automation",
+    seo: {
+      title: "n8n Alternative for AI Media Workflows | NodeTool",
+      description: "n8n connects apps and sends AI calls through a generic HTTP node. NodeTool is open source and generates image, video, audio, and text with native nodes.",
+    },
     og: {
       image: "screen_canvas.png",
       accent: "cyan",
@@ -1868,14 +1891,17 @@ export const competitors: Competitor[] = [
           "When the hard part of your workflow is business-app plumbing: hundreds of connectors, schedules, retries, and branching between SaaS tools. That is what n8n is built for. NodeTool is the better fit when the workflow's output is AI-generated media or agent work, and you want local models, provider pricing on your own keys, and a desktop app.",
       },
     ],
-    limitation:
-      "n8n is built for app-to-app plumbing; AI generation lands in a generic HTTP node, and it is fair-code, not open source.",
+    limitation: "n8n is built for app-to-app plumbing. AI generation lands in a generic HTTP node, and its license is fair-code, not open source.",
   },
   {
     slug: "flowise",
     name: "Flowise",
     theme: "violet",
     category: "Chatbot & agent builder",
+    seo: {
+      title: "Flowise Alternative for AI Media Generation | NodeTool",
+      description: "Flowise builds LangChain chatbots. NodeTool adds native image, video, and audio generation to agent workflows, open source and on your own keys.",
+    },
     og: {
       image: "screen_workflow.png",
       accent: "violet",
@@ -1944,6 +1970,10 @@ export const competitors: Competitor[] = [
     name: "Dify",
     theme: "amber",
     category: "Chatbot & agent builder",
+    seo: {
+      title: "Dify Alternative for Agents and Media Workflows | NodeTool",
+      description: "Dify builds text-first chatbot and agent apps. NodeTool runs agents and native image, video, and audio generation in one AGPL-3.0 workspace.",
+    },
     og: {
       image: "screen_llms.png",
       accent: "amber",
@@ -2004,8 +2034,7 @@ export const competitors: Competitor[] = [
           "When the product is a text-first language model app — a support chatbot, an internal copilot, a knowledge-base assistant — and you want Dify's prompt-management interface, built-in observability, and app-store-style deployment. NodeTool is the better fit when the workflow needs to produce image, video, or audio alongside the agent and document search work, or when you want a desktop app with local-model support and pricing on your own keys throughout.",
       },
     ],
-    limitation:
-      "Dify is built around text-first chatbot and agent apps; media generation happens through plugins, and its license adds commercial limits.",
+    limitation: "Dify is built around text-first chatbot and agent apps. Media generation happens through plugins, and its license adds commercial limits.",
   },
 
   // --- First wave of new competitors (drafted from the same pattern) ---
@@ -2015,6 +2044,10 @@ export const competitors: Competitor[] = [
     theme: "rose",
     category: "Creative canvas",
     isNew: true,
+    seo: {
+      title: "Flora Alternative: Open-Source AI Canvas on Your Own Keys | NodeTool",
+      description: "Flora is a closed, credit-metered hosted canvas. NodeTool is an open-source canvas for image, video, audio, and text that you can self-host on your own keys.",
+    },
     og: {
       image: "screen_canvas.png",
       accent: "rose",
@@ -2070,8 +2103,7 @@ export const competitors: Competitor[] = [
           "Yes. NodeTool is open source under AGPL-3.0 and self-hostable, and NodeTool Cloud is managed hosting of the same code. Your workflows and files stay yours either way.",
       },
     ],
-    limitation:
-      "Flora is a closed, credit-metered hosted canvas — you can't self-host it or bring your own keys.",
+    limitation: "Flora is a closed, credit-metered hosted canvas. You can't self-host it or bring your own keys.",
   },
   {
     slug: "krea",
@@ -2079,13 +2111,17 @@ export const competitors: Competitor[] = [
     theme: "cyan",
     category: "Creative canvas",
     isNew: true,
+    seo: {
+      title: "Krea Alternative: Open-Source AI Image and Video Canvas | NodeTool",
+      description: "Krea is a hosted real-time studio billed in credits. NodeTool is an open-source canvas for image, video, audio, and text workflows on your own provider keys.",
+    },
     og: {
       image: "screen_canvas.png",
       accent: "cyan",
       subtitle: "An open canvas that runs on your own keys, built for the whole process rather than one instant render.",
     },
     heroParagraph:
-      "Krea's party trick is real: sketch, and the image resolves under your cursor. For a single instant render, it's hard to beat. But a finished piece is rarely a single render — it's a pipeline of steps across image, video, music, and text, and that's where a hosted, credit-billed studio runs out of canvas. NodeTool is the open-source, bring-your-own-key workspace for the pipeline: every model at provider prices, editing built in, an agent that can wire the steps for you, and the whole thing self-hostable.",
+      "Krea draws an image under your cursor as you sketch, and for one instant render it is hard to beat. A finished piece is usually a chain of steps across image, video, music, and text. NodeTool is an open-source workspace for that chain. You call each model at your provider's price, edit on the same canvas, let an agent wire and run the steps, and self-host the whole thing.",
     competitorTagline: "Hosted real-time studio",
     competitorBullets: [
       "Real-time, instant image generation and enhance",
@@ -2134,8 +2170,7 @@ export const competitors: Competitor[] = [
           "NodeTool runs on your own keys — you pay each provider their list price with your own keys, with no subscription or credit markup, and Studio itself is free and open source. Whether that's cheaper depends on your usage, but there's no platform margin on top of the model cost.",
       },
     ],
-    limitation:
-      "Krea is a closed, credit-based hosted studio focused on real-time renders — no self-hosting, no your own keys, and it's image/video only.",
+    limitation: "Krea is a closed, credit-based hosted studio built for real-time renders. It has no self-hosting, no option to bring your own keys, and covers image and video only.",
   },
   {
     slug: "lm-studio",
@@ -2212,6 +2247,10 @@ export const competitors: Competitor[] = [
     theme: "blue",
     category: "Local language model runtime",
     isNew: true,
+    seo: {
+      title: "Jan Alternative with Local Models and Media Generation | NodeTool",
+      description: "Jan is a local chat app. NodeTool runs local models too and adds agents, document search, and image, video, and audio generation.",
+    },
     og: {
       image: "screen_chat.png",
       accent: "blue",
@@ -2266,8 +2305,7 @@ export const competitors: Competitor[] = [
           "NodeTool can run local models via Ollama, MLX, and llama.cpp for offline language model and media work. Cloud provider nodes need network access, but you choose which models are local and which are cloud.",
       },
     ],
-    limitation:
-      "Jan is a focused local chat app — no media generation and no multi-step agent or document search workflows.",
+    limitation: "Jan is a focused local chat app. It has no media generation and no multi-step agent or document search workflows.",
   },
   {
     slug: "lindy",
@@ -2275,6 +2313,10 @@ export const competitors: Competitor[] = [
     theme: "violet",
     category: "Agent automation",
     isNew: true,
+    seo: {
+      title: "Lindy Alternative for Open-Source AI Agents | NodeTool",
+      description: "Lindy is a closed, hosted ops-automation platform. NodeTool is an open-source workspace for agents and image, video, and audio workflows on your own keys.",
+    },
     og: {
       image: "screen_workflow.png",
       accent: "violet",
@@ -2330,8 +2372,7 @@ export const competitors: Competitor[] = [
           "Yes. NodeTool is open source under AGPL-3.0 and your own keys — you connect your own provider keys and pay list prices, with no per-task credits or platform markup, and you can run local models on your own hardware.",
       },
     ],
-    limitation:
-      "Lindy is a closed, hosted ops-automation platform — no native media generation, and billed in tasks and seats.",
+    limitation: "Lindy is a closed, hosted ops-automation platform. It has no native media generation and bills in tasks and seats.",
   },
   {
     slug: "gumloop",
@@ -2339,6 +2380,10 @@ export const competitors: Competitor[] = [
     theme: "amber",
     category: "Workflow automation",
     isNew: true,
+    seo: {
+      title: "Gumloop Alternative for Open-Source AI Workflows | NodeTool",
+      description: "Gumloop is a closed, hosted automation platform billed in credits. NodeTool is open source, runs on your own keys, and generates media natively.",
+    },
     og: {
       image: "screen_workflow.png",
       accent: "amber",
@@ -2394,8 +2439,7 @@ export const competitors: Competitor[] = [
           "Yes. NodeTool is open source under AGPL-3.0, self-hostable, and your own keys — you pay providers directly at list prices with no credits or platform markup, and you can run local models on your own hardware.",
       },
     ],
-    limitation:
-      "Gumloop is a closed, hosted process-automation platform — no native media generation, and billed in credits and seats.",
+    limitation: "Gumloop is a closed, hosted process-automation platform. It has no native media generation and bills in credits and seats.",
   },
 ];
 
@@ -2463,7 +2507,6 @@ export function alternativesFor(slug: string): {
   return [nodetool, ...rivals];
 }
 
-const YEAR = yearToken();
 
 /**
  * `/alternatives/*` page entries for the registry, sitemap, and smoke suite.
@@ -2479,8 +2522,10 @@ const YEAR = yearToken();
  */
 export const alternativesEntries: PageEntry[] = competitors.map((c) => ({
   route: `/alternatives/${c.slug}`,
-  title: `${c.name} alternatives (${YEAR}) — why teams choose NodeTool`,
-  description: `${c.limitation} Compare NodeTool and other ${c.category.toLowerCase()} alternatives — open source, your own keys, one canvas for image, video, audio, and text.`,
+  title: c.seo?.title ?? `${c.name} Alternative for ${c.category} | NodeTool`,
+  description:
+    c.seo?.description ??
+    `${c.limitation} Compare NodeTool with other ${c.category.toLowerCase()} alternatives: open source, run with your own keys, one canvas for image, video, audio, and text.`,
   priority: c.isNew ? 0.6 : 0.7,
   changeFrequency: "monthly",
   indexable: true,

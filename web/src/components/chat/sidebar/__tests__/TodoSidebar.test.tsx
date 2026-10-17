@@ -51,10 +51,9 @@ describe("TodoSidebar", () => {
   it("explains the empty rail instead of showing a 0/0 count", () => {
     const { container } = renderSidebar([]);
 
+    expect(screen.getByText("No tasks yet")).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "No tasks yet. The agent will list its plan here as it works."
-      )
+      screen.getByText("The agent will list its plan here as it works.")
     ).toBeInTheDocument();
     expect(container.querySelectorAll(".todo-item")).toHaveLength(0);
     expect(screen.queryByText("0/0")).not.toBeInTheDocument();

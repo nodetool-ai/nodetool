@@ -134,7 +134,7 @@ export interface PlanReviewSection {
   /** The section's blocks, drawn one after another under its own rows. */
   groups?: readonly PlanReviewGroup[];
   /**
-   * The remove control's name, when `Remove {header}` is not what it removes —
+   * The remove control's name, when `Delete {header}` is not what it removes —
    * a slugline header makes a long name. Only read when the flow supports
    * removal.
    */
@@ -444,7 +444,7 @@ const RemoveSectionControl: React.FC<{
   onRemove: (id: string) => void;
   register: (id: string) => (node: HTMLButtonElement | null) => void;
 }> = ({ section, last, noun, onRemove, register }) => {
-  const name = section.removeLabel ?? `Remove ${section.header}`;
+  const name = section.removeLabel ?? `Delete ${section.header}`;
   return (
     <ToolbarIconButton
       ref={register(section.id)}

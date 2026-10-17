@@ -15,7 +15,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import RemoveIcon from "@mui/icons-material/Remove";
 
 import {

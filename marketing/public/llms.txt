@@ -1,10 +1,12 @@
 # NodeTool
 
-> NodeTool is an open-source creative workspace with agents and editable projects. Studio is the free desktop edition for production work. Cloud is a hosted browser edition in alpha for evaluation and lightweight access. Use supported local models in Studio or connect supported remote providers with your own accounts. Licensed AGPL-3.0.
+> NodeTool is an open-source, agent-first creative workspace. Agents and people work in the same editors (node workflows, storyboards, a multi-track video timeline, sketches, scripts, 3D models, and a built-in 2D and 3D game engine), and the result stays an editable project. Studio is the free desktop edition for production work. Cloud is a hosted browser edition in alpha. Licensed AGPL-3.0.
 
 ## What NodeTool is
 
-- Agents can operate the workflow and project editors, with tool calls, results, errors, and interventions available for inspection. Compatible external agents can use the tools over MCP.
+- Agents operate the editors through tools, and every tool call, result, and error is recorded for inspection. External agents (Claude Code, Codex, OpenCode, Cursor) use the same tools through the NodeTool MCP server: `npx -y --package=@nodetool-ai/cli nodetool mcp install`.
+- Video: an agent writes a storyboard, renders stills and clips, and assembles a multi-track timeline that a person keeps editing (trims, transitions, captions, takes, aspect-ratio versions). Export MP4, WebM, or a PNG sequence.
+- Games: a built-in 2D and 3D game engine. Agents create and edit game documents, generate and install art and audio, playtest headlessly, and export a standalone web build or a desktop app project. People edit the same game in the Game Editor.
 - A visual, node-based editor for building AI workflows: connect models and tools as nodes on a canvas instead of writing glue code.
 - Two editions of one open-source codebase: **Studio**, a free desktop app for macOS, Windows, and Linux, and **Cloud**, a hosted browser edition currently in alpha.
 - Planning agents: give an agent a goal and it plans the steps, picks a model or tool, and executes multi-step tasks on the canvas.
@@ -15,7 +17,7 @@
 
 - Source license: AGPL-3.0. Self-hostable. Repository: https://github.com/nodetool-ai/nodetool
 - Studio is free. Current Cloud alpha access is free; future Cloud pricing has not been announced.
-- Provider charges are separate: connect your own supported provider accounts and pay those providers directly. NodeTool does not issue credits or add a provider-price markup.
+- Provider charges are separate: calls on your own provider accounts are billed by the provider at its price, with no NodeTool markup.
 
 ## Key pages
 
@@ -26,45 +28,68 @@
 - [Agents](https://nodetool.ai/agents.md): build and inspect automation that produces editable workflows and projects.
 - [For developers](https://nodetool.ai/developers.md): connect NodeTool to your coding agent over MCP for images, video, speech, and workflows.
 - [For marketing teams](https://nodetool.ai/marketing.md): hand a brief to an agent; campaign assets at volume.
+- [Game development](https://nodetool.ai/gamedev.md): the open-source 2D and 3D game engine agents build in: tools, editor, export, and limits.
+- [AI image editor](https://nodetool.ai/ai-image-editor.md): layered image editing where one generated layer is regenerated without touching the rest.
+- [AI video editor](https://nodetool.ai/ai-video-editor.md): storyboard, shots, voiced script, and an editable multi-track timeline, built by an agent.
+- [MCP server](https://nodetool.ai/mcp.md): the MCP server for Claude Code, Codex, OpenCode, and Cursor: install, tools, transports, and keys.
+- [Download](https://nodetool.ai/download): installers for macOS, Windows, and Linux.
+- [AI model directory](https://nodetool.ai/models): every supported image, video, audio, and language model, by provider.
+- [Node-based AI](https://nodetool.ai/node-based-ai): build AI workflows with nodes instead of prompts.
+- [Node-based workflows](https://nodetool.ai/node-based-workflows): node-based workflows you can check, run, and rerun.
 - [Documentation](https://docs.nodetool.ai/llms.txt): install guides, key concepts, node reference, API reference, CLI.
+
+## Editors and capabilities
+
+- [Game development](https://nodetool.ai/gamedev): the built-in 2D and 3D game engine: playable examples, what agents author, the Game Editor, and web export.
+- [AI game engines compared](https://nodetool.ai/gamedev/ai-game-engines.md): NodeTool, Unity, Godot, Roblox Studio, Summer Engine, and Rosebud for agent-built games, with sources.
+- [Game Editor guide](https://docs.nodetool.ai/game-editor): scene tree, inspector, scripts, play mode, publishing, and export.
+- [Native Game Engine reference](https://docs.nodetool.ai/game-engine/): game documents, scripts, physics, assets, agent authoring, and current coverage.
+- [AI storyboard generator](https://nodetool.ai/storyboards): turn a brief into scenes and shots, render each shot, and assemble a timeline. Example films with every shot shown.
+- [Storyboard Editor guide](https://docs.nodetool.ai/storyboard-editor): scenes and shots, still and clip renders, takes, and assembling a timeline.
+- [Video Editor guide](https://docs.nodetool.ai/video-editor): multi-track timeline editing and export.
+- [Video ad templates](https://nodetool.ai/ad-library): editable vertical video ad templates, each with beats, timing, and formats, and each shipped as a mini app.
+- [Sketch Editor guide](https://docs.nodetool.ai/sketch-editor): layers, masks, AI layers, and inline image generation.
+- [MCP server guide](https://docs.nodetool.ai/mcp-server): use NodeTool from Claude Code, Codex, OpenCode, or any MCP client.
+- [All comparisons](https://nodetool.ai/alternatives.md): every NodeTool comparison page, grouped by category.
+- [Blog](https://nodetool.ai/blog): guides, comparisons, and cost breakdowns for AI image, video, and audio work.
 
 ## Comparisons
 
-- [Higgsfield alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/higgsfield)
-- [OpenArt alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/openart)
-- [LTX Studio alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/ltx-studio)
-- [Google Flow alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/google-flow)
-- [Artlist Studio alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/artlist)
-- [Invideo alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/invideo)
-- [Katalist alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/katalist)
-- [Storyboarder.ai alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/storyboarder-ai)
-- [Story.com alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/story-com)
-- [Mootion alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/mootion)
-- [Moonvalley Marey alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/moonvalley)
-- [Kling AI alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/kling-ai)
-- [Pika alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/pika)
-- [Luma Dream Machine alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/luma-dream-machine)
-- [PixVerse alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/pixverse)
-- [Leonardo AI alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/leonardo-ai)
-- [Midjourney alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/midjourney)
-- [Adobe Firefly alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/adobe-firefly)
-- [Ideogram alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/ideogram)
-- [Recraft alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/recraft)
-- [Dreamina alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/dreamina)
-- [ComfyUI alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/comfyui)
-- [Weavy alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/weavy)
-- [Figma Weave alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/figma-weave)
-- [Runway alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/runway)
-- [Langflow alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/langflow)
-- [n8n alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/n8n)
-- [Flowise alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/flowise)
-- [Dify alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/dify)
-- [Flora alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/flora)
-- [Krea alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/krea)
-- [LM Studio alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/lm-studio)
-- [Jan alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/jan)
-- [Lindy alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/lindy)
-- [Gumloop alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/gumloop)
+- [Higgsfield Alternative for Editable AI Video Workflows](https://nodetool.ai/alternatives/higgsfield)
+- [OpenArt Alternative for AI Images and Video Workflows](https://nodetool.ai/alternatives/openart)
+- [LTX Studio Alternative for Editable AI Video Projects](https://nodetool.ai/alternatives/ltx-studio)
+- [Google Flow Alternative for AI Filmmaking Workflows](https://nodetool.ai/alternatives/google-flow)
+- [Artlist Alternative for AI Film Production](https://nodetool.ai/alternatives/artlist)
+- [Invideo Alternative for Editable AI Filmmaking](https://nodetool.ai/alternatives/invideo)
+- [Katalist Alternative for AI Storyboards and Film Workflows](https://nodetool.ai/alternatives/katalist)
+- [Storyboarder.ai Alternative for AI Film Pre-production](https://nodetool.ai/alternatives/storyboarder-ai)
+- [Story.com Alternative for AI Movie Workflows](https://nodetool.ai/alternatives/story-com)
+- [Mootion Alternative for AI Storytelling and Film Workflows](https://nodetool.ai/alternatives/mootion)
+- [Moonvalley Marey Alternative for AI Film Workflows](https://nodetool.ai/alternatives/moonvalley)
+- [Kling AI Alternative for Editable Video Workflows](https://nodetool.ai/alternatives/kling-ai)
+- [Pika Alternative for Repeatable AI Media Workflows](https://nodetool.ai/alternatives/pika)
+- [Luma Dream Machine Alternative for AI Video Projects](https://nodetool.ai/alternatives/luma-dream-machine)
+- [PixVerse Alternative for Editable AI Video Pipelines](https://nodetool.ai/alternatives/pixverse)
+- [Leonardo AI Alternative for Editable Creative Workflows](https://nodetool.ai/alternatives/leonardo-ai)
+- [Midjourney Alternative for AI Image Workflows](https://nodetool.ai/alternatives/midjourney)
+- [Adobe Firefly Alternative for Editable AI Projects](https://nodetool.ai/alternatives/adobe-firefly)
+- [Ideogram Alternative for Editable Image Workflows](https://nodetool.ai/alternatives/ideogram)
+- [Recraft Alternative for Repeatable AI Design Workflows](https://nodetool.ai/alternatives/recraft)
+- [Dreamina Alternative for Editable AI Media Projects](https://nodetool.ai/alternatives/dreamina)
+- [ComfyUI Alternatives for Creative Workflows](https://nodetool.ai/alternatives/comfyui)
+- [Weavy Alternative — Now Figma Weave](https://nodetool.ai/alternatives/weavy)
+- [Figma Weave Alternative: Open-Source, Self-Hosted](https://nodetool.ai/alternatives/figma-weave)
+- [Runway alternative — open source, your own keys](https://nodetool.ai/alternatives/runway)
+- [Langflow Alternative with Image, Video, and Audio Generation](https://nodetool.ai/alternatives/langflow)
+- [n8n Alternative for AI Media Workflows](https://nodetool.ai/alternatives/n8n)
+- [Flowise Alternative for AI Media Generation](https://nodetool.ai/alternatives/flowise)
+- [Dify Alternative for Agents and Media Workflows](https://nodetool.ai/alternatives/dify)
+- [Flora Alternative: Open-Source AI Canvas on Your Own Keys](https://nodetool.ai/alternatives/flora)
+- [Krea Alternative: Open-Source AI Image and Video Canvas](https://nodetool.ai/alternatives/krea)
+- [LM Studio Alternatives for Local AI Workflows](https://nodetool.ai/alternatives/lm-studio)
+- [Jan Alternative with Local Models and Media Generation](https://nodetool.ai/alternatives/jan)
+- [Lindy Alternative for Open-Source AI Agents](https://nodetool.ai/alternatives/lindy)
+- [Gumloop Alternative for Open-Source AI Workflows](https://nodetool.ai/alternatives/gumloop)
 
 ## Use cases
 
@@ -72,6 +97,18 @@
 - [Movie Poster](https://nodetool.ai/use-cases/movie-poster): Generate movie posters with AI workflows.
 - [Movie Trailer](https://nodetool.ai/use-cases/movie-trailer): Storyboard a trailer, then cut it on the timeline.
 - [Documentary Teaser](https://nodetool.ai/use-cases/documentary-teaser): Board a documentary teaser shot by shot, then cut it on the timeline.
+
+## Solutions
+
+- [AI Workflow Solutions](https://nodetool.ai/solutions): Outcome and audience landing pages for NodeTool: music video, social content, photo restoration, local-first, researchers, and more — each with a runnable workflow.
+- [AI Music Video Generator](https://nodetool.ai/solutions/music-video): Turn a track into a music video of AI stills. NodeTool transcribes the lyrics, writes a prompt per frame, renders the stills, and sets them to the song on your own keys.
+- [AI Social Media Content Generator](https://nodetool.ai/solutions/social-content): Fill a content calendar in one run. NodeTool plans posts, writes copy, and renders matching visuals for every slot — batched on one canvas with your own keys.
+- [AI YouTube Thumbnail Generator](https://nodetool.ai/solutions/youtube-thumbnails): Generate YouTube thumbnail images and hook lines from a video topic. NodeTool writes the hooks, renders one color-graded image per hook, and runs on your own keys.
+- [AI Photo Enhancement and Restoration](https://nodetool.ai/solutions/photo-restoration): Batch-enhance photos with AI. NodeTool runs auto-contrast, color, sharpening, and an AI grading pass on every image. For old photos, swap in a restoration model.
+- [Local-First AI Workflows](https://nodetool.ai/solutions/local-first): Run AI workflows entirely on your own hardware. NodeTool Studio executes open-weight models locally — no account, no data leaving your machine, no per-token bill.
+- [AI Workflows for Researchers](https://nodetool.ai/solutions/researchers): Automate literature review and research synthesis. NodeTool fetches papers, summarizes findings, and builds structured outputs — a visual, reproducible pipeline you own.
+- [Privacy-First AI Workflow Builder](https://nodetool.ai/solutions/privacy-first): Keep your data on your own machine. NodeTool Studio runs image, video, audio, and text workflows on local models with no account and nothing sent to a third-party server unless you choose to.
+- [Self-Hosted AI Workflows](https://nodetool.ai/solutions/self-hosted): Run NodeTool on your own server with Docker. Full control over data, uptime, and cost — no vendor lock-in and no per-seat SaaS bill.
 
 ## FAQ
 
@@ -122,3 +159,19 @@
 - [Product catalogue assets](https://nodetool.ai/recipes/ecommerce-sku-visual-factory): Turn one product reference into a coordinated set of studio images, seasonal scenes, and a short motion clip.
 - [Storyboard to trailer](https://nodetool.ai/recipes/storyboard-to-trailer): Turn a story idea into a six-shot storyboard, then develop its voice, motion, and edit in the same workspace.
 - [Impossible product worlds](https://nodetool.ai/recipes/impossible-product-worlds): Chase a swimmer into a pool hidden in a giant cup, then return to human scale as she drinks from it.
+
+## Blog
+
+- [AI music for video: how to score a generated clip](https://nodetool.ai/blog/ai-music-for-video): Four ways to put music under an AI clip, from native audio in the video model to a track written for the cut. A 30-second score costs between half a cent and forty cents at provider rates.
+- [How to make an AI poster with accurate text](https://nodetool.ai/blog/ai-poster-with-accurate-text): Write the prompt as a copy deck, draft on a cheap text-capable model, fix wrong letters with a masked edit instead of a re-roll, and size for print last. Per image, the drafts cost between one and fifteen cents.
+- [How to add an AI voiceover and lip sync to a video](https://nodetool.ai/blog/ai-voiceover-and-lip-sync): Write the script first, voice it line by line, and let the take lengths set the cut. A 60-second voiceover costs under ten cents. Lip sync is the expensive step, from $0.005 to $0.17 per second of footage.
+- [Best AI canvas tools in 2026](https://nodetool.ai/blog/best-ai-canvas-tools): Seven visual workspaces for AI image and video, compared on who picks the models, how you pay, where your work lives and what you can edit after the render. Which one is best depends on whether you want one fast image or a pipeline you run again.
+- [How to keep an AI character consistent across images and video](https://nodetool.ai/blog/consistent-ai-character): A consistent character comes from two things you fix once and reuse everywhere: a reference image and a descriptor pasted verbatim into every prompt. Here is how to make both, and which image and video models take them.
+- [How to edit a video with text prompts](https://nodetool.ai/blog/edit-video-with-text-prompts): Pick the edit model by the kind of change, keep the clip short, write the instruction as a diff, and audition the result as a take before it touches your cut. Prices run from $0.04 to $0.35 per second of footage.
+- [How much does AI image generation cost in 2026?](https://nodetool.ai/blog/ai-image-generation-cost): Between a quarter of a cent and fifteen cents per image at provider rates. A thousand images can cost $3 or $150. Here are the rates, what a batch costs, and which model to reach for at each price.
+- [How much does AI video generation cost in 2026?](https://nodetool.ai/blog/ai-video-generation-cost): Between $0.02 and $0.40 per second of output, depending on the model and the provider you call it through. Here are the rates, side by side, and what a 30-second ad or a 10-shot storyboard comes to.
+- [Best AI video models in 2026, ranked by job](https://nodetool.ai/blog/best-ai-video-models): There is no best AI video model. There is a best one for the shot in front of you. Six models, five jobs, and the price of each at provider rates.
+- [What an agent-first, privacy-first AI workspace actually means](https://nodetool.ai/blog/agent-first-privacy-first-ai-workspace): Two claims that are easy to print on a landing page and hard to build. What each one costs to do properly, and how to check whether a tool has done it.
+- [Local RAG agent + image generation, end to end](https://nodetool.ai/blog/local-rag-agent-and-image-generation): A vector collection, a retrieval query, an agent that cites its sources — and then the part most RAG tutorials stop before: turning the answer into an image, on the same canvas.
+- [Build a movie trailer workflow in NodeTool](https://nodetool.ai/blog/build-a-movie-trailer-workflow): One logline in, a cut teaser out. We build the graph node by node — Director, Screenplay Shots, Text To Image, Image To Video, Collect, Concat — and explain what each one costs.
+- [NodeTool vs ComfyUI vs n8n vs Flowise](https://nodetool.ai/blog/nodetool-vs-comfyui-vs-n8n-vs-flowise): They all draw boxes and arrows, and that is where the similarity ends. A straight read on what each tool is built for, where it runs out, and how to pick.

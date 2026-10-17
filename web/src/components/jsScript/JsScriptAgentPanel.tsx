@@ -28,7 +28,7 @@ const JsScriptAgentPanel = ({ scriptId }: JsScriptAgentPanelProps) => {
       focused={focused}
       workflowId={scriptId}
       systemPrompt={systemPrompt}
-      welcomeTitle="JS Script Assistant"
+      welcomeTitle="JS script assistant"
       welcomeBody='Ask me to write or change this script — e.g. "parse the CSV and emit one row per line", "add an error output", or "write a test for the empty case".'
     />
   );

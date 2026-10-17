@@ -26,7 +26,7 @@ import { Box, CheckerDropzone, MOTION, SPACING, SHADOW, BORDER_RADIUS, getSpacin
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import EditIcon from "@mui/icons-material/Edit";
+import EditIcon from "@mui/icons-material/EditOutlined";
 import BrushIcon from "@mui/icons-material/Brush";
 import isEqual from "../../../utils/isEqual";
 import { NodeData } from "../../../stores/NodeData";
@@ -1336,7 +1336,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                           color: theme.vars.palette.common.white
                         }}
                       />
-                      <span className="edit-overlay-label">Edit Sketch</span>
+                      <span className="edit-overlay-label">Edit sketch</span>
                     </div>
                   </>
                 ) : (

@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from "react";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import { Box, Caption, FlexColumn, FlexRow, MOTION } from "../../ui_primitives";
+import { Box, Caption, FlexColumn, FlexRow, MOTION, ICON_SIZE, Tooltip } from "../../ui_primitives";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useOpenSubgraph } from "../../../hooks/nodes/useOpenSubgraph";
 import { NodeInputs } from "../NodeInputs";
@@ -95,48 +95,49 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
         {status === "running" && (
           <NodeProgress id={id} workflowId={workflowId} />
         )}
-        <Box
-          component="button"
-          type="button"
-          className="nodrag nopan"
-          onClick={handleOpen}
-          title="Open the subgraph in its own tab"
-          sx={{
-            flexShrink: 0,
-            mt: 0.5,
-            pl: 1,
-            // Extra right inset keeps the count clear of the resize handle.
-            pr: 4,
-            py: 0.5,
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 1,
-            borderTop: 1,
-            borderLeft: 0,
-            borderRight: 0,
-            borderBottom: 0,
-            borderStyle: "solid",
-            borderColor: "divider",
-            background: "transparent",
-            color: "text.secondary",
-            cursor: "pointer",
-            textAlign: "left",
-            transition: MOTION.background,
-            "&:hover": { backgroundColor: "action.hover" }
-          }}
-        >
-          <FlexRow gap={0.5} align="center">
-            <AccountTreeIcon sx={{ fontSize: 14 }} />
-            <Caption>Open subgraph</Caption>
-          </FlexRow>
-          <Caption>
-            {innerNodeCount === 0
-              ? "empty"
-              : `${innerNodeCount} inner node${innerNodeCount === 1 ? "" : "s"}`}
-          </Caption>
-        </Box>
+        <Tooltip title="Open the subgraph in its own tab" describeChild>
+          <Box
+            component="button"
+            type="button"
+            className="nodrag nopan"
+            onClick={handleOpen}
+            sx={{
+              flexShrink: 0,
+              mt: 0.5,
+              pl: 1,
+              // Extra right inset keeps the count clear of the resize handle.
+              pr: 4,
+              py: 0.5,
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 1,
+              borderTop: 1,
+              borderLeft: 0,
+              borderRight: 0,
+              borderBottom: 0,
+              borderStyle: "solid",
+              borderColor: "divider",
+              background: "transparent",
+              color: "text.secondary",
+              cursor: "pointer",
+              textAlign: "left",
+              transition: MOTION.background,
+              "&:hover": { backgroundColor: "action.hover" }
+            }}
+          >
+            <FlexRow gap={0.5} align="center">
+              <AccountTreeIcon sx={{ fontSize: ICON_SIZE.xs }} />
+              <Caption>Open subgraph</Caption>
+            </FlexRow>
+            <Caption>
+              {innerNodeCount === 0
+                ? "empty"
+                : `${innerNodeCount} inner node${innerNodeCount === 1 ? "" : "s"}`}
+            </Caption>
+          </Box>
+        </Tooltip>
       </FlexColumn>
     );
   }

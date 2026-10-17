@@ -19,11 +19,12 @@ import {
   ListItemText,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  EmptyState
 } from "../ui_primitives";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import RemoveIcon from "@mui/icons-material/Remove";
-import EditIcon from "@mui/icons-material/Edit";
+import EditIcon from "@mui/icons-material/EditOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
@@ -198,8 +199,8 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
 }) => {
   if (!diff.hasChanges) {
     return (
-      <Surface sx={{ p: 2, textAlign: "center" }}>
-        <Text color="secondary">No changes detected</Text>
+      <Surface>
+        <EmptyState variant="no-data" size="small" title="No changes detected" />
       </Surface>
     );
   }
@@ -262,7 +263,7 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
           <Caption
             sx={{ display: "block", mb: 1, fontWeight: 500 }}
           >
-            Connection Changes
+            Connection changes
           </Caption>
           <List dense disablePadding>
             {diff.addedEdges.map((edge) => (

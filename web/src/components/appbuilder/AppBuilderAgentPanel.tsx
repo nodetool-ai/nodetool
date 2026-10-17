@@ -180,7 +180,7 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
       }}
     >
       <ChatPanelHeader
-        title="App Builder Agent"
+        title="App builder agent"
         description="Build the app layout and bind widgets to workflow inputs and outputs."
         onNewChat={handleNewChat}
         onSelectThread={selectThread}

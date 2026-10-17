@@ -233,7 +233,7 @@ describe("WorkflowReviewStep", () => {
       "s1"
     ]);
 
-    await userEvent.click(screen.getByRole("button", { name: "Remove step 1" }));
+    await userEvent.click(screen.getByRole("button", { name: "Delete step 1" }));
     expect(onPlanChange.mock.calls[1][0].steps.map((s: { id: string }) => s.id)).toEqual([
       "s2"
     ]);
@@ -266,10 +266,10 @@ describe("WorkflowReviewStep", () => {
     };
     render(<Stateful />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Remove step 1" }));
-    expect(screen.getByRole("button", { name: "Remove step 1" })).toHaveFocus();
+    await userEvent.click(screen.getByRole("button", { name: "Delete step 1" }));
+    expect(screen.getByRole("button", { name: "Delete step 1" })).toHaveFocus();
 
-    await userEvent.click(screen.getByRole("button", { name: "Remove step 1" }));
+    await userEvent.click(screen.getByRole("button", { name: "Delete step 1" }));
     expect(screen.getByRole("button", { name: "Add a step" })).toHaveFocus();
   });
 
@@ -393,7 +393,7 @@ describe("WorkflowReviewStep", () => {
     expect(
       screen.getByRole("textbox", { name: "Step 1 description" })
     ).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Remove step 1" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Delete step 1" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Add a step" })).toBeDisabled();
     await userEvent.type(
       screen.getByRole("textbox", { name: "Output 1" }),
