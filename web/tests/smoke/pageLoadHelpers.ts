@@ -160,6 +160,15 @@ export function collectPageLoadErrors(
     ) {
       return;
     }
+    // StrictMode mounts an example app tab twice in a dev build, which
+    // cancels the first bundle fetch and sends it again.
+    if (
+      request.method() === "GET" &&
+      /\/api\/applications\/examples\/[^/?]+$/.test(request.url()) &&
+      failure?.errorText === "net::ERR_ABORTED"
+    ) {
+      return;
+    }
     errors.push({
       kind: "requestfailed",
       text: `${request.method()} ${request.url()} — ${

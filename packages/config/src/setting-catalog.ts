@@ -565,6 +565,16 @@ sec(
   "Search",
   "Brave Search API key for web search. Get yours at https://api-dashboard.search.brave.com/"
 );
+sec(
+  "OPENVERSE_CLIENT_ID",
+  "Openverse",
+  "Optional Openverse API client id. Openverse search in the asset browser works without it. With it, searches get a higher rate limit. Register an application as described under \"Register and Authenticate\" at https://api.openverse.org/v1/"
+);
+sec(
+  "OPENVERSE_CLIENT_SECRET",
+  "Openverse",
+  "Openverse API client secret, paired with OPENVERSE_CLIENT_ID."
+);
 sec("BROWSER_URL", "Browser", "Browser URL for accessing a browser instance");
 sec(
   "RUNPOD_API_KEY",

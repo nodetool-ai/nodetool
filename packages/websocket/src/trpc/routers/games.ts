@@ -550,7 +550,7 @@ export const gamesRouter = router({
       try {
         return await createGame(ctx.userId, input.projectId, input.name ?? installed.bundle.name, installed.document);
       } catch (error) {
-        await installed.rollback();
+        await installed.rollback(error);
         throw error;
       }
     }),
