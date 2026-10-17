@@ -288,7 +288,8 @@ export async function prepareGameModel(
       if (node.rotation && Math.abs(node.rotation.reduce((sum, value) => sum + value * value, 0) - 1) > 0.00001) { throw new Error("Model node quaternion is not normalized"); }
       if (node.matrix && (node.matrix[3] !== 0 || node.matrix[7] !== 0 || node.matrix[11] !== 0 || node.matrix[15] !== 1)) { throw new Error("Model node matrix must be affine"); }
       for (const child of node.children) {
-        if (parents.has(child) && parents.get(child) !== index) { throw new Error("Model node has multiple parents"); }
+        const parent = parents.get(child);
+        if (parent !== undefined) { throw new Error(parent === index ? "Model node contains a duplicate child reference" : "Model node has multiple parents"); }
         parents.set(child, index);
         visit(child);
       }
