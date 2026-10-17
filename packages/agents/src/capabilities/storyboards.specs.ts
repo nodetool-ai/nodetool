@@ -225,7 +225,17 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
         "render_storyboard_clips. set_board narration/music_prompt are " +
         "screenplay-level strings for voiceover and score direction; an " +
         "empty string clears one. Other screenplay fields are preserved.",
-      items: { type: "object" }
+      items: {
+        type: "object",
+        properties: {
+          op: { type: "string", description: "Operation name from the ops description." },
+          target: {
+            anyOf: [{ type: "string", minLength: 1 }, { type: "integer", minimum: 0 }],
+            description: "Required for shot edits, removal, movement, duplication and version operations. A shot id, slug or 0-based index. Use target, never shot_id."
+          }
+        },
+        required: ["op"]
+      }
     }
   },
   required: ["storyboard_id", "ops"]

@@ -75,8 +75,8 @@ describe("buildStandaloneProject", () => {
       scripts: Record<string, string>;
     };
     expect(pkg.name).toBe("vary-image");
-    expect(pkg.dependencies["@nodetool-ai/execution"]).toBe("^0.8.2");
-    expect(pkg.dependencies["@nodetool-ai/app-runtime"]).toBe("^0.8.2");
+    expect(pkg.dependencies["@nodetool-ai/execution"]).toBe("0.8.2");
+    expect(pkg.dependencies["@nodetool-ai/app-runtime"]).toBe("0.8.2");
     expect(pkg.scripts.dev).toBe("node server/index.mjs --dev");
   });
 
@@ -86,7 +86,15 @@ describe("buildStandaloneProject", () => {
     const pkg = JSON.parse(
       buildStandaloneProject(bundle).files.find((entry) => entry.path === "package.json")?.content ?? "{}"
     ) as { dependencies: Record<string, string> };
-    expect(pkg.dependencies["@nodetool-ai/runtime"]).toBe(`^${manifest.version}`);
+    expect(pkg.dependencies["@nodetool-ai/runtime"]).toBe(manifest.version);
+  });
+
+  it("uses the TypeScript compiler required by the execution peer", () => {
+    const execution = JSON.parse(readFileSync(join(packageRoot, "..", "execution", "package.json"), "utf8")) as {
+      peerDependencies: { typescript: string };
+    };
+    const pkg = JSON.parse(file("package.json")) as { devDependencies: { typescript: string } };
+    expect(pkg.devDependencies.typescript).toBe(execution.peerDependencies.typescript);
   });
 
   it("lists the app's credentials in .env.example", () => {

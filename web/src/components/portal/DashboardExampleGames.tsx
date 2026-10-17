@@ -108,7 +108,13 @@ const GameCard = memo(function GameCard({
   );
 });
 
-const DashboardExampleGames = () => {
+interface DashboardExampleGamesProps {
+  /** Opens the Game guided flow. The home screen passes it, so a person
+   *  looking for the game maker under Games finds it (study-6-I6). */
+  onMakeGame?: () => void;
+}
+
+const DashboardExampleGames = ({ onMakeGame }: DashboardExampleGamesProps) => {
   const [playingGame, setPlayingGame] = useState<ExampleGameSummary | null>(
     null
   );
@@ -166,7 +172,17 @@ const DashboardExampleGames = () => {
         <DashboardSectionHeader
           title="Start from a game"
           count={`${games.length} games`}
-        />
+        >
+          {onMakeGame && (
+            <EditorButton
+              variant="contained"
+              density="compact"
+              onClick={onMakeGame}
+            >
+              Make a game
+            </EditorButton>
+          )}
+        </DashboardSectionHeader>
         <Caption
           color="secondary"
           sx={{ marginBottom: getSpacingPx(SPACING.sm) }}
@@ -211,6 +227,8 @@ const DashboardExampleGames = () => {
             variant="no-data"
             title="No games available"
             description="Example games will appear here when this install ships them."
+            actionText={onMakeGame ? "Make a game" : undefined}
+            onAction={onMakeGame}
           />
         ) : (
           <AutoGrid minItemWidth={360} fill="fit">

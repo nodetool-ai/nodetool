@@ -136,11 +136,15 @@ each shard a separate `--metrics-dir` and run concurrent shards in separate
 checkouts. Startup cleanup removes old worker overlays within a checkout.
 
 The changed-function CI workflow freezes the source commit and base before
-running shards on separate machines. `scripts/mutation-ci.mjs` verifies that
-their actual completed outcomes cover the complete selection exactly once
-before reporting a global score. Missing, cancelled, duplicate, or incomplete
-shards fail that check. Each job retains the original time limit and test
-command.
+running source-file partitions on separate machines. Each partition runs one
+file with the full baseline and canonical test command. The plan splits each
+file by mutation ID hash until its partitions fit the execution capacity,
+including empty buckets that own unchanged form metrics.
+`scripts/mutation-ci.mjs` verifies that actual completed outcomes cover the
+complete selection exactly once before reporting a global score. Missing,
+cancelled, duplicate, or incomplete partitions fail that check. Execution jobs
+have a 90-minute capacity budget. Baseline and mutant test commands and
+timeouts remain unchanged.
 
 ## Differences from unclebob/mutator
 

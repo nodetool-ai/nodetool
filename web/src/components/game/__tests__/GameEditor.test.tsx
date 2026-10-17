@@ -2,10 +2,11 @@ import { type ComponentProps, type ReactElement } from "react";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
-import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
+import { createTopDownRoomGame, validateGame } from "@nodetool-ai/game-runtime";
 
 import mockTheme from "../../../__mocks__/themeMock";
 import { getGameDraftStore } from "../../../stores/game/GameDraftStore";
+import { getGameConsoleStore } from "../../../stores/game/GameConsoleStore";
 import { getGamePanelLayoutStore } from "../../../stores/game/useGamePanelLayoutStore";
 import useAuth from "../../../stores/useAuth";
 import GameEditor from "../GameEditor";
@@ -19,7 +20,9 @@ let mockViewportProps: ComponentProps<typeof GameViewport> | undefined;
 const mockDocument = createTopDownRoomGame("controller-replay");
 const mockFailure: ScriptFailure = { message: "Game script [\"room\",\"player\",0] failed", entityId: "player", tick: 12 };
 const mockReplay = jest.fn(async () => undefined);
+const mockCamera = jest.fn();
 let mockPlayDocument: typeof mockDocument | null = mockDocument;
+let mockPlaySceneId: string | null = null;
 let mockHostFailure: ScriptFailure | null = null;
 let mockDiagnosticFailure: ScriptFailure | null = null;
 const mockServer = { document: mockDocument, game: { id: mockDocument.id, name: "Controller game", draftUpdatedAt: "2026-01-01T00:00:00.000Z" } };
@@ -61,9 +64,9 @@ jest.mock("../useGamePlaySession", () => ({
   ...jest.requireActual<typeof import("../useGamePlaySession")>("../useGamePlaySession"),
   useGamePlaySession: () => ({
     canvasRef: { current: null }, inputRef: { current: { handlesKey: () => false, keyDown: jest.fn(), keyUp: jest.fn(), release: jest.fn() } },
-    playing: false, playDocument: mockPlayDocument, playState: { tick: 11, score: 0, won: false, sceneId: mockDocument.entrySceneId },
+    playing: false, playDocument: mockPlayDocument, playState: { tick: 11, score: 0, won: false, sceneId: mockPlaySceneId ?? mockDocument.entrySceneId },
     backend: "Test", error: null, setError: jest.fn(), scriptError: mockHostFailure, setScriptError: jest.fn(), frame: null,
-    onViewportAspect: jest.fn(), onCamera: jest.fn(), resetCamera: jest.fn(), step: jest.fn(), beginPlay: jest.fn(), stop: jest.fn(),
+    onViewportAspect: jest.fn(), onCamera: mockCamera, resetCamera: jest.fn(), step: jest.fn(), beginPlay: jest.fn(), stop: jest.fn(),
     save: jest.fn(), load: jest.fn(), replayBeforeError: mockReplay, runtimeEntities: []
   })
 }));
@@ -101,6 +104,7 @@ beforeEach(() => {
   getGamePanelLayoutStore(useAuth.getState().user?.id ?? null).getState().selectLayout("Default");
   mockViewportProps = undefined;
   mockPlayDocument = mockDocument;
+  mockPlaySceneId = null;
   mockHostFailure = null;
   mockDiagnosticFailure = null;
   mockDraftUnavailable = false;
@@ -412,6 +416,7 @@ it("batch release: records selected-root viewport moves as one labelled command 
   const first = mockDocument.scenes[0].entities.find((entity) => entity.id === "player");
   const second = mockDocument.scenes[0].entities.find((entity) => entity.id !== "player" && !entity.parentId);
   if (!first || !second) { throw new Error("Two fixture roots required"); }
+  const originalApply = store.getState().apply;
   const applySpy = jest.spyOn(store.getState(), "apply");
   act(() => {
     if (!mockViewportProps) { throw new Error("Viewport not mounted"); }
@@ -431,6 +436,7 @@ it("batch release: records selected-root viewport moves as one labelled command 
   });
   expect(applySpy).toHaveBeenCalledTimes(1);
   applySpy.mockRestore();
+  store.setState({ apply: originalApply });
   const after = structuredClone(document2D(store));
   expect(after.scenes[0].entities.find((entity) => entity.id === first.id)?.transform2d).toMatchObject({ x: first.transform2d.x + 2, y: first.transform2d.y });
   expect(after.scenes[0].entities.find((entity) => entity.id === second.id)?.transform2d).toMatchObject({ x: second.transform2d.x + 2, y: second.transform2d.y });
@@ -443,4 +449,291 @@ it("batch release: records selected-root viewport moves as one labelled command 
   act(() => store.getState().redo());
   expect(document2D(store)).toEqual(after);
   expect(store.getState().commandHistory.past).toHaveLength(1);
+});
+
+
+async function withSceneLocalPlayers(
+  run: (context: { fixture: typeof mockDocument; store: ReturnType<typeof getGameDraftStore> }) => Promise<void>,
+  emptySecondScene = false,
+  visualPlayers = false
+): Promise<void> {
+  mockPlayDocument = null;
+  mockSave.mockImplementation(() => new Promise(() => undefined));
+  const originalServerDocument = mockServer.document;
+  const fixture = structuredClone(mockDocument);
+  const first = fixture.scenes[0];
+  first.name = "Scene A";
+  for (const entity of first.entities) { entity.name = `${entity.id} A`; }
+  const second = structuredClone(first);
+  second.id = "scene-b";
+  second.name = "Scene B";
+  for (const entity of second.entities) {
+    entity.name = `${entity.id} B`;
+    entity.transform2d.x += 40;
+  }
+  if (emptySecondScene) { second.entities = []; }
+  fixture.scenes = [first, second];
+  if (visualPlayers) {
+    for (const scene of fixture.scenes) {
+      const player = scene.entities.find((entity) => entity.id === "player");
+      if (player) { delete player.collider2d; }
+    }
+  }
+  expect(validateGame(fixture).valid).toBe(true);
+  mockServer.document = fixture;
+  const store = getGameDraftStore(fixture.id);
+  store.getState().load(fixture, mockServer.game.draftUpdatedAt);
+  const view = render(<ThemeProvider theme={mockTheme}><GameEditor refId={fixture.id} active /></ThemeProvider>);
+  try { await run({ fixture, store }); }
+  finally { view.unmount(); mockServer.document = originalServerDocument; }
+}
+
+it("selects the clicked scene-local hierarchy entity without merging a cross-scene additive selection (E1)", async () => {
+  const user = userEvent.setup();
+  await withSceneLocalPlayers(async ({ store }) => {
+    await user.click(screen.getByRole("button", { name: "player A" }));
+    await user.keyboard("{Shift>}");
+    await user.click(screen.getByRole("button", { name: "player B" }));
+    await user.keyboard("{/Shift}");
+    expect(mockViewportProps?.sceneId).toBe("scene-b");
+    expect(store.getState().selectedIds).toEqual(["player"]);
+    expect(screen.getByRole("button", { name: "player A" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "player B" })).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+it.each(["move", "batch move", "rotate"])("targets only B/player through the viewport %s callback (E1)", async (kind) => {
+  const user = userEvent.setup();
+  await withSceneLocalPlayers(async ({ fixture, store }) => {
+    const first = structuredClone(fixture.scenes[0]);
+    await user.click(screen.getByRole("button", { name: "player B" }));
+    const viewport = mockViewportProps;
+    if (!viewport) { throw new Error("Actual editor viewport callbacks are missing"); }
+    act(() => {
+      if (kind === "move") { viewport.onMove("player", 44, 3); }
+      else if (kind === "batch move") {
+        if (!viewport.onMoves) { throw new Error("Viewport batch move callback is missing"); }
+        viewport.onMoves([{ id: "player", x: 44, y: 3 }]);
+      }
+      else { viewport.onTransform("player", { rotation: 0.5 }); }
+    });
+    expect(store.getState().error).toBeNull();
+    expect(store.getState().pendingOps).toHaveLength(1);
+    expect(store.getState().pendingOps[0]).toMatchObject({ op: "update_entity", scene_id: "scene-b", entity_id: "player" });
+    expect(document2D(store).scenes[0]).toEqual(first);
+    expect(document2D(store).scenes[1].entities.find((entity) => entity.id === "player")?.transform2d)
+      .toMatchObject(kind === "rotate" ? { rotation: 0.5 } : { x: 44, y: 3 });
+    const after = structuredClone(document2D(store));
+    act(() => store.getState().undo());
+    expect(document2D(store)).toEqual(fixture);
+    act(() => store.getState().redo());
+    expect(document2D(store)).toEqual(after);
+  }, false, kind === "rotate");
+});
+
+it("keeps a deferred viewport gesture bound to its rendered scene after active scene changes (E1)", async () => {
+  const user = userEvent.setup();
+  await withSceneLocalPlayers(async ({ fixture, store }) => {
+    const first = structuredClone(fixture.scenes[0]);
+    await user.click(screen.getByRole("button", { name: "player B" }));
+    const renderedB = mockViewportProps;
+    if (!renderedB?.onGestureStart || !renderedB.onGestureEnd || !renderedB.onMoves) {
+      throw new Error("Actual editor viewport gesture callbacks are missing");
+    }
+    const { onGestureStart, onGestureEnd, onMoves } = renderedB;
+    let gestureId = 0;
+    act(() => { gestureId = onGestureStart(); });
+    await user.click(screen.getByRole("button", { name: "player A" }));
+    expect(mockViewportProps?.sceneId).toBe(first.id);
+    act(() => {
+      onMoves([{ id: "player", x: 44, y: 3 }], gestureId);
+      onGestureEnd(gestureId);
+    });
+    expect(store.getState().pendingOps).toHaveLength(1);
+    expect(store.getState().pendingOps[0]).toMatchObject({ op: "update_entity", scene_id: "scene-b", entity_id: "player" });
+    expect(document2D(store).scenes[0]).toEqual(first);
+    expect(document2D(store).scenes[1].entities.find((entity) => entity.id === "player")?.transform2d)
+      .toMatchObject({ x: 44, y: 3 });
+    const after = structuredClone(document2D(store));
+    act(() => store.getState().undo());
+    expect(document2D(store)).toEqual(fixture);
+    act(() => store.getState().redo());
+    expect(document2D(store)).toEqual(after);
+  });
+});
+
+it.each([
+  ["delete", "{Delete}", "remove_entity"],
+  ["duplicate", "{Control>}d{/Control}", "duplicate_entity"],
+  ["nudge", "{ArrowRight}", "update_entity"]
+])("targets only B/player through the viewport %s command (E1)", async (_kind, keys, operation) => {
+  const user = userEvent.setup();
+  await withSceneLocalPlayers(async ({ fixture, store }) => {
+    const first = structuredClone(fixture.scenes[0]);
+    await user.click(screen.getByRole("button", { name: "player B" }));
+    await user.click(screen.getByRole("button", { name: "Editor viewport" }));
+    await user.keyboard(keys);
+    expect(store.getState().pendingOps).toHaveLength(1);
+    expect(store.getState().pendingOps[0]).toMatchObject({ op: operation, scene_id: "scene-b", entity_id: "player" });
+    expect(document2D(store).scenes[0]).toEqual(first);
+  });
+});
+
+it("copies only the selected scene's player when another scene reuses that entity ID (E1)", async () => {
+  const user = userEvent.setup();
+  await withSceneLocalPlayers(async ({ fixture, store }) => {
+    const first = structuredClone(fixture.scenes[0]);
+    const secondCount = fixture.scenes[1].entities.length;
+    await user.click(screen.getByRole("button", { name: "player B" }));
+    await user.click(screen.getByRole("button", { name: "Editor viewport" }));
+    await user.keyboard("{Control>}c{/Control}{Control>}v{/Control}");
+    const added = store.getState().pendingOps.filter((op) => op.op === "add_entity");
+    expect(added).toHaveLength(1);
+    expect(added[0]).toMatchObject({ op: "add_entity", scene_id: "scene-b", entity: { name: "player B" } });
+    expect(document2D(store).scenes[0]).toEqual(first);
+    expect(document2D(store).scenes[1].entities).toHaveLength(secondCount + 1);
+  });
+});
+
+it("pastes into the active empty scene after its header clears entity selection (E9)", async () => {
+  const user = userEvent.setup();
+  await withSceneLocalPlayers(async ({ fixture, store }) => {
+    const first = structuredClone(fixture.scenes[0]);
+    await user.click(screen.getByRole("button", { name: "player A" }));
+    await user.click(screen.getByRole("button", { name: "Editor viewport" }));
+    await user.keyboard("{Control>}c{/Control}");
+    await user.click(screen.getByRole("button", { name: "Scene Scene B" }));
+    expect(store.getState().selectedIds).toEqual([]);
+    expect(mockViewportProps?.sceneId).toBe("scene-b");
+    await user.click(screen.getByRole("button", { name: "Editor viewport" }));
+    await user.keyboard("{Control>}v{/Control}");
+    expect(store.getState().pendingOps).toHaveLength(1);
+    expect(store.getState().pendingOps[0]).toMatchObject({ op: "add_entity", scene_id: "scene-b", entity: { name: "player A" } });
+    expect(document2D(store).scenes[0]).toEqual(first);
+    expect(document2D(store).scenes[1].entities).toHaveLength(1);
+  }, true);
+});
+
+
+it("keeps viewport selection in its rendered scene instead of resolving the first matching entity ID (E1)", async () => {
+  const user = userEvent.setup();
+  await withSceneLocalPlayers(async ({ store }) => {
+    await user.click(screen.getByRole("button", { name: "Scene Scene B" }));
+    const viewport = mockViewportProps;
+    if (!viewport) { throw new Error("Actual editor viewport is missing"); }
+    act(() => viewport.onSelect("player", false));
+    expect(mockViewportProps?.sceneId).toBe("scene-b");
+    expect(store.getState().selectedIds).toEqual(["player"]);
+    expect(screen.getByRole("button", { name: "player A" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "player B" })).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+it("does not attach a cross-scene clipboard child to an unrelated same-ID parent (E1)", async () => {
+  const user = userEvent.setup();
+  await withSceneLocalPlayers(async ({ fixture, store }) => {
+    const sourceScene = fixture.scenes[0];
+    const parent = sourceScene.entities.find((entity) => entity.id !== "player" && !entity.parentId);
+    if (!parent) { throw new Error("Clipboard fixture requires a parent"); }
+    act(() => store.getState().apply([
+      { op: "update_entity", scene_id: sourceScene.id, entity_id: "player", set: { parentId: parent.id } },
+      { op: "remove_entity", scene_id: "scene-b", entity_id: "player", children: "remove" }
+    ]));
+    const first = structuredClone(document2D(store).scenes[0]);
+    await user.click(screen.getByRole("button", { name: "player A" }));
+    await user.click(screen.getByRole("button", { name: "Editor viewport" }));
+    await user.keyboard("{Control>}c{/Control}");
+    await user.click(screen.getByRole("button", { name: "Scene Scene B" }));
+    await user.click(screen.getByRole("button", { name: "Editor viewport" }));
+    await user.keyboard("{Control>}v{/Control}");
+    const additions = store.getState().pendingOps.filter((op) => op.op === "add_entity");
+    expect(additions).toHaveLength(1);
+    expect(additions[0]).toMatchObject({ scene_id: "scene-b", entity: { name: "player A" } });
+    if (additions[0].op !== "add_entity") { throw new Error("Clipboard did not add an entity"); }
+    expect(additions[0].entity).not.toHaveProperty("parentId");
+    expect(document2D(store).scenes[0]).toEqual(first);
+  });
+});
+
+
+it("retains the explicit scene when navigating from an actual console entity link (E1)", async () => {
+  const user = userEvent.setup();
+  await withSceneLocalPlayers(async ({ fixture, store }) => {
+    const consoleStore = getGameConsoleStore(fixture.id);
+    try {
+      act(() => {
+        consoleStore.getState().clear();
+        consoleStore.getState().append({ level: "log", source: "runtime", message: "Selected scene B player",
+          sceneId: "scene-b", entityId: "player" });
+        getGamePanelLayoutStore(useAuth.getState().user?.id ?? null).getState().dispatch({ type: "reveal", panelId: "console" });
+      });
+      await user.click(await screen.findByRole("button", { name: "Select player B" }));
+      expect(mockViewportProps?.sceneId).toBe("scene-b");
+      expect(store.getState().selectedIds).toEqual(["player"]);
+      expect(screen.getByRole("button", { name: "player A" })).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByRole("button", { name: "player B" })).toHaveAttribute("aria-pressed", "true");
+    } finally { act(() => consoleStore.getState().clear()); }
+  });
+});
+
+
+it("frames the selected entity in scene B instead of the first scene's same-ID entity (E1)", async () => {
+  const user = userEvent.setup();
+  await withSceneLocalPlayers(async ({ fixture }) => {
+    const player = fixture.scenes[1].entities.find((entity) => entity.id === "player");
+    if (!player) { throw new Error("Second scene fixture player is missing"); }
+    await user.click(screen.getByRole("button", { name: "player B" }));
+    await user.click(screen.getByRole("button", { name: "Editor viewport" }));
+    await user.keyboard("f");
+    expect(mockCamera).toHaveBeenLastCalledWith({ x: player.transform2d.x, y: player.transform2d.y, zoom: 1 });
+  });
+});
+
+it("clears a deleted scene's selection instead of retargeting its entity ID into scene A (E1)", async () => {
+  const user = userEvent.setup();
+  await withSceneLocalPlayers(async ({ fixture, store }) => {
+    const first = structuredClone(fixture.scenes[0]);
+    await user.click(screen.getByRole("button", { name: "player B" }));
+    act(() => store.getState().apply([{ op: "remove_scene", scene_id: "scene-b" }]));
+    expect(store.getState().selectedIds).toEqual([]);
+    await user.click(screen.getByRole("button", { name: "Editor viewport" }));
+    await user.keyboard("{Delete}");
+    expect(store.getState().pendingOps).toEqual([{ op: "remove_scene", scene_id: "scene-b" }]);
+    expect(document2D(store).scenes[0]).toEqual(first);
+  });
+});
+
+
+it("selects a newly added scene-local entity through the actual hierarchy menu (E1)", async () => {
+  const user = userEvent.setup();
+  await withSceneLocalPlayers(async ({ store }) => {
+    await user.click(screen.getByRole("button", { name: "Scene Scene B" }));
+    await user.click(screen.getByRole("button", { name: "Add entity to Scene B" }));
+    await user.click(within(screen.getByRole("menu", { name: "Add game entity" })).getByText("Empty"));
+    const addition = store.getState().pendingOps.find((op) => op.op === "add_entity");
+    if (!addition || addition.op !== "add_entity") { throw new Error("Hierarchy did not add an entity"); }
+    expect(addition.scene_id).toBe("scene-b");
+    expect(store.getState().selectedIds).toEqual([addition.entity.id]);
+    expect(store.getState().selectedSceneId).toBe("scene-b");
+    expect(mockViewportProps?.sceneId).toBe("scene-b");
+    expect(screen.getByRole("button", { name: "Empty" })).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+it("qualifies paused viewport selection with its rendered runtime scene (E1)", async () => {
+  await withSceneLocalPlayers(async ({ fixture, store }) => {
+    mockPlayDocument = fixture;
+    mockPlaySceneId = "scene-b";
+    act(() => store.getState().selectMany([]));
+    // Force a real editor subscription update while keeping the editor's entry scene selected.
+    act(() => store.getState().select("camera"));
+    const viewport = mockViewportProps;
+    if (!viewport) { throw new Error("Paused viewport is missing"); }
+    expect(viewport.sceneId).toBe("scene-b");
+    expect(viewport.paused).toBe(true);
+    act(() => viewport.onSelect("player", false));
+    expect(store.getState().selectedSceneId).toBe("scene-b");
+    expect(screen.getByRole("button", { name: "player A" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "player B" })).toHaveAttribute("aria-pressed", "true");
+  });
 });

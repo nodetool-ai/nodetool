@@ -207,6 +207,7 @@ export function defaultPackSearchPaths(start: string = process.cwd()): string[] 
  *   - the bundled backend inlines this file into `server.mjs`, and
  *     `bundle-backend.mjs` stages the packs in `_sandbox/` beside it — the
  *     layout the packaged desktop app and the Docker/Fly image both run;
+ *   - npm builds stage `_sandbox/` inside this package's `dist/`;
  *   - a checkout resolves this file inside `packages/node-sdk`, so the source
  *     directory is on the way up to the repo root.
  *

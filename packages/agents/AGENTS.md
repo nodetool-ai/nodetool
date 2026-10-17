@@ -2629,8 +2629,10 @@ drift per machine, and nothing — including an agent acting on its own
 mis-read instructions — can edit or delete the document it is working from.
 `system-skills.ts` reads them (cached per process) from
 `NODETOOL_SYSTEM_SKILLS_DIR` when it is set, else `_skills/` beside the bundled
-`server.mjs`, else `packages/system-skills` on the way up from the module — the
-same two-root shape as the
+`server.mjs` or the npm package's `dist/`, else `packages/system-skills` on the
+way up from the module. The workspace build stages the npm copy through
+[`NPM_RUNTIME_RESOURCE_DIRS`](../config/src/package-asset-registry.ts). The
+same resolution applies to the
 sandbox packs, and for the same reason: nothing imports them, so they are not
 workspaces and npm links nothing. `bundle-backend.mjs` stages them and
 `verify-backend-bundle.mjs` fails a build that ships none.

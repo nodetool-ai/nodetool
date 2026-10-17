@@ -78,7 +78,14 @@ export interface WorkspaceTab {
 }
 
 export interface GuidedFlowTarget {
-  kind: "entity" | "storyboard" | "video" | "script" | "workflow" | "game";
+  kind:
+    | "entity"
+    | "storyboard"
+    | "video"
+    | "script"
+    | "workflow"
+    | "game"
+    | "app";
   id: string;
   projectId: string;
   name: string;

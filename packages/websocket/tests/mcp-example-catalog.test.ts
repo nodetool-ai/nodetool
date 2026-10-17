@@ -48,3 +48,27 @@ describe("example workflow catalog get", () => {
     }
   );
 });
+
+
+describe("default workflow examples", () => {
+  it("merges shipped examples with custom package metadata", async () => {
+    const metadata = join(root, "nodetool", "package_metadata");
+    mkdirSync(metadata, { recursive: true });
+    writeFileSync(join(metadata, "custom.json"), JSON.stringify({
+      name: "custom-examples",
+      nodes: [],
+      examples: [
+        { id: "custom", name: "Unique review example", description: "A custom text example" },
+        { id: "custom-2", name: "Unique review example", description: "Another custom text example" }
+      ]
+    }));
+    const catalog = createExampleWorkflowCatalog({ metadataRoots: [root] });
+    const examples = await catalog.list({});
+    expect(examples).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "custom", name: "Unique review example", package_name: "custom-examples" }),
+      expect.objectContaining({ id: "custom-2", name: "Unique review example", package_name: "custom-examples" })
+    ]));
+    expect(examples.some((example) => typeof example === "object" && example !== null &&
+      "package_name" in example && example.package_name !== "custom-examples")).toBe(true);
+  });
+});

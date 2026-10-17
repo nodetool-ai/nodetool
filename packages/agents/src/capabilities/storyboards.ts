@@ -233,6 +233,9 @@ async function scriptLinkSummary(
 
 /** Resolve a shot reference: shot id, 0-based index, or a slug. */
 function findShot(shots: Shot[], target: string): Shot | undefined {
+  if (!target.trim()) {
+    return undefined;
+  }
   const byId = shots.find((s) => s.id === target);
   if (byId) return byId;
   const index = Number(target);
@@ -1719,6 +1722,17 @@ function assertKnownShotFields(
   );
 }
 
+/** Targeted edits must identify a shot before index coercion can run. */
+function shotTarget(args: Record<string, unknown>, op: string): string {
+  const target = args["target"];
+  if ("shot_id" in args ||
+      !(isString(target) && target.trim() ||
+        isNumber(target) && Number.isInteger(target) && target >= 0)) {
+    throw new Error(`${op} requires target: a shot id, slug or non-negative 0-based index. Use target instead of shot_id.`);
+  }
+  return String(target).trim();
+}
+
 /** The board fields `set_board` may set. */
 const BOARD_EDIT_FIELDS = new Set([
   "brief",
@@ -1988,7 +2002,7 @@ function applyBoardOp(
 
     case "update_shot": {
       assertKnownShotFields("update_shot", args);
-      const target = String(args["target"] ?? "");
+      const target = shotTarget(args, op);
       const shot = findShot(doc.shots, target);
       if (!shot) throw new Error(`No shot matches "${target}".`);
       const updated = applyShotFields(shot, args, doc.shots);
@@ -1997,7 +2011,7 @@ function applyBoardOp(
     }
 
     case "remove_shot": {
-      const target = String(args["target"] ?? "");
+      const target = shotTarget(args, op);
       const shot = findShot(doc.shots, target);
       if (!shot) throw new Error(`No shot matches "${target}".`);
       // Coverage pointing at a shot that is gone would read as a picture that
@@ -2025,7 +2039,7 @@ function applyBoardOp(
     }
 
     case "reorder_shot": {
-      const target = String(args["target"] ?? "");
+      const target = shotTarget(args, op);
       const shot = findShot(doc.shots, target);
       if (!shot) throw new Error(`No shot matches "${target}".`);
       const to = Number(args["index"]);
@@ -2043,7 +2057,7 @@ function applyBoardOp(
     }
 
     case "move_shot": {
-      const target = String(args["target"] ?? "");
+      const target = shotTarget(args, op);
       const shot = findShot(doc.shots, target);
       if (!shot) throw new Error(`No shot matches "${target}".`);
       const seeded = materializeLegacyScene(doc);
@@ -2086,7 +2100,7 @@ function applyBoardOp(
     }
 
     case "duplicate_shot": {
-      const target = String(args["target"] ?? "");
+      const target = shotTarget(args, op);
       const shot = findShot(doc.shots, target);
       if (!shot) throw new Error(`No shot matches "${target}".`);
       const ordered = [...doc.shots].sort((a, b) => a.index - b.index);
@@ -2252,7 +2266,7 @@ function applyBoardOp(
     }
 
     case "select_version": {
-      const target = String(args["target"] ?? "");
+      const target = shotTarget(args, op);
       const shot = findShot(doc.shots, target);
       if (!shot) throw new Error(`No shot matches "${target}".`);
       const { kind, index, versions } = readVersionTarget(shot, args);
@@ -2274,7 +2288,7 @@ function applyBoardOp(
     }
 
     case "delete_version": {
-      const target = String(args["target"] ?? "");
+      const target = shotTarget(args, op);
       const shot = findShot(doc.shots, target);
       if (!shot) throw new Error(`No shot matches "${target}".`);
       const { kind, index, versions } = readVersionTarget(shot, args);
@@ -2309,7 +2323,7 @@ function applyBoardOp(
     }
 
     case "add_keyframe_version": {
-      const target = String(args["target"] ?? "");
+      const target = shotTarget(args, op);
       const shot = findShot(doc.shots, target);
       if (!shot) throw new Error(`No shot matches "${target}".`);
       const assetId = optionalString(args["asset_id"]);

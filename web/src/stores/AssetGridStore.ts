@@ -56,6 +56,7 @@ interface AssetGridState {
 
   foldersVisible: boolean;
   toggleFoldersVisible: () => void;
+  setFoldersVisible: (visible: boolean) => void;
 
   /** Type groups the user collapsed in the grid and list views. */
   collapsedAssetGroups: string[];
@@ -217,6 +218,7 @@ const createAssetGridStore = (
   setCollapsedAssetGroups: (groups) => set({ collapsedAssetGroups: groups }),
   toggleFoldersVisible: () =>
     set((state) => ({ foldersVisible: !state.foldersVisible })),
+  setFoldersVisible: (visible) => set({ foldersVisible: visible }),
   isRenaming: null,
   setIsRenaming: (isRenaming) => set({ isRenaming }),
 

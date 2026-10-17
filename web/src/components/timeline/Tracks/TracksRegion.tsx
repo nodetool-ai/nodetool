@@ -1696,7 +1696,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           <div
             ref={headerColumnRef}
             css={headerColumnStyles(theme)}
-            style={{ height: lanesHeight }}
+            // The column keeps its width with no tracks, so the empty lanes
+            // start where the ruler's zero is and a first drop lands under
+            // the pointer instead of a header width later.
+            style={{ height: lanesHeight, width: headerWidthPx }}
           >
             <div style={{ height: trackWindow.top }} aria-hidden="true" />
             {visibleRows.map((row) =>
@@ -1806,7 +1809,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                 data-testid="tracks-empty-hint"
               >
                 <Caption size="small" color="secondary">
-                  Drag media here from Assets, or add a track to start.
+                  Drag media here from the Library, or add a track to start.
                 </Caption>
               </FlexRow>
             )}

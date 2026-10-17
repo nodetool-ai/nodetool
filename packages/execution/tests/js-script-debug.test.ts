@@ -107,6 +107,18 @@ describe("validateJsScriptDoc", () => {
     expect(issue?.message).not.toContain("return an object");
   });
 
+  it("never recommends returning outputs on the script surface", async () => {
+    for (const document of [
+      doc({ code: 'console.log("hello");', inputs: [], outputs: [], tests: [] }),
+      doc({ code: 'console.log(inputs.n);' })
+    ]) {
+      const validation = await validateJsScriptDoc(document);
+      expect(codes(validation)).not.toContain("code_no_return");
+      expect(JSON.stringify(validation)).not.toContain("return an object");
+      expect(JSON.stringify(validation)).not.toContain("return { total }");
+    }
+  });
+
   it("makes the return contract an error", async () => {
     const legacy = await validateJsScriptDoc(
       doc({ code: "return { total: inputs.n + 1 };" })

@@ -384,8 +384,7 @@ describe("validateApp", () => {
       ui: { root: { props: {} }, content: [
         widget("StoryboardSceneList", "StoryboardSceneList-1", {
           resourceBindingId: "board"
-        }),
-        widget("Button", "Button-1", { events: [{ trigger: "click", kind: "run" }] })
+        })
       ], zones: {} },
       operations: [],
       variables: [],
