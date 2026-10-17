@@ -33,10 +33,9 @@ import {
   EmptyState,
   CollapsibleSection,
   BORDER_RADIUS,
-  MOTION,
-  reducedMotion,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  selectableRowStyles
 } from "../ui_primitives";
 import { ToolbarIconButton } from "../ui_primitives";
 import { ConfirmDialog } from "../ui_primitives";
@@ -1139,26 +1138,23 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
         </Text>
         <FlexColumn sx={{ gap: theme.spacing(0.5) }}>
           {quickLinks.map((link) => (
-            <FlexRow
+            // A real link, so Tab reaches it, Enter opens it and the
+            // browser's own open-in-new-tab gestures work.
+            <Box
               key={link.title}
-              align="center"
-              gap={SPACING.md}
+              component="a"
+              href={link.href}
+              {...(link.href.startsWith("http")
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
               sx={{
+                ...selectableRowStyles(theme),
+                display: "flex",
+                alignItems: "center",
+                gap: getSpacingPx(SPACING.md),
                 padding: theme.spacing(2, 2),
-                borderRadius: BORDER_RADIUS.md,
-                cursor: "pointer",
-                transition: MOTION.background,
-                ...reducedMotion({ transition: MOTION.none }),
-                "&:hover": {
-                  backgroundColor: theme.vars.palette.action.hover
-                }
-              }}
-              onClick={() => {
-                if (link.href.startsWith("http")) {
-                  window.open(link.href, "_blank", "noopener,noreferrer");
-                } else {
-                  window.location.href = link.href;
-                }
+                color: "inherit",
+                textDecoration: "none"
               }}
             >
               <FlexRow
@@ -1190,7 +1186,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
               >
                 ›
               </Text>
-            </FlexRow>
+            </Box>
           ))}
         </FlexColumn>
       </Card>

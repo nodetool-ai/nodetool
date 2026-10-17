@@ -29,6 +29,7 @@ import {
   BORDER_RADIUS,
   CONTROL,
   ContextMenu,
+  focusRing,
   InlineEditableText,
   MenuItemPrimitive,
   MOTION,
@@ -172,8 +173,15 @@ const styles = (theme: Theme) =>
       padding: 0,
       fontSize: "inherit",
       width: "100%",
-      outline: "none"
+      outline: "none",
+      borderRadius: BORDER_RADIUS.sm,
+      "&:focus-visible": focusRing(theme, 2)
     },
+
+    // Every tab-bar control draws the shared inset keyboard ring; the strip
+    // scrolls, so a ring outside the box would be clipped.
+    "& .tab:focus-visible, & .project-scope:focus-visible, & .new-tab:focus-visible, & .home-button:focus-visible, & .mode-toggle button:focus-visible":
+      focusRing(theme),
 
     "& .glyph": { flexShrink: 0, fontSize: "var(--fontSizeSmall)" },
     "& .tab-name": {
