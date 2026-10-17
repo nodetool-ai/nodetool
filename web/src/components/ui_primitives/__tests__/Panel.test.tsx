@@ -241,63 +241,62 @@ describe("Panel", () => {
     });
   });
 
-  describe("Collapsible", () => {
-    it("renders collapse indicator when collapsible", () => {
-      renderWithTheme(
-        <Panel title="Collapsible Panel" collapsible collapsed={false}>
+  describe("PanelHeader title row", () => {
+    it("renders the title row as a PanelHeader", () => {
+      const { container } = renderWithTheme(
+        <Panel title="Settings">
           <div>Content</div>
         </Panel>
       );
 
-      // Check for the collapse indicator (▲ when expanded)
-      expect(screen.getByText("▲")).toBeInTheDocument();
+      const header = container.querySelector(".panel-header");
+      expect(header).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Settings" })).toHaveClass(
+        "panel-header-title"
+      );
     });
 
-    it("shows expanded indicator when not collapsed", () => {
+    it("puts the header action in the PanelHeader action slot", () => {
+      const { container } = renderWithTheme(
+        <Panel title="Users" headerAction={<button>Add user</button>}>
+          <div>Content</div>
+        </Panel>
+      );
+
+      const actions = container.querySelector(".panel-header-actions");
+      expect(actions).toContainElement(
+        screen.getByRole("button", { name: "Add user" })
+      );
+    });
+  });
+
+  describe("Collapsible", () => {
+    const toggle = () =>
+      screen.getByRole("button", { name: /^(Collapse|Expand)$/ });
+
+    it("renders a collapse button when expanded", () => {
       renderWithTheme(
         <Panel title="Collapsible Panel" collapsible collapsed={false}>
           <div>Content</div>
         </Panel>
       );
 
-      expect(screen.getByText("▲")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Collapse" })).toBeInTheDocument();
       expect(screen.getByText("Content")).toBeInTheDocument();
     });
 
-    it("shows collapsed indicator when collapsed", () => {
-      renderWithTheme(
-        <Panel title="Collapsible Panel" collapsible collapsed={true}>
-          <div>Content</div>
-        </Panel>
-      );
-
-      expect(screen.getByText("▼")).toBeInTheDocument();
-      expect(screen.queryByText("Content")).not.toBeInTheDocument();
-    });
-
-    it("hides content when collapsed", () => {
+    it("renders an expand button and hides content when collapsed", () => {
       renderWithTheme(
         <Panel title="Collapsible Panel" collapsible collapsed={true}>
           <div>Hidden content</div>
         </Panel>
       );
 
+      expect(screen.getByRole("button", { name: "Expand" })).toBeInTheDocument();
       expect(screen.queryByText("Hidden content")).not.toBeInTheDocument();
     });
 
-    it("shows content when expanded", () => {
-      renderWithTheme(
-        <Panel title="Collapsible Panel" collapsible collapsed={false}>
-          <div>Visible content</div>
-        </Panel>
-      );
-
-      expect(screen.getByText("Visible content")).toBeInTheDocument();
-    });
-  });
-
-  describe("Collapsible Interactions", () => {
-    it("calls onToggleCollapse when header is clicked", async () => {
+    it("calls onToggleCollapse when the toggle is clicked", async () => {
       const user = userEvent.setup();
       const handleToggle = jest.fn();
 
@@ -312,14 +311,11 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const header = screen.getByText("Collapsible Panel").closest("div");
-      if (header) {
-        await user.click(header);
-        expect(handleToggle).toHaveBeenCalledTimes(1);
-      }
+      await user.click(toggle());
+      expect(handleToggle).toHaveBeenCalledTimes(1);
     });
 
-    it("calls onToggleCollapse when Enter key is pressed", async () => {
+    it("calls onToggleCollapse from the keyboard", async () => {
       const user = userEvent.setup();
       const handleToggle = jest.fn();
 
@@ -334,160 +330,64 @@ describe("Panel", () => {
         </Panel>
       );
 
-      const header = screen.getByText("Collapsible Panel").closest("div[role=\"button\"]");
-      if (header) {
-        await user.click(header);
-        await user.keyboard("{Enter}");
-        expect(handleToggle).toHaveBeenCalledTimes(2); // Once from click, once from Enter
-      }
+      toggle().focus();
+      await user.keyboard("{Enter}");
+      await user.keyboard(" ");
+      expect(handleToggle).toHaveBeenCalledTimes(2);
     });
 
-    it("calls onToggleCollapse when Space key is pressed", async () => {
-      const user = userEvent.setup();
-      const handleToggle = jest.fn();
-
+    it("renders no toggle on a non-collapsible panel", () => {
       renderWithTheme(
-        <Panel
-          title="Collapsible Panel"
-          collapsible
-          collapsed={false}
-          onToggleCollapse={handleToggle}
-        >
+        <Panel title="Non-collapsible Panel">
           <div>Content</div>
         </Panel>
       );
 
-      const header = screen.getByText("Collapsible Panel").closest("div[role=\"button\"]");
-      if (header) {
-        await user.click(header);
-        await user.keyboard(" ");
-        expect(handleToggle).toHaveBeenCalledTimes(2); // Once from click, once from Space
-      }
-    });
-
-    it("does not call onToggleCollapse when non-collapsible panel is clicked", async () => {
-      const user = userEvent.setup();
-      const handleToggle = jest.fn();
-
-      renderWithTheme(
-        <Panel
-          title="Non-collapsible Panel"
-          onToggleCollapse={handleToggle}
-        >
-          <div>Content</div>
-        </Panel>
-      );
-
-      const header = screen.getByText("Non-collapsible Panel").closest("div");
-      if (header) {
-        await user.click(header);
-        expect(handleToggle).not.toHaveBeenCalled();
-      }
+      expect(
+        screen.queryByRole("button", { name: /^(Collapse|Expand)$/ })
+      ).not.toBeInTheDocument();
     });
   });
 
   describe("Accessibility", () => {
-    it("adds role=\"button\" to collapsible panel header", () => {
+    it("reports the expanded state on the toggle", () => {
+      const { rerender } = renderWithTheme(
+        <Panel title="Collapsible" collapsible collapsed={false}>
+          <div>Content</div>
+        </Panel>
+      );
+      expect(screen.getByRole("button", { name: "Collapse" })).toHaveAttribute(
+        "aria-expanded",
+        "true"
+      );
+
+      rerender(
+        <ThemeProvider theme={mockTheme}>
+          <Panel title="Collapsible" collapsible collapsed={true}>
+            <div>Content</div>
+          </Panel>
+        </ThemeProvider>
+      );
+      expect(screen.getByRole("button", { name: "Expand" })).toHaveAttribute(
+        "aria-expanded",
+        "false"
+      );
+    });
+
+    it("points aria-controls at the content region", () => {
       const { container } = renderWithTheme(
         <Panel title="Collapsible" collapsible collapsed={false}>
           <div>Content</div>
         </Panel>
       );
 
-      const header = container.querySelector("[role=\"button\"]");
-      expect(header).toBeInTheDocument();
-    });
-
-    it("adds tabIndex={0} to collapsible panel header for keyboard navigation", () => {
-      const { container } = renderWithTheme(
-        <Panel title="Collapsible" collapsible collapsed={false}>
-          <div>Content</div>
-        </Panel>
-      );
-
-      const header = container.querySelector("[role=\"button\"]");
-      expect(header).toHaveAttribute("tabIndex", "0");
-    });
-
-    it("sets aria-expanded to true when panel is expanded", () => {
-      const { container } = renderWithTheme(
-        <Panel title="Collapsible" collapsible collapsed={false}>
-          <div>Content</div>
-        </Panel>
-      );
-
-      const header = container.querySelector("[role=\"button\"]");
-      expect(header).toHaveAttribute("aria-expanded", "true");
-    });
-
-    it("sets aria-expanded to false when panel is collapsed", () => {
-      const { container } = renderWithTheme(
-        <Panel title="Collapsible" collapsible collapsed={true}>
-          <div>Content</div>
-        </Panel>
-      );
-
-      const header = container.querySelector("[role=\"button\"]");
-      expect(header).toHaveAttribute("aria-expanded", "false");
-    });
-
-    it("adds aria-controls to collapsible panel header", () => {
-      const { container } = renderWithTheme(
-        <Panel title="Collapsible" collapsible collapsed={false}>
-          <div>Content</div>
-        </Panel>
-      );
-
-      const header = container.querySelector("[role=\"button\"]");
-      expect(header).toHaveAttribute("aria-controls");
-      expect(header?.getAttribute("aria-controls")).toMatch(/^panel-content-/);
-    });
-
-    it("adds id to content region for aria-controls reference", () => {
-      const { container } = renderWithTheme(
-        <Panel title="Collapsible" collapsible collapsed={false}>
-          <div>Content</div>
-        </Panel>
-      );
-
-      const header = container.querySelector("[role=\"button\"]");
-      const ariaControls = header?.getAttribute("aria-controls");
-      const contentRegion = container.querySelector(`#${ariaControls}`);
-
-      expect(contentRegion).toBeInTheDocument();
-    });
-
-    it("adds role=\"region\" to collapsible panel content", () => {
-      const { container } = renderWithTheme(
-        <Panel title="Collapsible" collapsible collapsed={false}>
-          <div>Content</div>
-        </Panel>
-      );
-
-      const contentRegion = container.querySelector("[role=\"region\"]");
-      expect(contentRegion).toBeInTheDocument();
-    });
-
-    it("adds aria-hidden to collapse indicator icon", () => {
-      const { container } = renderWithTheme(
-        <Panel title="Collapsible" collapsible collapsed={false}>
-          <div>Content</div>
-        </Panel>
-      );
-
-      const indicator = container.querySelector("[aria-hidden=\"true\"]");
-      expect(indicator).toBeInTheDocument();
-    });
-
-    it("does not add ARIA attributes to non-collapsible panel", () => {
-      const { container } = renderWithTheme(
-        <Panel title="Non-collapsible">
-          <div>Content</div>
-        </Panel>
-      );
-
-      const header = container.querySelector("[role=\"button\"]");
-      expect(header).not.toBeInTheDocument();
+      const controls = screen
+        .getByRole("button", { name: "Collapse" })
+        .getAttribute("aria-controls");
+      expect(controls).toMatch(/^panel-content-/);
+      const region = container.querySelector(`#${controls}`);
+      expect(region).toHaveAttribute("role", "region");
+      expect(region).toHaveTextContent("Content");
     });
   });
 
@@ -514,7 +414,7 @@ describe("Panel", () => {
       expect(screen.getByRole("button", { name: "Action" })).toBeInTheDocument();
       expect(screen.getByText("Footer")).toBeInTheDocument();
       expect(screen.getByText("Complete content")).toBeInTheDocument();
-      expect(screen.getByText("▲")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Collapse" })).toBeInTheDocument();
     });
 
     it("renders with only footer and no header", () => {

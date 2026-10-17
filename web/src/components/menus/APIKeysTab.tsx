@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useState, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LoginIcon from "@mui/icons-material/Login";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
@@ -32,6 +31,7 @@ import {
   Box,
   EmptyState,
   CollapsibleSection,
+  SectionHeader,
   BORDER_RADIUS,
   MOTION,
   reducedMotion,
@@ -463,31 +463,19 @@ const ProviderHero = memo(function ProviderHero() {
 
 const SectionTitle = memo(function SectionTitle({
   title,
-  count,
-  theme
+  count
 }: {
   title: string;
   count: number;
-  theme: Theme;
 }) {
   return (
-    <FlexRow
-      align="center"
-      gap={SPACING.md}
-      sx={{ marginBottom: theme.spacing(3) }}
-    >
-      <Text component="h3" size="big">
-        {title}
-      </Text>
-      <Caption
-        size="small"
-        sx={{
-          fontVariantNumeric: "tabular-nums"
-        }}
-      >
-        {count}
-      </Caption>
-    </FlexRow>
+    <SectionHeader
+      title={title}
+      titleComponent="h3"
+      size="large"
+      count={count}
+      sx={{ justifyContent: "flex-start", py: SPACING.none, mb: SPACING.lg }}
+    />
   );
 });
 
@@ -800,7 +788,6 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
           <SectionTitle
             title="Connected Providers"
             count={connected.length}
-            theme={theme}
           />
           <FlexColumn
             sx={{
@@ -852,7 +839,6 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
             <SectionTitle
               title={sectionTitle}
               count={allInSection.length}
-              theme={theme}
             />
             <FlexColumn
               sx={{
@@ -884,7 +870,6 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
                 <SectionTitle
                   title={sectionTitle}
                   count={allInSection.length}
-                  theme={theme}
                 />
               }
               open={forceAdvancedOpen || advancedOpen}

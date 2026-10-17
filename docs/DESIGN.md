@@ -1014,6 +1014,7 @@ import { InspectorFieldRow, InspectorSection, InspectorValueInput } from "../ui_
 | Numbers | `InspectorValueInput`. Pass `scrub` for drag-to-change and `scrubGesture` to merge a drag into one undo entry |
 | Choices | `InspectorSelect` |
 | Booleans | `InspectorToggleRow` |
+| Read-only values | `InspectorStaticValue`: mono, `text.secondary`, truncated with the full value as its tooltip |
 | Body inset | The panel body pads `SPACING.lg` (12px) or `SPACING.md` (8px) horizontally, and sections sit inside that inset |
 
 Do not restyle a `CollapsibleSection` header into a filled bar, a bright

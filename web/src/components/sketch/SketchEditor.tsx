@@ -52,7 +52,6 @@ import {
   InspectorSectionTitle,
   MobileBottomSheet,
   Tooltip,
-  Text,
   Z_INDEX
 } from "../ui_primitives";
 import TransformContextMenu from "./TransformContextMenu";
@@ -150,16 +149,7 @@ const ConnectedColorPanel = memo(function ConnectedColorPanel() {
 const ColorSectionHeader = memo(function ColorSectionHeader() {
   const foregroundColor = useSketchStore((s) => s.foregroundColor) || "#ffffff";
   return (
-    <FlexRow
-      align="center"
-      justify="space-between"
-      sx={{ width: "100%", pr: 1 }}
-    >
-      <InspectorSectionTitle title="Color" />
-      <Text size="smaller" family="secondary" color="secondary">
-        {colorToHex6(foregroundColor)}
-      </Text>
-    </FlexRow>
+    <InspectorSectionTitle title="Color" meta={colorToHex6(foregroundColor)} />
   );
 });
 
