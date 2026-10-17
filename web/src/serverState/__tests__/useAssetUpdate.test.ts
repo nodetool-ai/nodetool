@@ -3,7 +3,11 @@ import { renderHook, act } from "@testing-library/react";
 type UpdateMutationConfig = {
   mutationFn: (updates: { id: string }[]) => Promise<void>;
   onSuccess: (data: undefined, updates: { id: string }[], context: undefined) => void;
-  onError: (error: Error, updates: { id: string }[], context: object) => void;
+  onError: (
+    error: Error,
+    updates: { id: string }[],
+    context: { currentFolderId?: string }
+  ) => void;
   onSettled: (
     data: undefined,
     error: null,
