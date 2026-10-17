@@ -8,7 +8,7 @@
  */
 import React, { useCallback, useMemo } from "react";
 
-import { Chip, FlexRow, SPACING } from "../../ui_primitives";
+import { Chip, FlexRow, SPACING, Tooltip } from "../../ui_primitives";
 import {
   ENTITY_KIND_ICON,
   ENTITY_KIND_COLOR
@@ -36,15 +36,16 @@ const MentionedEntityChip: React.FC<{
   const Icon = ENTITY_KIND_ICON[kind];
   const handleDelete = useCallback(() => onRemove(id), [id, onRemove]);
   return (
-    <Chip
-      compact
-      variant="outlined"
-      icon={<Icon />}
-      label={name}
-      title={descriptor || `${name} · ${kind}`}
-      onDelete={handleDelete}
-      color={ENTITY_KIND_COLOR[kind]}
-    />
+    <Tooltip title={descriptor || `${name} · ${kind}`} describeChild>
+      <Chip
+        compact
+        variant="outlined"
+        icon={<Icon />}
+        label={name}
+        onDelete={handleDelete}
+        color={ENTITY_KIND_COLOR[kind]}
+      />
+    </Tooltip>
   );
 };
 

@@ -36,6 +36,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import { CONTROL, MOTION } from "./tokens";
+import { Tooltip } from "./Tooltip";
 
 const styles = (theme: Theme) =>
   css({
@@ -329,15 +330,16 @@ export const TagInput: React.FC<TagInputProps> = memo(
             aria-describedby={displayHelperText ? `${label || "tag"}-helper-text` : undefined}
           />
           {!disabled && !isMaxReached && inputValue.trim() && (
-            <IconButton
-              className="add-button"
-              size="small"
-              onClick={handleAddButtonClick}
-              aria-label="Add tag"
-              title="Add tag"
-            >
-              <AddIcon fontSize="small" />
-            </IconButton>
+            <Tooltip title="Add tag">
+              <IconButton
+                className="add-button"
+                size="small"
+                onClick={handleAddButtonClick}
+                aria-label="Add tag"
+              >
+                <AddIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           )}
         </Box>
         {displayHelperText && (

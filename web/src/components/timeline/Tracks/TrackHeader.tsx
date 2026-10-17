@@ -755,21 +755,22 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
           <div css={topRowStyles}>
             {!compact && (
               <>
-                <div
-                  css={dragHandleCss}
-                  draggable
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDragEnd}
-                  onPointerDown={stopPointerPropagation}
-                  onContextMenu={stopPointerPropagation}
-                  aria-label={`Reorder ${track.name}`}
-                  role="button"
-                  tabIndex={-1}
-                  title="Drag to reorder track"
-                  data-testid={`track-drag-handle-${track.id}`}
-                >
-                  <DragIndicatorIcon />
-                </div>
+                <Tooltip title="Drag to reorder track">
+                  <div
+                    css={dragHandleCss}
+                    draggable
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onPointerDown={stopPointerPropagation}
+                    onContextMenu={stopPointerPropagation}
+                    aria-label={`Reorder ${track.name}`}
+                    role="button"
+                    tabIndex={-1}
+                    data-testid={`track-drag-handle-${track.id}`}
+                  >
+                    <DragIndicatorIcon />
+                  </div>
+                </Tooltip>
                 <div css={typeGlyphCss} aria-hidden title={meta.label}>
                   <TypeIcon />
                 </div>

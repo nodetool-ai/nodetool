@@ -1158,11 +1158,14 @@ const ScriptDocumentPane = ({
             startIcon={<MovieIcon fontSize="small" />}
             onClick={onSendToTimeline}
             disabled={assembling || !hasVoicedLine}
-            title={
+            tooltip={
+              storyboardId
+                ? "Cut the linked storyboard's shots and these takes into one timeline"
+                : undefined
+            }
+            disabledReason={
               hasVoicedLine
-                ? storyboardId
-                  ? "Cut the linked storyboard's shots and these takes into one timeline"
-                  : undefined
+                ? undefined
                 : "Voice at least one line to send it to a timeline"
             }
           >

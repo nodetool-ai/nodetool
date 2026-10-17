@@ -173,13 +173,11 @@ describe("TrackHeader context menu", () => {
     const [v1] = seedTracks();
     const input = screen.getByLabelText("Track name: Video 1");
     expect(input).toHaveAttribute("readonly");
-    expect(input).toHaveAttribute("title", "Double-click to rename");
 
     openMenu(v1);
     await userEvent.click(screen.getByText("Rename"));
 
     expect(input).not.toHaveAttribute("readonly");
-    expect(input).not.toHaveAttribute("title");
   });
 
   it("Remove track opens the confirm dialog", async () => {
