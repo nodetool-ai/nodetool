@@ -489,11 +489,11 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
               ? CLIP_COLOR
               : "divider",
         boxShadow: dropTarget
-          ? `0 0 0 2px ${theme.palette.primary.main}`
+          ? `0 0 0 2px ${theme.vars.palette.primary.main}`
           : isGenerating
             ? `0 0 0 1px ${CLIP_COLOR}`
             : selected
-              ? `0 0 0 1px ${theme.palette.primary.main}`
+              ? `0 0 0 1px ${theme.vars.palette.primary.main}`
               : undefined,
         cursor: draggable ? "grab" : undefined
       }}

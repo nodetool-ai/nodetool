@@ -32,10 +32,12 @@ const styles = (theme: Theme) =>
     height: "100%",
     borderLeft: `1px solid ${theme.vars.palette.divider}`,
     // A 20% black rail reads as a grey slab on the light shell.
-    background:
-      theme.palette.mode === "light"
-        ? theme.vars.palette.c_overlay_subtle
-        : `rgb(${theme.vars.palette.common.blackChannel} / 0.20)`,
+    // theme.palette.mode is fixed to the default scheme under the CSS-vars
+    // theme, so the dark rail goes through the `.dark` color-scheme selector.
+    background: theme.vars.palette.c_overlay_subtle,
+    [theme.getColorSchemeSelector("dark")]: {
+      background: `rgb(${theme.vars.palette.common.blackChannel} / 0.20)`
+    },
     display: "flex",
     flexDirection: "column",
     minHeight: 0,

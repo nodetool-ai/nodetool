@@ -180,7 +180,7 @@ const styles = (theme: Theme) =>
         height: 24,
         padding: theme.spacing(SPACING.micro),
         backgroundColor: theme.vars.palette.c_scrim,
-        color: theme.vars.palette.grey[0],
+        color: theme.vars.palette.common.white,
         borderRadius: BORDER_RADIUS.sm,
         "&:hover": {
           backgroundColor: theme.vars.palette.c_scrim_strong

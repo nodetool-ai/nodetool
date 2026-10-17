@@ -409,6 +409,16 @@ token — use the channel form `rgba(var(--palette-<sem>-mainChannel) / <alpha>)
 
 - **Never hardcode hex or rgb colors** in component code.
 - Always reference `theme.vars.palette.*` — the vars switch automatically between light/dark schemes.
+  `theme.palette.*` is baked from the default (light) scheme, and `theme.palette.mode`
+  is always `"light"`, so neither follows the toggle. `alpha()` cannot take a var: use
+  the channel form `` `rgb(${theme.vars.palette.x.mainChannel} / a)` ``. A light/dark
+  branch goes through `[theme.getColorSchemeSelector("dark")]: { … }`. A sink that needs a
+  literal colour (canvas, three.js, wavesurfer) reads
+  `theme.colorSchemes[activeMode].palette` with `useColorScheme()`.
+  `design-tokens/static-palette` warns on `theme.palette.*` reads.
+- Text on a fixed dark scrim (`c_scrim*`, a black-channel overlay over media) is
+  `common.white`, not a `grey[*]` or `text.*` token: those invert in light mode and
+  go dark on dark.
 - New colors must be added to **both** `paletteDark.ts` and `paletteLight.ts` as a `c_*` token.
 - Brand identity (primary/secondary) changes go only in the theme palette, not in individual components.
 

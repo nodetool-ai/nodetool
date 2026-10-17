@@ -19,30 +19,27 @@ export const createMediaComposerStyles = (theme: Theme) =>
       // the two cards read as one system.
       borderRadius: BORDER_RADIUS.xxl,
       padding: `${theme.spacing(2)} ${theme.spacing(2)} ${theme.spacing(1.5)}`,
-      background:
-        theme.palette.mode === "light"
-          ? theme.vars.palette.background.paper
-          : theme.vars.palette.grey[900],
+      // theme.palette.mode is fixed to the default scheme under the CSS-vars
+      // theme, so the dark look goes through the `.dark` color-scheme selector.
+      background: theme.vars.palette.background.paper,
       backdropFilter: "blur(16px)",
-      border: `1px solid ${
-        theme.palette.mode === "light"
-          ? theme.vars.palette.grey[600]
-          : theme.vars.palette.divider
-      }`,
-      boxShadow:
-        theme.palette.mode === "light"
-          ? `0 1px 2px ${theme.vars.palette.c_scrim_soft}, 0 8px 24px ${theme.vars.palette.c_scrim_soft}`
-          : `0 10px 40px ${theme.vars.palette.c_scrim}`,
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
+      boxShadow: `0 1px 2px ${theme.vars.palette.c_scrim_soft}, 0 8px 24px ${theme.vars.palette.c_scrim_soft}`,
+      [theme.getColorSchemeSelector("dark")]: {
+        background: theme.vars.palette.grey[900],
+        border: `1px solid ${theme.vars.palette.divider}`,
+        boxShadow: `0 10px 40px ${theme.vars.palette.c_scrim}`
+      },
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(1.5),
       transition: `${MOTION.border}, ${MOTION.shadow}`,
       "&:focus-within": {
         borderColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.5)`,
-        boxShadow:
-          theme.palette.mode === "light"
-            ? `0 0 0 3px rgb(${theme.vars.palette.primary.mainChannel} / 0.1), 0 8px 24px ${theme.vars.palette.c_scrim_soft}`
-            : `0 0 0 3px rgb(${theme.vars.palette.primary.mainChannel} / 0.12), 0 10px 40px ${theme.vars.palette.c_scrim}`
+        boxShadow: `0 0 0 3px rgb(${theme.vars.palette.primary.mainChannel} / 0.1), 0 8px 24px ${theme.vars.palette.c_scrim_soft}`,
+        [theme.getColorSchemeSelector("dark")]: {
+          boxShadow: `0 0 0 3px rgb(${theme.vars.palette.primary.mainChannel} / 0.12), 0 10px 40px ${theme.vars.palette.c_scrim}`
+        }
       },
       "&.dragging": {
         borderColor: theme.vars.palette.primary.main

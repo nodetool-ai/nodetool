@@ -330,7 +330,9 @@ const ReactFlowWrapper = ({
   } | null>(null);
   const ghostRafRef = useRef<number | null>(null);
   const ghostTheme = useMemo(() => {
-    const isDark = theme.palette.mode === "dark";
+    // theme.palette.mode is fixed to the default scheme under the CSS-vars
+    // theme; the `dark` class on <html> is the live mode.
+    const isDark = isDarkMode;
     return {
       textColor: isDark
         ? "rgba(226, 232, 255, 0.95)"
@@ -352,7 +354,7 @@ const ReactFlowWrapper = ({
       // Fixed drag preview: above canvas/panels, below the node menu.
       zIndex: theme.zIndex.floating
     };
-  }, [theme.palette.mode, theme.vars.palette.primary.main, theme.zIndex.floating]);
+  }, [isDarkMode, theme.vars.palette.primary.main, theme.zIndex.floating]);
 
   const backgroundStyle = useMemo(
     () => ({
