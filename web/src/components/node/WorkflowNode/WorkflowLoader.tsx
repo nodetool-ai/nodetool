@@ -269,7 +269,7 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
           renderInput={(params) => (
             <TextField
               {...params}
-              label="Select Workflow"
+              label="Select workflow"
               variant="outlined"
               size="small"
               slotProps={{

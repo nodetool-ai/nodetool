@@ -106,7 +106,7 @@ describe("CostsDashboard", () => {
 
   it("shows the detailed execution table by default", () => {
     renderDashboard();
-    expect(screen.getByText("Provider / Model")).toBeInTheDocument();
+    expect(screen.getByText("Provider / model")).toBeInTheDocument();
     expect(screen.getByText("GenerateText")).toBeInTheDocument();
     expect(screen.getByText("exec_1")).toBeInTheDocument();
     expect(screen.getByText("2 of 2")).toBeInTheDocument();
@@ -117,7 +117,7 @@ describe("CostsDashboard", () => {
     renderDashboard();
     await user.click(screen.getByRole("button", { name: "Provider" }));
     expect(screen.getByText("Share of spend")).toBeInTheDocument();
-    expect(screen.queryByText("Provider / Model")).not.toBeInTheDocument();
+    expect(screen.queryByText("Provider / model")).not.toBeInTheDocument();
   });
 
   it("filters the table via the search box", async () => {

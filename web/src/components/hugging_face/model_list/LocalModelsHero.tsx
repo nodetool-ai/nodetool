@@ -69,7 +69,7 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
             <ComputerIcon sx={{ fontSize: ICON_SIZE.lg }} />
           </FlexRow>
           <Text size="normal" weight={600}>
-            Local Models
+            Local models
           </Text>
         </FlexRow>
 

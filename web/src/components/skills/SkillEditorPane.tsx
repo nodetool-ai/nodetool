@@ -17,6 +17,7 @@ import { useSkill, useUpdateSkill } from "../../hooks/skills/useSkills";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { notifyMutationError } from "../../utils/notifyMutationError";
 import ReportBugButton from "../support/ReportBugButton";
+import ErrorBanner from "../support/ErrorBanner";
 import MonacoPane from "../workspace/MonacoPane";
 import EditorToolbar from "../textEditor/EditorToolbar";
 import {
@@ -402,15 +403,16 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
         fullHeight
         sx={{ alignItems: "center", justifyContent: "center" }}
       >
-        <Caption sx={{ color: "error.main" }}>Failed to load skill</Caption>
-        <ReportBugButton
-          context={{
+        <ErrorBanner
+          report={{
             source: "panel-crash",
             summary: "Skill editor failed to load",
             errorText: error.message,
             stackTrace: error instanceof Error ? error.stack : undefined
           }}
-        />
+        >
+          Could not load this skill.
+        </ErrorBanner>
       </FlexColumn>
     );
   }
@@ -499,14 +501,15 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
           />
         ) : monacoLoadError ? (
           <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.md }}>
-            <Caption sx={{ color: "error.main" }}>{monacoLoadError}</Caption>
-            <ReportBugButton
-              context={{
+            <ErrorBanner
+              report={{
                 source: "panel-crash",
                 summary: "Skill editor could not start",
                 errorText: monacoLoadError
               }}
-            />
+            >
+              {monacoLoadError}
+            </ErrorBanner>
           </FlexColumn>
         ) : isMonacoLoading ? (
           <FlexColumn fullWidth fullHeight sx={{ alignItems: "center", justifyContent: "center" }}>

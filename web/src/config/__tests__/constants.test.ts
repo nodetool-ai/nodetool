@@ -46,12 +46,12 @@ describe("IMAGE_SIZE_PRESETS", () => {
     const labels = IMAGE_SIZE_PRESETS.map((p: PresetOption) => p.label);
     expect(labels).toContain("1080p Full HD");
     expect(labels).toContain("4K UHD");
-    expect(labels).toContain("Instagram Post");
+    expect(labels).toContain("Instagram post");
   });
 
   it("Instagram Post is square", () => {
     const instagram = IMAGE_SIZE_PRESETS.find(
-      (p: PresetOption) => p.label === "Instagram Post"
+      (p: PresetOption) => p.label === "Instagram post"
     );
     expect(instagram).toBeDefined();
     expect(instagram!.width).toBe(instagram!.height);

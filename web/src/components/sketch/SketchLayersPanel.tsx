@@ -1057,7 +1057,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             title="New layer generated from a text prompt"
           >
             <Button
-              aria-label="Add Text-to-Image Layer"
+              aria-label="Add text-to-image layer"
               onClick={() => addDirectGenLayer("text-to-image")}
               data-testid="layers-panel-add-text-to-image"
               startIcon={
@@ -1072,7 +1072,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             title="New layer generated from the layers below it"
           >
             <Button
-              aria-label="Add Image-to-Image Layer"
+              aria-label="Add image-to-image layer"
               onClick={() => addDirectGenLayer("image-to-image")}
               data-testid="layers-panel-add-image-to-image"
               startIcon={
@@ -1245,15 +1245,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         <Tooltip
           title={
             maskLayerId === activeLayerId
-              ? "Remove Mask Designation"
-              : "Set as Mask Layer"
+              ? "Remove mask designation"
+              : "Set as mask layer"
           }
         >
           <IconButton
             aria-label={
               maskLayerId === activeLayerId
-                ? "Remove Mask Designation"
-                : "Set as Mask Layer"
+                ? "Remove mask designation"
+                : "Set as mask layer"
             }
             size="small"
             onClick={() =>
@@ -1271,14 +1271,14 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
         <Tooltip
           title={
-            activeLayer?.alphaLock ? "Unlock Transparency" : "Lock Transparency"
+            activeLayer?.alphaLock ? "Unlock transparency" : "Lock transparency"
           }
         >
           <IconButton
             aria-label={
               activeLayer?.alphaLock
-                ? "Unlock Transparency"
-                : "Lock Transparency"
+                ? "Unlock transparency"
+                : "Lock transparency"
             }
             size="small"
             onClick={() => onToggleAlphaLock(activeLayerId)}
@@ -1307,10 +1307,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         {/* Lifecycle, right-aligned: Duplicate · Delete */}
         <FlexRow align="center" gap={0.5} sx={{ ml: "auto" }}>
           <Tooltip
-            title="Duplicate Layer"
+            title="Duplicate layer"
           >
             <IconButton
-              aria-label="Duplicate Layer"
+              aria-label="Duplicate layer"
               size="small"
               onClick={() => onDuplicateLayer(activeLayerId)}
               sx={OPS_ICON_SX}
@@ -1321,9 +1321,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           <DeleteButton
             iconVariant="outline"
             tooltip={
-              hasMultiLayerSelection ? "Remove selected layers" : "Remove Layer"
+              hasMultiLayerSelection ? "Delete selected layers" : "Delete layer"
             }
-            ariaLabel="Remove active layer"
+            ariaLabel="Delete active layer"
             onClick={() =>
               hasMultiLayerSelection
                 ? onDeleteSelectedLayers()
@@ -1650,7 +1650,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               />
             ) : null}
             <MenuItemPrimitive
-              label="Remove"
+              label="Delete"
               color="error"
               dividerBefore
               onClick={handleCtxDelete}

@@ -10,12 +10,12 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
-import { useTheme } from "@mui/material/styles";
 import TvIcon from "@mui/icons-material/Tv";
 import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
 import type { Layer } from "../types";
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
+import ErrorBanner from "../../support/ErrorBanner";
 import {
   Caption,
   FlexColumn,
@@ -23,7 +23,6 @@ import {
   Panel,
   SPACING,
   SelectField,
-  Text,
   TextInput
 } from "../../ui_primitives";
 import { sketchFieldSx } from "../sketchStyles";
@@ -70,7 +69,6 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
   layer,
   binding
 }) => {
-  const theme = useTheme();
   const patchBinding = useSketchSessionStore((s) => s.patchBinding);
   const layers = useSketchStore((s) => s.document.layers);
   const { start, cancel } = useDirectGenJob();
@@ -226,7 +224,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
               <MediaOptionChip
                 icon={<TuneIcon fontSize="small" />}
                 label={`Strength ${(binding.strength ?? DEFAULT_STRENGTH).toFixed(2)}`}
-                header="Edit Strength"
+                header="Edit strength"
                 value={binding.strength ?? DEFAULT_STRENGTH}
                 options={strengthOptions}
                 onChange={(s) => patchBinding(layer.id, { strength: s })}
@@ -234,7 +232,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
               <MediaOptionChip
                 icon={<LayersIcon fontSize="small" />}
                 label={`${binding.numInferenceSteps ?? DEFAULT_STEPS} steps`}
-                header="Inference Steps"
+                header="Inference steps"
                 value={binding.numInferenceSteps ?? DEFAULT_STEPS}
                 options={stepsOptions}
                 onChange={(n) =>
@@ -292,9 +290,15 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
           </EditorButton>
         )}
         {binding.status === "failed" && (
-          <Text size="small" sx={{ color: theme.vars.palette.error.main }}>
+          <ErrorBanner
+            report={{
+              source: "job-failure",
+              summary: "Sketch layer generation failed",
+              errorText: failure ? describeDirectGenFailure(failure) : undefined
+            }}
+          >
             {failure ? describeDirectGenFailure(failure) : "Generation failed."}
-          </Text>
+          </ErrorBanner>
         )}
         {binding.status === "generated" && binding.currentAssetId && (
           <Caption color="secondary">

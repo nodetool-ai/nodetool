@@ -93,9 +93,11 @@ const ModelName: React.FC<{ model: UnifiedModel; plain: boolean }> = ({
   }
 
   return (
-    <TextLink href={modelUrl} external className="model-name-link" title={full}>
-      {content}
-    </TextLink>
+    <Tooltip title={full} describeChild>
+      <TextLink href={modelUrl} external className="model-name-link">
+        {content}
+      </TextLink>
+    </Tooltip>
   );
 };
 

@@ -60,9 +60,9 @@ import {
 } from "../../../stores/MediaGenerationStore";
 import { useMediaOptions } from "../../../hooks/useModelsByProvider";
 
+import ErrorBanner from "../../support/ErrorBanner";
 import {
   SPACING,
-  Caption,
   CollapsibleSection,
   EditorButton,
   EmptyState,
@@ -605,9 +605,14 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
               {isActive ? "Cancel" : generateLabel}
             </EditorButton>
             {isFailed && (
-              <Caption color="error" sx={{ textAlign: "center" }}>
+              <ErrorBanner
+                report={{
+                  source: "job-failure",
+                  summary: "Clip generation failed"
+                }}
+              >
                 Generation failed.
-              </Caption>
+              </ErrorBanner>
             )}
           </FlexColumn>
         </CollapsibleSection>

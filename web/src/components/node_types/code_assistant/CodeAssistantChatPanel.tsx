@@ -44,7 +44,7 @@ const CodeAssistantChatPanel = ({ nodeId }: CodeAssistantChatPanelProps) => {
       chatSource="code_assistant"
       getSelection={getSelection}
       systemPrompt={systemPrompt}
-      welcomeTitle="Code Assistant"
+      welcomeTitle="Code assistant"
       welcomeBody='Ask me to write or change this node code — e.g. "merge the two lists on id", "add an error output", or "test this with a sample list".'
     />
   );

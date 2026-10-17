@@ -174,7 +174,7 @@ describe("CopyAssetButton", () => {
       );
 
       const button = screen.getByRole("button");
-      expect(button).toHaveAttribute("aria-label", "Copy to clipboard");
+      expect(button).toHaveAttribute("aria-label", "Copy content");
     });
 
     it("should show compatibility info when enabled", () => {

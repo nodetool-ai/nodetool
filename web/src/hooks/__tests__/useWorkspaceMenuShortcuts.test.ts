@@ -5,6 +5,7 @@ import {
   type WorkspaceTab
 } from "../../stores/WorkspaceTabsStore";
 import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
+import { useConfirmStore } from "../../stores/ConfirmStore";
 import { useWorkspaceMenuShortcuts } from "../useWorkspaceMenuShortcuts";
 
 let mockMenuHandler: (data: MenuEventData) => void;
@@ -24,7 +25,7 @@ jest.mock("../../contexts/WorkflowManagerContext", () => ({
   })
 }));
 
-it("keyboard/menu close preserves a dirty workflow when discard is canceled", () => {
+it("keyboard/menu close preserves a dirty workflow when discard is canceled", async () => {
   const tab: WorkspaceTab = {
     id: "workflow:dirty",
     type: "workflow",
@@ -38,10 +39,9 @@ it("keyboard/menu close preserves a dirty workflow when discard is canceled", ()
     projectSessions: {}
   });
   useDocumentDraftStore.setState({ dirtyTabs: {}, savingTabs: {} });
-  const confirm = jest.spyOn(window, "confirm").mockReturnValue(false);
   renderHook(useWorkspaceMenuShortcuts);
   act(() => mockMenuHandler({ type: "close" }));
-  expect(confirm).toHaveBeenCalled();
+  expect(useConfirmStore.getState().pending).not.toBeNull();
+  await act(async () => useConfirmStore.getState().settle(false));
   expect(useWorkspaceTabsStore.getState().tabs).toEqual([tab]);
-  confirm.mockRestore();
 });

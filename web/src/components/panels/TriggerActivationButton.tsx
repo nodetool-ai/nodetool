@@ -15,6 +15,7 @@
  * never been enabled before.
  */
 import React, { useCallback, useMemo, useState } from "react";
+import ErrorBanner from "../support/ErrorBanner";
 import {
   Popover,
   ToolbarIconButton,
@@ -387,9 +388,14 @@ const TriggerActivationButton: React.FC = () => {
                   />
                   {isLoading && <Caption>Checking status…</Caption>}
                   {isError && (
-                    <Caption color="error">
+                    <ErrorBanner
+                      report={{
+                        source: "operation-failure",
+                        summary: "Trigger status failed to load"
+                      }}
+                    >
                       Could not load trigger status.
-                    </Caption>
+                    </ErrorBanner>
                   )}
                   {schedule && <Caption>{schedule}</Caption>}
                   {!isLoading && !isError && (
@@ -403,7 +409,15 @@ const TriggerActivationButton: React.FC = () => {
                     </Caption>
                   )}
                   {reg?.last_error && (
-                    <Caption color="error">Last error: {reg.last_error}</Caption>
+                    <ErrorBanner
+                      report={{
+                        source: "operation-failure",
+                        summary: "Trigger run failed",
+                        errorText: reg.last_error
+                      }}
+                    >
+                      Last error: {reg.last_error}
+                    </ErrorBanner>
                   )}
                   {kind === "webhook" &&
                     reg?.webhook_token &&

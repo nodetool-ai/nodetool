@@ -94,7 +94,8 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkflow } from "../../serverState/useWorkflow";
 import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 import { trpcClient } from "../../trpc/client";
-import { Text, LoadingSpinner } from "../ui_primitives";
+import ErrorBanner from "../support/ErrorBanner";
+import { LoadingSpinner } from "../ui_primitives";
 import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
@@ -1005,16 +1006,23 @@ const ReactFlowWrapper = ({
   if (!workflowExistsLocally && isLoading) {
     return (
       <div className="loading-overlay">
-        <LoadingSpinner /> Loading workflow…
+        <LoadingSpinner text="Loading workflow" />
       </div>
     );
   }
   if (!workflowExistsLocally && error) {
     return (
       <div className="loading-overlay">
-        <Text color="error">
+        <ErrorBanner
+          report={{
+            source: "operation-failure",
+            summary: "Workflow failed to load",
+            errorText: error.message,
+            workflowId
+          }}
+        >
           {error.message}
-        </Text>
+        </ErrorBanner>
       </div>
     );
   }

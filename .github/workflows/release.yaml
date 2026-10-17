@@ -21,6 +21,10 @@ on:
         description: "Release version (without leading v). Leave empty to use the tag."
         required: false
         default: ""
+      source_tag:
+        description: "Stable desktop recovery: existing v<version> tag to build. Leave empty for the event commit."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -77,7 +81,7 @@ jobs:
       update_manifest: ${{ steps.meta.outputs.update_manifest }}
       update_mac_manifest: ${{ steps.meta.outputs.update_mac_manifest }}
       update_linux_manifest: ${{ steps.meta.outputs.update_linux_manifest }}
-      ref: ${{ github.sha }}
+      ref: ${{ steps.meta.outputs.ref }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -87,12 +91,18 @@ jobs:
         env:
           INPUT_CHANNEL: ${{ github.event.inputs.channel }}
           INPUT_VERSION: ${{ github.event.inputs.version }}
+          INPUT_SOURCE_TAG: ${{ github.event.inputs.source_tag }}
           RUN_STARTED_AT: ${{ github.run_started_at }}
         run: |
           set -euo pipefail
           # A dispatched run signs and publishes, so it must build main or a tag.
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${GITHUB_REF}" != "refs/heads/main" && "${GITHUB_REF}" != refs/tags/* ]]; then
             echo "workflow_dispatch releases must run from main or a tag, not ${GITHUB_REF}." >&2
+            exit 1
+          fi
+          source_ref="$GITHUB_SHA"
+          if [[ -n "$INPUT_SOURCE_TAG" && ( "$GITHUB_EVENT_NAME" != "workflow_dispatch" || "$INPUT_CHANNEL" != "stable" ) ]]; then
+            echo "source_tag is only supported for workflow_dispatch stable releases." >&2
             exit 1
           fi
           if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${INPUT_CHANNEL}" == "nightly" ) ]]; then
@@ -119,6 +129,14 @@ jobs:
               echo "'${raw}' is not a semver version (X.Y.Z[-pre][+build])." >&2
               exit 1
             fi
+            if [[ -n "$INPUT_SOURCE_TAG" ]]; then
+              if [[ "$INPUT_SOURCE_TAG" != "v$version" || "$version" == *-nightly.* ]]; then
+                echo "source_tag must equal v<version> for a stable release." >&2
+                exit 1
+              fi
+              git fetch --no-tags origin "refs/tags/$INPUT_SOURCE_TAG:refs/tags/$INPUT_SOURCE_TAG"
+              source_ref="$(git rev-parse --verify "refs/tags/$INPUT_SOURCE_TAG^{commit}")"
+            fi
             echo "release_channel=stable" >> "$GITHUB_OUTPUT"
             echo "version=$version" >> "$GITHUB_OUTPUT"
             echo "tag=v$version" >> "$GITHUB_OUTPUT"
@@ -136,6 +154,7 @@ jobs:
             echo "update_mac_manifest=latest-mac.yml" >> "$GITHUB_OUTPUT"
             echo "update_linux_manifest=latest-linux.yml" >> "$GITHUB_OUTPUT"
           fi
+          echo "ref=$source_ref" >> "$GITHUB_OUTPUT"
 
   release-build:
     needs: [preflight]
@@ -167,6 +186,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.preflight.outputs.ref }}
+
+      # Keep smoke fixes available when recovering an immutable source tag.
+      - name: Checkout release smoke tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          sparse-checkout: scripts/smoke-backend-bundle.mjs
+          sparse-checkout-cone-mode: false
 
       - name: Print selected version
         run: echo "Using VERSION=$VERSION channel=$RELEASE_CHANNEL tag=$RELEASE_TAG"
@@ -315,7 +343,7 @@ jobs:
         run: |
           set -euo pipefail
           npm run build:sdk-contract-bundle --workspace=packages/protocol -- \
-            --commit "${{ github.sha }}" --release "${RELEASE_TAG}"
+            --commit "${{ needs.preflight.outputs.ref }}" --release "${RELEASE_TAG}"
           ls -lh packages/protocol/dist/nodetool-sdk-v1-contract-*.tar
 
       - name: Build Electron (Windows, unpacked)
@@ -352,7 +380,7 @@ jobs:
       - name: Smoke-boot packaged backend (Windows)
         if: matrix.os == 'windows-2022'
         shell: bash -l {0}
-        run: node scripts/smoke-backend-bundle.mjs electron/dist/win-unpacked/resources/backend
+        run: node .release-tools/scripts/smoke-backend-bundle.mjs electron/dist/win-unpacked/resources/backend
 
       # Ring 2 (docs/RELIABILITY_ARCHITECTURE.md §11; docs/RELIABILITY_TASKS.md
       # F2): the health-check smoke above only proves server.mjs boots — this
@@ -647,7 +675,7 @@ jobs:
             "electron/dist/mac/Nodetool.app/Contents/Resources/backend" \
             "electron/dist/linux-unpacked/resources/backend"; do
             if [ -f "$candidate/server.mjs" ]; then
-              node scripts/smoke-backend-bundle.mjs "$candidate"
+              node .release-tools/scripts/smoke-backend-bundle.mjs "$candidate"
               exit $?
             fi
           done

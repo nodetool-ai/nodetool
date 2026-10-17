@@ -126,7 +126,7 @@ describe("AppDataPanel", () => {
     const user = userEvent.setup();
     const { onChange } = renderPanel(withVariable());
     await user.click(
-      screen.getByRole("button", { name: "Remove variable tone" })
+      screen.getByRole("button", { name: "Delete variable tone" })
     );
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ variables: [] })

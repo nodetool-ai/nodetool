@@ -31,10 +31,16 @@
   transition: all var(--motion-normal) ease;
 }
 
-[cmdk-input]:hover,
-[cmdk-input]:focus {
+[cmdk-input]:hover {
   background: var(--palette-grey-700);
-  box-shadow: 0 0 0 2px var(--palette-primary-main);
+}
+
+/* The shared keyboard focus ring (focusRing): 2px primary outline. Hover only
+   tints the field, so the ring always means focus. */
+[cmdk-input]:focus-visible {
+  background: var(--palette-grey-700);
+  outline: 2px solid var(--palette-primary-main);
+  outline-offset: 2px;
 }
 
 [cmdk-input]::placeholder {

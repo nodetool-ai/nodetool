@@ -216,7 +216,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   );
 
   const search = (
-    <SearchErrorBoundary fallbackTitle="Search Input Error">
+    <SearchErrorBoundary fallbackTitle="Search input error">
       <AssetSearchInput
         onLocalSearchChange={onLocalSearchChange}
         focusOnTyping={false}

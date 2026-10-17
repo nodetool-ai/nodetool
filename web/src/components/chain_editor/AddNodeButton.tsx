@@ -30,7 +30,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
           textTransform: "none",
         }}
       >
-        Add First Node
+        Add first node
       </EditorButton>
     );
   }

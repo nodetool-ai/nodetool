@@ -276,7 +276,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
                 <Text className="palette-name">{palette.name}</Text>
                 <DeleteButton
                   onClick={handlePaletteRemove(palette.id)}
-                  tooltip={`Remove palette ${palette.name}`}
+                  tooltip={`Delete palette ${palette.name}`}
                   iconVariant="clear"
                   nodrag={false}
                 />

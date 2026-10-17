@@ -114,21 +114,21 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
   },
   favorites: {
     id: "favorites",
-    label: "Favorite Nodes",
+    label: "Favorite nodes",
     description: "Find nodes that you saved as favorites.",
     docsTopic: "nodes",
     icon: <StarIcon />
   },
   history: {
     id: "history",
-    label: "Recent Nodes",
+    label: "Recent nodes",
     description: "Reuse nodes that you added recently.",
     docsTopic: "nodes",
     icon: <HistoryIcon />
   },
   settings: {
     id: "settings",
-    label: "Workflow Settings",
+    label: "Workflow settings",
     description: "Edit settings for the current workflow.",
     docsTopic: "workflows",
     icon: <SettingsIcon />
@@ -200,7 +200,7 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
   },
   jsscripts: {
     id: "jsscripts",
-    label: "JS Scripts",
+    label: "JS scripts",
     description: "Create and manage reusable JavaScript code.",
     docsTopic: "scripts",
     icon: <DataObjectOutlinedIcon />

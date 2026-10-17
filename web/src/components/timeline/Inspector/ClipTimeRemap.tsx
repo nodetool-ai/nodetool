@@ -259,8 +259,8 @@ const TimeRemapEditor: React.FC<ClipTimeRemapProps> = memo(
                         <DeleteButton
                           onClick={() => removeKeyframe(index)}
                           disabled={locked}
-                          tooltip={`Remove ${name.toLowerCase()}`}
-                          ariaLabel={`Remove ${name.toLowerCase()}`}
+                          tooltip={`Delete ${name.toLowerCase()}`}
+                          ariaLabel={`Delete ${name.toLowerCase()}`}
                           iconVariant="clear"
                           sx={INSPECTOR_ROW_BUTTON_SX}
                         />

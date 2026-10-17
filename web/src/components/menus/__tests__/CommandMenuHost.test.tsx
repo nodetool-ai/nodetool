@@ -82,7 +82,7 @@ it("opens on Ctrl+K outside the node editor and lists app-wide commands", async 
   pressCommandK();
   expect(await screen.findByRole("dialog")).toBeInTheDocument();
   expect(screen.getByRole("option", { name: /Notes/ })).toBeInTheDocument();
-  expect(screen.getByRole("option", { name: "Model Manager" })).toBeInTheDocument();
+  expect(screen.getByRole("option", { name: "Model manager" })).toBeInTheDocument();
   expect(screen.getByRole("option", { name: /Beta/ })).toBeInTheDocument();
   expect(screen.getByRole("option", { name: "New workflow" })).toBeInTheDocument();
   expect(await screen.findByRole("option", { name: "Upscaler" })).toBeInTheDocument();
@@ -124,7 +124,7 @@ it("leaves another route for the workspace when switching tabs", async () => {
 it("opens an app page as a workspace tab", async () => {
   renderHost();
   pressCommandK();
-  await userEvent.click(await screen.findByRole("option", { name: "Model Manager" }));
+  await userEvent.click(await screen.findByRole("option", { name: "Model manager" }));
   expect(useWorkspaceTabsStore.getState().activeTabId).toBe("page:models");
 });
 
@@ -177,7 +177,7 @@ it("lists the active view's commands, merges a heading, and drops them when the 
   const assemble = jest.fn();
   const undo = jest.fn();
   const surface = [{ id: "undo", label: "Undo", run: undo, shortcut: "Ctrl+Z" }];
-  const pane = [{ id: "assemble", label: "Assemble Timeline", run: assemble }];
+  const pane = [{ id: "assemble", label: "Assemble timeline", run: assemble }];
   const view = (active: boolean) => (
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <CommandMenuHost />
@@ -189,10 +189,10 @@ it("lists the active view's commands, merges a heading, and drops them when the 
   pressCommandK();
   const group = await screen.findByRole("group", { name: "Storyboard" });
   expect(group).toHaveTextContent("UndoCtrl+Z");
-  expect(group).toHaveTextContent("Assemble Timeline");
+  expect(group).toHaveTextContent("Assemble timeline");
   expect(screen.getAllByRole("group", { name: "Storyboard" })).toHaveLength(1);
 
-  await userEvent.click(screen.getByRole("option", { name: "Assemble Timeline" }));
+  await userEvent.click(screen.getByRole("option", { name: "Assemble timeline" }));
   expect(assemble).toHaveBeenCalledTimes(1);
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 

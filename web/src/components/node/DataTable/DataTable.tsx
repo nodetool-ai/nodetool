@@ -21,6 +21,7 @@ import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { DataframeRef, ColumnDef } from "../../../stores/ApiTypes";
 
+import { SELECT_COLUMN } from "./selectColumn";
 import TableActions from "./TableActions";
 import type { TableData } from "./TableActions";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
@@ -186,27 +187,7 @@ const DataTable: React.FC<DataTableProps> = ({
     const cols = dataframeRef.current.columns;
     if (!cols) {return [];}
     return [
-      ...(showSelect
-        ? [
-            {
-              title: "",
-              field: "select",
-              formatter: "rowSelection" as Formatter,
-              titleFormatter: "rowSelection" as Formatter,
-              hozAlign: "left" as ColumnDefinitionAlign,
-              headerSort: false,
-              width: 25,
-              minWidth: 25,
-              resizable: false,
-              frozen: true,
-              cellClick: function (_e: UIEvent, cell: CellComponent) {
-                cell.getRow().toggleSelect();
-              },
-              editable: false,
-              cssClass: "row-select"
-            }
-          ]
-        : []),
+      ...(showSelect ? [SELECT_COLUMN] : []),
       ...(showRowNumbers
         ? [
             {

@@ -6,6 +6,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 
+import ErrorBanner from "../support/ErrorBanner";
 import {
   Box,
   Caption,
@@ -197,7 +198,17 @@ const ChromeExtensionStep: React.FC = () => {
               </FlexRow>
             ) : (
               <FlexColumn gap={SPACING.sm} align="flex-start">
-                {host.error && <Caption color="error">{host.error}</Caption>}
+                {host.error && (
+                  <ErrorBanner
+                    report={{
+                      source: "operation-failure",
+                      summary: "Browser bridge registration failed",
+                      errorText: host.error
+                    }}
+                  >
+                    {host.error}
+                  </ErrorBanner>
+                )}
                 <EditorButton density="compact" variant="outlined" size="small" onClick={() => install()}>
                   {host.error ? "Try again" : "Register"}
                 </EditorButton>

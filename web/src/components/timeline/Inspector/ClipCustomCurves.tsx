@@ -173,8 +173,8 @@ const KeyframeRow: React.FC<KeyframeRowProps> = memo(
           <DeleteButton
             onClick={handleRemove}
             disabled={!canRemove}
-            tooltip={`Remove ${name}`}
-            ariaLabel={`Remove ${name}`}
+            tooltip={`Delete ${name}`}
+            ariaLabel={`Delete ${name}`}
             iconVariant="clear"
             sx={INSPECTOR_ROW_BUTTON_SX}
           />
@@ -239,8 +239,8 @@ const CurveEditor: React.FC<CurveEditorProps> = memo(
           <Text size="small">Curve {curveIndex + 1}</Text>
           <DeleteButton
             onClick={handleRemove}
-            tooltip={`Remove ${curveLabel}`}
-            ariaLabel={`Remove ${curveLabel}`}
+            tooltip={`Delete ${curveLabel}`}
+            ariaLabel={`Delete ${curveLabel}`}
             iconVariant="clear"
             sx={INSPECTOR_ROW_BUTTON_SX}
           />

@@ -321,7 +321,7 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
       if (isAudioType(contentType)) {
         return "Copy audio info";
       }
-      return "Copy to clipboard";
+      return "Copy content";
     };
 
     const tooltipText =

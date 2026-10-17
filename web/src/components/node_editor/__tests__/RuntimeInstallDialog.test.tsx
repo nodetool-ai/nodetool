@@ -21,7 +21,7 @@ jest.mock("../../../utils/errorHandling", () => ({
 }));
 
 jest.mock("../../node/NodeDependencyWarning.helpers", () => ({
-  RUNTIME_LABELS: { ffmpeg: "FFmpeg & Codecs", python: "Python" },
+  RUNTIME_LABELS: { ffmpeg: "FFmpeg & codecs", python: "Python" },
   ensureRuntimeStatuses: jest.fn().mockResolvedValue(undefined),
   getCachedRuntimeStatuses: jest.fn(() => ({})),
 }));
@@ -59,7 +59,7 @@ function renderDialog(overrides?: Partial<React.ComponentProps<typeof RuntimeIns
 describe("RuntimeInstallDialog", () => {
   it("lists every missing runtime by its friendly label", () => {
     renderDialog();
-    expect(screen.getByText("FFmpeg & Codecs")).toBeInTheDocument();
+    expect(screen.getByText("FFmpeg & codecs")).toBeInTheDocument();
     expect(screen.getByText("Python")).toBeInTheDocument();
     expect(screen.getByText("Install all")).toBeInTheDocument();
   });
@@ -99,7 +99,7 @@ describe("RuntimeInstallDialog", () => {
     const onClose = jest.fn();
     renderDialog({ onClose });
 
-    await user.click(screen.getByText("Open Package Manager instead"));
+    await user.click(screen.getByText("Open package manager instead"));
 
     expect(onClose).toHaveBeenCalled();
     expect(openPackageManager).toHaveBeenCalled();

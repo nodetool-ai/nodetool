@@ -338,7 +338,7 @@ export const CurveEditor = forwardRef<HTMLDivElement, CurveEditorProps>(function
           }}
         />
         <EditorButton density="compact" disabled={disabled || value.length >= maxKeys} onClick={() => addKeyAfter(selectedIndex)}>Add key</EditorButton>
-        <EditorButton density="compact" disabled={disabled || value.length <= minKeys} onClick={() => removeKeyAt(selectedIndex)}>Remove key</EditorButton>
+        <EditorButton density="compact" disabled={disabled || value.length <= minKeys} onClick={() => removeKeyAt(selectedIndex)}>Delete key</EditorButton>
       </FlexRow>
       <Caption id={hintId}>Arrow keys move a key, Shift moves further. Insert adds a key, Delete removes it. Double-click the plot to add a key there.</Caption>
     </FlexColumn>

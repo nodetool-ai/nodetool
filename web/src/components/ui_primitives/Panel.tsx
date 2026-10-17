@@ -2,13 +2,18 @@
  * Panel Component
  * 
  * A panel component for grouping related content with optional header and footer.
- * Useful for creating sections within a page or dialog.
+ * Useful for creating sections within a page or dialog. The title row is a
+ * `PanelHeader`, so a Panel's title matches every other panel title strip; a
+ * collapsible Panel puts its expand/collapse button in the header's actions.
  */
 
-import React, { useCallback, useRef } from "react";
-import { Box, BoxProps, Typography } from "@mui/material";
+import React, { useRef } from "react";
+import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { snapSpacing } from "./spacing";
+import { Caption } from "./Caption";
+import { ExpandCollapseButton } from "./ExpandCollapseButton";
+import { PanelHeader } from "./PanelHeader";
+import { SPACING, snapSpacing } from "./spacing";
 import { isNumber } from "../../utils/typePredicates";
 
 export interface PanelProps extends BoxProps {
@@ -56,7 +61,7 @@ const PADDING_VARIANTS = {
  * <Panel 
  *   title="Users" 
  *   subtitle="Manage user accounts"
- *   headerAction={<Button>Add User</Button>}
+ *   headerAction={<Button>Add user</Button>}
  * >
  *   <UserList />
  * </Panel>
@@ -122,13 +127,6 @@ export const Panel: React.FC<PanelProps> = ({
 
   const hasHeader = title || subtitle || headerAction;
 
-  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
-    if (collapsible && (event.key === "Enter" || event.key === " ")) {
-      event.preventDefault();
-      onToggleCollapse?.();
-    }
-  }, [collapsible, onToggleCollapse]);
-
   return (
     <Box
       sx={{
@@ -142,69 +140,38 @@ export const Panel: React.FC<PanelProps> = ({
     >
       {hasHeader && (
         <Box
-          role={collapsible ? "button" : undefined}
-          tabIndex={collapsible ? 0 : undefined}
-          aria-expanded={collapsible ? !collapsed : undefined}
-          aria-controls={collapsible ? contentId : undefined}
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: theme.spacing(paddingValue, paddingValue, snapSpacing(paddingValue / 2), paddingValue),
-            borderBottom: collapsed ? undefined : `1px solid ${theme.vars.palette.divider}`,
-            cursor: collapsible ? "pointer" : undefined,
-            ...(collapsible && {
-              "&:hover": {
-                backgroundColor: theme.vars.palette.action.hover
-              },
-              "&:focus-visible": {
-                outline: `2px solid ${theme.vars.palette.primary.main}`,
-                outlineOffset: -2
-              }
-            })
+            borderBottom: collapsed ? undefined : `1px solid ${theme.vars.palette.divider}`
           }}
-          onClick={collapsible ? onToggleCollapse : undefined}
-          onKeyDown={collapsible ? handleKeyDown : undefined}
         >
-          <Box sx={{ flex: 1 }}>
-            {title && (
-              <Typography
-                variant="h6"
-                sx={{
-                  fontSize: theme.fontSizeBig,
-                  fontWeight: 600,
-                  fontFamily: theme.fontFamily1,
-                  mb: subtitle ? 0.5 : 0
-                }}
-              >
-                {title}
-              </Typography>
-            )}
-            {subtitle && (
-              <Typography
-                variant="body2"
-                sx={{
-                  fontSize: theme.fontSizeSmall,
-                  color: theme.vars.palette.text.secondary
-                }}
-              >
-                {subtitle}
-              </Typography>
-            )}
-          </Box>
-          {headerAction && (
-            <Box sx={{ ml: 2 }}>
-              {headerAction}
-            </Box>
-          )}
-          {collapsible && (
-            <Box
-              sx={{ ml: 1 }}
-              aria-hidden="true"
-              role="presentation"
+          <PanelHeader
+            title={title}
+            divider={false}
+            component="h3"
+            actions={
+              headerAction || collapsible ? (
+                <>
+                  {headerAction}
+                  {collapsible && (
+                    <ExpandCollapseButton
+                      expanded={!collapsed}
+                      onClick={onToggleCollapse}
+                      aria-expanded={!collapsed}
+                      aria-controls={contentId}
+                    />
+                  )}
+                </>
+              ) : undefined
+            }
+          />
+          {subtitle && (
+            <Caption
+              component="p"
+              color="secondary"
+              sx={{ margin: 0, px: SPACING.lg, pb: SPACING.md }}
             >
-              {collapsed ? "▼" : "▲"}
-            </Box>
+              {subtitle}
+            </Caption>
           )}
         </Box>
       )}

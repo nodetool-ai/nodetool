@@ -6,6 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import { EditorButton } from "../../editor_ui";
+import ErrorBanner from "../../support/ErrorBanner";
 import {
   FlexRow,
   Text,
@@ -160,9 +161,15 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
           disabled={saving}
         />
         {error && (
-          <Text size="smaller" color="error">
+          <ErrorBanner
+            report={{
+              source: "operation-failure",
+              summary: "Saving a requested secret failed",
+              errorText: error
+            }}
+          >
             {error}
-          </Text>
+          </ErrorBanner>
         )}
         <FlexRow gap={1} align="center" justify="flex-end">
           <EditorButton

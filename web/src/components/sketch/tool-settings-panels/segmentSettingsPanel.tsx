@@ -189,7 +189,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       {/* What counts as an object. */}
       <Box className="setting-group">
         <Box className="setting-row">
-          <Text className="setting-label">Max Objects</Text>
+          <Text className="setting-label">Max objects</Text>
           <Slider
             size="small"
             min={1}
@@ -216,7 +216,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         </Box>
 
         <Box className="setting-row">
-          <Text className="setting-label">Min Size</Text>
+          <Text className="setting-label">Min size</Text>
           <Slider
             size="small"
             min={0}
@@ -245,7 +245,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       {/* What the run leaves behind. */}
       <Box className="setting-group">
         <Box className="setting-row">
-          <Text className="setting-label">Source Layer</Text>
+          <Text className="setting-label">Source layer</Text>
           <SketchModeToggle
             value={settings.sourceLayerAction}
             onChange={(_, v) => {

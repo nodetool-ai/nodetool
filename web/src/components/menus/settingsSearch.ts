@@ -6,14 +6,14 @@ export const SETTINGS_TAB_ITEMS: ReadonlyArray<{
   label: string;
 }> = [
   { value: "general", label: "General" },
-  { value: "providers", label: "Models & Providers" },
+  { value: "providers", label: "Models & providers" },
   { value: "integrations", label: "Integrations" },
   { value: "about", label: "About" }
 ];
 
 const TAB_LABEL: Record<SettingsSection, string> = {
   general: "General",
-  providers: "Models & Providers",
+  providers: "Models & providers",
   integrations: "Integrations",
   about: "About"
 };

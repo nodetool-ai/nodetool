@@ -294,7 +294,7 @@ export const AppLoader: React.FC<AppLoaderProps> = memo(({ nodeId, data }) => {
         renderInput={(params) => (
           <TextField
             {...params}
-            label="Select App"
+            label="Select app"
             variant="outlined"
             size="small"
             slotProps={{

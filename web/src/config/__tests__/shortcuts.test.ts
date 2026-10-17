@@ -19,7 +19,7 @@ describe("NODE_EDITOR_SHORTCUTS", () => {
     });
 
     it("should have title", () => {
-      expect(resetZoomShortcut?.title).toBe("Reset Zoom");
+      expect(resetZoomShortcut?.title).toBe("Reset zoom");
     });
   });
 

@@ -15,7 +15,8 @@ import {
   TYPOGRAPHY,
   focusRing,
   getSpacingPx,
-  selectedRowStyles
+  selectedRowStyles,
+  Tooltip
 } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -459,18 +460,19 @@ const SearchResultItem = memo(function SearchResultItem({
             onToggle={handleFavoriteToggle}
             buttonSize="small"
           />
-          <div
-            className={`expand-indicator ${isExpanded ? "expanded" : ""}`}
-            role="button"
-            tabIndex={0}
-            onClick={handleToggleExpand}
-            onKeyDown={handleExpandKeyDown}
-            aria-expanded={isExpanded}
-            aria-label={isExpanded ? "Collapse details" : "Show details"}
-            title={isExpanded ? "Collapse details" : "Show details"}
-          >
-            <ExpandMoreIcon />
-          </div>
+          <Tooltip title={isExpanded ? "Collapse details" : "Show details"}>
+            <div
+              className={`expand-indicator ${isExpanded ? "expanded" : ""}`}
+              role="button"
+              tabIndex={0}
+              onClick={handleToggleExpand}
+              onKeyDown={handleExpandKeyDown}
+              aria-expanded={isExpanded}
+              aria-label={isExpanded ? "Collapse details" : "Show details"}
+            >
+              <ExpandMoreIcon />
+            </div>
+          </Tooltip>
         </div>
       </div>
 

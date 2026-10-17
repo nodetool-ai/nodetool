@@ -81,7 +81,7 @@ function DefaultModelsMenu() {
   return (
     <div>
       <Text size="big" id="default-models" className="settings-heading">
-        Default Models
+        Default models
       </Text>
       <Text className="description" sx={{ mb: 2 }}>
         Set default models for each type. These will auto-fill when you create

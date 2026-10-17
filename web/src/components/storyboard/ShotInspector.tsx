@@ -41,7 +41,8 @@ import {
   TextInput,
   CONTROL,
   SPACING,
-  TYPOGRAPHY
+  TYPOGRAPHY,
+  Tooltip
 } from "../ui_primitives";
 import { colorForType } from "../../config/data_types";
 
@@ -188,24 +189,26 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
         <Divider orientation="vertical" flexItem />
         <Caption color="secondary">Appears in</Caption>
         {timelineLink && (
-          <Chip
-            compact
-            variant="outlined"
-            label={timelineLink.label}
-            accent={TIMELINE_COLOR}
-            onClick={timelineLink.open}
-            title="Open the cut with this shot's clip selected"
-          />
+          <Tooltip title="Open the cut with this shot's clip selected" describeChild>
+            <Chip
+              compact
+              variant="outlined"
+              label={timelineLink.label}
+              accent={TIMELINE_COLOR}
+              onClick={timelineLink.open}
+            />
+          </Tooltip>
         )}
         {scriptLink && (
-          <Chip
-            compact
-            variant="outlined"
-            label={scriptLink.label}
-            accent={SCRIPT_COLOR}
-            onClick={handleOpenScript}
-            title="Open the script this shot's lines come from"
-          />
+          <Tooltip title="Open the script this shot's lines come from" describeChild>
+            <Chip
+              compact
+              variant="outlined"
+              label={scriptLink.label}
+              accent={SCRIPT_COLOR}
+              onClick={handleOpenScript}
+            />
+          </Tooltip>
         )}
         {!timelineLink && !scriptLink && (
           <Caption color="muted">nothing yet</Caption>
@@ -246,7 +249,7 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
               onClick={() => setConfirmDelete(true)}
               disabled={isGenerating}
               sx={quietActionSx}
-              tooltip="Remove this shot from the board"
+              tooltip="Delete this shot"
             >
               Delete
             </EditorButton>

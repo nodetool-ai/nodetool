@@ -400,7 +400,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
       >
         <FlexColumn className="modal-content" onClick={(e) => e.stopPropagation()}>
           <FlexRow className="modal-header" align="center" justify="space-between" fullWidth>
-            <Text className="modal-title">Color Picker</Text>
+            <Text className="modal-title">Color picker</Text>
             <FlexRow className="header-actions" align="center">
               <EyedropperButton onColorPicked={handleEyedropperPick} />
               <CloseButton

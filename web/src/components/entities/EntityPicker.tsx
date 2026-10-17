@@ -31,7 +31,8 @@ import {
   SPACING,
   Text,
   ToggleGroup,
-  ToggleOption
+  ToggleOption,
+  Tooltip
 } from "../ui_primitives";
 
 type KindFilter = "all" | EntityKind;
@@ -76,65 +77,66 @@ const EntityPickCard: React.FC<{
   const Icon = ENTITY_KIND_ICON[entity.kind];
   const name = entity.name || "Untitled";
   return (
-    <Card
-      variant="outlined"
-      padding="none"
-      clickable
-      aria-label={name}
-      aria-pressed={selected}
-      title={entity.descriptor || name}
-      onClick={() => onSelect(entity)}
-      sx={{
-        overflow: "hidden",
-        borderColor: selected ? "primary.main" : undefined,
-        boxShadow: selected
-          ? (theme) => `0 0 0 1px ${theme.vars.palette.primary.main}`
-          : undefined
-      }}
-    >
-      <Box
+    <Tooltip title={entity.descriptor || name} describeChild>
+      <Card
+        variant="outlined"
+        padding="none"
+        clickable
+        aria-label={name}
+        aria-pressed={selected}
+        onClick={() => onSelect(entity)}
         sx={{
-          width: "100%",
-          aspectRatio: "1 / 1",
           overflow: "hidden",
-          bgcolor: "background.default"
+          borderColor: selected ? "primary.main" : undefined,
+          boxShadow: selected
+            ? (theme) => `0 0 0 1px ${theme.vars.palette.primary.main}`
+            : undefined
         }}
       >
-        <ImageRefPreview
-          value={entity.reference_images?.[0]}
-          placeholder={
-            <FlexRow
-              align="center"
-              justify="center"
-              sx={{ width: "100%", height: "100%", color: "text.disabled" }}
-            >
-              <Icon fontSize="large" />
-            </FlexRow>
-          }
-        />
-      </Box>
-      <FlexColumn gap={SPACING.micro} sx={{ p: SPACING.sm, minWidth: 0 }}>
-        <Text
-          size="small"
+        <Box
           sx={{
-            fontWeight: 500,
+            width: "100%",
+            aspectRatio: "1 / 1",
             overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap"
+            bgcolor: "background.default"
           }}
         >
-          {name}
-        </Text>
-        <FlexRow>
-          <Chip
-            label={entity.kind}
-            compact
-            variant="outlined"
-            color={ENTITY_KIND_COLOR[entity.kind]}
+          <ImageRefPreview
+            value={entity.reference_images?.[0]}
+            placeholder={
+              <FlexRow
+                align="center"
+                justify="center"
+                sx={{ width: "100%", height: "100%", color: "text.disabled" }}
+              >
+                <Icon fontSize="large" />
+              </FlexRow>
+            }
           />
-        </FlexRow>
-      </FlexColumn>
-    </Card>
+        </Box>
+        <FlexColumn gap={SPACING.micro} sx={{ p: SPACING.sm, minWidth: 0 }}>
+          <Text
+            size="small"
+            sx={{
+              fontWeight: 500,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {name}
+          </Text>
+          <FlexRow>
+            <Chip
+              label={entity.kind}
+              compact
+              variant="outlined"
+              color={ENTITY_KIND_COLOR[entity.kind]}
+            />
+          </FlexRow>
+        </FlexColumn>
+      </Card>
+    </Tooltip>
   );
 });
 EntityPickCard.displayName = "EntityPickCard";

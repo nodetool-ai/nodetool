@@ -1761,7 +1761,7 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
     const availableTypes = isVideo
       ? VIDEO_EFFECT_TYPES
       : AUDIO_EFFECT_TYPES;
-    const chainLabel = isVideo ? "FX Chain" : "DSP Chain";
+    const chainLabel = isVideo ? "FX chain" : "DSP chain";
 
     return (
       <div css={containerStyles(theme)} data-testid="track-effects-panel">

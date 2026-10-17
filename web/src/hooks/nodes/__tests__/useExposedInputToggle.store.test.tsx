@@ -8,6 +8,7 @@ import type { NodeStore } from "../../../stores/NodeStore";
 import type { NodeData } from "../../../stores/NodeData";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { useConfirmStore } from "../../../stores/ConfirmStore";
 import { useExposedInputToggle } from "../useExposedInputToggle";
 
 const prop = (name: string, type: string) => ({
@@ -59,7 +60,7 @@ describe("useExposedInputToggle against a real NodeStore", () => {
 
   beforeEach(() => {
     useMetadataStore.setState({ metadata: { "test.Gen": metadata } });
-    jest.spyOn(window, "confirm").mockReturnValue(true);
+    useConfirmStore.setState({ pending: null });
     store = createNodeStore(undefined, {
       nodes: [
         makeNode("src"),
@@ -82,12 +83,18 @@ describe("useExposedInputToggle against a real NodeStore", () => {
       )
     });
 
-  it("hides a connected input on several nodes as one undo step", () => {
+  it("hides a connected input on several nodes as one undo step", async () => {
     const { result } = renderToggle();
     expect(store.getState().edges).toHaveLength(1);
     act(() => {
       result.current.cycleExposedInputPlacement(["a", "b"], "seed");
     });
+    // The edge stays until the user answers the app confirm dialog.
+    expect(store.getState().edges).toHaveLength(1);
+    expect(useConfirmStore.getState().pending?.request.content).toBe(
+      'Hide input for "seed"? The connected edge will be removed.'
+    );
+    await act(async () => useConfirmStore.getState().settle(true));
 
     expect(store.getState().edges).toHaveLength(0);
     expect(store.getState().findNode("a")?.data.exposedInputsLabeled).toEqual(
@@ -101,6 +108,34 @@ describe("useExposedInputToggle against a real NodeStore", () => {
     const restored = store.getState();
     expect(restored.edges.map((e) => e.id)).toEqual(["src-a-seed"]);
     expect(restored.findNode("b")?.data.exposedInputsLabeled).toEqual(["seed"]);
+  });
+
+  it("cancelling the dialog keeps the edge and the placement", async () => {
+    const confirm = jest.spyOn(window, "confirm");
+    const { result } = renderToggle();
+    act(() => {
+      result.current.cycleExposedInputPlacement(["a", "b"], "seed");
+    });
+    await act(async () => useConfirmStore.getState().settle(false));
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(store.getState().edges.map((e) => e.id)).toEqual(["src-a-seed"]);
+    expect(store.getState().findNode("a")?.data.exposedInputsLabeled).toEqual([
+      "seed"
+    ]);
+    expect(store.temporal.getState().pastStates).toHaveLength(0);
+  });
+
+  it("hides an unconnected input without asking", () => {
+    const { result } = renderToggle();
+    act(() => {
+      result.current.cycleExposedInputPlacement("b", "seed");
+    });
+
+    expect(useConfirmStore.getState().pending).toBeNull();
+    expect(store.getState().findNode("b")?.data.exposedInputsLabeled).toEqual(
+      []
+    );
   });
 
   it("keeps a hidden model property hidden", () => {

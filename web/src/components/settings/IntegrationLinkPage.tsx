@@ -76,10 +76,7 @@ const IntegrationLinkPage = () => {
       <Card variant="outlined" padding="comfortable" sx={{ maxWidth: 480 }}>
         <FlexColumn gap={SPACING.lg}>
           {describe.isLoading && !expired && (
-            <FlexRow align="center" gap={SPACING.md}>
-              <LoadingSpinner />
-              <Caption>Checking this link…</Caption>
-            </FlexRow>
+            <LoadingSpinner text="Checking this link" />
           )}
 
           {expired && (

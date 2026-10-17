@@ -1020,7 +1020,7 @@ const handleJobUpdate = (
       if (isRunnerJob) {
         runnerStore.setState({
           statusMessage:
-            job.message || "Worker is booting (may take a few seconds)..."
+            job.message || "Worker is booting (may take a few seconds)…"
         });
       }
       break;

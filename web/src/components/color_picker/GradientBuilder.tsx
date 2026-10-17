@@ -323,7 +323,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
 
       <div>
         <Caption color="secondary">
-          Color Stops
+          Color stops
         </Caption>
         <div className="stops-container" style={{ background: cssOutput }}>
           {gradient.stops.map((stop, index) => (
@@ -377,7 +377,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
           </Tooltip>
           <DeleteButton
             onClick={handleRemoveStopButtonClick}
-            tooltip="Remove stop"
+            tooltip="Delete stop"
             disabled={gradient.stops.length <= 2}
             nodrag={false}
           />
@@ -390,7 +390,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
           onClick={addStop}
           variant="outlined"
         >
-          Add Stop
+          Add stop
         </EditorButton>
         <EditorButton
           startIcon={copied ? <CheckIcon /> : <ContentCopyIcon />}

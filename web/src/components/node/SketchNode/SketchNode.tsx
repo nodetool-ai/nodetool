@@ -1336,7 +1336,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                           color: theme.vars.palette.common.white
                         }}
                       />
-                      <span className="edit-overlay-label">Edit Sketch</span>
+                      <span className="edit-overlay-label">Edit sketch</span>
                     </div>
                   </>
                 ) : (

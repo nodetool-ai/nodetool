@@ -5,12 +5,11 @@ import isEqual from "../../utils/isEqual";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
-import { Text, Caption, Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION, SPACING, getSpacingPx, PanelHeader } from "../ui_primitives";
+import { Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION, SPACING, getSpacingPx, PanelHeader, EmptyState } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import AddIcon from "@mui/icons-material/AddOutlined";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { RefreshButton, SettingsButton } from "../ui_primitives";
@@ -128,16 +127,6 @@ const workspaceTreeStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[600],
       fontSize: "var(--fontSizeNormal)",
       flexShrink: 0
-    },
-
-    ".empty-workspace": {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: getSpacingPx(SPACING.md),
-      padding: `${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.xl)}`,
-      textAlign: "center"
     },
 
     ".skeleton-tree": {
@@ -487,7 +476,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
         <SettingsButton
           className="settings-button"
           onClick={handleManageWorkspace}
-          tooltip="Manage Workspaces"
+          tooltip="Manage workspaces"
         />
       </div>
 
@@ -520,7 +509,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
             startIcon={<FolderOpenIcon />}
             onClick={handleOpenInFolder}
           >
-            Open in Folder
+            Open in folder
           </EditorButton>
           {Boolean(window.api?.shell?.openPath) && (
             <EditorButton
@@ -529,7 +518,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
               startIcon={<OpenInNewIcon />}
               onClick={handleOpenExternally}
             >
-              Open Externally
+              Open externally
             </EditorButton>
           )}
         </div>
@@ -546,24 +535,14 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
             <Skeleton variant="text" width="40%" height={24} />
           </div>
         ) : !workspaceId ? (
-          <div className="empty-workspace">
-            <FolderOpenIcon
-              sx={{ fontSize: 40, opacity: 0.3, color: "text.secondary" }}
-            />
-            <Text size="small" color="secondary">
-              No workspace selected
-            </Text>
-            <Caption color="secondary">
-              Select a workspace above or create one
-            </Caption>
-            <EditorButton
-              startIcon={<AddIcon />}
-              onClick={handleManageWorkspace}
-              sx={{ mt: 1 }}
-            >
-              Create Workspace
-            </EditorButton>
-          </div>
+          <EmptyState
+            size="small"
+            icon={<FolderOpenIcon />}
+            title="No workspace selected"
+            description="Select a workspace above or create one."
+            actionText="Create workspace"
+            onAction={handleManageWorkspace}
+          />
         ) : files.length > 0 ? (
           <div onDoubleClick={handleTreeDoubleClick}>
             <RichTreeView
@@ -589,17 +568,12 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
             />
           </div>
         ) : (
-          <div className="empty-workspace">
-            <FolderOpenIcon
-              sx={{ fontSize: 36, opacity: 0.3, color: "text.secondary" }}
-            />
-            <Text size="small" color="secondary">
-              Workspace is empty
-            </Text>
-            <Caption color="secondary">
-              Add files to your workspace folder to see them here
-            </Caption>
-          </div>
+          <EmptyState
+            size="small"
+            icon={<FolderOpenIcon />}
+            title="Workspace is empty"
+            description="Add files to your workspace folder to see them here."
+          />
         )}
       </div>
     </Box>

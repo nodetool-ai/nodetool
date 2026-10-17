@@ -10,6 +10,7 @@ import { languageFromAsset, previewKind } from "../../utils/assetLanguage";
 import { csvDelimiterFor, parseCsvToDataframe } from "../../utils/csvDataframe";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import MonacoPane from "./MonacoPane";
+import ErrorBanner from "../support/ErrorBanner";
 import {
   Caption,
   CopyButton,
@@ -18,7 +19,8 @@ import {
   FlexRow,
   LoadingSpinner,
   ScrollArea,
-  Text, Toolbar, getSpacingPx, SPACING
+  Text, Toolbar, getSpacingPx, SPACING,
+  EmptyState
 } from "../ui_primitives";
 
 interface TextPreviewProps {
@@ -83,7 +85,7 @@ const CsvTableView = ({ text, name }: { text: string; name: string }) => {
   if (columns.length === 0) {
     return (
       <FlexColumn className="status">
-        <Caption>Empty table</Caption>
+        <EmptyState size="small" variant="no-data" title="This table is empty" />
       </FlexColumn>
     );
   }
@@ -135,9 +137,15 @@ const TextPreview = ({ asset }: TextPreviewProps) => {
     if (error) {
       return (
         <FlexColumn className="status">
-          <Text size="normal" weight={600} sx={{ color: "error.main" }}>
-            Failed to load text content
-          </Text>
+          <ErrorBanner
+            report={{
+              source: "operation-failure",
+              summary: "Text preview failed to load",
+              errorText: error.message
+            }}
+          >
+            Could not load this text file.
+          </ErrorBanner>
         </FlexColumn>
       );
     }

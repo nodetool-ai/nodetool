@@ -289,7 +289,7 @@ const MCPSettingsMenu = () => {
               <FlexRow justify="flex-start" sx={{ mt: 1 }}>
                 <NavButton
                   icon={<InstallDesktopIcon />}
-                  label="Install All"
+                  label="Install all"
                   color="primary"
                   disabled={busy}
                   onClick={handleInstallAll}
@@ -323,7 +323,7 @@ const MCPSettingsMenu = () => {
               >
                 {TERMINAL_INSTALL}
               </Text>
-              <CopyButton value={TERMINAL_INSTALL} tooltip="Copy the command" />
+              <CopyButton value={TERMINAL_INSTALL} tooltip="Copy command" />
             </FlexRow>
           </FlexColumn>
         </div>
@@ -338,7 +338,7 @@ const MCPSettingsMenu = () => {
             <FlexRow justify="flex-start">
               <NavButton
                 icon={<InstallDesktopIcon />}
-                label="Install Extension"
+                label="Install extension"
                 color="primary"
                 disabled={bundleBusy}
                 onClick={handleInstallBundle}

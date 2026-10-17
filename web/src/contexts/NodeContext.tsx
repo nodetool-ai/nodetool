@@ -49,7 +49,7 @@ interface NodeProviderProps {
 export const NodeProvider = ({ createStore, children }: NodeProviderProps) => {
   const store = useMemo(() => createStore(), [createStore]);
   if (!store) {
-    return <div>Loading workflow...</div>;
+    return <div>Loading workflow…</div>;
   }
   return <NodeContext.Provider value={store}>{children}</NodeContext.Provider>;
 };

@@ -14,7 +14,7 @@ const runtimeStatusesQuery = asMock(trpcClient.packs.runtimeStatuses
 
 describe("RUNTIME_LABELS", () => {
   it("maps every runtime to a human-readable label", () => {
-    expect(RUNTIME_LABELS["ffmpeg"]).toBe("FFmpeg & Codecs");
+    expect(RUNTIME_LABELS["ffmpeg"]).toBe("FFmpeg & codecs");
     expect(RUNTIME_LABELS["python"]).toBe("Python");
     expect(RUNTIME_LABELS["yt-dlp"]).toBe("yt-dlp");
     expect(RUNTIME_LABELS["pdftotext"]).toBe("PDF Tools (Poppler)");

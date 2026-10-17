@@ -139,7 +139,7 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
           <FlexColumn align="center" justify="center" sx={{ pt: 8 }}>
             <EmptyState
               icon={<AccountTreeOutlinedIcon sx={{ fontSize: 48 }} />}
-              title="Build Your Workflow"
+              title="Build your workflow"
               description={
                 "Add nodes to create a processing chain.\nEach node's output flows into the next."
               }

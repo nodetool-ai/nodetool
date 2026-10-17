@@ -148,9 +148,10 @@ describe("ClipTracking on a video clip", () => {
     renderTracking("clip_video");
 
     expect(screen.getByTestId("track-object")).toBeDisabled();
-    expect(
-      screen.getByText("The tracking provider rejected the source window.")
-    ).toHaveAttribute("role", "alert");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The tracking provider rejected the source window."
+    );
+    expect(screen.getByRole("button", { name: /report/i })).toBeInTheDocument();
   });
 });
 

@@ -1,4 +1,4 @@
-import type { Batch, TextureEntry, Blend } from "./types.js";
+import type { Batch, TextureEntry, Blend, Sampling } from "./types.js";
 export const INSTANCE_FLOATS = 14;
 export const SHADER = `
 struct Camera { center: vec2f, viewport: vec2f, zoom: f32, padding0: f32, padding1: f32, padding2: f32 };
@@ -61,12 +61,13 @@ struct VertexOutput {
   return vec4f(straight * sampled.a, sampled.a);
 }`;
 
-export function appendBatch(batches: Batch[], texture: TextureEntry, blend: Blend, index: number): void {
+export function appendBatch(batches: Batch[], texture: TextureEntry, blend: Blend, index: number, sampling: Sampling): void {
+    const bindGroup = texture.bindGroups[sampling];
     const last = batches[batches.length - 1];
-    if (last?.texture === texture && last.blend === blend) {
+    if (last?.texture === texture && last.bindGroup === bindGroup && last.blend === blend) {
       last.count++;
     } else {
-      batches.push({ texture, blend, first: index, count: 1 });
+      batches.push({ texture, bindGroup, blend, first: index, count: 1 });
     }
   }
 

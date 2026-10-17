@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState } from "react";
-import { Popover, getSpacingPx, SPACING } from "../ui_primitives";
+import { Popover, getSpacingPx, SPACING, EmptyState } from "../ui_primitives";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
@@ -115,16 +115,11 @@ const NotificationButton: React.FC = React.memo(() => {
           }}
         >
           {notifications.length === 0 ? (
-            <Text
+            <EmptyState
               className="notification-empty-message"
-              color="secondary"
-              role="status"
-              aria-live="polite"
-              sx={{ fontSize: "var(--fontSizeNormal)" }}
-              weight={400}
-            >
-              No notifications
-            </Text>
+              size="small"
+              title="No notifications"
+            />
           ) : (
             <Box role="list" aria-label={`Notification list, ${notifications.length} item${notifications.length > 1 ? "s" : ""}`}>
               {notifications.map((notification) => (
@@ -181,7 +176,7 @@ const NotificationButton: React.FC = React.memo(() => {
                   <CopyButton
                     value={notification.content}
                     className="copy-button"
-                    tooltip="Copy to clipboard"
+                    tooltip="Copy notification"
                   />
                   {notification.type === "error" ? (
                     <ReportBugButton

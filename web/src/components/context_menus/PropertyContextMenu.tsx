@@ -342,7 +342,7 @@ const PropertyContextMenuComponent: React.FC = () => {
         onClick={handleCopyValue}
         label="Copy value"
         IconComponent={<ContentCopyIcon />}
-        tooltip="Copy property value to clipboard"
+        tooltip="Copy property value"
       />
       <ContextMenuItem
         onClick={handleReset}
@@ -403,10 +403,10 @@ const PropertyContextMenuComponent: React.FC = () => {
       {isDynamicProperty && (
         <ContextMenuItem
           onClick={handleRemoveDynamicProperty}
-          label="Remove dynamic property"
+          label="Delete dynamic property"
           destructive
           IconComponent={<DeleteIcon />}
-          tooltip="Remove this property from being dynamic"
+          tooltip="Delete this property from the node"
         />
       )}
     </ContextMenu>

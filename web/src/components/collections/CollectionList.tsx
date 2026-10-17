@@ -136,9 +136,9 @@ const CollectionList = () => {
             </Text>
             <CreateFab
               onClick={handleShowForm}
-              label="Create Collection"
+              label="Create collection"
               icon={<AddIcon />}
-              aria-label="Create Collection"
+              aria-label="Create collection"
             />
           </FlexRow>
 

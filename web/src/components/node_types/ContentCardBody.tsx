@@ -526,7 +526,7 @@ const VideoPreview: React.FC<{ value: unknown; nodeId: string }> = ({
   // nodrag/nopan keep ReactFlow from hijacking click-to-play and seek drag.
   return (
     <div className="video-preview nodrag nopan">
-      <VideoPlayer src={src} />
+      <VideoPlayer src={src} label="Video output" />
       {!suppressed && (
         <div className="video-preview-actions">
           <ToolbarIconButton
@@ -538,7 +538,7 @@ const VideoPreview: React.FC<{ value: unknown; nodeId: string }> = ({
             <DownloadIcon />
           </ToolbarIconButton>
           <ToolbarIconButton
-            title="Save to Assets"
+            title="Save to assets"
             size="small"
             onClick={handleAddToAssets}
             aria-label="Save video to assets"
@@ -639,7 +639,7 @@ const PreviewArea: React.FC<{
       text: { message: "Run to generate text", icon: <TextFieldsIcon /> },
       audio: { message: "Run to generate audio", icon: <AudiotrackIcon /> },
       model_3d: { message: "Run to generate 3D", icon: <ViewInArIcon /> },
-      generic: { message: "Run Model", icon: undefined }
+      generic: { message: "Run model", icon: undefined }
     } satisfies Record<
       Exclude<ContentCardVariant, "image_mask">,
       { message: string; icon: React.ReactNode }

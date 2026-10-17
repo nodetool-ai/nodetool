@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type * as monaco from "monaco-editor";
 
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
-import { Caption, FlexColumn, LoadingSpinner } from "../ui_primitives";
+import ErrorBanner from "../support/ErrorBanner";
+import { FlexColumn, LoadingSpinner } from "../ui_primitives";
 
 interface MonacoPaneProps {
   value: string;
@@ -94,7 +95,15 @@ const MonacoPane = ({
         fullHeight
         sx={{ alignItems: "center", justifyContent: "center" }}
       >
-        <Caption sx={{ color: "error.main" }}>{monacoLoadError}</Caption>
+        <ErrorBanner
+          report={{
+            source: "panel-crash",
+            summary: "Code editor could not start",
+            errorText: monacoLoadError
+          }}
+        >
+          {monacoLoadError}
+        </ErrorBanner>
       </FlexColumn>
     );
   }
@@ -106,8 +115,7 @@ const MonacoPane = ({
         fullHeight
         sx={{ alignItems: "center", justifyContent: "center" }}
       >
-        <LoadingSpinner />
-        {isMonacoLoading && <Caption>Loading editor…</Caption>}
+        <LoadingSpinner text={isMonacoLoading ? "Loading editor" : undefined} />
       </FlexColumn>
     );
   }

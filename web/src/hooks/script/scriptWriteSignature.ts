@@ -22,6 +22,7 @@ import type { ScriptSetup } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
 import {
   scriptSourceSignature,
+  scriptSourceTextSignature,
   type ImportedScript
 } from "../../lib/script/importedScript";
 
@@ -31,7 +32,10 @@ const WRITTEN_FROM_FIELD = "written_from";
 /** The inputs the writer reads, as one comparable string. */
 export function writerSignature(
   setup: ScriptSetup | null | undefined,
-  source: ImportedScript | null
+  source: ImportedScript | null,
+  sourceSignature: (
+    source: ImportedScript | null
+  ) => string | undefined = scriptSourceSignature
 ): string {
   // An attributed import is applied as it is: the brief, the length and the
   // model never reach it, only the format's section title does. Counting them
@@ -45,17 +49,20 @@ export function writerSignature(
       "",
       "",
       "",
-      scriptSourceSignature(source) ?? ""
+      sourceSignature(source) ?? ""
     ].join("\u0001");
   }
-  return allInputsSignature(setup, source);
+  return allInputsSignature(setup, source, sourceSignature);
 }
 
 /** Every input, as signatures were written before attributed imports
  * dropped the ones they never read. */
 function allInputsSignature(
   setup: ScriptSetup | null | undefined,
-  source: ImportedScript | null
+  source: ImportedScript | null,
+  sourceSignature: (
+    source: ImportedScript | null
+  ) => string | undefined = scriptSourceSignature
 ): string {
   return [
     setup?.brief.trim() ?? "",
@@ -67,23 +74,26 @@ function allInputsSignature(
     // pace left it, while pace was still unset, keeps matching.
     "",
     setup?.writer_model?.id ?? "",
-    scriptSourceSignature(source) ?? ""
+    sourceSignature(source) ?? ""
   ].join("\u0001");
 }
 
 /**
  * True when the lines on the document answer these inputs. A signature
- * written before the attributed rule still matches on unchanged inputs.
+ * written before the attributed rule, or before line structure was counted,
+ * still matches on unchanged inputs.
  */
 export function isWrittenFrom(
   setup: ScriptSetup | null | undefined,
   source: ImportedScript | null
 ): boolean {
   const written = readWriterSignature(setup);
-  return (
-    written === writerSignature(setup, source) ||
-    (source?.attributed === true &&
-      written === allInputsSignature(setup, source))
+  const attributed = source?.attributed === true;
+  return [scriptSourceSignature, scriptSourceTextSignature].some(
+    (sourceSignature) =>
+      written === writerSignature(setup, source, sourceSignature) ||
+      (attributed &&
+        written === allInputsSignature(setup, source, sourceSignature))
   );
 }
 

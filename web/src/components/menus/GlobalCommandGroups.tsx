@@ -122,7 +122,7 @@ export const SwitchTabCommands = memo(function SwitchTabCommands() {
   }
 
   return (
-    <Command.Group heading="Open Tabs">
+    <Command.Group heading="Open tabs">
       {targets.map((tab, index) => (
         <Command.Item
           key={tab.id}
@@ -153,7 +153,7 @@ const NavigateCommands = memo(function NavigateCommands() {
   }, [openTab]);
 
   return (
-    <Command.Group heading="Go To">
+    <Command.Group heading="Go to">
       {window.location.pathname !== WORKSPACE_PATH && (
         <Command.Item
           value="Workspace"

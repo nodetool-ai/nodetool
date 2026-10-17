@@ -91,7 +91,7 @@ class SearchErrorBoundary extends Component<
       return (
         <Box css={boundaryStyles}>
           <Text size="normal" weight={600} className="error-title">
-            {this.props.fallbackTitle || "Search Error"}
+            {this.props.fallbackTitle || "Search error"}
           </Text>
           <Text size="small" className="error-message">
             Something went wrong with the search functionality. Please try
@@ -103,7 +103,7 @@ class SearchErrorBoundary extends Component<
             className="retry-button"
             density="normal"
           >
-            Try Again
+            Try again
           </EditorButton>
           <ReportBugButton
             label="Report a bug"

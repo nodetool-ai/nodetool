@@ -23,7 +23,7 @@ describe("SelectionControls", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByText("Select All")).toBeInTheDocument();
+    expect(screen.getByText("Select all")).toBeInTheDocument();
     expect(screen.getByText("Clear")).toBeInTheDocument();
   });
 
@@ -39,7 +39,7 @@ describe("SelectionControls", () => {
       </ThemeProvider>
     );
 
-    fireEvent.click(screen.getByText("Select All"));
+    fireEvent.click(screen.getByText("Select all"));
     expect(mockOnSelectAll).toHaveBeenCalledTimes(1);
   });
 
@@ -71,7 +71,7 @@ describe("SelectionControls", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByText("Select All").closest("button")).toBeDisabled();
+    expect(screen.getByText("Select all").closest("button")).toBeDisabled();
   });
 
   it("disables Clear when no items are selected", () => {
@@ -150,7 +150,7 @@ describe("SelectionControls", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByText("Select All").closest("button")).toBeDisabled();
+    expect(screen.getByText("Select all").closest("button")).toBeDisabled();
     expect(screen.getByText("Clear").closest("button")).toBeDisabled();
   });
 

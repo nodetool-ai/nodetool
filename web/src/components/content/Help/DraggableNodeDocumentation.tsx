@@ -153,7 +153,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
           onClick={handleAddNode}
           sx={{ marginTop: getSpacingPx(SPACING.lg), marginRight: getSpacingPx(SPACING.lg) }}
         >
-          Add Node
+          Add node
         </EditorButton>
       </>
     );

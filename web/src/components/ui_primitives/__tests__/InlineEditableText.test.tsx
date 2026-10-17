@@ -200,14 +200,18 @@ describe("InlineEditableText", () => {
     const input = screen.getByRole("textbox", { name: "Track name" });
 
     expect(input).toHaveAttribute("readonly");
-    expect(input).toHaveAttribute("title", "Double-click to rename");
+    // The hint is the Tooltip primitive.
+    await user.hover(input);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Double-click to rename"
+    );
 
     await user.dblClick(input);
 
     // Same DOM node — the element is not swapped out on the way into edit mode.
     expect(screen.getByRole("textbox", { name: "Track name" })).toBe(input);
     expect(input).not.toHaveAttribute("readonly");
-    expect(input).not.toHaveAttribute("title");
+    await waitFor(() => expect(screen.queryByRole("tooltip")).toBeNull());
   });
 
   it("mirrors the draft upward through onDraftChange", async () => {

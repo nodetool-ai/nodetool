@@ -140,7 +140,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
             sx={{ flexWrap: "wrap" }}
           >
             <SketchModeOption value="contiguous">Contiguous</SketchModeOption>
-            <SketchModeOption value="allLayers">All Layers</SketchModeOption>
+            <SketchModeOption value="allLayers">All layers</SketchModeOption>
           </SketchModeToggle>
         </>
       ) : null}

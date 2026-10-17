@@ -3,7 +3,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import { useMemo, useState, useCallback, memo } from "react";
 
-import { Text, FlexColumn, FlexRow, getSpacingPx, SPACING } from "../ui_primitives";
+import { Text, FlexColumn, FlexRow, getSpacingPx, SPACING, LoadingSpinner } from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -185,36 +185,34 @@ const FoldersSettings = () => {
   return (
     <>
       {isLoading && (
-        <Text sx={{ textAlign: "center", padding: getSpacingPx(SPACING.xxxl) }}>
-          Loading folder settings…
-        </Text>
+        <LoadingSpinner text="Loading folder settings" />
       )}
       <div
         className="remote-settings-content"
         css={getSharedSettingsStyles(theme)}
       >
         <div className="settings-main-content">
-          <Text size="giant">Folder Settings</Text>
+          <Text size="giant">Folder settings</Text>
 
           {canOpenSystemFolders && (
             <div className="settings-section">
               <Text size="big" id="system-folders">
-                System Folders
+                System folders
               </Text>
               <Text className="description" sx={{ mb: 2 }}>
                 Open important Nodetool directories in your file explorer.
               </Text>
               <FlexColumn gap={1.5}>
                 <FolderButton
-                  label="Nodetool Installation"
+                  label="NodeTool installation"
                   onClick={openInstallationPath}
                 />
                 <FolderButton
-                  label="Nodetool Logs"
+                  label="NodeTool logs"
                   onClick={openLogsPath}
                 />
                 <FolderButton
-                  label="Assets Storage"
+                  label="Assets storage"
                   onClick={openAssetsPath}
                 />
               </FlexColumn>
@@ -224,18 +222,18 @@ const FoldersSettings = () => {
           {canOpenFolders && (
             <div className="settings-section">
               <Text size="big" id="model-folders">
-                Model Folders
+                Model folders
               </Text>
               <Text className="description" sx={{ mb: 2 }}>
                 Open model cache directories in your file explorer.
               </Text>
               <FlexColumn gap={1.5}>
                 <FolderButton
-                  label="HuggingFace Models"
+                  label="HuggingFace models"
                   onClick={openHuggingfacePath}
                 />
                 <FolderButton
-                  label="Ollama Models"
+                  label="Ollama models"
                   onClick={openOllamaPath}
                 />
               </FlexColumn>

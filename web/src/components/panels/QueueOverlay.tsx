@@ -7,6 +7,7 @@ import {
   FlexColumn,
   FlexRow,
   PanelHeader,
+  SectionHeader,
   ProgressBar,
   Text,
   ToolbarIconButton,
@@ -288,15 +289,11 @@ const CancelledCard = memo(function CancelledCard({ job }: { job: Job }) {
 });
 
 const SectionLabel = ({ children }: { children: string }) => (
-  <Text size="smaller" color="secondary"
-  sx={{
-    display: "block",
-    px: 0.5,
-    pt: 2,
-    pb: 1,
-    textTransform: "uppercase",
-    letterSpacing: "0.07em"
-  }}>{children}</Text>
+  <SectionHeader
+    title={children}
+    size="small"
+    sx={{ px: SPACING.micro, pt: SPACING.md, pb: SPACING.xs }}
+  />
 );
 
 const HEADER_COUNT_ICON_SX = { fontSize: "var(--fontSizeSmall)" };
