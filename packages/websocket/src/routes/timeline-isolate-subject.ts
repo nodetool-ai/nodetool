@@ -37,6 +37,7 @@ import {
   type HttpApiOptions
 } from "../http-api.js";
 import { getAssetAdapter } from "../lib/storage.js";
+import { isJsonContentType } from "../lib/json-body.js";
 
 const ISOLATE_HOST = "isolate-subject route";
 
@@ -83,7 +84,7 @@ function jsonResponse(data: unknown, status = 200): Response {
 
 async function readJsonBody(request: Request): Promise<unknown> {
   const contentType = request.headers.get("content-type") ?? "";
-  if (!contentType.toLowerCase().includes("application/json")) {
+  if (!isJsonContentType(contentType)) {
     return {};
   }
   try {

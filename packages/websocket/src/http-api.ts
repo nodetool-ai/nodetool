@@ -134,6 +134,7 @@ import {
 } from "./session/asset-autosave.js";
 import { toAssetResponse } from "./lib/asset-response.js";
 import { scheduleVideoProxy } from "./lib/video-proxy.js";
+import { isJsonContentType } from "./lib/json-body.js";
 
 export { toAssetResponse };
 export { getAssetFileName, getAssetStoragePath };
@@ -499,7 +500,7 @@ export { getUserId } from "./lib/http-user-id.js";
 /** The raw JSON body, or null when there is nothing readable to parse. */
 async function readJsonBody(request: Request): Promise<unknown> {
   const contentType = request.headers.get("content-type") ?? "";
-  if (!contentType.toLowerCase().includes("application/json")) {
+  if (!isJsonContentType(contentType)) {
     return null;
   }
   try {

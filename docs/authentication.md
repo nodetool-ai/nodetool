@@ -224,6 +224,22 @@ request must present a valid token.
 NODETOOL_TRUST_LOCAL_NETWORKS=172.16.0.0/12,192.168.65.0/24   # bridge + Desktop VM gateway
 ```
 
+### Host check
+
+The loopback and `NODETOOL_TRUST_LOCAL_NETWORKS` bypasses also require the
+request's `Host` header to name this machine: `localhost`, a `*.localhost`
+name, an IP literal, or a name listed in `NODETOOL_ALLOWED_HOSTS`. Any other
+`Host` falls through to token auth. This blocks DNS rebinding, where a website
+points its own domain at `127.0.0.1` so the browser treats the local server as
+same-origin with the site.
+
+If you reach a Local-mode server by a DNS name (for example
+`http://nodetool.lan:17777`), add that name:
+
+```bash
+NODETOOL_ALLOWED_HOSTS=nodetool.lan
+```
+
 ## Security Hardening
 
 - Production: enable Supabase mode by setting `SUPABASE_URL` and `SUPABASE_KEY`, terminate TLS in front of all non-public endpoints, and rotate Supabase service-role keys via your secrets manager.

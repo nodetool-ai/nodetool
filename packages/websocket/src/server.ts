@@ -56,7 +56,9 @@ import {
   isLoopbackAddress,
   parseTrustedProxies,
   parseTrustedLocalNetworks,
-  isTrustedLocalAddress
+  isTrustedLocalAddress,
+  parseAllowedHosts,
+  isLocalHostHeader
 } from "./lib/localhost-trust.js";
 import { registerHttpTracing } from "./lib/http-tracing.js";
 import {
@@ -975,6 +977,11 @@ const trustLocalNetworks = enforceAuth
   ? []
   : parseTrustedLocalNetworks(process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]);
 
+// Extra `Host` names (beyond loopback names and IP literals) under which the
+// trust bypasses above still apply, e.g. a LAN name for a compose install.
+const allowedHosts = parseAllowedHosts(process.env["NODETOOL_ALLOWED_HOSTS"]);
+let warnedForeignHost = false;
+
 // The bearer token `nodetool deploy` starts a container with. Local mode only,
 // like the trusted networks above: Supabase mode needs a real login.
 const serverAuthToken = enforceAuth
@@ -1089,12 +1096,27 @@ app.addHook("onRequest", async (req, reply) => {
   // auth is enforced). Docker's bridge NAT means the peer is the gateway rather
   // than loopback, so NODETOOL_TRUST_LOCAL_NETWORKS additionally trusts that
   // source range (Local mode only).
+  //
+  // The bypass also requires a `Host` that names this machine. Under DNS
+  // rebinding a website's own domain resolves to 127.0.0.1, so its requests
+  // arrive from loopback but carry its domain as `Host`; those fall through to
+  // token auth below.
   if (
     (trustLocalhost && isLoopbackAddress(clientIp)) ||
     isTrustedLocalAddress(clientIp, trustLocalNetworks)
   ) {
-    req.userId = "1";
-    return;
+    if (isLocalHostHeader(req.headers.host, allowedHosts)) {
+      req.userId = "1";
+      return;
+    }
+    if (!warnedForeignHost) {
+      warnedForeignHost = true;
+      log.warn(
+        "Refused the local trust bypass for a Host that is not this machine. " +
+          "Add the name to NODETOOL_ALLOWED_HOSTS if you reach this server by it.",
+        { host: req.headers.host?.slice(0, 255) }
+      );
+    }
   }
 
   // Extract token from the appropriate source

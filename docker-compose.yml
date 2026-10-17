@@ -125,6 +125,10 @@ services:
       # │     this list — enable real logins with Supabase auth below.        │
       # └────────────────────────────────────────────────────────────────────┘
       NODETOOL_TRUST_LOCAL_NETWORKS: "${NODETOOL_TRUST_LOCAL_NETWORKS:-172.16.0.0/12,192.168.65.0/24}"
+      # The bypass above applies only when the browser's Host is localhost or
+      # an IP address. If you open NodeTool by a DNS name (nodetool.lan), list
+      # it here, comma-separated. See docs/authentication.md#host-check.
+      NODETOOL_ALLOWED_HOSTS: "${NODETOOL_ALLOWED_HOSTS:-}"
 
       # To require login (multi-user or remote access), set these in .env (the
       # env_file above forwards them) or uncomment them here. Point them at

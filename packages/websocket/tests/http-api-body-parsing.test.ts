@@ -204,6 +204,24 @@ describe("POST /api/workflows — body leniency", () => {
     expect((await res.json()).detail).toBe("Invalid JSON body");
   });
 
+  // A browser sends this content type cross-site without a CORS preflight,
+  // so accepting it would let any page create workflows on a local server.
+  it("refuses JSON sent as text/plain with application/json in a parameter", async () => {
+    const res = await handleWorkflowsRoot(
+      new Request("http://localhost/x", {
+        method: "POST",
+        headers: {
+          "x-user-id": "user-1",
+          "content-type": "text/plain; x=application/json"
+        },
+        body: JSON.stringify({ name: "A", access: "private", graph: GRAPH })
+      }),
+      {}
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).detail).toBe("Invalid JSON body");
+  });
+
   it("creates the workflow and drops unknown extra keys", async () => {
     const res = await handleWorkflowsRoot(
       jsonRequest(
