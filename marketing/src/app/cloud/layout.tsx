@@ -59,7 +59,7 @@ export default function CloudLayout({
           operatingSystem: "Web browser",
           url: "https://nodetool.ai/cloud",
           softwareVersion: "alpha",
-          license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE",
+          license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE.txt",
           author: { "@type": "Organization", name: "NodeTool", url: "https://nodetool.ai" },
         }}
       />

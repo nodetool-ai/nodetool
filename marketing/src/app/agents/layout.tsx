@@ -72,7 +72,7 @@ export default function AgentsLayout({
           applicationCategory: "MultimediaApplication",
           operatingSystem: "macOS, Windows, Linux",
           url: "https://nodetool.ai/agents",
-          license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE",
+          license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE.txt",
           author: { "@type": "Organization", name: "NodeTool", url: "https://nodetool.ai" },
         }}
       />

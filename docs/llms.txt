@@ -6,7 +6,7 @@ permalink: /llms.txt
 
 > {{ site.description }}
 
-NodeTool is an open-source, local-first visual environment for building AI workflows. Wire image, video, audio, text, and agent models on a node-based canvas. Runs on macOS, Windows, Linux (Studio), or in the browser (Cloud). AGPL-3.0.
+NodeTool is an open-source, agent-first creative workspace. Agents and people work in the same editors: node workflows, storyboards, a multi-track video timeline, sketches, scripts, 3D models, and a built-in 2D and 3D game engine. External agents such as Claude Code and Codex use the same tools over MCP. Runs on macOS, Windows, Linux (Studio), or in the browser (Cloud, alpha). AGPL-3.0.
 
 ## Getting Started
 
@@ -58,6 +58,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [3D Editor]({{ site.url }}/3d-editor): Block out a set with shapes and lights and render shot references.
 - [Blender Nodes]({{ site.url }}/blender): Render 3D models to images, passes and video with headless Blender inside a workflow.
 - [Game Editor]({{ site.url }}/game-editor): Build, play and publish 2D and 3D games.
+- [Native Game Engine]({{ site.url }}/game-engine/): Game documents, scripts, physics, assets, agent authoring, publishing, and current coverage.
 - [Audio Editor]({{ site.url }}/audio-editor): Trim, fade, normalize, and reverse an audio asset and save it back.
 - [Text and SVG Documents]({{ site.url }}/text-and-svg-documents): Every document type the + New menu creates, and the text, CSV, and SVG editors.
 

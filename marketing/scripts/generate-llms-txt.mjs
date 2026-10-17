@@ -30,11 +30,13 @@ const BASE_URL = "https://nodetool.ai";
 // --- Preamble prose (hand-written; edit here) --------------------------------
 const PREAMBLE = `# NodeTool
 
-> NodeTool is an open-source creative workspace with agents and editable projects. Studio is the free desktop edition for production work. Cloud is a hosted browser edition in alpha for evaluation and lightweight access. Use supported local models in Studio or connect supported remote providers with your own accounts. Licensed AGPL-3.0.
+> NodeTool is an open-source, agent-first creative workspace. Agents and people work in the same editors (node workflows, storyboards, a multi-track video timeline, sketches, scripts, 3D models, and a built-in 2D and 3D game engine), and the result stays an editable project. Studio is the free desktop edition for production work. Cloud is a hosted browser edition in alpha. Licensed AGPL-3.0.
 
 ## What NodeTool is
 
-- Agents can operate the workflow and project editors, with tool calls, results, errors, and interventions available for inspection. Compatible external agents can use the tools over MCP.
+- Agents operate the editors through tools, and every tool call, result, and error is recorded for inspection. External agents (Claude Code, Codex, OpenCode, Cursor) use the same tools through the NodeTool MCP server: \`npx -y --package=@nodetool-ai/cli nodetool mcp install\`.
+- Video: an agent writes a storyboard, renders stills and clips, and assembles a multi-track timeline that a person keeps editing (trims, transitions, captions, takes, aspect-ratio versions). Export MP4, WebM, or a PNG sequence.
+- Games: a built-in 2D and 3D game engine. Agents create and edit game documents, generate and install art and audio, playtest headlessly, and export a standalone web build or a desktop app project. People edit the same game in the Game Editor.
 - A visual, node-based editor for building AI workflows: connect models and tools as nodes on a canvas instead of writing glue code.
 - Two editions of one open-source codebase: **Studio**, a free desktop app for macOS, Windows, and Linux, and **Cloud**, a hosted browser edition currently in alpha.
 - Planning agents: give an agent a goal and it plans the steps, picks a model or tool, and executes multi-step tasks on the canvas.
@@ -45,7 +47,7 @@ const PREAMBLE = `# NodeTool
 
 - Source license: AGPL-3.0. Self-hostable. Repository: https://github.com/nodetool-ai/nodetool
 - Studio is free. Current Cloud alpha access is free; future Cloud pricing has not been announced.
-- Provider charges are separate: connect your own supported provider accounts and pay those providers directly. NodeTool does not issue credits or add a provider-price markup.`;
+- Provider charges are separate: calls on your own provider accounts are billed by the provider at its price, with no NodeTool markup.`;
 
 // --- Derived link sections ---------------------------------------------------
 
@@ -188,8 +190,30 @@ function writeMarkdownPages(check) {
 function comparisonsSection() {
   const lines = competitorEntries
     .filter((e) => e.indexable)
-    .map((e) => link(e.title, e.route));
+    .map((e) => link(e.title.replace(/\s*\|\s*NodeTool$/, ""), e.route));
   return `## Comparisons\n\n${lines.join("\n")}`;
+}
+
+/**
+ * What each editor does, on the site and in the docs. Hand-written because a
+ * capability page and its docs page are a pair the registry cannot infer.
+ */
+const CAPABILITY_LINKS = [
+  ["Game development", "/gamedev", "the built-in 2D and 3D game engine: playable examples, what agents author, the Game Editor, and web export."],
+  ["Game Editor guide", "https://docs.nodetool.ai/game-editor", "scene tree, inspector, scripts, play mode, publishing, and export."],
+  ["Native Game Engine reference", "https://docs.nodetool.ai/game-engine/", "game documents, scripts, physics, assets, agent authoring, and current coverage."],
+  ["Storyboards", "/storyboards", "example storyboards: each film with every shot it was built from."],
+  ["Storyboard Editor guide", "https://docs.nodetool.ai/storyboard-editor", "scenes and shots, still and clip renders, takes, and assembling a timeline."],
+  ["Video Editor guide", "https://docs.nodetool.ai/video-editor", "multi-track timeline editing and export."],
+  ["Ad library", "/ad-library", "social ad concepts with beats, timing, and formats, each buildable as an editable ad timeline."],
+  ["Sketch Editor guide", "https://docs.nodetool.ai/sketch-editor", "layers, masks, AI layers, and inline image generation."],
+  ["MCP server guide", "https://docs.nodetool.ai/mcp-server", "use NodeTool from Claude Code, Codex, OpenCode, or any MCP client."],
+  ["Blog", "/blog", "guides, comparisons, and cost breakdowns for AI image, video, and audio work."],
+];
+
+function capabilitiesSection() {
+  const lines = CAPABILITY_LINKS.map(([label, path, blurb]) => link(label, path, blurb));
+  return `## Editors and capabilities\n\n${lines.join("\n")}`;
 }
 
 function useCasesSection() {
@@ -236,6 +260,7 @@ function render() {
     [
       PREAMBLE,
       keyPagesSection(),
+      capabilitiesSection(),
       comparisonsSection(),
       useCasesSection(),
       faqSection(),

@@ -25,7 +25,6 @@ export const softwareApplicationSchema: JsonLdObject = {
   },
   url: "https://nodetool.ai",
   downloadUrl: "https://github.com/nodetool-ai/nodetool/releases",
-  softwareVersion: "1.0",
   author: {
     "@type": "Organization",
     name: "NodeTool",
@@ -33,9 +32,11 @@ export const softwareApplicationSchema: JsonLdObject = {
   },
   screenshot: "https://nodetool.ai/preview.png",
   featureList: [
-    "Agent-first: every editor is exposed to agents as tools, around 120 in all",
+    "Agent-first: every editor is exposed to agents as tools",
     "Agents plan, build, run, and repair workflows on the same surfaces you use",
-    "The full agent toolbelt speaks MCP, so Claude Desktop and Claude Code can drive NodeTool",
+    "MCP server for Claude Code, Codex, OpenCode, and Cursor: one install command, the same tools the built-in agent uses",
+    "Built-in 2D and 3D game engine: agents create, edit, playtest, and export games that stay editable in the Game Editor",
+    "Multi-track video timeline with clips, transitions, captions, keyframes, takes, and MP4, WebM, or PNG-sequence export",
     "One visual canvas for image, video, audio, and text",
     "Bring your own keys to every major provider: FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, HuggingFace",
     "Pay providers directly at provider prices, no credits, no markup",
@@ -51,10 +52,15 @@ export const softwareApplicationSchema: JsonLdObject = {
     "Workflows, files, and keys belong to you, on your machine or in your browser",
     "AGPL-3.0 open source, self-host any time",
   ],
-  softwareRequirements: "Node.js 22+ (Python 3.11+ optional, for Python nodes)",
+  softwareRequirements:
+    "Studio: macOS, Windows, or Linux. A GPU is needed only to run models locally. The MCP server and CLI need Node.js 22 or later.",
   installUrl: "https://github.com/nodetool-ai/nodetool",
-  license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE",
-  sameAs: ["https://github.com/nodetool-ai/nodetool"],
+  license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE.txt",
+  sameAs: [
+    "https://github.com/nodetool-ai/nodetool",
+    "https://docs.nodetool.ai",
+    "https://www.npmjs.com/package/@nodetool-ai/cli",
+  ],
 };
 
 export const organizationSchema: JsonLdObject = {
@@ -69,6 +75,17 @@ export const organizationSchema: JsonLdObject = {
   ],
   description:
     "NodeTool is an open-source agent-first creative workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Studio runs on macOS, Windows, and Linux. Cloud is the hosted browser edition, in alpha.",
+};
+
+/** Names the site itself, so the publisher and the product resolve to one entity. */
+export const webSiteSchema: JsonLdObject = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "NodeTool",
+  url: "https://nodetool.ai",
+  description:
+    "Website of NodeTool, the open-source agent-first creative workspace for images, video, storyboards, timelines, and games.",
+  publisher: { "@type": "Organization", name: "NodeTool", url: "https://nodetool.ai" },
 };
 
 /** The demo video on the home page. Emitted by the page that shows it. */

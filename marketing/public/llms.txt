@@ -1,10 +1,12 @@
 # NodeTool
 
-> NodeTool is an open-source creative workspace with agents and editable projects. Studio is the free desktop edition for production work. Cloud is a hosted browser edition in alpha for evaluation and lightweight access. Use supported local models in Studio or connect supported remote providers with your own accounts. Licensed AGPL-3.0.
+> NodeTool is an open-source, agent-first creative workspace. Agents and people work in the same editors (node workflows, storyboards, a multi-track video timeline, sketches, scripts, 3D models, and a built-in 2D and 3D game engine), and the result stays an editable project. Studio is the free desktop edition for production work. Cloud is a hosted browser edition in alpha. Licensed AGPL-3.0.
 
 ## What NodeTool is
 
-- Agents can operate the workflow and project editors, with tool calls, results, errors, and interventions available for inspection. Compatible external agents can use the tools over MCP.
+- Agents operate the editors through tools, and every tool call, result, and error is recorded for inspection. External agents (Claude Code, Codex, OpenCode, Cursor) use the same tools through the NodeTool MCP server: `npx -y --package=@nodetool-ai/cli nodetool mcp install`.
+- Video: an agent writes a storyboard, renders stills and clips, and assembles a multi-track timeline that a person keeps editing (trims, transitions, captions, takes, aspect-ratio versions). Export MP4, WebM, or a PNG sequence.
+- Games: a built-in 2D and 3D game engine. Agents create and edit game documents, generate and install art and audio, playtest headlessly, and export a standalone web build or a desktop app project. People edit the same game in the Game Editor.
 - A visual, node-based editor for building AI workflows: connect models and tools as nodes on a canvas instead of writing glue code.
 - Two editions of one open-source codebase: **Studio**, a free desktop app for macOS, Windows, and Linux, and **Cloud**, a hosted browser edition currently in alpha.
 - Planning agents: give an agent a goal and it plans the steps, picks a model or tool, and executes multi-step tasks on the canvas.
@@ -15,7 +17,7 @@
 
 - Source license: AGPL-3.0. Self-hostable. Repository: https://github.com/nodetool-ai/nodetool
 - Studio is free. Current Cloud alpha access is free; future Cloud pricing has not been announced.
-- Provider charges are separate: connect your own supported provider accounts and pay those providers directly. NodeTool does not issue credits or add a provider-price markup.
+- Provider charges are separate: calls on your own provider accounts are billed by the provider at its price, with no NodeTool markup.
 
 ## Key pages
 
@@ -28,40 +30,53 @@
 - [For marketing teams](https://nodetool.ai/marketing.md): hand a brief to an agent; campaign assets at volume.
 - [Documentation](https://docs.nodetool.ai/llms.txt): install guides, key concepts, node reference, API reference, CLI.
 
+## Editors and capabilities
+
+- [Game development](https://nodetool.ai/gamedev): the built-in 2D and 3D game engine: playable examples, what agents author, the Game Editor, and web export.
+- [Game Editor guide](https://docs.nodetool.ai/game-editor): scene tree, inspector, scripts, play mode, publishing, and export.
+- [Native Game Engine reference](https://docs.nodetool.ai/game-engine/): game documents, scripts, physics, assets, agent authoring, and current coverage.
+- [Storyboards](https://nodetool.ai/storyboards): example storyboards: each film with every shot it was built from.
+- [Storyboard Editor guide](https://docs.nodetool.ai/storyboard-editor): scenes and shots, still and clip renders, takes, and assembling a timeline.
+- [Video Editor guide](https://docs.nodetool.ai/video-editor): multi-track timeline editing and export.
+- [Ad library](https://nodetool.ai/ad-library): social ad concepts with beats, timing, and formats, each buildable as an editable ad timeline.
+- [Sketch Editor guide](https://docs.nodetool.ai/sketch-editor): layers, masks, AI layers, and inline image generation.
+- [MCP server guide](https://docs.nodetool.ai/mcp-server): use NodeTool from Claude Code, Codex, OpenCode, or any MCP client.
+- [Blog](https://nodetool.ai/blog): guides, comparisons, and cost breakdowns for AI image, video, and audio work.
+
 ## Comparisons
 
-- [Higgsfield alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/higgsfield)
-- [OpenArt alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/openart)
-- [LTX Studio alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/ltx-studio)
-- [Google Flow alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/google-flow)
-- [Artlist Studio alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/artlist)
-- [Invideo alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/invideo)
-- [Katalist alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/katalist)
-- [Storyboarder.ai alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/storyboarder-ai)
-- [Story.com alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/story-com)
-- [Mootion alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/mootion)
-- [Moonvalley Marey alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/moonvalley)
-- [Kling AI alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/kling-ai)
-- [Pika alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/pika)
-- [Luma Dream Machine alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/luma-dream-machine)
-- [PixVerse alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/pixverse)
-- [Leonardo AI alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/leonardo-ai)
-- [Midjourney alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/midjourney)
-- [Adobe Firefly alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/adobe-firefly)
-- [Ideogram alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/ideogram)
-- [Recraft alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/recraft)
-- [Dreamina alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/dreamina)
-- [ComfyUI alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/comfyui)
-- [Weavy alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/weavy)
-- [Figma Weave alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/figma-weave)
-- [Runway alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/runway)
+- [Higgsfield Alternative for Editable AI Video Workflows](https://nodetool.ai/alternatives/higgsfield)
+- [OpenArt Alternative for AI Images and Video Workflows](https://nodetool.ai/alternatives/openart)
+- [LTX Studio Alternative for Editable AI Video Projects](https://nodetool.ai/alternatives/ltx-studio)
+- [Google Flow Alternative for AI Filmmaking Workflows](https://nodetool.ai/alternatives/google-flow)
+- [Artlist Alternative for AI Film Production](https://nodetool.ai/alternatives/artlist)
+- [Invideo Alternative for Editable AI Filmmaking](https://nodetool.ai/alternatives/invideo)
+- [Katalist Alternative for AI Storyboards and Film Workflows](https://nodetool.ai/alternatives/katalist)
+- [Storyboarder.ai Alternative for AI Film Pre-production](https://nodetool.ai/alternatives/storyboarder-ai)
+- [Story.com Alternative for AI Movie Workflows](https://nodetool.ai/alternatives/story-com)
+- [Mootion Alternative for AI Storytelling and Film Workflows](https://nodetool.ai/alternatives/mootion)
+- [Moonvalley Marey Alternative for AI Film Workflows](https://nodetool.ai/alternatives/moonvalley)
+- [Kling AI Alternative for Editable Video Workflows](https://nodetool.ai/alternatives/kling-ai)
+- [Pika Alternative for Repeatable AI Media Workflows](https://nodetool.ai/alternatives/pika)
+- [Luma Dream Machine Alternative for AI Video Projects](https://nodetool.ai/alternatives/luma-dream-machine)
+- [PixVerse Alternative for Editable AI Video Pipelines](https://nodetool.ai/alternatives/pixverse)
+- [Leonardo AI Alternative for Editable Creative Workflows](https://nodetool.ai/alternatives/leonardo-ai)
+- [Midjourney Alternative for AI Image Workflows](https://nodetool.ai/alternatives/midjourney)
+- [Adobe Firefly Alternative for Editable AI Projects](https://nodetool.ai/alternatives/adobe-firefly)
+- [Ideogram Alternative for Editable Image Workflows](https://nodetool.ai/alternatives/ideogram)
+- [Recraft Alternative for Repeatable AI Design Workflows](https://nodetool.ai/alternatives/recraft)
+- [Dreamina Alternative for Editable AI Media Projects](https://nodetool.ai/alternatives/dreamina)
+- [ComfyUI Alternatives for Creative Workflows](https://nodetool.ai/alternatives/comfyui)
+- [Weavy Alternative — Now Figma Weave](https://nodetool.ai/alternatives/weavy)
+- [Figma Weave Alternative: Open-Source, Self-Hosted](https://nodetool.ai/alternatives/figma-weave)
+- [Runway alternative — open source, your own keys](https://nodetool.ai/alternatives/runway)
 - [Langflow alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/langflow)
 - [n8n alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/n8n)
 - [Flowise alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/flowise)
 - [Dify alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/dify)
 - [Flora alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/flora)
 - [Krea alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/krea)
-- [LM Studio alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/lm-studio)
+- [LM Studio Alternatives for Local AI Workflows](https://nodetool.ai/alternatives/lm-studio)
 - [Jan alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/jan)
 - [Lindy alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/lindy)
 - [Gumloop alternatives (2026) — why teams choose NodeTool](https://nodetool.ai/alternatives/gumloop)

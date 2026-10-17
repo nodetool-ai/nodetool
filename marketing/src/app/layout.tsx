@@ -8,6 +8,7 @@ import { DEFAULT_OG_IMAGES } from "../lib/defaultOgImage";
 import {
   organizationSchema,
   softwareApplicationSchema,
+  webSiteSchema,
 } from "../lib/siteSchema";
 
 // Self-hosted from @fontsource so `next build` makes no network request:
@@ -133,6 +134,7 @@ export default function RootLayout({
 
         <JsonLd data={softwareApplicationSchema} />
         <JsonLd data={organizationSchema} />
+        <JsonLd data={webSiteSchema} />
 
         <Script
           defer
