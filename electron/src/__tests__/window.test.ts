@@ -67,6 +67,7 @@ jest.mock('electron', () => {
         setPermissionCheckHandler: jest.fn(),
         webRequest: {
           onHeadersReceived: jest.fn(),
+          onBeforeSendHeaders: jest.fn(),
         },
       }
     },
@@ -396,6 +397,8 @@ describe('Window Module', () => {
       (session.defaultSession.setPermissionCheckHandler as jest.Mock).mock.calls[0][0];
     const headersHandler = () =>
       (session.defaultSession.webRequest.onHeadersReceived as jest.Mock).mock.calls[0][1];
+    const sendHeadersHandler = () =>
+      (session.defaultSession.webRequest.onBeforeSendHeaders as jest.Mock).mock.calls[0][1];
 
     const request = (permission: string, requestingUrl: string): boolean => {
       const callback = jest.fn();
@@ -491,6 +494,32 @@ describe('Window Module', () => {
 
         for (const frame of [{ url: 'https://example.com/' }, null, undefined]) {
           expect(respond(frame)).toEqual({ 'content-type': ['application/json'] });
+        }
+      });
+    });
+
+    describe('local client token', () => {
+      const send = (frame: { url: string } | null | undefined) => {
+        const callback = jest.fn();
+        sendHeadersHandler()({ frame, requestHeaders: { Accept: '*/*' } }, callback);
+        return callback.mock.calls[0][0].requestHeaders;
+      };
+
+      it('adds the launch token to requests from the app pages', () => {
+        createWindow();
+
+        for (const url of ['http://127.0.0.1:7777/', 'file:///app/dist-web/index.html']) {
+          const headers = send({ url });
+          expect(headers.Accept).toBe('*/*');
+          expect(headers['x-nodetool-local-client']).toMatch(/^[0-9a-f]{64}$/);
+        }
+      });
+
+      it('never gives the token to third-party or frameless requests', () => {
+        createWindow();
+
+        for (const frame of [{ url: 'https://example.com/' }, null, undefined]) {
+          expect(send(frame)).toEqual({ Accept: '*/*' });
         }
       });
     });

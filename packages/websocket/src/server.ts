@@ -62,6 +62,10 @@ import {
 } from "./lib/localhost-trust.js";
 import { registerHttpTracing } from "./lib/http-tracing.js";
 import {
+  LOCAL_CLIENT_TOKEN_HEADER,
+  isLocalClientRequest
+} from "./lib/local-client-origin.js";
+import {
   shutdownTelemetry,
   createPythonBridge,
   WebsocketPythonBridge,
@@ -981,6 +985,12 @@ const trustLocalNetworks = enforceAuth
 // trust bypasses above still apply, e.g. a LAN name for a compose install.
 const allowedHosts = parseAllowedHosts(process.env["NODETOOL_ALLOWED_HOSTS"]);
 let warnedForeignHost = false;
+// The secret the desktop app adds to its own windows' requests (see
+// lib/local-client-origin.ts). Unset outside Electron.
+const localClientToken = resolveServerAuthToken(
+  process.env["NODETOOL_LOCAL_CLIENT_TOKEN"]
+);
+let warnedForeignOrigin = false;
 
 // The bearer token `nodetool deploy` starts a container with. Local mode only,
 // like the trusted networks above: Supabase mode needs a real login.
@@ -1099,17 +1109,35 @@ app.addHook("onRequest", async (req, reply) => {
   //
   // The bypass also requires a `Host` that names this machine. Under DNS
   // rebinding a website's own domain resolves to 127.0.0.1, so its requests
-  // arrive from loopback but carry its domain as `Host`; those fall through to
-  // token auth below.
+  // arrive from loopback but carry its domain as `Host`. It also requires that
+  // a browser caller be the user's own client, judged by `Origin` or the
+  // desktop app's launch token, since any open page can reach loopback. Both
+  // failures fall through to token auth below.
   if (
     (trustLocalhost && isLoopbackAddress(clientIp)) ||
     isTrustedLocalAddress(clientIp, trustLocalNetworks)
   ) {
-    if (isLocalHostHeader(req.headers.host, allowedHosts)) {
+    const presented = req.headers[LOCAL_CLIENT_TOKEN_HEADER];
+    const fromLocalClient = isLocalClientRequest({
+      origin: req.headers.origin,
+      host: req.headers.host,
+      presentedToken: typeof presented === "string" ? presented : undefined,
+      expectedToken: localClientToken
+    });
+    const localHost = isLocalHostHeader(req.headers.host, allowedHosts);
+    if (localHost && fromLocalClient) {
       req.userId = "1";
       return;
     }
-    if (!warnedForeignHost) {
+    if (localHost && !warnedForeignOrigin) {
+      warnedForeignOrigin = true;
+      log.warn(
+        "Refused the local trust bypass for a browser page from another origin. " +
+          "Add the origin to NODETOOL_ALLOWED_ORIGINS if it is your own client.",
+        { origin: req.headers.origin?.slice(0, 255) }
+      );
+    }
+    if (!localHost && !warnedForeignHost) {
       warnedForeignHost = true;
       log.warn(
         "Refused the local trust bypass for a Host that is not this machine. " +

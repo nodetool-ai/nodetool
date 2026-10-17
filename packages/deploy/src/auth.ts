@@ -7,7 +7,13 @@
  * The token is auto-generated on first run and saved to a deployment config file.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import {
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  existsSync,
+  chmodSync
+} from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { randomBytes, timingSafeEqual } from "node:crypto";
@@ -63,6 +69,8 @@ export function saveAuthConfig(config: Record<string, unknown>): void {
     encoding: "utf-8",
     mode: 0o600
   });
+  // `mode` applies only when the file is created, and it holds the admin token.
+  chmodSync(AUTH_DEPLOYMENT_CONFIG_FILE, 0o600);
 }
 
 /**

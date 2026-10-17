@@ -183,7 +183,7 @@ export class RemoteUserManager {
     // Write via base64 to avoid shell escaping issues.
     const b64Content = Buffer.from(content, "utf-8").toString("base64");
     await this.ssh.execute(
-      `echo ${b64Content} | base64 -d > ${shellQuote(this.usersFile)}`
+      `umask 077 && echo ${b64Content} | base64 -d > ${shellQuote(this.usersFile)}`
     );
 
     await this.ssh.execute(`chmod 0600 ${shellQuote(this.usersFile)}`);
