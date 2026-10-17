@@ -3,7 +3,7 @@ import {
   gameDocument3D, gameAudioSourceIssues, gameInputBindingIssues, gameParticleIssues, gameParticleRenderWarnings, gameUiIssues, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
   type GameDocument3D, type GameEntity3D, type GamePrefab3D
 } from "@nodetool-ai/protocol";
-import { GAME_LOCAL_SHADOW_LIGHT_BUDGET_3D, gameScriptParamValueOf } from "@nodetool-ai/protocol";
+import { GAME_LOCAL_SHADOW_LIGHT_BUDGET_3D, GAME_MAX_DECALS_3D, gameScriptParamValueOf } from "@nodetool-ai/protocol";
 import { scriptParamReferenceIssues } from "./script-params.js";
 import { GAME_ENGINE_4_UNAVAILABLE, validateGame } from "./validate.js";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
@@ -81,6 +81,9 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
     }
 
     function validateEntities(entities: readonly GameEntity3D[], path: (string | number)[], prefab?: GamePrefab3D): void {
+      if (entities.filter((entity) => entity.decal3d).length > GAME_MAX_DECALS_3D) {
+        add("decal_budget", path, `At most ${GAME_MAX_DECALS_3D} decals may be authored per scene or prefab`);
+      }
       const byId = new Map<string, GameEntity3D>();
       for (const [index, entity] of entities.entries()) {
         if (byId.has(entity.id)) { add("duplicate_entity", [...path, index, "id"], `Duplicate entity ${entity.id}`); }
@@ -156,6 +159,14 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
             add("missing_model_node", [...entityPath, "model", "nodeId"], "Stable model node ID does not exist");
           }
         }
+        if (entity.decal3d) {
+          checkAsset(entity.decal3d.assetId, "image", [...entityPath, "decal3d", "assetId"]);
+          const receiver = byId.get(entity.decal3d.receiverId);
+          if (!receiver || receiver.id === entity.id || receiver.templateOnly ||
+            !(receiver.primitive || receiver.model && !receiver.animator3d)) {
+            add("invalid_decal_receiver", [...entityPath, "decal3d", "receiverId"], "Decal receiver must be another active primitive or rigid model in the same scene or prefab");
+          }
+        }
         if (entity.collider3d?.kind === "convexHull" || entity.collider3d?.kind === "triangleMesh") {
           checkAsset(entity.collider3d.assetId, "collider", [...entityPath, "collider3d", "assetId"]);
           const binding = document.assets[entity.collider3d.assetId];
@@ -224,7 +235,7 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
       if (scene.entities.filter((entity) => !entity.templateOnly && entity.light3d && entity.light3d.kind !== "directional" && entity.light3d.castShadow === true).length > GAME_LOCAL_SHADOW_LIGHT_BUDGET_3D) {
         add("shadow_budget", [...path, "entities"], `At most ${GAME_LOCAL_SHADOW_LIGHT_BUDGET_3D} point and spot lights may cast shadows`);
       }
-      if (scene.environment.fog && scene.environment.fog.near >= scene.environment.fog.far) { add("invalid_fog", [...path, "environment", "fog"], "Fog near must be less than far"); }
+      if (scene.environment.fog && "near" in scene.environment.fog && scene.environment.fog.near >= scene.environment.fog.far) { add("invalid_fog", [...path, "environment", "fog"], "Fog near must be less than far"); }
       const sky = scene.environment.sky;
       if (sky?.kind === "hdri" && document.assets[sky.assetId]?.mediaKind !== "hdri") { add("missing_asset", [...path, "environment", "sky", "assetId"], "HDRI sky requires an hdri binding"); }
       if (sky?.kind === "procedural" && sky.sunEntityId !== undefined) {

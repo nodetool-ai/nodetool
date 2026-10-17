@@ -199,7 +199,7 @@ export function visibleItems(frame: GameRenderFrame, interpolation: number, over
         particle: true,
         cell: emitter.sprite ? particleCell(emitter.sprite, particle.life) : undefined,
       });
-    });
+    }, alpha);
   }
   items.sort((a, b) => a.item.layer - b.item.layer);
   return items;

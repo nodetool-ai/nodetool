@@ -78,7 +78,7 @@ The toolbar above the tracks toggles **Select** and **Cut** tools, **Ripple** (t
 
 **Clip operations:**
 
-- **Add** — drag media from the Asset Explorer onto a track, or add a generated clip from the add menu. Images and video fit video and overlay tracks, audio fits audio tracks, and 3D models fit video and overlay tracks. A drop on an incompatible track is refused.
+- **Add** — drag media from the Asset Explorer onto a track, or add a generated clip from the add menu. Images and video fit video and overlay tracks, audio fits audio tracks, and 3D models fit video and overlay tracks. A drop on an incompatible track is refused. A drop in the second half of a clip starts at that clip's end, so the clip keeps its length. In **Overlap** mode, and in a clip's first half, the drop starts where you release it.
 - **Select** — click a clip; `Shift`/`Ctrl`-click to multi-select.
 - **Move / trim** — drag the body to move, drag the edges to trim the in/out points.
 - **Split** — position the playhead and press `S` to cut a clip in two.

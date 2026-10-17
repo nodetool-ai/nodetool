@@ -10,7 +10,8 @@ import { describe, expect, it, beforeEach } from "vitest";
 import { capabilitySpec } from "../src/capabilities/index.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { initTestDb } from "@nodetool-ai/models";
+import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
+import { initTestDb, Workflow } from "@nodetool-ai/models";
 import {
   APP_CAPABILITIES,
   module as appsModule
@@ -133,9 +134,9 @@ describe("create_app and edit_app", () => {
     })) as Record<string, unknown>;
     expect(edited.ok).toBe(true);
     expect(edited.saved).toBe(true);
-    expect(
-      (edited.operations as { id: string }[]).map((o) => o.id)
-    ).toEqual(["draft"]);
+    expect((edited.operations as { id: string }[]).map((o) => o.id)).toEqual([
+      "draft"
+    ]);
     expect((edited.components as { type: string }[])[0]?.type).toBe("Heading");
 
     // The edit is in the row, not just in the answer.
@@ -166,6 +167,202 @@ describe("create_app and edit_app", () => {
     const steps = result.steps as Record<string, unknown>[];
     expect(steps[0]?.ok).toBe(true);
     expect(String(steps[1]?.error)).toContain("No such App Builder tool");
+  });
+
+  it("rejects malformed step wrappers without saving earlier edits", async () => {
+    const created = (await asTool("create_app").process(ctx, {
+      name: "Malformed"
+    })) as Record<string, unknown>;
+    const id = String(created.application_id);
+    const result = (await asTool("edit_app").process(ctx, {
+      application_id: id,
+      steps: [
+        { tool: "declare_variable", input: { name: "accidental" } },
+        { tool: "set_title", args: { title: "Ignored" } }
+      ]
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("input");
+    const read = (await asTool("get_app").process(ctx, {
+      application_id: id
+    })) as { document: { variables: unknown[] } };
+    expect(read.document.variables).toEqual([]);
+  });
+
+  it("validates every tool argument before executing the batch", async () => {
+    const created = (await asTool("create_app").process(ctx, {
+      name: "Invalid arguments"
+    })) as Record<string, unknown>;
+    const id = String(created.application_id);
+    const result = (await asTool("edit_app").process(ctx, {
+      application_id: id,
+      steps: [
+        { tool: "declare_variable", input: { name: "accidental" } },
+        {
+          tool: "add_component",
+          input: {
+            type: "Button",
+            props: { events: [{ event: "click", action: "run" }] }
+          }
+        }
+      ]
+    })) as Record<string, unknown>;
+    expect(result.saved).toBe(false);
+    const read = (await asTool("get_app").process(ctx, {
+      application_id: id
+    })) as { document: { variables: unknown[] } };
+    expect(read.document.variables).toEqual([]);
+  });
+
+  it("persists full workflow IDs and reads bindings from legacy saved prefixes", async () => {
+    const workflow = await Workflow.create<Workflow>({
+      user_id: "user-apps",
+      name: "Echo",
+      graph: {
+        nodes: [
+          {
+            id: "input",
+            type: "nodetool.input.StringInput",
+            data: { name: "message" }
+          },
+          {
+            id: "output",
+            type: "nodetool.output.Output",
+            data: { name: "result" }
+          }
+        ],
+        edges: []
+      }
+    });
+    const created = (await asTool("create_app").process(ctx, {
+      name: "Echo",
+      from_workflow_id: workflow.id.slice(0, 12)
+    })) as Record<string, unknown>;
+    const read = (await asTool("get_app").process(ctx, {
+      application_id: String(created.application_id)
+    })) as { document: ApplicationDocument };
+    expect(read.document.operations[0]?.workflowId).toBe(workflow.id);
+
+    const legacyDocument = structuredClone(read.document);
+    legacyDocument.operations[0]!.workflowId = workflow.id.slice(0, 12);
+    const legacy = (await asTool("create_app").process(ctx, {
+      name: "Legacy Echo",
+      document: legacyDocument
+    })) as Record<string, unknown>;
+    for (const app of [created, legacy]) {
+      const result = (await asTool("edit_app").process(ctx, {
+        application_id: String(app.application_id),
+        steps: [{ tool: "get_binding_targets", input: {} }]
+      })) as {
+        steps: {
+          result: {
+            operations: {
+              inputs: { binding: string }[];
+              outputs: { binding: string }[];
+            }[];
+          };
+        }[];
+      };
+      expect(result.steps[0]?.result.operations[0]?.inputs).toEqual([
+        expect.objectContaining({ binding: "op:main/in:input" })
+      ]);
+      expect(result.steps[0]?.result.operations[0]?.outputs).toEqual([
+        expect.objectContaining({ binding: "op:main/out:output" })
+      ]);
+    }
+  });
+
+  it("loads bindings by canonical ID when workflow_ids supplies a prefix", async () => {
+    const workflow = await Workflow.create<Workflow>({
+      user_id: "user-apps",
+      name: "Echo",
+      graph: {
+        nodes: [
+          {
+            id: "input",
+            type: "nodetool.input.StringInput",
+            data: { name: "message" }
+          }
+        ],
+        edges: []
+      }
+    });
+    const created = (await asTool("create_app").process(ctx, {
+      name: "Echo"
+    })) as Record<string, unknown>;
+    const result = (await asTool("edit_app").process(ctx, {
+      application_id: String(created.application_id),
+      workflow_ids: [workflow.id.slice(0, 12)],
+      steps: [
+        {
+          tool: "add_operation",
+          input: { id: "echo", target_workflow_id: workflow.id }
+        },
+        { tool: "get_binding_targets", input: {} }
+      ]
+    })) as {
+      steps: {
+        result: {
+          operations: { ioAvailable: boolean; inputs: { binding: string }[] }[];
+        };
+      }[];
+    };
+    expect(result.steps[1]?.result.operations[0]).toMatchObject({
+      ioAvailable: true,
+      inputs: [expect.objectContaining({ binding: "op:echo/in:input" })]
+    });
+  });
+
+  it("rejects ambiguous workflow prefixes and never guesses shorter prefixes", async () => {
+    const prefix = "0123456789ab";
+    for (const suffix of ["0".repeat(20), "1".repeat(20)]) {
+      await Workflow.create<Workflow>({
+        id: prefix + suffix,
+        user_id: "user-apps",
+        name: "Echo",
+        graph: { nodes: [], edges: [] }
+      });
+    }
+    const created = (await asTool("create_app").process(ctx, {
+      name: "Bindings"
+    })) as Record<string, unknown>;
+    const id = String(created.application_id);
+    await expect(
+      asTool("edit_app").process(ctx, {
+        application_id: id,
+        workflow_ids: [prefix],
+        steps: []
+      })
+    ).rejects.toThrow("matches more than one");
+    const result = (await asTool("edit_app").process(ctx, {
+      application_id: id,
+      workflow_ids: [prefix.slice(0, 11)],
+      steps: [
+        {
+          tool: "add_operation",
+          input: { id: "echo", target_workflow_id: prefix.slice(0, 11) }
+        },
+        { tool: "get_binding_targets", input: {} }
+      ]
+    })) as { steps: { result: { operations: { ioAvailable: boolean }[] } }[] };
+    expect(result.steps[1]?.result.operations[0]?.ioAvailable).toBe(false);
+  });
+
+  it("reports tool-declared failures while saving successful steps", async () => {
+    const created = (await asTool("create_app").process(ctx, {
+      name: "Partial"
+    })) as Record<string, unknown>;
+    const result = (await asTool("edit_app").process(ctx, {
+      application_id: String(created.application_id),
+      steps: [
+        { tool: "add_component", input: { type: "Heading" } },
+        {
+          tool: "update_component",
+          input: { id: "missing", props: { text: "fail" } }
+        }
+      ]
+    })) as { ok: boolean; saved: boolean; steps: { ok: boolean }[] };
+    expect(result).toMatchObject({ ok: false, saved: true });
+    expect(result.steps.map((step) => step.ok)).toEqual([true, false]);
   });
 
   it("answers with the tool catalog when given no steps", async () => {
@@ -224,7 +421,9 @@ describe("apps capabilities against the run", () => {
 describe("spec text the shipped skills rely on", () => {
   it("debug_app does not send an agent to poll an HTTP route", () => {
     const description = capabilitySpec("debug_app")?.description ?? "";
-    expect(description).not.toMatch(/read GET \/api\/debug\/sessions\/<id> until/);
+    expect(description).not.toMatch(
+      /read GET \/api\/debug\/sessions\/<id> until/
+    );
     expect(description).toContain("`timeout_ms`");
   });
 });

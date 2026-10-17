@@ -30,6 +30,12 @@ it.each(["success", "import", "integrity"] as const)("initial global npm bootstr
   const request = { ...f.request, catalog, mode: { ...f.request.mode, kind: "global" as const, cliRoot: root, installRoot: root, nodeModulesRoot: join(root, "node_modules") } };
   const before = await readInstallTree(root, true);
   expect(before.missingLock).toBe(true);
+  const unverified = await (await createPackCommandServices({ snapshot: readInstalledPacks(request.mode, catalog),
+    catalog, stateFile: request.stateFile, operations: f.operations })).doctor({});
+  expect(unverified).toMatchObject({ healthy: false, issues: [expect.objectContaining({
+    kind: "unverified_global_install", message: expect.stringContaining("nodetool packs doctor --repair")
+  })] });
+
   const authorization = await authorizePackInstallCommand({ request, command: "packs-add" });
   const selection = await prepareInstallSelection(request);
   expect(selection.bootstrap?.map(pin => pin.name).sort()).toEqual([core.name, shared.name].sort());

@@ -196,6 +196,18 @@ export const SHIPPED_SYSTEM_SKILLS_SOURCE_DIR = "packages/system-skills";
 /** The staged copy's directory name, relative to the bundled `server.mjs`. */
 export const SHIPPED_SYSTEM_SKILLS_BUNDLE_DIR = "_skills";
 
+/** Data staged into npm workspace dist directories after TypeScript compilation. */
+export const NPM_RUNTIME_RESOURCE_DIRS: readonly {
+  readonly pkg: string;
+  readonly sourceDir: string;
+  readonly distDir: string;
+}[] = [
+  { pkg: "@nodetool-ai/agents", sourceDir: SHIPPED_SYSTEM_SKILLS_SOURCE_DIR, distDir: SHIPPED_SYSTEM_SKILLS_BUNDLE_DIR },
+  { pkg: "@nodetool-ai/node-sdk", sourceDir: SHIPPED_SANDBOX_PACKS_SOURCE_DIR, distDir: SHIPPED_SANDBOX_PACKS_BUNDLE_DIR },
+  { pkg: "@nodetool-ai/timeline", sourceDir: "packages/base-nodes/nodetool/examples/timelines", distDir: "examples/timelines" },
+  { pkg: "@nodetool-ai/websocket", sourceDir: "packages/base-nodes/nodetool/examples/nodetool-base", distDir: "examples/nodetool-base" }
+];
+
 /** Registry lookup by exact pkg + path. */
 export function findPackageAsset(
   pkg: string,

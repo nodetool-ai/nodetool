@@ -45,6 +45,20 @@ describe("jsScriptDocument schema", () => {
     expect(jsScriptDocument.parse(parsed)).toEqual(parsed);
   });
 
+  it("rejects unknown test expectation fields instead of dropping assertions", () => {
+    const input = {
+      schemaVersion: 1,
+      tests: [{ name: "wrong total", inputs: {}, expected: { total: 999 } }]
+    };
+    expect(jsScriptDocument.safeParse(input).success).toBe(false);
+    expect(validateJsScriptDocument(input)).toEqual([
+      expect.objectContaining({
+        code: "js_script_schema",
+        message: expect.stringMatching(/tests.0.*expected.*expect/)
+      })
+    ]);
+  });
+
   it("rejects staged items that are not an array", () => {
     expect(
       jsScriptDocument.safeParse({

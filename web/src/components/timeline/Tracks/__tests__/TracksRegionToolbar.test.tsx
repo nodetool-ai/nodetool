@@ -90,7 +90,7 @@ describe("TracksRegion empty-sequence hint", () => {
 
     const hint = screen.getByTestId("tracks-empty-hint");
     expect(hint).toHaveTextContent(
-      "Drag media here from Assets, or add a track to start."
+      "Drag media here from the Library, or add a track to start."
     );
     expect(getComputedStyle(hint).pointerEvents).toBe("none");
 

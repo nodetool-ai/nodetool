@@ -124,7 +124,10 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
         try { npmVersion = await (operations?.npmVersion ?? installerNpmVersion)(root); }
         catch (error) { issues.push({ kind: "npm", message: error instanceof Error ? error.message : String(error) }); }
         try {
-          const installed = await tree();
+          const { packages: installed, missingLock } = await readInstallTree(root, snapshot.mode.kind === "global");
+          if (missingLock) {
+            issues.push({ kind: "unverified_global_install", message: "This global npm installation has no integrity records yet. Run nodetool packs doctor --repair to authorize verification and establish the pinned baseline." });
+          }
           const admitted = new Set(snapshot.packs.map(pack => pack.npm));
           const packs = catalog.packs.filter(pack => admitted.has(pack.npm.name));
           const byFolder = new Map((catalog.installPins ?? []).map(pin => [pin.installName ?? pin.name, pin]));
@@ -141,7 +144,9 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
           const pins = [...packs.map(pack => pack.npm), ...packs.flatMap(pack => pack.provides.map(requiredPin)),
             ...packs.flatMap(pack => pack.scriptAllowlist), ...runtimePins, ...(catalog.installPins ?? []).filter(pin => pin.shared)];
           const coreNames = new Set(catalog.packs.filter(pack => pack.kind === "core").map(pack => pack.npm.name));
-          assertTreePins(installed, installed, pins, coreNames, catalog.coreVersion);
+          if (!missingLock) {
+            assertTreePins(installed, installed, pins, coreNames, catalog.coreVersion);
+          }
           await assertSharedIdentities(installed, (catalog.installPins ?? []).filter(pin => pin.shared));
         } catch (error) { issues.push({ kind: "integrity", message: error instanceof Error ? error.message : String(error) }); }
         if (options.installed || options.pack?.length) {

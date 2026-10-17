@@ -39,6 +39,7 @@ jobs:
     timeout-minutes: 45
     outputs:
       head: ${{ steps.plan.outputs.head }}
+      matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -67,11 +68,11 @@ jobs:
   mutate-changed:
     needs: plan
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     strategy:
       fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+      max-parallel: 32
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -138,20 +139,20 @@ jobs:
 
       - name: Mutate every assigned changed-function site
         env:
-          SHARD: ${{ matrix.shard }}
-        run: node scripts/mutation-ci.mjs run .metrics/mutation-ci/plan.json "$SHARD/8" ".metrics/mutation-ci/shard-$SHARD"
+          PARTITION: ${{ matrix.partition }}
+        run: node scripts/mutation-ci.mjs run .metrics/mutation-ci/plan.json "$PARTITION" ".metrics/mutation-ci/partition-$PARTITION"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: mutation-evidence-shard-${{ matrix.shard }}-attempt-${{ github.run_attempt }}
-          path: .metrics/mutation-ci/shard-${{ matrix.shard }}
+          name: mutation-evidence-partition-${{ matrix.partition }}-attempt-${{ github.run_attempt }}
+          path: .metrics/mutation-ci/partition-${{ matrix.partition }}
           include-hidden-files: true
           if-no-files-found: error
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: mutation-result-shard-${{ matrix.shard }}
-          path: .metrics/mutation-ci/shard-${{ matrix.shard }}
+          name: mutation-result-partition-${{ matrix.partition }}
+          path: .metrics/mutation-ci/partition-${{ matrix.partition }}
           include-hidden-files: true
           if-no-files-found: error
           overwrite: true
@@ -162,7 +163,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Require every shard to finish
+      - name: Require every partition to finish
         env:
           PLAN: ${{ needs.plan.result }}
           MUTATIONS: ${{ needs.mutate-changed.result }}
@@ -179,16 +180,9 @@ jobs:
           path: .metrics/mutation-ci
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: mutation-result-shard-*
+          pattern: mutation-result-partition-*
           path: .metrics/mutation-ci/results
       - name: Verify the exact union and report survivors
         run: >-
           node scripts/mutation-ci.mjs aggregate .metrics/mutation-ci/plan.json
-          .metrics/mutation-ci/results/mutation-result-shard-1
-          .metrics/mutation-ci/results/mutation-result-shard-2
-          .metrics/mutation-ci/results/mutation-result-shard-3
-          .metrics/mutation-ci/results/mutation-result-shard-4
-          .metrics/mutation-ci/results/mutation-result-shard-5
-          .metrics/mutation-ci/results/mutation-result-shard-6
-          .metrics/mutation-ci/results/mutation-result-shard-7
-          .metrics/mutation-ci/results/mutation-result-shard-8
+          .metrics/mutation-ci/results

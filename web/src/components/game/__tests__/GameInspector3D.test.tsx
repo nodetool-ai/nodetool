@@ -223,8 +223,8 @@ describe("3D inspector removal", () => {
     const changed = jest.fn();
     render(<Fixture onDocument={changed} entityId={null} />);
     expect(screen.getByRole("button", { name: "Environment" })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("button", { name: /^Fog/ })).toHaveAttribute("aria-expanded", "true");
-    await user.click(screen.getByRole("button", { name: "Remove Fog" }));
+    await user.click(screen.getByRole("combobox", { name: "Fog mode" }));
+    await user.click(screen.getByRole("option", { name: "None" }));
     expect(changed.mock.lastCall?.[0].scenes[0].environment.fog).toBeUndefined();
   });
 });

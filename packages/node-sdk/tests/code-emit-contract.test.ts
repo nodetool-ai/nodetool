@@ -223,3 +223,22 @@ describe("validateCodeNodeBody — legacy bodies are unchanged", () => {
     ).toEqual([]);
   });
 });
+
+
+describe("validateCodeNodeBody — scripts require emit/output", () => {
+  it("checks declared handles without recommending the legacy return contract", () => {
+    const issues = validateCodeNodeBody({
+      ...body('console.log("hello");', [], ["out"]),
+      outputContract: "emit"
+    });
+    expect(issues.map((issue) => issue.code)).toEqual(["code_missing_output"]);
+    expect(issues[0]?.message).toContain('await output("out", value)');
+  });
+
+  it("allows a script with no declared outputs to finish without returning", () => {
+    expect(validateCodeNodeBody({
+      ...body('console.log("hello");', [], []),
+      outputContract: "emit"
+    })).toEqual([]);
+  });
+});

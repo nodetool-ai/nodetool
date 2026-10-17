@@ -2,17 +2,19 @@
 layout: page
 title: "Guided Creation Flows"
 permalink: /guided-flows
-description: "Start an image, workflow, entity, storyboard, video, script, or game from a short guided sequence of steps."
+description: "Start an image, workflow, app, entity, storyboard, video, script, or game from a short guided sequence of steps."
 ---
 
 A guided flow is a short sequence of steps that ends in a document you keep editing. You describe what you want, review what NodeTool proposes, and only then does it spend model credits. The flow saves its progress on the document it creates, so a reload or a second window resumes at the same step.
 
-There are seven flows.
+There are nine flows.
 
 | Flow | What it makes | Steps |
 |------|---------------|-------|
 | [Image](#image) | A sketch with variations to pick from | Idea, Brief, Look |
 | [Workflow](#workflow) | A graph, checked and run once | Idea, Plan, Build |
+| [App](#app) | A mini app with the workflow behind its button, test-run | Idea |
+| Read aloud | A chat whose composer speaks the next line | Opens the chat |
 | [Entity](#entity) | A reusable character, location, style, or prop | Details, Reference, Review |
 | [Storyboard](#storyboard-video-and-script) | A rendered board of shots | See [AI Video Production](ai-video-production.md) |
 | [Video](#storyboard-video-and-script) | A cut on the timeline, no board | See [AI Video Production](ai-video-production.md) |
@@ -23,9 +25,11 @@ There are seven flows.
 
 ## Start a flow
 
-**From the new-project screen.** The screen has a **Start with a guided flow** section. It shows the **Storyboard**, **Image**, and **Workflow** cards. Choose **More formats** to also show **Entity**, **Video**, **Script**, and **Game**. **Fewer formats** hides them again. Text typed in the prompt box is not sent to a flow unless you click its card, and the Image card uses it as the first brief.
+**From the new-project screen.** The screen has a **Start with a guided flow** section. It shows the **Storyboard**, **Read aloud**, **Image**, **Workflow**, **Game**, and **App** cards. Choose **More formats** to also show **Entity**, **Video**, and **Script**. **Fewer formats** hides them again. Text typed in the prompt box is not sent to a flow unless you click its card, and the Image card uses it as the first brief.
 
-**From the tab bar.** The **+ New** menu lists the same flows in its first section. The menu names the Video card **Timeline** and the Image card **Sketch**. Each choice creates an untitled document in the selected project and opens it as a tab. A failed start shows the notification "Could not start the guided flow".
+**From the tab bar.** The **+ New** menu lists the same flows in its first section. The menu names the Video card **Timeline** and the Image card **Sketch**. Each choice creates an untitled document in the selected project and opens it as a tab, except **App**, which opens its flow and creates the app only when the build succeeds. A failed start shows the notification "Could not start the guided flow".
+
+**From the Games examples.** The **Games** tab under the flows has **Make a game**, which starts the Game flow.
 
 **From Studio.** The Studio home offers only **Storyboard**, **Video**, and **Script**.
 
@@ -184,6 +188,12 @@ These flows build video material. [AI Video Production](ai-video-production.md) 
 - **Storyboard** takes a sentence to a rendered board in four steps. You review the screenplay, assign entities, choose the look, then render stills and clips.
 - **Video** takes a sentence to a cut on the timeline with no board. Each beat stays a separate clip.
 - **Script** takes a topic to voiced lines. You write or import the script, add production context, assign speakers and voices, and can create a linked storyboard from it.
+
+## App
+
+The App flow makes a mini app that runs: the screen, and the workflow behind its button. Describe the page in one or two sentences, such as "A page where I type a product name, press a button, and get a short description back". Say what someone types or picks, what the button does, and what they get back. **Model** in the footer picks the language model that builds it.
+
+**Build your app** writes the app's plan, builds the screen and its workflows, and test-runs them together. A build that passes is installed in the selected project and opens in the App Builder, with its workflows listed under **Linked workflows**. A build that fails shows why on the step and installs nothing. **Try again** reruns it. Building calls the model several times, so it costs more than one chat reply. The [mini app build harness](mini-app-build-harness-design.md) describes the stages.
 
 ## Game
 

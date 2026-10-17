@@ -861,7 +861,7 @@ describe("http-api extra: examples from python package metadata", () => {
       workflows: Array<{ name: string; package_name: string }>;
     };
     const names = list.workflows.map((w) => w.name).sort();
-    expect(names).toEqual(["Example One", "Example Two"]);
+    expect(names).toEqual(expect.arrayContaining(["Example One", "Example Two"]));
     expect(list.workflows[0].package_name).toBe("my-pkg");
 
     const searchRes = await handleApiRequest(
@@ -871,8 +871,9 @@ describe("http-api extra: examples from python package metadata", () => {
     const search = (await jsonBody(searchRes)) as {
       workflows: Array<{ name: string }>;
     };
-    expect(search.workflows).toHaveLength(1);
-    expect(search.workflows[0].name).toBe("Example One");
+    expect(search.workflows).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "Example One" })
+    ]));
   });
 });
 

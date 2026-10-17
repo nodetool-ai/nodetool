@@ -132,8 +132,13 @@ describe("deriveExampleAssetsDir — branches", () => {
 });
 
 describe("defaultExamplePackageName", () => {
-  it("returns null when no examplesDir is configured", () => {
-    expect(defaultExamplePackageName({})).toBeNull();
+  it("uses the shipped examples when no examplesDir is configured", () => {
+    const packageName = defaultExamplePackageName({});
+    expect(packageName).toBe("nodetool-base");
+    expect(loadExampleGraph(packageName ?? "", "Blur an Image")).toMatchObject({
+      name: "Blur an Image",
+      graph: { nodes: expect.any(Array), edges: expect.any(Array) }
+    });
   });
 
   it("returns null when the configured examplesDir does not exist", () => {

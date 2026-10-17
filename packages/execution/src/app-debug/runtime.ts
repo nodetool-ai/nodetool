@@ -54,6 +54,9 @@ export interface HeadlessRunResult {
   messages: ReadonlyArray<Record<string, unknown>>;
   /** Index into the harness's `runs` array. */
   runIndex: number;
+  /** Authoritative runner outcome when startup fails before terminal messages. */
+  ok?: boolean;
+  error?: string | null;
 }
 
 export interface HeadlessOperationInit {
@@ -861,11 +864,21 @@ export class HeadlessAppRuntime {
     });
     this.recordActivity(record, events);
     this.state = applyEvents(this.state, events);
+    if (outcome.ok === false) {
+      this.state = applyEvent(this.state, {
+        type: "invocationError",
+        invocationId: invocation.id,
+        error:
+          outcome.error ??
+          this.state.invocations[invocation.id]?.error ??
+          "Operation failed."
+      });
+    }
     this.state = applyEvent(this.state, {
       type: "invocationStatus",
       invocationId: invocation.id,
       status:
-        this.state.invocations[invocation.id]?.status === "failed"
+        outcome.ok === false || this.state.invocations[invocation.id]?.status === "failed"
           ? "failed"
           : "completed"
     });

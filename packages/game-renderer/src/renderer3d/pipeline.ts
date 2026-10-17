@@ -3,6 +3,7 @@ import { GameRenderPipeline } from "../renderPipeline.js";
 import type { GamePostProcessor3D } from "./passes/post-processing.js";
 
 export interface RenderContext3D {
+  readonly interpolation?: number;
   readonly renderer: THREE.WebGLRenderer;
   readonly scene: THREE.Scene;
   readonly camera: THREE.Camera;
