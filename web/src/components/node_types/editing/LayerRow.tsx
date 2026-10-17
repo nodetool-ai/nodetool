@@ -28,10 +28,6 @@ import {
   type CompositorBlendMode,
   type CompositorLayerState
 } from "./CompositorBody";
-import {
-  type ImageRefLike,
-  useImageUrl
-} from "./CompositorBody.helpers";
 
 const styles = (theme: Theme) =>
   css({
@@ -110,7 +106,8 @@ export interface LayerRowProps {
   /** The `image_N` dynamic-property key this row binds to. */
   propertyKey: string;
   state: CompositorLayerState;
-  image?: ImageRefLike;
+  /** Resolved thumbnail URL (`useImageUrls`), if the input is wired. */
+  imageUrl?: string;
   onOpacityChange: (index: number, value: number) => void;
   onOpacityComplete: () => void;
   onBlendChange: (index: number, value: CompositorBlendMode) => void;
@@ -122,7 +119,7 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
   index,
   propertyKey,
   state,
-  image,
+  imageUrl,
   onOpacityChange,
   onOpacityComplete,
   onBlendChange,
@@ -131,7 +128,6 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
 }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
-  const thumbnail = useImageUrl(image);
 
   const handleOpacity = useCallback(
     (_: React.ChangeEvent<HTMLInputElement> | null, value: number) =>
@@ -158,8 +154,8 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
       data-layer-key={propertyKey}
     >
       <div className="thumb" aria-label={`Layer ${index + 1} thumbnail`}>
-        {thumbnail ? (
-          <img src={thumbnail} alt="" />
+        {imageUrl ? (
+          <img src={imageUrl} alt="" />
         ) : (
           <ImageIcon fontSize="small" />
         )}
@@ -186,7 +182,7 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
 
       <div className="blend">
         <SelectField
-          label=""
+          label={`Layer ${index + 1} blend mode`}
           hideLabel
           value={state.blend_mode}
           onChange={handleBlend}

@@ -8,11 +8,13 @@
  * blits to the canvas (premultiplied-alpha, matching the shader output).
  *
  * The host owns the canvas; this hook owns the device, the compositor, and the
- * per-layer texture cache. WebGPU is required — there is no CPU fallback;
- * `status` reports `unavailable` so the host can surface a message.
+ * per-layer texture cache. Without a WebGPU adapter the same stack is drawn
+ * with Canvas2D (`globalCompositeOperation` per blend mode) and `status`
+ * reports `fallback`, so the layers stay visible in every browser.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BLEND_MODE_INFOS } from "@nodetool-ai/gpu";
 import {
   WebGPULayerCompositor,
   defaultLayerTransform,
@@ -32,9 +34,19 @@ export interface PreviewLayer {
   transform?: LayerTransform2D;
 }
 
-export type PreviewStatus = "pending" | "ready" | "unavailable";
+export type PreviewStatus = "pending" | "ready" | "fallback";
 
 const PREVIEW_FORMAT: GPUTextureFormat = "rgba8unorm";
+
+const CANVAS_OP_BY_GPU_ID = new Map<number, GlobalCompositeOperation>(
+  BLEND_MODE_INFOS.map((info) => [
+    info.gpuId,
+    info.canvasOp as GlobalCompositeOperation
+  ])
+);
+
+const canvasOpForGpuId = (id: number): GlobalCompositeOperation =>
+  CANVAS_OP_BY_GPU_ID.get(id) ?? "source-over";
 
 let sharedDevicePromise: Promise<GPUDevice | null> | null = null;
 
@@ -56,6 +68,47 @@ async function acquireDevice(): Promise<GPUDevice | null> {
     });
   }
   return sharedDevicePromise;
+}
+
+/**
+ * Upload a decoded bitmap into `texture`. `copyExternalImageToTexture` can
+ * refuse a bitmap ("Failed to copy content from external image") — seen with
+ * Chromium's software adapter — so fall back to reading the pixels through a
+ * 2D canvas and `writeTexture`. Both paths upload straight (unpremultiplied)
+ * alpha. Returns false when neither path could read the bitmap.
+ */
+function uploadBitmap(
+  device: GPUDevice,
+  bitmap: ImageBitmap,
+  texture: GPUTexture
+): boolean {
+  const { width, height } = bitmap;
+  try {
+    device.queue.copyExternalImageToTexture(
+      { source: bitmap },
+      { texture },
+      { width, height }
+    );
+    return true;
+  } catch {
+    // Fall through to the CPU readback below.
+  }
+  try {
+    const canvas = new OffscreenCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return false;
+    ctx.drawImage(bitmap, 0, 0);
+    const pixels = ctx.getImageData(0, 0, width, height).data;
+    device.queue.writeTexture(
+      { texture },
+      pixels,
+      { bytesPerRow: width * 4, rowsPerImage: height },
+      { width, height }
+    );
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 interface CachedTexture {
@@ -93,7 +146,7 @@ export function useWebGPUPreview(
     acquireDevice().then((device) => {
       if (cancelled) return;
       if (!device) {
-        setStatus("unavailable");
+        setStatus("fallback");
         return;
       }
       deviceRef.current = device;
@@ -127,11 +180,10 @@ export function useWebGPUPreview(
           GPUTextureUsage.COPY_DST |
           GPUTextureUsage.RENDER_ATTACHMENT
       });
-      device.queue.copyExternalImageToTexture(
-        { source: layer.bitmap },
-        { texture },
-        { width: layer.width, height: layer.height }
-      );
+      if (!uploadBitmap(device, layer.bitmap, texture)) {
+        texture.destroy();
+        return null;
+      }
       cache.set(layer.id, {
         texture,
         bitmap: layer.bitmap,
@@ -143,7 +195,45 @@ export function useWebGPUPreview(
     []
   );
 
+  const render2d = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const { canvasWidth: w, canvasHeight: h, layers: ls } = latest.current;
+    const width = Math.max(1, Math.floor(w));
+    const height = Math.max(1, Math.floor(h));
+    if (canvas.width !== width) canvas.width = width;
+    if (canvas.height !== height) canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.clearRect(0, 0, width, height);
+    for (const layer of ls) {
+      if (!layer.visible || layer.opacity <= 0 || !layer.bitmap) continue;
+      const t =
+        layer.transform ??
+        defaultLayerTransform(layer.width, layer.height, width, height);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = layer.opacity;
+      ctx.globalCompositeOperation = canvasOpForGpuId(layer.blendModeId);
+      // Same forward map as `layerTransformToInverseAffine`:
+      // canvas = R·S·(texel − center) + (x, y).
+      ctx.translate(t.x, t.y);
+      ctx.rotate(t.rotation);
+      ctx.scale(t.scaleX, t.scaleY);
+      ctx.drawImage(layer.bitmap, -layer.width / 2, -layer.height / 2);
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+  }, [canvasRef]);
+
   const render = useCallback(() => {
+    if (status === "fallback") {
+      render2d();
+      return;
+    }
     const device = deviceRef.current;
     const compositor = compositorRef.current;
     const canvas = canvasRef.current;
@@ -220,11 +310,11 @@ export function useWebGPUPreview(
 
     compositor.blit(encoder, read, context.getCurrentTexture().createView());
     device.queue.submit([encoder.finish()]);
-  }, [canvasRef, getOrUploadTexture]);
+  }, [canvasRef, getOrUploadTexture, status, render2d]);
 
   // Re-render whenever the inputs or readiness change.
   useEffect(() => {
-    if (status === "ready") render();
+    if (status !== "pending") render();
   }, [status, canvasWidth, canvasHeight, layers, render]);
 
   // Drop textures for layers that no longer exist.
