@@ -1,7 +1,9 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { act, cleanup, render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { CloseButton } from "../CloseButton";
 import mockTheme from "../../../__mocks__/themeMock";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 describe("CloseButton", () => {
   const mockOnClick = jest.fn();
@@ -188,25 +190,49 @@ describe("CloseButton", () => {
     expect(screen.getByRole("button")).toHaveClass("MuiIconButton-sizeLarge");
   });
 
-  it("shows the default tooltip on hover", async () => {
-    render(
-      <ThemeProvider theme={mockTheme}>
-        <CloseButton onClick={mockOnClick} />
-      </ThemeProvider>
-    );
+  describe("tooltips", () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
 
-    fireEvent.mouseOver(screen.getByRole("button"));
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("Close");
-  });
+    afterEach(() => {
+      cleanup();
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+    });
 
-  it("renders custom tooltip text", async () => {
-    render(
-      <ThemeProvider theme={mockTheme}>
-        <CloseButton onClick={mockOnClick} tooltip="Cancel" />
-      </ThemeProvider>
-    );
+    it("shows the default tooltip on hover", async () => {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      render(
+        <ThemeProvider theme={mockTheme}>
+          <CloseButton onClick={mockOnClick} />
+        </ThemeProvider>
+      );
 
-    fireEvent.mouseOver(screen.getByRole("button"));
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("Cancel");
+      await user.hover(screen.getByRole("button"));
+      await act(async () => {
+        jest.advanceTimersByTime(TOOLTIP_ENTER_DELAY);
+      });
+      const tooltip = screen.getByRole("tooltip");
+      expect(tooltip).toBeVisible();
+      expect(tooltip).toHaveTextContent(/^Close$/);
+    });
+
+    it("renders custom tooltip text", async () => {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      render(
+        <ThemeProvider theme={mockTheme}>
+          <CloseButton onClick={mockOnClick} tooltip="Cancel" />
+        </ThemeProvider>
+      );
+
+      await user.hover(screen.getByRole("button"));
+      await act(async () => {
+        jest.advanceTimersByTime(TOOLTIP_ENTER_DELAY);
+      });
+      const tooltip = screen.getByRole("tooltip");
+      expect(tooltip).toBeVisible();
+      expect(tooltip).toHaveTextContent(/^Cancel$/);
+    });
   });
 });
