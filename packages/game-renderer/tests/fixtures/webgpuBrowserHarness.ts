@@ -43,14 +43,25 @@ function observeDevice(device: GPUDevice): {
   readonly submitCount: () => number;
   readonly disposed: () => boolean;
   suppressDestroy(id: number): void;
+  failNextImageCopy(): void;
 } {
   const allocations: NativeTextureAllocation[] = [];
   const suppressed = new Set<number>();
   let submits = 0;
   let disposed = false;
+  let failImageCopy = false;
   const queue = new Proxy(device.queue, { get(target, key) {
     if (key === "submit") {
       return (commands: Iterable<GPUCommandBuffer>): void => { target.submit(commands); submits++; };
+    }
+    if (key === "copyExternalImageToTexture") {
+      return (...args: Parameters<GPUQueue["copyExternalImageToTexture"]>): void => {
+        if (failImageCopy) {
+          failImageCopy = false;
+          throw new Error("Injected external image copy failure");
+        }
+        target.copyExternalImageToTexture(...args);
+      };
     }
     const value: unknown = Reflect.get(target, key, target);
     return typeof value === "function" ? value.bind(target) : value;
@@ -87,7 +98,7 @@ function observeDevice(device: GPUDevice): {
     return typeof value === "function" ? value.bind(target) : value;
   } });
   return { device: observed, allocations, submitCount: () => submits, disposed: () => disposed,
-    suppressDestroy: (id) => { suppressed.add(id); } };
+    suppressDestroy: (id) => { suppressed.add(id); }, failNextImageCopy: () => { failImageCopy = true; } };
 }
 
 export async function createGpu(resolve: (assetId: string) => Promise<GameImage | null>): Promise<{
@@ -97,6 +108,7 @@ export async function createGpu(resolve: (assetId: string) => Promise<GameImage 
   readonly allocations: NativeTextureAllocation[];
   submitCount(): number;
   suppressDestroy(id: number): void;
+  failNextImageCopy(): void;
   settleValidation(): Promise<void>;
   dispose(): void;
 }> {
@@ -128,6 +140,7 @@ export async function createGpu(resolve: (assetId: string) => Promise<GameImage 
   return {
     renderer, validationErrors, allocations: observed.allocations,
     submitCount: observed.submitCount, suppressDestroy: observed.suppressDestroy,
+    failNextImageCopy: observed.failNextImageCopy,
     async settleValidation() {
       if (!observed.disposed()) { await device.queue.onSubmittedWorkDone(); }
       await new Promise<void>((resolve) => { setTimeout(resolve, 0); });
