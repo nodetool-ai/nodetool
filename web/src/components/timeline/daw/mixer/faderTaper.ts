@@ -89,13 +89,16 @@ export function panValueText(pan: number): string {
   return `${amount}% ${pan < 0 ? "left" : "right"}`;
 }
 
-/** The scale printed beside every fader and meter. */
+/**
+ * The scale printed beside every fader and meter, in priority order: a short
+ * fader hides the later labels first.
+ */
 export const FADER_MARKS: readonly FaderMark[] = [
-  { value: 6, label: "+6" },
   { value: 0, label: "0" },
-  { value: -6, label: "-6" },
+  { value: FADER_MIN_DB, label: "∞" },
   { value: -12, label: "-12" },
+  { value: 6, label: "+6" },
   { value: -24, label: "-24" },
   { value: -48, label: "-48" },
-  { value: FADER_MIN_DB, label: "∞" }
+  { value: -6, label: "-6" }
 ];

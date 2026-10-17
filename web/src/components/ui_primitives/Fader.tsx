@@ -11,11 +11,13 @@
  * - Arrow keys move 1% of the travel (Shift 0.1%), Page Up/Down 10%,
  *   Home/End the ends. Double-click or Delete resets to `defaultValue`.
  * - `marks` draws a scale beside the track; the same mapping places them.
+ *   When the fader is too short for every label, earlier marks win and the
+ *   later labels that would overlap them are hidden (their ticks stay).
  * - `onChangeStart`/`onChangeEnd` bracket one gesture, for one undo entry.
  * - The fader fills its parent's height; give the parent one.
  */
 
-import React, { memo, useCallback, useMemo, useRef } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -56,6 +58,8 @@ const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
 const CAP_HEIGHT = CONTROL.height.xs - 4;
 const CAP_WIDTH = CONTROL.height.sm;
 const TRACK_WIDTH = 4;
+/** Closest two scale labels may sit, in px (one caption line). */
+const MARK_LABEL_GAP = 12;
 
 const faderStyles = (theme: Theme, disabled: boolean) =>
   css({
@@ -154,6 +158,17 @@ export const Fader = memo(function Fader({
   const theme = useTheme();
   const slotRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ grabOffset: number } | null>(null);
+  const [travelPx, setTravelPx] = useState(0);
+
+  useEffect(() => {
+    const slot = slotRef.current;
+    if (!slot || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(() => {
+      setTravelPx(Math.max(0, slot.clientHeight - CAP_HEIGHT));
+    });
+    observer.observe(slot);
+    return () => observer.disconnect();
+  }, []);
 
   const posOf = useCallback(
     (v: number) =>
@@ -291,12 +306,23 @@ export const Fader = memo(function Fader({
   const position = posOf(value);
   const capBottom = `calc(${position} * (100% - ${CAP_HEIGHT}px))`;
   const markBottom = (v: number): string => `${posOf(v) * 100}%`;
+  const labelledMarks = useMemo(() => {
+    if (!marks || travelPx <= 0) return marks ?? [];
+    const kept: FaderMark[] = [];
+    for (const mark of marks) {
+      const y = posOf(mark.value) * travelPx;
+      if (kept.every((k) => Math.abs(posOf(k.value) * travelPx - y) >= MARK_LABEL_GAP)) {
+        kept.push(mark);
+      }
+    }
+    return kept;
+  }, [marks, travelPx, posOf]);
 
   return (
     <div css={styles} className={className}>
       {marks && marks.length > 0 && (
         <div className="fader__scale" aria-hidden="true">
-          {marks.map((mark) => (
+          {labelledMarks.map((mark) => (
             <span key={mark.value} className="fader__mark" style={{ bottom: markBottom(mark.value) }}>
               {mark.label}
             </span>
