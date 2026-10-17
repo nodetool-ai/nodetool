@@ -91,6 +91,11 @@ export interface ToolbarIconButtonProps
    */
   ariaLabel?: string;
   /**
+   * Why the button is disabled. Replaces the tooltip while `disabled` is set,
+   * so the user learns what to do instead of seeing nothing.
+   */
+  disabledReason?: React.ReactNode;
+  /**
    * Render as an anchor element. When provided, `href`, `target`, and `rel` are forwarded.
    */
   component?: React.ElementType;
@@ -124,6 +129,8 @@ export const ToolbarIconButton = memo(
         sx,
         tabIndex = 0,
         ariaLabel,
+        disabledReason,
+        disabled,
         ...props
       },
       ref
@@ -161,41 +168,51 @@ export const ToolbarIconButton = memo(
         }
       }, [variant, theme]);
 
-      const tooltipContent = tooltipWithShortcut(resolvedTooltip, shortcut);
+      const tooltipContent =
+        disabled && disabledReason
+          ? disabledReason
+          : tooltipWithShortcut(resolvedTooltip, shortcut);
 
       const label = ariaLabel || (isString(resolvedTooltip) ? resolvedTooltip : undefined);
 
+      const button = (
+        <IconButton
+          ref={ref}
+          aria-label={label}
+          className={cn(
+            "toolbar-icon-button",
+            nodrag && editorClassNames.nodrag,
+            active && "active",
+            className
+          )}
+          size={size}
+          tabIndex={tabIndex}
+          disabled={disabled}
+          sx={{
+            ...variantStyles,
+            ...(active && {
+              backgroundColor: theme.vars.palette.grey[800],
+              color: "var(--palette-primary-main)"
+            }),
+            ...sx
+          }}
+          {...props}
+        >
+          {resolvedIcon}
+        </IconButton>
+      );
+
+      // A disabled button fires no hover events, so a span receives them instead.
       return (
         <Tooltip
           title={tooltipContent}
-          // A node title would otherwise rename the button to "Undo Ctrl + Z" while the tooltip is open.
-          describeChild={Boolean(label) && !isString(tooltipContent)}
+          // A node title would otherwise rename the button to "Undo Ctrl + Z" while the tooltip
+          // is open, and the span around a disabled button would take the tooltip as its name.
+          describeChild={Boolean(label) && (disabled || !isString(tooltipContent))}
           enterDelay={delay ?? TOOLTIP_ENTER_DELAY}
           placement={tooltipPlacement}
         >
-          <IconButton
-            ref={ref}
-            aria-label={label}
-            className={cn(
-              "toolbar-icon-button",
-              nodrag && editorClassNames.nodrag,
-              active && "active",
-              className
-            )}
-            size={size}
-            tabIndex={tabIndex}
-            sx={{
-              ...variantStyles,
-              ...(active && {
-                backgroundColor: theme.vars.palette.grey[800],
-                color: "var(--palette-primary-main)"
-              }),
-              ...sx
-            }}
-            {...props}
-          >
-            {resolvedIcon}
-          </IconButton>
+          {disabled ? <span style={{ display: "inline-flex" }}>{button}</span> : button}
         </Tooltip>
       );
     }

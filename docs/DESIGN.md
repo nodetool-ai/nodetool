@@ -591,7 +591,7 @@ easing). Use the matching `--motion-*` custom property instead —
 
 ### Enforcement (motion is fully linted at `error`)
 
-In TSX, `design-tokens/motion-tokens` flags any object-literal `transition` / `animation` / `transitionDuration` / `transitionDelay` / `animationDuration` / `animationDelay` whose value carries a non-zero `s`/`ms` timing, and any raw `transition` / `animation` timing inside `styled` / `css` template-literal CSS. In plain `.css`, `web/scripts/lint-motion-css.mjs` flags the same properties (and their `-duration` / `-delay` longhands); `.css` files use the `--motion-*` custom properties from `vars.css` (mirrors of the `MOTION.*` tiers). `0` / `0s` (no delay), keyword-only values (`none`), delays written as numeric expressions (see above), and values built from `MOTION.*` tokens / `var(--motion-*)` are allowed. Both are locked in at **`error`** (zero violations) — a new raw `s`/`ms` timing fails the gate. The `ui_primitives/` layer is exempt (it defines the tokens). Template-literal `@media (prefers-reduced-motion)` blocks (in `css\`\`` styled templates and plain `.css`) stay raw, since `reducedMotion()` is a JS object helper; object-css blocks use `reducedMotion()`.
+In TSX, `design-tokens/motion-tokens` flags any object-literal `transition` / `animation` / `transitionDuration` / `transitionDelay` / `animationDuration` / `animationDelay` whose value carries a non-zero `s`/`ms` timing, and any raw `transition` / `animation` timing inside `styled` / `css` template-literal CSS. In plain `.css`, `web/scripts/lint-motion-css.mjs` flags the same properties (and their `-duration` / `-delay` longhands); `.css` files use the `--motion-*` custom properties from `vars.css` (mirrors of the `MOTION.*` tiers). `0` / `0s` (no delay), keyword-only values (`none`), delays written as numeric expressions (see above), and values built from `MOTION.*` tokens / `var(--motion-*)` are allowed. Both are locked in at **`error`** (zero violations) — a new raw `s`/`ms` timing fails the gate. Inside `ui_primitives/` and `editor_ui/` only `tokens.ts` and `spacing.ts`, which define the tokens, are exempt. Template-literal `@media (prefers-reduced-motion)` blocks (in `css\`\`` styled templates and plain `.css`) stay raw, since `reducedMotion()` is a JS object helper; object-css blocks use `reducedMotion()`.
 
 ---
 
@@ -1141,6 +1141,7 @@ import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from ".
 | Rhythm | Fields are 12px apart: `FormSection`, or a column with `gap={SPACING.lg}` |
 | Groups | `FormSection label`: the `EYEBROW` style in `text.secondary`. `Label` names a field, never a group. No tinted or bordered box around a group of fields |
 | Booleans | `LabeledSwitch` with the explanation in `description`, not a bare `Switch` or `Checkbox` beside text |
+| Switch look | The theme draws every `Switch` the same: a pill track that turns `primary` when on, 28×16 with a 12px thumb. Node bodies (`NodeSwitch`) draw it at 24×12. Do not restyle a switch through `sx` or a local `.MuiSwitch-*` rule |
 | Field chrome | Fields keep their primitive look. Do not override `.MuiOutlinedInput-*`, `.MuiInputBase-*`, `.MuiSelect-*` or `.MuiInputLabel-*` from a form's `css` or `sx`. A form may set a field's width only |
 | Variant | Outlined fields everywhere. A dense panel sets `FieldDensityContext` once (see [Panel composition](#panel-composition)) |
 | Text | Labels and options are sentence case ("Tool name", "Ask every time"). Acronyms keep their case ("API key", "ID") |
@@ -1275,6 +1276,23 @@ import { CountBadge, StatusDot, MediaLabel } from "../ui_primitives";
 | `MediaLabel` | A readout on an image or video, such as dimensions or duration: mono caption, white on `c_scrim`. `corner` pins it to a corner of the positioned parent and disables pointer events. Never put it on a surface that is not media |
 | Text badge | `Chip compact`, never a styled `span` |
 | Hand-built | Do not draw a dot from a `Box`, `span` or `::before` with `BORDER_RADIUS.circle`, copy a `.dirty-dot` or `.dimensions-badge` rule, or write a `@keyframes` for a pulsing dot. A custom colour goes in `sx={{ bgcolor }}` on `StatusDot`. A dot with a label is `SaveState` or `StatusIndicator` |
+
+#### Status
+
+One state has one colour, whichever primitive draws it. Work in flight
+(generating, rendering, provisioning) is `primary`. Work waiting its turn is
+`neutral`. Done is `success`, a warning or stale result is `warning`, and a
+failure is `error`.
+
+| Where | Primitive |
+|---|---|
+| Inline in a row or header, with a label | `StatusIndicator` (`status="running"` for work in flight, `"pending"` for queued). Its dot is a `StatusDot` |
+| On a media card or thumbnail corner | `StatusPill` |
+| A list bullet or a dot with no room for a label | `StatusDot` |
+
+A generated item (sketch layer, timeline clip) maps its state through
+`GENERATION_STATUS`, which gives the `status`, `pill` and `dot` value for each
+state. Do not write a new state-to-colour table.
 
 ### Buttons
 

@@ -4,6 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { CONTROL, MOTION } from "./tokens";
+import { SPACING, getSpacingPx } from "./spacing";
 import { useFieldDensity } from "./fieldDensity";
 import { IconButton, InputAdornment, TextField } from "@mui/material";
 import { Tooltip } from "./Tooltip";
@@ -94,15 +95,12 @@ const styles = (theme: Theme, dense: boolean) => css`
       }
     }
 
-    /* MUI's outlined vertical padding targets ~56px / 40px fields; shrink it
-       so the control lands on the CONTROL token heights (36 / 28). */
+    /* MUI's outlined vertical padding targets ~56px / 40px fields. Drop it
+       so the root's min-height (the CONTROL token heights, 36 / 28) sets the
+       height and the value centres in it. */
     .MuiOutlinedInput-input {
-      padding-top: 7px;
-      padding-bottom: 7px;
-    }
-    .MuiInputBase-sizeSmall .MuiOutlinedInput-input {
-      padding-top: 3px;
-      padding-bottom: 3px;
+      padding-top: 0;
+      padding-bottom: 0;
     }
 
     /* Shared form-control sizing: value at the 15px body token, placeholder
@@ -133,7 +131,7 @@ const styles = (theme: Theme, dense: boolean) => css`
   }
   
   .clear-button {
-    padding: 4px;
+    padding: ${getSpacingPx(SPACING.xs)};
     color: ${theme.vars.palette.text.disabled};
     transition: color ${MOTION.normal};
     

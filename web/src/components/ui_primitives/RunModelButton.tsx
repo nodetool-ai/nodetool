@@ -18,7 +18,8 @@ import type { Theme } from "@mui/material/styles";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { Button } from "@mui/material";
 import { LoadingSpinner } from "./LoadingSpinner";
-import { MOTION } from "./tokens";
+import { BORDER_RADIUS, MOTION } from "./tokens";
+import { SPACING, getSpacingPx } from "./spacing";
 
 const styles = (theme: Theme) =>
   css({
@@ -30,8 +31,8 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.01em",
       color: theme.vars.palette.common.black,
       backgroundColor: theme.vars.palette.primary.main,
-      borderRadius: "var(--rounded-sm)",
-      padding: "4px 12px",
+      borderRadius: BORDER_RADIUS.sm,
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
       minWidth: 0,
       gap: 6,
       boxShadow: `0 1px 3px rgba(${theme.vars.palette.common.blackChannel ?? '0 0 0'} / 0.25)`,

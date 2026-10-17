@@ -48,7 +48,7 @@ const styles = (animate: boolean) => css`
       font-weight: 600;
       min-width: 18px;
       height: 18px;
-      padding: 0 4px;
+      padding: 0 ${getSpacingPx(SPACING.xs)};
       ${animate ? css`
         transition: transform ${MOTION.normal}, opacity ${MOTION.normal};
         
@@ -63,7 +63,7 @@ const styles = (animate: boolean) => css`
       font-size: var(--fontSizeSmaller);
       min-width: 16px;
       height: 16px;
-      padding: 0 3px;
+      padding: 0 ${getSpacingPx(SPACING.micro)};
     }
     
     &.dot .MuiBadge-badge {

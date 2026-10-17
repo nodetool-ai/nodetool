@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { ToolbarIconButton } from "../ToolbarIconButton";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -132,5 +132,53 @@ describe("ToolbarIconButton", () => {
     fireEvent.mouseOver(screen.getByRole("button"));
     expect(await screen.findByRole("tooltip")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+  });
+  it("shows its tooltip on hover while disabled", async () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ToolbarIconButton icon={<SaveIcon />} tooltip="Save" delay={0} disabled />
+      </ThemeProvider>
+    );
+
+    const button = screen.getByRole("button", { name: "Save" });
+    expect(button).toBeDisabled();
+    fireEvent.mouseOver(button.parentElement as HTMLElement);
+    await waitFor(() => expect(screen.getByRole("tooltip")).toHaveTextContent("Save"));
+  });
+
+  it("shows disabledReason instead of the tooltip while disabled", async () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ToolbarIconButton
+          icon={<SaveIcon />}
+          tooltip="Save"
+          delay={0}
+          disabled
+          disabledReason="No unsaved changes"
+        />
+      </ThemeProvider>
+    );
+
+    const button = screen.getByRole("button", { name: "Save" });
+    fireEvent.mouseOver(button.parentElement as HTMLElement);
+    await waitFor(() =>
+      expect(screen.getByRole("tooltip")).toHaveTextContent("No unsaved changes")
+    );
+  });
+
+  it("ignores disabledReason while enabled", async () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ToolbarIconButton
+          icon={<SaveIcon />}
+          tooltip="Save"
+          delay={0}
+          disabledReason="No unsaved changes"
+        />
+      </ThemeProvider>
+    );
+
+    fireEvent.mouseOver(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(screen.getByRole("tooltip")).toHaveTextContent("Save"));
   });
 });

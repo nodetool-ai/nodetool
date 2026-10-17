@@ -19,7 +19,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  WarningBanner,
+  AlertBanner,
   STUDIO_ASSISTANT_WIDTH
 } from "../components/ui_primitives";
 import StoryboardBoard from "../components/storyboard/StoryboardBoard";
@@ -172,9 +172,9 @@ const StudioStoryboardPage = () => {
   return (
     <StudioShell title={title || "Untitled storyboard"}>
       {assemblyNotice && (
-        <WarningBanner
-          message="Timeline created with omissions"
-          description={assemblyNotice.warnings.join(" ")}
+        <AlertBanner
+          severity="warning"
+          title="Timeline created with omissions"
           action={
             <EditorButton
               onClick={() =>
@@ -184,7 +184,9 @@ const StudioStoryboardPage = () => {
               Open timeline
             </EditorButton>
           }
-        />
+        >
+          {assemblyNotice.warnings.join(" ")}
+        </AlertBanner>
       )}
       <FlexRow
         sx={{

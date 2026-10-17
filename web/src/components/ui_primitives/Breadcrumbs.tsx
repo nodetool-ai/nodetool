@@ -15,6 +15,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import FolderIcon from "@mui/icons-material/Folder";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { BORDER_RADIUS, MOTION } from "./tokens";
+import { SPACING, getSpacingPx } from "./spacing";
 
 export interface BreadcrumbItem {
   /** Label to display */
@@ -48,11 +49,11 @@ const styles = (theme: Theme) => css`
   .breadcrumb-link {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: ${getSpacingPx(SPACING.xs)};
     color: ${theme.vars.palette.text.secondary};
     text-decoration: none;
     font-size: var(--fontSizeSmall);
-    padding: 4px 8px;
+    padding: ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)};
     border-radius: ${BORDER_RADIUS.sm};
     transition: ${MOTION.all};
     cursor: pointer;
@@ -70,11 +71,11 @@ const styles = (theme: Theme) => css`
   .breadcrumb-current {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: ${getSpacingPx(SPACING.xs)};
     color: ${theme.vars.palette.text.primary};
     font-size: var(--fontSizeSmall);
     font-weight: 500;
-    padding: 4px 8px;
+    padding: ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)};
     
     .breadcrumb-icon {
       font-size: var(--fontSizeBig);
@@ -87,7 +88,7 @@ const styles = (theme: Theme) => css`
   }
   
   .home-button {
-    padding: 4px;
+    padding: ${getSpacingPx(SPACING.xs)};
     color: ${theme.vars.palette.text.secondary};
     
     &:hover {

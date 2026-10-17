@@ -42,51 +42,47 @@ export interface StatusPillProps {
   sx?: SxProps<Theme>;
 }
 
-/** Border and background for a tone, shared with the borders around it. */
+/** Text, border and background for a tone. Theme tones come from CSS vars, so they follow the colour scheme. */
 export const statusPillColors = (
   tone: StatusPillTone,
   theme: Theme,
   accent?: string
-): { color: string; border: string; background: string } => {
+): { color: string; border: string; background: string; lightColor?: string } => {
+  const palette = theme.vars.palette;
+  const tinted = (channel: string, main: string) => ({
+    color: main,
+    border: `rgb(${channel} / 0.5)`,
+    background: `rgb(${channel} / 0.12)`
+  });
   switch (tone) {
-    case "done": {
-      const green = theme.palette.success.main;
+    case "done":
+      return tinted(palette.success.mainChannel, palette.success.main);
+    case "rendering":
+      if (accent) {
+        return {
+          // Lifted off the tint it sits on, so the label stays readable on
+          // dark surfaces. Light surfaces read the accent as it is.
+          color: toHex(brighten(accent, 1.4)),
+          lightColor: accent,
+          border: accent,
+          background: hexToRgba(accent, 0.16)
+        };
+      }
       return {
-        color: green,
-        border: hexToRgba(green, 0.5),
-        background: hexToRgba(green, 0.12)
+        color: palette.primary.light,
+        lightColor: palette.primary.main,
+        border: palette.primary.main,
+        background: `rgb(${palette.primary.mainChannel} / 0.16)`
       };
-    }
-    case "rendering": {
-      const base = accent ?? theme.palette.primary.main;
-      return {
-        // Lifted off the tint it sits on, so the label stays readable.
-        color: toHex(brighten(base, 1.4)),
-        border: base,
-        background: hexToRgba(base, 0.16)
-      };
-    }
-    case "failed": {
-      const red = theme.palette.error.main;
-      return {
-        color: red,
-        border: hexToRgba(red, 0.5),
-        background: hexToRgba(red, 0.12)
-      };
-    }
-    case "warning": {
-      const amber = theme.palette.warning.main;
-      return {
-        color: amber,
-        border: hexToRgba(amber, 0.5),
-        background: hexToRgba(amber, 0.12)
-      };
-    }
+    case "failed":
+      return tinted(palette.error.mainChannel, palette.error.main);
+    case "warning":
+      return tinted(palette.warning.mainChannel, palette.warning.main);
     default:
       return {
-        color: theme.palette.text.secondary,
-        border: theme.palette.divider,
-        background: hexToRgba(theme.palette.common.white, 0.06)
+        color: palette.text.secondary,
+        border: palette.divider,
+        background: palette.action.hover
       };
   }
 };
@@ -116,6 +112,7 @@ const StatusPillInner = ({
         borderColor: colors.border,
         backgroundColor: colors.background,
         color: colors.color,
+        ...(colors.lightColor && theme.applyStyles?.("light", { color: colors.lightColor })),
         whiteSpace: "nowrap",
         ...TYPOGRAPHY.mono.caption,
         ...sx
