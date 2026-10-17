@@ -34,7 +34,7 @@ const DESCRIPTION =
 
 export function codeGenPaletteMetadata(): NodeMetadata {
   return {
-    title: "Write code with AI",
+    title: "Write Code with AI",
     description: `${DESCRIPTION}\n    ${CODE_GEN_PALETTE_ALIASES.join(", ")}`,
     namespace: "nodetool.code",
     node_type: CODE_GEN_PALETTE_NODE_TYPE,

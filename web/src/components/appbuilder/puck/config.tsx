@@ -625,7 +625,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <StoryboardWidget {...props} />)
     },
     StoryboardPreview: {
-      label: "Storyboard preview",
+      label: "Storyboard Preview",
       fields: {
         binding: bindingField("read"),
         height: { type: "number", label: "Height (px)" },
@@ -713,7 +713,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <ProgressWidget {...props} />)
     },
     AgentActivity: {
-      label: "Agent activity",
+      label: "Agent Activity",
       fields: {
         label: { type: "text", label: "Label" },
         binding: bindingField("read"),
@@ -883,7 +883,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <GalleryWidget {...props} />)
     },
     ImageCompare: {
-      label: "Image compare",
+      label: "Image Compare",
       fields: {
         binding: bindingField("read", "Before"),
         compareBinding: bindingField("read", "After"),
@@ -901,7 +901,7 @@ export const appConfig: Config = {
     },
     // ── Inputs ──
     WorkflowForm: {
-      label: "Workflow form",
+      label: "Workflow Form",
       fields: {
         operationId: operationField("Operation"),
         label: { type: "text", label: "Label" },
@@ -920,7 +920,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <WorkflowFormWidget {...props} />)
     },
     WorkflowInput: {
-      label: "Workflow input",
+      label: "Workflow Input",
       fields: {
         binding: bindingField("write", "Workflow input"),
         label: { type: "text", label: "Label" },
@@ -931,7 +931,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <WorkflowInputWidget {...props} />)
     },
     TextInput: {
-      label: "Text input",
+      label: "Text Input",
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
@@ -952,7 +952,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <TextInputWidget {...props} />)
     },
     NumberInput: {
-      label: "Number input",
+      label: "Number Input",
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
@@ -1006,7 +1006,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <SelectWidget {...props} />)
     },
     RadioGroup: {
-      label: "Radio group",
+      label: "Radio Group",
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
@@ -1030,7 +1030,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <RadioGroupWidget {...props} />)
     },
     ChoiceCards: {
-      label: "Choice cards",
+      label: "Choice Cards",
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
@@ -1044,7 +1044,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <ChoiceCardsWidget {...props} />)
     },
     Stepper: {
-      label: "Guided steps",
+      label: "Guided Steps",
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
@@ -1071,7 +1071,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <ApprovalWidget {...props} />)
     },
         CheckboxGroup: {
-      label: "Checkbox group",
+      label: "Checkbox Group",
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
@@ -1095,7 +1095,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <CheckboxGroupWidget {...props} />)
     },
     DateInput: {
-      label: "Date input",
+      label: "Date Input",
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
@@ -1114,7 +1114,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <DateInputWidget {...props} />)
     },
     ResourcePicker: {
-      label: "Resource picker",
+      label: "Resource Picker",
       fields: {
         resourceBindingId: resourceBindingField(),
         label: { type: "text", label: "Label" },
@@ -1124,7 +1124,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <ResourcePickerWidget {...props} />)
     },
     ResourceGallery: {
-      label: "Resource gallery",
+      label: "Resource Gallery",
       fields: {
         resourceBindingId: resourceBindingField(),
         label: { type: "text", label: "Label" },
@@ -1135,7 +1135,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <ResourceGalleryWidget {...props} />)
     },
     StoryboardSceneList: {
-      label: "Storyboard scenes",
+      label: "Storyboard Scenes",
       fields: {
         resourceBindingId: resourceBindingField(),
         label: { type: "text", label: "Label" },
@@ -1160,7 +1160,7 @@ export const appConfig: Config = {
     },
     // ── Chat & AI ──
     ChatThread: {
-      label: "Chat thread",
+      label: "Chat Thread",
       fields: {
         binding: bindingField("read", "Conversation"),
         streamBinding: bindingField("read", "Live reply"),
@@ -1179,7 +1179,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <ChatThreadWidget {...props} />)
     },
     ChatComposer: {
-      label: "Chat composer",
+      label: "Chat Composer",
       fields: {
         binding: bindingField("write", "Sends to"),
         historyBinding: variableField("Conversation variable"),
@@ -1219,7 +1219,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <ChatComposerWidget {...props} />)
     },
     ModelSelect: {
-      label: "Model select",
+      label: "Model Select",
       fields: {
         binding: bindingField("write"),
         modelKind: {
@@ -1246,9 +1246,9 @@ export const appConfig: Config = {
       },
       render: withConditions((props) => <ModelSelectWidget {...props} />)
     },
-    ImageInput: fixedInputEntry("Image input", "image"),
+    ImageInput: fixedInputEntry("Image Input", "image"),
     SketchPad: {
-      label: "Sketch pad",
+      label: "Sketch Pad",
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
@@ -1274,10 +1274,10 @@ export const appConfig: Config = {
       },
       render: withConditions((props) => <SketchPadWidget {...props} />)
     },
-    AudioInput: fixedInputEntry("Audio input", "audio"),
-    VideoInput: fixedInputEntry("Video input", "video"),
+    AudioInput: fixedInputEntry("Audio Input", "audio"),
+    VideoInput: fixedInputEntry("Video Input", "video"),
     AudioRecorder: {
-      label: "Audio recorder",
+      label: "Audio Recorder",
       fields: {
         binding: bindingField("write", "Workflow input"),
         label: { type: "text", label: "Label" },
@@ -1288,7 +1288,7 @@ export const appConfig: Config = {
       render: withConditions((props) => <AudioRecorderWidget {...props} />)
     },
     CameraCapture: {
-      label: "Camera capture",
+      label: "Camera Capture",
       fields: {
         binding: bindingField("write", "Workflow input"),
         label: { type: "text", label: "Label" },
@@ -1298,22 +1298,22 @@ export const appConfig: Config = {
       defaultProps: { binding: "", label: "Record video" },
       render: withConditions((props) => <CameraCaptureWidget {...props} />)
     },
-    DocumentInput: fixedInputEntry("Document input", "document"),
-    ColorInput: fixedInputEntry("Color input", "color"),
+    DocumentInput: fixedInputEntry("Document Input", "document"),
+    ColorInput: fixedInputEntry("Color Input", "color"),
     Model3DInput: fixedInputEntry("3D Model Input", "model3d"),
-    ImageSizeInput: fixedInputEntry("Image size input", "image_size"),
+    ImageSizeInput: fixedInputEntry("Image Size Input", "image_size"),
     FilePathInput: pathInputEntry(
-      "File path input",
+      "File Path Input",
       "file_path",
       "Pick a file…"
     ),
     FolderPathInput: pathInputEntry(
-      "Folder path input",
+      "Folder Path Input",
       "folder_path",
       "Pick a folder…"
     ),
     DataFrameInput: {
-      label: "Data table input",
+      label: "Data Table Input",
       fields: fixedInputFields({
         maxHeight: { type: "number", label: "Max height (px)" }
       }),
@@ -1325,7 +1325,7 @@ export const appConfig: Config = {
       )
     },
     MediaListInput: {
-      label: "Media list input",
+      label: "Media List Input",
       fields: fixedInputFields({
         listKind: {
           type: "select",
