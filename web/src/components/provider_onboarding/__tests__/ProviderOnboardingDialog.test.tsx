@@ -90,11 +90,11 @@ describe("ProviderOnboardingDialog", () => {
     expect(screen.getByText("Connect an AI provider")).toBeInTheDocument();
   });
 
-  it("leads with a Claude and OpenAI sign-in", () => {
+  it("leads with a Codex and Claude sign-in", () => {
     renderDialog();
     const heading = screen.getByText(/sign in with your account/i);
     expect(heading).toBeInTheDocument();
-    expect(screen.getByText("OpenAI")).toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "ChatGPT (Codex)" })).toBeInTheDocument();
     expect(screen.getByText("Claude")).toBeInTheDocument();
     expect(
       screen.getAllByRole("button", { name: /^sign in$/i }).length

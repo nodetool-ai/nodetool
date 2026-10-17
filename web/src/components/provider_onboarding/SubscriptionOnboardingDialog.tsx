@@ -29,21 +29,19 @@ import {
 } from "./providerOnboardingCatalog";
 
 /**
- * The sign-in subscriptions, in the order the dialog lists them. ChatGPT is
- * the OpenAI catalog entry restricted to its sign-in: this page is about the
- * plan the user pays for, and an API key belongs in the provider dialog.
+ * The sign-in subscriptions, in the order the dialog lists them. This page is
+ * about the plan the user pays for, so ChatGPT drops the Codex suffix.
  */
 export const subscriptionProviders = (): OnboardingProvider[] => {
   const byId = new Map(ONBOARDING_PROVIDERS.map((p) => [p.id, p]));
-  const openai = byId.get("openai");
+  const codex = byId.get("codex");
   const claude = byId.get("claude");
   const providers: OnboardingProvider[] = [];
-  if (openai) {
+  if (codex) {
     providers.push({
-      ...openai,
+      ...codex,
       name: "ChatGPT",
-      tagline: "Chat with GPT models on your ChatGPT plan. Images need the Chrome extension.",
-      oauthOnly: true
+      tagline: "Chat with GPT models on your ChatGPT plan. Images need the Chrome extension."
     });
   }
   if (claude) {

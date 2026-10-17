@@ -70,7 +70,6 @@ export const ONBOARDING_PROVIDERS: OnboardingProvider[] = [
     secretKey: "OPENAI_API_KEY",
     icon: openaiIcon,
     mono: true,
-    oauth: "openai",
     tagline: "GPT for chat, plus image, speech, and embeddings.",
     capabilities: [
       "generate_message",
@@ -82,6 +81,24 @@ export const ONBOARDING_PROVIDERS: OnboardingProvider[] = [
     keyUrl: "https://platform.openai.com/api-keys",
     pricingUrl: "https://openai.com/api/pricing/",
     costHint: "Pay per token, ~$0.15–$5 per 1M tokens depending on the model.",
+    recommended: true
+  },
+  {
+    id: "codex",
+    name: "ChatGPT (Codex)",
+    // Display id, not a stored secret: the sign-in stores a ChatGPT token
+    // that the `codex` provider reads. The OpenAI card holds the API key.
+    secretKey: "CODEX_SUBSCRIPTION",
+    icon: openaiIcon,
+    mono: true,
+    oauth: "openai",
+    oauthOnly: true,
+    tagline: "Use a ChatGPT Plus or Pro subscription with Codex models — no API key.",
+    capabilities: ["generate_message"],
+    keyUrl: "https://chatgpt.com/pricing",
+    pricingUrl: "https://chatgpt.com/pricing",
+    costHint: "Included in your ChatGPT subscription — no per-token API bill.",
+    freeTier: "No API key",
     recommended: true
   },
   {
@@ -254,11 +271,7 @@ export const providersForCapability = (
   const matches = capability
     ? available.filter((p) => p.capabilities.includes(capability))
     : available;
-  return matches.map((provider) =>
-    provider.id === "openai" && capability && capability !== "generate_message"
-      ? { ...provider, oauth: undefined }
-      : provider
-  ).sort(
+  return matches.sort(
     (a, b) => Number(b.recommended ?? false) - Number(a.recommended ?? false)
   );
 };

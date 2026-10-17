@@ -44,6 +44,7 @@ const oauthState = (overrides: Partial<OAuthConnection>): OAuthConnection => ({
 });
 
 const openai = ONBOARDING_PROVIDERS.find((p) => p.id === "openai")!;
+const huggingface = ONBOARDING_PROVIDERS.find((p) => p.id === "huggingface")!;
 const anthropic = ONBOARDING_PROVIDERS.find((p) => p.id === "anthropic")!;
 
 const renderCard = (
@@ -80,7 +81,7 @@ beforeEach(() => {
 
 describe("ProviderOnboardingCard", () => {
   it("shows a one-click sign-in for an OAuth provider", () => {
-    renderCard(openai);
+    renderCard(huggingface);
     expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /use api key/i })).toHaveAttribute("aria-expanded", "false");
   });
@@ -88,7 +89,7 @@ describe("ProviderOnboardingCard", () => {
   it("starts an OAuth flow when sign-in is clicked", async () => {
     const connect = jest.fn();
     mockUseOAuthConnection.mockReturnValue(oauthState({ connect }));
-    renderCard(openai);
+    renderCard(huggingface);
     await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
     expect(connect).toHaveBeenCalledTimes(1);
   });

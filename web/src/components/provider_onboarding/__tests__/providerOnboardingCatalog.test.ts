@@ -78,13 +78,15 @@ describe("providerOnboardingCatalog", () => {
   });
 });
 
-it("offers API keys, not chat-only OpenAI OAuth, for media tasks", () => {
+it("offers the Codex sign-in for chat only, and OpenAI as an API key", () => {
+  const chat = providersForCapability("generate_message");
+  expect(chat.find((provider) => provider.id === "codex")).toMatchObject({ oauth: "openai", oauthOnly: true });
+  expect(chat.find((provider) => provider.id === "openai")?.oauth).toBeUndefined();
   for (const capability of ["text_to_image", "text_to_speech", "generate_embedding"] as const) {
-    const openai = providersForCapability(capability).find((provider) => provider.id === "openai");
-    expect(openai).toBeDefined();
-    expect(openai?.oauth).toBeUndefined();
+    const providers = providersForCapability(capability);
+    expect(providers.some((provider) => provider.id === "openai")).toBe(true);
+    expect(providers.some((provider) => provider.id === "codex")).toBe(false);
   }
-  expect(providersForCapability("generate_message").find((provider) => provider.id === "openai")?.oauth).toBe("openai");
 });
 
 it("offers a connectable provider for both 3D tasks", () => {
