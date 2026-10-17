@@ -93,6 +93,9 @@ Media that is being generated shows `MagicGenerationFill` over its host: the ske
 ### Keyframe editors
 `CurveEditor` (piecewise-linear `{ t, value }` keys) | `GradientEditor` (`{ t, color }` stops). Both edit the particle `*OverLifetime` shapes, keep keys sorted, and are keyboard operable.
 
+### Audio controls
+`Knob` (rotary `role="slider"`, drag or arrow keys, `bipolar` for pan) | `Fader` (vertical `role="slider"` with a `toPosition`/`fromPosition` taper and a mark scale) | `LevelMeter` (multi-channel peak meter with peak hold and a latching clip light; reads its levels on its own animation frame and writes the DOM directly, so it never re-renders React per frame). `Knob` and `Fader` bracket a gesture with `onChangeStart`/`onChangeEnd` for one undo entry. The timeline mixer (`components/timeline/daw/mixer/`) is the reference host.
+
 ### Misc
 `Dialog` | `DialogActionButtons` | `ColorSwatch` | `ShortcutHint` | `Chip` | `Divider` | `SkipLinks` | `ZoomControls` | `HoverActionGroup` | `SelectableListItem`
 
@@ -163,6 +166,8 @@ Need an input?
 ├── Boolean → NodeSwitch / LabeledSwitch / Checkbox
 ├── Select from options → NodeSelect / SelectField
 ├── Slider → NodeSlider
+├── Rotary control in a dense audio surface → Knob
+├── Vertical level with a taper (a channel fader) → Fader
 ├── Search → SearchInput
 ├── Tags → TagInput / AutocompleteTagInput
 └── Label + input + help → FormField (wraps any input)
