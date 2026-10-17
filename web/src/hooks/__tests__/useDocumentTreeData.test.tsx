@@ -63,6 +63,33 @@ describe("useDocumentTreeData", () => {
     ]);
   });
 
+  it("lists text files and games, and gives entities their own group", () => {
+    mockIndex([
+      entry("n1", "text", "Notes.md", "2024-07-01T00:00:00.000Z"),
+      entry("g1", "game", "Platformer", "2024-06-01T00:00:00.000Z"),
+      entry("e1", "entity", "Keeper", "2024-05-01T00:00:00.000Z"),
+      entry("n2", "text", "", "2024-04-01T00:00:00.000Z")
+    ]);
+
+    const { result } = renderHook(() => useDocumentTreeData("p1"));
+
+    expect(
+      result.current.groups.map((group) => [
+        group.id,
+        group.label,
+        group.children.map((child) => `${child.name} (${child.typeLabel})`)
+      ])
+    ).toEqual([
+      ["creative", "Creative documents", ["Platformer (Game)"]],
+      [
+        "text",
+        "Text files",
+        ["Notes.md (Text file)", "Untitled text file (Text file)"]
+      ],
+      ["entities", "Entities", ["Keeper (Entity)"]]
+    ]);
+  });
+
   it("orders a group by kind, then by recency within a kind", () => {
     // The index is newest-first overall; "Creative documents" still shows
     // sketches before scripts before timelines.

@@ -60,7 +60,7 @@ export const EDITOR_SHORTCUTS: readonly EditorShortcut[] = [
   { action: "deselect", label: "Deselect", group: "Selection", keys: ["Esc"], combos: ["escape"] },
   { action: "hide", label: "Hide / show selected", group: "Selection", keys: ["H"], combos: ["h"] },
   { action: "unhideAll", label: "Show all", group: "Selection", keys: ["Alt", "H"], combos: ["alt+h"] },
-  { action: "focusSelection", label: "Focus selection", group: "View", keys: ["F"], combos: ["f"] },
+  { action: "focusSelection", label: "Frame selection", group: "View", keys: ["F"], combos: ["f"] },
   { action: "frameAll", label: "Frame all", group: "View", keys: ["Home"], combos: ["home", "a+shift"] },
   { action: "viewFront", label: "Front view", group: "View", keys: ["1"], combos: ["1"] },
   { action: "viewBack", label: "Back view", group: "View", keys: ["Ctrl", "1"], combos: ["1+control"] },

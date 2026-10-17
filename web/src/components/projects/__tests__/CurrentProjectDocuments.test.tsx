@@ -7,15 +7,17 @@ const openTab = jest.fn();
 let activeProjectId: string | null = "p1";
 let personalProjectId: string | null = "personal";
 let documentCount = 1;
+let extraDocuments: Record<string, unknown>[] = [];
 const documentPage = jest.fn(
   (input: { id: string; offset: number; limit: number }) => {
-    const all = Array.from({ length: documentCount }, (_, index) => ({
+    const boards = Array.from({ length: documentCount }, (_, index) => ({
       type: "storyboard",
       ref: `${input.id}-board-${index + 1}`,
       name: `${input.id} board${documentCount > 1 ? ` ${index + 1}` : ""}`,
       thumbnails: [],
       preview: null
     }));
+    const all = [...extraDocuments, ...boards];
     return {
       data: {
         documents: all.slice(input.offset, input.offset + input.limit),
@@ -104,6 +106,7 @@ beforeEach(() => {
   activeProjectId = "p1";
   personalProjectId = "personal";
   documentCount = 1;
+  extraDocuments = [];
 });
 
 it("shows and opens documents from the active project", async () => {
@@ -202,4 +205,30 @@ it("says the documents are ordered most recent first", () => {
   expect(
     screen.getByText("Documents · 9 · most recent first")
   ).toBeInTheDocument();
+});
+
+it("lists a saved text file, counts it, and opens it in its text tab (study-7-I5)", async () => {
+  extraDocuments = [
+    {
+      type: "text",
+      ref: "text-1",
+      name: "Notes.md",
+      thumbnails: [],
+      preview: null
+    }
+  ];
+  renderDocuments();
+  expect(
+    screen.queryByText("No documents in this project yet")
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByText("Documents · 2 · most recent first")
+  ).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Notes.md" }));
+  expect(openTab).toHaveBeenCalledWith({
+    type: "text",
+    ref: "text-1",
+    title: "Notes.md",
+    projectId: "p1"
+  });
 });

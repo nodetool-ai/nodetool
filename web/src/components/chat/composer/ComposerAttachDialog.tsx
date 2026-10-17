@@ -75,10 +75,15 @@ type DocumentEntry = DocumentIndexEntry & {
 
 /**
  * The resource URI for a document index row. The index spells a mini app as
- * its tab type, `application`; the resource scheme calls it `app`.
+ * its tab type, `application`; the resource scheme calls it `app`. A text file
+ * is an asset.
  */
-export const documentResourceUri = (entry: DocumentEntry): string =>
-  `${entry.type === "application" ? "app" : entry.type}://${entry.id}`;
+export const documentResourceUri = (entry: DocumentEntry): string => {
+  if (entry.type === "text") {
+    return `asset://${entry.id}`;
+  }
+  return `${entry.type === "application" ? "app" : entry.type}://${entry.id}`;
+};
 
 const AssetsTab: React.FC<{
   query: string;

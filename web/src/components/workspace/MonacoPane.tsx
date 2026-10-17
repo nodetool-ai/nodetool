@@ -10,6 +10,8 @@ interface MonacoPaneProps {
   language: string;
   readOnly?: boolean;
   wordWrap?: boolean;
+  /** Shown while the document is empty. */
+  placeholder?: string;
   onChange?: (value: string) => void;
   /** Registers Cmd/Ctrl+S inside the editor when provided. */
   onSave?: () => void;
@@ -30,6 +32,7 @@ const MonacoPane = ({
   language,
   readOnly = false,
   wordWrap = true,
+  placeholder,
   onChange,
   onSave,
   onEditorMount
@@ -75,6 +78,7 @@ const MonacoPane = ({
   const options = useMemo(
     () => ({
       readOnly,
+      placeholder,
       automaticLayout: true,
       minimap: { enabled: true },
       scrollBeyondLastLine: false,
@@ -85,7 +89,7 @@ const MonacoPane = ({
       smoothScrolling: true,
       scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 }
     }),
-    [readOnly, wordWrap]
+    [readOnly, wordWrap, placeholder]
   );
 
   if (monacoLoadError) {
