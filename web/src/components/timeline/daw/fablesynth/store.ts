@@ -18,7 +18,7 @@ import {
   makeUserTable, framesFromGenerated, type UserTable,
 } from './engine/usertables';
 import { factoryTables, SIZE } from './engine/wavetables';
-import type { VizTable } from './engine/synth';
+import type { VizTable } from './engine/wavetables';
 import { Wt1EngineLink } from './engine/wt1Link';
 import { createModLive, feedModLive, type ModLive } from './engine/modLive';
 

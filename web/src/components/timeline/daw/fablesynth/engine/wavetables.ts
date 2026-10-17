@@ -271,3 +271,10 @@ export function factoryTables(): GeneratedTable[] {
   if (!factoryTableCache) factoryTableCache = generateTables();
   return factoryTableCache;
 }
+
+/** A table reduced for the wavetable displays. */
+export interface VizTable {
+  name: string;
+  frames: number;
+  viz: Float32Array;
+}

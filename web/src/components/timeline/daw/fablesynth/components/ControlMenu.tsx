@@ -4,7 +4,7 @@ import { DEST_OF_PARAM, MOD_SOURCES, SOURCE_COLORS, routeBipolar, routeLabel, po
 import { useStoreApi } from '../store';
 import { findFreeSlot } from '../store/slotHelpers';
 import { useModsByDest } from '../hooks/useModsByDest';
-import type { MachineId } from '../seq/protocol';
+type MachineId = 'DR1' | 'BL1' | 'WT1';
 import './controlMenu.css';
 
 export function useControlMenu(machine: MachineId, paramId: string) {

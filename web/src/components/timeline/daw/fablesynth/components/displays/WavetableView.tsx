@@ -4,7 +4,7 @@
 
 import { useEffect, useRef } from 'react';
 import { setupCanvas } from './canvas';
-import type { VizTable } from '../../engine/synth';
+import type { VizTable } from '../../engine/wavetables';
 
 interface WavetableViewProps {
   table: VizTable | null;

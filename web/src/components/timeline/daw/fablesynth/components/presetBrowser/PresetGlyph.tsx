@@ -5,7 +5,7 @@
 import { useEffect, useRef } from 'react';
 import { setupCanvas } from '../displays/canvas';
 import { VIZ_N } from '../../engine/wavetables';
-import type { VizTable } from '../../engine/synth';
+import type { VizTable } from '../../engine/wavetables';
 import type { GlyphData } from '../../presetBrowser';
 
 interface PresetGlyphProps {
