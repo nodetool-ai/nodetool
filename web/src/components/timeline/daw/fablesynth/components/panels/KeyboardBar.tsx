@@ -11,11 +11,11 @@ export function KeyboardBar() {
     <footer className="kb-bar">
       <div className="kb-side">
         <div className="oct-ctl">
-          <button id="oct-down" aria-label="octave down" onClick={() => setOctave(Math.max(-3, octave - 1))}>−</button>
-          <span id="oct-label">{'C' + (4 + octave)}</span>
-          <button id="oct-up" aria-label="octave up" onClick={() => setOctave(Math.min(3, octave + 1))}>+</button>
+          <button className="fs-oct-down" aria-label="octave down" onClick={() => setOctave(Math.max(-3, octave - 1))}>−</button>
+          <span className="fs-oct-label">{'C' + (4 + octave)}</span>
+          <button className="fs-oct-up" aria-label="octave up" onClick={() => setOctave(Math.min(3, octave + 1))}>+</button>
         </div>
-        <div id="glide-knob"><Knob paramId="master.glide" size="sm" accent="n" /></div>
+        <div className="fs-glide-knob"><Knob paramId="master.glide" size="sm" accent="n" /></div>
         <MonoToggle />
         <LegatoToggle />
       </div>
@@ -29,8 +29,7 @@ function MonoToggle() {
   const setParam = useStore((s) => s.setParam);
   return (
     <button
-      id="mono-toggle"
-      className={on ? 'on' : ''}
+      className={`fs-mono-toggle${on ? ' on' : ''}`}
       aria-label="mono mode"
       aria-pressed={on}
       onClick={() => setParam('master.mono', on ? 0 : 1)}
@@ -48,8 +47,7 @@ function LegatoToggle() {
   const setParam = useStore((s) => s.setParam);
   return (
     <button
-      id="legato-toggle"
-      className={on ? 'on' : ''}
+      className={`fs-legato-toggle${on ? ' on' : ''}`}
       aria-label="legato"
       aria-pressed={on}
       disabled={!mono}

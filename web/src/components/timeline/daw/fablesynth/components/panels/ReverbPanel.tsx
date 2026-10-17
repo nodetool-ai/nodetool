@@ -1,8 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { engine as wtEngine, useStore } from '../../store';
 import { idleReverb, type ReverbMessage } from '../../engine/reverb';
-import { Knob } from '../Knob';
-import { PowerButton } from '../PowerButton';
 import { setupCanvas } from '../displays/canvas';
 import './reverb.css';
 import type { FxPanelAdapter } from './fxAdapter';
@@ -11,14 +8,12 @@ import { fxId } from './fxAdapter';
 const db = (value: number) => value <= -89 ? '−∞' : value.toFixed(1);
 const level = (value: number) => Math.max(0, Math.min(1, (value + 72) / 72));
 
-export function ReverbPanel({ adapter }: { adapter?: FxPanelAdapter } = {}) {
-  const wtParams = useStore(s => adapter ? null : s.params);
-  const params = adapter?.params ?? wtParams!;
-  const source = adapter?.context;
-  const prefix = adapter?.prefix ?? '', id = (key: string) => fxId(prefix, `fx.reverb.${key}`);
-  const on = params[id('on')] > 0.5, activeEngine = adapter?.engine ?? wtEngine;
-  const knob = adapter?.renderKnob ?? ((paramId: string) => <Knob paramId={paramId} size="sm" accent="n" />);
-  const power = adapter?.renderPower ?? ((paramId: string) => <PowerButton paramId={paramId} />);
+export function ReverbPanel({ adapter }: { adapter: FxPanelAdapter }) {
+  const params = adapter.params;
+  const source = adapter.context;
+  const prefix = adapter.prefix ?? '', id = (key: string) => fxId(prefix, `fx.reverb.${key}`);
+  const on = params[id('on')] > 0.5, activeEngine = adapter.engine;
+  const knob = adapter.renderKnob, power = adapter.renderPower;
   const canvas = useRef<HTMLCanvasElement>(null), readings = useRef<HTMLDivElement>(null);
   const correlation = useRef<HTMLDivElement>(null), enabled = useRef(on);
   const redraw = useRef<() => void>(() => {});
@@ -117,7 +112,7 @@ export function ReverbPanel({ adapter }: { adapter?: FxPanelAdapter } = {}) {
   }, [activeEngine, prefix, source]);
   useEffect(() => { redraw.current(); }, [on]);
 
-  return <section className={`panel panel-reverb${on ? '' : ' reverb-bypassed'}`} style={{ gridArea: 'reverb' }} aria-label={`Visual stereo reverb${adapter?.context ? `, ${adapter.context}` : ''}`}>
+  return <section className={`panel panel-reverb${on ? '' : ' reverb-bypassed'}`} style={{ gridArea: 'reverb' }} aria-label={`Visual stereo reverb${adapter.context ? `, ${adapter.context}` : ''}`}>
     <div className="panel-head">{power(id('on'))}<h2>REVERB</h2><span className="reverb-state">{source ? (on ? 'PAD SEND' : 'SEND OFF') : (on ? 'STEREO' : 'BYPASS')}</span></div>
     <canvas className="reverb-field" ref={canvas} role="img" aria-label="Stereo reverb tail" />
     <div className="reverb-readouts" ref={readings}>

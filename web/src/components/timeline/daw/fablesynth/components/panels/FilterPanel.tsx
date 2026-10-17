@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Knob } from '../Knob';
 import { Stepper } from '../Stepper';
 import { PowerButton } from '../PowerButton';
@@ -6,13 +6,13 @@ import { FilterView } from '../displays/FilterView';
 import { ACCENTS } from '../../constants';
 import { useStore } from '../../store';
 
-function FilterBlock({ prefix, label, on }: { prefix: string; label: string; on: boolean }) {
+function FilterBlock({ prefix, label, on, uid }: { prefix: string; label: string; on: boolean; uid: string }) {
   return (
     <div
       className={`filter-block${on ? '' : ' off'}`}
-      id={`filter-panel-${label.toLowerCase()}`}
+      id={`${uid}-panel-${label.toLowerCase()}`}
       role="tabpanel"
-      aria-labelledby={`filter-tab-${label.toLowerCase()}`}
+      aria-labelledby={`${uid}-tab-${label.toLowerCase()}`}
     >
       <div className="knob-row">
         <Knob paramId={`${prefix}.cutoff`} size="md" accent="f" />
@@ -27,6 +27,7 @@ function FilterBlock({ prefix, label, on }: { prefix: string; label: string; on:
 
 export function FilterPanel() {
   const [activeFilter, setActiveFilter] = useState<0 | 1>(0);
+  const uid = useId();
   const t1 = useStore((s) => s.params['filter.type']);
   const c1 = useStore((s) => s.params['filter.cutoff']);
   const r1 = useStore((s) => s.params['filter.res']);
@@ -53,12 +54,12 @@ export function FilterPanel() {
           {(['F1', 'F2'] as const).map((label, index) => (
             <button
               key={label}
-              id={`filter-tab-${label.toLowerCase()}`}
+              id={`${uid}-tab-${label.toLowerCase()}`}
               className="filter-tab"
               type="button"
               role="tab"
               aria-selected={activeFilter === index}
-              aria-controls={`filter-panel-${label.toLowerCase()}`}
+              aria-controls={`${uid}-panel-${label.toLowerCase()}`}
               tabIndex={activeFilter === index ? 0 : -1}
               onClick={() => setActiveFilter(index as 0 | 1)}
               onKeyDown={(event) => {
@@ -66,7 +67,7 @@ export function FilterPanel() {
                 event.preventDefault();
                 const next = activeFilter === 0 ? 1 : 0;
                 setActiveFilter(next);
-                document.getElementById(`filter-tab-f${next + 1}`)?.focus();
+                document.getElementById(`${uid}-tab-f${next + 1}`)?.focus();
               }}
             >
               <span className={`filter-tab-led${filters[index].on ? ' on' : ''}`} aria-hidden="true" />
@@ -82,8 +83,8 @@ export function FilterPanel() {
       </div>
       <FilterView className="filter-curve" filters={filters} route={route | 0} accent={ACCENTS.f} />
       {activeFilter === 0
-        ? <FilterBlock prefix="filter" label="F1" on={activeOn} />
-        : <FilterBlock prefix="filter2" label="F2" on={activeOn} />}
+        ? <FilterBlock prefix="filter" label="F1" on={activeOn} uid={uid} />
+        : <FilterBlock prefix="filter2" label="F2" on={activeOn} uid={uid} />}
     </section>
   );
 }

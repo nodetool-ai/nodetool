@@ -1,8 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { useStore } from '../../store';
-import { Knob } from '../Knob';
-import { PowerButton } from '../PowerButton';
-import { Stepper } from '../Stepper';
 import './lab.css';
 import type { FxPanelAdapter } from './fxAdapter';
 
@@ -138,10 +134,9 @@ function draw(g: CanvasRenderingContext2D, kind: Kind, ink: string, v: (k: strin
   }
 }
 
-function LabCard({ card, adapter }: { card: (typeof CARDS)[number]; adapter?: FxPanelAdapter }) {
-  const id = (k: string) => `${adapter?.prefix ?? ''}fx.${card.kind}.${k}`;
-  const storeParams = useStore(s => s.params);
-  const params = adapter?.params ?? storeParams;
+function LabCard({ card, adapter }: { card: (typeof CARDS)[number]; adapter: FxPanelAdapter }) {
+  const id = (k: string) => `${adapter.prefix ?? ''}fx.${card.kind}.${k}`;
+  const params = adapter.params;
   const latest = useRef(params); latest.current = params;
   const on = params[id('on')] > 0.5;
   const label = caption(card.kind, k => params[id(k)] ?? 0);
@@ -165,20 +160,20 @@ function LabCard({ card, adapter }: { card: (typeof CARDS)[number]; adapter?: Fx
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [card.kind, adapter?.prefix]); // animation reads the latest parameters without restarting on every knob move
+  }, [card.kind, adapter.prefix]); // animation reads the latest parameters without restarting on every knob move
 
   return (
     <section className={`lab-card${on ? '' : ' lab-bypassed'}`} data-accent={card.accent} aria-label={card.title}>
-      <div className="panel-head">{adapter?.renderPower ? adapter.renderPower(id('on')) : <PowerButton paramId={id('on')} />}<h2>{card.title}</h2><span className="lab-state">{on ? label : 'BYPASS'}</span></div>
+      <div className="panel-head">{adapter.renderPower(id('on'))}<h2>{card.title}</h2><span className="lab-state">{on ? label : 'BYPASS'}</span></div>
       <p className="lab-tagline">{card.tagline}</p>
       <canvas ref={canvas} className="lab-view" role="img" aria-label={`${card.title} parameter picture, not a live meter`} />
-      {card.stepper ? adapter?.renderStepper ? adapter.renderStepper(id(card.stepper)) : <Stepper paramId={id(card.stepper)} accent={card.accent} /> : null}
-      <div className="lab-knobs">{card.knobs.map(k => <span key={k}>{adapter?.renderKnob ? adapter.renderKnob(id(k), k) : <Knob paramId={id(k)} size="sm" accent={card.accent} />}</span>)}</div>
+      {card.stepper ? adapter.renderStepper?.(id(card.stepper)) ?? null : null}
+      <div className="lab-knobs">{card.knobs.map(k => <span key={k}>{adapter.renderKnob(id(k), k, card.accent)}</span>)}</div>
     </section>
   );
 }
 
-export function LabPanel({ adapter }: { adapter?: FxPanelAdapter }) {
+export function LabPanel({ adapter }: { adapter: FxPanelAdapter }) {
   return (
     <section className="panel panel-lab" style={{ gridArea: 'lab' }} aria-label="Lab effects">
       {CARDS.map(card => <LabCard key={card.kind} card={card} adapter={adapter} />)}

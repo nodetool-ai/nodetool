@@ -1,9 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { engine as wtEngine, useStore } from '../../store';
 import { ECHO_DIVISIONS, idleEcho, type EchoMessage } from '../../engine/echo';
 import { PARAMS } from '../../params';
-import { Knob } from '../Knob';
-import { PowerButton } from '../PowerButton';
 import { setupCanvas } from '../displays/canvas';
 import './tapeEcho.css';
 import type { FxPanelAdapter } from './fxAdapter';
@@ -12,18 +9,16 @@ import { fxId } from './fxAdapter';
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const db = (v: number) => v <= -89 ? '−∞' : v.toFixed(1);
 
-export function TapeEchoPanel({ adapter }: { adapter?: FxPanelAdapter } = {}) {
-  const wtParams = useStore(s => adapter ? null : s.params), wtSetParam = useStore(s => s.setParam);
-  const params = adapter?.params ?? wtParams!, setParam = adapter?.setParam ?? wtSetParam;
-  const tape = !adapter;
-  const activeEngine = adapter?.engine ?? wtEngine, prefix = adapter?.prefix ?? '';
+export function TapeEchoPanel({ adapter }: { adapter: FxPanelAdapter }) {
+  const { params, setParam } = adapter;
+  const tape = adapter.tape === true;
+  const activeEngine = adapter.engine, prefix = adapter.prefix ?? '';
   const id = (key: string) => fxId(prefix, `fx.delay.${key}`);
   const on = params[id('on')] > 0.5, sync = params[id('sync')] > 0.5;
-  const knob = adapter?.renderKnob ?? ((paramId: string) => <Knob paramId={paramId} size="sm" accent="n" />);
-  const power = adapter?.renderPower ?? ((paramId: string) => <PowerButton paramId={paramId} />);
+  const knob = adapter.renderKnob, power = adapter.renderPower;
   const canvas = useRef<HTMLCanvasElement>(null), readings = useRef<HTMLDivElement>(null);
   const redraw = useRef<() => void>(() => {});
-  const fallbackTime = sync ? clamp(60 / params['seq.bpm'] * ECHO_DIVISIONS[params[id('div')] | 0], 0.02, 1.5) : params[id('time')];
+  const fallbackTime = sync ? clamp(60 / (adapter.bpm ?? params['seq.bpm'] ?? 120) * ECHO_DIVISIONS[params[id('div')] | 0], 0.02, 1.5) : params[id('time')];
   const settings = useRef({ on, time: fallbackTime, feedback: params[id('fb')] });
   settings.current = { on, time: fallbackTime, feedback: params[id('fb')] };
 
@@ -107,15 +102,15 @@ export function TapeEchoPanel({ adapter }: { adapter?: FxPanelAdapter } = {}) {
   }, [activeEngine, prefix, tape]);
   useEffect(() => { redraw.current(); }, [params]);
 
-  const controls = adapter ? ['time', 'fb', 'mix'] : ['time', 'fb', 'mix', 'tone', 'sat', 'wow', 'flutter', 'width'];
-  return <section className={`panel panel-echo${tape ? '' : ' panel-delay'}${on ? '' : ' echo-bypassed'}`} style={{ gridArea: 'echo' }} aria-label={`${adapter?.title ?? 'Stereo tape echo'} visualizer`}>
+  const controls = !tape ? ['time', 'fb', 'mix'] : ['time', 'fb', 'mix', 'tone', 'sat', 'wow', 'flutter', 'width'];
+  return <section className={`panel panel-echo${tape ? '' : ' panel-delay'}${on ? '' : ' echo-bypassed'}`} style={{ gridArea: 'echo' }} aria-label={`${adapter.title ?? 'Stereo tape echo'} visualizer`}>
     <div className="panel-head">
-      {power(id('on'))}<h2>{adapter?.title ?? 'TAPE ECHO'}</h2>
-      {!adapter && <select aria-label="Echo routing" value={params[id('mode')]} onChange={e => setParam(id('mode'), Number(e.target.value))}>
+      {power(id('on'))}<h2>{adapter.title ?? 'TAPE ECHO'}</h2>
+      {tape && <select aria-label="Echo routing" value={params[id('mode')]} onChange={e => setParam(id('mode'), Number(e.target.value))}>
         <option value={0}>PING PONG</option><option value={1}>STEREO</option>
       </select>}
-      {!adapter && <button className="echo-sync" aria-pressed={sync} onClick={() => setParam(id('sync'), sync ? 0 : 1)}>SYNC</button>}
-      {!adapter && sync && <select aria-label="Echo beat division" value={params[id('div')]} onChange={e => setParam(id('div'), Number(e.target.value))}>
+      {tape && <button className="echo-sync" aria-pressed={sync} onClick={() => setParam(id('sync'), sync ? 0 : 1)}>SYNC</button>}
+      {tape && sync && <select aria-label="Echo beat division" value={params[id('div')]} onChange={e => setParam(id('div'), Number(e.target.value))}>
         {PARAMS['fx.delay.div'].options!.map((label, i) => <option key={label} value={i}>{label}</option>)}
       </select>}
     </div>

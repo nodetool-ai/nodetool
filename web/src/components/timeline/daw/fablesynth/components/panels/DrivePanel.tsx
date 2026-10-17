@@ -1,21 +1,15 @@
-import { Knob } from '../Knob';
-import { PowerButton } from '../PowerButton';
-import { engine, useStore } from '../../store';
 import { DRIVE_TYPES, driveToneDb, driveTransfer } from '../../engine/drive';
 import type { FxPanelAdapter } from './fxAdapter';
 import { fxId } from './fxAdapter';
 import './drive.css';
 
-export function DrivePanel({ adapter, compact = false }: { adapter?: FxPanelAdapter; compact?: boolean }) {
-  const wtParams = useStore(s => adapter ? null : s.params);
-  const wtSetParam = useStore(s => s.setParam);
-  const params = adapter?.params ?? wtParams!, setParam = adapter?.setParam ?? wtSetParam;
-  const id = (key: string) => fxId(adapter?.prefix, `fx.drive.${key}`);
+export function DrivePanel({ adapter, compact = false }: { adapter: FxPanelAdapter; compact?: boolean }) {
+  const { params, setParam } = adapter;
+  const id = (key: string) => fxId(adapter.prefix, `fx.drive.${key}`);
   const on = params[id('on')] > 0.5, amount = params[id('amt')] ?? 0.3;
   const tone = params[id('tone')] ?? 0, type = Math.max(0, Math.min(2, Math.round(params[id('type')] ?? 0)));
-  const mix = params[id('mix')] ?? 1, sr = (adapter?.engine ?? engine).ctx?.sampleRate ?? 48000;
-  const knob = adapter?.renderKnob ?? ((key: string) => <Knob paramId={key} size="sm" accent="n" />);
-  const power = adapter?.renderPower ?? ((key: string) => <PowerButton paramId={key} />);
+  const mix = params[id('mix')] ?? 1, sr = adapter.engine.ctx?.sampleRate ?? 48000;
+  const knob = adapter.renderKnob, power = adapter.renderPower;
   const path = (count: number, point: (i: number) => [number, number]) => Array.from({ length: count }, (_, i) => {
     const [x, y] = point(i); return `${i ? 'L' : 'M'}${x.toFixed(2)},${y.toFixed(2)}`;
   }).join(' ');

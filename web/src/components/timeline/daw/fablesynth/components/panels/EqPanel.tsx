@@ -1,8 +1,5 @@
 import { tiltedLevels, useLiveSpectrum } from './useLiveSpectrum';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Knob } from '../Knob';
-import { PowerButton } from '../PowerButton';
-import { engine, useStore } from '../../store';
 import { PARAMS, fmtDb, fmtHz } from '../../params';
 import { EQ_BANDS, eqCoefficients, eqResponseDb, eqValue, readEqBands } from '../../engine/eqResponse';
 import type { FxPanelAdapter } from './fxAdapter';
@@ -15,15 +12,13 @@ const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(ma
 const X = (freq: number) => LEFT + Math.log(freq / 20) / Math.log(1000) * (RIGHT - LEFT);
 const Y = (gain: number) => TOP + (15 - gain) / 30 * (BOTTOM - TOP);
 
-export function EqPanel({ adapter }: { adapter?: FxPanelAdapter }) {
-  const wtParams = useStore(s => s.params);
-  const wtSetParam = useStore(s => s.setParam);
-  const prefix = adapter?.prefix ?? '';
-  const source = adapter?.params ?? wtParams;
+export function EqPanel({ adapter }: { adapter: FxPanelAdapter }) {
+  const prefix = adapter.prefix ?? '';
+  const source = adapter.params;
   const params = useMemo(() => Object.fromEntries(
     Object.keys(PARAMS).filter(k => k.startsWith('fx.eq.')).map(k => [k, source[prefix + k] ?? PARAMS[k].def])
   ), [source, prefix]);
-  const writeParam = adapter?.setParam ?? wtSetParam;
+  const writeParam = adapter.setParam;
   const setParam = useCallback((key: string, value: number) => writeParam(prefix + key, value), [writeParam, prefix]);
   const current = useRef(params);
   current.current = params;
@@ -33,14 +28,13 @@ export function EqPanel({ adapter }: { adapter?: FxPanelAdapter }) {
   const drag = useRef<{ index: number; x: number; y: number; freq: number; gain: number } | null>(null);
   const bands = readEqBands(params), keys = EQ_BANDS[selected], band = bands[selected];
   const on = params['fx.eq.on'] > 0.5;
-  const sampleRate = (adapter?.engine ?? engine).ctx?.sampleRate ?? 48000;
+  const sampleRate = adapter.engine.ctx?.sampleRate ?? 48000;
   const [autoOpen, setAutoOpen] = useState(false);
   const [fit, setFit] = useState<EqFit | null>(null);
-  // WT-1 has no adapter; its finished output is the scope tap.
-  const analysis = adapter ? adapter.analysis ?? { source: null, note: 'NO SIGNAL TAP' } : { source: engine.scopeAnalyser ?? null, reference: 'lead' };
+  const analysis = adapter.analysis ?? { source: null, note: 'NO SIGNAL TAP' };
   // Live spectrum behind the curve (EQ-analyser tilt), from the device output
   // or whatever the host names; nothing where no isolated signal exists.
-  const liveSource = adapter?.liveSpectrum !== undefined ? adapter.liveSpectrum : analysis.source;
+  const liveSource = adapter.liveSpectrum !== undefined ? adapter.liveSpectrum : analysis.source;
   const live = useLiveSpectrum(liveSource ?? null, (levels) => {
     const pts = tiltedLevels(levels).map((l, i) => `${i ? 'L' : 'M'}${X(BAND_HZ[i]).toFixed(1)} ${Y(l).toFixed(1)}`).join('');
     return `${pts}L${X(BAND_HZ[BAND_HZ.length - 1]).toFixed(1)} ${BOTTOM}L${X(BAND_HZ[0]).toFixed(1)} ${BOTTOM}Z`;
@@ -87,7 +81,7 @@ export function EqPanel({ adapter }: { adapter?: FxPanelAdapter }) {
   return (
     <section className={`panel panel-eq${on ? '' : ' eq-bypassed'}`} style={{ gridArea: 'eq' }} aria-label="Four-band parametric equalizer">
       <div className="panel-head">
-        {adapter?.renderPower?.(prefix + "fx.eq.on") ?? <PowerButton paramId="fx.eq.on" />}
+        {adapter.renderPower(prefix + "fx.eq.on")}
         <h2>EQ</h2>
         <span className="eq-caption">{on ? '4 BAND' : 'BYPASS'}</span>
         <button type="button" className={`eq-auto-toggle${autoOpen ? ' on' : ''}`} aria-pressed={autoOpen}
@@ -169,7 +163,7 @@ export function EqPanel({ adapter }: { adapter?: FxPanelAdapter }) {
       </div>
       <div className="eq-controls">
         {(['freq', 'gain', 'q'] as const).map(key => <div className="eq-control" key={`${selected}-${key}`}>
-          {adapter?.renderKnob?.(prefix + keys[key], key) ?? <Knob paramId={keys[key]} label={key.toUpperCase()} size="sm" accent="n" />}
+          {adapter.renderKnob(prefix + keys[key], key)}
           <output>{PARAMS[keys[key]].fmt!(eqValue(params, keys[key]))}</output>
         </div>)}
       </div>

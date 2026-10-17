@@ -1,6 +1,3 @@
-import { useStore } from '../../store';
-import { Knob } from '../Knob';
-import { PowerButton } from '../PowerButton';
 import type { FxPanelAdapter } from './fxAdapter';
 import { fxId } from './fxAdapter';
 import './chorus.css';
@@ -12,15 +9,13 @@ export function chorusDelayMs(time: number, rate: number, depth: number): [numbe
   return [12 + modulation, 17 - modulation * 0.8];
 }
 
-export function ChorusPanel({ adapter, compact = false }: { adapter?: FxPanelAdapter; compact?: boolean } = {}) {
-  const wtParams = useStore(s => adapter ? null : s.params);
-  const params = adapter?.params ?? wtParams!;
-  const id = (key: string) => fxId(adapter?.prefix, `fx.chorus.${key}`);
+export function ChorusPanel({ adapter, compact = false }: { adapter: FxPanelAdapter; compact?: boolean }) {
+  const params = adapter.params;
+  const id = (key: string) => fxId(adapter.prefix, `fx.chorus.${key}`);
   const on = params[id('on')] > 0.5;
   const rate = params[id('rate')] ?? 0.6, depth = params[id('depth')] ?? 0.5;
   const mix = params[id('mix')] ?? 0.3, excursion = 0.8 + depth * 4.5;
-  const knob = adapter?.renderKnob ?? ((key: string) => <Knob paramId={key} size="sm" accent="n" />);
-  const power = adapter?.renderPower ?? ((key: string) => <PowerButton paramId={key} />);
+  const knob = adapter.renderKnob, power = adapter.renderPower;
   const y = (delay: number) => 112 - (delay - 5) * 4;
   const paths = [0, 1].map(channel => Array.from({ length: 513 }, (_, i) => {
     const delay = chorusDelayMs(i / 256, rate, depth)[channel];

@@ -22,9 +22,15 @@ export interface FxPanelAdapter {
   /** Optional honest context shown in panel captions (DR-1 bus return). */
   context?: string;
   title?: string;
-  renderKnob?: (id: string, key?: string) => ReactNode;
-  renderPower?: (id: string) => ReactNode;
+  /** Renders the knob for a full parameter id. `accent` is the FableSynth accent key (LAB cards). */
+  renderKnob: (id: string, key?: string, accent?: string) => ReactNode;
+  renderPower: (id: string) => ReactNode;
+  /** Enum stepper, used by the LAB reso chord. */
   renderStepper?: (id: string) => ReactNode;
+  /** Full tape echo (routing, sync, tone, wow, flutter) instead of the plain delay. */
+  tape?: boolean;
+  /** Host tempo for synced echo times; falls back to `params['seq.bpm']`. */
+  bpm?: number;
   /** Signal and default reference for the EQ panel's auto-EQ. */
   analysis?: AutoEqSource;
   /** Auto-comp input source and default style. Without a source it uses comp telemetry. */

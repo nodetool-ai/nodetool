@@ -1,11 +1,12 @@
 import { DrivePanel } from './DrivePanel';
 import { ChorusPanel } from './ChorusPanel';
+import type { FxPanelAdapter } from './fxAdapter';
 
-export function FxPanel() {
+export function FxPanel({ adapter }: { adapter: FxPanelAdapter }) {
   return (
     <>
-      <DrivePanel />
-      <ChorusPanel />
+      <DrivePanel adapter={adapter} />
+      <ChorusPanel adapter={adapter} />
     </>
   );
 }
