@@ -88,7 +88,9 @@ export const PianoRollKeyboard: React.FC<PianoRollKeyboardProps> = memo(
             geometry.rowHeightPx
           );
         }
-        ctx.strokeStyle = colors.gridLine;
+        // The keys stay ivory in both modes, so the seam between two rows is
+        // drawn with the light scheme's divider: the dark one vanishes on white.
+        ctx.strokeStyle = theme.colorSchemes?.light?.palette.divider ?? colors.gridLine;
         ctx.beginPath();
         ctx.moveTo(0, y + geometry.rowHeightPx + 0.5);
         ctx.lineTo(KEYBOARD_WIDTH_PX, y + geometry.rowHeightPx + 0.5);

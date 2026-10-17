@@ -31,9 +31,7 @@ import {
   EditorButton,
   CloseButton,
   FlexColumn,
-  FlexRow,
   MOTION,
-  SPACING,
   ToolbarIconButton,
   TruncatedText
 } from "../../ui_primitives";
@@ -69,14 +67,6 @@ const panelStyles = (theme: Theme) =>
     minHeight: 0,
     overflow: "hidden",
     backgroundColor: theme.vars.palette.background.default
-  });
-
-const headerStyles = (theme: Theme) =>
-  css({
-    flexShrink: 0,
-    minHeight: 36,
-    flexWrap: "wrap",
-    borderBottom: `1px solid ${theme.vars.palette.divider}`
   });
 
 interface PianoRollPanelProps {
@@ -191,41 +181,41 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
               : { height: heightPx }
           }
         >
-          <FlexRow
-            fullWidth
-            align="center"
-            gap={SPACING.sm}
-            css={headerStyles(theme)}
-            sx={{ px: SPACING.sm }}
-          >
-            {fullHeight && !docked && (
-              <ToolbarIconButton
-                onClick={closePianoRoll}
-                tooltip="Back to tracks"
-                aria-label="Back to tracks"
-              >
-                <ArrowBackIosNewIcon fontSize="small" />
-              </ToolbarIconButton>
-            )}
-            <TruncatedText maxWidth={220}>
-              {clip.name || "Midi clip"}
-            </TruncatedText>
-            <Caption color="muted">
-              {clip.notes?.length ?? 0} {(clip.notes?.length ?? 0) === 1 ? "note" : "notes"}
-            </Caption>
-            <SelectField label="Note grid" hideLabel size="small" value={gridDivision}
-              options={GRID_DIVISION_OPTIONS} css={css({ width: 96 })}
-              onChange={(value) => setGridDivision(value as TempoGridDivision)} />
-            <EditorButton variant={snapEnabled ? "contained" : "text"} onClick={toggleSnap} aria-label="Snap notes" aria-pressed={snapEnabled}>Snap</EditorButton>
-            <FlexRow sx={{ flex: 1 }} />
-            {(!fullHeight || docked) && (
-              <CloseButton
-                onClick={closePianoRoll}
-                tooltip="Close note editor"
-              />
-            )}
-          </FlexRow>
-          <PianoRoll clipId={clipId} onClose={closePianoRoll} />
+          <PianoRoll
+            clipId={clipId}
+            onClose={closePianoRoll}
+            toolbarStart={
+              <>
+                {fullHeight && !docked && (
+                  <ToolbarIconButton
+                    onClick={closePianoRoll}
+                    tooltip="Back to tracks"
+                    aria-label="Back to tracks"
+                  >
+                    <ArrowBackIosNewIcon fontSize="small" />
+                  </ToolbarIconButton>
+                )}
+                <TruncatedText maxWidth={180}>
+                  {clip.name || "Midi clip"}
+                </TruncatedText>
+                <Caption color="muted" sx={{ whiteSpace: "nowrap" }}>
+                  {clip.notes?.length ?? 0} {(clip.notes?.length ?? 0) === 1 ? "note" : "notes"}
+                </Caption>
+                <SelectField label="Note grid" hideLabel size="small" value={gridDivision}
+                  options={GRID_DIVISION_OPTIONS} css={css({ width: 96 })}
+                  onChange={(value) => setGridDivision(value as TempoGridDivision)} />
+                <EditorButton variant={snapEnabled ? "contained" : "text"} onClick={toggleSnap} aria-label="Snap notes" aria-pressed={snapEnabled}>Snap</EditorButton>
+              </>
+            }
+            toolbarEnd={
+              (!fullHeight || docked) && (
+                <CloseButton
+                  onClick={closePianoRoll}
+                  tooltip="Close note editor"
+                />
+              )
+            }
+          />
         </FlexColumn>
       </>
     );

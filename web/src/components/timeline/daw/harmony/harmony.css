@@ -22,8 +22,10 @@
 .fablesynth button, .fablesynth select, .fablesynth input { font-family: var(--font-mono); }
 
 /* Harmony panel host: the panel scrolls inside its dock. */
-.fablesynth.harmony-panel { height: 100%; overflow: auto; padding: 8px; background: #06070b; }
-.fablesynth .harmony-empty { padding: 24px; color: #93a0b8; font-size: 11px; letter-spacing: .06em; }
+.fablesynth.harmony-panel { display: flex; flex-direction: column; gap: 8px; height: 100%; overflow: auto; padding: 8px; background: #06070b; }
+.fablesynth.harmony-panel > .panel { flex: none; }
+.fablesynth.harmony-chord-host { flex: none; padding: 8px 8px 0; }
+.fablesynth.harmony-chord-host:empty { display: none; }
 .fablesynth .harmony-section-title { display: flex; align-items: center; gap: 10px; }
 .fablesynth .harmony-browser-host { position: relative; height: 420px; }
 
@@ -31,8 +33,11 @@
 .fablesynth.harmony-lane { position: absolute; inset: 0; background: #070b11; cursor: crosshair; touch-action: none; overflow: hidden; }
 .fablesynth .hl-beat { position: absolute; top: 0; bottom: 0; width: 1px; background: #ffffff0d; pointer-events: none; }
 .fablesynth .hl-beat.bar { background: #ffffff26; }
-.fablesynth .hl-chord { position: absolute; top: 4px; bottom: 4px; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; padding: 0 8px; border-radius: 3px; cursor: grab;
+.fablesynth .hl-chord { position: absolute; top: 4px; bottom: 4px; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; padding: 20px 8px 0; border-radius: 3px; cursor: grab;
   border: 1px solid hsl(calc(var(--hue) * 1deg) 70% 62% / .55); background: hsl(calc(var(--hue) * 1deg) 60% 40% / .22); color: #dfe6f3; font-size: 12px; font-weight: 600; white-space: nowrap; }
+/* The label sits below the PROGRESSION / snap tools; a lane too short for both centres it. */
+.fablesynth.harmony-lane { container-type: size; }
+@container (max-height: 52px) { .fablesynth .hl-chord { padding-top: 0; } }
 .fablesynth .hl-chord sup { font-size: 8px; opacity: .7; }
 .fablesynth .hl-chord em { font-style: normal; font-weight: 400; font-size: 9px; letter-spacing: .06em; opacity: .7; }
 .fablesynth .hl-chord.selected { box-shadow: inset 0 0 0 1px var(--arp-live); border-color: var(--arp-live); }
@@ -45,7 +50,7 @@
 .fablesynth .hl-empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #6b768c; font-size: 9px; letter-spacing: .12em; pointer-events: none; white-space: nowrap; }
 
 /* Overlay that hosts a browser over the editor. */
-.fablesynth.harmony-overlay { position: fixed; inset: 5vh 5vw; z-index: 1400; }
+.fablesynth.harmony-overlay { position: fixed; inset: 5vh 5vw; z-index: 1400; box-shadow: 0 0 0 100vmax rgba(0,0,0,.6); }
 .fablesynth.harmony-overlay .comp-browser { position: absolute; inset: 0; }
 .fablesynth .chord-popover { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: #0a0f17; }
 
@@ -194,7 +199,7 @@
 .fablesynth .comp-browser-variations button[aria-pressed=true], .fablesynth .comp-browser-families button[aria-pressed=true] { color:var(--arp-live); border-color:rgba(var(--arp-rgb),0.45); background:rgba(var(--arp-rgb),0.08); }
 .fablesynth .comp-browser-body { flex:1; min-height:0; display:grid; grid-template-columns:170px 1fr; gap:10px; }
 .fablesynth .comp-browser-families { display:flex; flex-direction:column; gap:3px; overflow-y:auto; }
-.fablesynth .comp-browser-families button { display:flex; justify-content:space-between; text-align:left; }
+.fablesynth .comp-browser-families button { display:flex; justify-content:space-between; gap:8px; text-align:left; }
 .fablesynth .comp-browser-families button span { color:#5f6f86; font-weight:400; }
 .fablesynth .comp-browser-list { overflow-y:auto; display:flex; flex-direction:column; gap:2px; padding-right:4px; }
 .fablesynth .comp-browser-list button { display:grid; grid-template-columns:minmax(150px,1fr) 130px 320px 170px; align-items:center; gap:14px; padding:3px 10px; border:1px solid transparent; border-radius:4px; background:#0c121c; color:#c4d0de; font:11px 'IBM Plex Mono',monospace; text-align:left; cursor:pointer; }
@@ -214,7 +219,10 @@
 @media(max-width:800px) {
 .fablesynth .comp-browser-body { grid-template-columns:1fr; }
 .fablesynth .comp-browser-families { flex-direction:row; flex-wrap:wrap; max-height:70px; }
-.fablesynth .comp-browser-list button { grid-template-columns:1fr 120px; }
+.fablesynth .comp-browser-head { flex-wrap:wrap; }
+.fablesynth .comp-browser-head input { flex:1 1 100%; order:1; }
+.fablesynth .comp-browser-head .ns-btn:first-of-type { margin-left:auto; }
+.fablesynth .comp-browser-list button { grid-template-columns:minmax(0,1fr) 160px; }
 .fablesynth .comp-family, .fablesynth .comp-meta { display:none; }
 .fablesynth .comp-grid { width:160px; height:13px; }
 }

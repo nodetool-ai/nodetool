@@ -1,19 +1,31 @@
+import type { ReactNode } from "react";
 import { moveNotes, setVelocity } from "@nodetool-ai/timeline";
 import type { MidiNote } from "@nodetool-ai/timeline";
 import { Caption, FlexRow, SPACING, TextInput } from "../../ui_primitives";
+
+/** Wide enough for "127" or "12.25" beside the number spinner. */
+const FIELD_WIDTH_PX = 76;
 
 interface Props {
   notes: readonly MidiNote[];
   selectedIds: ReadonlySet<string>;
   beatTicks: number;
   onChange: (notes: MidiNote[]) => void;
+  /** Placed right after the Velocity field: the relative velocity slider. */
+  velocityAdjust?: ReactNode;
 }
 
+/**
+ * Number fields for the selected notes, laid inline in the piano roll's
+ * toolbar. Each field shows a short visible label; its accessible name is the
+ * full one.
+ */
 export function NoteSelectionInspector({
   notes,
   selectedIds,
   beatTicks,
-  onChange
+  onChange,
+  velocityAdjust
 }: Props) {
   const selected = notes.filter((note) => selectedIds.has(note.id));
   const first = selected[0];
@@ -30,6 +42,7 @@ export function NoteSelectionInspector({
   const fields = [
     {
       label: "Lowest pitch (MIDI)",
+      short: "Pitch",
       value: first ? lowest : null,
       min: 0,
       max: 127,
@@ -42,6 +55,7 @@ export function NoteSelectionInspector({
     },
     {
       label: "Start beat",
+      short: "Start",
       value: first ? 1 + start / beatTicks : null,
       min: 1,
       step: 1 / beatTicks,
@@ -53,6 +67,7 @@ export function NoteSelectionInspector({
     },
     {
       label: "Length (beats)",
+      short: "Length",
       value: length === null ? null : length / beatTicks,
       min: 1 / beatTicks,
       step: 1 / beatTicks,
@@ -68,6 +83,7 @@ export function NoteSelectionInspector({
     },
     {
       label: "Velocity",
+      short: "Vel",
       value: common("velocity"),
       min: 1,
       max: 127,
@@ -76,52 +92,48 @@ export function NoteSelectionInspector({
     }
   ];
   return (
-    <FlexRow
-      gap={SPACING.md}
-      sx={{
-        px: SPACING.sm,
-        pb: SPACING.sm,
-        flexWrap: "wrap",
-        alignItems: "end"
-      }}
-    >
+    <FlexRow align="center" gap={SPACING.sm} sx={{ flexWrap: "wrap", rowGap: SPACING.xs }}>
       {fields.map((field) => (
-        <TextInput
-          key={`${field.label}:${field.value}:${selected.map((note) => note.id).join(",")}`}
-          label={field.label}
-          type="number"
-          compact
-          fullWidth={false}
-          sx={{ width: 128 }}
-          disabled={!first}
-          defaultValue={field.value ?? ""}
-          placeholder={first ? "Mixed" : "—"}
-          inputProps={{ min: field.min, max: field.max, step: field.step }}
-          onBlur={(event) => {
-            const value = Math.round(Number(event.target.value) / field.step) * field.step;
-            if (
-              event.target.value.trim() &&
-              Number.isFinite(value) &&
-              value >= field.min &&
-              (field.max === undefined || value <= field.max) &&
-              value !== field.value
-            )
-              onChange(field.apply(value));
-            event.target.value = field.value === null ? "" : String(field.value);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              const input = event.target as HTMLInputElement;
-              input.value = field.value === null ? "" : String(field.value);
-              input.blur();
-            } else if (event.key === "Enter")
-              (event.target as HTMLInputElement).blur();
-          }}
-        />
+        <FlexRow key={field.label} align="center" gap={SPACING.xs}>
+          <Caption color="muted" aria-hidden sx={{ whiteSpace: "nowrap" }}>
+            {field.short}
+          </Caption>
+          <TextInput
+            key={`${field.value}:${selected.map((note) => note.id).join(",")}`}
+            label={field.label}
+            hideLabel
+            type="number"
+            compact
+            fullWidth={false}
+            sx={{ width: FIELD_WIDTH_PX }}
+            disabled={!first}
+            defaultValue={field.value ?? ""}
+            placeholder={first ? "Mixed" : "—"}
+            inputProps={{ min: field.min, max: field.max, step: field.step }}
+            onBlur={(event) => {
+              const value = Math.round(Number(event.target.value) / field.step) * field.step;
+              if (
+                event.target.value.trim() &&
+                Number.isFinite(value) &&
+                value >= field.min &&
+                (field.max === undefined || value <= field.max) &&
+                value !== field.value
+              )
+                onChange(field.apply(value));
+              event.target.value = field.value === null ? "" : String(field.value);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                const input = event.target as HTMLInputElement;
+                input.value = field.value === null ? "" : String(field.value);
+                input.blur();
+              } else if (event.key === "Enter")
+                (event.target as HTMLInputElement).blur();
+            }}
+          />
+          {field.label === "Velocity" && velocityAdjust}
+        </FlexRow>
       ))}
-      <Caption color="muted">
-        Pitch/start move the group. Length/velocity set all selected notes.
-      </Caption>
     </FlexRow>
   );
 }

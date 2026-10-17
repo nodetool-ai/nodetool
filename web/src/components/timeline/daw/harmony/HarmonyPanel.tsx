@@ -41,6 +41,7 @@ import type {
 
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
+import { EmptyState, FlexColumn } from "../../../ui_primitives";
 import { ChordEditor } from "./ChordEditor";
 import { barTicks, chordHue } from "./chordGrid";
 import { CompBrowser, loadCompEntry, VOICING_NAMES } from "./CompBrowser";
@@ -520,18 +521,39 @@ export function HarmonyPanel(): React.JSX.Element {
   const tracks = useTimelineStore((s) => s.tracks);
   const tempoState = useTimelineStore((s) => s.tempo);
   const tempo = useMemo(() => resolveTempo({ tempo: tempoState }), [tempoState]);
+  const selectClip = useTimelineUIStore((s) => s.selectClip);
   const clip = useMemo(
     () => clips.find((c) => selectedIds.has(c.id) && c.mediaType === "midi"),
     [clips, selectedIds]
   );
-  return (
-    <div className="fablesynth harmony-root harmony-panel" data-testid="harmony-panel">
-      <SelectedChordEditor tracks={tracks} />
-      {clip ? (
+  const firstMidiClip = useMemo(() => (clip ? undefined : clips.find((c) => c.mediaType === "midi")), [clip, clips]);
+  if (clip) {
+    return (
+      <div className="fablesynth harmony-root harmony-panel" data-testid="harmony-panel">
+        <SelectedChordEditor tracks={tracks} />
         <ClipHarmonyEditor clip={clip} tracks={tracks} tempo={tempo} />
-      ) : (
-        <div className="harmony-empty">SELECT A MIDI CLIP TO ARPEGGIATE OR COMP IT OVER THE CHORD TRACK.</div>
-      )}
-    </div>
+      </div>
+    );
+  }
+  // The empty state sits outside the FableSynth scope, whose hardware type
+  // would restyle the shared EmptyState primitive.
+  return (
+    <FlexColumn fullWidth fullHeight data-testid="harmony-panel" sx={{ overflow: "auto" }}>
+      <div className="fablesynth harmony-root harmony-chord-host">
+        <SelectedChordEditor tracks={tracks} />
+      </div>
+      <FlexColumn align="center" justify="center" fullWidth sx={{ flex: 1, minHeight: 0 }}>
+        <EmptyState
+          title="No MIDI clip selected"
+          description={
+            firstMidiClip
+              ? "Select a MIDI clip to arpeggiate it or comp it over the chord track."
+              : "Add a MIDI clip to arpeggiate it or comp it over the chord track."
+          }
+          actionText={firstMidiClip ? `Edit “${firstMidiClip.name || "MIDI clip"}”` : undefined}
+          onAction={firstMidiClip ? () => selectClip(firstMidiClip.id) : undefined}
+        />
+      </FlexColumn>
+    </FlexColumn>
   );
 }
