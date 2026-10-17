@@ -39,7 +39,9 @@ const meterStyles = (theme: Theme) =>
     flexShrink: 0,
     overflow: "hidden",
     borderRadius: BORDER_RADIUS.xs,
-    backgroundColor: theme.vars.palette.action.hover,
+    backgroundColor: theme.vars.palette.action.selected,
+    // The empty meter still reads as a meter against the strip.
+    boxShadow: `inset 0 0 0 1px ${theme.vars.palette.divider}`,
     ".master-meter__fill": {
       position: "absolute",
       inset: 0,

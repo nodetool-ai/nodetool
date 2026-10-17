@@ -31,7 +31,7 @@ const MIN_TRACKS_HEIGHT_PX = 120;
 /** Height the tracks get before the first layout measurement. */
 const FALLBACK_TRACKS_HEIGHT_PX = 240;
 const KEYBOARD_RESIZE_STEP_PX = 20;
-/** Phone default: the dock takes a little under half the screen. */
+/** Phone default: the dock takes a little under half the workspace. */
 const MOBILE_DOCK_FRACTION = 0.45;
 
 export interface DawWorkspaceProps {
@@ -59,6 +59,9 @@ export const DawWorkspace: React.FC<DawWorkspaceProps> = memo(({ onGenerate }) =
   const tracksSlotRef = useRef<HTMLDivElement>(null);
   const [tracksHeight, setTracksHeight] = useState(FALLBACK_TRACKS_HEIGHT_PX);
   const [maxDockHeight, setMaxDockHeight] = useState(MAX_DAW_DOCK_HEIGHT_PX);
+  const [columnHeight, setColumnHeight] = useState(() =>
+    typeof window === "undefined" ? 800 : window.innerHeight
+  );
   useEffect(() => {
     const column = columnRef.current;
     const slot = tracksSlotRef.current;
@@ -66,6 +69,7 @@ export const DawWorkspace: React.FC<DawWorkspaceProps> = memo(({ onGenerate }) =
     const update = () => {
       if (slot.clientHeight > 0) setTracksHeight(slot.clientHeight);
       if (column.clientHeight <= 0) return;
+      setColumnHeight(column.clientHeight);
       // Everything in the column that is not the tracks or the dock.
       const chrome = column.clientHeight - slot.clientHeight - (column.lastElementChild?.clientHeight ?? 0);
       const available = column.clientHeight - Math.max(0, chrome) - MIN_TRACKS_HEIGHT_PX;
@@ -80,11 +84,10 @@ export const DawWorkspace: React.FC<DawWorkspaceProps> = memo(({ onGenerate }) =
     return () => observer.disconnect();
   }, []);
 
-  // A phone that never picked a height starts at a share of the screen.
-  const [mobileDefault] = useState(() =>
-    Math.round(
-      Math.max(MIN_DAW_DOCK_HEIGHT_PX, (typeof window === "undefined" ? 800 : window.innerHeight) * MOBILE_DOCK_FRACTION)
-    )
+  // A phone that never picked a height starts at a share of the workspace,
+  // so the tracks keep the rest whatever the editor chrome above takes.
+  const mobileDefault = Math.round(
+    Math.max(MIN_DAW_DOCK_HEIGHT_PX, columnHeight * MOBILE_DOCK_FRACTION)
   );
   const chosenHeight =
     isMobile && dockHeight === DEFAULT_DAW_DOCK_HEIGHT_PX ? mobileDefault : dockHeight;

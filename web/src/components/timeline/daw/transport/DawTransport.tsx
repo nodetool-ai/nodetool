@@ -33,7 +33,6 @@ import { useTimelineStore, useTimelineStoreApi } from "../../../../stores/timeli
 import { useTimelineUIStoreApi } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineLayoutStore } from "../../../../stores/timeline/TimelineLayoutStore";
 import {
-  Caption,
   NumberField,
   SelectField,
   Slider,
@@ -107,6 +106,39 @@ const stripStyles = (theme: Theme) =>
       paddingRight: theme.spacing(SPACING.xs),
       display: "flex",
       alignItems: "center"
+    },
+    // Output sits at the far end of the strip, the way a mixer's master
+    // section does, with its label reading into the meter.
+    ".daw-transport__output": {
+      marginLeft: "auto",
+      gap: theme.spacing(SPACING.sm)
+    },
+    ".daw-transport__master": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(SPACING.sm)
+    },
+    ".daw-transport__master-label": {
+      ...TYPOGRAPHY.mono.caption,
+      color: theme.vars.palette.text.secondary,
+      textTransform: "uppercase",
+      letterSpacing: "0.06em",
+      userSelect: "none"
+    },
+    // A phone gets two rows: the timecode repeats the bar position and the
+    // device volume does the slider's job, so both give up their width.
+    [theme.breakpoints.down("sm")]: {
+      columnGap: theme.spacing(SPACING.md),
+      padding: theme.spacing(SPACING.xs, SPACING.sm),
+      ".daw-transport__timecode, .daw-transport__volume": {
+        display: "none"
+      },
+      ".daw-transport__position": {
+        minWidth: 0
+      },
+      ".daw-transport__bpm": {
+        width: theme.spacing(SPACING.xxxl * 2 + SPACING.xxl)
+      }
     }
   });
 
@@ -306,7 +338,7 @@ export const DawTransport: React.FC<DawTransportProps> = memo(
           />
         </div>
 
-        <div className="daw-transport__group">
+        <div className="daw-transport__group daw-transport__output">
           <ToolbarIconButton
             icon={isSilent ? <VolumeOffIcon /> : volume < 0.5 ? <VolumeDownIcon /> : <VolumeUpIcon />}
             tooltip={isSilent ? "Unmute" : "Mute"}
@@ -327,10 +359,12 @@ export const DawTransport: React.FC<DawTransportProps> = memo(
               density="compact"
             />
           </div>
-          <MasterMeter />
-          <Caption color="secondary" sx={{ whiteSpace: "nowrap" }}>
-            Master
-          </Caption>
+          <div className="daw-transport__master">
+            <Text component="span" className="daw-transport__master-label" aria-hidden>
+              Master
+            </Text>
+            <MasterMeter />
+          </div>
         </div>
       </div>
     );
