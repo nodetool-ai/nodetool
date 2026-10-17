@@ -36,7 +36,7 @@ Export the workflows you cannot afford to lose as a second copy. The API serves 
 3. Turn on **Automatic Updates**.
 4. Choose an **Update Channel**.
 
-Auto-update runs only in installed builds, not in a development checkout. The app reads releases from the `nodetool-ai/nodetool` GitHub repository. It checks when it starts.
+Auto-update runs only in installed builds, not in a development checkout. The app reads releases from the `nodetool-ai/nodetool` GitHub repository. It checks when it starts and every four hours while it runs. Changes to these two settings apply at once, without a restart.
 
 ### Update channels
 
@@ -45,11 +45,11 @@ Auto-update runs only in installed builds, not in a development checkout. The ap
 | **Stable** | Full releases |
 | **Nightly** | Prerelease nightly builds, published daily |
 
-A build whose version ends in `-nightly.<date>.<n>` starts on **Nightly**. Any other build starts on **Stable**. Your own choice in **Settings** overrides that default. The updater allows downgrades, so moving from Nightly to Stable can install an older build.
+A build whose version ends in `-nightly.<date>.<n>` starts on **Nightly**. Any other build starts on **Stable**. Your own choice in **Settings** overrides that default. A build on its default channel never downgrades. After you switch channels the updater allows downgrades, so moving from Nightly to Stable can install an older build.
 
 ### What you see
 
-When a newer version exists, the app downloads it in the background. A card at the top right of the main window reads "Version X is available. Downloading in the background..." with a **View Release Notes** link. When the download finishes the card reads "Version X has been downloaded and will be installed on restart." with a **Restart to Update** button. A system notification appears for both events. See [Update Notification](electron-views.md#update-notification).
+When a newer version exists, the app downloads it in the background and shows a system notification. When the download finishes a second notification, "NodeTool Update Ready", appears. Click it to restart into the new version. Otherwise the update installs the next time you quit. While the startup screen is still showing, a card at its top right repeats both messages and offers **Restart to Update**. See [Update Notification](electron-views.md#update-notification).
 
 If the app logs that `app-update.yml` is missing, you have an older installation. Reinstall from [GitHub releases](https://github.com/nodetool-ai/nodetool/releases) to enable auto-updates.
 

@@ -19,11 +19,23 @@ if (!expectedVersion || channel === null) {
 
 const MANIFEST_FIELD_PATTERN = /^([A-Za-z0-9_-]+):\s*([^\r\n]*)$/;
 
-// Electron-updater manifests are flat YAML documents for the fields we care
-// about. Parse only top-level scalar fields so this script has no npm install
+const unquote = (value) => {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+  return value;
+};
+
+// Electron-updater manifests are flat YAML documents plus one `files` list of
+// flat entries. Parse only that shape so this script has no npm install
 // dependency in the publish job.
 const parseManifest = (manifestPath) => {
   const fields = {};
+  const files = [];
+  let inFiles = false;
   const text = fs.readFileSync(manifestPath, "utf8");
   for (const line of text.split(/\r?\n/)) {
     const trimmed = line.trim();
@@ -31,22 +43,31 @@ const parseManifest = (manifestPath) => {
       continue;
     }
     if (line !== line.trimStart()) {
+      if (!inFiles) {
+        continue;
+      }
+      const entryStart = trimmed.startsWith("- ");
+      const match = MANIFEST_FIELD_PATTERN.exec(entryStart ? trimmed.slice(2).trim() : trimmed);
+      if (!match) {
+        throw new Error(`Invalid files entry in ${path.basename(manifestPath)}: ${line}`);
+      }
+      if (entryStart) {
+        files.push({});
+      }
+      if (files.length === 0) {
+        throw new Error(`Invalid files entry in ${path.basename(manifestPath)}: ${line}`);
+      }
+      files[files.length - 1][match[1]] = unquote(match[2].trim());
       continue;
     }
     const match = MANIFEST_FIELD_PATTERN.exec(trimmed);
     if (!match) {
       throw new Error(`Invalid manifest line in ${path.basename(manifestPath)}: ${line}`);
     }
-    let value = match[2].trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    fields[match[1]] = value;
+    inFiles = match[1] === "files" && match[2].trim() === "";
+    fields[match[1]] = unquote(match[2].trim());
   }
-  return fields;
+  return { fields, files };
 };
 
 const getSha512Base64 = (filePath) =>
@@ -79,7 +100,7 @@ const manifests = [
 
 for (const manifest of manifests) {
   const manifestPath = path.join(dir, manifest);
-  const doc = parseManifest(manifestPath);
+  const { fields: doc, files } = parseManifest(manifestPath);
   if (Object.keys(doc).length === 0) {
     throw new Error(`${manifest} is empty or invalid`);
   }
@@ -103,7 +124,27 @@ for (const manifest of manifests) {
   if (actualSha512 !== doc.sha512) {
     throw new Error(`${manifest} sha512 mismatch for ${doc.path}`);
   }
-  console.log(`${manifest}: ${doc.version} -> ${doc.path}`);
+  // electron-updater downloads from `files`, not the legacy top-level path,
+  // so every entry must match the asset it names.
+  if (files.length === 0) {
+    throw new Error(`${manifest} has no files entries`);
+  }
+  for (const entry of files) {
+    if (!entry.url || !entry.sha512) {
+      throw new Error(`${manifest} has a files entry without url or sha512`);
+    }
+    const entryPath = ensurePathInDir(dir, entry.url);
+    if (!fs.existsSync(entryPath) || !fs.statSync(entryPath).isFile()) {
+      throw new Error(`${manifest} files entry points to missing artifact ${entry.url}`);
+    }
+    if (getSha512Base64(entryPath) !== entry.sha512) {
+      throw new Error(`${manifest} files entry sha512 mismatch for ${entry.url}`);
+    }
+    if (entry.size !== undefined && Number(entry.size) !== fs.statSync(entryPath).size) {
+      throw new Error(`${manifest} files entry size mismatch for ${entry.url}`);
+    }
+  }
+  console.log(`${manifest}: ${doc.version} -> ${files.map((entry) => entry.url).join(", ")}`);
 }
 
 console.log(`Updater asset smoke test passed for ${channel} ${expectedVersion}.`);
