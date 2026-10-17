@@ -3,7 +3,7 @@
 NodeTool's product analytics are opt-in, anonymous, and limited to a fixed list
 of typed events. This page describes what is collected, how each client asks
 for consent, and how events travel and are stored. The code lives in
-[`packages/analytics`](../packages/analytics/) (`@nodetool-ai/analytics`).
+`packages/analytics` (`@nodetool-ai/analytics`).
 
 ## Rules
 
@@ -11,7 +11,7 @@ for consent, and how events travel and are stored. The code lives in
 2. Events carry no account, organization, project, workflow, job or asset ID,
    and no IP address, hostname, port, path, URL or user agent.
 3. Every event name and property is declared in
-   [`schema/events.ts`](../packages/analytics/src/schema/events.ts). Values are
+   `packages/analytics/src/schema/events.ts`. Values are
    enums or buckets. There is no `track(name, props)` with free-form data.
 4. The client validates every event before it is queued, and the server
    validates it again before it is relayed or stored.
@@ -108,7 +108,7 @@ Every event has this envelope. `timestamp` is truncated to the hour.
 
 `errorCategory` is computed on the client from the error message, which never
 leaves the process. The forbidden-field list in
-[`forbidden-fields.ts`](../packages/analytics/src/privacy/forbidden-fields.ts)
+`packages/analytics/src/privacy/forbidden-fields.ts`
 rejects any event that contains an identity, credential or content field at
 any depth.
 
@@ -164,7 +164,7 @@ role can read them.
 
 Backend events are product analytics only. Latency, queue depth, worker health
 and resource use belong to the OpenTelemetry pipeline in
-[`packages/runtime`](../packages/runtime/src/telemetry.ts).
+`packages/runtime`.
 
 ## Operator checklist
 
