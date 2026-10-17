@@ -126,6 +126,21 @@ npm run dist         # Create distribution packages
 
 Outputs to `dist/` directory.
 
+### Recovering a Stable Desktop Release
+
+After merging a release tooling fix to `main`, rebuild an existing stable tag:
+
+```bash
+gh workflow run release.yaml --ref main -f channel=stable -f version=0.8.4 -f source_tag=v0.8.4
+```
+
+The workflow resolves the existing tag to one commit before building every
+platform. It takes the backend smoke script from the workflow commit and keeps
+the signing, packed-backend journey, release asset, and updater checks. The SDK
+contract bundle records the source commit. Keep the release tag immutable.
+This desktop recovery does not run npm publication or change published npm
+packages. Leave `source_tag` empty for the usual event-commit build.
+
 ### Local Non-Release Builds
 
 The Electron build verifies that required Python wheels are published before packaging. For local test builds, you can skip this release-only registry check:
