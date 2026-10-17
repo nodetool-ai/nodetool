@@ -165,6 +165,27 @@ describe("Subject matte — states", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("names the provider's reason when a first run failed", async () => {
+    const user = userEvent.setup();
+    renderSection();
+    seed({
+      assetId: "",
+      sourceAssetId: "asset-1",
+      sourceRange: { fromMs: 0, toMs: 0 },
+      settings: {},
+      status: "failed",
+      error: "video_url: Video is longer than 30 seconds"
+    });
+    await openSubjectMatte(user);
+
+    expect(
+      screen.getByText(
+        "The last run failed: video_url: Video is longer than 30 seconds"
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("isolate-subject")).toBeEnabled();
+  });
+
   it("warns and asks for a regenerate when the matte is stale", async () => {
     const user = userEvent.setup();
     renderSection();

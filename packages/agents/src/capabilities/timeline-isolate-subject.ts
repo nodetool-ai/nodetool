@@ -143,6 +143,12 @@ function matteSettings(
   };
 }
 
+/** A matte without the last failure's reason, which a new run supersedes. */
+function withoutError(matte: ClipGeneratedMatte): ClipGeneratedMatte {
+  const { error: _superseded, ...rest } = matte;
+  return rest;
+}
+
 /**
  * The clip with its matte marked in flight, keeping the current asset and the
  * version list intact — the shot goes on showing the cutout it has while the
@@ -160,7 +166,7 @@ export function markGeneratedMatteGenerating(
 ): TimelineClip {
   const previous = clip.generatedMatte;
   const generating: ClipGeneratedMatte = previous
-    ? { ...previous, status: "generating" }
+    ? { ...withoutError(previous), status: "generating" }
     : {
         assetId: "",
         sourceAssetId,
@@ -176,17 +182,24 @@ export function markGeneratedMatteGenerating(
  *
  * A previous ready result is put back exactly as it was — the same asset, the
  * same versions, the same knobs — because a failed regenerate must not cost
- * the user the matte they were already working with. Only a first attempt
- * leaves a `failed` marker behind.
+ * the user the matte they were already working with. Only a clip with no
+ * result to keep is left with a `failed` marker, carrying the reason.
  */
 export function generatedMatteAfterFailure(
   clip: TimelineClip,
-  previous: ClipGeneratedMatte | undefined
+  previous: ClipGeneratedMatte | undefined,
+  error?: string
 ): TimelineClip {
-  if (previous) return { ...clip, generatedMatte: { ...previous } };
+  // A failed first run left a marker with no mask; that is not a result to
+  // keep, and putting it back would show the earlier run's reason.
+  if (previous && previous.assetId !== "") {
+    return { ...clip, generatedMatte: { ...previous } };
+  }
   const matte = clip.generatedMatte;
   if (!matte) return clip;
-  return { ...clip, generatedMatte: { ...matte, status: "failed" } };
+  const failed: ClipGeneratedMatte = { ...matte, status: "failed" };
+  if (error) failed.error = error;
+  return { ...clip, generatedMatte: failed };
 }
 
 /**
@@ -275,7 +288,8 @@ export async function isolateSubjectOnClip(
     if (run.costUsd !== undefined) outcome.costUsd = run.costUsd;
     return outcome;
   } catch (error) {
-    const reverted = generatedMatteAfterFailure(generating, previous);
+    const message = error instanceof Error ? error.message : String(error);
+    const reverted = generatedMatteAfterFailure(generating, previous, message);
     // Best effort: the generation already failed, and a save that also fails
     // leaves the in-flight marker, which the next call overwrites.
     await deps.persist(reverted);
@@ -284,7 +298,7 @@ export async function isolateSubjectOnClip(
       status: "failed",
       sourceRange,
       reused: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: message
     };
   }
 }

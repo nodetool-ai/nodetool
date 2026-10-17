@@ -348,7 +348,64 @@ describe("isolateSubject", () => {
 
     expect(store.getState().clips[0].generatedMatte).toMatchObject({
       assetId: "",
-      status: "failed"
+      status: "failed",
+      error: "Provider is down"
+    });
+  });
+
+  it("names the provider's reason when the run came back failed", async () => {
+    const { store, track, clip } = seedStore();
+    const failed: ClipGeneratedMatte = {
+      assetId: "",
+      sourceAssetId: "asset-1",
+      sourceRange: { fromMs: 0, toMs: 4000 },
+      settings: {},
+      status: "failed",
+      error: "video_url: Video is longer than 30 seconds"
+    };
+    postIsolate.mockResolvedValue({
+      status: "failed",
+      sourceRange: { fromMs: 0, toMs: 4000 },
+      reused: false,
+      error: "video_url: Video is longer than 30 seconds"
+    });
+    mockTimelineGet.mockResolvedValue(serverSequence(track, clip, failed));
+
+    const result = await store.getState().isolateSubject(CLIP_ID);
+
+    expect(result?.status).toBe("failed");
+    expect(store.getState().clips[0].generatedMatte).toMatchObject({
+      status: "failed",
+      error: "video_url: Video is longer than 30 seconds"
+    });
+    expect(
+      useNotificationStore
+        .getState()
+        .notifications.some(
+          (n) =>
+            n.type === "error" &&
+            n.content ===
+              "Isolate subject failed: video_url: Video is longer than 30 seconds"
+        )
+    ).toBe(true);
+  });
+
+  it("does not put a failed first run's marker back when the retry is refused", async () => {
+    const { store } = seedStore({
+      assetId: "",
+      sourceAssetId: "asset-1",
+      sourceRange: { fromMs: 0, toMs: 0 },
+      settings: {},
+      status: "failed",
+      error: "first reason"
+    });
+    postIsolate.mockRejectedValue(new Error("second reason"));
+
+    await store.getState().isolateSubject(CLIP_ID);
+
+    expect(store.getState().clips[0].generatedMatte).toMatchObject({
+      status: "failed",
+      error: "second reason"
     });
   });
 
