@@ -1,4 +1,3 @@
-import AddIcon from "@mui/icons-material/Add";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useCallback, useState } from "react";
@@ -19,58 +18,7 @@ import { newDocumentId } from "../../lib/newDocumentId";
 import { notifyMutationError } from "../../utils/notifyMutationError";
 import type { SkillListItem } from "@nodetool-ai/protocol/api-schemas/skills.js";
 import ReportBugButton from "../support/ReportBugButton";
-import {
-  DocumentListPanel,
-  ListPanelItem,
-  ToolbarIconButton,
-  Tooltip
-} from "../ui_primitives";
-
-export const CreateSkillButton = () => {
-  const createSkill = useCreateSkill();
-  const openTab = useWorkspaceTabsStore((state) => state.openTab);
-  const setVisibility = usePanelStore((state) => state.setVisibility);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const handleCreate = useCallback(async () => {
-    try {
-      const created = await createSkill.mutateAsync({
-        id: newDocumentId(),
-        name: `skill-${Date.now().toString(36)}`,
-        description: "A reusable skill for the NodeTool agent.",
-        content: "# New skill\n\nDescribe what this skill does and when the agent should use it."
-      });
-      openTab({
-        type: "skill",
-        ref: created.id,
-        mode: "edit",
-        title: created.name || "Untitled skill"
-      });
-      if (!location.pathname.startsWith("/workspace")) {
-        navigate("/workspace");
-      }
-      setVisibility(false);
-    } catch (error) {
-      notifyMutationError("create the skill", error);
-    }
-  }, [createSkill, location.pathname, navigate, openTab, setVisibility]);
-  const handleCreateClick = useCallback(() => {
-    void handleCreate();
-  }, [handleCreate]);
-
-  return (
-    <Tooltip title="New skill" placement="right-start">
-      <ToolbarIconButton
-        ariaLabel="New skill"
-        onClick={handleCreateClick}
-        disabled={createSkill.isPending}
-        tabIndex={-1}
-        icon={<AddIcon />}
-      />
-    </Tooltip>
-  );
-};
+import { DocumentListPanel, ListPanelItem } from "../ui_primitives";
 
 /**
  * A shipped skill has no row, so its id carries this prefix (see the skills

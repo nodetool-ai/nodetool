@@ -161,8 +161,7 @@ jest.mock("../../jsScript/JsScriptListPanel", () => ({
 }));
 jest.mock("../../skills/SkillListPanel", () => ({
   __esModule: true,
-  default: () => <div data-testid="skill-list" />,
-  CreateSkillButton: () => <div data-testid="create-skill" />
+  default: () => <div data-testid="skill-list" />
 }));
 jest.mock("../../workspaces/WorkspaceTree", () => ({
   __esModule: true,
