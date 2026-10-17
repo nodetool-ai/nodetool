@@ -621,7 +621,15 @@ const findModel: CapabilityExport = {
     const candidates: Array<{ providerId: string; model: AnyModel }> = [];
     const unavailable: string[] = [];
 
+    const wantsFake = providerHint?.toLowerCase() === "fake" ||
+      /\bfake\b/i.test(query ?? "") ||
+      [...modelHints].some((id) => id.startsWith("fake-"));
     for (const [providerId, instance] of providerEntries) {
+      // Fake is an explicit test choice. Keep automatic choices real, and
+      // never answer a fake request with a provider that can spend money.
+      if ((providerId === "fake") !== wantsFake) {
+        continue;
+      }
       let supports: boolean;
       try {
         supports = instance

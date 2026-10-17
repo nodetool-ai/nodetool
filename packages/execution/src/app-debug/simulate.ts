@@ -506,7 +506,10 @@ function buildAppVerdict(
   }
 
   const neverRan =
-    ranWorkflow && report.runs.length === 0 && report.invocations.length === 0;
+    ranWorkflow &&
+    (report.spec?.operations.length ?? 0) > 0 &&
+    report.runs.length === 0 &&
+    report.invocations.length === 0;
   if (neverRan && (report.spec?.widgets.length ?? 0) > 0) {
     issues.push(
       "No interaction triggered a workflow run — the app was never executed."
@@ -821,7 +824,9 @@ export async function simulateApp(
         messages: outcome.rawMessages as ReadonlyArray<
           Record<string, unknown>
         >,
-        runIndex
+        runIndex,
+        ok: outcome.report.ok,
+        error: outcome.report.error
       };
     };
 
@@ -872,7 +877,12 @@ export async function simulateApp(
       if (recorded) { scriptReport.app_run_id = recorded.app_run_id; }
       runs.push(scriptReport);
       log(`Run ${runIndex + 1}: ${result.ok ? "completed" : "failed"}`);
-      return { messages, runIndex };
+      return {
+        messages,
+        runIndex,
+        ok: result.ok,
+        error: result.ok ? null : result.error
+      };
     };
 
     const scope = bindingScopeFor(io, context);

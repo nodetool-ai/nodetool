@@ -4,7 +4,7 @@ import { ParticleSimulator, particleSourcesFromFrame, type ParticleView } from "
 
 /** What a 2D renderer reads from a particle simulation. */
 export interface GameParticleField {
-  forEachParticle(visit: (particle: Readonly<ParticleView>) => void): void;
+  forEachParticle(visit: (particle: Readonly<ParticleView>) => void, interpolation?: number): void;
 }
 
 /** Asset id of the built-in soft round dot that particles without a sprite draw with. */
@@ -64,6 +64,7 @@ export function particleCell(sprite: GameParticleSprite, life: number): Particle
 export class GameParticles2D implements GameParticleField {
   readonly simulator: ParticleSimulator;
   private readonly tickSeconds: number;
+  private identity: string | null = null;
 
   constructor(tickRate: number, maxSceneParticles?: number) {
     if (!(tickRate > 0)) {
@@ -79,16 +80,22 @@ export class GameParticles2D implements GameParticleField {
   }
 
   tick(frame: GameRenderFrame, events: readonly (GameEvent | GameParticleEmission)[]): void {
+    const identity = frame.gameId ?? "";
+    if (identity !== this.identity || events.some((event) => event.kind === "sceneTransition")) {
+      this.clear();
+      this.identity = identity;
+    }
     this.simulator.sync(particleSourcesFromFrame(frame));
     this.simulator.emit(events);
     this.simulator.step(this.tickSeconds);
   }
 
-  forEachParticle(visit: (particle: Readonly<ParticleView>) => void): void {
-    this.simulator.forEachParticle(visit);
+  forEachParticle(visit: (particle: Readonly<ParticleView>) => void, interpolation = 1): void {
+    this.simulator.forEachParticle(visit, interpolation);
   }
 
   clear(): void {
     this.simulator.clear();
+    this.identity = null;
   }
 }

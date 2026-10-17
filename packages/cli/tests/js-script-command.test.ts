@@ -23,6 +23,11 @@ function jsScriptSubcommand(name: string) {
 }
 
 describe("registerJsScriptCommands", () => {
+  it("makes the schema and runnable example discoverable", () => {
+    expect(jsScriptSubcommand("schema").description()).toContain("JSON Schema");
+    expect(jsScriptSubcommand("example").description()).toContain("test expectations");
+  });
+
   it("registers validate with its options and target argument", () => {
     const cmd = jsScriptSubcommand("validate");
     expect(cmd.options.map((o) => o.long)).toEqual(

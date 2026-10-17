@@ -111,9 +111,40 @@ export function registerJsScriptCommands(program: Command): void {
     .description("Work with JS script documents");
 
   jsscript
+    .command("schema")
+    .description("Print the JS script document JSON Schema, including saved test fields")
+    .action(async () => {
+      const { z } = await import("zod");
+      const { jsScriptDocument } =
+        await import("@nodetool-ai/protocol/api-schemas/js-scripts.js");
+      console.log(JSON.stringify(z.toJSONSchema(jsScriptDocument), null, 2));
+    });
+
+  jsscript
+    .command("example")
+    .description("Print a runnable script JSON document with final and streamed test expectations")
+    .action(async () => {
+      const { jsScriptDocument } =
+        await import("@nodetool-ai/protocol/api-schemas/js-scripts.js");
+      console.log(JSON.stringify(jsScriptDocument.parse({
+        schemaVersion: 1,
+        description: "Adds one and emits the input value.",
+        code: 'await emit("received", inputs.n);\nawait output("total", inputs.n + 1);',
+        inputs: [{ name: "n", type: "int" }],
+        outputs: [{ name: "received", type: "int" }, { name: "total", type: "int" }],
+        tests: [{
+          name: "adds one",
+          inputs: { n: 1 },
+          expect: { total: 2 },
+          expectedStreamed: [{ name: "received", value: 1 }]
+        }]
+      }), null, 2));
+    });
+
+  jsscript
     .command("validate <script_id_or_file>")
     .description(
-      "Validate a JS script without running it: body syntax, imports against the declared packages, undeclared inputs, outputs nothing emits, tests naming ports the script lacks. Takes a script JSON file or a js_scripts row id"
+      "Validate a JS script without running it: body syntax, imports against the installed catalog, undeclared inputs, outputs nothing emits, tests naming ports the script lacks. Takes a script JSON file or a js_scripts row id"
     )
     .option("--json", "Print the full JsScriptValidation as JSON")
     .option(

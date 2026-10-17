@@ -82,7 +82,7 @@ const core = (): JsScriptDebugCore => ({
   renderJsScriptReportMarkdown: () => "# report"
 });
 
-const noLoader = { loadScript: async () => null };
+const noLoader = { loadScript: async () => null, core: core() };
 
 describe("parseInteractionScript", () => {
   it("normalizes bare, ui_ and full tool names alike", () => {
@@ -222,6 +222,20 @@ describe("runJsScriptTests", () => {
     expect(got).toEqual(report);
   });
 
+  it.each([runJsScriptTests, (ref: string, deps: Parameters<typeof runJsScriptTests>[1]) =>
+    runJsScriptOnce(ref, {}, deps)])("refuses a script with validation errors before executing", async (run) => {
+    const execute = vi.fn();
+    const validator = core();
+    validator.validateJsScriptDoc = async () => ({
+      ok: false,
+      errors: [{ severity: "error", code: "js_script_legacy_contract", message: "Use output()" }],
+      warnings: []
+    });
+    await expect(run(scriptFile(), { ...noLoader, core: validator, execute }))
+      .rejects.toThrow(/js_script_legacy_contract.*Use output/);
+    expect(execute).not.toHaveBeenCalled();
+  });
+
   it("refuses a document with no saved cases instead of passing vacuously", async () => {
     const file = scriptFile({ ...document, tests: [] });
     await expect(
@@ -306,6 +320,26 @@ describe("runJsScriptDebug", () => {
     expect(report.interactions[1]?.error).toContain("No JS script tool named");
     // The last step still ran, so a failure early does not hide what follows.
     expect(harness.calls).toEqual(["ui_jsscript_set_code"]);
+  });
+
+  it.each([
+    { tool: "test", result: { ok: false, passed: 0, failed: 1, results: [] } },
+    { tool: "run", result: { ok: false, run: { ok: false, error: "Deliberate local failure" } } }
+  ])("records a returned $tool failure as a failed interaction", async ({ tool, result }) => {
+    const { report } = await runJsScriptDebug(
+      scriptFile(),
+      { interact: parseInteractionScript(JSON.stringify([{ tool }])), outDir: outDir() },
+      {
+        ...noLoader,
+        core: core(),
+        createBridge: () => ({
+          tools: [{ name: `ui_jsscript_${tool}`, execute: async () => result }],
+          document: () => document,
+          finalState: () => ({})
+        })
+      }
+    );
+    expect(report.interactions[0]).toMatchObject({ ok: false, result });
   });
 
   it("runs no bridge at all when there is no script", async () => {

@@ -798,3 +798,21 @@ describe("direct_storyboard", () => {
     expect(doc.shots).toHaveLength(2);
   });
 });
+
+
+describe("shot target admission", () => {
+  it("accepts the numeric first-shot target explicitly", async () => {
+    const board = await makeBoard({ shots: [shot({ id: "s1", index: 0 }), shot({ id: "s2", index: 1 })] });
+    expect(await edit(ctx(), board.id, [{ op: "remove_shot", target: 0 }])).toMatchObject({ applied: 1, failed: 0 });
+    expect((await reread(board.id)).shots.map(shot => shot.id)).toEqual(["s2"]);
+  });
+
+  it.each([{}, { shot_id: "s2" }, { target: "" }, { target: "  " }, { target: null }, { target: false }])("refuses invalid targeted operations without changing the first shot: %j", async (targetFields) => {
+    const board = await makeBoard({ shots: [shot({ id: "s1", index: 0 }), shot({ id: "s2", index: 1 })] });
+    const before = await reread(board.id);
+    const result = await edit(ctx(), board.id, [{ op: "remove_shot", ...targetFields }]);
+    expect(result).toMatchObject({ applied: 0, failed: 1 });
+    expect(result.ops[0]?.error).toContain("target");
+    expect(await reread(board.id)).toEqual(before);
+  });
+});

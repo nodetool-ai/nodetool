@@ -67,14 +67,14 @@ export default function GameConsolePanel({ gameId, document, liveEntries = NO_EN
   const stored = useStore(store, (state) => state.groups);
   const [levels, setLevels] = useState<ReadonlySet<GameConsoleLevel>>(() => new Set(GAME_CONSOLE_LEVELS));
   const [query, setQuery] = useState("");
-  const entityNames = useMemo(() => new Map(document.scenes.flatMap((scene) => scene.entities.map((entity) => [entity.id, entity.name] as const))), [document]);
+  const entityNames = useMemo(() => new Map(document.scenes.flatMap((scene) => scene.entities.map((entity) => [JSON.stringify([scene.id, entity.id]), entity.name] as const))), [document]);
   const groups = useMemo<readonly GameConsoleGroup[]>(() => [
     ...liveEntries.map((entry, index) => ({ ...entry, id: -(index + 1), count: 1, firstTick: entry.tick })),
     ...stored
   ], [liveEntries, stored]);
   const counts = useMemo(() => countGameConsoleLevels(groups), [groups]);
   const visible = useMemo(() => filterGameConsoleGroups(groups, { levels, query },
-    (group) => group.entityId ? entityNames.get(group.entityId) : undefined), [groups, levels, query, entityNames]);
+    (group) => group.entityId ? entityNames.get(JSON.stringify([gameConsoleEntityScene(document, group.entityId, group.sceneId), group.entityId])) : undefined), [groups, levels, query, entityNames, document]);
   const toggle = (level: GameConsoleLevel): void => {
     setLevels((current) => {
       const next = new Set(current);
@@ -114,7 +114,7 @@ export default function GameConsolePanel({ gameId, document, liveEntries = NO_EN
         </FlexColumn>
         : <Box component="ul" aria-label="Console lines" sx={{ listStyle: "none", m: 0, p: 0 }}>
           {visible.map((group) => {
-            const name = group.entityId ? entityNames.get(group.entityId) : undefined;
+            const name = group.entityId ? entityNames.get(JSON.stringify([gameConsoleEntityScene(document, group.entityId, group.sceneId), group.entityId])) : undefined;
             const sceneId = group.entityId ? gameConsoleEntityScene(document, group.entityId, group.sceneId) : undefined;
             const ticks = tickLabel(group);
             return <FlexRow key={group.id} component="li" gap={SPACING.sm} align="flex-start" data-level={group.level}

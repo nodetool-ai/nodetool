@@ -21,6 +21,7 @@ import { gameLight3D } from "./components/light.js";
 import { gameAnimator3D } from "./components/animator.js";
 import { gameAnimationGraphRuntime3D, gameAnimationGraphs3D, gameAnimationPose3D } from "./components/animation-graph.js";
 import { gameEnvironment3D } from "./components/environment.js";
+import { gameDecal3D } from "./components/decal.js";
 import { gameAssetBinding3D } from "./components/assets.js";
 import { gamePerformance3D, gameRenderCulling3D } from "./components/performance.js";
 import { gameAuthoring } from "../game-authoring.js";
@@ -40,7 +41,7 @@ const entityComponents = {
   interactionActor: gameInteractionActor3DComponent,
   audioSource: gameEntity.shape.audioSource,
   particles: gameEntity.shape.particles,
-  renderCulling: gameRenderCulling3D.optional()
+  renderCulling: gameRenderCulling3D.optional(), decal3d: gameDecal3D.optional()
 };
 
 export const gameEntity3D = z.strictObject({
@@ -159,7 +160,7 @@ export const gameRenderFrame3D = z.strictObject({
   camera: z.strictObject({ entityId: id, transform: gameTransform3D, previousTransform: gameTransform3D.optional(), projection: gameCameraProjection3D }),
   entities: z.array(z.strictObject({ entityId: id, transform: gameTransform3D, previousTransform: gameTransform3D,
     primitive: gamePrimitive3D.optional(), model: gameModel3D.optional(), animation: gameAnimationState3D.optional(), animationPose: gameAnimationPose3D.optional(), opacity: finite.min(0).max(1).optional(),
-    particles: gameEntity.shape.particles,
+    particles: gameEntity.shape.particles, decal3d: gameDecal3D.optional(),
     cullDistance: positive.optional().describe("Camera distance beyond which the renderer hides this entity, resolved from renderCulling.") })),
   lights: z.array(z.strictObject({ entityId: id, transform: gameTransform3D, light: gameLight3D })),
   environment: gameEnvironment3D, hud: z.array(gameHudLabel), ui: gameUiFrame.optional(),
@@ -276,6 +277,8 @@ export { gameVector3, type GameVector3, gameQuaternion3D, type GameQuaternion3D,
 export { gameNonSpatialBehavior, type GameNonSpatialBehavior, gameBehavior3D, type GameBehavior3D } from "./components/behaviors.js";
 
 export { gameMaterial3D, gameTextureSlot3D, type GameMaterial3D, type GameTextureSlot3D } from "./components/material.js";
+export { GAME_MAX_DECALS_3D, gameDecal3D, type GameDecal3D } from "./components/decal.js";
+export { gameHeightFog3D, type GameHeightFog3D } from "./components/height-fog.js";
 
 export { gamePrimitive3D, type GamePrimitive3D } from "./components/primitive.js";
 

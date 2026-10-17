@@ -4,6 +4,8 @@
  *   GET  /api/applications/:id/export-project → download it as a standalone JS project (.zip)
  *   POST /api/applications/import-bundle      → create the app and its workflows
  *
+ * Building an app from a description is `applicationBuild.ts`.
+ *
  * The workflow equivalents live in `workflowBundle.ts`; an application bundle
  * is plain JSON rather than a zip, because it carries graphs, not asset bytes.
  */
@@ -72,6 +74,14 @@ export async function importApplicationBundle(
   projectId = "default"
 ): Promise<ImportedApplication> {
   const bundle: unknown = JSON.parse(await file.text());
+  return installApplicationBundle(bundle, projectId);
+}
+
+/** Install a bundle already in memory, such as a green app build's. */
+export async function installApplicationBundle(
+  bundle: unknown,
+  projectId = "default"
+): Promise<ImportedApplication> {
   const res = await restFetch("/api/applications/import-bundle", {
     method: "POST",
     headers: { "content-type": "application/json" },

@@ -89,6 +89,19 @@ it("edits lifetime curves and gradients through the shared accessible primitives
   expect(store.getState().document!.scenes[0].entities[0].particles?.emitters[0].sizeOverLifetime).toBeUndefined();
 });
 
+it.each(["#808080", { min: "#204080", max: "#80c0e0" }])("adds an identity color gradient without changing the base color %j", async (color) => {
+  const initial = fixture("2d");
+  initial.scenes[0].entities[0].particles = gameParticles.parse({ emitters: [{ id: "original", color }] });
+  const store = mountEditor(initial);
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Add color over lifetime" }));
+  expect(store.getState().document!.scenes[0].entities[0].particles?.emitters[0]).toMatchObject({
+    color, colorOverLifetime: [{ t: 0, color: "#ffffff" }]
+  });
+  await user.click(screen.getByRole("button", { name: "Remove color over lifetime" }));
+  expect(store.getState().document!.scenes[0].entities[0].particles).toEqual(initial.scenes[0].entities[0].particles);
+});
+
 it("removes an emitter and its death references together", async () => {
   const initial = fixture("2d");
   initial.scenes[0].entities[0].particles = gameParticles.parse({ emitters: [
