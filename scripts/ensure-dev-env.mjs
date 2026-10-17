@@ -38,6 +38,23 @@ if (hasKey || process.env.SECRETS_MASTER_KEY) {
   process.exit(0);
 }
 
+// A key in .env takes precedence over the keychain, so generating one where the
+// keychain already holds a key makes every stored secret unreadable.
+const keychainHasKey = async () => {
+  try {
+    const keytar = await import("keytar");
+    return Boolean(await (keytar.default ?? keytar).getPassword("nodetool", "secrets_master_key"));
+  } catch {
+    // No keychain backend (headless Linux, Docker, CI): .env must hold the key.
+    return false;
+  }
+};
+
+if (await keychainHasKey()) {
+  console.log("using the SECRETS_MASTER_KEY from the system keychain");
+  process.exit(0);
+}
+
 const key = randomBytes(32).toString("base64");
 appendFileSync(
   envPath,
