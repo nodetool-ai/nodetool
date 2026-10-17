@@ -15,6 +15,7 @@ import type {
   MediaTrack,
   TimelineCamera2D,
   TimelineClip,
+  TimelineMasterChannel,
   TimelineTempo,
   TimelineTrack
 } from "../types.js";
@@ -56,6 +57,7 @@ export interface HeadlessRenderRequest {
   mediaTracks?: MediaTrack[];
   camera2d?: TimelineCamera2D | null;
   tempo?: TimelineTempo;
+  master?: TimelineMasterChannel;
   /** Output size. */
   width: number;
   height: number;

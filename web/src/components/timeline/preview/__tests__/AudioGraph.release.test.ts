@@ -33,6 +33,16 @@ class FakeAudioContext {
     this.gains.push(node);
     return node;
   });
+  createStereoPanner = jest.fn(() => ({
+    pan: { value: 0, setTargetAtTime: jest.fn() },
+    connect: jest.fn(),
+    disconnect: jest.fn()
+  }));
+  createAnalyser = jest.fn(() => ({
+    fftSize: 2048,
+    connect: jest.fn(),
+    disconnect: jest.fn()
+  }));
   createBufferSource = jest.fn(() => {
     const node = {
       buffer: null as unknown,
@@ -85,8 +95,8 @@ async function playing() {
   const graph = new AudioGraph(ctx as unknown as BaseAudioContext);
   jest.spyOn(graph, "loadBuffer").mockResolvedValue({ length: 48_000 } as never);
   await graph.scheduleClips([{ clip, assetUrl: "/a.wav" }] as never, [], 0);
-  // The master gain is made first, then the clip gain.
-  return { graph, ctx, clipGain: ctx.gains[1], source: ctx.sources[0] };
+  // The listener, mix bus and master fader come first, then the clip gain.
+  return { graph, ctx, clipGain: ctx.gains[3], source: ctx.sources[0] };
 }
 
 describe("AudioGraph releasing finished clips", () => {
@@ -136,7 +146,7 @@ describe("AudioGraph releasing finished clips", () => {
       [],
       0
     );
-    const clipGain = ctx.gains[1];
+    const clipGain = ctx.gains[3];
     const gate = ctx.gains[ctx.gains.length - 1];
 
     ctx.currentTime = 1;

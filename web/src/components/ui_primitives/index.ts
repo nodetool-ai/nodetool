@@ -11,6 +11,12 @@ export type { NodeSliderProps } from "./NodeSlider";
 
 export { Slider } from "./Slider";
 export type { SliderProps } from "./Slider";
+export { Knob } from "./Knob";
+export type { KnobProps } from "./Knob";
+export { Fader } from "./Fader";
+export type { FaderProps, FaderMark } from "./Fader";
+export { LevelMeter, linearToDb } from "./LevelMeter";
+export type { LevelMeterProps } from "./LevelMeter";
 
 // Export dialog primitives
 export { Dialog } from "./Dialog";

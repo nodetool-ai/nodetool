@@ -35,6 +35,7 @@ import { computeModel3DBakeHash } from "@nodetool-ai/timeline";
 import type {
   MediaTrack,
   TimelineClip,
+  TimelineMasterChannel,
   TimelineTempo,
   TimelineCamera2D,
   TimelineTrack
@@ -149,6 +150,8 @@ interface RenderTimelineOptions {
   resolveUrl: (assetId: string) => Promise<string | undefined>;
   /** Tempo the midi clips are read against. Defaults to `DEFAULT_TEMPO`. */
   tempo?: TimelineTempo;
+  /** The document's master channel, mixed into the soundtrack. */
+  master?: TimelineMasterChannel;
   /**
    * Container to write. Default `"mp4"`. `"webm"` muxes VP9 + Opus;
    * `"png_sequence"` skips the muxer and zips one PNG per frame.
@@ -499,6 +502,7 @@ export async function renderTimeline(
           durationMs: (totalFrames * 1000) / fps,
           resolveUrl: resolveCached,
           tempo: opts.tempo,
+          master: opts.master,
           signal
         })
       : null;

@@ -5,6 +5,7 @@ import type {
   TimelineClip,
   TimelineMarker,
   TimelineTempo,
+  TimelineMasterChannel,
   TimelineSetup,
   TimelineSource,
   TranscriptLine,
@@ -73,6 +74,8 @@ export interface TimelineDocument {
   scriptEnabled?: boolean;
   /** Document tempo for midi clips. Unset until the first midi track. */
   tempo?: TimelineTempo;
+  /** The master channel. Unset means 0 dB with no effects. */
+  master?: TimelineMasterChannel;
   camera2d?: TimelineSequenceDoc["camera2d"];
   /** Guided video-flow state (PRD § 8.5). Unset outside the flow. */
   setup?: TimelineSetup;
@@ -162,6 +165,7 @@ export class TimelineSequence extends DBModel {
       transcript: doc.transcript ?? [],
       scriptEnabled: doc.scriptEnabled,
       tempo: doc.tempo,
+      master: doc.master,
       camera2d: doc.camera2d,
       setup: doc.setup,
       templateId: doc.templateId,
@@ -185,6 +189,7 @@ export class TimelineSequence extends DBModel {
       transcript: seq.transcript ?? [],
       scriptEnabled: seq.scriptEnabled,
       tempo: seq.tempo,
+      master: seq.master,
       camera2d: seq.camera2d,
       setup: seq.setup,
       templateId: seq.templateId,

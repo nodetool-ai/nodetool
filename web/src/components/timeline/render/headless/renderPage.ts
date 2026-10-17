@@ -174,6 +174,7 @@ window[HEADLESS_RENDER_ENTRY] = async (request) => {
     mediaTracks: request.mediaTracks,
     camera2d: request.camera2d,
     tempo: request.tempo,
+    master: request.master,
     width: request.width,
     height: request.height,
     referenceWidth: request.referenceWidth,

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 /** The selected MIDI track's instrument in the right-panel Instruments tab. */
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { Suspense, memo, useCallback, useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -12,7 +12,10 @@ import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { playAuditionNote } from "../preview/audition";
 import SamplerInstrumentEditor from "./SamplerInstrumentEditor";
 import FableSynthInstrumentEditor, { InstrumentKeyboard } from "./FableSynthInstrumentEditors";
-import { Button, Caption, FlexColumn, SelectField, SPACING } from "../../ui_primitives";
+import { Button, Caption, FlexColumn, LoadingSpinner, SelectField, SPACING } from "../../ui_primitives";
+import PanelErrorBoundary from "../../common/PanelErrorBoundary";
+import { instrumentView } from "../daw/devices/deviceViews";
+import "../daw/devices/registerDeviceViews";
 export const AUDITION_DEBOUNCE_MS = 120;
 const containerStyles = (theme: Theme) => css({
   width: "100%", height: "100%", padding: theme.spacing(SPACING.xs),
@@ -38,6 +41,8 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
     const toggleKeyboard = useTimelineUIStore(s => s.toggleInstrumentKeyboard);
     const presetId = instrument.type === "subtractive" ? "custom" : presetIdForInstrument(instrument) ?? "custom";
     const setTrackInstrument = useTimelineStore((s) => s.setTrackInstrument);
+    // The device's own view, when one is registered for this instrument.
+    const DeviceView = instrumentView(instrument.type);
 
     // One pending audition at a time: a slider drag writes the track on every
     // frame, and each write would otherwise start a note.
@@ -100,7 +105,13 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
             <InstrumentKeyboard start={instrument.type === "sampler" ? Math.min(103, auditionPitch(instrument)) : instrument.type === "drum" ? instrument.baseNote : instrument.type === "bass" ? 36 : 48}
               onPlay={pitch => commit(instrument, pitch)} />
           </div>}
-          {instrument.type === "sampler" ? <SamplerInstrumentEditor key={trackId} instrument={instrument} onChange={commit} /> : instrument.type === "subtractive" ? <Caption color="muted">Choose a sampler, WT-1, BL-1, or DR-1 preset to edit this track’s instrument.</Caption> : (
+          {DeviceView ? (
+            <PanelErrorBoundary panelName="Instrument device">
+              <Suspense fallback={<LoadingSpinner size="small" text="Loading instrument" />}>
+                <DeviceView trackId={trackId} />
+              </Suspense>
+            </PanelErrorBoundary>
+          ) : instrument.type === "sampler" ? <SamplerInstrumentEditor key={trackId} instrument={instrument} onChange={commit} /> : instrument.type === "subtractive" ? <Caption color="muted">Choose a sampler, WT-1, BL-1, or DR-1 preset to edit this track’s instrument.</Caption> : (
             <FableSynthInstrumentEditor key={trackId} instrument={instrument} onChange={commit} />
           )}
           {auditionError && <Caption role="alert">{auditionError}</Caption>}

@@ -80,6 +80,7 @@ export async function persistTimelineDocument(
       storyboardMaterializations: state.storyboardMaterializations,
       camera2d: state.camera2d ?? null,
       tempo: sent.tempo,
+      master: sent.master,
       setup: sent.setup ?? null
     });
   }

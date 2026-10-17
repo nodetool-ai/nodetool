@@ -378,6 +378,10 @@ describe("TimelineSequence model", () => {
         offsetMs: 250,
         timeSignature: { beatsPerBar: 3, beatUnit: 4 }
       },
+      master: {
+        volumeDb: -3,
+        effects: [{ id: "fx1", type: "gain", enabled: true, gainDb: -1 }]
+      },
       templateId: "tl_template",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -396,6 +400,7 @@ describe("TimelineSequence model", () => {
     // A midi document's tempo rides the row's JSON; dropping it here would
     // silently retime every midi clip on the next read.
     expect(roundTripped.tempo).toEqual(original.tempo);
+    expect(roundTripped.master).toEqual(original.master);
     // Lineage rides the same JSON; dropping it here loses the link back to the
     // sequence this one was retargeted from.
     expect(roundTripped.templateId).toBe(original.templateId);

@@ -132,6 +132,25 @@ const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
     pointerEvents: "none"
   });
 
+/**
+ * How far the pill moves off-centre so it stays whole inside the lanes'
+ * viewport while the line is near an edge (at 0:00 the line sits on the
+ * left edge and a centred pill would be cut in half). A line outside the
+ * viewport takes its pill with it.
+ */
+export function pillShiftPx(
+  lineLeftPx: number,
+  pillWidthPx: number,
+  viewportWidthPx: number
+): number {
+  if (pillWidthPx <= 0 || viewportWidthPx <= 0) return 0;
+  if (lineLeftPx < 0 || lineLeftPx > viewportWidthPx) return 0;
+  const half = pillWidthPx / 2;
+  if (lineLeftPx < half) return half - lineLeftPx;
+  if (lineLeftPx > viewportWidthPx - half) return viewportWidthPx - half - lineLeftPx;
+  return 0;
+}
+
 interface PlayheadProps {
   /** Left offset of the scrollable track area (header width). */
   trackAreaOffsetPx?: number;
@@ -196,6 +215,11 @@ export const Playhead: React.FC<PlayheadProps> = memo(
     // only fire when the displayed value actually changes.
     const lastAriaBucketRef = useRef<number | null>(null);
     const lastPillTextRef = useRef<string | null>(null);
+    // Pill and viewport widths, kept by a ResizeObserver so placing the pill
+    // never reads layout during playback.
+    const pillWidthRef = useRef(0);
+    const viewportWidthRef = useRef(0);
+    const lastPillShiftRef = useRef<number | null>(null);
 
     // Imperatively position the element + pill text from a time in ms.
     // Position updates every call (needed every frame during playback) via
@@ -225,8 +249,32 @@ export const Playhead: React.FC<PlayheadProps> = memo(
           lastPillTextRef.current = text;
           pill.textContent = text;
         }
+        const shift = Math.round(
+          pillShiftPx(leftPx, pillWidthRef.current, viewportWidthRef.current)
+        );
+        if (shift !== lastPillShiftRef.current) {
+          lastPillShiftRef.current = shift;
+          pill.style.transform = `translateX(calc(-50% + ${shift}px))`;
+        }
       }
     }, []);
+
+    useEffect(() => {
+      const pill = pillRef.current;
+      const viewport = hitAreaRef.current?.parentElement;
+      if (!pill || !viewport || typeof ResizeObserver === "undefined") return;
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const width = entry.borderBoxSize?.[0]?.inlineSize ?? entry.contentRect.width;
+          if (entry.target === pill) pillWidthRef.current = width;
+          else viewportWidthRef.current = width;
+        }
+        applyTimeMs(playbackStoreApi.getState().getTimeMs());
+      });
+      observer.observe(pill);
+      observer.observe(viewport);
+      return () => observer.disconnect();
+    }, [applyTimeMs, playbackStoreApi]);
 
     // Subscribe once to the transient playhead channel. Updates the DOM
     // directly — no React re-render per frame. Also initialise from the live

@@ -26,6 +26,11 @@ const SRC = join(ROOT, "src");
 const VENDOR = [
   /styles\/markdown\/github-markdown.*\.css$/,
   /styles\/microtip\.css$/,
+  // FableSynth device UIs (WT-1, BL-1, DR-1, FX, harmony) keep their own
+  // hardware look inside a scoped `.fablesynth` root, like a plugin window.
+  /components\/timeline\/daw\/fablesynth\/.*\.css$/,
+  /components\/timeline\/daw\/fx\/fxBase\.css$/,
+  /components\/timeline\/daw\/harmony\/harmony\.css$/,
 ];
 
 // Color properties whose values must be tokens. Mirrors the TSX color rule:

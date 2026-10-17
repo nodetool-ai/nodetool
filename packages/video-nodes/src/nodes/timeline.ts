@@ -49,6 +49,7 @@ import {
   makeSequence,
   makeTrack,
   renderMidiClip,
+  harmonizeClips,
   loadSamplerSamples,
   type SamplerAudio,
   resolveTempo,
@@ -58,6 +59,7 @@ import {
   clipAudioTailSec,
   type ClipAudioEffect,
   type TrackCompressorEffect,
+  type TimelineMasterChannel,
   type TrackEffect,
   type TimelineSequence,
   type TimelineTrack
@@ -185,7 +187,8 @@ function renderableVideoClips(seq: TimelineSequence): TimelineClip[] {
 function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
   const tracks = trackById(seq.tracks);
   const hasSolo = soundTrackSoloed(seq.tracks);
-  return seq.clips
+  // A midi clip with `harmony` plays its arp or comp expansion, not its written notes.
+  return harmonizeClips(seq.clips, seq)
     .filter((clip) => {
       const track = tracks.get(clip.trackId);
       if (!track || track.muted === true || clip.muted || clip.hidden) {
@@ -504,6 +507,11 @@ function audioEffectSteps(effect: TrackEffect): string[] {
             "detection=peak"
           ].join(":")
       ];
+    case "fable":
+      // FableSynth FX are browser-only (the `fable-fx` AudioWorklet in the
+      // preview and the browser export); the server render passes the
+      // signal through dry.
+      return [];
     default:
       return [];
   }
@@ -602,10 +610,52 @@ function clipEffectChainSteps(clip: TimelineClip): string[] {
  */
 function trackEffectSteps(track: TimelineTrack | undefined): string[] {
   if (!track || (track.type !== "audio" && track.type !== "midi")) return [];
-  const steps = (track.effects ?? [])
+  return [
+    ...effectChainSteps(track.effects),
+    ...faderSteps(track.volumeDb),
+    ...panSteps(track.pan)
+  ];
+}
+
+/** Enabled effects in array order, resampled first as the preview runs at 48 kHz. */
+function effectChainSteps(effects: TrackEffect[] | undefined): string[] {
+  const steps = (effects ?? [])
     .filter((effect) => effect.enabled)
     .flatMap(audioEffectSteps);
   return steps.length > 0 ? [`aresample=${EFFECT_SAMPLE_RATE}`, ...steps] : [];
+}
+
+/** A channel fader, as the preview's fader gain after the effects. */
+function faderSteps(volumeDb: number | undefined): string[] {
+  return isNumber(volumeDb) && volumeDb !== 0 ? [`volume=${volumeDb}dB`] : [];
+}
+
+/**
+ * A stereo position, as Web Audio's `StereoPannerNode` pans a stereo input:
+ * the far channel's level falls along an equal-power curve and the part it
+ * loses is added to the near one. The preview upmixes a mono channel to
+ * stereo before its panner, so the stream is made stereo here too.
+ */
+export function panSteps(pan: number | undefined): string[] {
+  if (!isNumber(pan) || pan === 0) return [];
+  const p = clampTo(pan, -1, 1);
+  const x = p <= 0 ? p + 1 : p;
+  const near = Math.sin((x * Math.PI) / 2).toFixed(6);
+  const far = Math.cos((x * Math.PI) / 2).toFixed(6);
+  const channels =
+    p <= 0
+      ? `c0=c0+${far}*c1|c1=${near}*c1`
+      : `c0=${far}*c0|c1=c1+${near}*c0`;
+  return ["aformat=channel_layouts=stereo", `pan=stereo|${channels}`];
+}
+
+/**
+ * The master channel over the whole mix: its inserts, then its fader. A
+ * `fable` insert passes the signal dry, as it does on a track.
+ */
+function masterSteps(master: TimelineMasterChannel | undefined): string[] {
+  if (!master) return [];
+  return [...effectChainSteps(master.effects), ...faderSteps(master.volumeDb)];
 }
 
 /**
@@ -859,6 +909,8 @@ async function mixAudioInto(opts: {
   clips: TimelineClip[];
   /** The sequence's tracks, whose effect chains run over their clips' sum. */
   tracks: TimelineTrack[];
+  /** The master channel, run over the whole mix. */
+  master?: TimelineMasterChannel;
   baseHasAudio: boolean;
   assets: { path(assetId: string): Promise<string | null> };
   midi: MidiFiles;
@@ -870,6 +922,7 @@ async function mixAudioInto(opts: {
     basePath,
     clips,
     tracks,
+    master,
     baseHasAudio,
     assets,
     midi,
@@ -970,10 +1023,14 @@ async function mixAudioInto(opts: {
   if (labels.length === 0) return basePath;
 
   const sources = baseHasAudio ? [`[0:a]`, ...labels] : labels;
-  const mix =
-    sources.length === 1
-      ? `${sources[0]}apad[aout]`
-      : `${sources.join("")}amix=inputs=${sources.length}:duration=longest:normalize=0,apad[aout]`;
+  const mixSteps = [
+    ...(sources.length === 1
+      ? []
+      : [`amix=inputs=${sources.length}:duration=longest:normalize=0`]),
+    ...masterSteps(master),
+    "apad"
+  ];
+  const mix = `${sources.join("")}${mixSteps.join(",")}[aout]`;
   const outPath = path.join(workDir, `mixed.${extension}`);
   await execFfmpeg(
     [
@@ -1019,6 +1076,7 @@ export async function mixCompositedTimelineAudio(opts: {
     basePath,
     clips,
     tracks: sequence.tracks,
+    master: sequence.master,
     baseHasAudio: false,
     assets: { path: resolveAssetPath },
     midi: new MidiFiles(workDir, sequence, resolveAssetPath),
@@ -1407,6 +1465,7 @@ export class RenderTimelineNode extends BaseNode {
               basePath,
               clips: audioToMix,
               tracks: seq.tracks,
+              master: seq.master,
               baseHasAudio,
               assets,
               midi,

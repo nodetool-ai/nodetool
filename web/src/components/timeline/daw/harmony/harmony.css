@@ -1,0 +1,248 @@
+/*
+ * Harmony UI (chord lane, progression and comp browsers, arp and comp panel,
+ * scale strip) in FableSynth's hardware look. Copied from FableSynth
+ * src/components/panels/{arp,compBrowser}.css and src/components/scaleStrip.css,
+ * every selector scoped under .fablesynth.
+ */
+.fablesynth.harmony-root {
+  --arp-live: #4de8ff; --arp-rgb: 77,232,255;
+  --text: #dfe6f3; --text-dim: #6b768c; --line: rgba(255,255,255,0.07);
+  --panel-hi: #181c26; --panel-lo: #0d1017; --ac-a: #4de8ff;
+  --font-disp: 'Michroma', 'Avenir Next', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+  color: var(--text); font-family: var(--font-mono); font-size: 12px; box-sizing: border-box;
+}
+.fablesynth.harmony-root *, .fablesynth.harmony-root *::before, .fablesynth.harmony-root *::after { box-sizing: border-box; }
+.fablesynth .panel { border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 26px rgba(0,0,0,0.4); padding: 8px 12px 10px; min-width: 0; }
+.fablesynth .ns-section { border-color: rgba(77,232,255,0.16); }
+.fablesynth .arp-panel h2 { margin: 0; font-family: var(--font-disp); font-size: 10px; font-weight: 400; letter-spacing: 0.22em; color: var(--arp-live); text-shadow: 0 0 12px rgba(var(--arp-rgb),0.45); }
+.fablesynth .ns-btn { height: 24px; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: #11141c; color: #93a0b8; font-family: inherit; font-size: 9px; letter-spacing: 0.1em; cursor: pointer; }
+.fablesynth .ns-btn:hover { border-color: var(--ac-a); color: var(--ac-a); }
+.fablesynth .ns-btn:disabled { opacity: .4; cursor: default; }
+.fablesynth button, .fablesynth select, .fablesynth input { font-family: var(--font-mono); }
+
+/* Harmony panel host: the panel scrolls inside its dock. */
+.fablesynth.harmony-panel { display: flex; flex-direction: column; gap: 8px; height: 100%; overflow: auto; padding: 8px; background: #06070b; }
+.fablesynth.harmony-panel > .panel { flex: none; }
+.fablesynth.harmony-chord-host { flex: none; padding: 8px 8px 0; }
+.fablesynth.harmony-chord-host:empty { display: none; }
+.fablesynth .harmony-section-title { display: flex; align-items: center; gap: 10px; }
+.fablesynth .harmony-browser-host { position: relative; height: 420px; }
+
+/* Chord lane on the timeline. */
+.fablesynth.harmony-lane { position: absolute; inset: 0; background: #070b11; cursor: crosshair; touch-action: none; overflow: hidden; }
+.fablesynth .hl-beat { position: absolute; top: 0; bottom: 0; width: 1px; background: #ffffff0d; pointer-events: none; }
+.fablesynth .hl-beat.bar { background: #ffffff26; }
+.fablesynth .hl-chord { position: absolute; top: 4px; bottom: 4px; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; padding: 20px 8px 0; border-radius: 3px; cursor: grab;
+  border: 1px solid hsl(calc(var(--hue) * 1deg) 70% 62% / .55); background: hsl(calc(var(--hue) * 1deg) 60% 40% / .22); color: #dfe6f3; font-size: 12px; font-weight: 600; white-space: nowrap; }
+/* The label sits below the PROGRESSION / snap tools; a lane too short for both centres it. */
+.fablesynth.harmony-lane { container-type: size; }
+@container (max-height: 52px) { .fablesynth .hl-chord { padding-top: 0; } }
+.fablesynth .hl-chord sup { font-size: 8px; opacity: .7; }
+.fablesynth .hl-chord em { font-style: normal; font-weight: 400; font-size: 9px; letter-spacing: .06em; opacity: .7; }
+.fablesynth .hl-chord.selected { box-shadow: inset 0 0 0 1px var(--arp-live); border-color: var(--arp-live); }
+.fablesynth .hl-chord.draft { opacity: .75; }
+.fablesynth .hl-edge { position: absolute; top: 0; bottom: 0; width: 7px; cursor: ew-resize; }
+.fablesynth .hl-edge.left { left: 0; background: linear-gradient(to left, transparent, #ffffff1c); }
+.fablesynth .hl-edge.right { right: 0; background: linear-gradient(to right, transparent, #ffffff22); }
+.fablesynth .hl-tools { position: absolute; top: 0; left: 0; z-index: 2; display: inline-flex; gap: 4px; margin: 4px; }
+.fablesynth .hl-tools .ns-btn { height: 20px; padding: 0 6px; background: #0c121cdd; }
+.fablesynth .hl-empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #6b768c; font-size: 9px; letter-spacing: .12em; pointer-events: none; white-space: nowrap; }
+
+/* Overlay that hosts a browser over the editor. */
+.fablesynth.harmony-overlay { position: fixed; inset: 5vh 5vw; z-index: 1400; box-shadow: 0 0 0 100vmax rgba(0,0,0,.6); }
+.fablesynth.harmony-overlay .comp-browser { position: absolute; inset: 0; }
+.fablesynth .chord-popover { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: #0a0f17; }
+
+/* fablesynth/components/panels/arp.css */
+.fablesynth .arp-panel { --arp-live: #4de8ff; --arp-rgb: 77,232,255; }
+.fablesynth .arp-panel { position:relative; display:flex; flex-direction:column; gap:10px; }
+/* Top bar: title, style switch, status, tempo. */
+.fablesynth .arp-top { display:flex; align-items:center; gap:16px; min-height:34px; }
+.fablesynth .arp-top h2 { margin:0; }
+.fablesynth .arp-status { margin-left:auto; display:flex; align-items:center; gap:8px; font-size:9px; letter-spacing:.12em; color:#a2b2c8; }
+.fablesynth .arp-led { width:5px; height:5px; border-radius:50%; background:#516077; }
+.fablesynth .arp-led.on { background:var(--arp-live); box-shadow:0 0 8px rgba(var(--arp-rgb),0.44); }
+.fablesynth .arp-tempo { display:flex; align-items:center; gap:8px; color:#a2b2c8; font-size:9px; letter-spacing:.1em; }
+.fablesynth .arp-tempo input { width:55px; padding:5px; background:#090d14; color:#dfe6f3; border:1px solid #ffffff20; border-radius:4px; font:12px 'IBM Plex Mono',monospace; }
+/* Segmented control. */
+.fablesynth .arp-seg { display:inline-flex; padding:2px; gap:2px; border:1px solid #ffffff17; border-radius:5px; background:#080c13; }
+.fablesynth .arp-seg button { border:0; border-radius:3px; background:transparent; color:#8d9db3; font:600 9px 'IBM Plex Mono',monospace; letter-spacing:.1em; padding:6px 10px; cursor:pointer; white-space:nowrap; }
+.fablesynth .arp-seg button:hover { color:#dfe6f3; }
+.fablesynth .arp-seg button[aria-pressed=true] { color:var(--arp-live); background:rgba(var(--arp-rgb),0.12); box-shadow:inset 0 0 0 1px rgba(var(--arp-rgb),0.35); }
+.fablesynth .arp-top .arp-seg button { padding:7px 14px; font-size:10px; }
+/* Numbered sections. */
+.fablesynth .arp-card { padding:12px 14px; border:1px solid #ffffff0f; border-radius:8px; background:#0a0f17; }
+.fablesynth .arp-card-head { display:flex; align-items:center; flex-wrap:wrap; gap:10px 16px; }
+.fablesynth .arp-card-head h3 { margin:0 4px 0 0; font-size:10px; font-weight:600; letter-spacing:.16em; color:#dfe6f3; }
+.fablesynth .arp-card-no { display:grid; place-items:center; width:18px; height:18px; border-radius:50%; border:1px solid rgba(var(--arp-rgb),0.5); color:var(--arp-live); font-size:9px; font-weight:600; margin-right:-6px; }
+.fablesynth .arp-card-head + * { margin-top:12px; }
+.fablesynth .arp-hint { margin-left:auto; color:#7d8ea4; font-size:9px; letter-spacing:.1em; }
+.fablesynth .arp-field { display:flex; align-items:center; gap:8px; font-size:9px; font-weight:600; letter-spacing:.1em; color:#8d9db3; }
+.fablesynth .arp-field select { background:#0c121c; border:1px solid #ffffff1c; color:#dfe6f3; border-radius:4px; padding:6px 8px; font:11px 'IBM Plex Mono',monospace; cursor:pointer; }
+.fablesynth .arp-octave { display:flex; align-items:center; gap:8px; font-size:9px; color:#a2b2c8; white-space:nowrap; letter-spacing:.08em; }
+.fablesynth .arp-octave button { background:#111c29; border:1px solid #ffffff1c; color:#dfe6f3; padding:4px 9px; border-radius:3px; cursor:pointer; }
+.fablesynth .arp-octave button:disabled { opacity:.35; cursor:default; }
+/* 1 NOTES */
+.fablesynth .arp-source { display:flex; align-items:center; gap:10px; }
+.fablesynth .arp-note-pool { display:flex; align-items:center; gap:6px; flex:1; flex-wrap:wrap; min-height:32px; }
+.fablesynth .arp-note { background:#101d28; border:1px solid #385163; border-radius:4px; padding:6px 10px; color:#c4dce8; font-size:12px; font-variant-numeric:tabular-nums; }
+.fablesynth .arp-note.sounding { border-color:var(--arp-live); color:var(--arp-live); }
+.fablesynth .arp-empty { color:#8d9db3; font-size:11px; }
+.fablesynth .arp-editor { display:flex; gap:14px; align-items:center; margin-top:10px; }
+.fablesynth .arp-keys { display:flex; gap:3px; flex:1; }
+.fablesynth .arp-keys button { flex:1; height:40px; border:1px solid #8291a4; border-radius:3px; background:#c8d2df; color:#111925; font:10px 'IBM Plex Mono',monospace; cursor:pointer; }
+.fablesynth .arp-keys button.sharp { background:#172231; color:#dfe6f3; border-color:#445268; }
+.fablesynth .arp-keys button[aria-pressed=true] { background:var(--arp-live); color:#101923; border-color:var(--arp-live); }
+.fablesynth .chord-tools { display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; }
+.fablesynth .chord-grid { position:relative; height:52px; margin-top:10px; border:1px solid #ffffff13; border-radius:5px; cursor:crosshair; touch-action:none; user-select:none;
+  background:#070b11 repeating-linear-gradient(to right,transparent 0,transparent calc(100% / var(--cells) - 1px),#ffffff06 calc(100% / var(--cells) - 1px),#ffffff06 calc(100% / var(--cells))); }
+.fablesynth .chord-beat { position:absolute; top:0; bottom:0; border-left:1px solid #ffffff10; color:#7d8ea4; font-size:8px; padding:2px 4px; pointer-events:none; }
+.fablesynth .chord-beat.bar { border-color:#ffffff26; }
+.fablesynth .chord-block { position:absolute; top:13px; bottom:4px; display:flex; align-items:center; overflow:hidden; padding:0 8px; border-radius:3px; cursor:grab;
+  border:1px solid hsl(calc(var(--hue) * 1deg) 70% 62% / .5); background:hsl(calc(var(--hue) * 1deg) 60% 40% / .18); color:#dfe6f3; font-size:11px; font-weight:600; white-space:nowrap; }
+.fablesynth .chord-block .chord-scale { margin-left:7px; font-style:normal; font-weight:400; font-size:9px; letter-spacing:.06em; opacity:.72; }
+.fablesynth .chord-block sup { font-size:8px; opacity:.7; }
+.fablesynth .chord-block.selected { box-shadow:inset 0 0 0 1px var(--arp-live); border-color:var(--arp-live); }
+.fablesynth .chord-block.sounding { background:hsl(calc(var(--hue) * 1deg) 70% 50% / .38); }
+.fablesynth .chord-grid.dragging .chord-block { cursor:grabbing; }
+.fablesynth .chord-handle { position:absolute; top:0; right:0; bottom:0; width:7px; cursor:ew-resize; background:linear-gradient(to right,transparent,#ffffff22); }
+.fablesynth .chord-playhead { position:absolute; top:0; bottom:0; width:2px; margin-left:-1px; background:var(--arp-live); box-shadow:0 0 8px rgba(var(--arp-rgb),.5); pointer-events:none; }
+.fablesynth .chord-editor { display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; margin-top:8px; padding:8px 10px; border-radius:5px; background:#0d131d; }
+.fablesynth .chord-editing { color:#7d8ea4; font-size:8px; letter-spacing:.14em; }
+.fablesynth .chord-name { min-width:64px; margin-left:-8px; color:hsl(calc(var(--hue) * 1deg) 80% 72%); font-size:16px; }
+.fablesynth .chord-voicing { color:#9eafc5; font-size:10px; font-variant-numeric:tabular-nums; }
+.fablesynth .chord-delete { margin-left:auto; }
+.fablesynth .chord-help { margin:6px 0 0; color:#5f6f86; font-size:8px; letter-spacing:.1em; }
+/* 2 PATTERN */
+.fablesynth .arp-pattern-pick { display:flex; align-items:stretch; border:1px solid rgba(var(--arp-rgb),0.35); border-radius:6px; overflow:hidden; background:#0c1520; }
+.fablesynth .arp-pattern-pick > button { border:0; background:transparent; color:#b4c6d9; font:16px 'IBM Plex Mono',monospace; padding:0 11px; cursor:pointer; }
+.fablesynth .arp-pattern-pick > button:hover { color:var(--arp-live); background:rgba(var(--arp-rgb),0.08); }
+.fablesynth .arp-pattern-pick .pattern-name { display:flex; align-items:center; gap:10px; min-width:300px; padding:7px 12px; border-left:1px solid #ffffff12; border-right:1px solid #ffffff12; font-size:11px; text-align:left; }
+.fablesynth .pattern-name strong { color:#fff; font-weight:600; letter-spacing:.06em; }
+.fablesynth .pattern-name em { font-style:normal; color:var(--arp-live); font-size:9px; letter-spacing:.1em; }
+.fablesynth .pattern-name .browse { margin-left:auto; padding:3px 7px; border-radius:3px; background:rgba(var(--arp-rgb),0.14); color:var(--arp-live); font-size:8px; letter-spacing:.14em; }
+.fablesynth .arp-now { margin-left:auto; color:#7d8ea4; font-size:9px; letter-spacing:.1em; font-variant-numeric:tabular-nums; }
+.fablesynth .arp-grid { display:flex; flex-direction:column; gap:3px; }
+.fablesynth .arp-row { display:grid; grid-template-columns:62px repeat(16,minmax(0,1fr)); gap:3px; align-items:center; }
+.fablesynth .arp-row > span:first-child { color:#8d9db3; font-size:9px; font-weight:600; letter-spacing:.1em; cursor:default; }
+.fablesynth .arp-steps > span { text-align:center; color:#56667c; font-size:9px; }
+.fablesynth .arp-steps > span.beat { color:#a2b2c8; font-weight:600; }
+.fablesynth .arp-steps > span.current { color:var(--arp-live); }
+.fablesynth .arp-chords > span:not(:first-child) { height:16px; overflow:visible; white-space:nowrap; color:hsl(calc(var(--hue) * 1deg) 80% 72%); font-size:10px; font-weight:600; }
+.fablesynth .arp-chords > span.start { border-left:2px solid hsl(calc(var(--hue) * 1deg) 70% 60% / .7); padding-left:4px; }
+.fablesynth .arp-row button { position:relative; height:26px; padding:0; border:1px solid #ffffff0d; border-radius:3px; background:#0e1520; color:#71849a; cursor:pointer; font-size:12px; }
+.fablesynth .arp-row button.beat { border-left-color:#ffffff24; }
+.fablesynth .arp-row button:hover { border-color:rgba(var(--arp-rgb),0.4); }
+.fablesynth .arp-row button.current { background:#142230; }
+.fablesynth .arp-voice button.on { background:rgba(var(--arp-rgb),0.6); border-color:var(--arp-live); }
+.fablesynth .arp-voice button.on.accent { background:var(--arp-live); box-shadow:0 0 10px rgba(var(--arp-rgb),0.35); }
+.fablesynth .arp-voice button.held { background:rgba(var(--arp-rgb),0.2); border-color:rgba(var(--arp-rgb),0.3); }
+/* A held voice reads as one bar from its strike to its release. */
+.fablesynth .arp-voice button.continues::after { content:''; position:absolute; top:-1px; bottom:-1px; right:-5px; width:5px; background:inherit; border-top:1px solid rgba(var(--arp-rgb),0.3); border-bottom:1px solid rgba(var(--arp-rgb),0.3); }
+.fablesynth .arp-voice button.on.continues { border-top-right-radius:0; border-bottom-right-radius:0; }
+.fablesynth .arp-voice button.held { border-radius:0; border-left-color:transparent; }
+.fablesynth .arp-voice button.continues { border-right-color:transparent; }
+.fablesynth .arp-divider { height:5px; }
+.fablesynth .arp-lane button { height:22px; color:var(--arp-live); }
+.fablesynth .arp-lane button.on { background:rgba(var(--arp-rgb),0.1); border-color:rgba(var(--arp-rgb),0.35); }
+.fablesynth .arp-lane.accent button { color:#ffa14d; }
+.fablesynth .arp-lane.accent button.on { background:#ffa14d18; border-color:#ffa14d50; }
+.fablesynth .arp-lane.hold button.on { font-size:15px; }
+.fablesynth .arp-display { display:flex; height:130px; margin-bottom:8px; border:1px solid #ffffff10; border-radius:5px; background:#070b11; overflow:hidden; }
+.fablesynth .arp-register { width:62px; flex:none; display:flex; flex-direction:column; justify-content:space-between; padding:10px 6px; color:#8d9db3; font-size:9px; }
+.fablesynth .arp-phrase { display:flex; flex:1; background:repeating-linear-gradient(to top,transparent 0,transparent calc(25% - 1px),#ffffff06 calc(25% - 1px),#ffffff06 25%); }
+.fablesynth .arp-column { flex:1; min-width:0; position:relative; border-left:1px solid #ffffff06; }
+.fablesynth .arp-column.beat { border-color:#ffffff19; }
+.fablesynth .arp-column.current { background:rgba(var(--arp-rgb),0.047); box-shadow:inset 1px 0 rgba(var(--arp-rgb),0.4); }
+.fablesynth .arp-generated { position:absolute; left:5%; height:12px; border:1px solid rgba(var(--arp-rgb),0.53); background:rgba(var(--arp-rgb),0.075); border-radius:2px; }
+.fablesynth .arp-generated.accented { border-top-width:3px; }
+.fablesynth .arp-generated.slide::before { content:'↗'; position:absolute; right:calc(100% + 3px); top:-6px; color:var(--arp-live); font-size:12px; }
+.fablesynth .arp-column.current .arp-generated:not(.rest) { background:var(--arp-live); box-shadow:0 0 12px rgba(var(--arp-rgb),0.16); }
+.fablesynth .arp-generated span { position:absolute; bottom:16px; color:#b4c6d9; font-size:9px; white-space:nowrap; }
+.fablesynth .arp-generated.rest { opacity:.18; border-style:dashed; }
+/* 3 FEEL */
+.fablesynth .arp-feel .arp-card-head { flex-wrap:nowrap; }
+.fablesynth .arp-feel-controls { display:flex; flex:1; flex-wrap:wrap; align-items:center; gap:10px 22px; }
+.fablesynth .arp-feel-controls > .arp-field + .arp-seg { margin-left:-14px; }
+.fablesynth .arp-knob { display:flex; flex-direction:column; gap:4px; width:130px; }
+.fablesynth .arp-knob > span { display:flex; justify-content:space-between; color:#8d9db3; font-size:9px; font-weight:600; letter-spacing:.1em; }
+.fablesynth .arp-knob output { color:#dfe6f3; font-weight:400; font-variant-numeric:tabular-nums; }
+.fablesynth .arp-knob input[type=range] { appearance:none; width:100%; height:12px; margin:0; background:transparent; cursor:ew-resize; }
+.fablesynth .arp-knob input::-webkit-slider-runnable-track { height:3px; background:#344455; border-radius:2px; }
+.fablesynth .arp-knob input::-webkit-slider-thumb { appearance:none; width:11px; height:11px; margin-top:-4px; border:2px solid var(--arp-live); border-radius:50%; background:#112b35; }
+.fablesynth .arp-knob input::-moz-range-track { height:3px; background:#344455; border-radius:2px; }
+.fablesynth .arp-knob input::-moz-range-thumb { width:8px; height:8px; border:2px solid var(--arp-live); border-radius:50%; background:#112b35; }
+.fablesynth .arp-panel button[aria-pressed=true].ns-btn { color:var(--arp-live); border-color:rgba(var(--arp-rgb),0.53); }
+.fablesynth .arp-panel button:focus-visible, .fablesynth .arp-panel select:focus-visible, .fablesynth .arp-panel input:focus-visible { outline:2px solid var(--arp-live); outline-offset:2px; }
+@media(max-width:800px) {
+.fablesynth .arp-top { flex-wrap:wrap; }
+.fablesynth .arp-status { display:none; }
+.fablesynth .arp-tempo { margin-left:auto; }
+.fablesynth .arp-row { grid-template-columns:44px repeat(16,minmax(0,1fr)); gap:2px; }
+.fablesynth .arp-pattern-pick .pattern-name { min-width:0; flex:1; }
+.fablesynth .arp-now { display:none; }
+.fablesynth .arp-generated span { font-size:7px; }
+.fablesynth .arp-editor { flex-wrap:wrap; }
+.fablesynth .arp-keys { min-width:280px; }
+}
+.fablesynth .chord-link.on { color:var(--arp-live); border-color:rgba(var(--arp-rgb),0.6); background:rgba(var(--arp-rgb),0.12); }
+/* fablesynth/components/panels/compBrowser.css */
+.fablesynth .arp-panel { position:relative; }
+.fablesynth .comp-browser { position:absolute; inset:0; z-index:20; display:flex; flex-direction:column; gap:10px; padding:14px 16px; background:#080c13f7; border:1px solid rgba(var(--arp-rgb),0.25); border-radius:8px; box-shadow:0 12px 40px #000a; }
+.fablesynth .comp-browser-head { display:flex; align-items:center; gap:10px; }
+.fablesynth .comp-browser-head h3 { margin:0; font-size:11px; letter-spacing:.14em; color:var(--arp-live); white-space:nowrap; }
+.fablesynth .comp-browser-head h3 span { margin-left:8px; color:#8394aa; font-weight:400; }
+.fablesynth .comp-browser-head input { flex:1; min-width:0; padding:6px 9px; background:#0c121c; color:#dfe6f3; border:1px solid #ffffff20; border-radius:4px; font:11px 'IBM Plex Mono',monospace; letter-spacing:.06em; }
+.fablesynth .comp-browser-variations { display:flex; flex-wrap:wrap; gap:4px; }
+.fablesynth .comp-browser-variations button, .fablesynth .comp-browser-families button { border:1px solid #ffffff12; background:#0c121c; color:#93a3b9; font:600 9px 'IBM Plex Mono',monospace; letter-spacing:.08em; padding:5px 8px; border-radius:3px; cursor:pointer; }
+.fablesynth .comp-browser-variations button[aria-pressed=true], .fablesynth .comp-browser-families button[aria-pressed=true] { color:var(--arp-live); border-color:rgba(var(--arp-rgb),0.45); background:rgba(var(--arp-rgb),0.08); }
+.fablesynth .comp-browser-body { flex:1; min-height:0; display:grid; grid-template-columns:170px 1fr; gap:10px; }
+.fablesynth .comp-browser-families { display:flex; flex-direction:column; gap:3px; overflow-y:auto; }
+.fablesynth .comp-browser-families button { display:flex; justify-content:space-between; gap:8px; text-align:left; }
+.fablesynth .comp-browser-families button span { color:#5f6f86; font-weight:400; }
+.fablesynth .comp-browser-list { overflow-y:auto; display:flex; flex-direction:column; gap:2px; padding-right:4px; }
+.fablesynth .comp-browser-list button { display:grid; grid-template-columns:minmax(150px,1fr) 130px 320px 170px; align-items:center; gap:14px; padding:3px 10px; border:1px solid transparent; border-radius:4px; background:#0c121c; color:#c4d0de; font:11px 'IBM Plex Mono',monospace; text-align:left; cursor:pointer; }
+.fablesynth .comp-browser-list button:hover { border-color:#ffffff1c; }
+.fablesynth .comp-browser-list button[aria-selected=true] { border-color:rgba(var(--arp-rgb),0.6); background:rgba(var(--arp-rgb),0.09); color:#fff; }
+.fablesynth .comp-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fablesynth .comp-name em { margin-left:7px; font-style:normal; font-size:9px; color:var(--arp-live); letter-spacing:.08em; }
+.fablesynth .comp-family, .fablesynth .comp-meta { font-size:9px; letter-spacing:.08em; color:#7d8ea4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fablesynth .comp-grid { width:320px; height:26px; }
+.fablesynth .comp-grid .beat { fill:#ffffff22; }
+.fablesynth .comp-grid .hit { fill:rgba(var(--arp-rgb),0.75); }
+.fablesynth .comp-grid .hit.accent { fill:#ffa14d; }
+.fablesynth .comp-grid .hold { fill:rgba(var(--arp-rgb),0.35); }
+.fablesynth .comp-browser-foot { font-size:8px; letter-spacing:.12em; color:#66778d; }
+.fablesynth .arp-pattern-field { display:flex; align-items:center; gap:4px; }
+.fablesynth .arp-pattern-field .pattern-name { min-width:220px; max-width:320px; padding:6px 10px; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+@media(max-width:800px) {
+.fablesynth .comp-browser-body { grid-template-columns:1fr; }
+.fablesynth .comp-browser-families { flex-direction:row; flex-wrap:wrap; max-height:70px; }
+.fablesynth .comp-browser-head { flex-wrap:wrap; }
+.fablesynth .comp-browser-head input { flex:1 1 100%; order:1; }
+.fablesynth .comp-browser-head .ns-btn:first-of-type { margin-left:auto; }
+.fablesynth .comp-browser-list button { grid-template-columns:minmax(0,1fr) 160px; }
+.fablesynth .comp-family, .fablesynth .comp-meta { display:none; }
+.fablesynth .comp-grid { width:160px; height:13px; }
+}
+.fablesynth .prog-grid rect:not(.beat) { fill:hsl(calc(var(--hue) * 1deg) 60% 40% / .28); stroke:hsl(calc(var(--hue) * 1deg) 70% 62% / .55); stroke-width:1; }
+.fablesynth .prog-grid text { fill:#dfe6f3; font:600 9px 'IBM Plex Mono',monospace; }
+.fablesynth .chord-tools .arp-pattern-pick .pattern-name { min-width:260px; }
+/* fablesynth/components/scaleStrip.css */
+.fablesynth .scale-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin: 0 0 10px; font: 10px 'IBM Plex Mono', monospace; color: var(--text, #dfe6f3); }
+.fablesynth .scale-strip-title { letter-spacing: .12em; color: oklch(76% .025 255); }
+.fablesynth .scale-strip-segment { display: flex; }
+.fablesynth .scale-strip-segment button { padding: 5px 8px; border: 1px solid oklch(60% .025 255 / .3); margin-left: -1px; background: oklch(17% .02 255); color: inherit; font: inherit; letter-spacing: .08em; cursor: pointer; }
+.fablesynth .scale-strip-segment button:first-child { border-radius: 4px 0 0 4px; margin-left: 0; }
+.fablesynth .scale-strip-segment button:last-child { border-radius: 0 4px 4px 0; }
+.fablesynth .scale-strip-segment button[aria-checked=true] { color: var(--accent-a, #4de8ff); background: oklch(24% .035 230); }
+.fablesynth .scale-strip-segment button:hover { border-color: var(--accent-a, #4de8ff); }
+.fablesynth .scale-strip button:focus-visible, .fablesynth .scale-strip select:focus-visible { outline: 2px solid var(--accent-a, #4de8ff); outline-offset: 2px; }
+.fablesynth .scale-strip-field { display: flex; align-items: center; gap: 6px; font-size: 9px; letter-spacing: .12em; color: oklch(76% .025 255); }
+.fablesynth .scale-strip-field select { border: 1px solid oklch(60% .025 255 / .3); border-radius: 4px; background: oklch(17% .02 255); color: var(--text, #dfe6f3); font: 10px 'IBM Plex Mono', monospace; padding: 4px 6px; }
+.fablesynth .scale-strip-chordtrack { flex: 1 0 100%; }
+.fablesynth .scale-strip-hint { color: oklch(76% .025 255); font-size: 9px; letter-spacing: .04em; }
+/* Out-of-scale cells: written notes there snap to the scale when they play. */
+.fablesynth .ns-cell.off-scale:not(.on), .fablesynth .bl-cell.off-scale:not(.on) { opacity: .35; }
+.fablesynth .ns-cell.off-scale.on, .fablesynth .bl-cell.off-scale.on { outline: 1px dashed oklch(80% .12 70 / .8); outline-offset: -2px; }
