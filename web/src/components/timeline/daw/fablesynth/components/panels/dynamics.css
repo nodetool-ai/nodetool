@@ -1,0 +1,51 @@
+.panel-dynamics { --ac: var(--ac-n); }
+.panel-dynamics .panel-head { gap: 7px; height: 22px; margin-bottom: 7px; }
+.dynamics-caption, .dynamics-legend { font: 8px var(--font-mono); letter-spacing: 0.08em; color: var(--ac-n); white-space: nowrap; }
+.dynamics-caption { color: var(--text-dim); }
+.dynamics-legend { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
+.dynamics-legend i { display: inline-block; width: 10px; height: 1px; background: var(--ac-n); opacity: 0.5; }
+.dynamics-legend .legend-out { background: var(--text); opacity: 1; }
+.dynamics-curve { display: block; width: 100%; height: auto; aspect-ratio: 360 / 126; border: 1px solid var(--line); border-radius: 9px; background: #07090e; }
+.dynamics-readouts { display: flex; justify-content: space-between; gap: 8px; padding: 9px 2px 8px; }
+.dynamics-readouts > div { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+.dynamics-readouts span { font: 8px var(--font-mono); letter-spacing: 0.06em; color: var(--ac-n); }
+.dynamics-readouts output { font: 9px var(--font-mono); color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dynamics-controls { display: flex; align-items: center; justify-content: space-around; gap: 10px; }
+.dynamics-note { font: 9px var(--font-mono); color: var(--ac-n); display: flex; flex-direction: column; gap: 7px; }
+.dynamics-note span, .dynamics-footnote { font: 8px var(--font-mono); color: var(--ac-n); letter-spacing: 0.03em; }
+.dynamics-footnote { text-align: center; margin-top: 7px; }
+.dynamics-bypassed .dynamics-controls { opacity: 0.55; }
+@media (max-width: 1100px) {
+  .dynamics-readouts > div { flex-direction: column; gap: 4px; }
+  .dynamics-note span { max-width: 18ch; line-height: 1.6; }
+  .dynamics-legend { font-size: 7px; }
+}
+
+/* Auto-comp */
+.comp-auto-toggle { margin-left: auto; min-height: 22px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 5px; background: #0a0d14; color: var(--text-dim); font: 8px var(--font-mono); letter-spacing: .1em; cursor: pointer; }
+.comp-auto-toggle.on { border-color: var(--ac-n); color: var(--text); background: color-mix(in srgb, var(--ac-n) 18%, #0a0d14); }
+.comp-auto-toggle + .dynamics-legend { margin-left: 6px; min-width: 0; overflow: hidden; }
+.comp-auto { display: grid; gap: 6px; margin: 8px 0 5px; }
+.comp-auto-row { display: flex; align-items: center; gap: 6px; }
+.comp-auto select, .comp-auto button { min-height: 24px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 5px; background: #0a0d14; color: var(--text); font: 8px var(--font-mono); letter-spacing: .08em; }
+.comp-auto select { flex: 1; min-width: 0; }
+.comp-auto button { flex: 1; cursor: pointer; }
+.comp-auto button:disabled { opacity: .35; cursor: default; }
+.comp-auto-learn { background: linear-gradient(90deg, color-mix(in srgb, var(--ac-n) 30%, #0a0d14) calc(var(--p, 0) * 100%), #0a0d14 0) !important; }
+.comp-auto-learn.on { border-color: var(--ac-n) !important; }
+.comp-auto-depth { display: flex; align-items: center; gap: 4px; width: 42%; }
+.comp-auto-depth input { flex: 1; min-width: 0; accent-color: var(--ac-n); }
+.comp-auto-depth output { width: 32px; text-align: right; color: var(--text-dim); font: 8px var(--font-mono); }
+.comp-auto-hist { display: block; width: 100%; height: 34px; border: 1px solid var(--line); border-radius: 5px; background: #07090e; }
+.comp-auto-hist rect { fill: var(--text-dim); opacity: .45; }
+.comp-auto-hist rect.over { fill: var(--ac-n); opacity: .85; }
+.comp-auto-hist line { stroke: var(--text); stroke-width: 1; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; }
+.comp-auto-status { margin: 0; color: var(--text-dim); font: 8px var(--font-mono); letter-spacing: .06em; }
+
+/* COMP side-chain row */
+.comp-sc { display: flex; align-items: center; gap: 10px; min-height: 26px; padding: 4px 2px 0; font: 8px var(--font-mono); letter-spacing: .1em; color: var(--text-dim); }
+.comp-sc label { display: flex; align-items: center; gap: 6px; }
+.comp-sc select { padding: 3px 5px; border: 1px solid var(--line); border-radius: 6px; background: #0a0d14; color: var(--text-dim); font: 8px var(--font-mono); letter-spacing: .08em; }
+.comp-sc.on select { color: var(--text); border-color: var(--ac-n, #4de8ff); }
+.comp-sc-hp { transform: scale(.85); transform-origin: left center; }
+.comp-sc-note { color: var(--ac-b, #ffa14d); }

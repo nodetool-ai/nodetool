@@ -1,0 +1,14 @@
+.panel-chorus { --ac: var(--ac-n); min-width: 0; padding: 8px; }
+.panel-chorus .panel-head { min-height: 22px; margin-bottom: 7px; gap: 7px; }
+.chorus-state { margin-left: auto; color: var(--ac-n); font: 8px var(--font-mono); letter-spacing: 0.06em; }
+.chorus-view { display: block; width: 100%; height: 144px; background: var(--display-well, oklch(14% 0.012 260)); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.chorus-grid, .chorus-centers { fill: none; stroke: var(--ac-n); stroke-width: 0.6; opacity: 0.2; }
+.chorus-centers { stroke-dasharray: 2 4; opacity: 0.3; }
+.chorus-label { fill: var(--ac-n); font: 8px var(--font-mono); }
+.chorus-axis { text-anchor: end; }
+.chorus-left, .chorus-right { fill: none; stroke: var(--text); stroke-width: 1.5; stroke-linejoin: round; }
+.chorus-right { stroke: var(--ac-n); stroke-dasharray: 3 2; }
+.chorus-readouts { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; padding: 9px 2px; color: var(--ac-n); font: 9px var(--font-mono); }
+.chorus-readouts output { color: var(--text); font-variant-numeric: tabular-nums; }
+.chorus-controls { display: flex; justify-content: space-around; align-items: center; gap: 6px; }
+.chorus-bypassed .chorus-readouts, .chorus-bypassed .chorus-controls { opacity: 0.55; }

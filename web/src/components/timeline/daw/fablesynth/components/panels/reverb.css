@@ -1,0 +1,18 @@
+.panel-reverb { --ac: var(--ac-n); }
+.panel-reverb .panel-head { min-height: 22px; margin-bottom: 7px; gap: 7px; }
+.reverb-state { margin-left: auto; color: var(--ac-n); font: 8px var(--font-mono); letter-spacing: 0.08em; }
+.reverb-field { display: block; width: 100%; height: 144px; background: oklch(14% 0.012 265); border: 1px solid var(--line); border-radius: 9px; }
+.reverb-readouts { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; padding: 9px 2px; font: 9px var(--font-mono); }
+.reverb-readouts > div { display: flex; align-items: baseline; gap: 6px; }
+.reverb-readouts span, .reverb-correlation { color: var(--ac-n); font: 8px var(--font-mono); letter-spacing: 0.05em; }
+.reverb-readouts output, .reverb-correlation output { color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.reverb-controls { display: flex; align-items: flex-start; justify-content: space-around; gap: 8px; }
+.reverb-bypassed .reverb-controls > .knob { opacity: 0.55; }
+.reverb-correlation { --position: 50%; flex: 1; max-width: 100px; min-width: 68px; padding-top: 5px; text-align: center; }
+.reverb-correlation output { display: block; padding: 5px 0 7px; font-size: 10px; }
+.reverb-correlation-track { height: 3px; background: color-mix(in oklch, var(--ac-n) 20%, transparent); position: relative; margin: 0 3px; }
+.reverb-correlation-track::before { content: ''; position: absolute; left: 50%; top: -2px; width: 1px; height: 7px; background: var(--ac-n); opacity: 0.4; }
+.reverb-correlation-track i { position: absolute; left: var(--position); top: -2px; height: 7px; width: 3px; transform: translateX(-50%); background: var(--text); box-shadow: 0 0 5px var(--ac-n); }
+.reverb-correlation[data-silent='true'] i { opacity: 0; }
+.reverb-correlation-scale { display: flex; justify-content: space-between; padding-top: 5px; }
+.reverb-source-note { font: 8px var(--font-mono); color: var(--ac-n); letter-spacing: 0.04em; line-height: 1.5; padding-top: 8px; }

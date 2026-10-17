@@ -1,0 +1,38 @@
+/* ============ device page tabs (JUCE parity) ============ */
+.device-tabs { display: flex; gap: 5px; height: 26px; margin-bottom: 10px; }
+.device-tab { position: relative; flex: none; height: 100%; }
+.device-tab > button[role='tab'] {
+  width: 100%;
+  height: 100%;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--nav) 24%, var(--line));
+  border-radius: 4px;
+  background: var(--panel-hi);
+  color: color-mix(in srgb, var(--nav) 55%, var(--text-dim));
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.device-tab.has-led > button[role='tab'] { padding-right: 26px; }
+.device-tab > button[role='tab']:hover { color: var(--nav); }
+.device-tab > button[role='tab'].on {
+  border-color: var(--nav);
+  background: color-mix(in srgb, var(--nav) 18%, var(--panel-hi));
+  color: var(--nav);
+}
+.device-tab > button[role='tab']:focus-visible { outline: 1px solid var(--nav); outline-offset: 1px; }
+.device-tab-led {
+  --ac: var(--ac-a);
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+}
+.device-page[hidden] { display: none !important; }
+
+@media (max-width: 700px) {
+  .device-tabs { height: auto; flex-wrap: wrap; }
+  .device-tab { flex: 1 1 auto; height: 34px; width: auto !important; }
+}

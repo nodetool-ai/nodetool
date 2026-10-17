@@ -1,0 +1,17 @@
+.panel-drive { --ac: var(--ac-n); min-width: 0; padding: 8px; }
+.panel-drive .panel-head { gap: 7px; margin-bottom: 7px; height: 22px; }
+.drive-caption { margin-left: auto; font: 8px var(--font-mono); letter-spacing: 0.06em; color: var(--ac-n); }
+.drive-view { display: block; width: 100%; height: 144px; border: 1px solid var(--line); border-radius: 9px; background: var(--display-well, oklch(14% 0.012 260)); overflow: hidden; }
+.drive-grid { fill: none; stroke: var(--ac-n); stroke-width: 0.6; opacity: 0.2; }
+.drive-unity { stroke-dasharray: 3 4; }
+.drive-label { fill: var(--ac-n); font: 8px var(--font-mono); }
+.drive-transfer, .drive-tone { fill: none; stroke: var(--text); stroke-width: 1.6; stroke-linejoin: round; }
+.drive-tone { stroke: var(--ac-n); }
+.drive-type { display: flex; margin: 9px 0; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.drive-type button { flex: 1; min-width: 0; padding: 6px 2px; border: 0; border-radius: 0; background: transparent; color: var(--ac-n); font: 9px var(--font-mono); letter-spacing: 0.05em; cursor: pointer; }
+.drive-type button + button { border-left: 1px solid var(--line); }
+.drive-type button[aria-pressed="true"] { color: var(--text); background: color-mix(in srgb, var(--ac-n) 16%, transparent); }
+.drive-type button:hover { background: color-mix(in srgb, var(--ac-n) 10%, transparent); }
+.drive-type button:focus-visible { outline: 1px solid var(--ac-n); outline-offset: -2px; }
+.drive-controls { display: flex; align-items: center; justify-content: space-around; gap: 6px; }
+.drive-bypassed .drive-controls { opacity: 0.55; }

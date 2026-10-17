@@ -1,0 +1,14 @@
+/* LAB row: five device cards in signal order (LabPanel.tsx). */
+.panel-lab { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; padding: 9px; }
+.lab-card { display: flex; flex-direction: column; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 9px; background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo)); }
+.lab-card .panel-head { min-height: 22px; margin-bottom: 2px; gap: 7px; }
+.lab-card .panel-head h2 { color: var(--ac); }
+.lab-state { margin-left: auto; color: var(--ac-n); font: 8px var(--font-mono); letter-spacing: 0.06em; white-space: nowrap; }
+.lab-tagline { margin: 0 0 6px; color: var(--text-hint, #93a0b8); font: 8px var(--font-mono); letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab-view { display: block; width: 100%; height: 150px; background: var(--display-well, oklch(14% 0.012 260)); border: 1px solid var(--line); border-radius: 9px; }
+.lab-card .stepper { margin-top: 7px; }
+.lab-knobs { display: flex; justify-content: space-around; align-items: center; gap: 4px; margin-top: auto; padding-top: 7px; }
+.lab-bypassed .lab-view { opacity: 0.4; }
+.lab-bypassed .lab-knobs, .lab-bypassed .stepper { opacity: 0.55; }
+@media (max-width: 1180px) { .panel-lab { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 720px) { .panel-lab { grid-template-columns: minmax(0, 1fr); } }

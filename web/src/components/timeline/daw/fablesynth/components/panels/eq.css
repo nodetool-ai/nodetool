@@ -1,0 +1,76 @@
+/* Same display well and light trace as AMP ENV, with direct editing. */
+.panel-eq { --ac: var(--ac-n); }
+.panel-eq .panel-head { gap: 7px; margin-bottom: 7px; height: 22px; }
+.eq-caption { font-size: 8px; letter-spacing: 0.12em; color: var(--text-dim); white-space: nowrap; }
+.eq-bands { display: flex; gap: 3px; margin-left: auto; }
+.eq-bands button, .eq-band-tools button, .eq-band-tools select {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--control-fill, #11141c);
+  color: var(--ac-n);
+  font: 500 8px var(--font-mono);
+  cursor: pointer;
+}
+.eq-bands button { width: 24px; height: 22px; padding: 0; }
+.eq-bands button[aria-pressed='true'] {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--ac-n) 55%, transparent);
+  background: color-mix(in srgb, var(--ac-n) 18%, #11141c);
+}
+.eq-bands .band-off { text-decoration: line-through; }
+.eq-curve {
+  display: block; width: 100%; height: auto;
+  background: #07090e; border: 1px solid var(--line); border-radius: 9px;
+  touch-action: none; user-select: none;
+}
+.eq-grid line { stroke: var(--ac-n); stroke-opacity: 0.08; stroke-width: 0.7; }
+.eq-grid .eq-zero { stroke-opacity: 0.27; }
+.eq-grid text { fill: var(--ac-n); font: 8px var(--font-mono); }
+.eq-band-curve { fill: none; stroke: var(--ac-n); stroke-width: 0.8; opacity: 0.16; }
+.eq-band-curve.selected { opacity: 0.5; stroke-dasharray: 3 3; }
+.eq-sum { fill: none; stroke: var(--text); stroke-width: 1.6; filter: drop-shadow(0 0 3px var(--ac-n)); }
+.eq-node { cursor: move; outline: none; }
+.eq-node-hit { fill: transparent; }
+.eq-node-dot { fill: #11141c; stroke: var(--ac-n); stroke-width: 1.2; }
+.eq-node text { fill: var(--text); font: 600 8px var(--font-mono); pointer-events: none; }
+.eq-node.selected .eq-node-dot { fill: var(--ac-n); stroke: var(--text); }
+.eq-node.selected text { fill: #07090e; }
+.eq-node.disabled .eq-node-dot { stroke-dasharray: 2 2; fill: #11141c; }
+.eq-node.disabled text { fill: var(--ac-n); }
+.eq-node:focus-visible .eq-node-hit { stroke: var(--ac-n); stroke-width: 1; }
+.eq-node:hover .eq-node-dot { stroke: var(--text); stroke-width: 2; }
+.eq-bypassed .eq-sum { filter: none; stroke: var(--ac-n); opacity: 0.5; }
+.eq-bypassed .eq-band-curve { opacity: 0.15; }
+.eq-band-tools { display: flex; align-items: center; gap: 6px; margin: 8px 0 5px; }
+.eq-band-tools button, .eq-band-tools select { min-height: 22px; padding: 2px 5px; letter-spacing: 0.06em; }
+.eq-band-tools .eq-enable { display: inline-flex; align-items: center; gap: 5px; background: transparent; border-color: transparent; padding-left: 0; }
+.eq-enable span { width: 5px; height: 5px; border-radius: 50%; background: var(--text-dim); }
+.eq-enable[aria-pressed='true'] span { background: var(--ac-n); }
+.eq-band-tools .eq-reset { margin-left: auto; background: transparent; border-color: transparent; }
+.eq-bands button:hover, .eq-band-tools button:hover, .eq-band-tools select:hover { color: var(--text); border-color: var(--ac-n); }
+.panel-eq button:focus-visible, .panel-eq select:focus-visible { outline: 1px solid var(--ac-n); outline-offset: 2px; }
+.eq-controls { display: flex; justify-content: space-around; gap: 8px; }
+.eq-control { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.eq-control .k-value { display: none; }
+.eq-control output { font: 9px var(--font-mono); color: var(--ac-n); white-space: nowrap; margin-top: 3px; }
+
+/* Auto-EQ */
+.eq-auto-toggle { margin-left: auto; min-height: 22px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 5px; background: #0a0d14; color: var(--text-dim); font: 8px var(--font-mono); letter-spacing: .1em; cursor: pointer; }
+.eq-auto-toggle.on { border-color: var(--ac-n); color: var(--text); background: color-mix(in srgb, var(--ac-n) 18%, #0a0d14); }
+.eq-auto-toggle + .eq-bands { margin-left: 0; }
+.eq-auto-match { fill: none; stroke: var(--ac-n); stroke-width: 1.2; stroke-dasharray: 3 3; opacity: .8; }
+.eq-auto { display: grid; gap: 6px; margin: 8px 0 5px; }
+.eq-auto-row { display: flex; align-items: center; gap: 6px; }
+.eq-auto select, .eq-auto button { min-height: 24px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 5px; background: #0a0d14; color: var(--text); font: 8px var(--font-mono); letter-spacing: .08em; }
+.eq-auto select { flex: 1; min-width: 0; }
+.eq-auto button { flex: 1; cursor: pointer; }
+.eq-auto button:disabled { opacity: .35; cursor: default; }
+.eq-auto-learn { background: linear-gradient(90deg, color-mix(in srgb, var(--ac-n) 30%, #0a0d14) calc(var(--p, 0) * 100%), #0a0d14 0) !important; }
+.eq-auto-learn.on { border-color: var(--ac-n) !important; }
+.eq-auto-amount { display: flex; align-items: center; gap: 4px; width: 42%; }
+.eq-auto-amount input { flex: 1; min-width: 0; accent-color: var(--ac-n); }
+.eq-auto-amount output { width: 28px; text-align: right; color: var(--text-dim); font: 8px var(--font-mono); }
+.eq-auto-status { margin: 0; color: var(--text-dim); font: 8px var(--font-mono); letter-spacing: .1em; }
+
+/* Live output spectrum behind the curve (EQ-analyser tilt, +4.5 dB/oct). */
+.eq-live { fill: color-mix(in srgb, var(--text, #e8eef7) 8%, transparent); stroke: color-mix(in srgb, var(--text, #e8eef7) 32%, transparent); stroke-width: 1; }
