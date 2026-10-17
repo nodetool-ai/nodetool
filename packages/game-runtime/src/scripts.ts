@@ -1,3 +1,4 @@
+import { callObserver } from "./script-call-observer.js";
 import type { QuickJSContext, QuickJSHandle, QuickJSRuntime } from "quickjs-emscripten-core";
 import { z } from "zod";
 import { gameBehavior, gameNonSpatialScriptCommand, gameUiScriptCommand, resolveGameScriptParams, type GameDocument, type GameEntityProps, type GameInputFrame, type GameScriptParam, type GameScriptParamValue, type GameSnapshot } from "@nodetool-ai/protocol";
@@ -176,7 +177,7 @@ function interrupted(budget: string): Error {
 }
 
 function assertBeforeDeadline(deadline: number, budget: string): void {
-  if (performance.now() >= deadline) { throw interrupted(budget); }
+  if (callObserver.batch(performance.now() >= deadline)) { throw interrupted(budget); }
 }
 
 export interface GameScriptOptions {
@@ -543,116 +544,139 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         if (source === undefined) {
           throw new Error(`Game script source ${call.sourceKey} is missing for ${call.entityId} at tick ${input.tick}`);
         }
-        let callStarted = performance.now();
-        let callExceeded = (): boolean => false;
-        const checkCallDeadline = (): void => {
-          assertBeforeDeadline(batchDeadline, batchBudget);
-          if (callExceeded()) { throw interrupted(`call ${callBudgetMs} ms for ${call.entityId} at tick ${input.tick}`); }
-        };
-        runtime.setInterruptHandler(() => performance.now() >= batchDeadline);
-        const persistent = persistentSources.has(call.sourceKey);
-        let realm = realms.get(call.stateKey);
-        let shell: RealmShell | undefined;
-        let worldHandle: QuickJSHandle | undefined;
-        let worldCall: ReturnType<ScriptWorldSnapshot["install"]> | undefined;
+        const diagnosticRecord = callObserver.begin(call.sourceKey, source, input.tick, callBudgetMs, callClock.kind);
         try {
-          if (realm && realm.sourceKey !== call.sourceKey) {
-            disposeRealm(realm); realms.delete(call.stateKey); realm = undefined;
-          }
-          if (!realm && persistent) {
-            realm = prepared.get(call.sourceKey);
-            prepared.delete(call.sourceKey);
-          }
-          // Context setup is host work, so it counts against the batch budget only. The call budget starts
-          // before any user source is evaluated, so the script's own execution limit is unchanged.
-          const hooks = hookSources.has(call.sourceKey);
-          if (!realm) { shell = createRealmShell(nextRngState, persistent, hooks); }
-          assertBeforeDeadline(batchDeadline, batchBudget);
-          callStarted = performance.now();
-          callExceeded = startScriptCallTimer(callClock, callBudgetMs);
-          runtime.setInterruptHandler(() => performance.now() >= batchDeadline || callExceeded());
-          if (shell) {
-            const loading = shell;
-            shell = undefined;
-            realm = loadSource(loading, call.sourceKey, source, hooks);
-          }
-          if (!realm) { throw new Error("Game script realm was not created"); }
-          if (persistent) { realms.set(call.stateKey, realm); }
-          const { context, invoke, defineData, worldGetter } = realm;
-          if (!persistent) { worldCall = getHostWorld().install(context, checkCallDeadline, realm.defineData, realm.queryJson); }
-          checkCallDeadline();
-          // The shared input is serialized once per tick; only the call is serialized per call.
-          const params = paramsJson.get(call.sourceKey);
-          const plan = hooks ? planScriptHooks(call.state, call.lifecycle, input.tick) : undefined;
-          const data = `{"call":${callJson(call, plan)},"input":${persistent ? inputJsonWithoutWorld() : inputJson()},"rngState":${JSON.stringify(nextRngState)}${params === undefined ? "" : `,"params":${params}`}}`;
-          checkCallDeadline();
-          const normalized: unknown = persistent ? JSON.parse(data) : data;
-          let argument: QuickJSHandle | undefined;
-          let seed: QuickJSHandle | undefined;
-          let output: unknown;
+          let callStarted = performance.now();
+          let callExceeded = (): boolean => false;
+          const checkCallDeadline = (site = 0): void => {
+            callObserver.site(site);
+            assertBeforeDeadline(batchDeadline, batchBudget);
+            if (callExceeded()) { throw interrupted(`call ${callBudgetMs} ms for ${call.entityId} at tick ${input.tick}`); }
+          };
+          runtime.setInterruptHandler(() => { callObserver.site(9); return callObserver.batch(performance.now() >= batchDeadline); });
+          const persistent = persistentSources.has(call.sourceKey);
+          let realm = realms.get(call.stateKey);
+          let shell: RealmShell | undefined;
+          let worldHandle: QuickJSHandle | undefined;
+          let worldCall: ReturnType<ScriptWorldSnapshot["install"]> | undefined;
           try {
-            argument = gameScriptValue(context, normalized, defineData, persistent);
-            seed = context.newNumber(nextRngState);
-            realm.setWorldReader(() => {
-              checkCallDeadline();
-              worldHandle ??= gameScriptValue(context, readLegacyWorld(), defineData, true);
-              checkCallDeadline();
-              return worldHandle.dup();
-            });
-            const value = scriptHandleResult(context, context.callFunction(invoke, context.undefined, argument, worldGetter, seed));
-            try { output = context.dump(value); } finally { value.dispose(); }
-            worldCall?.assertWithinLimit();
+            if (realm && realm.sourceKey !== call.sourceKey) {
+              disposeRealm(realm); realms.delete(call.stateKey); realm = undefined;
+            }
+            if (!realm && persistent) {
+              realm = prepared.get(call.sourceKey);
+              prepared.delete(call.sourceKey);
+            }
+            // Context setup is host work, so it counts against the batch budget only. The call budget starts
+            // before any user source is evaluated, so the script's own execution limit is unchanged.
+            callObserver.realm(persistent, realm !== undefined);
+            const hooks = hookSources.has(call.sourceKey);
+            if (!realm) { shell = createRealmShell(nextRngState, persistent, hooks); }
+            callObserver.mark(1);
+            assertBeforeDeadline(batchDeadline, batchBudget);
+            callStarted = performance.now();
+            callExceeded = startScriptCallTimer(callClock, callBudgetMs);
+            runtime.setInterruptHandler(() => { callObserver.site(8); return callObserver.batch(performance.now() >= batchDeadline) || callExceeded(); });
+            callObserver.mark(2);
+            if (shell) {
+              const loading = shell;
+              shell = undefined;
+              realm = loadSource(loading, call.sourceKey, source, hooks);
+            }
+            if (!realm) { throw new Error("Game script realm was not created"); }
+            if (persistent) { realms.set(call.stateKey, realm); }
+            const { context, invoke, defineData, worldGetter } = realm;
+            callObserver.mark(3);
+            if (!persistent) { worldCall = getHostWorld().install(context, checkCallDeadline, realm.defineData, realm.queryJson); }
+            callObserver.mark(4);
+            checkCallDeadline(1);
+            // The shared input is serialized once per tick; only the call is serialized per call.
+            const params = paramsJson.get(call.sourceKey);
+            const plan = hooks ? planScriptHooks(call.state, call.lifecycle, input.tick) : undefined;
+            const data = `{"call":${callJson(call, plan)},"input":${persistent ? inputJsonWithoutWorld() : inputJson()},"rngState":${JSON.stringify(nextRngState)}${params === undefined ? "" : `,"params":${params}`}}`;
+            checkCallDeadline(2);
+            const normalized: unknown = persistent ? JSON.parse(data) : data;
+            let argument: QuickJSHandle | undefined;
+            let seed: QuickJSHandle | undefined;
+            let output: unknown;
+            try {
+              argument = gameScriptValue(context, normalized, defineData, persistent);
+              seed = context.newNumber(nextRngState);
+              realm.setWorldReader(() => {
+                checkCallDeadline(3);
+                worldHandle ??= gameScriptValue(context, readLegacyWorld(), defineData, true);
+                checkCallDeadline(4);
+                return worldHandle.dup();
+              });
+              callObserver.mark(5);
+              const value = scriptHandleResult(context, context.callFunction(invoke, context.undefined, argument, worldGetter, seed));
+              try { output = context.dump(value); } finally { value.dispose(); }
+              worldCall?.assertWithinLimit();
+            } finally {
+              realm.setWorldReader(undefined);
+              argument?.dispose(); seed?.dispose();
+            }
+            callObserver.mark(6);
+            if (typeof output !== "string") {
+              throw new Error("Output is not JSON");
+            }
+            checkCallDeadline(5);
+            const rawOutputBytes = encoder.encode(output).byteLength;
+            if (rawOutputBytes > 64 * 1024) {
+              throw new Error(`Output exceeds 64 KiB (${rawOutputBytes} bytes in call ${results.length + 1})`);
+            }
+            const parsed: unknown = JSON.parse(output);
+            // Log, save and load commands leave the output here, so they never reach the command limit, the systems or the snapshot.
+            const guestValue = typeof parsed === "object" && parsed !== null ? (parsed as { value?: unknown }).value : undefined;
+            if (typeof guestValue === "object" && guestValue !== null) {
+              const commands = (guestValue as { commands?: unknown }).commands;
+              const simulated = saves.collect(call.entityId, logs.collect(call.entityId, commands));
+              if (simulated !== commands) { (guestValue as { commands?: unknown }).commands = simulated; }
+            }
+            const envelope = envelopeSchema.parse(parsed);
+            const value = plan === undefined ? envelope.value
+              : { state: commitScriptHooks(envelope.value.state, plan, input.tick) as unknown as z.core.util.JSONType, commands: envelope.value.commands };
+            if (value.commands.length > call.maxCommands) {
+              throw new Error(`Game script command limit exceeded for ${call.entityId}`);
+            }
+            const itemBytes = encoder.encode(JSON.stringify({ entityId: call.entityId, value })).byteLength;
+            serializedResultsBytes += itemBytes + (results.length > 0 ? 1 : 0);
+            const outputBytes = encoder.encode(JSON.stringify({ results: [], rngState: envelope.rngState })).byteLength + serializedResultsBytes;
+            if (outputBytes > 64 * 1024) {
+              throw new Error(`Output exceeds 64 KiB (${outputBytes} bytes across ${results.length + 1} calls)`);
+            }
+            checkCallDeadline(6);
+            commandCount += value.commands.length;
+            nextRngState = envelope.rngState;
+            results.push({ entityId: call.entityId, state: value.state, commands: value.commands });
+            callObserver.mark(7);
+          } catch (error) {
+            callObserver.failure(error);
+            callObserver.teardown();
+            // A failed batch cannot retain partially evaluated realms.
+            worldHandle?.dispose(); worldHandle = undefined;
+            if (shell) { disposeRealm(shell); shell = undefined; }
+            if (!persistent && realm) { disposeRealm(realm); realm = undefined; }
+            disposeRealms();
+            throw new Error(`Game script ${call.sourceKey} for ${call.entityId} at tick ${input.tick} failed: ${error instanceof Error ? error.message : String(error)}`);
           } finally {
-            realm.setWorldReader(undefined);
-            argument?.dispose(); seed?.dispose();
+            callObserver.teardown();
+            worldCall?.end();
+            worldHandle?.dispose();
+            if (!persistent && realm) { disposeRealm(realm); }
+            callObserver.mark(9);
           }
-          if (typeof output !== "string") {
-            throw new Error("Output is not JSON");
-          }
-          checkCallDeadline();
-          const rawOutputBytes = encoder.encode(output).byteLength;
-          if (rawOutputBytes > 64 * 1024) {
-            throw new Error(`Output exceeds 64 KiB (${rawOutputBytes} bytes in call ${results.length + 1})`);
-          }
-          const parsed: unknown = JSON.parse(output);
-          // Log, save and load commands leave the output here, so they never reach the command limit, the systems or the snapshot.
-          const guestValue = typeof parsed === "object" && parsed !== null ? (parsed as { value?: unknown }).value : undefined;
-          if (typeof guestValue === "object" && guestValue !== null) {
-            const commands = (guestValue as { commands?: unknown }).commands;
-            const simulated = saves.collect(call.entityId, logs.collect(call.entityId, commands));
-            if (simulated !== commands) { (guestValue as { commands?: unknown }).commands = simulated; }
-          }
-          const envelope = envelopeSchema.parse(parsed);
-          const value = plan === undefined ? envelope.value
-            : { state: commitScriptHooks(envelope.value.state, plan, input.tick) as unknown as z.core.util.JSONType, commands: envelope.value.commands };
-          if (value.commands.length > call.maxCommands) {
-            throw new Error(`Game script command limit exceeded for ${call.entityId}`);
-          }
-          const itemBytes = encoder.encode(JSON.stringify({ entityId: call.entityId, value })).byteLength;
-          serializedResultsBytes += itemBytes + (results.length > 0 ? 1 : 0);
-          const outputBytes = encoder.encode(JSON.stringify({ results: [], rngState: envelope.rngState })).byteLength + serializedResultsBytes;
-          if (outputBytes > 64 * 1024) {
-            throw new Error(`Output exceeds 64 KiB (${outputBytes} bytes across ${results.length + 1} calls)`);
-          }
-          checkCallDeadline();
-          commandCount += value.commands.length;
-          nextRngState = envelope.rngState;
-          results.push({ entityId: call.entityId, state: value.state, commands: value.commands });
+          callObserver.mark(10);
+          checkCallDeadline(7);
+          callObserver.mark(11);
+          const previous = byEntity[call.entityId] ?? { durationMs: 0, calls: 0 };
+          byEntity[call.entityId] = { durationMs: previous.durationMs + performance.now() - callStarted, calls: previous.calls + 1 };
         } catch (error) {
-          // A failed batch cannot retain partially evaluated realms.
-          worldHandle?.dispose(); worldHandle = undefined;
-          if (shell) { disposeRealm(shell); shell = undefined; }
-          if (!persistent && realm) { disposeRealm(realm); realm = undefined; }
-          disposeRealms();
-          throw new Error(`Game script ${call.sourceKey} for ${call.entityId} at tick ${input.tick} failed: ${error instanceof Error ? error.message : String(error)}`);
+          callObserver.failure(error);
+          throw error;
         } finally {
-          worldCall?.end();
-          worldHandle?.dispose();
-          if (!persistent && realm) { disposeRealm(realm); }
+          callObserver.end(diagnosticRecord);
         }
-        checkCallDeadline();
-        const previous = byEntity[call.entityId] ?? { durationMs: 0, calls: 0 };
-        byEntity[call.entityId] = { durationMs: previous.durationMs + performance.now() - callStarted, calls: previous.calls + 1 };
       }
       assertBeforeDeadline(batchDeadline, batchBudget);
       const stats = { durationMs: performance.now() - started, commands: commandCount, calls: calls.length, byEntity };

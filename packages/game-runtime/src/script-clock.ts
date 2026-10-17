@@ -1,3 +1,5 @@
+import { callObserver } from "./script-call-observer.js";
+
 /** A millisecond reading from an arbitrary origin. Only differences between readings are meaningful. */
 export interface ScriptCallClock {
   readonly kind: "thread-cpu" | "wall";
@@ -33,5 +35,13 @@ export const defaultScriptCallClock: ScriptCallClock = threadCpuScriptCallClock(
 export function startScriptCallTimer(clock: ScriptCallClock, limitMs: number): () => boolean {
   const wallStarted = performance.now();
   const started = clock.now();
-  return () => performance.now() - wallStarted >= limitMs && clock.now() - started >= limitMs;
+  callObserver.started(wallStarted, started);
+  return () => {
+    const wallElapsed = performance.now() - wallStarted;
+    if (!(wallElapsed >= limitMs)) { return false; }
+    const clockElapsed = clock.now() - started;
+    const expired = clockElapsed >= limitMs;
+    callObserver.timer(wallElapsed, clockElapsed, expired);
+    return expired;
+  };
 }

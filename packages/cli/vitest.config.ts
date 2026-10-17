@@ -137,6 +137,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: "real-packages",
+          setupFiles: ["./tests/gameScriptCallDiagnostic.setup.ts"],
           include: realPackageTests
         }
       }
