@@ -246,7 +246,7 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
               onClick={() => setConfirmDelete(true)}
               disabled={isGenerating}
               sx={quietActionSx}
-              tooltip="Remove this shot from the board"
+              tooltip="Delete this shot"
             >
               Delete
             </EditorButton>

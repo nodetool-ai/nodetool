@@ -68,7 +68,7 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
         <TextEditorModal
           value={memoizedModalText}
           onClose={toggleExpand}
-          propertyName="Text Asset"
+          propertyName="Text asset"
           propertyDescription="READ ONLY"
           readOnly={true}
           isLoading={isLoading}

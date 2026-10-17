@@ -143,7 +143,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
                   color: "var(--palette-grey-100)"
                 }}
               >
-                Input Device
+                Input device
               </Text>
               <div
                 className={`device-select${
@@ -155,7 +155,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
                   value={selectedInputDeviceId}
                   onChange={handleInputDeviceChange}
                   placeholder="System default input"
-                  label="Input Device"
+                  label="Input device"
                   tabIndex={isRecording || isLoading ? -1 : 0}
                 />
               </div>

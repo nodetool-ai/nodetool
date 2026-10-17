@@ -262,7 +262,7 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
           <Caption
             sx={{ display: "block", mb: 1, fontWeight: 500 }}
           >
-            Connection Changes
+            Connection changes
           </Caption>
           <List dense disablePadding>
             {diff.addedEdges.map((edge) => (

@@ -393,7 +393,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Recent Nodes"
+              title="Recent nodes"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />
@@ -412,7 +412,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Favorite Nodes"
+              title="Favorite nodes"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />
@@ -649,7 +649,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="JS Scripts"
+              title="JS scripts"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
               actions={<CreateJsScriptButton />}
@@ -713,7 +713,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Workflow Settings"
+              title="Workflow settings"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />

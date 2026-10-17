@@ -62,7 +62,7 @@ const META_SECTION_GROUPS: ReadonlyArray<{
 }> = [
   {
     key: "local-model-servers",
-    label: "Local Model Servers",
+    label: "Local model servers",
     groups: [
       "vLLM",
       "Ollama",
@@ -78,7 +78,7 @@ const META_SECTION_GROUPS: ReadonlyArray<{
   },
   {
     key: "provider-options",
-    label: "Provider Options",
+    label: "Provider options",
     groups: ["ClaudeAgent", "ZAI", "KIE"]
   },
   {
@@ -88,7 +88,7 @@ const META_SECTION_GROUPS: ReadonlyArray<{
   },
   {
     key: "data-and-storage",
-    label: "Data & Storage",
+    label: "Data & storage",
     groups: ["NodeSupabase", "Supabase"]
   },
   { key: "other", label: "Other", groups: [] }
@@ -192,7 +192,7 @@ export const getDisplayedSettingGroups = (
     // SearchProviderSection always renders alongside the registry list, so
     // the sidebar always lists it at this slot (after Local Model Servers).
     if (section.key === "local-model-servers") {
-      result.push({ id: "search-provider", label: "Search Provider" });
+      result.push({ id: "search-provider", label: "Search provider" });
     }
   }
   return result;
@@ -222,25 +222,25 @@ const SETTING_LINKS: Record<string, string> = {
 };
 
 const SETTING_BUTTON_TITLES: Record<string, string> = {
-  OPENAI_API_KEY: "Get OpenAI API Key",
-  ANTHROPIC_API_KEY: "Get Anthropic API Key",
-  GEMINI_API_KEY: "Get Gemini API Key",
-  OPENROUTER_API_KEY: "Get OpenRouter API Key",
-  REQUESTY_API_KEY: "Get Requesty API Key",
-  OPPER_API_KEY: "Get Opper API Key",
-  API_ROUTE_API_KEY: "Get API Route Key",
-  HF_TOKEN: "Get Hugging Face Token",
-  REPLICATE_API_TOKEN: "Get Replicate API Token",
-  GOOGLE_APP_PASSWORD: "Get Google App Password",
-  ELEVENLABS_API_KEY: "Get ElevenLabs API Key",
-  FAL_API_KEY: "Get Fal API Key",
-  SERPAPI_API_KEY: "Get SerpAPI API Key",
-  DATA_FOR_SEO_LOGIN: "Get DataForSEO Credentials",
-  BRAVE_API_KEY: "Get Brave API Key",
-  APIFY_API_TOKEN: "Get Apify API Token",
-  KIMI_API_KEY: "Get Moonshot API Key",
+  OPENAI_API_KEY: "Get OpenAI API key",
+  ANTHROPIC_API_KEY: "Get Anthropic API key",
+  GEMINI_API_KEY: "Get Gemini API key",
+  OPENROUTER_API_KEY: "Get OpenRouter API key",
+  REQUESTY_API_KEY: "Get Requesty API key",
+  OPPER_API_KEY: "Get Opper API key",
+  API_ROUTE_API_KEY: "Get API Route key",
+  HF_TOKEN: "Get Hugging Face token",
+  REPLICATE_API_TOKEN: "Get Replicate API token",
+  GOOGLE_APP_PASSWORD: "Get Google app password",
+  ELEVENLABS_API_KEY: "Get ElevenLabs API key",
+  FAL_API_KEY: "Get Fal API key",
+  SERPAPI_API_KEY: "Get SerpAPI API key",
+  DATA_FOR_SEO_LOGIN: "Get DataForSEO credentials",
+  BRAVE_API_KEY: "Get Brave API key",
+  APIFY_API_TOKEN: "Get Apify API token",
+  KIMI_API_KEY: "Get Moonshot API key",
   DASHSCOPE_API_KEY: "Get Alibaba Cloud API Key",
-  AKI_API_KEY: "Get AKI.IO API Key"
+  AKI_API_KEY: "Get AKI.IO API key"
 };
 
 const SETTING_TOOLTIPS: Record<string, string> = {

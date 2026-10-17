@@ -62,7 +62,7 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({ assets }) => {
   return (
     <Box css={analyticsStyles} className="storage-analytics">
       <div className="storage-stats">
-        <StatCard layout="plain" label="Total Size" value={formatFileSize(totalSize)} />
+        <StatCard layout="plain" label="Total size" value={formatFileSize(totalSize)} />
 
         {folderCount > 0 && (
           <StatCard layout="plain" label="Folders" value={folderCount} />

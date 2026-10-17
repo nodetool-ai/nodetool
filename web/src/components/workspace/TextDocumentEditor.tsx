@@ -274,7 +274,7 @@ const TextDocumentEditor = ({
       );
       commands.push({
         id: "word-wrap",
-        label: wordWrap ? "Turn Off Word Wrap" : "Turn On Word Wrap",
+        label: wordWrap ? "Turn off word wrap" : "Turn on word wrap",
         run: () => setWordWrap((wrap) => !wrap)
       });
     }

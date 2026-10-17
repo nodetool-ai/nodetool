@@ -32,7 +32,7 @@ const StoryboardAgentPanel = ({ boardId }: StoryboardAgentPanelProps) => {
       workflowId={boardId}
       docsTopic="storyboards"
       docsLabel="Storyboards"
-      welcomeTitle="Storyboard Assistant"
+      welcomeTitle="Storyboard assistant"
       welcomeBody='Ask me to direct the board — e.g. "break this brief into six shots", "add a close-up after shot 3", "generate keyframes for every planned shot", or "assemble the shots into a timeline".'
     />
   );

@@ -113,9 +113,9 @@ const LANGUAGES = [
 ] as const;
 
 const LANGUAGE_LABELS: Record<string, string> = {
-  "": "Plain Text",
-  plaintext: "Plain Text",
-  text: "Plain Text",
+  "": "Plain text",
+  plaintext: "Plain text",
+  text: "Plain text",
   markdown: "Markdown",
   javascript: "JavaScript",
   typescript: "TypeScript",
@@ -1270,13 +1270,13 @@ const TextEditorModal = ({
                 </button>
               </Tooltip>
               <Tooltip
-                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
               >
                 <button
                   type="button"
                   className="button"
                   onClick={toggleFullscreen}
-                  aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
                 >
                   {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
                 </button>
@@ -1301,8 +1301,8 @@ const TextEditorModal = ({
                   <Tooltip
                     title={
                       isCodeEditor
-                        ? "Switch to Rich Text"
-                        : "Switch to Code Editor"
+                        ? "Switch to rich text"
+                        : "Switch to code editor"
                     }
                   >
                     <button
@@ -1311,8 +1311,8 @@ const TextEditorModal = ({
                       onClick={handleToggleEditorMode}
                       aria-label={
                         isCodeEditor
-                          ? "Switch to Rich Text"
-                          : "Switch to Code Editor"
+                          ? "Switch to rich text"
+                          : "Switch to code editor"
                       }
                     >
                       {isCodeEditor ? <TextFieldsIcon /> : <CodeIcon />}

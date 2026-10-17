@@ -74,7 +74,7 @@ const SketchAIToolbarInner: React.FC = () => {
               startIcon={<AddPhotoAlternateIcon />}
               data-testid="sketch-action-generate-layer"
             >
-              Generate Layer
+              Generate layer
             </EditorButton>
           </span>
         </Tooltip>

@@ -36,7 +36,7 @@ const SourceToggleInternal: React.FC<SourceToggleProps> = ({
       aria-label="model source"
     >
       <ToggleOption value="onboarding" aria-label="get started">
-        Get Started
+        Get started
       </ToggleOption>
       <ToggleOption value="installed" aria-label="installed models">
         Installed

@@ -223,7 +223,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
             applyChange({ tags: uniqueTags }, true);
           }}
           suggestions={tagOptions}
-          placeholder="Type or select tags..."
+          placeholder="Type or select tags…"
           description="Select from suggestions or type custom tags (press Enter to add)"
         />
       </FormSection>

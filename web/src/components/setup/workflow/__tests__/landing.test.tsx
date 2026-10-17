@@ -60,7 +60,7 @@ describe("WorkflowLandingChecklist", () => {
     expect(screen.getByText("No problems found")).toBeInTheDocument();
     expect(screen.getByText("Output is ready (post)")).toBeInTheDocument();
     await userEvent.click(
-      screen.getByRole("button", { name: "Create Mini App" })
+      screen.getByRole("button", { name: "Create mini app" })
     );
     expect(onNextStep).toHaveBeenCalledTimes(1);
   });
@@ -73,7 +73,7 @@ describe("WorkflowLandingChecklist", () => {
     ],
     [
       "app" as const,
-      "Create Mini App",
+      "Create mini app",
       "Create and open a Mini App backed by this workflow."
     ],
     [
@@ -151,7 +151,7 @@ describe("WorkflowLandingChecklist", () => {
     expect(screen.getByText("Test run canceled")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Ask the agent" })).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Create Mini App" })
+      screen.getByRole("button", { name: "Create mini app" })
     ).toBeInTheDocument();
   });
 

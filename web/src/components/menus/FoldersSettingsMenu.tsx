@@ -194,27 +194,27 @@ const FoldersSettings = () => {
         css={getSharedSettingsStyles(theme)}
       >
         <div className="settings-main-content">
-          <Text size="giant">Folder Settings</Text>
+          <Text size="giant">Folder settings</Text>
 
           {canOpenSystemFolders && (
             <div className="settings-section">
               <Text size="big" id="system-folders">
-                System Folders
+                System folders
               </Text>
               <Text className="description" sx={{ mb: 2 }}>
                 Open important Nodetool directories in your file explorer.
               </Text>
               <FlexColumn gap={1.5}>
                 <FolderButton
-                  label="Nodetool Installation"
+                  label="NodeTool installation"
                   onClick={openInstallationPath}
                 />
                 <FolderButton
-                  label="Nodetool Logs"
+                  label="NodeTool logs"
                   onClick={openLogsPath}
                 />
                 <FolderButton
-                  label="Assets Storage"
+                  label="Assets storage"
                   onClick={openAssetsPath}
                 />
               </FlexColumn>
@@ -224,18 +224,18 @@ const FoldersSettings = () => {
           {canOpenFolders && (
             <div className="settings-section">
               <Text size="big" id="model-folders">
-                Model Folders
+                Model folders
               </Text>
               <Text className="description" sx={{ mb: 2 }}>
                 Open model cache directories in your file explorer.
               </Text>
               <FlexColumn gap={1.5}>
                 <FolderButton
-                  label="HuggingFace Models"
+                  label="HuggingFace models"
                   onClick={openHuggingfacePath}
                 />
                 <FolderButton
-                  label="Ollama Models"
+                  label="Ollama models"
                   onClick={openOllamaPath}
                 />
               </FlexColumn>

@@ -109,7 +109,7 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
     enabled: !readOnly,
     onUndo: useCallback(() => undo(refId), [undo, refId]),
     onRedo: useCallback(() => redo(refId), [redo, refId]),
-    menuHeading: "JS Script"
+    menuHeading: "JS script"
   });
 
   useEffect(() => {

@@ -375,13 +375,13 @@ describe("WorkflowEditorSurface workflow setup resume", () => {
     renderSurface();
 
     expect(
-      screen.getByRole("button", { name: "Create Mini App" })
+      screen.getByRole("button", { name: "Create mini app" })
     ).toBeInTheDocument();
     expect(
       screen.getByText("Create and open a Mini App backed by this workflow.")
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Create Mini App" }));
+    await user.click(screen.getByRole("button", { name: "Create mini app" }));
 
     expect(mockCreateApplication).toHaveBeenCalledWith({
       name: "W",

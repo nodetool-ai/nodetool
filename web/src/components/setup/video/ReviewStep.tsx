@@ -174,8 +174,8 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
     id: beat.id,
     header: `${index + 1}. ${formatSeconds(beat.duration_ms)}`,
     // The header is a number and a length, so the remove control names
-    // what it drops rather than reading "Remove 1. 3s".
-    removeLabel: `Remove beat ${index + 1}`,
+    // what it drops rather than reading "Delete 1. 3s".
+    removeLabel: `Delete beat ${index + 1}`,
     rows: [
       {
         id: `${beat.id}-prompt`,

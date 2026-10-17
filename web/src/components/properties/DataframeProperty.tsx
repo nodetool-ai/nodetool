@@ -255,7 +255,7 @@ const DataframeProperty = ({
         </ButtonGroup>
         {isHovered && (
           <div className="dataframe-action-buttons">
-            <ToolbarIconButton tooltip="Open Editor" icon={<OpenInFullIcon />} onClick={toggleExpand} size="small" />
+            <ToolbarIconButton tooltip="Open editor" icon={<OpenInFullIcon />} onClick={toggleExpand} size="small" />
           </div>
         )}
       </div>

@@ -133,7 +133,7 @@ describe("handleUpdate job_update — queue position and status message", () => 
     const runnerStore = makeRunnerStore({ job_id: "A", state: "connecting" });
     send({ job_id: "A", status: "queued" }, runnerStore);
     expect(writes(runnerStore).statusMessage).toBe(
-      "Worker is booting (may take a few seconds)..."
+      "Worker is booting (may take a few seconds)…"
     );
   });
 

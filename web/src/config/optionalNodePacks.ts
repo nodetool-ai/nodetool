@@ -47,20 +47,20 @@ export const OPTIONAL_NODE_PACKS: readonly OptionalNodePack[] = [
   },
   {
     id: "imaging",
-    label: "Image & Graphics",
+    label: "Image & graphics",
     description:
       "Pixel-level image processing — filters, effects, masks, warps — plus SVG and charts.",
     namespaces: ["lib.image", "lib.svg", "lib.charts"]
   },
   {
     id: "audio_dsp",
-    label: "Audio Processing",
+    label: "Audio processing",
     description: "Low-level audio analysis and signal-processing utilities.",
     namespaces: ["lib.audio"]
   },
   {
     id: "web",
-    label: "Web & Scraping",
+    label: "Web & scraping",
     description: "Headless browser and media download.",
     namespaces: ["lib.browser", "lib.video.download"]
   },
@@ -72,19 +72,19 @@ export const OPTIONAL_NODE_PACKS: readonly OptionalNodePack[] = [
   },
   {
     id: "integrations",
-    label: "Integrations & Messaging",
+    label: "Integrations & messaging",
     description: "Discord / Telegram message triggers.",
     namespaces: ["messaging"]
   },
   {
     id: "text_data",
-    label: "Text & Data Utilities",
+    label: "Text & data utilities",
     description: "Image grid slicing.",
     namespaces: ["lib.grid"]
   },
   {
     id: "developer",
-    label: "Developer Tools",
+    label: "Developer tools",
     description: "Run code, ComfyUI, and internal test nodes.",
     namespaces: ["nodetool.code", "lib.comfy", "nodetool.test"]
   }

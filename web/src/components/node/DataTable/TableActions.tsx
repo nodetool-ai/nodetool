@@ -488,7 +488,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       )}
 
       <ToolbarIconButton
-        title="Show Select column"
+        title="Show select column"
         onClick={handleToggleSelect}
         color={showSelect ? "primary" : "default"}
       >
@@ -497,7 +497,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
       {showRowNumbersButton && Array.isArray(data) && setShowRowNumbers && (
         <ToolbarIconButton
-          title="Show Row Numbers"
+          title="Show row numbers"
           onClick={handleToggleRowNumbers}
           color={showRowNumbers ? "primary" : "default"}
         >
@@ -505,7 +505,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         </ToolbarIconButton>
       )}
 
-      <ToolbarIconButton title="Copy table data to clipboard" onClick={handleCopyData}>
+      <ToolbarIconButton title="Copy table data" onClick={handleCopyData}>
         <ContentCopyIcon sx={{ fontSize: 12 }} />
       </ToolbarIconButton>
 

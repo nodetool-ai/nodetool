@@ -994,7 +994,7 @@ if (process.env.JEST_WORKER_ID) {
       test.skip(shouldSkip("collections-create.png"), "Already captured");
       await gotoPage(page, "/collections");
       await page
-        .getByRole("button", { name: "Create Collection" })
+        .getByRole("button", { name: "Create collection" })
         .first()
         .click();
       const name = page.getByLabel(/Collection Name/i).first();

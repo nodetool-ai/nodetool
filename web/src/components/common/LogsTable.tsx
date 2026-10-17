@@ -350,7 +350,7 @@ const RowItem = memo(({
         <div className="cell actions" onClick={handleActionsClick}>
           <CopyButton
             value={row.content}
-            tooltip="Copy log to clipboard"
+            tooltip="Copy log"
             tooltipPlacement="top"
             className="copy-btn"
             sx={{ padding: getSpacingPx(SPACING.micro) }}

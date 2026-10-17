@@ -167,12 +167,12 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
       return [];
     }
     const commands: ContextCommand[] = [
-      { id: "assemble", label: "Assemble Timeline", run: handleAssemble }
+      { id: "assemble", label: "Assemble timeline", run: handleAssemble }
     ];
     if (desktopAssistant) {
       commands.push({
         id: "assistant",
-        label: assistantOpen ? "Hide Assistant" : "Show Assistant",
+        label: assistantOpen ? "Hide assistant" : "Show assistant",
         run: toggleAssistant
       });
     }

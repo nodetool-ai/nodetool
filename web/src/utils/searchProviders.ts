@@ -47,7 +47,7 @@ export const SEARCH_PROVIDER_CONFIGS: Record<SerpProviderId, SearchProviderConfi
       "Fast and reliable search API with Google, Bing, and other engines.",
     credentialFields: ["SERPAPI_API_KEY"],
     getApiKeyUrl: "https://serpapi.com/manage-api-key",
-    getApiKeyLabel: "Get SerpAPI Key"
+    getApiKeyLabel: "Get SerpAPI key"
   },
   dataforseo: {
     id: "dataforseo",
@@ -55,7 +55,7 @@ export const SEARCH_PROVIDER_CONFIGS: Record<SerpProviderId, SearchProviderConfi
     description: "Professional SEO and search intelligence platform.",
     credentialFields: ["DATA_FOR_SEO_LOGIN", "DATA_FOR_SEO_PASSWORD"],
     getApiKeyUrl: "https://app.dataforseo.com/register",
-    getApiKeyLabel: "Get DataForSEO Credentials"
+    getApiKeyLabel: "Get DataForSEO credentials"
   },
   apify: {
     id: "apify",
@@ -63,25 +63,25 @@ export const SEARCH_PROVIDER_CONFIGS: Record<SerpProviderId, SearchProviderConfi
     description: "Reliable Google search scraping via Apify actors.",
     credentialFields: ["APIFY_API_TOKEN"],
     getApiKeyUrl: "https://console.apify.com/account/integrations",
-    getApiKeyLabel: "Get Apify API Token"
+    getApiKeyLabel: "Get Apify API token"
   },
   openai: {
     id: "openai",
-    label: "OpenAI Web Search",
+    label: "OpenAI web search",
     description:
       "Reuses your OpenAI key. Answers in prose and cites the pages it read.",
     credentialFields: ["OPENAI_API_KEY"],
     getApiKeyUrl: "https://platform.openai.com/api-keys",
-    getApiKeyLabel: "Get OpenAI API Key"
+    getApiKeyLabel: "Get OpenAI API key"
   },
   gemini: {
     id: "gemini",
-    label: "Gemini Grounded Search",
+    label: "Gemini grounded search",
     description:
       "Reuses your Gemini key. Answers in prose and cites the pages it read.",
     credentialFields: ["GEMINI_API_KEY"],
     getApiKeyUrl: "https://aistudio.google.com/app/apikey",
-    getApiKeyLabel: "Get Gemini API Key"
+    getApiKeyLabel: "Get Gemini API key"
   }
 };
 

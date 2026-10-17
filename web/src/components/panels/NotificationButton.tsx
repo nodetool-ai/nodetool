@@ -181,7 +181,7 @@ const NotificationButton: React.FC = React.memo(() => {
                   <CopyButton
                     value={notification.content}
                     className="copy-button"
-                    tooltip="Copy to clipboard"
+                    tooltip="Copy notification"
                   />
                   {notification.type === "error" ? (
                     <ReportBugButton

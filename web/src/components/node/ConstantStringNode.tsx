@@ -382,7 +382,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </HandleTooltip>
         </div>
         <div className="header-actions nodrag nopan">
-          <ToolbarIconButton title="Open Editor" size="small" onClick={toggleExpand}>
+          <ToolbarIconButton title="Open editor" size="small" onClick={toggleExpand}>
             <OpenInFullIcon />
           </ToolbarIconButton>
           <CopyButton value={localValue} buttonSize="small" />

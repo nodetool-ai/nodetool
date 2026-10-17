@@ -181,7 +181,7 @@ const CodeProperty = ({
         {showExpandEditor && (
           <ToolbarIconButton
             className="inspector-supplemental-action"
-            tooltip="Open Editor"
+            tooltip="Open editor"
             icon={<OpenInFullIcon />}
             onClick={toggleExpand}
             size="small"
@@ -289,7 +289,7 @@ const CodeProperty = ({
           <div className="code-action-buttons">
             {showExpandEditor && (
               <ToolbarIconButton
-                tooltip="Open Editor"
+                tooltip="Open editor"
                 icon={<OpenInFullIcon />}
                 onClick={toggleExpand}
                 size="small"

@@ -343,12 +343,12 @@ const AssetItemContextMenu = () => {
             IconComponent={<ContentCopyIcon />}
             tooltip={
               selectedAssets[0]?.content_type?.startsWith("image/")
-                ? "Copy image to clipboard"
+                ? "Copy image"
                 : selectedAssets[0]?.content_type?.startsWith("video/")
-                ? "Copy video URL and metadata to clipboard"
+                ? "Copy video URL and metadata"
                 : selectedAssets[0]?.content_type?.startsWith("audio/")
-                ? "Copy audio URL and metadata to clipboard"
-                : "Copy content to clipboard"
+                ? "Copy audio URL and metadata"
+                : "Copy content"
             }
           />
         )}
