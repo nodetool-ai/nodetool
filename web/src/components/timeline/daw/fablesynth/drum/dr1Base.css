@@ -1,0 +1,830 @@
+/* FableSynth's shared hardware look (fablesynth/index.css) scoped under .fablesynth for DR-1. Generated from index.css: every selector is prefixed, ids become classes, and the WT-1-only sections (power overlay, matrix, keyboard, note sequencer, wavetable editor, agent) are left out. */
+/* ============================================================
+   FABLESYNTH WT-1 — machined dark hardware aesthetic
+   ============================================================ */
+
+.fablesynth {
+  --bg: #06070b;
+  --panel-hi: #181c26;
+  --panel-lo: #0d1017;
+  --line: rgba(255, 255, 255, 0.07);
+  --text: #dfe6f3;
+  --text-dim: #6b768c;
+  /* Lighter than --text-dim, reserved for tiny hint/legend copy that must
+     still clear ~4.5:1 contrast on the panel background at 7-9px sizes. */
+  --text-hint: #93a0b8;
+  --ac-a: #4de8ff;
+  --ac-b: #ffa14d;
+  --ac-f: #b18cff;
+  --ac-n: #9fb4d8;
+  --ac: var(--ac-n);
+  /* Navigation: page tabs, back, view toggles, and browser exits. */
+  --nav: var(--ac-a);
+  --font-disp: 'Michroma', 'Avenir Next', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+}
+
+.fablesynth * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+
+.fablesynth {
+  background:
+    radial-gradient(1200px 700px at 50% -10%, #11141d 0%, var(--bg) 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* film grain */
+
+
+.fablesynth ::selection { background: rgba(77, 232, 255, 0.25); }
+
+.fablesynth [data-accent='a'] { --ac: var(--ac-a); }
+.fablesynth [data-accent='b'] { --ac: var(--ac-b); }
+.fablesynth [data-accent='f'] { --ac: var(--ac-f); }
+.fablesynth [data-accent='n'] { --ac: var(--ac-n); }
+
+/* ============ rack ============ */
+.fablesynth .rack {
+  max-width: 1580px;
+  min-width: 1420px;
+  margin: 0 auto;
+  padding: 12px 18px 14px;
+  animation: rack-in 0.8s ease 0.1s both;
+}
+@keyframes rack-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ============ top bar ============ */
+.fablesynth .top-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 16px;
+  margin-bottom: 9px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 26px rgba(0, 0, 0, 0.45);
+}
+.fablesynth .brand {
+  font-family: var(--font-disp);
+  font-size: 17px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+.fablesynth .brand em { font-style: normal; color: var(--ac-a); }
+.fablesynth .brand small {
+  margin-left: 10px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.3em;
+}
+
+.fablesynth .preset-bar { display: flex; align-items: center; gap: 6px; }
+.fablesynth .pb-btn {
+  height: 28px;
+  min-width: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #11141c;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.fablesynth .pb-btn:hover { border-color: var(--ac-a); color: var(--ac-a); }
+.fablesynth .pb-save { letter-spacing: 0.12em; font-size: 9px; }
+.fablesynth .preset-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 28px;
+  min-width: 190px;
+  padding: 0 26px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #11141c url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6'%3E%3Cpath d='M0 0h8L4 6z' fill='%236b768c'/%3E%3C/svg%3E") no-repeat right 10px center;
+  color: var(--ac-a);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.fablesynth .preset-select:focus { outline: 1px solid var(--ac-a); }
+
+.fablesynth .pb-name-input {
+  height: 28px;
+  min-width: 190px;
+  padding: 0 12px;
+  border: 1px solid var(--ac-a);
+  border-radius: 6px;
+  background: #0a0d13;
+  color: var(--ac-a);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  outline: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ac-a) 35%, transparent);
+}
+.fablesynth .pb-name-input::placeholder { color: var(--text-dim); text-transform: none; letter-spacing: 0.06em; }
+
+.fablesynth .pb-dirty {
+  width: 6px;
+  height: 6px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--ac-a);
+  box-shadow: 0 0 6px var(--ac-a);
+  flex: none;
+}
+
+.fablesynth .hud { display: flex; gap: 10px; margin-left: auto; }
+.fablesynth .hud-cell {
+  position: relative;
+  width: 168px;
+  height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #07090e;
+  overflow: hidden;
+}
+.fablesynth .hud-cell canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fablesynth .hud-cell span {
+  position: absolute;
+  top: 3px;
+  right: 7px;
+  font-size: 7px;
+  letter-spacing: 0.26em;
+  color: var(--text-dim);
+}
+
+.fablesynth .top-clock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-right: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.fablesynth .status { font-size: 9px; color: var(--text-dim); letter-spacing: 0.18em; transition: opacity 0.2s; }
+/* Unpowered + no MIDI: this isn't an error state, just "nothing plugged in
+   yet" — dim it further so it doesn't read as a fault indicator. */
+.fablesynth .status.dim { opacity: 0.45; }
+.fablesynth .status-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+.fablesynth .status-row .led,
+.fablesynth .led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #232936;
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.7);
+}
+.fablesynth .led.on { background: var(--ac-a); box-shadow: 0 0 8px var(--ac-a); }
+.fablesynth .voice-count { color: var(--ac-b); min-width: 12px; text-align: center; }
+
+/* WT-1 header: one compact row. Knobs sit inline at control height, with the
+   dial on the left and the label and hover value on the right. */
+.fablesynth .wt-top-bar { padding-block: 6px; }
+.fablesynth .wt-top-bar .hud-cell { height: 30px; }
+.fablesynth .wt-top-bar .status-row { margin: 1px 0; }
+.fablesynth .wt-top-bar .ns-transport { margin-right: 10px; }
+.fablesynth .wt-top-bar .knob {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: 1fr 1fr;
+  column-gap: 6px;
+  align-items: center;
+}
+.fablesynth .wt-top-bar .knob svg { grid-row: 1 / 3; width: 30px; height: 30px; }
+.fablesynth .wt-top-bar .k-label { margin-top: 0; align-self: end; }
+.fablesynth .wt-top-bar .k-value { align-self: start; text-align: left; }
+
+/* ============ panel grid ============ */
+/* Standalone WT-1 pages (WtDeviceBody). The bare .panels template below stays
+   for SQ-4's hosted WT-1 view. Every page keeps the EDIT page's height. */
+.fablesynth .wt-body { --wt-page-h: 720px; }
+.fablesynth .wt-body .device-page { min-height: var(--wt-page-h); }
+.fablesynth .panels[data-page] { align-content: start; }
+.fablesynth .panels[data-page='edit'] {
+  grid-template-areas:
+    'oscA oscA oscA oscA oscA oscB oscB oscB oscB oscB util util'
+    'filter filter filter filter env1 env1 env2 env2 lfos lfos lfos lfos'
+    'matrix matrix matrix matrix matrix matrix matrix matrix matrix matrix matrix matrix';
+}
+.fablesynth .panels[data-page='fx'] {
+  grid-template-areas:
+    'eq eq eq eq ott ott ott ott comp comp comp comp'
+    'drive drive drive chorus chorus chorus echo echo echo reverb reverb reverb';
+  align-content: start;
+}
+.fablesynth .panels[data-page='lab'] { grid-template-areas: 'lab'; grid-template-columns: minmax(0, 1fr); align-content: start; }
+.fablesynth .panels[data-page='seq'] { grid-template-areas: 'seq'; grid-template-columns: minmax(0, 1fr); align-content: start; }
+
+.fablesynth .panels {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-areas:
+    'oscA oscA oscA oscA oscA oscB oscB oscB oscB oscB util util'
+    'filter filter filter env1 env1 env2 env2 lfos lfos lfos lfos lfos'
+    'matrix matrix matrix eq eq eq ott ott ott comp comp comp'
+    'drive drive drive chorus chorus chorus echo echo echo reverb reverb reverb'
+    'lab lab lab lab lab lab lab lab lab lab lab lab'
+    'seq seq seq seq seq seq seq seq seq seq seq seq';
+  gap: 9px;
+}
+
+.fablesynth .panel {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 26px rgba(0, 0, 0, 0.4);
+  padding: 8px 12px 10px;
+  min-width: 0;
+  transition: opacity 0.25s;
+}
+.fablesynth .panel.off .osc-body,
+.fablesynth .panel.off .knob-row,
+.fablesynth .panel.off canvas { opacity: 0.4; filter: saturate(0.4); }
+
+.fablesynth .panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.fablesynth .panel-head h2 {
+  margin: 0;
+  font-family: var(--font-disp);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  color: var(--text);
+}
+.fablesynth .panel[data-accent] .panel-head h2 { color: var(--ac); text-shadow: 0 0 12px color-mix(in srgb, var(--ac) 45%, transparent); }
+.fablesynth .ph-stepper { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.fablesynth .wt-edit {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #11141c;
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+.fablesynth .wt-edit:hover { color: var(--ac); border-color: var(--ac); }
+
+/* power LED button */
+.fablesynth .power-btn {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: radial-gradient(circle at 40% 35%, #2a3140, #12151d);
+  cursor: pointer;
+  padding: 0;
+  flex: none;
+  transition: box-shadow 0.2s, background 0.2s;
+}
+.fablesynth .power-btn.on {
+  background: radial-gradient(circle at 40% 35%, color-mix(in srgb, var(--ac) 90%, white), color-mix(in srgb, var(--ac) 55%, black));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ac) 70%, transparent);
+  border-color: color-mix(in srgb, var(--ac) 60%, transparent);
+}
+
+/* ============ knobs ============ */
+.fablesynth .knob {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  cursor: ns-resize;
+  outline: none;
+  touch-action: none;
+}
+.fablesynth .knob:focus-visible svg { outline: 1px solid var(--ac); outline-offset: 2px; border-radius: 50%; }
+.fablesynth .knob svg { display: block; overflow: visible; }
+.fablesynth .knob-lg svg { width: 74px; height: 74px; }
+.fablesynth .knob-md svg { width: 56px; height: 56px; }
+.fablesynth .knob-sm svg { width: 44px; height: 44px; }
+.fablesynth .knob-xs svg { width: 34px; height: 34px; }
+
+.fablesynth .k-body {
+  fill: #161b25;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 1.5;
+}
+.fablesynth .knob.dragging .k-body,
+.fablesynth .knob:hover .k-body { fill: #1b2130; }
+.fablesynth .k-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.09);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+.fablesynth .k-arc {
+  fill: none;
+  stroke: var(--ac);
+  stroke-width: 5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--ac) 70%, transparent));
+}
+.fablesynth .k-ptr {
+  stroke: #e8edf7;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.fablesynth .k-label {
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+.fablesynth .k-value {
+  font-size: 9px;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity 0.15s;
+  height: 11px;
+  line-height: 11px;
+}
+.fablesynth .knob:hover .k-value,
+.fablesynth .knob.dragging .k-value,
+.fablesynth .knob:focus .k-value,
+.fablesynth .knob.ring-active .k-value { opacity: 1; }
+.fablesynth .knob-xs .k-label { display: none; }
+
+/* ============ steppers ============ */
+.fablesynth .stepper { display: inline-flex; align-items: center; gap: 4px; }
+.fablesynth .st-label { font-size: 8px; color: var(--text-dim); letter-spacing: 0.14em; margin-right: 2px; }
+.fablesynth .st-btn {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #11141c;
+  color: var(--text-dim);
+  font-size: 9px;
+  cursor: pointer;
+  line-height: 1;
+}
+.fablesynth .st-btn:hover { color: var(--ac); border-color: var(--ac); }
+.fablesynth .st-value {
+  min-width: 52px;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ac);
+  background: #0a0d13;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+
+/* ============ oscillators ============ */
+.fablesynth .osc-body {
+  display: grid;
+  grid-template-columns: 1fr 36px;
+  grid-template-rows: 112px auto;
+  gap: 8px;
+}
+.fablesynth .wt3d {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 30%),
+    #07090e;
+}
+.fablesynth .pos-holder { grid-column: 2; grid-row: 1; }
+.fablesynth .osc-knobs {
+  grid-column: 1 / 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+/* unison stepper lives in the knob row: stack label over a compact ◂ N ▸ so it
+   reads like the neighboring knobs instead of blowing out the flex row width. */
+.fablesynth .osc-knobs .stepper {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  justify-items: center;
+  align-items: center;
+  gap: 2px 3px;
+}
+.fablesynth .osc-knobs .st-label { grid-column: 1 / -1; margin: 0; }
+.fablesynth .osc-knobs .st-value { min-width: 24px; padding: 3px 4px; }
+.fablesynth .osc-knobs .st-btn { width: 16px; height: 16px; }
+
+/* vertical slider */
+.fablesynth .vslider {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: ns-resize;
+  outline: none;
+  touch-action: none;
+}
+.fablesynth .vslider:focus-visible .vs-track { outline: 1px solid var(--ac); outline-offset: 2px; }
+.fablesynth .vs-track {
+  position: relative;
+  flex: 1;
+  width: 9px;
+  border-radius: 5px;
+  background: #0a0d13;
+  border: 1px solid var(--line);
+}
+.fablesynth .vs-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 0 0 5px 5px;
+  background: linear-gradient(180deg, var(--ac), color-mix(in srgb, var(--ac) 35%, transparent));
+  opacity: 0.55;
+}
+.fablesynth .vs-handle {
+  position: absolute;
+  left: 50%;
+  width: 22px;
+  height: 9px;
+  transform: translate(-50%, 50%);
+  border-radius: 3px;
+  background: linear-gradient(180deg, #2b3344, #161b25);
+  border: 1px solid color-mix(in srgb, var(--ac) 55%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ac) 35%, transparent);
+}
+.fablesynth .vs-ghost {
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  height: 2px;
+  transform: translateY(50%);
+  background: var(--ac);
+  box-shadow: 0 0 6px var(--ac);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.fablesynth .vs-label { font-size: 8px; letter-spacing: 0.14em; color: var(--text-dim); margin-top: 5px; white-space: nowrap; }
+
+/* ============ util (sub/noise) ============ */
+.fablesynth .panel-util { display: flex; flex-direction: column; gap: 12px; container-type: inline-size; }
+/* Header stays on one row when it fits; the shape stepper drops below otherwise. */
+.fablesynth .panel-util .panel-head { flex-wrap: wrap; row-gap: 4px; }
+.fablesynth .panel-util .ph-stepper { margin-left: auto; min-width: 0; max-width: 100%; }
+.fablesynth .panel-util .st-value { min-width: 0; padding: 3px 5px; }
+.fablesynth .util-block { flex: 1; }
+.fablesynth .util-knobs { display: flex; gap: 6px; justify-content: center; }
+
+/* ============ filter / env / lfo ============ */
+.fablesynth .filter-curve,
+.fablesynth .env-curve {
+  display: block;
+  width: 100%;
+  height: 62px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #07090e;
+  margin-bottom: 8px;
+}
+.fablesynth .knob-row {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+/* one filter at a time keeps the signal row dense without hiding either route */
+.fablesynth .filter-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #0a0d13;
+}
+.fablesynth .filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-dim);
+  font: 600 8px/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  cursor: pointer;
+}
+.fablesynth .filter-tab:hover { color: var(--text); }
+.fablesynth .filter-tab[aria-selected='true'] {
+  background: color-mix(in srgb, var(--ac-f) 13%, #11141c);
+  color: var(--ac-f);
+}
+.fablesynth .filter-tab:focus-visible { outline: 1px solid var(--ac-f); outline-offset: 2px; }
+.fablesynth .filter-tab-led {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #303645;
+}
+.fablesynth .filter-tab-led.on { background: var(--ac-f); box-shadow: 0 0 5px var(--ac-f); }
+.fablesynth .filter-active-power { display: inline-flex; }
+.fablesynth .filter-type { display: inline-flex; }
+.fablesynth .panel-filter .filter-type .st-value { min-width: 46px; }
+.fablesynth .panel-filter > .panel-head,
+.fablesynth .panel-env > .panel-head,
+.fablesynth .lfo-block > .panel-head {
+  height: 26px;
+  margin-bottom: 8px;
+}
+.fablesynth .filter-block {
+  transition: opacity 0.25s;
+}
+.fablesynth .filter-block.off .knob-row { opacity: 0.4; filter: saturate(0.4); }
+.fablesynth .panel-lfos { display: flex; gap: 14px; }
+.fablesynth .lfo-pick { display: inline-flex; gap: 2px; }
+.fablesynth .lfo-pick-btn {
+  width: 15px; height: 16px; padding: 0;
+  border: 1px solid var(--line); border-radius: 3px;
+  background: #0a0d13; color: var(--text-dim);
+  font: 600 8px/1 var(--font-mono); cursor: pointer;
+}
+.fablesynth .lfo-pick-btn[aria-selected='true'] { color: var(--ac); border-color: color-mix(in srgb, var(--ac) 45%, var(--line)); }
+.fablesynth .env-tabs { margin-left: auto; }
+.fablesynth .env-tabs .filter-tab { padding: 0 7px; }
+.fablesynth .lfo-block { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.fablesynth .lfo-curve {
+  display: block;
+  width: 100%;
+  height: 62px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #07090e;
+  margin-bottom: 8px;
+}
+.fablesynth .lfo-block .knob-row { justify-content: center; }
+
+/* LFO sync / retrig toggles — small lit pills */
+.fablesynth .lfo-toggles {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+.fablesynth .lfo-tg {
+  flex: none;
+  width: 26px;
+  min-width: 0;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #11141c;
+  color: var(--text-dim);
+  font-family: var(--font-disp);
+  font-size: 6px;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.18s, border-color 0.18s, box-shadow 0.18s, background 0.18s;
+}
+.fablesynth .lfo-block .panel-head { gap: 5px; }
+.fablesynth .lfo-block .panel-head h2 { white-space: nowrap; }
+.fablesynth .lfo-block .panel-head .ph-stepper { margin-left: 0; }
+.fablesynth .lfo-block .panel-head .stepper { gap: 2px; }
+.fablesynth .lfo-block .panel-head .st-btn { width: 14px; height: 16px; }
+.fablesynth .lfo-block .panel-head .st-value { min-width: 36px; padding-inline: 2px; font-size: 8px; }
+.fablesynth .lfo-tg:hover { color: var(--ac); border-color: color-mix(in srgb, var(--ac) 55%, var(--line)); }
+.fablesynth .lfo-tg.on {
+  color: var(--ac);
+  border-color: color-mix(in srgb, var(--ac) 65%, transparent);
+  background: color-mix(in srgb, var(--ac) 12%, #11141c);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ac) 35%, transparent);
+}
+
+/* knob row that swaps a knob for the division stepper in the first slot */
+.fablesynth .lfo-knobs {
+  align-items: center;
+  gap: 4px;
+}
+.fablesynth .lfo-knobs > * { min-width: 0; }
+.fablesynth .lfo-div {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.fablesynth .lfo-div .stepper { min-width: 0; }
+.fablesynth .lfo-div .st-value {
+  min-width: 0;
+  flex: 1 1 0;
+  padding: 3px 2px;
+}
+.fablesynth .lfo-div .st-btn { flex: none; }
+
+/* ============ fx rack ============ */
+.fablesynth .panel-fx {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.fablesynth .fx-module {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  /* Compact utility effects below the visual processing row. */
+  padding: 8px 5px 4px;
+  background: rgba(0, 0, 0, 0.18);
+  min-width: 0;
+}
+.fablesynth .fx-module .panel-head { margin-bottom: 4px; }
+.fablesynth .fx-module .knob-row { display: flex; justify-content: space-evenly; gap: 3px; }
+.fablesynth .auto-gain-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 44px;
+  height: 58px;
+  color: var(--text-dim);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+}
+.fablesynth .fx-group.on .auto-gain-indicator { color: var(--ac-n); }
+
+/* ============ phone layout ============
+   The instrument is dense by design, but a phone still needs one readable
+   signal path at a time. Desktop grids collapse into a single rack column;
+   only editors with an intrinsically wide timeline keep a local scroller. */
+@media (max-width: 700px) {
+  .fablesynth,
+.fablesynth {
+    width: 100%;
+    min-width: 0;
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
+  .fablesynth .root { width: 100%; min-width: 0; }
+
+  .fablesynth .power-overlay {
+    padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  .fablesynth .po-inner { width: min(100%, 350px); }
+  .fablesynth .po-brand {
+    font-size: clamp(23px, 8vw, 34px);
+    letter-spacing: 0.045em;
+    white-space: nowrap;
+  }
+  .fablesynth .po-model,
+.fablesynth .po-hint { letter-spacing: 0.14em; line-height: 1.5; }
+  .fablesynth .po-error { max-width: 100%; }
+
+  .fablesynth .rack {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  }
+
+  .fablesynth .top-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 9px;
+  }
+  .fablesynth .brand {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 13px;
+    letter-spacing: 0.075em;
+  }
+  .fablesynth .brand small { margin-left: 6px; font-size: 8px; letter-spacing: 0.2em; }
+  .fablesynth .preset-bar {
+    order: 3;
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+  .fablesynth .preset-bar .preset-select,
+.fablesynth .preset-bar .pb-name-input {
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+  }
+  .fablesynth .pb-btn { min-width: 36px; height: 36px; }
+  .fablesynth .hud { display: none; }
+  .fablesynth .top-clock { margin-left: 0; padding-inline: 7px; }
+  .fablesynth .master-knob { margin-left: auto; }
+
+  .fablesynth .panels {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'oscA'
+      'oscB'
+      'util'
+      'filter'
+      'env1'
+      'env2'
+      'lfos'
+      'matrix'
+      'eq'
+      'ott'
+      'comp'
+      'drive'
+      'chorus'
+      'echo'
+      'reverb'
+      'lab'
+      'seq';
+    gap: 8px;
+  }
+  .fablesynth .panel { border-radius: 10px; padding: 8px; }
+  .fablesynth .panel-head { min-height: 28px; gap: 6px; }
+  .fablesynth .panel-head h2 { font-size: 9px; letter-spacing: 0.18em; }
+
+  .fablesynth .osc-body {
+    grid-template-columns: minmax(0, 1fr) 30px;
+    grid-template-rows: minmax(120px, 32vw) auto;
+  }
+  .fablesynth .osc-knobs {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px 2px;
+    justify-items: center;
+  }
+  .fablesynth .osc-knobs > .knob,
+.fablesynth .osc-knobs > .stepper { min-width: 0; justify-self: center; }
+  .fablesynth .osc-knobs .knob-sm svg { width: 38px; height: 38px; }
+  .fablesynth .osc-knobs .knob-sm .k-label { font-size: 7px; letter-spacing: 0.08em; }
+  .fablesynth .panel-lfos { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .fablesynth .panel-matrix {
+    height: auto;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+  .fablesynth .matrix-rows { height: auto; max-height: 220px; }
+  .fablesynth .mx-row { min-width: 0; }
+  .fablesynth .panel-fx { min-height: 0; }
+
+  .fablesynth .ns-head { flex-wrap: wrap; gap: 6px; }
+  .fablesynth .ns-hint { order: 10; flex: 1 1 100%; margin-left: 0; white-space: normal; line-height: 1.35; }
+
+  .fablesynth .kb-bar { flex-direction: column; gap: 8px; }
+  .fablesynth .kb-side {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 7px 9px;
+  }
+  .fablesynth .keyboard { width: 100%; min-height: 112px; height: 112px; }
+}
+
+@media (pointer: coarse) and (max-width: 700px) {
+  .fablesynth .power-btn { width: 24px; height: 24px; }
+  .fablesynth .st-btn { width: 30px; height: 30px; }
+  .fablesynth .filter-tab { min-height: 32px; }
+  .fablesynth .lfo-tg { width: 38px; height: 30px; }
+  .fablesynth select { min-height: 36px; }
+}
+
+/* Live automation: ring from the stored value to the automated value, plus a dot. */
+.fablesynth .k-auto { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; pointer-events: none; filter: drop-shadow(0 0 3px currentColor); }
+.fablesynth .k-auto-dot { fill: currentColor; stroke: #0b0e14; stroke-width: 1.4; pointer-events: none; filter: drop-shadow(0 0 3px currentColor); }
+
+/* Standalone WT-1 pages stack to one column on phones. */
+@media (max-width: 700px) {
+  .fablesynth .panels[data-page='edit'] { grid-template-areas: 'oscA' 'oscB' 'util' 'filter' 'env1' 'env2' 'lfos' 'matrix'; }
+  .fablesynth .panels[data-page='fx'] { grid-template-areas: 'eq' 'ott' 'comp' 'drive' 'chorus' 'echo' 'reverb'; }
+  .fablesynth .wt-body .device-page { min-height: 0; }
+}
+
+/* ============ navigation ============
+   Controls that move between views share the app accent (--nav). */
+.fablesynth .nav-btn,
+.fablesynth .ns-btn.nav-btn {
+  border-color: color-mix(in srgb, var(--nav) 40%, var(--line));
+  color: var(--nav);
+}
+.fablesynth .nav-btn:hover,
+.fablesynth .ns-btn.nav-btn:hover {
+  border-color: var(--nav);
+  color: var(--nav);
+  background: color-mix(in srgb, var(--nav) 14%, #11141c);
+}

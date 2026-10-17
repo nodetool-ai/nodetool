@@ -1,6 +1,6 @@
 import { WavetableView } from '../../components/displays/WavetableView';
 import { pad } from '../params';
-import { drumEngine, useDrumStore } from '../store';
+import { useDrumStore } from '../dr1Store';
 import { DrumKnob } from './DrumKnob';
 import { DrumStepper } from './DrumStepper';
 import { PosSlider } from './PosSlider';
@@ -16,10 +16,9 @@ export function OscSection({ osc }: OscSectionProps) {
   const tableValue = useDrumStore((s) => s.params[tableId]);
   const pos = useDrumStore((s) => s.params[posId]);
   const modPos = useDrumStore((s) => osc === 'oscA' ? s.modPosA : s.modPosB);
-  const powered = useDrumStore((s) => s.powered);
   const accentKey = osc === 'oscA' ? 'a' : 'b';
   const accent = osc === 'oscA' ? '#4de8ff' : '#ffa14d';
-  const table = (powered ? drumEngine.tables : null)?.[tableValue | 0] ?? null;
+  const table = useDrumStore((s) => s.assets?.tables[tableValue | 0] ?? null);
 
   return (
     <section className="panel dr-osc-section" data-accent={accentKey}>

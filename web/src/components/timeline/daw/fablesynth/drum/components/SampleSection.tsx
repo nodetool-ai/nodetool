@@ -1,14 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { setupCanvas } from '../../components/displays/canvas';
 import { pad } from '../params';
-import { drumEngine, useDrumStore } from '../store';
+import { useDrumStore } from '../dr1Store';
 import { DrumKnob } from './DrumKnob';
 import { DrumStepper } from './DrumStepper';
 import { PosSlider } from './PosSlider';
 
 function SampleView({ sampleIndex, playhead }: { sampleIndex: number; playhead: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const sample = drumEngine.samples[sampleIndex];
+  const sample = useDrumStore((s) => s.assets?.samples[sampleIndex]);
 
   useEffect(() => {
     const canvas = ref.current;

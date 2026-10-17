@@ -5,10 +5,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BAND_HZ, EQ_REFERENCES, alignToReference, referenceById, referenceDb } from '../../engine/autoEq';
 import { useLiveSpectrum } from '../../components/panels/useLiveSpectrum';
-import type { DrumEngine } from '../engine/drum-synth';
 import { KitCapture, fitKitMix } from '../kitMix';
 import { pad, PAD_COUNT } from '../params';
-import { useDrumStore } from '../store';
+import { useDrumStore } from '../dr1Store';
 
 const LEARN_SECONDS = 8, TIMEOUT_SECONDS = 30;
 
@@ -17,9 +16,11 @@ const X = (f: number) => L + Math.log(f / 25) / Math.log(20000 / 25) * (R - L);
 const Y = (d: number) => T + (18 - Math.max(-30, Math.min(18, d))) / 48 * (B - T);
 const line = (ys: number[]) => ys.map((d, i) => `${i ? 'L' : 'M'}${X(BAND_HZ[i]).toFixed(1)} ${Y(d).toFixed(1)}`).join('');
 
-export function KitMixPanel({ engine }: { engine: DrumEngine }) {
+export function KitMixPanel() {
+  const device = useDrumStore(s => s.device);
+  const analyser = useDrumStore(s => s.analyser);
   const params = useDrumStore(s => s.params);
-  const setParam = useDrumStore(s => s.setParam);
+  const setParams = useDrumStore(s => s.setParams);
   const padNames = useDrumStore(s => s.padNames);
   const [reference, setReference] = useState('drums');
   const [amount, setAmount] = useState(0.8);
@@ -34,9 +35,10 @@ export function KitMixPanel({ engine }: { engine: DrumEngine }) {
 
   const learn = () => {
     if (stopRef.current) { stopRef.current(); return; }
-    const capture = new KitCapture(engine.ctx?.sampleRate ?? 48000, PAD_COUNT);
+    if (!device) return;
+    const capture = new KitCapture(device.sampleRate, PAD_COUNT);
     const lvl = Array.from({ length: PAD_COUNT }, (_, i) => params[pad(i, 'lvl')]);
-    const detach = engine.subscribePadAudio(m => {
+    const detach = device.subscribePadAudio(m => {
       capture.add(m.pad, m.data, m.frames);
       setProgress(Math.min(1, capture.seconds / LEARN_SECONDS));
       if (capture.seconds >= LEARN_SECONDS) stop();
@@ -55,11 +57,11 @@ export function KitMixPanel({ engine }: { engine: DrumEngine }) {
   const apply = () => {
     if (!fit || !learned) return;
     if (!undo) setUndo(Array.from({ length: PAD_COUNT }, (_, i) => params[pad(i, 'lvl')]));
-    learned.lvl.forEach((v, i) => setParam(pad(i, 'lvl'), fit.levels[i] ?? v));
+    setParams(Object.fromEntries(learned.lvl.map((v, i) => [pad(i, 'lvl'), fit.levels[i] ?? v])));
   };
   const revert = () => {
     if (!undo) return;
-    undo.forEach((v, i) => setParam(pad(i, 'lvl'), v));
+    setParams(Object.fromEntries(undo.map((v, i) => [pad(i, 'lvl'), v])));
     setUndo(null);
   };
 
@@ -68,7 +70,7 @@ export function KitMixPanel({ engine }: { engine: DrumEngine }) {
     : learned ? 'NEEDS TWO SOUNDING PADS' : 'PLAY THE KIT, THEN LEARN';
   const target = fit?.target ?? BAND_HZ.map(f => referenceDb(ref, f));
   // The kit as it plays now, aligned to the reference like the learned curves.
-  const live = useLiveSpectrum(engine.scopeAnalyser ?? null, (levels) => {
+  const live = useLiveSpectrum(analyser, (levels) => {
     const { offset } = alignToReference(levels, ref);
     const pts = levels.map((l, i) => `${i ? 'L' : 'M'}${X(BAND_HZ[i]).toFixed(1)} ${Y(l - offset).toFixed(1)}`).join('');
     return `${pts}L${X(BAND_HZ[BAND_HZ.length - 1]).toFixed(1)} ${B}L${X(BAND_HZ[0]).toFixed(1)} ${B}Z`;
@@ -88,7 +90,7 @@ export function KitMixPanel({ engine }: { engine: DrumEngine }) {
         </label>
         <div className="dr-kitmix-actions">
           <button type="button" className={`dr-kitmix-learn${progress !== null ? ' on' : ''}`} style={{ '--p': progress ?? 0 } as React.CSSProperties}
-            onClick={learn}>{progress !== null ? 'STOP' : learned ? 'RELEARN' : 'LEARN'}</button>
+            disabled={!device} onClick={learn}>{progress !== null ? 'STOP' : learned ? 'RELEARN' : 'LEARN'}</button>
           <button type="button" disabled={!fit || progress !== null} onClick={apply}>APPLY</button>
           <button type="button" disabled={!undo} onClick={revert}>UNDO</button>
         </div>

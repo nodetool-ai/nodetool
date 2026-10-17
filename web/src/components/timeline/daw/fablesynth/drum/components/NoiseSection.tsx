@@ -1,5 +1,5 @@
 import { pad } from '../params';
-import { useDrumStore } from '../store';
+import { useDrumStore } from '../dr1Store';
 import { DrumKnob } from './DrumKnob';
 import { NoiseView } from './NoiseView';
 

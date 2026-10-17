@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { patchOptions } from '../patches';
-import { useDrumStore } from '../store';
+import { useDrumStore, useDrumStoreApi } from '../dr1Store';
 import { PadPatchBrowser } from './browser/PadPatchBrowser';
 
 export function SelBar() {
@@ -12,14 +12,15 @@ export function SelBar() {
   const savePatch = useDrumStore((s) => s.savePatch);
   const browsing = useDrumStore((s) => s.browser === 'patch');
   const setBrowser = useDrumStore((s) => s.setBrowser);
+  const store = useDrumStoreApi();
   const [naming, setNaming] = useState(false);
   const [draft, setDraft] = useState('');
   const cancelled = useRef(false);
 
   // The drawer belongs to this bar; leaving the edit page closes it.
   useEffect(() => () => {
-    if (useDrumStore.getState().browser === 'patch') useDrumStore.getState().setBrowser(null);
-  }, []);
+    if (store.getState().browser === 'patch') store.getState().setBrowser(null);
+  }, [store]);
 
   const currentPatch = patchOptions(userPatches).find((option) => option.value === patchValue)?.name ?? '—';
 
@@ -69,7 +70,6 @@ export function SelBar() {
           <>
             <button
               className="pb-btn pb-save pb-browse"
-              id="patch-browse"
               aria-expanded={browsing}
               onClick={() => setBrowser(browsing ? null : 'patch')}
             >BROWSE</button>

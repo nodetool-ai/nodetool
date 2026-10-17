@@ -1,5 +1,5 @@
 import { DRUM_PARAMS } from '../params';
-import { useDrumStore } from '../store';
+import { useDrumStore } from '../dr1Store';
 
 interface DrumStepperProps {
   paramId: string;
@@ -11,7 +11,6 @@ export function DrumStepper({ paramId, label, accent }: DrumStepperProps) {
   const def = DRUM_PARAMS[paramId];
   const value = useDrumStore((s) => s.params[paramId]);
   const setParam = useDrumStore((s) => s.setParam);
-  const userTables = useDrumStore((s) => s.userTables);
 
   if (def.curve === 'int' && !def.options) {
     const lo = def.min as number;
@@ -28,9 +27,7 @@ export function DrumStepper({ paramId, label, accent }: DrumStepperProps) {
     );
   }
 
-  const options = paramId.endsWith('.table')
-    ? [...(def.options as string[]), ...userTables.map((table) => table.name)]
-    : (def.options as string[]);
+  const options = def.options as string[];
   const index = Math.min(options.length - 1, Math.max(0, value | 0));
   const step = (d: number) => {
     const n = options.length;

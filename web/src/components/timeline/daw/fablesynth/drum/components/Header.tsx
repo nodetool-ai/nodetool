@@ -1,22 +1,17 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
 import { ScopeView } from '../../components/displays/ScopeView';
 import { DrumKnob } from './DrumKnob';
-import { DrumStepper } from './DrumStepper';
 import { KitBrowser } from './browser/KitBrowser';
-import { drumEngine, kitOptions, useDrumStore } from '../store';
+import { kitOptions, useDrumStore } from '../dr1Store';
 
 export function Header() {
   const powered = useDrumStore((s) => s.powered);
-  const midiActive = useDrumStore((s) => s.midiActive);
   const kitValue = useDrumStore((s) => s.kitValue);
   const userKits = useDrumStore((s) => s.userKits);
   const kitDirty = useDrumStore((s) => s.kitDirty);
   const stepKit = useDrumStore((s) => s.stepKit);
   const saveKit = useDrumStore((s) => s.saveKit);
-  const playing = useDrumStore((s) => s.playing);
-  const play = useDrumStore((s) => s.play);
-  const stop = useDrumStore((s) => s.stop);
-  const hosted = useDrumStore((s) => s.hosted);
+  const analyser = useDrumStore((s) => s.analyser);
   const browsing = useDrumStore((s) => s.browser === 'kit');
   const setBrowser = useDrumStore((s) => s.setBrowser);
   const [naming, setNaming] = useState(false);
@@ -70,42 +65,26 @@ export function Header() {
           />
         ) : (
           <>
-            {!hosted && (
-              <button
-                className="pb-btn pb-save pb-browse"
-                id="kit-browse"
-                aria-expanded={browsing}
-                onClick={() => setBrowser(browsing ? null : 'kit')}
-              >BROWSE</button>
-            )}
+            <button
+              className="pb-btn pb-save pb-browse"
+              aria-expanded={browsing}
+              onClick={() => setBrowser(browsing ? null : 'kit')}
+            >BROWSE</button>
             <button className="pb-btn pb-save" onClick={beginSave}>SAVE</button>
           </>
         )}
       </div>
-      {browsing && !hosted && <KitBrowser onClose={() => setBrowser(null)} />}
+      {browsing && <KitBrowser onClose={() => setBrowser(null)} />}
       <div className="hud dr-hud">
         <div className="hud-cell">
-          {powered ? <ScopeView analyser={drumEngine.scopeAnalyser} accent="#4de8ff" /> : <canvas />}
+          {powered && analyser ? <ScopeView analyser={analyser} accent="#4de8ff" /> : <canvas />}
           <span>SCOPE</span>
         </div>
       </div>
       <div className="status dr-midi">
-        <div className="status-row"><span className={`led${midiActive ? ' on' : ''}`} />MIDI</div>
+        <div className="status-row"><span className={`led${powered ? ' on' : ''}`} />AUDIO</div>
       </div>
       <div className="dr-master">
-        <div className="dr-tempo">
-          <button
-            className={`pb-btn dr-transport${playing ? ' active' : ''}`}
-            type="button"
-            aria-label={playing ? 'Stop sequencer' : 'Play sequencer'}
-            aria-pressed={playing}
-            onClick={playing ? stop : play}
-          >
-            {playing ? '■' : '▶'}
-          </button>
-          <DrumStepper paramId="seq.bpm" accent="a" label="SYNC" />
-        </div>
-        <DrumKnob paramId="master.swing" size="xs" accent="n" />
         <DrumKnob paramId="master.volume" size="xs" accent="n" />
       </div>
     </header>

@@ -1,31 +1,30 @@
 // DR-1 kit browser: the shared shell with a kit adapter. Rows load FACTORY /
-// USER kits; the audition plays a one-bar kick, snare, and hat groove. With
-// `session` (SQ-4 focus mode) it browses the track's session patch instead,
-// factory kits only.
+// USER kits; the audition plays a one-bar kick, snare, and hat groove.
 
 import { useMemo } from 'react';
 import { PresetBrowserShell, type BrowserSnapshot, type PresetBrowserAdapter } from '../../../components/presetBrowser/PresetBrowserShell';
 import { fmtSec } from '../../../params';
 import { kitEntries, kitGlyphData, KIT_GROOVE, type KitEntry } from '../../drumBrowser';
 import { KIT_CHARACTERS, KIT_ROLES } from '../../kitTags';
-import { useDrumStore, type KitSnapshot } from '../../store';
+import { useDrumStore, useDrumStoreApi, type KitSnapshot } from '../../dr1Store';
 import { KitGlyph } from './DrumGlyph';
 import { useDrumAudition } from './useDrumAudition';
-import type { SessionPatchOps, SessionSnapshot } from '../../../seq/sessionPatchOps';
 
-type DrumKitSnapshot = (KitSnapshot & BrowserSnapshot) | SessionSnapshot;
+type DrumKitSnapshot = KitSnapshot & BrowserSnapshot;
 
 const fmtSt = (v: number) => (v > 0 ? '+' : '') + Math.round(v);
 
-export function KitBrowser({ onClose, session }: { onClose: () => void; session?: SessionPatchOps }) {
+// `session` is accepted for the SQ-4 host view only and ignored.
+export function KitBrowser({ onClose }: { onClose: () => void; session?: unknown }) {
   const userKits = useDrumStore((s) => s.userKits);
   const kitValue = useDrumStore((s) => s.kitValue);
   const params = useDrumStore((s) => s.params);
   const powered = useDrumStore((s) => s.powered);
   const playing = useDrumStore((s) => s.playing);
-  const { loadKitByValue, captureKit, restoreKit } = useDrumStore.getState();
+  const store = useDrumStoreApi();
+  const { loadKitByValue, captureKit, restoreKit } = store.getState();
 
-  const items = useMemo(() => kitEntries(session ? [] : userKits), [userKits, !session]);
+  const items = useMemo(() => kitEntries(userKits), [userKits]);
   const live = useMemo(() => kitGlyphData(params), [params]);
   const audition = useDrumAudition();
 
@@ -36,18 +35,17 @@ export function KitBrowser({ onClose, session }: { onClose: () => void; session?
     roles: KIT_ROLES,
     characters: KIT_CHARACTERS,
     items,
-    value: session?.value ?? kitValue,
-    load: (e) => (session ? session.load(e.value) : loadKitByValue(e.value)),
-    capture: () => (session ? session.capture() : captureKit()),
-    restore: (s) => ('patch' in s ? session?.restore(s) : restoreKit(s)),
+    value: kitValue,
+    load: (e) => loadKitByValue(e.value),
+    capture: () => captureKit(),
+    restore: (s) => restoreKit(s),
     audition: () => audition.play((bpm) => {
       const step = 60 / bpm / 4 * 1000;
       return KIT_GROOVE.map(([p, s, v]) => [s * step, p, v]);
-    }, session ? session.canAudition() : !useDrumStore.getState().hosted && !useDrumStore.getState().playing),
+    }, !store.getState().playing),
     stopAudition: audition.stop,
-    auditionHint: (on) => !powered ? 'Power on to hear kits.'
-      : session && !session.canAudition() ? 'Stop SQ-4 to hear kits.'
-      : !session && playing ? 'The sequencer plays the kit.'
+    auditionHint: (on) => !powered ? 'Start the timeline audio to hear kits.'
+      : playing ? 'The timeline plays the kit.'
       : on ? 'A one-bar groove plays on select.' : 'Play the pads to hear kits.',
     renderGlyph: (e, color) => <KitGlyph className="pbr-glyph" data={e.glyph} color={color} />,
     renderDetail: (color) => (

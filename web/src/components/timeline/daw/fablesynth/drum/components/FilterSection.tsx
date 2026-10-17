@@ -1,6 +1,6 @@
 import { FilterView, type FilterDef } from '../../components/displays/FilterView';
 import { pad } from '../params';
-import { useDrumStore } from '../store';
+import { useDrumStore } from '../dr1Store';
 import { DrumKnob } from './DrumKnob';
 import { DrumStepper } from './DrumStepper';
 

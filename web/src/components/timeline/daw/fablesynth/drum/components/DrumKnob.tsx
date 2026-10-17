@@ -1,10 +1,9 @@
-import { useControlMenu } from '../../components/ControlMenu';
 import type * as React from 'react';
 import { useEffect, useRef } from 'react';
 import { normToValue, valueToNorm } from '../../params';
 import { DRUM_PARAMS } from '../params';
-import { useDrumStore } from '../store';
-import { useAutoLive } from '../../seq/autoLive';
+import { useDrumStore } from '../dr1Store';
+import { useWheelGesture } from './useWheelGesture';
 
 const A0 = -135, A1 = 135;
 
@@ -35,15 +34,15 @@ interface DrumKnobProps {
 }
 
 export function DrumKnob({ paramId, size = 'md', accent, label }: DrumKnobProps) {
-  const controlMenu = useControlMenu('DR1', paramId);
   const def = DRUM_PARAMS[paramId];
   const value = useDrumStore((s) => s.params[paramId]);
   const setParam = useDrumStore((s) => s.setParam);
+  const beginGesture = useDrumStore((s) => s.beginGesture);
+  const endGesture = useDrumStore((s) => s.endGesture);
 
   const bipolar = (def.min as number) < 0;
   const norm = clamp01(valueToNorm(def, value));
 
-  const autoLive = useAutoLive('DR1', paramId, norm);
   const elRef = useRef<HTMLDivElement>(null);
   const normRef = useRef(norm);
   const draggingRef = useRef(false);
@@ -57,18 +56,7 @@ export function DrumKnob({ paramId, size = 'md', accent, label }: DrumKnobProps)
     setParam(paramId, normToValue(def, normRef.current));
   };
 
-  useEffect(() => {
-    const el = elRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      nudge((e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? 0.005 : 0.03));
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-    // nudge deliberately reads the latest value through normRef.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paramId]);
+  useWheelGesture(elRef, (e) => nudge((e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? 0.005 : 0.03)));
 
   const lastYRef = useRef(0);
   const onPointerDown = (e: React.PointerEvent) => {
@@ -77,6 +65,7 @@ export function DrumKnob({ paramId, size = 'md', accent, label }: DrumKnobProps)
     lastYRef.current = e.clientY;
     elRef.current?.setPointerCapture(e.pointerId);
     elRef.current?.classList.add('dragging');
+    beginGesture();
     e.preventDefault();
   };
   const onPointerMove = (e: React.PointerEvent) => {
@@ -89,6 +78,7 @@ export function DrumKnob({ paramId, size = 'md', accent, label }: DrumKnobProps)
     if (!draggingRef.current) return;
     draggingRef.current = false;
     elRef.current?.classList.remove('dragging');
+    endGesture();
     try { elRef.current?.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
   };
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -111,7 +101,6 @@ export function DrumKnob({ paramId, size = 'md', accent, label }: DrumKnobProps)
   return (
     <div
       ref={elRef}
-      onContextMenu={controlMenu.onContextMenu}
       className={`knob knob-${size}`}
       data-accent={accent}
       tabIndex={0}
@@ -132,13 +121,10 @@ export function DrumKnob({ paramId, size = 'md', accent, label }: DrumKnobProps)
         <circle className="k-body" cx="40" cy="40" r="26" />
         <path className="k-track" d={arcPath(40, 40, 33, A0, A1)} />
         <path className="k-arc" d={arcD} />
-        <path ref={autoLive.ring} className="k-auto" d="" style={{ opacity: 0 }} />
-        <circle ref={autoLive.dot} className="k-auto-dot" r="3.2" style={{ opacity: 0 }} />
         <line className="k-ptr" x1="40" y1="40" x2="40" y2="17" transform={`rotate(${deg} 40 40)`} />
       </svg>
       <div className="k-label">{labelText}</div>
       <div className="k-value">{text}</div>
-      {controlMenu.menu}
     </div>
   );
 }

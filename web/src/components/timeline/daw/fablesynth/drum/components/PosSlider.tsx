@@ -2,7 +2,8 @@ import type * as React from 'react';
 import { useEffect, useRef } from 'react';
 import { normToValue, valueToNorm } from '../../params';
 import { DRUM_PARAMS } from '../params';
-import { useDrumStore } from '../store';
+import { useDrumStore } from '../dr1Store';
+import { useWheelGesture } from './useWheelGesture';
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
@@ -15,6 +16,8 @@ export function PosSlider({ paramId, accent }: PosSliderProps) {
   const def = DRUM_PARAMS[paramId];
   const value = useDrumStore((s) => s.params[paramId]);
   const setParam = useDrumStore((s) => s.setParam);
+  const beginGesture = useDrumStore((s) => s.beginGesture);
+  const endGesture = useDrumStore((s) => s.endGesture);
   const norm = clamp01(valueToNorm(def, value));
   const rootRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -30,24 +33,16 @@ export function PosSlider({ paramId, accent }: PosSliderProps) {
     setParam(paramId, normToValue(def, normRef.current));
   };
 
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    const onWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      const amount = event.shiftKey ? 0.006 : 0.03;
-      setNorm(normRef.current + (event.deltaY < 0 ? amount : -amount));
-    };
-    root.addEventListener('wheel', onWheel, { passive: false });
-    return () => root.removeEventListener('wheel', onWheel);
-    // setNorm deliberately reads the latest value through normRef.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paramId]);
+  useWheelGesture(rootRef, (event) => {
+    const amount = event.shiftKey ? 0.006 : 0.03;
+    setNorm(normRef.current + (event.deltaY < 0 ? amount : -amount));
+  });
 
   const onPointerDown = (event: React.PointerEvent) => {
     if (event.button !== 0) return;
     dragRef.current = { y: event.clientY, norm: normRef.current };
     rootRef.current?.setPointerCapture(event.pointerId);
+    beginGesture();
     event.preventDefault();
   };
   const onPointerMove = (event: React.PointerEvent) => {
@@ -60,6 +55,7 @@ export function PosSlider({ paramId, accent }: PosSliderProps) {
   const onPointerEnd = (event: React.PointerEvent) => {
     if (!dragRef.current) return;
     dragRef.current = null;
+    endGesture();
     try { rootRef.current?.releasePointerCapture(event.pointerId); } catch { /* ignore */ }
   };
   const onKeyDown = (event: React.KeyboardEvent) => {

@@ -9,7 +9,7 @@ export function SequenceNumberInput({ label, value, min, max, wrap = false, onCh
   const [draft, setDraft] = useState(String(value));
   const [error, setError] = useState('');
   const latest = useRef(value);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const change = useRef(onChange); change.current = onChange;
   useEffect(() => { latest.current = value; setDraft(String(value)); setError(''); }, [value]);
   const stop = () => { clearTimeout(timer.current); useDrumStore.getState().endSequenceGesture(); };

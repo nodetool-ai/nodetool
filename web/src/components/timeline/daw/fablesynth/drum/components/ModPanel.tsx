@@ -1,5 +1,5 @@
 import { DMOD_DESTS, DMOD_SOURCES, DRUM_PARAMS, pad } from '../params';
-import { useDrumStore } from '../store';
+import { useDrumStore } from '../dr1Store';
 import { DrumKnob } from './DrumKnob';
 
 interface ModRowProps {
