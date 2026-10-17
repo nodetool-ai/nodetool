@@ -38,7 +38,7 @@ import {
   FlexRow,
   Panel,
   Text,
-  TextInput,
+  TextArea,
   CONTROL,
   SPACING,
   TYPOGRAPHY,
@@ -273,11 +273,10 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
             Describe the change to make. The current clip is re-rendered with
             your note applied.
           </Caption>
-          <TextInput
+          <TextArea
             value={iterateText}
             placeholder="e.g. make it darker, add rain"
-            onChange={(e) => setIterateText(e.target.value)}
-            multiline
+            onChange={(value) => setIterateText(value)}
             rows={3}
             autoFocus
           />

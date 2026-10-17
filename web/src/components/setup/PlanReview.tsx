@@ -26,6 +26,7 @@ import {
   SPACING,
   SPACING_PX,
   Text,
+  TextArea,
   TextInput,
   ToolbarIconButton
 } from "../ui_primitives";
@@ -247,6 +248,35 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
       </EditorButton>
     );
   }
+  const textProps = {
+    compact: true,
+    minRows: 1,
+    label: row.label,
+    hideLabel: row.hideLabel,
+    value: row.value,
+    placeholder: row.placeholder,
+    helperText: row.hint,
+    onFocus: () => {
+      committed.current = row.value;
+    },
+    onBlur: (event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      commit(event.target.value, committed.current),
+    onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+      // Enter is a line break in a body field, so only a single-line field
+      // commits on it. Plain Enter stays local. The shell's advertised
+      // modified shortcut bubbles after the commit so it can validate the
+      // settled value before advancing.
+      if (event.key !== "Enter" || row.multiline === true) {
+        return;
+      }
+      event.preventDefault();
+      commit((event.target as HTMLInputElement).value, committed.current);
+      if (!(event.metaKey || event.ctrlKey)) {
+        event.stopPropagation();
+      }
+    },
+    slotProps: { input: { readOnly: row.readOnly } }
+  };
   const control = row.options ? (
     <SelectField
       label={row.label}
@@ -261,36 +291,20 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
         commit(value, before);
       }}
     />
+  ) : row.multiline === true ? (
+    <TextArea
+      {...textProps}
+      onChange={(value) => row.onChange(value)}
+      onAssistApply={(value) => {
+        const before = row.value;
+        row.onChange(value);
+        commit(value, before);
+      }}
+    />
   ) : (
     <TextInput
-      compact
-      minRows={1}
-      label={row.label}
-      hideLabel={row.hideLabel}
-      value={row.value}
-      multiline={row.multiline}
-      placeholder={row.placeholder}
-      helperText={row.hint}
+      {...textProps}
       onChange={(event) => row.onChange(event.target.value)}
-      onFocus={() => {
-        committed.current = row.value;
-      }}
-      onBlur={(event) => commit(event.target.value, committed.current)}
-      onKeyDown={(event) => {
-        // Enter is a line break in a body field, so only a single-line field
-        // commits on it. Plain Enter stays local. The shell's advertised
-        // modified shortcut bubbles after the commit so it can validate the
-        // settled value before advancing.
-        if (event.key !== "Enter" || row.multiline === true) {
-          return;
-        }
-        event.preventDefault();
-        commit((event.target as HTMLInputElement).value, committed.current);
-        if (!(event.metaKey || event.ctrlKey)) {
-          event.stopPropagation();
-        }
-      }}
-      slotProps={{ input: { readOnly: row.readOnly } }}
     />
   );
   return <FlexColumn ref={holder}>{control}</FlexColumn>;

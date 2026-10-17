@@ -38,7 +38,7 @@ import {
   FlexColumn,
   FlexRow,
   LoadingSpinner,
-  TextInput,
+  TextArea,
   SPACING
 } from "../ui_primitives";
 import ModeSelectChip from "../chat/composer/ModeSelectChip";
@@ -331,9 +331,9 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
   }, []);
 
   const promptField = (
-    <TextInput
+    <TextArea
       value={prompt}
-      onChange={(e) => setPrompt(e.target.value)}
+      onChange={(value) => setPrompt(value)}
       onKeyDown={handleKeyDown}
       placeholder={
         mode === "music"
@@ -342,7 +342,6 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
             ? "Enter text to speak…"
             : "Describe the shot: subject, action, camera, light…"
       }
-      multiline
       minRows={4}
       maxRows={12}
       fullWidth

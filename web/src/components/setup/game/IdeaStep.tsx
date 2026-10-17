@@ -16,7 +16,7 @@ import {
   FlexColumn,
   GAP,
   Text,
-  TextInput
+  TextArea
 } from "../../ui_primitives";
 import { ExampleBriefs } from "../ExampleBriefs";
 import { AlternativesColumn } from "../AlternativesColumn";
@@ -54,8 +54,8 @@ const IdeaStepInternal: React.FC<GameIdeaStepProps> = ({
   const briefField = useRef<HTMLElement | null>(null);
 
   const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      onBriefChange(event.target.value);
+    (value: string) => {
+      onBriefChange(value);
     },
     [onBriefChange]
   );
@@ -122,10 +122,9 @@ const IdeaStepInternal: React.FC<GameIdeaStepProps> = ({
           </Text>
         </FlexColumn>
 
-        <TextInput
+        <TextArea
           value={brief}
           autoFocus
-          multiline
           rows={3}
           label="Your game"
           hideLabel

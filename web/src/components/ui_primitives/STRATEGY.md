@@ -62,7 +62,7 @@ These primitives exist but are barely adopted:
 `Text` | `Label` | `Caption` | `TruncatedText` | `TextLink` | `ExternalLink`
 
 ### Inputs (replace raw TextField/Select/Switch)
-`NodeTextField` | `TextInput` | `NumericField` | `InspectorValueInput` | `NodeSelect` | `SelectField` | `InspectorSelect` | `NodeSwitch` | `LabeledSwitch` | `NodeSlider` | `Checkbox` | `Autocomplete` | `AutocompleteTagInput` | `TagInput` | `SearchInput`
+`NodeTextField` | `TextInput` | `TextArea` | `NumericField` | `InspectorValueInput` | `NodeSelect` | `SelectField` | `InspectorSelect` | `NodeSwitch` | `LabeledSwitch` | `NodeSlider` | `Checkbox` | `Autocomplete` | `AutocompleteTagInput` | `TagInput` | `SearchInput`
 
 ### Buttons (replace raw Button/IconButton)
 `EditorButton` | `ToolbarIconButton` | `StateIconButton` | `CircularActionButton` | `NavButton` | `CreateFab` | `PlaybackButton` | `RunWorkflowButton` | `ExpandCollapseButton` | `RefreshButton` | `LabeledToggle`
@@ -160,6 +160,7 @@ Need a button?
 
 Need an input?
 ├── Text → NodeTextField (in nodes) / TextInput (elsewhere)
+│   └── Multiline prose → TextArea (writing assistant built in, `assist={false}` turns it off)
 ├── Number → NumericField (commit on edit, clamp on blur) / NumberInput (components/inputs/NumberInput.tsx)
 ├── Boolean → NodeSwitch / LabeledSwitch / Checkbox
 ├── Select from options → NodeSelect / SelectField

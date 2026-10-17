@@ -24,7 +24,7 @@ import {
   ResponsiveImage,
   SPACING_PX,
   Text,
-  TextInput
+  TextArea
 } from "../../ui_primitives";
 import { useSketchStore } from "../../sketch/state/useSketchStore";
 import { useEntities } from "../../../serverState/useEntities";
@@ -82,8 +82,8 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   }, [entities, setup]);
 
   const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setSetup({ brief: event.target.value });
+    (value: string) => {
+      setSetup({ brief: value });
     },
     [setSetup]
   );
@@ -145,10 +145,9 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           </Text>
         </FlexColumn>
 
-        <TextInput
+        <TextArea
           value={brief}
           autoFocus
-          multiline
           rows={4}
           label="Your image"
           hideLabel

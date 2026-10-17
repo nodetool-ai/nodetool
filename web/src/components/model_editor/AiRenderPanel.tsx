@@ -32,7 +32,7 @@ import {
   LoadingSpinner,
   ResponsiveImage,
   ScrollArea,
-  TextInput,
+  TextArea,
   ToggleGroup,
   ToggleOption,
   ToolbarIconButton,
@@ -343,11 +343,10 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
           </EditorButton>
         )}
 
-        <TextInput
+        <TextArea
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          onChange={(value) => setPrompt(value)}
           placeholder="Describe the finished image, e.g. moonlit bedroom, Pixar style, soft rim light"
-          multiline
           minRows={2}
           maxRows={6}
           fullWidth

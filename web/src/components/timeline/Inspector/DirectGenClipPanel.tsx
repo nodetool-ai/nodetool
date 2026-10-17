@@ -70,7 +70,7 @@ import {
   FlexRow,
   Panel,
   SelectField,
-  TextInput,
+  TextArea,
   ToggleGroup,
   ToggleOption
 } from "../../ui_primitives";
@@ -332,8 +332,8 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
   }, [promptHistory]);
 
   const handlePromptChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setClipPrompt(clipId, e.target.value);
+    (value: string) => {
+      setClipPrompt(clipId, value);
       promptHistory.mark();
     },
     [clipId, setClipPrompt, promptHistory]
@@ -474,13 +474,12 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
               />
             )}
 
-            <TextInput
+            <TextArea
               value={clip.prompt ?? ""}
               onChange={handlePromptChange}
               onFocus={handlePromptFocus}
               onBlur={handlePromptBlur}
               placeholder={promptPlaceholder}
-              multiline
               minRows={2}
               maxRows={10}
               compact

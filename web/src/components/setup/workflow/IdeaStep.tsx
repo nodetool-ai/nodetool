@@ -24,7 +24,7 @@ import {
   FlexColumn,
   GAP,
   Text,
-  TextInput
+  TextArea
 } from "../../ui_primitives";
 import { WORKFLOW_INSPIRATION_CHIPS } from "@nodetool-ai/protocol";
 import { ExampleBriefs } from "../ExampleBriefs";
@@ -86,8 +86,8 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
   const briefField = useRef<HTMLElement | null>(null);
 
   const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      onBriefChange(event.target.value);
+    (value: string) => {
+      onBriefChange(value);
     },
     [onBriefChange]
   );
@@ -171,10 +171,9 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
           </Text>
         </FlexColumn>
 
-        <TextInput
+        <TextArea
           value={brief}
           autoFocus
-          multiline
           rows={4}
           label="The task"
           hideLabel

@@ -23,6 +23,7 @@ import {
   Box,
   Text,
   Caption,
+  TextArea,
   TextInput,
   Tooltip,
   ToolbarIconButton,
@@ -190,8 +191,8 @@ const ScriptLineRow = ({
   const speaker = cast.find((s) => s.id === line.speakerId) ?? null;
 
   const onTextChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      patchLine(scriptId, line.id, { text: e.target.value }),
+    (value: string) =>
+      patchLine(scriptId, line.id, { text: value }),
     [patchLine, scriptId, line.id]
   );
 
@@ -375,12 +376,11 @@ const ScriptLineRow = ({
   const textColumn = (
     <FlexColumn gap={SPACING.none} style={{ flex: 1, minWidth: 0 }}>
       {directionField}
-      <TextInput
+      <TextArea
         value={line.text}
         onChange={onTextChange}
         onKeyDown={onTextKeyDown}
         placeholder="Write a line…"
-        multiline
         hideLabel
         label="Line text"
         compact

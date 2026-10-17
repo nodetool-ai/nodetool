@@ -23,7 +23,7 @@ import {
   Panel,
   SPACING,
   SelectField,
-  TextInput
+  TextArea
 } from "../../ui_primitives";
 import { sketchFieldSx } from "../sketchStyles";
 import { EditorButton } from "../../editor_ui";
@@ -193,14 +193,13 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
           onChange={handleModelChange}
         />
 
-        <TextInput
+        <TextArea
           value={binding.prompt ?? ""}
-          onChange={(e) => patchBinding(layer.id, { prompt: e.target.value })}
+          onChange={(value) => patchBinding(layer.id, { prompt: value })}
           onFocus={revealGenerate}
           placeholder="Describe the image…"
           aria-label="Image prompt"
           sx={{ "& .MuiOutlinedInput-root": sketchFieldSx }}
-          multiline
           minRows={3}
           maxRows={8}
           compact

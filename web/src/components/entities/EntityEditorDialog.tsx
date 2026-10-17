@@ -14,6 +14,7 @@ import {
   EditorButton,
   FlexRow,
   FormField,
+  TextArea,
   TextInput,
   ToggleGroup,
   ToggleOption,
@@ -22,6 +23,7 @@ import {
 } from "../ui_primitives";
 import { useSaveEntity } from "../../serverState/useEntities";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
+import { entityAssistContext } from "../../utils/textAssist";
 import ImageRefPreview from "../node/ImageRefPreview";
 import EntityAssetPickerDialog from "./EntityAssetPickerDialog";
 
@@ -188,16 +190,16 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
           compact
         />
 
-        <TextInput
+        <TextArea
           label="Descriptor"
           required
           helperText="How it looks, in a sentence. Every prompt that uses this entity gets it word for word."
           value={descriptor}
-          onChange={(e) => setDescriptor(e.target.value)}
-          multiline
-          rows={3}
+          onChange={setDescriptor}
+          minRows={3}
           size="small"
           compact
+          assistContext={entityAssistContext(kind, name)}
         />
 
         {kind === "character" && (

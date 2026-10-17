@@ -39,7 +39,7 @@ import {
   getSpacingPx,
   ResponsiveImage,
   Text,
-  TextInput
+  TextArea
 } from "../../ui_primitives";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useExampleStoryboards } from "../../../hooks/storyboard/useStoryboards";
@@ -131,8 +131,8 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   );
 
   const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setSetup({ brief: event.target.value });
+    (value: string) => {
+      setSetup({ brief: value });
     },
     [setSetup]
   );
@@ -311,10 +311,9 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           </Text>
         </FlexColumn>
 
-        <TextInput
+        <TextArea
           value={brief}
           autoFocus
-          multiline
           rows={4}
           label="Your video"
           hideLabel

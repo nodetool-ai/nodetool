@@ -21,6 +21,7 @@ import {
   SelectField,
   FormSection,
   Text,
+  TextArea,
   TextInput,
   SPACING,
   Tooltip
@@ -123,49 +124,45 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   return (
     <FlexColumn gap={SPACING.xl} data-testid="shot-edit-table">
       <FormSection>
-        <TextInput
+        <TextArea
           compact
           size="small"
-          multiline
           minRows={1}
           label="Description"
           placeholder="What the shot shows"
           disabled={readOnly}
           value={draft.action}
-          onChange={(event) => set({ action: event.target.value })}
+          onChange={(value) => set({ action: value })}
         />
-        <TextInput
+        <TextArea
           compact
           size="small"
-          multiline
           minRows={1}
           label="Shot motion"
           placeholder="What moves, and how the camera moves, over the clip"
           disabled={readOnly}
           value={draft.motion}
-          onChange={(event) => set({ motion: event.target.value })}
+          onChange={(value) => set({ motion: value })}
         />
-        <TextInput
+        <TextArea
           compact
           size="small"
-          multiline
           minRows={1}
           label="End"
           placeholder="The picture the shot ends on"
           disabled={readOnly}
           value={draft.endState}
-          onChange={(event) => set({ endState: event.target.value })}
+          onChange={(value) => set({ endState: value })}
         />
-        <TextInput
+        <TextArea
           compact
           size="small"
-          multiline
           minRows={1}
           label="Sound"
           placeholder="What is heard"
           disabled={readOnly}
           value={draft.sound}
-          onChange={(event) => set({ sound: event.target.value })}
+          onChange={(value) => set({ sound: value })}
         />
 
         {linksLines ? (
@@ -187,17 +184,16 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
             </FlexColumn>
           </FormField>
         ) : (
-          <TextInput
+          <TextArea
             compact
             size="small"
-            multiline
             minRows={1}
             label="Dialogue"
             placeholder="What is said in shot"
             disabled={readOnly}
             autoFocus={focusDialogue}
             value={draft.dialogue}
-            onChange={(event) => set({ dialogue: event.target.value })}
+            onChange={(value) => set({ dialogue: value })}
           />
         )}
       </FormSection>

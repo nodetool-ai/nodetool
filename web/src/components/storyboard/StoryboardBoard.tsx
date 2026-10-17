@@ -87,6 +87,7 @@ import {
   SelectField,
   Skeleton,
   Text,
+  TextArea,
   TextInput,
   ToolbarIconButton,
   Tooltip,
@@ -1369,12 +1370,11 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                         placeholder="Untitled film"
                         onChange={(e) => setTitle(boardId, e.target.value)}
                       />
-                      <TextInput
+                      <TextArea
                         label="Brief"
                         value={brief}
                         placeholder="Your film in one or two sentences"
-                        onChange={(e) => setBrief(boardId, e.target.value)}
-                        multiline
+                        onChange={(value) => setBrief(boardId, value)}
                         minRows={3}
                       />
                       <TextInput

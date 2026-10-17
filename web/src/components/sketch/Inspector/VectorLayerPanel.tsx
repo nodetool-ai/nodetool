@@ -19,6 +19,7 @@ import {
   FlexColumn,
   FlexRow,
   SPACING,
+  TextArea,
   TextInput
 } from "../../ui_primitives";
 import {
@@ -87,16 +88,15 @@ function SvgPromptForm({
   const shownError = error ?? applyError;
   return (
     <FlexColumn gap={SPACING.sm}>
-      <TextInput
+      <TextArea
         label={label}
         placeholder={placeholder}
-        multiline
         minRows={2}
         maxRows={6}
         value={request}
         disabled={generating}
-        onChange={(event) => {
-          setRequest(event.target.value);
+        onChange={(value) => {
+          setRequest(value);
           clearError();
           setApplyError("");
         }}

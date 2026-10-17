@@ -397,6 +397,7 @@ ui_primitives/
 ├── index.ts                    # Re-exports every primitive and utility
 ├── NodeSlider.tsx              # Slider primitive
 ├── TextInput.tsx               # Standalone text input
+├── TextArea.tsx                # Multiline text input with the writing assistant
 ├── SelectField.tsx             # Standalone select
 ├── tokens.ts                   # TYPOGRAPHY, MOTION, Z_INDEX, BORDER_RADIUS
 ├── spacing.ts                  # SPACING, GAP, PADDING, MARGIN

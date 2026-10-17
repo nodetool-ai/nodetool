@@ -11,7 +11,7 @@ import type { AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 import { trpc, trpcClient } from "../../../../trpc/client";
 import ReportBugButton from "../../../support/ReportBugButton";
 import { AutoGrid, BORDER_RADIUS, Box, Caption, Chip, CONTROL, Dialog, Divider, EditorButton, FieldDensityContext, FlexColumn, FlexRow,
-  InspectorFieldRow, InspectorSection, LoadingSpinner, ScrollArea, SearchInput, SelectField, SPACING, Text, TextInput,
+  InspectorFieldRow, InspectorSection, LoadingSpinner, ScrollArea, SearchInput, SelectField, SPACING, Text, TextArea,
   ToggleGroup, ToggleOption, ToolbarIconButton, TruncatedText, TYPOGRAPHY, getSpacingPx, selectableRowStyles,
   selectableTileStyles } from "../../../ui_primitives";
 import GameAssetThumbnail from "./GameAssetThumbnail";
@@ -374,8 +374,8 @@ export default function GameAssetBrowser({ gameId, document, runServerEdit, onOp
         }}>
         <FlexColumn gap={SPACING.sm}>
           <Text>The result is staged under the game's assets and bound to the slot. Earlier files stay listed as candidates.</Text>
-          <TextInput label="Prompt" multiline rows={5} value={generation?.prompt ?? ""}
-            onChange={(event) => setGeneration((current) => current ? { ...current, prompt: event.target.value } : current)} />
+          <TextArea label="Prompt" rows={5} value={generation?.prompt ?? ""}
+            onChange={(value) => setGeneration((current) => current ? { ...current, prompt: value } : current)} />
           {generation?.preparation && <Caption>Preparation: {JSON.stringify(generation.preparation)}</Caption>}
         </FlexColumn>
       </Dialog>

@@ -33,7 +33,7 @@ import {
   SearchInput,
   TabGroup,
   TabPanel,
-  TextInput,
+  TextArea,
   ToolbarIconButton
 } from "../ui_primitives";
 import { trpc } from "../../trpc/client";
@@ -704,9 +704,9 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                   <FlexColumn gap={0.5} data-testid="add-clip-prompt-section">
                     {/* autoFocus is skipped on touch, where the virtual
                         keyboard would cover the rest of the menu. */}
-                    <TextInput
+                    <TextArea
                       value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
+                      onChange={(value) => setPrompt(value)}
                       onKeyDown={handlePromptKeyDown}
                       placeholder={
                         directGenKind === "video"
@@ -715,7 +715,6 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                             ? "Type text to speak and press Enter…"
                             : "Describe an image and press Enter…"
                       }
-                      multiline
                       minRows={2}
                       maxRows={5}
                       compact

@@ -46,7 +46,7 @@ import {
   FlexRow,
   LoadingSpinner,
   SPACING,
-  TextInput
+  TextArea
 } from "../../ui_primitives";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
@@ -307,11 +307,10 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
           />
         ) : (
           <>
-            <TextInput
+            <TextArea
               value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
+              onChange={(value) => setPrompt(value)}
               placeholder="Describe the motion…"
-              multiline
               minRows={2}
               maxRows={6}
               compact

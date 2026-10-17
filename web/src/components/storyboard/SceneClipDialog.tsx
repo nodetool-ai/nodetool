@@ -36,7 +36,7 @@ import {
   ResponsiveImage,
   SelectField,
   Text,
-  TextInput,
+  TextArea,
   BORDER_RADIUS,
   SPACING
 } from "../ui_primitives";
@@ -142,8 +142,8 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
     [setRun, startIndex]
   );
   const handlePromptChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const prompt = event.target.value;
+    (value: string) => {
+      const prompt = value;
       setDraft((current) => ({ ...current, prompt }));
     },
     []
@@ -330,8 +330,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
           </FlexRow>
         )}
 
-        <TextInput
-          multiline
+        <TextArea
           minRows={3}
           size="small"
           label="Your prompt"

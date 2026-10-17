@@ -442,6 +442,8 @@ export type { ContextMenuProps } from "./ContextMenu";
 
 export { TextInput } from "./TextInput";
 export type { TextInputProps } from "./TextInput";
+export { TextArea } from "./TextArea";
+export type { TextAreaProps } from "./TextArea";
 
 export { DataTable } from "./DataTable";
 export type { DataTableProps, DataTableColumn } from "./DataTable";

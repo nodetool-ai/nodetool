@@ -5,11 +5,13 @@ import {
   FlexColumn,
   GAP,
   Text,
+  TextArea,
   TextInput
 } from "../../ui_primitives";
 import { AlternativesColumn } from "../AlternativesColumn";
 import { OptionCardGrid } from "../OptionCardGrid";
 import { SETUP_OPTION_MIN_WIDTH } from "../layout";
+import { entityAssistContext } from "../../../utils/textAssist";
 
 const ENTITY_KINDS: readonly {
   id: EntityKind;
@@ -110,16 +112,14 @@ export const DetailsStep = ({
         placeholder="Nova"
         autoFocus
       />
-      <TextInput
+      <TextArea
         label="Descriptor"
         helperText="This text is added to every prompt that uses the entity. Describe only stable visual traits."
         value={value.descriptor}
-        onChange={(event) =>
-          onChange({ ...value, descriptor: event.target.value })
-        }
+        onChange={(descriptor) => onChange({ ...value, descriptor })}
         placeholder="A young astronaut with cropped black hair and a worn orange flight suit"
-        multiline
-        rows={4}
+        minRows={4}
+        assistContext={entityAssistContext(value.kind, value.name)}
       />
       <TextInput
         label="Tags (optional)"

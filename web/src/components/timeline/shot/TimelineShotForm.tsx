@@ -20,6 +20,7 @@ import {
   FlexColumn,
   FlexRow,
   SelectField,
+  TextArea,
   TextInput,
   SPACING
 } from "../../ui_primitives";
@@ -135,35 +136,32 @@ const TimelineShotFormInner = ({
         compact
         fullWidth
       />
-      <TextInput
+      <TextArea
         label="Description"
         value={draft.action}
-        onChange={(event) => set({ action: event.target.value })}
+        onChange={(value) => set({ action: value })}
         disabled={readOnly}
         placeholder="What the shot shows"
-        multiline
         minRows={1}
         maxRows={8}
         compact
         fullWidth
       />
-      <TextInput
+      <TextArea
         label="Dialogue"
         value={draft.dialogue}
-        onChange={(event) => set({ dialogue: event.target.value })}
+        onChange={(value) => set({ dialogue: value })}
         disabled={readOnly}
-        multiline
         maxRows={4}
         compact
         fullWidth
       />
-      <TextInput
+      <TextArea
         label="Motion"
         value={draft.motion}
-        onChange={(event) => set({ motion: event.target.value })}
+        onChange={(value) => set({ motion: value })}
         disabled={readOnly}
         placeholder="What moves, and how the camera moves"
-        multiline
         maxRows={4}
         compact
         fullWidth

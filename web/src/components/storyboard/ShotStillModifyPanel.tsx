@@ -34,6 +34,7 @@ import {
   SelectField,
   Slider,
   TabGroup,
+  TextArea,
   TextInput,
   ToggleGroup,
   ToggleOption,
@@ -465,13 +466,12 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
               </Caption>
             )}
           </FlexRow>
-          <TextInput
+          <TextArea
             label="What to change"
             placeholder="Make her scarf deep red"
-            multiline
             rows={3}
             value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
+            onChange={(value) => setPrompt(value)}
           />
           {cast.length > 0 && (
             <LabeledSwitch

@@ -7,7 +7,7 @@ import {
   EditorButton,
   EmptyState,
   FlexColumn,
-  TextInput,
+  TextArea,
   SPACING
 } from "../../ui_primitives";
 import { findClipById } from "../../../stores/timeline/clipLookup";
@@ -97,11 +97,10 @@ const LineDeliveryPanel: React.FC<LineDeliveryPanelProps> = ({ clipId }) => {
         {line.direction && (
           <Caption color="secondary">Direction: {line.direction}</Caption>
         )}
-        <TextInput
+        <TextArea
           value={instructions}
-          onChange={(event) => setInstructions(event.target.value)}
+          onChange={(value) => setInstructions(value)}
           placeholder="Optional delivery direction…"
-          multiline
           minRows={2}
           maxRows={5}
           compact

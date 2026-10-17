@@ -37,7 +37,7 @@ import {
   PADDING,
   SectionHeader,
   Text,
-  TextInput
+  TextArea
 } from "../../ui_primitives";
 import {
   useScriptStore,
@@ -250,8 +250,8 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   const sourceNote = source ? replaceNote(source) : null;
 
   const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setSetup(scriptId, { brief: event.target.value });
+    (value: string) => {
+      setSetup(scriptId, { brief: value });
     },
     [scriptId, setSetup]
   );
@@ -375,11 +375,10 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           />
         ) : null}
 
-        <TextInput
+        <TextArea
           inputRef={briefField}
           value={brief}
           autoFocus
-          multiline
           rows={5}
           disabled={readOnly}
           // The words here are a brief the writer may reword. Named "Your
@@ -457,16 +456,15 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         fullWidth
         maxWidth="sm"
       >
-        <TextInput
+        <TextArea
           value={pasted}
           autoFocus
-          multiline
           rows={12}
           label="Your script"
           hideLabel
           placeholder="Paste it here. We'll split it into lines and leave the words alone."
           helperText={sourceNote ?? undefined}
-          onChange={(event) => setPasted(event.target.value)}
+          onChange={(value) => setPasted(value)}
         />
       </Dialog>
     </Box>

@@ -18,7 +18,7 @@ import {
   FlexColumn,
   FormField,
   SelectField,
-  TextInput,
+  TextArea,
   SPACING
 } from "../../ui_primitives";
 import ShotRenderDialog from "../../storyboard/ShotRenderDialog";
@@ -89,12 +89,11 @@ const DerivedShotSectionInner = ({ clipId }: DerivedShotSectionProps) => {
           disabled={working}
         />
       </FormField>
-      <TextInput
+      <TextArea
         label="Description"
         value={action}
-        onChange={(event) => setAction(event.target.value)}
+        onChange={(value) => setAction(value)}
         placeholder="What the new shot shows (defaults to this shot's)"
-        multiline
         maxRows={6}
         compact
         fullWidth

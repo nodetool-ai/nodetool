@@ -15,6 +15,7 @@ import {
   GAP,
   ResponsiveImage,
   SelectField,
+  TextArea,
   TextInput
 } from "../../ui_primitives";
 import { SETUP_FIELD_WIDTH } from "../layout";
@@ -78,25 +79,42 @@ const ContextText = ({
     },
     []
   );
+  const change = (next: string): void => {
+    if (readOnly) {
+      return;
+    }
+    setDraft(next);
+    onDraft(next);
+  };
+  const commitDraft = (): void => {
+    if (!readOnly) {
+      onCommit(draft);
+    }
+  };
+  if (multiline) {
+    return (
+      <TextArea
+        label={label}
+        value={draft}
+        helperText={helperText}
+        inputProps={{ readOnly }}
+        onChange={change}
+        onAssistApply={(next) => {
+          change(next);
+          onCommit(next);
+        }}
+        onBlur={commitDraft}
+      />
+    );
+  }
   return (
     <TextInput
       label={label}
       value={draft}
-      multiline={multiline}
       helperText={helperText}
       inputProps={{ readOnly }}
-      onChange={(event) => {
-        if (readOnly) {
-          return;
-        }
-        setDraft(event.target.value);
-        onDraft(event.target.value);
-      }}
-      onBlur={() => {
-        if (!readOnly) {
-          onCommit(draft);
-        }
-      }}
+      onChange={(event) => change(event.target.value)}
+      onBlur={commitDraft}
     />
   );
 };

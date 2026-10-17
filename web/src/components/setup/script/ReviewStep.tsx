@@ -57,6 +57,7 @@ import {
   SPACING,
   SPACING_PX,
   Text,
+  TextArea,
   TextInput,
   ToolbarIconButton,
   TYPOGRAPHY,
@@ -151,10 +152,10 @@ const ReviewLine: React.FC<ReviewLineProps> = memo(
     const showDirection = hasDirection || directionOpen;
 
     const setText = useCallback(
-      (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      (value: string) =>
         getScriptAgentHandler(scriptId).setLineText(
           line.id,
-          event.target.value
+          value
         ),
       [line.id, scriptId]
     );
@@ -270,11 +271,10 @@ const ReviewLine: React.FC<ReviewLineProps> = memo(
               sx={directionFieldSx}
             />
           ) : null}
-          <TextInput
+          <TextArea
             value={line.text}
             onChange={setText}
             placeholder="Write a line"
-            multiline
             minRows={1}
             hideLabel
             label="Line"

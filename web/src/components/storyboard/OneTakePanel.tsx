@@ -40,7 +40,7 @@ import {
   SectionHeader,
   SelectField,
   Text,
-  TextInput,
+  TextArea,
   BORDER_RADIUS,
   SPACING,
   TYPOGRAPHY
@@ -204,8 +204,8 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
   );
 
   const handlePromptChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      update({ prompt: event.target.value }),
+    (value: string) =>
+      update({ prompt: value }),
     [update]
   );
   const handleModelChange = useCallback(
@@ -248,8 +248,7 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
           action={<CloseButton tooltip="Close one take" onClick={onClose} />}
         />
 
-        <TextInput
-          multiline
+        <TextArea
           minRows={1}
           size="small"
           label="Your prompt"

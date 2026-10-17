@@ -22,6 +22,7 @@ import {
   LoadingSpinner,
   SelectField,
   SPACING,
+  TextArea,
   TextInput,
   ThinkingIndicator,
   VideoPlayer
@@ -219,13 +220,12 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                     )}
                   </FlexColumn>
                 </FlexRow>
-                <TextInput
+                <TextArea
                   label="Extension intent"
                   value={intent}
-                  onChange={(event) => setIntent(event.target.value)}
+                  onChange={(value) => setIntent(value)}
                   placeholder="e.g. The camera keeps rising"
                   disabled={pending}
-                  multiline
                   minRows={3}
                   maxRows={8}
                   compact

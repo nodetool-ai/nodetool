@@ -54,6 +54,7 @@ import {
   MOTION,
   SPACING,
   Text,
+  TextArea,
   TextInput,
   TextLink,
   ThinkingIndicator,
@@ -579,17 +580,16 @@ const StepRow: React.FC<StepRowProps> = ({
           </FlexRow>
         </FlexRow>
 
-        <TextInput
+        <TextArea
           compact
           label={`Step ${index + 1} description`}
           hideLabel
           placeholder="What this step does"
           value={step.summary}
           disabled={readOnly}
-          multiline
           minRows={1}
-          onChange={(event) =>
-            onChange(step.id, { summary: event.target.value })
+          onChange={(value) =>
+            onChange(step.id, { summary: value })
           }
         />
 

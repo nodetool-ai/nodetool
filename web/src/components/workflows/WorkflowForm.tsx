@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { TextInput, SelectField, AutocompleteTagInput, EditorButton, FormSection, SPACING } from "../ui_primitives";
+import { TextArea, TextInput, SelectField, AutocompleteTagInput, EditorButton, FormSection, SPACING } from "../ui_primitives";
 import { useCallback, useEffect, useRef, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -203,12 +203,11 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
           onChange={handleChange}
         />
 
-        <TextInput
+        <TextArea
           label="Description"
           name="description"
           value={localWorkflow.description}
-          onChange={handleChange}
-          multiline
+          onChange={(description) => applyChange({ description })}
           spellCheck={false}
           autoComplete="off"
           autoCorrect="off"

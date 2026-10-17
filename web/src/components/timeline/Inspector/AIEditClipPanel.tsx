@@ -34,7 +34,7 @@ import {
   LoadingSpinner,
   SelectField,
   SPACING,
-  TextInput,
+  TextArea,
   ThinkingIndicator,
   ToggleGroup,
   ToggleOption
@@ -366,12 +366,11 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
           />
         ) : (
           <>
-            <TextInput
+            <TextArea
               label="Instruction"
               value={instruction}
-              onChange={(event) => setInstruction(event.target.value)}
+              onChange={(value) => setInstruction(value)}
               placeholder="e.g. Make it golden hour"
-              multiline
               minRows={3}
               maxRows={8}
               compact
@@ -518,12 +517,11 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
             {canNewTake && (
               <>
                 <Divider />
-                <TextInput
+                <TextArea
                   label="New take"
                   value={newTakeInstruction}
-                  onChange={(event) => setNewTakeInstruction(event.target.value)}
+                  onChange={(value) => setNewTakeInstruction(value)}
                   placeholder="Optional direction for the new take"
-                  multiline
                   minRows={2}
                   maxRows={4}
                   compact

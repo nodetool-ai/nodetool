@@ -35,7 +35,7 @@ import {
   FlexRow,
   LoadingSpinner,
   Popover,
-  TextInput,
+  TextArea,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx
@@ -263,12 +263,11 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
           gap={1}
           sx={{ padding: getSpacingPx(SPACING.md) }}
         >
-          <TextInput
+          <TextArea
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={(value) => setPrompt(value)}
             placeholder="Describe the image…"
             autoFocus
-            multiline
             minRows={2}
             maxRows={6}
             fullWidth

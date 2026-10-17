@@ -52,7 +52,7 @@ import {
   ScrollArea,
   TabGroup,
   Text,
-  TextInput,
+  TextArea,
   ToolbarIconButton,
   SPACING
 } from "../ui_primitives";
@@ -818,17 +818,16 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
                       onChange={setDraft}
                       readOnly={readOnly}
                     />
-                    <TextInput
+                    <TextArea
                       compact
                       size="small"
-                      multiline
                       minRows={2}
                       label="Notes"
                       placeholder="Anything the render should not read as direction"
                       disabled={readOnly}
                       value={draft.notes}
-                      onChange={(event) =>
-                        setDraft({ ...draft, notes: event.target.value })
+                      onChange={(value) =>
+                        setDraft({ ...draft, notes: value })
                       }
                     />
                     <ShotGraphicsEditor

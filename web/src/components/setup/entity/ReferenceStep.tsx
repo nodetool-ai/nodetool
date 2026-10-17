@@ -27,7 +27,7 @@ import {
   LoadingSpinner,
   ResponsiveImage,
   Text,
-  TextInput
+  TextArea
 } from "../../ui_primitives";
 import {
   SETUP_CONTENT_WIDTH,
@@ -318,11 +318,10 @@ const GenerateReferenceDialog = ({
             ))}
           </FlexRow>
         </FormField>
-        <TextInput
+        <TextArea
           label="Prompt"
           value={prompt}
-          onChange={(event) => setPrompt(event.target.value)}
-          multiline
+          onChange={(value) => setPrompt(value)}
           rows={4}
           autoFocus
         />

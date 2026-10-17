@@ -17,7 +17,7 @@ import {
   Caption,
   CollapsibleSection,
   FlexColumn,
-  TextInput,
+  TextArea,
   BatchedColorInput
 } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
@@ -157,8 +157,8 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
     );
     const handleTextBlur = useCallback(() => textHistory.end(), [textHistory]);
     const handleTextChange = useCallback(
-      (event: React.ChangeEvent<HTMLInputElement>) => {
-        patchStyle({ text: event.target.value });
+      (value: string) => {
+        patchStyle({ text: value });
         textHistory.mark();
       },
       [patchStyle, textHistory]
@@ -317,9 +317,8 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
           unmountOnExit
         >
           <FlexColumn sx={INSPECTOR_SECTION_CONTENT_SX}>
-            <TextInput
+            <TextArea
               value={textStyle.text}
-              multiline
               minRows={3}
               fullWidth
               onChange={handleTextChange}

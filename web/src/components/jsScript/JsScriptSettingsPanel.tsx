@@ -13,6 +13,7 @@ import {
   LabeledSwitch,
   ScrollArea,
   NumberField,
+  TextArea,
   TextInput,
   SPACING
 } from "../ui_primitives";
@@ -67,17 +68,16 @@ const JsScriptSettingsPanel = ({
   return (
     <ScrollArea>
       <FlexColumn gap={SPACING.lg} padding={2}>
-        <TextInput
+        <TextArea
           label="Description"
           size="small"
-          multiline
           minRows={1}
           value={document.description}
           placeholder="What this script does"
           helperText="Agents read this to decide whether to call the script."
           disabled={readOnly}
-          onChange={(event) =>
-            setDescription(scriptId, event.target.value)
+          onChange={(value) =>
+            setDescription(scriptId, value)
           }
         />
 

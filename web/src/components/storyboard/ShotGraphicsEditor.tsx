@@ -11,6 +11,7 @@ import {
   Label,
   SelectField,
   SPACING,
+  TextArea,
   TextInput
 } from "../ui_primitives";
 import type { ShotDraft } from "./shotDraft";
@@ -85,15 +86,14 @@ export default function ShotGraphicsEditor({
               }
             }}
           />
-          <TextInput
+          <TextArea
             label="Graphic direction"
-            multiline
             value={graphics.direction ?? ""}
             disabled={readOnly}
-            onChange={(event) =>
+            onChange={(value) =>
               onChange({
                 ...draft,
-                graphics: { ...graphics, direction: event.target.value }
+                graphics: { ...graphics, direction: value }
               })
             }
           />
