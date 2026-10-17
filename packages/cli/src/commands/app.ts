@@ -169,6 +169,10 @@ export function registerAppCommands(program: Command): void {
 
   const build = app
     .command("build <prompt_or_spec_file>")
+    .addHelpText(
+      "after",
+      "\nNo-cost fixed greeting fixture (ignores the prompt):\n  nodetool app build \"greeting fixture\" --provider fake --model fake-app-greeting --no-judge\n\nAuthoring guide: nodetool skills read nodetool-app-builder\n"
+    )
     .description(
       "Build a mini app from a prompt (or a spec.json) and verify it: plan the workflows, author the app, check its wiring, run every interaction, and write an ApplicationBundle plus a build report. Exits 0 only when the verdict is ok"
     )
@@ -260,7 +264,13 @@ async function runAppBuild(
   }
 
   const [
-    { buildApp, renderBuildReportMarkdown, resolveJudgeModelSpec },
+    {
+      buildApp,
+      renderBuildReportMarkdown,
+      resolveJudgeModelSpec,
+      PERMISSION_GATE_CONTEXT_KEY,
+      headlessGate
+    },
     { createProviderStrict, buildConfiguredProviders },
     { buildFullRegistry },
     { runOnServer },
@@ -320,6 +330,7 @@ async function runAppBuild(
     console.error(`supervisor: ${supervisorConfig.modelSpec}`);
   }
 
+  const registry = await buildFullRegistry();
   const context = new ProcessingContext({
     jobId: buildId,
     workflowId: null,
@@ -328,12 +339,14 @@ async function runAppBuild(
     storage: new FileStorageAdapter(getDefaultAssetsPath())
   });
 
+  context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("CLI app build"));
+
   const runOnce = async (): Promise<BuildReport> => {
     const buildOptions: Parameters<typeof buildApp>[0] = {
       provider,
       model,
       context,
-      registry: await buildFullRegistry(),
+      registry,
       providers,
       judge,
       // Supervision reaches the Run stage the way it reaches every other surface:
