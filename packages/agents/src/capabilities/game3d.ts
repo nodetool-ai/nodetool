@@ -4,13 +4,14 @@ import { posix } from "node:path";
 import { z } from "zod";
 import { Asset, Game } from "@nodetool-ai/models";
 import {
-  gameAssetBinding3D, gameInputFrame3D, gameModelImportSettings3D, gamePreparedCollider3D, gameRenderFrame3D, gameSnapshot3D, gameVector3,
+  gameAssetBinding3D, gameInputFrame3D, gameModelImportSettings3D, gamePreparedCollider3D, gameRenderFrame3D, gameSnapshot3D,
   shortResourceId, type GameAssetBinding3D, type GameDocument3D, type GameInputFrame3D, type GameInspection3D,
 } from "@nodetool-ai/protocol";
 import { createGameSession3D, createMemoryGameSaveStorage, decodePreparedGameCollider3D, GamePlayerSaves, hashGameSnapshot3D } from "@nodetool-ai/game-runtime";
 import { assetKeyCandidates } from "@nodetool-ai/storage";
 import type { Workspace } from "@nodetool-ai/runtime";
 import type { CapabilityRun } from "./types.js";
+import { gameAssertions3D } from "./gameAssertions.js";
 import { persistOutput } from "../tools/asset-persist.js";
 import { readGameAssetInput, GAME_ASSET_NODE_RUNNER_CONTEXT_KEY, type GameAssetNodeRunner } from "./game-asset-source.js";
 
@@ -147,14 +148,8 @@ export async function captureFrames3D(run: CapabilityRun, user: string, document
   } finally { session.dispose(); }
 }
 
-const assertion3D = z.strictObject({
-  at_tick: z.number().int().min(0).max(MAX_TICKS).optional(), before_tick: z.number().int().min(0).max(MAX_TICKS).optional(),
-  entity_id: z.string().optional(), near: gameVector3.extend({ tolerance: z.number().finite().nonnegative() }).optional(),
-  region: z.strictObject({ min: gameVector3, max: gameVector3 }).optional(), grounded: z.boolean().optional(),
-  event: z.string().optional(), no_script_errors: z.boolean().optional(), replay_matches: z.boolean().optional()
-});
 export async function playtestGame3D(run: CapabilityRun, user: string, document: GameDocument3D, args: Record<string, unknown>): Promise<unknown> {
-  const parsedAssertions = z.array(assertion3D).safeParse(args.assertions ?? []);
+  const parsedAssertions = gameAssertions3D.safeParse(args.assertions === undefined ? [] : args.assertions);
   if (!parsedAssertions.success) { return { error: "Invalid 3D assertions", diagnostics: parsedAssertions.error.issues }; }
   const assertions = parsedAssertions.data;
   const captures = z.array(z.number().int().min(0).max(MAX_TICKS)).max(8).safeParse(args.capture_ticks ?? []);
@@ -162,7 +157,10 @@ export async function playtestGame3D(run: CapabilityRun, user: string, document:
   const snapshotInput = args.snapshot === undefined ? undefined : gameSnapshot3D.safeParse(args.snapshot);
   if (snapshotInput && !snapshotInput.success) { return { error: "Invalid 3D snapshot" }; }
   const initialTick = snapshotInput?.success ? snapshotInput.data.tick : 0;
-  const horizon = Math.max(0, ...captures.data, ...assertions.map((assertion) => assertion.at_tick ?? assertion.before_tick ?? 0));
+  const horizon = assertions.reduce((maximum, assertion) => {
+    const tick = "at_tick" in assertion ? assertion.at_tick : "before_tick" in assertion ? assertion.before_tick : undefined;
+    return Math.max(maximum, tick ?? 0);
+  }, Math.max(0, ...captures.data));
   const inputs = inputFrames3D(args.inputs, Math.max(0, horizon - initialTick));
   if ("error" in inputs) { return inputs; }
   const seed = typeof args.seed === "number" && Number.isSafeInteger(args.seed) ? args.seed : 1;
@@ -196,7 +194,7 @@ export async function playtestGame3D(run: CapabilityRun, user: string, document:
         restored?.step(frame);
         if (result.saveRequests) { saves.handle(result.saveRequests, () => session.snapshot()); await saves.idle(); }
         state = session.inspect();
-        if (assertions.some((assertion) => assertion.at_tick === result.tick)) { inspections.set(result.tick, state); }
+        if (assertions.some((assertion) => "at_tick" in assertion && assertion.at_tick === result.tick)) { inspections.set(result.tick, state); }
         for (const event of result.events) {
           if (event.kind === "contact") {
             const pair = `${[event.entityId, event.otherId].sort().join("|")}:${event.phase}`;
@@ -209,9 +207,9 @@ export async function playtestGame3D(run: CapabilityRun, user: string, document:
     const stateHash = snapshot ? await hashGameSnapshot3D(snapshot) : null;
     if (restored && snapshot && !cancelled && !wallTimeLimited) { replayMatches = stateHash === await hashGameSnapshot3D(restored.snapshot()); }
     const assertionResults = assertions.map((assertion) => {
-      if (assertion.no_script_errors) { return { assertion, passed: scriptError === null, observed: scriptError }; }
-      if (assertion.replay_matches) { return { assertion, passed: replayMatches === true, observed: replayMatches ?? null }; }
-      if (assertion.event) {
+      if ("no_script_errors" in assertion) { return { assertion, passed: scriptError === null, observed: scriptError }; }
+      if ("replay_matches" in assertion) { return { assertion, passed: replayMatches === true, observed: replayMatches ?? null }; }
+      if ("event" in assertion) {
         const observed = events.find((event) => (event.kind === assertion.event || event.kind === "trigger" && event.event === assertion.event) &&
           (assertion.before_tick === undefined || typeof event.tick === "number" && event.tick <= assertion.before_tick));
         return { assertion, passed: observed !== undefined, observed: observed ?? null };
@@ -220,13 +218,12 @@ export async function playtestGame3D(run: CapabilityRun, user: string, document:
       const entity = inspection?.entities.find((candidate) => candidate.id === assertion.entity_id);
       if (!entity) { return { assertion, passed: false, observed: null }; }
       const position = entity.transform.position;
-      if (assertion.near) { return { assertion, passed: Math.hypot(position.x - assertion.near.x, position.y - assertion.near.y, position.z - assertion.near.z) <= assertion.near.tolerance, observed: position }; }
-      if (assertion.region) {
+      if ("near" in assertion) { return { assertion, passed: Math.hypot(position.x - assertion.near.x, position.y - assertion.near.y, position.z - assertion.near.z) <= assertion.near.tolerance, observed: position }; }
+      if ("region" in assertion) {
         const { min, max } = assertion.region;
         return { assertion, passed: position.x >= min.x && position.x <= max.x && position.y >= min.y && position.y <= max.y && position.z >= min.z && position.z <= max.z, observed: position };
       }
-      if (assertion.grounded !== undefined) { return { assertion, passed: entity.grounded === assertion.grounded, observed: entity.grounded }; }
-      return { assertion, passed: false, error: "Unsupported assertion" };
+      return { assertion, passed: entity.grounded === assertion.grounded, observed: entity.grounded };
     });
     const images = captures.data.length && snapshot && !cancelled && !wallTimeLimited ? await captureFrames3D(run, user, document,
       [...new Set(captures.data)].sort((a, b) => a - b), inputs, seed, { snapshot: snapshotInput?.success ? snapshotInput.data : undefined }) : undefined;
