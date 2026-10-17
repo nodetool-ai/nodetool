@@ -62,6 +62,16 @@ it("discovers shipped guides and schemas and creates valid timeline/game startin
       code: 1,
       stdout: expect.stringContaining('"status": "error"')
     });
+    const models = await run("tools", "list", "model");
+    for (const name of ["find_model", "list_models"]) {
+      expect(models).toContainEqual(expect.objectContaining({ name }));
+    }
+    const modelSchema = await run("tools", "info", "find_model");
+    expect(modelSchema.inputSchema.properties.capability.enum).toContain("text_to_image");
+    const model = await run("tools", "call", "find_model", "--args", JSON.stringify({
+      capability: "text_to_image", provider_hint: "fake"
+    }));
+    expect(model.ref).toMatchObject({ provider: "fake", id: "fake-image" });
     const schema = await run("tools", "info", "create_native_game");
     expect(schema.inputSchema.required).toContain("project_id");
     const game = await run(

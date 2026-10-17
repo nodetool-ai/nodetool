@@ -19,7 +19,17 @@ async function localTools(): Promise<AuthoringTools> {
   const { buildCliToolbelt } = await import("../agent-toolbelt.js");
   const { buildFullRegistry } = await import("../node-registry.js");
   const registry = await buildFullRegistry();
-  const tools = buildCliToolbelt({}, registry);
+  const { toolForCapabilityName } = await import("@nodetool-ai/agents");
+  const byName = new Map(
+    buildCliToolbelt({}, registry).map((tool) => [tool.name, tool])
+  );
+  // Model discovery is provider-backed at invocation, but its schema is static.
+  for (const name of ["find_model", "list_models"]) {
+    if (!byName.has(name)) {
+      byName.set(name, toolForCapabilityName(name));
+    }
+  }
+  const tools = [...byName.values()];
   return {
     list: async () => tools,
     call: async (name, args) => {
@@ -40,7 +50,7 @@ async function localTools(): Promise<AuthoringTools> {
       );
       if (!tool) {
         throw new Error(
-          `Unknown tool: ${name}. Use nodetool tools list to discover names.`
+          `No configured providers are available for ${name}. Configure a provider before calling this tool.`
         );
       }
       const { createChatContext } = await import("../chat-context.js");
