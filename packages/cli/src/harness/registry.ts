@@ -1116,6 +1116,19 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "analytics",
+    title: "Product analytics (event schema, privacy validation, consent client)",
+    command: "npm run test --workspace=packages/analytics",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "docs/analytics.md",
+    selfcheck: {
+      command: "npm run test --workspace=packages/analytics",
+      cost: "cheap",
+      suiteOnly: true
+    }
+  },
+  {
     id: "storage-and-security",
     title: "Storage, security, auth, and config packages",
     command:
@@ -2025,6 +2038,12 @@ export const SURFACES: SurfaceEntry[] = [
     title: "Data models (SQLite/Postgres persistence, Drizzle ORM)",
     harnesses: ["data-models"],
     paths: ["packages/models/"]
+  },
+  {
+    id: "analytics",
+    title: "Product analytics (shared schema and client core)",
+    harnesses: ["analytics"],
+    paths: ["packages/analytics/"]
   },
   {
     id: "storage-and-security",
