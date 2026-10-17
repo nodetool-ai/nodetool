@@ -1498,7 +1498,7 @@ export const StepperWidget: React.FC<
           // keeps its title.
           [`@container (max-width: ${steps.length * STEP_MIN_WIDTH_PX}px)`]: {
             gap: `${SPACING_PX.micro}px`,
-            "& > li[aria-hidden]": { minWidth: SPACING_PX.xs },
+            "& > li[aria-hidden]": { minWidth: SPACING_PX.micro },
             "& button": { p: SPACING.micro },
             "& .step-title": { display: "none" },
             "& [aria-current=step] .step-title": { display: "inline" }
@@ -1534,6 +1534,7 @@ export const StepperWidget: React.FC<
                 <Box
                   component="button"
                   type="button"
+                  className="app-stepper-step"
                   disabled={blocked(index)}
                   aria-current={index === current ? "step" : undefined}
                   aria-label={`Step ${index + 1} of ${steps.length}: ${title}${state === "done" ? ", done" : ""}`}
