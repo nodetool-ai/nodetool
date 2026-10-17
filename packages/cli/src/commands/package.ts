@@ -40,14 +40,14 @@ interface WorkflowDocsOptions {
 export function registerPackageCommands(program: Command): void {
   const pkg = program
     .command("package")
-    .description("Manage NodeTool TypeScript node packages");
+    .description("Scaffold TypeScript packages and inspect Python package metadata");
 
   // -----------------------------------------------------------------------
   // list
   // -----------------------------------------------------------------------
   pkg
     .command("list")
-    .description("List installed packages (or available with --available)")
+    .description("List Python package metadata in the current directory/workspaces")
     .option("-a, --available", "Show the Python node packs the desktop app offers")
     .option("--json", "Output as JSON")
     .action(async (opts: ListOptions) => {
@@ -74,7 +74,7 @@ export function registerPackageCommands(program: Command): void {
           return;
         }
         if (result.packages.length === 0) {
-          console.log("(no packages installed)");
+          console.log('No Python package metadata found in the current directory/workspaces.\nUse "nodetool packs list" for installed runtime packs and "nodetool node list" for installed TypeScript node types.');
           return;
         }
         printTable(
@@ -240,7 +240,7 @@ export function registerPackageCommands(program: Command): void {
   // -----------------------------------------------------------------------
   pkg
     .command("node-docs")
-    .description("Generate per-node Markdown docs")
+    .description("Generate per-node Markdown docs from local Python package metadata")
     .option("-o, --output-dir <dir>", "Output directory", "docs/nodes")
     .option("-p, --package-name <name>", "Filter by namespace prefix")
     .option("-v, --verbose", "Verbose output")
@@ -255,6 +255,10 @@ export function registerPackageCommands(program: Command): void {
           ? { packageName: opts.packageName }
           : {};
         const docs = generateAllNodeDocs(allNodes, filterOpts);
+        if (docs.size === 0) {
+          console.log('No matching Python node metadata found. Use "nodetool node list" and "nodetool node info <type>" for installed TypeScript nodes.');
+          return;
+        }
         fs.mkdirSync(opts.outputDir, { recursive: true });
         for (const [filename, markdown] of docs) {
           fs.writeFileSync(path.join(opts.outputDir, filename), markdown);

@@ -558,6 +558,23 @@ The bundle holds `report.json` and `report.md`, the resolved `workflow.json`,
 and `server/messages.jsonl`. `--trace` adds `server/trace.jsonl`; `--browser`
 adds `browser/record.json`, a canvas screenshot, and `browser/console-errors.log`.
 
+### `nodetool node list [query]`, `nodetool node info <node_type>`
+
+List executable TypeScript nodes from installed packs, optionally filtering by
+node type or title. `--json` returns complete metadata. `info` prints the exact
+node type's properties, defaults, inputs and outputs as JSON. These commands
+use the same installed pack registry as `node run` and work outside a checkout.
+Catalog entries for missing packs are excluded.
+
+```bash
+nodetool node list text
+nodetool node list --json
+nodetool node info nodetool.text.Concat --json
+```
+
+Use `nodetool packs list` to inspect pack installation state. Python package
+metadata is inspected separately through `nodetool package list`.
+
 ### `nodetool node run <node_type>`
 
 Instantiate one node, hand it a property bag, and print what it emits — no
@@ -2610,21 +2627,23 @@ Manual harnesses (need a target/key — run yourself):
 
 ### `nodetool package`
 
-Manage TypeScript **node** packages — the packs that contribute node types to
-the registry. Not to be confused with [`nodetool packs`](#nodetool-packs),
-which installs, removes and diagnoses published node packs and runtime
-libraries, and compiles the sandbox packs a Code node imports.
+Scaffold TypeScript node packages and inspect local Python package metadata.
+`init` scaffolds a TypeScript package. `list`, `docs` and `node-docs` read
+Python package metadata files. `workflow-docs` reads workflow JSON files.
 
-Reach for it when you are authoring a node pack: `init` scaffolds one, `list`
-tells you what this install has, and the three `*-docs` commands generate the
-Markdown that ships with a pack.
+[`nodetool packs`](#nodetool-packs) installs, removes and diagnoses published
+node packs and runtime libraries, and compiles sandbox packs. Use
+`nodetool node list` and `nodetool node info <type>` to discover the TypeScript
+nodes available to this CLI.
 
 **Subcommands:** `list`, `init`, `docs`, `node-docs`, `workflow-docs`
 
 #### `nodetool package list`
 
-List the installed packages with their node counts, or the registry's catalog
-with `-a, --available`. `--json` prints the rows as JSON.
+List Python package metadata in the current directory and its workspaces,
+with node counts. `-a, --available` lists the shipped Python pack catalog.
+`--json` prints the rows as JSON. For installed TypeScript runtime packs use
+`nodetool packs list`. For executable node types use `nodetool node list`.
 
 ```bash
 nodetool package list
@@ -2653,9 +2672,11 @@ nodetool package init
 
 #### `nodetool package docs`, `node-docs`, `workflow-docs`
 
-Generate Markdown from the current package: `docs` writes one overview,
-`node-docs` writes a page per node, and `workflow-docs` documents the workflow
-JSONs a pack ships. Each takes `-v, --verbose`.
+Generate Markdown from local Python package metadata: `docs` writes one
+overview and `node-docs` writes a page per node. `workflow-docs` documents
+workflow JSON files. Each takes `-v, --verbose`. An empty `node-docs` result
+points to `nodetool node list` and `nodetool node info <type>` for installed
+TypeScript node metadata, including properties and outputs.
 
 **Options:**
 
