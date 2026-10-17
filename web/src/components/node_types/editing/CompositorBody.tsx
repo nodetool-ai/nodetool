@@ -2,7 +2,8 @@
 /**
  * CompositorBody — bespoke body for `nodetool.image.Compositor`.
  *
- * Top: full-bleed preview of the node's own composited output.
+ * Top: live preview of the layer stack (falls back to the node's last
+ *      composited output while no layer image has resolved).
  * Middle: per-layer rows (LayerRow) with thumbnail · opacity slider ·
  *         blend-mode dropdown · visibility toggle · delete. One row per
  *         dynamic `image_N` input. Layer state lives in the static
@@ -23,6 +24,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { Edge } from "@xyflow/react";
 import ImageIcon from "@mui/icons-material/Image";
+import EditIcon from "@mui/icons-material/EditOutlined";
 import {
   type BlendMode,
   BLEND_MODES,
@@ -33,10 +35,12 @@ import type { LayerTransform2D } from "@nodetool-ai/gpu/webgpu";
 import { SPACING,
   CheckerDropzone,
   DynamicInputButton,
-  EditButton,
   FlexColumn,
   FlexRow, BORDER_RADIUS, EmptyState } from "../../ui_primitives";
+import { EditorButton } from "../../editor_ui";
 import CompositorEditorModal from "../../compositor/CompositorEditorModal";
+import CompositorPreview from "../../compositor/CompositorPreview";
+import { useLayerBitmaps } from "../../compositor/useLayerBitmaps";
 import type { CompositorEditorLayer } from "../../compositor/types";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -44,8 +48,8 @@ import NodeProgress from "../../node/NodeProgress";
 import LayerRow from "./LayerRow";
 import {
   asImageRef,
-  resolveImageUrl,
   useImageUrl,
+  useImageUrls,
   sortImageKeys,
   nextImageIndex,
   type ImageRefLike
@@ -96,6 +100,8 @@ const parseTransform = (raw: unknown): LayerTransform2D | undefined => {
 
 export { BLEND_MODES };
 
+const PREVIEW_MAX_HEIGHT = 280;
+
 const styles = (theme: Theme) =>
   css({
     "&.compositor-body": {
@@ -112,7 +118,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: "0 0 auto",
       minHeight: 96,
-      maxHeight: 280,
+      maxHeight: PREVIEW_MAX_HEIGHT,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       backgroundColor: theme.vars.palette.background.default,
@@ -121,7 +127,7 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       "& img": {
         maxWidth: "100%",
-        maxHeight: 280,
+        maxHeight: PREVIEW_MAX_HEIGHT,
         objectFit: "contain",
         display: "block"
       }
@@ -346,16 +352,42 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
   }, [dynamicProperties, layers, handleAddProperty, writeLayers]);
 
   // ── Canvas size + per-layer transform (the layout editor) ────────
-  const baseImage = useMemo(
-    () => (imageKeys[0] ? upstreamForKey(imageKeys[0]) : undefined),
+  const layerImages = useMemo(
+    () => imageKeys.map((key) => upstreamForKey(key)),
     [imageKeys, upstreamForKey]
   );
+  // Resolves `asset://` locators through the asset's `get_url`; a raw
+  // locator fetches nowhere, so the editor and thumbnails rendered blank.
+  const layerUrls = useImageUrls(layerImages);
+  const hasLayerImage = layerUrls.some(Boolean);
+
+  const layerUrlMap = useMemo(() => {
+    const out: Record<string, string | undefined> = {};
+    imageKeys.forEach((key, i) => {
+      out[key] = layerUrls[i];
+    });
+    return out;
+  }, [imageKeys, layerUrls]);
+  const bitmaps = useLayerBitmaps(layerUrlMap);
+
+  // Same default as the node: the first visible layer's decoded size.
+  const baseSize = useMemo(() => {
+    for (let i = 0; i < imageKeys.length; i++) {
+      const state = layers[i];
+      if (state && (!state.visible || state.opacity <= 0)) continue;
+      const bitmap = bitmaps[imageKeys[i]];
+      if (bitmap) return { width: bitmap.width, height: bitmap.height };
+      const ref = layerImages[i];
+      if (ref?.width && ref.height) return { width: ref.width, height: ref.height };
+    }
+    return undefined;
+  }, [imageKeys, layers, bitmaps, layerImages]);
   const propCanvasW = Number(data.properties?.canvas_width) || 0;
   const propCanvasH = Number(data.properties?.canvas_height) || 0;
   const canvasWidth =
-    propCanvasW > 0 ? propCanvasW : Math.round(baseImage?.width ?? 512);
+    propCanvasW > 0 ? propCanvasW : Math.round(baseSize?.width ?? 512);
   const canvasHeight =
-    propCanvasH > 0 ? propCanvasH : Math.round(baseImage?.height ?? 512);
+    propCanvasH > 0 ? propCanvasH : Math.round(baseSize?.height ?? 512);
 
   const onCanvasSizeChange = useCallback(
     (width: number, height: number, complete: boolean) => {
@@ -380,20 +412,28 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
     () =>
       imageKeys.map((key, i) => ({
         id: key,
-        url: resolveImageUrl(upstreamForKey(key)),
+        url: layerUrls[i],
         opacity: layers[i]?.opacity ?? DEFAULT_LAYER_STATE.opacity,
         blendMode: layers[i]?.blend_mode ?? DEFAULT_LAYER_STATE.blend_mode,
         visible: layers[i]?.visible ?? DEFAULT_LAYER_STATE.visible,
         transform: layers[i]?.transform
       })),
-    [imageKeys, layers, upstreamForKey]
+    [imageKeys, layers, layerUrls]
   );
 
   return (
     <div css={cssStyles} className="compositor-body" data-bespoke-body="Compositor">
       <HandleColumn id={id} properties={handleProperties} />
       <div className="preview-area">
-        {previewSrc ? (
+        {hasLayerImage ? (
+          <CompositorPreview
+            canvasWidth={canvasWidth}
+            canvasHeight={canvasHeight}
+            layers={editorLayers}
+            bitmaps={bitmaps}
+            maxHeight={PREVIEW_MAX_HEIGHT}
+          />
+        ) : previewSrc ? (
           <img src={previewSrc} alt="Composited output" />
         ) : (
           <CheckerDropzone
@@ -413,7 +453,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
               index={idx}
               propertyKey={key}
               state={layers[idx] ?? DEFAULT_LAYER_STATE}
-              image={upstreamForKey(key)}
+              imageUrl={layerUrls[idx]}
               onOpacityChange={onOpacityChange}
               onOpacityComplete={onOpacityComplete}
               onBlendChange={onBlendChange}
@@ -429,10 +469,12 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
           itemLabel="layer"
           onAdd={onAddLayer}
         />
-        <EditButton
+        <EditorButton
+          startIcon={<EditIcon />}
           onClick={() => setEditorOpen(true)}
-          tooltip="Open layout editor"
-        />
+        >
+          Edit layout
+        </EditorButton>
       </FlexRow>
 
       <CompositorEditorModal
@@ -441,6 +483,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
         canvasWidth={canvasWidth}
         canvasHeight={canvasHeight}
         layers={editorLayers}
+        bitmaps={bitmaps}
         onCanvasSizeChange={onCanvasSizeChange}
         onOpacityChange={onOpacityChange}
         onOpacityComplete={onOpacityComplete}
