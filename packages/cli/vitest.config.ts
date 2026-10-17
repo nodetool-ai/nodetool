@@ -122,12 +122,22 @@ export default defineConfig({
         resolve: {
           // app-runtime is dependency-free source, so tests exercise the real
           // runtime core rather than a stub.
-          alias: {
-            "@nodetool-ai/app-runtime": resolve(
-              __dirname,
-              "../app-runtime/src/index.ts"
-            )
-          }
+          alias: [
+            {
+              find: /^@nodetool-ai\/app-runtime$/,
+              replacement: resolve(__dirname, "../app-runtime/src/index.ts")
+            },
+            // The analytics package is dependency-free source; the telemetry
+            // tests exercise the real consent and validation code.
+            {
+              find: /^@nodetool-ai\/analytics$/,
+              replacement: resolve(__dirname, "../analytics/src/index.ts")
+            },
+            {
+              find: /^@nodetool-ai\/analytics\/node$/,
+              replacement: resolve(__dirname, "../analytics/src/node/index.ts")
+            }
+          ]
         },
         test: {
           name: "unit",

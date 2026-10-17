@@ -12,6 +12,9 @@
       "path": "../agents"
     },
     {
+      "path": "../analytics"
+    },
+    {
       "path": "../app-runtime"
     },
     {

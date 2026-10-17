@@ -53,6 +53,7 @@ import { computeStampSignature } from "../utils/computeRunSignatures";
 import { getNodeGenerations } from "./nodeGenerationAccessor";
 import useMetadataStore from "./MetadataStore";
 import { getPendingResumeJobId } from "./resumeJobHint";
+import { noteWorkflowRunFinished } from "../lib/analytics";
 import {
   isNumber,
   isObjectLike,
@@ -952,6 +953,20 @@ const handleJobUpdate = (
       .catch(() => {
         // already logged inside loadWorkflowAssets
       });
+  }
+
+  // Anonymous, opt-in analytics. Only runs that WorkflowRunner.run() started
+  // are known, so inline, per-node and preview jobs record nothing.
+  if (job.job_id && !silentJob) {
+    if (job.status === "completed" || job.status === "cancelled") {
+      noteWorkflowRunFinished(job.job_id, job.status);
+    } else if (job.status === "failed" || job.status === "timed_out") {
+      noteWorkflowRunFinished(
+        job.job_id,
+        "failed",
+        job.status === "timed_out" ? "timeout" : job.error
+      );
+    }
   }
 
   switch (job.status) {

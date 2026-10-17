@@ -55,6 +55,7 @@ import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
 import { reportDocumentConflicts } from "./documentConflictReporter";
 import { noteWorkflowCreatedHere } from "./workflowsCreatedHere";
+import { trackProductEvent } from "../lib/analytics";
 import type { Node, Edge } from "@xyflow/react";
 import type { NodeData } from "./NodeData";
 
@@ -780,6 +781,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           }
         }));
         get().setCurrentWorkflowId(workflow.id);
+        trackProductEvent({ event: "workflow_created", properties: {} });
         return workflow;
       },
 
@@ -828,6 +830,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           throw createErrorMessage(err, "Failed to create workflow");
         }
         noteWorkflowCreatedHere(data.id);
+        trackProductEvent({ event: "workflow_created", properties: {} });
         if (data.tags === undefined) {
           data.tags = [];
         }

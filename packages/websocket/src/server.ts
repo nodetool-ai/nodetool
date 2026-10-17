@@ -152,6 +152,7 @@ import {
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute, { getVersion } from "./routes/health.js";
 import configRoute, { describeMissingAnonKey } from "./routes/config.js";
+import { createAnalyticsRoute } from "./routes/analytics.js";
 import assetsRoutes from "./routes/assets.js";
 import timelineFontRoutes from "./routes/timeline-fonts.js";
 import sdkV1Routes from "./routes/sdk-v1.js";
@@ -1649,6 +1650,8 @@ const stopJobCancelPoller = startJobCancelPoller();
 
 await app.register(healthRoute);
 await app.register(configRoute);
+// Anonymous product analytics: validate, then relay or ingest. Auth-exempt.
+await app.register(createAnalyticsRoute());
 
 // All HTTP API routes receive apiOptions
 const routeOpts = { apiOptions };
