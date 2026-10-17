@@ -15,6 +15,7 @@ import type { CapabilityExport, CapabilityModule, CapabilityRun } from "./types.
 import { gameOutline3D, inputFrames3D, playtestGame3D, captureFrames3D, colliderBinding3D, stageModelGameAsset3D } from "./game3d.js";
 import type { PublishNativeGameRequest } from "./GamePublishRequest.js";
 import { gameSpecs } from "./game.specs.js";
+import { gameAssertions2D } from "./gameAssertions.js";
 import { persistOutput } from "../tools/asset-persist.js";
 import { getExampleGameBundle, installExampleGameAssets, listExampleGames } from "../game-examples.js";
 import { previewGameAuthoring, applyGameAuthoring } from "../game-authoring.js";
@@ -653,12 +654,14 @@ const playtest: CapabilityExport = {
     }
     const captures = captureTicks(args["capture_ticks"], []);
     if ("error" in captures) return captures;
-    const assertions = Array.isArray(args["assertions"]) ? args["assertions"] : [];
-    const assertionHorizon = assertions.reduce((maximum, item) => {
-      if (!item || typeof item !== "object") return maximum;
-      const assertion = item as Record<string, unknown>;
-      const tick = assertion.at_tick ?? assertion.before_tick;
-      return typeof tick === "number" && Number.isSafeInteger(tick) && tick >= 0 ? Math.max(maximum, tick) : maximum;
+    const parsedAssertions = gameAssertions2D.safeParse(args["assertions"] === undefined ? [] : args["assertions"]);
+    if (!parsedAssertions.success) {
+      return { error: "Invalid 2D assertions", diagnostics: parsedAssertions.error.issues };
+    }
+    const assertions = parsedAssertions.data;
+    const assertionHorizon = assertions.reduce((maximum, assertion) => {
+      const tick = "at_tick" in assertion ? assertion.at_tick : "before_tick" in assertion ? assertion.before_tick : undefined;
+      return Math.max(maximum, tick ?? 0);
     }, 0);
     const inputs = inputFrames(args["inputs"], Math.max(0, ...captures, assertionHorizon));
     if ("error" in inputs) return inputs;
@@ -668,10 +671,8 @@ const playtest: CapabilityExport = {
     const session = await createScriptedGameSession(document, seed);
     const events: unknown[] = [];
     const contacts = new Map<string, number>();
-    const inspectionTicks = new Set(assertions.flatMap((item) => {
-      if (!item || typeof item !== "object" || !("at_tick" in item)) return [];
-      return typeof item.at_tick === "number" ? [item.at_tick] : [];
-    }));
+    const inspectionTicks = new Set(assertions.flatMap((assertion) =>
+      "at_tick" in assertion && assertion.at_tick !== undefined ? [assertion.at_tick] : []));
     let state = session.inspect();
     const inspections = new Map<number, ReturnType<typeof session.inspect>>([[0, state]]);
     const started = Date.now();
@@ -705,28 +706,27 @@ const playtest: CapabilityExport = {
           }
         }
       }
-      const assertion_results = assertions.map((item) => {
-        if (!item || typeof item !== "object") return { passed: false, error: "Invalid assertion" };
-        const assertion = item as Record<string, unknown>;
-        if (assertion.no_script_errors === true) return { passed: scriptError === null, assertion, observed: scriptError };
-        if (typeof assertion.event === "string") {
+      const assertion_results = assertions.map((assertion) => {
+        if ("no_script_errors" in assertion) {
+          return { passed: scriptError === null, assertion, observed: scriptError };
+        }
+        if ("event" in assertion) {
           const observed = events.find((event) => {
-            if (typeof event !== "object" || event === null || !("kind" in event)) return false;
-            if (event.kind === assertion.event) return true;
+            if (typeof event !== "object" || event === null || !("kind" in event)) {
+              return false;
+            }
+            if (event.kind === assertion.event) {
+              return true;
+            }
             return event.kind === "trigger" && "event" in event && (event.event === assertion.event || assertion.event === "win" && event.event === "victory");
           });
           const tick = typeof observed === "object" && observed !== null && "tick" in observed && typeof observed.tick === "number" ? observed.tick : Infinity;
-          return { passed: observed !== undefined && (typeof assertion.before_tick !== "number" || tick <= assertion.before_tick), assertion, observed: observed ?? null };
+          return { passed: observed !== undefined && (assertion.before_tick === undefined || tick <= assertion.before_tick), assertion, observed: observed ?? null };
         }
-        if (typeof assertion.entity_id === "string" && assertion.near && typeof assertion.near === "object") {
-          const near = assertion.near as Record<string, unknown>;
-          const observed = typeof assertion.at_tick === "number" ? inspections.get(assertion.at_tick) : state;
-          const entity = observed?.entities.find((candidate) => candidate.id === assertion.entity_id);
-          const tolerance = typeof near.tolerance === "number" ? near.tolerance : 0;
-          const passed = !!entity && typeof near.x === "number" && typeof near.y === "number" && Math.hypot(entity.x - near.x, entity.y - near.y) <= tolerance;
-          return { passed, assertion, observed: entity ?? null };
-        }
-        return { passed: false, assertion, error: "Unsupported assertion" };
+        const observed = assertion.at_tick === undefined ? state : inspections.get(assertion.at_tick);
+        const entity = observed?.entities.find((candidate) => candidate.id === assertion.entity_id);
+        const passed = !!entity && Math.hypot(entity.x - assertion.near.x, entity.y - assertion.near.y) <= (assertion.near.tolerance ?? 0);
+        return { passed, assertion, observed: entity ?? null };
       });
       const images = captures.length && scriptError === null && !cancelled && !wallTimeLimited && state.tick === inputs.length
         ? await captureFrames(run, user, document, captures, inputs, seed, { sheet: true, deadlineAt: started + 15_000 })
