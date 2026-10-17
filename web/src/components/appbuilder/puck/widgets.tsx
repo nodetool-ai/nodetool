@@ -1485,21 +1485,23 @@ export const StepperWidget: React.FC<
           m: 0,
           p: 0,
           width: "100%",
+          // A title truncates rather than pushing the rail past the screen
+          // edge on a phone.
+          "& > li:not([aria-hidden])": { flexShrink: 1 },
+          "& button": { maxWidth: "100%" },
+          "& .step-title": {
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis"
+          },
           // When the titles would not fit on one line, only the current step
-          // keeps its title, and it truncates rather than pushing the rail
-          // past the screen edge on a phone.
+          // keeps its title.
           [`@container (max-width: ${steps.length * STEP_MIN_WIDTH_PX}px)`]: {
             gap: `${SPACING_PX.micro}px`,
             "& > li[aria-hidden]": { minWidth: SPACING_PX.xs },
-            "& > li:not([aria-hidden])": { flexShrink: 1 },
-            "& button": { p: SPACING.micro, maxWidth: "100%" },
+            "& button": { p: SPACING.micro },
             "& .step-title": { display: "none" },
-            "& [aria-current=step] .step-title": {
-              display: "inline",
-              minWidth: 0,
-              overflow: "hidden",
-              textOverflow: "ellipsis"
-            }
+            "& [aria-current=step] .step-title": { display: "inline" }
           }
         }}
       >
