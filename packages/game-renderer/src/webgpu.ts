@@ -71,6 +71,7 @@ export class WebGPUGameRenderer implements GameRenderer {
   private hudCanvas: HTMLCanvasElement | undefined;
   private hudTexture: TextureEntry | undefined;
   private hudKey = "";
+  private hudRevision = 0;
   private disposed = false;
   private lost = false;
 
@@ -519,9 +520,10 @@ export class WebGPUGameRenderer implements GameRenderer {
     const assetIds = [...new Set(items.map((item) => item.assetId))];
     const textureResults = await Promise.all(assetIds.map((assetId) => this.getTexture(assetId, assets)));
     const textureById = new Map(assetIds.map((assetId, index) => [assetId, textureResults[index]]));
+    const hudRevision = this.hudRevision;
     const hudImages = await loadGameUiImages(frame, (assetId) => this.assets.get(assetId));
     this.assertUsable();
-    const hudTexture = this.updateHud(frame, hudImages);
+    const hudTexture = this.updateHud(frame, hudImages, hudRevision);
     const count = items.length + (hudTexture ? 1 : 0);
     this.ensureInstanceCapacity(count);
     const instances = new Float32Array(count * INSTANCE_FLOATS);
@@ -683,11 +685,12 @@ export class WebGPUGameRenderer implements GameRenderer {
     };
   }
 
-  private updateHud(frame: GameRenderFrame, images: ReadonlyMap<string, GameImage>): TextureEntry | undefined {
+  private updateHud(frame: GameRenderFrame, images: ReadonlyMap<string, GameImage>, revision: number): TextureEntry | undefined {
     if (frame.hud.length === 0 && !frame.ui) {
       return undefined;
     }
-    const key = JSON.stringify([this.canvas.width, this.canvas.height, frame.hud, frame.ui, [...images.keys()]]);
+    const key = JSON.stringify([this.canvas.width, this.canvas.height, frame.gameId, frame.fonts,
+      frame.hud, frame.ui, [...images.keys()], revision]);
     if (key !== this.hudKey) {
       const canvas = this.hudCanvas ?? document.createElement("canvas");
       paintWebGPUHud(canvas, this.canvas.width, this.canvas.height, frame, images);
@@ -726,6 +729,7 @@ export class WebGPUGameRenderer implements GameRenderer {
   }
 
   invalidateAsset(assetId: string): void {
+    this.hudRevision++;
     this.assets.invalidate(assetId);
     const generation = this.textures.get(assetId);
     this.textures.delete(assetId);
