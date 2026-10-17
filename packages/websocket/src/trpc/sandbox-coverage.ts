@@ -697,6 +697,19 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Whether a Replicate token is configured; list_secrets reports " +
       "the same thing by name."
   },
+  "openverse.import": {
+    elsewhere:
+      "save_asset writes an asset from a URL in one call, and a run can " +
+      "copy the license record into the asset's metadata itself. This " +
+      "procedure exists so the asset browser can import by Openverse id."
+  },
+  "openverse.search": {
+    gap:
+      "Searching Openverse for openly licensed media is an asset-browser " +
+      "feature today. No capability wraps it, so a run reaches it only " +
+      "through http_request against the public API, without the " +
+      "user's Openverse credentials."
+  },
   "packs.getTrust": {
     withheld:
       "Pack installation and trust decide which third-party code the " +

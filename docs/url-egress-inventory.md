@@ -89,6 +89,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | chat source images | `packages/websocket/src/websocket-client-session.ts` | chat client |
 | workflow output auto-save | `packages/websocket/src/session/asset-autosave.ts` | workflow |
 | asset ref → bytes on export | `packages/websocket/src/lib/asset-export.ts` | chat client |
+| Openverse import → asset | `packages/websocket/src/lib/openverse.ts` | provider response |
 | `save_asset` / `view_image` | `packages/agents/src/capabilities/assets.ts` | model |
 | `yt_dlp` download | `packages/agents/src/capabilities/media.ts` | model |
 | Apify run artifacts → assets | `packages/agents/src/apify/assets.ts` | provider response |
