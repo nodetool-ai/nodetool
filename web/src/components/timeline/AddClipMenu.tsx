@@ -21,6 +21,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
+import ErrorBanner from "../support/ErrorBanner";
 import {
   FlexColumn,
   FlexRow,
@@ -863,7 +864,15 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
 
               {/* Error */}
               {error && (
-                <Caption sx={{ color: "error.main" }}>{error}</Caption>
+                <ErrorBanner
+                  report={{
+                    source: "operation-failure",
+                    summary: "Add clip menu action failed",
+                    errorText: error
+                  }}
+                >
+                  {error}
+                </ErrorBanner>
               )}
 
               {/* Templates tab */}

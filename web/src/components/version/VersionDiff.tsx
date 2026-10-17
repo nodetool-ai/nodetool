@@ -19,7 +19,8 @@ import {
   ListItemText,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  EmptyState
 } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
@@ -198,8 +199,8 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
 }) => {
   if (!diff.hasChanges) {
     return (
-      <Surface sx={{ p: 2, textAlign: "center" }}>
-        <Text color="secondary">No changes detected</Text>
+      <Surface>
+        <EmptyState variant="no-data" size="small" title="No changes detected" />
       </Surface>
     );
   }

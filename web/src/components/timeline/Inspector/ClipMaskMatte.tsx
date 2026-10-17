@@ -30,6 +30,7 @@ import {
   ISOLATE_SUBJECT_MODELS,
   type IsolateSubjectModel
 } from "../../../utils/timelineIsolateSubject";
+import ErrorBanner from "../../support/ErrorBanner";
 import {
   Caption,
   CollapsibleSection,
@@ -537,9 +538,14 @@ const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
             {!result && !generating && (
               <>
                 {status === "failed" && (
-                  <Caption color="error">
-                    The last run failed. Nothing was cut — try again.
-                  </Caption>
+                  <ErrorBanner
+                    report={{
+                      source: "job-failure",
+                      summary: "Clip cutout failed"
+                    }}
+                  >
+                    The last run failed. Nothing was cut. Try again.
+                  </ErrorBanner>
                 )}
                 <EditorButton
                   fullWidth
@@ -599,9 +605,14 @@ const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
                 </InspectorRow>
 
                 {status === "failed" && (
-                  <Caption color="error">
+                  <ErrorBanner
+                    report={{
+                      source: "job-failure",
+                      summary: "Clip cutout re-run failed"
+                    }}
+                  >
                     The last run failed. The result before it is still in use.
-                  </Caption>
+                  </ErrorBanner>
                 )}
                 {stale && status !== "failed" && (
                   <Caption color="warning">

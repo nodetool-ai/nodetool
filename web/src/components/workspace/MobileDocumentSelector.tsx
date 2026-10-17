@@ -14,7 +14,6 @@ import { useWorkflowDirty } from "../../hooks/useWorkflowDirty";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import {
   BORDER_RADIUS,
-  Caption,
   CloseButton,
   Divider,
   List,
@@ -26,7 +25,8 @@ import {
   MOTION,
   SPACING,
   StatusDot,
-  getSpacingPx
+  getSpacingPx,
+  EmptyState
 } from "../ui_primitives";
 import { PROJECT_HOME_GLYPH, tabDisplayTitle } from "./tabTypeIdentity";
 import { PROJECT_COLOR } from "../projects/projectIdentity";
@@ -234,9 +234,11 @@ const MobileDocumentSelector = ({
       >
         <div css={listStyles}>
           {tabs.length === 0 && (
-            <Caption color="secondary" sx={{ px: SPACING.xl, py: SPACING.md }}>
-              No documents open. Tap New to open or create one.
-            </Caption>
+            <EmptyState
+              size="small"
+              title="No documents open"
+              description="Tap New to open or create one."
+            />
           )}
           <List dense disablePadding>
             {tabs.map((tab) => (

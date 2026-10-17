@@ -10,6 +10,7 @@
  */
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
+import ErrorBanner from "../support/ErrorBanner";
 import {
   Dialog,
   FlexColumn,
@@ -291,7 +292,15 @@ const RuntimeRow: React.FC<RuntimeRowProps> = ({ name, status, error }) => {
           </Text>
         </FlexRow>
         {error && (
-          <Text size="smaller" color="error" sx={{ pl: SPACING.lg }}>{error}</Text>
+          <ErrorBanner
+            report={{
+              source: "operation-failure",
+              summary: `Installing the ${name} runtime failed`,
+              errorText: error
+            }}
+          >
+            {error}
+          </ErrorBanner>
         )}
       </FlexColumn>
       <Chip

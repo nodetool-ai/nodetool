@@ -2,7 +2,7 @@
 // it out of the initial bundle.
 
 import React, { Suspense, lazy } from "react";
-import { FlexColumn, Text, LoadingSpinner } from "../ui_primitives";
+import { FlexColumn, LoadingSpinner } from "../ui_primitives";
 import type { Asset } from "../../stores/ApiTypes";
 
 const Model3DViewer = lazy(() =>
@@ -31,12 +31,10 @@ const Model3DViewerLoadingFallback: React.FC<{ compact?: boolean }> = ({
       minHeight: compact ? "60px" : "300px"
     }}
   >
-    <LoadingSpinner size={compact ? "small" : "medium"} />
-    {!compact && (
-      <Text size="small" color="secondary">
-        Loading 3D viewer…
-      </Text>
-    )}
+    <LoadingSpinner
+      size={compact ? "small" : "medium"}
+      text={compact ? undefined : "Loading 3D viewer"}
+    />
   </FlexColumn>
 );
 

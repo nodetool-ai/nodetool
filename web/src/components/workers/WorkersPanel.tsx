@@ -15,7 +15,8 @@ import {
   StatusIndicator,
   AlertBanner,
   PanelHeader,
-  type StatusType, getSpacingPx, SPACING
+  type StatusType, getSpacingPx, SPACING,
+  EmptyState
 } from "../ui_primitives";
 import {
   useWorkers,
@@ -539,9 +540,11 @@ const WorkersPanel: React.FC = () => {
               <LoadingSpinner size="small" />
             </FlexRow>
           ) : shownInstances.length === 0 ? (
-            <Caption size="small">
-              No workers running. Start one to rent a GPU for your graphs.
-            </Caption>
+            <EmptyState
+              size="small"
+              title="No workers running"
+              description="Start one to rent a GPU for your graphs."
+            />
           ) : (
             shownInstances.map((instance) => (
               <InstanceRow

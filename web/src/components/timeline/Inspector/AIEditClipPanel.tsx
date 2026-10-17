@@ -22,6 +22,7 @@ import { estimateGenerationCost } from "../../../utils/generationCostEstimate";
 import { generationCostLine } from "../../costs/costLine";
 import CostEstimateLine from "../../costs/CostEstimateLine";
 import CuratedModelSelect from "../../properties/curated/CuratedModelSelect";
+import ErrorBanner from "../../support/ErrorBanner";
 import {
   Caption,
   CollapsibleSection,
@@ -445,12 +446,28 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
               <Caption color="error">{settlementMessage}</Caption>
             )}
             {failed && (
-              <Caption color="error">
+              <ErrorBanner
+                report={{
+                  source: "job-failure",
+                  summary: "AI clip edit failed",
+                  errorText: editFailure ?? undefined
+                }}
+              >
                 {editFailure ??
                   "The edit failed. Update the instruction or model and retry."}
-              </Caption>
+              </ErrorBanner>
             )}
-            {errorMessage && <Caption color="error">{errorMessage}</Caption>}
+            {errorMessage && (
+              <ErrorBanner
+                report={{
+                  source: "operation-failure",
+                  summary: "AI clip edit could not start",
+                  errorText: errorMessage
+                }}
+              >
+                {errorMessage}
+              </ErrorBanner>
+            )}
 
             {canNewTake && (
               <>
@@ -478,7 +495,15 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
                   {newTakeActive ? "Generating new take…" : "New take"}
                 </EditorButton>
                 {newTakeError && (
-                  <Caption color="error">{newTakeError}</Caption>
+                  <ErrorBanner
+                    report={{
+                      source: "operation-failure",
+                      summary: "AI clip new take could not start",
+                      errorText: newTakeError
+                    }}
+                  >
+                    {newTakeError}
+                  </ErrorBanner>
                 )}
               </>
             )}

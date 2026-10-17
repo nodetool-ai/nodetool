@@ -12,13 +12,14 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useContextCommands } from "../../hooks/useContextCommands";
 import type { ContextCommand } from "../../stores/CommandMenuStore";
 import DataTable from "../node/DataTable/DataTable";
+import ErrorBanner from "../support/ErrorBanner";
 import {
-  Caption,
   EditorButton,
   FlexColumn,
   LoadingSpinner,
   SelectField,
-  SaveState
+  SaveState,
+  EmptyState
 } from "../ui_primitives";
 import { arrayBufferToBase64 } from "../audio_editor/audioSample";
 import { isMac } from "../../utils/platform";
@@ -214,9 +215,15 @@ const SpreadsheetDocumentEditor = ({
         fullHeight
         sx={{ alignItems: "center", justifyContent: "center" }}
       >
-        <Caption sx={{ color: "error.main" }}>
-          Failed to load spreadsheet
-        </Caption>
+        <ErrorBanner
+          report={{
+            source: "operation-failure",
+            summary: "Spreadsheet failed to load",
+            errorText: error.message
+          }}
+        >
+          Could not load this spreadsheet.
+        </ErrorBanner>
       </FlexColumn>
     );
   }
@@ -238,7 +245,7 @@ const SpreadsheetDocumentEditor = ({
         fullHeight
         sx={{ alignItems: "center", justifyContent: "center" }}
       >
-        <Caption>This workbook has no sheets</Caption>
+        <EmptyState size="small" variant="no-data" title="This workbook has no sheets" />
       </FlexColumn>
     );
   }

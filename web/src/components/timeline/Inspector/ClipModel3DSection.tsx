@@ -27,6 +27,7 @@ import {
 } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import ErrorBanner from "../../support/ErrorBanner";
 import {
   Button,
   Caption,
@@ -384,7 +385,15 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
               proxy, and its lighting is close, not identical.
             </Caption>
             {bake.state.error && (
-              <Caption color="error">{bake.state.error}</Caption>
+              <ErrorBanner
+                report={{
+                  source: "operation-failure",
+                  summary: "3D clip bake failed",
+                  errorText: bake.state.error
+                }}
+              >
+                {bake.state.error}
+              </ErrorBanner>
             )}
           </FlexColumn>
         </CollapsibleSection>

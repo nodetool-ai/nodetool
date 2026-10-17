@@ -20,8 +20,8 @@ import { useWorkflow } from "../../../serverState/useWorkflow";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../../contexts/NodeContext";
 import { createNodeStore, type NodeStore } from "../../../stores/NodeStore";
+import ErrorBanner from "../../support/ErrorBanner";
 import {
-  Caption,
   CollapsibleSection,
   EditorButton,
   EmptyState,
@@ -265,9 +265,14 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
                 {isActive ? "Cancel" : generateLabel}
               </EditorButton>
               {isFailed && (
-                <Caption color="error" sx={{ textAlign: "center" }}>
+                <ErrorBanner
+                  report={{
+                    source: "job-failure",
+                    summary: "Generated clip failed"
+                  }}
+                >
                   Generation failed.
-                </Caption>
+                </ErrorBanner>
               )}
             </FlexColumn>
           )}

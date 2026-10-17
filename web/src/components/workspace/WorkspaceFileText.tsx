@@ -15,6 +15,7 @@ import MonacoPane from "./MonacoPane";
 import { workspaceFileName } from "./workspaceFileRef";
 import type { WorkspaceFileKind } from "./workspaceFileKind";
 import type { WorkspaceTabMode } from "../../stores/WorkspaceTabsStore";
+import ErrorBanner from "../support/ErrorBanner";
 import {
   AlertBanner,
   Caption,
@@ -27,7 +28,8 @@ import {
   ScrollArea,
   Text, getSpacingPx, SPACING,
   SaveState,
-  Toolbar
+  Toolbar,
+  EmptyState
 } from "../ui_primitives";
 
 interface WorkspaceFileTextProps {
@@ -96,7 +98,7 @@ const CsvTableView = ({ text, name }: { text: string; name: string }) => {
   if (columns.length === 0) {
     return (
       <FlexColumn className="status">
-        <Caption>Empty table</Caption>
+        <EmptyState size="small" variant="no-data" title="This table is empty" />
       </FlexColumn>
     );
   }
@@ -219,9 +221,15 @@ const WorkspaceFileText = ({
     if (error) {
       return (
         <FlexColumn className="status">
-          <Text size="normal" weight={600} sx={{ color: "error.main" }}>
-            Failed to load {name}
-          </Text>
+          <ErrorBanner
+            report={{
+              source: "operation-failure",
+              summary: "Workspace file failed to load",
+              errorText: error.message
+            }}
+          >
+            {`Could not load ${name}.`}
+          </ErrorBanner>
         </FlexColumn>
       );
     }

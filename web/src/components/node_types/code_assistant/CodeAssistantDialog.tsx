@@ -16,6 +16,7 @@ import { shallow } from "zustand/shallow";
 import { useTheme } from "@mui/material/styles";
 import type { codeGen } from "@nodetool-ai/protocol/api-schemas";
 
+import ErrorBanner from "../../support/ErrorBanner";
 import {
   BORDER_RADIUS,
   Box,
@@ -281,9 +282,15 @@ const CodeAssistantDialogInner = ({
                 options={editorOptions}
               />
             ) : monacoLoadError ? (
-              <Text size="small" color="error">
+              <ErrorBanner
+                report={{
+                  source: "panel-crash",
+                  summary: "Code assistant editor could not start",
+                  errorText: monacoLoadError
+                }}
+              >
                 {monacoLoadError}
-              </Text>
+              </ErrorBanner>
             ) : isMonacoLoading ? (
               <LoadingSpinner />
             ) : (

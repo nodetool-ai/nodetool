@@ -24,9 +24,9 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
+import ErrorBanner from "../support/ErrorBanner";
 import {
   AlertBanner,
-  Caption,
   Chip,
   ConflictBanner,
   type ConflictBannerConflict,
@@ -289,10 +289,16 @@ export const CodePanel: React.FC = memo(() => {
   if (error) {
     return (
       <FlexColumn gap={SPACING.micro} sx={{ p: SPACING.md }}>
-        <Text color="error">Failed to load the timeline's code</Text>
-        <Caption size="smaller" color="secondary">
+        <ErrorBanner
+          title="Could not load the timeline's code"
+          report={{
+            source: "operation-failure",
+            summary: "Timeline code failed to load",
+            errorText: error instanceof Error ? error.message : String(error)
+          }}
+        >
           {error instanceof Error ? error.message : String(error)}
-        </Caption>
+        </ErrorBanner>
       </FlexColumn>
     );
   }
@@ -371,9 +377,15 @@ export const CodePanel: React.FC = memo(() => {
             }}
           />
         ) : monacoLoadError ? (
-          <Text size="small" color="error">
+          <ErrorBanner
+            report={{
+              source: "panel-crash",
+              summary: "Timeline code editor could not start",
+              errorText: monacoLoadError
+            }}
+          >
             {monacoLoadError}
-          </Text>
+          </ErrorBanner>
         ) : isMonacoLoading ? (
           <LoadingSpinner />
         ) : null}

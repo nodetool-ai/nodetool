@@ -657,12 +657,10 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
         <FlexColumn className="canvas-container" fullWidth fullHeight>
           {isLoading && !loadError && (
             <FlexColumn className="loading-overlay" align="center" gap={SPACING.xs}>
-              <LoadingSpinner size={compact ? "small" : "medium"} />
-              {!compact && (
-                <Text size="small" color="secondary">
-                  Loading model…
-                </Text>
-              )}
+              <LoadingSpinner
+                size={compact ? "small" : "medium"}
+                text={compact ? undefined : "Loading model"}
+              />
             </FlexColumn>
           )}
           {loadError && (

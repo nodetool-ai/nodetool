@@ -10,7 +10,9 @@ import {
   EditorButton,
   SelectField,
   getSpacingPx,
-  SPACING
+  SPACING,
+  EmptyState,
+  LoadingSpinner
 } from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore, {
@@ -545,9 +547,7 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
   return (
     <>
       {isLoading && (
-        <Text sx={{ textAlign: "center", padding: getSpacingPx(SPACING.xxxl) }}>
-          Loading settings…
-        </Text>
+        <LoadingSpinner text="Loading settings" />
       )}
       {isSuccess && hasVisibleSettings && (
         <div
@@ -629,9 +629,7 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
         </div>
       )}
       {isSuccess && !hasVisibleSettings && (
-        <Text sx={{ textAlign: "center", padding: getSpacingPx(SPACING.xxxl) }}>
-          No settings available
-        </Text>
+        <EmptyState variant="no-data" size="small" title="No settings available" />
       )}
     </>
   );
