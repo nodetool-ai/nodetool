@@ -26,7 +26,7 @@ import NumberInput from "../../inputs/NumberInput";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useLiveSliderWriter } from "../../../hooks/nodes/useLiveSliderWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 import { asImageRef } from "../../../utils/imageRef";
 import { RESIZE_IMAGE_NODE_TYPE } from "../../../constants/nodeTypes";
@@ -188,7 +188,7 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
   const previewValue = useNodeOutput(workflowId, id);
   const previewRef = useMemo(() => asImageRef(previewValue), [previewValue]);
 
-  const { setProperty, setProperties, setPropertyComplete } = useBespokePropertyWriter({
+  const { setProperty, setProperties, setPropertyComplete } = useLiveSliderWriter({
     nodeId: id,
     nodeType
   });
