@@ -30,6 +30,7 @@ import { useCreateApplication } from "../../hooks/useApplications";
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { useCreateJsScript } from "../../hooks/jsScript/useJsScripts";
 import { useCreateSkill } from "../../hooks/skills/useSkills";
+import { queryClient } from "../../queryClient";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -99,7 +100,9 @@ export const TEXT_FILE_TEMPLATES: readonly TextFileTemplate[] = [
     label: "Markdown (.md)",
     filename: "Untitled.md",
     mimeType: "text/markdown",
-    content: "# Untitled\n"
+    // Empty, not "# Untitled": a click after the seed heading put the caret
+    // at its end, so the typed title joined it (study 7, A2-08).
+    content: ""
   },
   {
     label: "JSON (.json)",
@@ -203,8 +206,15 @@ export const useNewDocumentCatalog = (
     [projectId]
   );
   const createProjectAsset = useCallback(
-    (file: File, destinationProjectId: string) =>
-      createAsset(file, undefined, undefined, undefined, undefined, destinationProjectId),
+    async (file: File, destinationProjectId: string) => {
+      const asset = await createAsset(file, undefined, undefined, undefined, undefined, destinationProjectId);
+      // Text files and sketches are listed under Documents and on home. The
+      // server's asset change event does not arrive while the socket is
+      // idle, so the new file stayed missing until a reload.
+      void queryClient.invalidateQueries({ queryKey: [["documents"]] });
+      void queryClient.invalidateQueries({ queryKey: [["projects"]] });
+      return asset;
+    },
     [createAsset]
   );
 

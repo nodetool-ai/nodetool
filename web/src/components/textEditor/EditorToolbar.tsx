@@ -8,6 +8,9 @@ import RedoIcon from "@mui/icons-material/Redo";
 import WrapTextIcon from "@mui/icons-material/WrapText";
 import SearchIcon from "@mui/icons-material/Search";
 import CodeIcon from "@mui/icons-material/Code";
+import TitleIcon from "@mui/icons-material/Title";
+import FormatBoldIcon from "@mui/icons-material/FormatBold";
+import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import { Toolbar, ToolbarDivider, ToolbarGroup, ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 interface EditorToolbarProps {
@@ -16,6 +19,10 @@ interface EditorToolbarProps {
   onToggleWordWrap?: () => void;
   onToggleFind?: () => void;
   onFormatCodeBlock?: () => void;
+  /** Markdown formatting; the group renders only when these are provided. */
+  onHeading?: () => void;
+  onBold?: () => void;
+  onBulletList?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   wordWrapEnabled?: boolean;
@@ -60,6 +67,9 @@ const EditorToolbar = ({
   onToggleWordWrap,
   onToggleFind,
   onFormatCodeBlock,
+  onHeading,
+  onBold,
+  onBulletList,
   canUndo = false,
   canRedo = false,
   wordWrapEnabled = true,
@@ -91,6 +101,35 @@ const EditorToolbar = ({
         </ToolbarGroup>
       )}
       {!readOnly && <ToolbarDivider />}
+
+      {!readOnly && onHeading && onBold && onBulletList && (
+        <>
+          <ToolbarGroup>
+            <ToolbarIconButton
+              icon={<TitleIcon fontSize="small" />}
+              tooltip="Heading"
+              className="toolbar-button"
+              onClick={onHeading}
+              size="small"
+            />
+            <ToolbarIconButton
+              icon={<FormatBoldIcon fontSize="small" />}
+              tooltip="Bold"
+              className="toolbar-button"
+              onClick={onBold}
+              size="small"
+            />
+            <ToolbarIconButton
+              icon={<FormatListBulletedIcon fontSize="small" />}
+              tooltip="Bulleted list"
+              className="toolbar-button"
+              onClick={onBulletList}
+              size="small"
+            />
+          </ToolbarGroup>
+          <ToolbarDivider />
+        </>
+      )}
 
       <ToolbarGroup>
         <ToolbarIconButton

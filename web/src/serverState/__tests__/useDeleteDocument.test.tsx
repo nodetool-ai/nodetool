@@ -48,6 +48,13 @@ jest.mock("../../components/appbuilder/runtime/appRuntimeStore", () =>
   jest.requireActual("../../test-utils/workflowManagerMocks").appRuntimeStoreMock()
 );
 
+const mockAssetDelete = jest.fn();
+jest.mock("../../stores/AssetStore", () => ({
+  useAssetStore: Object.assign(jest.fn(), {
+    getState: () => ({ delete: mockAssetDelete })
+  })
+}));
+
 import type { WorkflowManagerStore } from "../../stores/WorkflowManagerStore";
 
 let mockManager: WorkflowManagerStore;
@@ -173,5 +180,37 @@ describe("useDeleteDocument for an open workflow", () => {
     expect(window.api.onDeleteWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({ settings: workflow.settings })
     );
+  });
+});
+
+describe("useDeleteDocument for a text file", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
+  });
+
+  it("deletes the text file's asset and closes its tab", async () => {
+    mockAssetDelete.mockResolvedValue(["text-1"]);
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false } }
+    });
+    mockManager = createWorkflowManagerStore(queryClient);
+    const tabId = useWorkspaceTabsStore
+      .getState()
+      .openTab({ type: "text", ref: "text-1", title: "Notes.md" });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useDeleteDocument(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({ id: "text-1", type: "text" });
+    });
+
+    expect(mockAssetDelete).toHaveBeenCalledWith("text-1");
+    expect(deleteMutate).not.toHaveBeenCalled();
+    expect(
+      useWorkspaceTabsStore.getState().tabs.some((tab) => tab.id === tabId)
+    ).toBe(false);
   });
 });

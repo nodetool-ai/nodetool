@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { UseMutationResult } from "@tanstack/react-query";
 
 import { useWorkflowManagerStore } from "../contexts/WorkflowManagerContext";
+import { useAssetStore } from "../stores/AssetStore";
 import { useDocumentDraftStore } from "../stores/DocumentDraftStore";
 import { useWorkspaceTabsStore } from "../stores/WorkspaceTabsStore";
 import type { WorkflowManagerStore } from "../stores/WorkflowManagerStore";
@@ -29,7 +30,9 @@ type DeletableDocument = Pick<DocumentTreeLeaf, "id" | "type">;
  * Deletes one project document through the router for its kind. A workflow goes
  * through the workflow manager, which also drops its favorite and tells the
  * desktop app to release its shortcut, so it needs the full row. An entity is a
- * marker on an asset, so removing it untags the asset and leaves the asset.
+ * marker on an asset, so removing it untags the asset and leaves the asset. A
+ * text file is an asset, so deleting it deletes the asset. Games have no
+ * delete route.
  */
 const deleteDocument = async (
   document: DeletableDocument,
@@ -65,6 +68,11 @@ const deleteDocument = async (
     case "entity":
       await deleteEntity(id);
       return;
+    case "text":
+      await useAssetStore.getState().delete(id);
+      return;
+    case "game":
+      throw new Error("Games cannot be deleted from the Documents panel");
   }
 };
 

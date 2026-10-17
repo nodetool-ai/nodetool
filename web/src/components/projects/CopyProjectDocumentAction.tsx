@@ -12,14 +12,18 @@ import {
 } from "../ui_primitives";
 import type { ProjectDocument } from "./projectStatus";
 
-/** A document the copy route covers. Workflows are listed but not copied. */
+/**
+ * A document the copy route covers. Workflows and text files are listed but
+ * not copied.
+ */
 type CopyableDocument = ProjectDocument & {
-  type: Exclude<ProjectDocument["type"], "workflow">;
+  type: Exclude<ProjectDocument["type"], "workflow" | "text">;
 };
 
 export const isCopyableDocument = (
   document: ProjectDocument
-): document is CopyableDocument => document.type !== "workflow";
+): document is CopyableDocument =>
+  document.type !== "workflow" && document.type !== "text";
 
 interface CopyProjectDocumentActionProps {
   readonly document: CopyableDocument;

@@ -332,7 +332,8 @@ export { listDocumentIndex } from "./document-index.js";
 export type {
   DocumentIndex,
   DocumentIndexEntry,
-  DocumentIndexType
+  DocumentIndexType,
+  ProjectDocumentKind
 } from "./document-index.js";
 export {
   moveDocumentToProject,

@@ -20,12 +20,18 @@ jest.mock("../../setup/entity/EntitySetupHost", () => ({
   __esModule: true,
   default: ({
     draftKey,
+    initialAssetId,
     onBusyChange
   }: {
     draftKey?: string;
+    initialAssetId?: string;
     onBusyChange?: (busy: boolean) => void;
   }) => (
-    <div data-testid="entity-setup" data-draft-key={draftKey}>
+    <div
+      data-testid="entity-setup"
+      data-draft-key={draftKey}
+      data-initial-asset-id={initialAssetId ?? ""}
+    >
       Guided entity setup
       <button type="button" onClick={() => onBusyChange?.(true)}>
         Start saving
@@ -120,6 +126,21 @@ describe("EntityLibrary", () => {
 
     renderLibrary();
     expect(screen.queryByTestId("entity-setup")).not.toBeInTheDocument();
+  });
+
+  it("starts the flow with the image a request preselected, replacing a draft", () => {
+    useWorkspaceTabsStore.setState({ activeProjectId: "project-a" });
+    const key = "entity-library:project-a";
+    writeEntitySetupDraft(key, { ...draft, assetId: "old-asset" });
+    useEntityLibraryStore.getState().requestCreate("image-1");
+
+    renderLibrary();
+
+    expect(
+      screen.getByTestId("entity-setup").getAttribute("data-initial-asset-id")
+    ).toBe("image-1");
+    expect(readEntitySetupDraft(key)).toBeNull();
+    expect(useEntityLibraryStore.getState().createAssetId).toBeNull();
   });
 
   it("holds Back to entities while the entity is being saved", async () => {

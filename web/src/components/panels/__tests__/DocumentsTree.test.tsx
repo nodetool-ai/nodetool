@@ -275,15 +275,19 @@ it("does not delete when the user cancels", async () => {
   expect(mockDeleteMutate).not.toHaveBeenCalled();
 });
 
-it("points an empty project at the Library, where text files are listed", () => {
+it("says an empty project lists text files here and uploads in the Library", () => {
   mockUseDocumentTreeData.mockReturnValue({ ...data, groups: [] });
   renderTree();
 
   expect(screen.getByText("No documents yet")).toBeInTheDocument();
-  expect(screen.getByText(/Text files and uploads are in the Library/)).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      "Workflows, text files and other documents created in this project will appear here. Uploads are in the Library."
+    )
+  ).toBeInTheDocument();
 });
 
-it("says a search with no match covers documents only and names Chats (study-7-I4)", async () => {
+it("says a search with no match names Chats and the Library (study-7-I5)", async () => {
   const user = userEvent.setup();
   renderTree();
 
@@ -293,7 +297,94 @@ it("says a search with no match covers documents only and names Chats (study-7-I
   );
 
   expect(screen.getByText("No matching documents")).toBeInTheDocument();
-  expect(screen.getByText(/Conversations are in Chats/)).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      "This searches documents only. Conversations are in Chats, and uploads are in the Library."
+    )
+  ).toBeInTheDocument();
+});
+
+const textAndGameData = {
+  ...data,
+  groups: [
+    {
+      id: "creative",
+      label: "Creative documents",
+      children: [
+        {
+          id: "game-1",
+          name: "Platformer",
+          type: "game",
+          typeLabel: "Game",
+          projectId: "project-a"
+        }
+      ]
+    },
+    {
+      id: "text",
+      label: "Text files",
+      children: [
+        {
+          id: "text-1",
+          name: "Notes.md",
+          type: "text",
+          typeLabel: "Text file",
+          projectId: "project-a"
+        }
+      ]
+    }
+  ]
+};
+
+it("lists a saved text file and opens it in its text tab (study-7-I5)", async () => {
+  const user = userEvent.setup();
+  mockUseDocumentTreeData.mockReturnValue(textAndGameData);
+  renderTree();
+
+  expect(screen.getByRole("treeitem", { name: /Text files/ })).toBeInTheDocument();
+  await user.click(screen.getByRole("treeitem", { name: /^Notes\.md Text file$/ }));
+
+  expect(mockOpenTab).toHaveBeenCalledWith({
+    type: "text",
+    ref: "text-1",
+    mode: "edit",
+    title: "Notes.md",
+    projectId: "project-a"
+  });
+  expect(screen.getByRole("button", { name: "Delete Notes.md" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Rename Notes.md" })).toBeInTheDocument();
+});
+
+it("searches text files by name", async () => {
+  const user = userEvent.setup();
+  mockUseDocumentTreeData.mockReturnValue(textAndGameData);
+  renderTree();
+
+  await user.type(
+    screen.getByRole("textbox", { name: "Search documents" }),
+    "notes"
+  );
+
+  expect(screen.getByText("Notes.md")).toBeInTheDocument();
+  expect(screen.queryByText("Platformer")).not.toBeInTheDocument();
+});
+
+it("opens a game in its tab and offers no delete or rename for it", async () => {
+  const user = userEvent.setup();
+  mockUseDocumentTreeData.mockReturnValue(textAndGameData);
+  renderTree();
+
+  await user.click(screen.getByRole("treeitem", { name: /^Platformer Game$/ }));
+
+  expect(mockOpenTab).toHaveBeenCalledWith(
+    expect.objectContaining({ type: "game", ref: "game-1" })
+  );
+  expect(
+    screen.queryByRole("button", { name: "Delete Platformer" })
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Rename Platformer" })
+  ).not.toBeInTheDocument();
 });
 
 it("duplicates a workflow from its row and offers no duplicate for other kinds", async () => {
