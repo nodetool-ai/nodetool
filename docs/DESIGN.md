@@ -1141,6 +1141,7 @@ import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from ".
 | Rhythm | Fields are 12px apart: `FormSection`, or a column with `gap={SPACING.lg}` |
 | Groups | `FormSection label`: the `EYEBROW` style in `text.secondary`. `Label` names a field, never a group. No tinted or bordered box around a group of fields |
 | Booleans | `LabeledSwitch` with the explanation in `description`, not a bare `Switch` or `Checkbox` beside text |
+| Switch look | The theme draws every `Switch` the same: a pill track that turns `primary` when on, 28×16 with a 12px thumb. Node bodies (`NodeSwitch`) draw it at 24×12. Do not restyle a switch through `sx` or a local `.MuiSwitch-*` rule |
 | Field chrome | Fields keep their primitive look. Do not override `.MuiOutlinedInput-*`, `.MuiInputBase-*`, `.MuiSelect-*` or `.MuiInputLabel-*` from a form's `css` or `sx`. A form may set a field's width only |
 | Variant | Outlined fields everywhere. A dense panel sets `FieldDensityContext` once (see [Panel composition](#panel-composition)) |
 | Text | Labels and options are sentence case ("Tool name", "Ask every time"). Acronyms keep their case ("API key", "ID") |
