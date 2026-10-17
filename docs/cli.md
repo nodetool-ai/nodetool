@@ -53,8 +53,8 @@ work, execute jobs, or incur provider charges. The local database, secret store,
 installed packs, current working directory, and agent budget settings are used
 as in CLI agent sessions. Generation costs are recorded in the local ledger.
 
-`skills list [query]` searches installed guides and user skills. `skills read
-<name>` reads the full guide, including its examples and creation instructions.
+`skills list [query]` searches installed guides and user skills.
+`skills read <name>` reads the full guide, including its examples and creation instructions.
 Start with these guides and then inspect the named tools:
 
 | Document | Guide | Tool discovery |
