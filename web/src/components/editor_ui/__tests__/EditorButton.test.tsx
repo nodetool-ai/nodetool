@@ -274,4 +274,26 @@ describe("EditorButton", () => {
       expect(link).toBeInTheDocument();
     });
   });
+
+  describe("disabledReason", () => {
+    it("replaces the tooltip while disabled", async () => {
+      renderWithThemeProvider(
+        <EditorButton tooltip="Save the file" disabled disabledReason="No unsaved changes">
+          Save
+        </EditorButton>
+      );
+      await userEvent.hover(screen.getByRole("button", { name: "Save" }).parentElement as HTMLElement);
+      expect(await screen.findByRole("tooltip")).toHaveTextContent("No unsaved changes");
+    });
+
+    it("keeps the tooltip while enabled", async () => {
+      renderWithThemeProvider(
+        <EditorButton tooltip="Save the file" disabledReason="No unsaved changes">
+          Save
+        </EditorButton>
+      );
+      await userEvent.hover(screen.getByRole("button", { name: "Save" }));
+      expect(await screen.findByRole("tooltip")).toHaveTextContent("Save the file");
+    });
+  });
 });

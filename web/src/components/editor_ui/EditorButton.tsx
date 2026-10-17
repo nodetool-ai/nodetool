@@ -48,6 +48,11 @@ export interface EditorButtonProps extends Omit<ButtonProps, "size"> {
   tooltip?: ReactNode;
   /** Keyboard shortcut shown in the tooltip, e.g. ["Ctrl", "Enter"] */
   shortcut?: string[];
+  /**
+   * Why the button is disabled. Replaces the tooltip while `disabled` is set,
+   * so the user learns what to do instead of seeing nothing.
+   */
+  disabledReason?: ReactNode;
 }
 
 /**
@@ -71,10 +76,13 @@ export function EditorButton({
   sx,
   className,
   ref,
-  tooltip,
+  tooltip: tooltipProp,
   shortcut,
+  disabledReason,
   ...props
 }: EditorButtonProps) {
+  const showReason = Boolean(props.disabled && disabledReason);
+  const tooltip = showReason ? disabledReason : tooltipProp;
   const theme = useTheme();
   const scope = useEditorScope();
 
@@ -119,7 +127,7 @@ export function EditorButton({
   // disabled button fires no hover events, and swapping the wrapper in and
   // out would remount the button and drop its focus.
   return (
-    <Tooltip title={tooltip} shortcut={shortcut} describeChild>
+    <Tooltip title={tooltip} shortcut={showReason ? undefined : shortcut} describeChild>
       <span
         style={
           props.fullWidth

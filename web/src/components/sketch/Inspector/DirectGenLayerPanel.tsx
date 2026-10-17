@@ -166,6 +166,15 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
     !!binding.model &&
     (binding.prompt ?? "").trim().length > 0 &&
     (!isImageToImage || !!binding.sourceLayerId);
+  // Tells the user what still blocks Generate, in the order they fill the panel.
+  let generateBlocker: string | undefined;
+  if (!binding.provider || !binding.model) {
+    generateBlocker = "Pick a model first";
+  } else if ((binding.prompt ?? "").trim().length === 0) {
+    generateBlocker = "Write a prompt first";
+  } else if (isImageToImage && !binding.sourceLayerId) {
+    generateBlocker = "Pick a source layer first";
+  }
 
   return (
     <Panel
@@ -275,6 +284,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
             variant="contained"
             ref={generateRef}
             disabled={!canGenerate}
+            disabledReason={generateBlocker}
             onClick={() => void start(layer.id)}
             data-testid="direct-gen-generate"
           >
