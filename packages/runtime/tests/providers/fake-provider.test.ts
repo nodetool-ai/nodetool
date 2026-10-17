@@ -65,7 +65,10 @@ describe("FakeProvider.generateMessage", () => {
     const provider = new FakeProvider();
     const result = await provider.generateMessage({
       messages: [
-        { role: "user", content: `<JSON_SCHEMA>\n${JSON.stringify(schema)}\n</JSON_SCHEMA>` }
+        {
+          role: "user",
+          content: `<JSON_SCHEMA>\n${JSON.stringify(schema)}\n</JSON_SCHEMA>`
+        }
       ],
       model: "fake-model"
     });
@@ -230,7 +233,7 @@ describe("FakeProvider.getAvailableLanguageModels", () => {
   it("returns fake models", async () => {
     const provider = new FakeProvider();
     const models = await provider.getAvailableLanguageModels();
-    expect(models).toHaveLength(3);
+    expect(models).toHaveLength(4);
     expect(models[0].id).toBe("fake-model-v1");
     expect(models[0].provider).toBe("fake");
   });
@@ -285,5 +288,33 @@ describe("createToolCallingFakeProvider", () => {
     const calls: ToolCall[] = [{ id: "1", name: "fn", args: {} }];
     const p = createToolCallingFakeProvider(calls);
     expect(p.toolCalls).toEqual(calls);
+  });
+});
+
+describe("explicit app fixture admission", () => {
+  it("prices only the known in-process greeting fixture as free", async () => {
+    const { CostCalculator } =
+      await import("../../src/providers/cost-calculator.js");
+    const usage = { inputTokens: 1000, outputTokens: 4096 };
+    expect(
+      CostCalculator.estimateTokenCostUsd("fake-app-greeting", usage, "fake")
+    ).toBe(0);
+    expect(
+      CostCalculator.estimateTokenCostUsd("fake-app-greeting", usage, "openai")
+    ).toBeNull();
+    expect(
+      CostCalculator.estimateTokenCostUsd("unknown-fake-model", usage, "fake")
+    ).toBeNull();
+  });
+
+  it("advertises the fixed fixture only when test language models are requested", async () => {
+    expect(
+      await new FakeProvider({
+        includeLanguageModels: false
+      }).getAvailableLanguageModels()
+    ).toEqual([]);
+    expect(
+      await new FakeProvider().getAvailableLanguageModels()
+    ).toContainEqual(expect.objectContaining({ id: "fake-app-greeting", name: expect.stringContaining("requires audio") }));
   });
 });

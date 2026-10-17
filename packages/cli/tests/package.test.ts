@@ -127,6 +127,15 @@ beforeEach(() => {
 // ─── Per-command wiring tests ─────────────────────────────────────────────────
 
 describe("package list", () => {
+  it("routes an empty Python metadata scan to installed pack/node discovery", async () => {
+    const sdk = await import("@nodetool-ai/node-sdk");
+    vi.mocked(sdk.loadPythonPackageMetadata).mockReturnValue({ files: [], packages: [], nodesByType: new Map(), duplicates: [], warnings: [] });
+    const { stdout } = await runCommand(["list"]);
+    expect(stdout.join("\n")).toContain("Python package metadata");
+    expect(stdout.join("\n")).toContain("nodetool packs list");
+    expect(stdout.join("\n")).toContain("nodetool node list");
+  });
+
   it("calls loadPythonPackageMetadata by default", async () => {
     const sdk = await import("@nodetool-ai/node-sdk");
     (sdk.loadPythonPackageMetadata as unknown as ReturnType<typeof vi.fn>)
@@ -216,6 +225,17 @@ describe("package docs", () => {
 });
 
 describe("package node-docs", () => {
+  it("explains an empty metadata result without claiming docs were written", async () => {
+    const sdk = await import("@nodetool-ai/node-sdk");
+    vi.mocked(sdk.generateAllNodeDocs).mockReturnValueOnce(new Map());
+    const tmp = makeTmp();
+    const output = path.join(tmp, "nodes");
+    const { stdout } = await runCommand(["node-docs", "--output-dir", output]);
+    expect(stdout.join("\n")).toContain("nodetool node info <type>");
+    expect(stdout.join("\n")).not.toContain("Wrote 0");
+    expect(fs.existsSync(output)).toBe(false);
+  });
+
   it("writes one file per node returned by generateAllNodeDocs", async () => {
     const cwd = process.cwd();
     const tmp = makeTmp();

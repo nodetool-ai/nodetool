@@ -190,7 +190,8 @@ it("validates and simulates public force-script edits for 120 ticks with exact r
     { op: "update_entity", entity_id: "crate", set: {
       transform3d: { position: { x: 20, y: 10, z: 20 } },
       body3d: { gravityScale: 0 },
-      behaviors: [{ kind: "script", source: "input => ({ state: input.state, commands: input.tick === 0 ? [{ kind: 'addForce', force: { x: 120, y: 0, z: 0 } }, { kind: 'addTorque', torque: { x: 0, y: 60, z: 0 } }, { kind: 'addForceAtPoint', force: { x: 0, y: 0, z: 120 }, point: { x: 20, y: 11, z: 20 } }] : [] })" }]
+      // Match the runtime force fixture's budget so replay assertions do not depend on the tighter default.
+      behaviors: [{ kind: "script", maxTickMs: 20, source: "input => ({ state: input.state, commands: input.tick === 0 ? [{ kind: 'addForce', force: { x: 120, y: 0, z: 0 } }, { kind: 'addTorque', torque: { x: 0, y: 60, z: 0 } }, { kind: 'addForceAtPoint', force: { x: 0, y: 0, z: 120 }, point: { x: 20, y: 11, z: 20 } }] : [] })" }]
     } }
   ]);
   await writeFile(gamePath, JSON.stringify(document));

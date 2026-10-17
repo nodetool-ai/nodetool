@@ -126,7 +126,8 @@ function resolveImageModel(
   }
   throw new Error(
     `Model "${input}" not found for ${provider}. ` +
-      `Run \`nodetool generate ${provider} --list-models\` to see available ids.`
+      `Run \`nodetool generate ${provider} --list-models\` to see image model ids. ` +
+      "For video, use nodetool tools list video and nodetool skills read storyboard-core."
   );
 }
 
@@ -152,6 +153,10 @@ export function registerGenerateCommand(program: Command): void {
     .command("generate [provider] [model] [prompt...]")
     .description(
       'Generate an image from any provider (e.g. `generate fal-ai flux-schnell "a fox"`)'
+    )
+    .addHelpText(
+      "after",
+      "\nThis command generates images. For video and stories:\n  nodetool tools list video\n  nodetool skills read storyboard-core\n"
     )
     .option("-o, --output <path>", "Output file or directory")
     .option("--width <n>", "Image width in pixels")
