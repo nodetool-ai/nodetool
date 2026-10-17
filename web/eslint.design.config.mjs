@@ -86,6 +86,11 @@ export default [
       // boundary. Zero violations; locked in as an error. See
       // utils/resolveMediaUri.ts and scripts/test-media-src-rule.mjs.
       "design-tokens/no-unresolved-media-src": "error",
+      // `theme.palette.*` is fixed to the default colour scheme under the
+      // CSS-vars theme; chrome reads `theme.vars.palette.*`. Warn-level: the
+      // remaining reads feed canvas / wavesurfer and need literal colours.
+      // See docs/DESIGN.md §3 and scripts/test-static-palette-rule.mjs.
+      "design-tokens/static-palette": "warn",
     },
   },
   {
@@ -119,6 +124,7 @@ export default [
       "design-tokens/zindex-tokens": "error",
       "design-tokens/motion-tokens": "error",
       "design-tokens/no-unresolved-media-src": "error",
+      "design-tokens/static-palette": "warn",
     },
   },
 ];

@@ -1063,6 +1063,71 @@ export const shadowTokensRule = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Static palette reads (DESIGN.md §3 — `theme.vars.palette.*`).
+//
+// The theme is a CSS-variables theme (`colorSchemeSelector: "class"`):
+// `theme.palette.*` is baked from the default (light) scheme at createTheme
+// time, and `theme.palette.mode` is always that scheme's mode, so a colour or
+// mode check read from it ignores the light/dark toggle. `theme.vars.palette.*`
+// follows the active scheme. Canvas / third-party sinks that need a literal
+// colour read `theme.colorSchemes[activeMode].palette` instead. A
+// `theme.vars?.x ?? theme.palette.x` fallback (for themes without vars) is
+// allowed. Warn-level while canvas/three.js sites remain.
+const STATIC_PALETTE_MESSAGE =
+  "theme.palette.* is fixed to the default colour scheme. Use theme.vars.palette.* (channels: `rgb(${theme.vars.palette.x.mainChannel} / a)`), [theme.getColorSchemeSelector(\"dark\")] for mode branches, or theme.colorSchemes[activeMode].palette where a literal colour is needed. See docs/DESIGN.md §3.";
+
+const THEME_IDENTIFIERS = new Set(["theme", "t"]);
+
+const isStaticPaletteRead = (node) =>
+  node.type === "MemberExpression" &&
+  node.object.type === "MemberExpression" &&
+  !node.object.computed &&
+  node.object.object.type === "Identifier" &&
+  THEME_IDENTIFIERS.has(node.object.object.name) &&
+  node.object.property.type === "Identifier" &&
+  node.object.property.name === "palette";
+
+export const staticPaletteRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Read theme colours from theme.vars.palette so they follow the active light/dark scheme (DESIGN.md §3).",
+    },
+    schema: [],
+    messages: { static: STATIC_PALETTE_MESSAGE },
+  },
+  create(context) {
+    return {
+      MemberExpression(node) {
+        if (!isStaticPaletteRead(node)) return;
+        // Walk out of the member chain (`theme.palette.a.b`, optional chains).
+        let child = node;
+        let parent = node.parent;
+        while (
+          parent &&
+          (parent.type === "MemberExpression" ||
+            parent.type === "ChainExpression") &&
+          (parent.type === "ChainExpression" || parent.object === child)
+        ) {
+          child = parent;
+          parent = parent.parent;
+        }
+        // `theme.vars?.x ?? theme.palette.x`: fallback for themes without vars.
+        if (
+          parent?.type === "LogicalExpression" &&
+          parent.operator === "??" &&
+          parent.right === child
+        ) {
+          return;
+        }
+        context.report({ node, messageId: "static" });
+      },
+    };
+  },
+};
+
 // Local plugin exposing the design-token rules for the gate config.
 export const designTokensPlugin = {
   rules: {
@@ -1076,5 +1141,6 @@ export const designTokensPlugin = {
     "motion-tokens": motionTokensRule,
     "no-raw-mui": noRawMuiRule,
     "no-unresolved-media-src": noUnresolvedMediaSrcRule,
+    "static-palette": staticPaletteRule,
   },
 };

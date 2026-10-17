@@ -150,7 +150,7 @@ const PropertyDropzone = ({
       },
       ".asset-action-button": {
         backgroundColor: theme.vars.palette.c_scrim,
-        color: theme.vars.palette.grey[100],
+        color: theme.vars.palette.common.white,
         padding: getSpacingPx(SPACING.xs),
         width: "28px",
         height: "28px",

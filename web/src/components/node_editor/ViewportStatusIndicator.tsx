@@ -103,10 +103,10 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       color: theme.vars.palette.text.secondary,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
-        color: theme.palette.primary.main
+        color: theme.vars.palette.primary.main
       }
     }),
-    [theme.vars.palette.text.secondary, theme.vars.palette.action.hover, theme.palette.primary.main]
+    [theme.vars.palette.text.secondary, theme.vars.palette.action.hover, theme.vars.palette.primary.main]
   );
 
   const zoomLabelSx = useMemo(
@@ -118,7 +118,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       color: currentPreset !== null
-        ? theme.palette.primary.main
+        ? theme.vars.palette.primary.main
         : theme.vars.palette.text.secondary,
       minWidth: "48px",
       textAlign: "center" as const,
@@ -127,10 +127,10 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       transition: `all ${MOTION.fast}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
-        color: theme.palette.primary.main
+        color: theme.vars.palette.primary.main
       }
     }),
-    [currentPreset, theme.palette.primary.main, theme.vars.palette.text.secondary, theme.vars.palette.action.hover]
+    [currentPreset, theme.vars.palette.primary.main, theme.vars.palette.text.secondary, theme.vars.palette.action.hover]
   );
 
   const containerSx = useMemo(

@@ -5,7 +5,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import type { SystemCssProperties } from "@mui/system";
 import {
   FlexRow,
@@ -84,7 +84,7 @@ function SketchToolIconLabel({
         height: row ? 34 : undefined,
         minHeight: row ? undefined : compact ? 30 : 38,
         borderRadius: BORDER_RADIUS.xs,
-        backgroundColor: alpha(theme.palette.common.black, 0.22),
+        backgroundColor: `rgb(${theme.vars.palette.common.blackChannel} / 0.22)`,
         boxSizing: "border-box",
         color: "primary.light",
         lineHeight: 0
