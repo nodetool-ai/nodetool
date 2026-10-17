@@ -206,7 +206,11 @@ export type DockerDeployment = z.infer<typeof DockerDeploymentSchema>;
 
 /** Get server URL for a Docker deployment. */
 export function dockerDeploymentGetServerUrl(d: DockerDeployment): string {
-  if (d.server_url) return d.server_url.replace(/\/+$/, "");
+  if (d.server_url) {
+    let url = d.server_url;
+    while (url.endsWith("/")) url = url.slice(0, -1);
+    return url;
+  }
   const hostPort = d.container.port === 7777 ? 8000 : d.container.port;
   return `http://${d.host}:${hostPort}`;
 }
