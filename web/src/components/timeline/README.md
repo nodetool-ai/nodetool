@@ -166,6 +166,11 @@ mute/solo, the DSP chain, the offline export — because the notes become an
   magnet is on and the document either has a midi track or is read in bars.
   The status bar's readout follows the ruler: bar.beat.tick in bars mode,
   timecode otherwise.
+- **Detect beats** on an audio or video clip's context menu decodes the clip
+  in the browser, measures its tempo with `analyzeOnsets`, then sets the
+  document tempo and drops a "Bar N" marker on every bar inside the clip in
+  one undo step (`useDetectClipBeats`). The ruler switches to bars. A clip
+  without a steady beat changes nothing.
 - **Instrument**: a midi track header carries a preset select
   (`MIDI_INSTRUMENT_PRESETS`, reading "Custom" when the voice matches none) and
   an Edit toggle that expands `TrackInstrumentPanel` under the row, the way the

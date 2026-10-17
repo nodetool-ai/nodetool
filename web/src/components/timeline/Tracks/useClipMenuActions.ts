@@ -2,7 +2,7 @@
  * useClipMenuActions
  *
  * Every operation the clip right-click menu offers: split, duplicate,
- * regenerate-as-copy, lock, replace-output, open-in-node-editor.
+ * regenerate-as-copy, lock, replace-output, open-in-node-editor, detect beats.
  *
  * Called from `ClipContextMenu`, which mounts only while the menu is open —
  * a clip lane can hold hundreds of clips, so none of these subscriptions
@@ -22,6 +22,10 @@ import {
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
+import {
+  canDetectClipBeats,
+  useDetectClipBeats
+} from "../../../hooks/timeline/useDetectClipBeats";
 
 export interface ClipMenuActions {
   /** Generated clips can be re-rolled into a sibling take. */
@@ -36,6 +40,8 @@ export interface ClipMenuActions {
    */
   canReplace: boolean;
   canEditVideo: boolean;
+  /** Audio and video clips can set the tempo from their own beat. */
+  canDetectBeats: boolean;
 
   splitAtPlayhead: () => void;
   duplicate: () => void;
@@ -45,6 +51,7 @@ export interface ClipMenuActions {
   openReplace: () => void;
   openInNodeEditor: () => void;
   openAiEdit: () => void;
+  detectBeats: () => void;
 }
 
 export interface ClipMenuActionCallbacks {
@@ -121,6 +128,11 @@ export function useClipMenuActions(
     selectClip(clipId);
   }, [clipId, selectClip]);
 
+  const detectClipBeats = useDetectClipBeats();
+  const detectBeats = useCallback(() => {
+    void detectClipBeats(clipId);
+  }, [clipId, detectClipBeats]);
+
   const canEditVideo = useMemo(
     () =>
       clip !== undefined &&
@@ -128,6 +140,8 @@ export function useClipMenuActions(
       captureMediaEditSourceContext(sequenceId, clip).ok,
     [clip, sequenceId]
   );
+
+  const canDetectBeats = canDetectClipBeats(clip);
 
   return useMemo(
     () => ({
@@ -137,6 +151,7 @@ export function useClipMenuActions(
       isMidi: clip?.mediaType === "midi",
       canReplace: clip?.mediaType !== "adjustment",
       canEditVideo,
+      canDetectBeats,
       splitAtPlayhead,
       duplicate,
       editNotes,
@@ -144,7 +159,8 @@ export function useClipMenuActions(
       toggleLock,
       openReplace,
       openInNodeEditor,
-      openAiEdit
+      openAiEdit,
+      detectBeats
     }),
     [
       clip?.sourceType,
@@ -160,7 +176,9 @@ export function useClipMenuActions(
       openReplace,
       openInNodeEditor,
       openAiEdit,
-      canEditVideo
+      detectBeats,
+      canEditVideo,
+      canDetectBeats
     ]
   );
 }

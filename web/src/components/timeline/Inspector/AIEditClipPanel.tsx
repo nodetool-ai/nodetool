@@ -35,7 +35,9 @@ import {
   SelectField,
   SPACING,
   TextInput,
-  ThinkingIndicator
+  ThinkingIndicator,
+  ToggleGroup,
+  ToggleOption
 } from "../../ui_primitives";
 import {
   INSPECTOR_FORM_SX,
@@ -49,6 +51,15 @@ interface AIEditClipPanelProps {
 }
 
 const DEFAULT_STRENGTH = 0.65;
+
+/** Where a finished edit goes: a take to review, or straight onto the clip. */
+type EditLanding = "take" | "replace";
+
+const LANDING_HINT: Record<EditLanding, string> = {
+  take: "The result is added to version history. Preview it there and apply it.",
+  replace:
+    "The result replaces the clip when it finishes. The original stays in version history."
+};
 const IS_MANAGED_BUILD = !isLocalhost && !isElectron;
 
 const modelKey = (model: { id: string; provider: string }): string =>
@@ -137,6 +148,7 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
     null
   );
   const [strength, setStrength] = useState(DEFAULT_STRENGTH);
+  const [landing, setLanding] = useState<EditLanding>("take");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submissionFailed, setSubmissionFailed] = useState(false);
   const [newTakeError, setNewTakeError] = useState<string | null>(null);
@@ -243,7 +255,8 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
       provider: selectedModel.provider,
       model: selectedModel.id,
       strength: undefined,
-      resolution: catalogModel?.resolutions?.[0] ?? clip.resolution
+      resolution: catalogModel?.resolutions?.[0] ?? clip.resolution,
+      replaceOnLand: landing === "replace"
     });
     if (!requestId) {
       setSubmissionFailed(true);
@@ -251,7 +264,15 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
         "The edit could not be submitted. Check the connection and try again."
       );
     }
-  }, [catalogModel, clip, eligibility.ok, instruction, selectedModel, startEdit]);
+  }, [
+    catalogModel,
+    clip,
+    eligibility.ok,
+    instruction,
+    landing,
+    selectedModel,
+    startEdit
+  ]);
 
   const newTakeEligibility = useMemo(() => {
     if (!clip || clip.mediaType !== "video") {
@@ -394,6 +415,31 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
                 disabled={active}
               />
             )}
+
+            <FlexColumn gap={SPACING.xs}>
+              <ToggleGroup
+                exclusive
+                size="small"
+                fullWidth
+                value={landing}
+                onChange={(_, value: EditLanding | null) => {
+                  if (value) setLanding(value);
+                }}
+                disabled={active}
+                aria-label="Where the result goes"
+              >
+                <ToggleOption value="take" data-testid="ai-edit-landing-take">
+                  Add as take
+                </ToggleOption>
+                <ToggleOption
+                  value="replace"
+                  data-testid="ai-edit-landing-replace"
+                >
+                  Replace clip
+                </ToggleOption>
+              </ToggleGroup>
+              <Caption>{LANDING_HINT[landing]}</Caption>
+            </FlexColumn>
 
             {strengthSupported && (
               <InspectorSliderRow
