@@ -336,8 +336,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 focusOnTyping={false}
                 placeholder="Search for nodes"
                 debounceTime={80}
-                width={300}
-                maxWidth={"300px"}
+                width={260}
+                maxWidth={"260px"}
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
                 onPressEscape={closeNodeMenu}
@@ -348,7 +348,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 searchResults={searchResults}
               />
               <div
-                style={{ marginLeft: getSpacingPx(SPACING.lg), flex: "1 1 auto", minWidth: 0 }}
+                style={{ marginLeft: getSpacingPx(SPACING.md), flex: "1 1 auto", minWidth: 0 }}
               >
                 <TypeFilterChips
                   selectedInputType={selectedInputType}
