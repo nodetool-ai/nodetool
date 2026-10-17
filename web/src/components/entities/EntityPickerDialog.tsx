@@ -55,6 +55,7 @@ const EntityPickerDialogInternal: React.FC<EntityPickerDialogProps> = ({
         entities={entities}
         height="55vh"
         autoFocus
+        onCreateStarted={onClose}
       />
     </Dialog>
   );

@@ -183,6 +183,44 @@ const TextDocumentEditor = ({
   const isDirty = content !== null && content !== savedContent;
   const isSaving = saveMutation.isPending;
 
+  // Switching the tab to View or closing it unmounts this editor, and its
+  // draft lived only here (study-7-I1). Save an unsaved draft on the way out,
+  // and put it in the shared query so the preview shows it at once.
+  const unsavedDraft = useRef<string | null>(null);
+  const assetRef = useRef(asset);
+  useEffect(() => {
+    unsavedDraft.current = isDirty ? content : null;
+    assetRef.current = asset;
+  }, [isDirty, content, asset]);
+  useEffect(
+    () => () => {
+      const draft = unsavedDraft.current;
+      if (draft === null) {
+        return;
+      }
+      const leaving = assetRef.current;
+      const key = textAssetKey(leaving.id);
+      queryClient.setQueryData(key, draft);
+      update({
+        id: leaving.id,
+        data: draft,
+        content_type: leaving.content_type ?? "text/plain"
+      })
+        // The preview mounts in the same commit and refetches the file
+        // before the save lands, so read it again once the save is in.
+        .then(() => queryClient.invalidateQueries({ queryKey: key }))
+        .catch((error: Error) => {
+          addNotification({
+            type: "error",
+            alert: true,
+            content: `Failed to save ${leaving.name}: ${error.message}`,
+            dismissable: false
+          });
+        });
+    },
+    [queryClient, update, addNotification]
+  );
+
   const updateHistoryState = useCallback(() => {
     const model = editorRef.current?.getModel();
     const alternativeVersionId = model?.getAlternativeVersionId() ?? 1;

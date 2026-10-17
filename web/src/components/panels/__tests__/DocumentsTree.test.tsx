@@ -283,6 +283,19 @@ it("points an empty project at the Library, where text files are listed", () => 
   expect(screen.getByText(/Text files and uploads are in the Library/)).toBeInTheDocument();
 });
 
+it("says a search with no match covers documents only and names Chats (study-7-I4)", async () => {
+  const user = userEvent.setup();
+  renderTree();
+
+  await user.type(
+    screen.getByRole("textbox", { name: "Search documents" }),
+    "release"
+  );
+
+  expect(screen.getByText("No matching documents")).toBeInTheDocument();
+  expect(screen.getByText(/Conversations are in Chats/)).toBeInTheDocument();
+});
+
 it("duplicates a workflow from its row and offers no duplicate for other kinds", async () => {
   const user = userEvent.setup();
   renderTree();

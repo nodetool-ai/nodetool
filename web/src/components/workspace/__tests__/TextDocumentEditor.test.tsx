@@ -9,16 +9,23 @@ import type { Asset, DataframeRef } from "../../../stores/ApiTypes";
 // Heavy editor deps that are not exercised by the CSV branch.
 jest.mock("../MonacoPane", () => ({
   __esModule: true,
-  default: () => <div data-testid="monaco" />
+  default: ({ onChange }: { onChange: (value: string) => void }) => (
+    <div data-testid="monaco">
+      <button onClick={() => onChange("# Heater\n\nIt stopped working.")}>
+        type draft
+      </button>
+    </div>
+  )
 }));
 jest.mock("../../textEditor/EditorToolbar", () => ({
   __esModule: true,
   default: () => <div data-testid="editor-toolbar" />
 }));
 
+const mockUpdate = jest.fn();
 jest.mock("../../../stores/AssetStore", () => ({
   useAssetStore: <T,>(selector: (s: { update: unknown }) => T) =>
-    selector({ update: jest.fn() })
+    selector({ update: mockUpdate })
 }));
 jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: <T,>(selector: (s: { addNotification: unknown }) => T) =>
@@ -104,6 +111,57 @@ describe("TextDocumentEditor — markdown edit", () => {
     );
 
     expect(await screen.findByTestId("monaco")).toBeInTheDocument();
+  });
+});
+
+describe("TextDocumentEditor — leaving with an unsaved draft", () => {
+  beforeEach(() => {
+    mockUpdate.mockReset();
+    mockUpdate.mockResolvedValue({});
+  });
+
+  // study-7-I1: switching to View unmounted the editor and dropped the draft.
+  it("saves the draft and hands it to the preview when the editor unmounts", async () => {
+    installGlobal(
+      "fetch",
+      jest.fn().mockResolvedValue({ ok: true, text: async () => "# Untitled" })
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: Infinity } }
+    });
+    const { unmount } = render(
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={mockTheme}>
+          <TextDocumentEditor asset={markdownAsset()} />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "type draft" })
+    );
+    unmount();
+
+    expect(mockUpdate).toHaveBeenCalledWith({
+      id: "md-1",
+      data: "# Heater\n\nIt stopped working.",
+      content_type: "text/markdown"
+    });
+    expect(queryClient.getQueryData(["textAsset", "md-1"])).toBe(
+      "# Heater\n\nIt stopped working."
+    );
+  });
+
+  it("does not save when nothing changed", async () => {
+    installGlobal(
+      "fetch",
+      jest.fn().mockResolvedValue({ ok: true, text: async () => "# Untitled" })
+    );
+    const { unmount } = renderEditor(markdownAsset());
+    await screen.findByRole("button", { name: "type draft" });
+    unmount();
+
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 });
 

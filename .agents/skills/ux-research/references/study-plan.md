@@ -69,6 +69,7 @@ field. None names the product or its features.
 | `cautious` | You use a few websites regularly and prefer to read before you click. You have not used this product before. |
 | `retired` | You are retired and use a laptop for email, photos, and video calls with family. You have not used this product before. |
 | `small-business` | You run a small shop and do its marketing and paperwork yourself on a laptop. You have not used this product before. |
+| `teacher` | You teach at a primary school and prepare lessons and handouts on a laptop. You have not used this product before. |
 
 A persona changes how the participant reads the screen, not what it knows
 about NodeTool. Never put product knowledge in a persona.
