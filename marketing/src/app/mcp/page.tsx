@@ -19,6 +19,7 @@ import {
   MCP_TITLE,
   TRANSPORT_ROWS,
 } from "@/data/mcpPage";
+import PageUpdated from "@/components/PageUpdated";
 
 export const metadata: Metadata = {
   title: MCP_TITLE,
@@ -125,6 +126,9 @@ export default function McpPage() {
               ))}
             </ul>
           </nav>
+        </div>
+        <div className="mx-auto max-w-7xl px-6 pb-12 lg:px-8">
+          <PageUpdated route="/mcp" className="text-sm text-slate-400" />
         </div>
         <JsonLd data={breadcrumbSchema([{ name: "MCP server", url: "/mcp" }])} />
       </main>

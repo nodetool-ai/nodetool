@@ -1,5 +1,6 @@
-"use client";
-import React, { useMemo } from "react";
+import React from "react";
+
+// A server component, so the code ships as text in the HTML that crawlers read.
 
 type Language = "typescript" | "bash";
 
@@ -176,10 +177,8 @@ export default function CodeBlock({
   language = "typescript",
   className = "",
 }: CodeBlockProps) {
-  const html = useMemo(() => {
-    if (language === "bash") return highlightBash(code);
-    return highlightTypescript(code);
-  }, [code, language]);
+  const html =
+    language === "bash" ? highlightBash(code) : highlightTypescript(code);
 
   return (
     <pre

@@ -73,6 +73,17 @@ export default function RecipesHub() {
                 pictures in a storyboard, tune the script line by line, and
                 bring everything together in the timeline.
               </p>
+              <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
+                Browse the{" "}
+                <a href="/storyboards" className="focus-ring rounded text-amber-300 underline underline-offset-2 hover:text-amber-200">
+                  example AI storyboards
+                </a>{" "}
+                with every shot shown, or start from one of the{" "}
+                <a href="/ad-library" className="focus-ring rounded text-amber-300 underline underline-offset-2 hover:text-amber-200">
+                  editable video ad templates
+                </a>
+                .
+              </p>
               <TrackedLink
                 href="https://app.nodetool.ai/workspace"
                 event="Try Cloud"

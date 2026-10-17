@@ -20,6 +20,7 @@ import {
   VIDEO_LINKS,
   VIDEO_TITLE,
 } from "@/data/videoEditorPage";
+import PageUpdated from "@/components/PageUpdated";
 
 export const metadata: Metadata = {
   title: VIDEO_TITLE,
@@ -147,6 +148,9 @@ export default function AiVideoEditorPage() {
             <p className="max-w-xl text-lg leading-relaxed text-slate-300">Studio is free and open source. Connect the video models you already pay for and keep every project editable.</p>
             <SmartDownloadButton classNameOverride="focus-ring inline-flex items-center rounded-full bg-slate-100 px-6 py-3 font-medium text-slate-950 hover:bg-slate-200" />
           </div>
+        </div>
+        <div className="mx-auto max-w-7xl px-6 pb-12 lg:px-8">
+          <PageUpdated route="/ai-video-editor" className="text-sm text-slate-400" />
         </div>
         <JsonLd data={breadcrumbSchema([{ name: "AI video editor", url: "/ai-video-editor" }])} />
       </main>

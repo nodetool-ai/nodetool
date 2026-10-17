@@ -25,7 +25,7 @@ export default function AdLibraryPage() {
         data={{
           "@context": "https://schema.org",
           "@type": "ItemList",
-          name: "Social media ad library",
+          name: "Editable video ad templates",
           itemListElement: adRecipes.map((recipe, index) => ({
             "@type": "ListItem",
             position: index + 1,

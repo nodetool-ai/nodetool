@@ -28,9 +28,9 @@ export function illustrationSrc(beatId: string): string {
 export const adLibraryEntries: PageEntry[] = [
   {
     route: "/ad-library",
-    title: "Social media ad library | NodeTool",
+    title: "Editable Video Ad Templates for Social Media | NodeTool",
     description:
-      "Choose a social ad concept and explore its timing, composition, copy, and production requirements.",
+      "Editable vertical video ad templates for social media. Each concept ships as a NodeTool mini app that builds the ad from your images, logo, and copy.",
     priority: 0.8,
     changeFrequency: "monthly",
     indexable: true
@@ -38,7 +38,7 @@ export const adLibraryEntries: PageEntry[] = [
   ...adRecipes.map(
     (recipe): PageEntry => ({
       route: recipe.route,
-      title: `${recipe.title} | NodeTool ad library`,
+      title: `${recipe.title} video ad template | NodeTool`,
       description: recipe.objective,
       priority: 0.6,
       changeFrequency: "monthly",

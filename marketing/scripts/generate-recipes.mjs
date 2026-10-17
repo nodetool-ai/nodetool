@@ -313,7 +313,7 @@ function buildRecipe(spec, byExampleName) {
       productionRun: buildProductionRun(spec),
       guide: buildGuide(spec),
       route: `/recipes/${spec.slug}`,
-      title: `${spec.name} | NodeTool guided recipe`,
+      title: `${spec.seoTitle ?? spec.name} | NodeTool`,
       description: spec.outcome,
       priority: 0.8,
       changeFrequency: "monthly",
