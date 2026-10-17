@@ -8,13 +8,14 @@ permalink: /llms-full.txt
 
 This file concatenates the NodeTool guide documentation for LLM ingestion. The
 full per-node reference (900+ nodes) is omitted for size — browse it at
-{{ site.url }}/nodes/ or search at {{ site.url }}/search.json.
+{{ site.url }}/nodes/ or search at {{ site.url }}/search.json. Internal plans,
+PRDs and design docs (pages with `noindex: true`) are left out.
 
 {%- assign pages = site.pages | where_exp: "p", "p.url" | sort: "url" -%}
 {%- for p in pages -%}
   {%- assign url = p.url -%}
   {%- unless url contains "/nodes/" or url contains ".json" or url contains ".txt" or url contains ".xml" or url contains "404" -%}
-    {%- if p.content and p.content != "" -%}
+    {%- if p.content and p.content != "" and p.noindex != true -%}
 
 ---
 

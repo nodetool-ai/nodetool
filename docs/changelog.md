@@ -25,14 +25,14 @@ This is a summary, not the full list. The monthly sections below name the main a
 Shipped as [v0.7.0](https://github.com/nodetool-ai/nodetool/releases/tag/v0.7.0).
 
 - **Guided creation.** Guided flows start workflow, script, storyboard, timeline, and game documents.
-- **Games.** A game flow exports a Godot project.
+- **Games.** A game flow exported a Godot project. That export was removed later in September, and games now run in the built-in game engine.
 - **Projects and chat.** A project picker sits above the workspace tabs, with entities assigned to projects. A project can hold several chat threads, and memory has its own page outside chat.
 - **Storyboards.** Each storyboard card has a shot editor, and reference-to-video works in chat, providers, and storyboard render.
 - **Timeline.** MIDI tracks with a piano roll, 3D clips, clip crop, film grain, audio-driven motion, subject mattes, speech and music generation in the composer, and zip import and export.
 - **Models.** GPT Image 2.5, Flux 3 Video Edit, and new FAL, KIE, and AtlasCloud models. Video upscale, interpolate, and outpaint task types.
 - **Runtime.** External MCP servers join the agent toolbelt. Generations recover after a reload or a browser disconnect.
 - **Changed.** Left-panel navigation was consolidated, the setup and connect model pickers were redesigned, and the chat model is stored per conversation.
-- **Removed.** The `lib.apple` node library.
+- **Removed.** The `lib.apple` node library. The Godot project export, removed after v0.8.0 and absent from v0.8.1 onward.
 
 ### August 2026
 

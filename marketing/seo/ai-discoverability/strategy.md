@@ -222,6 +222,38 @@ actors for UGC ads, ad performance prediction, "free unlimited text to video",
 single-function utilities (background remover), and unrelated controls (voice
 cloning apps, meeting notes). 43 corpus rows are weak or none.
 
+## 17. Measurement
+
+Two checks, each answering a different question.
+
+1. [retrieval-review.py](retrieval-review.py) asks whether a page holds the
+   facts an answer needs. It reads the built site, not assistant answers.
+2. [mention-check.py](mention-check.py) asks whether assistants name NodeTool
+   and get it right. It sends a fixed panel of 40 corpus questions to the
+   search-grounded APIs of OpenAI (Responses with web search), Anthropic
+   (Messages with the web search tool), Perplexity (the Agent API preset that
+   replaced Sonar) and Gemini (Google Search grounding). The panel covers
+   every P1 subcluster and adds the branded questions. Keys come from the
+   environment, and a provider without a key is skipped.
+
+For each answer the script records whether NodeTool is named, whether a
+nodetool.ai or docs.nodetool.ai URL is cited, which competitors are named,
+and flags for the known-false framings: "ComfyUI meets n8n", "visual workflow
+builder", Godot export, mobile export and multiplayer. A flag counts only in a
+passage that names NodeTool and a sentence without a negation, so "NodeTool
+has no multiplayer" is not flagged. The flags are heuristics, so read the
+`flag_evidence` column and the answers file before acting on one.
+
+Rows append to `mention-check/mention-check-<date>.csv`, with the full answers
+in a matching `.answers.jsonl`. Answers vary between runs, so compare rates
+over the panel per provider (mention rate, citation rate, flagged answers),
+not single answers. Run it before a page ships and again a few weeks after,
+when crawlers have had time to pick the page up. Keep the panel fixed so the
+runs stay comparable. When the panel must change, say so in the commit.
+
+Bing Webmaster Tools' AI Performance report (action A5) is the only
+first-party citation report found. It covers Copilot only.
+
 ## Off-site actions only you can take
 
 1. A1. GitHub topics: add `game-engine`, `game-development`, `mcp`, `mcp-server`, `ai-agents`, `storyboard`, `video-editor`, `creative-tools`.

@@ -14,6 +14,29 @@ clusters, the priorities, and what the site deliberately does not target.
   target page.
 - `build-matrix.mjs` validates the corpus and writes the matrix.
 - `retrieval-review.md` tests representative questions against the built pages. `retrieval-review.py` reruns it against a local `next start -p 3100`.
+- `mention-check.py` asks four search-grounded assistant APIs a fixed panel
+  of 40 corpus questions and records whether each answer names NodeTool,
+  cites nodetool.ai or the docs, names competitors, or repeats a known-false
+  framing. Results append to `mention-check/mention-check-<date>.csv`. See
+  [strategy.md](strategy.md#17-measurement).
+
+## Running the mention check
+
+It needs Python 3.9 or later and no packages. Set any of `OPENAI_API_KEY`,
+`ANTHROPIC_API_KEY`, `PERPLEXITY_API_KEY` and `GEMINI_API_KEY`. Providers
+without a key are skipped.
+
+```bash
+python3 marketing/seo/ai-discoverability/mention-check.py --dry-run     # print the panel
+python3 marketing/seo/ai-discoverability/mention-check.py --self-test   # parse canned responses
+python3 marketing/seo/ai-discoverability/mention-check.py --providers anthropic,gemini --limit 5
+```
+
+The default models are in the `PROVIDERS` table at the top of the script.
+Override one with `MENTION_CHECK_OPENAI_MODEL`, `MENTION_CHECK_ANTHROPIC_MODEL`,
+`MENTION_CHECK_PERPLEXITY_PRESET` or `MENTION_CHECK_GEMINI_MODEL`. The panel
+ids must exist in `query-corpus.csv`, and the script warns when a P1
+subcluster has no panel question.
 
 ## Columns
 

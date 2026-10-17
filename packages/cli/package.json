@@ -1,7 +1,8 @@
 {
   "name": "@nodetool-ai/cli",
   "version": "0.8.4",
-  "description": "NodeTool chat CLI — interactive AI chat with agent mode and tool support",
+  "mcpName": "io.github.nodetool-ai/nodetool",
+  "description": "NodeTool CLI and MCP server. Gives Claude Code, Codex, Cursor and other MCP clients image, video and audio generation, workflows, a video timeline and a 2D and 3D game engine.",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
@@ -108,6 +109,12 @@
     "command-line",
     "terminal",
     "agent-mode",
-    "chat-cli"
+    "chat-cli",
+    "mcp",
+    "mcp-server",
+    "claude-code",
+    "image-generation",
+    "video-editor",
+    "game-engine"
   ]
 }
