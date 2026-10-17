@@ -27,6 +27,13 @@ export const APP_ROOT_STYLES = {
   }
 } as const;
 
+/**
+ * Matches an app laid out at phone width. The runtime scroll box and the
+ * editor preview are size containers, so the query reads the app's own width
+ * on both surfaces rather than the window's.
+ */
+export const PHONE_WIDTH_QUERY = "@container (max-width: 480px)";
+
 interface AppTheme {
   id: string;
   label: string;
@@ -81,6 +88,7 @@ export const appThemeFrame = (theme: AppTheme) =>
         border: "1px solid",
         borderColor: "divider",
         borderRadius: BORDER_RADIUS.lg,
-        p: SPACING.xl
+        p: SPACING.xl,
+        [PHONE_WIDTH_QUERY]: { p: SPACING.lg }
       }
     : {};

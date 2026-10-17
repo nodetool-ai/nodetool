@@ -57,6 +57,14 @@
  * unconstrained. `[data-puck-preview]` is the element the box-sizing reset
  * above already targets, so this composes with it.
  */
+/*
+ * The runtime scroll box is a size container, so the app root's phone-width
+ * padding (PHONE_WIDTH_QUERY) reads the app's width. Make the preview one too,
+ * so the phone preview lays out like the published app on a phone.
+ */
+.appbuilder-editor [data-puck-preview] {
+  container-type: inline-size;
+}
 .appbuilder-editor.preview-phone [data-puck-preview] {
   max-width: 390px;
   margin-inline: auto;
