@@ -82,8 +82,7 @@ describe("ClipMidiSection", () => {
       "Matte",
       "Transition",
       "Time remap",
-      "Animate",
-      "Keyframes"
+      "Animate"
     ]) {
       expect(screen.queryByText(title)).toBeNull();
     }

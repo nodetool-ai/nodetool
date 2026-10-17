@@ -154,6 +154,7 @@ describe("clip canvases resolve theme colours to plain values", () => {
           handleTransitionPointerEnd={jest.fn()}
           keyframeTimesMs={[]}
           onKeyframeClick={jest.fn()}
+          onKeyframeMove={jest.fn()}
           interactionLocked={false}
         />
       </ThemeProvider>

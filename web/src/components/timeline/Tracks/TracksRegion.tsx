@@ -148,14 +148,13 @@ import {
 import { resolveTimelineAction } from "../timelineKeymap";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { performSourceEdit } from "../sourceEdit";
+import { keyframeRowFor, toggleRowKeyframeAt } from "../Inspector/keyframeRows";
 import { getSelectedAssetForExplorer } from "../../../stores/AssetGridStore";
 import { usePanelStore } from "../../../stores/PanelStore";
 import {
   groupDescendantIds,
-  hasKeyframeAt,
   isGroupClip,
-  keyframeTimesMs,
-  keyframeValueAt
+  keyframeTimesMs
 } from "@nodetool-ai/timeline";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import { isMac } from "../../../utils/platform";
@@ -1384,17 +1383,12 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             const relMs = liveMs - target.startMs;
             if (action === "addKeyframe") {
               if (relMs < 0 || relMs > target.durationMs) return;
-              const property = ui.keyframeProperty;
-              if (hasKeyframeAt(target, property, relMs)) {
-                doc.removeClipKeyframe(clipId, property, relMs);
-              } else {
-                doc.setClipKeyframe(
-                  clipId,
-                  property,
-                  relMs,
-                  keyframeValueAt(target, property, relMs)
-                );
-              }
+              // The armed row's diamond: Position keys X and Y together.
+              const row = keyframeRowFor(ui.keyframeProperty);
+              if (!row) return;
+              doc.editClipKeyframes(clipId, (c) =>
+                toggleRowKeyframeAt(c, row, relMs)
+              );
               return;
             }
             seekToNeighbour(

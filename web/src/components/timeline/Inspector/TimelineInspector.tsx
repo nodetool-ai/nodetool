@@ -40,7 +40,6 @@ import {
   InspectorRow,
   InspectorSectionTitle,
   InspectorSelect,
-  InspectorSliderRow,
   InspectorStaticValue,
   InspectorToggleRow,
   sectionContentStyles
@@ -62,7 +61,8 @@ import { ClipEffectsList } from "./ClipEffectsList";
 import { ClipGroupPanel } from "./ClipGroupPanel";
 import { ClipMaskMatte } from "./ClipMaskMatte";
 import { ClipCompositionInfo, ClipTimeRemapSection } from "./ClipTimeRemap";
-import { ClipKeyframes } from "./ClipKeyframes";
+import { KeyframedPropertyRow } from "./KeyframedPropertyRow";
+import { OPACITY_ROW } from "./keyframeRows";
 import { ClipMidiSection } from "./ClipMidiSection";
 import { ClipModel3DSection } from "./ClipModel3DSection";
 import { ClipShapeSection } from "./ClipShapeSection";
@@ -225,13 +225,6 @@ const TimelineInspectorContent: React.FC = memo(() => {
     [clipId, patchClip]
   );
 
-  const handleAdjustmentOpacityChange = useCallback(
-    (value: number) => {
-      if (!clipId) return;
-      patchClip(clipId, { opacity: value });
-    },
-    [clipId, patchClip]
-  );
 
   /**
    * Groups this clip may be parented to: every group except itself and its own
@@ -499,16 +492,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
           unmountOnExit
         >
           <FlexColumn css={sectionContentStyles(theme)}>
-            <InspectorSliderRow
-              label="Opacity"
-              min={0}
-              max={1}
-              step={0.01}
-              value={clip.opacity ?? 1}
-              display={`${Math.round((clip.opacity ?? 1) * 100)}%`}
-              onChange={handleAdjustmentOpacityChange}
-              resetValue={1}
-            />
+            <KeyframedPropertyRow clip={clip} row={OPACITY_ROW} />
           </FlexColumn>
         </CollapsibleSection>
 
@@ -517,8 +501,6 @@ const TimelineInspectorContent: React.FC = memo(() => {
         <ClipMaskMatte clip={clip} hideMatte />
 
         <ClipAnimations clip={clip} />
-
-        <ClipKeyframes clip={clip} />
       </Panel>
     );
   }
@@ -759,8 +741,6 @@ const TimelineInspectorContent: React.FC = memo(() => {
       <ClipCompositionInfo clip={clip} />
 
       {!isMidi && <ClipAnimations clip={clip} />}
-
-      {!isMidi && <ClipKeyframes clip={clip} />}
 
       <ClipAudioDrive key={`audio-drive-${clip.id}`} clip={clip} />
     </Panel>

@@ -415,7 +415,7 @@ describe("Inspector control finder", () => {
     const user = userEvent.setup();
     renderInspector();
     seedVideoClip();
-    expect(screen.queryByRole("slider", { name: /^opacity$/i })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: /^opacity$/i })).toBeNull();
     await user.type(
       screen.getByRole("textbox", { name: /find a control/i }),
       "opacity"
@@ -427,7 +427,7 @@ describe("Inspector control finder", () => {
       within(results).getByRole("button", { name: /^render/i })
     ).toBeVisible();
     await user.keyboard("{Enter}");
-    expect(screen.getByRole("slider", { name: /^opacity$/i })).toBeVisible();
+    expect(screen.getByRole("textbox", { name: /^opacity$/i })).toBeVisible();
     expect(
       screen.queryByRole("region", { name: /matching inspector sections/i })
     ).toBeNull();

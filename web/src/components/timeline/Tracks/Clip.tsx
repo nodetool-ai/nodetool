@@ -37,7 +37,11 @@ import { useTransitionHandle } from "./useTransitionHandle";
 import { useClipFade, useSetClipFadeShape } from "./useClipFade";
 import type { ClipFadeEdge } from "./useClipFade";
 import { ClipFadeShapeMenu } from "./ClipFadeShapeMenu";
-import { keyframeTimesMs as deriveKeyframeTimes } from "@nodetool-ai/timeline";
+import {
+  KEYFRAME_PROPERTIES,
+  keyframeTimesMs as deriveKeyframeTimes,
+  moveKeyframes
+} from "@nodetool-ai/timeline";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { ClipBody, CLIP_STATUS_MAP, MIN_CLIP_WIDTH_PX } from "./ClipBody";
@@ -213,6 +217,22 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     },
     [clip, seek]
   );
+  const editClipKeyframes = useTimelineStore((s) => s.editClipKeyframes);
+  const fps = useTimelineStore((s) => s.fps);
+  const handleKeyframeMove = useCallback(
+    (fromMs: number, toMs: number) => {
+      if (!clip) return;
+      // Land on a frame of the sequence, inside the clip.
+      const frameMs = 1000 / Math.max(1, fps);
+      const abs = Math.round((clip.startMs + toMs) / frameMs) * frameMs;
+      const rel = Math.max(0, Math.min(clip.durationMs, abs - clip.startMs));
+      editClipKeyframes(clip.id, (c) => ({
+        animations: moveKeyframes(c, KEYFRAME_PROPERTIES, fromMs, rel)
+      }));
+      seek(clip.startMs + rel);
+    },
+    [clip, editClipKeyframes, fps, seek]
+  );
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
@@ -344,6 +364,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         fade={fade}
         keyframeTimesMs={keyframeTimes}
         onKeyframeClick={handleKeyframeClick}
+        onKeyframeMove={handleKeyframeMove}
         interactionLocked={interactionLocked}
       />
       {contextMenuPos && (
