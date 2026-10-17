@@ -13,6 +13,7 @@ import {
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { datetimeEditor, floatEditor, integerEditor } from "./DataTableEditors";
+import { SELECT_COLUMN } from "./selectColumn";
 import TableActions from "./TableActions";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
@@ -45,27 +46,7 @@ const DictTable: React.FC<DictTableProps> = ({
 
   const columns = useMemo(
     () => [
-      ...(showSelect
-        ? [
-            {
-              title: "",
-              field: "select",
-              formatter: "rowSelection" as Formatter,
-              titleFormatter: "rowSelection" as Formatter,
-              hozAlign: "left" as ColumnDefinitionAlign,
-              headerSort: false,
-              width: 25,
-              minWidth: 25,
-              resizable: false,
-              frozen: true,
-              cellClick: function (_e: UIEvent, cell: CellComponent) {
-                cell.getRow().toggleSelect();
-              },
-              editable: false,
-              cssClass: "row-select"
-            }
-          ]
-        : []),
+      ...(showSelect ? [SELECT_COLUMN] : []),
       {
         title: "Key",
         field: "key",
