@@ -147,6 +147,7 @@ a reliable signal that a row is clipped off the right edge on a phone.
 
 ## Rules
 
+- Screens follow [UX Guidelines](../docs/UX_GUIDELINES.md). Its rules on entry points, keeping work, empty states, errors and labels apply on a phone too.
 - TypeScript strict, no `any`; throw `Error` objects, not strings.
 - Functional components, typed prop interfaces.
 - Zustand: select the slices you need, never the whole store.

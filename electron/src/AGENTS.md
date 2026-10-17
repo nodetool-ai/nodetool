@@ -104,6 +104,8 @@ directory for file tools); vaults sit one level above the database.
 
 ## Rules
 
+Desktop UI in `electron/src/components/` follows [UX Guidelines](../../docs/UX_GUIDELINES.md), as the web UI does.
+
 ### Security (Critical — non-negotiable)
 
 > See [DEVELOPMENT_STANDARDS §12](../../docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security) for the full checklist (CSP, auto-update signing, `setWindowOpenHandler`, sandbox flag, `webSecurity`).

@@ -503,6 +503,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "chat-client",
     "An http(s) ref stored on a graph or storyboard, read when packing an export."
   ),
+  guardedSafeFetch(
+    "packages/websocket/src/lib/openverse.ts",
+    "Openverse import → asset",
+    "provider-response",
+    "The file URL of an Openverse result, looked up by id on the fixed Openverse API host."
+  ),
   {
     file: "packages/agents/src/capabilities/media.ts",
     owner: "yt_dlp download",

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/manimgx-nodes",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "description": "NodeTool ManimGX nodes: math and 3D animations written in Manim's Python API, rendered to video",
   "type": "module",
   "engines": {
