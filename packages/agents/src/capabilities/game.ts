@@ -1245,17 +1245,18 @@ const installExample: CapabilityExport = {
     if (!storage) return { error: "Asset storage is unavailable" };
     if (!getExampleGameBundle({}, slug)) return { error: "Example game not found" };
     const installed = await installExampleGameAssets(user, projectId, {}, slug, storage);
+    let created: Awaited<ReturnType<typeof createNativeGame>>;
     try {
-      const created = await createNativeGame(user, projectId, typeof name === "string" ? name.trim() : installed.bundle.name, installed.document, installed.document.schemaVersion === 3 ? "3d" : "2d");
-      if ("error" in created) {
-        await installed.rollback();
-        return created;
-      }
-      return { game: summary(created.game), document: created.document };
+      created = await createNativeGame(user, projectId, typeof name === "string" ? name.trim() : installed.bundle.name, installed.document, installed.document.schemaVersion === 3 ? "3d" : "2d");
     } catch (error) {
-      await installed.rollback();
+      await installed.rollback(error);
       throw error;
     }
+    if ("error" in created) {
+      await installed.rollback(new Error(created.error));
+      return created;
+    }
+    return { game: summary(created.game), document: created.document };
   }
 };
 

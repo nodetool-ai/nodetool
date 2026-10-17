@@ -15,7 +15,6 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
-    "jose": "^6.2.0"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",
